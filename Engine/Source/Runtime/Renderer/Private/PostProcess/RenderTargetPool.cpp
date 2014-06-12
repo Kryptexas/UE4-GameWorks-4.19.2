@@ -307,23 +307,26 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderTargetPoolTest"));
 		
+		//@todo-rco: RHIPacketList
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 		if(ICVar->GetValueOnRenderThread())
 		{
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{
-				RHISetRenderTarget(Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());	
-				RHIClear(true, FLinearColor(1000, 1000, 1000, 1000), false, 1.0f, false, 0, FIntRect());
+				SetRenderTarget(RHICmdList, Found->RenderTargetItem.TargetableTexture, FTextureRHIRef());
+				RHICmdList.Clear(true, FLinearColor(1000, 1000, 1000, 1000), false, 1.0f, false, 0, FIntRect());
 			}
 			else if(Found->GetDesc().TargetableFlags & TexCreate_UAV)
 			{
 				const uint32 ZeroClearValue[4] = { 1000, 1000, 1000, 1000 };
-				RHIClearUAV(Found->RenderTargetItem.UAV, ZeroClearValue);
+				RHICmdList.ClearUAV(Found->RenderTargetItem.UAV, ZeroClearValue);
 			}
 
 			if(Desc.TargetableFlags & TexCreate_DepthStencilTargetable)
 			{
-				RHISetRenderTarget(FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
-				RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
+				SetRenderTarget(RHICmdList, FTextureRHIRef(), Found->RenderTargetItem.TargetableTexture);
+				RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 			}
 		}
 	}
@@ -676,7 +679,9 @@ inline void DrawBorder(FCanvas& Canvas, const FIntRect Rect, FLinearColor Color)
 
 void FRenderTargetPool::PresentContent(const FSceneView& View)
 {
-	if(RenderTargetPoolEvents.Num())
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	if (RenderTargetPoolEvents.Num())
 	{
 		AddPhaseEvent(TEXT("FrameEnd"));
 
@@ -689,12 +694,12 @@ void FRenderTargetPool::PresentContent(const FSceneView& View)
 		{
 			SMemoryStats MemoryStats = ComputeView();
 
-			RHISetRenderTarget(View.Family->RenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-			RHISetViewport(0, 0, 0.0f, GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y, 1.0f );
+			SetRenderTarget(RHICmdList, View.Family->RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			RHICmdList.SetViewport(0, 0, 0.0f, GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y, 1.0f);
 
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			// this is a helper class for FCanvas to be able to get screen size
 			class FRenderTargetTemp : public FRenderTarget
@@ -848,7 +853,7 @@ void FRenderTargetPool::PresentContent(const FSceneView& View)
 		}
 	}
 
-	VisualizeTexture.PresentContent(View);
+	VisualizeTexture.PresentContent(RHICmdList, View);
 }
 
 void FRenderTargetPool::AddDeallocEvents()

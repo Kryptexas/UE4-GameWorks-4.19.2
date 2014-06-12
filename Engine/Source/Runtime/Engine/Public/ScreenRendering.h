@@ -129,6 +129,6 @@ public:
 /**
  * Draws a texture rectangle on the screen using normalized (-1 to 1) device coordinates.
  */
-extern void DrawScreenQuad(  float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, const FTexture* Texture );
+extern void DrawScreenQuad(FRHICommandList& RHICmdList, float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, const FTexture* Texture);
 
-extern void ENGINE_API DrawNormalizedScreenQuad(  float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, FIntPoint TargetSize, FTexture2DRHIRef TextureRHI );
+extern void ENGINE_API DrawNormalizedScreenQuad(FRHICommandList& RHICmdList, float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, FIntPoint TargetSize, FTexture2DRHIRef TextureRHI);

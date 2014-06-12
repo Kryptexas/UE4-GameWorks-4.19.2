@@ -527,5 +527,5 @@ void FDeferredShadingSceneRenderer::RenderVelocities(const FViewInfo& View, TRef
 	GPrevPerBoneMotionBlur.UnlockData(bLastFrame);
 
 	// to be able to observe results with VisualizeTexture
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(VelocityRT);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, VelocityRT);
 }

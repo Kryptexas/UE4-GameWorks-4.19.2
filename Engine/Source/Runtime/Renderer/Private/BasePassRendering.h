@@ -758,7 +758,7 @@ public:
 		{}
 	};
 
-	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh);
+	static void AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,

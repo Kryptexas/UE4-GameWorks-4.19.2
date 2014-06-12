@@ -66,6 +66,7 @@ enum EDrawRectangleFlags
  * Flags						see EDrawRectangleFlags
  */
 extern void DrawRectangle(
+	FRHICommandList& RHICmdList,
 	float X,
 	float Y,
 	float SizeX,
@@ -81,6 +82,7 @@ extern void DrawRectangle(
 	);
 
 extern void DrawTransformedRectangle(
+	FRHICommandList& RHICmdList,
     float X,
     float Y,
     float SizeX,

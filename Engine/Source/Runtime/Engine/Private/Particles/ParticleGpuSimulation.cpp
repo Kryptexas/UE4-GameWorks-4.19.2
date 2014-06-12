@@ -1227,8 +1227,10 @@ void ExecuteSimulationCommands(
 	TShaderMapRef<TParticleSimulationPS<bUseDepthBufferCollision> > PixelShader(GetGlobalShaderMap());
 
 	// Bound shader state.
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
+		RHICmdList,
 		BoundShaderState,
 		GParticleTileVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
@@ -1280,9 +1282,14 @@ void ClearTiles(const TArray<uint32>& Tiles)
 	TShaderMapRef<FParticleTileVS> VertexShader( GetGlobalShaderMap() );
 	TShaderMapRef<FParticleSimulationClearPS> PixelShader( GetGlobalShaderMap() );
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	// Bound shader state.
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
+		RHICmdList,
 		BoundShaderState,
 		GParticleTileVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
@@ -1297,7 +1304,7 @@ void ClearTiles(const TArray<uint32>& Tiles)
 		const uint32* TilesPtr = Tiles.GetTypedData() + FirstTile;
 		BuildTileVertexBuffer( BufferParam, TilesPtr, TilesThisDrawCall );
 		//@todo-rco: RHIPacketList
-		VertexShader->SetParameters(FRHICommandList::GetNullRef(), ShaderParam);
+		VertexShader->SetParameters(RHICmdList, ShaderParam);
 		DrawAlignedParticleTiles( ComputeAlignedTileCount(TilesThisDrawCall) );
 		TileCount -= TilesThisDrawCall;
 		FirstTile += TilesThisDrawCall;
@@ -1506,6 +1513,9 @@ void InjectNewParticles( const TArray<FNewParticle>& NewParticles )
 	int32 ParticleCount = NewParticles.Num();
 	int32 FirstParticle = 0;
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	while ( ParticleCount > 0 )
 	{
 		// Copy new particles in to the vertex buffer.
@@ -1522,8 +1532,10 @@ void InjectNewParticles( const TArray<FNewParticle>& NewParticles )
 		TShaderMapRef<FParticleInjectionPS> PixelShader( GetGlobalShaderMap() );
 
 		// Bound shader state.
+		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
+			RHICmdList,
 			BoundShaderState,
 			GParticleInjectionVertexDeclaration.VertexDeclarationRHI,
 			*VertexShader,
@@ -1734,29 +1746,31 @@ static void VisualizeGPUSimulation(
 	const float DisplayOffsetX = 60.0f;
 	const float DisplayOffsetY = 60.0f;
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	// Setup render states.
 	FIntPoint TargetSize = RenderTarget->GetSizeXY();
-	RHISetRenderTarget( RenderTarget->GetRenderTargetTexture(), FTextureRHIParamRef() );
-	RHISetViewport( 0, 0, 0.0f, TargetSize.X, TargetSize.Y, 1.0f );
-	RHISetDepthStencilState( TStaticDepthStencilState<false,CF_Always>::GetRHI() );
-	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
-	RHISetBlendState( TStaticBlendState<>::GetRHI() );
+	SetRenderTarget(RHICmdList, RenderTarget->GetRenderTargetTexture(), FTextureRHIParamRef());
+	RHICmdList.SetViewport(0, 0, 0.0f, TargetSize.X, TargetSize.Y, 1.0f);
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	// Grab shaders.
 	TShaderMapRef<FParticleSimVisualizeVS> VertexShader( GetGlobalShaderMap() );
 	TShaderMapRef<FParticleSimVisualizePS> PixelShader( GetGlobalShaderMap() );
 
 	// Bound shader state.
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 	static FGlobalBoundShaderState BoundShaderState;
 	SetGlobalBoundShaderState(
+		RHICmdList,
 		BoundShaderState,
 		GParticleSimVisualizeVertexDeclaration.VertexDeclarationRHI,
 		*VertexShader,
 		*PixelShader
 		);
-
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Parameters for the visualization.
 	FParticleSimVisualizeParameters Parameters;
@@ -1771,7 +1785,7 @@ static void VisualizeGPUSimulation(
 	const int32 VertexStride = sizeof(FVector2D);
 	
 	// Bind vertex stream.
-	RHISetStreamSource(
+	RHICmdList.SetStreamSource(
 		0,
 		GParticleTexCoordVertexBuffer.VertexBufferRHI,
 		VertexStride,
@@ -1779,7 +1793,7 @@ static void VisualizeGPUSimulation(
 		);
 
 	// Draw.
-	RHIDrawIndexedPrimitive(
+	RHICmdList.DrawIndexedPrimitive(
 		GParticleIndexBuffer.IndexBufferRHI,
 		PT_TriangleList,
 		/*BaseVertexIndex=*/ 0,
@@ -4005,23 +4019,26 @@ void FFXSystem::SimulateGPUParticles(
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
 	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
 
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
 	if ( !CurrentStateTextures.bTexturesCleared )
 	{
-		RHISetRenderTarget( CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
-		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
-		RHISetRenderTarget( CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
-		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 		CurrentStateTextures.bTexturesCleared = true;
 	}
 
 	if ( !PrevStateTextures.bTexturesCleared )
 	{
-		RHISetRenderTarget( PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
-		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
-		RHISetRenderTarget( PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
-		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 		PrevStateTextures.bTexturesCleared = true;
 	}
@@ -4033,11 +4050,11 @@ void FFXSystem::SimulateGPUParticles(
 		CurrentStateTextures.VelocityTextureTargetRHI,
 		CurrentStateTextures.PositionZWTextureTargetRHI
 	};
-	RHISetRenderTargets(2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
-	RHISetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	SetRenderTargets(RHICmdList, 2, RenderTargets, FTextureRHIParamRef(), 0, NULL);
+	RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	// Simulations that don't use vector fields can share some state.
 	FVectorFieldUniformBufferRef EmptyVectorFieldUniformBuffer;
@@ -4205,20 +4222,20 @@ void FFXSystem::SimulateGPUParticles(
 			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI,
 			CurrentStateTextures.PositionZWTextureTargetRHI
 		};
-		RHISetRenderTargets(4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL);
-		RHISetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
+		SetRenderTargets(RHICmdList, 4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL);
+		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 
 		// Inject particles.
 		InjectNewParticles(NewParticles);
 
 		// Resolve attributes textures. State textures are resolved later.
-		RHICopyToResolveTarget( 
+		RHICmdList.CopyToResolveTarget(
 			ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI,
 			ParticleSimulationResources->RenderAttributesTexture.TextureRHI,
 			/*bKeepOriginalSurface=*/ false,
 			FResolveParams()
 			);
-		RHICopyToResolveTarget( 
+		RHICmdList.CopyToResolveTarget(
 			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI,
 			ParticleSimulationResources->SimulationAttributesTexture.TextureRHI,
 			/*bKeepOriginalSurface=*/ false,
@@ -4231,11 +4248,11 @@ void FFXSystem::SimulateGPUParticles(
 	NewParticles.Reset();
 
 	// Resolve all textures.
-	RHICopyToResolveTarget(CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.PositionTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
-	RHICopyToResolveTarget(CurrentStateTextures.VelocityTextureTargetRHI, CurrentStateTextures.VelocityTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
+	RHICmdList.CopyToResolveTarget(CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.PositionTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
+	RHICmdList.CopyToResolveTarget(CurrentStateTextures.VelocityTextureTargetRHI, CurrentStateTextures.VelocityTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
 
 	// Clear render targets so we can safely read from them.
-	RHISetRenderTarget(FTextureRHIParamRef(),FTextureRHIParamRef());
+	SetRenderTarget(RHICmdList, FTextureRHIParamRef(), FTextureRHIParamRef());
 
 	// Stats.
 	if (Phase == EParticleSimulatePhase::Last)

@@ -191,19 +191,19 @@ public:
 IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
 
 
-template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualizeTextureData& Data)
+template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+
+	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	PixelShader->SetParameters(RHICmdList, Data);
 
 	DrawRectangle(
+		RHICmdList,
 		// XY
 		0, 0,
 		// SizeXY
@@ -220,7 +220,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualiz
 		EDRF_UseTriangleOptimization);
 }
 
-void RenderVisualizeTexture(const FVisualizeTextureData& Data)
+void RenderVisualizeTexture(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
 {
 	if(Data.Desc.Is2DTexture())
 	{
@@ -228,30 +228,30 @@ void RenderVisualizeTexture(const FVisualizeTextureData& Data)
 		if(Data.Desc.NumSamples > 1)
 		{
 			// MSAA
-			VisualizeTextureForTextureType<5>(Data);
+			VisualizeTextureForTextureType<5>(RHICmdList, Data);
 		}
 		else
 		{
 			// non MSAA
-			VisualizeTextureForTextureType<2>(Data);
+			VisualizeTextureForTextureType<2>(RHICmdList, Data);
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
 	{
 		// Volume
-		VisualizeTextureForTextureType<3>(Data);
+		VisualizeTextureForTextureType<3>(RHICmdList, Data);
 	}
 	else if(Data.Desc.IsCubemap())
 	{
 		if(Data.Desc.IsArray())
 		{
 			// Cube[]
-			VisualizeTextureForTextureType<4>(Data);
+			VisualizeTextureForTextureType<4>(RHICmdList, Data);
 		}
 		else
 		{
 			// Cube
-			VisualizeTextureForTextureType<0>(Data);
+			VisualizeTextureForTextureType<0>(RHICmdList, Data);
 		}
 	}
 }
@@ -311,10 +311,11 @@ FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSi
 	return ret;
 }
 
-void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc)
+void FVisualizeTexture::GenerateContent(FRHICommandList& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc)
 {
 	// otherwise StartFrame() wasn't called
 	check(ViewRect != FIntRect(0, 0, 0, 0))
+
 
 	FTexture2DRHIRef VisTexture = (FTexture2DRHIRef&)RenderTargetItem.ShaderResourceTexture;
 
@@ -343,11 +344,11 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 
 	const FSceneRenderTargetItem& DestRenderTarget = VisualizeTextureContent->GetRenderTargetItem();
 
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
-	RHIClear(true, FLinearColor(1,1,0,1), false, 0.0f, false, 0, FIntRect());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	RHICmdList.Clear(true, FLinearColor(1, 1, 0, 1), false, 0.0f, false, 0, FIntRect());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	FIntPoint RTExtent = GSceneRenderTargets.GetBufferSizeXY();
 
@@ -373,6 +374,7 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 		default:
 			break;
 	}
+	RHICmdList.CheckIsNull(); // this stuff is manging resources directly, so that won't work in parallel
 
 	bool bIsDefault = StencilSRVSrc == GBlackTexture->TextureRHI;
 	bool bDepthStencil = Desc.Is2DTexture() && Desc.Format == PF_DepthStencil;
@@ -417,9 +419,9 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 	{	
 		SCOPED_DRAW_EVENT(VisualizeTexture, DEC_SCENE_ITEMS);
 		// continue rendering to HDR if necessary
-		RenderVisualizeTexture(VisualizeTextureData);
+		RenderVisualizeTexture(RHICmdList, VisualizeTextureData);
 	}
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	VisualizeTextureDesc = Desc;
 
@@ -445,6 +447,7 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 		
 		
 		
+		RHICmdList.CheckIsNull(); // synchronous readback, won't work with parallel
 		
 		RHIReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
 
@@ -470,7 +473,7 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 	}
 }
 
-void FVisualizeTexture::PresentContent(const FSceneView& View)
+void FVisualizeTexture::PresentContent(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	if(Mode != 0)
 	{
@@ -478,7 +481,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 		FPooledRenderTarget* Element = GRenderTargetPool.GetElementById(Mode - 1);
 		if(Element)
 		{
-			GenerateContent(Element->GetRenderTargetItem(), Element->GetDesc());
+			GenerateContent(RHICmdList, Element->GetRenderTargetItem(), Element->GetDesc());
 		}
 	}
 
@@ -492,25 +495,23 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 		return;
 	}
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	FPooledRenderTargetDesc Desc = VisualizeTextureDesc;
 
 	auto& RenderTarget = View.Family->RenderTarget->GetRenderTargetTexture();
-	RHISetRenderTarget(RenderTarget, FTextureRHIRef());
-	RHISetViewport(0, 0, 0.0f, RenderTarget->GetSizeX(), RenderTarget->GetSizeY(), 1.0f);
+	SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef());
+	RHICmdList.SetViewport(0, 0, 0.0f, RenderTarget->GetSizeX(), RenderTarget->GetSizeY(), 1.0f);
 
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(RHICmdList, View);
 	PixelShader->SetParameters(RHICmdList, View, *VisualizeTextureContent);
@@ -521,6 +522,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		RHICmdList,
 		VisualizeTextureRect.Min.X, VisualizeTextureRect.Min.Y,
 		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
 		0, 0,
@@ -548,6 +550,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 			return View.Family->RenderTarget->GetRenderTargetTexture();
 		}
 	} TempRenderTarget(View);
+	RHICmdList.CheckIsNull(); // canvas doesn't work with command lists
 
 	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
 
@@ -621,7 +624,7 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 	ObservedDebugNameReusedGoal = InObservedDebugNameReusedGoal;
 }
 
-void FVisualizeTexture::SetCheckPoint(const IPooledRenderTarget* PooledRenderTarget)
+void FVisualizeTexture::SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!PooledRenderTarget || !bEnabled)
@@ -648,7 +651,7 @@ void FVisualizeTexture::SetCheckPoint(const IPooledRenderTarget* PooledRenderTar
 		// if multiple times reused during the frame, is that the one we want to look at?
 		if(*UsageCountPtr == ObservedDebugNameReusedGoal || ObservedDebugNameReusedGoal == 0xffffffff)
 		{
-			GenerateContent(RenderTargetItem, Desc);
+			GenerateContent(RHICmdList, RenderTargetItem, Desc);
 		}
 	}
 	// only needed for VisualizeTexture (todo: optimize out when possible)

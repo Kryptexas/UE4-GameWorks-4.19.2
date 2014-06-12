@@ -92,15 +92,17 @@ void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI
 	{
 		GPUProfilingData.FrameTiming.InitResource();
 	}
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Set the render target and viewport.
 	if( RenderTarget )
 	{
-		RHISetRenderTarget(RenderTarget, FTextureRHIRef());
+		SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef());
 	}
 	else
 	{
-		RHISetRenderTarget(DrawingViewport->GetBackBuffer(), FTextureRHIRef());
+		SetRenderTarget(RHICmdList, DrawingViewport->GetBackBuffer(), FTextureRHIRef());
 	}
 }
 

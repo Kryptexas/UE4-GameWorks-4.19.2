@@ -756,7 +756,11 @@ void FSlateRHIRenderer::CopyWindowsToDrawBuffer(const TArray<FString>& KeypressB
 				DrawWindowToBuffer,
 				FDrawWindowToBufferContext,Context,DrawWindowToBufferContext,
 			{
+				//@todo-rco: RHIPacketList
+				FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 				DrawNormalizedScreenQuad(
+					RHICmdList,
 					Context.WindowRect.Min.X, Context.WindowRect.Min.Y,
 					0, 0,
 					Context.WindowRect.Width(), Context.WindowRect.Height(),

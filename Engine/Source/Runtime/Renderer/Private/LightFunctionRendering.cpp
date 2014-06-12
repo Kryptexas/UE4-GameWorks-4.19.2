@@ -334,7 +334,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 
 					// Project the light function using a sphere around the light
 					//@todo - could use a cone for spotlights
-					StencilingGeometry::DrawSphere();
+					StencilingGeometry::DrawSphere(RHICmdList);
 				}
 			}
 		}

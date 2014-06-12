@@ -19,9 +19,9 @@ namespace StencilingGeometry
 	* Draws a sphere using RHIDrawIndexedPrimitive, useful as approximate bounding geometry for deferred passes.
 	* Note: The sphere will be of unit size unless transformed by the shader. 
 	*/
-	extern void DrawSphere();
+	extern void DrawSphere(FRHICommandList& RHICmdList);
 	/** Renders a cone with a spherical cap, used for rendering spot lights in deferred passes. */
-	extern void DrawCone();
+	extern void DrawCone(FRHICommandList& RHICmdList);
 
 	/** 
 	* Vertex buffer for a sphere of unit size. Used for drawing a sphere as approximate bounding geometry for deferred passes.

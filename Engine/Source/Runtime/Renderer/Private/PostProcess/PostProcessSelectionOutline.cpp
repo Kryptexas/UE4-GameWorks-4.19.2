@@ -34,9 +34,9 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	
 	// Set the render target/viewport.
-	RHISetRenderTarget(FTextureRHIParamRef(), DestRenderTarget.TargetableTexture);	
+	SetRenderTarget(Context.RHICmdList, FTextureRHIParamRef(), DestRenderTarget.TargetableTexture);
 	// This is a reversed Z depth surface, so 0.0f is the far plane.
-	RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
+	Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 	Context.SetViewportAndCallRHI(ViewRect);
 
 	if(View.VisibleDynamicPrimitives.Num() && View.Family->EngineShowFlags.Selection)
@@ -57,14 +57,16 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 		if (PrimitivesByActor.Num())
 		{
+			Context.RHICmdList.CheckIsNull(); // this uses draw dynamic elements
+
 			// 0 means no object, 1 means BSP so we start with 1
 			uint32 StencilValue = 2;
 
 			TShaderMapRef< TOneColorVS<false> > VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FOneColorPS> PixelShader(GetGlobalShaderMap());
 
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHISetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
+			Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
 
 			// Sort by actor
 			TArray<FName> Actors;
@@ -75,12 +77,12 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 				if (bBSP)
 				{
 					// This is a reversed Z depth surface, using CF_GreaterEqual.
-					RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(),1);
+					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 1);
 				}
 				else
 				{
 					// This is a reversed Z depth surface, using CF_GreaterEqual.
-					RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual,true,CF_Always,SO_Keep,SO_Keep,SO_Replace>::GetRHI(),StencilValue);
+					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
 
 					// we want to use 1..255 for all objects, not correct silhouettes after that is acceptable
 					StencilValue = (StencilValue == 255) ? 2 : (StencilValue + 1);
@@ -111,24 +113,24 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 			// so we to 4 clears - one for each border.
 
 			// top
-			RHISetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, ViewRect.Max.X, InnerRect.Min.Y);
-			RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
+			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, ViewRect.Max.X, InnerRect.Min.Y);
+			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 			// bottom
-			RHISetScissorRect(true, ViewRect.Min.X, InnerRect.Max.Y, ViewRect.Max.X, ViewRect.Max.Y);
-			RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
+			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, InnerRect.Max.Y, ViewRect.Max.X, ViewRect.Max.Y);
+			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 			// left
-			RHISetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, InnerRect.Min.X, ViewRect.Max.Y);
-			RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
+			Context.RHICmdList.SetScissorRect(true, ViewRect.Min.X, ViewRect.Min.Y, InnerRect.Min.X, ViewRect.Max.Y);
+			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 			// right
-			RHISetScissorRect(true, InnerRect.Max.X, ViewRect.Min.Y, ViewRect.Max.X, ViewRect.Max.Y);
-			RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
+			Context.RHICmdList.SetScissorRect(true, InnerRect.Max.X, ViewRect.Min.Y, ViewRect.Max.X, ViewRect.Max.Y);
+			Context.RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, FIntRect());
 
-			RHISetScissorRect(false, 0, 0, 0, 0);
+			Context.RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 		}
 	}
 	
 	// Resolve to the output
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSelectionOutlineColor::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -203,19 +205,19 @@ public:
 		EditorPrimitivesStencil.Bind(Initializer.ParameterMap,TEXT("EditorPrimitivesStencil"));
 	}
 
-	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(const FRenderingCompositePassContext& Context)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		// PostprocessInput1MS and EditorPrimitivesStencil
 		{
@@ -233,7 +235,7 @@ public:
 
 			FTexture2DRHIRef& TargetableTexture = (FTexture2DRHIRef&)InputPooledElement->GetRenderTargetItem().TargetableTexture;
 
-			SetTextureParameter(RHICmdList, ShaderRHI, PostprocessInput1MS, TargetableTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, PostprocessInput1MS, TargetableTexture);
 
 			if(EditorPrimitivesStencil.IsBound())
 			{
@@ -252,7 +254,7 @@ public:
 					ViewState->SelectionOutlineCacheValue = RHICreateShaderResourceView(TargetableTexture, 0, 1, PF_X24_G8);
 				}
 
-			SetSRVParameter(RHICmdList, ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
+				SetSRVParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesStencil, ViewState->SelectionOutlineCacheValue);
 		}
 		}
 
@@ -262,8 +264,8 @@ public:
 
 			Value.A = GEngine->SelectionHighlightIntensity;
 
-			SetShaderValue(RHICmdList, ShaderRHI, OutlineColor, Value );
-			SetShaderValue(RHICmdList, ShaderRHI, BSPSelectionIntensity, GEngine->BSPSelectionHighlightIntensity);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutlineColor, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, BSPSelectionIntensity, GEngine->BSPSelectionHighlightIntensity);
 		}
 #else
 		check(!"This shader is not used outside of the Editor.");
@@ -280,7 +282,7 @@ public:
 				Value.G = 0;
 			}
 
-			SetShaderValue(RHICmdList, ShaderRHI, EditorRenderParams, Value );
+			SetShaderValue(Context.RHICmdList, ShaderRHI, EditorRenderParams, Value);
 		}
 	}
 	
@@ -312,15 +314,17 @@ VARIATION1(1)			VARIATION1(2)			VARIATION1(4)			VARIATION1(8)
 
 
 template <uint32 MSAASampleCount>
-static void SetSelectionOutlineShaderTempl(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+static void SetSelectionOutlineShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessSelectionOutlinePS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 
-	PixelShader->SetPS(RHICmdList, Context);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	PixelShader->SetPS(Context);
 }
 
 void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext& Context)
@@ -334,8 +338,6 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 		// input is not hooked up correctly
 		return;
 	}
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	const FSceneView& View = Context.View;
 	FIntRect ViewRect = View.ViewRect;
@@ -344,32 +346,32 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
 	Context.SetViewportAndCallRHI(ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	const uint32 MSAASampleCount = GSceneRenderTargets.GetEditorMSAACompositingSampleCount();
 
 	if(MSAASampleCount == 1)
 	{
-		SetSelectionOutlineShaderTempl<1>(RHICmdList, Context);
+		SetSelectionOutlineShaderTempl<1>(Context);
 	}
 	else if(MSAASampleCount == 2)
 	{
-		SetSelectionOutlineShaderTempl<2>(RHICmdList, Context);
+		SetSelectionOutlineShaderTempl<2>(Context);
 	}
 	else if(MSAASampleCount == 4)
 	{
-		SetSelectionOutlineShaderTempl<4>(RHICmdList, Context);
+		SetSelectionOutlineShaderTempl<4>(Context);
 	}
 	else if(MSAASampleCount == 8)
 	{
-		SetSelectionOutlineShaderTempl<8>(RHICmdList, Context);
+		SetSelectionOutlineShaderTempl<8>(Context);
 	}
 	else
 	{
@@ -380,6 +382,7 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 	// Draw a quad mapping scene color to the view's render target
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Min.X, ViewRect.Min.Y,
@@ -389,7 +392,7 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSelectionOutline::ComputeOutputDesc(EPassOutputId InPassOutputId) const

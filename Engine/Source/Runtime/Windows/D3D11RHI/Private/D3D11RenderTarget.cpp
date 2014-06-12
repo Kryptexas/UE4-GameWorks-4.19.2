@@ -250,7 +250,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	// Set the vertex and pixel shader
 	TShaderMapRef<FResolveVS> ResolveVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<TPixelShader> ResolvePixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
+	SetGlobalBoundShaderState(RHICmdList, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
 	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
 
@@ -281,7 +281,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	Vertices[3].UV.X       = MinU;
 	Vertices[3].UV.Y       = MaxV;
 
-	RHIDrawPrimitiveUP(PT_TriangleStrip,2,Vertices,sizeof(Vertices[0]));
+	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 
 	if (SourceTexture)
 	{

@@ -40,9 +40,9 @@ class FPostProcessVS : public FGlobalShader
 	FPostProcessVS() {}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, GetVertexShader(), Context.View);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)

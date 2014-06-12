@@ -33,7 +33,7 @@ public:
 	}
 	FDistortionApplyScreenPS() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, IPooledRenderTarget& DistortionRT)
+	void SetParameters(const FRenderingCompositePassContext& Context, IPooledRenderTarget& DistortionRT)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -42,7 +42,7 @@ public:
 
 		// Here we use SF_Point as in fullscreen the pixels are 1:1 mapped.
 		SetTextureParameter(
-			RHICmdList, 
+			Context.RHICmdList,
 			ShaderRHI,
 			DistortionTexture,
 			DistortionTextureSampler,
@@ -51,7 +51,7 @@ public:
 			);
 
 		SetTextureParameter(
-			RHICmdList, 
+			Context.RHICmdList,
 			ShaderRHI,
 			SceneColorTexture,
 			SceneColorTextureSampler,
@@ -65,7 +65,7 @@ public:
 												(float)ViewportRect.Min.Y/SceneBufferSize.Y,
 												(float)ViewportRect.Max.X/SceneBufferSize.X,
 												(float)ViewportRect.Max.Y/SceneBufferSize.Y);
-		SetShaderValue(RHICmdList, ShaderRHI, SceneColorRect, SceneColorRectValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, SceneColorRect, SceneColorRectValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -409,13 +409,11 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::DrawShared(
 	FBoundShaderStateRHIParamRef BoundShaderState
 	) const
 {
-	RHICmdList.CheckIsNull();
-
 	// Set shared mesh resources
 	FMeshDrawingPolicy::DrawShared(RHICmdList, View);
 
 	// Set the actual shader & vertex declaration state
-	RHISetBoundShaderState(BoundShaderState);
+	RHICmdList.SetBoundShaderState(BoundShaderState);
 
 	// Set the translucent shader parameters for the material instance
 	VertexShader->SetParameters(RHICmdList, VertexFactory,MaterialRenderProxy,View);
@@ -530,7 +528,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetMeshRenderState(
 	}
 	
 	// Set rasterizer state.
-	RHISetRasterizerState(GetStaticRasterizerState<true>(
+	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
 		(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid,
 		IsTwoSided() ? CM_None : (XOR( XOR(View.bReverseCulling,bBackFace), Mesh.ReverseCulling) ? CM_CCW : CM_CW)));
 }
@@ -810,7 +808,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 		// DistortionRT==0 should never happen but better we don't crash
 		if(DistortionRT)
 		{
-			RHISetRenderTarget(DistortionRT->GetRenderTargetItem().TargetableTexture,GSceneRenderTargets.GetSceneDepthSurface());
+			SetRenderTarget(RHICmdList, DistortionRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
@@ -818,17 +816,19 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 
 				FViewInfo& View = Views[ViewIndex];
 				// viewport to match view size
-				RHISetViewport(View.ViewRect.Min.X,View.ViewRect.Min.Y,0.0f,View.ViewRect.Max.X,View.ViewRect.Max.Y,1.0f);
+				RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 				// clear offsets to 0, stencil to 0
-				RHIClear(true,FLinearColor(0,0,0,0),false,0,true,0,FIntRect());
+				RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, true, 0, FIntRect());
 
 				// enable depth test but disable depth writes
 				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-				RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
 
 				// additive blending of offsets (or complexity if the shader complexity viewmode is enabled)
-				RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
+				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+
+				RHICmdList.CheckIsNull(); // DrawAccumulatedOffsets
 
 				// draw only distortion meshes to accumulate their offsets
 				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(&View,false);
@@ -838,12 +838,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 			{
 				// restore default stencil state
 				// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-				RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 
 				// resolve using the current ResolveParams 
-				RHICopyToResolveTarget(DistortionRT->GetRenderTargetItem().TargetableTexture, DistortionRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+				RHICmdList.CopyToResolveTarget(DistortionRT->GetRenderTargetItem().TargetableTexture, DistortionRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 				// to be able to observe results with VisualizeTexture
-				GRenderTargetPool.VisualizeTexture.SetCheckPoint(DistortionRT);
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, DistortionRT);
 			}
 		}
 	}
@@ -851,6 +851,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 	if(bDirty)
 	{
 		SCOPED_DRAW_EVENT(DistortionApply, DEC_SCENE_ITEMS);
+
+		RHICmdList.CheckIsNull(); // GSceneRenderTargets.ResolveSceneColor
 
 		GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
@@ -870,9 +872,9 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 //			const FSceneView& View = Context.View;
 
 			// set the state
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			{
 // OCULUS BEGIN: Weird, different eyes may have different render targets!
@@ -881,7 +883,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 // 				const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem(); 
 // OCULUS END
 
-				RHISetRenderTarget( DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
+				SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 				// useful when we move this into the compositing graph
 				FRenderingCompositePassContext Context(View);
@@ -893,13 +895,15 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 				TShaderMapRef<FDistortionApplyScreenPS> PixelShader(GetGlobalShaderMap());
 
 				static FGlobalBoundShaderState BoundShaderState;
-				SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-				VertexShader->SetParameters(RHICmdList, Context);
-				PixelShader->SetParameters(RHICmdList, Context, *DistortionRT);
+				VertexShader->SetParameters(Context);
+				PixelShader->SetParameters(Context, *DistortionRT);
 
 				// Draw a quad mapping scene color to the view's render target
 				DrawRectangle(
+					RHICmdList,
 					0, 0,
 					View.ViewRect.Width(), View.ViewRect.Height(),
 					View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -909,7 +913,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 					*VertexShader,
 					EDRF_UseTriangleOptimization);
 
-				RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+				RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 // OCULUS BEGIN
 // 				GSceneRenderTargets.SetSceneColor(NewSceneColor);
@@ -920,7 +924,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 		
 		}
 
-// OCULUS BEGIN
+		RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
+		// OCULUS BEGIN
 		GSceneRenderTargets.SetSceneColor(NewSceneColor);
 		check(GSceneRenderTargets.GetSceneColor());
 // OCULUS END				

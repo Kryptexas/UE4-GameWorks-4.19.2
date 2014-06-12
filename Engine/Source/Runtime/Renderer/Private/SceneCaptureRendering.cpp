@@ -15,6 +15,7 @@
 
 void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
 {
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
@@ -31,35 +32,35 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 		const FRenderTarget* Target = SceneRenderer->ViewFamily.RenderTarget;
 		FIntRect ViewRect = SceneRenderer->Views[0].ViewRect;
 		FIntRect UnconstrainedViewRect = SceneRenderer->Views[0].UnconstrainedViewRect;
-		RHISetRenderTarget(Target->GetRenderTargetTexture(), NULL);
-		RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
+		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
+		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
 		SceneRenderer->Render();
 
 		// Copy the captured scene into the destination texture
 		if (bUseSceneColorTexture)
 		{
 			// Copy the captured scene into the destination texture
-			RHISetRenderTarget(Target->GetRenderTargetTexture(), NULL);
+			SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
 
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
 			static FGlobalBoundShaderState BoundShaderState;
-			SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+			RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			FRenderingCompositePassContext Context(SceneRenderer->Views[0]);
 
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 			VertexShader->SetParameters(RHICmdList, SceneRenderer->Views[0]);
 			PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
 
 			FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());
 
 			DrawRectangle(
+				RHICmdList,
 				ViewRect.Min.X, ViewRect.Min.Y,
 				ViewRect.Width(), ViewRect.Height(),
 				ViewRect.Min.X, ViewRect.Min.Y,
@@ -70,7 +71,7 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 				EDRF_UseTriangleOptimization);
 		}
 
-		RHICopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
+		RHICmdList.CopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
 	}
 
 	delete SceneRenderer;

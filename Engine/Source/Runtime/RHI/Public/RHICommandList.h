@@ -81,15 +81,105 @@ public:
 
 	inline void SetRasterizerState(FRasterizerStateRHIParamRef State);
 
-	inline void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor);
-	inline void SetBlendState(FBlendStateRHIParamRef State)
-	{
-		SetBlendState(State, FLinearColor::White);
-	}
+	inline void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White);
 
 	inline void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances);
 	inline void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances);
 	inline void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset);
+
+	// need cmd list implementations
+
+	FORCEINLINE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
+	{
+		CheckIsNull();
+		RHISetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+	}
+
+	FORCEINLINE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
+	{
+		CheckIsNull();
+		RHISetDepthStencilState(NewStateRHI, StencilRef);
+	}
+
+	FORCEINLINE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
+	{
+		CheckIsNull();
+		RHIBeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData);
+	}
+	
+	FORCEINLINE void EndDrawPrimitiveUP()
+	{
+		CheckIsNull();
+		RHIEndDrawPrimitiveUP();
+	}
+
+	FORCEINLINE void CopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
+	{
+		CheckIsNull();
+		RHICopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
+	}
+
+	FORCEINLINE void BeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData)
+	{
+		CheckIsNull();
+		RHIBeginDrawIndexedPrimitiveUP(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData, MinVertexIndex, NumIndices, IndexDataStride, OutIndexData);
+	}
+
+	FORCEINLINE void EndDrawIndexedPrimitiveUP()
+	{
+		CheckIsNull();
+		RHIEndDrawIndexedPrimitiveUP();
+	}
+
+	FORCEINLINE void Clear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	{
+		CheckIsNull();
+		RHIClear(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	}
+
+	FORCEINLINE void ClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	{
+		CheckIsNull();
+		RHIClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	}
+
+	FORCEINLINE void SetRenderTargets(uint32 NewNumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargetsRHI, FTextureRHIParamRef NewDepthStencilTargetRHI, uint32 NewNumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
+	{
+		CheckIsNull();
+		RHISetRenderTargets(NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
+	}
+
+	FORCEINLINE void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
+	{
+		CheckIsNull();
+		RHIEnableDepthBoundsTest(bEnable, MinDepth, MaxDepth);
+	}
+
+	FORCEINLINE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	{
+		CheckIsNull();
+		RHISetScissorRect(bEnable, MinX, MinY, MaxX, MaxY);
+	}
+
+	FORCEINLINE void ClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
+	{
+		CheckIsNull();
+		RHIClearUAV(UnorderedAccessViewRHI, Values);
+	}
+
+	FORCEINLINE void SetComputeShader(FComputeShaderRHIParamRef ComputeShaderRHI)
+	{
+		CheckIsNull();
+		RHISetComputeShader(ComputeShaderRHI);
+	}
+
+	FORCEINLINE void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset)
+	{
+		CheckIsNull();
+		RHIDrawPrimitiveIndirect(PrimitiveType, ArgumentBufferRHI, ArgumentOffset);
+	}
+
+
 
 	FORCEINLINE bool IsNull() const
 	{

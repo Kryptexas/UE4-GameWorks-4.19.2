@@ -73,9 +73,8 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 
 		if (BatchElement.DynamicIndexData)
 		{
-			RHICmdList.CheckIsNull();
-
-			RHIDrawIndexedPrimitiveUP(
+			DrawIndexedPrimitiveUP(
+				RHICmdList,
 				Mesh.Type,
 				BatchElement.MinVertexIndex,
 				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
@@ -90,7 +89,8 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		{
 			RHICmdList.CheckIsNull();
 
-			RHIDrawPrimitiveUP(
+			DrawPrimitiveUP(
+				RHICmdList,
 				Mesh.Type,
 				BatchElement.NumPrimitives,
 				Mesh.DynamicVertexData,

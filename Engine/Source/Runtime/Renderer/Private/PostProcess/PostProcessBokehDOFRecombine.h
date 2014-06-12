@@ -23,5 +23,5 @@ public:
 private:
 
 	template <uint32 Method>
-	static void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context);
+	static void SetShader(const FRenderingCompositePassContext& Context);
 };

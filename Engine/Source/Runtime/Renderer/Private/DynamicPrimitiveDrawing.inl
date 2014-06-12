@@ -22,9 +22,12 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 		{
 			DepthTexture = GSceneRenderTargets.GetSceneDepthTexture();
 		}
+		//@todo-rco: RHIPacketList
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		// Draw the batched elements.
 		BatchedElements.Draw(
+			RHICmdList,
 			bNeedToSwitchVerticalAxis,
 			View->ViewProjectionMatrix,
 			View->ViewRect.Width(),

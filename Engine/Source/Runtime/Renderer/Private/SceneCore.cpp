@@ -310,7 +310,7 @@ void FStaticMesh::AddToDrawLists(FScene* Scene)
 				}
 
 				// Add the static mesh to the DPG's base pass draw list.
-				FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(Scene,this);
+				FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList::GetNullRef(), Scene, this);
 
 				FVelocityDrawingPolicyFactory::AddStaticMesh(Scene, this);
 			}

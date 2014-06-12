@@ -421,7 +421,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			else if (SimpleLights.InstanceData.Num() > 0)
 			{
 				GSceneRenderTargets.BeginRenderingSceneColor();
-				RenderSimpleLightsStandardDeferred(SimpleLights);
+				RenderSimpleLightsStandardDeferred(RHICmdList, SimpleLights);
 			}
 
 			{
@@ -437,7 +437,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 					const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
 
 					// Render the light to the scene color buffer, using a 1x1 white texture as input 
-					RenderLight( LightSceneInfo, false, false );
+					RenderLight(RHICmdList, LightSceneInfo, false, false);
 				}
 			}
 
@@ -447,13 +447,13 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 				{
 					// Inject non-shadowed, non-light function lights in to the volume.
 					SCOPED_DRAW_EVENT(InjectNonShadowedTranslucentLighting, DEC_SCENE_ITEMS);
-					InjectTranslucentVolumeLightingArray(SortedLights, AttenuationLightStart);
+					InjectTranslucentVolumeLightingArray(RHICmdList, SortedLights, AttenuationLightStart);
 				}
 				
 				if (SimpleLights.InstanceData.Num() > 0)
 				{
 					SCOPED_DRAW_EVENT(InjectSimpleLightsTranslucentLighting, DEC_SCENE_ITEMS);
-					InjectSimpleTranslucentVolumeLightingArray(SimpleLights);
+					InjectSimpleTranslucentVolumeLightingArray(RHICmdList, SimpleLights);
 				}
 			}
 		}
@@ -527,7 +527,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			{
 				SCOPED_DRAW_EVENT(InjectTranslucentVolume, DEC_SCENE_ITEMS);
 				// Accumulate this light's unshadowed contribution to the translucency lighting volume
-				InjectTranslucentVolumeLighting(LightSceneInfo, NULL);
+				InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 			}
 
 			GSceneRenderTargets.SetLightAttenuationMode(true);
@@ -536,7 +536,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
 			if(bDirectLighting)
 			{
-				RenderLight( &LightSceneInfo, false, true );
+				RenderLight(RHICmdList, &LightSceneInfo, false, true);
 			}
 		}
 
@@ -579,7 +579,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(const TSparseArray<FLightSceneInfoCompact>& LightArray)
+void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(FRHICommandList& RHICmdList, const TSparseArray<FLightSceneInfoCompact>& LightArray)
 {
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(LightArray); LightIt; ++LightIt)
 	{
@@ -606,12 +606,12 @@ void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(const TSp
 			&& !LightSceneInfo->Proxy->HasStaticLighting()
 			&& LightSceneInfo->Proxy->CastsStaticShadow())
 		{
-			RenderLight(LightSceneInfo, true, false);
+			RenderLight(RHICmdList, LightSceneInfo, true, false);
 		}
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap()
+void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList& RHICmdList)
 {
 	if (Scene->bIsEditorScene)
 	{
@@ -620,31 +620,31 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap()
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
 		RHIClear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
 
-		RenderLightArrayForOverlapViewmode(Scene->Lights);
+		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->Lights);
 
 		//Note: making use of FScene::InvisibleLights, which contains lights that haven't been added to the scene in the same way as visible lights
 		// So code called by RenderLightArrayForOverlapViewmode must be careful what it accesses
-		RenderLightArrayForOverlapViewmode(Scene->InvisibleLights);
+		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->InvisibleLights);
 	}
 }
 
 /** Sets up rasterizer and depth state for rendering bounding geometry in a deferred pass. */
-void SetBoundingGeometryRasterizerAndDepthState(const FViewInfo& View, const FSphere& LightBounds)
+void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds)
 {
 	const bool bCameraInsideLightGeometry = ((FVector)View.ViewMatrices.ViewOrigin - LightBounds.Center).SizeSquared() < FMath::Square(LightBounds.W * 1.05f + View.NearClippingDistance * 2.0f);
 	if (bCameraInsideLightGeometry)
 	{
 		// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light geometry
-		RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI());
+		RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 	}
 	else
 	{
 		// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light geometry
-		RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI());
+		RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
 	}
 
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHISetDepthStencilState(
+	RHICmdList.SetDepthStencilState(
 		bCameraInsideLightGeometry
 		? TStaticDepthStencilState<false,CF_Always>::GetRHI()
 		: TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI()
@@ -667,13 +667,13 @@ static void SetShaderTemplLighting(
 	if(View.Family->EngineShowFlags.VisualizeLightCulling)
 	{
 		TShaderMapRef<TDeferredLightPS<false, bRadialAttenuation, false, true> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
 		PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
 	}
 	else
 	{
 		TShaderMapRef<TDeferredLightPS<bUseIESProfile, bRadialAttenuation, bInverseSquaredFalloff, false> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
 		PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
 	}
 }
@@ -689,13 +689,13 @@ static void SetShaderTemplLightingSimple(
 	if(View.Family->EngineShowFlags.VisualizeLightCulling)
 	{
 		TShaderMapRef<TDeferredLightPS<false, bRadialAttenuation, false, true> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
 		PixelShader->SetParametersSimpleLight(RHICmdList, View, SimpleLight, SimpleLightPerViewData);
 	}
 	else
 	{
 		TShaderMapRef<TDeferredLightPS<bUseIESProfile, bRadialAttenuation, bInverseSquaredFalloff, false> > PixelShader(GetGlobalShaderMap());
-		SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
+		SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<bRadialAttenuation>(), VertexShader, *PixelShader);
 		PixelShader->SetParametersSimpleLight(RHICmdList, View, SimpleLight, SimpleLightPerViewData);
 	}
 }
@@ -707,14 +707,14 @@ static void SetShaderTemplLightingSimple(
  * @param LightIndex The light's index into FScene::Lights
  * @return true if anything got rendered
  */
-void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent)
+void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT(STAT_NumLightsUsingStandardDeferred);
 	SCOPED_CONDITIONAL_DRAW_EVENT(StandardDeferredLighting, bIssueDrawEvent, DEC_SCENE_ITEMS);
 
 	// Use additive blending for color
-	RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
 	bool bStencilDirty = false;
 	const FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
@@ -730,23 +730,20 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 			bUseIESTexture = (LightSceneInfo->Proxy->GetIESTextureResource() != 0);
 		}
 
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 		// Set the device viewport for the view.
-		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		if (LightSceneInfo->Proxy->GetLightType() == LightType_Directional)
 		{
 			TShaderMapRef<TDeferredLightVS<false> > VertexShader(GetGlobalShaderMap());
 
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 			if (bRenderOverlap)
 			{
 				TShaderMapRef<TDeferredLightOverlapPS<false> > PixelShader(GetGlobalShaderMap());
-				SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<false>(), *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<false>(), *VertexShader, *PixelShader);
 				PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
 			}
 			else
@@ -765,6 +762,7 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 
 			// Apply the directional light as a full screen quad
 			DrawRectangle( 
+				RHICmdList,
 				0, 0,
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -778,12 +776,12 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 		{
 			TShaderMapRef<TDeferredLightVS<true> > VertexShader(GetGlobalShaderMap());
 
-			SetBoundingGeometryRasterizerAndDepthState(View, LightBounds);
+			SetBoundingGeometryRasterizerAndDepthState(RHICmdList, View, LightBounds);
 
 			if (bRenderOverlap)
 			{
 				TShaderMapRef<TDeferredLightOverlapPS<true> > PixelShader(GetGlobalShaderMap());
-				SetGlobalBoundShaderState(PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<true>(), *VertexShader, *PixelShader);
+				SetGlobalBoundShaderState(RHICmdList, PixelShader->GetBoundShaderState(), GetDeferredLightingVertexDeclaration<true>(), *VertexShader, *PixelShader);
 				PixelShader->SetParameters(RHICmdList, View, LightSceneInfo);
 			}
 			else
@@ -818,11 +816,11 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 			{
 				// Apply the point or spot light with some approximately bounding geometry, 
 				// So we can get speedups from depth testing and not processing pixels outside of the light's influence.
-				StencilingGeometry::DrawSphere();
+				StencilingGeometry::DrawSphere(RHICmdList);
 			}
 			else if (LightSceneInfo->Proxy->GetLightType() == LightType_Spot)
 			{
-				StencilingGeometry::DrawCone();
+				StencilingGeometry::DrawCone(RHICmdList);
 			}
 		}
 	}
@@ -830,21 +828,18 @@ void FDeferredShadingSceneRenderer::RenderLight(const FLightSceneInfo* LightScen
 	if (bStencilDirty)
 	{
 		// Clear the stencil buffer to 0.
-		RHIClear(false,FColor(0,0,0),false,0,true,0, FIntRect());
+		RHICmdList.Clear(false, FColor(0, 0, 0), false, 0, true, 0, FIntRect());
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const FSimpleLightArray& SimpleLights)
+void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(FRHICommandList& RHICmdList, const FSimpleLightArray& SimpleLights)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT_BY(STAT_NumLightsUsingStandardDeferred, SimpleLights.InstanceData.Num());
 	SCOPED_DRAW_EVENT(StandardDeferredSimpleLights, DEC_SCENE_ITEMS);
 	
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	// Use additive blending for color
-	RHISetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
 	const int32 NumViews = Views.Num();
 	for (int32 LightIndex = 0; LightIndex < SimpleLights.InstanceData.Num(); LightIndex++)
@@ -858,11 +853,11 @@ void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const FSi
 
 			FViewInfo& View = Views[ViewIndex];
 			// Set the device viewport for the view.
-			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			TShaderMapRef<TDeferredLightVS<true> > VertexShader(GetGlobalShaderMap());
 
-			SetBoundingGeometryRasterizerAndDepthState(View, LightBounds);
+			SetBoundingGeometryRasterizerAndDepthState(RHICmdList, View, LightBounds);
 
 			if (SimpleLight.Exponent == 0)
 			{
@@ -879,7 +874,7 @@ void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(const FSi
 
 			// Apply the point or spot light with some approximately bounding geometry, 
 			// So we can get speedups from depth testing and not processing pixels outside of the light's influence.
-			StencilingGeometry::DrawSphere();
+			StencilingGeometry::DrawSphere(RHICmdList);
 		}
 	}
 }

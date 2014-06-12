@@ -299,7 +299,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
 
 	// Set the vertex buffer stream
-	RHISetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
+	RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
 
 	TShaderMapRef<FSlateElementVS> VertexShader(GetGlobalShaderMap());
 
@@ -316,7 +316,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 		if( bSetupBatchRenderingData )
 		{
 			// Set the vertex buffer stream
-			RHISetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
+			RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
 
 			bSetupBatchRenderingData = false;
 		}
@@ -338,32 +338,32 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 
 			if( bDrawDisabled )
 			{
-				SetGlobalBoundShaderState( DisabledShaderStates[ShaderType][bUseTextureAlpha], GSlateVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader );
+				SetGlobalBoundShaderState(RHICmdList, DisabledShaderStates[ShaderType][bUseTextureAlpha], GSlateVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			}
 			else
 			{
-				SetGlobalBoundShaderState( NormalShaderStates[ShaderType][bUseTextureAlpha], GSlateVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader );
+				SetGlobalBoundShaderState(RHICmdList, NormalShaderStates[ShaderType][bUseTextureAlpha], GSlateVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 			}
 
 			VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix );
 			VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams );
 
-			RHISetBlendState(
+			RHICmdList.SetBlendState(
 				(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
 				? TStaticBlendState<>::GetRHI()
 				: TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI()
 				);
 
 			// Disable stencil testing by default
-			RHISetDepthStencilState( DSOff );
+			RHICmdList.SetDepthStencilState(DSOff);
 
 			if( DrawFlags & ESlateBatchDrawFlag::Wireframe )
 			{
-				RHISetRasterizerState(TStaticRasterizerState<FM_Wireframe,CM_None,true>::GetRHI());
+				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Wireframe, CM_None, true>::GetRHI());
 			}
 			else
 			{
-				RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None,true>::GetRHI());
+				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, true>::GetRHI());
 			}
 
 
@@ -386,7 +386,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 					, SO_SaturatedIncrement
 					, SO_SaturatedIncrement>::GetRHI();
 
-				RHISetDepthStencilState( DSLineSegment, 0x01 );
+				RHICmdList.SetDepthStencilState( DSLineSegment, 0x01 );
 #endif
 
 				// The lookup table used for splines should clamp when sampling otherwise the results are wrong
@@ -428,7 +428,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 
 			uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3; 
 
-			RHIDrawIndexedPrimitive( IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType( RenderBatch.DrawPrimitiveType ), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1 ); 
+			RHICmdList.DrawIndexedPrimitive(IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 		}
 		else if( ShaderResource && ShaderResource->GetType() == ESlateShaderResource::Material )
 		{

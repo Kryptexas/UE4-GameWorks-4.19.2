@@ -310,7 +310,11 @@ public:
 
 			const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 			const FTexture2DRHIRef DepthTexture;
+			//@todo-rco: RHIPacketList
+			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 			BatchedElements.Draw(
+				RHICmdList,
 				bNeedToSwitchVerticalAxis,
 				View->ViewProjectionMatrix,
 				View->ViewRect.Width(),
@@ -322,6 +326,7 @@ public:
 				);
 
 			ProxyData->BatchedElements.Draw(
+				RHICmdList,
 				bNeedToSwitchVerticalAxis,
 				View->ViewProjectionMatrix,
 				View->ViewRect.Width(),

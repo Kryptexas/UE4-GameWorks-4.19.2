@@ -825,33 +825,33 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(const FRenderingCompositePassContext& Context)
 	{
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			
 		{
 			FLinearColor Col = Settings.SceneColorTint;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorScale0, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale0, ColorScale);
 		}
 		
 		{
 			FLinearColor Col = FLinearColor::White * Settings.BloomIntensity;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorScale1, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale1, ColorScale);
 		}
 
 		{
 			UTexture2D* NoiseTextureValue = GEngine->HighFrequencyNoiseTexture;
 
-			SetTextureParameter(RHICmdList, ShaderRHI, NoiseTexture, NoiseTextureSampler, TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(), NoiseTextureValue->Resource->TextureRHI);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, NoiseTexture, NoiseTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), NoiseTextureValue->Resource->TextureRHI);
 		}
 
 		{
@@ -860,7 +860,7 @@ public:
 			// we assume the this pass runs in 1:1 pixel
 			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
 
-			SetShaderValue(RHICmdList, ShaderRHI, TexScale, TexScaleValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 		
 		FVector4 VignetteColorIntensityValue;
@@ -868,11 +868,11 @@ public:
 		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
 		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
 		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
-		SetShaderValue(RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
 		const TShaderUniformBufferParameter<FBloomDirtMaskParameters>& BloomDirtMaskParam = GetUniformBufferParameter<FBloomDirtMaskParameters>();
 		if (BloomDirtMaskParam.IsBound())
@@ -891,7 +891,7 @@ public:
 			BloomDirtMaskParams.MaskSampler = TStaticSamplerState<SF_Bilinear,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI();
 
 			FUniformBufferRHIRef BloomDirtMaskUB = TUniformBufferRef<FBloomDirtMaskParameters>::CreateUniformBufferImmediate(BloomDirtMaskParams, UniformBuffer_SingleDraw);
-			SetUniformBufferParameter(RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
+			SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, BloomDirtMaskParam, BloomDirtMaskUB);
 		}
 		
 		// volume texture LUT
@@ -912,7 +912,7 @@ public:
 
 						const FTextureRHIRef& SrcTexture = InputPooledElement->GetRenderTargetItem().ShaderResourceTexture;
 					
-						SetTextureParameter(RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), SrcTexture);
+						SetTextureParameter(Context.RHICmdList, ShaderRHI, ColorGradingLUT, ColorGradingLUTSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), SrcTexture);
 					}
 				}
 			}
@@ -922,20 +922,20 @@ public:
 			FVector2D InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
-			SetShaderValue(RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
 		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskPC[ConfigIndex], &Context.View.FinalPostProcessSettings, false);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
-			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
-			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
 	}
 	
@@ -969,17 +969,18 @@ FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(bool bInDoGammaOnly)
 }
 
 template <uint32 ConfigIndex>
-static void SetShaderTempl(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+static void SetShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessTonemapVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessTonemapPS<ConfigIndex> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(RHICmdList, Context);
-	PixelShader->SetPS(RHICmdList, Context);
+	VertexShader->SetVS(Context);
+	PixelShader->SetPS(Context);
 }
 
 void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
@@ -1010,34 +1011,34 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIParamRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	if( ViewFamily.RenderTarget->GetRenderTargetTexture() != DestRenderTarget.TargetableTexture )
 	{
 		// needed to not have PostProcessAA leaking in content (e.g. Matinee black borders), is optimized away if possible (RT size=view size, )
-		RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, View.ViewRect);
+		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, View.ViewRect);
 	}
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(ConfigIndex)
 	{
-		case 0:	SetShaderTempl<0>(RHICmdList, Context); break;
-		case 1:	SetShaderTempl<1>(RHICmdList, Context);	break;
-		case 2: SetShaderTempl<2>(RHICmdList, Context); break;
-		case 3: SetShaderTempl<3>(RHICmdList, Context); break;
-		case 4: SetShaderTempl<4>(RHICmdList, Context); break;
-		case 5: SetShaderTempl<5>(RHICmdList, Context); break;
-		case 6: SetShaderTempl<6>(RHICmdList, Context); break;
-		case 7: SetShaderTempl<7>(RHICmdList, Context); break;
-		case 8: SetShaderTempl<8>(RHICmdList, Context); break;
-		case 9: SetShaderTempl<9>(RHICmdList, Context); break;
-		case 10: SetShaderTempl<10>(RHICmdList, Context); break;
+		case 0:	SetShaderTempl<0>(Context); break;
+		case 1:	SetShaderTempl<1>(Context);	break;
+		case 2: SetShaderTempl<2>(Context); break;
+		case 3: SetShaderTempl<3>(Context); break;
+		case 4: SetShaderTempl<4>(Context); break;
+		case 5: SetShaderTempl<5>(Context); break;
+		case 6: SetShaderTempl<6>(Context); break;
+		case 7: SetShaderTempl<7>(Context); break;
+		case 8: SetShaderTempl<8>(Context); break;
+		case 9: SetShaderTempl<9>(Context); break;
+		case 10: SetShaderTempl<10>(Context); break;
 		default:
 			check(0);
 	}
@@ -1046,6 +1047,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessTonemapVS> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -1055,11 +1057,12 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// We only release the SceneColor after the last view was processed (SplitScreen)
 	if(Context.View.Family->Views[Context.View.Family->Views.Num() - 1] == &Context.View)
 	{
+		Context.RHICmdList.CheckIsNull(); // probably can't do this parallel
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
 		GSceneRenderTargets.SetSceneColor(0);
@@ -1182,29 +1185,29 @@ public:
 		return bShaderHasOutdatedParameters;
 	}
 
-	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetPS(const FRenderingCompositePassContext& Context)
 	{
 		const FPostProcessSettings& Settings = Context.View.FinalPostProcessSettings;
 		const FSceneViewFamily& ViewFamily = *(Context.View.Family);
 
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 			
-		SetShaderValue(RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
 		{
 			FLinearColor Col = Settings.SceneColorTint;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorScale0, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale0, ColorScale);
 		}
 		
 		{
 			FLinearColor Col = FLinearColor::White * Settings.BloomIntensity;
 			FVector4 ColorScale(Col.R, Col.G, Col.B, 0);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorScale1, ColorScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorScale1, ColorScale);
 		}
 
 		{
@@ -1213,7 +1216,7 @@ public:
 			// we assume the this pass runs in 1:1 pixel
 			FVector2D TexScaleValue = FVector2D(InputDesc->Extent) / FVector2D(Context.View.ViewRect.Size());
 
-			SetShaderValue(RHICmdList, ShaderRHI, TexScale, TexScaleValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 
 		FVector4 VignetteColorIntensityValue;
@@ -1221,30 +1224,30 @@ public:
 		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
 		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
 		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
-		SetShaderValue(RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainScaleBiasJitter, GrainValue);
 
 		{
 			FVector2D InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
-			SetShaderValue(RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
 		{
 			FVector4 Constants[8];
 			FilmPostSetConstants(Constants, TonemapperConfBitmaskMobile[ConfigIndex], &Context.View.FinalPostProcessSettings, true);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
-			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
-			SetShaderValue(RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
-			SetShaderValue(RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixR_ColorCurveCd1, Constants[0]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixG_ColorCurveCd3Cm3, Constants[1]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorMatrixB_ColorCurveCm2, Constants[2]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3, Constants[3]); 
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorCurve_Ch1_Ch2, Constants[4]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Luma, Constants[5]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
 	}
 	
@@ -1294,18 +1297,18 @@ public:
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
 	}
 
-	void SetVS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetVS(const FRenderingCompositePassContext& Context)
 	{
 		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetVS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
 		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
-		SetShaderValue(RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
 	}
 	
 	virtual bool Serialize(FArchive& Ar)
@@ -1320,7 +1323,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS_ES2,TEXT("PostProcessTonemap"),TEXT
 
 
 template <uint32 ConfigIndex>
-static void SetShaderTemplES2(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, bool bUsedFramebufferFetch)
+static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, bool bUsedFramebufferFetch)
 {
 	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessTonemapPS_ES2<ConfigIndex> > PixelShader(GetGlobalShaderMap());
@@ -1328,11 +1331,12 @@ static void SetShaderTemplES2(FRHICommandList& RHICmdList, const FRenderingCompo
 	VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
 
 	static FGlobalBoundShaderState BoundShaderState;
+	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	VertexShader->SetVS(RHICmdList, Context);
-	PixelShader->SetPS(RHICmdList, Context);
+	VertexShader->SetVS(Context);
+	PixelShader->SetPS(Context);
 }
 
 void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Context)
@@ -1359,53 +1363,50 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIParamRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	// Full clear to avoid restore
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	switch(ConfigIndex)
 	{
-		case 0:	SetShaderTemplES2<0>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 1:	SetShaderTemplES2<1>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 2:	SetShaderTemplES2<2>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 3:	SetShaderTemplES2<3>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 4:	SetShaderTemplES2<4>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 5:	SetShaderTemplES2<5>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 6:	SetShaderTemplES2<6>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 7:	SetShaderTemplES2<7>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 8:	SetShaderTemplES2<8>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 9:	SetShaderTemplES2<9>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 10: SetShaderTemplES2<10>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 11: SetShaderTemplES2<11>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 12: SetShaderTemplES2<12>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 13: SetShaderTemplES2<13>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 14: SetShaderTemplES2<14>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 15: SetShaderTemplES2<15>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 16: SetShaderTemplES2<16>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 17: SetShaderTemplES2<17>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 18: SetShaderTemplES2<18>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 19: SetShaderTemplES2<19>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 20: SetShaderTemplES2<20>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 21: SetShaderTemplES2<21>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 22: SetShaderTemplES2<22>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 23: SetShaderTemplES2<23>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 24: SetShaderTemplES2<24>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 25: SetShaderTemplES2<25>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 26: SetShaderTemplES2<26>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 27: SetShaderTemplES2<27>(RHICmdList, Context, bUsedFramebufferFetch); break;
-		case 28: SetShaderTemplES2<28>(RHICmdList, Context, bUsedFramebufferFetch); break;
+		case 0:	SetShaderTemplES2<0>(Context, bUsedFramebufferFetch); break;
+		case 1:	SetShaderTemplES2<1>(Context, bUsedFramebufferFetch); break;
+		case 2:	SetShaderTemplES2<2>(Context, bUsedFramebufferFetch); break;
+		case 3:	SetShaderTemplES2<3>(Context, bUsedFramebufferFetch); break;
+		case 4:	SetShaderTemplES2<4>(Context, bUsedFramebufferFetch); break;
+		case 5:	SetShaderTemplES2<5>(Context, bUsedFramebufferFetch); break;
+		case 6:	SetShaderTemplES2<6>(Context, bUsedFramebufferFetch); break;
+		case 7:	SetShaderTemplES2<7>(Context, bUsedFramebufferFetch); break;
+		case 8:	SetShaderTemplES2<8>(Context, bUsedFramebufferFetch); break;
+		case 9:	SetShaderTemplES2<9>(Context, bUsedFramebufferFetch); break;
+		case 10: SetShaderTemplES2<10>(Context, bUsedFramebufferFetch); break;
+		case 11: SetShaderTemplES2<11>(Context, bUsedFramebufferFetch); break;
+		case 12: SetShaderTemplES2<12>(Context, bUsedFramebufferFetch); break;
+		case 13: SetShaderTemplES2<13>(Context, bUsedFramebufferFetch); break;
+		case 14: SetShaderTemplES2<14>(Context, bUsedFramebufferFetch); break;
+		case 15: SetShaderTemplES2<15>(Context, bUsedFramebufferFetch); break;
+		case 16: SetShaderTemplES2<16>(Context, bUsedFramebufferFetch); break;
+		case 17: SetShaderTemplES2<17>(Context, bUsedFramebufferFetch); break;
+		case 18: SetShaderTemplES2<18>(Context, bUsedFramebufferFetch); break;
+		case 19: SetShaderTemplES2<19>(Context, bUsedFramebufferFetch); break;
+		case 20: SetShaderTemplES2<20>(Context, bUsedFramebufferFetch); break;
+		case 21: SetShaderTemplES2<21>(Context, bUsedFramebufferFetch); break;
+		case 22: SetShaderTemplES2<22>(Context, bUsedFramebufferFetch); break;
+		case 23: SetShaderTemplES2<23>(Context, bUsedFramebufferFetch); break;
+		case 24: SetShaderTemplES2<24>(Context, bUsedFramebufferFetch); break;
+		case 25: SetShaderTemplES2<25>(Context, bUsedFramebufferFetch); break;
+		case 26: SetShaderTemplES2<26>(Context, bUsedFramebufferFetch); break;
+		case 27: SetShaderTemplES2<27>(Context, bUsedFramebufferFetch); break;
+		case 28: SetShaderTemplES2<28>(Context, bUsedFramebufferFetch); break;
 		default:
 			check(0);
 	}
@@ -1414,6 +1415,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(GetGlobalShaderMap());
 
 	DrawRectangle(
+		Context.RHICmdList,
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -1423,11 +1425,13 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Double buffer tonemapper output for temporal AA.
 	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
 	{
+		Context.RHICmdList.CheckIsNull(); // modifies the viewstate, probably not appropriate for parallel work
+
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
 		{

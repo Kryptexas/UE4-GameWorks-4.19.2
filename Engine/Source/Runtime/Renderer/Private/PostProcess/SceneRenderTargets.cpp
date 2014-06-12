@@ -248,6 +248,8 @@ void FSceneRenderTargets::BeginRenderingSceneColor( bool bGBufferPass )
 	}
 	
 	AllocSceneColor();
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
 	if (bGBufferPass && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
@@ -270,11 +272,11 @@ void FSceneRenderTargets::BeginRenderingSceneColor( bool bGBufferPass )
 			MRTCount--;
 		}
 		
-		RHISetRenderTargets(MRTCount, RenderTargets, GetSceneDepthSurface(), 0, NULL);
+		SetRenderTargets(RHICmdList, MRTCount, RenderTargets, GetSceneDepthSurface(), 0, NULL);
 	}
 	else
 	{
-		RHISetRenderTarget(GetSceneColorSurface(), GetSceneDepthSurface());
+		SetRenderTarget(RHICmdList, GetSceneColorSurface(), GetSceneDepthSurface());
 	}
 } 
 
@@ -594,8 +596,10 @@ bool FSceneRenderTargets::BeginRenderingCustomDepth(bool bPrimitives)
 	if(CustomDepth)
 	{
 		SCOPED_DRAW_EVENT(BeginRenderingCustomDepth, DEC_SCENE_ITEMS);
+		//@todo-rco: RHIPacketList
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
-		RHISetRenderTarget(FTextureRHIRef(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
+		SetRenderTarget(RHICmdList, FTextureRHIRef(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 
 		return true;
 	}
@@ -647,27 +651,36 @@ void FSceneRenderTargets::BeginRenderingPrePass()
 
 	// Set the scene depth surface and a DUMMY buffer as color buffer
 	// (as long as it's the same dimension as the depth buffer),
-	RHISetRenderTarget( FTextureRHIRef(), GetSceneDepthSurface());
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
+	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetSceneDepthSurface());
 }
 
 void FSceneRenderTargets::FinishRenderingPrePass()
 {
 	SCOPED_DRAW_EVENT(FinishRenderingPrePass, DEC_SCENE_ITEMS);
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(SceneDepthZ);
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneDepthZ);
 }
 
 void FSceneRenderTargets::BeginRenderingShadowDepth()
 {
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(ShadowDepthZ);
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ShadowDepthZ);
 	
-	RHISetRenderTarget(FTextureRHIRef(), GetShadowDepthZSurface());
+	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetShadowDepthZSurface());
 }
 
 void FSceneRenderTargets::BeginRenderingCubeShadowDepth(int32 ShadowResolution)
 {
 	SCOPED_DRAW_EVENT(BeginRenderingCubeShadowDepth, DEC_SCENE_ITEMS);
-	RHISetRenderTarget(FTextureRHIRef(), GetCubeShadowDepthZSurface(ShadowResolution));   
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	SetRenderTarget(RHICmdList, FTextureRHIRef(), GetCubeShadowDepthZSurface(ShadowResolution));
 }
 
 void FSceneRenderTargets::FinishRenderingShadowDepth(const FResolveRect& ResolveRect)
@@ -688,11 +701,16 @@ void FSceneRenderTargets::BeginRenderingReflectiveShadowMap( FLightPropagationVo
 	Uavs[1] = Lpv->GetGvListHeadBufferUav();
 	Uavs[2] = Lpv->GetVplListBufferUav();
 	Uavs[3] = Lpv->GetVplListHeadBufferUav();
-	RHISetRenderTargets( ARRAY_COUNT(RenderTargets), RenderTargets, GetReflectiveShadowMapDepthSurface(), 4, Uavs);
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, GetReflectiveShadowMapDepthSurface(), 4, Uavs);
 }
 
 void FSceneRenderTargets::FinishRenderingReflectiveShadowMap(const FResolveRect& ResolveRect)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	// Resolve the shadow depth z surface.
 	RHICopyToResolveTarget(GetReflectiveShadowMapDepthSurface(), GetReflectiveShadowMapDepthTexture(), false, FResolveParams(ResolveRect));
 	RHICopyToResolveTarget(GetReflectiveShadowMapDiffuseSurface(), GetReflectiveShadowMapDiffuseTexture(), false, FResolveParams(ResolveRect));
@@ -701,7 +719,7 @@ void FSceneRenderTargets::FinishRenderingReflectiveShadowMap(const FResolveRect&
 	// Unset render targets
 	FTextureRHIParamRef RenderTargets[2] = {NULL};
 	FUnorderedAccessViewRHIParamRef Uavs[2] = {NULL};
-	RHISetRenderTargets( ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 2, Uavs);
+	SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIParamRef(), 2, Uavs);
 }
 
 void FSceneRenderTargets::FinishRenderingCubeShadowDepth(int32 ShadowResolution, const FResolveParams& ResolveParams)
@@ -713,15 +731,19 @@ void FSceneRenderTargets::FinishRenderingCubeShadowDepth(int32 ShadowResolution,
 void FSceneRenderTargets::BeginRenderingSceneAlphaCopy()
 {
 	SCOPED_DRAW_EVENT(BeginRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.SceneAlphaCopy);
-	RHISetRenderTarget(GetSceneAlphaCopySurface(), 0);
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.SceneAlphaCopy);
+	SetRenderTarget(RHICmdList, GetSceneAlphaCopySurface(), 0);
 }
 
 void FSceneRenderTargets::FinishRenderingSceneAlphaCopy()
 {
 	SCOPED_DRAW_EVENT(FinishRenderingSceneAlphaCopy, DEC_SCENE_ITEMS);
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	RHICopyToResolveTarget(GetSceneAlphaCopySurface(), SceneAlphaCopy->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.SceneAlphaCopy);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.SceneAlphaCopy);
 }
 
 
@@ -731,7 +753,9 @@ void FSceneRenderTargets::BeginRenderingLightAttenuation()
 
 	AllocLightAttenuation();
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetLightAttenuation());
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GetLightAttenuation());
 
 	// Set the light attenuation surface as the render target, and the scene depth buffer as the depth-stencil surface.
 	RHISetRenderTarget(GetLightAttenuationSurface(),GetSceneDepthSurface());
@@ -744,7 +768,9 @@ void FSceneRenderTargets::FinishRenderingLightAttenuation()
 	// Resolve the light attenuation surface.
 	RHICopyToResolveTarget(GetLightAttenuationSurface(), LightAttenuation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams(FResolveRect()));
 	
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetLightAttenuation());
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.GetLightAttenuation());
 }
 
 void FSceneRenderTargets::BeginRenderingTranslucency(const FViewInfo& View)

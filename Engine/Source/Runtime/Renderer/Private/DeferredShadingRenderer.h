@@ -42,7 +42,7 @@ public:
 	void ClearView();
 
 	/** Clears gbuffer where Z is still at the maximum value (ie no geometry rendered) */
-    void ClearGBufferAtMaxZ();
+	void ClearGBufferAtMaxZ(FRHICommandList& RHICmdList);
 
 	/** Clears LPVs for all views */
 	void ClearLPVs(FRHICommandList& RHICmdList);
@@ -168,7 +168,7 @@ private:
 	void BeginOcclusionTests();
 
 	/** Renders the scene's fogging. */
-	bool RenderFog(FLightShaftsOutput LightShaftsOutput);
+	bool RenderFog(FRHICommandList& RHICmdList, FLightShaftsOutput LightShaftsOutput);
 
 	/** Renders the scene's atmosphere. */
 	void RenderAtmosphere(FLightShaftsOutput LightShaftsOutput);
@@ -177,10 +177,10 @@ private:
 	void RenderDeferredReflections(FRHICommandList& RHICmdList);
 
 	/** Render dynamic sky lighting from Movable sky lights. */
-	void RenderDynamicSkyLighting();
+	void RenderDynamicSkyLighting(FRHICommandList& RHICmdList);
 
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
-	bool RenderDistanceFieldAOSurfaceCache(FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor);
+	bool RenderDistanceFieldAOSurfaceCache(FRHICommandList& RHICmdList, FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor);
 
 	/** Whether tiled deferred is supported and can be used at all. */
 	bool CanUseTiledDeferred() const;
@@ -195,10 +195,10 @@ private:
 	void RenderLights(FRHICommandList& RHICmdList);
 
 	/** Renders an array of lights for the stationary light overlap viewmode. */
-	void RenderLightArrayForOverlapViewmode(const TSparseArray<FLightSceneInfoCompact>& LightArray);
+	void RenderLightArrayForOverlapViewmode(FRHICommandList& RHICmdList, const TSparseArray<FLightSceneInfoCompact>& LightArray);
 
 	/** Render stationary light overlap as complexity to scene color. */
-	void RenderStationaryLightOverlap();
+	void RenderStationaryLightOverlap(FRHICommandList& RHICmdList);
 	
 	/** 
 	 * Renders the scene's translucency.
@@ -206,9 +206,9 @@ private:
 	void RenderTranslucency();
 
 	/** Renders the scene's light shafts */
-	FLightShaftsOutput RenderLightShaftOcclusion();
+	FLightShaftsOutput RenderLightShaftOcclusion(FRHICommandList& RHICmdList);
 
-	void RenderLightShaftBloom();
+	void RenderLightShaftBloom(FRHICommandList& RHICmdList);
 
 	/** Makes a copy of scene color so that a material with a scene color node can read the up to date scene color. */
 	void CopySceneColor(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
@@ -223,7 +223,7 @@ private:
 	bool RenderLightMapDensities();
 
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
-	void UpdateDownsampledDepthSurface();
+	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/**
 	 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
@@ -295,10 +295,10 @@ private:
 	  * @param LightIndex The light's index into FScene::Lights
 	  * @return true if anything got rendered
 	  */
-	void RenderLight(const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
+	void RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
 
 	/** Renders an array of simple lights using standard deferred shading. */
-	void RenderSimpleLightsStandardDeferred(const FSimpleLightArray& SimpleLights);
+	void RenderSimpleLightsStandardDeferred(FRHICommandList& RHICmdList, const FSimpleLightArray& SimpleLights);
 
 	/** Clears the translucency lighting volumes before light accumulation. */
 	void ClearTranslucentVolumeLighting(FRHICommandList& RHICmdList);
@@ -310,25 +310,25 @@ private:
 	void CompositeIndirectTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Clears the volume texture used to accumulate per object shadows for translucency. */
-	void ClearTranslucentVolumePerObjectShadowing();
+	void ClearTranslucentVolumePerObjectShadowing(FRHICommandList& RHICmdList);
 
 	/** Accumulates the per object shadow's contribution for translucency. */
-	void AccumulateTranslucentVolumeObjectShadowing(const FProjectedShadowInfo* InProjectedShadowInfo, bool bClearVolume);
+	void AccumulateTranslucentVolumeObjectShadowing(FRHICommandList& RHICmdList, const FProjectedShadowInfo* InProjectedShadowInfo, bool bClearVolume);
 
 	/** Accumulates direct lighting for the given light.  InProjectedShadowInfo can be NULL in which case the light will be unshadowed. */
-	void InjectTranslucentVolumeLighting(const FLightSceneInfo& LightSceneInfo, const FProjectedShadowInfo* InProjectedShadowInfo);
+	void InjectTranslucentVolumeLighting(FRHICommandList& RHICmdList, const FLightSceneInfo& LightSceneInfo, const FProjectedShadowInfo* InProjectedShadowInfo);
 
 	/** Accumulates direct lighting for an array of unshadowed lights. */
-	void InjectTranslucentVolumeLightingArray(const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumLights);
+	void InjectTranslucentVolumeLightingArray(FRHICommandList& RHICmdList, const TArray<FSortedLightSceneInfo, SceneRenderingAllocator>& SortedLights, int32 NumLights);
 
 	/** Accumulates direct lighting for simple lights. */
-	void InjectSimpleTranslucentVolumeLightingArray(const FSimpleLightArray& SimpleLights);
+	void InjectSimpleTranslucentVolumeLightingArray(FRHICommandList& RHICmdList, const FSimpleLightArray& SimpleLights);
 
 	/** Filters the translucency lighting volumes to reduce aliasing. */
-	void FilterTranslucentVolumeLighting();
+	void FilterTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Output SpecularColor * IndirectDiffuseGI for metals so they are not black in reflections */
-	void RenderReflectionCaptureSpecularBounceForAllViews();
+	void RenderReflectionCaptureSpecularBounceForAllViews(FRHICommandList& RHICmdList);
 
 	/** Render image based reflections (SSR, Env, SkyLight) without compute shaders */
 	void RenderImageBasedReflectionsSM4ForAllViews(FRHICommandList& RHICmdList, bool bReflectionEnv);

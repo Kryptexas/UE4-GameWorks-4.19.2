@@ -21,15 +21,16 @@ FGlobalBoundShaderState ScreenBoundShaderState;
 /**
  * Draws a texture rectangle on the screen using normalized (-1 to 1) device coordinates.
  */
-void DrawScreenQuad( float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, const FTexture* Texture )
+void DrawScreenQuad(FRHICommandList& RHICmdList, float X0, float Y0, float U0, float V0, float X1, float Y1, float U1, float V1, const FTexture* Texture)
 { 
 	// Set the screen shaders
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FScreenPS> ScreenPixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
-	//@todo-rco: RHIPacketList
-	ScreenPixelShader->SetParameters(FRHICommandList::GetNullRef(), Texture);
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	SetGlobalBoundShaderState(RHICmdList, ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
+
+	ScreenPixelShader->SetParameters(RHICmdList, Texture);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];
@@ -54,18 +55,19 @@ void DrawScreenQuad( float X0, float Y0, float U0, float V0, float X1, float Y1,
 	Vertices[3].UV.X       = U0;
 	Vertices[3].UV.Y       = V1;
 
-	RHIDrawPrimitiveUP(PT_TriangleStrip,2,Vertices,sizeof(Vertices[0]));
+	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 }
 
-void DrawNormalizedScreenQuad( float X, float Y, float U0, float V0, float SizeX, float SizeY, float U1, float V1, FIntPoint TargetSize, FTexture2DRHIRef TextureRHI )
+void DrawNormalizedScreenQuad(FRHICommandList& RHICmdList, float X, float Y, float U0, float V0, float SizeX, float SizeY, float U1, float V1, FIntPoint TargetSize, FTexture2DRHIRef TextureRHI)
 {
 	// Set the screen shaders 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FScreenPS> ScreenPixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	SetGlobalBoundShaderState(RHICmdList, ScreenBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *ScreenPixelShader);
 
 	/// ?
-	ScreenPixelShader->SetParameters(FRHICommandList::GetNullRef(), TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
+	ScreenPixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), TextureRHI);
 
 	// Generate the vertices used
 	FScreenVertex Vertices[4];
@@ -96,5 +98,5 @@ void DrawNormalizedScreenQuad( float X, float Y, float U0, float V0, float SizeX
 		Vertices[VertexIndex].Position.Y = (+1.0f - 2.0f * (Vertices[VertexIndex].Position.Y) / (float)TargetSize.Y);
 	}
 
-	RHIDrawPrimitiveUP(PT_TriangleStrip,2,Vertices,sizeof(Vertices[0]));
+	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 }

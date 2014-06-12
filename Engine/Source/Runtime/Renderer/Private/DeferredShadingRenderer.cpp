@@ -114,7 +114,7 @@ extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 /** 
 * Clears view where Z is still at the maximum value (ie no geometry rendered)
 */
-void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
+void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdList)
 {
 	// Assumes BeginRenderingSceneColor() has been called before this function
 	SCOPED_DRAW_EVENT(ClearGBufferAtMaxZ, DEC_SCENE_ITEMS);
@@ -154,16 +154,13 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 		break;
 	}
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
-	SetGlobalBoundShaderState(GClearMRTBoundShaderState[NumActiveRenderTargets - 1], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, GClearMRTBoundShaderState[NumActiveRenderTargets - 1], GetVertexDeclarationFVector4(), *VertexShader, PixelShader);
 
 	// Opaque rendering, depth test but no depth writes
-	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
-	RHISetBlendState(TStaticBlendStateWriteMask<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendStateWriteMask<>::GetRHI());
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
 
 	// Clear each viewport by drawing background color at MaxZ depth
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -173,13 +170,13 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 		FViewInfo& View = Views[ViewIndex];
 
 		// Set viewport for this view
-		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1);
 
 		// Setup PS
 		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter, ClearColors, NumActiveRenderTargets);
 
 		// Render quad
-		RHIDrawPrimitiveUP(PT_TriangleStrip, 2, ClearQuadVertices, sizeof(ClearQuadVertices[0]) );
+		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, ClearQuadVertices, sizeof(ClearQuadVertices[0]));
 	}
 }
 
@@ -297,19 +294,22 @@ bool FDeferredShadingSceneRenderer::RenderBasePassDynamicData(FViewInfo& View)
 
 	if( !View.Family->EngineShowFlags.CompositeEditorPrimitives )
 	{
+		//@todo-rco: RHIPacketList
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 		const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
 		// Draw the base pass for the view's batched mesh elements.
 		bDirty = DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_World, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty = View.BatchedViewElements.Draw(bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
+		bDirty = View.BatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
 		
 		// Draw foreground objects last
 		bDirty = DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet), SDPG_Foreground, true) || bDirty;
 
 		// Draw the view's batched simple elements(lines, sprites, etc).
-		bDirty = View.TopBatchedViewElements.Draw(bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
+		bDirty = View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false) || bDirty;
 
 	}
 
@@ -606,7 +606,7 @@ void FDeferredShadingSceneRenderer::Render()
 	{
 		// Clears view by drawing quad at maximum Z
 		// TODO: if all the platforms have fast color clears, we can replace this with an RHIClear.
-		ClearGBufferAtMaxZ();
+		ClearGBufferAtMaxZ(RHICmdList);
 
 		bRequiresFarZQuadClear = false;
 	}
@@ -629,7 +629,7 @@ void FDeferredShadingSceneRenderer::Render()
 
 	// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
 	// This needs to happen before occlusion tests, which makes use of the small depth buffer.
-	UpdateDownsampledDepthSurface();
+	UpdateDownsampledDepthSurface(RHICmdList);
 
 	// Issue occlusion queries
 	// This is done after the downsampled depth buffer is created so that it can be used for issuing queries
@@ -654,7 +654,7 @@ void FDeferredShadingSceneRenderer::Render()
 			GCompositionLighting.ProcessAfterBasePass(Views[ViewIndex]);
 		}
 
-		RenderDynamicSkyLighting();
+		RenderDynamicSkyLighting(RHICmdList);
 
 		// Clear the translucent lighting volumes before we accumulate
 		ClearTranslucentVolumeLighting(RHICmdList);
@@ -666,7 +666,7 @@ void FDeferredShadingSceneRenderer::Render()
 		CompositeIndirectTranslucentVolumeLighting(RHICmdList);
 
 		// Filter the translucency lighting volume now that it is complete
-		FilterTranslucentVolumeLighting();
+		FilterTranslucentVolumeLighting(RHICmdList);
 
 		// Clear LPVs for all views
 		if ( IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5) )
@@ -689,7 +689,7 @@ void FDeferredShadingSceneRenderer::Render()
 	if( ViewFamily.EngineShowFlags.StationaryLightOverlap &&
 		FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
-		RenderStationaryLightOverlap();
+		RenderStationaryLightOverlap(RHICmdList);
 	}
 
 	FLightShaftsOutput LightShaftOutput;
@@ -697,7 +697,7 @@ void FDeferredShadingSceneRenderer::Render()
 	// Draw Lightshafts
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
-		LightShaftOutput = RenderLightShaftOcclusion();
+		LightShaftOutput = RenderLightShaftOcclusion(RHICmdList);
 	}
 
 	// Draw atmosphere
@@ -718,7 +718,7 @@ void FDeferredShadingSceneRenderer::Render()
 			if (Scene->bIsEditorScene)
 			{
 				// Precompute Atmospheric Textures
-				Scene->AtmosphericFog->PrecomputeTextures(Views.GetTypedData(), &ViewFamily);
+				Scene->AtmosphericFog->PrecomputeTextures(RHICmdList, Views.GetTypedData(), &ViewFamily);
 			}
 #endif
 			RenderAtmosphere(LightShaftOutput);
@@ -730,7 +730,7 @@ void FDeferredShadingSceneRenderer::Render()
 	// Draw fog.
 	if(ShouldRenderFog(ViewFamily))
 	{
-		RenderFog(LightShaftOutput);
+		RenderFog(RHICmdList, LightShaftOutput);
 	}
 
 	// No longer needed, release
@@ -753,13 +753,13 @@ void FDeferredShadingSceneRenderer::Render()
 
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
-		RenderLightShaftBloom();
+		RenderLightShaftBloom(RHICmdList);
 	}
 
 	if (ViewFamily.EngineShowFlags.VisualizeDistanceFieldAO)
 	{
 		FSceneRenderTargetItem DummyOutput(NULL, NULL, NULL);
-		RenderDistanceFieldAOSurfaceCache(DummyOutput, true);
+		RenderDistanceFieldAOSurfaceCache(RHICmdList, DummyOutput, true);
 	}
 
 	// Resolve the scene color for post processing.
@@ -1049,14 +1049,11 @@ IMPLEMENT_SHADER_TYPE(,FDownsampleSceneDepthPS,TEXT("DownsampleDepthPixelShader"
 FGlobalBoundShaderState DownsampleDepthBoundShaderState;
 
 /** Updates the downsized depth buffer with the current full resolution depth buffer. */
-void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
+void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList)
 {
 	if (GSceneRenderTargets.UseDownsizedOcclusionQueries() && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 	{
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
-		RHISetRenderTarget(NULL, GSceneRenderTargets.GetSmallDepthSurface());
+		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface());
 
 		SCOPED_DRAW_EVENT(DownsampleDepth, DEC_SCENE_ITEMS);
 
@@ -1069,11 +1066,11 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 
 			extern TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
 
-			SetGlobalBoundShaderState(DownsampleDepthBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+			SetGlobalBoundShaderState(RHICmdList, DownsampleDepthBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-			RHISetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_Always>::GetRHI());
 
 			PixelShader->SetParameters(RHICmdList, View);
 
@@ -1082,9 +1079,10 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 			const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
 			const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
 
-			RHISetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
+			RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
 
 			DrawRectangle(
+				RHICmdList,
 				0, 0,
 				DownsampledSizeX, DownsampledSizeY,
 				View.ViewRect.Min.X, View.ViewRect.Min.Y,

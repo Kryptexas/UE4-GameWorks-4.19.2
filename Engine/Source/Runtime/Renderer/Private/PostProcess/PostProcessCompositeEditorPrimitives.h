@@ -21,6 +21,6 @@ private:
 	 *
 	 * @param View	The view to draw in
 	 */
-	void RenderPrimitivesToComposite(const FViewInfo& View);
+	void RenderPrimitivesToComposite(FRHICommandList& RHICmdList, const FViewInfo& View);
 };
 

@@ -168,6 +168,9 @@ FGlobalBoundShaderState CopySceneColorBoundShaderState;
 
 void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString());
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
@@ -180,12 +183,13 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FCopySceneColorPS> PixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, CopySceneColorBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	/// ?
-	PixelShader->SetParameters(FRHICommandList::GetNullRef(), View);
+	PixelShader->SetParameters(RHICmdList, View);
 
-	DrawRectangle( 
+	DrawRectangle(
+		RHICmdList,
 		0, 0, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
@@ -616,6 +620,9 @@ void FDeferredShadingSceneRenderer::RenderTranslucency()
 {
 	if (ShouldRenderTranslucency())
 	{
+		//@todo-rco: RHIPacketList
+		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -641,7 +648,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucency()
 
 				if (LightPropagationVolume)
 				{
-					LightPropagationVolume->Visualise(View);
+					LightPropagationVolume->Visualise(RHICmdList, View);
 				}
 			}
 			

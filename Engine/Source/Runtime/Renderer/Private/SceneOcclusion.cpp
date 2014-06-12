@@ -676,6 +676,7 @@ IMPLEMENT_SHADER_TYPE(,FHZBTestPS,TEXT("HZBOcclusion"),TEXT("HZBTestPS"),SF_Pixe
 void FHZBOcclusionTester::Submit( const FViewInfo& View )
 {
 	SCOPED_DRAW_EVENT(SubmitHZB, DEC_SCENE_ITEMS);
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef(); // many things below which do not support parallel
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	if( !ViewState )
@@ -746,22 +747,22 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 	{
 		SCOPED_DRAW_EVENT(TestHZB, DEC_SCENE_ITEMS);
 
-		RHISetRenderTarget( ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL );
+		SetRenderTarget(RHICmdList, ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, NULL);
 
 		TShaderMapRef< FScreenVS >	VertexShader( GetGlobalShaderMap() );
 		TShaderMapRef< FHZBTestPS >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
+		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 		PixelShader->SetParameters(RHICmdList, View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
 
-		RHISetViewport( 0, 0, 0.0f, SizeX, SizeY, 1.0f );
+		RHICmdList.SetViewport(0, 0, 0.0f, SizeX, SizeY, 1.0f);
 
 		// TODO draw quads covering blocks added above
 		DrawRectangle(
+			RHICmdList,
 			0, 0,
 			SizeX, SizeY,
 			0, 0,
@@ -772,10 +773,10 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 			EDRF_UseTriangleOptimization);
 	}
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint( ResultsTextureGPU );
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ResultsTextureGPU);
 
 	// Transfer memory GPU -> CPU
-	RHICopyToResolveTarget( ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams() );
+	RHICmdList.CopyToResolveTarget(ResultsTextureGPU->GetRenderTargetItem().TargetableTexture, ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 }
 
 template< uint32 Stage >
@@ -882,31 +883,33 @@ void BuildHZB( const FViewInfo& View )
 	
 	FSceneRenderTargetItem& HZBRenderTarget = ViewState->HZB.Texture->GetRenderTargetItem();
 	
-	RHISetBlendState( TStaticBlendState<>::GetRHI() );
-	RHISetRasterizerState( TStaticRasterizerState<>::GetRHI() );
-	RHISetDepthStencilState( TStaticDepthStencilState< false, CF_Always >::GetRHI() );
-	
 	//@todo-rco: RHIPacketList
 	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
+	
 	// Mip 0
 	{
 		SCOPED_DRAW_EVENTF(BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), 0);
 
-		RHISetRenderTarget( HZBRenderTarget.TargetableTexture, 0, NULL );
+		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
 
 		TShaderMapRef< FScreenVS >		VertexShader( GetGlobalShaderMap() );
 		TShaderMapRef< THZBBuildPS<0> >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
+		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		// Imperfect sampling, doesn't matter too much
 		PixelShader->SetParameters(RHICmdList, View, GSceneRenderTargets.GetBufferSizeXY() );
 
-		RHISetViewport( 0, 0, 0.0f, HZBSize.X, HZBSize.Y, 1.0f );
+		RHICmdList.SetViewport(0, 0, 0.0f, HZBSize.X, HZBSize.Y, 1.0f);
 
 		DrawRectangle(
+			RHICmdList,
 			0, 0,
 			HZBSize.X, HZBSize.Y,
 			View.ViewRect.Min.X, View.ViewRect.Min.Y,
@@ -925,19 +928,21 @@ void BuildHZB( const FViewInfo& View )
 	{
 		SCOPED_DRAW_EVENTF(BuildHZB, DEC_SCENE_ITEMS, TEXT("HZB#%d"), MipIndex);
 
-		RHISetRenderTarget( HZBRenderTarget.TargetableTexture, MipIndex, NULL );
+		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
 
 		TShaderMapRef< FScreenVS >		VertexShader( GetGlobalShaderMap() );
 		TShaderMapRef< THZBBuildPS<1> >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader );
+		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		PixelShader->SetParameters(RHICmdList, View, SrcSize, ViewState->HZB.MipSRVs[ MipIndex - 1 ] );
 
-		RHISetViewport( 0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f );
+		RHICmdList.SetViewport(0, 0, 0.0f, DstSize.X, DstSize.Y, 1.0f);
 
 		DrawRectangle(
+			RHICmdList,
 			0, 0,
 			DstSize.X, DstSize.Y,
 			0, 0,
@@ -947,27 +952,28 @@ void BuildHZB( const FViewInfo& View )
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
-		RHICopyToResolveTarget( HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex) );
+		RHICmdList.CopyToResolveTarget(HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex));
 
 		SrcSize /= 2;
 		DstSize /= 2;
 	}
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint( ViewState->HZB.Texture );
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ViewState->HZB.Texture);
 }
 
 void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
 	const bool bUseDownsampledDepth = IsValidRef(GSceneRenderTargets.GetSmallDepthSurface()) && GSceneRenderTargets.UseDownsizedOcclusionQueries();
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	if (bUseDownsampledDepth)
 	{
-		RHISetRenderTarget(NULL, GSceneRenderTargets.GetSmallDepthSurface());
+		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSmallDepthSurface());
 	}
 	else
 	{
-		RHISetRenderTarget(NULL, GSceneRenderTargets.GetSceneDepthSurface());
+		SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface());
 	}
 
 	// Perform occlusion queries for each view
@@ -984,11 +990,11 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 			const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
 
 			// Setup the viewport for rendering to the downsampled depth buffer
-			RHISetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
+			RHICmdList.SetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
 		}
 		else
 		{
-			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 		}
     
 	    FSceneViewState* ViewState = (FSceneViewState*)View.State;
@@ -997,16 +1003,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 	    {
 			// Depth tests, no depth writes, no color writes, opaque, solid rasterization wo/ backface culling.
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI());
 			// We only need to render the front-faces of the culling geometry (this halves the amount of pixels we touch)
-			RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI()); 
-			RHISetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
+			RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 
 			// Lookup the vertex shader.
 			TShaderMapRef<FOcclusionQueryVS> VertexShader(GetGlobalShaderMap());
-			SetGlobalBoundShaderState(OcclusionTestBoundShaderState,GetVertexDeclarationFVector3(),*VertexShader,NULL);
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+			SetGlobalBoundShaderState(RHICmdList, OcclusionTestBoundShaderState, GetVertexDeclarationFVector3(), *VertexShader, NULL);
 			VertexShader->SetParameters(RHICmdList, View);
 
 			// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
@@ -1051,6 +1055,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 							if (!bCameraInsideLightGeometry)
 							{
 								const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
+								RHICmdList.CheckIsNull(); // RHIBeginRenderQuery
 								RHIBeginRenderQuery(ShadowOcclusionQuery);
 
 								FSceneViewState::FProjectedShadowKey Key(
@@ -1066,7 +1071,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 
 								// Draw bounding sphere
 								VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, ProjectedShadowInfo.LightSceneInfo->Proxy->GetBoundingSphere());
-								StencilingGeometry::DrawSphere();
+								StencilingGeometry::DrawSphere(RHICmdList);
 
 								RHIEndRenderQuery(ShadowOcclusionQuery);
 							}

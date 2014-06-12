@@ -189,16 +189,16 @@ static void InjectCurves(
 
 	RHICmdList.CheckIsNull();
 
-	RHISetRenderTarget( CurveTextureTargetRHI, FTextureRHIParamRef() );
-	RHISetScissorRect( false, 0, 0, 0, 0 );
-	RHISetViewport( 0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f );
-	RHISetDepthStencilState( TStaticDepthStencilState<false,CF_Always>::GetRHI() );
-	RHISetRasterizerState( TStaticRasterizerState<FM_Solid,CM_None>::GetRHI() );
-	RHISetBlendState( TStaticBlendState<>::GetRHI() );
+	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef());
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
+	RHICmdList.SetViewport(0, 0, 0.0f, GParticleCurveTextureSizeX, GParticleCurveTextureSizeY, 1.0f);
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	if (bFirstCall)
 	{
-		RHIClear(true,FLinearColor::Blue,false,0.0f,false,0,FIntRect());
+		RHICmdList.Clear(true, FLinearColor::Blue, false, 0.0f, false, 0, FIntRect());
 		bFirstCall = false;
 	}
 
@@ -227,8 +227,10 @@ static void InjectCurves(
 		TShaderMapRef<FParticleCurveInjectionPS> PixelShader( GetGlobalShaderMap() );
 
 		// Bound shader state.
+		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
+			RHICmdList,
 			BoundShaderState,
 			GParticleCurveInjectionVertexDeclaration.VertexDeclarationRHI,
 			*VertexShader,
@@ -239,7 +241,7 @@ static void InjectCurves(
 		VertexShader->SetParameters(RHICmdList, CurveOffset );
 
 		// Stream 0: New particles.
-		RHISetStreamSource(
+		RHICmdList.SetStreamSource(
 			0,
 			ScratchVertexBufferRHI,
 			/*Stride=*/ sizeof(FColor),
@@ -247,7 +249,7 @@ static void InjectCurves(
 			);
 
 		// Stream 1: TexCoord.
-		RHISetStreamSource(
+		RHICmdList.SetStreamSource(
 			1,
 			GParticleTexCoordVertexBuffer.VertexBufferRHI,
 			/*Stride=*/ sizeof(FVector2D),
@@ -255,7 +257,7 @@ static void InjectCurves(
 			);
 
 		// Inject particles.
-		RHIDrawIndexedPrimitive(
+		RHICmdList.DrawIndexedPrimitive(
 			GParticleIndexBuffer.IndexBufferRHI,
 			PT_TriangleList,
 			/*BaseVertexIndex=*/ 0,
@@ -267,7 +269,7 @@ static void InjectCurves(
 			);
 	}
 
-	RHICopyToResolveTarget( CurveTextureTargetRHI, CurveTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams() );
+	RHICmdList.CopyToResolveTarget(CurveTextureTargetRHI, CurveTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
 }
 
 /*------------------------------------------------------------------------------

@@ -52,6 +52,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandList& RHICmdList, c
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
 
+	RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
 	GSceneRenderTargets.ResolveSceneColor();
 
 	GSceneRenderTargets.BeginRenderingSceneAlphaCopy();
@@ -59,15 +60,16 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandList& RHICmdList, c
 	int X = GSceneRenderTargets.GetBufferSizeXY().X;
 	int Y = GSceneRenderTargets.GetBufferSizeXY().Y;
 
-	RHISetViewport(0, 0, 0.0f, X, Y, 1.0f );
+	RHICmdList.SetViewport(0, 0, 0.0f, X, Y, 1.0f);
 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(GetGlobalShaderMap());
-	SetGlobalBoundShaderState(ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
+	SetGlobalBoundShaderState(RHICmdList, ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
 	PixelShader->SetParameters(RHICmdList, View);
 
 	DrawRectangle( 
+		RHICmdList,
 		0, 0, 
 		X, Y, 
 		0, 0, 

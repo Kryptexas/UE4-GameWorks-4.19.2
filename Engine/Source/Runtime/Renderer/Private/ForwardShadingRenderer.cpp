@@ -55,7 +55,10 @@ void FForwardShadingSceneRenderer::Render()
 
 	// Find the visible primitives.
 	InitViews();
-	
+
+	//@todo-rco: RHIPacketList
+	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
@@ -71,7 +74,7 @@ void FForwardShadingSceneRenderer::Render()
 	const bool bGammaSpace = !IsMobileHDR();
 	if( bGammaSpace )
 	{
-		RHISetRenderTarget( ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture() );
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture());
 	}
 	else
 	{
@@ -81,10 +84,8 @@ void FForwardShadingSceneRenderer::Render()
 
 	// Clear color and depth buffer
 	// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-	RHIClear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
+	RHICmdList.Clear(true, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	RenderForwardShadingBasePass(RHICmdList);
 
 	// Notify the FX system that opaque primitives have been rendered.

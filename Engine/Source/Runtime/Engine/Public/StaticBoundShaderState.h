@@ -53,6 +53,7 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
 /**
  * SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
  *
+ * @param RHICmdList				- cmdlist to add to
  * @param BoundShaderState			- current bound shader state, will be updated if it wasn't a valid ref
  * @param VertexDeclaration			- the vertex declaration to use in creating the new bound shader state
  * @param VertexShader				- the vertex shader to use in creating the new bound shader state
@@ -60,6 +61,7 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
  * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
  */
 extern ENGINE_API void SetGlobalBoundShaderState(
+	FRHICommandList& RHICmdList,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,

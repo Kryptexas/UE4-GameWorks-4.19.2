@@ -4,6 +4,7 @@
 #pragma once
 
 #include "RHI.h"
+#include "RHICommandList.h"
 
 /** Encapsulates a GPU read/write buffer with its UAV and SRV. */
 struct FRWBuffer
@@ -120,6 +121,49 @@ struct FRWBufferByteAddress
 };
 
 /** Helper for the common case of using a single color and depth render target. */
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
+{
+	FRHIRenderTargetView RTV(NewRenderTarget);
+	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+}
+
+/** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
+{
+	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
+	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+}
+
+/** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
+inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
+{
+	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
+	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
+}
+
+/** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
+inline void SetRenderTargets(
+	FRHICommandList& RHICmdList,
+	uint32 NewNumSimultaneousRenderTargets, 
+	const FTextureRHIParamRef* NewRenderTargetsRHI,
+	FTextureRHIParamRef NewDepthStencilTargetRHI,
+	uint32 NewNumUAVs,
+	const FUnorderedAccessViewRHIParamRef* UAVs
+	)
+{
+	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
+
+	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
+	{
+		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
+	}
+
+	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
+}
+
+
+
+/** Helper for the common case of using a single color and depth render target. */
 inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget);
@@ -142,7 +186,7 @@ inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, int32 MipInd
 
 /** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
 inline void RHISetRenderTargets(
-	uint32 NewNumSimultaneousRenderTargets, 
+	uint32 NewNumSimultaneousRenderTargets,
 	const FTextureRHIParamRef* NewRenderTargetsRHI,
 	FTextureRHIParamRef NewDepthStencilTargetRHI,
 	uint32 NewNumUAVs,
@@ -158,7 +202,6 @@ inline void RHISetRenderTargets(
 
 	RHISetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
 }
-
 /** Sets a depth-stencil state with a default stencil ref value of 0. */
 inline void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState)
 {
@@ -378,13 +421,13 @@ inline uint32 RHIGetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 Pr
  * @param VertexData A reference to memory preallocate in RHIBeginDrawPrimitiveUP
  * @param VertexDataStride Size of each vertex
  */
-inline void RHIDrawPrimitiveUP( uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride )
+inline void DrawPrimitiveUP(FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
 {
 	void* Buffer = NULL;
 	const uint32 VertexCount = RHIGetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
-	RHIBeginDrawPrimitiveUP( PrimitiveType, NumPrimitives, VertexCount, VertexDataStride, Buffer );
+	RHICmdList.BeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, VertexCount, VertexDataStride, Buffer);
 	FMemory::Memcpy( Buffer, VertexData, VertexCount * VertexDataStride );
-	RHIEndDrawPrimitiveUP();
+	RHICmdList.EndDrawPrimitiveUP();
 }
 
 /**
@@ -398,7 +441,8 @@ inline void RHIDrawPrimitiveUP( uint32 PrimitiveType, uint32 NumPrimitives, cons
  * @param VertexData The memory preallocate in RHIBeginDrawIndexedPrimitiveUP
  * @param VertexDataStride The size of one vertex
  */
-inline void RHIDrawIndexedPrimitiveUP(
+inline void DrawIndexedPrimitiveUP(
+	FRHICommandList& RHICmdList,
 	uint32 PrimitiveType,
 	uint32 MinVertexIndex,
 	uint32 NumVertices,
@@ -411,7 +455,7 @@ inline void RHIDrawIndexedPrimitiveUP(
 	void* VertexBuffer = NULL;
 	void* IndexBuffer = NULL;
 	const uint32 NumIndices = RHIGetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
-	RHIBeginDrawIndexedPrimitiveUP(
+	RHICmdList.BeginDrawIndexedPrimitiveUP(
 		PrimitiveType,
 		NumPrimitives,
 		NumVertices,
@@ -423,5 +467,5 @@ inline void RHIDrawIndexedPrimitiveUP(
 		IndexBuffer );
 	FMemory::Memcpy( VertexBuffer, VertexData, NumVertices * VertexDataStride );
 	FMemory::Memcpy( IndexBuffer, IndexData, NumIndices * IndexDataStride );
-	RHIEndDrawIndexedPrimitiveUP();
+	RHICmdList.EndDrawIndexedPrimitiveUP();
 }

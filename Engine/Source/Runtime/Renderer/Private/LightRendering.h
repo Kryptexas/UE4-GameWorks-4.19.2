@@ -201,6 +201,6 @@ private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };
 
-extern void SetBoundingGeometryRasterizerAndDepthState(const FViewInfo& View, const FSphere& LightBounds);
+extern void SetBoundingGeometryRasterizerAndDepthState(FRHICommandList& RHICmdList, const FViewInfo& View, const FSphere& LightBounds);
 
 #endif

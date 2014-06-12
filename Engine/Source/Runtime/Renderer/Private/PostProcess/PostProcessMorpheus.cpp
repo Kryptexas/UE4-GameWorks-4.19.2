@@ -111,14 +111,14 @@ public:
 	}
 
 
-	void SetPS(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
+	void SetPS(const FRenderingCompositePassContext& Context, FIntRect SrcRect, FIntPoint SrcBufferSize, EStereoscopicPass StereoPass, FMatrix& QuadTexTransform)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(RHICmdList, ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
 			check(GEngine->HMDDevice.IsValid());
@@ -130,18 +130,18 @@ public:
 			if (StereoPass == eSSP_LEFT_EYE)
 			{
 				FTexture* TextureLeft = HMDDevice->GetDistortionTextureLeft();
-				SetTextureParameter(ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
-				SetShaderValue(ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
-				SetShaderValue(ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
-				SetShaderValue(ShaderRHI, TextureUVOffset, 0.0f);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureLeft->SamplerStateRHI, TextureLeft->TextureRHI);
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleLeft());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetLeft());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, 0.0f);
 			}
 			else
 			{
 				FTexture* TextureRight = HMDDevice->GetDistortionTextureRight();
-				SetTextureParameter(ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
-				SetShaderValue(ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
-				SetShaderValue(ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
-				SetShaderValue(ShaderRHI, TextureUVOffset, -0.5f);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TextureRight->SamplerStateRHI, TextureRight->TextureRHI);
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureScale, HMDDevice->GetTextureScaleRight());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureOffset, HMDDevice->GetTextureOffsetRight());
+				SetShaderValue(Context.RHICmdList, ShaderRHI, TextureUVOffset, -0.5f);
 			}				
 			      
             QuadTexTransform = FMatrix::Identity;            
@@ -169,36 +169,36 @@ public:
 				DistortionTexture = GEngine->HMDDevice->GetDistortionTexture();
 				check(DistortionTexture != NULL);
 			}
-			SetTextureParameter(RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), DistortionTexture->TextureRHI);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, DistortionTextureParam, DistortionTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), DistortionTexture->TextureRHI);
 
 			// Shifts texture coordinates to the center of the distortion function around the center of the lens
 			FVector2D ViewLensCenter;
 			ViewLensCenter.X = x + (0.5f + XCenterOffset) * w;
 			ViewLensCenter.Y = y + (0.5f + YCenterOffset) * h;
-			SetShaderValue(RHICmdList, ShaderRHI, LensCenter, ViewLensCenter);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, LensCenter, ViewLensCenter);
 
 			// Texture coordinate for the center of the half scene texture, used to clamp sampling
 			FVector2D ViewScreenCenter;
 			ViewScreenCenter.X = x + w * 0.5f;
 			ViewScreenCenter.Y = y + h * 0.5f;
-			SetShaderValue(RHICmdList, ShaderRHI, ScreenCenter, ViewScreenCenter);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, ScreenCenter, ViewScreenCenter);
 			
 			// Rescale output (sample) coordinates back to texture range and increase scale to support rendering outside the the screen
 			FVector2D ViewScale;
 			ViewScale.X = (w/2) * ScaleFactor;
 			ViewScale.Y = (h/2) * ScaleFactor * AspectRatio;
-			SetShaderValue(RHICmdList, ShaderRHI, Scale, ViewScale);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, Scale, ViewScale);
 
             // Distortion coefficients
             FVector4 DistortionValues;
             GEngine->HMDDevice->GetDistortionWarpValues(DistortionValues);
-			SetShaderValue(RHICmdList, ShaderRHI, HMDWarpParam, DistortionValues);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, HMDWarpParam, DistortionValues);
 
 			// CNN - Morpheus changes
 			// CA correction values
 			FVector4 CAValues;
 			GEngine->HMDDevice->GetChromaAbCorrectionValues(CAValues);
-			SetShaderValue(RHICmdList, ShaderRHI, CAWarpParam, CAValues);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, CAWarpParam, CAValues);
 
 			// Rescale the texture coordinates to [-1,1] unit range and corrects aspect ratio
 			FVector2D ViewScaleIn;
@@ -254,9 +254,9 @@ class FPostProcessMorpheusVS : public FGlobalShader
 	FPostProcessMorpheusVS() {}
 
 	/** to have a similar interface as all other shaders */
-	void SetParameters(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context)
+	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
-		FGlobalShader::SetParameters(RHICmdList, GetVertexShader(), Context.View);
+		FGlobalShader::SetParameters(Context.RHICmdList, GetVertexShader(), Context.View);
 	}
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
@@ -297,30 +297,31 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
     const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
+	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 
 	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessMorpheusVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessMorpheusPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
+	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 
-	SetGlobalBoundShaderState(BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
     FMatrix QuadTexTransform;
     FMatrix QuadPosTransform = FMatrix::Identity;
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-	PixelShader->SetPS(RHICmdList, Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
+
+	PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 
 	// Draw a quad mapping scene color to the view's render target
     DrawTransformedRectangle(
+		Context.RHICmdList,
         0, 0,
         DestRect.Width(), DestRect.Height(),
         QuadPosTransform,
@@ -331,7 +332,7 @@ void FRCPassPostProcessMorpheus::Process(FRenderingCompositePassContext& Context
         SrcSize
         );
 
-	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessMorpheus::ComputeOutputDesc(EPassOutputId InPassOutputId) const

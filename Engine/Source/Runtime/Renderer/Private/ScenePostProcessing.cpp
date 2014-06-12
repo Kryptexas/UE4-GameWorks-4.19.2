@@ -98,32 +98,33 @@ void FDeferredShadingSceneRenderer::FinishRenderViewTarget(const FViewInfo* View
 }
 
 // TODO: REMOVE if no longer needed:
-void FSceneRenderer::GammaCorrectToViewportRenderTarget(const FViewInfo* View, float OverrideGamma)
+void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma)
 {
 	// Set the view family's render target/viewport.
-	RHISetRenderTarget(ViewFamily.RenderTarget->GetRenderTargetTexture(),FTextureRHIRef());	
+	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 
 	// Deferred the clear until here so the garbage left in the non rendered regions by the post process effects do not show up
 	if( ViewFamily.bDeferClear )
 	{
-		RHIClear(true, FLinearColor::Black, false, 0.0f, false, 0, FIntRect());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 0.0f, false, 0, FIntRect());
 		ViewFamily.bDeferClear = false;
 	}
 
 	SCOPED_DRAW_EVENT(GammaCorrection, DEC_SCENE_ITEMS);
 
 	// turn off culling and blending
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	// turn off depth reads/writes
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	TShaderMapRef<FGammaCorrectionVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FGammaCorrectionPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState PostProcessBoundShaderState;
-	SetGlobalBoundShaderState( PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	SetGlobalBoundShaderState(RHICmdList, PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	float InvDisplayGamma = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 
@@ -134,8 +135,6 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(const FViewInfo* View, f
 
 	const FPixelShaderRHIParamRef ShaderRHI = PixelShader->GetPixelShader();
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	SetShaderValue(
 		RHICmdList, 
 		ShaderRHI,
@@ -158,6 +157,7 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(const FViewInfo* View, f
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
+		RHICmdList,
 		View->UnscaledViewRect.Min.X,View->UnscaledViewRect.Min.Y,
 		View->UnscaledViewRect.Width(),View->UnscaledViewRect.Height(),
 		View->ViewRect.Min.X,View->ViewRect.Min.Y,

@@ -175,8 +175,12 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 		{
 			const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
+			//@todo-rco: RHIPacketList
+			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+
 			// draw batched items
 			Data->BatchedElements.Draw(
+				RHICmdList,
 				bNeedsToSwitchVerticalAxis,
 				Data->Transform.GetMatrix(),
 				CanvasRenderTarget->GetSizeXY().X,
@@ -218,9 +222,12 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 				FBatchedDrawParameters,Parameters,DrawParameters,
 			{
 				const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
+				//@todo-rco: RHIPacketList
+				FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 				// draw batched items
 				Parameters.RenderData->BatchedElements.Draw(
+					RHICmdList,
 					bNeedsToSwitchVerticalAxis,
 					Parameters.RenderData->Transform.GetMatrix(),
 					Parameters.ViewportSizeX,
