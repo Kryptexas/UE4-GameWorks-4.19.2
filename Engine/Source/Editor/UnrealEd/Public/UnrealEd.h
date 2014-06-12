@@ -3,6 +3,8 @@
 #ifndef __UnrealEd_h__
 #define __UnrealEd_h__
 
+#ifdef __cplusplus // Xcode needs that to use this file as a precompiled header for indexing
+
 #if WITH_EDITOR
 
 #include "Engine.h"
@@ -52,5 +54,7 @@ UNREALED_API int32 EditorInit( class IEngineLoop& EngineLoop );
 UNREALED_API void EditorExit();
 
 #include "UnrealEdMessages.h"
+
+#endif // __cplusplus
 
 #endif	// __UnrealEd_h__

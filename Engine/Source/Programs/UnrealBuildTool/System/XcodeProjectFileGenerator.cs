@@ -444,6 +444,7 @@ namespace UnrealBuildTool
 				"\t\t\t\tGCC_WARN_CHECK_SWITCH_STATEMENTS = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSUPPORTED_PLATFORMS = \"macosx\";" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tUSE_HEADERMAP = NO;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tSYMROOT = " + EngineSubdir + "Intermediate/Build;" + ProjectFileGenerator.NewLine +
 				"\t\t\t};" + ProjectFileGenerator.NewLine +
@@ -453,6 +454,7 @@ namespace UnrealBuildTool
 
 		private void AppendMacBuildConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, bool bIsMacOnly)
 		{
+			string UE4Dir = Path.GetFullPath(Directory.GetCurrentDirectory() + "../../..");
 			if (bIsMacOnly)
 			{
 				Contents.Append(
@@ -465,6 +467,8 @@ namespace UnrealBuildTool
 					"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PREFIX_HEADER = \"" + UE4Dir + "/Engine/Source/Editor/UnrealEd/Public/UnrealEd.h\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 					"\t\t};" + ProjectFileGenerator.NewLine);
@@ -489,6 +493,8 @@ namespace UnrealBuildTool
 					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\t\"SDKROOT[arch=x86_64]\" = macosx;" + ProjectFileGenerator.NewLine +
 					"\t\t\t\t\"SDKROOT[arch=arm*]\" = iphoneos;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tGCC_PREFIX_HEADER = \"" + UE4Dir + "/Engine/Source/Editor/UnrealEd/Public/UnrealEd.h\";" + ProjectFileGenerator.NewLine +
 					"\t\t\t};" + ProjectFileGenerator.NewLine +
 					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
 					"\t\t};" + ProjectFileGenerator.NewLine);

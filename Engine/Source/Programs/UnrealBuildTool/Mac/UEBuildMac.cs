@@ -166,6 +166,10 @@ namespace UnrealBuildTool
 
         public override void ValidateUEBuildConfiguration()
         {
+			if (ProjectFileGenerator.bGenerateProjectFiles || ProjectFileGenerator.bGeneratingRocketProjectFiles)
+			{
+				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
+			}
         }
 
 		/**
