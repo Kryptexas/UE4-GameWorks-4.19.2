@@ -1502,6 +1502,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
+	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
 	if ( AutoWrapText.Get() )
 	{
 		CachedAutoWrapTextWidth = AllottedGeometry.Size.X;

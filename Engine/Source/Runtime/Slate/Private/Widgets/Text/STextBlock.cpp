@@ -98,6 +98,7 @@ int32 STextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& 
 	FSlateFontInfo FontInfo = GetFont();
 
 	// Perform text auto-wrapping if that was enabled.
+	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
 	if( AutoWrapText.Get() )
 	{
 		const float OldWrapTextAt = CachedAutoWrapTextWidth;
