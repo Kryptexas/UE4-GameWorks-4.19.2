@@ -96,6 +96,12 @@ public:
 	TArray<FString> EditorTestModules;
 
 	/**
+	 * Folders containing levels to exclude from automated tests
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Automation)
+	TArray<FString> TestLevelFolders;
+
+	/**
 	 * Asset to test for open in automation process
 	 */
 	UPROPERTY(EditAnywhere, config, Category=ExternalTools)

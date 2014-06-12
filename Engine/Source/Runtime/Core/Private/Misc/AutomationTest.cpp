@@ -417,10 +417,21 @@ void FAutomationTestFramework::GetValidTestNames( TArray<FAutomationTestInfo>& T
 
 bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 {
-	if (Path.Contains(TEXT("/TestMaps/")))
+	static TArray<FString> TestLevelFolders;
+	if ( TestLevelFolders.Num() == 0 )
 	{
-		return false;
+		GConfig->GetArray( TEXT("/Script/Engine.AutomationTestSettings"), TEXT("TestLevelFolders"), TestLevelFolders, GEngineIni);
 	}
+
+	for ( const FString& Folder : TestLevelFolders )
+	{
+		const FString PatternToCheck = FString::Printf(TEXT("/%s/"), *Folder);
+		if ( Path.Contains(*PatternToCheck) )
+		{
+			return false;
+		}
+	}
+
 	FString DevelopersPath = FPaths::GameDevelopersDir().LeftChop(1);
 	return bDeveloperDirectoryIncluded || bVisualCommandletFilterOn || !Path.StartsWith(DevelopersPath);
 }
