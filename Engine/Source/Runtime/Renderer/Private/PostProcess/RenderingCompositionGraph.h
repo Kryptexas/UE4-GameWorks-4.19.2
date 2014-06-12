@@ -179,7 +179,7 @@ struct FRenderingCompositePassContext
 
 	FRenderingCompositionGraph Graph;
 
-	mutable FRHICommandList& RHICmdList;
+	FRHICommandList& RHICmdList;
 
 private:
 	// cached state to map between ScreenPos and pixels
