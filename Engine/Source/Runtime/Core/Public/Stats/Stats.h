@@ -50,12 +50,9 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS FScopeCycleCounter(TStatId StatId)
+	FORCEINLINE_STATS FScopeCycleCounter( TStatId StatId )
 	{
-		if (FThreadStats::IsCollectingData(StatId))
-		{
-			Start(*StatId);
-		}
+		Start( StatId );
 	}
 
 	/**

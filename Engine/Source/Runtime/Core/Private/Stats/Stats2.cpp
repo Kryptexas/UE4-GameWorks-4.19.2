@@ -80,10 +80,11 @@ DEFINE_STAT(STAT_FrameTime);
 DEFINE_STAT(STAT_FPS);
 DEFINE_STAT(STAT_DrawStats);
 
-DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
+DECLARE_DWORD_COUNTER_STAT( TEXT( "Frame Packets Received" ), STAT_StatFramePacketsRecv, STATGROUP_StatSystem );
+DECLARE_MEMORY_STAT( TEXT( "Stats descriptions (ansi+wide)" ), STAT_StatDescMemory, STATGROUP_StatSystem );
+
 
 FName TStatId::TStatId_NAME_None;
-
 
 void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
@@ -144,20 +145,37 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 		}
 	};
 
-	enum 
+	enum
 	{
-		NumPerBlock = 16384,
+		/**
+		 *	Increment between two successive long names. 
+		 *	@see TStatId
+		 */
+		FNAME_INCREMENT = 3,
+
+		/** Number of stats pointer allocated per block. */
+		NUM_PER_BLOCK = 16384 * FNAME_INCREMENT,
 	};
-	FCriticalSection SynchronizationObject;
-	FName* PendingFNames;
-	int32 PendingCount;
+
+
 	TMap<FName, FGroupEnable> HighPerformanceEnable;
 
+	/** Used to synchronize the access to the high performance stats groups. */
+	FCriticalSection SynchronizationObject;
+	
+	/** Pointer to the long name in the names block. */
+	FName* PendingFNames;
+
+	/** Pending count of the name in the names block. */
+	int32 PendingCount;
+
+	/** Holds the amount of memory allocated for the stats descriptions. */
+	FThreadSafeCounter MemoryCounter;
+
 	// these control what happens to groups that haven't been registered yet
+	TMap<FName, bool> EnableForNewGroup;
 	bool EnableForNewGroups;
 	bool UseEnableForNewGroups;
-	TMap<FName, bool> EnableForNewGroup;
-
 
 	void EnableStat(FName StatName, FName *DisablePtr)
 	{
@@ -192,7 +210,14 @@ public:
 		check(IsInGameThread());
 	}
 
-	virtual void SetHighPerformanceEnableForGroup(FName Group, bool Enable) OVERRIDE
+	virtual void UpdateMemoryUsage() override
+	{
+		// Update the stats descriptions memory usage.
+		const int32 MemoryUsage = MemoryCounter.GetValue();
+		SET_MEMORY_STAT( STAT_StatDescMemory, MemoryUsage );
+	}
+
+	virtual void SetHighPerformanceEnableForGroup(FName Group, bool Enable) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -218,7 +243,7 @@ public:
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
 
-	virtual void SetHighPerformanceEnableForAllGroups(bool Enable) OVERRIDE
+	virtual void SetHighPerformanceEnableForAllGroups(bool Enable) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -242,7 +267,7 @@ public:
 		}
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
-	virtual void ResetHighPerformanceEnableForAllGroups() OVERRIDE
+	virtual void ResetHighPerformanceEnableForAllGroups() override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FThreadStats::MasterDisableChangeTagLockAdd();
@@ -267,7 +292,7 @@ public:
 		FThreadStats::MasterDisableChangeTagLockSubtract();
 	}
 
-	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) OVERRIDE
+	virtual TStatId GetHighPerformanceEnableForStat(FName StatShortName, const char* InGroup, const char* InCategory, bool bDefaultEnable, bool bCanBeDisabled, EStatDataType::Type InStatType, TCHAR const* InDescription, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion MemoryRegion = FPlatformMemory::MCR_Invalid) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 
@@ -315,11 +340,32 @@ public:
 		}
 		if (PendingCount < 1)
 		{
-			PendingFNames = new FName[NumPerBlock];
-			PendingCount = NumPerBlock;
+			PendingFNames = new FName[NUM_PER_BLOCK];
+			PendingCount = NUM_PER_BLOCK;
 		}
-		PendingCount--;
-		FName* Result = PendingFNames++;
+		PendingCount -= FNAME_INCREMENT;
+		FName* Result = &PendingFNames[TStatId::INDEX_FNAME];
+
+		// Get the wide stat description.
+		const int32 StatDescLen = FCString::Strlen( InDescription );
+		const WIDECHAR* TempStatDescWide = StringCast<WIDECHAR>( InDescription ).Get();
+		// We are leaking this.
+		WIDECHAR* StatDescWide = new WIDECHAR[StatDescLen + 1];
+		TCString<WIDECHAR>::Strcpy( StatDescWide, StatDescLen, TempStatDescWide );
+
+		// Get the ansi stat description.
+		const ANSICHAR* TempStatDescAnsi = StringCast<ANSICHAR>( InDescription ).Get();
+		// We are leaking this.
+		ANSICHAR* StatDescAnsi = new ANSICHAR[StatDescLen + 1];
+		TCString<ANSICHAR>::Strcpy( StatDescAnsi, StatDescLen, TempStatDescAnsi );
+
+		FMemory::Memcpy( (WIDECHAR*)&PendingFNames[TStatId::INDEX_WIDE_STRING], &StatDescWide, sizeof( WIDECHAR* ) );
+		FMemory::Memcpy( (ANSICHAR*)&PendingFNames[TStatId::INDEX_ANSI_STRING], &StatDescAnsi, sizeof( ANSICHAR* ) );
+
+		MemoryCounter.Add( (StatDescLen + 1)*(sizeof( ANSICHAR ) + sizeof( WIDECHAR )) );
+		
+		PendingFNames += FNAME_INCREMENT;
+
 		if (Found->CurrentEnable)
 		{
 			EnableStat(Stat, Result);
@@ -573,9 +619,9 @@ public:
 	}
 
 	/**
-	 * Returns a pointer to the single threaded interface when mulithreading is disabled.
+	 * Returns a pointer to the single threaded interface when multithreading is disabled.
 	 */
-	virtual FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
 	{
 		return this;
 	}
@@ -589,13 +635,15 @@ public:
 		return 0;
 	}
 
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		static double LastTime = -1.0;
 		if (bReadyToProcess && FPlatformTime::Seconds() - LastTime > .005) // we won't process more than every 5ms
 		{
 			// Update the seconds per cycle.
 			SET_FLOAT_STAT( STAT_SecondsPerCycle, FPlatformTime::GetSecondsPerCycle() ); 
+
+			IStatGroupEnableManager::Get().UpdateMemoryUsage();
 
 			SCOPE_CYCLE_COUNTER(STAT_StatsNewTick);
 			bReadyToProcess = false;

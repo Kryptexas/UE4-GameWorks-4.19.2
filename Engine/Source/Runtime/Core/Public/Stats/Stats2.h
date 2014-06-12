@@ -42,6 +42,21 @@ CORE_API bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion = fa
 
 struct TStatId
 {
+	enum
+	{
+		/**
+		 *	Index of the long name.
+		 *	@see FStatGroupEnableManager
+		 */
+		INDEX_FNAME = 0,
+
+		/** Index of the stat desc as an ansi string. */
+		INDEX_ANSI_STRING = 1,
+
+		/** Index of the stat desc as a wide string. */
+		INDEX_WIDE_STRING = 2,
+	};
+
 	FORCEINLINE TStatId()
 		: StatIdPtr(&TStatId_NAME_None)
 	{
@@ -64,10 +79,41 @@ struct TStatId
 	}
 	FORCEINLINE FName const* GetRawPointer() const
 	{
-		return StatIdPtr;
+		return &StatIdPtr[INDEX_FNAME];
+	}
+
+	/**
+	 * @return a stat description as an ansi string.
+	 * StatIdPtr must point to a valid FName pointer.
+	 * @see FStatGroupEnableManager::GetHighPerformanceEnableForStat
+	 */
+	FORCEINLINE const ANSICHAR* GetStatDescriptionANSI() const
+	{
+		return (ANSICHAR*)*(uint64*)(&StatIdPtr[INDEX_ANSI_STRING]);
+	}
+
+	/**
+	 * @return a stat description as a wide string.
+	 * StatIdPtr must point to a valid FName pointer.
+	 * @see FStatGroupEnableManager::GetHighPerformanceEnableForStat
+	 */
+	FORCEINLINE const WIDECHAR* GetStatDescriptionWIDE() const
+	{
+		return (WIDECHAR*)*(uint64*)(&StatIdPtr[INDEX_WIDE_STRING]);
 	}
 private:
+	/** NAME_None. */
 	CORE_API static FName TStatId_NAME_None;
+
+	/**
+	 *	Holds a pointer to the stat long name if enabled, or to the NAME_None if disabled.
+	 *	@see FStatGroupEnableManager::EnableStat
+	 *	@see FStatGroupEnableManager::DisableStat
+	 *	
+	 *	Next pointer points to the ansi string with a stat description
+	 *	Next pointer points to the wide string with a stat description
+	 *	@see FStatGroupEnableManager::GetHighPerformanceEnableForStat 
+	 */
 	FName const* StatIdPtr;
 };
 
@@ -989,13 +1035,7 @@ public:
 		if (InStatOperation == EStatOperation::CycleScopeStart)
 		{
 			ThreadStats->ScopeCount++;
-			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);
-
-			// Emit named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents > 0 )
-			{
-				FPlatformMisc::BeginNamedEvent(FColor(0), InStatName.GetPlainANSIString());
-			}
+			new (ThreadStats->Packet.StatMessages) FStatMessage(InStatName, InStatOperation);	
 		}
 		else if (InStatOperation == EStatOperation::CycleScopeEnd)
 		{
@@ -1009,12 +1049,6 @@ public:
 				}
 			}
 			// else we dumped this frame without closing scope, so we just drop the closes on the floor
-
-			// End named event for active cycle stat.
-			if( GCycleStatsShouldEmitNamedEvents > 0 )
-			{
-				FPlatformMisc::EndNamedEvent();
-			}
 		}
 	}
 
@@ -1143,10 +1177,23 @@ public:
 	 * Pushes the specified stat onto the hierarchy for this thread. Starts
 	 * the timing of the cycles used
 	 */
-	FORCEINLINE_STATS void Start(FName InStatId)
+	FORCEINLINE_STATS void Start( TStatId InStatId )
 	{
-		StatId = InStatId;
-		FThreadStats::AddMessage(InStatId, EStatOperation::CycleScopeStart);
+		if( FThreadStats::IsCollectingData( InStatId ) )
+		{
+			StatId = *InStatId;
+			FThreadStats::AddMessage( *InStatId, EStatOperation::CycleScopeStart );
+
+			// Emit named event for active cycle stat.
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
+			{
+#if	PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+				FPlatformMisc::BeginNamedEvent( FColor( 0 ), InStatId.GetStatDescriptionANSI() );
+#else
+				FPlatformMisc::BeginNamedEvent( FColor( 0 ), InStatId.GetStatDescriptionWIDE() );
+#endif // PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING
+			}
+		}
 	}
 
 	/**
@@ -1154,9 +1201,15 @@ public:
 	 */
 	FORCEINLINE_STATS void Stop()
 	{
-		if (!StatId.IsNone())
+		if( !StatId.IsNone() )
 		{
 			FThreadStats::AddMessage(StatId, EStatOperation::CycleScopeEnd);
+
+			// End named event for active cycle stat.
+			if( GCycleStatsShouldEmitNamedEvents > 0 )
+			{
+				FPlatformMisc::EndNamedEvent();
+			}
 		}
 	}
 };
@@ -1219,7 +1272,7 @@ public:
 	virtual void SetHighPerformanceEnableForAllGroups(bool Enable)=0;
 
 	/**
-	 * Resets all stats to their default collection state, which was set when they were looked up intially
+	 * Resets all stats to their default collection state, which was set when they were looked up initially
 	 */
 	virtual void ResetHighPerformanceEnableForAllGroups()=0;
 
@@ -1228,6 +1281,9 @@ public:
 	 * @param Cmd, Command to run
 	 */
 	virtual void StatGroupEnableManagerCommand(FString const& Cmd)=0;
+
+	/** Updates memory usage. */
+	virtual void UpdateMemoryUsage() = 0;
 };
 
 
