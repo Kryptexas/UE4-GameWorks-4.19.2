@@ -1850,13 +1850,16 @@ UObject::UObject(const class FPostConstructInitializeProperties& PCIP)
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
 static int32 GIsInConstructor = 0;
+/* Object that is currently being constructed with PCIP */
+static UObject* GConstructedObject = NULL;
 
 FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
 	Obj(NULL),
 	ObjectArchetype(NULL),
 	bCopyTransientsFromClassDefaults(false),
 	bShouldIntializePropsFromArchetype(true),
-	InstanceGraph(NULL)
+	InstanceGraph(NULL),
+	LastConstructedObject(GConstructedObject, Obj)
 {
 	// Mark we're in the constructor now.
 	GIsInConstructor++;
@@ -1868,7 +1871,8 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* 
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
 	bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults),
 	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
-	InstanceGraph(InInstanceGraph)
+	InstanceGraph(InInstanceGraph),
+	LastConstructedObject(GConstructedObject, Obj)
 {
 	// Mark we're in the constructor now.
 	GIsInConstructor++;
@@ -2159,6 +2163,10 @@ UObject* StaticConstructObject
 	return Result;
 }
 
+void FPostConstructInitializeProperties::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
+{
+	UE_CLOG(GIsInConstructor && Outer == GConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
+}
 
 /**
  * Stores the object flags for all objects in the tracking array.

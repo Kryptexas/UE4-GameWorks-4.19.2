@@ -827,6 +827,11 @@ public:
 	**/
 	bool IslegalOverride(FName InComponentName, class UClass *DerivedComponentClass, class UClass *BaseComponentClass) const;
 
+	/**
+	 * Asserts with the specified message if code is executed inside UObject constructor
+	 **/
+	static void AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage);
+
 private:
 
 	friend class UObject; 
@@ -959,6 +964,8 @@ private:
 	mutable FOverrides ComponentOverrides;
 	/**  List of component classes to intialize after the C++ constructors **/
 	mutable FSubobjectsToInit ComponentInits;
+	/**  Previously constructed object in the callstack */
+	TGuardValue<UObject*> LastConstructedObject;
 };
 
 /**
@@ -993,7 +1000,8 @@ T* ConstructObject(UClass* Class, UObject* Outer = (UObject*)GetTransientPackage
 template< class T >
 T* NewObject(UObject* Outer=(UObject*)GetTransientPackage(),UClass* Class=T::StaticClass() )
 {
-       return ConstructObject<T>(Class,Outer);
+	FPostConstructInitializeProperties::AssertIfInConstructor(Outer, TEXT("NewObject can't be used to create default subobjects (inside of UObject derived class constructor) as it produces inconsistent object names. Use PCIP.CreateDefaultSuobject<> instead."));
+	return ConstructObject<T>(Class,Outer);
 }
 
 /**
