@@ -31,6 +31,11 @@ FVertexBufferRHIRef FD3D11DynamicRHI::RHICreateVertexBuffer(uint32 Size,uint32 I
 		}
 	}
 
+	if (InUsage & BUF_ByteAddressBuffer)
+	{
+		Desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+	}
+
 	if (InUsage & BUF_StreamOutput)
 	{
 		Desc.BindFlags |= D3D11_BIND_STREAM_OUTPUT;
