@@ -705,6 +705,7 @@ UTextRenderComponent::UTextRenderComponent(const class FPostConstructInitializeP
 
 	if( Font )
 	{
+		Font->ConditionalPostLoad();
 		WorldSize = Font->GetMaxCharHeight();
 		InvDefaultSize = 1.0f / WorldSize;
 	}
