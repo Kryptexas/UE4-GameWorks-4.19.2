@@ -4,12 +4,11 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_CompareBBEntries.h"
 
-UBTDecorator_CompareBBEntries::UBTDecorator_CompareBBEntries(const class FPostConstructInitializeProperties& PCIP) 
-	: Super(PCIP)
-	, Operator(EArithmeticKeyOperation::LessOrEqual)
+UBTDecorator_CompareBBEntries::UBTDecorator_CompareBBEntries(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Compare Blackboard entries";
 
+	Operator = EBlackBoardEntryComparison::Equal;
 	bNotifyBecomeRelevant = true;
 	bNotifyCeaseRelevant = true;
 }
