@@ -952,6 +952,7 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 	CategoryToMenuMap.Add(EAssetTypeCategories::Physics, FCategoryMenu( LOCTEXT("PhysicsFilter", "Physics"), LOCTEXT("PhysicsFilterTooltip", "Filter by physics assets."), "ContentBrowserFilterPhysicsAsset", LOCTEXT("PhysicsAssetsMenuHeading", "Physics Assets") ) );
 	CategoryToMenuMap.Add(EAssetTypeCategories::UI, FCategoryMenu(LOCTEXT("UIFilter", "User Interface"), LOCTEXT("UIFilterTooltip", "Filter by UI assets."), "ContentBrowserFilterUIAsset", LOCTEXT("UIAssetsMenuHeading", "User Interface Assets")));
 	CategoryToMenuMap.Add(EAssetTypeCategories::Misc, FCategoryMenu( LOCTEXT("MiscFilter", "Miscellaneous"), LOCTEXT("MiscFilterTooltip", "Filter by miscellaneous assets."), "ContentBrowserFilterMiscAsset", LOCTEXT("MiscAssetsMenuHeading", "Misc Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Gameplay, FCategoryMenu(LOCTEXT("GameplayFilter", "Gameplay"), LOCTEXT("GameplayFilterTooltip", "Filter by gameplay assets."), "ContentBrowserFilterGameplayAsset", LOCTEXT("GameplayAssetsMenuHeading", "Gameplay Assets")));
 
 	// Load the asset tools module to get access to the browser type maps
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
@@ -968,7 +969,7 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 	};
 	AssetTypeActionsList.Sort( FCompareIAssetTypeActions() );
 
-	// For every asset type, move it into all the catgories it should appear in
+	// For every asset type, move it into all the categories it should appear in
 	for (int32 ClassIdx = 0; ClassIdx < AssetTypeActionsList.Num(); ++ClassIdx)
 	{
 		const TWeakPtr<IAssetTypeActions>& WeakTypeActions = AssetTypeActionsList[ClassIdx];
@@ -990,6 +991,14 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type Me
 					}
 				}
 			}
+		}
+	}
+
+	for (auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt)
+	{
+		if (MenuIt.Value().Assets.Num() == 0)
+		{
+			CategoryToMenuMap.Remove(MenuIt.Key());
 		}
 	}
 

@@ -13,7 +13,8 @@ namespace EAssetTypeCategories
 		Sounds					= 1 << 3,
 		Physics					= 1 << 4,
 		UI						= 1 << 5,
-		Misc					= 1 << 6
+		Misc					= 1 << 6,
+		Gameplay				= 1 << 7,
 	};
 }
 
