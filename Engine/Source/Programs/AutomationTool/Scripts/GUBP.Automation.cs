@@ -3243,11 +3243,12 @@ public class GUBP : BuildCommand
         GUBPNodesCompleted.Add(NodeToDo, Result);
         return Result;
     }
-    void RunECTool(string Args, bool bQuiet = false)
+    string RunECTool(string Args, bool bQuiet = false)
     {
         if (ParseParam("FakeEC"))
         {
             Log("***** Would have ran ectool {0}", Args);
+            return "We didn't actually run ectool";
         }
         else
         {
@@ -3256,7 +3257,7 @@ public class GUBP : BuildCommand
             {
                 Opts = (Opts & ~ERunOptions.AllowSpew) | ERunOptions.NoLoggingOfRunCommand;
             }
-            RunAndLog("ectool", Args, Options: Opts);
+            return RunAndLog("ectool", Args, Options: Opts);
         }
     }
     string GetEMailListForNode(GUBP bp, string NodeToDo, string Causers)
@@ -3602,9 +3603,21 @@ public class GUBP : BuildCommand
         Result.Sort();
         return Result;
     }
-    void SaveStatus(string NodeToDo, string Suffix, string NodeStoreName, bool bSaveSharedTempStorage, string GameNameIfAny)
+    void SaveStatus(string NodeToDo, string Suffix, string NodeStoreName, bool bSaveSharedTempStorage, string GameNameIfAny, string JobStepIDForFailure = null)
     {
         string Contents = "Just a status record: " + Suffix;
+        if (!String.IsNullOrEmpty(JobStepIDForFailure) && IsBuildMachine)
+        {
+            try
+            {
+                Contents = RunECTool(String.Format("getProperties --jobStepId {0} --recurse 1", JobStepIDForFailure), true);
+            }
+            catch (Exception Ex)
+            {
+                Log(System.Diagnostics.TraceEventType.Warning, "Failed to get properties for jobstep to save them.");
+                Log(System.Diagnostics.TraceEventType.Warning, LogUtils.FormatException(Ex));
+            }
+        }
         string RecordOfSuccess = CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", NodeToDo + Suffix +".log");
         CreateDirectory(Path.GetDirectoryName(RecordOfSuccess));
         WriteAllText(RecordOfSuccess, Contents);
@@ -6004,7 +6017,7 @@ if (HostPlatform == UnrealTargetPlatform.Mac) continue; //temp hack till mac aut
                     if (SaveSuccessRecords)
                     {
                         UpdateHistoryAndEC(NodeToDo, CLString);
-                        SaveStatus(NodeToDo, FailedTempStorageSuffix, NodeStoreName, bSaveSharedTempStorage, GameNameIfAny);
+                        SaveStatus(NodeToDo, FailedTempStorageSuffix, NodeStoreName, bSaveSharedTempStorage, GameNameIfAny, ParseParamValue("MyJobStepId"));
                     }
 
                     Log("{0}", ExceptionToString(Ex));
