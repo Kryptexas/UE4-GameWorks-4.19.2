@@ -119,4 +119,7 @@ protected:
 
 	/** Notification that failure needs to be handled */
 	virtual void OnFailure();
+
+	/** overridden to return that player controllers are capable of RPCs */
+	virtual bool HasNetOwner() const override;
 };

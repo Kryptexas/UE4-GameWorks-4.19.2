@@ -254,6 +254,13 @@ protected:
 	// to for backwards compatibility purposes
 	void SetRemoteRoleForBackwardsCompat(const ENetRole InRemoteRole) { RemoteRole = InRemoteRole; }
 
+	/**
+	 * Does this actor have an owner responsible for replication (APlayerController typically)
+	 *
+	 * @return true if this actor can call RPCs or false if no such owner chain exists
+	 */
+	virtual bool HasNetOwner() const;
+
 private:
 	// Describes how much control the remote machine has over the actor
 	// old UPROPERTY maintained for backwards compatibility, new non-uproperty as proper value

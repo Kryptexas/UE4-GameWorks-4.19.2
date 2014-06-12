@@ -72,6 +72,12 @@ UPlayer* APlayerController::GetNetOwningPlayer()
 	return Player;
 }
 
+bool APlayerController::HasNetOwner() const
+{
+    // Player controllers are their own net owners
+	return true;
+}
+
 UNetConnection* APlayerController::GetNetConnection()
 {
 	// A controller without a player has no "owner"

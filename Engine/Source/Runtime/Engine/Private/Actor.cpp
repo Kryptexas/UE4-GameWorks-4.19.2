@@ -1149,6 +1149,23 @@ AActor* AActor::GetOwner() const
 	return Owner; 
 }
 
+bool AActor::HasNetOwner() const
+{
+	if (Owner == NULL)
+	{
+		// all basic AActors are unable to call RPCs without special AActors as their owners (ie APlayerController)
+		return false;
+	}
+
+	// Find the topmost actor in this owner chain
+	AActor* TopOwner = NULL;
+	for (TopOwner = Owner; TopOwner->Owner; TopOwner = TopOwner->Owner)
+	{
+	}
+
+	return TopOwner->HasNetOwner();
+}
+
 void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
 {
 	if(RootComponent && InParent)
@@ -2843,9 +2860,17 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			UPlayer *ClientPlayer = GetNetOwningPlayer();
 			if (ClientPlayer == NULL)
 			{
-				// No owning player, we must absorb
-				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client NonOwner absorbed %s"), *Function->GetName());
-				return FunctionCallspace::Absorbed;
+				// Check if a player ever owned this (topmost owner is playercontroller or beacon)
+				if (HasNetOwner())
+				{
+					// Network object with no owning player, we must absorb
+					DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client without owner absorbed %s"), *Function->GetName());
+					return FunctionCallspace::Absorbed;
+				}
+				
+				// Role authority object calling a client RPC locally (ie AI owned objects)
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace authority non client owner %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
+				return Callspace;
 			}
 			else if (Cast<ULocalPlayer>(ClientPlayer) != NULL)
 			{

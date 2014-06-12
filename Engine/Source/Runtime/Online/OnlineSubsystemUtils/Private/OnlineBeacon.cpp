@@ -23,6 +23,12 @@ bool AOnlineBeacon::InitBase()
 	return false;
 }
 
+bool AOnlineBeacon::HasNetOwner() const
+{
+    // Beacons are their own net owners
+	return true;
+}
+
 void AOnlineBeacon::DestroyBeacon()
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Destroying beacon %s, netdriver %s"), *GetName(), NetDriver ? *NetDriver->GetDescription() : TEXT("NULL"));

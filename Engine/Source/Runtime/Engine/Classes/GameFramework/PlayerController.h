@@ -337,6 +337,9 @@ protected:
 	// Leave playing state. */ 
 	virtual void EndPlayingState();
 
+	/** overridden to return that player controllers are capable of RPCs */
+	virtual bool HasNetOwner() const override;
+
 public:
 	/** Fire the player's currently selected weapon with the optional firemode. */
 	UFUNCTION(exec)
