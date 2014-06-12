@@ -1437,8 +1437,13 @@ public:
 	
 	UGameViewportClient* GetGameViewport() const;
 
-	/** Returns the default brush. */
+	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
 	ABrush* GetBrush() const;
+	/* 
+	 * Returns the default brush for the persistent level.
+	 * This is usually the 'builder brush' for editor builds, undefined for non editor instances and may be NULL.
+	 */
+	ABrush* GetDefaultBrush() const;
 
 	/** Returns true if the actors have been initialized and are ready to start play */
 	bool AreActorsInitialized() const;

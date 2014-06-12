@@ -2523,63 +2523,66 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 	}
 	
 	check(World)
-	
-	// Now get the builder brush.
-	UModel* builderModel = World->GetBrush()->Brush;
-
-	// Need the transform between builder brush space and static mesh actor space.
-	const FMatrix BrushL2W = World->GetBrush()->ActorToWorld().ToMatrixWithScale();
-	const FMatrix MeshW2L = MeshToWorld.Inverse();
-	const FMatrix SMToBB = BrushL2W * MeshW2L;
-	const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
-
-	// Copy the current builder brush into a temp model.
-	// We keep no reference to this, so it will be GC'd at some point.
-	UModel* TempModel = new UModel(FPostConstructInitializeProperties(),NULL,1);
-	TempModel->Polys->Element.AssignButKeepOwner(builderModel->Polys->Element);
-
-	// Now transform each poly into local space for the selected static mesh.
-	for(int32 i=0; i<TempModel->Polys->Element.Num(); i++)
+	ABrush* BuildBrush = World->GetDefaultBrush();
+	if(BuildBrush != nullptr)
 	{
-		FPoly* Poly = &TempModel->Polys->Element[i];
+		// Now get the builder brush.
+		UModel* BuilderModel = BuildBrush->Brush;
 
-		for(int32 j=0; j<Poly->Vertices.Num(); j++ )
+		// Need the transform between builder brush space and static mesh actor space.
+		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
+		const FMatrix MeshW2L = MeshToWorld.Inverse();
+		const FMatrix SMToBB = BrushL2W * MeshW2L;
+		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
+
+		// Copy the current builder brush into a temp model.
+		// We keep no reference to this, so it will be GC'd at some point.
+		UModel* TempModel = new UModel(FPostConstructInitializeProperties(), NULL, 1);
+		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
+
+		// Now transform each poly into local space for the selected static mesh.
+		for (int32 i = 0; i < TempModel->Polys->Element.Num(); i++)
 		{
-			Poly->Vertices[j]  = SMToBB.TransformPosition(Poly->Vertices[j]);
+			FPoly* Poly = &TempModel->Polys->Element[i];
+
+			for (int32 j = 0; j < Poly->Vertices.Num(); j++)
+			{
+				Poly->Vertices[j] = SMToBB.TransformPosition(Poly->Vertices[j]);
+			}
+
+			Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
+			Poly->Normal.Normalize(); // SmToBB might have scaling in it.
 		}
 
-		Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
-		Poly->Normal.Normalize(); // SmToBB might have scaling in it.
+		// Build bounding box.
+		TempModel->BuildBound();
+
+		// Build BSP for the brush.
+		FBSPOps::bspBuild(TempModel, FBSPOps::BSP_Good, 15, 70, 1, 0);
+		FBSPOps::bspRefresh(TempModel, 1);
+		FBSPOps::bspBuildBounds(TempModel);
+
+
+		// Now - use this as the Rigid Body collision for this static mesh as well.
+
+		// Make sure rendering is done - so we are not changing data being used by collision drawing.
+		FlushRenderingCommands();
+
+		// If we already have a BodySetup - clear it.
+		if (StaticMesh->BodySetup)
+		{
+			StaticMesh->BodySetup->RemoveSimpleCollision();
+		}
+		// If we don't already have physics props, construct them here.
+		else
+		{
+			StaticMesh->CreateBodySetup();
+		}
+
+		// Convert collision model into a collection of convex hulls.
+		// NB: This removes any convex hulls that were already part of the collision data.
+		StaticMesh->BodySetup->CreateFromModel(TempModel, true);
 	}
-
-	// Build bounding box.
-	TempModel->BuildBound();
-
-	// Build BSP for the brush.
-	FBSPOps::bspBuild(TempModel,FBSPOps::BSP_Good,15,70,1,0);
-	FBSPOps::bspRefresh(TempModel,1);
-	FBSPOps::bspBuildBounds(TempModel);
-
-	// Now - use this as the Rigid Body collision for this static mesh as well.
-
-	// Make sure rendering is done - so we are not changing data being used by collision drawing.
-	FlushRenderingCommands();
-
-	// If we already have a BodySetup - clear it.
-	if( StaticMesh->BodySetup )
-	{
-		StaticMesh->BodySetup->RemoveSimpleCollision();
-	}
-	// If we don't already have physics props, construct them here.
-	else
-	{
-		StaticMesh->CreateBodySetup();
-	}
-
-	// Convert collision model into a collection of convex hulls.
-	// NB: This removes any convex hulls that were already part of the collision data.
-	StaticMesh->BodySetup->CreateFromModel(TempModel, true);
-
 	// refresh collision change back to staticmesh components
 	RefreshCollisionChange(StaticMesh);
 

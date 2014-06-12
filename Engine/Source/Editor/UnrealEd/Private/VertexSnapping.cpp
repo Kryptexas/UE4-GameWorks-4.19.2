@@ -586,7 +586,7 @@ void FVertexSnappingImpl::GetActorsInsideBox( const FBox& Box, UWorld* World, TA
 	{
 		AActor* Actor = *It;
 		// Ignore the builder brush, hidden actors and forcefully ignored actors (actors being moved)
-		if( Actor != World->GetBrush() && It->IsHiddenEd() == false && !ActorsToIgnore.Contains( Actor ) )
+		if( Actor != World->GetDefaultBrush() && It->IsHiddenEd() == false && !ActorsToIgnore.Contains( Actor ) )
 		{
 			const bool bNonColliding = true;
 			FBox ActorBoundingBox = Actor->GetComponentsBoundingBox(true);

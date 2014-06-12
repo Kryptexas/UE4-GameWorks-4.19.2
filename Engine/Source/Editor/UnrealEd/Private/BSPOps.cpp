@@ -971,6 +971,7 @@ void FBSPOps::bspBuildBounds( UModel* Model )
  */
 void FBSPOps::bspValidateBrush( UModel* Brush, bool ForceValidate, bool DoStatusUpdate )
 {
+	check(Brush != nullptr);
 	Brush->Modify();
 	if( ForceValidate || !Brush->Linked )
 	{

@@ -1873,9 +1873,9 @@ void CreateBoundingBoxBuilderBrush( UWorld* InWorld, const TArray<FPoly*> Select
 	CubeBuilder->Z = extent.Z * 2;
 	CubeBuilder->Build( InWorld );
 
-	InWorld->GetBrush()->SetActorLocation( bbox.GetCenter(), false );
+	InWorld->GetDefaultBrush()->SetActorLocation(bbox.GetCenter(), false);
 
-	InWorld->GetBrush()->ReregisterAllComponents();
+	InWorld->GetDefaultBrush()->ReregisterAllComponents();
 }
 
 /**
@@ -2028,7 +2028,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	else if( FParse::Command(&Str,TEXT("CREATE_BV_BOUNDINGBOX")) )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateBoundingBoxBlockingVolume", "Create Bounding Box Blocking Volume") );
-		InWorld->GetBrush()->Modify();
+		InWorld->GetDefaultBrush()->Modify();
 
 		bool bSnapToGrid=0;
 		FParse::Bool( Str, TEXT("SNAPTOGRID="), bSnapToGrid );
@@ -2059,7 +2059,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	else if( FParse::Command(&Str,TEXT("CREATE_BV_CONVEXVOLUME")) )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateConvexBlockingVolume", "Create Convex Blocking Volume") );
-		InWorld->GetBrush()->Modify();
+		InWorld->GetDefaultBrush()->Modify();
 
 		bool bSnapToGrid=0;
 		FParse::Bool( Str, TEXT("SNAPTOGRID="), bSnapToGrid );
@@ -2086,7 +2086,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		// Get a list of the polygons that make up the builder brush
 
 		FPoly* poly;
-		TArray<FPoly>* BuilderBrushPolys = new TArray<FPoly>( InWorld->GetBrush()->Brush->Polys->Element );
+		TArray<FPoly>* BuilderBrushPolys = new TArray<FPoly>( InWorld->GetDefaultBrush()->Brush->Polys->Element );
 
 		// Create a list of valid splitting planes
 
@@ -2125,7 +2125,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			{
 				// Move the plane into the same coordinate space as the builder brush
 
-				*SplittingPlane = SplittingPlane->TransformBy( InWorld->GetBrush()->ActorToWorld().ToMatrixWithScale().Inverse() );
+				*SplittingPlane = SplittingPlane->TransformBy(InWorld->GetDefaultBrush()->ActorToWorld().ToMatrixWithScale().Inverse());
 
 				// Before keeping this plane, make sure there aren't any existing planes that have a normal within the rejection tolerance.
 
@@ -2262,14 +2262,14 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Create a new builder brush from the freshly clipped polygons.
 
-		InWorld->GetBrush()->Brush->Polys->Element.Empty();
+		InWorld->GetDefaultBrush()->Brush->Polys->Element.Empty();
 
 		for( int x = 0 ; x < BuilderBrushPolys->Num() ; ++x )
 		{
-			InWorld->GetBrush()->Brush->Polys->Element.Add( (*BuilderBrushPolys)[x] );
+			InWorld->GetDefaultBrush()->Brush->Polys->Element.Add((*BuilderBrushPolys)[x]);
 		}
 
-		InWorld->GetBrush()->ReregisterAllComponents();
+		InWorld->GetDefaultBrush()->ReregisterAllComponents();
 
 		// Create the blocking volume
 

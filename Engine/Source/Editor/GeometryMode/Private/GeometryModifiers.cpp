@@ -122,7 +122,7 @@ void UGeomModifier::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport
 void UGeomModifier::CacheBrushState()
 {
 	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 	if( !CachedPolys )
 	{
 		//Create the list of polys
@@ -152,7 +152,7 @@ void UGeomModifier::CacheBrushState()
 void UGeomModifier::RestoreBrushState()
 {
 	FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	//Remove all of the current polys
 	BuilderBrush->Brush->Polys->Element.Empty();
@@ -926,7 +926,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 	// We will be replacing the builder brush, so get it prepped.
 
-	ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	BuilderBrush->SetActorLocation(GeomMode->GetWidgetLocation(), false);
 	BuilderBrush->SetPrePivot(FVector::ZeroVector);
@@ -1200,8 +1200,8 @@ void UGeomModifier_Pen::Apply()
 	if( ShapeVertices.Num() > 2 )
 	{
 		FEdModeGeometry* GeomMode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-		ABrush* ResultingBrush = GeomMode->GetWorld()->GetBrush();
-		ABrush* BuilderBrush = GeomMode->GetWorld()->GetBrush();
+		ABrush* ResultingBrush = GeomMode->GetWorld()->GetDefaultBrush();
+		ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 		// Move all the vertices that the user placed to the same "height" as the builder brush, based on
 		// viewport orientation.  This is preferable to always creating the new builder brush at height zero.
@@ -1786,7 +1786,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	}
 
 	// Move the new brush to where the new brush was to preserve brush ordering.
-	ABrush* BuilderBrush = World->GetBrush();
+	ABrush* BuilderBrush = World->GetDefaultBrush();
 	if( InBrush == BuilderBrush )
 	{
 		// Special-case behavior for the builder brush.

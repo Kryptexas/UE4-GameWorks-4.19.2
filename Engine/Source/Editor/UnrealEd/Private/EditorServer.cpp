@@ -440,7 +440,7 @@ bool UEditorEngine::Exec_StaticMesh( UWorld* InWorld, const TCHAR* Str, FOutputD
 	bool bResult = false;
 #if !UE_BUILD_SHIPPING
 	// Not supported on shipped builds because PC cooking strips raw mesh data.
-	ABrush* WorldBrush = InWorld->GetBrush();
+	ABrush* WorldBrush = InWorld->GetDefaultBrush();
 	if(FParse::Command(&Str,TEXT("TO")))
 	{
 		if(FParse::Command(&Str,TEXT("BRUSH")))
@@ -526,7 +526,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 {
 	// Keep a pointer to the beginning of the string to use for message displaying purposes
 	const TCHAR* const FullStr = Str;
-	ABrush* WorldBrush = InWorld->GetBrush();
+	ABrush* WorldBrush = InWorld->GetDefaultBrush();
 	if( FParse::Command(&Str,TEXT("APPLYTRANSFORM")) )
 	{
 		CommandIsDeprecated( TEXT("APPLYTRANSFORM"), Ar );
@@ -536,12 +536,20 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 	{
 		{
 			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set") );
-			InWorld->GetBrush()->Brush->Modify();
-			FRotator Temp(0.0f,0.0f,0.0f);
-			FVector SnapLocation = InWorld->GetBrush()->GetActorLocation();
+			FRotator Temp(0.0f, 0.0f, 0.0f);
+			FVector SnapLocation(0.0f, 0.0f, 0.0f);
+			FVector PrePivot(0.0f, 0.0f, 0.0f);
+			ABrush* DefaultBrush = InWorld->GetDefaultBrush();
+			if (DefaultBrush != NULL)
+			{
+				DefaultBrush->Brush->Modify();
+				SnapLocation = DefaultBrush->GetActorLocation();
+				PrePivot = DefaultBrush->GetPrePivot();
+			}
+			
 			FSnappingUtils::SnapToBSPVertex( SnapLocation, FVector::ZeroVector, Temp );
 
-			WorldBrush->SetActorLocation(SnapLocation - InWorld->GetBrush()->GetPrePivot(), false);
+			WorldBrush->SetActorLocation(SnapLocation - PrePivot, false);
 			WorldBrush->SetPrePivot( FVector::ZeroVector );
 			WorldBrush->Brush->Polys->Element.Empty();
 			UPolysFactory* It = new UPolysFactory(FPostConstructInitializeProperties());
@@ -1585,10 +1593,13 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 	{
 		Mode->GeometrySelectNone(true, true);
 	}
-
-	InWorld->GetBrush()->Brush->Modify();
-	FinishAllSnaps();
-	bspBrushCSG( InWorld->GetBrush(), InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true );
+	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
+	if (DefaultBrush != NULL)
+	{
+		DefaultBrush->Brush->Modify();
+		FinishAllSnaps();
+		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
+	}
 }
 
 void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld )
@@ -1811,7 +1822,10 @@ UWorld* UEditorEngine::NewMap()
 	}
 
 	// Move the brush to the origin.
-	Context.World()->GetBrush()->SetActorLocation(FVector::ZeroVector, false);
+	if (Context.World()->GetDefaultBrush() != NULL)
+	{
+		Context.World()->GetDefaultBrush()->SetActorLocation(FVector::ZeroVector, false);
+	}
 
 	// Make the builder brush a small 256x256x256 cube so its visible.
 	InitBuilderBrush( Context.World() );
@@ -2110,7 +2124,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				}
 
 				{
-					FBSPOps::bspValidateBrush( Context.World()->GetBrush()->Brush, 0, 1 );
+					FBSPOps::bspValidateBrush(Context.World()->GetDefaultBrush()->Brush, 0, 1);
 
 					FString MapFileName = FPaths::GetCleanFilename(TempFname);
 					GWarn->StatusUpdate( -1, -1, FText::Format( LOCTEXT( "LoadingMapStatus_Initializing", "Loading map: {0}... (Initializing world)" ), FText::FromString(MapFileName) ) );

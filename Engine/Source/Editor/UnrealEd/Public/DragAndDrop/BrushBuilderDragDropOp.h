@@ -24,15 +24,15 @@ public:
 		if(World != nullptr)
 		{
 			// Deselect & hide the builder brush
-			World->GetBrush()->SetIsTemporarilyHiddenInEditor(true);
-			GEditor->SelectActor(World->GetBrush(), false, false);
+			World->GetDefaultBrush()->SetIsTemporarilyHiddenInEditor(true);
+			GEditor->SelectActor(World->GetDefaultBrush(), false, false);
 		}
 	}
 
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE
 	{
 		UWorld* World = GEditor->GetEditorWorldContext().World();
-		if (World != nullptr)
+		if ( (World != nullptr) && (World->GetDefaultBrush() != nullptr))
 		{
 			ULevel* CurrentLevel = World->GetCurrentLevel();
 			if (CurrentLevel != nullptr && !FLevelUtils::IsLevelLocked(CurrentLevel))
@@ -40,14 +40,14 @@ public:
 				// Cut the BSP
 				if (bDropWasHandled)
 				{
-					World->GetBrush()->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder.Get(), World->GetBrush()->GetOuter());
+					World->GetDefaultBrush()->BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder.Get(), World->GetDefaultBrush()->GetOuter());
 					const TCHAR* Command = bIsAdditive ? TEXT("BRUSH ADD SELECTNEWBRUSH") : TEXT("BRUSH SUBTRACT SELECTNEWBRUSH");
 					GEditor->Exec(World, Command);
 				}
 
 				// Deselect & hide the builder brush
-				World->GetBrush()->SetIsTemporarilyHiddenInEditor(true);
-				GEditor->SelectActor(World->GetBrush(), false, false);
+				World->GetDefaultBrush()->SetIsTemporarilyHiddenInEditor(true);
+				GEditor->SelectActor(World->GetDefaultBrush(), false, false);
 			}
 		}
 
@@ -59,11 +59,11 @@ public:
 		UWorld* World = GEditor->GetEditorWorldContext().World();
 		if(World != nullptr)
 		{
-			if(CursorDecoratorWindow->IsVisible() && !World->GetBrush()->IsTemporarilyHiddenInEditor())
+			if(CursorDecoratorWindow->IsVisible() && !World->GetDefaultBrush()->IsTemporarilyHiddenInEditor())
 			{
 				// Deselect & hide the builder brush if the decorator is visible
-				World->GetBrush()->SetIsTemporarilyHiddenInEditor(true);
-				GEditor->SelectActor(World->GetBrush(), false, false);
+				World->GetDefaultBrush()->SetIsTemporarilyHiddenInEditor(true);
+				GEditor->SelectActor(World->GetDefaultBrush(), false, false);
 			}
 		}
 
@@ -100,8 +100,8 @@ private:
 	{
 		// show & select the builder brush
 		UWorld* World = GEditor->GetEditorWorldContext().World();
-		World->GetBrush()->SetIsTemporarilyHiddenInEditor(false);
-		GEditor->SelectActor(World->GetBrush(), true, false);
+		World->GetDefaultBrush()->SetIsTemporarilyHiddenInEditor(false);
+		GEditor->SelectActor(World->GetDefaultBrush(), true, false);
 	}
 
 private:

@@ -224,12 +224,16 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 		UWorld* World = InLevel->OwningWorld;
 		BrushBuilder->Build(World);
 
-		FVector ActorLoc = GEditor->ClickLocation + GEditor->ClickPlane * ( FVector::BoxPushOut( GEditor->ClickPlane, World->GetBrush()->GetPlacementExtent() ) );
-		FSnappingUtils::SnapPointToGrid( ActorLoc, FVector::ZeroVector ) ;
+		ABrush* DefaultBrush = World->GetDefaultBrush();
+		if (DefaultBrush != NULL)
+		{
+			FVector ActorLoc = GEditor->ClickLocation + GEditor->ClickPlane * (FVector::BoxPushOut(GEditor->ClickPlane, DefaultBrush->GetPlacementExtent()));
+			FSnappingUtils::SnapPointToGrid(ActorLoc, FVector::ZeroVector);
 
-		World->GetBrush()->SetActorLocation( ActorLoc );
-		PlacedActor = World->GetBrush();
-		PlacedActors.Add(World->GetBrush());
+			DefaultBrush->SetActorLocation(ActorLoc);
+			PlacedActor = DefaultBrush;
+			PlacedActors.Add(DefaultBrush);
+		}
 	}
 	else if (NULL == PlacedActor)
 	{
@@ -1412,7 +1416,7 @@ void FLevelEditorViewportClient::DestroyDropPreviewActors()
 		for ( auto ActorIt = DropPreviewActors.CreateConstIterator(); ActorIt; ++ActorIt )
 		{
 			AActor* PreviewActor = (*ActorIt).Get();
-			if ( PreviewActor && PreviewActor != GetWorld()->GetBrush())
+			if (PreviewActor && PreviewActor != GetWorld()->GetDefaultBrush())
 			{
 				GetWorld()->DestroyActor(PreviewActor);
 			}

@@ -750,7 +750,7 @@ bool UUnrealEdEngine::ShouldAbortActorDeletion() const
 void UUnrealEdEngine::edactReplaceSelectedBrush( UWorld* InWorld )
 {
 	// Make a list of brush actors to replace.
-	ABrush* DefaultBrush = InWorld->GetBrush();
+	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
 
 	TArray<ABrush*> BrushesToReplace;
 	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )

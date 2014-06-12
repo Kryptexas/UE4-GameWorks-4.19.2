@@ -1257,7 +1257,7 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 		if( BrushActor && !FActorEditorUtils::IsABuilderBrush(Actor) )
 		{
 			check( BrushActor->GetWorld() );			
-			ABrush* WorldBrush = BrushActor->GetWorld()->GetBrush();
+			ABrush* WorldBrush = BrushActor->GetWorld()->GetDefaultBrush();
 			check( WorldBrush );
 			WorldBrush->Modify();
 			WorldBrush->Brush->Polys->Element.AssignButKeepOwner(BrushActor->Brush->Polys->Element);
@@ -1269,7 +1269,7 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 	}
 
 	GEditor->SelectNone( false, true );
-	GEditor->SelectActor( InWorld->GetBrush(), true, true );
+	GEditor->SelectActor(InWorld->GetDefaultBrush(), true, true);
 }
 
 
@@ -1287,7 +1287,7 @@ void UEditorEngine::mapBrushPut()
 		if( BrushActor && !FActorEditorUtils::IsABuilderBrush(Actor) )
 		{
 			check( BrushActor->GetWorld() );
-			ABrush* WorldBrush = BrushActor->GetWorld()->GetBrush();
+			ABrush* WorldBrush = BrushActor->GetWorld()->GetDefaultBrush();
 			check( WorldBrush );
 
 			BrushActor->Modify();

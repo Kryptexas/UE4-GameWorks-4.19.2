@@ -838,7 +838,7 @@ UObject* ULevelFactory::FactoryCreateText
 					for( int32 LevelIndex=0; LevelIndex<World->GetNumLevels(); LevelIndex++ )
 					{
 						ULevel* Level = World->GetLevel(LevelIndex);
-						if( Level->GetBrush() == Brush )
+						if(Level->GetDefaultBrush() == Brush)
 						{
 							bIsDefaultBrush = true;
 							break;

@@ -53,7 +53,7 @@ void UUnrealEdEngine::NoteActorMovement()
 		{
 			USelection* SelectedActors = GetSelectedActors();
 			SelectedActors->Modify();
-			SelectActor( GWorld->GetBrush(), true, true );
+			SelectActor( GWorld->GetDefaultBrush(), true, true );
 		}
 
 		// Look for an actor that requires snapping.

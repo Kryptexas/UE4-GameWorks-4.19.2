@@ -3022,8 +3022,13 @@ void UWorld::RemoveOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHa
 
 ABrush* UWorld::GetBrush() const
 {
+	return GetDefaultBrush();
+}
+
+ABrush* UWorld::GetDefaultBrush() const
+{
 	check(PersistentLevel);
-	return PersistentLevel->GetBrush();
+	return PersistentLevel->GetDefaultBrush();
 }
 
 

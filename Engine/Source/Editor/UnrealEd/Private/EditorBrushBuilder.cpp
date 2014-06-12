@@ -34,7 +34,7 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 {
 	//!!validate
 	check( InWorld );
-	ABrush* BuilderBrush = (InBrush!=NULL) ? InBrush : InWorld->GetBrush();
+	ABrush* BuilderBrush = (InBrush != NULL) ? InBrush : InWorld->GetDefaultBrush();
 
 	// Ensure the builder brush is unhidden.
 	BuilderBrush->bHidden = false;

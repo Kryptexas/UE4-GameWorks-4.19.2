@@ -1501,14 +1501,25 @@ TArray<FStreamableTextureInstance>* ULevel::GetStreamableTextureInstances(UTextu
 	return NULL;
 }
 
-
 ABrush* ULevel::GetBrush() const
 {
-	checkf( Actors.Num() >= 2, *GetPathName() );
-	ABrush* DefaultBrush = Cast<ABrush>( Actors[1] );
-	checkf( DefaultBrush != NULL, *GetPathName() );
-	checkf( DefaultBrush->BrushComponent, *GetPathName() );
-	checkf( DefaultBrush->Brush != NULL, *GetPathName() );
+	return GetDefaultBrush();
+}
+
+ABrush* ULevel::GetDefaultBrush() const
+{
+	ABrush* DefaultBrush = nullptr;
+	if (Actors.Num() >= 2)
+	{
+		// If the builder brush exists then it will be the 2nd actor in the actors array.
+		DefaultBrush = Cast<ABrush>(Actors[1]);
+		// If the second actor is not a brush then it certainly cannot be the builder brush.
+		if (DefaultBrush != nullptr)
+		{
+			checkf(DefaultBrush->BrushComponent, *GetPathName());
+			checkf(DefaultBrush->Brush != nullptr, *GetPathName());
+		}
+	}
 	return DefaultBrush;
 }
 

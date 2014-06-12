@@ -594,11 +594,19 @@ public:
 	ENGINE_API TArray<FStreamableTextureInstance>* GetStreamableTextureInstances(UTexture2D*& TargetTexture);
 
 	/**
+	* Deprecated. Returns the default brush for this level.
+	*
+	* @return		The default brush for this level.
+	*/
+	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
+	ENGINE_API ABrush* GetBrush() const;
+
+	/**
 	 * Returns the default brush for this level.
 	 *
 	 * @return		The default brush for this level.
 	 */
-	ENGINE_API class ABrush* GetBrush() const;
+	ENGINE_API class ABrush* GetDefaultBrush() const;
 
 	/**
 	 * Returns the world info for this level.
