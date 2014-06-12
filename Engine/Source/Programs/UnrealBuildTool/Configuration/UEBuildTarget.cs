@@ -1338,14 +1338,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (ShouldCompileMonolithic() && !ProjectFileGenerator.bGenerateProjectFiles && Rules != null && Rules.Type != TargetRules.TargetType.Program)
-			{
-				// All non-program monolithic binaries implicitly depend on all static plugin libraries so they are always linked appropriately
-				// In order to do this, we create a new module here with a cpp file we emit that invokes an empty function in each library.
-				// If we do not do this, there will be no static initialization for libs if no symbols are referenced in them.
-				CreateLinkerFixupsCPPFile();
-			}
-
 			// On Mac we have actions that should be executed after all the binaries are created
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
 			{
@@ -1423,6 +1415,14 @@ namespace UnrealBuildTool
 						return UHTResult;
 					}
 				}
+			}
+
+			if (ShouldCompileMonolithic() && !ProjectFileGenerator.bGenerateProjectFiles && Rules != null && Rules.Type != TargetRules.TargetType.Program)
+			{
+				// All non-program monolithic binaries implicitly depend on all static plugin libraries so they are always linked appropriately
+				// In order to do this, we create a new module here with a cpp file we emit that invokes an empty function in each library.
+				// If we do not do this, there will be no static initialization for libs if no symbols are referenced in them.
+				CreateLinkerFixupsCPPFile();
 			}
 
 			// Build the target's binaries.
@@ -1516,6 +1516,22 @@ namespace UnrealBuildTool
 				LinkerFixupsFileContents.Add("{");
 
 				// Fill out the body of the function with the empty function calls. This is what causes the static libraries to be considered relevant
+				{
+					var UObjectModules = new List<UEBuildModuleCPP>();
+					foreach (var Binary in AppBinaries)
+					{
+						var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
+						foreach (var Module in DependencyModules.OfType<UEBuildModuleCPP>().Where(CPPModule => CPPModule.AutoGenerateCppInfo != null && !UObjectModules.Any(Module => Module.Name == CPPModule.Name)))
+						{
+							UObjectModules.Add(Module);
+						}
+					}
+					foreach (var Module in UObjectModules)
+					{
+						LinkerFixupsFileContents.Add("    extern void EmptyLinkFunctionForGeneratedCode" + Module.Name + "();");
+						LinkerFixupsFileContents.Add("    EmptyLinkFunctionForGeneratedCode" + Module.Name + "();");
+					}
+				}
 				foreach (var DependencyModuleName in PrivateDependencyModuleNames)
 				{
 					LinkerFixupsFileContents.Add("    extern void EmptyLinkFunctionForStaticInitialization" + DependencyModuleName + "();");
@@ -1589,6 +1605,11 @@ namespace UnrealBuildTool
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
 				NewModule.Binary = ExecutableBinary;
 				NewModule.bIncludedInTarget = true;
+
+				// Process dependencies for this new module
+				NewModule.ProcessAllCppDependencies(NewModule.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
+
+				// Add module to binary
 				ExecutableBinary.AddModule(NewModule.Name);
 			}
 		}

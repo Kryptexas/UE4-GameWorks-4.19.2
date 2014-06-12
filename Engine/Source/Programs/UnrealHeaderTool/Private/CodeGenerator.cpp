@@ -4231,6 +4231,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	FStringOutputDevice GeneratedCPPEpilogue;
 	FStringOutputDevice GeneratedCPPText;
 	FStringOutputDevice GeneratedINLText;
+	FStringOutputDevice GeneratedLinkerFixupFunction;
 
 	TArray<FStringOutputDevice> GeneratedCPPFiles;
 
@@ -4274,6 +4275,8 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 	// Write out our include to the .dep.h file
 	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
+
+	GeneratedLinkerFixupFunction.Logf(TEXT("void EmptyLinkFunctionForGeneratedCode%s() {}") LINE_TERMINATOR, *ModuleInfo->Name);
 
 	GeneratedCPPText.Log(*GeneratedPackageCPP);
 	// Add all names marked for export to a list (for sorting)
@@ -4328,7 +4331,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 
 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + ((GeneratedFunctionBodyTextSplit.Num() > 1) ? FString() : GeneratedLinkerFixupFunction) + FileText + GeneratedCPPEpilogue));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{
@@ -4346,7 +4349,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 
 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedLinkerFixupFunction + FileText + GeneratedCPPEpilogue));
 	}
 
 	FString InlPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".inl");
