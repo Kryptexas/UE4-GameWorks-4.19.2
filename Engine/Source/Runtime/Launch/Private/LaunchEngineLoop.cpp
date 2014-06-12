@@ -1813,59 +1813,12 @@ void FEngineLoop::InitTime()
 	MaxFrameCounter = FMath::TruncToInt(MaxTickTime / FApp::GetFixedDeltaTime());
 }
 
-void FlushStatsFrame(bool bDiscardCallstack)
-{
-	check(IsInGameThread()); 
-	static int32 MasterDisableChangeTagStartFrame = -1;
-	static int64 StatsFrame = 1;
-	StatsFrame++;
-#if STATS
-	int64 Frame = StatsFrame;
-	if (bDiscardCallstack)
-	{
-		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
-	}
-	if (MasterDisableChangeTagStartFrame == -1)
-	{
-		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-	}
-	if (!FThreadStats::IsCollectingData() ||  MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag())
-	{
-		Frame = -StatsFrame; // mark this as a bad frame
-	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
-	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
-	if (FPlatformProperties::IsServerOnly())
-	{
-		FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
-	}
-#endif
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( 
-		RenderingThreadTickCommand, 
-		int64, SentStatsFrame, StatsFrame,
-		int32, SentMasterDisableChangeTagStartFrame, MasterDisableChangeTagStartFrame,
-	{ 
-		RenderingThreadTick(SentStatsFrame, SentMasterDisableChangeTagStartFrame); 
-	} 
-	);
-	if (bDiscardCallstack)
-	{
-		// we need to flush the rendering thread here, otherwise it can get behind and then the stats will get behind.
-		FlushRenderingCommands();
-	}
 
-#if STATS
-	FThreadStats::ExplicitFlush(bDiscardCallstack);
-	FThreadStats::WaitForStats();
-	MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-#endif
-
-}
 
 //called via FCoreDelegates::StarvedGameLoop
 void GameLoopIsStarved()
 {
-	FlushStatsFrame(true);
+	FStats::AdvanceFrame( true, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 }
 
 
@@ -2076,7 +2029,7 @@ void FEngineLoop::Tick()
 		GMalloc->UpdateStats();
 	} 
 
-	FlushStatsFrame(false);
+	FStats::AdvanceFrame( false, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 
 	{ 
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );

@@ -77,7 +77,6 @@ bool RunDeployCommand()
 
 	double DeltaTime = 0.0;
 	double LastTime = FPlatformTime::Seconds();
-	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	// We track the message sent time because we have to keep updating the loop until the message is *actually sent*. (ie all packets queued, sent, buffer flushed, etc.)
 	double MessageSentTime = 0.0;
@@ -222,6 +221,7 @@ void WriteString(FArchive* File, const ANSICHAR* Format, ...)
 
 void RunStatsConvertCommand()
 {
+#if	STATS
 	// get the target file
 	FString TargetFile;
 	FParse::Value(FCommandLine::Get(), TEXT("-INFILE="), TargetFile);
@@ -337,8 +337,8 @@ void RunStatsConvertCommand()
 			break;
 		}
 	}
+#endif // STATS
 }
-
 
 void RunUI()
 {
@@ -409,7 +409,6 @@ void RunUI()
 	double DeltaTime = 0.0;
 	double LastTime = FPlatformTime::Seconds();
 	const float IdealFrameTime = 1.0f / IDEAL_FRAMERATE;
-	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	while (!GIsRequestingExit)
 	{
@@ -430,11 +429,7 @@ void RunUI()
 		DeltaTime =  CurrentTime - LastTime;
 		LastTime = CurrentTime;
 
-#if STATS
-		FThreadStats::ExplicitFlush();
-		FThreadStats::WaitForStats();
-		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
-#endif
+		FStats::AdvanceFrame( false );
 
 		GLog->FlushThreadedLogs();
 	}

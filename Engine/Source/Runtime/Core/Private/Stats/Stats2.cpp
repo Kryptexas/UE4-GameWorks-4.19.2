@@ -25,6 +25,55 @@ static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 
 DECLARE_FLOAT_COUNTER_STAT( TEXT( "Seconds Per Cycle" ), STAT_SecondsPerCycle, STATGROUP_Engine );
 
+/*-----------------------------------------------------------------------------
+	FStats2
+-----------------------------------------------------------------------------*/
+
+void FStats::AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate /*= FOnAdvanceRenderingThreadStats()*/ )
+{
+#if STATS
+	check( IsInGameThread() );
+	static int32 MasterDisableChangeTagStartFrame = -1;
+	static int64 StatsFrame = 1;
+	StatsFrame++;
+
+	int64 Frame = StatsFrame;
+	if( bDiscardCallstack )
+	{
+		FThreadStats::FrameDataIsIncomplete(); // we won't collect call stack stats this frame
+	}
+	if( MasterDisableChangeTagStartFrame == -1 )
+	{
+		MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
+	}
+	if( !FThreadStats::IsCollectingData() || MasterDisableChangeTagStartFrame != FThreadStats::MasterDisableChangeTag() )
+	{
+		Frame = -StatsFrame; // mark this as a bad frame
+	}
+	static FStatNameAndInfo Adv( NAME_AdvanceFrame, "", "", TEXT( "" ), EStatDataType::ST_int64, true, false );
+	FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+	if( FPlatformProperties::IsServerOnly() )
+	{
+		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame ); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
+	}
+
+	if( AdvanceRenderingThreadStatsDelegate.IsBound() )
+	{
+		AdvanceRenderingThreadStatsDelegate.Execute( bDiscardCallstack, StatsFrame, MasterDisableChangeTagStartFrame );
+	}
+	else
+	{
+		// There is no rendering thread, so this message is sufficient to make stats happy and don't leak memory.
+		FThreadStats::AddMessage( Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame );
+	}
+
+	FThreadStats::ExplicitFlush( bDiscardCallstack );
+	FThreadStats::WaitForStats();
+	MasterDisableChangeTagStartFrame = FThreadStats::MasterDisableChangeTag();
+#endif
+}
+
+
 /* Todo
 
 FStatsThreadState::FStatsThreadState(FString const& Filename) - needs to be more careful about files that are "cut off". Should look for < 16 bytes left OR next 8 bytes are zero. Bad files will end with zeros and it can't be a valid record.
@@ -80,7 +129,7 @@ DEFINE_STAT(STAT_FrameTime);
 DEFINE_STAT(STAT_FPS);
 DEFINE_STAT(STAT_DrawStats);
 
-DECLARE_DWORD_COUNTER_STAT( TEXT( "Frame Packets Received" ), STAT_StatFramePacketsRecv, STATGROUP_StatSystem );
+DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
 DECLARE_MEMORY_STAT( TEXT( "Stats descriptions (ansi+wide)" ), STAT_StatDescMemory, STATGROUP_StatSystem );
 
 
@@ -145,7 +194,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 		}
 	};
 
-	enum
+	enum 
 	{
 		/**
 		 *	Increment between two successive long names. 
@@ -938,4 +987,3 @@ void FThreadStats::WaitForStats()
 }
 
 #endif
-

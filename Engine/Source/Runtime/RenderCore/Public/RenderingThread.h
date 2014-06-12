@@ -63,8 +63,10 @@ extern RENDERCORE_API void CheckRenderingThreadHealth();
 /** Checks if the rendering thread is healthy and running, without crashing */
 extern RENDERCORE_API bool IsRenderingThreadHealthy();
 
-/** Advances stats for the rendering thread. */
-extern RENDERCORE_API void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame);
+/**
+ * Advances stats for the rendering thread. Called from the game thread.
+ */
+extern RENDERCORE_API void AdvanceRenderingThreadStatsGT( bool bDiscardCallstack, int64 StatsFrame, int32 MasterDisableChangeTagStartFrame );
 
 /**
  * Adds a task that must be completed either before the next scene draw or a flush rendering commands

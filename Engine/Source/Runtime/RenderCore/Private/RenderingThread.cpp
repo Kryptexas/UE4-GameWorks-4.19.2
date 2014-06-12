@@ -247,7 +247,7 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 /**
  * Advances stats for the rendering thread.
  */
-void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame)
+static void AdvanceRenderingThreadStats(int64 StatsFrame, int32 MasterDisableChangeTagStartFrame)
 {
 #if STATS
 	int64 Frame = StatsFrame;
@@ -262,6 +262,27 @@ void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFram
 		FThreadStats::ExplicitFlush();
 	}
 #endif
+}
+
+/**
+ * Advances stats for the rendering thread. Called from the game thread.
+ */
+void AdvanceRenderingThreadStatsGT( bool bDiscardCallstack, int64 StatsFrame, int32 MasterDisableChangeTagStartFrame )
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER
+	(
+		RenderingThreadTickCommand,
+		int64, SentStatsFrame, StatsFrame,
+		int32, SentMasterDisableChangeTagStartFrame, MasterDisableChangeTagStartFrame,
+		{
+			AdvanceRenderingThreadStats( SentStatsFrame, SentMasterDisableChangeTagStartFrame );
+		}
+	);
+	if( bDiscardCallstack )
+	{
+		// we need to flush the rendering thread here, otherwise it can get behind and then the stats will get behind.
+		FlushRenderingCommands();
+	}
 }
 
 /** The rendering thread runnable object. */

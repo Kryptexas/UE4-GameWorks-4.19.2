@@ -38,6 +38,16 @@ public:
 // Pass a console command directly to the stats system, return true if it is known command, false means it might be a stats command
 CORE_API bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion = false, FOutputDevice* Ar = nullptr);
 
+/** Helper struct that contains method available even when the stats are disabled. */
+struct CORE_API FStats
+{
+	/** Delegate to fire every time we need to advance the stats for the rendering thread. */
+	DECLARE_DELEGATE_ThreeParams( FOnAdvanceRenderingThreadStats, bool /*bDiscardCallstack*/, int64 /*StatsFrame*/, int32 /*MasterDisableChangeTagStartFrame*/ );
+
+	/** Advances stats for the current frame. */
+	static void AdvanceFrame( bool bDiscardCallstack, const FOnAdvanceRenderingThreadStats& AdvanceRenderingThreadStatsDelegate = FOnAdvanceRenderingThreadStats() );
+};
+
 #if STATS
 
 struct TStatId
