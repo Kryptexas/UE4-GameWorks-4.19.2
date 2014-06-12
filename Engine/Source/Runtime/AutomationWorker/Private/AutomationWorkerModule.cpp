@@ -492,7 +492,7 @@ static struct FQueueTests
 		}
 		else
 		{
-			Ar->Logf(ELogVerbosity::Error, TEXT("...Automation Test Failed (%s)"), *Test);
+			Ar->Logf(ELogVerbosity::Log, TEXT("...Automation Test Failed (%s)"), *Test);
 		}
 		bTestInPogress = false;
 		NumTestsRun++;
