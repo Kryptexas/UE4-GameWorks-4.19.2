@@ -1997,7 +1997,7 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
 		check( SubObj != NULL );
 		Actor->OnSubobjectCreatedFromReplication( SubObj );
-		Connection->Driver->GuidCache->AssignNetGUID( SubObj, NetGUID );
+		Connection->Driver->GuidCache->RegisterNetGUID_Client( NetGUID, SubObj );
 	}
 
 	check( Cast< AActor >( SubObj ) == NULL );
@@ -2074,7 +2074,7 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 	// Once we can lazily handle unmapped references on the client side, this can be simplified.
 	if ( !Connection->Driver->GuidCache->SupportsObject( Obj ) )
 	{
-		FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID( Obj );	//Make sure he gets a NetGUID so that he is now 'supported'
+		FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( Obj );	//Make sure he gets a NetGUID so that he is now 'supported'
 	}
 
 	bool NewSubobject = false;

@@ -303,14 +303,6 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		DrawNetDriverDebug();
 	}
 
-	// Update any pending resolves on the server package map
-	// We shouldn't need to do this as the server, since clients should only be sending us names that resolve immediately
-	// Do this before we try to resolve unmapped properties, since this may reduce the number of unmapped properties
-	if ( ServerConnection != NULL && ServerConnection->PackageMap != NULL )
-	{
-		ServerConnection->PackageMap->UpdatePendingResolveGUIDs();
-	}
-
 	// Update properties that are unmapped, try to hook up the object pointers if they exist now
 	for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
 	{
