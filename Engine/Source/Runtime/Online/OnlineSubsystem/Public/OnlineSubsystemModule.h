@@ -78,6 +78,13 @@ public:
 	 */
 	virtual void DestroyOnlineSubsystem(const FName InSubsystemName);
 
+	/**
+	 * Does an instance of subsystem with the given name exist
+	 *
+	 * @return true if the instance exists, false otherwise
+	 */
+	bool DoesInstanceExist(const FName InSubsystemName) const;
+
 	/** 
 	 * Determine if a subsystem is loaded by the OSS module
 	 *

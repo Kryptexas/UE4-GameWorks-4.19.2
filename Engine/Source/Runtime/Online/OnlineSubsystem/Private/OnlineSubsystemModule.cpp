@@ -236,6 +236,22 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 	}
 }
 
+bool FOnlineSubsystemModule::DoesInstanceExist(const FName InSubsystemName) const
+{
+	bool bIsLoaded = false;
+
+	FName SubsystemName, InstanceName;
+	ParseOnlineSubsystemName(InSubsystemName, SubsystemName, InstanceName);
+	if (SubsystemName != NAME_None)
+	{
+		FName KeyName = FName(*FString::Printf(TEXT("%s:%s"), *SubsystemName.ToString(), *InstanceName.ToString()));
+		const IOnlineSubsystemPtr* OnlineSubsystem = OnlineSubsystems.Find(KeyName);
+		return OnlineSubsystem && OnlineSubsystem->IsValid() ? true : false;
+	}
+
+	return false;
+}
+
 bool FOnlineSubsystemModule::IsOnlineSubsystemLoaded(const FName InSubsystemName) const
 {
 	bool bIsLoaded = false;
