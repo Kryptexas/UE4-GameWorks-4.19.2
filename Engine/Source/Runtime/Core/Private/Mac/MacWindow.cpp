@@ -554,16 +554,16 @@
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	if(self.bForwardEvents)
-	{
-		MacApplication->AddPendingEvent( Event );
-	}
-	
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
 	if([self canBecomeKeyWindow])
 	{
 		[self makeKeyWindow];
+	}
+
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
 	}
 }
 
