@@ -468,6 +468,13 @@ public:
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const;
 
 	/**
+	* CPU evaluation of the positions of all vertices (returned in component space)
+	*
+	* @param OutPositions buffer to place positions into
+	*/
+	virtual void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositions) const;
+
+	/**
 	* Returns color of the vertex.
 	*
 	* @param VertexIndex Vertex Index. If compressed, this will be slow.
@@ -832,6 +839,6 @@ private:
 	/** 
 	 * Simple, CPU evaluation of a vertex's skinned position helper function
 	 */
-	template <bool bExtraBoneInfluencesT>
-	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex) const;
+	template <bool bExtraBoneInfluencesT, bool bCachedMatrices = false>
+	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 };

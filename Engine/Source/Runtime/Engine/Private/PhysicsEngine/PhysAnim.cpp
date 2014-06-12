@@ -241,6 +241,7 @@ void USkeletalMeshComponent::BlendInPhysics()
 }
 
 
+
 void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
@@ -370,12 +371,20 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 			{
 				const FStaticLODModel& Model = MeshObject->GetSkeletalMeshResource().LODModels[0];
 				TArray<FVector> NewPositions;
-				NewPositions.AddUninitialized(Model.NumVertices);
+				if (true)
 				{
 					SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
-					for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+					ComputeSkinnedPositions(NewPositions);
+				}
+				else	//keep old way around for now - useful for comparing performance
+				{
+					NewPositions.AddUninitialized(Model.NumVertices);
 					{
-						NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+						SCOPE_CYCLE_COUNTER(STAT_SkinPerPolyVertices);
+						for (uint32 VertIndex = 0; VertIndex < Model.NumVertices; ++VertIndex)
+						{
+							NewPositions[VertIndex] = GetSkinnedVertexPosition(VertIndex);
+						}
 					}
 				}
 
