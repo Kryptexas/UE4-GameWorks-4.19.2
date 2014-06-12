@@ -227,7 +227,7 @@ void Main(
 	#if !MATERIALBLENDING_MODULATE
 		// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
 		// After 4.2 we can put the workaround in the cross compiler.
-		OutColor.rgb *= View.ExposureScale.xyz;
+		OutColor.rgba *= View.ExposureScale.xyzw;
 	#endif
 
 	#if OUTPUT_GAMMA_SPACE
