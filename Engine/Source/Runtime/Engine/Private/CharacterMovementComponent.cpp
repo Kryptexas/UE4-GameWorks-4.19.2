@@ -1860,9 +1860,9 @@ FVector UCharacterMovementComponent::AdjustUpperHemisphereImpact(const FVector& 
 	return FVector(Delta.X, Delta.Y, Delta.Z * ZScale);
 }
 
-FVector UCharacterMovementComponent::NewFallVelocity(FVector OldVelocity, FVector OldAcceleration, float timeTick)
+FVector UCharacterMovementComponent::NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime)
 {
-	return OldVelocity + (OldAcceleration * timeTick);
+	return InitialVelocity + (Gravity * DeltaTime);
 }
 
 
@@ -1974,7 +1974,6 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		Acceleration = Acceleration.ClampMaxSize(MaxAccel);
 	}
 
-	// Update Velocity
 	if (bForceMaxAccel)
 	{
 		// Force acceleration at full speed.
