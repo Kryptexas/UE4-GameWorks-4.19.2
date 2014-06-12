@@ -52,6 +52,7 @@ class AIMODULE_API UAISystem : public UAISystemBase
 	{
 		UAISystem* AISys = GetCurrent(World);
 		// if AI system is NULL you're probably running your AI code on a client
+		// or did something horribly wrong
 		check(AISys != NULL);
 		return AISys->GetBehaviorTreeManager();
 	}
