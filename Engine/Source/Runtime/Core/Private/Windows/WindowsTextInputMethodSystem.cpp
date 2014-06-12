@@ -292,7 +292,7 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 		Result = ::CoCreateInstance(CLSID_TF_ThreadMgr, NULL, CLSCTX_INPROC_SERVER, IID_ITfThreadMgr, reinterpret_cast<void**>(&(RawPointerTSFThreadManager)));
 		if(FAILED(Result))
 		{
-			UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Initialzation failed while creating the TSF thread manager."));
+			UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialzation failed while creating the TSF thread manager."));
 			TSFInputProcessorProfiles.Reset();
 			TSFInputProcessorProfileManager.Reset();
 			return false;
@@ -368,7 +368,7 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 	Result = TSFThreadManager->CreateDocumentMgr(&(TSFDisabledDocumentManager));
 	if(FAILED(Result))
 	{
-		UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Initialzation failed while creating the TSF thread manager."));
+		UE_LOG(LogWindowsTextInputMethodSystem, Warning, TEXT("Initialzation failed while creating the TSF thread manager."));
 		TSFInputProcessorProfiles.Reset();
 		TSFInputProcessorProfileManager.Reset();
 		TSFThreadManager.Reset();
