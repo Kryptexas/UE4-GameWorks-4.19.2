@@ -23,10 +23,8 @@ BOOL CALLBACK CaptureDeviceCallback(
 
 FVoiceCaptureDeviceWindows::FVoiceCaptureDeviceWindows() :
 	bInitialized(false),
-	DirectSound(NULL),
-	VoiceCaptureDev(NULL)
+	DirectSound(NULL)
 {
-	FMemory::Memzero(&VoiceCaptureDevCaps, sizeof(VoiceCaptureDevCaps));
 }
 
 FVoiceCaptureDeviceWindows::~FVoiceCaptureDeviceWindows()
@@ -52,7 +50,7 @@ void FVoiceCaptureDeviceWindows::Destroy()
 {
 	if (Singleton)
 	{
-		Singleton->Shutdown();
+		// calls Shutdown() above
 		delete Singleton;
 		Singleton = NULL;
 	}
@@ -65,30 +63,17 @@ FVoiceCaptureDeviceWindows* FVoiceCaptureDeviceWindows::Get()
 
 bool FVoiceCaptureDeviceWindows::Init()
 {
-	if (FAILED(DirectSoundCreate8(NULL, &DirectSound, NULL)))
+	HRESULT hr = DirectSoundCreate8(NULL, &DirectSound, NULL);
+	if (FAILED(hr))
 	{
-		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to init DirectSound"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to init DirectSound %d"), hr);
 		return false;
 	}
 
-	if (FAILED(DirectSoundCaptureEnumerate((LPDSENUMCALLBACK)CaptureDeviceCallback, this)))
+	hr = DirectSoundCaptureEnumerate((LPDSENUMCALLBACK)CaptureDeviceCallback, this);
+	if (FAILED(hr))
 	{
-		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to enumerate devices"));
-		return false;
-	}
-
-	// DSDEVID_DefaultCapture WAVEINCAPS 
-	if (FAILED(DirectSoundCaptureCreate8(&DSDEVID_DefaultVoiceCapture, &VoiceCaptureDev, NULL)))
-	{
-		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to create capture device"));
-		return false;
-	}
-
-	// Device capabilities
-	VoiceCaptureDevCaps.dwSize = sizeof(DSCCAPS);
-	if (FAILED(VoiceCaptureDev->GetCaps(&VoiceCaptureDevCaps)))
-	{
-		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to get mic device caps"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to enumerate devices %d"), hr);
 		return false;
 	}
 
@@ -107,13 +92,6 @@ void FVoiceCaptureDeviceWindows::Shutdown()
 
 	ActiveVoiceCaptures.Empty();
 
-	// Free up DirectSound resources
-	if (VoiceCaptureDev)
-	{
-		VoiceCaptureDev->Release();
-		VoiceCaptureDev = NULL;
-	}
-
 	// Free up DirectSound
 	if (DirectSound)
 	{
@@ -121,7 +99,6 @@ void FVoiceCaptureDeviceWindows::Shutdown()
 		DirectSound = NULL;
 	}
 
-	FMemory::Memzero(&VoiceCaptureDevCaps, sizeof(VoiceCaptureDevCaps));
 	bInitialized = false;
 }
 
