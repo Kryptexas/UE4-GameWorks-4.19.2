@@ -53,4 +53,8 @@ protected:
 	/** called when auxiliary node becomes active
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif // WITH_EDITOR
 };

@@ -80,6 +80,9 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** gets icon resource name for title bar */
 	virtual FName GetNameIcon() const;
 
+	/** Check if node instance uses blueprint for its implementation */
+	bool UsesBlueprint() const;
+
 	/** check if node has any errors, used for assigning colors on graph */
 	virtual bool HasErrors() const;
 

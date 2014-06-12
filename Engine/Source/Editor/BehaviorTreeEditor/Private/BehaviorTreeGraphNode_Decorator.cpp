@@ -28,11 +28,6 @@ FText UBehaviorTreeGraphNode_Decorator::GetNodeTitle(ENodeTitleType::Type TitleT
 	return Super::GetNodeTitle(TitleType);
 }
 
-FName UBehaviorTreeGraphNode_Decorator::GetNameIcon() const
-{
-	return FName("BTEditor.Graph.BTNode.Decorator.Icon");
-}
-
 bool UBehaviorTreeGraphNode_Decorator::IsSubNode() const
 {
 	return true;

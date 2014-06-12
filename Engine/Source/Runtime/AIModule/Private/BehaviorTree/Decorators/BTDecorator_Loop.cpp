@@ -61,3 +61,12 @@ uint16 UBTDecorator_Loop::GetInstanceMemorySize() const
 {
 	return sizeof(FBTLoopDecoratorMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_Loop::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.Loop.Icon");
+}
+
+#endif	// WITH_EDITOR

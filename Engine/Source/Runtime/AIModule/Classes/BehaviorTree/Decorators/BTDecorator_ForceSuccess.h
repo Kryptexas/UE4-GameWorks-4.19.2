@@ -21,4 +21,8 @@ class UBTDecorator_ForceSuccess : public UBTDecorator
 protected:
 
 	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
+
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif // WITH_EDITOR
 };

@@ -164,3 +164,12 @@ uint16 UBTTask_MoveTo::GetInstanceMemorySize() const
 {
 	return sizeof(FBTMoveToTaskMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTTask_MoveTo::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.MoveTo.Icon");
+}
+
+#endif	// WITH_EDITOR

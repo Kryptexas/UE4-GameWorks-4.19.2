@@ -393,7 +393,14 @@ void UBehaviorTreeGraphNode::ClearDebuggerState()
 
 FName UBehaviorTreeGraphNode::GetNameIcon() const
 {
-	return FName("BTEditor.Graph.BTNode.Icon");
+	UBTNode* BTNodeInstance = Cast<UBTNode>(NodeInstance);
+	return BTNodeInstance != nullptr ? BTNodeInstance->GetNodeIconName() : FName("BTEditor.Graph.BTNode.Icon");
+}
+
+bool UBehaviorTreeGraphNode::UsesBlueprint() const
+{
+	UBTNode* BTNodeInstance = Cast<UBTNode>(NodeInstance);
+	return BTNodeInstance != nullptr ? BTNodeInstance->UsesBlueprint() : false;
 }
 
 bool UBehaviorTreeGraphNode::RefreshNodeClass()

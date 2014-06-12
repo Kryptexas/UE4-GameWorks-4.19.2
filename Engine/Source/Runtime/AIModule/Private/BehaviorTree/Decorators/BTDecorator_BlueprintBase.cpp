@@ -193,3 +193,24 @@ void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* 
 		BehaviorComp->RequestExecution(this);		
 	}
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_BlueprintBase::GetNodeIconName() const
+{
+	if(bImplementsReceiveConditionCheck)
+	{
+		return FName("BTEditor.Graph.BTNode.Decorator.Conditional.Icon");
+	}
+	else
+	{
+		return FName("BTEditor.Graph.BTNode.Decorator.NonConditional.Icon");
+	}
+}
+
+bool UBTDecorator_BlueprintBase::UsesBlueprint() const
+{
+	return true;
+}
+
+#endif // WITH_EDITOR

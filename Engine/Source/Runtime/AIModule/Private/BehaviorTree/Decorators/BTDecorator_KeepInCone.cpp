@@ -127,3 +127,12 @@ uint16 UBTDecorator_KeepInCone::GetInstanceMemorySize() const
 {
 	return sizeof(TNodeInstanceMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_KeepInCone::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.KeepInCone.Icon");
+}
+
+#endif	// WITH_EDITOR

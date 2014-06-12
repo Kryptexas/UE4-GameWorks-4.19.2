@@ -26,3 +26,11 @@ EBTNodeResult::Type UBTTask_MakeNoise::ExecuteTask(UBehaviorTreeComponent* Owner
 	return EBTNodeResult::Failed;
 }
 
+#if WITH_EDITOR
+
+FName UBTTask_MakeNoise::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.MakeNoise.Icon");
+}
+
+#endif	// WITH_EDITOR

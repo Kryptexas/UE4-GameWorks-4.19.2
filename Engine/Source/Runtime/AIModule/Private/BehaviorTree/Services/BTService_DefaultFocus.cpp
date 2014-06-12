@@ -99,3 +99,12 @@ uint16 UBTService_DefaultFocus::GetInstanceMemorySize() const
 {
 	return sizeof(FBTDefaultFocusMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTService_DefaultFocus::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Service.DefaultFocus.Icon");
+}
+
+#endif	// WITH_EDITOR

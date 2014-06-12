@@ -9,8 +9,6 @@ class UBehaviorTreeGraphNode_Service : public UBehaviorTreeGraphNode
 	GENERATED_UCLASS_BODY()
 
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	/** gets icon resource name for title bar */
-	virtual FName GetNameIcon() const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual bool IsSubNode() const OVERRIDE;
 };

@@ -14,6 +14,10 @@ class AIMODULE_API UBTDecorator_BlackboardBase : public UBTDecorator
 	/** notify about change in blackboard keys */
 	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);
 
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif
+
 	/** get name of selected blackboard key */
 	FName GetSelectedBlackboardKey() const;
 

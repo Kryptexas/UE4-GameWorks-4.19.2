@@ -141,4 +141,10 @@ void UBTTask_RunEQSQuery::PostEditChangeProperty(struct FPropertyChangedEvent& P
 		}
 	}
 }
+
+FName UBTTask_RunEQSQuery::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.RunEQSQuery.Icon");
+}
+
 #endif

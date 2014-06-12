@@ -92,3 +92,12 @@ FString UBTDecorator_DoesPathExist::GetStaticDescription() const
 		*BlackboardKeyB.SelectedKeyName.ToString(),
 		*PathTypeEnum->GetEnumName(PathQueryType));
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_DoesPathExist::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.DoesPathExist.Icon");
+}
+
+#endif	// WITH_EDITOR

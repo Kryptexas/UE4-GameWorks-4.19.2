@@ -62,5 +62,6 @@ class UBTComposite_SimpleParallel : public UBTCompositeNode
 #if WITH_EDITOR
 	virtual bool CanAbortLowerPriority() const OVERRIDE;
 	virtual bool CanAbortSelf() const OVERRIDE;
+	virtual FName GetNodeIconName() const override;
 #endif // WITH_EDITOR
 };

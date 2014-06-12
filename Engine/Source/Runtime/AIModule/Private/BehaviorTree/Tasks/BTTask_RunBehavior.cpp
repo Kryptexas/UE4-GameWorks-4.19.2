@@ -224,3 +224,12 @@ void UBTTask_RunBehavior::InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* 
 		}
 	}
 }
+
+#if WITH_EDITOR
+
+FName UBTTask_RunBehavior::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.RunBehavior.Icon");
+}
+
+#endif	// WITH_EDITOR

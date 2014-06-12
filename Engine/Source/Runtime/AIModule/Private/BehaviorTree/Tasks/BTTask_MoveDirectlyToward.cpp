@@ -108,3 +108,12 @@ uint16 UBTTask_MoveDirectlyToward::GetInstanceMemorySize() const
 {
 	return sizeof(FBTMoveDirectlyTowardMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTTask_MoveDirectlyToward::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.MoveDirectlyToward.Icon");
+}
+
+#endif	// WITH_EDITOR

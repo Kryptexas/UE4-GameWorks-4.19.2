@@ -17,3 +17,12 @@ void UBTDecorator_Optional::OnNodeProcessed(struct FBehaviorTreeSearchData& Sear
 {
 	NodeResult = EBTNodeResult::Optional;
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_Optional::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.Optional.Icon");
+}
+
+#endif	// WITH_EDITOR

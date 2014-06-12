@@ -29,3 +29,12 @@ int32 UBTComposite_Selector::GetNextChildHandler(struct FBehaviorTreeSearchData&
 
 	return NextChildIdx;
 }
+
+#if WITH_EDITOR
+
+FName UBTComposite_Selector::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Composite.Selector.Icon");
+}
+
+#endif

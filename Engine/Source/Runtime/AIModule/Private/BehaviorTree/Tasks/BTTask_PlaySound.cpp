@@ -30,3 +30,12 @@ FString UBTTask_PlaySound::GetStaticDescription() const
 {
 	return FString::Printf(TEXT("%s: '%s'"), *Super::GetStaticDescription(), SoundToPlay ? *SoundToPlay->GetName() : TEXT(""));
 }
+
+#if WITH_EDITOR
+
+FName UBTTask_PlaySound::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.PlaySound.Icon");
+}
+
+#endif	// WITH_EDITOR

@@ -10,4 +10,8 @@ class AIMODULE_API UBTDecorator_ReachedMoveGoal : public UBTDecorator
 	GENERATED_UCLASS_BODY()
 
 	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
+
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif // WITH_EDITOR
 };

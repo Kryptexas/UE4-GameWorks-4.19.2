@@ -22,6 +22,10 @@ class AIMODULE_API UBTService_BlueprintBase : public UBTService
 	virtual FString GetStaticDescription() const OVERRIDE;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
 
+#if WITH_EDITOR
+	virtual bool UsesBlueprint() const override;
+#endif
+
 protected:
 
 	/** properties with runtime values, stored only in class default object */

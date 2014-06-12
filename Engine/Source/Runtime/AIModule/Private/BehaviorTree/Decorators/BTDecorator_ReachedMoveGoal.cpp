@@ -20,3 +20,12 @@ bool UBTDecorator_ReachedMoveGoal::CalculateRawConditionValue(class UBehaviorTre
 	const bool bReachedGoal = AIOwner && AIOwner->PathFollowingComponent && AIOwner->PathFollowingComponent->DidMoveReachGoal();
 	return bReachedGoal;
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_ReachedMoveGoal::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.ReachedMoveGoal.Icon");
+}
+
+#endif	// WITH_EDITOR

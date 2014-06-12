@@ -52,3 +52,12 @@ void UBTDecorator_BlackboardBase::OnBlackboardChange(const UBlackboardComponent*
 		BehaviorComp->RequestExecution(this);		
 	}
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_BlackboardBase::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.Blackboard.Icon");
+}
+
+#endif	// WITH_EDITOR

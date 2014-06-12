@@ -50,3 +50,12 @@ uint16 UBTTask_Wait::GetInstanceMemorySize() const
 {
 	return sizeof(FBTWaitTaskMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTTask_Wait::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.Wait.Icon");
+}
+
+#endif	// WITH_EDITOR

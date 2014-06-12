@@ -349,8 +349,12 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 									+SHorizontalBox::Slot()
 									.AspectRatio()
 									[
-										SNew(SImage)
-										.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
+										SNew(SOverlay)
+										+SOverlay::Slot()
+										[
+											SNew(SImage)
+											.Image(this, &SGraphNode_BehaviorTree::GetNameIcon)
+										]
 									]
 									+SHorizontalBox::Slot()
 									.Padding(FMargin(4.0f, 0.0f, 4.0f, 0.0f))
@@ -415,6 +419,15 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 						SNew(SBox)
 						.HeightOverride(4)
 					]
+				]
+				//drag marker overlay
+				+SOverlay::Slot()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Top)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush(TEXT("BTEditor.Graph.BTNode.Blueprint")))
+					.Visibility(this, &SGraphNode_BehaviorTree::GetBlueprintIconVisibility)
 				]
 			]
 		];
@@ -908,18 +921,15 @@ FString SGraphNode_BehaviorTree::GetPreviewCornerText() const
 }
 
 const FSlateBrush* SGraphNode_BehaviorTree::GetNameIcon() const
-{
-	UBehaviorTreeGraphNode_CompositeDecorator* CompDecorator = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode);
-	UBehaviorTreeGraphNode_Decorator* Decorator = Cast<UBehaviorTreeGraphNode_Decorator>(GraphNode);
-	UBTDecorator* DecoratorInstance = Decorator ? Cast<UBTDecorator>(Decorator->NodeInstance) : NULL;
-	
-	if ((DecoratorInstance && DecoratorInstance->GetFlowAbortMode() != EBTFlowAbortMode::None) ||
-		(CompDecorator && CompDecorator->bCanAbortFlow))
-	{
-		return FEditorStyle::GetBrush( TEXT("BTEditor.Graph.FlowControl.Icon") );
-	}
+{	
 	UBehaviorTreeGraphNode* BTGraphNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
-	return BTGraphNode != NULL ? FEditorStyle::GetBrush(BTGraphNode->GetNameIcon()) : FEditorStyle::GetBrush(TEXT("BTEditor.Graph.BTNode.Icon"));
+	return BTGraphNode != nullptr ? FEditorStyle::GetBrush(BTGraphNode->GetNameIcon()) : FEditorStyle::GetBrush(TEXT("BTEditor.Graph.BTNode.Icon"));
+}
+
+EVisibility SGraphNode_BehaviorTree::GetBlueprintIconVisibility() const
+{
+	UBehaviorTreeGraphNode* BTGraphNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
+	return (BTGraphNode != nullptr && BTGraphNode->UsesBlueprint()) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 void SGraphNode_BehaviorTree::GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const

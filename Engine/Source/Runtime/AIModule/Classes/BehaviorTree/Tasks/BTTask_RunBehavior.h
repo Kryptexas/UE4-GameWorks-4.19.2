@@ -27,6 +27,10 @@ class UBTTask_RunBehavior : public UBTTaskNode
 	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;
 
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif // WITH_EDITOR
+
 	/** called on instance startup, prepares root level nodes to use */
 	void InjectNodes(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32& InstancedIndex) const;
 

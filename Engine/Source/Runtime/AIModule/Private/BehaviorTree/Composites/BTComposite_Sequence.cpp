@@ -38,4 +38,9 @@ bool UBTComposite_Sequence::CanAbortLowerPriority() const
 	return false;
 }
 
+FName UBTComposite_Sequence::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Composite.Sequence.Icon");
+}
+
 #endif

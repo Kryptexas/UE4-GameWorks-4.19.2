@@ -6,7 +6,7 @@
 
 UBTDecorator_ConeCheck::UBTDecorator_ConeCheck(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
-	NodeName = "Keep in Cone";
+	NodeName = "Cone Check";
 
 	// accept only actors and vectors
 	ConeOrigin.AddObjectFilter(this, AActor::StaticClass());
@@ -134,3 +134,12 @@ uint16 UBTDecorator_ConeCheck::GetInstanceMemorySize() const
 {
 	return sizeof(TNodeInstanceMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_ConeCheck::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.ConeCheck.Icon");
+}
+
+#endif	// WITH_EDITOR

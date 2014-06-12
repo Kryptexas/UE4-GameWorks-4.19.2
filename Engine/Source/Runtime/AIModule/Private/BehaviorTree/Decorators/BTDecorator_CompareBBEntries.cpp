@@ -93,3 +93,12 @@ void UBTDecorator_CompareBBEntries::OnBlackboardChange(const UBlackboardComponen
 		BehaviorComp->RequestExecution(this);		
 	}
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_CompareBBEntries::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.CompareBlackboardEntries.Icon");
+}
+
+#endif	// WITH_EDITOR

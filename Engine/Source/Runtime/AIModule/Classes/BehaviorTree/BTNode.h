@@ -115,6 +115,14 @@ class AIMODULE_API UBTNode : public UObject
 	/** @return string containing description of this node with all setup values */
 	virtual FString GetStaticDescription() const;
 
+#if WITH_EDITOR
+	/** Get the name of the icon used to display this node in the editor */
+	virtual FName GetNodeIconName() const;
+
+	/** Get whether this node is using a blueprint for its logic */
+	virtual bool UsesBlueprint() const;
+#endif
+
 protected:
 
 	/** node name */

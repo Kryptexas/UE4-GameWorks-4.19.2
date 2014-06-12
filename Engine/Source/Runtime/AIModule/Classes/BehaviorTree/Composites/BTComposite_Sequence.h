@@ -13,5 +13,6 @@ class UBTComposite_Sequence : public UBTCompositeNode
 
 #if WITH_EDITOR
 	virtual bool CanAbortLowerPriority() const OVERRIDE;
+	virtual FName GetNodeIconName() const override;
 #endif
 };

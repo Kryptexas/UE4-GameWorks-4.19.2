@@ -157,3 +157,17 @@ void UBTNode::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerCom
 {
 	// nothing stored in memory for base class
 }
+
+#if WITH_EDITOR
+
+FName UBTNode::GetNodeIconName() const
+{
+	return NAME_None;
+}
+
+bool UBTNode::UsesBlueprint() const
+{
+	return false;
+}
+
+#endif

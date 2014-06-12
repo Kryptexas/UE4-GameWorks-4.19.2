@@ -17,3 +17,12 @@ void UBTDecorator_ForceSuccess::OnNodeProcessed(struct FBehaviorTreeSearchData& 
 {
 	NodeResult = EBTNodeResult::Succeeded;
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_ForceSuccess::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.ForceSuccess.Icon");
+}
+
+#endif	// WITH_EDITOR

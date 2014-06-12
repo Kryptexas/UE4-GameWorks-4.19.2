@@ -51,3 +51,12 @@ void UBTDecorator_TimeLimit::DescribeRuntimeValues(const class UBehaviorTreeComp
 			*FString::SanitizeFloat(TimeLeft)));
 	}
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_TimeLimit::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.TimeLimit.Icon");
+}
+
+#endif	// WITH_EDITOR

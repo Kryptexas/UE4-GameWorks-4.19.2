@@ -101,3 +101,12 @@ void UBTTaskNode::StopWaitingForMessages(class UBehaviorTreeComponent* OwnerComp
 	// messages delegates should be called on node instances (if they exists)
 	OwnerComp->UnregisterMessageObserversFrom(this);
 }
+
+#if WITH_EDITOR
+
+FName UBTTaskNode::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Task.Icon");
+}
+
+#endif	// WITH_EDITOR

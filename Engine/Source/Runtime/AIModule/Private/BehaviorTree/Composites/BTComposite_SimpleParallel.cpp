@@ -152,4 +152,9 @@ bool UBTComposite_SimpleParallel::CanAbortSelf() const
 	return false;
 }
 
+FName UBTComposite_SimpleParallel::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Composite.SimpleParallel.Icon");
+}
+
 #endif // WITH_EDITOR

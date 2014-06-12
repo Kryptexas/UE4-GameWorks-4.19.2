@@ -26,11 +26,6 @@ FText UBehaviorTreeGraphNode_Task::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	return Super::GetNodeTitle(TitleType);
 }
 
-FName UBehaviorTreeGraphNode_Task::GetNameIcon() const
-{
-	return FName("BTEditor.Graph.BTNode.Task.Icon");
-}
-
 void UBehaviorTreeGraphNode_Task::GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const
 {
 	AddContextMenuActionsDecorators(Context);

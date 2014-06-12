@@ -81,3 +81,12 @@ uint16 UBTDecorator_Cooldown::GetInstanceMemorySize() const
 {
 	return sizeof(FBTCooldownDecoratorMemory);
 }
+
+#if WITH_EDITOR
+
+FName UBTDecorator_Cooldown::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Decorator.Cooldown.Icon");
+}
+
+#endif	// WITH_EDITOR

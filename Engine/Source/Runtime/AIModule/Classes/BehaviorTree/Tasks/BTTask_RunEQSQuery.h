@@ -36,6 +36,7 @@ class UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 #if WITH_EDITOR
 	/** prepare query params */
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual FName GetNodeIconName() const override;
 #endif
 
 protected:

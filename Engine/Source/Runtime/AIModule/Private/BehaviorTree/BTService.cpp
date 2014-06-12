@@ -34,3 +34,11 @@ FString UBTService::GetStaticDescription() const
 	return FString::Printf(TEXT("%s: tick every %s"), *UBehaviorTreeTypes::GetShortTypeName(this), *IntervalDesc);
 }
 
+#if WITH_EDITOR
+
+FName UBTService::GetNodeIconName() const
+{
+	return FName("BTEditor.Graph.BTNode.Service.Icon");
+}
+
+#endif // WITH_EDITOR

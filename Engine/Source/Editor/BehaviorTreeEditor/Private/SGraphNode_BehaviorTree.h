@@ -99,6 +99,7 @@ protected:
 
 	virtual FString GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
+	virtual EVisibility GetBlueprintIconVisibility() const;
 
 	FString GetPinTooltip(UEdGraphPin* GraphPinObj) const;
 };

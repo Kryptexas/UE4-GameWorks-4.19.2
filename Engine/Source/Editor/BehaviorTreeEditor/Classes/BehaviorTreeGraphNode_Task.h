@@ -11,8 +11,6 @@ class UBehaviorTreeGraphNode_Task : public UBehaviorTreeGraphNode
 
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	/** gets icon resource name for title bar */
-	virtual FName GetNameIcon() const OVERRIDE;
 	/** Gets a list of actions that can be done to this particular node */
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
 

@@ -100,3 +100,12 @@ void UBTService_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeCo
 		BlueprintNodeHelpers::DescribeRuntimeValues(this, CDO->PropertyData, Values);
 	}
 }
+
+#if WITH_EDITOR
+
+bool UBTService_BlueprintBase::UsesBlueprint() const
+{
+	return true;
+}
+
+#endif // WITH_EDITOR

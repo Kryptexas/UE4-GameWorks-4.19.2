@@ -37,11 +37,6 @@ FText UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTitle(ENodeTitleType::Ty
 	return FText::FromString(CompositeName.Len() ? CompositeName : GetNodeTypeDescription());
 }
 
-FName UBehaviorTreeGraphNode_CompositeDecorator::GetNameIcon() const
-{
-	return FName("BTEditor.Graph.BTNode.CompositeDecorator.Icon");
-}
-
 FString UBehaviorTreeGraphNode_CompositeDecorator::GetDescription() const
 {
 	return CachedDescription;

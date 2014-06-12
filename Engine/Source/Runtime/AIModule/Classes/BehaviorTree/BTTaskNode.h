@@ -35,6 +35,10 @@ class AIMODULE_API UBTTaskNode : public UBTNode
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory);
 
+#if WITH_EDITOR
+	virtual FName GetNodeIconName() const override;
+#endif // WITH_EDITOR
+
 	/** message observer's hook */
 	void ReceivedMessage(UBrainComponent* BrainComp, const struct FAIMessage& Message);
 
