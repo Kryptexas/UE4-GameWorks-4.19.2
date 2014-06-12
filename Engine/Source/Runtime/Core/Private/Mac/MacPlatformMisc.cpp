@@ -995,6 +995,16 @@ int32 FMacPlatformMisc::NumberOfCoresIncludingHyperthreads()
 	return NumberOfCores;
 }
 
+void FMacPlatformMisc::NormalizePath(FString& InPath)
+{
+	const bool bAppendSlash = InPath[InPath.Len() - 1] == '/'; // NSString will remove the trailing slash, if present, so we need to restore it after conversion
+	InPath = [[InPath.GetNSString() stringByStandardizingPath] stringByResolvingSymlinksInPath];
+	if (bAppendSlash)
+	{
+		InPath += TEXT("/");
+	}
+}
+
 #include "ModuleManager.h"
 
 void FMacPlatformMisc::LoadPreInitModules()

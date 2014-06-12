@@ -767,8 +767,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// VC++ tends to do this in its "external tools" config
 	Token = Token.Trim();
 
+	// Path returned by FPaths::GetProjectFilePath() is normalized, so may have symlinks and ~ resolved and may differ from the original path to .uproject passed in the command line
+	FString NormalizedToken = Token;
+	FPaths::NormalizeFilename(NormalizedToken);
+
 	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
-	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetProjectFilePath());
+	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && NormalizedToken == FPaths::GetProjectFilePath());
 	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
 	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)

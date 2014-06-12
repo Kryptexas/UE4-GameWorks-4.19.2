@@ -58,6 +58,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();
+	static void NormalizePath(FString& InPath);
 
 
 	/** 
