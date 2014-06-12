@@ -20,6 +20,8 @@
 #include "BehaviorTreeEditorTabFactories.h"
 #include "BehaviorTreeEditorCommands.h"
 #include "BehaviorTreeEditorTabs.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardData.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 

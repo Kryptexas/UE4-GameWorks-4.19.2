@@ -26,3 +26,5 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "ConnectionDrawingPolicy.h"
 #include "FindInBT.h"
+
+#include "PropertyEditing.h"

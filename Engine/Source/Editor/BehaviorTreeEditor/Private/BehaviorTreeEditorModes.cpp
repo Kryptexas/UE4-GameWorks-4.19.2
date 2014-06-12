@@ -3,6 +3,8 @@
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTreeEditorModes.h"
 #include "BehaviorTreeEditorTabs.h"
+#include "BehaviorTreeEditorTabFactories.h"
+#include "BehaviorTreeEditorToolbar.h"
 
 FBehaviorTreeEditorApplicationMode::FBehaviorTreeEditorApplicationMode(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditor)
 	: FApplicationMode(FBehaviorTreeEditor::BehaviorTreeMode)

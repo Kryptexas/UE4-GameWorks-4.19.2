@@ -120,10 +120,10 @@ public:
 	TSharedPtr<class FBehaviorTreeEditorToolbar> GetToolbarBuilder() { return ToolbarBuilder; }
 
 	/** Get the behavior tree we are editing (if any) */
-	UBehaviorTree* GetBehaviorTree() const;
+	class UBehaviorTree* GetBehaviorTree() const;
 
 	/** Get the blackboard we are editing (if any) */
-	UBlackboardData* GetBlackboardData() const;
+	class UBlackboardData* GetBlackboardData() const;
 
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SWidget> SpawnProperties();
