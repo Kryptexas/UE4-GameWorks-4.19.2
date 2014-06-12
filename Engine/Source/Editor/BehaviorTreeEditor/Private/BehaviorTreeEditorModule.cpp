@@ -45,8 +45,14 @@ void FBehaviorTreeEditorModule::StartupModule()
 	GraphPanelNodeFactory_BehaviorTree = MakeShareable( new FGraphPanelNodeFactory_BehaviorTree() );
 	FEdGraphUtilities::RegisterVisualNodeFactory(GraphPanelNodeFactory_BehaviorTree);
 
-	ItemDataAssetTypeActions = MakeShareable(new FAssetTypeActions_BehaviorTree);
-	FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get().RegisterAssetTypeActions(ItemDataAssetTypeActions.ToSharedRef());
+	IAssetTools& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+	TSharedPtr<FAssetTypeActions_BehaviorTree> BehaviorTreeAssetTypeAction = MakeShareable(new FAssetTypeActions_BehaviorTree);
+	ItemDataAssetTypeActions.Add(BehaviorTreeAssetTypeAction);
+	AssetToolsModule.RegisterAssetTypeActions(BehaviorTreeAssetTypeAction.ToSharedRef());
+
+	TSharedPtr<FAssetTypeActions_Blackboard> BlackboardAssetTypeAction = MakeShareable(new FAssetTypeActions_Blackboard);
+	ItemDataAssetTypeActions.Add(BlackboardAssetTypeAction);
+	AssetToolsModule.RegisterAssetTypeActions(BlackboardAssetTypeAction.ToSharedRef());
 
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -75,14 +81,18 @@ void FBehaviorTreeEditorModule::ShutdownModule()
 	}
 
 	// Unregister the BehaviorTree item data asset type actions
-	if (ItemDataAssetTypeActions.IsValid())
+	if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
 	{
-		if (FModuleManager::Get().IsModuleLoaded("AssetTools"))
+		IAssetTools& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+		for(auto& AssetTypeAction : ItemDataAssetTypeActions)
 		{
-			FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get().UnregisterAssetTypeActions(ItemDataAssetTypeActions.ToSharedRef());
-		}
-		ItemDataAssetTypeActions.Reset();
+			if (AssetTypeAction.IsValid())
+			{
+				AssetToolsModule.UnregisterAssetTypeActions(AssetTypeAction.ToSharedRef());
+			}	
+		}			
 	}
+	ItemDataAssetTypeActions.Empty();
 
 	// Unregister the details customization
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
@@ -104,7 +114,7 @@ void FBehaviorTreeEditorModule::HandleExperimentalSettingChanged(FName PropertyN
 	}
 }
 
-TSharedRef<IBehaviorTreeEditor> FBehaviorTreeEditorModule::CreateBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UBehaviorTree* Script )
+TSharedRef<IBehaviorTreeEditor> FBehaviorTreeEditorModule::CreateBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* Object )
 {
 	if (!ClassCache.IsValid())
 	{
@@ -112,7 +122,6 @@ TSharedRef<IBehaviorTreeEditor> FBehaviorTreeEditorModule::CreateBehaviorTreeEdi
 	}
 
 	TSharedRef< FBehaviorTreeEditor > NewBehaviorTreeEditor( new FBehaviorTreeEditor() );
-	NewBehaviorTreeEditor->InitBehaviorTreeEditor( Mode, InitToolkitHost, Script );
-	return NewBehaviorTreeEditor;
+	NewBehaviorTreeEditor->InitBehaviorTreeEditor( Mode, InitToolkitHost, Object );
+	return NewBehaviorTreeEditor;	
 }
-

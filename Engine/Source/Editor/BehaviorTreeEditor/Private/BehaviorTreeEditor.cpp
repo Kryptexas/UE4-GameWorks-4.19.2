@@ -15,116 +15,16 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
+#include "BehaviorTreeEditorModes.h"
+#include "BehaviorTreeEditorToolbar.h"
+#include "BehaviorTreeEditorTabFactories.h"
+#include "BehaviorTreeEditorCommands.h"
+#include "BehaviorTreeEditorTabs.h"
+
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
-const FName FBehaviorTreeEditor::BTGraphTabId( TEXT( "Document" ) );
-const FName FBehaviorTreeEditor::BTPropertiesTabId( TEXT( "BehaviorTreeEditor_Properties" ) );
-const FName FBehaviorTreeEditor::BTSearchTabId(TEXT("BehaviorTreeEditor_Search"));
-
-//////////////////////////////////////////////////////////////////////////
-struct FBTGraphEditorSummoner : public FDocumentTabFactoryForObjects<UEdGraph>
-{
-public:
-	DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<SGraphEditor>, FOnCreateGraphEditorWidget, UEdGraph*);
-public:
-	FBTGraphEditorSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr, FOnCreateGraphEditorWidget CreateGraphEditorWidgetCallback)
-		: FDocumentTabFactoryForObjects<UEdGraph>(FBehaviorTreeEditor::BTGraphTabId, InBehaviorTreeEditorPtr)
-		, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
-		, OnCreateGraphEditorWidget(CreateGraphEditorWidgetCallback)
-	{
-	}
-
-	virtual void OnTabActivated(TSharedPtr<SDockTab> Tab) const OVERRIDE
-	{
-		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
-		BehaviorTreeEditorPtr.Pin()->OnGraphEditorFocused(GraphEditor);
-	}
-
-	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const OVERRIDE
-	{
-		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
-		GraphEditor->NotifyGraphChanged();
-	}
-
-protected:
-	virtual TAttribute<FText> ConstructTabNameForObject(UEdGraph* DocumentID) const OVERRIDE
-	{
-		return TAttribute<FText>( FText::FromString( DocumentID->GetName() ) );
-	}
-
-	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const OVERRIDE
-	{
-		return OnCreateGraphEditorWidget.Execute(DocumentID);
-	}
-
-	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const OVERRIDE
-	{
-		return FEditorStyle::GetBrush("NoBrush");
-	}
-
-protected:
-	TWeakPtr<class FBehaviorTreeEditor> BehaviorTreeEditorPtr;
-	FOnCreateGraphEditorWidget OnCreateGraphEditorWidget;
-};
-
-//////////////////////////////////////////////////////////////////////////
-class FBTCommonCommands : public TCommands<FBTCommonCommands>
-{
-public:
-	/** Constructor */
-	FBTCommonCommands() 
-		: TCommands<FBTCommonCommands>("BTEditor.Common", LOCTEXT("Common", "Common"), NAME_None, FEditorStyle::GetStyleSetName())
-	{
-	}
-
-	TSharedPtr<FUICommandInfo> SearchBT;
-
-	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
-};
-
-void FBTCommonCommands::RegisterCommands()
-{
-	UI_COMMAND(SearchBT, "Search", "Search this Behavior Tree.", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::F));
-}
-
-//////////////////////////////////////////////////////////////////////////
-class FBTDebuggerCommands : public TCommands<FBTDebuggerCommands>
-{
-public:
-	/** Constructor */
-	FBTDebuggerCommands() 
-		: TCommands<FBTDebuggerCommands>("BTEditor.Debugger", LOCTEXT("Debugger", "Debugger"), NAME_None, FEditorStyle::GetStyleSetName())
-	{
-	}
-
-	TSharedPtr<FUICommandInfo> BackInto;
-	TSharedPtr<FUICommandInfo> BackOver;
-	TSharedPtr<FUICommandInfo> ForwardInto;
-	TSharedPtr<FUICommandInfo> ForwardOver;
-	TSharedPtr<FUICommandInfo> StepOut;
-
-	TSharedPtr<FUICommandInfo> PausePlaySession;
-	TSharedPtr<FUICommandInfo> ResumePlaySession;
-	TSharedPtr<FUICommandInfo> StopPlaySession;
-
-	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
-};
-
-void FBTDebuggerCommands::RegisterCommands()
-{
-	UI_COMMAND(BackInto, "Back: Into", "Show state from previous step, can go into subtrees", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(BackOver, "Back: Over", "Show state from previous step, don't go into subtrees", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ForwardInto, "Forward: Into", "Show state from next step, can go into subtrees", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ForwardOver, "Forward: Over", "Show state from next step, don't go into subtrees", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(StepOut, "Step Out", "Show state from next step, leave current subtree", EUserInterfaceActionType::Button, FInputGesture());
-	
-	UI_COMMAND(PausePlaySession, "Pause", "Pause simulation", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(ResumePlaySession, "Resume", "Resume simulation", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND(StopPlaySession, "Stop", "Stop simulation", EUserInterfaceActionType::Button, FInputGesture());
-}
-
+const FName FBehaviorTreeEditor::BehaviorTreeMode(TEXT("BehaviorTree"));
+const FName FBehaviorTreeEditor::BlackboardMode(TEXT("Blackboard"));
 
 //////////////////////////////////////////////////////////////////////////
 FBehaviorTreeEditor::FBehaviorTreeEditor() 
@@ -144,6 +44,9 @@ FBehaviorTreeEditor::FBehaviorTreeEditor()
 	bShowDecoratorRangeSelf = false;
 	bSelectedNodeIsInjected = false;
 	SelectedNodesCount = 0;
+
+	BehaviorTree = nullptr;
+	BlackboardData = nullptr;
 }
 
 FBehaviorTreeEditor::~FBehaviorTreeEditor()
@@ -191,134 +94,170 @@ void FBehaviorTreeEditor::PostRedo(bool bSuccess)
 
 void FBehaviorTreeEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
-	// @todo TabManagement
+	DocumentManager->SetTabManager(TabManager);
+
+	FWorkflowCentricApplication::RegisterTabSpawners(TabManager);
+}
+
+void FBehaviorTreeEditor::RegisterToolbarTab(const TSharedRef<class FTabManager>& TabManager)
+{
 	FAssetEditorToolkit::RegisterTabSpawners(TabManager);
-
-	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-
-	TabManager->RegisterTabSpawner( BTPropertiesTabId, FOnSpawnTab::CreateSP(this, &FBehaviorTreeEditor::SpawnTab_Properties) )
-		.SetDisplayName( LOCTEXT( "PropertiesTab", "Details" ) )
-		.SetGroup( MenuStructure.GetAssetEditorCategory() );
-
-	TabManager->RegisterTabSpawner(BTSearchTabId, FOnSpawnTab::CreateSP(this, &FBehaviorTreeEditor::SpawnTab_Search))
-		.SetDisplayName(LOCTEXT("SearchTab", "Search"))
-		.SetGroup(MenuStructure.GetAssetEditorCategory());
-
-	DocumentManager.SetTabManager(TabManager);
 }
 
-void FBehaviorTreeEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
+void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* InObject )
 {
-	TabManager->UnregisterTabSpawner( BTPropertiesTabId );
+	UBehaviorTree* BehaviorTreeToEdit = Cast<UBehaviorTree>(InObject);
+	UBlackboardData* BlackboardDataToEdit = Cast<UBlackboardData>(InObject);
 
-	TabManager->UnregisterTabSpawner(BTSearchTabId);
-
-	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
-}
-
-
-void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UBehaviorTree* InScript )
-{
-	Script = InScript;
-	check(Script != NULL);
+	if(BehaviorTreeToEdit != nullptr)
+	{
+		BehaviorTree = BehaviorTreeToEdit;
+		if(BehaviorTree->BlackboardAsset != nullptr)
+		{
+			BlackboardData = BehaviorTree->BlackboardAsset;
+		}
+	}
+	else if(BlackboardDataToEdit != nullptr)
+	{
+		BlackboardData = BlackboardDataToEdit;
+	}
 
 	TSharedPtr<FBehaviorTreeEditor> ThisPtr(SharedThis(this));
-	DocumentManager.Initialize(ThisPtr);
-
-	// Register the document factories
+	if(!DocumentManager.IsValid())
 	{
-		TSharedRef<FDocumentTabFactory> GraphEditorFactory = MakeShareable(new FBTGraphEditorSummoner(ThisPtr,
-			FBTGraphEditorSummoner::FOnCreateGraphEditorWidget::CreateSP(this, &FBehaviorTreeEditor::CreateGraphEditorWidget)
-			));
+		DocumentManager = MakeShareable(new FDocumentTracker);
+		DocumentManager->Initialize(ThisPtr);
 
-		// Also store off a reference to the grapheditor factory so we can find all the tabs spawned by it later.
-		GraphEditorTabFactoryPtr = GraphEditorFactory;
-		DocumentManager.RegisterDocumentFactory(GraphEditorFactory);
+		// Register the document factories
+		{
+			TSharedRef<FDocumentTabFactory> GraphEditorFactory = MakeShareable(new FBTGraphEditorSummoner(ThisPtr,
+				FBTGraphEditorSummoner::FOnCreateGraphEditorWidget::CreateSP(this, &FBehaviorTreeEditor::CreateGraphEditorWidget)
+				));
+
+			// Also store off a reference to the grapheditor factory so we can find all the tabs spawned by it later.
+			GraphEditorTabFactoryPtr = GraphEditorFactory;
+			DocumentManager->RegisterDocumentFactory(GraphEditorFactory);
+		}
 	}
 
-	FGraphEditorCommands::Register();
-	FBTCommonCommands::Register();
-	FBTDebuggerCommands::Register();
-
-	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_BehaviorTree_Layout" )
-	->AddArea
-	(
-		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
-		->Split
-		(
-			FTabManager::NewStack()
-			->SetSizeCoefficient(0.1f)
-			->AddTab(GetToolbarTabId(), ETabState::OpenedTab) 
-			->SetHideTabWell(true) 
-		)
-		->Split
-		(
-			FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
-			->Split
-			(
-				FTabManager::NewStack()
-				->SetSizeCoefficient(0.7f)
-				->AddTab( BTGraphTabId, ETabState::ClosedTab )
-			)
-			->Split
-			(
-				FTabManager::NewStack()
-				->SetSizeCoefficient(0.3f)
-				->AddTab( BTPropertiesTabId, ETabState::OpenedTab )
-				->AddTab( BTSearchTabId, ETabState::ClosedTab )
-			)
-		)
-	);
-
-	const bool bCreateDefaultStandaloneMenu = true;
-	const bool bCreateDefaultToolbar = true;
-	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, FBehaviorTreeEditorModule::BehaviorTreeEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, Script );
-
-	// Update BT asset data based on saved graph to have correct data in editor
+	TArray<UObject*> ObjectsToEdit;
+	if(BehaviorTree != nullptr)
 	{
-		UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
-		if (MyGraph == NULL)
-		{
-			Script->BTGraph = FBlueprintEditorUtils::CreateNewGraph(Script, TEXT("Behavior Tree"), UBehaviorTreeGraph::StaticClass(), UEdGraphSchema_BehaviorTree::StaticClass());
-			MyGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
-			check(MyGraph);
+		ObjectsToEdit.Add(BehaviorTree);
+	}
+	if(BlackboardData != nullptr)
+	{
+		ObjectsToEdit.Add(BlackboardData);
+	}
 
-			// Initialize the behavior tree graph
-			const UEdGraphSchema* Schema = MyGraph->GetSchema();
-			Schema->CreateDefaultNodesForGraph(*MyGraph);
-		}
-		else
-		{
-			MyGraph->UpdatePinConnectionTypes();
-			MyGraph->UpdateDeprecatedNodes();
-		}
+	if (!ToolbarBuilder.IsValid())
+	{
+		ToolbarBuilder = MakeShareable(new FBehaviorTreeEditorToolbar(SharedThis(this)));
+	}
 
-		MyGraph->UpdateBlackboardChange();
-		MyGraph->UpdateInjectedNodes();
-		MyGraph->UpdateUnknownNodeClasses();
+	// if we are already editing objects, dont try to recreate the editor from scratch
+	const TArray<UObject*>* EditedObjects = GetObjectsCurrentlyBeingEdited();
+	if(EditedObjects == nullptr || EditedObjects->Num() == 0)
+	{
+		FGraphEditorCommands::Register();
+		FBTCommonCommands::Register();
+		FBTDebuggerCommands::Register();
 
-		TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(MyGraph);
-		DocumentManager.OpenDocument(Payload, FDocumentTracker::OpenNewDocument);
+		const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
+		const bool bCreateDefaultStandaloneMenu = true;
+		const bool bCreateDefaultToolbar = true;
+		InitAssetEditor( Mode, InitToolkitHost, FBehaviorTreeEditorModule::BehaviorTreeEditorAppIdentifier, DummyLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ObjectsToEdit );
 
+		BindCommonCommands();
+		ExtendMenu();
+		CreateInternalWidgets();
+
+		Debugger = MakeShareable(new FBehaviorTreeDebugger);
+		Debugger->Setup(BehaviorTree, this, DebuggerView);
+		BindDebuggerToolbarCommands();
+
+		FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::GetModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
+		AddMenuExtender(BehaviorTreeEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+
+		AddApplicationMode(BehaviorTreeMode, MakeShareable(new FBehaviorTreeEditorApplicationMode(SharedThis(this))));
+		AddApplicationMode(BlackboardMode, MakeShareable(new FBlackboardEditorApplicationMode(SharedThis(this))));
+	}
+	else
+	{
+		check(Debugger.IsValid());
+		Debugger->Setup(BehaviorTree, this, DebuggerView);
+	}
+
+	if(BehaviorTreeToEdit != nullptr)
+	{
+		SetCurrentMode(BehaviorTreeMode);
+	}
+	else if(BlackboardDataToEdit != nullptr)
+	{
+		SetCurrentMode(BlackboardMode);
+	}
+
+	RegenerateMenusAndToolbars();
+}
+
+void FBehaviorTreeEditor::RestoreBehaviorTree()
+{
+	// Update BT asset data based on saved graph to have correct data in editor
+	UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
+	const bool bNewGraph = MyGraph == NULL;
+	if (MyGraph == NULL)
+	{
+		BehaviorTree->BTGraph = FBlueprintEditorUtils::CreateNewGraph(BehaviorTree, TEXT("Behavior Tree"), UBehaviorTreeGraph::StaticClass(), UEdGraphSchema_BehaviorTree::StaticClass());
+		MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
+		check(MyGraph);
+
+		// Initialize the behavior tree graph
+		const UEdGraphSchema* Schema = MyGraph->GetSchema();
+		Schema->CreateDefaultNodesForGraph(*MyGraph);
+	}
+	else
+	{
+		MyGraph->UpdatePinConnectionTypes();
+		MyGraph->UpdateDeprecatedNodes();
+	}
+
+	MyGraph->UpdateBlackboardChange();
+	MyGraph->UpdateInjectedNodes();
+	MyGraph->UpdateUnknownNodeClasses();
+
+	TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(MyGraph);
+	TSharedPtr<SDockTab> DocumentTab = DocumentManager->OpenDocument(Payload, bNewGraph ? FDocumentTracker::OpenNewDocument : FDocumentTracker::RestorePreviousDocument);
+
+	if(BehaviorTree->LastEditedDocuments.Num() > 0)
+	{
+		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(DocumentTab->GetContent());
+		GraphEditor->SetViewLocation(BehaviorTree->LastEditedDocuments[0].SavedViewOffset, BehaviorTree->LastEditedDocuments[0].SavedZoomAmount);
+	}
+
+	if(bNewGraph)
+	{
 		const bool bIncreaseVersionNum = false;
 		MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags, bIncreaseVersionNum);
-
-		FAbortDrawHelper EmptyMode;
-		bShowDecoratorRangeLower = false;
-		bShowDecoratorRangeSelf = false;
-		bSelectedNodeIsInjected = false;
-		MyGraph->UpdateAbortHighlight(EmptyMode, EmptyMode);
+	}
+	else
+	{
+		RefreshDebugger();
 	}
 
-	BindCommonCommands();
-	ExtendMenu();
+	FAbortDrawHelper EmptyMode;
+	bShowDecoratorRangeLower = false;
+	bShowDecoratorRangeSelf = false;
+	bSelectedNodeIsInjected = false;
+	MyGraph->UpdateAbortHighlight(EmptyMode, EmptyMode);
+}
 
-	Debugger = MakeShareable(new FBehaviorTreeDebugger);
-	Debugger->Setup(Script, this, DebuggerView);
-	BindDebuggerToolbarCommands();
+void FBehaviorTreeEditor::SaveEditedObjectState()
+{
+	// Clear currently edited documents
+	BehaviorTree->LastEditedDocuments.Empty();
 
-	ExtentToolbar();
-	RegenerateMenusAndToolbars();
+	// Ask all open documents to save their state, which will update LastEditedDocuments
+	DocumentManager->SaveAllState();
 }
 
 bool FBehaviorTreeEditor::IsDebuggerReady() const
@@ -514,107 +453,89 @@ bool FBehaviorTreeEditor::InEditingMode(bool bGraphIsEditable) const
 	return bGraphIsEditable && FBehaviorTreeDebugger::IsPIENotSimulating();
 }
 
-TSharedRef<SDockTab> FBehaviorTreeEditor::SpawnTab_Search(const FSpawnTabArgs& Args)
+TSharedRef<SWidget> FBehaviorTreeEditor::SpawnSearch()
 {
 	FindResults = SNew(SFindInBT, SharedThis(this));
-
-	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("SoundClassEditor.Tabs.Properties"))
-		.Label(LOCTEXT("BehaviorTreeEditorSearchTitle", "Search"))
-		[
-			FindResults.ToSharedRef()
-		];
-
-	return SpawnedTab;
+	return FindResults.ToSharedRef();
 }
 
-TSharedRef<SDockTab> FBehaviorTreeEditor::SpawnTab_Properties(const FSpawnTabArgs& Args)
+TSharedRef<SWidget> FBehaviorTreeEditor::SpawnProperties()
 {
-	check( Args.GetTabId() == BTPropertiesTabId );
-
-	CreateInternalWidgets();
-
-	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("SoundClassEditor.Tabs.Properties") )
-		.Label( LOCTEXT( "SoundClassPropertiesTitle", "Details" ) )
+	return
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Top)
+		[
+			DetailsView.ToSharedRef()
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Top)
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
-			.AutoHeight()
 			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Top)
+			.Padding(0.0f, 5.0f)
 			[
-				DetailsView.ToSharedRef()
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Top)
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.Padding(0.0f, 5.0f)
+				SNew(SBorder)
+				.BorderBackgroundColor(BehaviorTreeColors::NodeBody::InjectedSubNode)
+				.BorderImage(FEditorStyle::GetBrush("Graph.StateNode.Body"))
+				.Visibility(this, &FBehaviorTreeEditor::GetInjectedNodeVisibility)
+				.Padding(FMargin(5.0f))
 				[
-					SNew(SBorder)
-					.BorderBackgroundColor(BehaviorTreeColors::NodeBody::InjectedSubNode)
-					.BorderImage(FEditorStyle::GetBrush("Graph.StateNode.Body"))
-					.Visibility(this, &FBehaviorTreeEditor::GetInjectedNodeVisibility)
-					.Padding(FMargin(5.0f))
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("InjectedNode", "Node is injected by subtree and can't be edited"))
-					]
-				]
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.Padding(0.0f, 5.0f)
-				[
-					SNew(SBorder)
-					.BorderBackgroundColor(BehaviorTreeColors::NodeBorder::HighlightAbortRange0)
-					.BorderImage( FEditorStyle::GetBrush( "Graph.StateNode.Body" ) )
-					.Visibility(this, &FBehaviorTreeEditor::GetRangeLowerVisibility)
-					.Padding(FMargin(5.0f))
-					[
-						SNew(STextBlock)
-						.Text(FText::Format(LOCTEXT("AbortModeHighlight", "Nodes aborted by mode: {0}"), LOCTEXT("AbortPriorityLower", "Lower Priority")))
-					]
-				]
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Fill)
-				.Padding(0.0f, 5.0f)
-				[
-					SNew(SBorder)
-					.BorderBackgroundColor(BehaviorTreeColors::NodeBorder::HighlightAbortRange1)
-					.BorderImage( FEditorStyle::GetBrush( "Graph.StateNode.Body" ) )
-					.Visibility(this, &FBehaviorTreeEditor::GetRangeSelfVisibility)
-					.Padding(FMargin(5.0f))
-					[
-						SNew(STextBlock)
-						.Text(FText::Format(LOCTEXT("AbortModeHighlight", "Nodes aborted by mode: {0}"), LOCTEXT("AbortPrioritySelf", "Self")))
-					]
+					SNew(STextBlock)
+					.Text(LOCTEXT("InjectedNode", "Node is injected by subtree and can't be edited"))
 				]
 			]
 			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
 			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			.Padding(5.0f)
+			.Padding(0.0f, 5.0f)
 			[
-				SNew(SSeparator)
-				.Orientation( Orient_Horizontal )
-				.Visibility(this, &FBehaviorTreeEditor::GetDebuggerDetailsVisibility)
+				SNew(SBorder)
+				.BorderBackgroundColor(BehaviorTreeColors::NodeBorder::HighlightAbortRange0)
+				.BorderImage( FEditorStyle::GetBrush( "Graph.StateNode.Body" ) )
+				.Visibility(this, &FBehaviorTreeEditor::GetRangeLowerVisibility)
+				.Padding(FMargin(5.0f))
+				[
+					SNew(STextBlock)
+					.Text(FText::Format(LOCTEXT("AbortModeHighlight", "Nodes aborted by mode: {0}"), LOCTEXT("AbortPriorityLower", "Lower Priority")))
+				]
 			]
 			+SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Fill)
+			.Padding(0.0f, 5.0f)
 			[
-				DebuggerView.ToSharedRef()
+				SNew(SBorder)
+				.BorderBackgroundColor(BehaviorTreeColors::NodeBorder::HighlightAbortRange1)
+				.BorderImage( FEditorStyle::GetBrush( "Graph.StateNode.Body" ) )
+				.Visibility(this, &FBehaviorTreeEditor::GetRangeSelfVisibility)
+				.Padding(FMargin(5.0f))
+				[
+					SNew(STextBlock)
+					.Text(FText::Format(LOCTEXT("AbortModeHighlight", "Nodes aborted by mode: {0}"), LOCTEXT("AbortPrioritySelf", "Self")))
+				]
 			]
+		]
+		+SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Bottom)
+		.Padding(5.0f)
+		[
+			SNew(SSeparator)
+			.Orientation( Orient_Horizontal )
+			.Visibility(this, &FBehaviorTreeEditor::GetDebuggerDetailsVisibility)
+		]
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Top)
+		[
+			DebuggerView.ToSharedRef()
 		];
-
-	return SpawnedTab;
 }
 
 void FBehaviorTreeEditor::OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection)
@@ -679,7 +600,7 @@ void FBehaviorTreeEditor::OnSelectedNodesChanged(const TSet<class UObject*>& New
 		}
 	}
 
-	UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
+	UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 	FAbortDrawHelper Mode0, Mode1;
 	bShowDecoratorRangeLower = false;
 	bShowDecoratorRangeSelf = false;
@@ -874,64 +795,13 @@ void FBehaviorTreeEditor::BindCommonCommands()
 
 void FBehaviorTreeEditor::SearchTree()
 {
-	TabManager->InvokeTab(BTSearchTabId);
+	TabManager->InvokeTab(FBehaviorTreeEditorTabs::SearchID);
 	FindResults->FocusForUse();
 }
 
 bool FBehaviorTreeEditor::CanSearchTree() const
 {
 	return true;
-}
-
-void FBehaviorTreeEditor::ExtentToolbar()
-{
-	struct Local
-	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, FBehaviorTreeEditor* EditorOwner, TSharedRef<SWidget> SelectionBox)
-		{
-			const bool bCanShowDebugger = EditorOwner && EditorOwner->IsDebuggerReady();
-			if (bCanShowDebugger)
-			{
-				ToolbarBuilder.BeginSection("CachedState");
-				{
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().BackOver);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().BackInto);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().ForwardInto);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().ForwardOver);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().StepOut);
-				}
-				ToolbarBuilder.EndSection();
-				ToolbarBuilder.BeginSection("World");
-				{
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().PausePlaySession);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().ResumePlaySession);
-					ToolbarBuilder.AddToolBarButton(FBTDebuggerCommands::Get().StopPlaySession);
-					ToolbarBuilder.AddSeparator();
-					ToolbarBuilder.AddWidget(SelectionBox);
-				}
-				ToolbarBuilder.EndSection();
-			}
-		}
-	};
-
-	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-	TSharedRef<SWidget> SelectionBox = SNew(SComboButton)
-		.OnGetMenuContent( this, &FBehaviorTreeEditor::OnGetDebuggerActorsMenu )
-		.ButtonContent()
-		[
-			SNew(STextBlock)
-			.ToolTipText( LOCTEXT("SelectDebugActor", "Pick actor to debug") )
-			.Text(this, &FBehaviorTreeEditor::GetDebuggerActorDesc )
-		];
-
-	ToolbarExtender->AddToolBarExtension("Asset", EExtensionHook::After, GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, this, SelectionBox )
-		);
-
-	AddToolbarExtender(ToolbarExtender);
-
-	FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::LoadModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
-	AddMenuExtender(BehaviorTreeEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
 TSharedRef<class SWidget> FBehaviorTreeEditor::OnGetDebuggerActorsMenu()
@@ -1069,7 +939,7 @@ void FBehaviorTreeEditor::OnFinishedChangingProperties(const FPropertyChangedEve
 					FAbortDrawHelper Mode0, Mode1;
 					GetAbortModePreview(Cast<UBTDecorator>(DecoratorNode->NodeInstance), Mode0, Mode1);
 
-					UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
+					UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 					MyGraph->UpdateAbortHighlight(Mode0, Mode1);
 				}
 			}			
@@ -1078,7 +948,7 @@ void FBehaviorTreeEditor::OnFinishedChangingProperties(const FPropertyChangedEve
 
 	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == TEXT("BehaviorAsset"))
 	{
-		UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
+		UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 		MyGraph->UpdateInjectedNodes();
 		MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags);
 	}
@@ -1086,7 +956,7 @@ void FBehaviorTreeEditor::OnFinishedChangingProperties(const FPropertyChangedEve
 
 void FBehaviorTreeEditor::OnPackageSaved(const FString& PackageFileName, UObject* Outer)
 {
-	UBehaviorTreeGraph* MyGraph = Script ? Cast<UBehaviorTreeGraph>(Script->BTGraph) : NULL;
+	UBehaviorTreeGraph* MyGraph = BehaviorTree ? Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph) : NULL;
 	if (MyGraph)
 	{
 		const bool bUpdated = MyGraph->UpdateInjectedNodes();
@@ -1099,7 +969,7 @@ void FBehaviorTreeEditor::OnPackageSaved(const FString& PackageFileName, UObject
 
 void FBehaviorTreeEditor::OnClassListUpdated()
 {
-	UBehaviorTreeGraph* MyGraph = Script ? Cast<UBehaviorTreeGraph>(Script->BTGraph) : NULL;
+	UBehaviorTreeGraph* MyGraph = BehaviorTree ? Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph) : NULL;
 	if (MyGraph)
 	{
 		const bool bUpdated = MyGraph->UpdateUnknownNodeClasses();
@@ -1416,8 +1286,8 @@ void FBehaviorTreeEditor::PasteNodesHere(const FVector2D& Location)
 	// Update UI
 	CurrentGraphEditor->NotifyGraphChanged();
 
-	Script->PostEditChange();
-	Script->MarkPackageDirty();
+	BehaviorTree->PostEditChange();
+	BehaviorTree->MarkPackageDirty();
 }
 
 bool FBehaviorTreeEditor::CanPasteNodes() const
@@ -1489,15 +1359,15 @@ void FBehaviorTreeEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 			TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(const_cast<UEdGraph*>(Decorator->GetBoundGraph()));
 			
 			TArray< TSharedPtr<SDockTab> > MatchingTabs;
-			DocumentManager.FindMatchingTabs(Payload, MatchingTabs);
+			DocumentManager->FindMatchingTabs(Payload, MatchingTabs);
 			if (MatchingTabs.Num())
 			{
-				DocumentManager.CloseTab(Payload);
-				DocumentManager.OpenDocument(Payload, FDocumentTracker::RestorePreviousDocument);
+				DocumentManager->CloseTab(Payload);
+				DocumentManager->OpenDocument(Payload, FDocumentTracker::RestorePreviousDocument);
 			}
 			else
 			{
-				DocumentManager.OpenDocument(Payload, FDocumentTracker::OpenNewDocument);
+				DocumentManager->OpenDocument(Payload, FDocumentTracker::OpenNewDocument);
 			}
 		}
 	}
@@ -1635,9 +1505,9 @@ void FBehaviorTreeEditor::OnGraphEditorFocused(const TSharedRef<SGraphEditor>& I
 
 void FBehaviorTreeEditor::SaveAsset_Execute()
 {
-	if (Script)
+	if (BehaviorTree)
 	{
-		UBehaviorTreeGraph* BTGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
+		UBehaviorTreeGraph* BTGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 		if (BTGraph)
 		{
 			BTGraph->UpdateAsset(UBehaviorTreeGraph::SkipDebuggerFlags);
@@ -1806,7 +1676,7 @@ bool FBehaviorTreeEditor::CanToggleBreakpoint() const
 
 void FBehaviorTreeEditor::JumpToNode(const UEdGraphNode* Node)
 {
-	TSharedPtr<SDockTab> ActiveTab = DocumentManager.GetActiveTab();
+	TSharedPtr<SDockTab> ActiveTab = DocumentManager->GetActiveTab();
 	if (ActiveTab.IsValid())
 	{
 		TSharedPtr<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(ActiveTab->GetContent());
@@ -1822,9 +1692,35 @@ TWeakPtr<SGraphEditor> FBehaviorTreeEditor::GetFocusedGraphPtr() const
 	return FocusedGraphEdPtr;
 }
 
+bool FBehaviorTreeEditor::CanAccessBlackboardMode() const
+{
+	return GetBlackboardData() != nullptr;
+}
+
+bool FBehaviorTreeEditor::CanAccessBehaviorTreeMode() const
+{
+	return BehaviorTree != nullptr;
+}
+
+FText FBehaviorTreeEditor::GetLocalizedMode(FName InMode)
+{
+	static TMap< FName, FText > LocModes;
+
+	if (LocModes.Num() == 0)
+	{
+		LocModes.Add( BehaviorTreeMode, LOCTEXT("BehaviorTreeMode", "Behavior Tree") );
+		LocModes.Add( BlackboardMode, LOCTEXT("BlackboardMode", "Blackboard") );
+	}
+
+	check( InMode != NAME_None );
+	const FText* OutDesc = LocModes.Find( InMode );
+	check( OutDesc );
+	return *OutDesc;
+}
+
 UEdGraphNode* FBehaviorTreeEditor::FindInjectedNode(int32 Index) const
 {
-	UBehaviorTreeGraph* BTGraph = Cast<UBehaviorTreeGraph>(Script->BTGraph);
+	UBehaviorTreeGraph* BTGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 	return BTGraph ? BTGraph->FindInjectedNode(Index) : NULL;
 }
 
@@ -1839,6 +1735,18 @@ void FBehaviorTreeEditor::DoubleClickNode(class UEdGraphNode* Node)
 
 	JumpToNode(Node);
 	OnNodeDoubleClicked(Node);
+}
+
+void FBehaviorTreeEditor::FocusWindow(UObject* ObjectToFocusOn)
+{
+	if(ObjectToFocusOn == BehaviorTree)
+	{
+		SetCurrentMode(BehaviorTreeMode);
+	}
+	else if(ObjectToFocusOn == GetBlackboardData())
+	{
+		SetCurrentMode(BlackboardMode);
+	}
 }
 
 void FBehaviorTreeEditor::InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const
@@ -1865,11 +1773,37 @@ void FBehaviorTreeEditor::DebuggerSwitchAsset(UBehaviorTree* NewAsset)
 
 void FBehaviorTreeEditor::DebuggerUpdateGraph()
 {
-	UBehaviorTreeGraph* BTGraph = Script ? Cast<UBehaviorTreeGraph>(Script->BTGraph) : NULL;
+	UBehaviorTreeGraph* BTGraph = BehaviorTree ? Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph) : NULL;
 	if (BTGraph)
 	{
 		BTGraph->RebuildExecutionOrder();
 	}
+}
+
+FText FBehaviorTreeEditor::GetToolkitName() const
+{
+	const UObject* EditingObject = GetCurrentMode() == BehaviorTreeMode ? (UObject*)BehaviorTree : (UObject*)GetBlackboardData();
+	if(EditingObject != nullptr)
+	{
+		return FAssetEditorToolkit::GetDescriptionForObject(EditingObject);
+	}
+
+	return FText();
+}
+
+UBehaviorTree* FBehaviorTreeEditor::GetBehaviorTree() const 
+{
+	return BehaviorTree; 
+}
+
+UBlackboardData* FBehaviorTreeEditor::GetBlackboardData() const 
+{
+	return BehaviorTree == nullptr ? BlackboardData : BehaviorTree->BlackboardAsset; 
+}
+
+void FBehaviorTreeEditor::RefreshDebugger()
+{
+	Debugger->Refresh();
 }
 
 #undef LOCTEXT_NAMESPACE

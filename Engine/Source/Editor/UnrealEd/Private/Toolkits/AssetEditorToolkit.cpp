@@ -211,15 +211,20 @@ FText FAssetEditorToolkit::GetToolkitName() const
 
 	check (EditingObject != NULL);
 
-	const bool bDirtyState = EditingObject->GetOutermost()->IsDirty();
+	return GetDescriptionForObject(EditingObject);
+}
+
+FText FAssetEditorToolkit::GetDescriptionForObject(const UObject* InObject)
+{
+	const bool bDirtyState = InObject->GetOutermost()->IsDirty();
 	FString NameString;
-	if(const AActor* ObjectAsActor = Cast<AActor>(EditingObject))
+	if(const AActor* ObjectAsActor = Cast<AActor>(InObject))
 	{
 		NameString = ObjectAsActor->GetActorLabel();
 	}
 	else
 	{
-		NameString = EditingObject->GetName();
+		NameString = InObject->GetName();
 	}
 
 	FFormatNamedArguments Args;

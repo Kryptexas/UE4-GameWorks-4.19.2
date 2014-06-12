@@ -12,8 +12,12 @@ public:
 
 	virtual void Tick(float DeltaTime) OVERRIDE;
 	virtual bool IsTickable() const OVERRIDE;
+	virtual bool IsTickableWhenPaused() const override { return true; }
 	virtual bool IsTickableInEditor() const OVERRIDE { return true; }
 	virtual TStatId GetStatId() const OVERRIDE { RETURN_QUICK_DECLARE_CYCLE_STAT(FBehaviorTreeEditorTickHelper, STATGROUP_Tickables); }
+
+	/** Refresh the debugging information we are displaying (only when paused, as Tick() updates when running) */
+	void Refresh();
 
 	void Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView);
 

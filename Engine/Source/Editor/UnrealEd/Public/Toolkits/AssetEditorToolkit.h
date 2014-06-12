@@ -128,6 +128,13 @@ public:
 	/** True if this actually is editing an asset */
 	bool IsActuallyAnAsset() const;
 
+	/** 
+	 * Gets the text to display in a toolkit titlebar for an object 
+	 * @param	InObject	The object we want a description of
+	 * @return a formatted description of the object state (e.g. "MyObject*")
+	 */
+	static FText GetDescriptionForObject(const UObject* InObject);
+
 protected:
 
 	/**	Returns the single object currently being edited. Asserts if currently editing no object or multiple objects */

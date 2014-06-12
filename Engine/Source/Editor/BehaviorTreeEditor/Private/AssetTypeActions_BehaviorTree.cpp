@@ -4,32 +4,48 @@
 #include "Toolkits/AssetEditorManager.h"
 
 #include "BehaviorTree/BehaviorTree.h"
-#include "Editor/BehaviorTreeEditor/Public/BehaviorTreeEditorModule.h"
-#include "Editor/BehaviorTreeEditor/Public/IBehaviorTreeEditor.h"
-
+#include "BehaviorTree/BlackboardData.h"
+#include "BehaviorTreeEditorModule.h"
+#include "BehaviorTreeEditor.h"
 
 #include "AssetTypeActions_BehaviorTree.h"
 #include "SBehaviorTreeDiff.h"
+
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
-void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
+bool FAssetTypeActions_BehaviorTree::BehaviorTreeEditorEnabled()
 {
 	bool BehaviorTreeNewAssetsEnabled=false;
 	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), BehaviorTreeNewAssetsEnabled, GEngineIni);
 
 	if (!BehaviorTreeNewAssetsEnabled && !GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor)
 	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FAssetTypeActions_BehaviorTree::HasActions ( const TArray<UObject*>& InObjects ) const
+{
+	return BehaviorTreeEditorEnabled();
+}
+
+void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
+{
+	if(!BehaviorTreeEditorEnabled())
+	{
 		return;
 	}
 
-	auto Scripts = GetTypedWeakObjectPtrs<UBehaviorTree>(InObjects);
+	auto BehaviorTrees = GetTypedWeakObjectPtrs<UBehaviorTree>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("BehaviorTree_Edit", "Edit"),
 		LOCTEXT("BehaviorTree_EditTooltip", "Opens the selected Behavior Tree in editor."),
 		FSlateIcon(),
 		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_BehaviorTree::ExecuteEdit, Scripts ),
+		FExecuteAction::CreateSP( this, &FAssetTypeActions_BehaviorTree::ExecuteEdit, BehaviorTrees ),
 		FCanExecuteAction()
 		)
 	);
@@ -37,35 +53,48 @@ void FAssetTypeActions_BehaviorTree::GetActions( const TArray<UObject*>& InObjec
 
 void FAssetTypeActions_BehaviorTree::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor )
 {
-	bool BehaviorTreeNewAssetsEnabled=false;
-	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), BehaviorTreeNewAssetsEnabled, GEngineIni);
-
-	if (!BehaviorTreeNewAssetsEnabled && !GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor)
+	if(!BehaviorTreeEditorEnabled())
 	{
 		return;
 	}
 
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
 
-	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	for(auto Object : InObjects)
 	{
-		auto Script = Cast<UBehaviorTree>(*ObjIt);
-		if (Script != NULL)
+		auto BehaviorTree = Cast<UBehaviorTree>(Object);
+		if(BehaviorTree != nullptr)
 		{
-			FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::LoadModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
-			TSharedRef< IBehaviorTreeEditor > NewEditor = BehaviorTreeEditorModule.CreateBehaviorTreeEditor( EToolkitMode::Standalone, EditWithinLevelEditor, Script );
+			// check if we have an editor open for this BT's blackboard & use that if we can
+			bool bFoundExisting = false;
+			if(BehaviorTree->BlackboardAsset != nullptr)
+			{
+				const bool bFocusIfOpen = true;
+				FBehaviorTreeEditor* ExistingInstance = static_cast<FBehaviorTreeEditor*>(FAssetEditorManager::Get().FindEditorForAsset(BehaviorTree->BlackboardAsset, bFocusIfOpen));
+				if(ExistingInstance != nullptr && ExistingInstance->GetBehaviorTree() == nullptr)
+				{
+					ExistingInstance->InitBehaviorTreeEditor(Mode, EditWithinLevelEditor, BehaviorTree);
+					bFoundExisting = true;
+				}
+			}
+			
+			if(!bFoundExisting)
+			{
+				FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::GetModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
+				TSharedRef< IBehaviorTreeEditor > NewEditor = BehaviorTreeEditorModule.CreateBehaviorTreeEditor( Mode, EditWithinLevelEditor, BehaviorTree );	
+			}
 		}
 	}
 }
 
 void FAssetTypeActions_BehaviorTree::ExecuteEdit(TArray<TWeakObjectPtr<UBehaviorTree>> Objects)
 {
-	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	for(auto Object : Objects)
 	{
-		auto Object = (*ObjIt).Get();
-		if ( Object )
+		auto BehaviorTree = Object.Get();
+		if(BehaviorTree != NULL)
 		{
-			FAssetEditorManager::Get().OpenEditorForAsset(Object);
+			FAssetEditorManager::Get().OpenEditorForAsset(BehaviorTree);
 		}
 	}
 }

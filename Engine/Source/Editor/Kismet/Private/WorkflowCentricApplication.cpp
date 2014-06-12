@@ -27,7 +27,7 @@ void FWorkflowCentricApplication::UnregisterTabSpawners(const TSharedRef<class F
 
 FName FWorkflowCentricApplication::GetCurrentMode() const
 {
-	return CurrentAppModePtr->GetModeName();
+	return CurrentAppModePtr.IsValid() ? CurrentAppModePtr->GetModeName() : NAME_None;
 }
 
 void FWorkflowCentricApplication::SetCurrentMode(FName NewMode)

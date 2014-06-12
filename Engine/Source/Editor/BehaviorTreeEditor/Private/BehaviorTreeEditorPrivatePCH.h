@@ -16,6 +16,7 @@
 
 #include "BehaviorTreeEditorClasses.h"
 #include "AssetTypeActions_BehaviorTree.h"
+#include "AssetTypeActions_Blackboard.h"
 
 #include "BehaviorTreeEditorModule.h"
 #include "BehaviorTreeEditor.h"

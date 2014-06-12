@@ -3,6 +3,7 @@
 
 #include "BTCompositeNode.h"
 #include "BTTaskNode.h"
+#include "Engine/Blueprint.h"
 #include "BehaviorTree.generated.h"
 
 UCLASS(BlueprintType)
@@ -19,6 +20,10 @@ class AIMODULE_API UBehaviorTree : public UObject
 	/** Graph for Behavior Tree */
 	UPROPERTY()
 	class UEdGraph*	BTGraph;
+
+	/** Info about the graphs we last edited */
+	UPROPERTY()
+	TArray<FEditedDocumentInfo> LastEditedDocuments;
 
 #endif
 

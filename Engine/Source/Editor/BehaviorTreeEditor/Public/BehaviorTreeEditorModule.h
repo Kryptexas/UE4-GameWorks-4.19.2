@@ -19,11 +19,8 @@ public:
 	virtual void StartupModule() OVERRIDE;
 	virtual void ShutdownModule() OVERRIDE;
 
-	/** Compile the specified script. */
-	//virtual void CompileScript(class UNiagaraScript* ScriptToCompile);
-
-	/** Creates an instance of Niagara editor.  Only virtual so that it can be called across the DLL boundary. */
-	virtual TSharedRef<IBehaviorTreeEditor> CreateBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UBehaviorTree* Script );
+	/** Creates an instance of Behavior Tree editor.  Only virtual so that it can be called across the DLL boundary. */
+	virtual TSharedRef<IBehaviorTreeEditor> CreateBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UObject* Object );
 
 	/** Gets the extensibility managers for outside entities to extend static mesh editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() {return MenuExtensibilityManager;}
@@ -31,7 +28,7 @@ public:
 
 	TSharedPtr<struct FClassBrowseHelper> GetClassCache() { return ClassCache; }
 
-	/** Niagara Editor app identifier string */
+	/** Behavior Tree app identifier string */
 	static const FName BehaviorTreeEditorAppIdentifier;
 
 private:
@@ -41,7 +38,7 @@ private:
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
 	/** Asset type actions */
-	TSharedPtr<class FAssetTypeActions_BehaviorTree> ItemDataAssetTypeActions;
+	TArray<TSharedPtr<class FAssetTypeActions_Base>> ItemDataAssetTypeActions;
 
 	TSharedPtr<struct FClassBrowseHelper> ClassCache;
 };

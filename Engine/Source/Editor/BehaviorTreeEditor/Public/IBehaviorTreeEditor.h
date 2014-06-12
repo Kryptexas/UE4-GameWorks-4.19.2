@@ -2,12 +2,10 @@
 
 #pragma once
 
-#include "Toolkits/IToolkit.h"
-#include "Toolkits/AssetEditorToolkit.h"
-
+#include "WorkflowCentricApplication.h"
 
 /** BT Editor public interface */
-class IBehaviorTreeEditor : public FAssetEditorToolkit
+class IBehaviorTreeEditor : public FWorkflowCentricApplication
 {
 
 public:

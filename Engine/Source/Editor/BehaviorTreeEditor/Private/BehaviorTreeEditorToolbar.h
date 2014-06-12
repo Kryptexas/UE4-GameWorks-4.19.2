@@ -1,0 +1,21 @@
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+class FBehaviorTreeEditorToolbar : public TSharedFromThis<FBehaviorTreeEditorToolbar>
+{
+public:
+	FBehaviorTreeEditorToolbar(TSharedPtr<FBehaviorTreeEditor> InBehaviorTreeEditor)
+		: BehaviorTreeEditor(InBehaviorTreeEditor) {}
+
+	void AddModesToolbar(TSharedPtr<FExtender> Extender);
+	void AddDebuggerToolbar(TSharedPtr<FExtender> Extender);
+
+private:
+	void FillModesToolbar(FToolBarBuilder& ToolbarBuilder);
+	void FillDebuggerToolbar(FToolBarBuilder& ToolbarBuilder);
+
+protected:
+	/** Pointer back to the blueprint editor tool that owns us */
+	TWeakPtr<FBehaviorTreeEditor> BehaviorTreeEditor;
+};

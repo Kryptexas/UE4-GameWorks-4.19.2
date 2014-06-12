@@ -13,15 +13,15 @@ public:
 	virtual ~FBehaviorTreeEditor();
 
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
 
-	void InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UBehaviorTree* Script );
+	void InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* InObject );
 
 	// Begin IToolkit interface
 	virtual FName GetToolkitFName() const OVERRIDE;
 	virtual FText GetBaseToolkitName() const OVERRIDE;
 	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
 	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FText GetToolkitName() const OVERRIDE;
 	// End IToolkit interface
 
 	// Begin IBehaviorTreeEditor interface
@@ -29,6 +29,7 @@ public:
 	virtual void InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const OVERRIDE;
 	virtual UEdGraphNode* FindInjectedNode(int32 Index) const OVERRIDE;
 	virtual void DoubleClickNode(class UEdGraphNode* Node) OVERRIDE;
+	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
 	// End IBehaviorTreeEditor interface
 
 	// Begin FEditorUndoClient Interface
@@ -102,6 +103,43 @@ public:
 
 	TWeakPtr<SGraphEditor> GetFocusedGraphPtr() const;
 
+	/** Check whether the behavior tree mode can be accessed (i.e whether we have a valid tree to edit) */
+	bool CanAccessBehaviorTreeMode() const;
+
+	/** Check whether the blackboard mode can be accessed (i.e whether we have a valid blackboard to edit) */
+	bool CanAccessBlackboardMode() const;
+
+	/** 
+	 * Get the localized text to display for the specified mode 
+	 * @param	InMode	The mode to display
+	 * @return the localized text representation of the mode
+	 */
+	static FText GetLocalizedMode(FName InMode);
+
+	/** Access the toolbar builder for this editor */
+	TSharedPtr<class FBehaviorTreeEditorToolbar> GetToolbarBuilder() { return ToolbarBuilder; }
+
+	/** Get the behavior tree we are editing (if any) */
+	UBehaviorTree* GetBehaviorTree() const;
+
+	/** Get the blackboard we are editing (if any) */
+	UBlackboardData* GetBlackboardData() const;
+
+	/** Spawns the tab with the update graph inside */
+	TSharedRef<SWidget> SpawnProperties();
+
+	/** Spawns the search tab */
+	TSharedRef<SWidget> SpawnSearch();
+
+	// @todo This is a hack for now until we reconcile the default toolbar with application modes [duplicated from counterpart in Blueprint Editor]
+	void RegisterToolbarTab(const TSharedRef<class FTabManager>& TabManager);
+
+	/** Restores the behavior tree graph we were editing or creates a new one if none is available */
+	void RestoreBehaviorTree();
+
+	/** Save the graph state for later editing */
+	void SaveEditedObjectState();
+
 protected:
 	/** Called when "Save" is clicked for this asset */
 	virtual void SaveAsset_Execute() OVERRIDE;
@@ -119,9 +157,6 @@ private:
 	/** Setup common commands */
 	void BindCommonCommands();
 
-	/** Add custom widgets to toolbar */
-	void ExtentToolbar();
-
 	/** Setup commands */
 	void BindDebuggerToolbarCommands();
 
@@ -134,17 +169,17 @@ private:
 	/** prepare range of nodes that can be aborted by this decorator */
 	void GetAbortModePreview(const class UBTDecorator* DecoratorOb, struct FAbortDrawHelper& Mode0, struct FAbortDrawHelper& Mode1);
 
-	/** Spawns the tab with the update graph inside */
-	TSharedRef<SDockTab> SpawnTab_Properties(const FSpawnTabArgs& Args);
+	/** Refresh the debugger's display */
+	void RefreshDebugger();
 
-	/** Spawns the search tab */
-	TSharedRef<SDockTab> SpawnTab_Search(const FSpawnTabArgs& Args);
-
-	FDocumentTracker DocumentManager;
+	TSharedPtr<FDocumentTracker> DocumentManager;
 	TWeakPtr<FDocumentTabFactory> GraphEditorTabFactoryPtr;
 
-	/* The Script being edited */
-	UBehaviorTree* Script;
+	/* The Behavior Tree being edited */
+	UBehaviorTree* BehaviorTree;
+
+	/* The Blackboard Data being edited */
+	UBlackboardData* BlackboardData;
 
 	TWeakPtr<SGraphEditor> FocusedGraphEdPtr;
 	TWeakObjectPtr<class UBehaviorTreeGraphNode_CompositeDecorator> FocusedGraphOwner;
@@ -167,9 +202,10 @@ private:
 	uint32 bSelectedNodeIsInjected : 1;
 	uint32 SelectedNodesCount;
 
+	TSharedPtr<class FBehaviorTreeEditorToolbar> ToolbarBuilder;
+
 public:
-	/**	Graph editor tab */
-	static const FName BTGraphTabId;
-	static const FName BTPropertiesTabId;
-	static const FName BTSearchTabId;
+	/** Modes in mode switcher */
+	static const FName BehaviorTreeMode;
+	static const FName BlackboardMode;
 };

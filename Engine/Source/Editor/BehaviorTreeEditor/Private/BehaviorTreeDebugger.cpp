@@ -59,17 +59,27 @@ void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class 
 	}
 
 #if USE_BEHAVIORTREE_DEBUGGER
-	// check if PIE is already running
 	if (IsPIESimulating())
 	{
 		OnBeginPIE(GEditor->bIsSimulatingInEditor);
 
+		Refresh();
+	}
+#endif
+}
+
+void FBehaviorTreeDebugger::Refresh()
+{
+	if (IsPIESimulating())
+	{
 		// make sure is grabs data if currently paused
 		if (IsPlaySessionPaused() && TreeInstance.IsValid())
 		{
 			FindLockedDebugActor(GEditor->PlayWorld);
 			
 			UpdateDebuggerInstance();
+			UpdateAvailableActions();
+
 			if (DebuggerInstanceIndex != INDEX_NONE)
 			{
 				UpdateDebuggerViewOnStepChange();
@@ -84,7 +94,6 @@ void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class 
 			}
 		}
 	}
-#endif
 }
 
 void FBehaviorTreeDebugger::Tick(float DeltaTime)
@@ -165,13 +174,21 @@ bool FBehaviorTreeDebugger::IsTickable() const
 void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = true;
-	EditorOwner->RegenerateMenusAndToolbars();
-	EditorOwner->DebuggerUpdateGraph();
+	if(EditorOwner != nullptr)
+	{
+		EditorOwner->RegenerateMenusAndToolbars();
+		EditorOwner->DebuggerUpdateGraph();
+	}
 
 	ActiveBreakpoints.Reset();
 	CollectBreakpointsFromAsset(RootNode.Get());
 
 	FindMatchingTreeInstance();
+
+	// remove these delegates first as we can get multiple calls to OnBeginPIE()
+	USelection::SelectObjectEvent.RemoveAll(this);
+	FBehaviorTreeDelegates::OnTreeStarted.RemoveAll(this);
+	FBehaviorTreeDelegates::OnDebugSelected.RemoveAll(this);
 
 	USelection::SelectObjectEvent.AddRaw(this, &FBehaviorTreeDebugger::OnObjectSelected);
 	FBehaviorTreeDelegates::OnTreeStarted.AddRaw(this, &FBehaviorTreeDebugger::OnTreeStarted);
@@ -181,7 +198,10 @@ void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 void FBehaviorTreeDebugger::OnEndPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = false;
-	EditorOwner->RegenerateMenusAndToolbars();
+	if(EditorOwner != nullptr)
+	{
+		EditorOwner->RegenerateMenusAndToolbars();
+	}
 
 	USelection::SelectObjectEvent.RemoveAll(this);
 	FBehaviorTreeDelegates::OnTreeStarted.RemoveAll(this);
@@ -680,7 +700,7 @@ void FBehaviorTreeDebugger::FindMatchingTreeInstance()
 		}
 	}
 
-	if (MatchingComp)
+	if (MatchingComp != TreeInstance)
 	{
 		TreeInstance = MatchingComp;
 		UpdateDebuggerViewOnInstanceChange();
@@ -902,7 +922,7 @@ void FBehaviorTreeDebugger::PausePlaySession()
 {
 	if (GUnrealEd->PlayWorld)
 	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = !GUnrealEd->PlayWorld->bDebugPauseExecution;
+		GUnrealEd->PlayWorld->bDebugPauseExecution = true;
 	}
 }
 
@@ -910,7 +930,7 @@ void FBehaviorTreeDebugger::ResumePlaySession()
 {
 	if (GUnrealEd->PlayWorld)
 	{
-		GUnrealEd->PlayWorld->bDebugPauseExecution = !GUnrealEd->PlayWorld->bDebugPauseExecution;
+		GUnrealEd->PlayWorld->bDebugPauseExecution = false;
 	}
 }
 
@@ -976,6 +996,8 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnInstanceChange()
 		}
 
 		DebuggerDetails->UpdateBlackboard(BBAsset);
+
+		Refresh();
 	}
 #endif
 }
@@ -1026,7 +1048,7 @@ FString FBehaviorTreeDebugger::DescribeInstance(class UBehaviorTreeComponent* In
 		AController* TestController = Cast<AController>(InstanceToDescribe->GetOwner());
 		ActorDesc = TestController ?
 			TestController->GetName() :
-			InstanceToDescribe->GetOwner()->GetName();
+			InstanceToDescribe->GetOwner()->GetActorLabel();
 	}
 
 	return ActorDesc;
@@ -1058,6 +1080,8 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 				SelectedActors->Select(Pawn);
 			}
 		}
+
+		Refresh();
 	}
 }
 
