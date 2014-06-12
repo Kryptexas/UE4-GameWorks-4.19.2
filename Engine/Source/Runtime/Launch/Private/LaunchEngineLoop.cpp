@@ -1396,6 +1396,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 					GEngine = GEditor = ConstructObject<UEditorEngine>( EditorEngineClass );
 
+					GEngine->ParseCommandline();
+
 					UE_LOG(LogInit, Log, TEXT("Initializing Editor Engine..."));
 					GEditor->InitEditor(this);
 					UE_LOG(LogInit, Log, TEXT("Initializing Editor Engine Completed"));
