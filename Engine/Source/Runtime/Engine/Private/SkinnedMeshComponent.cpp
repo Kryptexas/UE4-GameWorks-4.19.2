@@ -1439,9 +1439,9 @@ FVector USkinnedMeshComponent::GetSkinnedVertexPosition(int32 VertexIndex) const
 			//rigid
 
 	return bHasExtraBoneInfluences
-		? GetTypedSkinnedVertexPosition<true>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex)
+		? GetTypedSkinnedVertexPosition<true, false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex)
 			//soft
-		: GetTypedSkinnedVertexPosition<false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex);
+		: GetTypedSkinnedVertexPosition<false, false>(Chunk, Model.VertexBufferGPUSkin, VertIndex, bSoftVertex);
 
 
 }

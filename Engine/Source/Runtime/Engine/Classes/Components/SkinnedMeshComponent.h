@@ -839,6 +839,6 @@ private:
 	/** 
 	 * Simple, CPU evaluation of a vertex's skinned position helper function
 	 */
-	template <bool bExtraBoneInfluencesT, bool bCachedMatrices = false>
+	template <bool bExtraBoneInfluencesT, bool bCachedMatrices>
 	FVector GetTypedSkinnedVertexPosition(const FSkelMeshChunk& Chunk, const FSkeletalMeshVertexBuffer& VertexBufferGPUSkin, int32 VertIndex, bool bSoftVertex, const TArray<FMatrix> & RefToLocals = TArray<FMatrix>()) const;
 };
