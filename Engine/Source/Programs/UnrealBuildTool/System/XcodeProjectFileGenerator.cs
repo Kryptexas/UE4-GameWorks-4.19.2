@@ -1303,7 +1303,7 @@ namespace UnrealBuildTool
 			// write scheme files for targets
 			foreach (var Target in ProjectTargets)
 			{
-				if (Target.Type == XcodeTargetType.Project || Target.Type == XcodeTargetType.XcodeHelper)
+				if (Target.Type == XcodeTargetType.Project)
 				{
 					continue;
 				}
