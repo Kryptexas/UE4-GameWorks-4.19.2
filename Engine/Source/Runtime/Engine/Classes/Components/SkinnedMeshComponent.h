@@ -472,7 +472,7 @@ public:
 	*
 	* @param OutPositions buffer to place positions into
 	*/
-	virtual void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositions) const;
+	virtual void ComputeSkinnedPositions(TArray<FVector> & OutPositions) const;
 
 	/**
 	* Returns color of the vertex.
