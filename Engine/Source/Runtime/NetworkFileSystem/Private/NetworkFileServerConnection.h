@@ -6,13 +6,10 @@
 
 #pragma once
 
-
 /**
  * This class processes all incoming messages from the client.
  */
 class FNetworkFileServerClientConnection
-	: public FRunnable
-	, public INetworkFileServerConnection
 {
 public:
 
@@ -22,50 +19,21 @@ public:
 	 * @param InSocket - The client socket to use.
 	 * @param InFileRequestDelegate - A delegate to be invoked when the client requests a file.
 	 */
-	FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+	FNetworkFileServerClientConnection(const FFileRequestDelegate& InFileRequestDelegate, 
 		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
 	 */
-	~FNetworkFileServerClientConnection( );
+	virtual ~FNetworkFileServerClientConnection( );
 
-	virtual FString GetDescription() const OVERRIDE
-	{
-		TSharedRef<FInternetAddr> ClientAddr = ISocketSubsystem::Get()->CreateInternetAddr();
-		Socket->GetAddress(*ClientAddr);
-		const FString Desc = ClientAddr->ToString( true );
-		return Desc;
-	}
+public:
+	/** Executes actions from the received payload. */
+	void ProcessPayload(FArchive& Ar,FArchive& Out);
 
-	// Begin FRunnable Interface.
+	FString GetDescription() const;
 
-	virtual bool Init( ) OVERRIDE;
-
-	virtual uint32 Run( ) OVERRIDE;
-
-	virtual void Stop( ) OVERRIDE;
-
-	virtual void Exit( ) OVERRIDE;
-
-	// End FRunnable Interface
-
-	// Begin INetworkFileServerConnection interface
-
-	virtual void Close( ) OVERRIDE
-	{
-		Stop();
-	}
-
-	virtual bool IsOpen( ) const OVERRIDE
-	{
-		return !bNeedsToStop;
-	}
-
-	// End INetworkFileServerConnection interface
-
-
-protected:
+private:
 
 	/**
 	 *	Convert the given filename from the client to the server version of it
@@ -82,10 +50,6 @@ protected:
 	 *	@param	FilenameToConvert		Upon input, the server version of the filename. After the call, the client version
 	 */
 	void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
-
-	/** Executes actions from the received payload. */
-	void ProcessPayload(FArchive& Ar);
-
 	/** Opens a file for reading or writing. */
 	void ProcessOpenFile(FArchive& In, FArchive& Out, bool bIsWriting);
 
@@ -174,9 +138,6 @@ protected:
 	 */
 	void ProcessSyncFile( FArchive& In, FArchive& Out );
 
-
-private:
-
 	// Hold the name of the currently connected platform.
 	FString ConnectedPlatformName;
 
@@ -189,9 +150,6 @@ private:
 	// Holds the last assigned handle id (0 = invalid).
 	uint64 LastHandleId;
 
-	// Holds the multi-channel socket.
-	class FMultichannelTcpSocket* MCSocket;
-
 	// Holds the list of files found by the directory watcher.
 	TArray<FString> ModifiedFiles;
 
@@ -203,12 +161,6 @@ private:
 
 	// Holds the file interface for local (to the server) files - all file ops MUST go through here, NOT IFileManager.
 	FSandboxPlatformFile* Sandbox;
-
-	// Holds the client socket.
-	FSocket* Socket;
-
-	// Holds the client connection thread.
-	FRunnableThread* Thread;
 
 	// Holds the list of unsolicited files to send in separate packets.
 	TArray<FString> UnsolictedFiles;
@@ -225,6 +177,4 @@ private:
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;
 
-	/** Holds a flag indicating that the thread should be stopped. */
-	bool bNeedsToStop;
 };

@@ -29,5 +29,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogFileServer, Log, All);
 
 #include "NetworkFileServerConnection.h"
 #include "NetworkFileServer.h"
+#include "NetworkFileServerHttp.h"
 
 #endif

@@ -20,7 +20,7 @@ public class libcurl : ModuleRules
             PublicAdditionalLibraries.Add("dl");
         }
 		else if (Target.Platform == UnrealTargetPlatform.Win32 ||
-				 Target.Platform == UnrealTargetPlatform.Win64)
+				 Target.Platform == UnrealTargetPlatform.Win64 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
 			PublicIncludePaths.Add(LibCurlPath + "include/Windows");
 

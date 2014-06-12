@@ -213,9 +213,6 @@ private:
 	// End FNetworkPlatformFile interface
 
 
-	/** Helper for handling network errors during send/receive. */
-	bool SendPayloadAndReceiveResponse(class FStreamingNetworkFileArchive& Payload, FArrayReader& Response);
-
 
 private:
 

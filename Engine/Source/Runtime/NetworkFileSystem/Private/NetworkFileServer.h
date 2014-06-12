@@ -6,7 +6,6 @@
 
 #pragma once
 
-
 /**
  * This class wraps the server thread and network connection
  */
@@ -44,7 +43,7 @@ public:
 
 	virtual void Stop( ) OVERRIDE
 	{
-		bNeedsToStop = true;
+		StopRequested.Set(true);
 	}
 
 	virtual void Exit( ) OVERRIDE;
@@ -54,21 +53,12 @@ public:
 
 public:
 
-	// Begin INetworkFileServer interface
+	// INetworkFileServer Interface.
 
-	virtual bool GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const OVERRIDE;
-
-	virtual int32 NumConnections( ) const OVERRIDE
-	{
-		return Connections.Num();
-	}
-
-	virtual void Shutdown( ) OVERRIDE
-	{
-		Stop();
-	}
-
-	// End INetworkFileServer interface
+	virtual bool IsItReadyToAcceptConnections(void) const; 
+	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const;
+	virtual int32 NumConnections() const;
+	virtual void Shutdown();
 
 
 private:
@@ -83,10 +73,13 @@ private:
 	FRunnableThread* Thread;
 
 	// Holds the list of all client connections.
-	TArray<INetworkFileServerConnection*> Connections;
+	TArray< class FNetworkFileServerClientConnectionThreaded*> Connections;
 
-	// Holds a flag indicating whether the thread should stop executing.
-	bool bNeedsToStop;
+	// Holds a flag indicating whether the thread should stop executing
+	FThreadSafeCounter StopRequested;
+
+	// Is the Listner thread up and running. 
+	FThreadSafeCounter Running;
 
 
 public:

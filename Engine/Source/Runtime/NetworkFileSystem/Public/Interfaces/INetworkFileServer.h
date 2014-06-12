@@ -13,7 +13,13 @@
 class INetworkFileServer
 {
 public:
-
+	/**
+	 * 
+	 * Returns Whether the network server was able to successfully start or not. 
+	 *
+	 * @return true on success, false otherwise.
+	 */
+	 virtual bool IsItReadyToAcceptConnections(void) const = 0;
 	/**
 	 * Gets the list of local network addresses that the file server listens on.
 	 *
@@ -28,18 +34,15 @@ public:
 	 *
 	 * @return The number of connections.
 	 */
-	virtual int32 NumConnections( ) const = 0;
+	virtual int32 NumConnections(void) const = 0;
 
 	/**
 	 * Shuts down the file server.
 	 */
-	virtual void Shutdown( ) = 0;
-
-
-public:
+	virtual void Shutdown(void) = 0;
 
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~INetworkFileServer( ) { }
+	virtual ~INetworkFileServer(void) { }
 };

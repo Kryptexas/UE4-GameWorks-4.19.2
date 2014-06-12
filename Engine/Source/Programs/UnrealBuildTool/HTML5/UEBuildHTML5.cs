@@ -270,6 +270,16 @@ namespace UnrealBuildTool
 					InModule.AddPublicDependencyModule("UEOgg");
 					InModule.AddPublicDependencyModule("Vorbis");
 				}
+                else if (InModule.ToString() == "NetworkFile")
+                {
+                    if (Target.Architecture == "-win32")
+                    {
+                        InModule.AddPrivateDependencyModule("HTML5Win32");
+                    }else
+                    {
+                        InModule.AddPrivateDependencyModule("HTML5JS");
+                    }
+                }
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
 			{
@@ -280,6 +290,14 @@ namespace UnrealBuildTool
 				{
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
 				}
+                if (InModule.ToString() == "NetworkFile") // client
+                {
+                    InModule.AddPrivateDependencyModule("HTTP");
+                }
+                else if (InModule.ToString() == "NetworkFileSystem") // server 
+                {
+                    InModule.AddPublicDependencyModule("WebSockets");
+                }
 			}
 		}
 

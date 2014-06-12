@@ -6,16 +6,96 @@
 
 #include "NetworkFileSystemPrivatePCH.h"
 #include "TargetPlatform.h"
+#include "NetworkFileServerConnection.h"
+
+class FNetworkFileServerClientConnectionThreaded
+	:  public FNetworkFileServerClientConnection
+	  ,protected FRunnable 
+{
+public:
+
+	FNetworkFileServerClientConnectionThreaded(FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+		:  FNetworkFileServerClientConnection( InFileRequestDelegate,InRecompileShadersDelegate,InActiveTargetPlatforms)
+		  ,Socket(InSocket)
+	{
+		Running.Set(true);
+		StopRequested.Reset();
+
+#if UE_BUILD_DEBUG
+			// this thread needs more space in debug builds as it tries to log messages and such
+			const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
+#else
+			const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
+#endif
+			WorkerThread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), NetworkFileServerThreadSize, TPri_AboveNormal);
+	}
+
+
+	virtual bool Init()
+	{
+		return true; 
+	}
+
+	virtual uint32 Run()
+	{
+		while (!StopRequested.GetValue())
+		{
+			// read a header and payload pair
+			FArrayReader Payload; 
+			if (!FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FSocket(Socket)))
+				break; 
+			// now process the contents of the payload
+			FBufferArchive Out;
+			FNetworkFileServerClientConnection::ProcessPayload(Payload,Out); 
+			if ( !FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket)))
+				break; 
+		}
+
+		return true;
+	}
+
+	virtual void Stop()
+	{
+		StopRequested.Set(true);
+	}
+
+	virtual void Exit()
+	{
+		Socket->Close();
+		ISocketSubsystem::Get()->DestroySocket(Socket);
+		Running.Set(false); 
+	}
+
+	bool IsRunning()
+	{
+		return  (Running.GetValue() != 0); 
+	}
+
+	~FNetworkFileServerClientConnectionThreaded()
+	{
+		WorkerThread->Kill(true);
+	}
+
+private: 
+
+	FSocket* Socket; 
+	FThreadSafeCounter StopRequested;
+	FThreadSafeCounter Running;
+	FRunnableThread* WorkerThread; 
+};
+
 
 
 /* FNetworkFileServer constructors
  *****************************************************************************/
 
-FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
-			const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
-	: bNeedsToStop(false)
-	, ActiveTargetPlatforms(InActiveTargetPlatforms)
+FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
+	:ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
+
+	Running.Set(false);
+	StopRequested.Set(false);
 	UE_LOG(LogFileServer, Warning, TEXT("Unreal Network File Server starting up..."));
 
 	if (InFileRequestDelegate && InFileRequestDelegate->IsBound())
@@ -76,7 +156,8 @@ FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate
 			}
 		}
 	}
-}
+
+ }
 
 FNetworkFileServer::~FNetworkFileServer()
 {
@@ -101,17 +182,18 @@ FNetworkFileServer::~FNetworkFileServer()
 
 uint32 FNetworkFileServer::Run( )
 {
+	Running.Set(true); 
 	// go until requested to be done
-	while (!bNeedsToStop)
+	while (!StopRequested.GetValue())
 	{
 		bool bReadReady = false;
 
 		// clean up closed connections
 		for (int32 ConnectionIndex = 0; ConnectionIndex < Connections.Num(); ++ConnectionIndex)
 		{
-			INetworkFileServerConnection* Connection = Connections[ConnectionIndex];
+			FNetworkFileServerClientConnectionThreaded* Connection = Connections[ConnectionIndex];
 
-			if (!Connection->IsOpen())
+			if (!Connection->IsRunning())
 			{
 				UE_LOG(LogFileServer, Display, TEXT( "Client %s disconnected." ), *Connection->GetDescription() );
 				Connections.RemoveAtSwap(ConnectionIndex);
@@ -126,7 +208,7 @@ uint32 FNetworkFileServer::Run( )
 
 			if (ClientSocket != NULL)
 			{
-				FNetworkFileServerClientConnection* Connection = new FNetworkFileServerClientConnection(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, ActiveTargetPlatforms);
+				FNetworkFileServerClientConnectionThreaded* Connection = new FNetworkFileServerClientConnectionThreaded(ClientSocket, FileRequestDelegate, RecompileShadersDelegate, ActiveTargetPlatforms);
 				Connections.Add(Connection);
 				UE_LOG(LogFileServer, Display, TEXT( "Client %s connected." ), *Connection->GetDescription() );
 			}
@@ -177,4 +259,19 @@ bool FNetworkFileServer::GetAddressList( TArray<TSharedPtr<FInternetAddr> >& Out
 	}
 
 	return (OutAddresses.Num() > 0);
+}
+
+bool FNetworkFileServer::IsItReadyToAcceptConnections(void) const
+{
+	return (Running.GetValue() != 0); 
+}
+
+int32 FNetworkFileServer::NumConnections(void) const
+{
+	return Connections.Num(); 
+}
+
+void FNetworkFileServer::Shutdown(void)
+{
+	Stop();
 }

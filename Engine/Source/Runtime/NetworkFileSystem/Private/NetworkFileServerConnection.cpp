@@ -12,13 +12,10 @@
 /* FNetworkFileServerClientConnection structors
  *****************************************************************************/
 
-FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket* InSocket, const FFileRequestDelegate& InFileRequestDelegate, 
+FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( const FFileRequestDelegate& InFileRequestDelegate, 
 		const FRecompileShadersDelegate& InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	: LastHandleId(0)
-	, MCSocket(NULL)
 	, Sandbox(NULL)
-	, Socket(InSocket)
-	, bNeedsToStop(false)
 	, ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
 	if (InFileRequestDelegate.IsBound())
@@ -30,79 +27,10 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket*
 	{
 		RecompileShadersDelegate = InRecompileShadersDelegate;
 	}
-
-#if UE_BUILD_DEBUG
-	// this thread needs more space in debug builds as it tries to log messages and such
-	const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
-#else
-	const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
-#endif
-	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), NetworkFileServerThreadSize, TPri_AboveNormal);
 }
 
 
 FNetworkFileServerClientConnection::~FNetworkFileServerClientConnection( )
-{
-	// Kill the running thread.
-	if( Thread != NULL )
-	{
-		Thread->Kill(true);
-
-		delete Thread;
-		Thread = NULL;
-	}
-
-	// We are done with the socket.
-	Socket->Close();
-	ISocketSubsystem::Get()->DestroySocket(Socket);
-	Socket = NULL;
-}
-
-
-/* FRunnable overrides
- *****************************************************************************/
-
-bool FNetworkFileServerClientConnection::Init( )
-{
-#if USE_MCSOCKET_FOR_NFS
-	MCSocket = new FMultichannelTCPSocket(Socket, 64 * 1024 * 1024);
-#endif
-	return true;
-}
-
-
-uint32 FNetworkFileServerClientConnection::Run( )
-{
-	while (!bNeedsToStop)
-	{
-		// read a header and payload pair
-		FArrayReader Payload; 
-#if USE_MCSOCKET_FOR_NFS
-		if (FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-		if (FNFSMessageHeader::ReceivePayload(Payload, FSimpleAbstractSocket_FSocket(Socket)) == false)
-#endif
-		{
-			// if we failed to receive the payload, then the client is most likely dead, so, we can kill this connection
-			// @todo: Add more error codes, maybe some errors shouldn't kill the connection
-			break;
-		}
-
-		// now process the contents of the payload
-		ProcessPayload(Payload);
-	}
-
-	bNeedsToStop = true;
-	return 0;
-}
-
-
-void FNetworkFileServerClientConnection::Stop( )
-{
-	bNeedsToStop = true;
-}
-
-void FNetworkFileServerClientConnection::Exit()
 {
 	// close all the files the client had opened through us when the client disconnects
 	for (TMap<uint64, IFileHandle*>::TIterator It(OpenFiles); It; ++It)
@@ -112,13 +40,7 @@ void FNetworkFileServerClientConnection::Exit()
 
 	delete Sandbox;
 	Sandbox = NULL;	
-
-#if	USE_MCSOCKET_FOR_NFS
-	delete MCSocket;
-	MCSocket = NULL;
-#endif // USE_MCSOCKET_FOR_NFS	
 }
-
 
 /* FStreamingNetworkFileServerConnection implementation
  *****************************************************************************/
@@ -197,7 +119,7 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 
 static FCriticalSection SocketCriticalSection;
 
-void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
+void FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& Out)
 {
 	// first part of the payload is always the command
 	uint32 Cmd;
@@ -207,9 +129,6 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 
 	// what type of message is this?
 	NFS_Messages::Type Msg = NFS_Messages::Type(Cmd);
-
-	// allocate an archive for the commands to write to
-	FBufferArchive Out;
 
 	// make sure the first thing is GetFileList which initializes the game/platform
 	checkf(Msg == NFS_Messages::GetFileList || Sandbox != NULL, TEXT("The first client message MUST be GetFileList, not %d"), (int32)Msg);
@@ -318,42 +237,18 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 	}
 
 	// send back a reply if the command wrote anything back out
-	if (Out.Num())
+	if (Out.TotalSize() && bSendUnsolicitedFiles)
 	{
 		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
-		if (bSendUnsolicitedFiles)
-		{
 			Out << NumUnsolictedFiles;
-		}
 
-		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
-
-		// send back a reply
-#if USE_MCSOCKET_FOR_NFS
-		FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-#else
-		FNFSMessageHeader::WrapAndSendPayload(Out, FSimpleAbstractSocket_FSocket(Socket));
-#endif
-
-		if (bSendUnsolicitedFiles)
-		{
 			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
 			{
-				FBufferArchive OutUnsolicitedFile;
-				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
-
-				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
-
-#if USE_MCSOCKET_FOR_NFS
-				FNFSMessageHeader::WrapAndSendPayload(OutUnsolicitedFile, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
-#else
-				FNFSMessageHeader::WrapAndSendPayload(OutUnsolicitedFile, FSimpleAbstractSocket_FSocket(Socket));
-#endif
+			PackageFile(UnsolictedFiles[Index], Out);
+		}
 			}
 
-			UnsolictedFiles.Empty();
-		}
-	}
+	UE_LOG(LogFileServer, Verbose, TEXT("Done Processing payload with Cmd %d Total Size sending %d "), Cmd,Out.TotalSize());
 }
 
 
@@ -1000,3 +895,9 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 
 	PackageFile(Filename, Out);
 }
+FString FNetworkFileServerClientConnection::GetDescription() const 
+{
+	return FString("Client For " ) + ConnectedPlatformName;
+}
+
+

@@ -266,8 +266,6 @@ bool FStreamingNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, con
 		return false;
 	}
 
-	ISocketSubsystem* SSS = ISocketSubsystem::Get();
-
 	// optionally get the port from the command line
 	int32 OverridePort;
 	if (FParse::Value(FCommandLine::Get(), TEXT("fileserverport="), OverridePort))
@@ -276,93 +274,48 @@ bool FStreamingNetworkPlatformFile::InitializeInternal(IPlatformFile* Inner, con
 		FileServerPort = OverridePort;
 	}
 
-	// convert the string to a ip addr structure
-	TSharedRef<FInternetAddr> Addr = SSS->CreateInternetAddr(0, FileServerPort);
-	bool bIsValid;
-	Addr->SetIp(HostIP, bIsValid);
+		// Send the filenames and timestamps to the server.
+		FNetworkFileArchive Payload(NFS_Messages::GetFileList);
+		FillGetFileList(Payload, true);
 
-	if (bIsValid)
-	{
-		// create the socket
-		FileSocket = SSS->CreateSocket(NAME_Stream, TEXT("FNetworkPlatformFile tcp"));
-		
-		// try to connect to the server
-		if (FileSocket->Connect(*Addr) == false)
+		// Send the directories over, and wait for a response.
+		FArrayReader Response;
+
+		if(SendPayloadAndReceiveResponse(Payload,Response))
 		{
-			// on failure, shut it all down
-			SSS->DestroySocket(FileSocket);
-			FileSocket = NULL;
-			UE_LOG(LogStreamingPlatformFile, Error, TEXT("Failed to connect to file server at %s:%d."), HostIP, (int32)FileServerPort);
-		}
-		else
-		{
-#if USE_MCSOCKET_FOR_NFS
-			MCSocket = new FMultichannelTcpSocket(FileSocket, 64 * 1024 * 1024);
-#endif
+			// Receive the cooked version information.
+			int32 ServerPackageVersion = 0;
+			int32 ServerPackageLicenseeVersion = 0;
+			ProcessServerInitialResponse(Response, ServerPackageVersion, ServerPackageLicenseeVersion);
 
-			// Send the filenames and timestamps to the server.
-			FNetworkFileArchive Payload(NFS_Messages::GetFileList);
-			FillGetFileList(Payload, true);
-
-			// Send the directories over, and wait for a response.
-			FArrayReader Response;
-#if USE_MCSOCKET_FOR_NFS
-			if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-			if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FSocket(FileSocket)) == false)
-#endif
+			// Make sure we can sync a file.
+			FString TestSyncFile = FPaths::Combine(*(FPaths::EngineDir()), TEXT("Config/BaseEngine.ini"));
+			IFileHandle* TestFileHandle = OpenRead(*TestSyncFile);
+			if (TestFileHandle != NULL)
 			{
-				// On failure, shut it all down.
-				delete MCSocket;
-				MCSocket = NULL;
-				SSS->DestroySocket(FileSocket);
-				FileSocket = NULL;
+				uint8* FileContents = (uint8*)FMemory::Malloc(TestFileHandle->Size());
+				if (!TestFileHandle->Read(FileContents, TestFileHandle->Size()))
+				{
+					UE_LOG(LogStreamingPlatformFile, Fatal, TEXT("Could not read test file %s."), *TestSyncFile);
+				}
+				FMemory::Free(FileContents);
+				delete TestFileHandle;
 			}
 			else
 			{
-				// Receive the cooked version information.
-				int32 ServerPackageVersion = 0;
-				int32 ServerPackageLicenseeVersion = 0;
-				ProcessServerInitialResponse(Response, ServerPackageVersion, ServerPackageLicenseeVersion);
-
-				// Make sure we can sync a file.
-				FString TestSyncFile = FPaths::Combine(*(FPaths::EngineDir()), TEXT("Config/BaseEngine.ini"));
-				IFileHandle* TestFileHandle = OpenRead(*TestSyncFile);
-				if (TestFileHandle != NULL)
-				{
-					uint8* FileContents = (uint8*)FMemory::Malloc(TestFileHandle->Size());
-					if (!TestFileHandle->Read(FileContents, TestFileHandle->Size()))
-					{
-						UE_LOG(LogStreamingPlatformFile, Fatal, TEXT("Could not read test file %s."), *TestSyncFile);
-					}
-					FMemory::Free(FileContents);
-					delete TestFileHandle;
-				}
-				else
-				{
-					UE_LOG(LogStreamingPlatformFile, Fatal, TEXT("Could not open test file %s."), *TestSyncFile);
-				}
+				UE_LOG(LogStreamingPlatformFile, Fatal, TEXT("Could not open test file %s."), *TestSyncFile);
 			}
-		}
-	}
 
-	// was the socket opened?
-	bIsUsable = FileSocket != NULL;
-	if (bIsUsable)
-	{
-		FCommandLine::AddToSubprocessCommandline( *FString::Printf( TEXT("-StreamingHostIP=%s"), HostIP ) );
-	}
-	return bIsUsable;
+			FCommandLine::AddToSubprocessCommandline( *FString::Printf( TEXT("-StreamingHostIP=%s"), HostIP ) );
+
+			return true; 
+		}
+
+		return false; 
 }
 
 FStreamingNetworkPlatformFile::~FStreamingNetworkPlatformFile()
 {
-	if (FileSocket != NULL 
-		  && !GIsRequestingExit) // the socket subsystem is probably already gone, so it will crash if we clean up
-	{
-		// kill the socket
-		ISocketSubsystem::Get()->DestroySocket(FileSocket);
-	}
 }
 
 bool FStreamingNetworkPlatformFile::DeleteFile(const TCHAR* Filename)
@@ -781,7 +734,7 @@ bool FStreamingNetworkPlatformFile::SendWriteMessage(uint64 HandleId, const uint
 	Payload.Serialize(const_cast<uint8*>(Source), BytesToWrite);
 
 	FArrayReader Response;
-	if (SendPayloadAndReceiveResponse(Payload, Response) == false)
+	if (SendPayloadAndReceiveResponse(Payload, Response) == false) 
 	{
 		return false;
 	}
@@ -825,38 +778,18 @@ bool FStreamingNetworkPlatformFile::SendCloseMessage(uint64 HandleId)
 	return SendPayloadAndReceiveResponse(Payload, Response);
 }
 
-bool FStreamingNetworkPlatformFile::SendPayloadAndReceiveResponse(FStreamingNetworkFileArchive& Payload, FArrayReader& Response)
-{
-#if USE_MCSOCKET_FOR_NFS
-	if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-	if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FSocket(FileSocket)) == false)
-#endif
-	{
-		UE_LOG(LogStreamingPlatformFile, Fatal, TEXT("Receive failure!"));
-		return false;
-	}
-	return true;
-}
-
 void FStreamingNetworkPlatformFile::PerformHeartbeat()
 {
 	FNetworkFileArchive Payload(NFS_Messages::Heartbeat);
 
 	// send the filename over
 	FArrayReader Response;
-#if USE_MCSOCKET_FOR_NFS
-	if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main)) == false)
-#else
-	if (FNFSMessageHeader::SendPayloadAndReceiveResponse(Payload, Response, FSimpleAbstractSocket_FSocket(FileSocket)) == false)
-#endif
+	if(SendPayloadAndReceiveResponse(Payload,Response))
 	{
 		return;
 	}
-
-	// Stub
-	bool bSuccess = false;
-	Response << bSuccess;
+  
+    check(0);
 }
 
 /**

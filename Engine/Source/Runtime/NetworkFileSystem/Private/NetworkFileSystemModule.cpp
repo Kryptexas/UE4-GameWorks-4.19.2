@@ -42,7 +42,11 @@ public:
 			ActiveTargetPlatforms =  TPM.GetActiveTargetPlatforms();
 		}
 
+#if !USE_HTTP_FOR_NFS
 		return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+#else
+		return new FNetworkFileServerHttp(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+#endif 
 	}
 
 	// End INetworkFileSystemModule interface

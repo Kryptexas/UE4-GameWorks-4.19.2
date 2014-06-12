@@ -18,7 +18,6 @@
 /* Interfaces
  *****************************************************************************/
 
-#include "INetworkFileServerConnection.h"
 #include "INetworkFileServer.h"
 #include "INetworkFileSystemModule.h"
 

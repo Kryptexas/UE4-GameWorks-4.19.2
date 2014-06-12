@@ -13,6 +13,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
 {
 	friend class FAsyncFileSync;
+	friend void AsyncReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, FScopedEvent* InEvent, IPlatformFile& InInnerPlatformFile, 
+		FScopedEvent* InAllDoneEvent, FString& InServerEngineDir, FString& InServerGameDir);
 
 	/**
 	 * Initialize network platform file give the specified host IP
@@ -112,15 +114,6 @@ public:
 	bool SendReadMessage(uint8* Destination, int64 BytesToRead);
 	bool SendWriteMessage(const uint8* Source, int64 BytesToWrite);
 
-	/**
-	 * This function will receive a header, and then the payload array from the network, only public for an async task
-	 * 
-	 * @param OutPayload The archive to read into (the response is APPENDed to any data in the archive already, and the archive will be seeked to the start of new data)
-	 *
-	 * @return true if successful
-	 */
-	bool ReceivePayload(FArrayReader& OutPayload);
-
 	static void ConvertServerFilenameToClientFilename(FString& FilenameToConvert, const FString& InServerEngineDir, const FString& InServerGameDir);
 
 protected:
@@ -145,8 +138,14 @@ protected:
 
 	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion);
 
+		/**
+	 *  Handle HttpRequests This function collates data  puts it in a binary archive. 
+	 * 
+	 */
+	 virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out);
+
 private:
-	
+
 	/**
 	 * @return true if the path exists in a directory that should always use the local filesystem
 	 * This version does not worry about initialization or thread safety, do not call directly
@@ -164,16 +163,6 @@ private:
 	void EnsureFileIsLocal(const FString& Filename);
 
 	/**
-	 * This function will create a header for the payload, then send the header and 
-	 * payload over the network
-	 *
-	 * @param Payload Bytes to send over the network
-	 *
-	 * @return true if successful
-	 */
-	bool WrapAndSendPayload(const TArray<uint8>& Payload);
-
-	/**
 	 * This function will send a payload data (with header) and wait for a response, serializing
 	 * the response to a FBufferArchive
 	 *
@@ -182,8 +171,6 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool SendPayloadAndReceiveResponse(const TArray<uint8>& Payload, class FArrayReader& Response);
-
 
 protected:
 
@@ -212,12 +199,12 @@ protected:
 	FCriticalSection	LocalDirectoriesCriticalSection;
 	bool				bIsUsable;
 	int32				FileServerPort;
-	class FSocket*		FileSocket;
-	class FMultichannelTcpSocket* MCSocket;
-
 private:
 	FScopedEvent* FinishedAsyncReadUnsolicitedFiles;
 	FScopedEvent* FinishedAsyncWriteUnsolicitedFiles;
+
+    // Our network Transport. 
+	class ITransport* Transport; 
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle
