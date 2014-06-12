@@ -4,6 +4,7 @@
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
+#include "Abilities/GameplayAbilityTargetActor.h"
 
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
@@ -314,11 +315,37 @@ void UAbilitySystemComponent::InputCancel()
 	CancelCallbacks.Broadcast();
 }
 
+void UAbilitySystemComponent::TargetConfirm()
+{
+	for (AGameplayAbilityTargetActor* TargetActor : SpawnedTargetActors)
+	{
+		if (TargetActor)
+		{
+			TargetActor->ConfirmTargeting();
+		}
+	}
+
+	SpawnedTargetActors.Empty();
+}
+
+void UAbilitySystemComponent::TargetCancel()
+{
+	for (AGameplayAbilityTargetActor* TargetActor : SpawnedTargetActors)
+	{
+		if (TargetActor)
+		{
+			TargetActor->CancelTargeting();
+		}
+	}
+
+	SpawnedTargetActors.Empty();
+}
+
 // --------------------------------------------------------------------------
 
 void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Confirmed)
 {
-	ReplicatedConfirmAbility  = Confirmed;
+	ReplicatedConfirmAbility = Confirmed;
 	ConfirmCallbacks.Broadcast();
 }
 
@@ -326,6 +353,8 @@ bool UAbilitySystemComponent::ServerSetReplicatedConfirm_Validate(bool Confirmed
 {
 	return true;
 }
+
+// -------
 
 void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGameplayAbilityTargetDataHandle Confirmed)
 {
@@ -337,6 +366,20 @@ bool UAbilitySystemComponent::ServerSetReplicatedTargetData_Validate(FGameplayAb
 {
 	return true;
 }
+
+// -------
+
+void UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Implementation()
+{
+	ReplicatedTargetDataCancelledDelegate.Broadcast();
+}
+
+bool UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Validate()
+{
+	return true;
+}
+
+// -------
 
 void UAbilitySystemComponent::SetTargetAbility(UGameplayAbility* NewTargetingAbility)
 {

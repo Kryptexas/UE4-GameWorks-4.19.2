@@ -60,7 +60,12 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 		}
 		
 		// We have to wait for the callback from the AbilitySystemComponent. Which may be instigated locally or through network replication
-		ASC->ConfirmCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback);
-		ASC->CancelCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback);
+
+	
+		ASC->ConfirmCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback);	// Tell me if the confirm input is pressed
+		ASC->CancelCallbacks.AddDynamic(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback);	// Tell me if the cancel input is pressed
+
+		// Tell me if something else tells me to 'force' my target data (an ability may allow targeting during animation/limited time)
+		// Tell me if something else tells me to cancel my targeting
 	}
 }

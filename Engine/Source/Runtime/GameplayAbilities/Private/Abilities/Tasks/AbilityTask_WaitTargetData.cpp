@@ -39,6 +39,7 @@ void UAbilityTask_WaitTargetData::Activate()
 			else
 			{
 				ASC->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+				ASC->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 				return;
 			}
 		}
@@ -57,6 +58,10 @@ void UAbilityTask_WaitTargetData::Activate()
 				// This is a latent thing, probably with visuals and other gameplay related stuff. Spawn an actor locally and it will tell us when it has TargetData.
 				AGameplayAbilityTargetActor* SpawnedActor = CastChecked<AGameplayAbilityTargetActor>(Ability->GetWorld()->SpawnActor(TargetClass));
 				SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
+				SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
+								
+				ASC->SetUserAbilityActivationInhibited(true);
+				ASC->SpawnedTargetActors.Push(SpawnedActor);
 
 				SpawnedActor->StartTargeting(Ability.Get());
 			}
@@ -71,10 +76,25 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilit
 	ASC->ConsumeAbilityTargetData();
 }
 
+void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
+{
+	check(ASC);
+	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+}
+
 void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
 {
 	check(ASC);
 	ASC->ServerSetReplicatedTargetData(Data);
 	ValidData.Broadcast(Data);
 	ASC->ConsumeAbilityTargetData();
+	ASC->SetUserAbilityActivationInhibited(false);
+}
+
+void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbilityTargetDataHandle Data)
+{
+	check(ASC);
+	ASC->ServerSetReplicatedTargetDataCancelled();
+	Cancelled.Broadcast(Data);
+	ASC->SetUserAbilityActivationInhibited(false);
 }

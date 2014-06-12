@@ -111,7 +111,25 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo,
 
 bool UGameplayAbility::CommitCheck(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	return CanActivateAbility(ActorInfo);
+	/**
+	 *	Checks if we can (still) commit this ability. There are some subtleties here.
+	 *		-An ability can start activating, play an animation, wait for a user confirmation/target data, and then actually commit
+	 *		-Commit = spend resources/cooldowns. Its possible the source has changed state since he started activation, so a commit may fail.
+	 *		-We don't want to just call CanActivateAbility() since right now that also checks things like input inhibition.
+	 *			-E.g., its possible the act of starting your ability makes it no longer activatable (CanaCtivateAbility() may be false if called here).
+	 */
+
+	if (!CheckCooldown(ActorInfo))
+	{
+		return false;
+	}
+
+	if (!CheckCost(ActorInfo))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void UGameplayAbility::CommitExecute(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)

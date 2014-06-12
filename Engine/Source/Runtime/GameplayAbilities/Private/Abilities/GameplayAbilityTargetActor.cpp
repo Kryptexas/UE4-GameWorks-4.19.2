@@ -14,3 +14,18 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const class FPostConstr
 {
 	StaticTargetFunction = false;
 }
+
+void AGameplayAbilityTargetActor::StartTargeting(UGameplayAbility* Ability)
+{
+}
+
+void AGameplayAbilityTargetActor::ConfirmTargeting()
+{
+	TargetDataReadyDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+}
+
+/** Outside code is saying 'stop everything and just forget about it' */
+void AGameplayAbilityTargetActor::CancelTargeting()
+{
+	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
+}

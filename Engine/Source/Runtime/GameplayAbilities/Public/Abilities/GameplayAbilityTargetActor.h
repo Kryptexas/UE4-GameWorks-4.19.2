@@ -21,10 +21,17 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Targeting")
 	FGameplayAbilityTargetDataHandle StaticGetTargetData(UWorld * World, FGameplayAbilityActorInfo ActorInfo, FGameplayAbilityActivationInfo ActivationInfo);
 
-	// temp
-	virtual void StartTargeting(UGameplayAbility* Ability) { };
+	
+	virtual void StartTargeting(UGameplayAbility* Ability);
+
+	/** Outside code is saying 'stop and just give me what you have' */
+	virtual void ConfirmTargeting();
+
+	/** Outside code is saying 'stop everything and just forget about it' */
+	virtual void CancelTargeting();
 
 	// ------------------------------
 	
 	FAbilityTargetData	TargetDataReadyDelegate;
+	FAbilityTargetData	CanceledDelegate;
 };

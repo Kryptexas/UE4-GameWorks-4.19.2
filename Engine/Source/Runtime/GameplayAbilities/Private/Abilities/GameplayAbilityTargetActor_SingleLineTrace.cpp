@@ -18,6 +18,7 @@ AGameplayAbilityTargetActor_SingleLineTrace::AGameplayAbilityTargetActor_SingleL
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	StaticTargetFunction = false;
 	bDebug = false;
+	bBindToConfirmCancelInputs = false;
 }
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_SingleLineTrace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo)
@@ -60,11 +61,15 @@ void AGameplayAbilityTargetActor_SingleLineTrace::StartTargeting(UGameplayAbilit
 {
 	Ability = InAbility;
 
-	UAbilitySystemComponent* ASC = Ability->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-	if (ASC)
+	// We can bind directly to our ASC's confirm/cancel events, or wait to be told from an outside source to confirm or cancel
+	if (bBindToConfirmCancelInputs)
 	{
-		ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Confirm);
-		ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Cancel);
+		UAbilitySystemComponent* ASC = Ability->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+		if (ASC)
+		{
+			ASC->ConfirmCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Confirm);
+			ASC->CancelCallbacks.AddDynamic(this, &AGameplayAbilityTargetActor_SingleLineTrace::Cancel);
+		}
 	}
 	
 	bDebug = true;
@@ -96,4 +101,16 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Tick(float DeltaSeconds)
 	{
 		StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
 	}
+}
+
+void AGameplayAbilityTargetActor_SingleLineTrace::ConfirmTargeting()
+{
+	if (Ability.IsValid())
+	{
+		bDebug = false;
+		FGameplayAbilityTargetDataHandle Handle = StaticGetTargetData(Ability->GetWorld(), Ability->GetCurrentActorInfo(), Ability->GetCurrentActivationInfo());
+		TargetDataReadyDelegate.Broadcast(Handle);
+	}
+
+	Destroy();
 }

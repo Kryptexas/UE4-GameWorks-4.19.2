@@ -17,13 +17,19 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 	FWaitTargetDataDelegate	ValidData;
 
 	UPROPERTY(BlueprintAssignable)
-	FWaitTargetDataDelegate	Error;
+	FWaitTargetDataDelegate	Cancelled;
 
 	UFUNCTION()
 	void OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data);
 
 	UFUNCTION()
+	void OnTargetDataReplicatedCancelledCallback();
+
+	UFUNCTION()
 	void OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data);
+
+	UFUNCTION()
+	void OnTargetDataCancelledCallback(FGameplayAbilityTargetDataHandle Data);
 	
 	
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")

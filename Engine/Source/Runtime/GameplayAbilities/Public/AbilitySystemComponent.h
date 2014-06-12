@@ -13,6 +13,8 @@ DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
 /** Used to register callbacks to confirm/cancel input */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
+class AGameplayAbilityTargetActor;
+
 USTRUCT()
 struct GAMEPLAYABILITIES_API FAttributeDefaults
 {
@@ -323,11 +325,25 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	virtual void BindToInputComponent(UInputComponent *InputComponent);
 
+	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputConfirm();
+
+	UFUNCTION(BlueprintCallable, Category="Abilities")
 	void InputCancel();
 
 	FAbilityConfirmOrCancel	ConfirmCallbacks;
 	FAbilityConfirmOrCancel	CancelCallbacks;
+
+	UPROPERTY()
+	TArray<AGameplayAbilityTargetActor*>	SpawnedTargetActors;
+
+	/** Any active targeting actors will be told to stop and return current targeting data */
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	void TargetConfirm();
+
+	/** Any active targeting actors will be stopped and cancelled, not returning any targeting data */
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	void TargetCancel();
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -361,6 +377,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetReplicatedTargetData(FGameplayAbilityTargetDataHandle ReplicatedTargetData);
 
+	UFUNCTION(Server, reliable, WithValidation)
+	void ServerSetReplicatedTargetDataCancelled();
+	
+
 	void SetTargetAbility(UGameplayAbility* NewTargetingAbility);
 
 	void ConsumeAbilityConfirm();
@@ -375,7 +395,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	FGameplayAbilityTargetDataHandle ReplicatedTargetData;
 
+	/** ReplicatedTargetData was received */
 	FAbilityTargetData	ReplicatedTargetDataDelegate;
+
+	/** ReplicatedTargetData was 'cancelled' for this activation */
+	FAbilityConfirmOrCancel	ReplicatedTargetDataCancelledDelegate;
 
 private:
 
