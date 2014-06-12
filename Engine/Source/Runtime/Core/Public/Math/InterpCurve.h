@@ -329,7 +329,7 @@ T FInterpCurve<T>::EvalSecondDerivative( const float InVal, const T& Default ) c
 	}
 
 	// If on or beyond the last point, return 0
-	if (Index >= NumPoints)
+	if (Index >= NumPoints - 1)
 	{
 		return T();
 	}
