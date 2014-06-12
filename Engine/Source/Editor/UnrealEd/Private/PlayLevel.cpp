@@ -130,18 +130,27 @@ void UEditorEngine::EndPlayMap()
 		if (ThisContext.WorldType == EWorldType::PIE)
 		{
 			TeardownPlaySession(ThisContext);
-			WorldList.RemoveAt(WorldIdx);
-
-			if (bSupportsOnlinePIE)
+			
+			if (bSupportsOnlinePIE && NumOnlinePIEInstances > 0)
 			{
 				FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+				IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
+				if (OnlineSub)
+				{
+					// Stop ticking and clean up, but do not destroy as we may be in a failed online delegate
+					OnlineSub->Shutdown();
+				}
 				OnlineIdentifiers.Add(OnlineIdentifier);
 			}
+
+			// Remove world list after online has shutdown in case any async actions require the world context
+			WorldList.RemoveAt(WorldIdx);
 		}
 	}
 
 	if (OnlineIdentifiers.Num())
 	{
+		UE_LOG(LogPlayLevel, Display, TEXT("Shutting down PIE online subsystems"));
         // Cleanup online subsystem shortly as we might be in a failed delegate 
         // have to do this in batch because timer delegate doesn't recognize bound data 
         // as a different delegate
@@ -266,8 +275,15 @@ void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
 {
 	for (FName& OnlineIdentifier : OnlineIdentifiers)
 	{
+		UE_LOG(LogPlayLevel, Display, TEXT("Destroying online subsystem %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem::Destroy(OnlineIdentifier);
 		NumOnlinePIEInstances--;
+	}
+
+	if (NumOnlinePIEInstances != 0)
+	{
+		UE_LOG(LogPlayLevel, Warning, TEXT("Invalid number of online instances after PIE cleanup %d should be 0."), NumOnlinePIEInstances);
+		NumOnlinePIEInstances = 0;
 	}
 }
 
@@ -2026,6 +2042,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 		// Always get the interface (it will create the subsystem regardless)
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for server %s"), *OnlineIdentifier.ToString());
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 		IOnlineIdentityPtr IdentityInt = OnlineSub->GetIdentityInterface();
 		check(IdentityInt.IsValid());
@@ -2078,6 +2095,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.bIsServer = false;
 
 		FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *PieWorldContext.ContextHandle.ToString()));
+		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
 		IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 		check(IdentityInt.IsValid());
 		NumOnlinePIEInstances++;

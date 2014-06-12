@@ -8717,6 +8717,7 @@ FWorldContext& UEngine::GetWorldContextFromHandleChecked(FName WorldContextHandl
 		return *WorldContext;
 	}
 
+	UE_LOG(LogLoad, Warning, TEXT("WorldContext requested with invalid context handle %s"), *WorldContextHandle.ToString());
 	return HandleInvalidWorldContext();
 }
 
