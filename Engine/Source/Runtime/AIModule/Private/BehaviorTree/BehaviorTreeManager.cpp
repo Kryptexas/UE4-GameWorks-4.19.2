@@ -288,7 +288,7 @@ struct FNodeClassCounter
 		}
 	}
 
-	void Print(TCHAR* Separator=TEXT(" "))
+	void Print(const TCHAR* Separator=TEXT(" "))
 	{
 		for (auto Iterator : NodeClassUsage)
 		{
