@@ -842,8 +842,6 @@ void CaptureSceneToScratchCubemap(FRHICommandList& RHICmdList, FSceneRenderer* S
 		// Render the scene normally for one face of the cubemap
 		SceneRenderer->Render();
 
-		ClearScratchCubemaps();
-
 #if PLATFORM_PS4 // @todo ps4 - this should be done a different way
 		// PS4 needs some code here to process the scene
 		extern void TEMP_PostReflectionCaptureRender();
