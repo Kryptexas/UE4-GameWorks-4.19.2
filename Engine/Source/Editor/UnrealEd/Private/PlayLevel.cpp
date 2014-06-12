@@ -122,7 +122,6 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	// Clean up each world individually
-	bool bSupportsOnlinePIE = SupportsOnlinePIE();
 	TArray<FName> OnlineIdentifiers;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
@@ -131,9 +130,10 @@ void UEditorEngine::EndPlayMap()
 		{
 			TeardownPlaySession(ThisContext);
 			
-			if (bSupportsOnlinePIE && NumOnlinePIEInstances > 0)
+			// Cleanup online subsystems instantiated during PIE
+			FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
+			if (IOnlineSubsystem::DoesInstanceExist(OnlineIdentifier))
 			{
-				FName OnlineIdentifier = FName(*FString::Printf(TEXT(":%s"), *ThisContext.ContextHandle.ToString()));
 				IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(OnlineIdentifier);
 				if (OnlineSub)
 				{
@@ -142,7 +142,7 @@ void UEditorEngine::EndPlayMap()
 				}
 				OnlineIdentifiers.Add(OnlineIdentifier);
 			}
-
+		
 			// Remove world list after online has shutdown in case any async actions require the world context
 			WorldList.RemoveAt(WorldIdx);
 		}
@@ -280,11 +280,7 @@ void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
 		NumOnlinePIEInstances--;
 	}
 
-	if (NumOnlinePIEInstances != 0)
-	{
-		UE_LOG(LogPlayLevel, Warning, TEXT("Invalid number of online instances after PIE cleanup %d should be 0."), NumOnlinePIEInstances);
-		NumOnlinePIEInstances = 0;
-	}
+	NumOnlinePIEInstances = 0;
 }
 
 void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
