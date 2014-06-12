@@ -3,6 +3,7 @@
 #include "AIModulePrivate.h"
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #include "Misc/CoreMisc.h"
+#include "BehaviorTree/BehaviorTreeManager.h"
 
 struct FAISystemExec : public FSelfRegisteringExec
 {
@@ -38,6 +39,14 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 		{
 			AISys->AILoggingVerbose();
 			bHandled = true;
+		}
+		else if (FParse::Command(&Cmd, TEXT("DumpBTUsageStats")))
+		{
+			if (AISys->GetBehaviorTreeManager())
+			{
+				AISys->GetBehaviorTreeManager()->DumpUsageStats();
+				bHandled = true;
+			}
 		}
 
 		// void UAISystem::RunEQS(const FString& QueryName)

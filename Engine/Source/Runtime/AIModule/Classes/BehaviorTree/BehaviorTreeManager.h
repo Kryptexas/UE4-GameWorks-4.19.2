@@ -44,6 +44,8 @@ class AIMODULE_API UBehaviorTreeManager : public UObject
 	/** cleanup hooks for map loading */
 	virtual void FinishDestroy() OVERRIDE;
 
+	void DumpUsageStats() const;
+
 protected:
 
 	/** initialized tree templates */
