@@ -5,7 +5,7 @@
 #include "VoiceDataCommon.h"
 #include "OnlineSubsystemUtilsPackage.h"
 
-#define DEBUG_VOICE_PACKET_ENCODING 1
+#define DEBUG_VOICE_PACKET_ENCODING 0
 
 /** Defines the data involved in a voice packet */
 class FVoicePacketImpl : public FVoicePacket
