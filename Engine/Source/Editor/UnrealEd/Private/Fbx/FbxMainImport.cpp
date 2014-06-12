@@ -647,6 +647,10 @@ bool FFbxImporter::ImportFile(FString Filename)
 	{
 		UE_LOG(LogFbx, Log, TEXT("FBX Scene Loaded Succesfully"));
 		CurPhase = IMPORTED;
+		
+		// Release importer now as it is unneeded and in the failure case is part of CleanUp()
+		Importer->Destroy();
+		Importer = NULL;
 	}
 	else
 	{
@@ -656,9 +660,6 @@ bool FFbxImporter::ImportFile(FString Filename)
 		Result = false;
 		CurPhase = NOTSTARTED;
 	}
-	
-	Importer->Destroy();
-	Importer = NULL;
 	
 	return Result;
 }
