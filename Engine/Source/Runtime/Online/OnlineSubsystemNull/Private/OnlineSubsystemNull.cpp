@@ -188,6 +188,7 @@ bool FOnlineSubsystemNull::Shutdown()
 	DESTRUCT_INTERFACE(IdentityInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
  	DESTRUCT_INTERFACE(SessionInterface);
+	DESTRUCT_INTERFACE(VoiceInterface);
 
 	#undef DESTRUCT_INTERFACE
 	
