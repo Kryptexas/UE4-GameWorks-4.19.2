@@ -126,8 +126,8 @@ namespace iPhonePackager
 
 			// generate the directories to recursively copy into later on
 			MacStagingRootDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
-			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, BranchPath);
-			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, BranchPath);
+			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, GameBranchPath);
 
 			MacMobileProvisionFilename = MachineName + "_UE4Temp.mobileprovision";
 

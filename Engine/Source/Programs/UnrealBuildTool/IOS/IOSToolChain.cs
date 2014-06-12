@@ -1186,7 +1186,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						StubGenerateProcess.StartInfo.Arguments = "PackageIPA " + PathToApp + " -createstub";
+						StubGenerateProcess.StartInfo.Arguments = "PackageIPA \"" + PathToApp + "\" -createstub";
 						// if we are making the dsym, then we can strip the debug info from the executable
 						if (BuildConfiguration.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping))
 						{

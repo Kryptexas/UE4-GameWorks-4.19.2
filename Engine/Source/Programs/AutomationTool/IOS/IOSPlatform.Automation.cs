@@ -124,7 +124,7 @@ public class IOSPlatform : Platform
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
 
-			string IPPArguments = "RepackageFromStage " + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
+			string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
 			IPPArguments += " -config " + TargetConfiguration.ToString();
 
 			if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
