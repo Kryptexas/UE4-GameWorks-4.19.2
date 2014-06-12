@@ -939,9 +939,11 @@ public:
 	/** Called if bNotifyApex is true and character has just passed the apex of its jump. */
 	virtual void NotifyJumpApex();
 
-	/** Compute new falling velocity from given velocity and gravity. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
-	virtual FVector NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime);
+	/**
+	 * Compute new falling velocity from given velocity and gravity. Applies the limits of the current Physics Volume's TerminalVelocity.
+	 * Note: currently assumes Gravity points downward when enforcing terminal velocity.
+	 */
+	virtual FVector NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime) const;
 
 	/* Determine how deep in water the character is immersed.
 	 * @return float in range 0.0 = not in water, 1.0 = fully immersed

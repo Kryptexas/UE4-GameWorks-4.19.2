@@ -1860,9 +1860,20 @@ FVector UCharacterMovementComponent::AdjustUpperHemisphereImpact(const FVector& 
 	return FVector(Delta.X, Delta.Y, Delta.Z * ZScale);
 }
 
-FVector UCharacterMovementComponent::NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime)
+
+FVector UCharacterMovementComponent::NewFallVelocity(FVector InitialVelocity, FVector Gravity, float DeltaTime) const
 {
-	return InitialVelocity + (Gravity * DeltaTime);
+	FVector Result = InitialVelocity;
+	const float TerminalLimit = FMath::Abs(GetPhysicsVolume()->TerminalVelocity);
+
+	// Only apply gravity if below terminal velocity, and don't exceed it if so.
+	if (InitialVelocity.Z > -TerminalLimit)
+	{
+		Result = InitialVelocity + (Gravity * DeltaTime);
+		Result.Z = FMath::Max(Result.Z, -TerminalLimit);
+	}
+	
+	return Result;
 }
 
 
@@ -2770,8 +2781,6 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 				Velocity.X = 0.f;
 				Velocity.Y = 0.f;
 			}
-
-			Velocity = Velocity.ClampMaxSize(GetPhysicsVolume()->TerminalVelocity);
 		}
 	}
 }
