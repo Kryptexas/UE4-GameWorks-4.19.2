@@ -4,16 +4,6 @@
 	MacServerTargetPlatformModule.cpp: Implements the FMacServerTargetPlatformModule class.
 =============================================================================*/
 
-#if PLATFORM_MAC
-#define FVector FVectorWorkaround
-#ifdef __OBJC__
-#import <Cocoa/Cocoa.h>
-#endif
-#undef check
-#undef verify
-#undef FVector
-#endif
-
 #include "MacServerTargetPlatformPrivatePCH.h"
 
 
