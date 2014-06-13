@@ -50,7 +50,7 @@ struct RECT
 #include "Android/AndroidMemory.h"
 #include "Android/AndroidString.h"
 #include "Android/AndroidMisc.h"
-#include "Android/AndroidStackWalk.h"
+#include "Android/AndroidPlatformStackWalk.h"
 #include "Android/AndroidMath.h"
 #include "Android/AndroidTime.h"
 #include "Android/AndroidProcess.h"
