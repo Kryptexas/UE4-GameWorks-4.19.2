@@ -18,12 +18,12 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	RootComponent = SceneComponent;
 
 	SetTickableWhenPaused(true);
-	//SetIsTemporarilyHiddenInEditor(true);
-	//SetActorHiddenInGame(true);
-	//bHiddenEdLevel = true;
-	//bHiddenEdLayer = true;
-	//bHiddenEd = true;
-	//bEditable = false;
+	SetIsTemporarilyHiddenInEditor(true);
+	SetActorHiddenInGame(false);
+	bHiddenEdLevel = true;
+	bHiddenEdLayer = true;
+	bHiddenEd = true;
+	bEditable = false;
 }
 
 void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
