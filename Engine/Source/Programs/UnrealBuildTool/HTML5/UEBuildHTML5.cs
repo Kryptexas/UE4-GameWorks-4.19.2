@@ -142,15 +142,22 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-                if (InBinaryType == UEBuildBinaryType.StaticLibrary)
+                switch (InBinaryType)
                 {
-                    return ".bc";
+                    case UEBuildBinaryType.DynamicLinkLibrary:
+                        return ".js";
+                    case UEBuildBinaryType.Executable:
+                        return ".js";
+                    case UEBuildBinaryType.StaticLibrary:
+                        return ".bc";
+                    case UEBuildBinaryType.Object:
+                        return ".bc";
+                    case UEBuildBinaryType.PrecompiledHeader:
+                        return ".gch";
                 }
-                else 
-                {
-				    return ".js";
-                }
-			}
+
+                return base.GetBinaryExtension(InBinaryType);
+            }
 		}
 
 		/**
