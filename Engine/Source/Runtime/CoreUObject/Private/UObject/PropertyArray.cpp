@@ -349,7 +349,7 @@ bool UArrayProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UArrayProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UArrayProperty, Inner ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UArrayProperty, Inner), TEXT("Inner"));
 
 		// Ensure that TArray and FScriptArray are interchangeable, as FScriptArray will be used to access a native array property
 		// from script that is declared as a TArray in C++.

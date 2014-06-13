@@ -207,6 +207,6 @@ bool UInterfaceProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UInterfaceProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UInterfaceProperty, InterfaceClass ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UInterfaceProperty, InterfaceClass), TEXT("InterfaceClass"));
 	}
 );

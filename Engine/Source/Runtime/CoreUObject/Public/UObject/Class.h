@@ -1773,8 +1773,20 @@ public:
 	 **/
 	TArray<FImplementedInterface> Interfaces;
 
+	/**
+	 * Prepends reference token stream with super class's stream.
+	 *
+	 * @param SuperClass Super class to prepend stream with.
+	 */
+	void PrependStreamWithSuperClass(UClass& SuperClass);
+
 	/** Reference token stream used by realtime garbage collector, finalized in AssembleReferenceTokenStream */
 	FGCReferenceTokenStream ReferenceTokenStream;
+
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+	/* TokenIndex map to look-up token stream index origin. */
+	FGCDebugReferenceTokenMap DebugTokenMap;
+#endif
 
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;
@@ -1993,28 +2005,32 @@ public:
 	 * Realtime garbage collection helper function used to emit token containing information about a 
 	 * direct UObject reference at the passed in offset.
 	 *
-	 * @param Offset	offset into object at which object reference is stored
+	 * @param Offset	Offset into object at which object reference is stored.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Kind		Optional parameter the describe the type of the reference.
 	 */
-	void EmitObjectReference(int32 Offset, EGCReferenceType Kind = GCRT_Object);
+	void EmitObjectReference(int32 Offset, const FName& DebugName, EGCReferenceType Kind = GCRT_Object);
 
 	/**
 	 * Realtime garbage collection helper function used to emit token containing information about a 
 	 * an array of UObject references at the passed in offset. Handles both TArray and TTransArray.
 	 *
-	 * @param Offset	offset into object at which array of objects is stored
+	 * @param Offset	Offset into object at which array of objects is stored.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
 	 */
-	void EmitObjectArrayReference(int32 Offset);
+	void EmitObjectArrayReference(int32 Offset, const FName& DebugName);
 
 	/**
 	 * Realtime garbage collection helper function used to indicate an array of structs at the passed in 
 	 * offset.
 	 *
-	 * @param Offset	offset into object at which array of structs is stored
-	 * @param Stride	size/ stride of struct
-	 * @return	index into token stream at which later on index to next token after the array is stored
+	 * @param Offset	Offset into object at which array of structs is stored
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Stride	Size/stride of struct
+	 * @return	Index into token stream at which later on index to next token after the array is stored
 	 *			which is used to skip over empty dynamic arrays
 	 */
-	uint32 EmitStructArrayBegin(int32 Offset, int32 Stride);
+	uint32 EmitStructArrayBegin(int32 Offset, const FName& DebugName, int32 Stride);
 
 	/**
 	 * Realtime garbage collection helper function used to indicate the end of an array of structs. The
@@ -2029,11 +2045,12 @@ public:
 	 * Realtime garbage collection helper function used to indicate the beginning of a fixed array.
 	 * All tokens issues between Begin and End will be replayed Count times.
 	 *
-	 * @param Offset	offset at which fixed array starts
-	 * @param Stride	Stride of array element, e.g. sizeof(struct) or sizeof(UObject*)
-	 * @param Count		fixed array count
+	 * @param Offset	Offset at which fixed array starts.
+	 * @param DebugName	DebugName for this objects token. Only used in non-shipping builds.
+	 * @param Stride	Stride of array element, e.g. sizeof(struct) or sizeof(UObject*).
+	 * @param Count		Fixed array count.
 	 */
-	void EmitFixedArrayBegin(int32 Offset, int32 Stride, int32 Count);
+	void EmitFixedArrayBegin(int32 Offset, const FName& DebugName, int32 Stride, int32 Count);
 	
 	/**
 	 * Realtime garbage collection helper function used to indicated the end of a fixed array.

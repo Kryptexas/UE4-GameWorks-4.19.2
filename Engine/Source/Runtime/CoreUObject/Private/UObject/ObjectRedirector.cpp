@@ -95,7 +95,7 @@ bool UObjectRedirector::GetNativePropertyValues( TMap<FString,FString>& out_Prop
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UObjectRedirector, UObject,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UObjectRedirector, DestinationObject ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UObjectRedirector, DestinationObject), TEXT("DestinationObject"));
 	}
 );
 

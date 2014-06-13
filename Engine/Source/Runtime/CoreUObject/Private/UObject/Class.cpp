@@ -347,7 +347,7 @@ void UField::RemoveMetaData(const FName& Key)
 #endif
 IMPLEMENT_CORE_INTRINSIC_CLASS(UField, UObject,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UField, Next ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UField, Next), TEXT("Next"));
 	}
 );
 
@@ -1420,13 +1420,13 @@ void UStruct::InstanceSubobjectTemplates( void* Data, void const* DefaultData, U
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStruct, UField,
 	{
 		Class->ClassAddReferencedObjects = &UStruct::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( UStruct, SuperStruct ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UStruct, Children ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UStruct, SuperStruct), TEXT("SuperStruct"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UStruct, Children), TEXT("Children"));
 
 		// Note: None of the *Link members need to be emitted, as they only contain properties
 		// that are in the Children chain or SuperStruct->Children chains.
 
-		Class->EmitObjectArrayReference( STRUCT_OFFSET( UStruct, ScriptObjectReferences ) );
+		Class->EmitObjectArrayReference(STRUCT_OFFSET(UStruct, ScriptObjectReferences), TEXT("ScriptObjectReferences"));
 	}
 );
 
@@ -3535,13 +3535,23 @@ bool UClass::IsClassGroupName(const TCHAR* InGroupName) const
 
 #endif // WITH_EDITOR || HACK_HEADER_GENERATOR
 
+void UClass::PrependStreamWithSuperClass(UClass& SuperClass)
+{
+	ReferenceTokenStream.PrependStream(SuperClass.ReferenceTokenStream);
+
+#if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
+	DebugTokenMap.PrependWithSuperClass(SuperClass);
+#endif
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	{
 		Class->ClassAddReferencedObjects = &UClass::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassDefaultObject ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassWithin ) );
-		Class->EmitObjectReference( STRUCT_OFFSET( UClass, ClassGeneratedBy ) );
-		Class->EmitObjectArrayReference( STRUCT_OFFSET( UClass, NetFields ) );
+
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassDefaultObject), TEXT("ClassDefaultObject"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassWithin), TEXT("ClassWithin"));
+		Class->EmitObjectReference(STRUCT_OFFSET(UClass, ClassGeneratedBy), TEXT("ClassGeneratedBy"));
+		Class->EmitObjectArrayReference(STRUCT_OFFSET(UClass, NetFields), TEXT("NetFields"));
 	}
 );
 

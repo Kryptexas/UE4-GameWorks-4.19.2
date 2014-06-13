@@ -746,15 +746,12 @@ void ResetLoadersForSave(UObject* InOuter, const TCHAR *Filename)
 	}
 }
 
-
-
-
 IMPLEMENT_CORE_INTRINSIC_CLASS(ULinker, UObject,
 	{
 		Class->ClassAddReferencedObjects = &ULinker::AddReferencedObjects;
-		Class->EmitObjectReference( STRUCT_OFFSET( ULinker, LinkerRoot ) );
-		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin( STRUCT_OFFSET( ULinker, ImportMap ), sizeof(FObjectImport) );
-		Class->EmitObjectReference( STRUCT_OFFSET( FObjectImport, SourceLinker ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(ULinker, LinkerRoot), TEXT("LinkerRoot"));
+		const uint32 SkipIndexIndex = Class->EmitStructArrayBegin(STRUCT_OFFSET(ULinker, ImportMap), TEXT("ImportMap"), sizeof(FObjectImport));
+		Class->EmitObjectReference(STRUCT_OFFSET(FObjectImport, SourceLinker), TEXT("SourceLinker"));
 		Class->EmitStructArrayEnd( SkipIndexIndex );
 	}
 );

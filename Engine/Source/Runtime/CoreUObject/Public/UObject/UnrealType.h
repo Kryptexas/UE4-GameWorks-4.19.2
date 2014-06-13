@@ -715,7 +715,7 @@ public:
 	 * Emits tokens used by realtime garbage collection code to passed in ReferenceTokenStream. The offset emitted is relative
 	 * to the passed in BaseOffset which is used by e.g. arrays of structs.
 	 */
-	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset );
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset);
 
 	FORCEINLINE int32 GetSize() const
 	{
@@ -1766,7 +1766,7 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 
 	// UProperty interface
 	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
 	// End of UProperty interface
 	// UObjectPropertyBase interface
 	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const OVERRIDE
@@ -2011,7 +2011,7 @@ public:
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
 	// End of UObject interface
 };
 
@@ -2126,7 +2126,7 @@ public:
 	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
 	virtual bool ContainsObjectReference() const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
 	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 };
@@ -2484,7 +2484,7 @@ public:
 	virtual int32 GetMinAlignment() const OVERRIDE;
 	virtual bool ContainsObjectReference() const OVERRIDE;
 	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void EmitReferenceInfo( FGCReferenceTokenStream* ReferenceTokenStream, int32 BaseOffset ) OVERRIDE;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
 	virtual bool SameType(const UProperty* Other) const OVERRIDE;
 	// End of UProperty interface
 

@@ -455,6 +455,6 @@ bool UStructProperty::SameType(const UProperty* Other) const
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStructProperty, UProperty,
 	{
-		Class->EmitObjectReference( STRUCT_OFFSET( UStructProperty, Struct ) );
+		Class->EmitObjectReference(STRUCT_OFFSET(UStructProperty, Struct), TEXT("Struct"));
 	}
 );

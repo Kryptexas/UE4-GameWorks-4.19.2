@@ -337,8 +337,8 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 
 void UObjectBase::EmitBaseReferences(UClass *RootClass)
 {
-	RootClass->EmitObjectReference( STRUCT_OFFSET( UObjectBase, Class ) );
-	RootClass->EmitObjectReference( STRUCT_OFFSET( UObjectBase, Outer ), GCRT_PersistentObject);
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Class), TEXT("Class"));
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Outer), TEXT("Outer"), GCRT_PersistentObject);
 }
 
 /** Enqueue the registration for this object. */

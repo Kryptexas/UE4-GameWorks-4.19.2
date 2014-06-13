@@ -183,6 +183,6 @@ bool UPackage::IsFullyLoaded()
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackage, UObject,
 	{
 		Class->ClassAddReferencedObjects = &UPackage::AddReferencedObjects;
-		Class->EmitObjectReference(STRUCT_OFFSET(UPackage, MetaData));
+		Class->EmitObjectReference(STRUCT_OFFSET(UPackage, MetaData), TEXT("MetaData"));
 	}
 );
