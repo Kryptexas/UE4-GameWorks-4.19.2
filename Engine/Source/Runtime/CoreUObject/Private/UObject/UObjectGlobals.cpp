@@ -2033,6 +2033,11 @@ FPostConstructInitializeProperties::~FPostConstructInitializeProperties()
 	}
 }
 
+UClass* FPostConstructInitializeProperties::GetClass() const
+{
+	return Obj->GetClass();
+}
+
 void FSubobjectPtr::Set(UObject* InObject)
 {
 	if (Object != InObject && IsInitialized(Object) && !Object->IsPendingKill())

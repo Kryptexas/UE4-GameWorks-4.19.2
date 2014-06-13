@@ -690,6 +690,19 @@ public:
 	}
 
 	/**
+	* Return the object that is being constructed
+	**/
+	FORCEINLINE UObject* GetObject() const
+	{
+		return Obj;
+	}
+
+	/**
+	* Return the class of the object that is being constructed
+	**/
+	UClass* GetClass() const;
+
+	/**
 	 * Create a component or subobject
 	 * @param	TReturnType					class of return type, all overrides must be of this type
 	 * @param	Outer						outer to construct the subobject in
