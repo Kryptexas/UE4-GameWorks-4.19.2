@@ -5,8 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "AudioDevice.h"
 #include "Net/UnrealNetwork.h"
-#include "SoundDefinitions.h"
+#include "Sound/ReverbEffect.h"
 
 void FReverbSettings::PostSerialize(const FArchive& Ar)
 {

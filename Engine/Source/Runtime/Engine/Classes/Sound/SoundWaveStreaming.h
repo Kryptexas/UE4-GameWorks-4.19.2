@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "Sound/SoundWave.h"
 #include "SoundWaveStreaming.generated.h"
 
 DECLARE_DELEGATE_TwoParams( FOnSoundWaveStreamingUnderflow, class USoundWaveStreaming*, int32 );

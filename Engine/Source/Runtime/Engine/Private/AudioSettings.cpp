@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Sound/AudioSettings.h"
 
 
 UAudioSettings::UAudioSettings(const class FPostConstructInitializeProperties& PCIP)

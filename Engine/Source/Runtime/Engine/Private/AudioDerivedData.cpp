@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "AudioDerivedData.h"
 #include "TargetPlatform.h"
+#include "Sound/SoundWave.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 
@@ -770,6 +770,19 @@ FDerivedAudioDataCompressor::FDerivedAudioDataCompressor(USoundWave* InSoundNode
 		Compressor = TPM->FindAudioFormat(InFormat);
 	}
 }
+
+FString FDerivedAudioDataCompressor::GetPluginSpecificCacheKeySuffix() const
+{
+	int32 FormatVersion = 0xffff; // if the compressor is NULL, this will be used as the version...and in that case we expect everything to fail anyway
+	if (Compressor)
+	{
+		FormatVersion = (int32)Compressor->GetVersion(Format);
+	}
+	FString FormatString = Format.ToString().ToUpper();
+	check(SoundNode->CompressedDataGuid.IsValid());
+	return FString::Printf(TEXT("%s_%04X_%s"), *FormatString, FormatVersion, *SoundNode->CompressedDataGuid.ToString());
+}
+
 
 bool FDerivedAudioDataCompressor::Build(TArray<uint8>& OutData) 
 {

@@ -2,8 +2,8 @@
 
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNode.h"
+#include "Sound/SoundCue.h"
 
 #if WITH_EDITORONLY_DATA
 #include "UnrealEd.h"
@@ -37,6 +37,18 @@ void USoundNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 	Super::AddReferencedObjects(InThis, Collector);
 }
 #endif //WITH_EDITORONLY_DATA
+
+UPTRINT USoundNode::GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const USoundNode* ChildNode, const uint32 ChildIndex)
+{
+	checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue '%s'"), ChildIndex, *CastChecked<USoundCue>(ChildNode->GetOuter())->GetFullName());
+	return ((ParentWaveInstanceHash << ChildIndex) ^ (UPTRINT)ChildNode);
+}
+
+UPTRINT USoundNode::GetNodeWaveInstanceHash(const UPTRINT ParentWaveInstanceHash, const UPTRINT ChildNodeHash, const uint32 ChildIndex)
+{
+	checkf(ChildIndex < MAX_ALLOWED_CHILD_NODES, TEXT("Too many children (%d) in SoundCue"), ChildIndex);
+	return ((ParentWaveInstanceHash << ChildIndex) ^ ChildNodeHash);
+}
 
 void USoundNode::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {

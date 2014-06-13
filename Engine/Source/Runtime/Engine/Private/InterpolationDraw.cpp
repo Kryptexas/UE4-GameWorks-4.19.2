@@ -28,7 +28,7 @@
 #include "Matinee/InterpTrackAudioMaster.h"
 #include "Matinee/InterpTrackVisibility.h"
 #include "Matinee/InterpTrackParticleReplay.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundBase.h"
 #include "InterpolationHitProxy.h"
 #include "AnimationUtils.h"
 #include "InterpolationHitProxy.h"

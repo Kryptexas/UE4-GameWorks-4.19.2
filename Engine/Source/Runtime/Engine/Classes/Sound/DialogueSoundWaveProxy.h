@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "Sound/SoundBase.h"
 #include "DialogueSoundWaveProxy.generated.h"
+
 
 UCLASS()
 class UDialogueSoundWaveProxy : public USoundBase

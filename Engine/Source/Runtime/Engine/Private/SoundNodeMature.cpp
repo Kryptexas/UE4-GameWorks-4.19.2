@@ -2,9 +2,9 @@
 
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
 #include "Sound/SoundNodeMature.h"
 #include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundWave.h"
 
 /*-----------------------------------------------------------------------------
        USoundNodeMature implementation.

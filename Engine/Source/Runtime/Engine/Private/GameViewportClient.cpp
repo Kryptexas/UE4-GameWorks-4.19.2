@@ -4,7 +4,6 @@
 #include "Engine/Console.h"
 #include "GameFramework/HUD.h"
 #include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
 #include "FXSystem.h"
 #include "SubtitleManager.h"
 #include "ImageUtils.h"
@@ -16,6 +15,8 @@
 #include "SVirtualJoystick.h"
 #include "SceneViewport.h"
 #include "EngineModule.h"
+#include "AudioDevice.h"
+#include "Sound/SoundWave.h"
 
 #include "HighResScreenshot.h"
 

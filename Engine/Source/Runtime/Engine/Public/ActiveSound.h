@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Sound/ReverbVolume.h"
+#include "Sound/SoundAttenuation.h"
 
 struct ENGINE_API FActiveSound
 {

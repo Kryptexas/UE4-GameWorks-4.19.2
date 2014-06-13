@@ -4,7 +4,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundCue.h"
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
@@ -2691,12 +2691,12 @@ AWorldSettings * AActor::GetWorldSettings() const
 	return GetWorld()->GetWorldSettings();
 }
 
-void AActor::PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
+void AActor::PlaySoundOnActor(USoundCue* InSoundCue, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
 {
 	UGameplayStatics::PlaySoundAtLocation( this, InSoundCue, GetActorLocation(), VolumeMultiplier, PitchMultiplier );
 }
 
-void AActor::PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
+void AActor::PlaySoundAtLocation(USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier/*=1.f*/, float PitchMultiplier/*=1.f*/)
 {
 	UGameplayStatics::PlaySoundAtLocation( this, InSoundCue, (SoundLocation.IsZero() ? GetActorLocation() : SoundLocation), VolumeMultiplier, PitchMultiplier );
 }

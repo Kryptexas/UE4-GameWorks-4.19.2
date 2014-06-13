@@ -2,9 +2,9 @@
 
 
 #include "EnginePrivate.h"
-
-#include "SoundDefinitions.h"
 #include "AudioDecompress.h"
+#include "AudioDevice.h"
+#include "Sound/SoundWave.h"
 
 #if WITH_OGGVORBIS
 

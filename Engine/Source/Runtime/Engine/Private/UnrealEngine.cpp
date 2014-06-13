@@ -57,6 +57,9 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Sound/ReverbEffect.h"
+#include "Sound/SoundWave.h"
+
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "EnvironmentQuery/EnvQueryManager.h"

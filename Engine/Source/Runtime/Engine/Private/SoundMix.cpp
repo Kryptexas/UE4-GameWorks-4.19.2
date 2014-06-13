@@ -2,7 +2,8 @@
 
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "Sound/SoundMix.h"
+#include "AudioDevice.h"
 #if WITH_EDITOR
 #include "Slate.h"
 #endif

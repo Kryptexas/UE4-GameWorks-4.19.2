@@ -5,8 +5,11 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Audio.h"
+#include "AudioDevice.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
 #include "Sound/SoundNodeWavePlayer.h"
-#include "SoundDefinitions.h"
 #include "AudioEffect.h"
 #include "Net/UnrealNetwork.h"
 #include "TargetPlatform.h"

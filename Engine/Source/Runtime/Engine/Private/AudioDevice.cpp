@@ -1,10 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "Sound/SoundNodeWavePlayer.h"
-#include "SoundDefinitions.h"
+#include "Audio.h"
+#include "AudioDevice.h"
 #include "AudioEffect.h"
 #include "AudioDecompress.h"
+#include "Sound/AudioSettings.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundWave.h"
 
 /*-----------------------------------------------------------------------------
 	FAudioDevice implementation.

@@ -6,6 +6,8 @@
  * Playable sound object for raw wave files
  */
 
+#include "Sound/SoundBase.h"
+#include "Sound/SoundGroups.h"
 #include "SoundWave.generated.h"
 
 struct FActiveSound;

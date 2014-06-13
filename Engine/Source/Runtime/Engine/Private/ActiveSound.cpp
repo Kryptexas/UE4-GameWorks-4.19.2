@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "SoundDefinitions.h"
+#include "AudioDevice.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
 #include "Sound/SoundNodeAttenuation.h"
 #include "SubtitleManager.h"
 
@@ -105,7 +107,7 @@ USoundClass* FActiveSound::GetSoundClass() const
 	return NULL;
 }
 
-int32 FActiveSound::FindClosestListener( const TArray<struct FListener>& InListeners ) const
+int32 FActiveSound::FindClosestListener( const TArray<FListener>& InListeners ) const
 {
 	int32 ClosestListenerIndex = 0;
 	float ClosestDistSq = FVector::DistSquared(Transform.GetTranslation(), InListeners[0].Transform.GetTranslation() );

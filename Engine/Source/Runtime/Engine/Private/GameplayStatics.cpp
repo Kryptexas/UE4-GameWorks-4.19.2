@@ -9,6 +9,8 @@
 #include "Slate.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "GameFramework/Character.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundCue.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -753,7 +755,7 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 	return AudioComponent;
 }
 
-void UGameplayStatics::PlaySound(UObject* WorldContextObject, class USoundCue* InSoundCue, class USceneComponent* AttachComponent, FName AttachName, bool bFollow, float VolumeMultiplier, float PitchMultiplier)
+void UGameplayStatics::PlaySound(UObject* WorldContextObject, USoundCue* InSoundCue, USceneComponent* AttachComponent, FName AttachName, bool bFollow, float VolumeMultiplier, float PitchMultiplier)
 {
 	if (bFollow)
 	{

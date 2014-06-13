@@ -5,8 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h" 
-#include "SoundDefinitions.h"
 #include "AudioEffect.h"
+#include "Sound/ReverbEffect.h"
 
 /** 
  * Default settings for a null reverb effect

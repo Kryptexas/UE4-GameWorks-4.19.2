@@ -5,6 +5,9 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Sound/AmbientSound.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundCue.h"
 #include "Sound/SoundNodeAmbient.h" // deprecated
 #include "Sound/SoundNodeAmbientNonLoop.h" // deprecated
 #include "Sound/SoundNodeMixer.h"
@@ -13,7 +16,6 @@
 #include "Sound/SoundNodeDelay.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeModulator.h"
-#include "SoundDefinitions.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
