@@ -2571,6 +2571,12 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 		return;
 	}
 
+	if (GetSelectedActorCount() <= 0)
+	{
+		// Nothing to move, probably source level was hidden and actors lost selection mark
+		return;
+	}
+
 	// Start the transaction
 	GEditor->Trans->Begin( NULL, NSLOCTEXT("UnrealEd", "MoveSelectedActorsToSelectedLevel", "Move Actors To Level"));
 	

@@ -291,6 +291,7 @@ protected:
 
 	/** Moves the selected actors to this level */
 	void MoveActorsToSelected_Executed();
+	bool CanMoveSelectedActorsToLevel() const;
 
 	/** Saves selected levels */
 	void SaveSelectedLevels_Executed();

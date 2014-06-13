@@ -72,7 +72,7 @@ void FLevelCollectionModel::BindCommands()
 	
 	ActionList.MapAction(Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MoveActorsToSelected_Executed),
-		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsSelectedLevelEditable));
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::CanMoveSelectedActorsToLevel));
 		
 	ActionList.MapAction(Commands.World_SaveSelectedLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SaveSelectedLevels_Executed),
@@ -1481,6 +1481,11 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 	Editor->MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
 
 	RequestUpdateAllLevels();
+}
+
+bool FLevelCollectionModel::CanMoveSelectedActorsToLevel() const
+{
+	return (IsOneLevelSelected() && AreAllSelectedLevelsEditableAndVisible() && Editor->GetSelectedActorCount() > 0);
 }
 
 void FLevelCollectionModel::SelectActors_Executed()
