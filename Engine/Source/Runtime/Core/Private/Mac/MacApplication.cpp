@@ -648,7 +648,7 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 							Window = ParentWindow;
 							break;
 						}
-						ParentWindow = [Window parentWindow];
+						ParentWindow = [ParentWindow parentWindow];
 					}
 				}
 				
