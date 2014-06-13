@@ -3,6 +3,7 @@
 #include "NetworkFilePrivatePCH.h"
 #include "TCPTransport.h"
 #include "MultichannelTCP.h"
+#include "NetworkPlatformFile.h"
 
 FTCPTransport::FTCPTransport()
 	:FileSocket(NULL)
