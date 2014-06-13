@@ -2856,37 +2856,46 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
 			FMeshRotationPayloadData* PayloadData	= (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
 			PayloadData->RotationRate				= PayloadData->RotationRateBase;
-			if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
+			if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity
+				|| LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
 			{
 				// Determine the rotation to the velocity vector and apply it to the mesh
 				FVector	NewDirection	= Particle.Velocity;
 				
-				//check if an orbit module should affect the velocity...		
-				if (LODLevel->RequiredModule->bOrbitModuleAffectsVelocityAlignment &&
-					LODLevel->OrbitModules.Num() > 0)
+				if (LODLevel->RequiredModule->ScreenAlignment == PSA_Velocity)
 				{
-					UParticleModuleOrbit* LastOrbit = SpriteTemplate->LODLevels[0]->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-					check(LastOrbit);
-					
-					uint32 OrbitModuleOffset = *ModuleOffsetMap.Find(LastOrbit);
-					if (OrbitModuleOffset != 0)
+					//check if an orbit module should affect the velocity...		
+					if (LODLevel->RequiredModule->bOrbitModuleAffectsVelocityAlignment &&
+						LODLevel->OrbitModules.Num() > 0)
 					{
-						FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + OrbitModuleOffset);
+						UParticleModuleOrbit* LastOrbit = SpriteTemplate->LODLevels[0]->OrbitModules[LODLevel->OrbitModules.Num() - 1];
+						check(LastOrbit);
+					
+						uint32 OrbitModuleOffset = *ModuleOffsetMap.Find(LastOrbit);
+						if (OrbitModuleOffset != 0)
+						{
+							FOrbitChainModuleInstancePayload &OrbitPayload = *(FOrbitChainModuleInstancePayload*)((uint8*)&Particle + OrbitModuleOffset);
 
-						FVector OrbitOffset = OrbitPayload.Offset;
-						FVector PrevOrbitOffset = OrbitPayload.PreviousOffset;
-						FVector Location = Particle.Location;
-						FVector OldLocation = Particle.OldLocation;
+							FVector OrbitOffset = OrbitPayload.Offset;
+							FVector PrevOrbitOffset = OrbitPayload.PreviousOffset;
+							FVector Location = Particle.Location;
+							FVector OldLocation = Particle.OldLocation;
 
-						//this should be our current position
-						FVector NewPos = Location + OrbitOffset;	
-						//this should be our previous position
-						FVector OldPos = OldLocation + PrevOrbitOffset;
+							//this should be our current position
+							FVector NewPos = Location + OrbitOffset;	
+							//this should be our previous position
+							FVector OldPos = OldLocation + PrevOrbitOffset;
 
-						NewDirection = NewPos - OldPos;
-					}	
-				}			              
-               
+							NewDirection = NewPos - OldPos;
+						}	
+					}			              
+				}
+				else if (LODLevel->RequiredModule->ScreenAlignment == PSA_AwayFromCenter)
+				{
+
+					NewDirection = Particle.Location;
+				}
+
 				NewDirection.Normalize();
 				FVector	OldDirection(1.0f, 0.0f, 0.0f);
 
