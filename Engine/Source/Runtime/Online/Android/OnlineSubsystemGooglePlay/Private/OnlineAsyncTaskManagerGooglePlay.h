@@ -15,7 +15,7 @@ public:
 	FOnlineAsyncTaskManagerGooglePlay() {}
 
 	// FOnlineAsyncTaskManager
-	virtual void OnlineTick() OVERRIDE {}
+	virtual void OnlineTick() override {}
 };
 
 

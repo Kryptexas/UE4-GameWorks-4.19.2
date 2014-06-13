@@ -72,7 +72,7 @@ public:
 		];
 	}
 
-	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE
+	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const override
 	{
 		TSharedPtr<FDetailCategoryImpl> ParentCategoryPinned = ParentCategory.Pin();
 		return ParentCategoryPinned.IsValid() ? ParentCategoryPinned->GetParentLayout().GetThumbnailPool() : NULL;

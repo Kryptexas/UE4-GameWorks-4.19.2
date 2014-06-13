@@ -87,13 +87,13 @@ protected:
 	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & OverlapInfo);
 public:
 	// Begin AActor interface
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual void PostActorCreated() OVERRIDE;
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) OVERRIDE;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void PostActorCreated() override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
 	// End AActor interface
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject interface
 
 };

@@ -81,7 +81,7 @@ public:
 		fflush( stdout );
 	}
 
-	virtual bool YesNof( const FText& Question ) OVERRIDE
+	virtual bool YesNof( const FText& Question ) override
 	{
 		if( (GIsClient || GIsEditor) )
 		{

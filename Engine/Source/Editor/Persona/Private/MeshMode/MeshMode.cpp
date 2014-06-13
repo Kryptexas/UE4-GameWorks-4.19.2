@@ -37,7 +37,7 @@ public:
 	}
 
 	// SSingleObjectDetailsPanel interface
-	virtual UObject* GetObjectToObserve() const OVERRIDE
+	virtual UObject* GetObjectToObserve() const override
 	{
 		return PersonaPtr.Pin()->GetMesh();
 	}

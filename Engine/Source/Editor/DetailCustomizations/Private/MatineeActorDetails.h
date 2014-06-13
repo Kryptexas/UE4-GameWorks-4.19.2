@@ -9,7 +9,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 private:
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 	FReply OnOpenMatineeForActor();
 private:

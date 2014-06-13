@@ -420,7 +420,7 @@ public:
 	 * @param Alignment		The alignment of a hypothetical allocation request
 	 * @return				Returns the usable size that the allocation request would return. In other words you can ask for this greater amount without using any more actual memory.
 	 */
-	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment ) override
 	{
 		return UsedMalloc->QuantizeSize(Size,Alignment); 
 	}
@@ -428,7 +428,7 @@ public:
 	/** 
 	 * Malloc
 	 */
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		void* Ptr = UsedMalloc->Malloc( Size, Alignment );
@@ -440,7 +440,7 @@ public:
 	/** 
 	 * Realloc
 	 */
-	virtual void* Realloc( void* OldPtr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE
+	virtual void* Realloc( void* OldPtr, SIZE_T NewSize, uint32 Alignment ) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		void* NewPtr = UsedMalloc->Realloc( OldPtr, NewSize, Alignment );
@@ -452,7 +452,7 @@ public:
 	/** 
 	 * Free
 	 */
-	virtual void Free( void* Ptr ) OVERRIDE
+	virtual void Free( void* Ptr ) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		UsedMalloc->Free( Ptr );
@@ -464,27 +464,27 @@ public:
 	 * Returns if the allocator is guaranteed to be thread-safe and therefore
 	 * doesn't need a unnecessary thread-safety wrapper around it.
 	 */
-	virtual bool IsInternallyThreadSafe() const OVERRIDE
+	virtual bool IsInternallyThreadSafe() const override
 	{ 
 		return true; 
 	}
 
 	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
-	virtual void UpdateStats() OVERRIDE
+	virtual void UpdateStats() override
 	{
 		FScopeLock Lock( &CriticalSection );
 		UsedMalloc->UpdateStats();
 	}
 
 	/** Writes allocator stats from the last update into the specified destination. */
-	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) OVERRIDE
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		UsedMalloc->GetAllocatorStats( out_Stats );
 	}
 
 	/** Dumps allocator stats to an output device. */
-	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) OVERRIDE
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		UsedMalloc->DumpAllocatorStats( Ar );
@@ -493,7 +493,7 @@ public:
 	/**
 	 * Validates the allocator's heap
 	 */
-	virtual bool ValidateHeap() OVERRIDE
+	virtual bool ValidateHeap() override
 	{
 		FScopeLock Lock( &CriticalSection );
 		return( UsedMalloc->ValidateHeap() );
@@ -506,7 +506,7 @@ public:
 	* @param SizeOut - If possible, this value is set to the size of the passed in pointer
 	* @return true if succeeded
 	*/
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override
 	{
 		FScopeLock Lock( &CriticalSection );
 		return UsedMalloc->GetAllocationSize(Original,SizeOut);
@@ -514,7 +514,7 @@ public:
 
 	
 	// Begin Exec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	// End Exec Interface
 
 	/** 
@@ -525,7 +525,7 @@ public:
 	bool HandleSnapshotMemoryCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleSnapshotMemoryFrameCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE
+	virtual const TCHAR * GetDescriptiveName() override
 	{ 
 		FScopeLock ScopeLock( &CriticalSection );
 		check(UsedMalloc);

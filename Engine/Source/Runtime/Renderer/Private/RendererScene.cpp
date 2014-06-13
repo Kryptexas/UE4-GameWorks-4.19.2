@@ -2014,7 +2014,7 @@ public:
 
 	virtual void AddDecal(UDecalComponent*){}
 	virtual void RemoveDecal(UDecalComponent*){}
-	virtual void UpdateDecalTransform(UDecalComponent* Decal) OVERRIDE {}
+	virtual void UpdateDecalTransform(UDecalComponent* Decal) override {}
 
 	/** Updates the transform of a light which has already been added to the scene. */
 	virtual void UpdateLightTransform(ULightComponent* Light){}

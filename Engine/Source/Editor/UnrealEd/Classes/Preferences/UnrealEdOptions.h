@@ -106,7 +106,7 @@ public:
 	TMap<FName, int32>	CommandMap;
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject Interface
 
 	/**

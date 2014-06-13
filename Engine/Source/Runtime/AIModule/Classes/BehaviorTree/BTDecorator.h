@@ -54,7 +54,7 @@ class AIMODULE_API UBTDecorator : public UBTAuxiliaryNode
 	/** @return true if condition should be inversed */
 	bool IsInversed() const;
 
-	virtual FString GetStaticDescription() const OVERRIDE;
+	virtual FString GetStaticDescription() const override;
 
 	/** modify current flow abort mode, so it can be used with parent composite */
 	void UpdateFlowAbortMode();

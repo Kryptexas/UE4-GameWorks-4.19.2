@@ -2745,7 +2745,7 @@ static class FMeshHierarchyCmd : private FSelfRegisteringExec
 {
 public:
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		bool bResult = false;
 		if(FParse::Command(&Cmd,TEXT("TMH")))

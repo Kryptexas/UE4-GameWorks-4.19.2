@@ -50,7 +50,7 @@ public:
 	 *
 	 * @param InAddr the new address to use (must convert to network byte order)
 	 */
-	void SetIp(uint32 InAddr) OVERRIDE
+	void SetIp(uint32 InAddr) override
 	{
 		check("Invalid interface for Steam P2P addresses" && 0);
 	}
@@ -60,14 +60,14 @@ public:
 	 *
 	 * @param InAddr the string containing the new ip address to use
 	 */
-	void SetIp(const TCHAR* InAddr, bool& bIsValid) OVERRIDE;
+	void SetIp(const TCHAR* InAddr, bool& bIsValid) override;
 
 	/**
 	 * Copies the network byte order ip address to a host byte order dword
 	 *
 	 * @param OutAddr the out param receiving the ip address
 	 */
-	void GetIp(uint32& OutAddr) const OVERRIDE
+	void GetIp(uint32& OutAddr) const override
 	{ 
 		check("Invalid interface for Steam P2P addresses" && 0);
 	}
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @param InPort the new port to use (must convert to network byte order)
 	 */
-	void SetPort(int32 InPort) OVERRIDE
+	void SetPort(int32 InPort) override
 	{
 		SteamChannel = InPort;
 	}
@@ -87,7 +87,7 @@ public:
 	 *
 	 * @param OutPort the host byte order int that receives the port
 	 */
-	void GetPort(int32& OutPort) const OVERRIDE
+	void GetPort(int32& OutPort) const override
 	{
 		OutPort = SteamChannel;
 	}
@@ -95,18 +95,18 @@ public:
 	/**
 	 * Returns the port number from this address in host byte order
 	 */
-	int32 GetPort() const OVERRIDE
+	int32 GetPort() const override
 	{
 		return SteamChannel;
 	}
 
 	/** Sets the address to be any address */
-	void SetAnyAddress() OVERRIDE
+	void SetAnyAddress() override
 	{
 	}
 
 	/** Sets the address to broadcast */
-	void SetBroadcastAddress() OVERRIDE
+	void SetBroadcastAddress() override
 	{
 	}
 
@@ -115,7 +115,7 @@ public:
 	 *
 	 * @param bAppendPort whether to append the port information or not
 	 */
-	FString ToString(bool bAppendPort) const OVERRIDE
+	FString ToString(bool bAppendPort) const override
 	{
 		if (bAppendPort)
 		{
@@ -132,7 +132,7 @@ public:
 	 *
 	 * @param Other the address to compare against
 	 */
-	virtual bool operator==(const FInternetAddr& Other) const OVERRIDE
+	virtual bool operator==(const FInternetAddr& Other) const override
 	{
 		FInternetAddrSteam& SteamOther = (FInternetAddrSteam&)Other;
 		return SteamId == SteamOther.SteamId && SteamChannel == SteamOther.SteamChannel;
@@ -148,7 +148,7 @@ public:
 	 *
 	 * @return true if a valid IP, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return SteamId.IsValid();
 	}

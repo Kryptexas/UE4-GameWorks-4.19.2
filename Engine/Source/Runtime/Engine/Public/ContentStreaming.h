@@ -596,7 +596,7 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * @param Ar	Output device for feedback
 	 * @return		true if the command was handled
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/** Adds a ULevel to the streaming manager. */
 	virtual void AddLevel( class ULevel* Level );
@@ -852,7 +852,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 * @param Ar	Output device for feedback
 	 * @return		true if the command was handled
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 	/**
 	 * Exec command handlers

@@ -178,7 +178,7 @@ public:
 	}
 
 	/** Tick single-threaded. */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		if (Queue(0).QuitWhenIdle.GetValue() == 0)
 		{
@@ -466,7 +466,7 @@ public:
 	/**
 	 * Return single threaded interface when multithreading is disabled.
 	 */
-	virtual FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
 	{
 		return this;
 	}
@@ -715,7 +715,7 @@ public:
 	 *	@param	ThreadToExecuteOn; Either a named thread for a threadlocked task or ENamedThreads::AnyThread for a task that is to run on a worker thread
 	 *	@param	CurrentThreadIfKnown; This should be the current thread if it is known, or otherwise use ENamedThreads::AnyThread and the current thread will be determined.
 	**/
-	virtual void QueueTask(FBaseGraphTask* Task, ENamedThreads::Type ThreadToExecuteOn, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) OVERRIDE
+	virtual void QueueTask(FBaseGraphTask* Task, ENamedThreads::Type ThreadToExecuteOn, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		checkThreadGraph(NextUnnamedThreadMod);
 		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)
@@ -761,17 +761,17 @@ public:
 	}
 
 
-	virtual	int32 GetNumWorkerThreads() OVERRIDE
+	virtual	int32 GetNumWorkerThreads() override
 	{
 		return NumThreads - NumNamedThreads;
 	}
 
-	virtual ENamedThreads::Type GetCurrentThreadIfKnown() OVERRIDE
+	virtual ENamedThreads::Type GetCurrentThreadIfKnown() override
 	{
 		return GetCurrentThread();
 	}
 
-	virtual bool IsThreadProcessingTasks(ENamedThreads::Type ThreadToCheck) OVERRIDE
+	virtual bool IsThreadProcessingTasks(ENamedThreads::Type ThreadToCheck) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(ThreadToCheck);
 		ThreadToCheck = ENamedThreads::GetThreadIndex(ThreadToCheck);
@@ -781,7 +781,7 @@ public:
 
 	// External Thread API
 
-	virtual void AttachToThread(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void AttachToThread(ENamedThreads::Type CurrentThread) override
 	{
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
 		check(NextUnnamedThreadMod);
@@ -790,7 +790,7 @@ public:
 		Thread(CurrentThread).InitializeForCurrentThread();
 	}
 
-	virtual void ProcessThreadUntilIdle(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void ProcessThreadUntilIdle(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -799,7 +799,7 @@ public:
 		Thread(CurrentThread).ProcessTasks(QueueIndex, false);
 	}
 
-	virtual void ProcessThreadUntilRequestReturn(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void ProcessThreadUntilRequestReturn(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -808,7 +808,7 @@ public:
 		Thread(CurrentThread).ProcessTasksUntilQuit(QueueIndex);
 	}
 
-	virtual void RequestReturn(ENamedThreads::Type CurrentThread) OVERRIDE
+	virtual void RequestReturn(ENamedThreads::Type CurrentThread) override
 	{
 		int32 QueueIndex = ENamedThreads::GetQueueIndex(CurrentThread);
 		CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
@@ -816,7 +816,7 @@ public:
 		Thread(CurrentThread).RequestQuit(QueueIndex);
 	}
 
-	virtual void WaitUntilTasksComplete(const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) OVERRIDE
+	virtual void WaitUntilTasksComplete(const FGraphEventArray& Tasks, ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread) override
 	{
 		ENamedThreads::Type CurrentThread = CurrentThreadIfKnown;
 		if (CurrentThreadIfKnown == ENamedThreads::AnyThread)

@@ -1198,7 +1198,7 @@ protected:
 		return INDEX_NONE;
 	}
 
-	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* Compiler) OVERRIDE
+	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* Compiler) override
 	{
 		// Check if this expression has already been translated.
 		int32* ExistingCodeIndex = FunctionStack.Last().ExpressionCodeMap[MaterialProperty][ShaderFrequency].Find(ExpressionKey);
@@ -1233,7 +1233,7 @@ protected:
 		}
 	}
 
-	virtual EMaterialValueType GetType(int32 Code) OVERRIDE
+	virtual EMaterialValueType GetType(int32 Code) override
 	{
 		if(Code != INDEX_NONE)
 		{
@@ -1245,17 +1245,17 @@ protected:
 		}
 	}
 
-	virtual EMaterialQualityLevel::Type GetQualityLevel() OVERRIDE
+	virtual EMaterialQualityLevel::Type GetQualityLevel() override
 	{
 		return QualityLevel;
 	}
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() OVERRIDE
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() override
 	{
 		return FeatureLevel;
 	}
 
-	virtual float GetRefractionDepthBiasValue() OVERRIDE
+	virtual float GetRefractionDepthBiasValue() override
 	{
 		return Material->GetRefractionDepthBiasValue();
 	}
@@ -1264,7 +1264,7 @@ protected:
 	 * Casts the passed in code to DestType, or generates a compile error if the cast is not valid. 
 	 * This will truncate a type (float4 -> float3) but not add components (float2 -> float3), however a float1 can be cast to any float type by replication. 
 	 */
-	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) OVERRIDE
+	virtual int32 ValidCast(int32 Code,EMaterialValueType DestType) override
 	{
 		if(Code == INDEX_NONE)
 		{
@@ -1345,7 +1345,7 @@ protected:
 		return CompiledResult;
 	}
 
-	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) OVERRIDE
+	virtual int32 ForceCast(int32 Code,EMaterialValueType DestType,bool bExactMatch=false,bool bReplicateValue=false) override
 	{
 		if(Code == INDEX_NONE)
 		{
@@ -1414,18 +1414,18 @@ protected:
 	}
 
 	/** Pushes a function onto the compiler's function stack, which indicates that compilation is entering a function. */
-	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) OVERRIDE
+	virtual void PushFunction(const FMaterialFunctionCompileState& FunctionState) override
 	{
 		FunctionStack.Push(FunctionState);
 	}	
 
 	/** Pops a function from the compiler's function stack, which indicates that compilation is leaving a function. */
-	virtual FMaterialFunctionCompileState PopFunction() OVERRIDE
+	virtual FMaterialFunctionCompileState PopFunction() override
 	{
 		return FunctionStack.Pop();
 	}
 
-	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) OVERRIDE
+	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override
 	{
 		if (!ParameterCollection || ParameterIndex == -1)
 		{
@@ -1454,47 +1454,47 @@ protected:
 			ComponentIndex == -1 ? true : ComponentIndex % 4 == 3);
 	}
 
-	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) OVERRIDE
+	virtual int32 VectorParameter(FName ParameterName,const FLinearColor& DefaultValue) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionVectorParameter(ParameterName,DefaultValue),MCT_Float4,TEXT(""));
 	}
 
-	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) OVERRIDE
+	virtual int32 ScalarParameter(FName ParameterName,float DefaultValue) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionScalarParameter(ParameterName,DefaultValue),MCT_Float,TEXT(""));
 	}
 
-	virtual int32 Constant(float X) OVERRIDE
+	virtual int32 Constant(float X) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,X,X,X),MCT_Float),MCT_Float,TEXT("%0.8f"),X);
 	}
 
-	virtual int32 Constant2(float X,float Y) OVERRIDE
+	virtual int32 Constant2(float X,float Y) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,0,0),MCT_Float2),MCT_Float2,TEXT("MaterialFloat2(%0.8f,%0.8f)"),X,Y);
 	}
 
-	virtual int32 Constant3(float X,float Y,float Z) OVERRIDE
+	virtual int32 Constant3(float X,float Y,float Z) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,Z,0),MCT_Float3),MCT_Float3,TEXT("MaterialFloat3(%0.8f,%0.8f,%0.8f)"),X,Y,Z);
 	}
 
-	virtual int32 Constant4(float X,float Y,float Z,float W) OVERRIDE
+	virtual int32 Constant4(float X,float Y,float Z,float W) override
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,Z,W),MCT_Float4),MCT_Float4,TEXT("MaterialFloat4(%0.8f,%0.8f,%0.8f,%0.8f)"),X,Y,Z,W);
 	}
 
-	virtual int32 GameTime() OVERRIDE
+	virtual int32 GameTime() override
 	{
 		return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
 	}
 
-	virtual int32 RealTime() OVERRIDE
+	virtual int32 RealTime() override
 	{
 		return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
 	}
 
-	virtual int32 PeriodicHint(int32 PeriodicCode) OVERRIDE
+	virtual int32 PeriodicHint(int32 PeriodicCode) override
 	{
 		if(PeriodicCode == INDEX_NONE)
 		{
@@ -1511,7 +1511,7 @@ protected:
 		}
 	}
 
-	virtual int32 Sine(int32 X) OVERRIDE
+	virtual int32 Sine(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1528,7 +1528,7 @@ protected:
 		}
 	}
 
-	virtual int32 Cosine(int32 X) OVERRIDE
+	virtual int32 Cosine(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1545,7 +1545,7 @@ protected:
 		}
 	}
 
-	virtual int32 Floor(int32 X) OVERRIDE
+	virtual int32 Floor(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1562,7 +1562,7 @@ protected:
 		}
 	}
 
-	virtual int32 Ceil(int32 X) OVERRIDE
+	virtual int32 Ceil(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1579,7 +1579,7 @@ protected:
 		}
 	}
 
-	virtual int32 Frac(int32 X) OVERRIDE
+	virtual int32 Frac(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1596,7 +1596,7 @@ protected:
 		}
 	}
 
-	virtual int32 Fmod(int32 A, int32 B) OVERRIDE
+	virtual int32 Fmod(int32 A, int32 B) override
 	{
 		if ((A == INDEX_NONE) || (B == INDEX_NONE))
 		{
@@ -1621,7 +1621,7 @@ protected:
 	* @param	X - Index to the FMaterialCompiler::CodeChunk entry for the input expression
 	* @return	Index to the new FMaterialCompiler::CodeChunk entry for this expression
 	*/	
-	virtual int32 Abs( int32 X ) OVERRIDE
+	virtual int32 Abs( int32 X ) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -1641,7 +1641,7 @@ protected:
 		}
 	}
 
-	virtual int32 ReflectionVector() OVERRIDE
+	virtual int32 ReflectionVector() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain)
 		{
@@ -1651,7 +1651,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.ReflectionVector"));
 	}
 
-	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) OVERRIDE
+	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain)
 		{
@@ -1668,7 +1668,7 @@ protected:
 		return AddCodeChunk(MCT_Float3,TEXT("ReflectionAboutCustomWorldNormal(Parameters, %s, %s)"), *GetParameterCode(CustomWorldNormal), ShouldNormalize);
 	}
 
-	virtual int32 CameraVector() OVERRIDE
+	virtual int32 CameraVector() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain)
 		{
@@ -1681,12 +1681,12 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.CameraVector"));
 	}
 
-	virtual int32 CameraWorldPosition() OVERRIDE
+	virtual int32 CameraWorldPosition() override
 	{
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("View.ViewOrigin.xyz"));
 	}
 
-	virtual int32 LightVector() OVERRIDE
+	virtual int32 LightVector() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1701,7 +1701,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.LightVector"));
 	}
 
-	virtual int32 ScreenPosition() OVERRIDE
+	virtual int32 ScreenPosition() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1711,17 +1711,17 @@ protected:
 		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(Parameters.ScreenPosition).xy"));		
 	}
 
-	virtual int32 ViewSize() OVERRIDE
+	virtual int32 ViewSize() override
 	{
 		return AddCodeChunk(MCT_Float2,TEXT("View.ViewSizeAndSceneTexelSize.xy"));
 	}
 
-	virtual int32 SceneTexelSize() OVERRIDE
+	virtual int32 SceneTexelSize() override
 	{
 		return AddCodeChunk(MCT_Float2,TEXT("View.ViewSizeAndSceneTexelSize.zw"));
 	}
 
-	virtual int32 ParticleMacroUV() OVERRIDE 
+	virtual int32 ParticleMacroUV() override 
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1731,7 +1731,7 @@ protected:
 		return AddCodeChunk(MCT_Float2,TEXT("GetParticleMacroUV(Parameters)"));
 	}
 
-	virtual int32 ParticleSubUV(int32 TextureIndex, EMaterialSamplerType SamplerType, bool bBlend) OVERRIDE
+	virtual int32 ParticleSubUV(int32 TextureIndex, EMaterialSamplerType SamplerType, bool bBlend) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1770,7 +1770,7 @@ protected:
 		return ParticleSubUV;
 	}
 
-	virtual int32 ParticleColor() OVERRIDE
+	virtual int32 ParticleColor() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1780,7 +1780,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float4,TEXT("Parameters.Particle.Color"));	
 	}
 
-	virtual int32 ParticlePosition() OVERRIDE
+	virtual int32 ParticlePosition() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1790,7 +1790,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.Particle.PositionAndSize.xyz"));	
 	}
 
-	virtual int32 ParticleRadius() OVERRIDE
+	virtual int32 ParticleRadius() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1800,7 +1800,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("max(Parameters.Particle.PositionAndSize.w, .001f)"));	
 	}
 
-	virtual int32 SphericalParticleOpacity(int32 Density) OVERRIDE
+	virtual int32 SphericalParticleOpacity(int32 Density) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1817,7 +1817,7 @@ protected:
 		return AddCodeChunk(MCT_Float, TEXT("GetSphericalParticleOpacity(Parameters,%s)"), *GetParameterCode(Density));
 	}
 
-	virtual int32 ParticleRelativeTime() OVERRIDE
+	virtual int32 ParticleRelativeTime() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1827,7 +1827,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.RelativeTime"));
 	}
 
-	virtual int32 ParticleMotionBlurFade() OVERRIDE
+	virtual int32 ParticleMotionBlurFade() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1837,7 +1837,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.MotionBlurFade"));
 	}
 
-	virtual int32 ParticleDirection() OVERRIDE
+	virtual int32 ParticleDirection() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1847,7 +1847,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.Particle.Velocity.xyz"));
 	}
 
-	virtual int32 ParticleSpeed() OVERRIDE
+	virtual int32 ParticleSpeed() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1857,7 +1857,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.Particle.Velocity.w"));
 	}
 
-	virtual int32 ParticleSize() OVERRIDE
+	virtual int32 ParticleSize() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -1867,7 +1867,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float2,TEXT("Parameters.Particle.Size"));
 	}
 
-	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) OVERRIDE
+	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
 		if (ShaderFrequency == SF_Pixel)
 		{
@@ -1915,32 +1915,32 @@ protected:
 		}
 	}
 
-	virtual int32 ObjectWorldPosition() OVERRIDE
+	virtual int32 ObjectWorldPosition() override
 	{
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("GetObjectWorldPosition(Parameters)"));		
 	}
 
-	virtual int32 ObjectRadius() OVERRIDE
+	virtual int32 ObjectRadius() override
 	{
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Primitive.ObjectWorldPositionAndRadius.w"));		
 	}
 
-	virtual int32 ObjectBounds() OVERRIDE
+	virtual int32 ObjectBounds() override
 	{
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ObjectBounds.xyz"));		
 	}
 
-	virtual int32 DistanceCullFade() OVERRIDE
+	virtual int32 DistanceCullFade() override
 	{
 		return AddInlinedCodeChunk(MCT_Float,TEXT("GetDistanceCullFade()"));		
 	}
 
-	virtual int32 ActorWorldPosition() OVERRIDE
+	virtual int32 ActorWorldPosition() override
 	{
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ActorWorldPosition"));		
 	}
 
-	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 ThresholdArg) OVERRIDE
+	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 ThresholdArg) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE || AGreaterThanB == INDEX_NONE || ALessThanB == INDEX_NONE || ThresholdArg == INDEX_NONE)
 		{
@@ -1996,7 +1996,7 @@ protected:
 		}
 	}
 
-	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) OVERRIDE
+	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override
 	{
 		const uint32 MaxNumCoordinates = FeatureLevel == ERHIFeatureLevel::ES2 ? 3 : 8;
 
@@ -2041,7 +2041,7 @@ protected:
 				);
 		}
 
-	virtual int32 TextureSample(int32 TextureIndex,int32 CoordinateIndex,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) OVERRIDE
+	virtual int32 TextureSample(int32 TextureIndex,int32 CoordinateIndex,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None) override
 	{
 		if(TextureIndex == INDEX_NONE || CoordinateIndex == INDEX_NONE)
 		{
@@ -2151,7 +2151,7 @@ protected:
 			);
 	}
 
-	virtual int32 PixelDepth() OVERRIDE
+	virtual int32 PixelDepth() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -2175,7 +2175,7 @@ protected:
 		}
 	}
 
-	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) OVERRIDE
+	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -2200,7 +2200,7 @@ protected:
 	}
 	
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) OVERRIDE
+	virtual int32 SceneTextureLookup(int32 UV, uint32 InSceneTextureId) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -2228,7 +2228,7 @@ protected:
 	}
 
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureSize(uint32 InSceneTextureId, bool bInvert) OVERRIDE
+	virtual int32 SceneTextureSize(uint32 InSceneTextureId, bool bInvert) override
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
@@ -2268,7 +2268,7 @@ protected:
 	}
 
 	// @param SceneTextureId of type ESceneTextureId e.g. PPI_SubsurfaceColor
-	virtual int32 SceneTextureMin(uint32 InSceneTextureId) OVERRIDE
+	virtual int32 SceneTextureMin(uint32 InSceneTextureId) override
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
@@ -2292,7 +2292,7 @@ protected:
 		}
 	}
 
-	virtual int32 SceneTextureMax(uint32 InSceneTextureId) OVERRIDE
+	virtual int32 SceneTextureMax(uint32 InSceneTextureId) override
 	{
 		if (ShaderFrequency != SF_Pixel)
 		{
@@ -2349,7 +2349,7 @@ protected:
 		//   PPI_SeparateTranslucency, PPI_CustomDepth, PPI_AmbientOcclusion
 	}
 
-	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) OVERRIDE
+	virtual int32 SceneColor(int32 Offset, int32 UV, bool bUseOffset) override
 	{
 		if (Offset == INDEX_NONE && bUseOffset)
 		{
@@ -2376,7 +2376,7 @@ protected:
 			);
 	}
 
-	virtual int32 Texture(UTexture* InTexture) OVERRIDE
+	virtual int32 Texture(UTexture* InTexture) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2390,7 +2390,7 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionTexture(TextureReferenceIndex),ShaderType,TEXT(""));
 	}
 
-	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue) OVERRIDE
+	virtual int32 TextureParameter(FName ParameterName,UTexture* DefaultValue) override
 	{
 		if (ShaderFrequency != SF_Pixel
 			&& ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2404,12 +2404,12 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionTextureParameter(ParameterName,TextureReferenceIndex),ShaderType,TEXT(""));
 	}
 
-	virtual int32 StaticBool(bool bValue) OVERRIDE
+	virtual int32 StaticBool(bool bValue) override
 	{
 		return AddInlinedCodeChunk(MCT_StaticBool,(bValue ? TEXT("true") : TEXT("false")));
 	}
 
-	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) OVERRIDE
+	virtual int32 StaticBoolParameter(FName ParameterName,bool bDefaultValue) override
 	{
 		// Look up the value we are compiling with for this static parameter.
 		bool bValue = bDefaultValue;
@@ -2426,7 +2426,7 @@ protected:
 		return StaticBool(bValue);
 	}
 	
-	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) OVERRIDE
+	virtual int32 StaticComponentMask(int32 Vector,FName ParameterName,bool bDefaultR,bool bDefaultG,bool bDefaultB,bool bDefaultA) override
 	{
 		// Look up the value we are compiling with for this static parameter.
 		bool bValueR = bDefaultR;
@@ -2449,7 +2449,7 @@ protected:
 		return ComponentMask(Vector,bValueR,bValueG,bValueB,bValueA);
 	}
 
-	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) OVERRIDE
+	virtual bool GetStaticBoolValue(int32 BoolIndex, bool& bSucceeded) override
 	{
 		bSucceeded = true;
 		if (BoolIndex == INDEX_NONE)
@@ -2472,7 +2472,7 @@ protected:
 		return false;
 	}
 
-	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) OVERRIDE
+	virtual int32 StaticTerrainLayerWeight(FName ParameterName,int32 Default) override
 	{
 		// Look up the weight-map index for this static parameter.
 		int32 WeightmapIndex = INDEX_NONE;
@@ -2512,13 +2512,13 @@ protected:
 		}
 	}
 
-	virtual int32 VertexColor() OVERRIDE
+	virtual int32 VertexColor() override
 	{
 		bUsesVertexColor |= (ShaderFrequency != SF_Vertex);
 		return AddInlinedCodeChunk(MCT_Float4,TEXT("Parameters.VertexColor"));
 	}
 
-	virtual int32 Add(int32 A,int32 B) OVERRIDE
+	virtual int32 Add(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2535,7 +2535,7 @@ protected:
 		}
 	}
 
-	virtual int32 Sub(int32 A,int32 B) OVERRIDE
+	virtual int32 Sub(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2552,7 +2552,7 @@ protected:
 		}
 	}
 
-	virtual int32 Mul(int32 A,int32 B) OVERRIDE
+	virtual int32 Mul(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2569,7 +2569,7 @@ protected:
 		}
 	}
 
-	virtual int32 Div(int32 A,int32 B) OVERRIDE
+	virtual int32 Div(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2586,7 +2586,7 @@ protected:
 		}
 	}
 
-	virtual int32 Dot(int32 A,int32 B) OVERRIDE
+	virtual int32 Dot(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2638,7 +2638,7 @@ protected:
 		}
 	}
 
-	virtual int32 Cross(int32 A,int32 B) OVERRIDE
+	virtual int32 Cross(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2648,7 +2648,7 @@ protected:
 		return AddCodeChunk(MCT_Float3,TEXT("cross(%s,%s)"),*CoerceParameter(A,MCT_Float3),*CoerceParameter(B,MCT_Float3));
 	}
 
-	virtual int32 Power(int32 Base,int32 Exponent) OVERRIDE
+	virtual int32 Power(int32 Base,int32 Exponent) override
 	{
 		if(Base == INDEX_NONE || Exponent == INDEX_NONE)
 		{
@@ -2659,7 +2659,7 @@ protected:
 		return AddCodeChunk(GetParameterType(Base),TEXT("ClampedPow(%s,%s)"),*GetParameterCode(Base),*CoerceParameter(Exponent,MCT_Float));
 	}
 
-	virtual int32 SquareRoot(int32 X) OVERRIDE
+	virtual int32 SquareRoot(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -2676,7 +2676,7 @@ protected:
 		}
 	}
 
-	virtual int32 Length(int32 X) OVERRIDE
+	virtual int32 Length(int32 X) override
 	{
 		if(X == INDEX_NONE)
 		{
@@ -2693,7 +2693,7 @@ protected:
 		}
 	}
 
-	virtual int32 Lerp(int32 X,int32 Y,int32 A) OVERRIDE
+	virtual int32 Lerp(int32 X,int32 Y,int32 A) override
 	{
 		if(X == INDEX_NONE || Y == INDEX_NONE || A == INDEX_NONE)
 		{
@@ -2705,7 +2705,7 @@ protected:
 		return AddCodeChunk(ResultType,TEXT("lerp(%s,%s,%s)"),*CoerceParameter(X,ResultType),*CoerceParameter(Y,ResultType),*CoerceParameter(A,AlphaType));
 	}
 
-	virtual int32 Min(int32 A,int32 B) OVERRIDE
+	virtual int32 Min(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2722,7 +2722,7 @@ protected:
 		}
 	}
 
-	virtual int32 Max(int32 A,int32 B) OVERRIDE
+	virtual int32 Max(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2739,7 +2739,7 @@ protected:
 		}
 	}
 
-	virtual int32 Clamp(int32 X,int32 A,int32 B) OVERRIDE
+	virtual int32 Clamp(int32 X,int32 A,int32 B) override
 	{
 		if(X == INDEX_NONE || A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2756,7 +2756,7 @@ protected:
 		}
 	}
 
-	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) OVERRIDE
+	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) override
 	{
 		if(Vector == INDEX_NONE)
 		{
@@ -2796,7 +2796,7 @@ protected:
 			);
 	}
 
-	virtual int32 AppendVector(int32 A,int32 B) OVERRIDE
+	virtual int32 AppendVector(int32 A,int32 B) override
 	{
 		if(A == INDEX_NONE || B == INDEX_NONE)
 		{
@@ -2819,7 +2819,7 @@ protected:
 	/**
 	* Generate shader code for transforming a vector
 	*/
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) OVERRIDE
+	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain && ShaderFrequency != SF_Vertex)
 		{
@@ -2999,7 +2999,7 @@ protected:
 	* @param	CoordType - type of transform to apply. see EMaterialExpressionTransformPosition 
 	* @param	A - index for input vector parameter's code
 	*/
-	virtual int32 TransformPosition(uint8 SourceCoordType, uint8 DestCoordType, int32 A) OVERRIDE
+	virtual int32 TransformPosition(uint8 SourceCoordType, uint8 DestCoordType, int32 A) override
 	{
 		const EMaterialPositionTransformSource SourceCoordinateSpace = (EMaterialPositionTransformSource)SourceCoordType;
 		const EMaterialPositionTransformSource DestinationCoordinateSpace = (EMaterialPositionTransformSource)DestCoordType;
@@ -3033,7 +3033,7 @@ protected:
 		return Result; 
 	}
 
-	virtual int32 DynamicParameter() OVERRIDE
+	virtual int32 DynamicParameter() override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3048,7 +3048,7 @@ protected:
 			);
 	}
 
-	virtual int32 LightmapUVs() OVERRIDE
+	virtual int32 LightmapUVs() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3071,9 +3071,9 @@ protected:
 		return ResultIdx;
 	}
 
-	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) OVERRIDE { return Realtime; }
+	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Realtime; }
 
-	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) OVERRIDE 
+	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) override 
 	{ 
 		if(Direct == INDEX_NONE || DynamicIndirect == INDEX_NONE)
 		{
@@ -3085,12 +3085,12 @@ protected:
 		return AddCodeChunk(ResultType,TEXT("(GetGIReplaceState() ? (%s) : (%s))"), *GetParameterCode(DynamicIndirect), *GetParameterCode(Direct));
 	}
 
-	virtual int32 ObjectOrientation() OVERRIDE
+	virtual int32 ObjectOrientation() override
 	{ 
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Primitive.ObjectOrientation.xyz"));	
 	}
 
-	virtual int32 RotateAboutAxis(int32 NormalizedRotationAxisAndAngleIndex, int32 PositionOnAxisIndex, int32 PositionIndex) OVERRIDE
+	virtual int32 RotateAboutAxis(int32 NormalizedRotationAxisAndAngleIndex, int32 PositionOnAxisIndex, int32 PositionIndex) override
 	{
 		if (NormalizedRotationAxisAndAngleIndex == INDEX_NONE
 			|| PositionOnAxisIndex == INDEX_NONE
@@ -3110,7 +3110,7 @@ protected:
 		}
 	}
 
-	virtual int32 TwoSidedSign() OVERRIDE
+	virtual int32 TwoSidedSign() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3119,7 +3119,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float,TEXT("Parameters.TwoSidedSign"));	
 	}
 
-	virtual int32 VertexNormal() OVERRIDE
+	virtual int32 VertexNormal() override
 	{
 		if (ShaderFrequency != SF_Vertex)
 		{
@@ -3128,7 +3128,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.TangentToWorld[2]"));	
 	}
 
-	virtual int32 PixelNormalWS() OVERRIDE
+	virtual int32 PixelNormalWS() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3145,7 +3145,7 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.WorldNormal"));	
 	}
 
-	virtual int32 DDX( int32 X ) OVERRIDE
+	virtual int32 DDX( int32 X ) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3171,7 +3171,7 @@ protected:
 		return AddCodeChunk(GetParameterType(X),TEXT("ddx(%s)"),*GetParameterCode(X));
 	}
 
-	virtual int32 DDY( int32 X ) OVERRIDE
+	virtual int32 DDY( int32 X ) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3196,7 +3196,7 @@ protected:
 		return AddCodeChunk(GetParameterType(X),TEXT("ddy(%s)"),*GetParameterCode(X));
 	}
 
-	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) OVERRIDE
+	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3221,7 +3221,7 @@ protected:
 			*GetParameterCode(ChannelConst));
 	}
 
-	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) OVERRIDE
+	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) override
 	{
 		if (ShaderFrequency == SF_Hull)
 		{
@@ -3238,7 +3238,7 @@ protected:
 			*GetParameterCode(Depth), FunctionValueIndex);
 	}
 
-	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) OVERRIDE
+	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3276,7 +3276,7 @@ protected:
 			*GetParameterCode(FilterWidth));
 	}
 
-	virtual int32 BlackBody( int32 Temp ) OVERRIDE
+	virtual int32 BlackBody( int32 Temp ) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3291,7 +3291,7 @@ protected:
 		return AddCodeChunk( MCT_Float3, TEXT("MaterialExpressionBlackBody(%s)"), *GetParameterCode(Temp) );
 	}
 
-	virtual int32 AtmosphericFogColor( int32 WorldPosition ) OVERRIDE
+	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3309,7 +3309,7 @@ protected:
 		}
 	}
 
-	virtual int32 CustomExpression( class UMaterialExpressionCustom* Custom, TArray<int32>& CompiledInputs ) OVERRIDE
+	virtual int32 CustomExpression( class UMaterialExpressionCustom* Custom, TArray<int32>& CompiledInputs ) override
 	{
 		int32 ResultIdx = INDEX_NONE;
 
@@ -3406,7 +3406,7 @@ protected:
 	 *
 	 * @return	Code index
 	 */
-	virtual int32 PerInstanceRandom() OVERRIDE
+	virtual int32 PerInstanceRandom() override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3428,7 +3428,7 @@ protected:
 	 *
 	 * @return	Code index
 	 */
-	virtual int32 PerInstanceFadeAmount() OVERRIDE
+	virtual int32 PerInstanceFadeAmount() override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3450,7 +3450,7 @@ protected:
 	*
 	* @return	Code index
 	*/
-	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) OVERRIDE 
+	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold) override 
 	{ 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
 		{
@@ -3475,7 +3475,7 @@ protected:
 	 *
 	 * @return	Code index
 	 */
-	virtual int32 TextureCoordinateOffset() OVERRIDE
+	virtual int32 TextureCoordinateOffset() override
 	{
 		if (FeatureLevel == ERHIFeatureLevel::ES2 && ShaderFrequency == SF_Vertex)
 		{
@@ -3488,7 +3488,7 @@ protected:
 	}
 
 	/**Experimental access to the EyeAdaptation RT for Post Process materials. Can be one frame behind depending on the value of BlendableLocation. */
-	virtual int32 EyeAdaptation() OVERRIDE
+	virtual int32 EyeAdaptation() override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
 		{

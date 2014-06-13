@@ -58,14 +58,14 @@ protected:
 	/** IMovieScenePlayer interface */
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 	virtual void DestroyActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
-	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const OVERRIDE;
-	virtual void UpdateViewports(AActor* ActorToViewThrough) const OVERRIDE {}
-	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const OVERRIDE;
-	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) OVERRIDE;
-	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) OVERRIDE;
-	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const OVERRIDE { return RootMovieSceneInstance.ToSharedRef(); }
+	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const override;
+	virtual void UpdateViewports(AActor* ActorToViewThrough) const override {}
+	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) override;
+	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) override;
+	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const override { return RootMovieSceneInstance.ToSharedRef(); }
 	/** IRuntimeMovieScenePlayerInterface */
-	virtual void Tick( const float DeltaSeconds ) OVERRIDE;
+	virtual void Tick( const float DeltaSeconds ) override;
 
 
 private:

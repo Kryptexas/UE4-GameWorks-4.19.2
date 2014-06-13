@@ -15,10 +15,10 @@ class UInterpTrackInstSlomo : public UInterpTrackInst
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void InitTrackInst(UInterpTrack* Track) OVERRIDE;
-	virtual void TermTrackInst(UInterpTrack* Track) OVERRIDE;
-	virtual void SaveActorState(UInterpTrack* Track) OVERRIDE;
-	virtual void RestoreActorState(UInterpTrack* Track) OVERRIDE;
+	virtual void InitTrackInst(UInterpTrack* Track) override;
+	virtual void TermTrackInst(UInterpTrack* Track) override;
+	virtual void SaveActorState(UInterpTrack* Track) override;
+	virtual void RestoreActorState(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 
 	/** @return whether the slomo track's effects should actually be applied. We want to only do this once for the server

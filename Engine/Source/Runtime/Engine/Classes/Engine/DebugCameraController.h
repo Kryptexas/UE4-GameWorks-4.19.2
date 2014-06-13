@@ -91,7 +91,7 @@ protected:
 
 	// Adjusts movement speed limits based on SpeedScale.
 	virtual void ApplySpeedScale();
-	virtual void SetupInputComponent() OVERRIDE;
+	virtual void SetupInputComponent() override;
 
 public:
 	/** Function called on activation debug camera controller */
@@ -111,10 +111,10 @@ public:
 
 
 	// Begin APlayerController Interface
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true) OVERRIDE;
-	virtual void AddCheats(bool bForce) OVERRIDE;
-	virtual void EndSpectatingState() OVERRIDE;
+	virtual void PostInitializeComponents() override;
+	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true) override;
+	virtual void AddCheats(bool bForce) override;
+	virtual void EndSpectatingState() override;
 	// End APlayerController Interface
 
 protected:
@@ -124,7 +124,7 @@ protected:
 	 */
 	virtual void Select( FHitResult const& Hit );
 
-	virtual void SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn) OVERRIDE;
+	virtual void SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn) override;
 };
 
 

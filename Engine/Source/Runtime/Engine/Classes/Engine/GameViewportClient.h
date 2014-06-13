@@ -247,7 +247,7 @@ public:
 	virtual void SetConsoleTarget(int32 PlayerIndex);
 
 	/** Returns a relative world context for this viewport.	 */
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 
 	virtual void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
 
@@ -255,34 +255,34 @@ public:
 
 public:
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 	// FViewportClient interface.
-	virtual void RedrawRequested(FViewport* InViewport) OVERRIDE {}
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent EventType, float AmountDepressed=1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual bool InputChar(FViewport* Viewport,int32 ControllerId, TCHAR Character) OVERRIDE;
-	virtual bool InputTouch(FViewport* Viewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) OVERRIDE;
-	virtual bool InputMotion(FViewport* Viewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration) OVERRIDE;
-	virtual EMouseCursor::Type GetCursor(FViewport* Viewport, int32 X, int32 Y ) OVERRIDE;
-	virtual void Precache() OVERRIDE;
-	virtual void Draw(FViewport* Viewport,FCanvas* SceneCanvas) OVERRIDE;
-	virtual void ProcessScreenShots(FViewport* Viewport) OVERRIDE;
-	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
-	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
-	virtual bool IsFocused(FViewport* Viewport) OVERRIDE;
-	virtual void CloseRequested(FViewport* Viewport) OVERRIDE;
-	virtual bool RequiresHitProxyStorage() OVERRIDE { return 0; }
-	virtual bool IsOrtho() const OVERRIDE;
-	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) OVERRIDE;
-	virtual void MouseLeave(FViewport* Viewport) OVERRIDE;
-	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) OVERRIDE;
+	virtual void RedrawRequested(FViewport* InViewport) override {}
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent EventType, float AmountDepressed=1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual bool InputChar(FViewport* Viewport,int32 ControllerId, TCHAR Character) override;
+	virtual bool InputTouch(FViewport* Viewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) override;
+	virtual bool InputMotion(FViewport* Viewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration) override;
+	virtual EMouseCursor::Type GetCursor(FViewport* Viewport, int32 X, int32 Y ) override;
+	virtual void Precache() override;
+	virtual void Draw(FViewport* Viewport,FCanvas* SceneCanvas) override;
+	virtual void ProcessScreenShots(FViewport* Viewport) override;
+	virtual void LostFocus(FViewport* Viewport) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
+	virtual bool IsFocused(FViewport* Viewport) override;
+	virtual void CloseRequested(FViewport* Viewport) override;
+	virtual bool RequiresHitProxyStorage() override { return 0; }
+	virtual bool IsOrtho() const override;
+	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) override;
+	virtual void MouseLeave(FViewport* Viewport) override;
+	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) override;
 	// End of FViewportClient interface.
 
 	// Begin FExec interface.
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) override;
 	// End of FExec interface.
 
 	/**
@@ -621,7 +621,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	virtual FStatUnitData* GetStatUnitData() const override
 	{
 		return StatUnitData;
 	}
@@ -629,7 +629,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	virtual FStatHitchesData* GetStatHitchesData() const override
 	{
 		return StatHitchesData;
 	}
@@ -637,7 +637,7 @@ public:
 	/**
 	 * Get a ptr to the enabled stats list
 	 */
-	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	virtual const TArray<FString>* GetEnabledStats() const override
 	{
 		return &EnabledStats;
 	}
@@ -645,7 +645,7 @@ public:
 	/**
 	 * Sets all the stats that should be enabled for the viewport
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
 	{
 		EnabledStats = InEnabledStats;
 	}
@@ -653,7 +653,7 @@ public:
 	/**
 	 * Check whether a specific stat is enabled for this viewport
 	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	virtual bool IsStatEnabled(const TCHAR* InName) const override
 	{
 		return EnabledStats.Contains(InName);
 	}
@@ -661,7 +661,7 @@ public:
 	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
-	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
 	{ 
 		return SoundShowFlags;
 	}
@@ -669,7 +669,7 @@ public:
 	/**
 	 * Set the sound stat flags enabled for this viewport
 	 */
-	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
 	}

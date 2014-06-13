@@ -11,22 +11,22 @@ class UK2Node_EnumEquality : public UK2Node
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetKeywords() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetKeywords() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
- 	virtual void PostReconstructNode() OVERRIDE;
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual bool ShouldDrawCompact() const OVERRIDE { return true; }
-	virtual FText GetCompactNodeTitle() const OVERRIDE { return NSLOCTEXT("K2Node", "EqualEqual", "=="); }
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+ 	virtual void PostReconstructNode() override;
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual bool IsNodePure() const override { return true; }
+	virtual bool ShouldDrawCompact() const override { return true; }
+	virtual FText GetCompactNodeTitle() const override { return NSLOCTEXT("K2Node", "EqualEqual", "=="); }
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node interface
 
 	/** Get the return value pin */

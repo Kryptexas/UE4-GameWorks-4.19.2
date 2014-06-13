@@ -218,7 +218,7 @@ public:
 		}
 	}
 
-	virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE
+	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
 		return ReferencedTextures;
 	}
@@ -397,11 +397,11 @@ public:
 	 * This mechanism allows derived material classes to create different DDC keys with the same base material.
 	 * For example lightmass exports diffuse and emissive, each of which requires a material resource with the same base material.
 	 */
-	virtual EMaterialShaderMapUsage::Type GetShaderMapUsage() const OVERRIDE { return Usage; }
+	virtual EMaterialShaderMapUsage::Type GetShaderMapUsage() const override { return Usage; }
 
-	virtual FString GetMaterialUsageDescription() const OVERRIDE { return FString::Printf(TEXT("%s FLightmassMaterialRenderer"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
+	virtual FString GetMaterialUsageDescription() const override { return FString::Printf(TEXT("%s FLightmassMaterialRenderer"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
 	
-	virtual int32 GetMaterialDomain() const OVERRIDE
+	virtual int32 GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -456,7 +456,7 @@ public:
 	 */
 	virtual bool IsPersistent() const { return true; }
 
-	virtual FGuid GetMaterialId() const OVERRIDE 
+	virtual FGuid GetMaterialId() const override 
 	{ 
 		// Reuse the base material's Id
 		// Normally this would cause a bug as the shader map would try to be shared by both, 

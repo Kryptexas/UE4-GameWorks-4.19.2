@@ -271,7 +271,7 @@ private:
 	/**
 	 * SWidget interface
 	 */
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton ) 
 		{
@@ -286,7 +286,7 @@ private:
 		}
 	}
 
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && bUserIsResizing )
 		{
@@ -299,7 +299,7 @@ private:
 		}
 	}
 
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		const FVector2D LocalMouseCoordinates( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 
@@ -330,14 +330,14 @@ private:
 		return FReply::Unhandled();
 	}
 	
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		const FVector2D LocalMouseCoordinates( MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) );
 		MouseZone = FindMouseZone( LocalMouseCoordinates );
 		SBorder::OnMouseEnter( MyGeometry, MouseEvent );
 	}
 
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override
 	{
 		if( !bUserIsResizing )
 		{
@@ -346,7 +346,7 @@ private:
 		}
 	}
 
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const OVERRIDE
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override
 	{
 		if( MouseZone == WZ_RightBorder )
 		{

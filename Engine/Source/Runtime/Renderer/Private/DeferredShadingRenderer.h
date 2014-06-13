@@ -74,10 +74,10 @@ public:
     void RenderFinish();
 
 	/** Renders the view family. */
-	virtual void Render() OVERRIDE;
+	virtual void Render() override;
 
 	/** Render the view family's hit proxies. */
-	virtual void RenderHitProxies() OVERRIDE;
+	virtual void RenderHitProxies() override;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	void RenderVisualizeTexturePool();

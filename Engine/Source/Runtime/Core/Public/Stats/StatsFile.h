@@ -463,7 +463,7 @@ protected:
 	*	Grabs a frame from the local FStatsThreadState and adds it to the output.
 	*	Called from the stats thread, but the data is saved using the the FAsyncWriteWorker.
 	*/
-	virtual void WriteFrame( int64 TargetFrame, bool bNeedFullMetadata = false ) OVERRIDE;
+	virtual void WriteFrame( int64 TargetFrame, bool bNeedFullMetadata = false ) override;
 
 	/** Write a stat packed into the specified archive. */
 	void WriteStatPacket( FArchive& Ar, /*const*/ FStatPacket& StatPacket )

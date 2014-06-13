@@ -34,27 +34,27 @@ class UK2Node_Tunnel : public UK2Node_EditablePinBase
 	struct FKismetUserDeclaredFunctionMetadata MetaData;
 
 	// Begin UEdGraphNode interface.
-	virtual void DestroyNode() OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
+	virtual void DestroyNode() override;
+	virtual void PostPasteNode() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override;
+	BLUEPRINTGRAPH_API virtual bool CanDuplicateNode() const override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface.
-	BLUEPRINTGRAPH_API virtual bool IsNodeSafeToIgnore() const OVERRIDE;
-	virtual bool DrawNodeAsEntry() const OVERRIDE;
-	virtual bool DrawNodeAsExit() const OVERRIDE;
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
+	BLUEPRINTGRAPH_API virtual bool IsNodeSafeToIgnore() const override;
+	virtual bool DrawNodeAsEntry() const override;
+	virtual bool DrawNodeAsExit() const override;
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface.
-	BLUEPRINTGRAPH_API virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool CanModifyExecutionWires() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false) OVERRIDE;
-	virtual bool CanUseRefParams() const OVERRIDE { return true; }
+	BLUEPRINTGRAPH_API virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
+	BLUEPRINTGRAPH_API virtual bool CanModifyExecutionWires() override;
+	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false) override;
+	virtual bool CanUseRefParams() const override { return true; }
 	// End UK2Node_EditablePinBase interface
 public:
 	// The input pins of this tunnel go to the output pins of InputSinkNode (can be NULL).

@@ -10,12 +10,12 @@ class UActorFactoryClass : public UActorFactory
 	GENERATED_UCLASS_BODY()
 
 	// Begin UActorFactory Interface
-	virtual bool PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied ) OVERRIDE;
-	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor ) OVERRIDE;
-	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) OVERRIDE;
-	virtual AActor* GetDefaultActor( const FAssetData& AssetData ) OVERRIDE;
+	virtual bool PreSpawnActor( UObject* Asset, FVector& InOutLocation, FRotator& InOutRotation, bool bRotationWasSupplied ) override;
+	virtual void PostSpawnActor( UObject* Asset, AActor* NewActor ) override;
+	virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
+	virtual AActor* GetDefaultActor( const FAssetData& AssetData ) override;
 	// End UActorFactory Interface	
 
 protected:
-	virtual AActor* SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name ) OVERRIDE;
+	virtual AActor* SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name ) override;
 };

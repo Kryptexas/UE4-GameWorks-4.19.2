@@ -12,7 +12,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_Self* SelfNode = CastChecked<UK2Node_Self>(Node);
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();

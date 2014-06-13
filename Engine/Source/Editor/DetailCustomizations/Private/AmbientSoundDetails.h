@@ -18,7 +18,7 @@ private:
 	};
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 	bool IsEditSoundCueEnabled() const;
 

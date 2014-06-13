@@ -35,19 +35,19 @@ public:
 	float GetUnscaledSphereRadius() const;
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual bool IsZeroExtent() const OVERRIDE;
-	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const OVERRIDE;
-	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual bool IsZeroExtent() const override;
+	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
+	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const override;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const override;
 	// End USceneComponent interface
 
 	// Begin UShapeComponent interface
-	virtual void UpdateBodySetup() OVERRIDE;
+	virtual void UpdateBodySetup() override;
 	// End UShapeComponent interface
 
 	// Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.

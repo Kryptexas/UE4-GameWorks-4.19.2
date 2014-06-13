@@ -12,8 +12,8 @@ private:
 	TSharedPtr<class FEdModeGeometry> EdModeGeometry;
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End of IModuleInterface
 };
 
@@ -43,22 +43,22 @@ public:
 	virtual ~FEdModeGeometry();
 
 	// FEdMode interface
-	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual bool ShowModeWidgets() const OVERRIDE;
-	virtual bool UsesToolkits() const OVERRIDE;
-	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) const OVERRIDE;
-	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData ) OVERRIDE;
-	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData ) OVERRIDE;
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
-	virtual void ActorSelectionChangeNotify() OVERRIDE;
-	virtual void MapChangeNotify() OVERRIDE;
-	virtual void SelectionChanged() OVERRIDE;
+	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
+	virtual bool ShowModeWidgets() const override;
+	virtual bool UsesToolkits() const override;
+	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) const override;
+	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData ) override;
+	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData ) override;
+	virtual void Enter() override;
+	virtual void Exit() override;
+	virtual void ActorSelectionChangeNotify() override;
+	virtual void MapChangeNotify() override;
+	virtual void SelectionChanged() override;
 	virtual FVector GetWidgetLocation() const;
 	// End of FEdMode interface
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	void UpdateModifierWindow();
@@ -245,7 +245,7 @@ public:
 	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime);
 
 	/** @return		true if the key was handled by this editor mode tool. */
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
+	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
 	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);

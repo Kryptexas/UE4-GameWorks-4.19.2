@@ -609,7 +609,7 @@ private:
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
 
 	// Begin FExec interface.
-	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	// End of FExec interface.
 
 public:
@@ -765,7 +765,7 @@ class FDefaultGameModuleImpl
 	 *
 	 * @return True for "gameplay modules", or false for engine code modules, plugins, etc.
 	 */
-	virtual bool IsGameModule() const OVERRIDE
+	virtual bool IsGameModule() const override
 	{
 		return true;
 	}

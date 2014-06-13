@@ -30,7 +30,7 @@ private:
 	/**
 	 * ICustomSlateElement interface 
 	 */
-	virtual void DrawRenderThread( const void* InWindowBackBuffer ) OVERRIDE;
+	virtual void DrawRenderThread( const void* InWindowBackBuffer ) override;
 
 	/**
 	 * Deletes the rendering thread canvas 

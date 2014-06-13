@@ -27,7 +27,7 @@ template<EBokehIndexStyle DOFIndexStyle>
 class TBokehIndexBuffer : public FIndexBuffer
 {
 public:
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		const uint32 Size = sizeof(uint16) * 6 * 8;
 		const uint32 Stride = sizeof(uint16);

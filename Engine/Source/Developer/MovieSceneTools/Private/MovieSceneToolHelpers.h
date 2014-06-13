@@ -15,7 +15,7 @@ public:
 	{}
 
 	/** IKeyArea interface */
-	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const OVERRIDE
+	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override
 	{
 		TArray<FKeyHandle> OutKeyHandles;
 		for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
@@ -25,17 +25,17 @@ public:
 		return OutKeyHandles;
 	}
 
-	virtual float GetKeyTime( FKeyHandle KeyHandle ) const OVERRIDE
+	virtual float GetKeyTime( FKeyHandle KeyHandle ) const override
 	{
 		return Curve.GetKeyTime( KeyHandle );
 	}
 
-	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) OVERRIDE
+	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override
 	{
 		return Curve.SetKeyTime( KeyHandle, Curve.GetKeyTime( KeyHandle ) + DeltaPosition );
 	}
 
-	virtual void DeleteKey(FKeyHandle KeyHandle) OVERRIDE
+	virtual void DeleteKey(FKeyHandle KeyHandle) override
 	{
 		Curve.DeleteKey(KeyHandle);
 	}
@@ -55,7 +55,7 @@ public:
 	{}
 
 	/** IKeyArea interface */
-	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const OVERRIDE
+	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const override
 	{
 		TArray<FKeyHandle> OutKeyHandles;
 		for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
@@ -65,17 +65,17 @@ public:
 		return OutKeyHandles;
 	}
 
-	virtual float GetKeyTime( FKeyHandle KeyHandle ) const OVERRIDE
+	virtual float GetKeyTime( FKeyHandle KeyHandle ) const override
 	{
 		return Curve.GetKeyTime( KeyHandle );
 	}
 
-	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) OVERRIDE
+	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override
 	{
 		return Curve.SetKeyTime( KeyHandle, Curve.GetKeyTime( KeyHandle ) + DeltaPosition );
 	}
 
-	virtual void DeleteKey(FKeyHandle KeyHandle) OVERRIDE
+	virtual void DeleteKey(FKeyHandle KeyHandle) override
 	{
 		Curve.DeleteKey(KeyHandle);
 	}

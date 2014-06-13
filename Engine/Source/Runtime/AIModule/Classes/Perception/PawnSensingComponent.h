@@ -117,7 +117,7 @@ public:
 	virtual bool CanHear(const FVector& NoiseLoc, float Loudness, bool bFailedLOS) const;
 
 	// Begin UActorComponent interface.
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void InitializeComponent() override;
 	// End UActorComponent interface.
 
 	/** Get position where hearing/seeing occurs (i.e. ear/eye position).  If we ever need different positions for hearing/seeing, we'll deal with that then! */

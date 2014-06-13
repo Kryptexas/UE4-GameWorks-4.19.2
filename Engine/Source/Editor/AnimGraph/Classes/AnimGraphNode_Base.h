@@ -94,25 +94,25 @@ class UAnimGraphNode_Base : public UK2Node
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
 	// UObject interface
-	ANIMGRAPH_API virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ANIMGRAPH_API virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	ANIMGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
-	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	ANIMGRAPH_API virtual FString GetDocumentationLink() const OVERRIDE;
-	ANIMGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
-	ANIMGRAPH_API virtual bool ShowPaletteIconOnNode() const OVERRIDE{ return false; }
+	ANIMGRAPH_API virtual void AllocateDefaultPins() override;
+	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	ANIMGRAPH_API virtual FString GetDocumentationLink() const override;
+	ANIMGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
+	ANIMGRAPH_API virtual bool ShowPaletteIconOnNode() const override{ return false; }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual bool CanPlaceBreakpoints() const OVERRIDE { return false; }
-	ANIMGRAPH_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	ANIMGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
-	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	ANIMGRAPH_API virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const OVERRIDE;
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual bool CanPlaceBreakpoints() const override { return false; }
+	ANIMGRAPH_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	ANIMGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
+	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	ANIMGRAPH_API virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const override;
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface

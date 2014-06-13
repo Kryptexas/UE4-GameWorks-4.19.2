@@ -10,11 +10,11 @@ public:
 	FBehaviorTreeDebugger();
 	~FBehaviorTreeDebugger();
 
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual bool IsTickable() const OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override;
 	virtual bool IsTickableWhenPaused() const override { return true; }
-	virtual bool IsTickableInEditor() const OVERRIDE { return true; }
-	virtual TStatId GetStatId() const OVERRIDE { RETURN_QUICK_DECLARE_CYCLE_STAT(FBehaviorTreeEditorTickHelper, STATGROUP_Tickables); }
+	virtual bool IsTickableInEditor() const override { return true; }
+	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FBehaviorTreeEditorTickHelper, STATGROUP_Tickables); }
 
 	/** Refresh the debugging information we are displaying (only when paused, as Tick() updates when running) */
 	void Refresh();

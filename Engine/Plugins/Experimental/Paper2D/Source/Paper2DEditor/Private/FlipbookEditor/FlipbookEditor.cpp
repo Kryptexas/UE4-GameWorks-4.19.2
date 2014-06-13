@@ -54,9 +54,9 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	// SEditorViewport interface
-	virtual void BindCommands() OVERRIDE;
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual void BindCommands() override;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 	// End of SEditorViewport interface
 
 private:
@@ -152,12 +152,12 @@ public:
 	}
 
 	// SSingleObjectDetailsPanel interface
-	virtual UObject* GetObjectToObserve() const OVERRIDE
+	virtual UObject* GetObjectToObserve() const override
 	{
 		return FlipbookEditorPtr.Pin()->GetFlipbookBeingEdited();
 	}
 
-	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) OVERRIDE
+	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
 	{
 		return SNew(SVerticalBox)
 			+SVerticalBox::Slot()

@@ -31,7 +31,7 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("Tell %s"), *Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -40,7 +40,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("Tell return %lld [%fms]"), Result, ThisTime);
 		return Result;
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("Seek %s %lld"), *Filename, NewPosition);
 		double StartTime = FPlatformTime::Seconds();
@@ -49,7 +49,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("Seek return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("SeekFromEnd %s %lld"), *Filename, NewPositionRelativeToEnd);
 		double StartTime = FPlatformTime::Seconds();
@@ -58,7 +58,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("SeekFromEnd return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("Read %s %lld"), *Filename, BytesToRead);
 		double StartTime = FPlatformTime::Seconds();
@@ -67,7 +67,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("Read return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("Write %s %lld"), *Filename, BytesToWrite);
 		double StartTime = FPlatformTime::Seconds();
@@ -76,7 +76,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("Write return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual int64		Size() OVERRIDE
+	virtual int64		Size() override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("Size %s"), *Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -101,11 +101,11 @@ public:
 	{
 	}
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return FParse::Param(CmdLine, TEXT("FileLog"));
 	}
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Inner is required.
 		check(Inner != NULL);
@@ -113,17 +113,17 @@ public:
 		return !!LowerLevel;
 	}
 
-	IPlatformFile* GetLowerLevel() OVERRIDE
+	IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FLoggedPlatformFile::GetTypeName();
 	}
 
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("FileExists %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -132,7 +132,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("FileExists return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("FileSize %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -141,7 +141,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("FileSize return %lld [%fms]"), Result, ThisTime);
 		return Result;
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteFile %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -150,7 +150,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteFile return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("IsReadOnly %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -159,7 +159,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("IsReadOnly return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("MoveFile %s %s"), To, From);
 		double StartTime = FPlatformTime::Seconds();
@@ -168,7 +168,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("MoveFile return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("SetReadOnly %s %d"), Filename, int32(bNewReadOnlyValue));
 		double StartTime = FPlatformTime::Seconds();
@@ -177,7 +177,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("SetReadOnly return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("GetTimeStamp %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -186,7 +186,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("GetTimeStamp return %llx [%fms]"), Result.GetTicks(), ThisTime);
 		return Result;
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("SetTimeStamp %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -194,7 +194,7 @@ public:
 		float ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 		FILE_LOG(LogPlatformFile, Log, TEXT("SetTimeStamp [%fms]"), ThisTime);
 	}
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("GetAccessTimeStamp %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -203,7 +203,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("GetAccessTimeStamp return %llx [%fms]"), Result.GetTicks(), ThisTime);
 		return Result;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("OpenRead %s"), Filename);
 		double StartTime = FPlatformTime::Seconds();
@@ -212,7 +212,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("OpenRead return %llx [%fms]"), uint64(Result), ThisTime);
 		return Result ? (new FLoggedFileHandle(Result, Filename)) : Result;
 	}
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("OpenWrite %s %d %d"), Filename, int32(bAppend), int32(bAllowRead));
 		double StartTime = FPlatformTime::Seconds();
@@ -222,7 +222,7 @@ public:
 		return Result ? (new FLoggedFileHandle(Result, Filename)) : Result;
 	}
 
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool		DirectoryExists(const TCHAR* Directory) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("DirectoryExists %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -231,7 +231,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("DirectoryExists return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectory(const TCHAR* Directory) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("CreateDirectory %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -240,7 +240,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("CreateDirectory return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteDirectory %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -269,7 +269,7 @@ public:
 		}
 	};
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("IterateDirectory %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -279,7 +279,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("IterateDirectory return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("IterateDirectoryRecursively %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -289,7 +289,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("IterateDirectoryRecursively return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteDirectoryRecursively %s"), Directory);
 		double StartTime = FPlatformTime::Seconds();
@@ -298,7 +298,7 @@ public:
 		FILE_LOG(LogPlatformFile, Log, TEXT("DeleteDirectoryRecursively return %d [%fms]"), int32(Result), ThisTime);
 		return Result;
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
 	{
 		FILE_LOG(LogPlatformFile, Log, TEXT("CopyFile %s %s"), To, From);
 		double StartTime = FPlatformTime::Seconds();

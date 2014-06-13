@@ -253,16 +253,16 @@ public:
 	float JumpMaxHoldTime;
 
 	// Begin AActor Interface.
-	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
-	virtual void ClearCrossLevelReferences() OVERRIDE;
-	virtual void PreNetReceive() OVERRIDE;
-	virtual void PostNetReceive() OVERRIDE;
-	virtual void OnRep_ReplicatedMovement() OVERRIDE;
-	virtual void PostNetReceiveLocation() OVERRIDE;
-	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
-	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const OVERRIDE;
-	virtual void TornOff() OVERRIDE;
+	virtual void TeleportSucceeded(bool bIsATest) override;
+	virtual void ClearCrossLevelReferences() override;
+	virtual void PreNetReceive() override;
+	virtual void PostNetReceive() override;
+	virtual void OnRep_ReplicatedMovement() override;
+	virtual void PostNetReceiveLocation() override;
+	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const override;
+	virtual void TornOff() override;
 	// End AActor Interface
 
 	template<class T>
@@ -272,17 +272,17 @@ public:
 	}
 
 	// Begin APawn Interface.
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual class UPawnMovementComponent* GetMovementComponent() const OVERRIDE { return CharacterMovement; }
-	virtual class UPrimitiveComponent* GetMovementBase() const OVERRIDE FINAL { return MovementBase; }
-	virtual float GetDefaultHalfHeight() const OVERRIDE;
-	virtual void TurnOff() OVERRIDE;
-	virtual void Restart() OVERRIDE;
-	virtual void PawnClientRestart() OVERRIDE;
-	virtual void UnPossessed() OVERRIDE;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void RecalculateBaseEyeHeight() OVERRIDE;
+	virtual void PostInitializeComponents() override;
+	virtual class UPawnMovementComponent* GetMovementComponent() const override { return CharacterMovement; }
+	virtual class UPrimitiveComponent* GetMovementBase() const override final { return MovementBase; }
+	virtual float GetDefaultHalfHeight() const override;
+	virtual void TurnOff() override;
+	virtual void Restart() override;
+	virtual void PawnClientRestart() override;
+	virtual void UnPossessed() override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void RecalculateBaseEyeHeight() override;
 	// End APawn Interface
 
 	/** Apply momentum caused by damage. */
@@ -589,5 +589,5 @@ public:
 	bool IsPlayingRootMotion() const;
 
 	/** Called on the actor right before replication occurs */
-	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) OVERRIDE;
+	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
 };

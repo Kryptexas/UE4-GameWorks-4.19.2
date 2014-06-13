@@ -29,6 +29,6 @@ class ENGINE_API AWheeledVehicle : public APawn
 	}
 
 	// Begin AActor interface
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	// End Actor interface
 };

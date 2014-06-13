@@ -15,7 +15,7 @@ public:
 	TSharedPtr<FPlanarConstraintSnapPolicy> PlanarPolicy;
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		if (!IsRunningCommandlet())
 		{
@@ -36,7 +36,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (UObjectInitialized() && !IsRunningCommandlet())
 		{

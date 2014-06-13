@@ -26,13 +26,13 @@ class UMaterialExpressionTextureBase : public UMaterialExpression
 	
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
 #if WITH_EDITOR
-	virtual FString GetDescription() const OVERRIDE;
+	virtual FString GetDescription() const override;
 #endif
 	// End UMaterialExpression Interface
 
@@ -41,7 +41,7 @@ class UMaterialExpressionTextureBase : public UMaterialExpression
 	 * This is used to link the compiled uniform expressions with their default texture values. 
 	 * Any UMaterialExpression whose compilation creates a texture uniform expression (eg Compiler->Texture, Compiler->TextureParameter) must implement this.
 	 */
-	virtual UTexture* GetReferencedTexture() OVERRIDE
+	virtual UTexture* GetReferencedTexture() override
 	{
 		return Texture;
 	}

@@ -443,7 +443,7 @@ public:
 	void OnRep_Timeline();
 
 	// Begin ActorComponent interface.
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End ActorComponent interface.
 
 	/** Get the signature function for Timeline event functions */

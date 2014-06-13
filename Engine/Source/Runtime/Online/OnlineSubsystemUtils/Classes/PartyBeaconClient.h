@@ -25,12 +25,12 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	GENERATED_UCLASS_BODY()
 
 	// Begin AOnlineBeacon Interface
-	virtual FString GetBeaconType() OVERRIDE { return TEXT("PartyBeacon"); }
+	virtual FString GetBeaconType() override { return TEXT("PartyBeacon"); }
 	// End AOnlineBeacon Interface
 
 	// Begin AOnlineBeaconClient Interface
-	virtual void OnConnected() OVERRIDE;
-	virtual void OnFailure() OVERRIDE;
+	virtual void OnConnected() override;
+	virtual void OnFailure() override;
 	// End AOnlineBeaconClient Interface
 
 	/**

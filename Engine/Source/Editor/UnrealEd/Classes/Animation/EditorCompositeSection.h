@@ -21,5 +21,5 @@ public:
 	int32 SectionIndex;
 	
 	virtual void InitSection(int SectionIndex);
-	virtual bool ApplyChangesToMontage() OVERRIDE;
+	virtual bool ApplyChangesToMontage() override;
 };

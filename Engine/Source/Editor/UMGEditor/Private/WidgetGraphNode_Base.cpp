@@ -35,7 +35,7 @@ public:
 		}
 	}
 
-	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const OVERRIDE
+	virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 	{
 		const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 
@@ -56,7 +56,7 @@ public:
 		Record.bPropertyIsCustomized = false;
 	}
 
-	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const OVERRIDE
+	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const override
 	{
 		if ( BaseNode != NULL )
 		{
@@ -64,7 +64,7 @@ public:
 		}
 	}
 
-	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostInitNewPin(UEdGraphPin* Pin, FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(Record.bShowPin);
@@ -89,7 +89,7 @@ public:
 		}
 	}
 
-	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const OVERRIDE
+	void PostRemovedOldPin(FOptionalPinFromProperty& Record, int32 ArrayIndex, UProperty* Property, uint8* PropertyAddress) const override
 	{
 		check(PropertyAddress != NULL);
 		check(!Record.bShowPin);

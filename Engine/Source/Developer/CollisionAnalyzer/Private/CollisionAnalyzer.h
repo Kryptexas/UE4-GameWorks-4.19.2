@@ -39,13 +39,13 @@ public:
 		const FCollisionObjectQueryParams&	ObjectParams,
 		const TArray<FHitResult>& Results, 
 		const TArray<FHitResult>& TouchAllResults,
-		double CPUTime) OVERRIDE;
+		double CPUTime) override;
 
 	/** Returns a new Collision Analyzer widget. */
-	virtual TSharedPtr<SWidget> SummonUI() OVERRIDE;
+	virtual TSharedPtr<SWidget> SummonUI() override;
 
-	virtual void TickAnalyzer(UWorld* InWorld) OVERRIDE;
-	virtual bool IsRecording() OVERRIDE;
+	virtual void TickAnalyzer(UWorld* InWorld) override;
+	virtual bool IsRecording() override;
 	// End ICollisionAnalyzer interface
 
 	/** Change the current recording state */

@@ -201,7 +201,7 @@ public:
 	/**
 	 * Update/reset light GUIDs.
 	 */
-	virtual void UpdateLightGUIDs() OVERRIDE;
+	virtual void UpdateLightGUIDs() override;
 
 	/**
 	 * Check whether a given primitive will cast shadows from this light.
@@ -220,19 +220,19 @@ public:
 	float ComputeLightBrightness() const;
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void UpdateLightSpriteTexture() OVERRIDE;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void UpdateLightSpriteTexture() override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
-	virtual FName GetComponentInstanceDataType() const OVERRIDE;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;
@@ -251,14 +251,14 @@ public:
 
 protected:
 	// Begin UActorComponent Interface
-	virtual void OnRegister() OVERRIDE;
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// Begin UActorComponent Interface
 
 public:
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 
 	/** Invalidates the light's cached lighting with the option to recreate the light Guids. */
 	void InvalidateLightingCacheInner(bool bRecreateLightGuids);

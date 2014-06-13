@@ -39,24 +39,24 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	virtual void PostLoad();
 	virtual void PostDuplicate(bool bDuplicateForPIE);
 #if WITH_EDITOR
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditImport() override;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual FString GetInputName(int32 InputIndex) const override
 	{
 		return TEXT("");
 	}
 #if WITH_EDITOR
-	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) OVERRIDE;
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE;
+	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
+	virtual uint32 GetInputType(int32 InputIndex) override;
 #endif
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 	// End UMaterialExpression Interface
 
 

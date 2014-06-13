@@ -31,8 +31,8 @@ public:
 
 protected:
 	// SGraphPalette Interface
-	virtual TSharedRef<SWidget> OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData) OVERRIDE;
-	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) OVERRIDE;
+	virtual TSharedRef<SWidget> OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData) override;
+	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) override;
 	// End of SGraphPalette Interface
 
 	/** Get the currently selected category name */

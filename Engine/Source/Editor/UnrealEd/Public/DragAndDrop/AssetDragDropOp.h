@@ -31,7 +31,7 @@ public:
 public:
 	UNREALED_API virtual ~FAssetDragDropOp();
 
-	UNREALED_API virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE;
+	UNREALED_API virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
 
 	UNREALED_API void Init();
 

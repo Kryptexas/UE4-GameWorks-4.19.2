@@ -29,23 +29,23 @@ public:
 	virtual void CaptureMouse( bool bCapture );
 	virtual void LockMouseToViewport( bool bLock );
 	virtual void ShowCursor( bool bVisible );
-	virtual void SetPreCaptureMousePosFromSlateCursor() OVERRIDE;
-	virtual bool IsCursorVisible() const OVERRIDE { return bIsCursorVisible; }
-	virtual void ShowSoftwareCursor( bool bVisible ) OVERRIDE { bIsSoftwareCursorVisible = bVisible; }
-	virtual void SetSoftwareCursorPosition( FVector2D Position ) OVERRIDE { SoftwareCursorPosition = Position; }
-	virtual bool IsSoftwareCursorVisible() const OVERRIDE { return bIsSoftwareCursorVisible; }
-	virtual FVector2D GetSoftwareCursorPosition() const OVERRIDE
+	virtual void SetPreCaptureMousePosFromSlateCursor() override;
+	virtual bool IsCursorVisible() const override { return bIsCursorVisible; }
+	virtual void ShowSoftwareCursor( bool bVisible ) override { bIsSoftwareCursorVisible = bVisible; }
+	virtual void SetSoftwareCursorPosition( FVector2D Position ) override { SoftwareCursorPosition = Position; }
+	virtual bool IsSoftwareCursorVisible() const override { return bIsSoftwareCursorVisible; }
+	virtual FVector2D GetSoftwareCursorPosition() const override
 	{
 		return SoftwareCursorPosition;
 	}
-	virtual FCanvas* GetDebugCanvas() OVERRIDE;
+	virtual FCanvas* GetDebugCanvas() override;
 
 	/**
 	 * Captures or uncaptures the joystick
 	 *
 	 * @param Capture	true if we should capture, false if we should uncapture
 	 */
-	virtual bool CaptureJoystickInput(bool Capture) OVERRIDE;
+	virtual bool CaptureJoystickInput(bool Capture) override;
 
 	/**
 	 * Returns the state of the provided key. 
@@ -54,17 +54,17 @@ public:
 	 *
 	 * @return true if the key is pressed, false otherwise
 	 */
-	virtual bool KeyState(FKey Key) const OVERRIDE;
+	virtual bool KeyState(FKey Key) const override;
 
 	/**
 	 * @return The current X position of the mouse (in local space, relative to the viewports geometry)                 
 	 */
-	virtual int32 GetMouseX() const OVERRIDE;
+	virtual int32 GetMouseX() const override;
 
 	/**
 	 * @return The current Y position of the mouse (in local space, relative to the viewports geometry)                 
 	 */
-	virtual int32 GetMouseY() const OVERRIDE;
+	virtual int32 GetMouseY() const override;
 
 	/**
 	 * Sets MousePosition to the current mouse position 
@@ -72,40 +72,40 @@ public:
 	 * @param MousePosition	Populated with the current mouse position     
 	 * @param bLocalPosition Indicates whether the mouse position returned should be in local or absolute space
 	 */
-	virtual void GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) OVERRIDE;
+	virtual void GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition = true) override;
 
 	/**
 	 * Not implemented                   
 	 */
-	virtual void SetMouse( int32 X, int32 Y ) OVERRIDE;
+	virtual void SetMouse( int32 X, int32 Y ) override;
 
 	/**
 	 * Additional input processing that happens every frame                   
 	 */
-	virtual void ProcessInput( float DeltaTime ) OVERRIDE;
+	virtual void ProcessInput( float DeltaTime ) override;
 
 	/**
 	 * Called when the viewport should be invalidated and redrawn                   
 	 */
-	virtual void InvalidateDisplay() OVERRIDE;
+	virtual void InvalidateDisplay() override;
 
 	/**
 	 * Invalidates the viewport's cached hit proxies at the end of the frame.
 	 */
-	virtual void DeferInvalidateHitProxy() OVERRIDE;
+	virtual void DeferInvalidateHitProxy() override;
 
 	/** FViewportFrame interface */
-	virtual FViewport* GetViewport() OVERRIDE { return this; }
-	virtual FViewportFrame* GetViewportFrame() OVERRIDE { return this; }
+	virtual FViewport* GetViewport() override { return this; }
+	virtual FViewportFrame* GetViewportFrame() override { return this; }
 
 	/** @return The viewport widget being used */
 	TWeakPtr<SViewport> GetViewportWidget() const { return ViewportWidget; }
 
 	/** Called before BeginRenderFrame is enqueued */
-	virtual void EnqueueBeginRenderFrame() OVERRIDE;
+	virtual void EnqueueBeginRenderFrame() override;
 
 	/** Called when a frame starts to render */
-	virtual void BeginRenderFrame() OVERRIDE;
+	virtual void BeginRenderFrame() override;
 
 	/** 
 	 * Called when a frame is done rendering
@@ -113,7 +113,7 @@ public:
 	 * @param bPresent	Not used in Slate viewports
 	 * @param bLockToVsync	Not used in Slate viewports
 	 */
-	virtual void EndRenderFrame( bool bPresent, bool bLockToVsync ) OVERRIDE;
+	virtual void EndRenderFrame( bool bPresent, bool bLockToVsync ) override;
 
 	/**
 	 * Ticks the viewport
@@ -137,12 +137,12 @@ public:
 	/**
 	 * Indicate that the viewport should be block for vsync.
 	 */
-	virtual void SetRequiresVsync(bool bShouldVsync) OVERRIDE { bRequiresVsync = bShouldVsync; }
+	virtual void SetRequiresVsync(bool bShouldVsync) override { bRequiresVsync = bShouldVsync; }
 
 	/**
 	 * Returns true if the viewport should be vsynced.
 	 */
-	virtual bool RequiresVsync() const OVERRIDE { return bRequiresVsync; }
+	virtual bool RequiresVsync() const override { return bRequiresVsync; }
 
 	/**
 	 * Called to resize the actual window where this viewport resides
@@ -151,7 +151,7 @@ public:
 	 * @param NewSizeY		The new height of the viewport
 	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY ) OVERRIDE;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY ) override;
 
 	/**
 	 *	Sets the Viewport resize delegate.
@@ -180,34 +180,34 @@ public:
 	}
 
 	/** Updates the viewport RHI with a new size and fullscreen flag */
-	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) OVERRIDE;
+	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) override;
 
 	/** ISlateViewport interface */
-	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
-	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) OVERRIDE;
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseMove( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseWheel( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
-	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) OVERRIDE;
-	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) OVERRIDE;
-	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) OVERRIDE;
-	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) OVERRIDE;
-	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) OVERRIDE;
-	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) OVERRIDE;
-	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& InGestureEvent ) OVERRIDE;
-	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) OVERRIDE;
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual FReply OnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharacterEvent ) OVERRIDE;
-	virtual FReply OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void OnViewportClosed() OVERRIDE;
-	virtual FIntPoint GetSize() const OVERRIDE { return GetSizeXY(); }
+	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
+	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) override;
+	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override;
+	virtual FReply OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnControllerButtonPressed( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
+	virtual FReply OnControllerButtonReleased( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
+	virtual FReply OnControllerAnalogValueChanged( const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent ) override;
+	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
+	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& InGestureEvent ) override;
+	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual FReply OnKeyChar( const FGeometry& InGeometry, const FCharacterEvent& InCharacterEvent ) override;
+	virtual FReply OnKeyboardFocusReceived( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void OnViewportClosed() override;
+	virtual FIntPoint GetSize() const override { return GetSizeXY(); }
 	
 private:
 	/**
@@ -216,15 +216,15 @@ private:
 	void Destroy();
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
-	virtual void InitRHI() OVERRIDE {}
-	virtual void ReleaseRHI() OVERRIDE {}
-	virtual void InitResource() OVERRIDE { FViewport::InitResource(); }
-	virtual void ReleaseResource() OVERRIDE { FViewport::ReleaseResource(); }
-	virtual FString GetFriendlyName() const OVERRIDE { return FString(TEXT("FSlateSceneViewport"));}
+	virtual void InitRHI() override {}
+	virtual void ReleaseRHI() override {}
+	virtual void InitResource() override { FViewport::InitResource(); }
+	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
+	virtual FString GetFriendlyName() const override { return FString(TEXT("FSlateSceneViewport"));}
 
 	/**
 	 * Called from Slate when the viewport should be resized

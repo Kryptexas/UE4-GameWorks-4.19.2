@@ -40,21 +40,21 @@ public:
 	virtual ~FAssetEditorToolkit();
 
 	/** IToolkit interface */
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual bool IsAssetEditor() const OVERRIDE;
-	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual bool IsAssetEditor() const override;
+	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
 	virtual FName GetToolkitFName() const = 0;					// Must implement in derived class!
 	virtual FText GetBaseToolkitName() const = 0;				// Must implement in derived class!
-	virtual FText GetToolkitName() const OVERRIDE;		
+	virtual FText GetToolkitName() const override;		
 	virtual FString GetWorldCentricTabPrefix() const = 0;		// Must implement in derived class!
-	virtual class FEdMode* GetEditorMode() const OVERRIDE;
+	virtual class FEdMode* GetEditorMode() const override;
 
 	/** IAssetEditorInstance interface */
-	virtual FName GetEditorName() const OVERRIDE;
-	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
-	virtual bool CloseWindow() OVERRIDE;
-	virtual bool IsPrimaryEditor() const OVERRIDE { return true; };
+	virtual FName GetEditorName() const override;
+	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
+	virtual bool CloseWindow() override;
+	virtual bool IsPrimaryEditor() const override { return true; };
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file

@@ -12,7 +12,7 @@ public:
 	/**
 	 * Called right after the module's DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		TSharedRef<FEdModeMeshPaint> NewEditorMode = MakeShareable(new FEdModeMeshPaint);
 		GEditorModeTools().RegisterMode(NewEditorMode);
@@ -22,7 +22,7 @@ public:
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		GEditorModeTools().UnregisterMode(EdModeMeshPaint.ToSharedRef());
 		EdModeMeshPaint = NULL;

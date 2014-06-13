@@ -22,7 +22,7 @@ public:
 	~SPhATPreviewViewport();
 
 	/** SCompoundWidget interface */
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void Construct(const FArguments& InArgs);
 
 	/** Refreshes the viewport */

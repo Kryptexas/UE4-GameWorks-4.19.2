@@ -49,20 +49,20 @@ class UMaterialExpressionTextureSample : public UMaterialExpressionTextureBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
-	virtual const TArray<FExpressionInput*> GetInputs() OVERRIDE;
-	virtual FExpressionInput* GetInput(int32 InputIndex) OVERRIDE;
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
-	virtual int32 GetWidth() const OVERRIDE;
-	virtual int32 GetLabelPadding() OVERRIDE { return 8; }
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual const TArray<FExpressionInput*> GetInputs() override;
+	virtual FExpressionInput* GetInput(int32 InputIndex) override;
+	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual int32 GetWidth() const override;
+	virtual int32 GetLabelPadding() override { return 8; }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex);
 #endif

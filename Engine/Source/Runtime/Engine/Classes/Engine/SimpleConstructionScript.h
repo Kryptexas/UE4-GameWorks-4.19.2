@@ -10,8 +10,8 @@ class USimpleConstructionScript : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	/** Ensures that all root node parent references are still valid and clears the reference if not */

@@ -923,7 +923,7 @@ public:
 	}
 
 	// Begin FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty) OVERRIDE
+	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty) override
 	{
 		// Only care about unique default subobjects that are outside of the referencing object's outer chain.
 		// Also ignore references to subobjects if they share the same Outer.
@@ -936,8 +936,8 @@ public:
 			ObjectArray.Add(InObject);
 		}
 	}
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE { return true; }
-	virtual bool IsIgnoringTransient() const OVERRIDE { return true; }
+	virtual bool IsIgnoringArchetypeRef() const override { return true; }
+	virtual bool IsIgnoringTransient() const override { return true; }
 	// End FReferenceCollector interface.
 
 protected:

@@ -68,21 +68,21 @@ public:
 
 public:
 	// FLevelModel interface
-	virtual UObject* GetNodeObject() OVERRIDE;
-	virtual ULevel* GetLevelObject() const OVERRIDE;
-	virtual FName GetAssetName() const OVERRIDE;
-	virtual FName GetLongPackageName() const OVERRIDE;
-	virtual void Update() OVERRIDE;
-	virtual void LoadLevel() OVERRIDE;
-	virtual void SetVisible(bool bVisible) OVERRIDE;
-	virtual bool HitTest2D(const FVector2D& Point) const OVERRIDE;
-	virtual FVector2D GetLevelPosition2D() const OVERRIDE;
-	virtual FVector2D GetLevelSize2D() const OVERRIDE;
-	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
-	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
-	virtual void OnLevelAddedToWorld(ULevel* InLevel) OVERRIDE;
-	virtual void OnLevelRemovedFromWorld() OVERRIDE;
-	virtual void OnParentChanged() OVERRIDE;
+	virtual UObject* GetNodeObject() override;
+	virtual ULevel* GetLevelObject() const override;
+	virtual FName GetAssetName() const override;
+	virtual FName GetLongPackageName() const override;
+	virtual void Update() override;
+	virtual void LoadLevel() override;
+	virtual void SetVisible(bool bVisible) override;
+	virtual bool HitTest2D(const FVector2D& Point) const override;
+	virtual FVector2D GetLevelPosition2D() const override;
+	virtual FVector2D GetLevelSize2D() const override;
+	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;
+	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const override;
+	virtual void OnLevelAddedToWorld(ULevel* InLevel) override;
+	virtual void OnLevelRemovedFromWorld() override;
+	virtual void OnParentChanged() override;
 	// FLevelModel interface end
 	
 	/** Adds new streaming level*/

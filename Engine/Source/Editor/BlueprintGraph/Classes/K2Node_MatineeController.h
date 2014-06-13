@@ -15,21 +15,21 @@ class UK2Node_MatineeController : public UK2Node
 	class AMatineeActor* MatineeActor;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
+	virtual void AllocateDefaultPins() override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual AActor* GetReferencedLevelActor() const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual AActor* GetReferencedLevelActor() const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node interface
 
 	// Begin UObject interface
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End UObject interface
 
 	/** Gets the "finished playing matinee sequence" pin */

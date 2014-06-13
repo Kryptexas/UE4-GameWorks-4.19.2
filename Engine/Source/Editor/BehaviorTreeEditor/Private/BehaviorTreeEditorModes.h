@@ -10,9 +10,9 @@ class FBehaviorTreeEditorApplicationMode : public FApplicationMode
 public:
 	FBehaviorTreeEditorApplicationMode(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<class FTabManager> InTabManager) OVERRIDE;
-	virtual void PreDeactivateMode() OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<class FTabManager> InTabManager) override;
+	virtual void PreDeactivateMode() override;
+	virtual void PostActivateMode() override;
 
 protected:
 	TWeakPtr<class FBehaviorTreeEditor> BehaviorTreeEditor;
@@ -27,8 +27,8 @@ class FBlackboardEditorApplicationMode : public FApplicationMode
 public:
 	FBlackboardEditorApplicationMode(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditor);
 
-	virtual void RegisterTabFactories(TSharedPtr<class FTabManager> InTabManager) OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<class FTabManager> InTabManager) override;
+	virtual void PostActivateMode() override;
 
 protected:
 	TWeakPtr<class FBehaviorTreeEditor> BehaviorTreeEditor;

@@ -28,14 +28,14 @@ public:
 	static void UnregisterEditMode();
 
 	/** Begin FEdMode interface */
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient, float DeltaTime) OVERRIDE;
-	virtual bool MouseEnter(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual bool MouseLeave(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) OVERRIDE;
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE;
-	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) OVERRIDE;
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
-	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const OVERRIDE;
-	virtual bool UsesToolkits() const OVERRIDE;
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient, float DeltaTime) override;
+	virtual bool MouseEnter(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport,int32 x, int32 y) override;
+	virtual bool MouseLeave(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) override;
+	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
+	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) override;
+	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
+	virtual bool GetCursor(EMouseCursor::Type& OutCursor) const override;
+	virtual bool UsesToolkits() const override;
 	/** End FEdMode interface */
 
 	/** Start up the mode, reset state etc. */

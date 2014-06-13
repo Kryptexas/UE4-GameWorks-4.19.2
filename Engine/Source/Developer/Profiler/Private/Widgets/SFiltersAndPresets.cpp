@@ -453,7 +453,7 @@ public:
 	 * @param  InMouseEvent  MouseMove that triggered the drag
 	 * 
 	 */
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
 		{

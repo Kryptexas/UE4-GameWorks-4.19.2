@@ -29,14 +29,14 @@ class UGeomModifier_Clip : public UGeomModifier_Edit
 
 
 	// Begin UGeomModifier Interface
-	virtual bool Supports() OVERRIDE;
-	virtual bool InputKey(class FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
-	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) OVERRIDE;
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE;
-	virtual void WasActivated() OVERRIDE;
+	virtual bool Supports() override;
+	virtual bool InputKey(class FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
+	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override;
+	virtual void WasActivated() override;
 protected:
-	virtual bool OnApply() OVERRIDE;
+	virtual bool OnApply() override;
 	// End UGeomModifier Interface
 
 private:

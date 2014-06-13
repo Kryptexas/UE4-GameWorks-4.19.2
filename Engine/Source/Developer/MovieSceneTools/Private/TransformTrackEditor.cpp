@@ -26,19 +26,19 @@ public:
 	}
 
 	/** ISequencerSection interface */
-	virtual UMovieSceneSection* GetSectionObject() OVERRIDE
+	virtual UMovieSceneSection* GetSectionObject() override
 	{ 
 		return &Section;
 	}
 
-	virtual FString GetDisplayName() const OVERRIDE
+	virtual FString GetDisplayName() const override
 	{ 
 		return TEXT("Transform");
 	}
 	
-	virtual FString GetSectionTitle() const OVERRIDE { return FString(); }
+	virtual FString GetSectionTitle() const override { return FString(); }
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneTransformSection* TransformSection = Cast<UMovieSceneTransformSection>( &Section );
 
@@ -62,7 +62,7 @@ public:
 		LayoutBuilder.PopCategory();
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		// Add a box for the section
 		FSlateDrawElement::MakeBox( 

@@ -185,7 +185,7 @@ public:
 	}
 
 	/** FTickableEditorObject interface */
-	virtual void Tick( float DeltaTime ) OVERRIDE
+	virtual void Tick( float DeltaTime ) override
 	{
 		if( Component && Component->PrecomputeCounter.GetValue() == UAtmosphericFogComponent::EFinishedComputation ) 
 		{
@@ -198,7 +198,7 @@ public:
 		return true;
 	}
 
-	TStatId GetStatId() const OVERRIDE
+	TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FAtmospherePrecomputeDataHandler, STATGROUP_Tickables);
 	}
@@ -693,7 +693,7 @@ public:
 	virtual ~FAtmospherePrecomputeInstanceData()
 	{}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const OVERRIDE
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
 	{
 		return (PrecomputeParameter == CastChecked<UAtmosphericFogComponent>(Component)->GetPrecomputeParameters());
 	}

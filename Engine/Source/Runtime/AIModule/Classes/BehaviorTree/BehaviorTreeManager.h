@@ -42,7 +42,7 @@ class AIMODULE_API UBehaviorTreeManager : public UObject
 	static void InitializeMemoryHelper(const TArray<class UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize);
 
 	/** cleanup hooks for map loading */
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 
 	void DumpUsageStats() const;
 

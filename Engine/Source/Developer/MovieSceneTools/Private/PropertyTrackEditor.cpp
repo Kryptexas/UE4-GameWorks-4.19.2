@@ -35,18 +35,18 @@ public:
 	}
 
 	/** ISequencerSection interface */
-	virtual UMovieSceneSection* GetSectionObject() OVERRIDE { return &SectionObject; }
+	virtual UMovieSceneSection* GetSectionObject() override { return &SectionObject; }
 
-	virtual FString GetDisplayName() const OVERRIDE
+	virtual FString GetDisplayName() const override
 	{
 		return DisplayName;
 	}
 	
-	virtual FString GetSectionTitle() const OVERRIDE { return FString(); }
+	virtual FString GetSectionTitle() const override { return FString(); }
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE {}
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		// Add a box for the section
 		FSlateDrawElement::MakeBox( 
@@ -76,7 +76,7 @@ public:
 	FColorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>(&SectionObject);
 
@@ -86,7 +86,7 @@ public:
 		LayoutBuilder.AddKeyArea("A", TEXT("Alpha"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		const UMovieSceneColorSection* ColorSection = Cast<const UMovieSceneColorSection>(&SectionObject);
 
@@ -198,7 +198,7 @@ public:
 	FFloatPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneFloatSection* FloatSection = Cast<UMovieSceneFloatSection>( &SectionObject );
 		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FFloatCurveKeyArea( FloatSection->GetFloatCurve() ) ) );
@@ -214,7 +214,7 @@ public:
 	FVectorPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneVectorSection* VectorSection = Cast<UMovieSceneVectorSection>( &SectionObject );
 		int32 ChannelsUsed = VectorSection->GetChannelsUsed();
@@ -238,13 +238,13 @@ public:
 	FBoolPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const OVERRIDE
+	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
 		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FIntegralKeyArea( BoolSection->GetCurve() ) ) );
 	}
 
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const OVERRIDE 
+	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
 		FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 

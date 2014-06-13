@@ -18,8 +18,8 @@ class FMovieSceneCoreModule : public IMovieSceneCore
 public:
 
 	/** IModuleInterface */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 };
 

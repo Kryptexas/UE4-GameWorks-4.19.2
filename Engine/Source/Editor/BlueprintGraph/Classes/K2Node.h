@@ -128,14 +128,14 @@ class UK2Node : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	BLUEPRINTGRAPH_API virtual void ReconstructNode() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE { return GetReferencedLevelActor(); }
-	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const OVERRIDE { return true; }
+	BLUEPRINTGRAPH_API virtual void ReconstructNode() override;
+	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	BLUEPRINTGRAPH_API virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	BLUEPRINTGRAPH_API void PinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetReferencedLevelActor(); }
+	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
+	BLUEPRINTGRAPH_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
+	BLUEPRINTGRAPH_API virtual bool ShowPaletteIconOnNode() const override { return true; }
 	// End of UEdGraphNode interface
 
 	// K2Node interface
@@ -237,7 +237,7 @@ class UK2Node : public UEdGraphNode
 	virtual AActor* GetReferencedLevelActor() const { return NULL; }
 
 	// Can this node be created under the specified schema
-	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 
 	/**
 	 * Searches the field redirect map for the specified named field in the scope, and returns the remapped field if found

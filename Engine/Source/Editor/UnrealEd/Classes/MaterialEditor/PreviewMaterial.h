@@ -11,8 +11,8 @@ class UNREALED_API UPreviewMaterial : public UMaterial
 
 
 	// Begin UMaterial interface.
-	virtual FMaterialResource* AllocateResource() OVERRIDE;
-	virtual bool IsAsset()  const OVERRIDE  { return false; }
+	virtual FMaterialResource* AllocateResource() override;
+	virtual bool IsAsset()  const override  { return false; }
 	// End UMaterial interface.
 };
 

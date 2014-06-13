@@ -15,7 +15,7 @@ class UEditorUtilityBlueprint : public UBlueprint
 
 #if WITH_EDITOR
 	// UBlueprint interface
-	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
+	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;
 	}

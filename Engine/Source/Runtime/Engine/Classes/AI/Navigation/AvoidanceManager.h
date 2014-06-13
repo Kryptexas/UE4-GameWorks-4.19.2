@@ -139,7 +139,7 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 #endif
 	
 	// Begin FExec Interface
-	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
 
 private:

@@ -576,7 +576,7 @@ public:
 
 	// FSceneRenderer interface
 
-	virtual void Render() OVERRIDE;
+	virtual void Render() override;
 
 protected:
 

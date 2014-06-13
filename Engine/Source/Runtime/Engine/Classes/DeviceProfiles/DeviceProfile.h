@@ -64,7 +64,7 @@ public:
 
 #if WITH_EDITOR
 	// Begin UObject interface
-	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
 	// End UObject interface
 #endif
 };

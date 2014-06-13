@@ -155,7 +155,7 @@ public:
 	/**
 	 * Registers context menu commands for the blueprint palette.
 	 */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(RefreshPalette, "Refresh List", "Refreshes the list of nodes.", EUserInterfaceActionType::Button, FInputGesture());
 	}

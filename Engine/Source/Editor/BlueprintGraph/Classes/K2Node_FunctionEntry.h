@@ -26,25 +26,25 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	TArray<struct FBPVariableDescription> LocalVariables;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
-	virtual bool IsDeprecated() const OVERRIDE;
-	virtual FString GetDeprecationMessage() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override { return false; }
+	virtual bool IsDeprecated() const override;
+	virtual FString GetDeprecationMessage() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool DrawNodeAsEntry() const OVERRIDE { return true; }
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool DrawNodeAsEntry() const override { return true; }
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface
-	virtual bool CanUseRefParams() const OVERRIDE { return true; }
+	virtual bool CanUseRefParams() const override { return true; }
 	// End UK2Node_EditablePinBase interface
 
 	// Begin K2Node_FunctionTerminator interface
-	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) OVERRIDE;
+	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
 	// End K2Node_FunctionTerminator interface
 
 	// Removes an output pin from the node

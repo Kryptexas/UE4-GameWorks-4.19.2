@@ -13,7 +13,7 @@ public:
 
 	// ILauncherAutomatedServiceModule interface
 
-	virtual ILauncherAutomatedServiceProviderPtr CreateAutomatedServiceProvider() OVERRIDE;
+	virtual ILauncherAutomatedServiceProviderPtr CreateAutomatedServiceProvider() override;
 
 public:
 

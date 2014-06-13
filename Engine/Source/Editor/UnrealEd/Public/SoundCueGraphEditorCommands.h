@@ -41,5 +41,5 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteInput;
 
 	/** Initialize commands */
-	UNREALED_API virtual void RegisterCommands() OVERRIDE;
+	UNREALED_API virtual void RegisterCommands() override;
 };

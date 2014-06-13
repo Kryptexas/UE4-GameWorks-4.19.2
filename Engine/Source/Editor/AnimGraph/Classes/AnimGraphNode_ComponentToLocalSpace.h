@@ -14,13 +14,13 @@ class UAnimGraphNode_ComponentToLocalSpace : public UAnimGraphNode_Base
 	FAnimNode_ConvertComponentToLocalSpace Node;
 
 	// UEdGraphNode interface
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
-	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const OVERRIDE;
+	virtual FString GetNodeCategory() const override;
+	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const override;
 	// End of UAnimGraphNode_Base interface
 };

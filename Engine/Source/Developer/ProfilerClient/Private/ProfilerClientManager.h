@@ -156,68 +156,68 @@ public:
 public:
 
 	// Begin IProfileClient Interface
-	virtual void Subscribe( const FGuid& Session ) OVERRIDE;
+	virtual void Subscribe( const FGuid& Session ) override;
 
-	virtual void Track( const FGuid& Instance ) OVERRIDE;
+	virtual void Track( const FGuid& Instance ) override;
 
-	virtual void Track( const TArray<ISessionInstanceInfoPtr>& Instances ) OVERRIDE;
+	virtual void Track( const TArray<ISessionInstanceInfoPtr>& Instances ) override;
 
-	virtual void Untrack( const FGuid& Instance ) OVERRIDE;
+	virtual void Untrack( const FGuid& Instance ) override;
 
-	virtual void Unsubscribe() OVERRIDE;
+	virtual void Unsubscribe() override;
 
-	virtual void SetCaptureState( const bool bRequestedCaptureState, const FGuid& InstanceId = FGuid() ) OVERRIDE;
+	virtual void SetCaptureState( const bool bRequestedCaptureState, const FGuid& InstanceId = FGuid() ) override;
 
-	virtual void SetPreviewState( const bool bRequestedPreviewState, const FGuid& InstanceId = FGuid() ) OVERRIDE;
+	virtual void SetPreviewState( const bool bRequestedPreviewState, const FGuid& InstanceId = FGuid() ) override;
 
-	virtual void LoadCapture( const FString& DataFilepath, const FGuid& ProfileId ) OVERRIDE;
+	virtual void LoadCapture( const FString& DataFilepath, const FGuid& ProfileId ) override;
 
-	virtual void RequestMetaData() OVERRIDE;
+	virtual void RequestMetaData() override;
 
-	virtual void RequestLastCapturedFile( const FGuid& InstanceId = FGuid() ) OVERRIDE;
+	virtual void RequestLastCapturedFile( const FGuid& InstanceId = FGuid() ) override;
 
-	virtual const FStatMetaData& GetStatMetaData( const FGuid& InstanceId ) const OVERRIDE
+	virtual const FStatMetaData& GetStatMetaData( const FGuid& InstanceId ) const override
 	{
 		return Connections.Find(InstanceId)->MetaData;
 	}
 
-	virtual FProfilerClientDataDelegate& OnProfilerData() OVERRIDE
+	virtual FProfilerClientDataDelegate& OnProfilerData() override
 	{
 		return ProfilerDataDelegate;
 	}
 
-	virtual FProfilerFileTransferDelegate& OnProfilerFileTransfer() OVERRIDE
+	virtual FProfilerFileTransferDelegate& OnProfilerFileTransfer() override
 	{
 		return ProfilerFileTransferDelegate;
 	}
 
-	virtual FProfilerClientConnectedDelegate& OnProfilerClientConnected() OVERRIDE
+	virtual FProfilerClientConnectedDelegate& OnProfilerClientConnected() override
 	{
 		return ProfilerClientConnectedDelegate;
 	}
 
-	virtual FProfilerClientDisconnectedDelegate& OnProfilerClientDisconnected() OVERRIDE
+	virtual FProfilerClientDisconnectedDelegate& OnProfilerClientDisconnected() override
 	{
 		return ProfilerClientDisconnectedDelegate;
 	}
 
-	virtual FProfilerMetaDataUpdateDelegate& OnMetaDataUpdated() OVERRIDE
+	virtual FProfilerMetaDataUpdateDelegate& OnMetaDataUpdated() override
 	{
 		return ProfilerMetaDataUpdatedDelegate;
 	}
 
-	virtual FProfilerLoadStartedDelegate& OnLoadStarted() OVERRIDE
+	virtual FProfilerLoadStartedDelegate& OnLoadStarted() override
 	{
 		return ProfilerLoadStartedDelegate;
 	}
 
-	virtual FProfilerLoadCompletedDelegate& OnLoadCompleted() OVERRIDE
+	virtual FProfilerLoadCompletedDelegate& OnLoadCompleted() override
 	{
 
 		return ProfilerLoadCompletedDelegate;
 	}
 
-	virtual FProfilerLoadedMetaDataDelegate& OnLoadedMetaData() OVERRIDE
+	virtual FProfilerLoadedMetaDataDelegate& OnLoadedMetaData() override
 	{
 		return ProfilerLoadedMetaDataDelegate;
 	}

@@ -102,7 +102,7 @@ class UWorldTileDetails : public UObject
 	FTilePropertyChanged			ZOrderChangedEvent;
 	
 	// UObject interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// todo: undo operations
 
 public:

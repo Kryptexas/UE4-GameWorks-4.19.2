@@ -44,19 +44,19 @@ public:
 
 #if WITH_EDITOR
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE {}
-	ENGINE_API virtual FString GetTooltip() const OVERRIDE;
-	ENGINE_API virtual FLinearColor GetNodeCommentColor() const OVERRIDE;
-	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool ShouldOverridePinNames() const OVERRIDE { return true; }
-	ENGINE_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const OVERRIDE;
-	ENGINE_API virtual void ResizeNode(const FVector2D& NewSize) OVERRIDE;
-	ENGINE_API virtual void PostPlacedNewNode() OVERRIDE;
-	ENGINE_API virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	ENGINE_API virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
-	virtual bool ShouldDrawNodeAsComment() const OVERRIDE { return true; }
-	ENGINE_API virtual FString GetDocumentationLink() const OVERRIDE;
-	ENGINE_API virtual FString GetDocumentationExcerptName() const OVERRIDE;
+	virtual void AllocateDefaultPins() override {}
+	ENGINE_API virtual FString GetTooltip() const override;
+	ENGINE_API virtual FLinearColor GetNodeCommentColor() const override;
+	ENGINE_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool ShouldOverridePinNames() const override { return true; }
+	ENGINE_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
+	ENGINE_API virtual void ResizeNode(const FVector2D& NewSize) override;
+	ENGINE_API virtual void PostPlacedNewNode() override;
+	ENGINE_API virtual void OnRenameNode(const FString& NewName) override;
+	ENGINE_API virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
+	virtual bool ShouldDrawNodeAsComment() const override { return true; }
+	ENGINE_API virtual FString GetDocumentationLink() const override;
+	ENGINE_API virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface
 
 	/** Add a node that will be dragged when this comment is dragged */

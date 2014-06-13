@@ -116,25 +116,25 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 #endif
 
 	//Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual bool Modify(bool bAlwaysMarkDirty = true) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	//End UObject Interface
 
 	//Begin USceneComponent Interface
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	//End USceneComponent Interface
 
 	//Begin UPrimitiveComponent Interface
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
+	virtual void CreatePhysicsState() override;
+	virtual class UBodySetup* GetBodySetup() override;
 #if WITH_EDITOR
-	virtual bool ShouldRenderSelected() const OVERRIDE
+	virtual bool ShouldRenderSelected() const override
 	{
 		return Super::ShouldRenderSelected() || bSelected;
 	}
 #endif
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	//End UPrimitiveComponent Interface
 
 	//Begin UStaticMeshComponent Interface
@@ -142,9 +142,9 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	//End UStaticMeshComponent Interface
 
 	// Begin Interface_CollisionDataProvider Interface
-	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) OVERRIDE;
-	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const OVERRIDE;
-	virtual bool WantsNegXTriMesh() OVERRIDE { return false; }
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
+	virtual bool WantsNegXTriMesh() override { return false; }
 	// End Interface_CollisionDataProvider Interface
 
 	/** Called when spline params are changed, to notify render thread and possibly collision */

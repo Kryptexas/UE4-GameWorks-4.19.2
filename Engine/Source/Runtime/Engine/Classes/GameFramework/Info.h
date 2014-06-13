@@ -19,10 +19,10 @@ class AInfo : public AActor
 	TSubobjectPtr<class UBillboardComponent> SpriteComponent;
 #endif
 
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(false); return false; }
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	
 	/** Indicates whether this actor should participate in level bounds calculations. */
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return false; }
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 };
 
 

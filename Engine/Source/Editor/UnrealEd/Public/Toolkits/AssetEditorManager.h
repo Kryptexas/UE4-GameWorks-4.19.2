@@ -71,7 +71,7 @@ public:
 	void NotifyEditorClosed(IAssetEditorInstance* Instance);
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	// Close all open asset editors
 	bool CloseAllAssetEditors();

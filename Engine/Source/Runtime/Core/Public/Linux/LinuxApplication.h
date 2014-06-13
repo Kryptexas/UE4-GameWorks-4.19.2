@@ -22,36 +22,36 @@ public:
 public:	
 	virtual ~FLinuxApplication();
 	
-	virtual void DestroyApplication() OVERRIDE;
+	virtual void DestroyApplication() override;
 
 public:
-	virtual void SetMessageHandler( const TSharedRef< class FGenericApplicationMessageHandler >& InMessageHandler ) OVERRIDE;
+	virtual void SetMessageHandler( const TSharedRef< class FGenericApplicationMessageHandler >& InMessageHandler ) override;
 
-	virtual void PollGameDeviceState( const float TimeDelta ) OVERRIDE;
+	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
-	virtual void PumpMessages( const float TimeDelta ) OVERRIDE;
+	virtual void PumpMessages( const float TimeDelta ) override;
 
-	virtual void ProcessDeferredEvents( const float TimeDelta ) OVERRIDE;
+	virtual void ProcessDeferredEvents( const float TimeDelta ) override;
 
-	virtual TSharedRef< FGenericWindow > MakeWindow() OVERRIDE;
+	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 
-	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) OVERRIDE;
+	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 
-	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) OVERRIDE;
+	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) override;
 
-	virtual void* GetCapture( void ) const OVERRIDE;
+	virtual void* GetCapture( void ) const override;
 
-	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) OVERRIDE;
+	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) override;
 
-	virtual bool IsUsingHighPrecisionMouseMode() const OVERRIDE { return bUsingHighPrecisionMouseInput; }
+	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }
 	//	
-	virtual FModifierKeysState GetModifierKeys() const OVERRIDE;
+	virtual FModifierKeysState GetModifierKeys() const override;
 	//	
-	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const OVERRIDE;
+	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 	//	X
-	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const OVERRIDE;
+	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const override;
 	//	
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
+	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
 	void AddPendingEvent( SDL_Event event );
 

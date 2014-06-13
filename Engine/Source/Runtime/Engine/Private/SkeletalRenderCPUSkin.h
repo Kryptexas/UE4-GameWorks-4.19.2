@@ -139,16 +139,16 @@ public:
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
 	// Begin FSkeletalMeshObject interface
-	virtual void InitResources() OVERRIDE;
-	virtual void ReleaseResources() OVERRIDE;
-	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) OVERRIDE;
-	virtual void UpdateDynamicData_RenderThread(FDynamicSkelMeshObjectData* InDynamicData) OVERRIDE;
-	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) OVERRIDE;
-	virtual void CacheVertices(int32 LODIndex, bool bForce) const OVERRIDE;
-	virtual bool IsCPUSkinned() const OVERRIDE { return true; }
-	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const OVERRIDE;
-	virtual TArray<FTransform>* GetSpaceBases() const OVERRIDE;
-	virtual int32 GetLOD() const OVERRIDE
+	virtual void InitResources() override;
+	virtual void ReleaseResources() override;
+	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
+	virtual void UpdateDynamicData_RenderThread(FDynamicSkelMeshObjectData* InDynamicData) override;
+	virtual void EnableBlendWeightRendering(bool bEnabled, const TArray<int32>& InBonesOfInterest) override;
+	virtual void CacheVertices(int32 LODIndex, bool bForce) const override;
+	virtual bool IsCPUSkinned() const override { return true; }
+	virtual const FVertexFactory* GetVertexFactory(int32 LODIndex,int32 ChunkIdx) const override;
+	virtual TArray<FTransform>* GetSpaceBases() const override;
+	virtual int32 GetLOD() const override
 	{
 		if(DynamicData)
 		{
@@ -159,14 +159,14 @@ public:
 			return 0;
 		}
 	}
-	virtual const FTwoVectors& GetCustomLeftRightVectors(int32 SectionIndex) const OVERRIDE;
+	virtual const FTwoVectors& GetCustomLeftRightVectors(int32 SectionIndex) const override;
 
-	virtual bool HaveValidDynamicData() OVERRIDE
+	virtual bool HaveValidDynamicData() override
 	{ 
 		return ( DynamicData!=NULL ); 
 	}
 
-	virtual SIZE_T GetResourceSize() OVERRIDE
+	virtual SIZE_T GetResourceSize() override
 	{
 		SIZE_T ResourceSize=sizeof(*this);
 
@@ -189,7 +189,7 @@ public:
 		return ResourceSize;
 	}
 
-	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const OVERRIDE;
+	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
 	// End FSkeletalMeshObject interface
 
 private:

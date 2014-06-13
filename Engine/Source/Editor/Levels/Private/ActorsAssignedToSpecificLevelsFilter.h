@@ -7,7 +7,7 @@ class FActorsAssignedToSpecificLevelsFilter : public IFilter< const AActor* cons
 public:
 
 	DECLARE_DERIVED_EVENT(FActorsAssignedToSpecificLevelsFilter, IFilter< const AActor* const >::FChangedEvent, FChangedEvent);
-	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
+	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
 
 	/** 
 	 * Returns whether the specified Item passes the Filter's text restrictions 
@@ -15,7 +15,7 @@ public:
 	 *	@param	InItem	The Item to check 
 	 *	@return			Whether the specified Item passed the filter
 	 */
-	virtual bool PassesFilter( const AActor* const InActor ) const OVERRIDE
+	virtual bool PassesFilter( const AActor* const InActor ) const override
 	{
 		if( LevelNames.Num() == 0 )
 		{

@@ -297,23 +297,23 @@ public:
 #endif
 
 	// Begin AActor Interface
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual void PreNetReceive() OVERRIDE;
-	virtual void PostNetReceive() OVERRIDE;
-	virtual void BeginPlay() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void PreNetReceive() override;
+	virtual void PostNetReceive() override;
+	virtual void BeginPlay() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 #if WITH_EDITOR
-	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const OVERRIDE;
+	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
 	// Begin AActor Interface
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE; 
-	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override; 
+	virtual bool CanEditChange( const UProperty* Property ) const override;
 #endif // WITH_EDITOR
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	// End UObject Interface
 
 	/** Increment track forwards by given timestep and iterate over each track updating any properties. */

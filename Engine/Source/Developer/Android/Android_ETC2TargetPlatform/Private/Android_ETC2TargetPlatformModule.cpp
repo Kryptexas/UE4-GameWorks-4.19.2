@@ -19,7 +19,7 @@ public:
 
 	// Begin FAndroidTargetPlatform overrides
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return LOCTEXT("Android_ETC2", "Android (ETC2)");
 	}
@@ -29,12 +29,12 @@ public:
 		return TEXT("ETC2");
 	}
 
-	virtual FString PlatformName() const OVERRIDE
+	virtual FString PlatformName() const override
 	{
 		return FString(FAndroid_ETC2PlatformProperties::PlatformName());
 	}
 
-	virtual bool SupportsTextureFormat( FName Format ) const OVERRIDE
+	virtual bool SupportsTextureFormat( FName Format ) const override
 	{
 		if (Format == AndroidTexFormat::NameETC2_RGB ||
 			Format == AndroidTexFormat::NameETC2_RGBA ||
@@ -48,7 +48,7 @@ public:
 
 	// End FAndroidTargetPlatform overrides
 
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
 		return GLESVersion >= 0x30000;
 	}
@@ -81,7 +81,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{

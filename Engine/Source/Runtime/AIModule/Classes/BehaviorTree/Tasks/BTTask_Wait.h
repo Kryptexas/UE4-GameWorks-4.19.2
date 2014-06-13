@@ -18,10 +18,10 @@ class UBTTask_Wait : public UBTTaskNode
 	UPROPERTY(Category=Node, EditAnywhere)
 	float WaitTime;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
-	virtual FString GetStaticDescription() const OVERRIDE;
+	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual uint16 GetInstanceMemorySize() const override;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
@@ -29,5 +29,5 @@ class UBTTask_Wait : public UBTTaskNode
 
 protected:
 
-	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 };

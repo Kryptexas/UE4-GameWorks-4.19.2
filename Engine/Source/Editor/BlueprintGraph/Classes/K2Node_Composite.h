@@ -13,24 +13,24 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	class UEdGraph* BoundGraph;
 
 	// Begin UEdGraphNode interface
-	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void DestroyNode() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void PostPasteNode() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetTooltip() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
+	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
+	BLUEPRINTGRAPH_API virtual void PostPasteNode() override;
+	BLUEPRINTGRAPH_API virtual FString GetTooltip() const override;
+	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const override;
+	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
+	BLUEPRINTGRAPH_API virtual void PostPlacedNewNode() override;
+	virtual void OnRenameNode(const FString& NewName) override;
+	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool DrawNodeAsExit() const OVERRIDE { return false; }
-	virtual bool DrawNodeAsEntry() const OVERRIDE { return false; }
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
+	virtual bool DrawNodeAsExit() const override { return false; }
+	virtual bool DrawNodeAsEntry() const override { return false; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	// End UK2Node interface
 
 	// Get the entry/exit nodes inside this collapsed graph

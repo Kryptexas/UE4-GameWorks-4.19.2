@@ -24,8 +24,8 @@ class ULightMapTexture2D : public UTexture2D
 	GENERATED_UCLASS_BODY()
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual FString GetDesc() override;
 	// End UObject interface. 
 
 	bool IsLowQualityLightmap() const

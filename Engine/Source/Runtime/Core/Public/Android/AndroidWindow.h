@@ -25,12 +25,12 @@ public:
 	static TSharedRef<FAndroidWindow> Make();
 
 	
-	virtual void* GetOSWindowHandle() const OVERRIDE { return Window; } //can be null.
+	virtual void* GetOSWindowHandle() const override { return Window; } //can be null.
 
 	void Initialize( class FAndroidApplication* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FAndroidWindow >& InParent, const bool bShowImmediately );
 
 	/** Returns the rectangle of the screen the window is associated with */
-	virtual bool GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const OVERRIDE;
+	virtual bool GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const override;
 
 	
 	virtual void SetOSWindowHandle(void*);
@@ -42,7 +42,7 @@ public:
 
 protected:
 	/** @return true if the native window is currently in fullscreen mode, false otherwise */
-	virtual EWindowMode::Type GetWindowMode() const OVERRIDE { return EWindowMode::Fullscreen; }
+	virtual EWindowMode::Type GetWindowMode() const override { return EWindowMode::Fullscreen; }
 
 private:
 	/**

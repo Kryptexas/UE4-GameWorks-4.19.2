@@ -37,6 +37,6 @@ class UEditorGameAgnosticSettings : public UObject
 	TArray<FGuid> InProgressSurveys;
 
 	// Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 };

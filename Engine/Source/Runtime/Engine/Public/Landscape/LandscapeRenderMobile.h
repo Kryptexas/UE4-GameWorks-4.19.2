@@ -123,7 +123,7 @@ class FLandscapeComponentSceneProxyMobile : public FLandscapeComponentSceneProxy
 public:
 	FLandscapeComponentSceneProxyMobile(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData);
 
-	virtual void CreateRenderThreadResources() OVERRIDE;
+	virtual void CreateRenderThreadResources() override;
 
 	friend class FLandscapeVertexBufferMobile;
 };

@@ -48,7 +48,7 @@ public:
 	}
 
 private:
-	virtual uint32 Run() OVERRIDE
+	virtual uint32 Run() override
 	{
 		Worker.DoWork();
 		FPlatformAtomics::InterlockedIncrement(&bIsDone);
@@ -74,7 +74,7 @@ public:
 	 * @param bIsDirectory Whether the path refers to a file or directory
 	 * @return Whether to carry on iterating
 	 */
-	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 	{
 		return Functor(FilenameOrDirectory, bIsDirectory);
 	}

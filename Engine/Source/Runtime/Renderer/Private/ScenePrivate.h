@@ -637,7 +637,7 @@ public:
 	// FSceneViewStateInterface
 	RENDERER_API virtual void Destroy();
 	
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		uint32 Count = MIDPool.Num();
 
@@ -650,7 +650,7 @@ public:
 	}
 
 	/** called in InitViews() */
-	virtual void OnStartFrame(FSceneView& CurrentView) OVERRIDE
+	virtual void OnStartFrame(FSceneView& CurrentView) override
 	{
 		check(IsInRenderingThread());
 
@@ -663,7 +663,7 @@ public:
 	}
 
 	// needed for GetReusableMID()
-	virtual void OnStartPostProcessing(FSceneView& CurrentView) OVERRIDE
+	virtual void OnStartPostProcessing(FSceneView& CurrentView) override
 	{
 		check(IsInGameThread());
 
@@ -707,7 +707,7 @@ public:
 		return Ret;
 	}
 
-	virtual void ApplyWorldOffset(FVector InOffset) OVERRIDE;
+	virtual void ApplyWorldOffset(FVector InOffset) override;
 
 	// FDeferredCleanupInterface
 	virtual void FinishCleanup()
@@ -1263,17 +1263,17 @@ public:
 	virtual void RemovePrimitive(UPrimitiveComponent* Primitive);
 	virtual void ReleasePrimitive(UPrimitiveComponent* Primitive);
 	virtual void UpdatePrimitiveTransform(UPrimitiveComponent* Primitive);
-	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) OVERRIDE;
+	virtual void UpdatePrimitiveAttachment(UPrimitiveComponent* Primitive) override;
 	virtual void AddLight(ULightComponent* Light);
 	virtual void RemoveLight(ULightComponent* Light);
 	virtual void AddInvisibleLight(ULightComponent* Light);
 	virtual void SetSkyLight(FSkyLightSceneProxy* Light);
 	virtual void AddDecal(UDecalComponent* Component);
 	virtual void RemoveDecal(UDecalComponent* Component);
-	virtual void UpdateDecalTransform(UDecalComponent* Decal) OVERRIDE;
+	virtual void UpdateDecalTransform(UDecalComponent* Decal) override;
 	virtual void AddReflectionCapture(UReflectionCaptureComponent* Component);
 	virtual void RemoveReflectionCapture(UReflectionCaptureComponent* Component);
-	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) OVERRIDE;
+	virtual void GetReflectionCaptureData(UReflectionCaptureComponent* Component, class FReflectionCaptureFullHDRDerivedData& OutDerivedData) override;
 	virtual void UpdateReflectionCaptureTransform(UReflectionCaptureComponent* Component);
 	virtual void ReleaseReflectionCubemap(UReflectionCaptureComponent* CaptureComponent);
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent);
@@ -1299,9 +1299,9 @@ public:
 	virtual void UpdateSpeedTreeWind(double CurrentTime);
 	virtual FUniformBufferRHIParamRef GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory);
 	virtual void DumpUnbuiltLightIteractions( FOutputDevice& Ar ) const;
-	virtual void DumpStaticMeshDrawListStats() const OVERRIDE;
+	virtual void DumpStaticMeshDrawListStats() const override;
 	virtual void SetClearMotionBlurInfoGameThread();
-	virtual void UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections) OVERRIDE;
+	virtual void UpdateParameterCollections(const TArray<FMaterialParameterCollectionInstanceResource*>& InParameterCollections) override;
 
 	/** Determines whether the scene has dynamic sky lighting. */
 	bool HasDynamicSkyLighting() const
@@ -1393,16 +1393,16 @@ public:
 		return FUniformBufferRHIParamRef();
 	}
 
-	virtual void ApplyWorldOffset(FVector InOffset) OVERRIDE;
+	virtual void ApplyWorldOffset(FVector InOffset) override;
 
-	virtual void OnLevelAddedToWorld(FName InLevelName) OVERRIDE;
+	virtual void OnLevelAddedToWorld(FName InLevelName) override;
 
-	virtual bool HasAnyLights() const OVERRIDE { return NumVisibleLights > 0 || bHasSkyLight; }
+	virtual bool HasAnyLights() const override { return NumVisibleLights > 0 || bHasSkyLight; }
 
-	virtual bool IsEditorScene() const OVERRIDE { return bIsEditorScene; }
+	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const OVERRIDE { return FeatureLevel; }
-	virtual void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel) OVERRIDE;
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
+	virtual void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel) override;
 
 private:
 

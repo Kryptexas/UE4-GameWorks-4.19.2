@@ -33,17 +33,17 @@ public:
 
 	// Begin IScreenShotManager interface
 
-	virtual void GenerateLists() OVERRIDE;
+	virtual void GenerateLists() override;
 
-	virtual TArray< TSharedPtr<FString> >& GetCachedPlatfomList(  ) OVERRIDE;
+	virtual TArray< TSharedPtr<FString> >& GetCachedPlatfomList(  ) override;
 
-	virtual TArray<IScreenShotDataPtr>& GetLists() OVERRIDE;
+	virtual TArray<IScreenShotDataPtr>& GetLists() override;
 
-	virtual void RegisterScreenShotUpdate(const FOnScreenFilterChanged& InDelegate )OVERRIDE;
+	virtual void RegisterScreenShotUpdate(const FOnScreenFilterChanged& InDelegate )override;
 
-	virtual void SetFilter( TSharedPtr< ScreenShotFilterCollection > InFilter ) OVERRIDE;
+	virtual void SetFilter( TSharedPtr< ScreenShotFilterCollection > InFilter ) override;
 
-	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) OVERRIDE;
+	virtual void SetDisplayEveryNthScreenshot(int32 NewNth) override;
 
 	// End IScreenShotManager interface
 

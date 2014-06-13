@@ -30,12 +30,12 @@ public:
 
 private:
 	// SGraphPalette Interface
-	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) OVERRIDE;
+	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) override;
 	// End SGraphPalette Interface
 
 	// SBlueprintSubPalette Interface
-	virtual void BindCommands(TSharedPtr<FUICommandList> CommandListIn) const OVERRIDE;
-	virtual void GenerateContextMenuEntries(FMenuBuilder& MenuBuilder) const OVERRIDE;
+	virtual void BindCommands(TSharedPtr<FUICommandList> CommandListIn) const override;
+	virtual void GenerateContextMenuEntries(FMenuBuilder& MenuBuilder) const override;
 	// End SBlueprintSubPalette Interface
 
 	/** Flags weather we should add the "frequently used" list to the user's favorites */

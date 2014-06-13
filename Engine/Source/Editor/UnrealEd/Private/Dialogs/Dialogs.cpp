@@ -336,9 +336,9 @@ public:
 	}
 
 	bool GetResponse() const { return bUserResponse; }
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		if (InKeyboardEvent.GetKey() == EKeys::C && InKeyboardEvent.IsControlDown())
 		{

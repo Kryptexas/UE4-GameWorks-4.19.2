@@ -67,11 +67,11 @@ private:
 /** Factory specific params */
 class FSplineMeshVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
-	void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE;
+	void Bind(const FShaderParameterMap& ParameterMap) override;
 
-	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const OVERRIDE;
+	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override;
 
-	void Serialize(FArchive& Ar) OVERRIDE
+	void Serialize(FArchive& Ar) override
 	{
 		Ar << SplineStartPosParam;
 		Ar << SplineStartTangentParam;
@@ -96,7 +96,7 @@ class FSplineMeshVertexFactoryShaderParameters : public FVertexFactoryShaderPara
 		Ar << SplineMeshYParam;
 	}
 
-	virtual uint32 GetSize() const OVERRIDE
+	virtual uint32 GetSize() const override
 	{
 		return sizeof(*this);
 	}
@@ -182,7 +182,7 @@ public:
 		}
 	}
 
-	virtual ~FSplineMeshSceneProxy() OVERRIDE
+	virtual ~FSplineMeshSceneProxy() override
 	{
 		ReleaseResources();
 
@@ -198,7 +198,7 @@ public:
 	void ReleaseResources();
 
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
-	virtual bool GetShadowMeshElement(int32 LODIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const OVERRIDE
+	virtual bool GetShadowMeshElement(int32 LODIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const override
 	{
 		//checkf(LODIndex == 0, TEXT("Getting spline static mesh element with invalid LOD [%d]"), LODIndex);
 
@@ -212,7 +212,7 @@ public:
 	}
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
-	virtual bool GetMeshElement(int32 LODIndex, int32 SectionIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const OVERRIDE
+	virtual bool GetMeshElement(int32 LODIndex, int32 SectionIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial) const override
 	{
 		//checkf(LODIndex == 0 /*&& SectionIndex == 0*/, TEXT("Getting spline static mesh element with invalid params [%d, %d]"), LODIndex, SectionIndex);
 
@@ -226,7 +226,7 @@ public:
 	}
 
 	/** Sets up a wireframe FMeshBatch for a specific LOD. */
-	virtual bool GetWireframeMeshElement(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const OVERRIDE
+	virtual bool GetWireframeMeshElement(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const override
 	{
 		//checkf(LODIndex == 0, TEXT("Getting spline static mesh element with invalid LOD [%d]"), LODIndex);
 
@@ -239,7 +239,7 @@ public:
 		return false;
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		return FStaticMeshSceneProxy::GetViewRelevance(View);
 	}

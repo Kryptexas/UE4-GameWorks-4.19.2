@@ -8,12 +8,12 @@ public:
 	SGraphNodeK2Event() : SGraphNodeK2Default(), bHasDelegateOutputPin(false) {}
 
 protected:
-	virtual TSharedRef<SWidget> CreateTitleWidget(TSharedPtr<SNodeTitle> NodeTitle) OVERRIDE;
-	virtual bool UseLowDetailNodeTitles() const OVERRIDE;
-	virtual void AddPin( const TSharedRef<SGraphPin>& PinToAdd ) OVERRIDE;
+	virtual TSharedRef<SWidget> CreateTitleWidget(TSharedPtr<SNodeTitle> NodeTitle) override;
+	virtual bool UseLowDetailNodeTitles() const override;
+	virtual void AddPin( const TSharedRef<SGraphPin>& PinToAdd ) override;
 
 
-	virtual void SetDefaultTitleAreaWidget(TSharedRef<SOverlay> DefaultTitleAreaWidget) OVERRIDE
+	virtual void SetDefaultTitleAreaWidget(TSharedRef<SOverlay> DefaultTitleAreaWidget) override
 	{
 		TitleAreaWidget = DefaultTitleAreaWidget;
 	}

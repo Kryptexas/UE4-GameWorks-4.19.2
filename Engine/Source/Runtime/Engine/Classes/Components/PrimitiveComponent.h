@@ -590,14 +590,14 @@ public:
 	 * @param OverlapsAtEndLocation		If non-null, the given list of overlaps will be used as the overlaps for this component at the current location, rather than checking for them separately.
 	 *									Generally this should only be used if this component is the RootComponent of the owning actor and overlaps with other descendant components have been verified.
 	 */
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) OVERRIDE;
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 
 	/** Tells this component to ignore collision with the specified actor when being moved. */
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
 
 	/** Overridden to use the overlaps to find the physics volume. */
-	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) OVERRIDE;
+	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) override;
 
 	/**
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps
@@ -911,10 +911,10 @@ public:
 #endif
 
 	// Begin UActorComponent Interface
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
-	virtual bool IsEditorOnly() const OVERRIDE;
-	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
-	virtual bool HasValidPhysicsState() const OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
+	virtual bool IsEditorOnly() const override;
+	virtual bool ShouldCreatePhysicsState() const override;
+	virtual bool HasValidPhysicsState() const override;
 	// End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
@@ -1085,37 +1085,37 @@ protected:
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
 	// Begin USceneComponent Interface
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 
 	/** Called when AttachParent changes, to allow the scene to update its attachment state. */
-	virtual void OnAttachmentChanged() OVERRIDE;
+	virtual void OnAttachmentChanged() override;
 
 	/**
 	* Called after a child is attached to this component.
 	* Note: Do not change the attachment state of the child during this call.
 	*/
-	virtual void OnChildAttached(USceneComponent* ChildComponent) OVERRIDE;
+	virtual void OnChildAttached(USceneComponent* ChildComponent) override;
 
 public:
-	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const OVERRIDE;
+	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
 
 	// End USceneComponentInterface
 
 
 	// Begin UActorComponent Interface
 protected:
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void OnRegister()  OVERRIDE;
-	virtual void OnUnregister()  OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void DestroyPhysicsState() OVERRIDE;
-	virtual void OnActorEnableCollisionChanged() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void OnRegister()  override;
+	virtual void OnUnregister()  override;
+	virtual void DestroyRenderState_Concurrent() override;
+	virtual void CreatePhysicsState() override;
+	virtual void DestroyPhysicsState() override;
+	virtual void OnActorEnableCollisionChanged() override;
 public:
-	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR	
 	// End UActorComponent Interface
 
@@ -1130,16 +1130,16 @@ protected:
 public:
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void UpdateCollisionProfile();
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 #if WITH_EDITOR
 	/**
@@ -1150,22 +1150,22 @@ public:
 	virtual void PostEditImport();
 #endif
 
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual void SetRelativeScale3D(FVector NewScale3D) OVERRIDE FINAL;
-	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) OVERRIDE;
-	virtual bool IsWorldGeometry() const OVERRIDE;
-	virtual ECollisionEnabled::Type GetCollisionEnabled() const OVERRIDE;
-	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const OVERRIDE;
-	virtual ECollisionChannel GetCollisionObjectType() const OVERRIDE;
-	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const OVERRIDE;
-	virtual FVector GetComponentVelocity() const OVERRIDE;
+	virtual void SetRelativeScale3D(FVector NewScale3D) override final;
+	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
+	virtual bool IsWorldGeometry() const override;
+	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
+	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
+	virtual ECollisionChannel GetCollisionObjectType() const override;
+	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
+	virtual FVector GetComponentVelocity() const override;
 	//End USceneComponent Interface
 
 	/**

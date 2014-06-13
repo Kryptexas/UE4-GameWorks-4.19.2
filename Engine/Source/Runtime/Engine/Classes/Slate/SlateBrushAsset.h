@@ -20,6 +20,6 @@ public:
 	FSlateBrush Brush;
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 };

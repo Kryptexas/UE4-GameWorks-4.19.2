@@ -1579,8 +1579,8 @@ public:
 	}
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -1595,7 +1595,7 @@ public:
 	void ParseCommandline();
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out=*GLog ) override;
 	// End FExec Interface
 
 	/** 

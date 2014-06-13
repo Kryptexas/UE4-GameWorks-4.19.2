@@ -9,10 +9,10 @@ class FAssetTypeActions_AnimSequence : public FAssetTypeActions_AnimationAsset
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_AnimSequence", "Animation Sequence"); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UAnimSequence::StaticClass(); }
-	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE;
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_AnimSequence", "Animation Sequence"); }
+	virtual UClass* GetSupportedClass() const override { return UAnimSequence::StaticClass(); }
+	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) override;
+	virtual bool CanFilter() override { return true; }
 
 private:
 	/** Handler for when Reimport is selected */

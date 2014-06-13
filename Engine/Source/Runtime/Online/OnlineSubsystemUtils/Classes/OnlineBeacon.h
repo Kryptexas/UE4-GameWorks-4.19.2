@@ -32,14 +32,14 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
-	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) OVERRIDE;
+	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
-	virtual EAcceptConnection::Type NotifyAcceptingConnection() OVERRIDE;
-	virtual void NotifyAcceptedConnection(class UNetConnection* Connection) OVERRIDE;
-	virtual bool NotifyAcceptingChannel(class UChannel* Channel) OVERRIDE;
-	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) OVERRIDE;
+	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
+	virtual void NotifyAcceptedConnection(class UNetConnection* Connection) override;
+	virtual bool NotifyAcceptingChannel(class UChannel* Channel) override;
+	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
 	// End FNetworkNotify Interface
 
 	/**
@@ -99,7 +99,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	 *
 	 * @return net connection used in communication
 	 */
-	virtual UNetConnection* GetNetConnection() OVERRIDE;	
+	virtual UNetConnection* GetNetConnection() override;	
 
 protected:
 	/** Net driver routing network traffic */

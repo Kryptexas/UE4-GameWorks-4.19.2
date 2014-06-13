@@ -24,7 +24,7 @@ class UParticleModuleVectorFieldRotation : public UParticleModuleVectorFieldBase
 
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// Begin UParticleModule Interface
 };
 

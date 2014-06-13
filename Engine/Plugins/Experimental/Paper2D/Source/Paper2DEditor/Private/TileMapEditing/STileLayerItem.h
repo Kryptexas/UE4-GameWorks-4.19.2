@@ -14,7 +14,7 @@ public:
 	void Construct(const FArguments& InArgs, class UPaperTileLayer* InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	// SMultiColumnTableRow<> interface
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) OVERRIDE;
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 	// End of SMultiColumnTableRow<> interface
 protected:
 	class UPaperTileLayer* MyLayer;

@@ -402,7 +402,7 @@ public:
 	 *
 	 * @returns UAT UnrealSync command line.
 	 */
-	FString GetLabelName() const OVERRIDE
+	FString GetLabelName() const override
 	{
 		DataReady->Wait();
 
@@ -425,7 +425,7 @@ public:
 		return "Sync to latest finished.";
 	}
 
-	FString GetGameName() const OVERRIDE
+	FString GetGameName() const override
 	{
 		DataReady->Wait();
 
@@ -437,7 +437,7 @@ public:
 	 *
 	 * @param GameName Current game name.
 	 */
-	void RefreshData(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) override
 	{
 		ILabelNameProvider::RefreshData(GameName);
 
@@ -455,7 +455,7 @@ public:
 	 *
 	 * @param GameName Current game name.
 	 */
-	void ResetData(const FString& GameName) OVERRIDE
+	void ResetData(const FString& GameName) override
 	{
 		ILabelNameProvider::ResetData(GameName);
 
@@ -467,7 +467,7 @@ public:
 	 *
 	 * @returns True if ready. False otherwise.
 	 */
-	bool IsReadyForSync() const OVERRIDE
+	bool IsReadyForSync() const override
 	{
 		return true;
 	}
@@ -519,7 +519,7 @@ public:
 	 *
 	 * @returns UAT UnrealSync command line.
 	 */
-	FString GetLabelName() const OVERRIDE
+	FString GetLabelName() const override
 	{
 		return LabelsCombo->GetCurrentOption();
 	}
@@ -529,7 +529,7 @@ public:
 	 *
 	 * @returns True if ready. False otherwise.
 	 */
-	bool IsReadyForSync() const OVERRIDE
+	bool IsReadyForSync() const override
 	{
 		return FUnrealSync::HasValidData() && !LabelsCombo->IsEmpty();
 	}
@@ -539,7 +539,7 @@ public:
 	 *
 	 * @param GameName Current game name.
 	 */
-	void ResetData(const FString& GameName) OVERRIDE
+	void ResetData(const FString& GameName) override
 	{
 		ILabelNameProvider::ResetData(GameName);
 
@@ -590,7 +590,7 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshData(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) override
 	{
 		SetLabelOptions(*FUnrealSync::GetPromotedLabelsForGame(GameName));
 
@@ -609,7 +609,7 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshData(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) override
 	{
 		SetLabelOptions(*FUnrealSync::GetPromotableLabelsForGame(GameName));
 
@@ -628,7 +628,7 @@ public:
 	 *
 	 * @param GameName Game name to refresh for.
 	 */
-	void RefreshData(const FString& GameName) OVERRIDE
+	void RefreshData(const FString& GameName) override
 	{
 		SetLabelOptions(*FUnrealSync::GetAllLabels());
 

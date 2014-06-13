@@ -11,7 +11,7 @@ public:
 	~FBrushDetails();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 private:
 	/** Callback for creating a static mesh from valid selected brushes. */

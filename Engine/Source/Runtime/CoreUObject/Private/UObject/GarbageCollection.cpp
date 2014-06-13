@@ -262,7 +262,7 @@ public:
 	{
 	}
 
-	virtual void HandleObjectReference( UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty ) OVERRIDE
+	virtual void HandleObjectReference( UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty ) override
 	{
 #if !(UE_BUILD_TEST || UE_BUILD_SHIPPING)
 		if (Object && !Object->IsValidLowLevelFast())
@@ -275,15 +275,15 @@ public:
 #endif
 		::HandleObjectReference( ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences );
 	}
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE
+	virtual bool IsIgnoringArchetypeRef() const override
 	{
 		return false;
 	}
-	virtual bool IsIgnoringTransient() const OVERRIDE
+	virtual bool IsIgnoringTransient() const override
 	{
 		return false;
 	}
-	virtual void AllowEliminatingReferences( bool bAllow ) OVERRIDE
+	virtual void AllowEliminatingReferences( bool bAllow ) override
 	{
 		bAllowEliminatingReferences = bAllow;
 	}

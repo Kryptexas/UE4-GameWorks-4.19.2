@@ -38,8 +38,8 @@ class AIMODULE_API UBTAuxiliaryNode : public UBTNode
 	/** wrapper for node instancing: TickNode */
 	void WrappedTickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const;
 
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
-	virtual uint16 GetSpecialMemorySize() const OVERRIDE;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual uint16 GetSpecialMemorySize() const override;
 
 protected:
 

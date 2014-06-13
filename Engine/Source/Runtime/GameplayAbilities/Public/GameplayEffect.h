@@ -408,7 +408,7 @@ public:
 	// ------------------------------------------------
 
 	/** Overridden to return requirements tags */
-	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const OVERRIDE;
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override;
 
 	/** Get the "clear tags" for the effect */
 	virtual void GetClearGameplayTags(FGameplayTagContainer& TagContainer) const;
@@ -429,7 +429,7 @@ public:
 		return false;
 	}
 
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 	// -----------------------------------------------
 	

@@ -19,12 +19,12 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::Object;
 	}
 
-	virtual const FOnMessageTokenActivated& GetOnMessageTokenActivated() const OVERRIDE;
+	virtual const FOnMessageTokenActivated& GetOnMessageTokenActivated() const override;
 	/** End IMessageToken interface */
 
 	/** Get the object referenced by this token */

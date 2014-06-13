@@ -31,14 +31,14 @@ public:
 	virtual ~FUserDefinedStructureEditor();
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 protected:
 	TSharedRef<SDockTab> SpawnStructureTab(const FSpawnTabArgs& Args);
@@ -56,14 +56,14 @@ public:
 	~FUserDefinedStructureDetails();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailLayout ) override;
 
 	UUserDefinedStruct* GetUserDefinedStruct();
 
 	struct FStructVariableDescription* FindStructureFieldByGuid(FGuid Guid);
 
 	/** FStructureEditorUtils::INotifyOnStructChanged */
-	virtual void OnChanged(const class UUserDefinedStruct* Struct) OVERRIDE;
+	virtual void OnChanged(const class UUserDefinedStruct* Struct) override;
 
 private:
 	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;

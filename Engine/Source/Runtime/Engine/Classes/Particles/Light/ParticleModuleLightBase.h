@@ -9,7 +9,7 @@ UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Ligh
 class UParticleModuleLightBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

@@ -11,7 +11,7 @@ public:
 	FToolSelector(const FUIAction& InAction, const FOnGetContent& InMenuContentGenerator, const TAttribute<FText>& InLabel = TAttribute<FText>(), const TAttribute<FText>& InSmallText = TAttribute<FText>(), const TAttribute<FText>& InToolTip = TAttribute<FText>(), const TAttribute<FSlateIcon>& InIcon = TAttribute<FSlateIcon>());
 
 protected:
-	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const OVERRIDE;
+	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
 
 	virtual TSharedRef<class IMultiBlockBaseWidget> ConstructWidget() const;
 
@@ -37,7 +37,7 @@ public:
 
 		void Construct(const FArguments& InArgs);
 
-	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) OVERRIDE;
+	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) override;
 
 protected:
 	TSharedRef<SWidget> OnGetMenuContent();

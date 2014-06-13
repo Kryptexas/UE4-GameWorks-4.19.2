@@ -206,7 +206,7 @@ class UTimelineTemplate : public UObject
 	ENGINE_API void GetAllCurves(TSet<class UCurveBase*>& InOutCurves) const;
 
 	/* Perform deep copy of curves */
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 };
 
 

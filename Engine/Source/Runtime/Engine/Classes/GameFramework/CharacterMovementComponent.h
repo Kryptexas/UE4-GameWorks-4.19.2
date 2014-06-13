@@ -261,10 +261,10 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 	 * @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 	 * @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completion of this task until certain child tasks are complete.
 	 **/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
-	virtual FString DiagnosticMessage() OVERRIDE;
+	virtual FString DiagnosticMessage() override;
 };
 
 UCLASS(dependson=(UNetworkPredictionInterface))
@@ -807,24 +807,24 @@ public:
 	virtual void ApplyNetworkMovementMode(const uint8 ReceivedMode);
 
 	//Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void OnUnregister() override;
+	virtual void PostLoad() override;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	//End UActorComponent Interface
 
 	//BEGIN UMovementComponent Interface
-	virtual float GetMaxSpeed() const OVERRIDE;
-	virtual float GetMaxSpeedModifier() const OVERRIDE;
-	virtual void StopActiveMovement() OVERRIDE;
-	virtual bool IsCrouching() const OVERRIDE;
-	virtual bool IsFalling() const OVERRIDE;
-	virtual bool IsMovingOnGround() const OVERRIDE;
-	virtual bool IsSwimming() const OVERRIDE;
-	virtual bool IsFlying() const OVERRIDE;
-	virtual float GetGravityZ() const OVERRIDE;
-	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) OVERRIDE;
-	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) OVERRIDE;
+	virtual float GetMaxSpeed() const override;
+	virtual float GetMaxSpeedModifier() const override;
+	virtual void StopActiveMovement() override;
+	virtual bool IsCrouching() const override;
+	virtual bool IsFalling() const override;
+	virtual bool IsMovingOnGround() const override;
+	virtual bool IsSwimming() const override;
+	virtual bool IsFlying() const override;
+	virtual float GetGravityZ() const override;
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) override;
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) override;
 	//END UMovementComponent Interface
 
 	/** @return true if the character is in the 'Walking' movement mode. */
@@ -832,16 +832,16 @@ public:
 	bool IsWalking() const;
 
 	//BEGIN UNavMovementComponent Interface
-	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) OVERRIDE;
-	virtual bool CanStopPathFollowing() const OVERRIDE;
+	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	virtual bool CanStopPathFollowing() const override;
 	//END UNaVMovementComponent Interface
 
 	//Begin UPawnMovementComponent Interface
-	virtual void NotifyBumpedPawn(APawn* BumpedPawn) OVERRIDE;
+	virtual void NotifyBumpedPawn(APawn* BumpedPawn) override;
 	//End UPawnMovementComponent Interface
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	/** Make movement impossible (sets movement mode to MOVE_None). */
@@ -1094,7 +1094,7 @@ public:
 	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL );
 
 	
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) OVERRIDE;
+	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
@@ -1224,25 +1224,25 @@ protected:
 	virtual void MaintainHorizontalGroundVelocity();
 
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
-	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) OVERRIDE;
+	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
 
 	/** Overridden to avoid upward adjustments that can go too high when walking. */
-	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const OVERRIDE;
+	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const override;
 
 	/** Don't call for intermediate parts of move! */
-	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) OVERRIDE;
+	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/** Custom version of SlideAlongSurface that handles different movement modes separately; namely during walking physics we might not want to slide up slopes. */
-	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) OVERRIDE;
+	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) override;
 
 	/** Custom version that allows upwards slides when walking if the surface is walkable. */
-	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const OVERRIDE;
+	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
 
 	/**
 	 * Calculate slide on a slope. Has special treatment when falling, to avoid boosting up slopes.
 	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
 	 */
-	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const OVERRIDE;
+	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
 	/**
 	 * Given an upward impact on the top of the capsule, allows calculation of a different movement delta.
@@ -1388,22 +1388,22 @@ public:
 	//--------------------------------
 	// Server hook
 	//--------------------------------
-	virtual void SendClientAdjustment() OVERRIDE;
-	virtual void ForcePositionUpdate(float DeltaTime) OVERRIDE;
+	virtual void SendClientAdjustment() override;
+	virtual void ForcePositionUpdate(float DeltaTime) override;
 
 	//--------------------------------
 	// Client hook
 	//--------------------------------
-	virtual void SmoothCorrection(const FVector& OldLocation) OVERRIDE;
+	virtual void SmoothCorrection(const FVector& OldLocation) override;
 
-	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const OVERRIDE;
-	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const OVERRIDE;
+	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 
-	virtual bool HasPredictionData_Client() const OVERRIDE { return ClientPredictionData != NULL; }
-	virtual bool HasPredictionData_Server() const OVERRIDE { return ServerPredictionData != NULL; }
+	virtual bool HasPredictionData_Client() const override { return ClientPredictionData != NULL; }
+	virtual bool HasPredictionData_Server() const override { return ServerPredictionData != NULL; }
 
-	virtual void ResetPredictionData_Client() OVERRIDE;
-	virtual void ResetPredictionData_Server() OVERRIDE;
+	virtual void ResetPredictionData_Client() override;
+	virtual void ResetPredictionData_Server() override;
 
 protected:
 	class FNetworkPredictionData_Client_Character* ClientPredictionData;

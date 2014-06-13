@@ -21,9 +21,9 @@ class ENGINE_API APlayerStart : public ANavigationObjectBase
 	TSubobjectPtr<class UArrowComponent> ArrowComponent;
 #endif
 
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 	
-	virtual void PostUnregisterAllComponents() OVERRIDE;
+	virtual void PostUnregisterAllComponents() override;
 };
 
 

@@ -84,23 +84,23 @@ class UInterpTrackVisibility : public UInterpTrack
 
 
 	// Begin UInterpTrack interface.
-	virtual int32 GetNumKeyframes() const OVERRIDE;
-	virtual void GetTimeRange(float& StartTime, float& EndTime) const OVERRIDE;
-	virtual float GetTrackEndTime() const OVERRIDE;
-	virtual float GetKeyframeTime(int32 KeyIndex) const OVERRIDE;
-	virtual int32 GetKeyframeIndex( float KeyTime ) const OVERRIDE;
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual int32 SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdateOrder=true) OVERRIDE;
-	virtual void RemoveKeyframe(int32 KeyIndex) OVERRIDE;
-	virtual int32 DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL) OVERRIDE;
-	virtual bool GetClosestSnapPosition(float InPosition, TArray<int32> &IgnoreKeys, float& OutPosition) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
-	virtual const FString	GetEdHelperClassName() const OVERRIDE;
-	virtual const FString	GetSlateHelperClassName() const OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
-	virtual bool AllowStaticActors() OVERRIDE { return true; }
-	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) OVERRIDE;
+	virtual int32 GetNumKeyframes() const override;
+	virtual void GetTimeRange(float& StartTime, float& EndTime) const override;
+	virtual float GetTrackEndTime() const override;
+	virtual float GetKeyframeTime(int32 KeyIndex) const override;
+	virtual int32 GetKeyframeIndex( float KeyTime ) const override;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual int32 SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdateOrder=true) override;
+	virtual void RemoveKeyframe(int32 KeyIndex) override;
+	virtual int32 DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL) override;
+	virtual bool GetClosestSnapPosition(float InPosition, TArray<int32> &IgnoreKeys, float& OutPosition) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
+	virtual const FString	GetEdHelperClassName() const override;
+	virtual const FString	GetSlateHelperClassName() const override;
+	virtual class UTexture2D* GetTrackIcon() const override;
+	virtual bool AllowStaticActors() override { return true; }
+	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) override;
 	// End UInterpTrack interface.
 
 	/** Shows or hides the actor */

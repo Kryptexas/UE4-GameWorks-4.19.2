@@ -38,16 +38,16 @@ public:
 	/** Destructor */
 	virtual ~FNetworkPlatformFile();
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) OVERRIDE;
-	virtual void InitializeAfterSetActive() OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) override;
+	virtual void InitializeAfterSetActive() override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return InnerPlatformFile;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FNetworkPlatformFile::GetTypeName();
 	}
@@ -57,56 +57,56 @@ public:
 		return bIsUsable;
 	}
 
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.FileExists;
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.Size;
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE;
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override;
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.ReadOnly;
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE;
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override;
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override;
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.TimeStamp;
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE;
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override;
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.AccessTimeStamp;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE;
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE;
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectoryTree(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE;
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE;
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;
+	virtual bool		DirectoryExists(const TCHAR* Directory) override;
+	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override;
+	virtual bool		CreateDirectory(const TCHAR* Directory) override;
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override;
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override;
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override;
 
-	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE;
-	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE;
+	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
 
-	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) OVERRIDE;
+	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override;
 
 
 
@@ -227,11 +227,11 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		return FilePos;
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		if (NewPosition >= 0 && NewPosition <= Size)
 		{
@@ -240,11 +240,11 @@ public:
 		}
 		return false;
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		return Seek(Size + NewPositionRelativeToEnd);
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		bool Result = false;
 		if (bReadable && BytesToRead >= 0 && BytesToRead + FilePos <= Size)
@@ -264,7 +264,7 @@ public:
 		}
 		return Result;
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		bool Result = false;
 		if (bWritable && BytesToWrite >= 0)

@@ -31,16 +31,16 @@ public:
 	bool HasMultiColumnWidget() const;
 
 	/** IDetailTreeNode interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return ParentCategory.Pin()->GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
-	virtual void GetChildren( FDetailNodeList& OutChildren )  OVERRIDE;
-	virtual void OnItemExpansionChanged( bool bInIsExpanded ) OVERRIDE;
-	virtual bool ShouldBeExpanded() const OVERRIDE;
-	virtual ENodeVisibility::Type GetVisibility() const OVERRIDE;
-	virtual void FilterNode( const FDetailFilter& InFilter ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual bool ShouldShowOnlyChildren() const OVERRIDE;
-	virtual FName GetNodeName() const OVERRIDE;
+	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.Pin()->GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) override;
+	virtual void GetChildren( FDetailNodeList& OutChildren )  override;
+	virtual void OnItemExpansionChanged( bool bInIsExpanded ) override;
+	virtual bool ShouldBeExpanded() const override;
+	virtual ENodeVisibility::Type GetVisibility() const override;
+	virtual void FilterNode( const FDetailFilter& InFilter ) override;
+	virtual void Tick( float DeltaTime ) override;
+	virtual bool ShouldShowOnlyChildren() const override;
+	virtual FName GetNodeName() const override;
 
 private:
 

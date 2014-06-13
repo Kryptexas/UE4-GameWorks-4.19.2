@@ -91,7 +91,7 @@ public:
 	}
 
 protected:
-	virtual bool IsDesiredProperty(UProperty* Property) const OVERRIDE
+	virtual bool IsDesiredProperty(UProperty* Property) const override
 	{
 		return Cast<BasicPropertyType>(Property) != NULL;
 	}
@@ -113,7 +113,7 @@ public:
 protected:
 	FName DesiredStructName;
 protected:
-	virtual bool IsDesiredProperty(UProperty* Property) const OVERRIDE
+	virtual bool IsDesiredProperty(UProperty* Property) const override
 	{
 		if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 		{

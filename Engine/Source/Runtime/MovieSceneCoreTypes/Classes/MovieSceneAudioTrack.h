@@ -22,15 +22,15 @@ class UMovieSceneAudioTrack : public UMovieSceneTrack
 
 public:
 	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const OVERRIDE;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() OVERRIDE;
-	virtual void RemoveAllAnimationData() OVERRIDE;
-	virtual bool HasSection( UMovieSceneSection* Section ) const OVERRIDE;
-	virtual void RemoveSection( UMovieSceneSection* Section ) OVERRIDE;
-	virtual bool IsEmpty() const OVERRIDE;
-	virtual TRange<float> GetSectionBoundaries() const OVERRIDE;
-	virtual bool SupportsMultipleRows() const OVERRIDE { return true; }
-	virtual TArray<UMovieSceneSection*> GetAllSections() const OVERRIDE;
+	virtual FName GetTrackName() const override;
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
+	virtual void RemoveAllAnimationData() override;
+	virtual bool HasSection( UMovieSceneSection* Section ) const override;
+	virtual void RemoveSection( UMovieSceneSection* Section ) override;
+	virtual bool IsEmpty() const override;
+	virtual TRange<float> GetSectionBoundaries() const override;
+	virtual bool SupportsMultipleRows() const override { return true; }
+	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
 
 	/** Adds a new sound cue to the audio */
 	virtual void AddNewSound(class USoundBase* Sound, float Time);

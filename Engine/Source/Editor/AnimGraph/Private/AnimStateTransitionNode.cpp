@@ -39,11 +39,11 @@ protected:
 class ANIMGRAPH_API FAnimStateTransitionNodeSharedRulesHelper : public IAnimStateTransitionNodeSharedDataHelper
 {
 protected:
-	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) OVERRIDE;
-	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) OVERRIDE;
-	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) OVERRIDE;
+	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) override;
+	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) override;
+	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) override;
+	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) override;
+	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) override;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,11 +52,11 @@ protected:
 class ANIMGRAPH_API FAnimStateTransitionNodeSharedCrossfadeHelper : public IAnimStateTransitionNodeSharedDataHelper
 {
 protected:
-	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) OVERRIDE;
-	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) OVERRIDE;
-	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) OVERRIDE;
-	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) OVERRIDE;
+	virtual bool CheckIfNodesShouldShareData(const UAnimStateTransitionNode* NodeA, const UAnimStateTransitionNode* NodeB) override;
+	virtual bool CheckIfHasDataToShare(const UAnimStateTransitionNode* Node) override;
+	virtual void ShareData(UAnimStateTransitionNode* NodeWhoWantsToShare, const UAnimStateTransitionNode* ShareFrom) override;
+	virtual FString& AccessShareDataName(UAnimStateTransitionNode* Node) override;
+	virtual FGuid& AccessShareDataGuid(UAnimStateTransitionNode* Node) override;
 };
 
 /////////////////////////////////////////////////////

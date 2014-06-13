@@ -55,13 +55,13 @@ class USoundNodeAttenuation : public USoundNode
 
 public:
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 
 	// Begin USoundNode interface. 
-	virtual void ParseNodes( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual float MaxAudibleDistance( float CurrentMaxDistance ) OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual void ParseNodes( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual float MaxAudibleDistance( float CurrentMaxDistance ) override;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 
 	ENGINE_API FAttenuationSettings* GetAttenuationSettingsToApply();

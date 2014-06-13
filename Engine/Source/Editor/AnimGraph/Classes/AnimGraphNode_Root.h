@@ -14,19 +14,19 @@ class UAnimGraphNode_Root : public UAnimGraphNode_Base
 	FAnimNode_Root Node;
 
 	// Begin UEdGraphNode interface.
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override { return false; }
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface
-	virtual bool IsSinkNode() const OVERRIDE;
+	virtual bool IsSinkNode() const override;
 
 	// Get the link to the documentation
-	virtual FString GetDocumentationLink() const OVERRIDE;
+	virtual FString GetDocumentationLink() const override;
 
 	// End of UAnimGraphNode_Base interface
 };

@@ -141,44 +141,44 @@ public:
 
 	////////////////////////////
 	// FViewElementDrawer interface
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
 	// End of FViewElementDrawer interface
 	
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) OVERRIDE;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
 
 	////////////////////////////
 	// FEditorViewportClient interface
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) OVERRIDE;
-	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
-	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) OVERRIDE;
-	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) OVERRIDE;
+	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) override;
+	virtual void MouseLeave( FViewport* Viewport ) override;
+	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
+	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
+	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
+	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) override;
 	virtual bool IsLevelEditorClient() const { return ParentLevelEditor.IsValid(); }
-	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) OVERRIDE;
-	virtual void TrackingStopped() OVERRIDE;
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) OVERRIDE;
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const OVERRIDE;
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) OVERRIDE;
-	virtual FWidget::EWidgetMode GetWidgetMode() const OVERRIDE;
-	virtual FVector GetWidgetLocation() const OVERRIDE;
+	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
+	virtual void TrackingStopped() override;
+	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) override;
+	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const override;
+	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual FVector GetWidgetLocation() const override;
 	virtual FMatrix GetWidgetCoordSystem() const;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
-	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) OVERRIDE;
-	virtual FSceneInterface* GetScene() const OVERRIDE;
-	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
-	virtual bool IsAspectRatioConstrained() const OVERRIDE;
-	virtual int32 GetCameraSpeedSetting() const OVERRIDE;
-	virtual void SetCameraSpeedSetting(int32 SpeedSetting) OVERRIDE;
-	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
-	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
+	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
+	virtual FSceneInterface* GetScene() const override;
+	virtual FLinearColor GetBackgroundColor() const override;
+	virtual bool IsAspectRatioConstrained() const override;
+	virtual int32 GetCameraSpeedSetting() const override;
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
+	virtual void LostFocus(FViewport* Viewport) override;
 
-	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
+	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
 
@@ -301,7 +301,7 @@ public:
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
-	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) OVERRIDE;
+	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) override;
 
 	/**
 	 * Draws a screen space bounding box around the specified actor
@@ -373,10 +373,10 @@ public:
 	void SetAllSpriteCategoryVisibility( bool bVisible );
 
 	/** FEditorViewportClient Interface*/
-	virtual void UpdateMouseDelta() OVERRIDE;
+	virtual void UpdateMouseDelta() override;
 	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
-	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) override;
+	virtual UWorld* GetWorld() const override;
 
 	void SetReferenceToWorldContext(FWorldContext& WorldContext);
 
@@ -430,14 +430,14 @@ public:
 	 * 
 	 * @return the previous GWorld
 	 */
-	virtual UWorld* ConditionalSetWorld() OVERRIDE;
+	virtual UWorld* ConditionalSetWorld() override;
 
 	/**
 	 * Restores GWorld to InWorld
 	 *
 	 * @param InWorld	The world to restore
 	 */
-	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) OVERRIDE;
+	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) override;
 
 	/**
 	 *	Called to check if a material can be applied to an object, given the hit proxy
@@ -536,7 +536,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	virtual FStatUnitData* GetStatUnitData() const override
 	{
 		return StatUnitData;
 	}
@@ -544,7 +544,7 @@ public:
 	/**
 	 * Get a ptr to the stat unit data for this viewport
 	 */
-	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	virtual FStatHitchesData* GetStatHitchesData() const override
 	{
 		return StatHitchesData;
 	}
@@ -552,7 +552,7 @@ public:
 	/**
 	 * Get a ptr to the enabled stats list
 	 */
-	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	virtual const TArray<FString>* GetEnabledStats() const override
 	{
 		return &EnabledStats;
 	}
@@ -560,7 +560,7 @@ public:
 	/**
 	 * Sets all the stats that should be enabled for the viewport
 	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
 	{
 		EnabledStats = InEnabledStats;
 	}
@@ -568,7 +568,7 @@ public:
 	/**
 	 * Check whether a specific stat is enabled for this viewport
 	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	virtual bool IsStatEnabled(const TCHAR* InName) const override
 	{
 		return EnabledStats.Contains(InName);
 	}
@@ -576,7 +576,7 @@ public:
 	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
-	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
 	{ 
 		return SoundShowFlags;
 	}
@@ -584,7 +584,7 @@ public:
 	/**
 	 * Set the sound stat flags enabled for this viewport
 	 */
-	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
 	}
@@ -633,13 +633,13 @@ protected:
 	void OnActorMoved(AActor* InActor);
 
 	/** FEditorViewportClient Interface*/
-	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) OVERRIDE;
-	virtual ELevelViewportType GetViewportType() const OVERRIDE;
-	virtual void OverridePostProcessSettings( FSceneView& View ) OVERRIDE;
-	virtual void PerspectiveCameraMoved() OVERRIDE;
-	virtual bool ShouldLockPitch() const OVERRIDE;
-	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) OVERRIDE;
-	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const OVERRIDE;
+	virtual void UpdateLinkedOrthoViewports( bool bInvalidate = false ) override;
+	virtual ELevelViewportType GetViewportType() const override;
+	virtual void OverridePostProcessSettings( FSceneView& View ) override;
+	virtual void PerspectiveCameraMoved() override;
+	virtual bool ShouldLockPitch() const override;
+	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) override;
+	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const override;
 
 private:
 	/**

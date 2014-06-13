@@ -30,14 +30,14 @@ public:
 
 	// Begin IScreenShotData interface
 
-	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) OVERRIDE;
-	virtual const FString& GetAssetName() const OVERRIDE;
-	virtual TArray< TSharedPtr< IScreenShotData> >& GetChildren() OVERRIDE;
-	virtual TArray< TSharedPtr< IScreenShotData> >& GetFilteredChildren() OVERRIDE;
-	virtual const FString& GetName() const OVERRIDE;
-	virtual EScreenShotDataType::Type GetScreenNodeType() OVERRIDE;
-	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) OVERRIDE;
-	virtual void SetDisplayEveryNthScreenshot( int32 NewNthValue ) OVERRIDE;
+	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override;
+	virtual const FString& GetAssetName() const override;
+	virtual TArray< TSharedPtr< IScreenShotData> >& GetChildren() override;
+	virtual TArray< TSharedPtr< IScreenShotData> >& GetFilteredChildren() override;
+	virtual const FString& GetName() const override;
+	virtual EScreenShotDataType::Type GetScreenNodeType() override;
+	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) override;
+	virtual void SetDisplayEveryNthScreenshot( int32 NewNthValue ) override;
 
 	// End IScreenShotData interface
 

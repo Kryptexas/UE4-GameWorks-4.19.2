@@ -122,15 +122,15 @@ class AFunctionalAITest : public AFunctionalTest
 	virtual bool IsOneOfSpawnedPawns(AActor* Actor);
 
 	// AActor interface begin
-	virtual void BeginPlay() OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	// AActor interface end
 
-	virtual bool StartTest() OVERRIDE;
-	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) OVERRIDE;
-	virtual bool WantsToRunAgain() const OVERRIDE;
-	virtual void CleanUp() OVERRIDE;
-	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const OVERRIDE;
+	virtual bool StartTest() override;
+	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) override;
+	virtual bool WantsToRunAgain() const override;
+	virtual void CleanUp() override;
+	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const override;
 
 protected:
 

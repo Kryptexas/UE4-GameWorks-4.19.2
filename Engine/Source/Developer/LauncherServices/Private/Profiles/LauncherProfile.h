@@ -56,28 +56,28 @@ public:
 
 	// Begin ILauncherProfile interface
 
-	virtual void AddCookedCulture( const FString& CultureName ) OVERRIDE
+	virtual void AddCookedCulture( const FString& CultureName ) override
 	{
 		CookedCultures.AddUnique(CultureName);
 
 		Validate();
 	}
 
-	virtual void AddCookedMap( const FString& MapName ) OVERRIDE
+	virtual void AddCookedMap( const FString& MapName ) override
 	{
 		CookedMaps.AddUnique(MapName);
 
 		Validate();
 	}
 
-	virtual void AddCookedPlatform( const FString& PlatformName ) OVERRIDE
+	virtual void AddCookedPlatform( const FString& PlatformName ) override
 	{
 		CookedPlatforms.AddUnique(PlatformName);
 
 		Validate();
 	}
 
-	virtual void ClearCookedCultures( ) OVERRIDE
+	virtual void ClearCookedCultures( ) override
 	{
 		if (CookedCultures.Num() > 0)
 		{
@@ -87,7 +87,7 @@ public:
 		}
 	}
 
-	virtual void ClearCookedMaps( ) OVERRIDE
+	virtual void ClearCookedMaps( ) override
 	{
 		if (CookedMaps.Num() > 0)
 		{
@@ -97,7 +97,7 @@ public:
 		}
 	}
 
-	virtual void ClearCookedPlatforms( ) OVERRIDE
+	virtual void ClearCookedPlatforms( ) override
 	{
 		if (CookedPlatforms.Num() > 0)
 		{
@@ -107,7 +107,7 @@ public:
 		}
 	}
 
-	virtual ILauncherProfileLaunchRolePtr CreateLaunchRole( ) OVERRIDE
+	virtual ILauncherProfileLaunchRolePtr CreateLaunchRole( ) override
 	{
 		ILauncherProfileLaunchRolePtr Role = MakeShareable(new FLauncherProfileLaunchRole());
 			
@@ -118,77 +118,77 @@ public:
 		return Role;
 	}
 
-	virtual EBuildConfigurations::Type GetBuildConfiguration( ) const OVERRIDE
+	virtual EBuildConfigurations::Type GetBuildConfiguration( ) const override
 	{
 		return BuildConfiguration;
 	}
 
-	virtual EBuildConfigurations::Type GetCookConfiguration( ) const OVERRIDE
+	virtual EBuildConfigurations::Type GetCookConfiguration( ) const override
 	{
 		return CookConfiguration;
 	}
 
-	virtual ELauncherProfileCookModes::Type GetCookMode( ) const OVERRIDE
+	virtual ELauncherProfileCookModes::Type GetCookMode( ) const override
 	{
 		return CookMode;
 	}
 
-	virtual const FString& GetCookOptions( ) const OVERRIDE
+	virtual const FString& GetCookOptions( ) const override
 	{
 		return CookOptions;
 	}
 
-	virtual const TArray<FString>& GetCookedCultures( ) const OVERRIDE
+	virtual const TArray<FString>& GetCookedCultures( ) const override
 	{
 		return CookedCultures;
 	}
 
-	virtual const TArray<FString>& GetCookedMaps( ) const OVERRIDE
+	virtual const TArray<FString>& GetCookedMaps( ) const override
 	{
 		return CookedMaps;
 	}
 
-	virtual const TArray<FString>& GetCookedPlatforms( ) const OVERRIDE
+	virtual const TArray<FString>& GetCookedPlatforms( ) const override
 	{
 		return CookedPlatforms;
 	}
 
-	virtual const ILauncherProfileLaunchRoleRef& GetDefaultLaunchRole( ) const OVERRIDE
+	virtual const ILauncherProfileLaunchRoleRef& GetDefaultLaunchRole( ) const override
 	{
 		return DefaultLaunchRole;
 	}
 
-	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const OVERRIDE
+	virtual ILauncherDeviceGroupPtr GetDeployedDeviceGroup( ) const override
 	{
 		return DeployedDeviceGroup;
 	}
 
-	virtual ELauncherProfileDeploymentModes::Type GetDeploymentMode( ) const OVERRIDE
+	virtual ELauncherProfileDeploymentModes::Type GetDeploymentMode( ) const override
 	{
 		return DeploymentMode;
 	}
 
-    virtual bool GetForceClose() const OVERRIDE
+    virtual bool GetForceClose() const override
     {
         return ForceClose;
     }
     
-	virtual FGuid GetId( ) const OVERRIDE
+	virtual FGuid GetId( ) const override
 	{
 		return Id;
 	}
 
-	virtual ELauncherProfileLaunchModes::Type GetLaunchMode( ) const OVERRIDE
+	virtual ELauncherProfileLaunchModes::Type GetLaunchMode( ) const override
 	{
 		return LaunchMode;
 	}
 
-	virtual const TArray<ILauncherProfileLaunchRolePtr>& GetLaunchRoles( ) const OVERRIDE
+	virtual const TArray<ILauncherProfileLaunchRolePtr>& GetLaunchRoles( ) const override
 	{
 		return LaunchRoles;
 	}
 
-	virtual const int32 GetLaunchRolesFor( const FString& DeviceId, TArray<ILauncherProfileLaunchRolePtr>& OutRoles ) OVERRIDE
+	virtual const int32 GetLaunchRolesFor( const FString& DeviceId, TArray<ILauncherProfileLaunchRolePtr>& OutRoles ) override
 	{
 		OutRoles.Empty();
 
@@ -212,22 +212,22 @@ public:
 		return OutRoles.Num();
 	}
 
-	virtual FString GetName( ) const OVERRIDE
+	virtual FString GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual ELauncherProfilePackagingModes::Type GetPackagingMode( ) const OVERRIDE
+	virtual ELauncherProfilePackagingModes::Type GetPackagingMode( ) const override
 	{
 		return PackagingMode;
 	}
 
-	virtual FString GetPackageDirectory( ) const OVERRIDE
+	virtual FString GetPackageDirectory( ) const override
 	{
 		return PackageDir;
 	}
 
-	virtual FString GetProjectName( ) const OVERRIDE
+	virtual FString GetProjectName( ) const override
 	{
 		if (!ProjectPath.IsEmpty())
 		{
@@ -237,7 +237,7 @@ public:
 		return FString();
 	}
 
-	virtual FString GetProjectBasePath() const OVERRIDE
+	virtual FString GetProjectBasePath() const override
 	{
 		if (!ProjectPath.IsEmpty())
 		{
@@ -249,37 +249,37 @@ public:
 		return FString();
 	}
 
-	virtual const FString& GetProjectPath( ) const OVERRIDE
+	virtual const FString& GetProjectPath( ) const override
 	{
 		return ProjectPath;
 	}
 
-    virtual uint32 GetTimeout() const OVERRIDE
+    virtual uint32 GetTimeout() const override
     {
         return Timeout;
     }
     
-	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const OVERRIDE
+	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const override
 	{
 		return ValidationErrors.Contains(Error);
 	}
 
-	virtual bool IsBuilding() const OVERRIDE
+	virtual bool IsBuilding() const override
 	{
 		return BuildGame;
 	}
 
-	virtual bool IsCookingIncrementally( ) const OVERRIDE
+	virtual bool IsCookingIncrementally( ) const override
 	{
 		return CookIncremental;
 	}
 
-	virtual bool IsCookingUnversioned( ) const OVERRIDE
+	virtual bool IsCookingUnversioned( ) const override
 	{
 		return CookUnversioned;
 	}
 
-	virtual bool IsDeployablePlatform( const FString& PlatformName ) OVERRIDE
+	virtual bool IsDeployablePlatform( const FString& PlatformName ) override
 	{
 		if (CookMode == ELauncherProfileCookModes::ByTheBook)
 		{
@@ -289,55 +289,55 @@ public:
 		return true;
 	}
 
-	virtual bool IsFileServerHidden( ) const OVERRIDE
+	virtual bool IsFileServerHidden( ) const override
 	{
 		return HideFileServerWindow;
 	}
 
-	virtual bool IsFileServerStreaming( ) const OVERRIDE
+	virtual bool IsFileServerStreaming( ) const override
 	{
 		return DeployStreamingServer;
 	}
 
-	virtual bool IsPackingWithUnrealPak( ) const  OVERRIDE
+	virtual bool IsPackingWithUnrealPak( ) const  override
 	{
 		return DeployWithUnrealPak;
 	}
 
-	virtual bool IsValidForLaunch( ) OVERRIDE
+	virtual bool IsValidForLaunch( ) override
 	{
 		return (ValidationErrors.Num() == 0);
 	}
 
-	virtual void RemoveCookedCulture( const FString& CultureName ) OVERRIDE
+	virtual void RemoveCookedCulture( const FString& CultureName ) override
 	{
 		CookedCultures.Remove(CultureName);
 
 		Validate();
 	}
 
-	virtual void RemoveCookedMap( const FString& MapName ) OVERRIDE
+	virtual void RemoveCookedMap( const FString& MapName ) override
 	{
 		CookedMaps.Remove(MapName);
 
 		Validate();
 	}
 
-	virtual void RemoveCookedPlatform( const FString& PlatformName ) OVERRIDE
+	virtual void RemoveCookedPlatform( const FString& PlatformName ) override
 	{
 		CookedPlatforms.Remove(PlatformName);
 
 		Validate();
 	}
 
-	virtual void RemoveLaunchRole( const ILauncherProfileLaunchRoleRef& Role ) OVERRIDE
+	virtual void RemoveLaunchRole( const ILauncherProfileLaunchRoleRef& Role ) override
 	{
 		LaunchRoles.Remove(Role);
 
 		Validate();
 	}
 
-	virtual bool Serialize( FArchive& Archive ) OVERRIDE
+	virtual bool Serialize( FArchive& Archive ) override
 	{
 		int32 Version = LAUNCHERSERVICES_PROFILEVERSION;
 
@@ -415,7 +415,7 @@ public:
 		return true;
 	}
 
-	virtual void SetDefaults( ) OVERRIDE
+	virtual void SetDefaults( ) override
 	{
 		// default project settings
 		if (FPaths::IsProjectFilePathSet())
@@ -479,7 +479,7 @@ public:
 		Validate();
 	}
 
-	virtual void SetBuildGame(bool Build) OVERRIDE
+	virtual void SetBuildGame(bool Build) override
 	{
 		if (BuildGame != Build)
 		{
@@ -489,7 +489,7 @@ public:
 		}
 	}
 
-	virtual void SetBuildConfiguration( EBuildConfigurations::Type Configuration ) OVERRIDE
+	virtual void SetBuildConfiguration( EBuildConfigurations::Type Configuration ) override
 	{
 		if (BuildConfiguration != Configuration)
 		{
@@ -499,7 +499,7 @@ public:
 		}
 	}
 
-	virtual void SetCookConfiguration( EBuildConfigurations::Type Configuration ) OVERRIDE
+	virtual void SetCookConfiguration( EBuildConfigurations::Type Configuration ) override
 	{
 		if (CookConfiguration != Configuration)
 		{
@@ -509,7 +509,7 @@ public:
 		}
 	}
 
-	virtual void SetCookMode( ELauncherProfileCookModes::Type Mode ) OVERRIDE
+	virtual void SetCookMode( ELauncherProfileCookModes::Type Mode ) override
 	{
 		if (CookMode != Mode)
 		{
@@ -519,7 +519,7 @@ public:
 		}
 	}
 
-	virtual void SetDeployWithUnrealPak( bool UseUnrealPak ) OVERRIDE
+	virtual void SetDeployWithUnrealPak( bool UseUnrealPak ) override
 	{
 		if (DeployWithUnrealPak != UseUnrealPak)
 		{
@@ -529,7 +529,7 @@ public:
 		}
 	}
 
-	virtual void SetDeployedDeviceGroup( const ILauncherDeviceGroupPtr& DeviceGroup ) OVERRIDE
+	virtual void SetDeployedDeviceGroup( const ILauncherDeviceGroupPtr& DeviceGroup ) override
 	{
 		if(DeployedDeviceGroup.IsValid())
 		{
@@ -551,7 +551,7 @@ public:
 		Validate();
 	}
 
-	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) OVERRIDE
+	virtual void SetDeploymentMode( ELauncherProfileDeploymentModes::Type Mode ) override
 	{
 		if (DeploymentMode != Mode)
 		{
@@ -561,7 +561,7 @@ public:
 		}
 	}
 
-    virtual void SetForceClose( bool Close ) OVERRIDE
+    virtual void SetForceClose( bool Close ) override
     {
         if (ForceClose != Close)
         {
@@ -570,12 +570,12 @@ public:
         }
     }
     
-	virtual void SetHideFileServerWindow( bool Hide ) OVERRIDE
+	virtual void SetHideFileServerWindow( bool Hide ) override
 	{
 		HideFileServerWindow = Hide;
 	}
 
-	virtual void SetIncrementalCooking( bool Incremental ) OVERRIDE
+	virtual void SetIncrementalCooking( bool Incremental ) override
 	{
 		if (CookIncremental != Incremental)
 		{
@@ -585,7 +585,7 @@ public:
 		}
 	}
 
-	virtual void SetLaunchMode( ELauncherProfileLaunchModes::Type Mode ) OVERRIDE
+	virtual void SetLaunchMode( ELauncherProfileLaunchModes::Type Mode ) override
 	{
 		if (LaunchMode != Mode)
 		{
@@ -595,7 +595,7 @@ public:
 		}
 	}
 
-	virtual void SetName( const FString& NewName ) OVERRIDE
+	virtual void SetName( const FString& NewName ) override
 	{
 		if (Name != NewName)
 		{
@@ -605,7 +605,7 @@ public:
 		}
 	}
 
-	virtual void SetPackagingMode( ELauncherProfilePackagingModes::Type Mode ) OVERRIDE
+	virtual void SetPackagingMode( ELauncherProfilePackagingModes::Type Mode ) override
 	{
 		if (PackagingMode != Mode)
 		{
@@ -615,7 +615,7 @@ public:
 		}
 	}
 
-	virtual void SetPackageDirectory( const FString& Dir ) OVERRIDE
+	virtual void SetPackageDirectory( const FString& Dir ) override
 	{
 		if (PackageDir != Dir)
 		{
@@ -625,7 +625,7 @@ public:
 		}
 	}
 
-	virtual void SetProjectPath( const FString& Path ) OVERRIDE
+	virtual void SetProjectPath( const FString& Path ) override
 	{
 		if (ProjectPath != Path)
 		{
@@ -638,7 +638,7 @@ public:
 		}
 	}
 
-	virtual void SetStreamingFileServer( bool Streaming ) OVERRIDE
+	virtual void SetStreamingFileServer( bool Streaming ) override
 	{
 		if (DeployStreamingServer != Streaming)
 		{
@@ -648,7 +648,7 @@ public:
 		}
 	}
 
-    virtual void SetTimeout( uint32 InTime ) OVERRIDE
+    virtual void SetTimeout( uint32 InTime ) override
     {
         if (Timeout != InTime)
         {
@@ -658,7 +658,7 @@ public:
         }
     }
     
-	virtual void SetUnversionedCooking( bool Unversioned ) OVERRIDE
+	virtual void SetUnversionedCooking( bool Unversioned ) override
 	{
 		if (CookUnversioned != Unversioned)
 		{
@@ -668,12 +668,12 @@ public:
 		}
 	}
 
-	virtual bool SupportsEngineMaps( ) const OVERRIDE
+	virtual bool SupportsEngineMaps( ) const override
 	{
 		return false;
 	}
 
-	virtual FOnProfileProjectChanged& OnProjectChanged() OVERRIDE
+	virtual FOnProfileProjectChanged& OnProjectChanged() override
 	{
 		return ProjectChangedDelegate;
 	}

@@ -95,7 +95,7 @@ public:
 
 	// Begin UCommandlet Interface
 
-	virtual int32 Main(const FString& CmdLineParams) OVERRIDE;
+	virtual int32 Main(const FString& CmdLineParams) override;
 	
 	// End UCommandlet Interface
 

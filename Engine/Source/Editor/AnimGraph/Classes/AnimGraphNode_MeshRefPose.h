@@ -14,13 +14,13 @@ class UAnimGraphNode_MeshRefPose : public UAnimGraphNode_Base
 	FAnimNode_MeshSpaceRefPose Node;
 
 	// UEdGraphNode interface
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
-	virtual void CreateOutputPins() OVERRIDE;
+	virtual FString GetNodeCategory() const override;
+	virtual void CreateOutputPins() override;
 	// End of UAnimGraphNode_Base interface
 };

@@ -25,7 +25,7 @@ public:
 	/**
 	 * Called right after the module DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		TSharedRef<FEdModeFoliage> NewEditorMode = MakeShareable(new FEdModeFoliage);
 		GEditorModeTools().RegisterMode(NewEditorMode);
@@ -36,7 +36,7 @@ public:
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FEditorDelegates::MapChange.RemoveAll(EdModeFoliage.Get());
 

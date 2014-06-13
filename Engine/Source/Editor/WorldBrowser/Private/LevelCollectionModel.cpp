@@ -1230,7 +1230,7 @@ FLevelModelList FLevelCollectionModel::GetLevelsHierarchy(const FLevelModelList&
 {
 	struct FHierarchyCollector : public FLevelModelVisitor
 	{
-		virtual void Visit(FLevelModel& Item) OVERRIDE
+		virtual void Visit(FLevelModel& Item) override
 		{
 			ResultList.AddUnique(Item.AsShared());
 		}
@@ -1510,7 +1510,7 @@ void FLevelCollectionModel::ExpandSelectedItems_Executed()
 {
 	struct FExpandLevelVisitor : public FLevelModelVisitor
 	{
-		virtual void Visit(FLevelModel& Item) OVERRIDE { Item.SetLevelExpansionFlag(true); }
+		virtual void Visit(FLevelModel& Item) override { Item.SetLevelExpansionFlag(true); }
 	} Expander;
 	
 	for (TSharedPtr<FLevelModel> LevelModel: SelectedLevelsList)

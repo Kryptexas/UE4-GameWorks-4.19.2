@@ -627,13 +627,13 @@ public:
 		DestroyCreatedBackends();
 	}
 
-	FDerivedDataBackendInterface& GetRoot() OVERRIDE
+	FDerivedDataBackendInterface& GetRoot() override
 	{
 		check(RootCache);
 		return *RootCache;
 	}
 
-	virtual void NotifyBootComplete() OVERRIDE
+	virtual void NotifyBootComplete() override
 	{
 		check(RootCache);
 		if (BootCache)
@@ -646,7 +646,7 @@ public:
 		}
 	}
 
-	virtual void WaitForQuiescence(bool bShutdown) OVERRIDE
+	virtual void WaitForQuiescence(bool bShutdown) override
 	{
 		double StartTime = FPlatformTime::Seconds();
 		double LastPrint = StartTime;
@@ -700,13 +700,13 @@ public:
 		}
 	}
 
-	virtual void AddToAsyncCompletionCounter(int32 Addend) OVERRIDE
+	virtual void AddToAsyncCompletionCounter(int32 Addend) override
 	{
 		AsyncCompletionCounter.Add(Addend);
 		check(AsyncCompletionCounter.GetValue() >= 0);
 	}
 
-	virtual void GetDirectories(TArray<FString>& OutResults) OVERRIDE
+	virtual void GetDirectories(TArray<FString>& OutResults) override
 	{
 		OutResults = Directories;
 	}
@@ -717,7 +717,7 @@ public:
 		return SingletonInstance;
 	}
 
-	virtual FDerivedDataBackendInterface* MountPakFile(const TCHAR* PakFilename) OVERRIDE
+	virtual FDerivedDataBackendInterface* MountPakFile(const TCHAR* PakFilename) override
 	{
 		// Assumptions: there's at least one read-only pak backend in the hierarchy
 		// and its parent is a hierarchical backend.
@@ -738,7 +738,7 @@ public:
 		return ReadPak;
 	}
 
-	virtual bool UnmountPakFile(const TCHAR* PakFilename) OVERRIDE
+	virtual bool UnmountPakFile(const TCHAR* PakFilename) override
 	{
 		for (int PakIndex = 0; PakIndex < ReadPakCache.Num(); ++PakIndex)
 		{

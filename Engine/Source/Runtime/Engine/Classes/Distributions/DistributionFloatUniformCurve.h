@@ -16,10 +16,10 @@ class UDistributionFloatUniformCurve : public UDistributionFloat
 
 
 	// Begin UDistributionFloat Interface
-	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const OVERRIDE;
+	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const override;
 	//@todo.CONSOLE: Currently, consoles need this? At least until we have some sort of cooking/packaging step!
-	virtual ERawDistributionOperation GetOperation() const OVERRIDE;
-	virtual uint32 InitializeRawEntry(float Time, float* Values) const OVERRIDE;
+	virtual ERawDistributionOperation GetOperation() const override;
+	virtual uint32 InitializeRawEntry(float Time, float* Values) const override;
 	// End UDistributionFloat Interface
 
 	/**
@@ -28,23 +28,23 @@ class UDistributionFloatUniformCurve : public UDistributionFloat
 	virtual FVector2D GetMinMaxValue(float F = 0.f, UObject* Data = NULL) const;
 
 	// Begin FCurveEdInterface interface
-	virtual int32		GetNumKeys() const OVERRIDE;
-	virtual int32		GetNumSubCurves() const OVERRIDE;
-	virtual FColor	GetSubCurveButtonColor(int32 SubCurveIndex, bool bIsSubCurveHidden) const OVERRIDE;
-	virtual float	GetKeyIn(int32 KeyIndex) OVERRIDE;
-	virtual float	GetKeyOut(int32 SubIndex, int32 KeyIndex) OVERRIDE;
-	virtual FColor	GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) OVERRIDE;
-	virtual void	GetInRange(float& MinIn, float& MaxIn) const OVERRIDE;
-	virtual void	GetOutRange(float& MinOut, float& MaxOut) const OVERRIDE;
-	virtual EInterpCurveMode	GetKeyInterpMode(int32 KeyIndex) const OVERRIDE;
-	virtual void	GetTangents(int32 SubIndex, int32 KeyIndex, float& ArriveTangent, float& LeaveTangent) const OVERRIDE;
-	virtual float	EvalSub(int32 SubIndex, float InVal) OVERRIDE;
-	virtual int32		CreateNewKey(float KeyIn) OVERRIDE;
-	virtual void	DeleteKey(int32 KeyIndex) OVERRIDE;
-	virtual int32		SetKeyIn(int32 KeyIndex, float NewInVal) OVERRIDE;
-	virtual void	SetKeyOut(int32 SubIndex, int32 KeyIndex, float NewOutVal) OVERRIDE;
-	virtual void	SetKeyInterpMode(int32 KeyIndex, EInterpCurveMode NewMode) OVERRIDE;
-	virtual void	SetTangents(int32 SubIndex, int32 KeyIndex, float ArriveTangent, float LeaveTangent) OVERRIDE;
+	virtual int32		GetNumKeys() const override;
+	virtual int32		GetNumSubCurves() const override;
+	virtual FColor	GetSubCurveButtonColor(int32 SubCurveIndex, bool bIsSubCurveHidden) const override;
+	virtual float	GetKeyIn(int32 KeyIndex) override;
+	virtual float	GetKeyOut(int32 SubIndex, int32 KeyIndex) override;
+	virtual FColor	GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) override;
+	virtual void	GetInRange(float& MinIn, float& MaxIn) const override;
+	virtual void	GetOutRange(float& MinOut, float& MaxOut) const override;
+	virtual EInterpCurveMode	GetKeyInterpMode(int32 KeyIndex) const override;
+	virtual void	GetTangents(int32 SubIndex, int32 KeyIndex, float& ArriveTangent, float& LeaveTangent) const override;
+	virtual float	EvalSub(int32 SubIndex, float InVal) override;
+	virtual int32		CreateNewKey(float KeyIn) override;
+	virtual void	DeleteKey(int32 KeyIndex) override;
+	virtual int32		SetKeyIn(int32 KeyIndex, float NewInVal) override;
+	virtual void	SetKeyOut(int32 SubIndex, int32 KeyIndex, float NewOutVal) override;
+	virtual void	SetKeyInterpMode(int32 KeyIndex, EInterpCurveMode NewMode) override;
+	virtual void	SetTangents(int32 SubIndex, int32 KeyIndex, float ArriveTangent, float LeaveTangent) override;
 	// End FCurveEdInterface interface
 };
 

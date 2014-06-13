@@ -62,16 +62,16 @@ class UDialogueWave : public UObject
 
 public:
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual FString GetDesc() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	virtual void PostDuplicate(bool bDuplicateForPIE);
 	virtual void PostLoad();
 
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
 	// End UObject interface. 

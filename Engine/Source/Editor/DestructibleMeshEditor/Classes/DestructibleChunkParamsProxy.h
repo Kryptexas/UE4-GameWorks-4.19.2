@@ -22,7 +22,7 @@ class UDestructibleChunkParamsProxy : public UObject
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 #endif
 };

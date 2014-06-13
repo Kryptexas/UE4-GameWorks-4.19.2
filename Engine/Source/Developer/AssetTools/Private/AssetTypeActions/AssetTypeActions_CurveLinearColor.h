@@ -6,7 +6,7 @@ class FAssetTypeActions_CurveLinearColor : public FAssetTypeActions_Curve
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CurveLinearColor", "Color Curve"); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UCurveLinearColor::StaticClass(); }
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_CurveLinearColor", "Color Curve"); }
+	virtual UClass* GetSupportedClass() const override { return UCurveLinearColor::StaticClass(); }
+	virtual bool CanFilter() override { return true; }
 };

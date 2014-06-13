@@ -16,7 +16,7 @@ class AIMODULE_API UBTNode : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual class UWorld* GetWorld() const OVERRIDE;
+	virtual class UWorld* GetWorld() const override;
 
 	/** fill in data about tree structure */
 	void InitializeNode(class UBTCompositeNode* InParentNode, uint16 InExecutionIndex, uint16 InMemoryOffset, uint8 InTreeDepth);

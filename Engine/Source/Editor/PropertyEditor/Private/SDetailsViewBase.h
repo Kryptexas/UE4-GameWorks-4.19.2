@@ -80,13 +80,13 @@ public:
 	/**
 	* @return true of the details view can be updated from editor selection
 	*/
-	virtual bool IsUpdatable() const OVERRIDE
+	virtual bool IsUpdatable() const override
 	{
 		return DetailsViewArgs.bUpdatesFromSelection;
 	}
 
 	/** @return The identifier for this details view, or NAME_None is this view is anonymous */
-	virtual FName GetIdentifier() const OVERRIDE
+	virtual FName GetIdentifier() const override
 	{
 		return DetailsViewArgs.ViewIdentifier;
 	}
@@ -94,9 +94,9 @@ public:
 	/**
 	 * Sets the visible state of the filter box/property grid area
 	 */
-	virtual void HideFilterArea(bool bHide) OVERRIDE;
+	virtual void HideFilterArea(bool bHide) override;
 
-	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() OVERRIDE
+	virtual FOnFinishedChangingProperties& OnFinishedChangingProperties() override
 	{ 
 		return OnFinishedChangingPropertiesDelegate; 
 	}
@@ -109,7 +109,7 @@ public:
 	/**
 	 * Returns true if the details view is locked and cant have its observed objects changed 
 	 */
-	virtual bool IsLocked() const OVERRIDE
+	virtual bool IsLocked() const override
 	{
 		return bIsLocked;
 	}
@@ -117,17 +117,17 @@ public:
 	/**
 	 * Sets a delegate which is called to determine whether a specific property should be visible
 	 */
-	virtual void SetIsPropertyVisibleDelegate(FIsPropertyVisible InIsPropertyVisible) OVERRIDE;
+	virtual void SetIsPropertyVisibleDelegate(FIsPropertyVisible InIsPropertyVisible) override;
 
 	/**
 	 * Sets a delegate to call to determine if the properties  editing is enabled
 	 */ 
-	virtual void SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled IsPropertyEditingEnabled) OVERRIDE;
+	virtual void SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled IsPropertyEditingEnabled) override;
 
 	/**
 	 * @return true if property editing is enabled (based on the FIsPropertyEditingEnabled delegate)
 	 */
-	virtual bool IsPropertyEditingEnabled() const OVERRIDE;
+	virtual bool IsPropertyEditingEnabled() const override;
 
 	/**
 	 * Requests that an item in the tree be expanded or collapsed
@@ -135,7 +135,7 @@ public:
 	 * @param TreeNode	The tree node to expand
 	 * @param bExpand	true if the item should be expanded, false otherwise
 	 */
-	void RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bExpand) OVERRIDE;
+	void RequestItemExpanded(TSharedRef<IDetailTreeNode> TreeNode, bool bExpand) override;
 
 	/**
 	 * Sets the expansion state for a node and optionally all of its children
@@ -144,7 +144,7 @@ public:
 	 * @param bIsItemExpanded	The new expansion state
 	 * @param bRecursive		Whether or not to apply the expansion change to any children
 	 */
-	void SetNodeExpansionState(TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) OVERRIDE;
+	void SetNodeExpansionState(TSharedRef<IDetailTreeNode> InTreeNode, bool bIsItemExpanded, bool bRecursive) override;
 
 	/**
 	 * Sets the expansion state all root nodes and optionally all of their children
@@ -157,7 +157,7 @@ public:
 	/**
 	 * Refreshes the detail's treeview
 	 */
-	void RefreshTree() OVERRIDE;
+	void RefreshTree() override;
 
 	/**
 	 * Saves the expansion state of a tree node
@@ -165,7 +165,7 @@ public:
 	 * @param NodePath	The path to the detail node to save
 	 * @param bIsExpanded	true if the node is expanded, false otherwise
 	 */
-	void SaveCustomExpansionState(const FString& NodePath, bool bIsExpanded) OVERRIDE;
+	void SaveCustomExpansionState(const FString& NodePath, bool bIsExpanded) override;
 
 	/**
 	 * Gets the saved expansion state of a tree node in this category	
@@ -173,12 +173,12 @@ public:
 	 * @param NodePath	The path to the detail node to get
 	 * @return true if the node should be expanded, false otherwise
 	 */	
-	bool GetCustomSavedExpansionState(const FString& NodePath) const OVERRIDE;
+	bool GetCustomSavedExpansionState(const FString& NodePath) const override;
 
 	/**
 	 * Called when properties have finished changing (after PostEditChange is called)
 	 */
-	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/** Column width accessibility */
 	float OnGetLeftColumnWidth() const { return 1.0f - ColumnWidth; }
@@ -188,17 +188,17 @@ public:
 	/**
 	 * @return True if the property is visible
 	 */
-	bool IsPropertyVisible(const UProperty* Property) const OVERRIDE;
+	bool IsPropertyVisible(const UProperty* Property) const override;
 
 	/**
 	* Sets a delegate which is regardless of the objects being viewed to lay out generic details not specific to any object
 	*/
-	virtual void SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance OnGetGenericDetails) OVERRIDE;
+	virtual void SetGenericLayoutDetailsDelegate(FOnGetDetailCustomizationInstance OnGetGenericDetails) override;
 
 	/**
 	 * Adds an action to execute next tick
 	 */
-	virtual void EnqueueDeferredAction(FSimpleDelegate& DeferredAction) OVERRIDE;
+	virtual void EnqueueDeferredAction(FSimpleDelegate& DeferredAction) override;
 
 	/**
 	 * @return The thumbnail pool that should be used for thumbnails being rendered in this view
@@ -208,10 +208,10 @@ public:
 	/**
 	 * Returns the property utilities for this view
 	 */
-	TSharedPtr<IPropertyUtilities> GetPropertyUtilities() OVERRIDE;
+	TSharedPtr<IPropertyUtilities> GetPropertyUtilities() override;
 
 	/** Returns the notify hook to use when properties change */
-	virtual FNotifyHook* GetNotifyHook() const OVERRIDE
+	virtual FNotifyHook* GetNotifyHook() const override
 	{ 
 		return DetailsViewArgs.NotifyHook; 
 	}

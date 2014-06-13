@@ -118,7 +118,7 @@ class STREAMINGFILE_API FStreamingNetworkPlatformFile : public FNetworkPlatformF
 	friend class FAsyncFileSync;
 
 	// FNetworkPlatformFile interface
-	virtual bool InitializeInternal(IPlatformFile* Inner, const TCHAR* HostIP) OVERRIDE;
+	virtual bool InitializeInternal(IPlatformFile* Inner, const TCHAR* HostIP) override;
 
 public:
 
@@ -134,56 +134,56 @@ public:
 	virtual ~FStreamingNetworkPlatformFile();
 
 	// need to override what FNetworkPlatformFile does here
-	void InitializeAfterSetActive() OVERRIDE { }
+	void InitializeAfterSetActive() override { }
 
 	// Begin IPlatformFile Interface 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return NULL;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FStreamingNetworkPlatformFile::GetTypeName();
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE;
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override;
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.ReadOnly;
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE;
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override;
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override;
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.TimeStamp;
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE;
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override;
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		FFileInfo Info;
 		GetFileInfo(Filename, Info);
 		return Info.AccessTimeStamp;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE;
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) OVERRIDE;
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectoryTree(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE;
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE;
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) override;
+	virtual bool		DirectoryExists(const TCHAR* Directory) override;
+	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override;
+	virtual bool		CreateDirectory(const TCHAR* Directory) override;
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override;
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE;
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE;
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override;
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override;
 
-	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE;
-	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE;
+	virtual FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
+	virtual FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
 
 	// End IPlatformFile Interface
 
@@ -206,9 +206,9 @@ private:
 
 	// Begin FNetworkPlatformFile interface
 
-	virtual void PerformHeartbeat() OVERRIDE;
+	virtual void PerformHeartbeat() override;
 
-	virtual void GetFileInfo(const TCHAR* Filename, FFileInfo& Info) OVERRIDE;
+	virtual void GetFileInfo(const TCHAR* Filename, FFileInfo& Info) override;
 
 	// End FNetworkPlatformFile interface
 

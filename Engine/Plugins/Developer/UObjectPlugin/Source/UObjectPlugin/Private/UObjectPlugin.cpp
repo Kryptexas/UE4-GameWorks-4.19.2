@@ -9,8 +9,8 @@
 class FUObjectPlugin : public IUObjectPlugin
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };
 
 IMPLEMENT_MODULE( FUObjectPlugin, UObjectPlugin )

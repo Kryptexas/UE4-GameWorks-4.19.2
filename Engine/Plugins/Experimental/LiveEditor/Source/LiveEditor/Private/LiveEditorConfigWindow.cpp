@@ -189,7 +189,7 @@ public:
 	SLATE_BEGIN_ARGS( SLiveEditorDeviceData ) {}
 	SLATE_END_ARGS()
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
 

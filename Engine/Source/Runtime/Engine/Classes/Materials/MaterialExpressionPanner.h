@@ -32,9 +32,9 @@ class UMaterialExpressionPanner : public UMaterialExpression
 	bool bFractionalPart;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool NeedsRealtimePreview() OVERRIDE { return Time.Expression==NULL && (SpeedX != 0.f || SpeedY != 0.f); }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool NeedsRealtimePreview() override { return Time.Expression==NULL && (SpeedX != 0.f || SpeedY != 0.f); }
 	// End UMaterialExpression Interface
 
 };

@@ -30,21 +30,21 @@ class UMaterialExpressionLandscapeLayerSwitch : public UMaterialExpression
 public:
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual UTexture* GetReferencedTexture() OVERRIDE;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual UTexture* GetReferencedTexture() override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE {return MCT_Unknown;}
-	virtual uint32 GetOutputType(int32 InputIndex) OVERRIDE {return MCT_Unknown;}
+	virtual uint32 GetInputType(int32 InputIndex) override {return MCT_Unknown;}
+	virtual uint32 GetOutputType(int32 InputIndex) override {return MCT_Unknown;}
 #endif
 	// End UMaterialExpression Interface
 
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}

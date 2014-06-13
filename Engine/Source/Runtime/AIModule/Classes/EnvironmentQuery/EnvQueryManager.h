@@ -90,13 +90,13 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	GENERATED_UCLASS_BODY()
 
 	/** [FTickableGameObject] tick function */
-	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
 
 	/** [FTickableGameObject] always tick, unless it's the default object */
-	virtual bool IsTickable() const OVERRIDE { return HasAnyFlags(RF_ClassDefaultObject) == false; }
+	virtual bool IsTickable() const override { return HasAnyFlags(RF_ClassDefaultObject) == false; }
 
 	/** [FTickableGameObject] tick stats */
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 	/** execute query */
 	int32 RunQuery(const struct FEnvQueryRequest& Request, EEnvQueryRunMode::Type RunMode, FQueryFinishedSignature const& FinishDelegate);
@@ -118,7 +118,7 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	virtual void OnPreLoadMap();
 
 	/** cleanup hooks for map loading */
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 
 	/** list of all known item types */
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;

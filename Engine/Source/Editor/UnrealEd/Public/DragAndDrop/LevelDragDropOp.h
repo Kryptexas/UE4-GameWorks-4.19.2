@@ -16,7 +16,7 @@ public:
 	bool bGoodToDrop;
 		
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		FString LevelName(TEXT("None"));
 		

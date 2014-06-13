@@ -20,34 +20,34 @@ public:
 public:
 
 	// Create a named pipe, using overlapped IO if bAsync=1
-	virtual bool Create(const FString& PipeName, bool bAsServer, bool bAsync) OVERRIDE;
+	virtual bool Create(const FString& PipeName, bool bAsServer, bool bAsync) override;
 
 	// Destroy the pipe
-	virtual bool Destroy() OVERRIDE;
+	virtual bool Destroy() override;
 
 	// Open a connection from a client
-	virtual bool OpenConnection() OVERRIDE;
+	virtual bool OpenConnection() override;
 
 	// Blocks if there's an IO operation in progress until it's done or errors out
-	virtual bool BlockForAsyncIO() OVERRIDE;
+	virtual bool BlockForAsyncIO() override;
 
 	// Lets the user know if the pipe is ready to send or receive data
-	virtual bool IsReadyForRW() const OVERRIDE;
+	virtual bool IsReadyForRW() const override;
 
 	// Updates status of async state of the current pipe
-	virtual bool UpdateAsyncStatus() OVERRIDE;
+	virtual bool UpdateAsyncStatus() override;
 
 	// Writes a buffer out
-	virtual bool WriteBytes(int32 NumBytes, const void* Data) OVERRIDE;
+	virtual bool WriteBytes(int32 NumBytes, const void* Data) override;
 
 	// Reads a buffer in
-	virtual bool ReadBytes(int32 NumBytes, void* OutData) OVERRIDE;
+	virtual bool ReadBytes(int32 NumBytes, void* OutData) override;
 
 	// Returns true if the pipe has been created and hasn't been destroyed
-	virtual bool IsCreated() const OVERRIDE;
+	virtual bool IsCreated() const override;
 
 	// Return true if the pipe has had any communication error
-	virtual bool HasFailed() const OVERRIDE;
+	virtual bool HasFailed() const override;
 
 
 private:

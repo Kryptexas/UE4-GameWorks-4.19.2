@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
 #include "WindowsTextInputMethodSystem.h"
@@ -29,10 +29,10 @@ namespace
 
 		virtual ~FTextInputMethodChangeNotifier() {}
 
-		virtual void NotifyLayoutChanged(const ELayoutChangeType ChangeType) OVERRIDE;
-		virtual void NotifySelectionChanged() OVERRIDE;
-		virtual void NotifyTextChanged(const uint32 BeginIndex, const uint32 OldLength, const uint32 NewLength) OVERRIDE;
-		virtual void CancelComposition() OVERRIDE;
+		virtual void NotifyLayoutChanged(const ELayoutChangeType ChangeType) override;
+		virtual void NotifySelectionChanged() override;
+		virtual void NotifyTextChanged(const uint32 BeginIndex, const uint32 OldLength, const uint32 NewLength) override;
+		virtual void CancelComposition() override;
 
 	private:
 		const FCOMPtr<FTextStoreACP> TextStoreACP;

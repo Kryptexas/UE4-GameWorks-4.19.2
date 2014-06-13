@@ -7,13 +7,13 @@
 class FTapJoyProvider : public IAdvertisingProvider
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** IAdvertisingProvider implementation */
-	virtual void ShowAdBanner( bool bShowOnBottomOfScreen ) OVERRIDE;
-	virtual void HideAdBanner() OVERRIDE;
-	virtual void CloseAdBanner() OVERRIDE;
+	virtual void ShowAdBanner( bool bShowOnBottomOfScreen ) override;
+	virtual void HideAdBanner() override;
+	virtual void CloseAdBanner() override;
 };
 
 IMPLEMENT_MODULE( FTapJoyProvider, IOSTapJoy )

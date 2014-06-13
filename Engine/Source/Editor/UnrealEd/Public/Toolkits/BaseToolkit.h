@@ -20,13 +20,13 @@ public:
 	virtual ~FBaseToolkit();
 
 	/** IToolkit interface */
-	virtual bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const OVERRIDE;
-	virtual bool IsHosted() const OVERRIDE;
-	virtual const TSharedRef< class IToolkitHost > GetToolkitHost() const OVERRIDE;
-	virtual const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > >& GetToolkitTabsInSpots() const OVERRIDE;
-	virtual void BringToolkitToFront() OVERRIDE;
-	virtual TSharedPtr<class SWidget> GetInlineContent() const OVERRIDE;
-	virtual bool IsBlueprintEditor() const OVERRIDE;
+	virtual bool ProcessCommandBindings( const FKeyboardEvent& InKeyboardEvent ) const override;
+	virtual bool IsHosted() const override;
+	virtual const TSharedRef< class IToolkitHost > GetToolkitHost() const override;
+	virtual const TMap< EToolkitTabSpot::Type, TArray< TWeakPtr< SDockableTab > > >& GetToolkitTabsInSpots() const override;
+	virtual void BringToolkitToFront() override;
+	virtual TSharedPtr<class SWidget> GetInlineContent() const override;
+	virtual bool IsBlueprintEditor() const override;
 
 	/** @return	Returns true if this is a world-centric asset editor.  That is, the user is editing the asset inline in a Level Editor app. */
 	bool IsWorldCentricAssetEditor() const;	
@@ -80,18 +80,18 @@ protected:
 class UNREALED_API FModeToolkit : public FBaseToolkit, public TSharedFromThis<FModeToolkit>
 {
 public:
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE {}
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE {}
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override {}
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override {}
 
 	/** Initializes the mode toolkit */
 	virtual void Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost);
 
 	/** IToolkit interface */
-	virtual FText GetToolkitName() const OVERRIDE { return GetBaseToolkitName(); }
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual bool IsAssetEditor() const OVERRIDE;
-	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FText GetToolkitName() const override { return GetBaseToolkitName(); }
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual bool IsAssetEditor() const override;
+	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 };
 
 

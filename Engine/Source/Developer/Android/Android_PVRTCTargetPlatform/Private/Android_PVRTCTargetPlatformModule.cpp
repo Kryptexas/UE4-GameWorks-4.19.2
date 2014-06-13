@@ -14,22 +14,22 @@
 class FAndroid_PVRTCTargetPlatform
 	: public FAndroidTargetPlatform
 {
-	virtual FString GetAndroidVariantName( ) OVERRIDE
+	virtual FString GetAndroidVariantName( ) override
 	{
 		return TEXT("PVRTC");
 	}
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return LOCTEXT("Android_PVRTC", "Android (PVRTC)");
 	}
 
-	virtual FString PlatformName() const OVERRIDE
+	virtual FString PlatformName() const override
 	{
 		return FString(FAndroid_PVRTCPlatformProperties::PlatformName());
 	}
 
-	virtual bool SupportsTextureFormat( FName Format ) const OVERRIDE
+	virtual bool SupportsTextureFormat( FName Format ) const override
 	{
 		if( Format == AndroidTexFormat::NamePVRTC2 ||
 			Format == AndroidTexFormat::NamePVRTC4 ||
@@ -40,7 +40,7 @@ class FAndroid_PVRTCTargetPlatform
 		return false;
 	}
 
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
 		return ExtensionsString.Contains(TEXT("GL_IMG_texture_compression_pvrtc"));
 	}
@@ -73,7 +73,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{

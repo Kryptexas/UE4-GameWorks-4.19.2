@@ -56,6 +56,6 @@ class UInterpTrackInst : public UObject
 	*
 	* returns the GroupActor's world
 	*/
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 };
 

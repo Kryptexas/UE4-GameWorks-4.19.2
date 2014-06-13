@@ -8,10 +8,10 @@ class FSpriteAssetTypeActions : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions interface
-	virtual FText GetName() const OVERRIDE;
-	virtual FColor GetTypeColor() const OVERRIDE;
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) OVERRIDE;
-	virtual uint32 GetCategories() OVERRIDE;
+	virtual FText GetName() const override;
+	virtual FColor GetTypeColor() const override;
+	virtual UClass* GetSupportedClass() const override;
+	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override;
+	virtual uint32 GetCategories() override;
 	// End of IAssetTypeActions interface
 };

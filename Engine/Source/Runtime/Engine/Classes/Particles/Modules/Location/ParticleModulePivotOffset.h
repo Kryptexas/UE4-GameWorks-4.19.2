@@ -17,15 +17,15 @@ class UParticleModulePivotOffset : public UParticleModuleLocationBase
 	void InitializeDefaults();
 
 	//Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	//End UObject Interface
 
 	//Begin UParticleModule Interface
-	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
+	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) override;
 	//End UParticleModule Interface
 
 #if WITH_EDITOR
-	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) OVERRIDE;
+	virtual bool IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString) override;
 #endif
 
 };

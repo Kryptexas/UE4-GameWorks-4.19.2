@@ -160,7 +160,7 @@ public:
 	UProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags );
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End of UObject interface
 
 	/** parses and imports a text definition of a single property's value (if array, may be an individual element)
@@ -946,11 +946,11 @@ public:
 	}
 
 	// UHT interface
-	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const OVERRIDE
+	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const override
 	{
 		return FString(TTypeFundamentals::GetTypeName());
 	}
-	virtual bool PassCPPArgsByRef() const OVERRIDE
+	virtual bool PassCPPArgsByRef() const override
 	{
 		// non-pod data is passed by reference
 		return !TIsPODType<TCppType>::Value;
@@ -958,32 +958,32 @@ public:
 	// End of UHT interface
 
 	// UProperty interface.
-	virtual int32 GetMinAlignment() const OVERRIDE
+	virtual int32 GetMinAlignment() const override
 	{
 		return TTypeFundamentals::CPPAlignment;
 	}
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE
+	virtual void LinkInternal(FArchive& Ar) override
 	{
 		SetElementSize();
 		this->PropertyFlags |= TTypeFundamentals::GetComputedFlagsPropertyFlags();
 
 	}
-	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count ) const OVERRIDE
+	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count ) const override
 	{
 		for (int32 Index = 0; Index < Count; Index++)
 		{
 			TTypeFundamentals::GetPropertyValuePtr(Dest)[Index] = TTypeFundamentals::GetPropertyValuePtr(Src)[Index];
 		}
 	}
-	virtual void ClearValueInternal( void* Data ) const OVERRIDE
+	virtual void ClearValueInternal( void* Data ) const override
 	{
 		TTypeFundamentals::SetPropertyValue(Data, TTypeFundamentals::GetDefaultPropertyValue());
 	}
-	virtual void InitializeValueInternal( void* Dest ) const OVERRIDE
+	virtual void InitializeValueInternal( void* Dest ) const override
 	{
 		TTypeFundamentals::IntializePropertyValue(Dest);
 	}
-	virtual void DestroyValueInternal( void* Dest ) const OVERRIDE
+	virtual void DestroyValueInternal( void* Dest ) const override
 	{
 		for( int32 i = 0; i < this->ArrayDim; ++i )
 		{
@@ -1044,11 +1044,11 @@ public:
 	}
 
 	// UProperty interface.
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags=0 ) const OVERRIDE
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags=0 ) const override
 	{
 		return TTypeFundamentals::GetPropertyValue(A) == TTypeFundamentals::GetOptionalPropertyValue(B);
 	}
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override
 	{
 		Ar << *TTypeFundamentals::GetPropertyValuePtr(Value);
 	}
@@ -1065,9 +1065,9 @@ class COREUOBJECT_API UNumericProperty : public UProperty
 	{}
 
 	// UProperty interface.
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const OVERRIDE;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const override;
 
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
 	// End of UProperty interface
 
 	// UNumericProperty interface.
@@ -1203,48 +1203,48 @@ public:
 
 	// UNumericProperty interface.
 
-	virtual bool IsFloatingPoint() const OVERRIDE
+	virtual bool IsFloatingPoint() const override
 	{
 		return TIsFloatType<TCppType>::Value;
 	}
-	virtual bool IsInteger() const OVERRIDE
+	virtual bool IsInteger() const override
 	{
 		return TIsIntegralType<TCppType>::Value;
 	}
-	virtual void SetIntPropertyValue(void* Data, uint64 Value) const OVERRIDE
+	virtual void SetIntPropertyValue(void* Data, uint64 Value) const override
 	{
 		check(TIsIntegralType<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
-	virtual void SetIntPropertyValue(void* Data, int64 Value) const OVERRIDE
+	virtual void SetIntPropertyValue(void* Data, int64 Value) const override
 	{
 		check(TIsIntegralType<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
-	virtual void SetFloatingPointPropertyValue(void* Data, double Value) const OVERRIDE
+	virtual void SetFloatingPointPropertyValue(void* Data, double Value) const override
 	{
 		check(TIsFloatType<TCppType>::Value);
 		TTypeFundamentals::SetPropertyValue(Data, Value);
 	}
-	virtual void SetNumericPropertyValueFromString(void * Data, TCHAR const* Value) const OVERRIDE
+	virtual void SetNumericPropertyValueFromString(void * Data, TCHAR const* Value) const override
 	{
 		TTypeFundamentals::FromString(Data, Value);
 	}
-	virtual FString GetNumericPropertyValueToString(void const* Data) const OVERRIDE
+	virtual FString GetNumericPropertyValueToString(void const* Data) const override
 	{
 		return TTypeFundamentals::ToString(Data);
 	}
-	virtual int64 GetSignedIntPropertyValue(void const* Data) const OVERRIDE
+	virtual int64 GetSignedIntPropertyValue(void const* Data) const override
 	{
 		check(TIsIntegralType<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
-	virtual uint64 GetUnsignedIntPropertyValue(void const* Data) const OVERRIDE
+	virtual uint64 GetUnsignedIntPropertyValue(void const* Data) const override
 	{
 		check(TIsIntegralType<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
 	}
-	virtual double GetFloatingPointPropertyValue(void const* Data) const OVERRIDE
+	virtual double GetFloatingPointPropertyValue(void const* Data) const override
 	{
 		check(TIsFloatType<TCppType>::Value);
 		return TTypeFundamentals::GetPropertyValue(Data);
@@ -1274,23 +1274,23 @@ class COREUOBJECT_API UByteProperty : public TProperty_Numeric<uint8>
 	}
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UHT interface
-	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const OVERRIDE;
+	virtual FString GetCPPType( FString* ExtendedTypeText=NULL, uint32 CPPExportFlags=0 ) const override;
 	// End of UHT interface
 
 	// UProperty interface.
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const OVERRIDE;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const override;
 	// End of UProperty interface
 
 	// UNumericProperty interface.
-	virtual UEnum* GetIntPropertyEnum() const OVERRIDE
+	virtual UEnum* GetIntPropertyEnum() const override
 	{
 		return Enum;
 	}
@@ -1496,25 +1496,25 @@ public:
 	UBoolProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, uint32 InBitMask, uint32 InElementSize, bool bIsNativeBool );
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End of UObject interface
 
 	// UHT interface
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const OVERRIDE;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const override;
 	// End of UHT interface
 
 	// UProperty interface.
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count ) const OVERRIDE;
-	virtual void ClearValueInternal( void* Data ) const OVERRIDE;
-	virtual void InitializeValueInternal( void* Dest ) const OVERRIDE;
-	virtual int32 GetMinAlignment() const OVERRIDE;
+	virtual void LinkInternal(FArchive& Ar) override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const override;
+	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count ) const override;
+	virtual void ClearValueInternal( void* Data ) const override;
+	virtual void InitializeValueInternal( void* Dest ) const override;
+	virtual int32 GetMinAlignment() const override;
 	// End of UProperty interface
 
 	// Emulate the CPP type API, see TPropertyTypeFundamentals
@@ -1592,18 +1592,18 @@ class COREUOBJECT_API UObjectPropertyBase : public UProperty
 	{}
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UProperty interface
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual FName GetID() const OVERRIDE;
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual FName GetID() const override;
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
+	virtual bool SameType(const UProperty* Other) const override;
 	/**
 	 * Copy the value for a single element of this property. To the script VM.
 	 * 
@@ -1735,11 +1735,11 @@ public:
 	}
 
 	// UProperty interface.
-	virtual bool ContainsObjectReference() const OVERRIDE
+	virtual bool ContainsObjectReference() const override
 	{
 		return !TIsWeakPointerType<InTCppType>::Value;
 	}
-	virtual bool ContainsWeakObjectReference() const OVERRIDE
+	virtual bool ContainsWeakObjectReference() const override
 	{
 		return TIsWeakPointerType<InTCppType>::Value;
 	}
@@ -1760,20 +1760,20 @@ class COREUOBJECT_API UObjectProperty : public TUObjectPropertyBase<UObject*>
 	}
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	// End of UProperty interface
 	// UObjectPropertyBase interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const OVERRIDE
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
 	{
 		return GetPropertyValue(PropertyValueAddress);
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const OVERRIDE
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
 	{
 		SetPropertyValue(PropertyValueAddress, Value);
 	}
@@ -1793,20 +1793,20 @@ class COREUOBJECT_API UWeakObjectProperty : public TUObjectPropertyBase<FWeakObj
 	}
 	
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const OVERRIDE
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
 	{
 		return GetPropertyValue(PropertyValueAddress).Get();
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const OVERRIDE
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
 	{
 		SetPropertyValue(PropertyValueAddress, TCppType(Value));
 	}
@@ -1826,26 +1826,26 @@ class COREUOBJECT_API ULazyObjectProperty : public TUObjectPropertyBase<FLazyObj
 	}
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual FName GetID() const OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
+	virtual FName GetID() const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const OVERRIDE
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
 	{
 		return GetPropertyValue(PropertyValueAddress).Get();
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const OVERRIDE
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
 	{
 		SetPropertyValue(PropertyValueAddress, TCppType(Value));
 	}
-	virtual bool AllowCrossLevel() const OVERRIDE
+	virtual bool AllowCrossLevel() const override
 	{
 		return true;
 	}
@@ -1864,28 +1864,28 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	{}
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual FName GetID() const OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
+	virtual FName GetID() const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	// End of UProperty interface
 
 	// UObjectProperty interface
-	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const OVERRIDE
+	virtual UObject* GetObjectPropertyValue(const void* PropertyValueAddress) const override
 	{
 		return GetPropertyValue(PropertyValueAddress).Get();
 	}
-	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const OVERRIDE
+	virtual void SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const override
 	{
 		SetPropertyValue(PropertyValueAddress, TCppType(Value));
 	}
-	virtual bool AllowCrossLevel() const OVERRIDE
+	virtual bool AllowCrossLevel() const override
 	{
 		return true;
 	}
@@ -1913,22 +1913,22 @@ public:
 	}
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
 protected:
-	virtual void CheckValidObject(void* Value) const OVERRIDE;
+	virtual void CheckValidObject(void* Value) const override;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1951,17 +1951,17 @@ public:
 	{}
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UProperty interface
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 };
 
@@ -1994,24 +1994,24 @@ public:
 	}
 
 	// UHT interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
 	// End of UHT interface
 
 	// UProperty interface
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual bool ContainsObjectReference() const OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual void LinkInternal(FArchive& Ar) override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual bool ContainsObjectReference() const override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
 	// End of UObject interface
 };
 
@@ -2039,8 +2039,8 @@ public:
 	}
 
 	// UProperty interface
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	// End of UProperty interface
 };
 
@@ -2068,8 +2068,8 @@ public:
 	}
 
 	// UProperty interface
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
 	// End of UProperty interface
 };
 
@@ -2101,33 +2101,33 @@ public:
 	}
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UField interface
-	virtual void AddCppProperty( UProperty* Property ) OVERRIDE;
+	virtual void AddCppProperty( UProperty* Property ) override;
 	// End of UField interface
 
 	// UProperty interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const OVERRIDE;
-	virtual void ClearValueInternal( void* Data ) const OVERRIDE;
-	virtual void DestroyValueInternal( void* Dest ) const OVERRIDE;
-	virtual bool IsLocalized() const OVERRIDE;
-	virtual bool PassCPPArgsByRef() const OVERRIDE;
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool ContainsObjectReference() const OVERRIDE;
-	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual void LinkInternal(FArchive& Ar) override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const override;
+	virtual void ClearValueInternal( void* Data ) const override;
+	virtual void DestroyValueInternal( void* Dest ) const override;
+	virtual bool IsLocalized() const override;
+	virtual bool PassCPPArgsByRef() const override;
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
+	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsWeakObjectReference() const override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 };
 
@@ -2462,30 +2462,30 @@ public:
 	UStructProperty( const class FPostConstructInitializeProperties& PCIP, ECppProperty, int32 InOffset, uint64 InFlags, UScriptStruct* InStruct );
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// UProperty interface
-	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  OVERRIDE;
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
-	virtual void LinkInternal(FArchive& Ar) OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const OVERRIDE;
-	virtual void ClearValueInternal( void* Data ) const OVERRIDE;
-	virtual void DestroyValueInternal( void* Dest ) const OVERRIDE;
-	virtual void InitializeValueInternal( void* Dest ) const OVERRIDE;
-	virtual bool IsLocalized() const OVERRIDE;
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual int32 GetMinAlignment() const OVERRIDE;
-	virtual bool ContainsObjectReference() const OVERRIDE;
-	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual void LinkInternal(FArchive& Ar) override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual void CopyValuesInternal( void* Dest, void const* Src, int32 Count  ) const override;
+	virtual void ClearValueInternal( void* Data ) const override;
+	virtual void DestroyValueInternal( void* Dest ) const override;
+	virtual void InitializeValueInternal( void* Dest ) const override;
+	virtual bool IsLocalized() const override;
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
+	virtual int32 GetMinAlignment() const override;
+	virtual bool ContainsObjectReference() const override;
+	virtual bool ContainsWeakObjectReference() const override;
+	virtual void EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset) override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
 	bool UseNativeSerialization() const;
@@ -2536,19 +2536,19 @@ public:
 	}
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End of UObject interface
 
 	// UProperty interface
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual bool ContainsWeakObjectReference() const override;
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 };
 
@@ -2581,19 +2581,19 @@ public:
 	}
 
 	// UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End of UObject interface
 
 	// UProperty interface
-	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const OVERRIDE;
-	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const OVERRIDE;
-	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const OVERRIDE;
-	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const OVERRIDE;
-	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const OVERRIDE;
-	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const OVERRIDE;
-	virtual bool ContainsWeakObjectReference() const OVERRIDE;
-	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) OVERRIDE;
-	virtual bool SameType(const UProperty* Other) const OVERRIDE;
+	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual bool Identical( const void* A, const void* B, uint32 PortFlags ) const override;
+	virtual void SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const override;
+	virtual bool NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData = NULL ) const override;
+	virtual void ExportTextItem( FString& ValueStr, const void* PropertyValue, const void* DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope ) const override;
+	virtual const TCHAR* ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* OwnerObject, FOutputDevice* ErrorText ) const override;
+	virtual bool ContainsWeakObjectReference() const override;
+	virtual void InstanceSubobjects( void* Data, void const* DefaultData, UObject* Owner, struct FObjectInstancingGraph* InstanceGraph ) override;
+	virtual bool SameType(const UProperty* Other) const override;
 	// End of UProperty interface
 
 protected:

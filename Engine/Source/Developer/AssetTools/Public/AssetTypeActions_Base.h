@@ -10,22 +10,22 @@ class FAssetTypeActions_Base : public IAssetTypeActions
 {
 public:
 	// Begin IAssetTypeActions implementation
-	virtual bool HasActions( const TArray<UObject*>& InObjects ) const OVERRIDE
+	virtual bool HasActions( const TArray<UObject*>& InObjects ) const override
 	{
 		return false;
 	}
 
-	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE
+	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) override
 	{
 
 	}
 
-	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE
+	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override
 	{
 		FSimpleAssetEditor::CreateEditor(EToolkitMode::Standalone, EditWithinLevelEditor, InObjects);
 	}
 	
-	virtual void AssetsActivated( const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType ) OVERRIDE
+	virtual void AssetsActivated( const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType ) override
 	{
 		if ( ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened )
 		{
@@ -40,17 +40,17 @@ public:
 		}
 	}
 
-	virtual bool CanFilter() OVERRIDE
+	virtual bool CanFilter() override
 	{
 		return true;
 	}
 
-	virtual bool ShouldForceWorldCentric() OVERRIDE
+	virtual bool ShouldForceWorldCentric() override
 	{
 		return false;
 	}
 
-	virtual void PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const OVERRIDE
+	virtual void PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const override
 	{
 		check(OldAsset != NULL);
 		check(NewAsset != NULL);
@@ -64,7 +64,7 @@ public:
 		AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 	}
 
-	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const OVERRIDE
+	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override
 	{
 		return NULL;
 	}

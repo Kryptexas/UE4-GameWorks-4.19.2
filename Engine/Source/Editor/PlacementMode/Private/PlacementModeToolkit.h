@@ -14,10 +14,10 @@ public:
 	}
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE { return FName("PlacementMode"); }
-	virtual FText GetBaseToolkitName() const OVERRIDE { return NSLOCTEXT("BuilderModeToolkit", "DisplayName", "Builder"); }
-	virtual class FEdMode* GetEditorMode() const OVERRIDE { return GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Default ); }
-	virtual TSharedPtr<class SWidget> GetInlineContent() const OVERRIDE { return PlacementModeTools; }
+	virtual FName GetToolkitFName() const override { return FName("PlacementMode"); }
+	virtual FText GetBaseToolkitName() const override { return NSLOCTEXT("BuilderModeToolkit", "DisplayName", "Builder"); }
+	virtual class FEdMode* GetEditorMode() const override { return GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Default ); }
+	virtual TSharedPtr<class SWidget> GetInlineContent() const override { return PlacementModeTools; }
 
 private:
 

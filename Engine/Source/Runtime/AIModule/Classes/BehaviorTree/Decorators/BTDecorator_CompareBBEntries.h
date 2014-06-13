@@ -37,16 +37,16 @@ protected:
 
 public:
 
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
-	virtual FString GetStaticDescription() const OVERRIDE;
+	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual FString GetStaticDescription() const override;
 
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset) OVERRIDE;
+	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
 
 	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);	
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

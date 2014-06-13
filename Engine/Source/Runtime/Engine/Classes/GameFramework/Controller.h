@@ -164,17 +164,17 @@ public:
 	class APawn* GetControlledPawn() const;
 
 	// Begin AActor interface
-	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) OVERRIDE;
-	virtual void K2_DestroyActor() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Rotation ) const OVERRIDE;
-	virtual FString GetHumanReadableName() const OVERRIDE;
+	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) override;
+	virtual void K2_DestroyActor() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Rotation ) const override;
+	virtual FString GetHumanReadableName() const override;
 
 	/* Overridden to create the player replication info and perform other mundane initialization tasks. */
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
-	virtual void Reset() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
+	virtual void Reset() override;
+	virtual void Destroyed() override;
 	// End AActor interface
 
 	/** Getter for Pawn */
@@ -263,10 +263,10 @@ public:
 	virtual void FailedToSpawnPawn();
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE;
-	virtual FVector GetNavAgentLocation() const OVERRIDE;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
-	virtual bool ShouldPostponePathUpdates() const OVERRIDE;
+	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
+	virtual FVector GetNavAgentLocation() const override;
+	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
+	virtual bool ShouldPostponePathUpdates() const override;
 	// End INavAgentInterface Interface
 	
 	/** prepares path finding and path following components */

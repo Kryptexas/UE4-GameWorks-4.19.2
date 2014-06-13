@@ -765,7 +765,7 @@ public:
 	{}
 
 	// Begin FComponentInstanceDataBase interface
-	virtual bool MatchesComponent(const UActorComponent* Component) const OVERRIDE
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
 	{
 		return Transform.Equals(CastChecked<ULightComponent>(Component)->ComponentToWorld);
 	}

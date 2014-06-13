@@ -19,10 +19,10 @@ public:
 	FPlanarConstraintSnapPolicy();
 
 	// ISnappingPolicy interface
-	virtual void SnapScale(FVector& Point, const FVector& GridBase) OVERRIDE;
-	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) OVERRIDE;
-	virtual void SnapRotatorToGrid(FRotator& Rotation) OVERRIDE;
-	virtual void ClearSnappingHelpers(bool bClearImmediately) OVERRIDE;
-	virtual void DrawSnappingHelpers(const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
+	virtual void SnapScale(FVector& Point, const FVector& GridBase) override;
+	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) override;
+	virtual void SnapRotatorToGrid(FRotator& Rotation) override;
+	virtual void ClearSnappingHelpers(bool bClearImmediately) override;
+	virtual void DrawSnappingHelpers(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 	// End of ISnappingPolicy interface
 };

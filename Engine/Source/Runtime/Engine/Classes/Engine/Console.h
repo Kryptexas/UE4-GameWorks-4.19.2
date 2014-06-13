@@ -135,7 +135,7 @@ class ENGINE_API UConsole
 	~UConsole();
 
 	// UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 	/** Set the input to text */
 	virtual void SetInputText( const FString& Text );

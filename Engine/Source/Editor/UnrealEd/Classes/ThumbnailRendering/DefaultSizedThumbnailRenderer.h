@@ -27,7 +27,7 @@ class UDefaultSizedThumbnailRenderer : public UThumbnailRenderer
 
 
 	// Begin UThumbnailRenderer Object
-	UNREALED_API virtual void GetThumbnailSize(UObject* Object, float Zoom, uint32& OutWidth, uint32& OutHeight) const OVERRIDE;
+	UNREALED_API virtual void GetThumbnailSize(UObject* Object, float Zoom, uint32& OutWidth, uint32& OutHeight) const override;
 	// End UThumbnailRenderer Object
 };
 

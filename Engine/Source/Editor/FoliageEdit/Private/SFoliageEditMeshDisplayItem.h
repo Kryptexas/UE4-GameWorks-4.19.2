@@ -66,7 +66,7 @@ public:
 
 private:
 	/** Notification when the cluster details are changed */
-	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) OVERRIDE;
+	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 
 	/** Callback to get the border color for the item. */
 	FSlateColor GetBorderColor() const;

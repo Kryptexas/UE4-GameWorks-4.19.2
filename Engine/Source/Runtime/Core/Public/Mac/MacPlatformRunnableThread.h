@@ -27,7 +27,7 @@ private:
 		pthread_setname_np(TCHAR_TO_ANSI(*ThreadName));
 	}
 
-	virtual int GetDefaultStackSize() OVERRIDE
+	virtual int GetDefaultStackSize() override
 	{
 		// default is 512 KB, we need more
 		return 1024 * 1024;

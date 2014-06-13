@@ -459,7 +459,7 @@ public:
 
 protected:
 	/** Gets asset registry tags */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 private:
 	/** Sets the current object being debugged */
@@ -474,11 +474,11 @@ public:
 
 
 	// Begin UObject interface (WITH_EDITOR)
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
-	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	// End of UObject interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
@@ -492,12 +492,12 @@ public:
 #endif	//#if WITH_EDITOR
 
 	// Begin UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual FString GetDesc(void) OVERRIDE;
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
-	virtual bool NeedsLoadForEditorGame() const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual FString GetDesc(void) override;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
 	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */

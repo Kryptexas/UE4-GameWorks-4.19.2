@@ -20,13 +20,13 @@ class AIMODULE_API UNavigationComponent : public UActorComponent, public INaviga
 	const class AActor* GoalActor;
 
 	// Begin UActorComponent Interface
-	virtual void InitializeComponent() OVERRIDE;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void SetComponentTickEnabledAsync(bool bEnabled) OVERRIDE;
+	virtual void InitializeComponent() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void SetComponentTickEnabledAsync(bool bEnabled) override;
 	// End UActorComponent Interface
 
 	// Begin INavigationPathGenerator Interface
-	virtual FNavPathSharedPtr GetGeneratedPath(class INavAgentInterface* Agent) OVERRIDE { return Path; }
+	virtual FNavPathSharedPtr GetGeneratedPath(class INavAgentInterface* Agent) override { return Path; }
 	// End INavigationPathGenerator Interface
 
 	/** updates cached pointers to relevant owner's components */

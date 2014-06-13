@@ -60,7 +60,7 @@ class FMyBlueprintCategoryDragDropAction : public FGraphEditorDragDropAction
 public:
 	DRAG_DROP_OPERATOR_TYPE(FMyBlueprintCategoryDragDropAction, FGraphEditorDragDropAction)
 
-	virtual void HoverTargetChanged() OVERRIDE
+	virtual void HoverTargetChanged() override
 	{
 		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("NoBrush")); 
 		FText Message = FText::FromString(DraggedCategory);
@@ -93,7 +93,7 @@ public:
 		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, Message);
 	}
 	
-	virtual FReply DroppedOnCategory(FString OnCategory) OVERRIDE
+	virtual FReply DroppedOnCategory(FString OnCategory) override
 	{
 		// Get the Blueprint via BlueprintEditor
 		TSharedPtr<SMyBlueprint> MyBlueprint = MyBlueprintPtr.Pin();

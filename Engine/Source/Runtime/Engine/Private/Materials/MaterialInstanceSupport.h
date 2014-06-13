@@ -80,17 +80,17 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual FString GetFriendlyName() const OVERRIDE { return Owner->GetName(); }
+	virtual FString GetFriendlyName() const override { return Owner->GetName(); }
 
 	// FMaterialRenderProxy interface.
 	/** Get the FMaterial to use for rendering.  Must return a valid FMaterial, even if it had to fall back to the default material. */
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const OVERRIDE;
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const override;
 	/** Get the FMaterial that should be used for rendering, but might not be in a valid state to actually use.  Can return NULL. */
-	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const OVERRIDE;
-	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const OVERRIDE;
-	virtual bool GetScalarValue(const FName ParameterName,float* OutValue, const FMaterialRenderContext& Context) const OVERRIDE;
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const OVERRIDE;
-	virtual float GetDistanceFieldPenumbraScale() const OVERRIDE { return DistanceFieldPenumbraScale; }
+	virtual FMaterial* GetMaterialNoFallback(ERHIFeatureLevel::Type FeatureLevel) const override;
+	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const override;
+	virtual bool GetScalarValue(const FName ParameterName,float* OutValue, const FMaterialRenderContext& Context) const override;
+	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override;
+	virtual float GetDistanceFieldPenumbraScale() const override { return DistanceFieldPenumbraScale; }
 
 	/** Sets the material instance's parent. */
 	void GameThread_SetParent(UMaterialInterface* InParent);

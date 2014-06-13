@@ -21,28 +21,28 @@ class UBrushComponent : public UPrimitiveComponent
 	FVector PrePivot;
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual FVector GetCustomLocation() const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual FVector GetCustomLocation() const override;
 protected:
 	
 	/** Calculate the new ComponentToWorld transform for this component.
 	Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
 	If Parent is not passed in we use the component's AttachParent*/
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const OVERRIDE;
+	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent * Parent = NULL) const override;
 	// End USceneComponent interface
 
 public:
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE { return BrushBodySetup; };
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const OVERRIDE;
-	virtual uint8 GetStaticDepthPriorityGroup() const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual class UBodySetup* GetBodySetup() override { return BrushBodySetup; };
+	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
+	virtual uint8 GetStaticDepthPriorityGroup() const override;
 	// End UPrimitiveComponent interface.
 
 	/** Create the AggGeom collection-of-convex-primitives from the Brush UModel data. */

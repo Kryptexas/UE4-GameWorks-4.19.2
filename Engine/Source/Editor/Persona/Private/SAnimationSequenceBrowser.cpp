@@ -26,12 +26,12 @@ public:
 	FFrontendFilter_AdditiveAnimAssets(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
 
 	// FFrontendFilter implementation
-	virtual FString GetName() const OVERRIDE { return TEXT("AdditiveAnimAssets"); }
-	virtual FText GetDisplayName() const OVERRIDE { return LOCTEXT("FFrontendFilter_AdditiveAnimAssets", "Additive Animations"); }
-	virtual FText GetToolTipText() const OVERRIDE { return LOCTEXT("FFrontendFilter_AdditiveAnimAssetsToolTip", "Show only animations that are additive."); }
+	virtual FString GetName() const override { return TEXT("AdditiveAnimAssets"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FFrontendFilter_AdditiveAnimAssets", "Additive Animations"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FFrontendFilter_AdditiveAnimAssetsToolTip", "Show only animations that are additive."); }
 
 	// IFilter implementation
-	virtual bool PassesFilter( AssetFilterType InItem ) const OVERRIDE
+	virtual bool PassesFilter( AssetFilterType InItem ) const override
 	{
 		FString TagValue = InItem.TagsAndValues.FindRef("AdditiveAnimType");
 		return !TagValue.IsEmpty() && !TagValue.Equals(TEXT("AAT_None"));

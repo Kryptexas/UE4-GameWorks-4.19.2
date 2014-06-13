@@ -16,24 +16,24 @@ namespace FAssetViewModeUtils
 class SAssetTileView : public STileView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** The list view mode of the asset view */
 class SAssetListView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** The columns view mode of the asset view */
 class SAssetColumnView : public SListView<TSharedPtr<FAssetViewItem>>
 {
 public:
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
-	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 };
 
 /** A base class for all asset view items */
@@ -95,12 +95,12 @@ public:
 	/** Performs common initialization logic for all asset view items */
 	void Construct( const FArguments& InArgs );
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual TSharedPtr<IToolTip> GetToolTip() override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	/** Returns the color this item should be tinted with */
 	virtual FSlateColor GetAssetColor() const;
@@ -334,7 +334,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 private:
 	/** Returns the size of the thumbnail widget */
@@ -435,7 +435,7 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 private:
 	/** Returns the size of the thumbnail box widget */
@@ -503,10 +503,10 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName, FIsSelected InIsSelected );
 
 	/** Handles committing a name change */
-	virtual void OnAssetDataChanged() OVERRIDE;
+	virtual void OnAssetDataChanged() override;
 
 	/** Returns the color this item should be tinted with */
-	virtual FSlateColor GetAssetColor() const OVERRIDE;
+	virtual FSlateColor GetAssetColor() const override;
 
 private:
 	/** Gets the tool tip text for the name */
@@ -553,7 +553,7 @@ public:
 		Content = this->AssetColumnItem;
 	}
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if ( this->AssetColumnItem.IsValid() )
 		{
@@ -566,7 +566,7 @@ public:
 		
 	}
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		SMultiColumnTableRow< TSharedPtr<FAssetViewItem> >::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 

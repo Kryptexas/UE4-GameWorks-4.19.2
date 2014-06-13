@@ -15,10 +15,10 @@ class UMaterialExpressionParticleSubUV : public UMaterialExpressionTextureSample
 
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual int32 GetWidth() const OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual int32 GetLabelPadding() OVERRIDE { return 8; }
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 GetWidth() const override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual int32 GetLabelPadding() override { return 8; }
 	// End UMaterialExpression Interface
 };
 

@@ -125,7 +125,7 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 		}
 	}
 
-	virtual void Execute() OVERRIDE
+	virtual void Execute() override
 	{
 		// Create sprites for any selected textures
 		TArray<UTexture2D*> Textures;
@@ -144,7 +144,7 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 
 struct FConfigureTexturesForSpriteUsageExtension : public FContentBrowserSelectedAssetExtensionBase
 {
-	virtual void Execute() OVERRIDE
+	virtual void Execute() override
 	{
 		// Change the compression settings and trigger a recompress
 		for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)

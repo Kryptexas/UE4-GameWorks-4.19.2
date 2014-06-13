@@ -20,12 +20,12 @@ public:
 
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual void NotifyPreChange(class FEditPropertyChain* PropertyAboutToChange) OVERRIDE;
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
+	virtual void NotifyPreChange(class FEditPropertyChain* PropertyAboutToChange) override;
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
 
 	/** FGCObjectInterface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	class UWidgetBlueprint* GetWidgetBlueprintObj() const;
 
@@ -37,7 +37,7 @@ public:
 	void SelectWidgets(TArray<UWidget*> Widgets);
 
 private:
-	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) OVERRIDE;
+	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
 
 	void DestroyPreview();
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);

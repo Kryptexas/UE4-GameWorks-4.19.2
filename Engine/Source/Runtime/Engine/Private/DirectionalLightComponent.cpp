@@ -160,14 +160,14 @@ public:
 		LightMinRoughness = MinRoughness;
 	}
 
-	virtual bool GetLightShaftOcclusionParameters(float& OutOcclusionMaskDarkness, float& OutOcclusionDepthRange) const OVERRIDE
+	virtual bool GetLightShaftOcclusionParameters(float& OutOcclusionMaskDarkness, float& OutOcclusionDepthRange) const override
 	{
 		OutOcclusionMaskDarkness = OcclusionMaskDarkness;
 		OutOcclusionDepthRange = OcclusionDepthRange;
 		return bEnableLightShaftOcclusion;
 	}
 
-	virtual FVector GetLightPositionForLightShafts(FVector ViewOrigin) const OVERRIDE
+	virtual FVector GetLightPositionForLightShafts(FVector ViewOrigin) const override
 	{
 		const FVector EffectiveDirection = LightShaftOverrideDirection.SizeSquared() > 0 ? LightShaftOverrideDirection : GetDirection();
 		return ViewOrigin - EffectiveDirection * WORLD_MAX;

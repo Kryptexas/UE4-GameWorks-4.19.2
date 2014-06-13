@@ -38,7 +38,7 @@ public:
 	{
 	}
 
-	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const OVERRIDE
+	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
 		/** Size of each font texture, width and height */
 		const uint32 TextureSize = 1024;

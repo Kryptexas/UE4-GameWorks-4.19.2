@@ -192,79 +192,79 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 public:
 
 	// Begin UObject interface.
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
-	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;	
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;	
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PreSave() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual void PreSave() override;
+	virtual void PostLoad() override;
+	virtual bool AreNativePropertiesIdenticalTo( UObject* Other ) const override;
+	virtual FString GetDetailedInfoInternal() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
 	// Begin USceneComponent Interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual bool HasAnySockets() const OVERRIDE;
-	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const OVERRIDE;
-	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const OVERRIDE;
-	virtual bool DoesSocketExist(FName InSocketName) const OVERRIDE;
-	virtual bool ShouldCollideWhenPlacing() const OVERRIDE
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual bool HasAnySockets() const override;
+	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
+	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
+	virtual bool DoesSocketExist(FName InSocketName) const override;
+	virtual bool ShouldCollideWhenPlacing() const override
 	{
 		// Current Method of collision does not work with non-capsule shapes, enable when it works with static meshes
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
-	virtual TArray<FName> GetAllSocketNames() const OVERRIDE;
+	virtual TArray<FName> GetAllSocketNames() const override;
 	// End USceneComponent Interface
 
 	// Begin UActorComponent interface.
 protected: 
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 public:
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
-	virtual UObject const* AdditionalStatObject() const OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
+	virtual UObject const* AdditionalStatObject() const override;
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
-	virtual FName GetComponentInstanceDataType() const OVERRIDE;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 	// End UActorComponent interface.
 
 
 
 	// Begin UPrimitiveComponent interface.
-	virtual int32 GetNumMaterials() const OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
 #if WITH_EDITOR
-	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) OVERRIDE;
+	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
 #endif
-	virtual float GetEmissiveBoost(int32 ElementIndex) const OVERRIDE;
-	virtual float GetDiffuseBoost(int32 ElementIndex) const OVERRIDE;
-	virtual bool GetShadowIndirectOnly() const OVERRIDE
+	virtual float GetEmissiveBoost(int32 ElementIndex) const override;
+	virtual float GetDiffuseBoost(int32 ElementIndex) const override;
+	virtual bool GetShadowIndirectOnly() const override
 	{
 		return LightmassSettings.bShadowIndirectOnly;
 	}
-	virtual ELightMapInteractionType GetStaticLightingType() const OVERRIDE;
-	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const OVERRIDE;
-	virtual class UBodySetup* GetBodySetup() OVERRIDE;
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual bool ShouldRecreateProxyOnUpdateTransform() const OVERRIDE;
-	virtual bool UsesOnlyUnlitMaterials() const OVERRIDE;
-	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const OVERRIDE;
-	virtual int32 GetStaticLightMapResolution() const OVERRIDE;
+	virtual ELightMapInteractionType GetStaticLightingType() const override;
+	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
+	virtual class UBodySetup* GetBodySetup() override;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
+	virtual bool UsesOnlyUnlitMaterials() const override;
+	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
+	virtual int32 GetStaticLightMapResolution() const override;
 	/** Returns true if the component is static AND has the right static mesh setup to support lightmaps. */
-	virtual bool HasValidSettingsForStaticLighting() const OVERRIDE;
+	virtual bool HasValidSettingsForStaticLighting() const override;
 
-	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const OVERRIDE;
-	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const OVERRIDE;
-	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const OVERRIDE;
+	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
+	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
+	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const;
 	// End UPrimitiveComponent interface.

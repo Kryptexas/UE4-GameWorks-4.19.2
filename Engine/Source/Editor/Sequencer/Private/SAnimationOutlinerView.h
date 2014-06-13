@@ -25,8 +25,8 @@ public:
 	const TSharedPtr< const FSequencerDisplayNode> GetDisplayNode() const { return DisplayNode; }
 private:
 	/** SWidget Interface */
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/**
 	 * Called when the expander arrow is clicked
@@ -92,7 +92,7 @@ private:
 	void GenerateWidgetForNode( TSharedRef<FSequencerDisplayNode>& InLayoutNode );
 
 	/** SPanel Interface */
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE;
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
 	/**
 	 * Called when a node is selected in the outliner

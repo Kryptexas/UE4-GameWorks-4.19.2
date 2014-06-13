@@ -129,21 +129,21 @@ class UDirectionalLightComponent : public ULightComponent
 	// ULightComponent interface.
 	virtual FVector4 GetLightPosition() const;
 	virtual ELightComponentType GetLightType() const;
-	virtual FLightSceneProxy* CreateSceneProxy() const OVERRIDE;
-	virtual bool IsUsedAsAtmosphereSunLight() const OVERRIDE
+	virtual FLightSceneProxy* CreateSceneProxy() const override;
+	virtual bool IsUsedAsAtmosphereSunLight() const override
 	{
 		return bUsedAsAtmosphereSunLight;
 	}
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// Begin UObject Interface
 
-	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) OVERRIDE;
+	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 };
 
 

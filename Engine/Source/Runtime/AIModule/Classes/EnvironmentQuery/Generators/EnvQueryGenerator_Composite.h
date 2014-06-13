@@ -18,5 +18,5 @@ class UEnvQueryGenerator_Composite : public UEnvQueryGenerator
 	TArray<class UEnvQueryGenerator*> Generators;
 
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance);
-	virtual FText GetDescriptionTitle() const OVERRIDE;
+	virtual FText GetDescriptionTitle() const override;
 };

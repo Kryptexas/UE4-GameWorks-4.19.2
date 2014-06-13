@@ -35,23 +35,23 @@ class UK2Node_Select : public UK2Node
 	bool bReconstructNode;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void NodeConnectionListChanged() OVERRIDE;
-	virtual void PinTypeChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Select_16x"); }
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void NodeConnectionListChanged() override;
+	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
+	virtual void PostPasteNode() override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Select_16x"); }
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
- 	virtual void PostReconstructNode() OVERRIDE;
-	virtual bool IsNodeSafeToIgnore() const OVERRIDE { return true; }
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const OVERRIDE;
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+ 	virtual void PostReconstructNode() override;
+	virtual bool IsNodeSafeToIgnore() const override { return true; }
+	virtual bool IsNodePure() const override { return true; }
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	// End UK2Node interface
 
 	/** Get the return value pin */

@@ -9,14 +9,14 @@ TSharedPtr<FAVPlayerMovieStreamer> AppleMovieStreamer;
 class FAppleMoviePlayerModule : public IModuleInterface
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		FAVPlayerMovieStreamer *Streamer = new FAVPlayerMovieStreamer;
 		AppleMovieStreamer = MakeShareable(Streamer);
 		GetMoviePlayer()->RegisterMovieStreamer(AppleMovieStreamer);
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		AppleMovieStreamer.Reset();
 	}

@@ -29,7 +29,7 @@ class ENGINE_API UPhysicsCollisionHandler : public UObject
 	float LastImpactSoundTime;
 
 	/** Get the world we are handling collisions for */
-	virtual UWorld* GetWorld() const OVERRIDE
+	virtual UWorld* GetWorld() const override
 	{
 		return CastChecked<UWorld>(GetOuter());
 	}

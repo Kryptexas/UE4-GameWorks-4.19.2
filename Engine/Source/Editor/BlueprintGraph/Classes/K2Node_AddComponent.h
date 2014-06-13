@@ -18,21 +18,21 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	FString TemplateBlueprint;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetDocumentationLink() const OVERRIDE;
-	virtual FString GetDocumentationExcerptName() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void DestroyNode() override;
+	virtual void PrepareForCopying() override;
+	virtual void PostPasteNode() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetDocumentationLink() const override;
+	virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
-	virtual UActorComponent* GetTemplateFromNode() const OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual UActorComponent* GetTemplateFromNode() const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End of UK2Node interface
 
 	BLUEPRINTGRAPH_API void AllocateDefaultPinsWithoutExposedVariables();

@@ -46,12 +46,12 @@ namespace CodeView
 		: public FTreeItem
 	{
 	public:
-		virtual ETreeItemType::Type GetType() const OVERRIDE
+		virtual ETreeItemType::Type GetType() const override
 		{
 			return ETreeItemType::Class;
 		}
 
-		virtual const FString& GetAsString() const OVERRIDE
+		virtual const FString& GetAsString() const override
 		{
 			return ClassName;
 		}
@@ -72,12 +72,12 @@ namespace CodeView
 		: public FTreeItem
 	{
 	public:
-		virtual ETreeItemType::Type GetType() const OVERRIDE
+		virtual ETreeItemType::Type GetType() const override
 		{
 			return ETreeItemType::Function;
 		}
 
-		virtual const FString& GetAsString() const OVERRIDE
+		virtual const FString& GetAsString() const override
 		{
 			return FunctionName;
 		}

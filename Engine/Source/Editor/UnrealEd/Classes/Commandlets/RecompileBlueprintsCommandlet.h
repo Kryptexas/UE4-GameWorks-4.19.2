@@ -11,13 +11,13 @@ class URecompileBlueprintsCommandlet : public UResavePackagesCommandlet
 
 public:		
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 	// Begin UResavePackagesCommandlet Interface
-	virtual bool ShouldSkipPackage(const FString& Filename) OVERRIDE;
-	virtual bool PerformPreloadOperations( ULinkerLoad* PackageLinker, bool& bSavePackage ) OVERRIDE;
-	virtual void PerformAdditionalOperations( class UObject* Object, bool& bSavePackage ) OVERRIDE;
-	virtual int32 InitializeResaveParameters( const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames ) OVERRIDE;
+	virtual bool ShouldSkipPackage(const FString& Filename) override;
+	virtual bool PerformPreloadOperations( ULinkerLoad* PackageLinker, bool& bSavePackage ) override;
+	virtual void PerformAdditionalOperations( class UObject* Object, bool& bSavePackage ) override;
+	virtual int32 InitializeResaveParameters( const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames ) override;
 	// End UResavePackagesCommandlet Interface
 };

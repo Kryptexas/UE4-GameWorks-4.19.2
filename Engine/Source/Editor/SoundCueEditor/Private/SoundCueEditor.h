@@ -15,8 +15,8 @@ class FSoundCueEditor : public ISoundCueEditor, public FGCObject, public FNotify
 {
 	public:
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	/** Destructor */
 	virtual ~FSoundCueEditor();
@@ -25,29 +25,29 @@ class FSoundCueEditor : public ISoundCueEditor, public FGCObject, public FNotify
 	void InitSoundCueEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit);
 
 	/** ISoundCueEditor interface */
-	virtual USoundCue* GetSoundCue() const OVERRIDE;
-	virtual void SetSelection(TArray<UObject*> SelectedObjects) OVERRIDE;
-	virtual bool GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding) OVERRIDE;
-	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
-	virtual TSet<UObject*> GetSelectedNodes() const OVERRIDE;
+	virtual USoundCue* GetSoundCue() const override;
+	virtual void SetSelection(TArray<UObject*> SelectedObjects) override;
+	virtual bool GetBoundsForSelectedNodes(class FSlateRect& Rect, float Padding) override;
+	virtual int32 GetNumberOfSelectedNodes() const override;
+	virtual TSet<UObject*> GetSelectedNodes() const override;
 	
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Engine/Audio/SoundCues/Editor"));
 	}
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 private:
@@ -96,9 +96,9 @@ protected:
 	/** Paste the contents of the clipboard */
 	void PasteNodes();
 	/** Paste the contents of the clipboard at a specific location */
-	virtual void PasteNodesHere(const FVector2D& Location) OVERRIDE;
+	virtual void PasteNodesHere(const FVector2D& Location) override;
 	/** Whether we are able to paste the contents of the clipboard */
-	virtual bool CanPasteNodes() const OVERRIDE;
+	virtual bool CanPasteNodes() const override;
 
 	/** Duplicate the currently selected nodes */
 	void DuplicateNodes();
@@ -113,7 +113,7 @@ protected:
 
 private:
 	/** FNotifyHook interface */
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();

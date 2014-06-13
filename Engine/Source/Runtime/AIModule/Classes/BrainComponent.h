@@ -126,16 +126,16 @@ public:
 #endif // ENABLE_VISUAL_LOG
 	
 	// IAIResourceInterface begin
-	virtual void LockResource(EAILockSource::Type LockSource) OVERRIDE;
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) OVERRIDE;
-	virtual void ForceUnlockResource() OVERRIDE;
-	virtual bool IsResourceLocked() const OVERRIDE;
+	virtual void LockResource(EAILockSource::Type LockSource) override;
+	virtual void ClearResourceLock(EAILockSource::Type LockSource) override;
+	virtual void ForceUnlockResource() override;
+	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
 	
 	virtual void HandleMessage(const FAIMessage& Message);
 	
 	/** BEGIN UActorComponent overrides */
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
 	/** END UActorComponent overrides */
 

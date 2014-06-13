@@ -11,11 +11,11 @@ public:
 	void Construct(const FArguments& InArgs, class UMaterialGraphNode_Root* InNode);
 
 	// SGraphNode interface
-	virtual void CreatePinWidgets() OVERRIDE;
+	virtual void CreatePinWidgets() override;
 	// End of SGraphNode interface
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) override;
 	// End of SNodePanel::SNode interface
 
 private:

@@ -132,7 +132,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Pawn", meta=(ToolTip="Gets the owning actor of the Movement Base Component on which the pawn is standing."))
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
-	virtual bool IsBasedOnActor(const AActor * Other) const OVERRIDE;
+	virtual bool IsBasedOnActor(const AActor * Other) const override;
 
 	virtual bool ReachedDesiredRotation();
 
@@ -163,42 +163,42 @@ public:
 	uint32 bProcessingOutsideWorldBounds:1;
 
 	// Begin AActor Interface.
-	virtual FVector GetVelocity() const OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual FString GetHumanReadableName() const OVERRIDE;
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
-	virtual bool ShouldTickIfViewportsOnly() const OVERRIDE;
-	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) OVERRIDE;
-	virtual void PostNetReceiveLocation() OVERRIDE;
-	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void GetActorEyesViewPoint( FVector& Location, FRotator& Rotation ) const OVERRIDE;
-	virtual void OutsideWorldBounds() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
-	virtual void PreInitializeComponents() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual class UPlayer* GetNetOwningPlayer() OVERRIDE;
-	virtual class UNetConnection* GetNetConnection() OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostRegisterAllComponents() OVERRIDE;
-	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) OVERRIDE;
-	virtual void BecomeViewTarget(class APlayerController* PC) OVERRIDE;
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(false); return false; }
-	virtual void EnableInput(class APlayerController* PlayerController) OVERRIDE;
-	virtual void DisableInput(class APlayerController* PlayerController) OVERRIDE;
+	virtual FVector GetVelocity() const override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void Reset() override;
+	virtual FString GetHumanReadableName() const override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual bool ShouldTickIfViewportsOnly() const override;
+	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual void PostNetReceiveLocation() override;
+	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void GetActorEyesViewPoint( FVector& Location, FRotator& Rotation ) const override;
+	virtual void OutsideWorldBounds() override;
+	virtual void Destroyed() override;
+	virtual void PreInitializeComponents() override;
+	virtual void PostInitializeComponents() override;
+	virtual class UPlayer* GetNetOwningPlayer() override;
+	virtual class UNetConnection* GetNetConnection() override;
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+	virtual void PostRegisterAllComponents() override;
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
+	virtual void BecomeViewTarget(class APlayerController* PC) override;
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
+	virtual void EnableInput(class APlayerController* PlayerController) override;
+	virtual void DisableInput(class APlayerController* PlayerController) override;
 
 	/** Overridden to defer to the RootComponent's CanBeCharacterBase setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
-	virtual bool CanBeBaseForCharacter(class APawn* APawn) const OVERRIDE;
+	virtual bool CanBeBaseForCharacter(class APawn* APawn) const override;
 	// End AActor Interface
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE { return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;}
+	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override { return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;}
 	/** Basically retrieved pawn's location on navmesh */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual FVector GetNavAgentLocation() const OVERRIDE { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
+	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
+	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	// End INavAgentInterface Interface
 
 	/** updates MovementComponent's parameters used by navigation system */

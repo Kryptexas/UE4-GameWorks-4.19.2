@@ -68,7 +68,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 
 protected:
 	// Begin UActorComponent Interface
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
+	virtual void SendRenderTransform_Concurrent() override;
 	// End UActorComponent Interface
 
 public:
@@ -79,14 +79,14 @@ public:
 	virtual FBox GetBoundingBox() const;
 	virtual FSphere GetBoundingSphere() const;
 	virtual ELightComponentType GetLightType() const;
-	virtual FLightSceneProxy* CreateSceneProxy() const OVERRIDE;
+	virtual FLightSceneProxy* CreateSceneProxy() const override;
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual bool CanEditChange(const UProperty* InProperty) const OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual bool CanEditChange(const UProperty* InProperty) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 

@@ -13,11 +13,11 @@ class ONLINESUBSYSTEMUTILS_API ATestBeaconClient : public AOnlineBeaconClient
 	GENERATED_UCLASS_BODY()
 
 	// Begin AOnlineBeacon Interface
-	virtual FString GetBeaconType() OVERRIDE { return TEXT("TestBeacon"); }
+	virtual FString GetBeaconType() override { return TEXT("TestBeacon"); }
 	// End AOnlineBeacon Interface
 
 	// Begin AOnlineBeaconClient Interface
-	virtual void OnFailure() OVERRIDE;
+	virtual void OnFailure() override;
 	// End AOnlineBeaconClient Interface
 
 	/** Send a ping RPC to the client */

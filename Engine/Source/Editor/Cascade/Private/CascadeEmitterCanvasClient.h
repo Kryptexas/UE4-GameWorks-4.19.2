@@ -19,9 +19,9 @@ public:
 	~FCascadeEmitterCanvasClient();
 
 	/** FViewportClient interface */
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.0f, bool bGamepad = false) OVERRIDE;
-	virtual void CapturedMouseMove(FViewport* Viewport, int32 X, int32 Y) OVERRIDE;
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.0f, bool bGamepad = false) override;
+	virtual void CapturedMouseMove(FViewport* Viewport, int32 X, int32 Y) override;
 
 	/** Returns the ratio of the size of the particle emitters to the size of the viewport */
 	float GetViewportVerticalScrollBarRatio() const;

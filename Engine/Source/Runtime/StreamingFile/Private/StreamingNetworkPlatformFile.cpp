@@ -69,15 +69,15 @@ public:
 		Network.SendCloseMessage(HandleId);
 	}
 
-	virtual int64		Size() OVERRIDE
+	virtual int64		Size() override
 	{
 		return FileSize;
 	}
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		return FilePos;
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		if (NewPosition >= 0 && NewPosition <= FileSize)
 		{
@@ -113,11 +113,11 @@ public:
 		}
 		return false;
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		return Seek(FileSize + NewPositionRelativeToEnd);
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		bool Result = false;
 		if (bReadable && BytesToRead >= 0 && BytesToRead + FilePos <= FileSize)
@@ -212,7 +212,7 @@ public:
 		}
 		return Result;
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		bool Result = false;
 		if (bWritable && BytesToWrite >= 0)
@@ -798,7 +798,7 @@ void FStreamingNetworkPlatformFile::PerformHeartbeat()
 class FStreamingFileModule : public IPlatformFileModule
 {
 public:
-	virtual IPlatformFile* GetPlatformFile() OVERRIDE
+	virtual IPlatformFile* GetPlatformFile() override
 	{
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FStreamingNetworkPlatformFile());
 		return AutoDestroySingleton.GetOwnedPointer();

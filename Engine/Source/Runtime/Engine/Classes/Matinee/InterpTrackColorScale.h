@@ -16,12 +16,12 @@ class UInterpTrackColorScale : public UInterpTrackVectorBase
 
 
 	// Begin UInterpTrack interface.
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
-	virtual void SetTrackToSensibleDefault() OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
+	virtual void SetTrackToSensibleDefault() override;
+	virtual class UTexture2D* GetTrackIcon() const override;
 	// Begin UInterpTrack interface.
 
 	/** Return the blur alpha we want at the given time. */

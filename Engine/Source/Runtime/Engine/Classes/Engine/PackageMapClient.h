@@ -114,12 +114,12 @@ class UPackageMapClient : public UPackageMap
 
 	
 	// UPackageMap Interface
-	virtual bool SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) OVERRIDE;
-	virtual bool SerializeNewActor( FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor) OVERRIDE;
+	virtual bool SerializeObject( FArchive& Ar, UClass* Class, UObject*& Obj, FNetworkGUID *OutNetGUID = NULL ) override;
+	virtual bool SerializeNewActor( FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor) override;
 	
-	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) OVERRIDE;
+	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) override;
 
-	virtual void ResetPackageMap() OVERRIDE;
+	virtual void ResetPackageMap() override;
 
 	virtual void SetLocked(bool L) { Locked = L; }
 
@@ -127,10 +127,10 @@ class UPackageMapClient : public UPackageMap
 
 	bool NetGUIDHasBeenAckd(FNetworkGUID NetGUID);
 
-	virtual void ReceivedNak( const int32 NakPacketId ) OVERRIDE;
-	virtual void ReceivedAck( const int32 AckPacketId ) OVERRIDE;
-	virtual void NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) OVERRIDE;
-	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) OVERRIDE;
+	virtual void ReceivedNak( const int32 NakPacketId ) override;
+	virtual void ReceivedAck( const int32 AckPacketId ) override;
+	virtual void NotifyBunchCommit( const int32 OutPacketId, const TArray< FNetworkGUID > & ExportNetGUIDs ) override;
+	virtual void GetNetGUIDStats(int32 &AckCount, int32 &UnAckCount, int32 &PendingCount) override;
 
 	void ReceiveNetGUIDBunch( FInBunch &InBunch );
 	bool AppendExportBunches(TArray<FOutBunch *>& OutgoingBunches);
@@ -141,12 +141,12 @@ class UPackageMapClient : public UPackageMap
 
 	static void	AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-	virtual void NotifyStreamingLevelUnload(UObject* UnloadedLevel) OVERRIDE;
+	virtual void NotifyStreamingLevelUnload(UObject* UnloadedLevel) override;
 
-	virtual bool PrintExportBatch() OVERRIDE;
+	virtual bool PrintExportBatch() override;
 
-	virtual void		LogDebugInfo( FOutputDevice & Ar) OVERRIDE;
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID ) OVERRIDE;
+	virtual void		LogDebugInfo( FOutputDevice & Ar) override;
+	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID ) override;
 
 protected:
 
@@ -156,7 +156,7 @@ protected:
 	void			InternalWriteObject( FArchive& Ar, FNetworkGUID NetGUID, const UObject * Object, FString ObjectPathName, UObject * ObjectOuter );	
 	FNetworkGUID	InternalLoadObject( FArchive & Ar, UObject *& Object, const bool bIsInnerLevel, int InternalLoadObjectRecursionCount );
 
-	virtual UObject * ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) OVERRIDE;
+	virtual UObject * ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) override;
 
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 	

@@ -28,47 +28,47 @@ public:
 	{
 	}
 
-	virtual class FNotifyHook* GetNotifyHook() const OVERRIDE
+	virtual class FNotifyHook* GetNotifyHook() const override
 	{
 		return View.GetNotifyHook();
 	}
 
-	virtual bool AreFavoritesEnabled() const OVERRIDE
+	virtual bool AreFavoritesEnabled() const override
 	{
 		return View.AreFavoritesEnabled();
 	}
 
-	virtual void ToggleFavorite( const TSharedRef< class FPropertyEditor >& PropertyEditor ) const OVERRIDE
+	virtual void ToggleFavorite( const TSharedRef< class FPropertyEditor >& PropertyEditor ) const override
 	{
 		View.ToggleFavorite( PropertyEditor );
 	}
 
-	virtual void CreateColorPickerWindow( const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha ) const OVERRIDE
+	virtual void CreateColorPickerWindow( const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha ) const override
 	{
 		View.CreateColorPickerWindow( PropertyEditor, bUseAlpha );
 	}
 
-	virtual void EnqueueDeferredAction( FSimpleDelegate DeferredAction ) OVERRIDE
+	virtual void EnqueueDeferredAction( FSimpleDelegate DeferredAction ) override
 	{
 		View.EnqueueDeferredAction( DeferredAction );
 	}
 
-	virtual void RequestRefresh() OVERRIDE
+	virtual void RequestRefresh() override
 	{
 		View.RequestRefresh();
 	}
 
-	virtual bool IsPropertyEditingEnabled() const OVERRIDE
+	virtual bool IsPropertyEditingEnabled() const override
 	{
 		return true;
 	}
 
-	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE
+	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override
 	{
 		return NULL;
 	}
 
-	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE {}
+	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override {}
 private:
 
 	SPropertyTreeViewImpl& View;

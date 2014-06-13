@@ -23,19 +23,19 @@ public:
 
 public:
 	// UEdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void PostReconstructNode() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.MakeArray_16x"); }
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
+	virtual void PostReconstructNode() override;
+	virtual FString GetTooltip() const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.MakeArray_16x"); }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const OVERRIDE;
+	virtual bool IsNodePure() const override { return true; }
+	void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
+	void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	// End of UK2Node interface
 
 

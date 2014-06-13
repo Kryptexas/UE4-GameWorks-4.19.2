@@ -27,14 +27,14 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	void InitializeProperties();
 
 	/** setup node name */
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 	/** notify about changes in blackboard */
 	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);
 
-	virtual FString GetStaticDescription() const OVERRIDE;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
+	virtual FString GetStaticDescription() const override;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
@@ -76,11 +76,11 @@ protected:
 
 	FOnBlackboardChange BBKeyObserver;
 
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) OVERRIDE;
-	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) OVERRIDE;
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) override;
+	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) override;
+	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	/** tick function */
 	UFUNCTION(BlueprintImplementableEvent)

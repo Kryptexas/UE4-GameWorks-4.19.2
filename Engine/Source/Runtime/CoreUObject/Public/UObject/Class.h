@@ -62,8 +62,8 @@ class COREUOBJECT_API UField : public UObject
 	UField(EStaticConstructor, EObjectFlags InFlags);
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
 
 	// UField interface.
 	virtual void AddCppProperty( UProperty* Property );
@@ -259,13 +259,13 @@ public:
 	explicit UStruct(const class FPostConstructInitializeProperties& PCIP, UStruct* InSuperStruct, SIZE_T ParamsSize = 0, SIZE_T Alignment = 0 );
 
 	// UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void RegisterDependencies() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void FinishDestroy() override;
+	virtual void RegisterDependencies() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	// UField interface.
-	virtual void AddCppProperty(UProperty* Property) OVERRIDE;
+	virtual void AddCppProperty(UProperty* Property) override;
 
 	/**
 	 * Creates new copies of components
@@ -302,7 +302,7 @@ public:
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 
 	/**
 	 * Returns the struct/ class prefix used for the C++ declaration of this struct/ class.
@@ -803,124 +803,124 @@ public:
 			: ICppStructOps(sizeof(CPPSTRUCT), ALIGNOF(CPPSTRUCT))
 		{
 		}
-		virtual bool HasNoopConstructor() OVERRIDE
+		virtual bool HasNoopConstructor() override
 		{
 			return TTraits::WithNoInitConstructor;
 		}		
-		virtual bool HasZeroConstructor() OVERRIDE
+		virtual bool HasZeroConstructor() override
 		{
 			return TTraits::WithZeroConstructor;
 		}
-		virtual void Construct(void *Dest) OVERRIDE
+		virtual void Construct(void *Dest) override
 		{
 			check(!TTraits::WithZeroConstructor); // don't call this if we have indicated it is not necessary
 			// that could have been an if statement, but we might as well force optimization above the virtual call
 			// could also not attempt to call the constructor for types where this is not possible, but I didn't do that here
 			ConstructWithNoInitOrNot<CPPSTRUCT>(Dest);
 		}
-		virtual bool HasDestructor() OVERRIDE
+		virtual bool HasDestructor() override
 		{
 			return !(TTraits::WithNoDestructor || TIsPODType<CPPSTRUCT>::Value);
 		}
-		virtual void Destruct(void *Dest) OVERRIDE
+		virtual void Destruct(void *Dest) override
 		{
 			check(!(TTraits::WithNoDestructor || TIsPODType<CPPSTRUCT>::Value)); // don't call this if we have indicated it is not necessary
 			// that could have been an if statement, but we might as well force optimization above the virtual call
 			// could also not attempt to call the destructor for types where this is not possible, but I didn't do that here
 			((CPPSTRUCT*)Dest)->~CPPSTRUCT();
 		}
-		virtual bool HasSerializer() OVERRIDE
+		virtual bool HasSerializer() override
 		{
 			return TTraits::WithSerializer;
 		}
-		virtual bool Serialize(FArchive& Ar, void *Data) OVERRIDE
+		virtual bool Serialize(FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithSerializer); // don't call this if we have indicated it is not necessary
 			return SerializeOrNot(Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasPostSerialize() OVERRIDE
+		virtual bool HasPostSerialize() override
 		{
 			return TTraits::WithPostSerialize;
 		}
-		virtual void PostSerialize(const FArchive& Ar, void *Data) OVERRIDE
+		virtual void PostSerialize(const FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithPostSerialize); // don't call this if we have indicated it is not necessary
 			PostSerializeOrNot(Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasNetSerializer() OVERRIDE
+		virtual bool HasNetSerializer() override
 		{
 			return TTraits::WithNetSerializer;
 		}
-		virtual bool HasNetDeltaSerializer() OVERRIDE
+		virtual bool HasNetDeltaSerializer() override
 		{
 			return TTraits::WithNetDeltaSerializer;
 		}
-		virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess, void *Data) OVERRIDE
+		virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess, void *Data) override
 		{
 			return NetSerializeOrNot(Ar, Map, bOutSuccess, (CPPSTRUCT*)Data);
 		}
-		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) OVERRIDE
+		virtual bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms, void *Data) override
 		{
 			return NetDeltaSerializeOrNot(DeltaParms, (CPPSTRUCT*)Data);
 		}
-		virtual bool IsPlainOldData() OVERRIDE
+		virtual bool IsPlainOldData() override
 		{
 			return TIsPODType<CPPSTRUCT>::Value;
 		}
-		virtual bool HasCopy() OVERRIDE
+		virtual bool HasCopy() override
 		{
 			return TTraits::WithCopy;
 		}
-		virtual bool Copy(void* Dest, void const* Src, int32 ArrayDim) OVERRIDE
+		virtual bool Copy(void* Dest, void const* Src, int32 ArrayDim) override
 		{
 			return CopyOrNot((CPPSTRUCT*)Dest, (CPPSTRUCT const*)Src, ArrayDim);
 		}
-		virtual bool HasIdentical() OVERRIDE
+		virtual bool HasIdentical() override
 		{
 			return TTraits::WithIdentical || TTraits::WithIdenticalViaEquality;
 		}
-		virtual bool Identical(const void* A, const void* B, uint32 PortFlags, bool& bOutResult) OVERRIDE
+		virtual bool Identical(const void* A, const void* B, uint32 PortFlags, bool& bOutResult) override
 		{
 			check((TTraits::WithIdentical || TTraits::WithIdenticalViaEquality)); // don't call this if we have indicated it is not necessary
 			return IdenticalOrNot((const CPPSTRUCT*)A, (const CPPSTRUCT*)B, PortFlags, bOutResult);
 		}
-		virtual bool HasExportTextItem() OVERRIDE
+		virtual bool HasExportTextItem() override
 		{
 			return TTraits::WithExportTextItem;
 		}
-		virtual bool ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, class UObject* Parent, int32 PortFlags, class UObject* ExportRootScope) OVERRIDE
+		virtual bool ExportTextItem(FString& ValueStr, const void* PropertyValue, const void* DefaultValue, class UObject* Parent, int32 PortFlags, class UObject* ExportRootScope) override
 		{
 			check(TTraits::WithExportTextItem); // don't call this if we have indicated it is not necessary
 			return ExportTextItemOrNot(ValueStr, (const CPPSTRUCT*)PropertyValue, (const CPPSTRUCT*)DefaultValue, Parent, PortFlags, ExportRootScope);
 		}
-		virtual bool HasImportTextItem() OVERRIDE
+		virtual bool HasImportTextItem() override
 		{
 			return TTraits::WithImportTextItem;
 		}
-		virtual bool ImportTextItem(const TCHAR*& Buffer, void* Data, int32 PortFlags, class UObject* OwnerObject, FOutputDevice* ErrorText) OVERRIDE
+		virtual bool ImportTextItem(const TCHAR*& Buffer, void* Data, int32 PortFlags, class UObject* OwnerObject, FOutputDevice* ErrorText) override
 		{
 			check(TTraits::WithImportTextItem); // don't call this if we have indicated it is not necessary
 			return ImportTextItemOrNot(Buffer, (CPPSTRUCT*)Data, PortFlags, OwnerObject, ErrorText);
 		}
-		virtual bool HasAddStructReferencedObjects() OVERRIDE
+		virtual bool HasAddStructReferencedObjects() override
 		{
 			return TTraits::WithAddStructReferencedObjects;
 		}
-		virtual TPointerToAddStructReferencedObjects AddStructReferencedObjects() OVERRIDE
+		virtual TPointerToAddStructReferencedObjects AddStructReferencedObjects() override
 		{
 			check(TTraits::WithAddStructReferencedObjects); // don't call this if we have indicated it is not necessary
 			return &AddStructReferencedObjectsOrNot<CPPSTRUCT>;
 		}
-		virtual bool HasSerializeFromMismatchedTag() OVERRIDE
+		virtual bool HasSerializeFromMismatchedTag() override
 		{
 			return TTraits::WithSerializeFromMismatchedTag;
 		}
-		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) OVERRIDE
+		virtual bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar, void *Data) override
 		{
 			check(TTraits::WithSerializeFromMismatchedTag); // don't call this if we have indicated it is not allowed
 			return SerializeFromMismatchedTagOrNot(Tag, Ar, (CPPSTRUCT*)Data);
 		}
-		virtual bool HasMessageHandling() OVERRIDE
+		virtual bool HasMessageHandling() override
 		{
 			return TTraits::WithMessageHandling;
 		}
@@ -962,11 +962,11 @@ private:
 public:
 
 	// UObject Interface
-	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual COREUOBJECT_API void PostLoad() OVERRIDE;
+	virtual COREUOBJECT_API void Serialize( FArchive& Ar ) override;
+	virtual COREUOBJECT_API void PostLoad() override;
 
 	// UStruct interface.
-	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	// End of UStruct interface.
 
 	/** Stash a CppStructOps for future use 
@@ -1188,14 +1188,14 @@ public:
 	void InitializeDerivedMembers();
 
 	// UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	// UField interface.
-	virtual void Bind() OVERRIDE;
+	virtual void Bind() override;
 
 	// UStruct interface.
-	virtual UStruct* GetInheritanceSuper() const OVERRIDE { return NULL;}
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual UStruct* GetInheritanceSuper() const override { return NULL;}
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 
 	// UFunction interface.
 	UFunction* GetSuperFunction() const
@@ -1296,7 +1296,7 @@ protected:
 
 public:
 	// UObject interface.
-	COREUOBJECT_API virtual void Serialize(FArchive& Ar) OVERRIDE;
+	COREUOBJECT_API virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface.
 
 	COREUOBJECT_API ~UEnum();
@@ -1725,7 +1725,7 @@ public:
 	// List of network relevant fields (properties and functions)
 	TArray<UField*> NetFields;
 
-	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all classes have stable net names
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all classes have stable net names
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
@@ -1850,27 +1850,27 @@ public:
 	UFunction* FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper = EIncludeSuperFlag::IncludeSuper) const;
 
 	// UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* Name) OVERRIDE;
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
-	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void FinishDestroy() override;
+	virtual void DeferredRegister(UClass *UClassStaticClass,const TCHAR* PackageName,const TCHAR* Name) override;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual void TagSubobjects(EObjectFlags NewFlags) override;
+	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual FRestoreForUObjectOverwrite* GetRestoreForUObjectOverwrite() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual FRestoreForUObjectOverwrite* GetRestoreForUObjectOverwrite() override;
+	virtual FString GetDesc() override;
+	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface.
 
 	// UField interface.
-	virtual void Bind() OVERRIDE;
-	virtual const TCHAR* GetPrefixCPP() const OVERRIDE;
+	virtual void Bind() override;
+	virtual const TCHAR* GetPrefixCPP() const override;
 	// End of UField interface.
 
 	// UStruct interface.
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
-	virtual void SetSuperStruct(UStruct* NewSuperStruct) OVERRIDE;
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual void SetSuperStruct(UStruct* NewSuperStruct) override;
 	// End of UStruct interface.
 	
 	/**

@@ -67,8 +67,8 @@ PACKAGE_SCOPE:
 	{};
 
 	// IOnlineVoice
-	virtual bool Init() OVERRIDE;
-	void ProcessMuteChangeNotification() OVERRIDE;
+	virtual bool Init() override;
+	void ProcessMuteChangeNotification() override;
 
 	/**
 	 * Processes any talking delegates that need to be fired off
@@ -104,27 +104,27 @@ public:
 	virtual ~FOnlineVoiceSteam();
 
 	// IOnlineVoice
-	virtual void StartNetworkedVoice(uint8 LocalUserNum) OVERRIDE;
-	virtual void StopNetworkedVoice(uint8 LocalUserNum) OVERRIDE;
-    virtual bool RegisterLocalTalker(uint32 LocalUserNum) OVERRIDE;
-	virtual void RegisterLocalTalkers() OVERRIDE;
-    virtual bool UnregisterLocalTalker(uint32 LocalUserNum) OVERRIDE;
-	virtual void UnregisterLocalTalkers() OVERRIDE;
-    virtual bool RegisterRemoteTalker(const FUniqueNetId& UniqueId) OVERRIDE;
-    virtual bool UnregisterRemoteTalker(const FUniqueNetId& UniqueId) OVERRIDE;
-	virtual void RemoveAllRemoteTalkers() OVERRIDE;
-    virtual bool IsHeadsetPresent(uint32 LocalUserNum) OVERRIDE;
-    virtual bool IsLocalPlayerTalking(uint32 LocalUserNum) OVERRIDE;
-	virtual bool IsRemotePlayerTalking(const FUniqueNetId& UniqueId) OVERRIDE;
-	bool IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const OVERRIDE;
-	bool MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide) OVERRIDE;
-	bool UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide) OVERRIDE;
-	virtual TSharedPtr<class FVoicePacket> SerializeRemotePacket(FArchive& Ar) OVERRIDE;
-	virtual TSharedPtr<class FVoicePacket> GetLocalPacket(uint32 LocalUserNum) OVERRIDE;
-	virtual int32 GetNumLocalTalkers() OVERRIDE { return LocalTalkers.Num(); };
-	virtual void ClearVoicePackets() OVERRIDE;
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual FString GetVoiceDebugState() const OVERRIDE;
+	virtual void StartNetworkedVoice(uint8 LocalUserNum) override;
+	virtual void StopNetworkedVoice(uint8 LocalUserNum) override;
+    virtual bool RegisterLocalTalker(uint32 LocalUserNum) override;
+	virtual void RegisterLocalTalkers() override;
+    virtual bool UnregisterLocalTalker(uint32 LocalUserNum) override;
+	virtual void UnregisterLocalTalkers() override;
+    virtual bool RegisterRemoteTalker(const FUniqueNetId& UniqueId) override;
+    virtual bool UnregisterRemoteTalker(const FUniqueNetId& UniqueId) override;
+	virtual void RemoveAllRemoteTalkers() override;
+    virtual bool IsHeadsetPresent(uint32 LocalUserNum) override;
+    virtual bool IsLocalPlayerTalking(uint32 LocalUserNum) override;
+	virtual bool IsRemotePlayerTalking(const FUniqueNetId& UniqueId) override;
+	bool IsMuted(uint32 LocalUserNum, const FUniqueNetId& UniqueId) const override;
+	bool MuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide) override;
+	bool UnmuteRemoteTalker(uint8 LocalUserNum, const FUniqueNetId& PlayerId, bool bIsSystemWide) override;
+	virtual TSharedPtr<class FVoicePacket> SerializeRemotePacket(FArchive& Ar) override;
+	virtual TSharedPtr<class FVoicePacket> GetLocalPacket(uint32 LocalUserNum) override;
+	virtual int32 GetNumLocalTalkers() override { return LocalTalkers.Num(); };
+	virtual void ClearVoicePackets() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual FString GetVoiceDebugState() const override;
 };
 
 typedef TSharedPtr<FOnlineVoiceSteam, ESPMode::ThreadSafe> FOnlineVoiceSteamPtr;

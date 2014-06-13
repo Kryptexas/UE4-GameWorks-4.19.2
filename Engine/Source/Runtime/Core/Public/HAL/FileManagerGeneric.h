@@ -32,38 +32,38 @@ public:
 	{
 	}
 
-	virtual void ProcessCommandLineOptions() OVERRIDE;
+	virtual void ProcessCommandLineOptions() override;
 
-	virtual void SetSandboxEnabled(bool bInEnabled) OVERRIDE
+	virtual void SetSandboxEnabled(bool bInEnabled) override
 	{
 		GetLowLevel().SetSandboxEnabled(bInEnabled);
 	}
 
-	virtual bool IsSandboxEnabled() const OVERRIDE
+	virtual bool IsSandboxEnabled() const override
 	{
 		return GetLowLevel().IsSandboxEnabled();
 	}
 
-	FArchive* CreateFileReader( const TCHAR* Filename, uint32 ReadFlags=0 ) OVERRIDE;	
-	FArchive* CreateFileWriter( const TCHAR* Filename, uint32 WriteFlags=0 ) OVERRIDE;
+	FArchive* CreateFileReader( const TCHAR* Filename, uint32 ReadFlags=0 ) override;	
+	FArchive* CreateFileWriter( const TCHAR* Filename, uint32 WriteFlags=0 ) override;
 
 #if ALLOW_DEBUG_FILES
-	FArchive* CreateDebugFileWriter( const TCHAR* Filename, uint32 WriteFlags=0 ) OVERRIDE
+	FArchive* CreateDebugFileWriter( const TCHAR* Filename, uint32 WriteFlags=0 ) override
 	{
 		return CreateFileWriter( Filename, WriteFlags );
 	}
 #endif
 
-	bool Delete( const TCHAR* Filename, bool RequireExists=0, bool EvenReadOnly=0, bool Quiet=0 ) OVERRIDE;
-	bool IsReadOnly( const TCHAR* Filename ) OVERRIDE;
-	bool Move( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, bool bDoNotRetryOrError=0 ) OVERRIDE;
-	bool DirectoryExists(const TCHAR* InDirectory) OVERRIDE;
-	void FindFiles( TArray<FString>& Result, const TCHAR* Filename, bool Files, bool Directories ) OVERRIDE;
-	void FindFilesRecursive( TArray<FString>& FileNames, const TCHAR* StartDirectory, const TCHAR* Filename, bool Files, bool Directories, bool bClearFileNames=true) OVERRIDE;
-	double GetFileAgeSeconds( const TCHAR* Filename ) OVERRIDE;
-	FDateTime GetTimeStamp( const TCHAR* Filename ) OVERRIDE;
-	FDateTime GetAccessTimeStamp( const TCHAR* Filename ) OVERRIDE;
-	bool SetTimeStamp( const TCHAR* Filename, FDateTime Timestamp ) OVERRIDE;
+	bool Delete( const TCHAR* Filename, bool RequireExists=0, bool EvenReadOnly=0, bool Quiet=0 ) override;
+	bool IsReadOnly( const TCHAR* Filename ) override;
+	bool Move( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, bool bDoNotRetryOrError=0 ) override;
+	bool DirectoryExists(const TCHAR* InDirectory) override;
+	void FindFiles( TArray<FString>& Result, const TCHAR* Filename, bool Files, bool Directories ) override;
+	void FindFilesRecursive( TArray<FString>& FileNames, const TCHAR* StartDirectory, const TCHAR* Filename, bool Files, bool Directories, bool bClearFileNames=true) override;
+	double GetFileAgeSeconds( const TCHAR* Filename ) override;
+	FDateTime GetTimeStamp( const TCHAR* Filename ) override;
+	FDateTime GetAccessTimeStamp( const TCHAR* Filename ) override;
+	bool SetTimeStamp( const TCHAR* Filename, FDateTime Timestamp ) override;
 
 	virtual uint32	Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress );
 	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 );
@@ -85,7 +85,7 @@ public:
 	 * 
 	 * @return	filename using relative path
 	 */
-	FString ConvertToRelativePath( const TCHAR* Filename ) OVERRIDE;
+	FString ConvertToRelativePath( const TCHAR* Filename ) override;
 
 	/**
 	 * Converts passed in filename to use an absolute path (for reading)
@@ -94,7 +94,7 @@ public:
 	 * 
 	 * @return	filename using absolute path
 	 */
-	FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE;
+	FString ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override;
 
 	/**
 	 * Converts passed in filename to use an absolute path (for writing)
@@ -103,7 +103,7 @@ public:
 	 * 
 	 * @return	filename using absolute path
 	 */
-	FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE;
+	FString ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override;
 
 	/**
 	 *	Returns the size of a file. (Thread-safe)
@@ -111,7 +111,7 @@ public:
 	 *	@param Filename		Platform-independent Unreal filename.
 	 *	@return				File size in bytes or INDEX_NONE if the file didn't exist.
 	 **/
-	int64 FileSize( const TCHAR* Filename ) OVERRIDE;
+	int64 FileSize( const TCHAR* Filename ) override;
 
 	/**
 	 * Sends a message to the file server, and will block until it's complete. Will return 
@@ -121,7 +121,7 @@ public:
 	 *
 	 * @return			true if the message was sent to server and it returned success, or false if there is no server, or the command failed
 	 */
-	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) OVERRIDE
+	virtual bool SendMessageToServer(const TCHAR* Message, IPlatformFile::IFileServerMessageHandler* Handler) override
 	{
 		return GetLowLevel().SendMessageToServer(Message, Handler);
 	}
@@ -146,17 +146,17 @@ public:
 	FArchiveFileReaderGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InSize );
 	~FArchiveFileReaderGeneric();
 
-	virtual void Seek( int64 InPos ) FINAL;
-	virtual int64 Tell() FINAL
+	virtual void Seek( int64 InPos ) final;
+	virtual int64 Tell() final
 	{
 		return Pos;
 	}
-	virtual int64 TotalSize() FINAL
+	virtual int64 TotalSize() final
 	{
 		return Size;
 	}
-	virtual bool Close() FINAL;
-	virtual void Serialize( void* V, int64 Length ) FINAL;
+	virtual bool Close() final;
+	virtual void Serialize( void* V, int64 Length ) final;
 
 protected:
 	bool InternalPrecache( int64 PrecacheOffset, int64 PrecacheSize );
@@ -197,15 +197,15 @@ public:
 	FArchiveFileWriterGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InPos );
 	~FArchiveFileWriterGeneric();
 
-	virtual void Seek( int64 InPos ) FINAL;
-	virtual int64 Tell() FINAL
+	virtual void Seek( int64 InPos ) final;
+	virtual int64 Tell() final
 	{
 		return Pos;
 	}
 	virtual int64 TotalSize();
-	virtual bool Close() FINAL;
-	virtual void Serialize( void* V, int64 Length ) FINAL;
-	virtual void Flush() FINAL;
+	virtual bool Close() final;
+	virtual void Serialize( void* V, int64 Length ) final;
+	virtual void Flush() final;
 
 protected:
 	/** 

@@ -27,11 +27,11 @@ class UChildActorComponent : public USceneComponent
 	TSharedPtr<FChildActorComponentInstanceData> CachedInstanceData;
 
 	// Begin ActorComponent interface.
-	virtual void OnComponentCreated() OVERRIDE;
-	virtual void OnComponentDestroyed() OVERRIDE;
-	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const OVERRIDE;
-	virtual FName GetComponentInstanceDataType() const OVERRIDE;
-	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) OVERRIDE;
+	virtual void OnComponentCreated() override;
+	virtual void OnComponentDestroyed() override;
+	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
+	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 
 	// End ActorComponent interface.
 

@@ -33,10 +33,10 @@ class USoundCueGraphNode_Base : public UEdGraphNode
 	void InsertNewNode(UEdGraphPin* FromPin, UEdGraphPin* NewLinkPin, TSet<UEdGraphNode*>& OutNodeList);
 
 	// UEdGraphNode interface.
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void ReconstructNode() OVERRIDE;
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual FString GetDocumentationLink() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void ReconstructNode() override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual FString GetDocumentationLink() const override;
 	// End of UEdGraphNode interface.
 };

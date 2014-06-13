@@ -17,8 +17,8 @@ class UMovieSceneBoolTrack : public UMovieScenePropertyTrack
 
 public:
 	/** UMovieSceneTrack interface */
-	virtual UMovieSceneSection* CreateNewSection() OVERRIDE;
-	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() OVERRIDE;
+	virtual UMovieSceneSection* CreateNewSection() override;
+	virtual TSharedPtr<IMovieSceneTrackInstance> CreateInstance() override;
 
 	/**
 	 * Adds a key to a section.  Will create the section if it doesn't exist

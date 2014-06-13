@@ -41,7 +41,7 @@ public:
 		}
 	}
 
-	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
 		{
@@ -49,7 +49,7 @@ public:
 		}
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
 		{
@@ -57,7 +57,7 @@ public:
 		}
 	}
 
-	virtual void RegisterDebugDrawDelgate() OVERRIDE
+	virtual void RegisterDebugDrawDelgate() override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
 		{
@@ -65,7 +65,7 @@ public:
 		}
 	}
 	
-	virtual void UnregisterDebugDrawDelgate() OVERRIDE
+	virtual void UnregisterDebugDrawDelgate() override
 	{
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
 		{
@@ -73,7 +73,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)

@@ -342,7 +342,7 @@ public:
 
 protected:
 
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 	void LogElementImpl(FVisLogSelfDrawingElement* Element);
 

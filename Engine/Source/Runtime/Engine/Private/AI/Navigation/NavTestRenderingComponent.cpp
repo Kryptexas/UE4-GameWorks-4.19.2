@@ -58,13 +58,13 @@ public:
 	{
 	}
 
-	virtual void RegisterDebugDrawDelgate() OVERRIDE
+	virtual void RegisterDebugDrawDelgate() override
 	{
 		DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw(this, &FNavTestSceneProxy::DrawDebugLabels);
 		UDebugDrawService::Register(TEXT("Navigation"), DebugTextDrawingDelegate);
 	}
 
-	virtual void UnregisterDebugDrawDelgate() OVERRIDE
+	virtual void UnregisterDebugDrawDelgate() override
 	{
 		if (DebugTextDrawingDelegate.IsBound())
 		{
@@ -72,7 +72,7 @@ public:
 		}
 	}
 
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{
 		if (NavTestActor)
 		{
@@ -355,7 +355,7 @@ public:
 		return Result;
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const OVERRIDE { return sizeof( *this ) + GetAllocatedSize(); }
+	virtual uint32 GetMemoryFootprint( void ) const override { return sizeof( *this ) + GetAllocatedSize(); }
 
 	uint32 GetAllocatedSize( void ) const 
 	{

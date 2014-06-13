@@ -1084,7 +1084,7 @@ void FNetworkPlatformFile::ConvertServerFilenameToClientFilename(FString& Filena
 class FNetworkFileModule : public IPlatformFileModule
 {
 public:
-	virtual IPlatformFile* GetPlatformFile() OVERRIDE
+	virtual IPlatformFile* GetPlatformFile() override
 	{
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FNetworkPlatformFile());
 		return AutoDestroySingleton.GetOwnedPointer();

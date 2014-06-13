@@ -68,7 +68,7 @@ class GAMEPLAYABILITIES_API UAttributeSet : public UObject
 
 public:
 
-	bool IsSupportedForNetworking() const OVERRIDE
+	bool IsSupportedForNetworking() const override
 	{
 		return true;
 	}

@@ -49,19 +49,19 @@ class UBTComposite_SimpleParallel : public UBTCompositeNode
 	/** handle child updates */
 	int32 GetNextChildHandler(struct FBehaviorTreeSearchData& SearchData, int32 PrevChild, EBTNodeResult::Type LastResult) const;
 
-	virtual void NotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const OVERRIDE;
-	virtual void NotifyNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const OVERRIDE;
-	virtual bool CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const OVERRIDE;
-	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
-	virtual FString GetStaticDescription() const OVERRIDE;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
+	virtual void NotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const override;
+	virtual void NotifyNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const override;
+	virtual bool CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const override;
+	virtual uint16 GetInstanceMemorySize() const override;
+	virtual FString GetStaticDescription() const override;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 
 	/** helper for showing values of EBTParallelMode enum */
 	static FString DescribeFinishMode(EBTParallelMode::Type Mode);
 
 #if WITH_EDITOR
-	virtual bool CanAbortLowerPriority() const OVERRIDE;
-	virtual bool CanAbortSelf() const OVERRIDE;
+	virtual bool CanAbortLowerPriority() const override;
+	virtual bool CanAbortSelf() const override;
 	virtual FName GetNodeIconName() const override;
 #endif // WITH_EDITOR
 };

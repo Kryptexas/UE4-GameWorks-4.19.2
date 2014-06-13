@@ -13,25 +13,25 @@ class UWidgetGraphNode_Base : public UK2Node
 	TArray<FOptionalPinFromProperty> ShowPinForProperties;
 
 	//// UObject interface
-	UMGEDITOR_API virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	UMGEDITOR_API virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	//// End of UObject interface
 
 	//// UEdGraphNode interface
-	UMGEDITOR_API virtual void AllocateDefaultPins() OVERRIDE;
-	UMGEDITOR_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	UMGEDITOR_API virtual void AllocateDefaultPins() override;
+	UMGEDITOR_API virtual FLinearColor GetNodeTitleColor() const override;
 	//UMGEDITOR_API virtual FString GetDocumentationLink() const OVERRIDE;
 	//UMGEDITOR_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
-	UMGEDITOR_API virtual bool ShowPaletteIconOnNode() const OVERRIDE { return false; }
+	UMGEDITOR_API virtual bool ShowPaletteIconOnNode() const override { return false; }
 	//	// End of UEdGraphNode interface
 
 
 	// UK2Node interface
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual bool CanPlaceBreakpoints() const OVERRIDE { return false; }
-	UMGEDITOR_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	UMGEDITOR_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
-	UMGEDITOR_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual bool CanPlaceBreakpoints() const override { return false; }
+	UMGEDITOR_API virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	UMGEDITOR_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
+	UMGEDITOR_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UK2Node interface
 
 	// UWidgetGraphNode_Base interface

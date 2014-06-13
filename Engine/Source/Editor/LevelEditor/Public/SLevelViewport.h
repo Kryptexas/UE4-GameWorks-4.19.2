@@ -56,7 +56,7 @@ public:
 		return *LevelViewportClient;
 	}
 
-	virtual FLevelEditorViewportClient& GetLevelViewportClient() OVERRIDE
+	virtual FLevelEditorViewportClient& GetLevelViewportClient() override
 	{		
 		return *LevelViewportClient;
 	}
@@ -75,19 +75,19 @@ public:
 	void SaveConfig(const FString& ConfigName);
 
 	/** ILevelViewport Interface */
-	virtual void StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor ) OVERRIDE;
-	virtual void EndPlayInEditorSession() OVERRIDE;
-	virtual void SwapViewportsForSimulateInEditor() OVERRIDE;
-	virtual void SwapViewportsForPlayInEditor() OVERRIDE;
-	virtual void OnSimulateSessionStarted() OVERRIDE;
-	virtual void OnSimulateSessionFinished() OVERRIDE;
-	virtual void RegisterGameViewportIfPIE() OVERRIDE;
-	virtual bool HasPlayInEditorViewport() const OVERRIDE; 
-	virtual FViewport* GetActiveViewport() OVERRIDE;
-	virtual TSharedRef< const SWidget> AsWidget() OVERRIDE { return AsShared(); }
+	virtual void StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor ) override;
+	virtual void EndPlayInEditorSession() override;
+	virtual void SwapViewportsForSimulateInEditor() override;
+	virtual void SwapViewportsForPlayInEditor() override;
+	virtual void OnSimulateSessionStarted() override;
+	virtual void OnSimulateSessionFinished() override;
+	virtual void RegisterGameViewportIfPIE() override;
+	virtual bool HasPlayInEditorViewport() const override; 
+	virtual FViewport* GetActiveViewport() override;
+	virtual TSharedRef< const SWidget> AsWidget() override { return AsShared(); }
 
 	/** SEditorViewport Interface */
-	virtual void OnFocusViewportToSelection() OVERRIDE;
+	virtual void OnFocusViewportToSelection() override;
 
 	/**
 	 * Called when the maximize command is executed                   
@@ -105,12 +105,12 @@ public:
 	 * @param	bWantImmersive Whether to switch to immersive mode, or switch back to normal mode
 	 * @param	bAllowAnimation	True to allow animation when transitioning, otherwise false
 	 */
-	void MakeImmersive( const bool bWantImmersive, const bool bAllowAnimation ) OVERRIDE;
+	void MakeImmersive( const bool bWantImmersive, const bool bAllowAnimation ) override;
 
 	/**
 	 * @return true if this viewport is in immersive mode, false otherwise
 	 */
-	bool IsImmersive () const OVERRIDE;
+	bool IsImmersive () const override;
 	
 	/**
 	 * Called to get the visibility of the viewport's 'Restore from Immersive' button. Returns EVisibility::Collapsed when not in immersive mode
@@ -142,7 +142,7 @@ public:
 	/**
 	 * Called when game view should be toggled
 	 */
-	void ToggleGameView() OVERRIDE;
+	void ToggleGameView() override;
 
 	/**
 	 * @return true if we can toggle game view
@@ -152,7 +152,7 @@ public:
 	/**
 	 * @return true if we are in game view                   
 	 */
-	bool IsInGameView() const OVERRIDE;
+	bool IsInGameView() const override;
 
 	/**
 	 * Toggles layer visibility in this viewport
@@ -255,17 +255,17 @@ public:
 
 protected:
 	/** SEditorViewport interface */
-	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() OVERRIDE;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() OVERRIDE;
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
 
-	virtual void OnIncrementPositionGridSize() OVERRIDE;
-	virtual void OnDecrementPositionGridSize() OVERRIDE;
-	virtual void OnIncrementRotationGridSize() OVERRIDE;
-	virtual void OnDecrementRotationGridSize() OVERRIDE;
-	virtual const FSlateBrush* OnGetViewportBorderBrush() const OVERRIDE;
-	virtual FSlateColor OnGetViewportBorderColorAndOpacity() const OVERRIDE;
-	virtual EVisibility OnGetViewportContentVisibility() const OVERRIDE;
-	virtual void BindCommands() OVERRIDE;
+	virtual void OnIncrementPositionGridSize() override;
+	virtual void OnDecrementPositionGridSize() override;
+	virtual void OnIncrementRotationGridSize() override;
+	virtual void OnDecrementRotationGridSize() override;
+	virtual const FSlateBrush* OnGetViewportBorderBrush() const override;
+	virtual FSlateColor OnGetViewportBorderColorAndOpacity() const override;
+	virtual EVisibility OnGetViewportContentVisibility() const override;
+	virtual void BindCommands() override;
 private:
 	/** Loads this viewport's config from the ini file */
 	FLevelEditorViewportInstanceSettings LoadLegacyConfigFromIni(const FString& ConfigKey, const FLevelEditorViewportInstanceSettings& InDefaultSettings);
@@ -398,7 +398,7 @@ private:
 	 *
 	 * @param CommandName				Name of the command
 	 */
-	virtual void ToggleStatCommand(FString CommandName) OVERRIDE;
+	virtual void ToggleStatCommand(FString CommandName) override;
 
 	/**
 	 * Called when show flags for this viewport should be reset to default
@@ -495,12 +495,12 @@ private:
 	bool HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEvent, bool bCreateDropPreview);
 
 	/** SWidget Interface */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	/** End of SWidget interface */
 
 	/**
@@ -586,10 +586,10 @@ private:
 	void RemoveActorPreview( int32 PreviewIndex );
 	
 	/** Adds a widget overlaid over the viewport */
-	virtual void AddOverlayWidget(TSharedRef<SWidget> OverlaidWidget) OVERRIDE;
+	virtual void AddOverlayWidget(TSharedRef<SWidget> OverlaidWidget) override;
 
 	/** Removes a widget that was previously overlaid on to this viewport */
-	virtual void RemoveOverlayWidget(TSharedRef<SWidget> OverlaidWidget) OVERRIDE;
+	virtual void RemoveOverlayWidget(TSharedRef<SWidget> OverlaidWidget) override;
 
 	/** Returns true if this viewport is the active viewport and can process UI commands */
 	bool CanProduceActionForCommand(const TSharedRef<const FUICommandInfo>& Command) const;

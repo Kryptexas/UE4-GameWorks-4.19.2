@@ -15,7 +15,7 @@ class UNiagaraScriptSource : public UNiagaraScriptSourceBase
 	class UNiagaraGraph*	UpdateGraph;
 
 	// UObject interface.
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 	/** Get the set of outputs from the Update script */
 	UNREALED_API void GetUpdateOutputs(TArray<FName>& ScalarOutputs);

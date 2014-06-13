@@ -248,7 +248,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::Text;
 	}
@@ -273,7 +273,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::Image;
 	}
@@ -308,7 +308,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::Severity;
 	}
@@ -343,7 +343,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::URL;
 	}
@@ -393,7 +393,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::AssetName;
 	}
@@ -442,7 +442,7 @@ public:
 	}
 
 	/** Begin IMessageToken interface */
-	virtual EMessageToken::Type GetType() const OVERRIDE
+	virtual EMessageToken::Type GetType() const override
 	{
 		return EMessageToken::Documentation;
 	}

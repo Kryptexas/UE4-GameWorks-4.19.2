@@ -20,6 +20,6 @@ class UTexture2DFactoryNew : public UFactory
 	UPROPERTY()
 	int32		Height;
 
-	virtual bool ShouldShowInNewMenu() const OVERRIDE;
-	virtual UObject* FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn ) OVERRIDE;
+	virtual bool ShouldShowInNewMenu() const override;
+	virtual UObject* FactoryCreateNew( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn ) override;
 };

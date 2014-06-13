@@ -21,10 +21,10 @@ class UObjectRedirector : public UObject
 	// UObject interface.
 	virtual void PreSave();
 	void Serialize( FArchive& Ar );
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
-	virtual bool NeedsLoadForEditorGame() const OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	/**
 	 * Callback for retrieving a textual representation of natively serialized properties.  Child classes should implement this method if they wish

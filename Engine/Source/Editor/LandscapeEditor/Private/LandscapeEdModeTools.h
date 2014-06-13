@@ -1157,7 +1157,7 @@ public:
 	,	ToolStroke(NULL)
 	{}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) OVERRIDE
+	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
 	{
 		if( !ensure(MousePositions.Num()==0) ) 
 		{
@@ -1175,7 +1175,7 @@ public:
 		return true;
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE 
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override 
 	{
 		if( bToolActive && MousePositions.Num() )
 		{
@@ -1184,7 +1184,7 @@ public:
 		}
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE 
+	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override 
 	{
 		if( bToolActive && MousePositions.Num() )
 		{
@@ -1198,7 +1198,7 @@ public:
 		EdMode->CurrentBrush->EndStroke();
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE 
+	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override 
 	{
 		FVector HitLocation;
 		if( EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation)  )

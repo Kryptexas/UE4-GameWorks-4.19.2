@@ -52,7 +52,7 @@ class ENGINE_API UAnimNotify : public UObject
 	 * 
 	 * @return NULL if this isn't in the middle of a Received_Notify(), otherwise it's the world belonging to the Mesh passed to Received_Notify()
 	 */
-	virtual class UWorld* GetWorld() const OVERRIDE;
+	virtual class UWorld* GetWorld() const override;
 
 private:
 	/* The mesh we're currently triggering a UAnimNotify for (so we can retrieve per instance information) */

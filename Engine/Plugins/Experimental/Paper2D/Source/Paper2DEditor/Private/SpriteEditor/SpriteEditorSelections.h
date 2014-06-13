@@ -94,12 +94,12 @@ public:
 	{
 	}
 
-	virtual uint32 GetTypeHash() const OVERRIDE
+	virtual uint32 GetTypeHash() const override
 	{
 		return VertexIndex;
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::SourceRegion))
 		{
@@ -227,22 +227,22 @@ public:
 		return Result;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		return GetWorldPosIndexed(VertexIndex);
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		// Cant delete anything on a bounds object
 	}
 
-		virtual void SplitEdge() OVERRIDE
+		virtual void SplitEdge() override
 	{
 		// Nonsense operation on a vertex, do nothing
 	}
@@ -271,12 +271,12 @@ public:
 	{
 	}
 
-	virtual uint32 GetTypeHash() const OVERRIDE
+	virtual uint32 GetTypeHash() const override
 	{
 		return VertexIndex + (PolygonIndex * 311) + (bRenderData ? 1063 : 0);
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Vertex))
 		{
@@ -336,17 +336,17 @@ public:
 		return Result;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		return GetWorldPosIndexed(VertexIndex);
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -369,7 +369,7 @@ public:
 		}
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a vertex, do nothing
 	}
@@ -390,7 +390,7 @@ public:
 		TypeName = FSelectionTypes::Edge;
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Edge))
 		{
@@ -405,13 +405,13 @@ public:
 		}
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 		ApplyDeltaIndexed(Delta, VertexIndex+1);
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		const FVector Pos1 = GetWorldPosIndexed(VertexIndex);
 		const FVector Pos2 = GetWorldPosIndexed(VertexIndex+1);
@@ -419,12 +419,12 @@ public:
 		return (Pos1 + Pos2) * 0.5f;
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		//@TODO: Support deleting edges
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -464,7 +464,7 @@ public:
 	{
 	}
 
-	virtual bool Equals(const FSelectedItem& OtherItem) const OVERRIDE
+	virtual bool Equals(const FSelectedItem& OtherItem) const override
 	{
 		if (OtherItem.IsA(FSelectionTypes::Socket))
 		{
@@ -480,7 +480,7 @@ public:
 	}
 
 	//@TODO: Currently sockets are in unflipped pivot space,
-	virtual void ApplyDelta(const FVector2D& Delta) OVERRIDE
+	virtual void ApplyDelta(const FVector2D& Delta) override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -492,7 +492,7 @@ public:
 		}
 	}
 
-	FVector GetWorldPos() const OVERRIDE
+	FVector GetWorldPos() const override
 	{
 		if (UPaperSprite* Sprite = SpritePtr.Get())
 		{
@@ -506,12 +506,12 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual void Delete() OVERRIDE
+	virtual void Delete() override
 	{
 		//@TODO: Support deleting edges
 	}
 
-	virtual void SplitEdge() OVERRIDE
+	virtual void SplitEdge() override
 	{
 		// Nonsense operation on a socket, do nothing
 	}

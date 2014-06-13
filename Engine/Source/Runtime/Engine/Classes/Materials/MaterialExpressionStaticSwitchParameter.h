@@ -18,13 +18,13 @@ class UMaterialExpressionStaticSwitchParameter : public UMaterialExpressionStati
 
 
 	// Begin UMaterialExpression Interface
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
+	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE {return MCT_Unknown;}
-	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE {return MCT_Unknown;}
+	virtual uint32 GetInputType(int32 InputIndex) override {return MCT_Unknown;}
+	virtual uint32 GetOutputType(int32 OutputIndex) override {return MCT_Unknown;}
 #endif
 	// End UMaterialExpression Interface
 };

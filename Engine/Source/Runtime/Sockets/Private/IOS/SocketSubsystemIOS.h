@@ -45,10 +45,10 @@ public:
 	{
 	}
 
-	virtual bool Init(FString& Error) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual bool HasNetworkDevice() OVERRIDE;
-	virtual FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP) OVERRIDE;
+	virtual bool Init(FString& Error) override;
+	virtual void Shutdown() override;
+	virtual bool HasNetworkDevice() override;
+	virtual FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP) override;
 
-	virtual TSharedRef<FInternetAddr> GetLocalHostAddr(FOutputDevice& Out, bool& bCanBindAll) OVERRIDE;
+	virtual TSharedRef<FInternetAddr> GetLocalHostAddr(FOutputDevice& Out, bool& bCanBindAll) override;
 };

@@ -13,27 +13,27 @@ class FGenericPlatformHttpRequest : public IHttpRequest
 {
 public:
 	// IHttpBase
-	virtual FString GetURL() OVERRIDE { return TEXT(""); }
-	virtual FString GetURLParameter(const FString& ParameterName) OVERRIDE { return TEXT(""); }
-	virtual FString GetHeader(const FString& HeaderName) OVERRIDE { return TEXT(""); }
-	virtual TArray<FString> GetAllHeaders() OVERRIDE { return TArray<FString>(); }
-	virtual FString GetContentType() OVERRIDE { return TEXT(""); }
-	virtual int32 GetContentLength() OVERRIDE { return 0; }
+	virtual FString GetURL() override { return TEXT(""); }
+	virtual FString GetURLParameter(const FString& ParameterName) override { return TEXT(""); }
+	virtual FString GetHeader(const FString& HeaderName) override { return TEXT(""); }
+	virtual TArray<FString> GetAllHeaders() override { return TArray<FString>(); }
+	virtual FString GetContentType() override { return TEXT(""); }
+	virtual int32 GetContentLength() override { return 0; }
 	virtual const TArray<uint8>& GetContent() { static TArray<uint8> Temp; return Temp; }
 
 	// IHttpRequest
-	virtual FString GetVerb() OVERRIDE { return TEXT(""); }
-	virtual void SetVerb(const FString& Verb) OVERRIDE {}
-	virtual void SetURL(const FString& URL) OVERRIDE {}
-	virtual void SetContent(const TArray<uint8>& ContentPayload) OVERRIDE {}
-	virtual void SetContentAsString(const FString& ContentString) OVERRIDE {}
-	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) OVERRIDE {}
-	virtual bool ProcessRequest() OVERRIDE { return false; }
-	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() OVERRIDE { static FHttpRequestCompleteDelegate RequestCompleteDelegate; return RequestCompleteDelegate; }
-	virtual FHttpRequestProgressDelegate& OnRequestProgress() OVERRIDE { static FHttpRequestProgressDelegate RequestProgressDelegate; return RequestProgressDelegate; }
-	virtual void CancelRequest() OVERRIDE {}
-	virtual EHttpRequestStatus::Type GetStatus() OVERRIDE { return EHttpRequestStatus::NotStarted; }
-	virtual void Tick(float DeltaSeconds) OVERRIDE {}
+	virtual FString GetVerb() override { return TEXT(""); }
+	virtual void SetVerb(const FString& Verb) override {}
+	virtual void SetURL(const FString& URL) override {}
+	virtual void SetContent(const TArray<uint8>& ContentPayload) override {}
+	virtual void SetContentAsString(const FString& ContentString) override {}
+	virtual void SetHeader(const FString& HeaderName, const FString& HeaderValue) override {}
+	virtual bool ProcessRequest() override { return false; }
+	virtual FHttpRequestCompleteDelegate& OnProcessRequestComplete() override { static FHttpRequestCompleteDelegate RequestCompleteDelegate; return RequestCompleteDelegate; }
+	virtual FHttpRequestProgressDelegate& OnRequestProgress() override { static FHttpRequestProgressDelegate RequestProgressDelegate; return RequestProgressDelegate; }
+	virtual void CancelRequest() override {}
+	virtual EHttpRequestStatus::Type GetStatus() override { return EHttpRequestStatus::NotStarted; }
+	virtual void Tick(float DeltaSeconds) override {}
 };
 
 

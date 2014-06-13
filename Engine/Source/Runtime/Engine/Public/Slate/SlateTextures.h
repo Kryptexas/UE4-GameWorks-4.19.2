@@ -132,18 +132,18 @@ public:
 
 public:
 	// FTextureRenderTargetResource implementation
-	virtual void ClampSize(int32 SizeX,int32 SizeY) OVERRIDE;
+	virtual void ClampSize(int32 SizeX,int32 SizeY) override;
 
 	// FRenderResource implementation
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// FDeferredUpdateResource implementation
-	virtual void UpdateResource() OVERRIDE;
+	virtual void UpdateResource() override;
 
 	// FRenderTarget interface
-	virtual FIntPoint GetSizeXY() const OVERRIDE;
-	virtual float GetDisplayGamma() const OVERRIDE;
+	virtual FIntPoint GetSizeXY() const override;
+	virtual float GetDisplayGamma() const override;
 
 private:
 	FTexture2DRHIRef Texture2DRHI;

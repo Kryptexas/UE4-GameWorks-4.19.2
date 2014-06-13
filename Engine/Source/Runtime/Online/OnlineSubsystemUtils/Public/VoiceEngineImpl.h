@@ -63,7 +63,7 @@ class FVoiceEngineImpl : public IVoiceEngine
 		~FVoiceSerializeHelper() {}
 		
 		/** FGCObject interface */
-		virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 		{
 			// Prevent garbage collection of audio components
 			for (FRemoteTalkerData::TIterator It(VoiceEngine->RemoteTalkerBuffers); It; ++It)
@@ -160,7 +160,7 @@ PACKAGE_SCOPE:
 	{};
 
 	// IVoiceEngine
-	virtual bool Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers) OVERRIDE;
+	virtual bool Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers) override;
 
 public:
 
@@ -168,22 +168,22 @@ public:
 	virtual ~FVoiceEngineImpl();
 
 	// IVoiceEngine
-    virtual uint32 StartLocalVoiceProcessing(uint32 LocalUserNum) OVERRIDE;
-    virtual uint32 StopLocalVoiceProcessing(uint32 LocalUserNum) OVERRIDE;
+    virtual uint32 StartLocalVoiceProcessing(uint32 LocalUserNum) override;
+    virtual uint32 StopLocalVoiceProcessing(uint32 LocalUserNum) override;
     
-	virtual uint32 StartRemoteVoiceProcessing(const FUniqueNetId& UniqueId) OVERRIDE
+	virtual uint32 StartRemoteVoiceProcessing(const FUniqueNetId& UniqueId) override
 	{
 		// Not needed
 		return S_OK;
 	}
 
-    virtual uint32 StopRemoteVoiceProcessing(const FUniqueNetId& UniqueId) OVERRIDE
+    virtual uint32 StopRemoteVoiceProcessing(const FUniqueNetId& UniqueId) override
 	{
 		// Not needed
 		return S_OK;
 	}
 
-    virtual uint32 RegisterLocalTalker(uint32 LocalUserNum) OVERRIDE
+    virtual uint32 RegisterLocalTalker(uint32 LocalUserNum) override
 	{
 		if (OwningUserIndex == INVALID_INDEX)
 		{
@@ -194,7 +194,7 @@ public:
 		return E_FAIL;
 	}
 
-    virtual uint32 UnregisterLocalTalker(uint32 LocalUserNum) OVERRIDE
+    virtual uint32 UnregisterLocalTalker(uint32 LocalUserNum) override
 	{
 		if (IsOwningUser(LocalUserNum))
 		{
@@ -205,44 +205,44 @@ public:
 		return E_FAIL;
 	}
 
-    virtual uint32 RegisterRemoteTalker(const FUniqueNetId& UniqueId) OVERRIDE
+    virtual uint32 RegisterRemoteTalker(const FUniqueNetId& UniqueId) override
 	{
 		// Not needed
 		return S_OK;
 	}
 
-    virtual uint32 UnregisterRemoteTalker(const FUniqueNetId& UniqueId) OVERRIDE
+    virtual uint32 UnregisterRemoteTalker(const FUniqueNetId& UniqueId) override
 	{
 		// Not needed
 		return S_OK;
 	}
 
-    virtual bool IsHeadsetPresent(uint32 LocalUserNum) OVERRIDE
+    virtual bool IsHeadsetPresent(uint32 LocalUserNum) override
 	{
 		return IsOwningUser(LocalUserNum) ? true : false;
 	}
 
-    virtual bool IsLocalPlayerTalking(uint32 LocalUserNum) OVERRIDE
+    virtual bool IsLocalPlayerTalking(uint32 LocalUserNum) override
 	{
 		return (GetVoiceDataReadyFlags() & (LocalUserNum << 1)) != 0;
 	}
 
-	virtual bool IsRemotePlayerTalking(const FUniqueNetId& UniqueId) OVERRIDE
+	virtual bool IsRemotePlayerTalking(const FUniqueNetId& UniqueId) override
 	{
 		return RemoteTalkerBuffers.Find((const FUniqueNetIdString&)UniqueId) != NULL;
 	}
 
-	virtual uint32 GetVoiceDataReadyFlags() const OVERRIDE;
-	virtual uint32 SetPlaybackPriority(uint32 LocalUserNum, const FUniqueNetId& RemoteTalkerId, uint32 Priority) OVERRIDE
+	virtual uint32 GetVoiceDataReadyFlags() const override;
+	virtual uint32 SetPlaybackPriority(uint32 LocalUserNum, const FUniqueNetId& RemoteTalkerId, uint32 Priority) override
 	{
 		// Not supported
 		return S_OK;
 	}
 
-	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size) OVERRIDE;
-	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) OVERRIDE;
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	FString GetVoiceDebugState() const OVERRIDE;
+	virtual uint32 ReadLocalVoiceData(uint32 LocalUserNum, uint8* Data, uint32* Size) override;
+	virtual uint32 SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerId, uint8* Data, uint32* Size) override;
+	virtual void Tick(float DeltaTime) override;
+	FString GetVoiceDebugState() const override;
 
 	/**
 	 * Update the state of all remote talkers, possibly dropping data or the talker entirely

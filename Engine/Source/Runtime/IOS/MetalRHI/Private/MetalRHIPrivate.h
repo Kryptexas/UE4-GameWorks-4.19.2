@@ -139,7 +139,7 @@ public:
 		}
 	}
 	
-	virtual bool Create(bool _bIsManualReset = false) OVERRIDE
+	virtual bool Create(bool _bIsManualReset = false) override
 	{
 		check(!bInitialized);
 		bool RetVal = false;
@@ -161,7 +161,7 @@ public:
 		return RetVal;
 	}
 	
-	virtual void Trigger() OVERRIDE
+	virtual void Trigger() override
 	{
 		check(bInitialized);
 		
@@ -186,7 +186,7 @@ public:
 		UnlockEventMutex();
 	}
 	
-	virtual void Reset() OVERRIDE
+	virtual void Reset() override
 	{
 		check(bInitialized);
 		LockEventMutex();

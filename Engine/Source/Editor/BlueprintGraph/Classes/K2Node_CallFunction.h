@@ -50,45 +50,45 @@ private:
 public:
 
 	// UObject interface
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetDescriptiveCompiledName() const OVERRIDE;
-	virtual bool IsDeprecated() const OVERRIDE;
-	virtual bool ShouldWarnOnDeprecation() const OVERRIDE;
-	virtual FString GetDeprecationMessage() const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual FString GetDocumentationLink() const OVERRIDE;
-	virtual FString GetDocumentationExcerptName() const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void DestroyNode() override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetDescriptiveCompiledName() const override;
+	virtual bool IsDeprecated() const override;
+	virtual bool ShouldWarnOnDeprecation() const override;
+	virtual FString GetDeprecationMessage() const override;
+	virtual void PostPlacedNewNode() override;
+	virtual FString GetDocumentationLink() const override;
+	virtual FString GetDocumentationExcerptName() const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
-	virtual bool IsNodePure() const OVERRIDE { return bIsPureFunc; }
-	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
-	virtual void PostReconstructNode() OVERRIDE;
-	virtual bool ShouldDrawCompact() const OVERRIDE;
-	virtual bool ShouldDrawAsBead() const OVERRIDE;
-	virtual FText GetCompactNodeTitle() const OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual bool ShouldShowNodeProperties() const OVERRIDE;
-	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const OVERRIDE;
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual FName GetCornerIcon() const OVERRIDE;
-	virtual FText GetToolTipHeading() const OVERRIDE;
-	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
+	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) override;
+	virtual bool IsNodePure() const override { return bIsPureFunc; }
+	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
+	virtual void PostReconstructNode() override;
+	virtual bool ShouldDrawCompact() const override;
+	virtual bool ShouldDrawAsBead() const override;
+	virtual FText GetCompactNodeTitle() const override;
+	virtual void PostPasteNode() override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual bool ShouldShowNodeProperties() const override;
+	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual FName GetCornerIcon() const override;
+	virtual FText GetToolTipHeading() const override;
+	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	// End of UK2Node interface
 
 	/** Returns the UFunction that this class is pointing to */
@@ -103,7 +103,7 @@ public:
 	bool IsLatentFunction() const;
 
 	/** @return true if this function can be called on multiple contexts at once */
-	virtual bool AllowMultipleSelfs(bool bInputAsArray) const OVERRIDE;
+	virtual bool AllowMultipleSelfs(bool bInputAsArray) const override;
 
 	/**
 	 * Creates a self pin for the graph, taking into account the scope of the function call

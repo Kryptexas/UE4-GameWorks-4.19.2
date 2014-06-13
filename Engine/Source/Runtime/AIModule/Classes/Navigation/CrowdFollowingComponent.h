@@ -25,22 +25,22 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FVector CrowdAgentMoveDirection;
 
 	// ICrowdAgentInterface BEGIN
-	virtual FVector GetCrowdAgentLocation() const OVERRIDE;
-	virtual FVector GetCrowdAgentVelocity() const OVERRIDE;
-	virtual void GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const OVERRIDE;
-	virtual float GetCrowdAgentMaxSpeed() const OVERRIDE;
+	virtual FVector GetCrowdAgentLocation() const override;
+	virtual FVector GetCrowdAgentVelocity() const override;
+	virtual void GetCrowdAgentCollisions(float& CylinderRadius, float& CylinderHalfHeight) const override;
+	virtual float GetCrowdAgentMaxSpeed() const override;
 	// ICrowdAgentInterface END
 
 	// PathFollowingComponent BEGIN
-	virtual void Initialize() OVERRIDE;
-	virtual void Cleanup() OVERRIDE;
-	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false) OVERRIDE;
-	virtual void PauseMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true) OVERRIDE;
-	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest) OVERRIDE;
-	virtual FVector GetMoveFocus(bool bAllowStrafe) const OVERRIDE;
-	virtual void OnLanded() OVERRIDE;
-	virtual void OnPathFinished(EPathFollowingResult::Type Result) OVERRIDE;
-	virtual void OnPathUpdated() OVERRIDE;
+	virtual void Initialize() override;
+	virtual void Cleanup() override;
+	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false) override;
+	virtual void PauseMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true) override;
+	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest) override;
+	virtual FVector GetMoveFocus(bool bAllowStrafe) const override;
+	virtual void OnLanded() override;
+	virtual void OnPathFinished(EPathFollowingResult::Type Result) override;
+	virtual void OnPathUpdated() override;
 	// PathFollowingComponent END
 
 	/** update params in crowd manager */
@@ -131,14 +131,14 @@ protected:
 	TEnumAsByte<ECrowdAvoidanceQuality::Type> AvoidanceQuality;
 
 	// PathFollowingComponent BEGIN
-	virtual int32 DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const OVERRIDE;
-	virtual void SetMoveSegment(int32 SegmentStartIndex) OVERRIDE;
-	virtual void UpdatePathSegment() OVERRIDE;
-	virtual void FollowPathSegment(float DeltaTime) OVERRIDE;
-	virtual bool ShouldCheckPathOnResume() const OVERRIDE;
-	virtual bool IsOnPath() const OVERRIDE;
-	virtual bool UpdateMovementComponent(bool bForce) OVERRIDE;
-	virtual void Reset() OVERRIDE;
+	virtual int32 DetermineStartingPathPoint(const FNavigationPath* ConsideredPath) const override;
+	virtual void SetMoveSegment(int32 SegmentStartIndex) override;
+	virtual void UpdatePathSegment() override;
+	virtual void FollowPathSegment(float DeltaTime) override;
+	virtual bool ShouldCheckPathOnResume() const override;
+	virtual bool IsOnPath() const override;
+	virtual bool UpdateMovementComponent(bool bForce) override;
+	virtual void Reset() override;
 	// PathFollowingComponent END
 
 	void SwitchToNextPathPart();

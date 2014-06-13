@@ -33,13 +33,13 @@ public:
 
 	// Begin FImageWrapper Interface
 
-	virtual void Compress( int32 Quality ) OVERRIDE;
+	virtual void Compress( int32 Quality ) override;
 
-	virtual void Reset( ) OVERRIDE;
+	virtual void Reset( ) override;
 	
-	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) OVERRIDE;
+	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
 
-	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) OVERRIDE;
+	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
 	
 	// End FImageWrapper Interface
 

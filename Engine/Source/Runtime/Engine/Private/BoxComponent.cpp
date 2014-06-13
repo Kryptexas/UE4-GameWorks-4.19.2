@@ -96,7 +96,7 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 		}
 
 
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_BoxSceneProxy_DrawDynamicElements );
 
@@ -105,7 +105,7 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 			DrawOrientedWireBox(PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), BoxExtents, DrawColor, SDPG_World);
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 		{
 			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();
 
@@ -116,7 +116,7 @@ FPrimitiveSceneProxy* UBoxComponent::CreateSceneProxy()
 			Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
 			return Result;
 		}
-		virtual uint32 GetMemoryFootprint( void ) const OVERRIDE { return( sizeof( *this ) + GetAllocatedSize() ); }
+		virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 		uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 
 	private:

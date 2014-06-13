@@ -23,9 +23,9 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	FName Group;
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 	// End UMaterialExpression Interface
 	
 	/**
@@ -33,7 +33,7 @@ class UMaterialExpressionFontSampleParameter : public UMaterialExpressionFontSam
 	*/
 	virtual void SetDefaultFont();
 	
-	ENGINE_API virtual FGuid& GetParameterExpressionId() OVERRIDE
+	ENGINE_API virtual FGuid& GetParameterExpressionId() override
 	{
 		return ExpressionGUID;
 	}

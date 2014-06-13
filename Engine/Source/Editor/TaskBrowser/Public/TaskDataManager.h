@@ -165,7 +165,7 @@ public:
 	 */
 	virtual void Tick( float DeltaTime );
 
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 	/**
 	 * Sets the connection settings used to connect and login to the task database server

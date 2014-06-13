@@ -9,43 +9,43 @@ public:
 	virtual ~FCollectionManager();
 
 	// ICollectionManager implementation
-	virtual void GetCollectionNames(ECollectionShareType::Type ShareType, TArray<FName>& CollectionNames) const OVERRIDE;
-	virtual bool CollectionExists(FName CollectionName, ECollectionShareType::Type ShareType) const OVERRIDE;
-	virtual bool GetAssetsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& AssetPaths) const OVERRIDE;
-	virtual bool GetObjectsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ObjectPaths) const OVERRIDE;
-	virtual bool GetClassesInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ClassPaths) const OVERRIDE;
-	virtual void GetCollectionsContainingAsset(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const OVERRIDE;
-	virtual void CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const OVERRIDE;
-	virtual bool CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType) OVERRIDE;
-	virtual bool RenameCollection(FName CurrentCollectionName, ECollectionShareType::Type CurrentShareType, FName NewCollectionName, ECollectionShareType::Type NewShareType) OVERRIDE;
-	virtual bool DestroyCollection(FName CollectionName, ECollectionShareType::Type ShareType) OVERRIDE;
-	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) OVERRIDE;
-	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumAdded = NULL) OVERRIDE;
-	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) OVERRIDE;
-	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = NULL) OVERRIDE;
-	virtual bool EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType) OVERRIDE;
-	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) OVERRIDE;
-	virtual FText GetLastError() const OVERRIDE { return LastError; }
+	virtual void GetCollectionNames(ECollectionShareType::Type ShareType, TArray<FName>& CollectionNames) const override;
+	virtual bool CollectionExists(FName CollectionName, ECollectionShareType::Type ShareType) const override;
+	virtual bool GetAssetsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& AssetPaths) const override;
+	virtual bool GetObjectsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ObjectPaths) const override;
+	virtual bool GetClassesInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ClassPaths) const override;
+	virtual void GetCollectionsContainingAsset(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const override;
+	virtual void CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const override;
+	virtual bool CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool RenameCollection(FName CurrentCollectionName, ECollectionShareType::Type CurrentShareType, FName NewCollectionName, ECollectionShareType::Type NewShareType) override;
+	virtual bool DestroyCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) override;
+	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumAdded = NULL) override;
+	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) override;
+	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = NULL) override;
+	virtual bool EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual FText GetLastError() const override { return LastError; }
 
 	/** Event for when collections are created */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionCreatedEvent, FCollectionCreatedEvent );
-	virtual FCollectionCreatedEvent& OnCollectionCreated() OVERRIDE { return CollectionCreatedEvent; }
+	virtual FCollectionCreatedEvent& OnCollectionCreated() override { return CollectionCreatedEvent; }
 
 	/** Event for when collections are destroyed */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionDestroyedEvent, FCollectionDestroyedEvent );
-	virtual FCollectionDestroyedEvent& OnCollectionDestroyed() OVERRIDE { return CollectionDestroyedEvent; }
+	virtual FCollectionDestroyedEvent& OnCollectionDestroyed() override { return CollectionDestroyedEvent; }
 
 	/** Event for when assets are added to a collection */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FAssetsAddedEvent, FAssetsAddedEvent ); 
-	virtual FAssetsAddedEvent& OnAssetsAdded() OVERRIDE { return AssetsAddedEvent; }
+	virtual FAssetsAddedEvent& OnAssetsAdded() override { return AssetsAddedEvent; }
 
 	/** Event for when assets are removed to a collection */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FAssetsRemovedEvent, FAssetsRemovedEvent );
-	virtual FAssetsRemovedEvent& OnAssetsRemoved() OVERRIDE { return AssetsRemovedEvent; }
+	virtual FAssetsRemovedEvent& OnAssetsRemoved() override { return AssetsRemovedEvent; }
 
 	/** Event for when collections are renamed */
 	DECLARE_DERIVED_EVENT( FCollectionManager, ICollectionManager::FCollectionRenamedEvent, FCollectionRenamedEvent );
-	virtual FCollectionRenamedEvent& OnCollectionRenamed() OVERRIDE { return CollectionRenamedEvent; }
+	virtual FCollectionRenamedEvent& OnCollectionRenamed() override { return CollectionRenamedEvent; }
 
 private:
 	/** Loads all collection files from disk */

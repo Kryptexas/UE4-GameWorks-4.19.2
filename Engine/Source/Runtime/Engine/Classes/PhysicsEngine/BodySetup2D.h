@@ -15,13 +15,13 @@ class ENGINE_API UBodySetup2D : public UBodySetup
 	FAggregateGeometry2D AggGeom2D;
 
 	// UBodySetup interface
-	virtual void CreatePhysicsMeshes() OVERRIDE;
-	virtual float GetVolume(const FVector& Scale) const OVERRIDE;
+	virtual void CreatePhysicsMeshes() override;
+	virtual float GetVolume(const FVector& Scale) const override;
 	// End of UBodySetup interface
 
 #if WITH_EDITOR
 	// UBodySetup interface
-	virtual void InvalidatePhysicsData() OVERRIDE;
+	virtual void InvalidatePhysicsData() override;
 	// End of UBodySetup interface
 #endif
 };

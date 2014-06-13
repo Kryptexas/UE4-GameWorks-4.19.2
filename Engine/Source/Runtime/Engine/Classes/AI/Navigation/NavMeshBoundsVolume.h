@@ -15,12 +15,12 @@ class ANavMeshBoundsVolume : public AVolume
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 #if WITH_EDITOR
-	virtual void ReregisterAllComponents() OVERRIDE;
+	virtual void ReregisterAllComponents() override;
 	// End AActor Interface
 	// Begin UObject Interface
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 
 #endif // WITH_EDITOR

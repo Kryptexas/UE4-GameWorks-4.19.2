@@ -38,7 +38,7 @@ class UAbilityTask_WaitTargetData: public UAbilityTask
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	static UAbilityTask_WaitTargetData* CreateWaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass);
 
-	virtual void Activate() OVERRIDE;
+	virtual void Activate() override;
 
 	TSubclassOf<AGameplayAbilityTargetActor> TargetClass;
 

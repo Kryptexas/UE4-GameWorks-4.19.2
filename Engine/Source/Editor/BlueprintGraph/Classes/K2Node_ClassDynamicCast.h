@@ -11,15 +11,15 @@ class UK2Node_ClassDynamicCast : public UK2Node_DynamicCast
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End of UK2Node interface
 
 	/** Get the input object to be casted pin */
-	virtual UEdGraphPin* GetCastSourcePin() const OVERRIDE;
+	virtual UEdGraphPin* GetCastSourcePin() const override;
 };
 

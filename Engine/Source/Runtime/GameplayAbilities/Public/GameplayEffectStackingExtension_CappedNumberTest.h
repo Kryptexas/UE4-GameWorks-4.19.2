@@ -15,5 +15,5 @@ class GAMEPLAYABILITIES_API UGameplayEffectStackingExtension_CappedNumberTest : 
 
 public:
 
-	void CalculateStack(TArray<FActiveGameplayEffect*>& CustomGameplayEffects, FActiveGameplayEffectsContainer& Container, FActiveGameplayEffect& CurrentEffect) OVERRIDE;
+	void CalculateStack(TArray<FActiveGameplayEffect*>& CustomGameplayEffects, FActiveGameplayEffectsContainer& Container, FActiveGameplayEffect& CurrentEffect) override;
 };

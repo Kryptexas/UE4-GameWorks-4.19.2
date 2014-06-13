@@ -20,18 +20,18 @@ public:
 	~FMediaFoundationMovieStreamer();
 
 	/** IMovieStreamer interface */
-	virtual void Init(const TArray<FString>& MoviePaths) OVERRIDE;
-	virtual void ForceCompletion() OVERRIDE;
-	virtual bool Tick(float DeltaTime) OVERRIDE;
-	virtual TSharedPtr<class ISlateViewport> GetViewportInterface() OVERRIDE
+	virtual void Init(const TArray<FString>& MoviePaths) override;
+	virtual void ForceCompletion() override;
+	virtual bool Tick(float DeltaTime) override;
+	virtual TSharedPtr<class ISlateViewport> GetViewportInterface() override
 	{
 		return MovieViewport;
 	}
-	virtual float GetAspectRatio() const OVERRIDE
+	virtual float GetAspectRatio() const override
 	{
 		return (float)MovieViewport->GetSize().X / (float)MovieViewport->GetSize().Y;
 	}
-	virtual void Cleanup() OVERRIDE;
+	virtual void Cleanup() override;
 
 private:
 	/** Opens up the next movie in the movie path queue */

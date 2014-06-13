@@ -13,37 +13,37 @@ public:
 
 	// IMainFrameModule interface
 
-	virtual void CreateDefaultMainFrame( const bool bStartImmersivePIE ) OVERRIDE;
-	virtual TSharedRef<SWidget> MakeMainMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const OVERRIDE;
-	virtual TSharedRef<SWidget> MakeMainTabMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const OVERRIDE;
-	virtual TSharedRef<SWidget> MakeDeveloperTools( ) const OVERRIDE;
+	virtual void CreateDefaultMainFrame( const bool bStartImmersivePIE ) override;
+	virtual TSharedRef<SWidget> MakeMainMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const override;
+	virtual TSharedRef<SWidget> MakeMainTabMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const override;
+	virtual TSharedRef<SWidget> MakeDeveloperTools( ) const override;
 
-	virtual bool IsWindowInitialized( ) const OVERRIDE
+	virtual bool IsWindowInitialized( ) const override
 	{
 		return MainFrameHandler->GetParentWindow().IsValid();
 	}
 	
-	virtual TSharedPtr<SWindow> GetParentWindow( ) const OVERRIDE
+	virtual TSharedPtr<SWindow> GetParentWindow( ) const override
 	{
 		return MainFrameHandler->GetParentWindow();
 	}
 
-	virtual void SetMainTab(const TSharedRef<SDockTab>& MainTab) OVERRIDE
+	virtual void SetMainTab(const TSharedRef<SDockTab>& MainTab) override
 	{
 		MainFrameHandler->SetMainTab(MainTab);
 	}
 
-	virtual void EnableTabClosedDelegate( ) OVERRIDE
+	virtual void EnableTabClosedDelegate( ) override
 	{
 		MainFrameHandler->EnableTabClosedDelegate();
 	}
 
-	virtual void DisableTabClosedDelegate( ) OVERRIDE
+	virtual void DisableTabClosedDelegate( ) override
 	{
 		MainFrameHandler->DisableTabClosedDelegate();
 	}
 
-	virtual void RequestCloseEditor( ) OVERRIDE
+	virtual void RequestCloseEditor( ) override
 	{
 		if ( MainFrameHandler->CanCloseEditor() )
 		{
@@ -55,45 +55,45 @@ public:
 		}
 	}
 
-	virtual void SetLevelNameForWindowTitle( const FString& InLevelFileName ) OVERRIDE;
+	virtual void SetLevelNameForWindowTitle( const FString& InLevelFileName ) override;
 	
-	virtual FString GetLoadedLevelName( ) const OVERRIDE
+	virtual FString GetLoadedLevelName( ) const override
 	{ 
 		return LoadedLevelName; 
 	}
 
-	virtual const TSharedRef<FUICommandList>& GetMainFrameCommandBindings( ) OVERRIDE
+	virtual const TSharedRef<FUICommandList>& GetMainFrameCommandBindings( ) override
 	{
 		return FMainFrameCommands::ActionList;
 	}
 
-	virtual class FMainMRUFavoritesList* GetMRUFavoritesList() const OVERRIDE
+	virtual class FMainMRUFavoritesList* GetMRUFavoritesList() const override
 	{
 		return MRUFavoritesList;
 	}
 
-	virtual const FText GetApplicationTitle( const bool bIncludeGameName ) const OVERRIDE
+	virtual const FText GetApplicationTitle( const bool bIncludeGameName ) const override
 	{
 		return StaticGetApplicationTitle( bIncludeGameName );
 	}
 
-	virtual void ShowAboutWindow( ) const OVERRIDE
+	virtual void ShowAboutWindow( ) const override
 	{
 		FMainFrameActionCallbacks::AboutUnrealEd_Execute();
 	}
 	
 	DECLARE_DERIVED_EVENT(FMainFrameModule, IMainFrameModule::FMainFrameCreationFinishedEvent, FMainFrameCreationFinishedEvent);
-	virtual FMainFrameCreationFinishedEvent& OnMainFrameCreationFinished( ) OVERRIDE
+	virtual FMainFrameCreationFinishedEvent& OnMainFrameCreationFinished( ) override
 	{
 		return MainFrameCreationFinishedEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FMainFrameModule, IMainFrameModule::FMainFrameSDKNotInstalled, FMainFrameSDKNotInstalled);
-	virtual FMainFrameSDKNotInstalled& OnMainFrameSDKNotInstalled( ) OVERRIDE
+	virtual FMainFrameSDKNotInstalled& OnMainFrameSDKNotInstalled( ) override
 	{
 		return MainFrameSDKNotInstalled;
 	}
-	void BroadcastMainFrameSDKNotInstalled(const FString& PlatformName, const FString& DocLink) OVERRIDE
+	void BroadcastMainFrameSDKNotInstalled(const FString& PlatformName, const FString& DocLink) override
 	{
 		return MainFrameSDKNotInstalled.Broadcast(PlatformName, DocLink);
 	}
@@ -102,10 +102,10 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE;
-	virtual void ShutdownModule( ) OVERRIDE;
+	virtual void StartupModule( ) override;
+	virtual void ShutdownModule( ) override;
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true; // @todo: Eventually, this should probably not be allowed.
 	}

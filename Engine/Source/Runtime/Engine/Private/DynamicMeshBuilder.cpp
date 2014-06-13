@@ -116,7 +116,7 @@ public:
 	}
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FGlobalDynamicMeshIndexPool, STATGROUP_Tickables);
 	}
@@ -167,7 +167,7 @@ public:
 	}
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FGlobalDynamicMeshVertexPool, STATGROUP_Tickables);
 	}

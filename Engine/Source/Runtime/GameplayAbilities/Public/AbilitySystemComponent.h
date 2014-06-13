@@ -67,7 +67,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	virtual ~UAbilitySystemComponent();
 
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void InitializeComponent() override;
 
 	/** Finds existing AttributeSet */
 	template <class T >
@@ -115,11 +115,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	// -- Replication -------------------------------------------------------------------------------------------------
 
-	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) OVERRIDE;
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	
-	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) OVERRIDE;
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs) override;
 
-	virtual void PostNetReceive() OVERRIDE;
+	virtual void PostNetReceive() override;
 
 	/**
 	 *	Prediction Keys
@@ -456,7 +456,7 @@ private:
 
 protected:
 
-	virtual void OnRegister() OVERRIDE;
+	virtual void OnRegister() override;
 
 	UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;

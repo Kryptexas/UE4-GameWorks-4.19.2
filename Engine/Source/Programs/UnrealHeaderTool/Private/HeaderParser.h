@@ -298,7 +298,7 @@ protected:
 	static void ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders );
 
 	// FContextSupplier interface.
-	virtual FString GetContext() OVERRIDE;
+	virtual FString GetContext() override;
 	// End of FContextSupplier interface.
 
 	// High-level compiling functions.

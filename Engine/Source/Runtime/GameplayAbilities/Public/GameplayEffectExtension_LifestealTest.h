@@ -15,8 +15,8 @@ class GAMEPLAYABILITIES_API UGameplayEffectExtension_LifestealTest : public UGam
 
 public:
 
-	void PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const OVERRIDE;
-	void PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const OVERRIDE;
+	void PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const override;
+	void PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const override;
 
 	/** The GameplayEffect to apply when restoring health to the instigator */
 	UPROPERTY(EditDefaultsOnly, Category = Lifesteal)

@@ -16,12 +16,12 @@ class UMaterialExpressionTextureSampleParameterMovie : public UMaterialExpressio
 
 
 	// Begin UMaterialExpression Interface
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	// End UMaterialExpression Interface
 
 	// Begin UMaterialExpressionTextureSampleParameter Interface
-	virtual bool TextureIsValid( UTexture* InTexture ) OVERRIDE;
-	virtual const TCHAR* GetRequirements() OVERRIDE;
+	virtual bool TextureIsValid( UTexture* InTexture ) override;
+	virtual const TCHAR* GetRequirements() override;
 	// End UMaterialExpressionTextureSampleParameter Interface
 };
 

@@ -11,7 +11,7 @@ class UBlackboardKeyType_Bool : public UBlackboardKeyType
 	static bool GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, bool bValue);
 
-	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
-	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
-	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const OVERRIDE;
+	virtual FString DescribeValue(const uint8* RawData) const override;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const override;
+	virtual bool TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const override;
 };

@@ -116,7 +116,7 @@ public:
 	 * @param ChunkID		The id of the chunk to check.
 	 * @return				Enum specifying whether the chunk is available to use, waiting to install, or does not exist.
 	 **/
-	virtual EChunkLocation::Type GetChunkLocation( uint32 ChunkID ) OVERRIDE
+	virtual EChunkLocation::Type GetChunkLocation( uint32 ChunkID ) override
 	{
 		return EChunkLocation::LocalFast;
 	}
@@ -126,7 +126,7 @@ public:
 	 * @param ReportType	Enum specifying how progress is reported.
 	 * @return				true if reporting type is supported on the current platform.
 	 **/
-	virtual bool GetProgressReportingTypeSupported(EChunkProgressReportingType::Type ReportType) OVERRIDE
+	virtual bool GetProgressReportingTypeSupported(EChunkProgressReportingType::Type ReportType) override
 	{
 		if (ReportType == EChunkProgressReportingType::PercentageComplete)
 		{
@@ -142,7 +142,7 @@ public:
 	 * @param ReportType	The type of progress report you want.
 	 * @return				A value whose meaning is dependent on the ReportType param.
 	 **/
-	virtual float GetChunkProgress( uint32 ChunkID, EChunkProgressReportingType::Type ReportType ) OVERRIDE
+	virtual float GetChunkProgress( uint32 ChunkID, EChunkProgressReportingType::Type ReportType ) override
 	{
 		if (ReportType == EChunkProgressReportingType::PercentageComplete)
 		{
@@ -155,7 +155,7 @@ public:
 	 * Inquire about the priority of chunk installation vs. game IO.
 	 * @return				Paused, low or high priority.
 	 **/
-	virtual EChunkInstallSpeed::Type GetInstallSpeed() OVERRIDE
+	virtual EChunkInstallSpeed::Type GetInstallSpeed() override
 	{
 		return EChunkInstallSpeed::Paused;
 	}
@@ -165,7 +165,7 @@ public:
 	 * @param InstallSpeed	Pause, low or high priority.
 	 * @return				false if the operation is not allowed, otherwise true.
 	 **/
-	virtual bool SetInstallSpeed( EChunkInstallSpeed::Type InstallSpeed ) OVERRIDE
+	virtual bool SetInstallSpeed( EChunkInstallSpeed::Type InstallSpeed ) override
 	{
 		return false;
 	}
@@ -175,7 +175,7 @@ public:
 	 * @param ChunkID		The id of the chunk to prioritize.
 	 * @return				false if the operation is not allowed or the chunk doesn't exist, otherwise true.
 	 **/
-	virtual bool PrioritizeChunk( uint32 ChunkID ) OVERRIDE
+	virtual bool PrioritizeChunk( uint32 ChunkID ) override
 	{
 		return false;
 	}

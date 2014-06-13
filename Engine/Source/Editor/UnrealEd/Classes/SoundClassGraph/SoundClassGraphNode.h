@@ -20,12 +20,12 @@ class USoundClassGraphNode : public UEdGraphNode
 	bool CheckRepresentsSoundClass();
 
 	// Begin UEdGraphNode interface.
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual void AllocateDefaultPins() override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool CanUserDeleteNode() const override;
 	// End UEdGraphNode interface.
 
 private:

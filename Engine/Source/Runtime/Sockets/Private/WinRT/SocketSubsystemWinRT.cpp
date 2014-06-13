@@ -37,7 +37,7 @@ public:
 	 *
 	 * @param InAddr the new address to use (must convert to network byte order)
 	 */
-	virtual void SetIp(uint32 InAddr) OVERRIDE
+	virtual void SetIp(uint32 InAddr) override
 	{
 
 	}
@@ -47,7 +47,7 @@ public:
 	 *
 	 * @param InAddr the string containing the new ip address to use
 	 */
-	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) OVERRIDE
+	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
 
 	}
@@ -57,7 +57,7 @@ public:
 	 *
 	 * @param OutAddr the out param receiving the ip address
 	 */
-	virtual void GetIp(uint32& OutAddr) const OVERRIDE
+	virtual void GetIp(uint32& OutAddr) const override
 	{
 
 	}
@@ -67,7 +67,7 @@ public:
 	 *
 	 * @param InPort the new port to use (must convert to network byte order)
 	 */
-	virtual void SetPort(int32 InPort) OVERRIDE
+	virtual void SetPort(int32 InPort) override
 	{
 
 	}
@@ -77,7 +77,7 @@ public:
 	 *
 	 * @param OutPort the host byte order int that receives the port
 	 */
-	virtual void GetPort(int32& OutPort) const OVERRIDE
+	virtual void GetPort(int32& OutPort) const override
 	{
 
 	}
@@ -85,19 +85,19 @@ public:
 	/**
 	 * Returns the port number from this address in host byte order
 	 */
-	virtual int32 GetPort() const OVERRIDE
+	virtual int32 GetPort() const override
 	{
 		return 0;
 	}
 
 	/** Sets the address to be any address */
-	virtual void SetAnyAddress() OVERRIDE
+	virtual void SetAnyAddress() override
 	{
 
 	}
 
 	/** Sets the address to broadcast */
-	virtual void SetBroadcastAddress() OVERRIDE
+	virtual void SetBroadcastAddress() override
 	{
 
 	}
@@ -107,7 +107,7 @@ public:
 	 *
 	 * @param bAppendPort whether to append the port information or not
 	 */
-	virtual FString ToString(bool bAppendPort) const OVERRIDE
+	virtual FString ToString(bool bAppendPort) const override
 	{
 		return TEXT("");
 	}
@@ -130,7 +130,7 @@ public:
 	 *
 	 * @return true if a valid IP, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return true;
 	}
@@ -241,7 +241,7 @@ TSharedRef<FInternetAddr> FSocketSubsystemWinRT::CreateInternetAddr(uint32 Addre
 	return Result;
 }
 
-bool FSocketSubsystemWinRT::GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) OVERRIDE
+bool FSocketSubsystemWinRT::GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override
 {
 	bool bCanBindAll;
 	OutAdresses.Add(GetLocalHostAddr(*GLog, bCanBindAll));

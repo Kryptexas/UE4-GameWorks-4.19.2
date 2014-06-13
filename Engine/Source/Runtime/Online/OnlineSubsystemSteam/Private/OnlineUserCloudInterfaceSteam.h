@@ -32,18 +32,18 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /** 
@@ -76,18 +76,18 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /** 
@@ -134,18 +134,18 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /** 
@@ -184,18 +184,18 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE;
+	virtual FString ToString() const override;
 
 	/**
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 	
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE;
+	virtual void TriggerDelegates() override;
 };
 
 /**
@@ -224,16 +224,16 @@ public:
 	virtual ~FOnlineUserCloudSteam();
 
 	// IOnlineUserCloud
-	virtual bool GetFileContents(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents) OVERRIDE;
-	virtual bool ClearFiles(const FUniqueNetId& UserId) OVERRIDE;
-	virtual bool ClearFile(const FUniqueNetId& UserId, const FString& FileName) OVERRIDE;
-	virtual void EnumerateUserFiles(const FUniqueNetId& UserId) OVERRIDE;
-	virtual void GetUserFileList(const FUniqueNetId& UserId, TArray<FCloudFileHeader>& UserFiles) OVERRIDE;
-	virtual bool ReadUserFile(const FUniqueNetId& UserId, const FString& FileName) OVERRIDE;
-	virtual bool WriteUserFile(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents) OVERRIDE;
-	virtual bool DeleteUserFile(const FUniqueNetId& UserId, const FString& FileName, bool bShouldCloudDelete, bool bShouldLocallyDelete) OVERRIDE;
-	virtual void DumpCloudState(const FUniqueNetId& UserId) OVERRIDE;
-	virtual void DumpCloudFileState(const FUniqueNetId& UserId, const FString& FileName) OVERRIDE;
+	virtual bool GetFileContents(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents) override;
+	virtual bool ClearFiles(const FUniqueNetId& UserId) override;
+	virtual bool ClearFile(const FUniqueNetId& UserId, const FString& FileName) override;
+	virtual void EnumerateUserFiles(const FUniqueNetId& UserId) override;
+	virtual void GetUserFileList(const FUniqueNetId& UserId, TArray<FCloudFileHeader>& UserFiles) override;
+	virtual bool ReadUserFile(const FUniqueNetId& UserId, const FString& FileName) override;
+	virtual bool WriteUserFile(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents) override;
+	virtual bool DeleteUserFile(const FUniqueNetId& UserId, const FString& FileName, bool bShouldCloudDelete, bool bShouldLocallyDelete) override;
+	virtual void DumpCloudState(const FUniqueNetId& UserId) override;
+	virtual void DumpCloudFileState(const FUniqueNetId& UserId, const FString& FileName) override;
 
 };
 

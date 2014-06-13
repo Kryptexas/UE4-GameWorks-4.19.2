@@ -10,7 +10,7 @@ class UNREALED_API FGlobalEditorCommonCommands : public TCommands< FGlobalEditor
 public:
 	FGlobalEditorCommonCommands();
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	static void MapActions(TSharedRef<FUICommandList>& ToolkitCommands);
 

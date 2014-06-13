@@ -64,7 +64,7 @@ public:
 	class FEdModeLandscape* EdMode;
 
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		Collector.AddReferencedObject(BrushMaterial);
 
@@ -77,7 +77,7 @@ public:
 		}
 	}
 
-	virtual void LeaveBrush() OVERRIDE
+	virtual void LeaveBrush() override
 	{
 		for( TSet<ULandscapeComponent*>::TIterator It(BrushMaterialComponents); It; ++It )
 		{
@@ -93,13 +93,13 @@ public:
 		BrushMaterialComponents.Empty();
 	}
 
-	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) OVERRIDE
+	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) override
 	{
 		FLandscapeBrush::BeginStroke(LandscapeX,LandscapeY,CurrentTool);
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override
 	{
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 		ALandscapeProxy* Proxy = LandscapeInfo ? LandscapeInfo->GetLandscapeProxy() : NULL;
@@ -200,18 +200,18 @@ public:
 		}
 	}
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override
 	{
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE
+	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
 	{
 		bool bUpdate = false;
 		return bUpdate;
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 		if (LandscapeInfo)
@@ -299,8 +299,8 @@ class FLandscapeBrushComponent : public FLandscapeBrush
 {
 	TSet<ULandscapeComponent*> BrushMaterialComponents;
 
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Component"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Component", "Component"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Component"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Component", "Component"); };
 
 protected:
 	FVector2D LastMousePosition;
@@ -316,14 +316,14 @@ public:
 	}
 
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		Collector.AddReferencedObject(BrushMaterial);
 	}
 
-	virtual EBrushType GetBrushType() OVERRIDE { return BT_Component; }
+	virtual EBrushType GetBrushType() override { return BT_Component; }
 
-	virtual void LeaveBrush() OVERRIDE
+	virtual void LeaveBrush() override
 	{
 		for( TSet<ULandscapeComponent*>::TIterator It(BrushMaterialComponents); It; ++It )
 		{
@@ -335,13 +335,13 @@ public:
 		BrushMaterialComponents.Empty();
 	}
 
-	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) OVERRIDE
+	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) override
 	{
 		FLandscapeBrush::BeginStroke(LandscapeX,LandscapeY,CurrentTool);
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override
 	{
 		TSet<ULandscapeComponent*> NewComponents;
 
@@ -403,12 +403,12 @@ public:
 		BrushMaterialComponents = MoveTemp(NewComponents);
 	}
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override
 	{
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE
+	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
 	{
 		bool bUpdate = false;
 
@@ -416,7 +416,7 @@ public:
 		return bUpdate;
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		// Selection Brush only works for 
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
@@ -492,8 +492,8 @@ class FLandscapeBrushGizmo : public FLandscapeBrush
 {
 	TSet<ULandscapeComponent*> BrushMaterialComponents;
 
-	const TCHAR* GetBrushName() OVERRIDE { return TEXT("Gizmo"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Gizmo", "Gizmo"); };
+	const TCHAR* GetBrushName() override { return TEXT("Gizmo"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Gizmo", "Gizmo"); };
 
 protected:
 	FVector2D LastMousePosition;
@@ -510,14 +510,14 @@ public:
 	}
 
 	// FGCObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 	{
 		Collector.AddReferencedObject(BrushMaterial);
 	}
 
-	virtual EBrushType GetBrushType() OVERRIDE { return BT_Gizmo; }
+	virtual EBrushType GetBrushType() override { return BT_Gizmo; }
 
-	virtual void LeaveBrush() OVERRIDE
+	virtual void LeaveBrush() override
 	{
 		for( TSet<ULandscapeComponent*>::TIterator It(BrushMaterialComponents); It; ++It )
 		{
@@ -529,13 +529,13 @@ public:
 		BrushMaterialComponents.Empty();
 	}
 
-	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) OVERRIDE
+	virtual void BeginStroke(float LandscapeX, float LandscapeY, class FLandscapeTool* CurrentTool) override
 	{
 		FLandscapeBrush::BeginStroke(LandscapeX,LandscapeY,CurrentTool);
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override
 	{
 		if (GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo || GLandscapeEditRenderMode & ELandscapeEditRenderMode::Select)
 		{
@@ -606,18 +606,18 @@ public:
 		}
 	}
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override
 	{
 		LastMousePosition = FVector2D(LandscapeX, LandscapeY);
 	}
 
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE
+	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
 	{
 		bool bUpdate = false;
 		return bUpdate;
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		// Selection Brush only works for 
 		ALandscapeGizmoActiveActor* Gizmo = EdMode->CurrentGizmoActor.Get();
@@ -711,8 +711,8 @@ public:
 class FLandscapeBrushSplines : public FLandscapeBrush
 {
 public:
-	const TCHAR* GetBrushName() OVERRIDE { return TEXT("Splines"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Splines", "Splines"); };
+	const TCHAR* GetBrushName() override { return TEXT("Splines"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Splines", "Splines"); };
 
 	class FEdModeLandscape* EdMode;
 
@@ -725,13 +725,13 @@ public:
 	{
 	}
 
-	virtual EBrushType GetBrushType() OVERRIDE { return BT_Splines; }
+	virtual EBrushType GetBrushType() override { return BT_Splines; }
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE 
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override 
 	{
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		return false;
 	}
@@ -744,7 +744,7 @@ class FLandscapeBrushDummy : public FLandscapeBrush
 {
 public:
 	const TCHAR* GetBrushName() { return TEXT("None"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_None", "None"); };
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_None", "None"); };
 
 	class FEdModeLandscape* EdMode;
 
@@ -757,13 +757,13 @@ public:
 	{
 	}
 
-	virtual EBrushType GetBrushType() OVERRIDE { return BT_Normal; }
+	virtual EBrushType GetBrushType() override { return BT_Normal; }
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE 
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override 
 	{
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		return false;
 	}
@@ -778,7 +778,7 @@ protected:
 	{
 	}
 
-	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) OVERRIDE
+	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) override
 	{
 		return Distance < Radius ? 1.f : 
 			Falloff > 0.f ? FMath::Max<float>(0.f, 1.f - (Distance - Radius) / Falloff) : 
@@ -791,8 +791,8 @@ public:
 		UMaterialInstanceConstant* CircleBrushMaterial_Linear = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/CircleBrushMaterial_Linear.CircleBrushMaterial_Linear"), NULL, LOAD_None, NULL);
 		return new FLandscapeBrushCircle_Linear(InEdMode, CircleBrushMaterial_Linear);
 	}
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Circle_Linear"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Linear", "Linear falloff"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Circle_Linear"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Linear", "Linear falloff"); };
 
 };
 
@@ -804,7 +804,7 @@ protected:
 	{
 	}
 
-	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) OVERRIDE
+	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) override
 	{
 		float y = FLandscapeBrushCircle_Linear::CalculateFalloff(Distance, Radius, Falloff);
 		// Smooth-step it
@@ -817,8 +817,8 @@ public:
 		UMaterialInstanceConstant* CircleBrushMaterial_Smooth = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/CircleBrushMaterial_Smooth.CircleBrushMaterial_Smooth"), NULL, LOAD_None, NULL);
 		return new FLandscapeBrushCircle_Smooth(InEdMode, CircleBrushMaterial_Smooth);
 	}
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Circle_Smooth"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Smooth", "Smooth falloff"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Circle_Smooth"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Smooth", "Smooth falloff"); };
 
 };
 
@@ -830,7 +830,7 @@ protected:
 	{
 	}
 
-	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) OVERRIDE
+	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) override
 	{
 		if( Distance <= Radius )
 		{
@@ -852,8 +852,8 @@ public:
 		UMaterialInstanceConstant* CircleBrushMaterial_Spherical = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/CircleBrushMaterial_Spherical.CircleBrushMaterial_Spherical"), NULL, LOAD_None, NULL);
 		return new FLandscapeBrushCircle_Spherical(InEdMode, CircleBrushMaterial_Spherical);
 	}
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Circle_Spherical"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Spherical", "Spherical falloff"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Circle_Spherical"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Spherical", "Spherical falloff"); };
 };
 
 class FLandscapeBrushCircle_Tip : public FLandscapeBrushCircle
@@ -864,7 +864,7 @@ protected:
 	{
 	}
 
-	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) OVERRIDE
+	virtual float CalculateFalloff( float Distance, float Radius, float Falloff ) override
 	{
 		if( Distance <= Radius )
 		{
@@ -886,8 +886,8 @@ public:
 		UMaterialInstanceConstant* CircleBrushMaterial_Tip = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/CircleBrushMaterial_Tip.CircleBrushMaterial_Tip"), NULL, LOAD_None, NULL);
 		return new FLandscapeBrushCircle_Tip(InEdMode, CircleBrushMaterial_Tip);
 	}
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Circle_Tip"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Tip", "Tip falloff"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Circle_Tip"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Falloff_Tip", "Tip falloff"); };
 };
 
 
@@ -944,9 +944,9 @@ public:
 		return new FLandscapeBrushAlphaPattern(InEdMode, PatternBrushMaterial);
 	}
 
-	virtual EBrushType GetBrushType() OVERRIDE { return BT_Alpha; }
+	virtual EBrushType GetBrushType() override { return BT_Alpha; }
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 		float ScaleXY = LandscapeInfo->DrawScale.X;
@@ -1014,7 +1014,7 @@ public:
 		return (X1 <= X2 && Y1 <= Y2);
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override
 	{
 		FLandscapeBrushCircle::Tick(ViewportClient,DeltaTime);
 
@@ -1048,8 +1048,8 @@ public:
 		}
 	}
 
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Pattern"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_PatternAlpha", "Pattern Alpha"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Pattern"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_PatternAlpha", "Pattern Alpha"); };
 };
 
 
@@ -1078,7 +1078,7 @@ public:
 		return new FLandscapeBrushAlpha(InEdMode, AlphaBrushMaterial);
 	}
 
-	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) OVERRIDE
+	virtual bool ApplyBrush( const TArray<FLandscapeToolMousePosition>& MousePositions, TMap<FIntPoint, float>& OutBrush, int32& X1, int32& Y1, int32& X2, int32& Y2 ) override
 	{
 		ULandscapeInfo* LandscapeInfo = EdMode->CurrentToolTarget.LandscapeInfo.Get();
 		if( OldMousePosition.IsZero() )
@@ -1152,7 +1152,7 @@ public:
 		return (X1 <= X2 && Y1 <= Y2);
 	}
 
-	virtual void MouseMove(float LandscapeX, float LandscapeY) OVERRIDE
+	virtual void MouseMove(float LandscapeX, float LandscapeY) override
 	{
 		FLandscapeBrushAlphaBase::MouseMove(LandscapeX, LandscapeY);
 
@@ -1171,7 +1171,7 @@ public:
 		}
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override
 	{
 		FLandscapeBrushCircle::Tick(ViewportClient,DeltaTime);
 
@@ -1204,8 +1204,8 @@ public:
 		}
 	}
 
-	virtual const TCHAR* GetBrushName() OVERRIDE { return TEXT("Alpha"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Alpha", "Alpha"); };
+	virtual const TCHAR* GetBrushName() override { return TEXT("Alpha"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Brush_Alpha", "Alpha"); };
 
 };
 

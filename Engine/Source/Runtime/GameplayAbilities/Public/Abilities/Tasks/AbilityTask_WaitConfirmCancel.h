@@ -27,7 +27,7 @@ class UAbilityTask_WaitConfirmCancel : public UAbilityTask
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true", FriendlyName="Wait for Confirm Input"), Category="Abilities")
 	static UAbilityTask_WaitConfirmCancel* WaitConfirmCancel(UObject* WorldContextObject);	
 
-	virtual void Activate() OVERRIDE;
+	virtual void Activate() override;
 
 	UPROPERTY()
 	UAbilitySystemComponent* ASC;

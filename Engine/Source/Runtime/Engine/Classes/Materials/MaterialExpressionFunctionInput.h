@@ -70,28 +70,28 @@ class UMaterialExpressionFunctionInput : public UMaterialExpression
 
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditImport() override;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface.
 
 	// Begin UMaterialExpression Interface
 #if WITH_EDITOR
-	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) OVERRIDE;
+	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
 #endif
 
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE;
-	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE;
+	virtual uint32 GetInputType(int32 InputIndex) override;
+	virtual uint32 GetOutputType(int32 OutputIndex) override;
 #endif
 	// End UMaterialExpression Interface
 

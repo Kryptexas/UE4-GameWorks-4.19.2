@@ -11,10 +11,10 @@ public:
 	FSectionLayoutBuilder( TSharedRef<FTrackNode> InRootNode );
 
 	/** ISectionLayoutBuilder Interface */
-	virtual void PushCategory( FName CategoryName, const FString& DisplayLabel ) OVERRIDE;
-	virtual void SetSectionAsKeyArea( TSharedRef<IKeyArea> KeyArea ) OVERRIDE;
-	virtual void AddKeyArea( FName KeyAreaName, const FString& DisplayName, TSharedRef<IKeyArea> KeyArea ) OVERRIDE;
-	virtual void PopCategory() OVERRIDE;
+	virtual void PushCategory( FName CategoryName, const FString& DisplayLabel ) override;
+	virtual void SetSectionAsKeyArea( TSharedRef<IKeyArea> KeyArea ) override;
+	virtual void AddKeyArea( FName KeyAreaName, const FString& DisplayName, TSharedRef<IKeyArea> KeyArea ) override;
+	virtual void PopCategory() override;
 private:
 	/** Root node of the tree */
 	TSharedRef<FTrackNode> RootNode;

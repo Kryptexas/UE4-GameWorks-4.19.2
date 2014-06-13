@@ -121,7 +121,7 @@ public:
 
 #if WITH_EDITOR
 	// Returns a human readable description of the latent operation's current state
-	virtual FString GetDescription() const OVERRIDE
+	virtual FString GetDescription() const override
 	{
 		return FString::Printf( *NSLOCTEXT("FInterpolateComponentToAction", "ActionTime", "Move (%.3f seconds left)").ToString(), TotalTime-TimeElapsed);
 	}

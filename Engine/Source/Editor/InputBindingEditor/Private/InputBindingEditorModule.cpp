@@ -18,7 +18,7 @@ public:
 
 	// Begin IInputBindingEditorModule interface
 
-	virtual TWeakPtr<SWidget> CreateInputBindingEditorPanel( ) OVERRIDE
+	virtual TWeakPtr<SWidget> CreateInputBindingEditorPanel( ) override
 	{
 		TSharedPtr<SWidget> Panel = SNew(SInputBindingEditorPanel);
 		BindingEditorPanels.Add(Panel);
@@ -26,7 +26,7 @@ public:
 		return Panel;
 	}
 
-	virtual void DestroyInputBindingEditorPanel( const TWeakPtr<SWidget>& Panel ) OVERRIDE
+	virtual void DestroyInputBindingEditorPanel( const TWeakPtr<SWidget>& Panel ) override
 	{
 		BindingEditorPanels.Remove(Panel.Pin());
 	}

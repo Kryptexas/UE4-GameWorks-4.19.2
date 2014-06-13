@@ -17,7 +17,7 @@ public:
 	{
 	}
 
-	GRAPHEDITOR_API virtual void RegisterCommands() OVERRIDE;
+	GRAPHEDITOR_API virtual void RegisterCommands() override;
 
 	TSharedPtr< FUICommandInfo > ReconstructNodes;
 	TSharedPtr< FUICommandInfo > BreakNodeLinks;

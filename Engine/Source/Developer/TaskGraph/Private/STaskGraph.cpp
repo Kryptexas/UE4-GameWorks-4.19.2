@@ -94,7 +94,7 @@ public:
 		return true;
 	}
 
-	virtual TStatId GetStatId() const OVERRIDE
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FDelayedVisualizerSpawner, STATGROUP_Tickables);
 	}
@@ -162,15 +162,15 @@ void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, con
 class FProfileVisualizerModule : public IProfileVisualizerModule
 {
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		::InitProfileVisualizer();
 	}
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		::ShutdownProfileVisualizer();
 	}
-	virtual void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType ) OVERRIDE
+	virtual void DisplayProfileVisualizer( TSharedPtr< FVisualizerEvent > InProfileData, const TCHAR* InProfilerType ) override
 	{
 #if	WITH_EDITOR
 		::DisplayProfileVisualizer( InProfileData, InProfilerType );

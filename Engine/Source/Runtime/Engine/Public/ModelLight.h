@@ -41,7 +41,7 @@ public:
 	virtual FLightRayIntersection IntersectLightRay(const FVector& Start,const FVector& End,bool bFindNearestIntersection) const;
 	//FStaticLightingTextureMapping interface.
 
-	virtual bool IsValidMapping() const OVERRIDE
+	virtual bool IsValidMapping() const override
 	{
 		return Model.IsValid() && !Model->bInvalidForStaticLighting;
 	}

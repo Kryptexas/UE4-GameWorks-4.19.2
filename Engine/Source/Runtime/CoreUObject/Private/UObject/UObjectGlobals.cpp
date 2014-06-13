@@ -2258,11 +2258,11 @@ public:
 	}
 
 	// FReferenceCollector interface
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE
+	virtual bool IsIgnoringArchetypeRef() const override
 	{
 		return false;
 	}
-	virtual bool IsIgnoringTransient() const OVERRIDE
+	virtual bool IsIgnoringTransient() const override
 	{
 		return false;
 	}
@@ -2372,7 +2372,7 @@ private:
 		ObjectsToSerialize.Add( Object );
 	}
 
-	virtual void HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty ) OVERRIDE
+	virtual void HandleObjectReference( UObject*& InObject, const UObject* InReferencingObject, const UObject* InReferencingProperty ) override
 	{
 		checkSlow( !InObject || InObject->IsValidLowLevel() );		
 		if( InObject )

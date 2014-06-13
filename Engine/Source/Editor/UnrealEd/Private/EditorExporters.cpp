@@ -715,7 +715,7 @@ public:
 	}
 
 	/** This override is required otherwise the shaders aren't ready for use when the surface is rendered resulting in a blank image */
-	virtual bool RequiresSynchronousCompilation() const OVERRIDE { return true; };
+	virtual bool RequiresSynchronousCompilation() const override { return true; };
 
 	/**
 	* Should the shader for this material with the given platform, shader type and vertex 
@@ -733,7 +733,7 @@ public:
 		return true;
 	}
 
-	virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE
+	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
 		return ReferencedTextures;
 	}
@@ -881,7 +881,7 @@ public:
 	}
 
 	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FExportMaterialRenderer %s"), MaterialInterface ? *MaterialInterface->GetName() : TEXT("NULL")); }
-	virtual int32 GetMaterialDomain() const OVERRIDE
+	virtual int32 GetMaterialDomain() const override
 	{
 		if (Material)
 		{
@@ -935,7 +935,7 @@ public:
 	* Should shaders compiled for this material be saved to disk?
 	*/
 	virtual bool IsPersistent() const { return false; }
-	virtual FGuid GetMaterialId() const OVERRIDE { return Id; }
+	virtual FGuid GetMaterialId() const override { return Id; }
 
 	const UMaterialInterface* GetMaterialInterface() const
 	{

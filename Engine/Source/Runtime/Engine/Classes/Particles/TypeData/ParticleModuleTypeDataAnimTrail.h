@@ -65,15 +65,15 @@ class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 
 
 	// Begin UParticleModule Interface
-	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}
 	// End UParticleModule Interface
 
 	// Begin UParticleModuleTypeDataBase Interface
-	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) OVERRIDE;
+	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
 	// End UParticleModuleTypeDataBase Interface
 };
 

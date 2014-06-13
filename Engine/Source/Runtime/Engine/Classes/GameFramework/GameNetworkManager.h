@@ -129,7 +129,7 @@ class AGameNetworkManager : public AInfo
 
 	/** @return true if velocity vector passed in is considered near zero for networking purposes */
 	bool NetworkVelocityNearZero(FVector InVelocity) const;
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
 	/** @RETURN new per/client bandwidth given number of players in the game */
 	virtual int32 CalculatedNetSpeed();

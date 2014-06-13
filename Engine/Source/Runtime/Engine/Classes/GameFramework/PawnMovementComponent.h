@@ -14,10 +14,10 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	GENERATED_UCLASS_BODY()
 
 	// Overridden to only allow registration with components owned by a Pawn.
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) OVERRIDE;
+	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 
 	// Overridden to also call StopActiveMovement().
-	virtual void StopMovementImmediately() OVERRIDE;
+	virtual void StopMovementImmediately() override;
 
 	/** Stops applying further movement (usually zeros acceleration). */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")

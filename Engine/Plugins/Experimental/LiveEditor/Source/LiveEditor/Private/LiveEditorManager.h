@@ -42,7 +42,7 @@ public:
 	{
 		return bInitialized;
 	}
-	virtual TStatId GetStatId() const OVERRIDE
+	virtual TStatId GetStatId() const override
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FLiveEditorManager, STATGROUP_Tickables);
 	}

@@ -248,27 +248,27 @@ public:
 	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
 
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostInitProperties() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void CookerWillNeverCookAgain() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;	
+	virtual void CookerWillNeverCookAgain() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif // WITH_EDITOR
-	virtual bool IsLocalizedResource() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual FName GetExporterName() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual bool IsLocalizedResource() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual FName GetExporterName() override;
+	virtual FString GetDesc() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End UObject interface. 
 
 	// Begin USoundBase interface.
-	virtual bool IsPlayable() const OVERRIDE;
-	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual float GetMaxAudibleDistance() OVERRIDE;
-	virtual float GetDuration() OVERRIDE;
+	virtual bool IsPlayable() const override;
+	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual float GetMaxAudibleDistance() override;
+	virtual float GetDuration() override;
 	// End USoundBase interface.
 
 	/**
@@ -375,7 +375,7 @@ public:
 	/**
 	 * Begins caching platform data in the background for the platform requested
 	 */
-	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
+	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
 
 	/**
 	 * Begins caching platform data in the background.

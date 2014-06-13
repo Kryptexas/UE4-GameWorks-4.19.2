@@ -11,10 +11,10 @@ public:
 	~FPreviewViewport();
 
 	// ISlateViewport interface
-	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) OVERRIDE;
-	virtual FIntPoint GetSize() const OVERRIDE;
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE {return NULL;}
-	virtual bool RequiresVsync() const OVERRIDE {return false;}
+	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, class FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) override;
+	virtual FIntPoint GetSize() const override;
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override {return NULL;}
+	virtual bool RequiresVsync() const override {return false;}
 
 	/** Material node to get expression preview from */
 	UMaterialGraphNode* MaterialNode;
@@ -44,7 +44,7 @@ private:
 	/**
 	 * ICustomSlateElement interface 
 	 */
-	virtual void DrawRenderThread( const void* InWindowBackBuffer ) OVERRIDE;
+	virtual void DrawRenderThread( const void* InWindowBackBuffer ) override;
 
 private:
 	/** Render target that the canvas renders to */
@@ -64,21 +64,21 @@ public:
 	void Construct(const FArguments& InArgs, class UMaterialGraphNode* InNode);
 
 	// SGraphNode interface
-	virtual void CreatePinWidgets() OVERRIDE;
+	virtual void CreatePinWidgets() override;
 	// End of SGraphNode interface
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) override;
 	// End of SNodePanel::SNode interface
 
 	UMaterialGraphNode* GetMaterialGraphNode() const {return MaterialNode;}
 
 protected:
 	// SGraphNode interface
-	virtual void AddPin( const TSharedRef<SGraphPin>& PinToAdd ) OVERRIDE;
-	virtual void CreateBelowPinControls(TSharedPtr<SVerticalBox> MainBox) OVERRIDE;
-	virtual void SetDefaultTitleAreaWidget(TSharedRef<SOverlay> DefaultTitleAreaWidget) OVERRIDE;
-	virtual TSharedRef<SWidget> CreateNodeContentArea() OVERRIDE;
+	virtual void AddPin( const TSharedRef<SGraphPin>& PinToAdd ) override;
+	virtual void CreateBelowPinControls(TSharedPtr<SVerticalBox> MainBox) override;
+	virtual void SetDefaultTitleAreaWidget(TSharedRef<SOverlay> DefaultTitleAreaWidget) override;
+	virtual TSharedRef<SWidget> CreateNodeContentArea() override;
 	// End of SGraphNode interface
 
 	/** Creates a preview viewport if necessary */

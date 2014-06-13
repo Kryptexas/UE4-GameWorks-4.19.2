@@ -79,15 +79,15 @@ class UParticleModuleTrailSource : public UParticleModuleTrailBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void 	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostInitProperties() override;
+	virtual void 	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void	AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) OVERRIDE;
-	virtual void GetParticleSysParamsUtilized(TArray<FString>& ParticleSysParamList) OVERRIDE;
+	virtual void	AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) override;
+	virtual void GetParticleSysParamsUtilized(TArray<FString>& ParticleSysParamList) override;
 	// End UParticleModule Interface
 
 	/**

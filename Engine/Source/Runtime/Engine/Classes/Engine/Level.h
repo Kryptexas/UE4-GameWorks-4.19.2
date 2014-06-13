@@ -460,18 +460,18 @@ public:
 	~ULevel();
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual UWorld* GetWorld() const override;
 
 #if	WITH_EDITOR
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;	
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;	
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PreSave() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
@@ -548,7 +548,7 @@ public:
 	 */
 	ENGINE_API void SortActorList();
 
-	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all levels have stable net names
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all levels have stable net names
 
 	/** Handles network initialization for actors in this level */
 	void InitializeNetworkActors();
@@ -679,9 +679,9 @@ public:
 	
 	
 	// Begin IInterface_AssetUserData Interface
-	virtual void AddAssetUserData(UAssetUserData* InUserData) OVERRIDE;
-	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
-	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) OVERRIDE;
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	// End IInterface_AssetUserData Interface
 
 #if WITH_EDITOR

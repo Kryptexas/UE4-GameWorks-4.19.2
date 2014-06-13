@@ -188,7 +188,7 @@ public:
 		MessageListView->RequestListRefresh();
 	}
 
-	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
 		if (PendingMessages.Num() > 0)
 		{

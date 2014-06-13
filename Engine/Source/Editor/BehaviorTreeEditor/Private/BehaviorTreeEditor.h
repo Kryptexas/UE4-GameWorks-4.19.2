@@ -12,29 +12,29 @@ public:
 	/** Destructor */
 	virtual ~FBehaviorTreeEditor();
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	void InitBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* InObject );
 
 	// Begin IToolkit interface
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual FText GetToolkitName() const override;
 	// End IToolkit interface
 
 	// Begin IBehaviorTreeEditor interface
-	virtual uint32 GetSelectedNodesCount() const OVERRIDE { return SelectedNodesCount; }
-	virtual void InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const OVERRIDE;
-	virtual UEdGraphNode* FindInjectedNode(int32 Index) const OVERRIDE;
-	virtual void DoubleClickNode(class UEdGraphNode* Node) OVERRIDE;
-	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
+	virtual uint32 GetSelectedNodesCount() const override { return SelectedNodesCount; }
+	virtual void InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const override;
+	virtual UEdGraphNode* FindInjectedNode(int32 Index) const override;
+	virtual void DoubleClickNode(class UEdGraphNode* Node) override;
+	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
 	// End IBehaviorTreeEditor interface
 
 	// Begin FEditorUndoClient Interface
-	virtual void	PostUndo(bool bSuccess) OVERRIDE;
-	virtual void	PostRedo(bool bSuccess) OVERRIDE;
+	virtual void	PostUndo(bool bSuccess) override;
+	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
 	// Delegates
@@ -142,7 +142,7 @@ public:
 
 protected:
 	/** Called when "Save" is clicked for this asset */
-	virtual void SaveAsset_Execute() OVERRIDE;
+	virtual void SaveAsset_Execute() override;
 
 private:
 	/** Create widget for graph editing */

@@ -18,17 +18,17 @@ public:
 		, LauncherCommandLine(InCmdLine)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString StagePath;
@@ -77,14 +77,14 @@ public:
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
 		return true;
 	}
 
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
@@ -125,17 +125,17 @@ public:
 		, CookCommand(InCook)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString StagePath = FPaths::ConvertRelativePathToFull(ChainState.Profile->GetProjectBasePath() + FString(TEXT("StagedBuilds")));
@@ -222,17 +222,17 @@ public:
 		, LauncherCommandLine(InCmdLine)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString CommandLine;
@@ -268,14 +268,14 @@ public:
 		return CommandLine;
 	}
 
-	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
 		return true;
 	}
 
-	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) override
 	{
 		// disable the device check
 		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
@@ -316,17 +316,17 @@ public:
 		, CookCommand(InCook)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskName", "Deploying content").ToString();
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return NSLOCTEXT("FLauncherTask", "LauncherDeployTaskDesc", "Deploying content for ").ToString() + TargetPlatform.PlatformName();
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		// build UAT command line parameters
 		FString CommandLine;

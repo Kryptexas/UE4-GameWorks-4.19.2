@@ -37,7 +37,7 @@ public:
 
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform( ) OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform( ) override
 	{
 		if (Singleton == NULL)
 		{
@@ -65,7 +65,7 @@ public:
 #endif
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// this is an example of a hotfix, declared here for no particular reason. Once we have other examples, it can be deleted.
 #if 0
@@ -90,7 +90,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		// this is an example of a hotfix, declared here for no particular reason. Once we have other examples, it can be deleted.
 #if 0

@@ -16,19 +16,19 @@ public:
 	}
 
 	/** ISourceControlRevision interface */
-	virtual bool Get( FString& InOutFilename ) const OVERRIDE;
-	virtual bool GetAnnotated( TArray<FAnnotationLine>& OutLines ) const OVERRIDE;
-	virtual bool GetAnnotated( FString& InOutFilename ) const OVERRIDE;
-	virtual const FString& GetFilename() const OVERRIDE;
-	virtual int32 GetRevisionNumber() const OVERRIDE;
-	virtual const FString& GetDescription() const OVERRIDE;
-	virtual const FString& GetUserName() const OVERRIDE;
-	virtual const FString& GetClientSpec() const OVERRIDE;
-	virtual const FString& GetAction() const OVERRIDE;
-	virtual TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> GetBranchSource() const OVERRIDE;
-	virtual const FDateTime& GetDate() const OVERRIDE;
-	virtual int32 GetCheckInIdentifier() const OVERRIDE;
-	virtual int32 GetFileSize() const OVERRIDE;
+	virtual bool Get( FString& InOutFilename ) const override;
+	virtual bool GetAnnotated( TArray<FAnnotationLine>& OutLines ) const override;
+	virtual bool GetAnnotated( FString& InOutFilename ) const override;
+	virtual const FString& GetFilename() const override;
+	virtual int32 GetRevisionNumber() const override;
+	virtual const FString& GetDescription() const override;
+	virtual const FString& GetUserName() const override;
+	virtual const FString& GetClientSpec() const override;
+	virtual const FString& GetAction() const override;
+	virtual TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> GetBranchSource() const override;
+	virtual const FDateTime& GetDate() const override;
+	virtual int32 GetCheckInIdentifier() const override;
+	virtual int32 GetFileSize() const override;
 
 public:
 	/** The local filename the this revision refers to */

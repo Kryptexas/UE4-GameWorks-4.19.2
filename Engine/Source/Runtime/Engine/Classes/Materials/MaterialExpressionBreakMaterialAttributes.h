@@ -17,18 +17,18 @@ class UMaterialExpressionBreakMaterialAttributes : public UMaterialExpression
  	FMaterialAttributesInput MaterialAttributes;
  
 	// Begin UObject interface.
- 	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+ 	virtual void Serialize( FArchive& Ar ) override;
 	// End UObject interface.
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual const TArray<FExpressionInput*> GetInputs()OVERRIDE;
-	virtual FExpressionInput* GetInput(int32 InputIndex)OVERRIDE;
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
-	virtual bool IsInputConnectionRequired(int32 InputIndex) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual const TArray<FExpressionInput*> GetInputs()override;
+	virtual FExpressionInput* GetInput(int32 InputIndex)override;
+	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual bool IsInputConnectionRequired(int32 InputIndex) const override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE {return MCT_MaterialAttributes;}
+	virtual uint32 GetInputType(int32 InputIndex) override {return MCT_MaterialAttributes;}
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface
 };

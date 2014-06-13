@@ -11,10 +11,10 @@ class ALogVisualizerHUD : public ADebugCameraHUD
 
 	FFontRenderInfo TextRenderInfo;
 
-	virtual bool DisplayMaterials( float X, float& Y, float DY, UMeshComponent* MeshComp ) OVERRIDE;
+	virtual bool DisplayMaterials( float X, float& Y, float DY, UMeshComponent* MeshComp ) override;
 
 	// Begin AActor Interface
-	virtual void PostRender() OVERRIDE;
+	virtual void PostRender() override;
 	// End AActor Interface
 };
 

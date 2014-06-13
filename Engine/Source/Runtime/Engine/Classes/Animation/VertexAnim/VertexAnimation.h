@@ -37,15 +37,15 @@ class UVertexAnimation : public UVertexAnimBase
 	TArray<FVertexAnimFrame>	VertexAnimData;
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// Begin UObject interface.
 
 	// Begin UVertexAnimBase interface
-	virtual FVertexAnimEvalStateBase* InitEval() OVERRIDE;
-	virtual void TermEval(FVertexAnimEvalStateBase* State) OVERRIDE;
-	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) OVERRIDE;
-	virtual bool HasDataForLOD(int32 LODIndex) OVERRIDE;
+	virtual FVertexAnimEvalStateBase* InitEval() override;
+	virtual void TermEval(FVertexAnimEvalStateBase* State) override;
+	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) override;
+	virtual bool HasDataForLOD(int32 LODIndex) override;
 	// End UVertexAnimBase interface
 
 	/** Get the number of frames in the animation */

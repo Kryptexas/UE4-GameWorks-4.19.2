@@ -48,7 +48,7 @@ public:
 
 	virtual void Serialize (FArchive& Ar);
 
-	virtual void Serialize (const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize (const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 
 private:

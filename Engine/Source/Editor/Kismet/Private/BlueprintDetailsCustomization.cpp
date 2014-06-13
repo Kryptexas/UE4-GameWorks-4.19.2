@@ -2699,7 +2699,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 	TSet<UBlueprint*> ModifiedBlueprints;
 	TSet<UEdGraph*> ModifiedGraphs;
 
-	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) OVERRIDE
+	virtual void EditCompositeTunnelNode(UK2Node_Tunnel* TunnelNode) override
 	{
 		if (TunnelNode->InputSinkNode != NULL)
 		{
@@ -2712,7 +2712,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override
 	{
 		MacroInstance->ReconstructNode();
 		if (Blueprint)
@@ -2721,7 +2721,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override
 	{
 		CallSite->Modify();
 		CallSite->ReconstructNode();
@@ -2731,7 +2731,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditDelegates(UK2Node_BaseMCDelegate* CallSite, UBlueprint* Blueprint) override
 	{
 		CallSite->Modify();
 		CallSite->ReconstructNode();
@@ -2755,7 +2755,7 @@ struct FParamsChangedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) OVERRIDE
+	virtual void EditCreateDelegates(UK2Node_CreateDelegate* CallSite) override
 	{
 		UBlueprint* Blueprint = NULL;
 		UEdGraph* Graph = NULL;
@@ -2815,7 +2815,7 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 	TSet<UBlueprint*> ModifiedBlueprints;
 	TSet<UK2Node*> NodesToRename;
 
-	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditMacroInstance(UK2Node_MacroInstance* MacroInstance, UBlueprint* Blueprint) override
 	{
 		NodesToRename.Add(MacroInstance);
 		if (Blueprint)
@@ -2824,7 +2824,7 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 		}
 	}
 
-	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) OVERRIDE
+	virtual void EditCallSite(UK2Node_CallFunction* CallSite, UBlueprint* Blueprint) override
 	{
 		NodesToRename.Add(CallSite);
 		if (Blueprint)

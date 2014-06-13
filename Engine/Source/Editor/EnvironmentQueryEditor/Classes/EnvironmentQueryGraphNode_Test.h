@@ -23,11 +23,11 @@ class UEnvironmentQueryGraphNode_Test : public UEnvironmentQueryGraphNode
 	UPROPERTY()
 	class UEnvironmentQueryGraphNode_Option* ParentNode;
 
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual bool IsSubNode() const OVERRIDE { return true; }
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FText GetDescription() const OVERRIDE;
+	virtual void PostPlacedNewNode() override;
+	virtual void DestroyNode() override;
+	virtual bool IsSubNode() const override { return true; }
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetDescription() const override;
 
 	void SetDisplayedWeight(float Pct, bool bNamed);
 };

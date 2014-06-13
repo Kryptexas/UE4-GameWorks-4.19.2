@@ -57,7 +57,7 @@ public:
 	TSharedPtr< FUICommandInfo > SaveLayout;
 	TSharedPtr< FUICommandInfo > ToggleFullscreen;
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 
 private:

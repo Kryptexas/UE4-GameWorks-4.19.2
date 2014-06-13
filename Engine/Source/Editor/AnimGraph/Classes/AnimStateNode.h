@@ -36,30 +36,30 @@ public:
 	FAnimNotifyEvent StateFullyBlended;
 
 	// Begin UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject interface
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
 	virtual bool CanDuplicateNode() const { return true; }
-	virtual void PostPasteNode() OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
+	virtual void PostPasteNode() override;
+	virtual void PostPlacedNewNode() override;
+	virtual void DestroyNode() override;
 	// End UEdGraphNode interface
 	
 	// Begin UAnimStateNodeBase interface
-	virtual UEdGraphPin* GetInputPin() const OVERRIDE;
-	virtual UEdGraphPin* GetOutputPin() const OVERRIDE;
-	virtual FString GetStateName() const OVERRIDE;
-	virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = false) OVERRIDE;
+	virtual UEdGraphPin* GetInputPin() const override;
+	virtual UEdGraphPin* GetOutputPin() const override;
+	virtual FString GetStateName() const override;
+	virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = false) override;
 	// End of UAnimStateNodeBase interface
 
 	// @return the pose pin of the state sink node within the anim graph of this state
 	ANIMGRAPH_API UEdGraphPin* GetPoseSinkPinInsideState() const;
 
 public:
-	virtual UEdGraph* GetBoundGraph() const OVERRIDE { return BoundGraph; }
+	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
 };

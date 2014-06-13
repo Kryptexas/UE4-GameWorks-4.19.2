@@ -15,13 +15,13 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 
 
 	// Begin UObject Interface
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 	// Begin UPrimitiveComponent Interface
-	virtual int32 GetNumMaterials() const OVERRIDE;
-	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const OVERRIDE;
-	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) OVERRIDE;
+	virtual int32 GetNumMaterials() const override;
+	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
+	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	// End UPrimitiveComponent Interface
 
 	/** Accesses the scene relevance information for the materials applied to the mesh. */

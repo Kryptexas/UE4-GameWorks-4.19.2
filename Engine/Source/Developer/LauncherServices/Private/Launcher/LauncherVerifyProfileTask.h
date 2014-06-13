@@ -24,7 +24,7 @@ public:
 
 protected:
 
-	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) OVERRIDE
+	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 	{
 		if (ChainState.Profile.IsValid())
 		{

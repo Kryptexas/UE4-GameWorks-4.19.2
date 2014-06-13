@@ -24,16 +24,16 @@ class UGeomModifier_Extrude : public UGeomModifier_Edit
 
 
 	// Begin UGeomModifier Interface
-	virtual bool Supports() OVERRIDE;
-	virtual void Initialize() OVERRIDE;
-	virtual void WasActivated() OVERRIDE;
-	virtual void WasDeactivated() OVERRIDE;
+	virtual bool Supports() override;
+	virtual void Initialize() override;
+	virtual void WasActivated() override;
+	virtual void WasDeactivated() override;
 
 	/* Check the coordinates mode is local and warn the user with a suppressible dialog if it is not */
 	void CheckCoordinatesMode();
 
 protected:
-	virtual bool OnApply() OVERRIDE;
+	virtual bool OnApply() override;
 	// End UGeomModifier Interface
 private:
 	void Apply(int32 InLength, int32 InSegments);

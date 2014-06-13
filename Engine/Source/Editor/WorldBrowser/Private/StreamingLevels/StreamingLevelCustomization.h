@@ -12,7 +12,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance(TSharedRef<FStreamingLevelCollectionModel> InWorldData);
 
 	// IDetailCustomization interface
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) OVERRIDE;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 	// End of IDetailCustomization interface
 
 private:

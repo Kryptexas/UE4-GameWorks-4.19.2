@@ -133,26 +133,26 @@ class ENGINE_API ANavigationTestingActor : public AActor, public INavAgentInterf
 	/** Dtor */
 	virtual ~ANavigationTestingActor();
 
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
 	
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	void TickMe();
 #endif // WITH_EDITOR
 
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(false); return false; }
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE { return &NavAgentProps; }
-	virtual FVector GetNavAgentLocation() const OVERRIDE;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE {}
+	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override { return &NavAgentProps; }
+	virtual FVector GetNavAgentLocation() const override;
+	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override {}
 	// End INavAgentInterface Interface
 
 	// Begin INavPathObserverInterface Interface
-	virtual void OnPathUpdated(class INavigationPathGenerator* PathGenerator) OVERRIDE;
+	virtual void OnPathUpdated(class INavigationPathGenerator* PathGenerator) override;
 	// End INavPathObserverInterface Interface	
 
 	void UpdateNavData();

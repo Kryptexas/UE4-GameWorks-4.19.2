@@ -466,7 +466,7 @@ private:
 	/** True if NvTriStrip is being used for tri order optimization. */
 	bool bUsingNvTriStrip;
 	// IMeshUtilities interface.
-	virtual const FString& GetVersionString() const OVERRIDE
+	virtual const FString& GetVersionString() const override
 	{
 		return VersionString;
 	}
@@ -475,7 +475,7 @@ private:
 		TArray<FStaticMeshSourceModel>& SourceModels,
 		const TArray<UMaterialInterface*>& Materials,
 		const FStaticMeshLODGroup& LODGroup
-		) OVERRIDE;
+		) override;
 
 	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true );
 
@@ -489,13 +489,13 @@ private:
 		uint32& MaxCharts,
 		float& MaxDesiredStretch,
 		FText& OutError
-		) OVERRIDE;
+		) override;
 
-	virtual bool LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint32 TexCoordIndex, FText& OutError) OVERRIDE;
-	virtual IMeshReduction* GetMeshReductionInterface() OVERRIDE;
-	virtual IMeshMerging* GetMeshMergingInterface() OVERRIDE;
-	virtual void CacheOptimizeIndexBuffer(TArray<uint16>& Indices) OVERRIDE;
-	virtual void CacheOptimizeIndexBuffer(TArray<uint32>& Indices) OVERRIDE;
+	virtual bool LayoutUVs(FRawMesh& RawMesh, uint32 TextureResolution, uint32 TexCoordIndex, FText& OutError) override;
+	virtual IMeshReduction* GetMeshReductionInterface() override;
+	virtual IMeshMerging* GetMeshMergingInterface() override;
+	virtual void CacheOptimizeIndexBuffer(TArray<uint16>& Indices) override;
+	virtual void CacheOptimizeIndexBuffer(TArray<uint32>& Indices) override;
 	void CacheOptimizeVertexAndIndexBuffer(TArray<FStaticMeshBuildVertex>& Vertices,TArray<TArray<uint32> >& PerSectionIndices,TArray<int32>& WedgeMap);
 	
 	virtual void BuildSkeletalAdjacencyIndexBuffer(
@@ -503,9 +503,9 @@ private:
 		const uint32 TexCoordCount,
 		const TArray<uint32>& Indices,
 		TArray<uint32>& OutPnAenIndices
-		) OVERRIDE;
+		) override;
 
-	virtual void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) OVERRIDE;
+	virtual void CalcBoneVertInfos(USkeletalMesh* SkeletalMesh, TArray<FBoneVertInfo>& Infos, bool bOnlyDominant) override;
 
 	/**
 	 * Builds a renderable skeletal mesh LOD model. Note that the array of chunks
@@ -518,8 +518,8 @@ private:
 	void BuildSkeletalModelFromChunks(FStaticLODModel& LODModel,const FReferenceSkeleton& RefSkeleton,TArray<FSkinnedMeshChunk*>& Chunks,const TArray<int32>& PointToOriginalMap);
 
 	// IModuleInterface interface.
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	virtual void MergeActors(
 		const TArray<AActor*>& SourceActors,
@@ -527,7 +527,7 @@ private:
 		const FString& PackageName,
 		TArray<UObject*>& 
 		OutAssetsToSync, 
-		FVector& OutMergedActorLocation) const OVERRIDE;
+		FVector& OutMergedActorLocation) const override;
 	
 	virtual void CreateProxyMesh( 
 		const TArray<AActor*>& Actors, 
@@ -536,7 +536,7 @@ private:
 		const FString& ProxyBasePackageName,
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutProxyLocation
-		) OVERRIDE;
+		) override;
 	
 	bool ConstructRawMesh(
 		UStaticMeshComponent* MeshComponent, 
@@ -3379,7 +3379,7 @@ private:
 			return FindSlotForTexture(InWidth, InWidth);
 		}
 
-		virtual void ConditionalUpdateTexture() OVERRIDE {};
+		virtual void ConditionalUpdateTexture() override {};
 	};
 
 private:

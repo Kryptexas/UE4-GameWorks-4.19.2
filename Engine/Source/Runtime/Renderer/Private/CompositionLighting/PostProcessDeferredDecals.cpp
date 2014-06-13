@@ -535,7 +535,7 @@ public:
 	/**
 	* Initialize the RHI for this rendering resource
 	*/
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		const int32 NumVerts = 8;
 		TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
@@ -576,7 +576,7 @@ public:
 	/**
 	* Initialize the RHI for this rendering resource
 	*/
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 		

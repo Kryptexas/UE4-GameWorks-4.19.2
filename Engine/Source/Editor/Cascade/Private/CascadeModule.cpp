@@ -22,20 +22,20 @@ public:
 	}
 
 	/** Called right after the module DLL has been loaded and the module object has been created */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 	}
 
-	virtual TSharedRef<ICascade> CreateCascade(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UParticleSystem* ParticleSystem) OVERRIDE
+	virtual TSharedRef<ICascade> CreateCascade(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UParticleSystem* ParticleSystem) override
 	{
 		TSharedRef<FCascade> NewCascade(new FCascade());
 		NewCascade->InitCascade(Mode, InitToolkitHost, ParticleSystem);
@@ -43,12 +43,12 @@ public:
 		return NewCascade;
 	}
 
-	virtual void CascadeClosed(FCascade* CascadeInstance) OVERRIDE
+	virtual void CascadeClosed(FCascade* CascadeInstance) override
 	{
 		CascadeToolkits.Remove(CascadeInstance);
 	}
 
-	virtual void RefreshCascade(UParticleSystem* ParticleSystem) OVERRIDE
+	virtual void RefreshCascade(UParticleSystem* ParticleSystem) override
 	{
 		for (int32 Idx = 0; Idx < CascadeToolkits.Num(); ++Idx)
 		{
@@ -59,7 +59,7 @@ public:
 		}
 	}
 
-	virtual void ConvertModulesToSeeded(UParticleSystem* ParticleSystem) OVERRIDE
+	virtual void ConvertModulesToSeeded(UParticleSystem* ParticleSystem) override
 	{
 		FCascade::ConvertAllModulesToSeeded( ParticleSystem );
 	}

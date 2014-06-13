@@ -248,10 +248,10 @@ public:
 	virtual void SetBandwidthLimit(float AsyncIOBandwidthLimit);
 
 	// Begin AActor interface
-	virtual void PreInitializeComponents() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void PreInitializeComponents() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void Reset() override;
+	virtual void Tick(float DeltaSeconds) override;
 	// End AActor interface
 
 	/** 

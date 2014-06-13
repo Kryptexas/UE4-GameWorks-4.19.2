@@ -44,29 +44,29 @@ public:
 	uint32 GetOutputType(const UEdGraphPin* OutputPin);
 
 	// UObject interface
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditImport() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	// End of UObject interface
 
 	// Begin UEdGraphNode interface.
-	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
+	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual void PrepareForCopying() override;
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void PostPlacedNewNode() override;
+	virtual void OnRenameNode(const FString& NewName) override;
+	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	// End UEdGraphNode interface.
 
 	// UMaterialGraphNode_Base interface
-	virtual void CreateInputPins() OVERRIDE;
-	virtual void CreateOutputPins() OVERRIDE;
-	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const OVERRIDE;
-	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const OVERRIDE;
+	virtual void CreateInputPins() override;
+	virtual void CreateOutputPins() override;
+	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
+	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
 	// End of UMaterialGraphNode_Base interface
 
 private:

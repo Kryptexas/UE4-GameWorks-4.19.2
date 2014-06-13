@@ -6,7 +6,7 @@ class FEpicSurveyCommands : public TCommands<FEpicSurveyCommands>
 public:
 	FEpicSurveyCommands();
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 public:
 

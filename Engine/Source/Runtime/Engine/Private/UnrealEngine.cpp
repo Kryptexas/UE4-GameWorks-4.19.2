@@ -6957,7 +6957,7 @@ static class FCDODump : private FSelfRegisteringExec
 	}
 
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if(FParse::Command(&Cmd,TEXT("CDODump")))
 		{
@@ -9032,7 +9032,7 @@ struct FPendingStreamingLevelHolder : public FGCObject
 public:
 	TArray<ULevel*> Levels;
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		for( int32 LevelIndex = 0; LevelIndex < Levels.Num(); LevelIndex++ )
 		{

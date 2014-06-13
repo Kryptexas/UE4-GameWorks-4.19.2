@@ -64,7 +64,7 @@ private:
 	FName ForcedExportBasePackageName;
 public:
 
-	virtual bool IsNameStableForNetworking() const OVERRIDE { return true; }		// For now, assume all packages have stable net names
+	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all packages have stable net names
 
 	/** Package flags, serialized.*/
 	uint32	PackageFlags;
@@ -100,7 +100,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 	/** Packages are never assets */
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual bool IsAsset() const override { return false; }
 
 	// UPackage interface.
 
@@ -498,11 +498,11 @@ public:
 	void RemoveMetaDataOutsidePackage();
 
 	// UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
-	virtual bool NeedsLoadForEditorGame() const OVERRIDE;
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual void Serialize(FArchive& Ar) override;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
+	virtual bool NeedsLoadForEditorGame() const override;
+	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface
 
 #if HACK_HEADER_GENERATOR

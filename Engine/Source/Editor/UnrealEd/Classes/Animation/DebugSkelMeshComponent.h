@@ -138,31 +138,31 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	bool bEnableWind;
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	
 	// engine only draw bounds IF selected
 	// @todo fix this properly
 	// this isn't really the best way to do this, but for now
 	// we'll just mark as selected
-	virtual bool ShouldRenderSelected() const OVERRIDE
+	virtual bool ShouldRenderSelected() const override
 	{
 		return bDisplayBound;
 	}
 	// End UPrimitiveComponent interface.
 
 	// Begin SkinnedMeshComponent Interface
-	virtual bool ShouldCPUSkin() OVERRIDE;
-	virtual void PostInitMeshObject(class FSkeletalMeshObject* MeshObject) OVERRIDE;
-	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) OVERRIDE;
+	virtual bool ShouldCPUSkin() override;
+	virtual void PostInitMeshObject(class FSkeletalMeshObject* MeshObject) override;
+	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	// End SkinnedMeshComponent Interface
 
 	// Begin SkeletalMeshComponent Interface
-	virtual void InitAnim(bool bForceReinit) OVERRIDE;
-	virtual bool IsWindEnabled() const OVERRIDE;
+	virtual void InitAnim(bool bForceReinit) override;
+	virtual bool IsWindEnabled() const override;
 	// End SkeletalMeshComponent Interface
 	// Preview.
 	// @todo document
@@ -236,7 +236,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	int32 FindCurrentSectionDisplayMode();
 
 	/** to avoid clothing reset while modifying properties in Persona */
-	virtual void CheckClothTeleport(float DeltaTime) OVERRIDE;
+	virtual void CheckClothTeleport(float DeltaTime) override;
 
 #endif //#if WITH_APEX_CLOTHING
 };

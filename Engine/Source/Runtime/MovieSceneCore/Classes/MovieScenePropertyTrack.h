@@ -15,14 +15,14 @@ class MOVIESCENECORE_API UMovieScenePropertyTrack : public UMovieSceneTrack
 
 public:
 	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const OVERRIDE { return PropertyName; }
-	virtual void RemoveAllAnimationData() OVERRIDE;
-	virtual bool HasSection( UMovieSceneSection* Section ) const OVERRIDE;
-	virtual void RemoveSection( UMovieSceneSection* Section ) OVERRIDE;
-	virtual bool IsEmpty() const OVERRIDE;
-	virtual TRange<float> GetSectionBoundaries() const OVERRIDE;
-	virtual TArray<UMovieSceneSection*> GetAllSections() const OVERRIDE;
-	virtual bool HasShowableData() const OVERRIDE {return bSectionsAreShowable;}
+	virtual FName GetTrackName() const override { return PropertyName; }
+	virtual void RemoveAllAnimationData() override;
+	virtual bool HasSection( UMovieSceneSection* Section ) const override;
+	virtual void RemoveSection( UMovieSceneSection* Section ) override;
+	virtual bool IsEmpty() const override;
+	virtual TRange<float> GetSectionBoundaries() const override;
+	virtual TArray<UMovieSceneSection*> GetAllSections() const override;
+	virtual bool HasShowableData() const override {return bSectionsAreShowable;}
 	
 	/**
 	 * Sets the property name for this animatable property

@@ -10,6 +10,6 @@ class UListStaticMeshesImportedFromSpeedTreesCommandlet : public UCommandlet
 	GENERATED_UCLASS_BODY()
 
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 };

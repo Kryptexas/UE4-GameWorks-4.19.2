@@ -47,7 +47,7 @@ public:
 private:
 	void SendToObjects(const FString& NewValue);
 
-	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 
 	/** 
 	 * Generates a class picker with a filter to show only classes allowed to be selected. 

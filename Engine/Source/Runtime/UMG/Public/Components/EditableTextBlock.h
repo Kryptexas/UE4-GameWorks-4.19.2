@@ -88,7 +88,7 @@ protected:
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 
 	void SlateOnTextChanged(const FText& Text);

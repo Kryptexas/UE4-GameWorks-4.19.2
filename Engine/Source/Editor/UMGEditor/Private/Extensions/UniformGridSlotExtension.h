@@ -11,7 +11,7 @@ public:
 
 	bool IsActive(const TArray< FSelectedWidget >& Selection);
 	
-	virtual void BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets) OVERRIDE;
+	virtual void BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets) override;
 
 private:
 

@@ -28,9 +28,9 @@ protected:
 public:
 
 	// Begin HttpManager interface
-	virtual void AddRequest(TSharedRef<class IHttpRequest> Request) OVERRIDE;
-	virtual void RemoveRequest(TSharedRef<class IHttpRequest> Request) OVERRIDE;
-	virtual bool Tick(float DeltaSeconds) OVERRIDE;
+	virtual void AddRequest(TSharedRef<class IHttpRequest> Request) override;
+	virtual void RemoveRequest(TSharedRef<class IHttpRequest> Request) override;
+	virtual bool Tick(float DeltaSeconds) override;
 	// End HttpManager interface
 
 	FCurlHttpManager();

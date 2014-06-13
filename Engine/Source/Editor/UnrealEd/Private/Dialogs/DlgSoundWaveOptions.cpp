@@ -107,7 +107,7 @@ public:
 
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the List row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		// Create the widget for this item
 		TSharedPtr< SWidget > TableRowContent;

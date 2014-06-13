@@ -49,11 +49,11 @@ public:
 
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString>& InOutDisplayString) OVERRIDE;
-	virtual bool IsOutOfDate(int32 InRevision) OVERRIDE { return false; }
-	virtual TSharedPtr< FString > GetSourceString() OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString>& InOutDisplayString) override;
+	virtual bool IsOutOfDate(int32 InRevision) override { return false; }
+	virtual TSharedPtr< FString > GetSourceString() override;
 	// End FTextHistory interface
 
 private:
@@ -69,8 +69,8 @@ public:
 	FTextHistory_NamedFormat(const FText& InSourceText, const FFormatNamedArguments& InArguments);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 
 private:
@@ -88,8 +88,8 @@ public:
 	FTextHistory_OrderedFormat(const FText& InSourceText, const FFormatOrderedArguments& InArguments);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 
 private:
@@ -107,8 +107,8 @@ public:
 	FTextHistory_ArgumentDataFormat(const FText& InSourceText, const TArray< struct FFormatArgumentData >& InArguments);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 
 private:
@@ -128,7 +128,7 @@ public:
 	~FTextHistory_FormatNumber();
 
 	// Begin FTextHistory interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 protected:
 	/** The source value to format from */
@@ -147,8 +147,8 @@ public:
 	FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 };
 
@@ -160,8 +160,8 @@ public:
 	FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 };
 
@@ -173,8 +173,8 @@ public:
 	FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 };
 
@@ -186,8 +186,8 @@ public:
 	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 
 private:
@@ -207,8 +207,8 @@ public:
 	FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interface
 
 private:
@@ -230,8 +230,8 @@ public:
 	FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture);
 
 	// Begin FTextHistory interface
-	virtual FText ToText() const OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual FText ToText() const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End FTextHistory interfaces
 
 private:

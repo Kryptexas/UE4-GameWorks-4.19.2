@@ -5,12 +5,12 @@
 class FGameplayTagsModule : public IGameplayTagsModule
 {
 	// Begin IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface
 
 	// Gets the UGameplayTagsManager manager
-	virtual UGameplayTagsManager& GetGameplayTagsManager() OVERRIDE
+	virtual UGameplayTagsManager& GetGameplayTagsManager() override
 	{
 		check(GameplayTagsManager);
 		return *GameplayTagsManager;

@@ -27,8 +27,8 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 protected:
 	// Begin SGraphPin interface
-	virtual FSlateColor GetPinColor() const OVERRIDE;
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
+	virtual FSlateColor GetPinColor() const override;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	// End SGraphPin interface
 
 	const FSlateBrush* GetPinBorder() const;

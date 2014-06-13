@@ -72,7 +72,7 @@ class UInterpGroupCamera : public UInterpGroup
 
 	// Begin UOBject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UOBject Interface
 };

@@ -27,7 +27,7 @@
 class SLevelEditorViewportViewMenu : public SEditorViewportViewMenu
 {
 public:
-	virtual TSharedRef<SWidget> GenerateViewMenuContent() const OVERRIDE
+	virtual TSharedRef<SWidget> GenerateViewMenuContent() const override
 	{
 		SLevelViewport* LevelViewport = static_cast<SLevelViewport*>(Viewport.Pin().Get());
 		LevelViewport->OnFloatingButtonClicked();

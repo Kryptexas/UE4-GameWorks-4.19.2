@@ -24,12 +24,12 @@ class ULevelStreamingKismet : public ULevelStreaming
 	uint32 bInitiallyVisible:1;
 	
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) OVERRIDE;
-	virtual bool ShouldBeVisible( const FVector& ViewLocation ) OVERRIDE;
+	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override;
+	virtual bool ShouldBeVisible( const FVector& ViewLocation ) override;
 	// End ULevelStreaming Interface
 };
 

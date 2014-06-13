@@ -179,7 +179,7 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 	virtual void	Serialize(FArchive& Ar) override;
@@ -189,14 +189,14 @@ class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 	void CreateDistribution();
 
 	// Begin UParticleModule Interface
-	virtual void	SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
+	virtual void	SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	// End UParticleModule Interface
 
 	// Begin UParticleModuleTypeDataBase Interface
-	virtual FParticleEmitterInstance*	CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) OVERRIDE;
-	virtual bool	SupportsSpecificScreenAlignmentFlags() const OVERRIDE {	return true;	}	
-	virtual bool	SupportsSubUV() const OVERRIDE { return true; }
-	virtual bool	IsAMeshEmitter() const OVERRIDE { return true; }
+	virtual FParticleEmitterInstance*	CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
+	virtual bool	SupportsSpecificScreenAlignmentFlags() const override {	return true;	}	
+	virtual bool	SupportsSubUV() const override { return true; }
+	virtual bool	IsAMeshEmitter() const override { return true; }
 	// End UParticleModuleTypeDataBase Interface
 };
 

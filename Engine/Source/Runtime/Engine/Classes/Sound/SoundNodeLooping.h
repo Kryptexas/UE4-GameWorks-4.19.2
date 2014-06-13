@@ -15,14 +15,14 @@ class USoundNodeLooping : public USoundNode
 
 public:	
 	// Begin USoundNode interface. 
-	virtual bool NotifyWaveInstanceFinished( struct FWaveInstance* WaveInstance ) OVERRIDE;
-	virtual float MaxAudibleDistance( float CurrentMaxDistance ) OVERRIDE 
+	virtual bool NotifyWaveInstanceFinished( struct FWaveInstance* WaveInstance ) override;
+	virtual float MaxAudibleDistance( float CurrentMaxDistance ) override 
 	{ 
 		return( WORLD_MAX ); 
 	}
-	virtual float GetDuration( void ) OVERRIDE;
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual float GetDuration( void ) override;
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 };
 

@@ -22,21 +22,21 @@ class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, pu
 public:
 	virtual ~FRecastQueryFilter(){}
 
-	virtual void Reset() OVERRIDE;
+	virtual void Reset() override;
 
-	virtual void SetAreaCost(uint8 AreaType, float Cost) OVERRIDE;
-	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) OVERRIDE;
-	virtual void SetExcludedArea(uint8 AreaType) OVERRIDE;
-	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) OVERRIDE;
-	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const OVERRIDE;
-	virtual void SetBacktrackingEnabled(const bool bBacktracking) OVERRIDE;
-	virtual bool IsBacktrackingEnabled() const OVERRIDE;
-	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const OVERRIDE;
-	virtual void SetIncludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetIncludeFlags() const OVERRIDE;
-	virtual void SetExcludeFlags(uint16 Flags) OVERRIDE;
-	virtual uint16 GetExcludeFlags() const OVERRIDE;
-	virtual INavigationQueryFilterInterface* CreateCopy() const OVERRIDE;
+	virtual void SetAreaCost(uint8 AreaType, float Cost) override;
+	virtual void SetFixedAreaEnteringCost(uint8 AreaType, float Cost) override;
+	virtual void SetExcludedArea(uint8 AreaType) override;
+	virtual void SetAllAreaCosts(const float* CostArray, const int32 Count) override;
+	virtual void GetAllAreaCosts(float* CostArray, float* FixedCostArray, const int32 Count) const override;
+	virtual void SetBacktrackingEnabled(const bool bBacktracking) override;
+	virtual bool IsBacktrackingEnabled() const override;
+	virtual bool IsEqual(const INavigationQueryFilterInterface* Other) const override;
+	virtual void SetIncludeFlags(uint16 Flags) override;
+	virtual uint16 GetIncludeFlags() const override;
+	virtual void SetExcludeFlags(uint16 Flags) override;
+	virtual uint16 GetExcludeFlags() const override;
+	virtual INavigationQueryFilterInterface* CreateCopy() const override;
 
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 };
@@ -44,7 +44,7 @@ public:
 struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
 {
 	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner) {}
-	virtual bool isLinkAllowed(const int32 UserId) const OVERRIDE;
+	virtual bool isLinkAllowed(const int32 UserId) const override;
 
 	UNavigationSystem* NavSys;
 	const UObject* SearchOwner;

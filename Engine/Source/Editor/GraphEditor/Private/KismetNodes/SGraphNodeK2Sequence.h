@@ -14,8 +14,8 @@ public:
 
 protected:
 	// SGraphNode interface
-	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) OVERRIDE;
-	virtual FReply OnAddPin() OVERRIDE;
+	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) override;
+	virtual FReply OnAddPin() override;
 	// End of SGraphNode interface
 };
 

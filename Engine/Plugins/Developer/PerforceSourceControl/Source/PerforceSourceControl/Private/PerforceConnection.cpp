@@ -132,7 +132,7 @@ public:
 	{
 	}
 
-	virtual int IsAlive() OVERRIDE
+	virtual int IsAlive() override
 	{
 		if(IsCancelled.IsBound() && IsCancelled.Execute())
 		{

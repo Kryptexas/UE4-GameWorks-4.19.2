@@ -17,8 +17,8 @@ class UParticleModuleTrailBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Trail;	}
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Trail;	}
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

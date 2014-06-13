@@ -14,36 +14,36 @@ class FSequencerModule : public ISequencerModule
 {
 
 	/** ISequencerModule interface */
-	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene ) OVERRIDE
+	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene ) override
 	{
 		TSharedRef< FSequencer > Sequencer = MakeShareable(new FSequencer);
 		Sequencer->InitSequencer( RootMovieScene, nullptr, TrackEditorDelegates, false );
 		return Sequencer;
 	}
 	
-	virtual TSharedPtr<ISequencer> CreateSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, bool bEditWithinLevelEditor ) OVERRIDE
+	virtual TSharedPtr<ISequencer> CreateSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, bool bEditWithinLevelEditor ) override
 	{
 		TSharedRef< FSequencerAssetEditor > SequencerAssetEditor = MakeShareable(new FSequencerAssetEditor);
 		SequencerAssetEditor->InitSequencerAssetEditor( Mode, InitToolkitHost, InRootMovieScene, TrackEditorDelegates, bEditWithinLevelEditor );
 		return SequencerAssetEditor->GetSequencerInterface();
 	}
 
-	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) OVERRIDE
+	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.AddUnique( InOnCreateTrackEditor );
 	}
 
-	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) OVERRIDE
+	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) override
 	{
 		TrackEditorDelegates.Remove( InOnCreateTrackEditor );
 	}
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		FSequencerCommands::Register();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FSequencerCommands::Unregister();
 	}

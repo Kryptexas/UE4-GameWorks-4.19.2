@@ -28,42 +28,42 @@ public:
 	}
 
 	/** Begin IStatsPage interface */
-	virtual void Show( bool bInShow = true ) OVERRIDE
+	virtual void Show( bool bInShow = true ) override
 	{
 		bShow = bInShow;
 	}
 
-	virtual bool IsShowPending() const OVERRIDE
+	virtual bool IsShowPending() const override
 	{
 		return bShow;
 	}
 
-	virtual void Refresh( bool bInRefresh = true ) OVERRIDE
+	virtual void Refresh( bool bInRefresh = true ) override
 	{
 		bRefresh = bInRefresh;
 	}
 
-	virtual bool IsRefreshPending() const OVERRIDE
+	virtual bool IsRefreshPending() const override
 	{
 		return bRefresh;
 	}
 
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return Entry::StaticClass()->GetFName();
 	}
 
-	virtual const FText GetDisplayName() const OVERRIDE
+	virtual const FText GetDisplayName() const override
 	{
 		return Entry::StaticClass()->GetDisplayNameText();
 	}
 
-	virtual const FText GetToolTip() const OVERRIDE
+	virtual const FText GetToolTip() const override
 	{
 		return Entry::StaticClass()->GetToolTipText();
 	}
 
-	virtual int32 GetObjectSetCount() const OVERRIDE
+	virtual int32 GetObjectSetCount() const override
 	{
 		if(ObjectSetEnum != NULL)
 		{
@@ -72,7 +72,7 @@ public:
 		return 1;
 	}
 
-	virtual FString GetObjectSetName( int32 InObjectSetIndex ) const OVERRIDE
+	virtual FString GetObjectSetName( int32 InObjectSetIndex ) const override
 	{
 		if(ObjectSetEnum != NULL)
 		{
@@ -84,7 +84,7 @@ public:
 		return EmptyString;
 	}
 
-	virtual FString GetObjectSetToolTip( int32 InObjectSetIndex ) const OVERRIDE
+	virtual FString GetObjectSetToolTip( int32 InObjectSetIndex ) const override
 	{
 		if(ObjectSetEnum != NULL)
 		{
@@ -96,27 +96,27 @@ public:
 		return EmptyString;
 	}
 
-	virtual UClass* GetEntryClass() const OVERRIDE
+	virtual UClass* GetEntryClass() const override
 	{
 		return Entry::StaticClass();
 	}
 
-	virtual TSharedPtr<SWidget> GetCustomWidget( TWeakPtr< class IStatsViewer > InParentStatsViewer ) OVERRIDE
+	virtual TSharedPtr<SWidget> GetCustomWidget( TWeakPtr< class IStatsViewer > InParentStatsViewer ) override
 	{
 		return NULL;
 	}
 
-	virtual void SetSelectedObjectSet( int32 InObjectSetIndex ) OVERRIDE
+	virtual void SetSelectedObjectSet( int32 InObjectSetIndex ) override
 	{
 		ObjectSetIndex = InObjectSetIndex;
 	}
 
-	virtual int32 GetSelectedObjectSet() const OVERRIDE
+	virtual int32 GetSelectedObjectSet() const override
 	{
 		return ObjectSetIndex;
 	}
 
-	virtual void GetCustomColumns(TArray< TSharedRef< class IPropertyTableCustomColumn > >& OutCustomColumns) const OVERRIDE
+	virtual void GetCustomColumns(TArray< TSharedRef< class IPropertyTableCustomColumn > >& OutCustomColumns) const override
 	{
 	}
 	/** End IStatsPage interface */

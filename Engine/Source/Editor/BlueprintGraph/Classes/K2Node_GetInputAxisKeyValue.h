@@ -21,17 +21,17 @@ class UK2Node_GetInputAxisKeyValue : public UK2Node_CallFunction
 	uint32 bExecuteWhenPaused:1;
 
 	// Begin EdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual UClass* GetDynamicBindingClass() const OVERRIDE;
-	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const OVERRIDE;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual UClass* GetDynamicBindingClass() const override;
+	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
 	// End UK2Node interface
 	
 	void Initialize(const FKey AxisKey);

@@ -36,17 +36,17 @@ public:
 	/**
 	 * @return	The size of the viewport (thumbnail size)                   
 	 */
-	virtual FIntPoint GetSize() const OVERRIDE;
+	virtual FIntPoint GetSize() const override;
 
 	/**
 	 * @return The texture used to display the viewports content                  
 	 */
-	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
+	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
 
 	/**
 	 * Returns true if the viewport should be vsynced.
 	 */
-	virtual bool RequiresVsync() const OVERRIDE { return false; }
+	virtual bool RequiresVsync() const override { return false; }
 
 	/**
 	 * @return The object we are rendering the thumbnail for                

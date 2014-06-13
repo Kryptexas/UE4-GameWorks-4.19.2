@@ -107,11 +107,11 @@ public:
 
 	// Begin UObject interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void RebuildPhysicalMaterials();
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void FinishDestroy() override;
 	// End UObject interface
 
 #if WITH_PHYSX

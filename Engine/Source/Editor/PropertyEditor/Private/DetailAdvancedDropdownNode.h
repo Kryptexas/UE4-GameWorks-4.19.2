@@ -25,16 +25,16 @@ public:
 	{}
 private:
 	/** IDetailTreeNode Interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return ParentCategory.GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
-	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  OVERRIDE {}
-	virtual void OnItemExpansionChanged( bool bIsExpanded ) OVERRIDE {}
-	virtual bool ShouldBeExpanded() const OVERRIDE { return false; }
-	virtual ENodeVisibility::Type GetVisibility() const OVERRIDE { return ENodeVisibility::Visible; }
-	virtual void FilterNode( const FDetailFilter& InFilter ) OVERRIDE {}
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool ShouldShowOnlyChildren() const OVERRIDE { return false; }
-	virtual FName GetNodeName() const OVERRIDE { return NAME_None; }
+	virtual IDetailsViewPrivate& GetDetailsView() const override{ return ParentCategory.GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) override;
+	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren )  override {}
+	virtual void OnItemExpansionChanged( bool bIsExpanded ) override {}
+	virtual bool ShouldBeExpanded() const override { return false; }
+	virtual ENodeVisibility::Type GetVisibility() const override { return ENodeVisibility::Visible; }
+	virtual void FilterNode( const FDetailFilter& InFilter ) override {}
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool ShouldShowOnlyChildren() const override { return false; }
+	virtual FName GetNodeName() const override { return NAME_None; }
 
 	/** Called when the advanced drop down arrow is clicked */
 	FReply OnAdvancedDropDownClicked();

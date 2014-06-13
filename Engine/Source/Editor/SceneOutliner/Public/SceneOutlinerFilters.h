@@ -68,19 +68,19 @@ namespace SceneOutliner
 			ProxyFilter(TFilterPtr InFilter) : Filter(InFilter) {}
 
 			/** Returns whether the specified Item passes the Filter's restrictions */
-			virtual bool PassesFilter(const FOutlinerFilterProxy& InItem) const OVERRIDE
+			virtual bool PassesFilter(const FOutlinerFilterProxy& InItem) const override
 			{
 				return ProxyPassesFilter(InItem, Filter);
 			}
 
 			/** Get the on changed event - does nothing for this wrapper */
-			virtual FChangedEvent& OnChanged() OVERRIDE
+			virtual FChangedEvent& OnChanged() override
 			{
 				return ChangedEvent;
 			}
 
 			/** Override the relevant function that matches our type */
-			virtual bool MatchesWrappedFilter(TFilterPtr WrappedFilter) const OVERRIDE
+			virtual bool MatchesWrappedFilter(TFilterPtr WrappedFilter) const override
 			{
 				return WrappedFilter == Filter;
 			}

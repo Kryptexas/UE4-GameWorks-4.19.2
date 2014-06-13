@@ -361,7 +361,7 @@ public:
 	bool IsCubemap() const { return bCubemap; }
 
 	/** FRHITexture override.  See FRHITexture::GetNativeResource() */
-	virtual void* GetNativeResource() const OVERRIDE
+	virtual void* GetNativeResource() const override
 	{ 
 		return GetResource();
 	}

@@ -35,7 +35,7 @@ struct FPuppetActorInfo : public FBasePuppetInfo
 public:
 
 	/** @return Gets the type of puppet */
-	virtual EPuppetObjectType::Type GetType() const OVERRIDE
+	virtual EPuppetObjectType::Type GetType() const override
 	{
 		return EPuppetObjectType::Actor;
 	}
@@ -117,10 +117,10 @@ public:
 
 
 	/** ISequencerObjectSpawner interface */
-	virtual void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const bool bDestroyAll = false ) OVERRIDE;
-	virtual void DestroyAllPuppetObjects() OVERRIDE;
-	virtual FGuid FindSpawnableGuidForPuppetObject( UObject* Object ) OVERRIDE;
-	virtual UObject* FindPuppetObjectForSpawnableGuid( TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& Guid ) OVERRIDE;
+	virtual void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const bool bDestroyAll = false ) override;
+	virtual void DestroyAllPuppetObjects() override;
+	virtual FGuid FindSpawnableGuidForPuppetObject( UObject* Object ) override;
+	virtual UObject* FindPuppetObjectForSpawnableGuid( TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& Guid ) override;
 
 protected:
 

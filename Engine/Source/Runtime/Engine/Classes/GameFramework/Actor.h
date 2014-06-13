@@ -1036,22 +1036,22 @@ public:
 	FActorEndPlaySignature OnEndPlay;
 	
 	// Begin UObject Interface
-	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
-	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
-	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
-	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) OVERRIDE;
+	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) override;
+	virtual void PostInitProperties() override;
+	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
+	virtual void ProcessEvent( UFunction* Function, void* Parameters ) override;
+	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) override;
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) override;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
 
 	struct FActorRootComponentReconstructionData
 	{
@@ -1090,8 +1090,8 @@ public:
 	/* Cached pointer to the transaction annotation data from PostEditUndo to be used in the next RerunConstructionScript */
 	TSharedPtr<FActorTransactionAnnotation> CurrentTransactionAnnotation;
 
-	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const OVERRIDE;
-	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation) OVERRIDE;
+	virtual TSharedPtr<ITransactionObjectAnnotation> GetTransactionAnnotation() const override;
+	virtual void PostEditUndo(TSharedPtr<ITransactionObjectAnnotation> TransactionAnnotation) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -1444,19 +1444,19 @@ public:
 	virtual void LifeSpanExpired();
 
 	// Always called immediately before properties are received from the remote.
-	virtual void PreNetReceive() OVERRIDE;
+	virtual void PreNetReceive() override;
 	
 	// Always called immediately after properties are received from the remote.
-	virtual void PostNetReceive() OVERRIDE;
+	virtual void PostNetReceive() override;
 
 	/** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
-	virtual bool IsNameStableForNetworking() const OVERRIDE;
+	virtual bool IsNameStableForNetworking() const override;
 
 	/** IsSupportedForNetworking means an object can be referenced over the network */
-	virtual bool IsSupportedForNetworking() const OVERRIDE;
+	virtual bool IsSupportedForNetworking() const override;
 
 	/** Returns a list of sub-objects that have stable names for networking */
-	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) OVERRIDE;
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*> &ObjList) override;
 
 	// Always called immediately after spawning and reading in replicated properties
 	virtual void PostNetInit();
@@ -1783,7 +1783,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	private:
 	// this is the old name of the tick function. We just want to avoid mistakes with an attempt to override this
-	virtual void Tick( float DeltaTime, enum ELevelTick TickType ) FINAL
+	virtual void Tick( float DeltaTime, enum ELevelTick TickType ) final
 	{
 		check(0);
 	}
@@ -1982,7 +1982,7 @@ public:
 	bool IsInPersistentLevel(bool bIncludeLevelStreamingPersistent = false) const;
 
 	/** Getter for the cached world pointer */
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 
 	/** Get the timer instance from the actors world */
 	class FTimerManager& GetWorldTimerManager() const;
@@ -2144,7 +2144,7 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false) { return Super::SetActorLocation(NewLocation, bSweep); } \
 	bool SetActorRotation(FRotator NewRotation) { return Super::SetActorRotation(NewRotation); } \
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false) { return Super::SetActorLocationAndRotation(NewLocation, NewRotation, bSweep); } \
-	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) OVERRIDE { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
-	virtual FVector GetVelocity() const OVERRIDE { return Super::GetVelocity(); } \
+	virtual bool TeleportTo( const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest, bool bNoCheck ) override { return Super::TeleportTo(DestLocation, DestRotation, bIsATest, bNoCheck); } \
+	virtual FVector GetVelocity() const override { return Super::GetVelocity(); } \
 	float GetDistanceTo(AActor* OtherActor) { return Super::GetDistanceTo(OtherActor); }
 

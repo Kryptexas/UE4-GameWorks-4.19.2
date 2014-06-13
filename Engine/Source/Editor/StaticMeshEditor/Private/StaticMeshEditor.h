@@ -18,8 +18,8 @@ public:
 
 	~FStaticMeshEditor();
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	/**
 	 * Edits the specified static mesh object
@@ -34,31 +34,31 @@ public:
 	TSharedRef<class IDetailCustomization> MakeStaticMeshDetails();
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 
 	/** @return the documentation location for this editor */
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Engine/Content/Types/StaticMeshes/Editor"));
 	}
 
 	/** @return Returns the color and opacity to use for the color that appears behind the tab text for this toolkit's tab in world-centric mode. */
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** IStaticMeshEditor interface */
 	virtual UStaticMesh* GetStaticMesh() { return StaticMesh; }
-	virtual UStaticMeshComponent* GetStaticMeshComponent() const OVERRIDE;
+	virtual UStaticMeshComponent* GetStaticMeshComponent() const override;
 
-	virtual UStaticMeshSocket* GetSelectedSocket() const OVERRIDE ;
-	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) OVERRIDE;
-	virtual void DuplicateSelectedSocket() OVERRIDE;
-	virtual void RequestRenameSelectedSocket() OVERRIDE;
+	virtual UStaticMeshSocket* GetSelectedSocket() const override ;
+	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) override;
+	virtual void DuplicateSelectedSocket() override;
+	virtual void RequestRenameSelectedSocket() override;
 
 	virtual bool IsPrimValid(const FPrimData& InPrimData) const override;
 	virtual bool HasSelectedPrims() const;
@@ -76,34 +76,34 @@ public:
 	FTransform GetPrimTransform(const FPrimData& InPrimData) const;
 	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const;
 
-	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const OVERRIDE;
-	virtual int32 GetNumVertices( int32 LODLevel = 0 ) const OVERRIDE;
-	virtual int32 GetNumUVChannels( int32 LODLevel = 0 ) const OVERRIDE;
+	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const override;
+	virtual int32 GetNumVertices( int32 LODLevel = 0 ) const override;
+	virtual int32 GetNumUVChannels( int32 LODLevel = 0 ) const override;
 
-	virtual int32 GetCurrentUVChannel() OVERRIDE;
-	virtual int32 GetCurrentLODLevel() OVERRIDE;
-	virtual int32 GetCurrentLODIndex() OVERRIDE;
+	virtual int32 GetCurrentUVChannel() override;
+	virtual int32 GetCurrentLODLevel() override;
+	virtual int32 GetCurrentLODIndex() override;
 
-	virtual void RefreshTool() OVERRIDE;
-	virtual void RefreshViewport() OVERRIDE;
+	virtual void RefreshTool() override;
+	virtual void RefreshViewport() override;
 
 	/** This is called when Apply is pressed in the dialog. Does the actual processing. */
-	virtual void DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts) OVERRIDE;
+	virtual void DoDecomp(int32 InMaxHullCount, int32 InMaxHullVerts) override;
 
-	virtual TSet< int32 >& GetSelectedEdges() OVERRIDE;
+	virtual TSet< int32 >& GetSelectedEdges() override;
 	// End of IStaticMeshEditor
 	
 	/** Extends the toolbar menu to include static mesh editor options */
 	void ExtendMenu();
 
 	/** Registers a delegate to be called after an Undo operation */
-	virtual void RegisterOnPostUndo( const FOnPostUndo& Delegate ) OVERRIDE;
+	virtual void RegisterOnPostUndo( const FOnPostUndo& Delegate ) override;
 
 	/** Unregisters a delegate to be called after an Undo operation */
-	virtual void UnregisterOnPostUndo( SWidget* Widget ) OVERRIDE;
+	virtual void UnregisterOnPostUndo( SWidget* Widget ) override;
 	
 	/** From FNotifyHook */
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) OVERRIDE;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 	
 	/** Get the names of the LOD for menus */
 	TArray< TSharedPtr< FString > >& GetLODLevels() { return LODLevels; }
@@ -223,12 +223,12 @@ private:
 	void OnConvexDecomposition();
 
 	// Begin FAssetEditorToolkit interface.
-	virtual bool OnRequestClose() OVERRIDE;
+	virtual bool OnRequestClose() override;
 	// End FAssetEditorToolkit interface.
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo( bool bSuccess ) OVERRIDE;
-	virtual void PostRedo( bool bSuccess ) OVERRIDE;
+	virtual void PostUndo( bool bSuccess ) override;
+	virtual void PostRedo( bool bSuccess ) override;
 	// End of FEditorUndoClient
 
 	/** Undo Action**/

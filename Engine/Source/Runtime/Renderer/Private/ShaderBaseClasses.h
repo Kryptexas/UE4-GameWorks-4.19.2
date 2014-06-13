@@ -343,7 +343,7 @@ public:
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar);
-	virtual uint32 GetAllocatedSize() const OVERRIDE;
+	virtual uint32 GetAllocatedSize() const override;
 
 private:
 
@@ -435,7 +435,7 @@ public:
 	// FShader interface.
 	virtual const FVertexFactoryParameterRef* GetVertexFactoryParameterRef() const { return &VertexFactoryParameters; }
 	virtual bool Serialize(FArchive& Ar);
-	virtual uint32 GetAllocatedSize() const OVERRIDE;
+	virtual uint32 GetAllocatedSize() const override;
 
 private:
 	FVertexFactoryParameterRef VertexFactoryParameters;

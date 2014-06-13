@@ -32,6 +32,6 @@ protected:
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 };

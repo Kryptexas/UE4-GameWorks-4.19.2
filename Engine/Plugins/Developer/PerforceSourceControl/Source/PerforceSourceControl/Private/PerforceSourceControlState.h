@@ -56,28 +56,28 @@ public:
 	}
 
 	/** ISourceControlState interface */
-	virtual int32 GetHistorySize() const OVERRIDE;
-	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const OVERRIDE;
-	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const OVERRIDE;
-	virtual FName GetIconName() const OVERRIDE;
-	virtual FName GetSmallIconName() const OVERRIDE;
-	virtual FText GetDisplayName() const OVERRIDE;
-	virtual FText GetDisplayTooltip() const OVERRIDE;
-	virtual const FString& GetFilename() const OVERRIDE;
-	virtual const FDateTime& GetTimeStamp() const OVERRIDE;
-	virtual bool CanCheckIn() const OVERRIDE;
-	virtual bool CanCheckout() const OVERRIDE;
-	virtual bool IsCheckedOut() const OVERRIDE;
-	virtual bool IsCheckedOutOther(FString* Who = NULL) const OVERRIDE;
-	virtual bool IsCurrent() const OVERRIDE;
-	virtual bool IsSourceControlled() const OVERRIDE;
-	virtual bool IsAdded() const OVERRIDE;
-	virtual bool IsDeleted() const OVERRIDE;
-	virtual bool IsIgnored() const OVERRIDE;
-	virtual bool CanEdit() const OVERRIDE;
-	virtual bool IsUnknown() const OVERRIDE;
-	virtual bool IsModified() const OVERRIDE;
-	virtual bool CanAdd() const OVERRIDE;
+	virtual int32 GetHistorySize() const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const override;
+	virtual FName GetIconName() const override;
+	virtual FName GetSmallIconName() const override;
+	virtual FText GetDisplayName() const override;
+	virtual FText GetDisplayTooltip() const override;
+	virtual const FString& GetFilename() const override;
+	virtual const FDateTime& GetTimeStamp() const override;
+	virtual bool CanCheckIn() const override;
+	virtual bool CanCheckout() const override;
+	virtual bool IsCheckedOut() const override;
+	virtual bool IsCheckedOutOther(FString* Who = NULL) const override;
+	virtual bool IsCurrent() const override;
+	virtual bool IsSourceControlled() const override;
+	virtual bool IsAdded() const override;
+	virtual bool IsDeleted() const override;
+	virtual bool IsIgnored() const override;
+	virtual bool CanEdit() const override;
+	virtual bool IsUnknown() const override;
+	virtual bool IsModified() const override;
+	virtual bool CanAdd() const override;
 
 	/** Get the state of a file */
 	EPerforceState::Type GetState() const

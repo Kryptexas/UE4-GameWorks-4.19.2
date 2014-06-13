@@ -22,16 +22,16 @@ public:
 	 * @param	InStart				Where the mouse was when the drag started (world space).
 	 * @param	InStartScreen		Where the mouse was when the drag started (screen space).
 	 */
-	virtual void StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen) OVERRIDE;
+	virtual void StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen) override;
 
 	/* Updates the drag tool's end location with the specified delta.  The end location is
 	 * snapped to the editor constraints if bUseSnapping is true.
 	 *
 	 * @param	InDelta		A delta of mouse movement.
 	 */
-	virtual void AddDelta(const FVector& InDelta) OVERRIDE;
+	virtual void AddDelta(const FVector& InDelta) override;
 
-	virtual void Render(const FSceneView* View,FCanvas* Canvas) OVERRIDE;
+	virtual void Render(const FSceneView* View,FCanvas* Canvas) override;
 
 private:
 	/**

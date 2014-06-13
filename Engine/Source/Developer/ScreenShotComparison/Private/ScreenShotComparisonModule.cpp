@@ -17,7 +17,7 @@ class FScreenShotComparisonModule
 	: public IScreenShotComparisonModule
 {
 public:
-	virtual TSharedRef<class SWidget> CreateScreenShotComparison( const IScreenShotManagerRef& ScreenShotManager ) OVERRIDE
+	virtual TSharedRef<class SWidget> CreateScreenShotComparison( const IScreenShotManagerRef& ScreenShotManager ) override
 	{
 		return SNew(SScreenShotBrowser, ScreenShotManager);
 	}

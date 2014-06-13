@@ -240,9 +240,9 @@ public:
 	/**
 	 * FTickableEditorObject interface used by cook on the side
 	 */
-	TStatId GetStatId() const OVERRIDE;
-	 void Tick(float DeltaTime) OVERRIDE;
-	 bool IsTickable() const OVERRIDE;
+	TStatId GetStatId() const override;
+	 void Tick(float DeltaTime) override;
+	 bool IsTickable() const override;
 
 
 
@@ -299,7 +299,7 @@ public:
 	
 
 
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	
 
 

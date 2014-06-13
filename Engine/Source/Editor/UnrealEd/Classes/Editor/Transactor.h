@@ -130,7 +130,7 @@ protected:
 				ArIsLoading = ArIsTransacting = 1;
 			}
 
-			virtual int64 Tell() OVERRIDE {return Offset;}
+			virtual int64 Tell() override {return Offset;}
 			virtual void Seek( int64 InPos ) { Offset = InPos; }
 
 		private:
@@ -203,7 +203,7 @@ protected:
 				ArIsSaving = ArIsTransacting = 1;
 			}
 
-			virtual int64 Tell() OVERRIDE {return Offset;}
+			virtual int64 Tell() override {return Offset;}
 			virtual void Seek( int64 InPos ) 
 			{
 				checkSlow(Offset<=Data.Num());

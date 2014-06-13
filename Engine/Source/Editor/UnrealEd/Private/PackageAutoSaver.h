@@ -15,16 +15,16 @@ public:
 	virtual ~FPackageAutoSaver();
 
 	/** IPackageAutoSaver */
-	virtual void UpdateAutoSaveCount(const float DeltaSeconds) OVERRIDE;
-	virtual void ResetAutoSaveTimer() OVERRIDE;
-	virtual void ForceAutoSaveTimer() OVERRIDE;
-	virtual void ForceMinimumTimeTillAutoSave(const float TimeTillAutoSave = 10.0f) OVERRIDE;
-	virtual void AttemptAutoSave() OVERRIDE;
-	virtual void LoadRestoreFile() OVERRIDE;
-	virtual void UpdateRestoreFile(const bool bRestoreEnabled) const OVERRIDE;
-	virtual bool HasPackagesToRestore() const OVERRIDE;
-	virtual void OfferToRestorePackages() OVERRIDE;
-	virtual bool IsAutoSaving() const OVERRIDE
+	virtual void UpdateAutoSaveCount(const float DeltaSeconds) override;
+	virtual void ResetAutoSaveTimer() override;
+	virtual void ForceAutoSaveTimer() override;
+	virtual void ForceMinimumTimeTillAutoSave(const float TimeTillAutoSave = 10.0f) override;
+	virtual void AttemptAutoSave() override;
+	virtual void LoadRestoreFile() override;
+	virtual void UpdateRestoreFile(const bool bRestoreEnabled) const override;
+	virtual bool HasPackagesToRestore() const override;
+	virtual void OfferToRestorePackages() override;
+	virtual bool IsAutoSaving() const override
 	{
 		return bIsAutoSaving;
 	}

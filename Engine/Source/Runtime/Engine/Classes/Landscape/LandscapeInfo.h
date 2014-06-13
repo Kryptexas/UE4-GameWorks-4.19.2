@@ -150,10 +150,10 @@ public:
 	TMap<FIntPoint,float> SelectedRegion;
 
 	// Begin UObject Interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditUndo() override;
 	// End UObject Interface
 
 	// @todo document 

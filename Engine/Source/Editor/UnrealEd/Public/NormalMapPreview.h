@@ -19,5 +19,5 @@ class UNREALED_API FNormalMapBatchedElementParameters : public FBatchedElementPa
 		const FMatrix& InTransform,
 		const float InGamma,
 		const FMatrix& ColorWeights,
-		const FTexture* Texture) OVERRIDE;
+		const FTexture* Texture) override;
 };

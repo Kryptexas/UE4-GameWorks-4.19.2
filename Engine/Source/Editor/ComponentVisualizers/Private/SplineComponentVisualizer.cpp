@@ -23,7 +23,7 @@ public:
 	{
 	}
 
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(DeleteKey, "Delete key", "Delete the currently selected key.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete));
 		UI_COMMAND(DuplicateKey, "Duplicate key", "Duplicates the currently selected key.", EUserInterfaceActionType::Button, FInputGesture());

@@ -13,9 +13,9 @@ public:
 	~FTileItemThumbnail();
 
 	/* ISlateViewport interface */
-	virtual FIntPoint GetSize() const OVERRIDE;
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
-	virtual bool RequiresVsync() const OVERRIDE;
+	virtual FIntPoint GetSize() const override;
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override;
+	virtual bool RequiresVsync() const override;
 	
 	/** Request thumbnail redraw*/
 	void UpdateThumbnail();
@@ -54,10 +54,10 @@ public:
 	void Construct(const FArguments& InArgs);
 	
 	// SNodePanel::SNode interface start
-	virtual FVector2D GetDesiredSizeForMarquee() const OVERRIDE;
-	virtual UObject* GetObjectBeingDisplayed() const OVERRIDE;
-	virtual FVector2D GetPosition() const OVERRIDE;
-	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const OVERRIDE;
+	virtual FVector2D GetDesiredSizeForMarquee() const override;
+	virtual UObject* GetObjectBeingDisplayed() const override;
+	virtual FVector2D GetPosition() const override;
+	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
 	// SNodePanel::SNode interface end
 	
 	/** @return Deferred item refresh */
@@ -86,13 +86,13 @@ public:
 
 private:
 	// SWidget interface start
-	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
-	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() override;
+	virtual FVector2D ComputeDesiredSize() const override;
+	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override;
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
 					FSlateWindowElementList& OutDrawElements, int32 LayerId, 
-					const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const OVERRIDE;
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) OVERRIDE;
+					const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
 	// SWidget interface end
 
 	TSharedRef<SToolTip> CreateToolTipWidget();

@@ -572,11 +572,11 @@ public:
 	}
 
 	// BEGIN IFileHandle Interface
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		return ReadPos;
 	}
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		if (NewPosition > PakEntry.Size || NewPosition < 0)
 		{
@@ -585,11 +585,11 @@ public:
 		ReadPos = NewPosition;
 		return true;
 	}
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
 		return Seek(PakEntry.Size - NewPositionRelativeToEnd);
 	}
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		// Check that the file header is OK
 		if (!PakEntry.Verified)
@@ -621,12 +621,12 @@ public:
 			return false;
 		}
 	}
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		// Writing in pak files is not allowed.
 		return false;
 	}
-	virtual int64 Size() OVERRIDE
+	virtual int64 Size() override
 	{
 		return PakEntry.Size;
 	}
@@ -752,15 +752,15 @@ public:
 	 */
 	virtual ~FPakPlatformFile();
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE;
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE;
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
 
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return FPakPlatformFile::GetTypeName();
 	}
@@ -818,7 +818,7 @@ public:
 	}
 
 	// BEGIN IPlatformFile Interface
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		// Check pak files first.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -830,7 +830,7 @@ public:
 		return Result;
 	}
 
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		// Check pak files first
 		const FPakEntry* FileEntry = FindFileInPakFiles(Filename);
@@ -843,7 +843,7 @@ public:
 		return Result;
 	}
 
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		// If file exists in pak file it will never get deleted.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -855,7 +855,7 @@ public:
 		return Result;
 	}
 
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		// Files in pak file are always read-only.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -867,7 +867,7 @@ public:
 		return Result;
 	}
 
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// Files which exist in pak files can't be moved
 		if (FindFileInPakFiles(From) != NULL)
@@ -879,7 +879,7 @@ public:
 		return Result;
 	}
 
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		// Files in pak file will never change their read-only flag.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -892,7 +892,7 @@ public:
 		return Result;
 	}
 
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// Check pak files first.
 		FPakFile* PakFile = NULL;
@@ -905,7 +905,7 @@ public:
 		return Result;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		// No modifications allowed on files from pak (although we could theoretically allow this one).
 		if (FindFileInPakFiles(Filename) == NULL)
@@ -914,7 +914,7 @@ public:
 		}
 	}
 
-	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		// AccessTimestamp not yet supported in pak files (although it is possible).
 		FPakFile* PakFile = NULL;
@@ -927,9 +927,9 @@ public:
 		return Result;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE;
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override;
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		// No modifications allowed on pak files.
 		if (FindFileInPakFiles(Filename) != NULL)
@@ -940,7 +940,7 @@ public:
 		return LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 	}
 
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		// Check pak files first.
 		if (DirectoryExistsInPakFiles(Directory))
@@ -952,13 +952,13 @@ public:
 		return Result;
 	}
 
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 		// Directories can be created only under the normal path
 		return LowerLevel->CreateDirectory(Directory);
 	}
 
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 		// Even if the same directory exists outside of pak files it will never
 		// get truely deleted from pak and will still be reported by Iterate functions.
@@ -1011,7 +1011,7 @@ public:
 		}
 	};
 
-	virtual bool IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		bool Result = true;
 		TSet<FString> FilesVisitedInPak;
@@ -1066,7 +1066,7 @@ public:
 		return Result;
 	}
 
-	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		TSet<FString> FilesVisitedInPak;
 		TArray<FPakFile*> Paks;
@@ -1075,7 +1075,7 @@ public:
 		return IPlatformFile::IterateDirectoryRecursively(Directory, PakVisitor);
 	}
 
-	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		// Can't delete directories existing in pak files. See DeleteDirectory(..) for more info.
 		if (DirectoryExistsInPakFiles(Directory))
@@ -1086,13 +1086,13 @@ public:
 		return LowerLevel->DeleteDirectoryRecursively(Directory);
 	}
 
-	virtual bool CreateDirectoryTree(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectoryTree(const TCHAR* Directory) override
 	{
 		// Directories can only be created only under the normal path
 		return LowerLevel->CreateDirectoryTree(Directory);
 	}
 
-	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE;
+	virtual bool CopyFile(const TCHAR* To, const TCHAR* From) override;
 
 	/**
 	 * Converts a filename to a path inside pak file.
@@ -1107,7 +1107,7 @@ public:
 		return RelativeFilename.Mid(Pak->GetMountPoint().Len());
 	}
 
-	FString ConvertToAbsolutePathForExternalAppForRead(const TCHAR* Filename) OVERRIDE
+	FString ConvertToAbsolutePathForExternalAppForRead(const TCHAR* Filename) override
 	{
 		// Check in Pak file first
 		FPakFile* Pak = NULL;
@@ -1121,7 +1121,7 @@ public:
 		}
 	}
 
-	FString ConvertToAbsolutePathForExternalAppForWrite(const TCHAR* Filename) OVERRIDE
+	FString ConvertToAbsolutePathForExternalAppForWrite(const TCHAR* Filename) override
 	{
 		// Check in Pak file first
 		FPakFile* Pak = NULL;

@@ -14,10 +14,10 @@ class UBlackboardKeyType_Enum : public UBlackboardKeyType
 	static uint8 GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, uint8 Value);
 
-	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
-	virtual FString DescribeSelf() const OVERRIDE;
-	virtual bool IsAllowedByFilter(UBlackboardKeyType* FilterOb) const OVERRIDE;
-	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
-	virtual bool TestArithmeticOperation(const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const OVERRIDE;
-	virtual FString DescribeArithmeticParam(int32 IntValue, float FloatValue) const OVERRIDE;
+	virtual FString DescribeValue(const uint8* RawData) const override;
+	virtual FString DescribeSelf() const override;
+	virtual bool IsAllowedByFilter(UBlackboardKeyType* FilterOb) const override;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const override;
+	virtual bool TestArithmeticOperation(const uint8* MemoryBlock, EArithmeticKeyOperation::Type Op, int32 OtherIntValue, float OtherFloatValue) const override;
+	virtual FString DescribeArithmeticParam(int32 IntValue, float FloatValue) const override;
 };

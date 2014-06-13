@@ -62,7 +62,7 @@ public:
 	int32 CurrentPlayCount;
 
 	// Begin UObject interface.
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject interface.
 	
 	/** Returns whether the sound base is set up in a playable manner */

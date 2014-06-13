@@ -16,47 +16,47 @@ IMPLEMENT_MODULE( FWorkspaceMenuStructureModule, WorkspaceMenuStructure );
 class FWorkspaceMenuStructure : public IWorkspaceMenuStructure
 {
 public:
-	virtual TSharedRef<FWorkspaceItem> GetStructureRoot() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetStructureRoot() const override
 	{
 		return MenuRoot.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetAssetEditorCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetAssetEditorCategory() const override
 	{
 		return AssetEditorCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetLevelEditorCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetLevelEditorCategory() const override
 	{
 		return LevelEditorCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetLevelEditorViewportsCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetLevelEditorViewportsCategory() const override
 	{
 		return LevelEditorViewportsCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetLevelEditorDetailsCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetLevelEditorDetailsCategory() const override
 	{
 		return LevelEditorDetailsCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetLevelEditorModesCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetLevelEditorModesCategory() const override
 	{
 		return LevelEditorModesCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetToolsCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetToolsCategory() const override
 	{
 		return ToolsCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsCategory() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetDeveloperToolsCategory() const override
 	{
 		return DeveloperToolsCategory.ToSharedRef();
 	}
 
-	virtual TSharedRef<FWorkspaceItem> GetEditOptions() const OVERRIDE
+	virtual TSharedRef<FWorkspaceItem> GetEditOptions() const override
 	{
 		return EditOptions.ToSharedRef();
 	}

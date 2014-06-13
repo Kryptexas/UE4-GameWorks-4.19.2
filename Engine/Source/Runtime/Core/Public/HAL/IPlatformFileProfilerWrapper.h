@@ -146,28 +146,28 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Tell ) );
 		int64 Result = FileHandle->Tell();
 		Stat->Duration += FPlatformTime::Seconds() * 1000.0 - Stat->LastOpTime;
 		return Result;
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Seek ) );
 		bool Result = FileHandle->Seek(NewPosition);
 		Stat->Duration += FPlatformTime::Seconds() * 1000.0 - Stat->LastOpTime;
 		return Result;
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Seek ) );
 		bool Result = FileHandle->SeekFromEnd(NewPositionRelativeToEnd);
 		Stat->Duration += FPlatformTime::Seconds() * 1000.0 - Stat->LastOpTime;
 		return Result;
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Read ) );
 		bool Result = FileHandle->Read(Destination, BytesToRead);
@@ -175,7 +175,7 @@ public:
 		Stat->Bytes += BytesToRead;
 		return Result;
 	}
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Write ) );
 		bool Result = FileHandle->Write(Source, BytesToWrite);
@@ -183,7 +183,7 @@ public:
 		Stat->Bytes += BytesToWrite;
 		return Result;
 	}
-	virtual int64		Size() OVERRIDE
+	virtual int64		Size() override
 	{
 		FProfiledFileStatsOp* Stat( FileStats->CreateOpStat( FProfiledFileStatsOp::Size ) );
 		int64 Result = FileHandle->Size();
@@ -213,12 +213,12 @@ public:
 	{
 	}
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return false;
 	}
 
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Inner is required.
 		check(Inner != NULL);
@@ -227,7 +227,7 @@ public:
 		return !!LowerLevel;
 	}
 
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
@@ -275,11 +275,11 @@ public:
 	{
 		return NULL;
 	}
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return TProfiledPlatformFile::GetTypeName();
 	}
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Exists );
@@ -287,7 +287,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Size );
@@ -295,7 +295,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Delete );
@@ -303,7 +303,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::IsReadOnly );
@@ -311,7 +311,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		StatsType* FileStat = CreateStat( From );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Move );
@@ -319,7 +319,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::SetReadOnly );
@@ -327,7 +327,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::GetTimeStamp );
@@ -336,7 +336,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::SetTimeStamp );
@@ -344,7 +344,7 @@ public:
 		LowerLevel->SetTimeStamp(Filename, DateTime);
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 	}
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::GetTimeStamp );
@@ -353,7 +353,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::OpenRead );
@@ -361,7 +361,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result ? (new TProfiledFileHandle< StatsType >( Result, Filename, FileStat )) : Result;
 	}
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		StatsType* FileStat = CreateStat( Filename );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::OpenWrite );
@@ -370,7 +370,7 @@ public:
 		return Result ? (new TProfiledFileHandle< StatsType >( Result, Filename, FileStat )) : Result;
 	}
 
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool		DirectoryExists(const TCHAR* Directory) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Exists );
@@ -378,7 +378,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectory(const TCHAR* Directory) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Create );
@@ -386,7 +386,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Delete );
@@ -395,7 +395,7 @@ public:
 		return Result;
 	}
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Iterate );
@@ -403,7 +403,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Iterate );
@@ -411,7 +411,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		StatsType* FileStat = CreateStat( Directory );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Delete );
@@ -419,7 +419,7 @@ public:
 		OpStat->Duration += FPlatformTime::Seconds() * 1000.0 - OpStat->LastOpTime;
 		return Result;
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
 	{
 		StatsType* FileStat = CreateStat( From );
 		FProfiledFileStatsOp* OpStat = FileStat->CreateOpStat( FProfiledFileStatsOp::Copy );
@@ -462,24 +462,24 @@ public:
 	{
 	}
 
-	virtual int64		Tell() OVERRIDE
+	virtual int64		Tell() override
 	{
 		return FileHandle->Tell();
 	}
-	virtual bool		Seek(int64 NewPosition) OVERRIDE
+	virtual bool		Seek(int64 NewPosition) override
 	{
 		return FileHandle->Seek(NewPosition);
 	}
-	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) OVERRIDE
+	virtual bool		SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
 		return FileHandle->SeekFromEnd(NewPositionRelativeToEnd);
 	}
-	virtual bool		Read(uint8* Destination, int64 BytesToRead) OVERRIDE;
-	virtual bool		Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool		Read(uint8* Destination, int64 BytesToRead) override;
+	virtual bool		Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		return FileHandle->Write(Source, BytesToWrite);
 	}
-	virtual int64		Size() OVERRIDE
+	virtual int64		Size() override
 	{
 		return FileHandle->Size();
 	}
@@ -510,7 +510,7 @@ public:
 	{
 	}
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 #if STATS
 		bool bResult = FParse::Param(CmdLine, TEXT("FileReadStats"));
@@ -520,9 +520,9 @@ public:
 #endif
 	}
 
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE;
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
 	bool Tick(float Delta);
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
@@ -530,83 +530,83 @@ public:
 	{
 		return TEXT("FileReadStats");
 	}
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return GetTypeName();
 	}
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		return LowerLevel->FileExists(Filename);
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		return LowerLevel->FileSize(Filename);
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override
 	{
 		return LowerLevel->DeleteFile(Filename);
 	}
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		return LowerLevel->IsReadOnly(Filename);
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return LowerLevel->MoveFile(To, From);
 	}
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		return LowerLevel->SetReadOnly(Filename, bNewReadOnlyValue);
 	}
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		return LowerLevel->GetTimeStamp(Filename);
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		LowerLevel->SetTimeStamp(Filename, DateTime);
 	}
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		return LowerLevel->GetAccessTimeStamp(Filename);
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		IFileHandle* Result = LowerLevel->OpenRead(Filename);
 		return Result ? (new FPlatformFileReadStatsHandle(Result, Filename, &BytePerSecThisTick, &BytesReadThisTick, &ReadsThisTick)) : Result;
 	}
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		IFileHandle* Result = LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 		return Result ? (new FPlatformFileReadStatsHandle(Result, Filename, &BytePerSecThisTick, &BytesReadThisTick, &ReadsThisTick)) : Result;
 	}
 
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool		DirectoryExists(const TCHAR* Directory) override
 	{
 		return LowerLevel->DirectoryExists(Directory);
 	}
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectory(const TCHAR* Directory) override
 	{
 		return LowerLevel->CreateDirectory(Directory);
 	}
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override
 	{
 		return LowerLevel->DeleteDirectory(Directory);
 	}
 
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		return LowerLevel->IterateDirectory( Directory, Visitor );
 	}
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		return LowerLevel->IterateDirectoryRecursively( Directory, Visitor );
 	}
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		return LowerLevel->DeleteDirectoryRecursively( Directory );
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return LowerLevel->CopyFile( To, From );
 	}

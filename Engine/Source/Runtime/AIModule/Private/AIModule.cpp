@@ -9,10 +9,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogAIModule, Log, All);
 class FAIModule : public IAIModule
 {
 	// Begin IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	
-	virtual UAISystemBase* CreateAISystemInstance(UWorld* World) OVERRIDE;
+	virtual UAISystemBase* CreateAISystemInstance(UWorld* World) override;
 	// End IModuleInterface
 };
 

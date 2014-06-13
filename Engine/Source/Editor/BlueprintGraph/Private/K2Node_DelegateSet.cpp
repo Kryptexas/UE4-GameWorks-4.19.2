@@ -20,7 +20,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		UK2Node_DelegateSet* DelegateNode = Cast<UK2Node_DelegateSet>(Node);
 		if( DelegateNode )
@@ -83,7 +83,7 @@ public:
 		}
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		const UK2Node_DelegateSet* DelegateNode = Cast<UK2Node_DelegateSet>(Node);
 		check(DelegateNode);

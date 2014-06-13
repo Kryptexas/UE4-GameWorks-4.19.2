@@ -15,7 +15,7 @@ class UInterpTrackInstDirector : public UInterpTrackInst
 
 
 	// Begin UInterpTrackInst Instance
-	virtual void TermTrackInst(class UInterpTrack* Track) OVERRIDE;
+	virtual void TermTrackInst(class UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

@@ -117,12 +117,12 @@ public:
 
 	// Begin FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		Status = ELauncherTaskStatus::Busy;
 
@@ -159,12 +159,12 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Cancel();
 	}
 
-	virtual void Exit( ) OVERRIDE { }
+	virtual void Exit( ) override { }
 
 	// End FRunnable interface
 
@@ -172,7 +172,7 @@ public:
 
 	// Begin ILauncherTask interface
 
-	virtual void Cancel( ) OVERRIDE
+	virtual void Cancel( ) override
 	{
 		if (Status == ELauncherTaskStatus::Busy)
 		{
@@ -186,7 +186,7 @@ public:
 		CancelContinuations();
 	}
 
-	virtual FTimespan GetDuration( ) const OVERRIDE
+	virtual FTimespan GetDuration( ) const override
 	{
 		if (Status == ELauncherTaskStatus::Pending)
 		{
@@ -201,34 +201,34 @@ public:
 		return (EndTime - StartTime);
 	}
 
-	virtual const FString& GetName( ) const OVERRIDE
+	virtual const FString& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual const FString& GetDesc( ) const OVERRIDE
+	virtual const FString& GetDesc( ) const override
 	{
 		return Desc;
 	}
 
-	virtual ELauncherTaskStatus::Type GetStatus( ) const OVERRIDE
+	virtual ELauncherTaskStatus::Type GetStatus( ) const override
 	{
 		return Status;
 	}
 
-	virtual bool IsFinished( ) const OVERRIDE
+	virtual bool IsFinished( ) const override
 	{
 		return ((Status == ELauncherTaskStatus::Canceled) ||
 				(Status == ELauncherTaskStatus::Completed) ||
 				(Status == ELauncherTaskStatus::Failed));
 	}
 
-	virtual FOnTaskStartedDelegate& OnStarted() OVERRIDE
+	virtual FOnTaskStartedDelegate& OnStarted() override
 	{
 		return TaskStarted;
 	}
 
-	virtual FOnTaskCompletedDelegate& OnCompleted() OVERRIDE
+	virtual FOnTaskCompletedDelegate& OnCompleted() override
 	{
 		return TaskCompleted;
 	}

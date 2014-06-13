@@ -247,10 +247,10 @@ public:
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::KeyArea; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::KeyArea; }
+	virtual float GetNodeHeight() const override;
+	virtual FString GetDisplayName() const override { return DisplayName; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 
 	/**
 	 * Adds a key area to this node
@@ -303,12 +303,12 @@ public:
 	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Track; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
-	virtual bool IsSelectable() const OVERRIDE { return true; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
-	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Track; }
+	virtual float GetNodeHeight() const override;
+	virtual FString GetDisplayName() const override;
+	virtual bool IsSelectable() const override { return true; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
+	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
 
 	/**
 	 * Adds a section to this node
@@ -376,11 +376,11 @@ public:
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Object; }
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual bool IsSelectable() const OVERRIDE { return true; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Object; }
+	virtual FString GetDisplayName() const override { return DisplayName; }
+	virtual float GetNodeHeight() const override;
+	virtual bool IsSelectable() const override { return true; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 	
 	/** @return The object binding on this node */
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
@@ -415,10 +415,10 @@ public:
 	{}
 
 	/** FSequencerDisplayNodeInterface */
-	virtual ESequencerNode::Type GetType() const OVERRIDE { return ESequencerNode::Category; }
-	virtual float GetNodeHeight() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const OVERRIDE;
+	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Category; }
+	virtual float GetNodeHeight() const override;
+	virtual FString GetDisplayName() const override { return DisplayName; }
+	virtual bool GetShotFilteredVisibilityToCache() const override;
 private:
 	/** The display name of the category */
 	FString DisplayName;

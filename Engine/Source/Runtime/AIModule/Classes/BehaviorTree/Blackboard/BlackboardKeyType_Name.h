@@ -11,7 +11,7 @@ class UBlackboardKeyType_Name : public UBlackboardKeyType
 	static FName GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, const FName& Value);
 
-	virtual FString DescribeValue(const uint8* RawData) const OVERRIDE;
-	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const OVERRIDE;
-	virtual bool TestTextOperation(const uint8* MemoryBlock, ETextKeyOperation::Type Op, const FString& OtherString) const OVERRIDE;
+	virtual FString DescribeValue(const uint8* RawData) const override;
+	virtual EBlackboardCompare::Type Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const override;
+	virtual bool TestTextOperation(const uint8* MemoryBlock, ETextKeyOperation::Type Op, const FString& OtherString) const override;
 };

@@ -10,7 +10,7 @@ class ENGINE_API AKillZVolume : public APhysicsVolume
 	GENERATED_UCLASS_BODY()
 	
 	//Begin PhysicsVolume Interface
-	virtual void ActorEnteredVolume(class AActor* Other) OVERRIDE;
+	virtual void ActorEnteredVolume(class AActor* Other) override;
 	//End PhysicsVolume Interface
 };
 

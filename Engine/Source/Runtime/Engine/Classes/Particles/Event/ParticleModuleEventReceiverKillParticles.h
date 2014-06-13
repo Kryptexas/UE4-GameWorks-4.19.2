@@ -16,7 +16,7 @@ class UParticleModuleEventReceiverKillParticles : public UParticleModuleEventRec
 
 
 	// Begin UParticleModuleEventBase Interface
-	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) OVERRIDE;
+	virtual bool ProcessParticleEvent(FParticleEmitterInstance* Owner, FParticleEventData& InEvent, float DeltaTime) override;
 	// End UParticleModuleEventBase Interface
 };
 

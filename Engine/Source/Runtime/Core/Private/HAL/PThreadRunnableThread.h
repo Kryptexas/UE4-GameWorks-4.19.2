@@ -262,7 +262,7 @@ public:
 		ThreadID = 0;
 	}
 
-	virtual void SetThreadPriority(EThreadPriority NewPriority) OVERRIDE
+	virtual void SetThreadPriority(EThreadPriority NewPriority) override
 	{
 		// Don't bother calling the OS if there is no need
 		if (NewPriority != ThreadPriority)
@@ -272,13 +272,13 @@ public:
 		}
 	}
 
-	virtual void Suspend(bool bShouldPause = 1) OVERRIDE
+	virtual void Suspend(bool bShouldPause = 1) override
 	{
 		check(Thread);
 		// Impossible in pthreads!
 	}
 
-	virtual bool Kill(bool bShouldWait = false) OVERRIDE
+	virtual bool Kill(bool bShouldWait = false) override
 	{
 		check(Thread && "Did you forget to call Create()?");
 		bool bDidExitOK = true;
@@ -304,7 +304,7 @@ public:
 		return bDidExitOK;
 	}
 
-	virtual void WaitForCompletion() OVERRIDE
+	virtual void WaitForCompletion() override
 	{
 		// Block until this thread exits
 		while (ThreadIsRunning)
@@ -313,12 +313,12 @@ public:
 		}
 	}
 
-	virtual uint32 GetThreadID() OVERRIDE
+	virtual uint32 GetThreadID() override
 	{
 		return ThreadID;
 	}
 
-	virtual FString GetThreadName() OVERRIDE
+	virtual FString GetThreadName() override
 	{
 		return ThreadName;
 	}
@@ -327,7 +327,7 @@ protected:
 
 	virtual bool CreateInternal(FRunnable* InRunnable, const TCHAR* InThreadName,
 		uint32 InStackSize = 0,
-		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) OVERRIDE
+		EThreadPriority InThreadPri = TPri_Normal, uint64 InThreadAffinityMask = 0) override
 	{
 		check(InRunnable);
 		Runnable = InRunnable;

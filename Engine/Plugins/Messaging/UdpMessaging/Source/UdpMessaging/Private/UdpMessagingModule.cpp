@@ -20,7 +20,7 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		if (!SupportsNetworkedTransport())
 		{
@@ -58,7 +58,7 @@ public:
 		RestartServices();
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		// unregister application events
 		FCoreDelegates::ApplicationHasReactivatedDelegate.RemoveAll(this);
@@ -77,7 +77,7 @@ public:
 		ShutdownTunnel();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}

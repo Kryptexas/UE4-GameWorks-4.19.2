@@ -31,7 +31,7 @@ protected:
 	{
 		return true;
 	}
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 private:
 	void ClearCompleteNotification();

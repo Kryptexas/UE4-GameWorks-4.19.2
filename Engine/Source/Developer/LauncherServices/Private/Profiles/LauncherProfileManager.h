@@ -19,55 +19,55 @@ public:
 
 	// Begin ILauncherProfileManager interface
 
-	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) OVERRIDE;
+	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) override;
 
-	virtual ILauncherDeviceGroupRef AddNewDeviceGroup( ) OVERRIDE;
+	virtual ILauncherDeviceGroupRef AddNewDeviceGroup( ) override;
 
-	virtual ILauncherProfileRef AddNewProfile( ) OVERRIDE;
+	virtual ILauncherProfileRef AddNewProfile( ) override;
 
-	virtual void AddProfile( const ILauncherProfileRef& Profile ) OVERRIDE;
+	virtual void AddProfile( const ILauncherProfileRef& Profile ) override;
 
-	virtual ILauncherProfilePtr FindProfile( const FString& ProfileName ) OVERRIDE;
+	virtual ILauncherProfilePtr FindProfile( const FString& ProfileName ) override;
 
-	virtual const TArray<ILauncherDeviceGroupPtr>& GetAllDeviceGroups( ) const OVERRIDE;
+	virtual const TArray<ILauncherDeviceGroupPtr>& GetAllDeviceGroups( ) const override;
 
-	virtual const TArray<ILauncherProfilePtr>& GetAllProfiles( ) const OVERRIDE;
+	virtual const TArray<ILauncherProfilePtr>& GetAllProfiles( ) const override;
 
-	virtual ILauncherDeviceGroupPtr GetDeviceGroup( const FGuid& GroupId ) const OVERRIDE;
+	virtual ILauncherDeviceGroupPtr GetDeviceGroup( const FGuid& GroupId ) const override;
 
-	virtual ILauncherProfilePtr GetProfile( const FGuid& ProfileId ) const OVERRIDE;
+	virtual ILauncherProfilePtr GetProfile( const FGuid& ProfileId ) const override;
 
-	virtual ILauncherProfilePtr LoadProfile( FArchive& Archive ) OVERRIDE;
+	virtual ILauncherProfilePtr LoadProfile( FArchive& Archive ) override;
 
-	virtual void LoadSettings( ) OVERRIDE;
+	virtual void LoadSettings( ) override;
 
-	virtual FOnLauncherProfileManagerDeviceGroupAdded& OnDeviceGroupAdded( ) OVERRIDE
+	virtual FOnLauncherProfileManagerDeviceGroupAdded& OnDeviceGroupAdded( ) override
 	{
 		return DeviceGroupAddedDelegate;
 	}
 
-	virtual FOnLauncherProfileManagerDeviceGroupRemoved& OnDeviceGroupRemoved( ) OVERRIDE
+	virtual FOnLauncherProfileManagerDeviceGroupRemoved& OnDeviceGroupRemoved( ) override
 	{
 		return DeviceGroupRemovedDelegate;
 	}
 
-	virtual FOnLauncherProfileManagerProfileAdded& OnProfileAdded( ) OVERRIDE
+	virtual FOnLauncherProfileManagerProfileAdded& OnProfileAdded( ) override
 	{
 		return ProfileAddedDelegate;
 	}
 
-	virtual FOnLauncherProfileManagerProfileRemoved& OnProfileRemoved( ) OVERRIDE
+	virtual FOnLauncherProfileManagerProfileRemoved& OnProfileRemoved( ) override
 	{
 		return ProfileRemovedDelegate;
 	}
 
-	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) OVERRIDE;
+	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) override;
 
-	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) OVERRIDE;
+	virtual void RemoveProfile( const ILauncherProfileRef& Profile ) override;
 
-	virtual void SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive ) OVERRIDE;
+	virtual void SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive ) override;
 
-	virtual void SaveSettings( ) OVERRIDE;
+	virtual void SaveSettings( ) override;
 
 	// End ILauncherProfileManager interface
 

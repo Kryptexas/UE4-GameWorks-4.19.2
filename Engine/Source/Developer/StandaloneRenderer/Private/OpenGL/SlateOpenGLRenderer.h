@@ -132,17 +132,17 @@ public:
 	~FSlateOpenGLRenderer();
 
 	/** FSlateRenderer interface */
-	virtual FSlateDrawBuffer& GetDrawBuffer() OVERRIDE;
-	virtual void Initialize() OVERRIDE;
-	virtual void Destroy() OVERRIDE {}
-	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) OVERRIDE;
-	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) OVERRIDE;
-	virtual void CreateViewport( const TSharedRef<SWindow> InWindow ) OVERRIDE;
-	virtual void RequestResize( const TSharedPtr<SWindow>& InWindow, uint32 NewSizeX, uint32 NewSizeY ) OVERRIDE;
-	virtual void UpdateFullscreenState( const TSharedRef<SWindow> InWindow, uint32 OverrideResX, uint32 OverrideResY ) OVERRIDE;
-	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) OVERRIDE;
-	virtual bool GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes) OVERRIDE;
-	virtual void LoadStyleResources(const ISlateStyle& Style) OVERRIDE;
+	virtual FSlateDrawBuffer& GetDrawBuffer() override;
+	virtual void Initialize() override;
+	virtual void Destroy() override {}
+	virtual void DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer ) override;
+	virtual void OnWindowDestroyed( const TSharedRef<SWindow>& InWindow ) override;
+	virtual void CreateViewport( const TSharedRef<SWindow> InWindow ) override;
+	virtual void RequestResize( const TSharedPtr<SWindow>& InWindow, uint32 NewSizeX, uint32 NewSizeY ) override;
+	virtual void UpdateFullscreenState( const TSharedRef<SWindow> InWindow, uint32 OverrideResX, uint32 OverrideResY ) override;
+	virtual void ReleaseDynamicResource( const FSlateBrush& Brush ) override;
+	virtual bool GenerateDynamicImageResource(FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes) override;
+	virtual void LoadStyleResources(const ISlateStyle& Style) override;
 
 private:
 	/** 

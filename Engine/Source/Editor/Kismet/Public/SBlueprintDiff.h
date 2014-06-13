@@ -110,7 +110,7 @@ public:
 
 private:
 	/* Need to process keys for shortcuts to buttons */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 
 	typedef TSharedPtr<FListItemGraphToDiff>	FGraphToDiff;

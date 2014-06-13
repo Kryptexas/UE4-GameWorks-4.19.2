@@ -34,97 +34,97 @@ PACKAGE_SCOPE:
 public:
 	// IOnlineSubsystem
 
-	virtual IOnlineSessionPtr GetSessionInterface() const OVERRIDE
+	virtual IOnlineSessionPtr GetSessionInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineFriendsPtr GetFriendsInterface() const OVERRIDE
+	virtual IOnlineFriendsPtr GetFriendsInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const OVERRIDE
+	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineUserCloudPtr GetUserCloudInterface() const OVERRIDE
+	virtual IOnlineUserCloudPtr GetUserCloudInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const OVERRIDE
+	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineVoicePtr GetVoiceInterface() const OVERRIDE
+	virtual IOnlineVoicePtr GetVoiceInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineExternalUIPtr GetExternalUIInterface() const OVERRIDE	
+	virtual IOnlineExternalUIPtr GetExternalUIInterface() const override	
 	{
 		return NULL;
 	}
-	virtual IOnlineTimePtr GetTimeInterface() const OVERRIDE
+	virtual IOnlineTimePtr GetTimeInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE
+	virtual IOnlinePartyPtr GetPartyInterface() const override
 	{
 		return NULL;
 	}
-	virtual IOnlineTitleFilePtr GetTitleFileInterface() const OVERRIDE
-	{
-		return NULL;
-	}
-
-	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const OVERRIDE
+	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineIdentityPtr GetIdentityInterface() const OVERRIDE;
-
-	virtual IOnlineStorePtr GetStoreInterface() const OVERRIDE
+	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineEventsPtr GetEventsInterface() const OVERRIDE
+	virtual IOnlineIdentityPtr GetIdentityInterface() const override;
+
+	virtual IOnlineStorePtr GetStoreInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineAchievementsPtr GetAchievementsInterface() const OVERRIDE
+	virtual IOnlineEventsPtr GetEventsInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineSharingPtr GetSharingInterface() const OVERRIDE
+	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineUserPtr GetUserInterface() const OVERRIDE
+	virtual IOnlineSharingPtr GetSharingInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlineMessagePtr GetMessageInterface() const OVERRIDE
+	virtual IOnlineUserPtr GetUserInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE
+	virtual IOnlineMessagePtr GetMessageInterface() const override
 	{
 		return NULL;
 	}
 
-	virtual bool Init() OVERRIDE;
-	virtual bool Shutdown() OVERRIDE;
-	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual IOnlinePresencePtr GetPresenceInterface() const override
+	{
+		return NULL;
+	}
+
+	virtual bool Init() override;
+	virtual bool Shutdown() override;
+	virtual FString GetAppId() const override;
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	// FTickerBaseObject
 
-	virtual bool Tick(float DeltaTime) OVERRIDE;
+	virtual bool Tick(float DeltaTime) override;
 
 	// FOnlineSubsystemAmazon
 

@@ -48,16 +48,16 @@ protected:
 	bool IsPropertyTypeSupported(UProperty* Property) const;
 
 	// FScriptCodeGeneratorBase interface
-	virtual bool CanExportClass(UClass* Class) OVERRIDE;
-	virtual bool CanExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function) OVERRIDE;
-	virtual bool CanExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property) OVERRIDE;
-	virtual FString InitializeFunctionDispatchParam(UFunction* Function, UProperty* Param, int32 ParamIndex) OVERRIDE;
+	virtual bool CanExportClass(UClass* Class) override;
+	virtual bool CanExportFunction(const FString& ClassNameCPP, UClass* Class, UFunction* Function) override;
+	virtual bool CanExportProperty(const FString& ClassNameCPP, UClass* Class, UProperty* Property) override;
+	virtual FString InitializeFunctionDispatchParam(UFunction* Function, UProperty* Param, int32 ParamIndex) override;
 
 public:
 
 	FLuaScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory);
 
 	// FScriptCodeGeneratorBase interface
-	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) OVERRIDE;
-	virtual void FinishExport() OVERRIDE;
+	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) override;
+	virtual void FinishExport() override;
 };

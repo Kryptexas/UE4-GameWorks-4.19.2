@@ -8,8 +8,8 @@ class FXCodeSourceCodeAccessModule : public IModuleInterface
 {
 public:
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 private:
 	FXCodeSourceCodeAccessor XCodeSourceCodeAccessor;

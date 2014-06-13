@@ -144,7 +144,7 @@ public:
 	 *
 	 * @param Ar	FArchive to serialize with
 	 */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/**
 	 * Gets the axis to draw based on the current widget mode

@@ -14,14 +14,14 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 
 	struct FClassData ClassData;
 
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void PostPlacedNewNode() override;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 
-	virtual EBTDecoratorLogic::Type GetOperationType() const OVERRIDE;
+	virtual EBTDecoratorLogic::Type GetOperationType() const override;
 
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
+	virtual void PostEditImport() override;
+	virtual void PrepareForCopying() override;
 	void PostCopyNode();
 	bool RefreshNodeClass();
 

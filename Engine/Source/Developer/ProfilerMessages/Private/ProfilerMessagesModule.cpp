@@ -16,11 +16,11 @@ class FProfilerMessagesModule
 {
 public:
 
-	virtual void StartupModule( ) OVERRIDE { }
+	virtual void StartupModule( ) override { }
 
-	virtual void ShutdownModule( ) OVERRIDE { }
+	virtual void ShutdownModule( ) override { }
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}

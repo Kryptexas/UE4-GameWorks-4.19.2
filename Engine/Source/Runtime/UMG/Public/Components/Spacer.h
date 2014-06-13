@@ -20,7 +20,7 @@ class UMG_API USpacer : public UWidget
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 protected:

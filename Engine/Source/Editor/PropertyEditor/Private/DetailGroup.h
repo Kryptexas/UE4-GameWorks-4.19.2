@@ -8,11 +8,11 @@ public:
 	FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName );
 
 	/** IDetailGroup interface */     
-	virtual FDetailWidgetRow& HeaderRow() OVERRIDE;
-	virtual IDetailPropertyRow& HeaderProperty( TSharedRef<IPropertyHandle> PropertyHandle ) OVERRIDE;
-	virtual FDetailWidgetRow& AddWidgetRow() OVERRIDE;
-	virtual IDetailPropertyRow& AddPropertyRow( TSharedRef<IPropertyHandle> PropertyHandle ) OVERRIDE;
-	virtual void ToggleExpansion( bool bExpand ) OVERRIDE;
+	virtual FDetailWidgetRow& HeaderRow() override;
+	virtual IDetailPropertyRow& HeaderProperty( TSharedRef<IPropertyHandle> PropertyHandle ) override;
+	virtual FDetailWidgetRow& AddWidgetRow() override;
+	virtual IDetailPropertyRow& AddPropertyRow( TSharedRef<IPropertyHandle> PropertyHandle ) override;
+	virtual void ToggleExpansion( bool bExpand ) override;
 
 	/** @return The name of the group */
 	FName GetGroupName() const { return GroupName; }

@@ -54,7 +54,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskNullEndSession bWasSuccessful: %d SessionName: %s"), bWasSuccessful, *SessionName.ToString());
 	}
@@ -63,7 +63,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		bIsComplete = true;
 		bWasSuccessful = true;
@@ -73,7 +73,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
@@ -86,7 +86,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE
+	virtual void TriggerDelegates() override
 	{
 		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 		if (SessionInt.IsValid())
@@ -119,7 +119,7 @@ public:
 	/**
 	 *	Get a human readable description of task
 	 */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return FString::Printf(TEXT("FOnlineAsyncTaskNullDestroySession bWasSuccessful: %d SessionName: %s"), bWasSuccessful, *SessionName.ToString());
 	}
@@ -128,7 +128,7 @@ public:
 	 * Give the async task time to do its work
 	 * Can only be called on the async task manager thread
 	 */
-	virtual void Tick() OVERRIDE
+	virtual void Tick() override
 	{
 		bIsComplete = true;
 		bWasSuccessful = true;
@@ -138,7 +138,7 @@ public:
 	 * Give the async task a chance to marshal its data back to the game thread
 	 * Can only be called on the game thread by the async task manager
 	 */
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 		if (SessionInt.IsValid())
@@ -154,7 +154,7 @@ public:
 	/**
 	 *	Async task is given a chance to trigger it's delegates
 	 */
-	virtual void TriggerDelegates() OVERRIDE
+	virtual void TriggerDelegates() override
 	{
 		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
 		if (SessionInt.IsValid())

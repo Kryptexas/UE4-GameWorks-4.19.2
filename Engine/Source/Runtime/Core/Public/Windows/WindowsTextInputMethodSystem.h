@@ -19,17 +19,17 @@ public:
 	{}
 
 	// IUnknown Interface Begin
-	STDMETHODIMP QueryInterface(REFIID riid, void **ppvObj) OVERRIDE;
-	STDMETHODIMP_(ULONG) AddRef() OVERRIDE;
-	STDMETHODIMP_(ULONG) Release() OVERRIDE;
+	STDMETHODIMP QueryInterface(REFIID riid, void **ppvObj) override;
+	STDMETHODIMP_(ULONG) AddRef() override;
+	STDMETHODIMP_(ULONG) Release() override;
 	// IUnknown Interface End
 
 	// ITfInputProcessorProfileActivationSink Interface Begin
-	STDMETHODIMP OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID clsid, REFGUID catid, REFGUID guidProfile, HKL hkl, DWORD dwFlags) OVERRIDE;
+	STDMETHODIMP OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID clsid, REFGUID catid, REFGUID guidProfile, HKL hkl, DWORD dwFlags) override;
 	// ITfInputProcessorProfileActivationSink Interface End
 
 	// ITfActiveLanguageProfileNotifySink Interface Begin
-	STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile, BOOL fActivated) OVERRIDE;
+	STDMETHODIMP OnActivated(REFCLSID clsid, REFGUID guidProfile, BOOL fActivated) override;
 	// ITfActiveLanguageProfileNotifySink Interface End
 
 public:
@@ -52,10 +52,10 @@ public:
 	void Terminate();
 
 	// ITextInputMethodSystem Interface Begin
-	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
-	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) OVERRIDE;
+	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
+	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	// ITextInputMethodSystem Interface End
 
 	int32 ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);

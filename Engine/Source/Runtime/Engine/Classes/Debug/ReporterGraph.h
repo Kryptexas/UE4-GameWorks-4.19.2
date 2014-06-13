@@ -122,7 +122,7 @@ public:
 	/** Main draw call for the Graph.
 	 * @param Canvas The canvas to draw this graph to
 	 */
-	virtual void Draw(UCanvas* Canvas) OVERRIDE;
+	virtual void Draw(UCanvas* Canvas) override;
 
 	/** Set the axis min and max data for both axes
 	 * @param MinX The normalized minimum X data
@@ -217,7 +217,7 @@ protected:
 	 * @param Canvas The canvas we wish to use during the conversion
 	 * @return The screen space coordinates based on the size of the canvas
 	 */
-	virtual FVector2D ToScreenSpace(const FVector2D& InVector, UCanvas* Canvas) OVERRIDE;
+	virtual FVector2D ToScreenSpace(const FVector2D& InVector, UCanvas* Canvas) override;
 
 	/** Helper to convert data from raw data into screen space
 	 * @param InVector 2D plot point in data space

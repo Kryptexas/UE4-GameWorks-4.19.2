@@ -181,14 +181,14 @@ public:
 	 * Returns the time in ms that the GPU spent in this draw event.  
 	 * This blocks the CPU if necessary, so can cause hitching.
 	 */
-	float GetTiming() OVERRIDE;
+	float GetTiming() override;
 
-	virtual void StartTiming() OVERRIDE
+	virtual void StartTiming() override
 	{
 		Timing.StartTiming();
 	}
 
-	virtual void StopTiming() OVERRIDE
+	virtual void StopTiming() override
 	{
 		Timing.EndTiming();
 	}
@@ -217,15 +217,15 @@ public:
 	}
 
 	/** Start this frame of per tracking */
-	void StartFrame() OVERRIDE;
+	void StartFrame() override;
 
 	/** End this frame of per tracking, but do not block yet */
-	void EndFrame() OVERRIDE;
+	void EndFrame() override;
 
 	/** Calculates root timing base frequency (if needed by this RHI) */
-	virtual float GetRootTimingResults() OVERRIDE;
+	virtual float GetRootTimingResults() override;
 
-	virtual void LogDisjointQuery() OVERRIDE;
+	virtual void LogDisjointQuery() override;
 
 	/** Timer tracking inclusive time spent in the root nodes. */
 	FOpenGLBufferedGPUTiming RootEventTiming;
@@ -266,7 +266,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 		}
 	}
 
-	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) OVERRIDE
+	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
 		FOpenGLEventNode* EventNode = new FOpenGLEventNode(InName, InParent, OpenGLRHI);
 		return EventNode;
@@ -274,8 +274,8 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 
 	void Cleanup();
 
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE;
-	virtual void PopEvent() OVERRIDE;
+	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PopEvent() override;
 
 	void BeginFrame(class FOpenGLDynamicRHI* InRHI);
 	void EndFrame();
@@ -495,12 +495,12 @@ class FOpenGLDynamicRHIModule : public IDynamicRHIModule
 public:
 	
 	// IModuleInterface
-	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
+	virtual bool SupportsDynamicReloading() override { return false; }
 
 	// IDynamicRHIModule
-	virtual bool IsSupported() OVERRIDE;
+	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI() OVERRIDE
+	virtual FDynamicRHI* CreateRHI() override
 	{
 		return new FOpenGLDynamicRHI();
 	}

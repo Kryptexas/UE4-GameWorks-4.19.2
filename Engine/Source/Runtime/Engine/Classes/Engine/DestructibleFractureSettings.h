@@ -192,9 +192,9 @@ class UDestructibleFractureSettings : public UObject
 #endif // WITH_APEX
 
 	// Begin UObject interface.
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End  UObject interface
 
 	// Begin UDestructibleFractureSettings interface

@@ -13,10 +13,10 @@ struct FSkeletonSlotGroupNamesSummoner : public FWorkflowTabFactory
 public:
 	FSkeletonSlotGroupNamesSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE;
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
 	// Create a tooltip widget for the tab
-	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedPtr<SToolTip> CreateTabToolTipWidget(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return  IDocumentation::Get()->CreateToolTip(LOCTEXT("WindowTooltip", "This tab lets you modify custom animation Slot Group Name"), NULL, TEXT("Shared/Editors/Persona"), TEXT("AnimationSlotGroupName_Window"));
 	}
@@ -83,7 +83,7 @@ public:
 	void PostUndo();
 
 	// FGCObject interface start
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// FGCObject interface end
 
 	/** When user attempts to commit the name of a track*/

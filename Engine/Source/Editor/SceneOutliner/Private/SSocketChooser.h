@@ -167,7 +167,7 @@ public:
 	}
 	
 	/** SWidget interface */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{		
 		// Make sure that my window is on-screen
 		TSharedPtr<SWindow> Window = CheckAndGetWindowPtr();

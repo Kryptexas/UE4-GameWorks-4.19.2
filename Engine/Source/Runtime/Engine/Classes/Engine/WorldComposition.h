@@ -136,10 +136,10 @@ class ENGINE_API UWorldComposition : public UObject
 
 private:
 	// UObject interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostLoad() override;
 	// UObject interface
 
 	/** Populate streaming level objects using tiles information */

@@ -47,20 +47,20 @@ public:
 	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
 	 */
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	
 	/**
 	 * Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
 	 * asynchronous cleanup process.
 	 */
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 
 #if WITH_EDITOR
 
 	/**
 	 * Respond to a property change in editor
 	 */
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 #endif //WITH_EDITOR
 

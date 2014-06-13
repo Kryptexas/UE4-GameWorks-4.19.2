@@ -16,7 +16,7 @@ public:
 	}
 
 	// TCommand<> interface
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	// End of TCommand<> interface
 
 public:

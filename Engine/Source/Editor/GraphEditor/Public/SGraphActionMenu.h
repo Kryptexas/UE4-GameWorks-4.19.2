@@ -18,7 +18,7 @@ class GRAPHEDITOR_API SDefaultGraphActionWidget : public SCompoundWidget
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, const FCreateWidgetForActionData* InCreateData);
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/** The item that we want to display with this widget */
 	TWeakPtr<FEdGraphSchemaAction> ActionPtr;
@@ -116,7 +116,7 @@ public:
 	void Construct( const FArguments& InArgs, bool bIsReadOnly = true );
 
 	// FGCObject override
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/**
 	 * Refreshes the actions that this widget should display
@@ -175,7 +175,7 @@ protected:
 	FGetFilterText OnGetFilterText;
 public:
 	// SWidget interface
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) OVERRIDE;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) override;
 	// End of SWidget interface
 
 	/** Get filter text box widget */

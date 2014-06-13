@@ -20,9 +20,9 @@ class UK2Node_StructOperation : public UK2Node_Variable
 
 	// UK2Node interface
 	//virtual bool DrawNodeAsVariable() const OVERRIDE { return true; }
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE {}
-	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
+	virtual bool ShouldShowNodeProperties() const override { return true; }
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override {}
+	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	// End of UK2Node interface
 
 protected:
@@ -30,7 +30,7 @@ protected:
 	struct FStructOperationOptionalPinManager : public FOptionalPinManager
 	{
 		// FOptionalPinsUpdater interface
-		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const OVERRIDE
+		virtual void GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const override
 		{
 			Record.bCanToggleVisibility = true;
 			Record.bShowPin = true;

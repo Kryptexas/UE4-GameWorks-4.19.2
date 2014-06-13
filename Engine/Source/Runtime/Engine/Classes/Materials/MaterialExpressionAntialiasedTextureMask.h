@@ -28,14 +28,14 @@ class UMaterialExpressionAntialiasedTextureMask : public UMaterialExpressionText
 
 
 	// Begin UMaterialExpressionTextureSampleParameter Interface
-	virtual bool TextureIsValid( UTexture* InTexture ) OVERRIDE;
-	virtual const TCHAR* GetRequirements() OVERRIDE;
-	virtual void SetDefaultTexture() OVERRIDE;
+	virtual bool TextureIsValid( UTexture* InTexture ) override;
+	virtual const TCHAR* GetRequirements() override;
+	virtual void SetDefaultTexture() override;
 	// End UMaterialExpressionTextureSampleParameter Interface
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	// End UMaterialExpression Interface
 };
 

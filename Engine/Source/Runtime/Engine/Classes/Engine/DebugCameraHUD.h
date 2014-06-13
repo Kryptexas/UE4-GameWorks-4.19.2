@@ -13,7 +13,7 @@ class ENGINE_API ADebugCameraHUD : public AHUD
 	virtual bool DisplayMaterials( float X, float& Y, float DY, class UMeshComponent* MeshComp );
 	
 	// Begin AActor Interface
-	virtual void PostRender() OVERRIDE;
+	virtual void PostRender() override;
 	// End AActor Interface
 
 };

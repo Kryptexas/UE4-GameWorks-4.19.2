@@ -64,7 +64,7 @@ public:
 	}
 
 	// Begin INameValidatorInterface
-	virtual EValidatorResult IsValid(FString const& Name, bool bOriginal = false) OVERRIDE
+	virtual EValidatorResult IsValid(FString const& Name, bool bOriginal = false) override
 	{
 		EValidatorResult NameValidity = FKismetNameValidator::IsValid(Name, bOriginal);
 		if ((NameValidity == EValidatorResult::Ok) || (NameValidity == EValidatorResult::ExistingName))

@@ -14,25 +14,25 @@ class UK2Node_SwitchName : public UK2Node_Switch
 	TArray<FName> PinNames;
 
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool ShouldShowNodeProperties() const override { return true; }
 	// End of UEdGraphNode interface
 
 	// UK2Node_Switch Interface
-	BLUEPRINTGRAPH_API virtual void AddPinToSwitchNode() OVERRIDE;
-	virtual FString GetUniquePinName() OVERRIDE;
-	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const OVERRIDE { return Schema->PC_Name; }
+	BLUEPRINTGRAPH_API virtual void AddPinToSwitchNode() override;
+	virtual FString GetUniquePinName() override;
+	virtual const FString& GetPinType(const UEdGraphSchema_K2* Schema) const override { return Schema->PC_Name; }
 	// End of UK2Node_Switch Interface
 
-	virtual FString GetPinNameGivenIndex(int32 Index) OVERRIDE;
+	virtual FString GetPinNameGivenIndex(int32 Index) override;
 
 protected:
-	virtual void CreateSelectionPin() OVERRIDE;
-	virtual void CreateCasePins() OVERRIDE;
-	virtual void RemovePin(UEdGraphPin* TargetPin) OVERRIDE;
+	virtual void CreateSelectionPin() override;
+	virtual void CreateCasePins() override;
+	virtual void RemovePin(UEdGraphPin* TargetPin) override;
 };

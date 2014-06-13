@@ -19,11 +19,11 @@ public:
 
 	// ISocketManager interface
 	virtual UStaticMeshSocket* GetSelectedSocket() const;
-	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) OVERRIDE;
-	virtual void DeleteSelectedSocket() OVERRIDE;
-	virtual void DuplicateSelectedSocket() OVERRIDE;
-	virtual void RequestRenameSelectedSocket() OVERRIDE;
-	virtual void UpdateStaticMesh() OVERRIDE;
+	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) override;
+	virtual void DeleteSelectedSocket() override;
+	virtual void DuplicateSelectedSocket() override;
+	virtual void RequestRenameSelectedSocket() override;
+	virtual void UpdateStaticMesh() override;
 	// End of ISocketManager
 
 		/**
@@ -91,7 +91,7 @@ private:
 	TSharedPtr<SWidget> OnContextMenuOpening();
 
 	/** FNotifyHook interface */
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) OVERRIDE;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 
 	/** Post undo */
 	void PostUndo();

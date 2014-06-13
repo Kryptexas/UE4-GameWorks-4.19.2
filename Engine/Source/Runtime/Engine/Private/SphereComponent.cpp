@@ -97,7 +97,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 		* @param	PDI - draw interface to render to
 		* @param	View - current view
 		*/
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_SphereSceneProxy_DrawDynamicElements );
 
@@ -126,7 +126,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  OVERRIDE
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
 		{
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO
@@ -139,7 +139,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			return Result;
 		}
 
-		virtual uint32 GetMemoryFootprint( void ) const OVERRIDE { return( sizeof( *this ) + GetAllocatedSize() ); }
+		virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
 		uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() ); }
 
 	private:

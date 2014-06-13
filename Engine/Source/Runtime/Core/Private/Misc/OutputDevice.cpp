@@ -456,7 +456,7 @@ static FOutputDeviceRedirector LogRedirector;
 class FThrowOut : public FOutputDevice
 {
 public:
-	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 #if PLATFORM_EXCEPTIONS_DISABLED
 		FPlatformMisc::DebugBreak();

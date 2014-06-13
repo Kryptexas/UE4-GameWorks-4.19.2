@@ -16,20 +16,20 @@ class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 	static const FString& GetEnumInputPinName();
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool IsNodePure() const override { return true; }
+	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
 	// End UK2Node interface
 
 	// INodeDependingOnEnumInterface
-	virtual class UEnum* GetEnum() const OVERRIDE { return Enum; }
-	virtual bool ShouldBeReconstructedAfterEnumChanged() const OVERRIDE { return true; }
+	virtual class UEnum* GetEnum() const override { return Enum; }
+	virtual bool ShouldBeReconstructedAfterEnumChanged() const override { return true; }
 	// End of INodeDependingOnEnumInterface
 };
 

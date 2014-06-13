@@ -15,17 +15,17 @@ public:
 	~FMovieViewport() {}
 
 	/* ISlateViewport interface */
-	virtual FIntPoint GetSize() const OVERRIDE
+	virtual FIntPoint GetSize() const override
 	{
 		return SlateTexture.IsValid() ? FIntPoint(SlateTexture.Pin()->GetWidth(), SlateTexture.Pin()->GetHeight()) : FIntPoint();
 	}
 
-	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE
+	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const override
 	{
 		return SlateTexture.IsValid() ? SlateTexture.Pin().Get() : NULL;
 	}
 
-	virtual bool RequiresVsync() const OVERRIDE
+	virtual bool RequiresVsync() const override
 	{
 		return false;
 	}

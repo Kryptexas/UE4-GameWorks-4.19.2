@@ -51,13 +51,13 @@ protected:
 	void CalculateCurrentFrame();
 public:
 	// UActorComponent interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) OVERRIDE;
-	virtual void SendRenderDynamicData_Concurrent() OVERRIDE;
-	virtual const UObject* AdditionalStatObject() const OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void SendRenderDynamicData_Concurrent() override;
+	virtual const UObject* AdditionalStatObject() const override;
 	// End of UActorComponent interface
 
 	// UPrimitiveComponent interface
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End of UPrimitiveComponent interface
 };

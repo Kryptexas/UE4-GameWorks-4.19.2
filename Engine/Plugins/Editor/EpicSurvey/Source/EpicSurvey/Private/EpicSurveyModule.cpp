@@ -10,10 +10,10 @@ class FEpicSurveyModule : public IEpicSurveyModule
 public:
 
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
-	virtual bool PromptSurvey( const FGuid& SurveyIdentifier ) OVERRIDE;
+	virtual bool PromptSurvey( const FGuid& SurveyIdentifier ) override;
 
 
 private:

@@ -29,7 +29,7 @@ public:
 	TSharedPtr<FAssetTypeActions_EditorUtilityBlueprint> EditorBlueprintAssetTypeActions;
 
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Register the asset type
 		EditorBlueprintAssetTypeActions = MakeShareable(new FAssetTypeActions_EditorUtilityBlueprint);
@@ -49,7 +49,7 @@ public:
 		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FBlutilityModule::HandleExperimentalSettingChanged);
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (!UObjectInitialized())
 		{

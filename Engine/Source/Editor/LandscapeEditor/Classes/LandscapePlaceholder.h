@@ -10,7 +10,7 @@ class ALandscapePlaceholder : public AActor
 	GENERATED_UCLASS_BODY()
 
 	//virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) OVERRIDE;
+	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) override;
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 };

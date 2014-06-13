@@ -408,14 +408,14 @@ class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 	// Begin UParticleModuleTypeDataBase Interface
-	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) OVERRIDE;
+	virtual void Build( struct FParticleEmitterBuildInfo& EmitterBuildInfo ) override;
 	virtual bool RequiresBuild() const { return true; }
-	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) OVERRIDE;
+	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
 	// End UParticleModuleTypeDataBase Interface
 };
 

@@ -13,27 +13,27 @@ public:
 
 	// Begin ILauncherServicesModule interface
 
-	virtual ILauncherDeviceGroupRef CreateDeviceGroup( ) OVERRIDE
+	virtual ILauncherDeviceGroupRef CreateDeviceGroup( ) override
 	{
 		return MakeShareable(new FLauncherDeviceGroup());
 	}
 
-	virtual ILauncherDeviceGroupRef CreateDeviceGroup(const FGuid& Guid, const FString& Name ) OVERRIDE
+	virtual ILauncherDeviceGroupRef CreateDeviceGroup(const FGuid& Guid, const FString& Name ) override
 	{
 		return MakeShareable(new FLauncherDeviceGroup(Guid, Name));
 	}
 
-	virtual ILauncherRef CreateLauncher( ) OVERRIDE
+	virtual ILauncherRef CreateLauncher( ) override
 	{
 		return MakeShareable(new FLauncher());
 	}
 
-	virtual ILauncherProfileRef CreateProfile( const FString& ProfileName ) OVERRIDE
+	virtual ILauncherProfileRef CreateProfile( const FString& ProfileName ) override
 	{
 		return MakeShareable(new FLauncherProfile(ProfileName));
 	}
 
-	virtual ILauncherProfileManagerRef GetProfileManager( ) OVERRIDE
+	virtual ILauncherProfileManagerRef GetProfileManager( ) override
 	{
 		if (!ProfileManagerSingleton.IsValid())
 		{
@@ -44,11 +44,11 @@ public:
 	}
 	
 	DECLARE_DERIVED_EVENT(FLauncherServicesModule, ILauncherServicesModule::FLauncherServicesSDKNotInstalled, FLauncherServicesSDKNotInstalled);
-	virtual FLauncherServicesSDKNotInstalled& OnLauncherServicesSDKNotInstalled( ) OVERRIDE
+	virtual FLauncherServicesSDKNotInstalled& OnLauncherServicesSDKNotInstalled( ) override
 	{
 		return LauncherServicesSDKNotInstalled;
 	}
-	void BroadcastLauncherServicesSDKNotInstalled(const FString& PlatformName, const FString& DocLink) OVERRIDE
+	void BroadcastLauncherServicesSDKNotInstalled(const FString& PlatformName, const FString& DocLink) override
 	{
 		return LauncherServicesSDKNotInstalled.Broadcast(PlatformName, DocLink);
 	}

@@ -10,15 +10,15 @@ public:
 	static TSharedRef<FDragConnection> New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation);
 	
 	// FDragDropOperation interface
-	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) override;
 	// End of FDragDropOperation interface
 
 	// FGraphEditorDragDropAction interface
-	virtual void HoverTargetChanged() OVERRIDE;
-	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) OVERRIDE;
-	virtual FReply DroppedOnPanel(const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) OVERRIDE;
-	virtual void OnDragBegin(const TSharedRef<class SGraphPin>& InPin) OVERRIDE;
-	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) OVERRIDE;
+	virtual void HoverTargetChanged() override;
+	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
+	virtual FReply DroppedOnPanel(const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
+	virtual void OnDragBegin(const TSharedRef<class SGraphPin>& InPin) override;
+	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
 	// End of FGraphEditorDragDropAction interface
 
 	/*

@@ -31,15 +31,15 @@ public:
 	void InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* InObjectToEdit);
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** Register tabs that this toolkit can spawn with the TabManager */
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	/** Unregister tabs that this toolkit can spawn */	
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	TSharedRef<SDockTab> SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName TabIdentifier );
 
@@ -49,7 +49,7 @@ public:
 	void ExtendDefaultToolbarMenu();
 
 	/** @return the documentation location for this editor */
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Editor/Matinee"));
 	}
@@ -81,22 +81,22 @@ public:
 	void OnCurveLabelClicked( UObject* CurveObject );
 
 	/** FGCObject interface */
-	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** 
 	 * Starts playing the current sequence. 
 	 * @param bPlayLoop		Whether or not we should play the looping section.
 	 * @param bPlayForward	true if we should play forwards, or false for reverse
 	 */
-	void StartPlaying(bool bPlayLoop, bool bPlayForward) OVERRIDE;
+	void StartPlaying(bool bPlayLoop, bool bPlayForward) override;
 
-	void ResumePlaying() OVERRIDE;
+	void ResumePlaying() override;
 
 	/** Stops playing the current sequence. */
-	void StopPlaying() OVERRIDE;
+	void StopPlaying() override;
 
 	/** Starts recording the current sequence */
-	void StartRecordingMovie() OVERRIDE;
+	void StartRecordingMovie() override;
 
 	// Menu handlers
 	void OnMenuAddKey();
@@ -429,7 +429,7 @@ public:
 	 * @param	TrackToSelect		The interp track to select.
 	 * @param	bDeselectPreviousTracks	If true, then all previously-selected tracks will be deselected. Defaults to true.
 	 */
-	void SelectTrack( UInterpGroup* Group, UInterpTrack* TrackToSelect, bool bDeselectPreviousTracks = true ) OVERRIDE;
+	void SelectTrack( UInterpGroup* Group, UInterpTrack* TrackToSelect, bool bDeselectPreviousTracks = true ) override;
 
 	/**
 	 * Selects the given group.
@@ -670,7 +670,7 @@ public:
 	/**
 	 * Dirty the contents of the track window viewports
 	 */
-	void InvalidateTrackWindowViewports() OVERRIDE;
+	void InvalidateTrackWindowViewports() override;
 
 	/**
 	 * Updates the contents of the property window based on which groups or tracks are selected if any. 
@@ -727,10 +727,10 @@ public:
 	void RepairHierarchyProblems();
 
 
-	bool KeyIsInSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex) OVERRIDE;
-	void AddKeyToSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex, bool bAutoWind) OVERRIDE;
-	void RemoveKeyFromSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex) OVERRIDE;
-	void ClearKeySelection() OVERRIDE;
+	bool KeyIsInSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex) override;
+	void AddKeyToSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex, bool bAutoWind) override;
+	void RemoveKeyFromSelection(class UInterpGroup* InGroup, UInterpTrack* InTrack, int32 InKeyIndex) override;
+	void ClearKeySelection() override;
 	void CalcSelectedKeyRange(float& OutStartTime, float& OutEndTime);
 	void SelectKeysInLoopSection();
 
@@ -758,7 +758,7 @@ public:
 	 *
 	 * There must be one and only one track selected for a keyframe to be added.
 	 */
-	void AddKey() OVERRIDE;
+	void AddKey() override;
 
 	/** 
 	 * Call utility to split an animation in the selected AnimControl track. 
@@ -963,15 +963,15 @@ public:
 	void SetInterpEnd(float NewInterpLength);
 	void MoveLoopMarker(float NewMarkerPos, bool bIsStart);
 
-	void BeginDrag3DHandle(UInterpGroup* Group, int32 TrackIndex) OVERRIDE;
-	void Move3DHandle(UInterpGroup* Group, int32 TrackIndex, int32 KeyIndex, bool bArriving, const FVector& Delta) OVERRIDE;
-	void EndDrag3DHandle() OVERRIDE;
-	void MoveInitialPosition(const FVector& Delta, const FRotator& DeltaRot) OVERRIDE;
+	void BeginDrag3DHandle(UInterpGroup* Group, int32 TrackIndex) override;
+	void Move3DHandle(UInterpGroup* Group, int32 TrackIndex, int32 KeyIndex, bool bArriving, const FVector& Delta) override;
+	void EndDrag3DHandle() override;
+	void MoveInitialPosition(const FVector& Delta, const FRotator& DeltaRot) override;
 
-	void ActorModified( bool bUpdateViewportTransform = true ) OVERRIDE;
-	void ActorSelectionChange( const bool bClearSelectionIfInvalid = true ) OVERRIDE;
-	void CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation) OVERRIDE;
-	bool ProcessKeyPress(FKey Key, bool bCtrlDown, bool bAltDown) OVERRIDE;
+	void ActorModified( bool bUpdateViewportTransform = true ) override;
+	void ActorSelectionChange( const bool bClearSelectionIfInvalid = true ) override;
+	void CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation) override;
+	bool ProcessKeyPress(FKey Key, bool bCtrlDown, bool bAltDown) override;
 
 	void InterpEdUndo();
 	void InterpEdRedo();
@@ -980,8 +980,8 @@ public:
 	void MoveActiveUp();
 	void MoveActiveDown();
 
-	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
-	void DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) OVERRIDE;
+	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
+	void DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 
 	void TickInterp(float DeltaSeconds);
 
@@ -1177,16 +1177,16 @@ public:
 	}
 
 	/** Toggles whether or not to display the menu*/
-	void ToggleRecordMenuDisplay (void) OVERRIDE
+	void ToggleRecordMenuDisplay (void) override
 	{
 		bDisplayRecordingMenu = !bDisplayRecordingMenu;
 	}
 
 	/**Preps Matinee to record/stop-recording realtime camera movement*/
-	void ToggleRecordInterpValues(void) OVERRIDE;
+	void ToggleRecordInterpValues(void) override;
 
 	/**If true, real time camera recording mode has been enabled*/
-	bool IsRecordingInterpValues (void) const OVERRIDE;
+	bool IsRecordingInterpValues (void) const override;
 
 	/**Helper function to properly shut down matinee recording*/
 	void StopRecordingInterpValues(void);
@@ -1206,16 +1206,16 @@ public:
 	/**
 	 * Resets the recording menu value to the default
 	 */
-	void ResetRecordingMenuValue(FEditorViewportClient* InClient) OVERRIDE;
+	void ResetRecordingMenuValue(FEditorViewportClient* InClient) override;
 
 	/**
 	 * Determines whether only the first click event is allowed or all repeat events are allowed
 	 * @return - true, if the value should change multiple times.  false, if the user should have to release and reclick
 	 */
-	bool IsRecordMenuChangeAllowedRepeat (void) const OVERRIDE;
+	bool IsRecordMenuChangeAllowedRepeat (void) const override;
 	
 	/** Sets the record mode for matinee */
-	void SetRecordMode(const uint32 InNewMode) OVERRIDE;
+	void SetRecordMode(const uint32 InNewMode) override;
 
 	/** Returns The time that sampling should start at */
 	const double GetRecordingStartTime (void) const;
@@ -1224,16 +1224,16 @@ public:
 	const double GetRecordingEndTime (void) const;
 
 	/**Return the number of samples we're keeping around for roll smoothing*/
-	int32 GetNumRecordRollSmoothingSamples (void) const OVERRIDE { return RecordRollSmoothingSamples; }
+	int32 GetNumRecordRollSmoothingSamples (void) const override { return RecordRollSmoothingSamples; }
 	/**Return the number of samples we're keeping around for roll smoothing*/
-	int32 GetNumRecordPitchSmoothingSamples (void) const OVERRIDE { return RecordPitchSmoothingSamples; }
+	int32 GetNumRecordPitchSmoothingSamples (void) const override { return RecordPitchSmoothingSamples; }
 	/**Returns the current movement scheme we're using for the camera*/
-	int32 GetCameraMovementScheme(void) const OVERRIDE { return RecordCameraMovementScheme; }
+	int32 GetCameraMovementScheme(void) const override { return RecordCameraMovementScheme; }
 
 	/** Save record settings for next run */
 	void SaveRecordingSettings(const FCameraControllerConfig& InCameraConfig);
 	/** Load record settings for next run */
-	void LoadRecordingSettings(FCameraControllerConfig& InCameraConfig) OVERRIDE;
+	void LoadRecordingSettings(FCameraControllerConfig& InCameraConfig) override;
 
 	/**
 	 * Access function to appropriate camera actor
@@ -1491,9 +1491,9 @@ private:
 	TSharedPtr<SWidget> CreateMarkerMenu(EMatineeMarkerType::Type MarkerType);
 
 	/** Accessors */
-	AMatineeActor* GetMatineeActor() OVERRIDE { return MatineeActor; }
-	UInterpData* GetInterpData() OVERRIDE { return IData; }
-	bool Hide3DTrackView() OVERRIDE { return bHide3DTrackView; }
+	AMatineeActor* GetMatineeActor() override { return MatineeActor; }
+	UInterpData* GetInterpData() override { return IData; }
+	bool Hide3DTrackView() override { return bHide3DTrackView; }
 
 	/** List of open tool panels; used to ensure only one exists at any one time */
 	TMap< FName, TWeakPtr<SDockableTab> > SpawnedToolPanels;
@@ -1547,7 +1547,7 @@ public:
 	 *	@param	TrackToAddKey	Interp track we are creating the key for
 	 *	@param	bCommitKeys		Setting to true will finalize the Key creation process
 	 */
-	void FinishAddKey(UInterpTrack *TrackToAddKey, bool bCommitKeys) OVERRIDE;
+	void FinishAddKey(UInterpTrack *TrackToAddKey, bool bCommitKeys) override;
 
 public:
 	/** Constants */

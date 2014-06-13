@@ -15,11 +15,11 @@ public:
 	TMap<FString, FTexturePlatformData*> CookedPlatformData;
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual FString GetDesc() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface.
 
 	/** Trivial accessors. */
@@ -57,13 +57,13 @@ public:
 	}
 
 	// Begin UTexture interface
-	virtual float GetSurfaceWidth() const OVERRIDE { return GetSizeX(); }
-	virtual float GetSurfaceHeight() const OVERRIDE { return GetSizeY(); }
-	virtual FTextureResource* CreateResource() OVERRIDE;
-	virtual void UpdateResource() OVERRIDE;
-	virtual EMaterialValueType GetMaterialType() OVERRIDE { return MCT_TextureCube; }
-	virtual FTexturePlatformData** GetRunningPlatformData() OVERRIDE { return &PlatformData; }
-	virtual TMap<FString, FTexturePlatformData*> *GetCookedPlatformData() OVERRIDE { return &CookedPlatformData; }
+	virtual float GetSurfaceWidth() const override { return GetSizeX(); }
+	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
+	virtual FTextureResource* CreateResource() override;
+	virtual void UpdateResource() override;
+	virtual EMaterialValueType GetMaterialType() override { return MCT_TextureCube; }
+	virtual FTexturePlatformData** GetRunningPlatformData() override { return &PlatformData; }
+	virtual TMap<FString, FTexturePlatformData*> *GetCookedPlatformData() override { return &CookedPlatformData; }
 	// End UTexture interface
 	
 	/**
@@ -80,7 +80,7 @@ public:
 	 * @param	Enum	Which mips to calculate size for.
 	 * @return	Total size of all specified mips, in bytes
 	 */
-	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const OVERRIDE;
+	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const override;
 };
 
 

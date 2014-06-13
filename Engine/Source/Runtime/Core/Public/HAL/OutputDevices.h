@@ -352,7 +352,7 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 
 	/**
 	 * Passes on the flush request to all current output devices.
@@ -404,9 +404,9 @@ public:
 	 */
 	void Flush();
 
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
@@ -433,7 +433,7 @@ public:
 	 * @param	Data	unused
 	 * @param	Event	unused
 	 */
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{}
 };
 
@@ -446,9 +446,9 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}
@@ -460,7 +460,7 @@ class FBufferedOutputDevice : public FOutputDevice
 	TArray<FBufferedLine> BufferedLines;
 
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		new(BufferedLines)FBufferedLine( InData, Verbosity, Category );
 	}
@@ -491,9 +491,9 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* Msg, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool CanBeUsedOnAnyThread() const OVERRIDE
+	virtual bool CanBeUsedOnAnyThread() const override
 	{
 		return true;
 	}

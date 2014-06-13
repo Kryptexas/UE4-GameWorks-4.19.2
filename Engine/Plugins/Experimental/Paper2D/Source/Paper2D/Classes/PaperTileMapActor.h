@@ -14,7 +14,7 @@ class APaperTileMapActor : public AActor
 
 	// AActor interface
 #if WITH_EDITOR
-	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const OVERRIDE;
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 #endif
 	// End of AActor interface
 };

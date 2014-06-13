@@ -56,24 +56,24 @@ class USoundNodeRandom : public USoundNode
 
 public:
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject Interface
 
 	// Begin USoundNode interface.
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual int32 GetMaxChildNodes() const OVERRIDE 
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual int32 GetMaxChildNodes() const override 
 	{ 
 		return MAX_ALLOWED_CHILD_NODES; 
 	}
-	virtual void InsertChildNode( int32 Index ) OVERRIDE;
-	virtual void RemoveChildNode( int32 Index ) OVERRIDE;
+	virtual void InsertChildNode( int32 Index ) override;
+	virtual void RemoveChildNode( int32 Index ) override;
 #if WITH_EDITOR
 	/** Ensure Random weights and usage array matches new amount of children */
-	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) OVERRIDE;
-	virtual void OnBeginPIE(const bool bIsSimulating) OVERRIDE;
+	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) override;
+	virtual void OnBeginPIE(const bool bIsSimulating) override;
 #endif //WITH_EDITOR
-	virtual void CreateStartingConnectors( void ) OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual void CreateStartingConnectors( void ) override;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface.
 
 	// @todo document

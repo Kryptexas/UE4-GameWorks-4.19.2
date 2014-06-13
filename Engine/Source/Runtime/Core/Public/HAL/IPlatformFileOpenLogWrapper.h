@@ -26,13 +26,13 @@ public:
 	{
 	}
 
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		bool bResult = FParse::Param(CmdLine, TEXT("FileOpenLog"));
 		return bResult;
 	}
 
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		LowerLevel = Inner;
 		FString LogFileDirectory;
@@ -72,7 +72,7 @@ public:
 		}
 		return true;
 	}
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return LowerLevel;
 	}
@@ -80,47 +80,47 @@ public:
 	{
 		return TEXT("FileOpenLog");
 	}
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return GetTypeName();
 	}
-	virtual bool		FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool		FileExists(const TCHAR* Filename) override
 	{
 		return LowerLevel->FileExists(Filename);
 	}
-	virtual int64		FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64		FileSize(const TCHAR* Filename) override
 	{
 		return LowerLevel->FileSize(Filename);
 	}
-	virtual bool		DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool		DeleteFile(const TCHAR* Filename) override
 	{
 		return LowerLevel->DeleteFile(Filename);
 	}
-	virtual bool		IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool		IsReadOnly(const TCHAR* Filename) override
 	{
 		return LowerLevel->IsReadOnly(Filename);
 	}
-	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return LowerLevel->MoveFile(To, From);
 	}
-	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool		SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		return LowerLevel->SetReadOnly(Filename, bNewReadOnlyValue);
 	}
-	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetTimeStamp(const TCHAR* Filename) override
 	{
 		return LowerLevel->GetTimeStamp(Filename);
 	}
-	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void		SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		LowerLevel->SetTimeStamp(Filename, DateTime);
 	}
-	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime	GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		return LowerLevel->GetAccessTimeStamp(Filename);
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
 	{
 		IFileHandle* Result = LowerLevel->OpenRead(Filename);
 		if (Result)
@@ -139,55 +139,55 @@ public:
 		}
 		return Result;
 	}
-	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		return LowerLevel->OpenWrite(Filename, bAppend, bAllowRead);
 	}
-	virtual bool		DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool		DirectoryExists(const TCHAR* Directory) override
 	{
 		return LowerLevel->DirectoryExists(Directory);
 	}
-	virtual bool		CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectory(const TCHAR* Directory) override
 	{
 		return LowerLevel->CreateDirectory(Directory);
 	}
-	virtual bool		DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectory(const TCHAR* Directory) override
 	{
 		return LowerLevel->DeleteDirectory(Directory);
 	}
-	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		return LowerLevel->IterateDirectory( Directory, Visitor );
 	}
-	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) OVERRIDE
+	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override
 	{
 		return LowerLevel->IterateDirectoryRecursively( Directory, Visitor );
 	}
-	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) OVERRIDE
+	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override
 	{
 		return LowerLevel->DeleteDirectoryRecursively( Directory );
 	}
-	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return LowerLevel->CopyFile( To, From );
 	}
-	virtual bool		CreateDirectoryTree(const TCHAR* Directory) OVERRIDE
+	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override
 	{
 		return LowerLevel->CreateDirectoryTree(Directory);
 	}
-	virtual bool		CopyDirectoryTree(const TCHAR* DestinationDirectory, const TCHAR* Source, bool bOverwriteAllExisting) OVERRIDE
+	virtual bool		CopyDirectoryTree(const TCHAR* DestinationDirectory, const TCHAR* Source, bool bOverwriteAllExisting) override
 	{
 		return LowerLevel->CopyDirectoryTree(DestinationDirectory, Source, bOverwriteAllExisting);
 	}
-	virtual FString		ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) OVERRIDE
+	virtual FString		ConvertToAbsolutePathForExternalAppForRead( const TCHAR* Filename ) override
 	{
 		return LowerLevel->ConvertToAbsolutePathForExternalAppForRead(Filename);
 	}
-	virtual FString		ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) OVERRIDE
+	virtual FString		ConvertToAbsolutePathForExternalAppForWrite( const TCHAR* Filename ) override
 	{
 		return LowerLevel->ConvertToAbsolutePathForExternalAppForWrite(Filename);
 	}
-	virtual bool		SendMessageToServer(const TCHAR* Message, IFileServerMessageHandler* Handler) OVERRIDE
+	virtual bool		SendMessageToServer(const TCHAR* Message, IFileServerMessageHandler* Handler) override
 	{
 		return LowerLevel->SendMessageToServer(Message, Handler);
 	}

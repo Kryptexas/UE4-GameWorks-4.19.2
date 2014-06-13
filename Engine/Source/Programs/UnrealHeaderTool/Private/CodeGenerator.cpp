@@ -4600,7 +4600,7 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 						ScriptClass(Class)
 					{ }
 
-					virtual FString GetContext() OVERRIDE
+					virtual FString GetContext() override
 					{
 						FString Filename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*GClassSourceFileMap[ScriptClass]);
 						int32 LineNumber = GClassDeclarationLineNumber[ScriptClass];

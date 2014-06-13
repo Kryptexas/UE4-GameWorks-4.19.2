@@ -28,25 +28,25 @@ private:
 
 public:
 	// Begin USoundNode interface.
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual int32 GetMaxChildNodes( void ) const OVERRIDE 
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual int32 GetMaxChildNodes( void ) const override 
 	{ 
 		return BranchPurpose::MAX; 
 	}
-	virtual int32 GetMinChildNodes() const OVERRIDE
+	virtual int32 GetMinChildNodes() const override
 	{ 
 		return BranchPurpose::MAX;
 	}
-	virtual void CreateStartingConnectors( void ) OVERRIDE;
+	virtual void CreateStartingConnectors( void ) override;
 
-	virtual void RemoveChildNode( int32 Index ) OVERRIDE
+	virtual void RemoveChildNode( int32 Index ) override
 	{
 		// Do nothing - we do not want to allow deleting of children nodes
 	}
 
 #if WITH_EDITOR
-	virtual FString GetInputPinName(int32 PinIndex) const OVERRIDE;
-	virtual FString GetTitle() const OVERRIDE;
+	virtual FString GetInputPinName(int32 PinIndex) const override;
+	virtual FString GetTitle() const override;
 #endif //WITH_EDITOR
 	// End USoundNode interface.
 };

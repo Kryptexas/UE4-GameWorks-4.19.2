@@ -20,7 +20,7 @@ const FName FEnvironmentQueryEditorModule::EnvironmentQueryEditorAppIdentifier( 
 
 class FGraphPanelNodeFactory_EnvironmentQuery : public FGraphPanelNodeFactory
 {
-	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const OVERRIDE
+	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const override
 	{
 		if (UEnvironmentQueryGraphNode* EnvQueryNode = Cast<UEnvironmentQueryGraphNode>(Node))
 		{

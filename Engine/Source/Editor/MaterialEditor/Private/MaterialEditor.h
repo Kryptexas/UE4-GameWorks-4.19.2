@@ -57,7 +57,7 @@ public:
 	 */
 	virtual bool ShouldCache(EShaderPlatform Platform, const FShaderType* ShaderType, const FVertexFactoryType* VertexFactoryType) const;
 
-	virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE
+	virtual const TArray<UTexture*>& GetReferencedTextures() const override
 	{
 		return ReferencedTextures;
 	}
@@ -108,7 +108,7 @@ public:
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const;
 
-	virtual int32 GetMaterialDomain() const OVERRIDE { return MD_Surface; }
+	virtual int32 GetMaterialDomain() const override { return MD_Surface; }
 	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
 	virtual bool IsTwoSided() const { return false; }
 	virtual bool IsLightFunction() const { return false; }
@@ -124,13 +124,13 @@ public:
 	 * Should shaders compiled for this material be saved to disk?
 	 */
 	virtual bool IsPersistent() const { return false; }
-	virtual FGuid GetMaterialId() const OVERRIDE { return Id; }
+	virtual FGuid GetMaterialId() const override { return Id; }
 	const UMaterialExpression* GetExpression() const
 	{
 		return Expression.Get();
 	}
 
-	virtual void NotifyCompilationFinished() OVERRIDE;
+	virtual void NotifyCompilationFinished() override;
 
 	friend FArchive& operator<< ( FArchive& Ar, FMatExpressionPreview& V )
 	{
@@ -180,8 +180,8 @@ struct FMaterialInfo
 class FMaterialEditor : public IMaterialEditor, public FGCObject, public FTickableGameObject, public FEditorUndoClient, public FNotifyHook
 {
 public:
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 public:
 	/** Initializes the editor to use a material. Should be the first thing called. */
@@ -205,25 +205,25 @@ public:
 	virtual ~FMaterialEditor();
 	
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/** IToolkit interface */
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
 
 	/** @return the documentation location for this editor */
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Engine/Rendering/Materials"));
 	}
 
 	/** @return Returns the color and opacity to use for the color that appears behind the tab text for this toolkit's tab in world-centric mode. */
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
 	/** The material instance applied to the preview mesh. */
-	virtual UMaterialInterface* GetMaterialInterface() const OVERRIDE;
+	virtual UMaterialInterface* GetMaterialInterface() const override;
 	
 	/**
 	 * Draws material info strings such as instruction count and current errors onto the canvas.
@@ -285,18 +285,18 @@ public:
 	TSharedRef<class IDetailsView> GetDetailView() const {return MaterialDetailsView.ToSharedRef();}
 	
 	// FTickableGameObject interface
-	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
 
-	virtual bool IsTickable() const OVERRIDE
+	virtual bool IsTickable() const override
 	{
 		return true;
 	}
 
-	virtual bool IsTickableWhenPaused() const OVERRIDE
+	virtual bool IsTickableWhenPaused() const override
 	{
 		return true;
 	}
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */
 	static void UpdateThumbnailInfoPreviewMesh(UMaterialInterface* MatInterface);
@@ -308,17 +308,17 @@ public:
 	void JumpToNode(const UEdGraphNode* Node);
 
 	// IMaterial Editor Interface
-	virtual UMaterialExpression* CreateNewMaterialExpression(UClass* NewExpressionClass, const FVector2D& NodePos, bool bAutoSelect, bool bAutoAssignResource) OVERRIDE;
-	virtual UMaterialExpressionComment* CreateNewMaterialExpressionComment(const FVector2D& NodePos) OVERRIDE;
-	virtual void ForceRefreshExpressionPreviews() OVERRIDE;
-	virtual void AddToSelection(UMaterialExpression* Expression) OVERRIDE;
-	virtual void DeleteSelectedNodes() OVERRIDE;
-	virtual FString GetOriginalObjectName() const OVERRIDE;
-	virtual void UpdateMaterialAfterGraphChange() OVERRIDE;
-	virtual bool CanPasteNodes() const OVERRIDE;
-	virtual void PasteNodesHere(const FVector2D& Location) OVERRIDE;
-	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
-	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) OVERRIDE;
+	virtual UMaterialExpression* CreateNewMaterialExpression(UClass* NewExpressionClass, const FVector2D& NodePos, bool bAutoSelect, bool bAutoAssignResource) override;
+	virtual UMaterialExpressionComment* CreateNewMaterialExpressionComment(const FVector2D& NodePos) override;
+	virtual void ForceRefreshExpressionPreviews() override;
+	virtual void AddToSelection(UMaterialExpression* Expression) override;
+	virtual void DeleteSelectedNodes() override;
+	virtual FString GetOriginalObjectName() const override;
+	virtual void UpdateMaterialAfterGraphChange() override;
+	virtual bool CanPasteNodes() const override;
+	virtual void PasteNodesHere(const FVector2D& Location) override;
+	virtual int32 GetNumberOfSelectedNodes() const override;
+	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) override;
 
 
 	void UpdateStatsMaterials();
@@ -359,10 +359,10 @@ public:
 	
 protected:
 	/** Called when "Save" is clicked for this asset */
-	virtual void SaveAsset_Execute() OVERRIDE;
+	virtual void SaveAsset_Execute() override;
 	
 	/** Called when this toolkit would close */
-	virtual bool OnRequestClose() OVERRIDE;
+	virtual bool OnRequestClose() override;
 
 	/** Called when the selection changes in the GraphEditor */
 	void OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection);
@@ -435,7 +435,7 @@ private:
 	void ExtendToolbar();
 
 	/** Allows editor to veto the setting of a preview mesh */
-	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) OVERRIDE;
+	virtual bool ApproveSetPreviewMesh(UStaticMesh* InStaticMesh, USkeletalMesh* InSkeletalMesh) override;
 
 	/** Creates all internal widgets for the tabs to point at */
 	void CreateInternalWidgets();
@@ -528,12 +528,12 @@ private:
 	void OnMaterialUsageFlagsChanged(class UMaterial* MaterialThatChanged, int32 FlagThatChanged);
 
 	// FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 
 	// FNotifyHook interface
-	virtual void NotifyPreChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void NotifyPreChange(UProperty* PropertyAboutToChange) override;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	/** Flags the material as dirty */
 	void SetMaterialDirty() {bMaterialDirty = true;}

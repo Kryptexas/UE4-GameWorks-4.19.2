@@ -353,27 +353,27 @@ public:
 	virtual ~FEdModeMeshPaint();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	// FEdMode interface
-	virtual bool UsesToolkits() const OVERRIDE;
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE;
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE;
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) OVERRIDE;
-	virtual void PostUndo() OVERRIDE;
-	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) OVERRIDE;
-	virtual bool Select( AActor* InActor, bool bInSelected ) OVERRIDE;
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE;
-	virtual void ActorSelectionChangeNotify() OVERRIDE;
-	virtual bool AllowWidgetMove() OVERRIDE { return false; }
-	virtual bool ShouldDrawWidget() const OVERRIDE { return false; }
-	virtual bool UsesTransformWidget() const OVERRIDE { return false; }
-	virtual void Tick( FLevelEditorViewportClient* ViewportClient, float DeltaTime ) OVERRIDE;
+	virtual bool UsesToolkits() const override;
+	virtual void Enter() override;
+	virtual void Exit() override;
+	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override;
+	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override;
+	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override;
+	virtual void PostUndo() override;
+	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;
+	virtual bool Select( AActor* InActor, bool bInSelected ) override;
+	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override;
+	virtual void ActorSelectionChangeNotify() override;
+	virtual bool AllowWidgetMove() override { return false; }
+	virtual bool ShouldDrawWidget() const override { return false; }
+	virtual bool UsesTransformWidget() const override { return false; }
+	virtual void Tick( FLevelEditorViewportClient* ViewportClient, float DeltaTime ) override;
 	// End of FEdMode interface
 
 

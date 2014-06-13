@@ -16,9 +16,9 @@ class UEdGraphNode_Reference : public UEdGraphNode
 	class UEdGraph_ReferenceViewer* GetReferenceViewerGraph() const;
 
 	// UEdGraphNode implementation
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	// End UEdGraphNode implementation
 
 	void CacheAssetData(const FAssetData& AssetData);

@@ -20,11 +20,11 @@ protected:
 	void OnPickedNewClass(UClass* ChosenClass);
 
 	// Begin SGraphPinObject interface
-	virtual FReply OnClickUse() OVERRIDE;
-	virtual bool AllowSelfPinWidget() const OVERRIDE { return false; }
-	virtual TSharedRef<SWidget> GenerateAssetPicker() OVERRIDE;
-	virtual FText GetDefaultComboText() const OVERRIDE;
-	virtual FOnClicked GetOnUseButtonDelegate() OVERRIDE;
+	virtual FReply OnClickUse() override;
+	virtual bool AllowSelfPinWidget() const override { return false; }
+	virtual TSharedRef<SWidget> GenerateAssetPicker() override;
+	virtual FText GetDefaultComboText() const override;
+	virtual FOnClicked GetOnUseButtonDelegate() override;
 	// End SGraphPinObject interface
 
 };

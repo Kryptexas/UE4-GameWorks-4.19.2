@@ -17,13 +17,13 @@ public:
 	FEdModeInterpEdit();
 	~FEdModeInterpEdit();
 
-	virtual bool InputKey( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) OVERRIDE;
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
-	virtual void ActorMoveNotify() OVERRIDE;
-	virtual void ActorPropChangeNotify() OVERRIDE;
-	virtual bool AllowWidgetMove() OVERRIDE;
-	virtual void ActorSelectionChangeNotify() OVERRIDE;
+	virtual bool InputKey( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event ) override;
+	virtual void Enter() override;
+	virtual void Exit() override;
+	virtual void ActorMoveNotify() override;
+	virtual void ActorPropChangeNotify() override;
+	virtual bool AllowWidgetMove() override;
+	virtual void ActorSelectionChangeNotify() override;
 
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
 	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
@@ -57,15 +57,15 @@ public:
 	/**
 	 * @return		true if the key was handled by this editor mode tool.
 	 */
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
-	virtual bool InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime) OVERRIDE;
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE;
+	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
+	virtual bool InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime) override;
+	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 
 	/**
 	 * @return		true if the delta was handled by this editor mode tool.
 	 */
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) OVERRIDE;
-	virtual void SelectNone() OVERRIDE;
+	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) override;
+	virtual void SelectNone() override;
 
 
 	bool bMovingHandle;

@@ -27,7 +27,7 @@ public:
 public:
 	void DoInit();
 
-	virtual class UWorld* GetWorld() const OVERRIDE;
+	virtual class UWorld* GetWorld() const override;
 
 private:
 	TMap< int32, TArray<FLiveEditorCheckpointData> > CheckpointMap;

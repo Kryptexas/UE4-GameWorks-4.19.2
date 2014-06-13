@@ -12,23 +12,23 @@ class UEditorBrushBuilder : public UBrushBuilder
 public:
 
 	/** UBrushBuilder interface */
-	virtual void BeginBrush( bool InMergeCoplanars, FName InLayer ) OVERRIDE;
-	virtual bool EndBrush( UWorld* InWorld, ABrush* InBrush ) OVERRIDE;
-	virtual int32 GetVertexCount() OVERRIDE;
-	virtual FVector GetVertex( int32 i ) OVERRIDE;
-	virtual int32 GetPolyCount() OVERRIDE;
-	virtual bool BadParameters( const FText& msg ) OVERRIDE;
-	virtual int32 Vertexv( FVector v ) OVERRIDE;
-	virtual int32 Vertex3f( float X, float Y, float Z ) OVERRIDE;
-	virtual void Poly3i( int32 Direction, int32 i, int32 j, int32 k, FName ItemName = NAME_None, bool bIsTwoSidedNonSolid = false ) OVERRIDE;
-	virtual void Poly4i( int32 Direction, int32 i, int32 j, int32 k, int32 l, FName ItemName = NAME_None, bool bIsTwoSidedNonSolid = false ) OVERRIDE;
-	virtual void PolyBegin( int32 Direction, FName ItemName = NAME_None ) OVERRIDE;
-	virtual void Polyi( int32 i ) OVERRIDE;
-	virtual void PolyEnd() OVERRIDE;
-	UNREALED_API virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) OVERRIDE;
+	virtual void BeginBrush( bool InMergeCoplanars, FName InLayer ) override;
+	virtual bool EndBrush( UWorld* InWorld, ABrush* InBrush ) override;
+	virtual int32 GetVertexCount() override;
+	virtual FVector GetVertex( int32 i ) override;
+	virtual int32 GetPolyCount() override;
+	virtual bool BadParameters( const FText& msg ) override;
+	virtual int32 Vertexv( FVector v ) override;
+	virtual int32 Vertex3f( float X, float Y, float Z ) override;
+	virtual void Poly3i( int32 Direction, int32 i, int32 j, int32 k, FName ItemName = NAME_None, bool bIsTwoSidedNonSolid = false ) override;
+	virtual void Poly4i( int32 Direction, int32 i, int32 j, int32 k, int32 l, FName ItemName = NAME_None, bool bIsTwoSidedNonSolid = false ) override;
+	virtual void PolyBegin( int32 Direction, FName ItemName = NAME_None ) override;
+	virtual void Polyi( int32 i ) override;
+	virtual void PolyEnd() override;
+	UNREALED_API virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) override;
 
 	/** UObject interface */
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 };
 
 

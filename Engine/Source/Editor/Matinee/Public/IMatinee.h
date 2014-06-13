@@ -88,7 +88,7 @@ class IMatinee : public IMatineeBase, public FAssetEditorToolkit
 {
 public:
 
-	bool Show(bool bShow) OVERRIDE {return false; }
-	void Close(bool bForce) OVERRIDE { CloseWindow(); }
+	bool Show(bool bShow) override {return false; }
+	void Close(bool bForce) override { CloseWindow(); }
 };
 	

@@ -65,8 +65,8 @@ protected:
 	physx::PxRigidDynamic* KinActorData;
 
 	// Begin UActorComponent interface.
-	virtual void OnUnregister() OVERRIDE;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void OnUnregister() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent interface.
 
 public:

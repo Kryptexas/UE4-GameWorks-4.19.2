@@ -54,19 +54,19 @@ public:
 	virtual ~FFXSystem();
 
 	// Begin FFXSystemInterface.
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
+	virtual void Tick(float DeltaSeconds) override;
 #if WITH_EDITOR
-	virtual void Suspend() OVERRIDE;
-	virtual void Resume() OVERRIDE;
+	virtual void Suspend() override;
+	virtual void Resume() override;
 #endif // #if WITH_EDITOR
-	virtual void DrawDebug(FCanvas* Canvas) OVERRIDE;
-	virtual void AddVectorField(UVectorFieldComponent* VectorFieldComponent) OVERRIDE;
-	virtual void RemoveVectorField(UVectorFieldComponent* VectorFieldComponent) OVERRIDE;
-	virtual void UpdateVectorField(UVectorFieldComponent* VectorFieldComponent) OVERRIDE;
-	virtual FParticleEmitterInstance* CreateGPUSpriteEmitterInstance(FGPUSpriteEmitterInfo& EmitterInfo) OVERRIDE;
-	virtual void PreInitViews() OVERRIDE;
-	virtual void PreRender() OVERRIDE;
-	virtual void PostRenderOpaque(const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) OVERRIDE;
+	virtual void DrawDebug(FCanvas* Canvas) override;
+	virtual void AddVectorField(UVectorFieldComponent* VectorFieldComponent) override;
+	virtual void RemoveVectorField(UVectorFieldComponent* VectorFieldComponent) override;
+	virtual void UpdateVectorField(UVectorFieldComponent* VectorFieldComponent) override;
+	virtual FParticleEmitterInstance* CreateGPUSpriteEmitterInstance(FGPUSpriteEmitterInfo& EmitterInfo) override;
+	virtual void PreInitViews() override;
+	virtual void PreRender() override;
+	virtual void PostRenderOpaque(const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) override;
 	// End FFXSystemInterface.
 
 	/*--------------------------------------------------------------------------

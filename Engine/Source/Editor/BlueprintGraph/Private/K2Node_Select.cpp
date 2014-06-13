@@ -24,7 +24,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		FNodeHandlingFunctor::RegisterNets(Context, Node);
 
@@ -44,7 +44,7 @@ public:
 		BoolTermMap.Add(Node, BoolTerm);
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		// Cast the node and get all the input pins
 		UK2Node_Select* SelectNode = Cast<UK2Node_Select>(Node);

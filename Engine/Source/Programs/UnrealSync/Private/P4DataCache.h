@@ -89,14 +89,14 @@ public:
 	 *
 	 * @return True if initialization was successful, false otherwise
 	 */
-	virtual bool Init() OVERRIDE;
+	virtual bool Init() override;
 
 	/**
 	 * Main function to run for this thread.
 	 *
 	 * @returns Exit code.
 	 */
-	uint32 Run() OVERRIDE;
+	uint32 Run() override;
 
 	/**
 	 * Exits the runnable object.

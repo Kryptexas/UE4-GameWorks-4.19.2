@@ -54,14 +54,14 @@ public:
 	UPROPERTY()
 	TArray< UMovieScene* > AnimationData;
 	 
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 	
 #if WITH_EDITOR
 	// UBlueprint interface
-	virtual UClass* GetBlueprintClass() const OVERRIDE;
+	virtual UClass* GetBlueprintClass() const override;
 
-	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
+	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;
 	}

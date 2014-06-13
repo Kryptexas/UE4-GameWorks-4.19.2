@@ -209,7 +209,7 @@ class UParticleModule : public UObject
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -549,7 +549,7 @@ class UParticleModule : public UObject
 	ENGINE_API bool IsUsedInGPUEmitter()const;
 
 #if WITH_EDITOR
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
+	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 
 	/**
 	 *	Custom Cascade module menu entries support

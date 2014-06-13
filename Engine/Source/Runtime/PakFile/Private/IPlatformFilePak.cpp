@@ -249,7 +249,7 @@ public:
 	{}
 
 	/** Console commands **/
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if (FParse::Command(&Cmd, TEXT("Mount")))
 		{
@@ -574,7 +574,7 @@ bool FPakPlatformFile::CopyFile(const TCHAR* To, const TCHAR* From)
 class FPakFileModule : public IPlatformFileModule
 {
 public:
-	virtual IPlatformFile* GetPlatformFile() OVERRIDE
+	virtual IPlatformFile* GetPlatformFile() override
 	{
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FPakPlatformFile());
 		return AutoDestroySingleton.GetOwnedPointer();

@@ -50,7 +50,7 @@ public:
 	{}
 
 	/** Overridden from SWidget */
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Wraps SOverlay::AddSlot() */
 	SOverlay::FOverlaySlot& AddSlot();

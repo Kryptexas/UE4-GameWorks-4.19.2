@@ -14,17 +14,17 @@ public:
 	/**
 	 * Saves viewport layout information between editor sessions
 	 */
-	virtual void SaveLayoutString(const FString& LayoutString) const OVERRIDE;
+	virtual void SaveLayoutString(const FString& LayoutString) const override;
 
-	virtual const FName& GetLayoutTypeName() const OVERRIDE { return LevelViewportConfigurationNames::FourPanes2x2; }
+	virtual const FName& GetLayoutTypeName() const override { return LevelViewportConfigurationNames::FourPanes2x2; }
 protected:
 	/**
 	 * Creates the viewports and splitter for the 2x2 layout                   
 	 */
-	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) OVERRIDE;
+	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) override;
 
 	/** Overridden from FLevelViewportLayout */
-	virtual void ReplaceWidget( TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement ) OVERRIDE;
+	virtual void ReplaceWidget( TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement ) override;
 
 
 private:

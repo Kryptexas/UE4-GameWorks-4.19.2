@@ -26,7 +26,7 @@ public:
 	 *
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
-	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+	virtual TSharedRef< SWidget > GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 
 	/**

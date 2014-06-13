@@ -36,7 +36,7 @@ public:
 		return false;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		check(Format == NAME_OPUS);
 		return UE_AUDIO_OPUS_VER;
@@ -234,7 +234,7 @@ public:
 		return CompressedDataStore.Num();
 	}
 
-	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const OVERRIDE
+	virtual bool SplitDataForStreaming(const TArray<uint8>& SrcBuffer, TArray<TArray<uint8>>& OutBuffers) const override
 	{
 		// 16K chunks - don't really have an idea of what's best for loading from disc yet
 		const int32 kMaxChunkSizeBytes = 16384;

@@ -14,22 +14,22 @@ public:
 	~FDefaultGameMoviePlayer();
 
 	/** IGameMoviePlayer Interface */
-	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) OVERRIDE;
-	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) OVERRIDE;
-	virtual void Initialize() OVERRIDE;
-	virtual void PassLoadingScreenWindowBackToGame() const OVERRIDE;
-	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) OVERRIDE;
-	virtual bool PlayMovie() OVERRIDE;
-	virtual void WaitForMovieToFinish() OVERRIDE;
-	virtual bool IsLoadingFinished() const OVERRIDE;
-	virtual bool IsMovieCurrentlyPlaying() const OVERRIDE;
-	virtual bool LoadingScreenIsPrepared() const OVERRIDE;
-	virtual void SetupLoadingScreenFromIni() OVERRIDE;
+	virtual void RegisterMovieStreamer(TSharedPtr<IMovieStreamer> InMovieStreamer) override;
+	virtual void SetSlateRenderer(TSharedPtr<FSlateRenderer> InSlateRenderer) override;
+	virtual void Initialize() override;
+	virtual void PassLoadingScreenWindowBackToGame() const override;
+	virtual void SetupLoadingScreen(const FLoadingScreenAttributes& LoadingScreenAttributes) override;
+	virtual bool PlayMovie() override;
+	virtual void WaitForMovieToFinish() override;
+	virtual bool IsLoadingFinished() const override;
+	virtual bool IsMovieCurrentlyPlaying() const override;
+	virtual bool LoadingScreenIsPrepared() const override;
+	virtual void SetupLoadingScreenFromIni() override;
 
 	/** FTickableObjectRenderThread interface */
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual TStatId GetStatId() const OVERRIDE;
-	virtual bool IsTickable() const OVERRIDE;
+	virtual void Tick( float DeltaTime ) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override;
 	
 private:
 

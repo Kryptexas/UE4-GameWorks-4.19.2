@@ -47,27 +47,27 @@ public:
 		FileHandle = NULL;
 	}
 
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		check(IsValid());
 		return FileSeek(0, FILE_CURRENT);
 	}
 
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(IsValid());
 		check(NewPosition >= 0);
 		return (FileSeek(NewPosition, FILE_BEGIN) != -1);
 	}
 
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(IsValid());
 		check(NewPositionRelativeToEnd <= 0);
 		return (FileSeek(NewPositionRelativeToEnd, FILE_END) != -1);
 	}
 
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
 		while (BytesToRead)
@@ -86,7 +86,7 @@ public:
 		return true;
 	}
 
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -189,7 +189,7 @@ public:
 	 * @param Inner Platform file to wrap by this file.
 	 * @param CommandLineParam Optional parameter passed in the commandline.
 	 * @return true if the initialization was successful, false otherise. */
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override
 	{
 		// Physical platform file should never wrap anything.
 		check(Inner == NULL);
@@ -197,18 +197,18 @@ public:
 	}
 
 	/** Gets the platform file wrapped by this file. */
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return NULL;
 	}
 
 	/** Gets this platform file type name. */
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return IPlatformFile::GetPhysicalTypeName();
 	}
 
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		WIN32_FILE_ATTRIBUTE_DATA AttribData;
 		if (GetFileAttributesEx(*NormalizeFilename(Filename), GetFileExInfoStandard, (void*)&AttribData) == TRUE)
@@ -221,7 +221,7 @@ public:
 		return false;
 	}
 	
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		WIN32_FILE_ATTRIBUTE_DATA Info;
 		if (GetFileAttributesExW(*NormalizeFilename(Filename), GetFileExInfoStandard, &Info) == TRUE)
@@ -237,12 +237,12 @@ public:
 		return -1;
 	}
 	
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		return !!DeleteFileW(*NormalizeFilename(Filename));
 	}
 	
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		WIN32_FILE_ATTRIBUTE_DATA Info;
 		if (!GetFileAttributesExW(*NormalizeFilename(Filename), GetFileExInfoStandard, &Info))
@@ -253,17 +253,17 @@ public:
 		return ((Info.dwFileAttributes & FILE_ATTRIBUTE_READONLY) == 0);
 	}
 	
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return !!MoveFileEx(*NormalizeFilename(From), *NormalizeFilename(To), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
 	}
 	
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		return !!SetFileAttributesW(*NormalizeFilename(Filename), bNewReadOnlyValue ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL);
 	}
 	
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct _stat FileInfo;
@@ -278,7 +278,7 @@ public:
 		return WinRTEpoch + TimeSinceEpoch;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		// get file times
 		struct _stat FileInfo;
@@ -338,7 +338,7 @@ public:
 		return WinRTEpoch + TimeSinceEpoch;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		DWORD  Access    = GENERIC_READ;
 		DWORD  WinFlags  = FILE_SHARE_READ;
@@ -352,7 +352,7 @@ public:
 		return NULL;
 	}
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = 0, bool bAllowRead = 0) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = 0, bool bAllowRead = 0) override
 	{
 		DWORD  Access    = GENERIC_WRITE;
 		DWORD  WinFlags  = bAllowRead ? FILE_SHARE_READ : 0;
@@ -365,7 +365,7 @@ public:
 		return NULL;
 	}
 	
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		WIN32_FILE_ATTRIBUTE_DATA AttribData;
 		if (GetFileAttributesEx(*NormalizeDirectory(Directory), GetFileExInfoStandard, (void*)&AttribData) == TRUE)
@@ -378,12 +378,12 @@ public:
 		return false;
 	}
 	
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 		return CreateDirectoryW(*NormalizeDirectory(Directory), NULL) || GetLastError() == ERROR_ALREADY_EXISTS;
 	}
 	
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 		RemoveDirectoryW(*NormalizeDirectory(Directory));
 		return !DirectoryExists(Directory);

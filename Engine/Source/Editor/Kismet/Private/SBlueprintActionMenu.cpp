@@ -29,7 +29,7 @@ struct FBlueprintAction_PromoteVariable : public FEdGraphSchemaAction
 	}
 
 	// FEdGraphSchemaAction interface
-	virtual UEdGraphNode* PerformAction( class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) OVERRIDE
+	virtual UEdGraphNode* PerformAction( class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override
 	{
 		if( ( ParentGraph != NULL ) && ( FromPin != NULL ) )
 		{

@@ -45,14 +45,14 @@ class UCameraComponent : public USceneComponent
 	struct FPostProcessSettings PostProcessSettings;
 
 	// UActorComponent interface
-	ENGINE_API virtual void OnRegister() OVERRIDE;
-	ENGINE_API virtual void OnUnregister() OVERRIDE;
+	ENGINE_API virtual void OnRegister() override;
+	ENGINE_API virtual void OnUnregister() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void CheckForErrors() OVERRIDE;
+	ENGINE_API virtual void CheckForErrors() override;
 	// End of UActorComponent interface
 
 	// UObject interface
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface
 

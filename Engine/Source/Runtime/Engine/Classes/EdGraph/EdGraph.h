@@ -104,7 +104,7 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	// Begin UObject interface
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 	// End UObject interface
 #endif
 

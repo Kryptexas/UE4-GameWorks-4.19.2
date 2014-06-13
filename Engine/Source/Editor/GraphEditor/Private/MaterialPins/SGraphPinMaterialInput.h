@@ -12,7 +12,7 @@ public:
 
 protected:
 	// Begin SGraphPin interface
-	virtual FSlateColor GetPinColor() const OVERRIDE;
+	virtual FSlateColor GetPinColor() const override;
 	// End SGraphPin interface
 
 private:

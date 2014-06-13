@@ -24,18 +24,18 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	uint32 bCanAbortFlow : 1;
 
 	FString GetNodeTypeDescription() const;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetDescription() const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetDescription() const override;
+	virtual void PostPlacedNewNode() override;
+	virtual void PostLoad() override;
 	virtual UEdGraph* GetBoundGraph() const { return BoundGraph; }
-	virtual bool IsSubNode() const OVERRIDE;
-	virtual bool HasErrors() const OVERRIDE;
-	virtual bool RefreshNodeClass() OVERRIDE;
+	virtual bool IsSubNode() const override;
+	virtual bool HasErrors() const override;
+	virtual bool RefreshNodeClass() override;
 
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual void PostCopyNode() OVERRIDE;
+	virtual void PrepareForCopying() override;
+	virtual void PostCopyNode() override;
 
 	void CollectDecoratorData(TArray<class UBTDecorator*>& NodeInstances, TArray<struct FBTDecoratorLogic>& Operations) const;
 	void SetDecoratorData(class UBTCompositeNode* InParentNode, uint8 InChildIndex);
@@ -44,7 +44,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	void OnInnerGraphChanged();
 	void BuildDescription();
 
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	void ResetExecutionRange();
 

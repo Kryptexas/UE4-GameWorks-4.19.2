@@ -14,32 +14,32 @@ public:
 	virtual ~FStreamingLevelEdMode();
 
 	// Begin FEdMode
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE; 
+	virtual void Enter() override;
+	virtual void Exit() override; 
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
-	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const OVERRIDE;
+	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const override;
 
-	virtual bool ShouldDrawWidget() const OVERRIDE;
+	virtual bool ShouldDrawWidget() const override;
 
-	virtual bool UsesTransformWidget(FWidget::EWidgetMode CheckMode) const OVERRIDE;
+	virtual bool UsesTransformWidget(FWidget::EWidgetMode CheckMode) const override;
 
-	virtual FVector GetWidgetLocation() const OVERRIDE;
+	virtual FVector GetWidgetLocation() const override;
 
-	virtual bool AllowWidgetMove() OVERRIDE { return true; }
+	virtual bool AllowWidgetMove() override { return true; }
 
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) OVERRIDE;
+	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override;
 
-	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) OVERRIDE;
+	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;
 
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) OVERRIDE;
+	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 
-	virtual bool IsSnapRotationEnabled() OVERRIDE;
+	virtual bool IsSnapRotationEnabled() override;
 
-	virtual bool SnapRotatorToGridOverride(FRotator& Rotation) OVERRIDE;
+	virtual bool SnapRotatorToGridOverride(FRotator& Rotation) override;
 
 	// End FEdMode
 

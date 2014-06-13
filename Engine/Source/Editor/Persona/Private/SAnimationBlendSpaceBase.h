@@ -249,13 +249,13 @@ public:
 	FVector		GetLastValidMouseGridPoint() { return LastValidMouseEditorPoint; }
 
 	// SWidget Interface
-	virtual FReply	OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply	OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply	OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	virtual FReply	OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;	
-	virtual FReply	OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual FReply	OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
-	virtual void	OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	virtual FReply	OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply	OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply	OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply	OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;	
+	virtual FReply	OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply	OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void	OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	// End of SWidget
 
 	/** Called by OnDrop to actually process sample drop */
@@ -356,7 +356,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	// SWidget interface
-	virtual void	Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	virtual void	Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget
 
 	void PostUndo();

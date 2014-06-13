@@ -6,8 +6,8 @@ class FAssetTypeActions_AnimComposite : public FAssetTypeActions_AnimationAsset
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_AnimComposite", "Animation Composite"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(0,128,192); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UAnimComposite::StaticClass(); }
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_AnimComposite", "Animation Composite"); }
+	virtual FColor GetTypeColor() const override { return FColor(0,128,192); }
+	virtual UClass* GetSupportedClass() const override { return UAnimComposite::StaticClass(); }
+	virtual bool CanFilter() override { return true; }
 };

@@ -37,14 +37,14 @@ public:
 	virtual ~FSplineComponentVisualizer();
 
 	// Begin FComponentVisualizer interface
-	virtual void OnRegister() OVERRIDE;
-	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual bool VisProxyHandleClick(HComponentVisProxy* VisProxy) OVERRIDE;
-	virtual void EndEditing() OVERRIDE;
-	virtual bool GetWidgetLocation(FVector& OutLocation) const OVERRIDE;
-	virtual bool HandleInputDelta(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) OVERRIDE;
-	virtual bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) OVERRIDE;
-	virtual TSharedPtr<SWidget> GenerateContextMenu() const OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
+	virtual bool VisProxyHandleClick(HComponentVisProxy* VisProxy) override;
+	virtual void EndEditing() override;
+	virtual bool GetWidgetLocation(FVector& OutLocation) const override;
+	virtual bool HandleInputDelta(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
+	virtual bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
+	virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
 	// End FComponentVisualizer interface
 
 	/** Get the spline component we are currently editing */

@@ -195,7 +195,7 @@ class ENGINE_API UVehicleWheel : public UObject
 	/**
 	 * Respond to a property change in editor
 	 */
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 #endif //WITH_EDITOR
 

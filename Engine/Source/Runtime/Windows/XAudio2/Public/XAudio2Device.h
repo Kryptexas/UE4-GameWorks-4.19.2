@@ -77,21 +77,21 @@ class FXAudio2Device : public FAudioDevice
 {
 
 	/** Starts up any platform specific hardware/APIs */
-	virtual bool InitializeHardware() OVERRIDE;
+	virtual bool InitializeHardware() override;
 
 	/** Shuts down any platform specific hardware/APIs */
-	virtual void TeardownHardware() OVERRIDE;
+	virtual void TeardownHardware() override;
 
 	/** Lets the platform any tick actions */
-	virtual void UpdateHardware() OVERRIDE;
+	virtual void UpdateHardware() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FAudioEffectsManager* CreateEffectsManager() OVERRIDE;
+	virtual FAudioEffectsManager* CreateEffectsManager() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FSoundSource* CreateSoundSource() OVERRIDE;
+	virtual FSoundSource* CreateSoundSource() override;
 
-	virtual FName GetRuntimeFormat(USoundWave* SoundWave) OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
 		static FName NAME_OPUS(TEXT("OPUS"));
 
@@ -108,19 +108,19 @@ class FXAudio2Device : public FAudioDevice
 #endif //WITH_OGGVORBIS
 	}
 
-	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
-	virtual bool SupportsRealtimeDecompression() const OVERRIDE
+	virtual bool SupportsRealtimeDecompression() const override
 	{
 		return true;
 	}
 
-	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
 
 	/** 
 	 * Check for errors and output a human readable string 
 	 */
-	virtual bool ValidateAPICall(const TCHAR* Function, int32 ErrorCode) OVERRIDE;
+	virtual bool ValidateAPICall(const TCHAR* Function, int32 ErrorCode) override;
 
 	/**
 	 * Exec handler used to parse console commands.
@@ -129,7 +129,7 @@ class FXAudio2Device : public FAudioDevice
 	 * @param	Ar		Output device to use in case the handler prints anything
 	 * @return	true if command was handled, false otherwise
 	 */
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
 protected:
 

@@ -51,12 +51,12 @@ public:
 	 *
 	 * @return true if initialized ok, false otherwise
 	 */
-	virtual bool Init(FString& Error) OVERRIDE;
+	virtual bool Init(FString& Error) override;
 
 	/**
 	 * Performs platform specific socket clean up
 	 */
-	virtual void Shutdown() OVERRIDE;
+	virtual void Shutdown() override;
 
 	/**
 	 * Creates a socket
@@ -67,14 +67,14 @@ public:
 	 *
 	 * @return the new socket or NULL if failed
 	 */
-	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) OVERRIDE;
+	virtual class FSocket* CreateSocket(const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false) override;
 
 	/**
 	 * Cleans up a socket class
 	 *
 	 * @param Socket the socket object to destroy
 	 */
-	virtual void DestroySocket(class FSocket* Socket) OVERRIDE;
+	virtual void DestroySocket(class FSocket* Socket) override;
 
 	/**
 	 * Does a DNS look up of a host name
@@ -82,7 +82,7 @@ public:
 	 * @param HostName the name of the host to look up
 	 * @param Addr the address to copy the IP address to
 	 */
-	virtual ESocketErrors GetHostByName(const ANSICHAR* HostName, FInternetAddr& OutAddr) OVERRIDE;
+	virtual ESocketErrors GetHostByName(const ANSICHAR* HostName, FInternetAddr& OutAddr) override;
 
 	/**
 	 * Creates a platform specific async hostname resolution object
@@ -91,14 +91,14 @@ public:
 	 *
 	 * @return the resolve info to query for the address
 	 */
-	virtual class FResolveInfo* GetHostByName(const ANSICHAR* HostName) OVERRIDE;
+	virtual class FResolveInfo* GetHostByName(const ANSICHAR* HostName) override;
 
 	/**
 	 * Some platforms require chat data (voice, text, etc.) to be placed into
 	 * packets in a special way. This function tells the net connection
 	 * whether this is required for this platform
 	 */
-	virtual bool RequiresChatDataBeSeparate() OVERRIDE
+	virtual bool RequiresChatDataBeSeparate() override
 	{
 		return false;
 	}
@@ -107,7 +107,7 @@ public:
 	 * Some platforms require packets be encrypted. This function tells the
 	 * net connection whether this is required for this platform
 	 */
-	virtual bool RequiresEncryptedPackets() OVERRIDE
+	virtual bool RequiresEncryptedPackets() override
 	{
 		return false;
 	}
@@ -119,35 +119,35 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool GetHostName(FString& HostName) OVERRIDE;
+	virtual bool GetHostName(FString& HostName) override;
 
 	/**
 	 *	Create a proper FInternetAddr representation
 	 * @param Address host address
 	 * @param Port host port
 	 */
-	virtual TSharedRef<FInternetAddr> CreateInternetAddr(uint32 Address=0, uint32 Port=0) OVERRIDE;
+	virtual TSharedRef<FInternetAddr> CreateInternetAddr(uint32 Address=0, uint32 Port=0) override;
 
 	/**
 	 * @return Whether the machine has a properly configured network device or not
 	 */
-	virtual bool HasNetworkDevice() OVERRIDE;
+	virtual bool HasNetworkDevice() override;
 
 	/**
 	 *	Get the name of the socket subsystem
 	 * @return a string naming this subsystem
 	 */
-	virtual const TCHAR* GetSocketAPIName() const OVERRIDE;
+	virtual const TCHAR* GetSocketAPIName() const override;
 
-	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) OVERRIDE;
+	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override;
 
 	/**
 	 * Returns the last error that has happened
 	 */
-	virtual ESocketErrors GetLastErrorCode() OVERRIDE;
+	virtual ESocketErrors GetLastErrorCode() override;
 
 	/**
 	 * Translates the platform error code to a ESocketErrors enum
 	 */
-	virtual ESocketErrors TranslateErrorCode(int32 Code) OVERRIDE;
+	virtual ESocketErrors TranslateErrorCode(int32 Code) override;
 };

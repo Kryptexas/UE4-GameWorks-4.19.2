@@ -16,10 +16,10 @@ class UK2Node_CallFunctionOnMember : public UK2Node_CallFunction
 	FMemberReference				MemberVariableToCallOn;
 
 	// Begin UK2Node_CallFunction interface
-	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) OVERRIDE;
-	virtual FString GetFunctionContextString() const OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) override;
+	virtual FString GetFunctionContextString() const override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node_CallFunction interface
 
 };

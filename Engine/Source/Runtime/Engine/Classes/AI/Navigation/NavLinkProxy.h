@@ -38,21 +38,21 @@ class ENGINE_API ANavLinkProxy : public AActor, public INavLinkHostInterface, pu
 #endif // WITH_EDITORONLY_DATA
 
 	// BEGIN INavRelevantActorInterface
-	virtual bool UpdateNavigationRelevancy() OVERRIDE;
-	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const OVERRIDE;
+	virtual bool UpdateNavigationRelevancy() override;
+	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const override;
 	// END INavRelevantActorInterface
 
 	// BEGIN INavLinkHostInterface
-	virtual bool GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const OVERRIDE;
-	virtual bool GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TArray<FNavigationSegmentLink>& OutSegments) const OVERRIDE;
+	virtual bool GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const override;
+	virtual bool GetNavigationLinksArray(TArray<FNavigationLink>& OutLink, TArray<FNavigationSegmentLink>& OutSegments) const override;
 	// END INavLinkHostInterface
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
-	virtual void PostInitProperties() OVERRIDE;
-	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Blueprint interface for smart links

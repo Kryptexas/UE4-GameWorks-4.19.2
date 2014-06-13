@@ -32,14 +32,14 @@ class FBspModeModule : public IBspModeModule
 public:
 	
 	/** IModuleInterface interface */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** IBspModeModule interface */
-	virtual TSharedRef< SWidget > CreateBspModeWidget() const OVERRIDE;
-	virtual TSharedRef< FEdMode > GetBspMode() const OVERRIDE;
-	virtual void RegisterBspBuilderType( class UClass* InBuilderClass, const FText& InBuilderName, const FText& InBuilderTooltip, const FSlateBrush* InBuilderIcon ) OVERRIDE;
-	virtual void UnregisterBspBuilderType( class UClass* InBuilderClass ) OVERRIDE;
+	virtual TSharedRef< SWidget > CreateBspModeWidget() const override;
+	virtual TSharedRef< FEdMode > GetBspMode() const override;
+	virtual void RegisterBspBuilderType( class UClass* InBuilderClass, const FText& InBuilderName, const FText& InBuilderTooltip, const FSlateBrush* InBuilderIcon ) override;
+	virtual void UnregisterBspBuilderType( class UClass* InBuilderClass ) override;
 
 	const TArray< TSharedPtr<FBspBuilderType> >& GetBspBuilderTypes();
 	TSharedPtr<FBspBuilderType> FindBspBuilderType(UClass* InBuilderClass) const;

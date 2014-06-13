@@ -15,6 +15,6 @@ class ANavModifierVolume : public AVolume, public INavRelevantActorInterface
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Default)
 	TSubclassOf<class UNavArea> AreaClass;
 
-	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const OVERRIDE;
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(true); return true; }
+	virtual bool GetNavigationRelevantData(struct FNavigationRelevantData& Data) const override;
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(true); return true; }
 };

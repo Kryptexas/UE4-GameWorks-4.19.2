@@ -9,14 +9,14 @@ class FDocumentationModule : public IDocumentationModule
 public:
 
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		Documentation = FDocumentation::Create();
 
 		FMultiBoxSettings::ToolTipConstructor = FMultiBoxSettings::FConstructToolTip::CreateRaw( this, &FDocumentationModule::ConstructDefaultToolTip );
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if ( FModuleManager::Get().IsModuleLoaded("Slate") )
 		{
@@ -27,7 +27,7 @@ public:
 		// we call this function before unloading the module.
 	}
 
-	virtual class TSharedRef< IDocumentation > GetDocumentation() const OVERRIDE
+	virtual class TSharedRef< IDocumentation > GetDocumentation() const override
 	{
 		return Documentation.ToSharedRef();
 	}

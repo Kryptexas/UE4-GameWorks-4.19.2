@@ -141,7 +141,7 @@ public:
 
 	virtual float GetOuterConeAngle() const { return OuterConeAngle; }
 
-	virtual FVector2D GetLightShaftConeParams() const OVERRIDE { return FVector2D(CosLightShaftConeAngle, InvCosLightShaftConeDifference); }
+	virtual FVector2D GetLightShaftConeParams() const override { return FVector2D(CosLightShaftConeAngle, InvCosLightShaftConeDifference); }
 
 	virtual FSphere GetBoundingSphere() const
 	{

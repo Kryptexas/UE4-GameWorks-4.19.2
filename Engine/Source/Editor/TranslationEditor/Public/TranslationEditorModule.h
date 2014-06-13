@@ -15,8 +15,8 @@ class FTranslationEditorModule : public IModuleInterface,
 
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/**
 	 * Creates an instance of translation editor object.  Only virtual so that it can be called across the DLL boundary.

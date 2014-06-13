@@ -9,17 +9,17 @@ public:
 
 	FPropertyEditorToolkit();
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
-	virtual FName GetToolkitFName() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
 
-	virtual FText GetBaseToolkitName() const OVERRIDE;
+	virtual FText GetBaseToolkitName() const override;
 
-	virtual FText GetToolkitName() const OVERRIDE;
+	virtual FText GetToolkitName() const override;
 
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
+	virtual FString GetWorldCentricTabPrefix() const override;
 
 	virtual FLinearColor GetWorldCentricTabColorScale() const;
 
@@ -29,9 +29,9 @@ public:
 
 	bool TableHasCustomColumns() const;
 
-	virtual bool CloseWindow() OVERRIDE;
+	virtual bool CloseWindow() override;
 
-	virtual bool IsPrimaryEditor() const OVERRIDE{ return false; };
+	virtual bool IsPrimaryEditor() const override{ return false; };
 
 public:
 

@@ -22,12 +22,12 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void PostReconstructNode() OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void PostReconstructNode() override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	// End UK2Node interface
 
 	/** Retrieves the target pin for the function */

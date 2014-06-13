@@ -70,7 +70,7 @@ public:
 	 *
 	 * @param true if it closes without errors, false otherwise
 	 */
-	virtual bool Close() OVERRIDE;
+	virtual bool Close() override;
 
 	/**
 	 * Binds a socket to a network byte ordered address
@@ -79,7 +79,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool Bind(const FInternetAddr& Addr) OVERRIDE;
+	virtual bool Bind(const FInternetAddr& Addr) override;
 
 	/**
 	 * Connects a socket to a network byte ordered address
@@ -88,7 +88,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool Connect(const FInternetAddr& Addr) OVERRIDE;
+	virtual bool Connect(const FInternetAddr& Addr) override;
 
 	/**
 	 * Places the socket into a state to listen for incoming connections
@@ -97,7 +97,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool Listen(int32 MaxBacklog) OVERRIDE;
+	virtual bool Listen(int32 MaxBacklog) override;
 
 	/**
 	 * Queries the socket to determine if there is a pending connection
@@ -106,7 +106,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool HasPendingConnection(bool& bHasPendingConnection) OVERRIDE;
+	virtual bool HasPendingConnection(bool& bHasPendingConnection) override;
 
 	/**
 	* Queries the socket to determine if there is pending data on the queue
@@ -115,7 +115,7 @@ public:
 	*
 	* @return true if the socket has data, false otherwise
 	*/
-	virtual bool HasPendingData(uint32& PendingDataSize) OVERRIDE;
+	virtual bool HasPendingData(uint32& PendingDataSize) override;
 
 	/**
 	 * Accepts a connection that is pending
@@ -123,7 +123,7 @@ public:
 	 * @param		SocketDescription debug description of socket
 	 * @return		The new (heap-allocated) socket, or NULL if unsuccessful.
 	 */
-	virtual class FSocket* Accept(const FString& SocketDescription) OVERRIDE;
+	virtual class FSocket* Accept(const FString& SocketDescription) override;
 
 	/**
 	 * Accepts a connection that is pending
@@ -133,7 +133,7 @@ public:
 	 *
 	 * @return		The new (heap-allocated) socket, or NULL if unsuccessful.
 	 */
-	virtual class FSocket* Accept(FInternetAddr& OutAddr, const FString& SocketDescription) OVERRIDE;
+	virtual class FSocket* Accept(FInternetAddr& OutAddr, const FString& SocketDescription) override;
 
 	/**
 	 * Sends a buffer to a network byte ordered address
@@ -143,7 +143,7 @@ public:
 	 * @param BytesSent out param indicating how much was sent
 	 * @param Destination the network byte ordered address to send to
 	 */
-	virtual bool SendTo(const uint8* Data, int32 Count, int32& BytesSent, const FInternetAddr& Destination) OVERRIDE;
+	virtual bool SendTo(const uint8* Data, int32 Count, int32& BytesSent, const FInternetAddr& Destination) override;
 
 	/**
 	 * Sends a buffer on a connected socket
@@ -152,7 +152,7 @@ public:
 	 * @param Count the size of the data to send
 	 * @param BytesSent out param indicating how much was sent
 	 */
-	virtual bool Send(const uint8* Data, int32 Count, int32& BytesSent) OVERRIDE;
+	virtual bool Send(const uint8* Data, int32 Count, int32& BytesSent) override;
 
 	/**
 	 * Reads a chunk of data from the socket. Gathers the source address too
@@ -163,7 +163,7 @@ public:
 	 * @param Source out param receiving the address of the sender of the data
 	 * @param Flags the receive flags (must be ESocketReceiveFlags::None)
 	 */
-	virtual bool RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInternetAddr& Source, ESocketReceiveFlags::Type Flags = ESocketReceiveFlags::None) OVERRIDE;
+	virtual bool RecvFrom(uint8* Data, int32 BufferSize, int32& BytesRead, FInternetAddr& Source, ESocketReceiveFlags::Type Flags = ESocketReceiveFlags::None) override;
 
 	/**
 	 * Reads a chunk of data from a connected socket
@@ -173,21 +173,21 @@ public:
 	 * @param BytesRead out param indicating how many bytes were read from the socket
 	 * @param Flags the receive flags
 	 */
-	virtual bool Recv(uint8* Data,int32 BufferSize,int32& BytesRead, ESocketReceiveFlags::Type Flags = ESocketReceiveFlags::None) OVERRIDE;
+	virtual bool Recv(uint8* Data,int32 BufferSize,int32& BytesRead, ESocketReceiveFlags::Type Flags = ESocketReceiveFlags::None) override;
 
-	virtual bool Wait(ESocketWaitConditions::Type Condition, FTimespan WaitTime) OVERRIDE;
+	virtual bool Wait(ESocketWaitConditions::Type Condition, FTimespan WaitTime) override;
 
 	/**
 	 * Determines the connection state of the socket
 	 */
-	virtual ESocketConnectionState GetConnectionState() OVERRIDE;
+	virtual ESocketConnectionState GetConnectionState() override;
 
 	/**
 	 * Reads the address the socket is bound to and returns it
 	 * 
 	 * @param OutAddr address the socket is bound to
 	 */
-	virtual void GetAddress(FInternetAddr& OutAddr) OVERRIDE;
+	virtual void GetAddress(FInternetAddr& OutAddr) override;
 
 	/**
 	 * Sets this socket into non-blocking mode
@@ -196,7 +196,7 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool SetNonBlocking(bool bIsNonBlocking = true) OVERRIDE;
+	virtual bool SetNonBlocking(bool bIsNonBlocking = true) override;
 
 	/**
 	 * Sets a socket into broadcast mode (UDP only)
@@ -205,15 +205,15 @@ public:
 	 *
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool SetBroadcast(bool bAllowBroadcast = true) OVERRIDE;
+	virtual bool SetBroadcast(bool bAllowBroadcast = true) override;
 
-	virtual bool JoinMulticastGroup (const FInternetAddr& GroupAddress) OVERRIDE;
+	virtual bool JoinMulticastGroup (const FInternetAddr& GroupAddress) override;
 
-	virtual bool LeaveMulticastGroup (const FInternetAddr& GroupAddress) OVERRIDE;
+	virtual bool LeaveMulticastGroup (const FInternetAddr& GroupAddress) override;
 
-	virtual bool SetMulticastLoopback (bool bLoopback) OVERRIDE;
+	virtual bool SetMulticastLoopback (bool bLoopback) override;
 
-	virtual bool SetMulticastTtl (uint8 TimeToLive) OVERRIDE;
+	virtual bool SetMulticastTtl (uint8 TimeToLive) override;
 
 	/**
 	 * Sets whether a socket can be bound to an address in use
@@ -222,7 +222,7 @@ public:
 	 *
 	 * @return true if the call succeeded, false otherwise
 	 */
-	virtual bool SetReuseAddr(bool bAllowReuse = true) OVERRIDE;
+	virtual bool SetReuseAddr(bool bAllowReuse = true) override;
 
 	/**
 	 * Sets whether and how long a socket will linger after closing
@@ -232,7 +232,7 @@ public:
 	 *
 	 * @return true if the call succeeded, false otherwise
 	 */
-	virtual bool SetLinger(bool bShouldLinger = true, int32 Timeout = 0) OVERRIDE;
+	virtual bool SetLinger(bool bShouldLinger = true, int32 Timeout = 0) override;
 
 	/**
 	 * Enables error queue support for the socket
@@ -241,7 +241,7 @@ public:
 	 *
 	 * @return true if the call succeeded, false otherwise
 	 */
-	virtual bool SetRecvErr(bool bUseErrorQueue = true) OVERRIDE;
+	virtual bool SetRecvErr(bool bUseErrorQueue = true) override;
 
 	/**
 	 * Sets the size of the send buffer to use
@@ -251,7 +251,7 @@ public:
 	 *
 	 * @return true if the call succeeded, false otherwise
 	 */
-	virtual bool SetSendBufferSize(int32 Size,int32& NewSize) OVERRIDE;
+	virtual bool SetSendBufferSize(int32 Size,int32& NewSize) override;
 
 	/**
 	 * Sets the size of the receive buffer to use
@@ -261,10 +261,10 @@ public:
 	 *
 	 * @return true if the call succeeded, false otherwise
 	 */
-	virtual bool SetReceiveBufferSize(int32 Size,int32& NewSize) OVERRIDE;
+	virtual bool SetReceiveBufferSize(int32 Size,int32& NewSize) override;
 
 	/**
 	 * Reads the port this socket is bound to.
 	 */ 
-	virtual int32 GetPortNo() OVERRIDE;
+	virtual int32 GetPortNo() override;
 };

@@ -32,7 +32,7 @@ public:
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
-	virtual bool DeserializeManifest( FArchive& Archive, TSharedRef< FInternationalizationManifest > Manifest ) OVERRIDE;
+	virtual bool DeserializeManifest( FArchive& Archive, TSharedRef< FInternationalizationManifest > Manifest ) override;
 
 	/**
 	 * Deserializes a Internationalization manifest from a string.
@@ -62,7 +62,7 @@ public:
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
-	virtual bool SerializeManifest(TSharedRef< const FInternationalizationManifest > Manifest, FArchive& Archive ) OVERRIDE;
+	virtual bool SerializeManifest(TSharedRef< const FInternationalizationManifest > Manifest, FArchive& Archive ) override;
 
 	/**
 	 * Serializes a Internationalization manifest to a string.

@@ -144,8 +144,8 @@ class UMG_API UUserWidget : public UWidget
 	TArray<UWidget*> Components;
 	
 	//UObject interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual class UWorld* GetWorld() const OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual class UWorld* GetWorld() const override;
 	// End of UObject interface
 
 	/*  */
@@ -241,7 +241,7 @@ class UMG_API UUserWidget : public UWidget
 	UWidget* GetHandleFromName(const FString& Name) const;
 
 protected:
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
 	TSharedPtr<SWidget> UserRootWidget;

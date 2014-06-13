@@ -28,7 +28,7 @@ class UAnimCompress_RemoveEverySecondKey : public UAnimCompress
 
 protected:
 	// Begin UAnimCompress Interface
-	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) OVERRIDE;
+	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	// Begin UAnimCompress Interface
 };
 

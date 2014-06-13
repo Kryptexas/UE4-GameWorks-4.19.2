@@ -24,11 +24,11 @@ public:
 
 	// Begin IDeviceProfileServicesUIManager Interface
 
-	virtual const FName GetDeviceIconName( const FString& DeviceName ) const OVERRIDE;
-	virtual const TArray<TSharedPtr<FString> > GetPlatformList( ) OVERRIDE;
-	virtual void GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType ) OVERRIDE;
-	virtual const FName GetPlatformIconName( const FString& DeviceName ) const OVERRIDE;
-	virtual void SetProfile( const FString& DeviceProfileName ) OVERRIDE;
+	virtual const FName GetDeviceIconName( const FString& DeviceName ) const override;
+	virtual const TArray<TSharedPtr<FString> > GetPlatformList( ) override;
+	virtual void GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType ) override;
+	virtual const FName GetPlatformIconName( const FString& DeviceName ) const override;
+	virtual void SetProfile( const FString& DeviceProfileName ) override;
 
 	// End IDeviceProfileServicesUIManager Interface
 

@@ -99,25 +99,25 @@ public:
 		check(SpriteTexture);
 	}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Ramp"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Ramp", "Ramp"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Ramp"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Ramp", "Ramp"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return Target.TargetType == ELandscapeToolTargetType::Heightmap;
 	}
 
-	virtual void EnterTool() OVERRIDE
+	virtual void EnterTool() override
 	{
 		NumPoints = 0;
 		SelectedPoint = INDEX_NONE;
 		GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 	}
 
-	virtual bool BeginTool(FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) OVERRIDE
+	virtual bool BeginTool(FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
 	{
 		if (NumPoints < 2)
 		{
@@ -142,12 +142,12 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE
+	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override
 	{
 		bMovingPoint = false;
 	}
 
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) OVERRIDE
+	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		if (bMovingPoint)
 		{
@@ -167,7 +167,7 @@ public:
 		return true;
 	}
 
-	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) OVERRIDE
+	virtual bool HandleClick(HHitProxy* HitProxy, const FViewportClick& Click) override
 	{
 		if (HitProxy)
 		{
@@ -185,7 +185,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) OVERRIDE
+	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override
 	{
 		if (InKey == EKeys::Enter && InEvent == IE_Pressed)
 		{
@@ -267,7 +267,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) OVERRIDE
+	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override
 	{
 		if (SelectedPoint != INDEX_NONE && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 		{
@@ -282,7 +282,7 @@ public:
 		return false;
 	}
 
-	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) OVERRIDE
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override
 	{
 		if (NumPoints > 0)
 		{
@@ -357,12 +357,12 @@ public:
 		}
 	}
 
-	virtual bool OverrideSelection() const OVERRIDE
+	virtual bool OverrideSelection() const override
 	{
 		return true;
 	}
 
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE
+	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override
 	{
 		// Only filter selection not deselection
 		if (bInSelection)
@@ -373,7 +373,7 @@ public:
 		return true;
 	}
 
-	virtual bool UsesTransformWidget() const OVERRIDE
+	virtual bool UsesTransformWidget() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -383,7 +383,7 @@ public:
 		return false;
 	}
 
-	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const OVERRIDE
+	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -400,7 +400,7 @@ public:
 		return EAxisList::None;
 	}
 
-	virtual FVector GetWidgetLocation() const OVERRIDE
+	virtual FVector GetWidgetLocation() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{
@@ -413,7 +413,7 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual FMatrix GetWidgetRotation() const OVERRIDE
+	virtual FMatrix GetWidgetRotation() const override
 	{
 		if (SelectedPoint != INDEX_NONE)
 		{

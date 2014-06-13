@@ -44,6 +44,6 @@ public:
 	FGenericScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory);
 
 	// FScriptCodeGeneratorBase interface
-	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) OVERRIDE;
-	virtual void FinishExport() OVERRIDE;
+	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) override;
+	virtual void FinishExport() override;
 };

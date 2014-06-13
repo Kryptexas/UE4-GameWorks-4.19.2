@@ -43,7 +43,7 @@ public:
 	/**
 	* Initialize commands
 	*/
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 
 	TSharedPtr< FUICommandInfo > Forward;
@@ -394,7 +394,7 @@ public:
 
 	void SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
 
-	virtual void ProcessScreenShots(FViewport* Viewport) OVERRIDE;
+	virtual void ProcessScreenShots(FViewport* Viewport) override;
 
 	void TakeHighResScreenShot();
 
@@ -402,28 +402,28 @@ public:
 	void OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering);
 
 	/** FViewElementDrawer interface */
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
+	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 
 	/** FViewportClient interface */
-	virtual void RedrawRequested(FViewport* Viewport) OVERRIDE;
-	virtual void RequestInvalidateHitProxy(FViewport* Viewport) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) OVERRIDE;
-	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) OVERRIDE;
-	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
-	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  OVERRIDE;
-	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
-	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
-	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
-	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
-	virtual bool IsOrtho() const OVERRIDE;
-	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
+	virtual void RedrawRequested(FViewport* Viewport) override;
+	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
+	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) override;
+	virtual void ReceivedFocus(FViewport* Viewport) override;
+	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  override;
+	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) override;
+	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
+	virtual void MouseLeave( FViewport* Viewport ) override;
+	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
+	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual bool IsOrtho() const override;
+	virtual void LostFocus(FViewport* Viewport) override;
 
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	/**
 	 * Called when the user clicks in the viewport
@@ -576,7 +576,7 @@ public:
 	*
 	* @return 		A valid pointer to the viewports world scene.
 	*/
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual UWorld* GetWorld() const override;
 
 	/** If true, this is a level editor viewport */
 	virtual bool IsLevelEditorClient() const { return false; }
@@ -839,7 +839,7 @@ public:
 	/** 
 	 * Returns true if this viewport is excluding non-game elements from its display
 	 */
-	virtual bool IsInGameView() const OVERRIDE { return bInGameViewMode; }
+	virtual bool IsInGameView() const override { return bInGameViewMode; }
 
 	/**
 	 * Aspect ratio bar display settings

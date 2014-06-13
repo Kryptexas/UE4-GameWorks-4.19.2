@@ -21,23 +21,23 @@ class UCodecMovieFallback : public UCodecMovie
 	* Not all codec implementations are available
 	* @return true if the current codec is supported
 	*/
-	virtual bool IsSupported() OVERRIDE;
+	virtual bool IsSupported() override;
 
-	virtual uint32 GetSizeX() OVERRIDE;
+	virtual uint32 GetSizeX() override;
 
-	virtual uint32 GetSizeY() OVERRIDE;
+	virtual uint32 GetSizeY() override;
 
-	virtual EPixelFormat GetFormat() OVERRIDE;
+	virtual EPixelFormat GetFormat() override;
 
-	virtual float GetFrameRate() OVERRIDE;	
+	virtual float GetFrameRate() override;	
 
-	virtual bool Open( const FString& Filename, uint32 Offset, uint32 Size ) OVERRIDE;
+	virtual bool Open( const FString& Filename, uint32 Offset, uint32 Size ) override;
 
-	virtual bool Open( void* Source, uint32 Size ) OVERRIDE;
+	virtual bool Open( void* Source, uint32 Size ) override;
 
-	virtual void ResetStream() OVERRIDE;
+	virtual void ResetStream() override;
 
-	virtual void GetFrame( class FTextureMovieResource* InTextureMovieResource ) OVERRIDE;
+	virtual void GetFrame( class FTextureMovieResource* InTextureMovieResource ) override;
 
 	// End CodecMovie Interface
 };

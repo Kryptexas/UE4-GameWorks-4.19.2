@@ -243,7 +243,7 @@ public:
 		const double InDurationMS, 
 		const uint32 InCallsPerFrame, 
 		const uint32 InParentIndex = FProfilerSample::InvalidIndex 
-	) OVERRIDE;
+	) override;
 
 	virtual void AddCounterSample
 	( 
@@ -251,15 +251,15 @@ public:
 		const uint32 InStatID, 
 		const double InCounter, 
 		const EProfilerSampleTypes::Type InProfilerSampleType 
-	) OVERRIDE;
+	) override;
 
-	virtual const uint32 AddDuplicatedSample( const FProfilerSample& ProfilerSample ) OVERRIDE;
+	virtual const uint32 AddDuplicatedSample( const FProfilerSample& ProfilerSample ) override;
 
-	virtual const uint32 GetNumSamples() const OVERRIDE;
+	virtual const uint32 GetNumSamples() const override;
 
-	virtual const uint64 GetMemoryUsage() const OVERRIDE;;
+	virtual const uint64 GetMemoryUsage() const override;;
 
-	virtual const FProfilerSampleArray& GetCollection() const OVERRIDE
+	virtual const FProfilerSampleArray& GetCollection() const override
 	{
 		return Collection;
 	}

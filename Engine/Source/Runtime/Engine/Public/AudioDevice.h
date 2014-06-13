@@ -165,7 +165,7 @@ class ENGINE_API FAudioDevice : public FExec
 public:
 
 	//Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) override;
 	//End FExec Interface
 
 #if !UE_BUILD_SHIPPING

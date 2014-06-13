@@ -876,7 +876,7 @@ public:
 
 
 	/** FRHITexture override.  See FRHITexture::GetNativeResource() */
-	virtual void* GetNativeResource() const OVERRIDE
+	virtual void* GetNativeResource() const override
 	{ 
 		return const_cast<void *>(reinterpret_cast<const void*>(&Resource));
 	}

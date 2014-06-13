@@ -88,18 +88,18 @@ class UK2Node_EditablePinBase : public UK2Node
 	BLUEPRINTGRAPH_API virtual bool IsEditable() const { return bIsEditable; }
 
 	// UObject interface
-	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) OVERRIDE;
+	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
 	BLUEPRINTGRAPH_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	BLUEPRINTGRAPH_API virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;
+	BLUEPRINTGRAPH_API virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	BLUEPRINTGRAPH_API virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 	// End of UObject interface
 
 	// UEdGraphNode interface
-	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
+	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	BLUEPRINTGRAPH_API virtual bool ShouldShowNodeProperties() const OVERRIDE { return bIsEditable; }
+	BLUEPRINTGRAPH_API virtual bool ShouldShowNodeProperties() const override { return bIsEditable; }
 	// End of UK2Node interface
 
 	/**

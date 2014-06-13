@@ -9,12 +9,12 @@ public:
 	FPropertyTableWidgetHandle(const TSharedRef<SPropertyTable>& InPropertyTableWidget)
 		: PropertyTableWidget(InPropertyTableWidget) {}
 
-	virtual void RequestRefresh() OVERRIDE
+	virtual void RequestRefresh() override
 	{
 		PropertyTableWidget->RequestRefresh();
 	} 
 
-	virtual TSharedRef<SWidget> GetWidget() OVERRIDE
+	virtual TSharedRef<SWidget> GetWidget() override
 	{
 		return PropertyTableWidget;
 	}

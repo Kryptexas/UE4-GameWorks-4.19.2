@@ -24,7 +24,7 @@ public:
 
 	// Begin IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) OVERRIDE
+	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		CustomizeProjectCategory(LayoutBuilder);
 	}

@@ -14,7 +14,7 @@ public:
 
 	// Begin IProjectTargetPlatformEditorModule interface
 
-	virtual TWeakPtr<SWidget> CreateProjectTargetPlatformEditorPanel() OVERRIDE
+	virtual TWeakPtr<SWidget> CreateProjectTargetPlatformEditorPanel() override
 	{
 		TSharedPtr<SWidget> Panel = SNew(SProjectTargetPlatformSettings);
 		EditorPanels.Add(Panel);
@@ -22,12 +22,12 @@ public:
 		return Panel;
 	}
 
-	virtual void DestroyProjectTargetPlatformEditorPanel(const TWeakPtr<SWidget>& Panel) OVERRIDE
+	virtual void DestroyProjectTargetPlatformEditorPanel(const TWeakPtr<SWidget>& Panel) override
 	{
 		EditorPanels.Remove(Panel.Pin());
 	}
 
-	virtual void AddOpenProjectTargetPlatformEditorMenuItem(FMenuBuilder& MenuBuilder) const OVERRIDE
+	virtual void AddOpenProjectTargetPlatformEditorMenuItem(FMenuBuilder& MenuBuilder) const override
 	{
 		struct Local
 		{
@@ -45,7 +45,7 @@ public:
 			);
 	}
 
-	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const PlatformInfo::FPlatformInfo& PlatformInfo, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const OVERRIDE
+	virtual TSharedRef<SWidget> MakePlatformMenuItemWidget(const PlatformInfo::FPlatformInfo& PlatformInfo, const bool bForCheckBox = false, const FText& DisplayNameOverride = FText()) const override
 	{
 		struct Local
 		{
@@ -103,7 +103,7 @@ public:
 			];
 	}
 
-	virtual bool ShowUnsupportedTargetWarning(const FName PlatformName) const OVERRIDE
+	virtual bool ShowUnsupportedTargetWarning(const FName PlatformName) const override
 	{
 		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(PlatformName);
 		check(PlatformInfo);

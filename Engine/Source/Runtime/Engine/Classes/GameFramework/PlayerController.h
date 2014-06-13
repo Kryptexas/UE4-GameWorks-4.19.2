@@ -968,44 +968,44 @@ public:
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true);
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End of UObject Interface
 
 	// Begin AActor Interface
-	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const OVERRIDE;
-	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) OVERRIDE;
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
-	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) OVERRIDE;
-	virtual void FellOutOfWorld(const class UDamageType& dmgType) OVERRIDE;
-	virtual void Reset() OVERRIDE;
-	virtual void Possess(APawn* aPawn) OVERRIDE;
-	virtual void UnPossess() OVERRIDE;
-	virtual void CleanupPlayerState() OVERRIDE;
-	virtual void Destroyed() OVERRIDE;
-	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) OVERRIDE;
-	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) OVERRIDE;
-	virtual void OnNetCleanup(class UNetConnection* Connection) OVERRIDE;
-	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
-	virtual class UPlayer* GetNetOwningPlayer() OVERRIDE;
-	virtual class UNetConnection* GetNetConnection() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void EnableInput(class APlayerController* PlayerController) OVERRIDE;
-	virtual void DisableInput(class APlayerController* PlayerController) OVERRIDE;
+	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
+	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual void FellOutOfWorld(const class UDamageType& dmgType) override;
+	virtual void Reset() override;
+	virtual void Possess(APawn* aPawn) override;
+	virtual void UnPossess() override;
+	virtual void CleanupPlayerState() override;
+	virtual void Destroyed() override;
+	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
+	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
+	virtual void OnNetCleanup(class UNetConnection* Connection) override;
+	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
+	virtual class UPlayer* GetNetOwningPlayer() override;
+	virtual class UNetConnection* GetNetConnection() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
+	virtual void PostInitializeComponents() override;
+	virtual void EnableInput(class APlayerController* PlayerController) override;
+	virtual void DisableInput(class APlayerController* PlayerController) override;
 	// End AActor interface
 
 	// Begin AController interface
-	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) OVERRIDE;
-	virtual bool IsLocalPlayerController() const OVERRIDE;
-	virtual bool IsLocalController() const OVERRIDE;
-	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const OVERRIDE;
-	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) OVERRIDE;
-	virtual void ChangeState(FName NewState) OVERRIDE;
-	virtual class AActor* GetViewTarget() const OVERRIDE;
-	virtual void BeginInactiveState() OVERRIDE;
-	virtual void EndInactiveState() OVERRIDE;
-	virtual void FailedToSpawnPawn() OVERRIDE;
-	virtual void SetPawn(APawn* InPawn) OVERRIDE;
+	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
+	virtual bool IsLocalPlayerController() const override;
+	virtual bool IsLocalController() const override;
+	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
+	virtual void SetInitialLocationAndRotation(const FVector& NewLocation, const FRotator& NewRotation) override;
+	virtual void ChangeState(FName NewState) override;
+	virtual class AActor* GetViewTarget() const override;
+	virtual void BeginInactiveState() override;
+	virtual void EndInactiveState() override;
+	virtual void FailedToSpawnPawn() override;
+	virtual void SetPawn(APawn* InPawn) override;
 	// End AController interface
 
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,

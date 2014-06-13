@@ -114,7 +114,7 @@ void FWorldTileCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 			FLevelModelList& DirtyHierarchy;
 			FHierachyCollector(FLevelModelList& LevelToUnload) : DirtyHierarchy(LevelToUnload) {}
 
-			virtual void Visit(FLevelModel& Item) OVERRIDE
+			virtual void Visit(FLevelModel& Item) override
 			{
 				DirtyHierarchy.AddUnique(Item.AsShared());
 			}

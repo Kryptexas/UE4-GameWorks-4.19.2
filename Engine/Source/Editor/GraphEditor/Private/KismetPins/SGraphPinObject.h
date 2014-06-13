@@ -12,7 +12,7 @@ public:
 
 protected:
 	// Begin SGraphPin interface
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	// End SGraphPin interface
 
 	/** Delegate to be called when the use current selected item in asset browser button is clicked */

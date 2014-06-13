@@ -15,7 +15,7 @@ public:
 	FAnimBlueprintEditAppMode(TSharedPtr<FPersona> InPersona);
 
 	// FApplicationMode interface
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
-	virtual void PostActivateMode() OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
+	virtual void PostActivateMode() override;
 	// End of FApplicationMode interface
 };

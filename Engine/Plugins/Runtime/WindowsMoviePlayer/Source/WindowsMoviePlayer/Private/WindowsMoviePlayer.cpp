@@ -14,7 +14,7 @@ TSharedPtr<FMediaFoundationMovieStreamer> MovieStreamer;
 class FWindowsMoviePlayerModule : public IModuleInterface
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		bool bLoadSuccessful = true;
 		// now attempt to load the delay loaded DLLs
@@ -49,7 +49,7 @@ class FWindowsMoviePlayerModule : public IModuleInterface
 		}
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if( MovieStreamer.IsValid() )
 		{

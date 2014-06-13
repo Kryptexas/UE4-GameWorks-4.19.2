@@ -116,7 +116,7 @@ struct FWorldTilesGatherer
 	// Tile short pkg name -> Tiles LOD
 	TMultiMap<FString, FPackageNameAndLODIndex> TilesLODCollection;
 	
-	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 	{
 		FString FullPath = FilenameOrDirectory;
 	

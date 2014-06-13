@@ -18,7 +18,7 @@ public:
 	class FCascadeEdPreviewViewportClient*	CascadePreviewViewportPtr;
 
 	// Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent Interface
 
 	/**

@@ -49,7 +49,7 @@ public:
 	TSharedPtr<SScrollBar> GetVerticalScrollBar() const;
 
 protected:
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Returns the visibility of the viewport scrollbars */
 	EVisibility GetViewportVerticalScrollBarVisibility() const;

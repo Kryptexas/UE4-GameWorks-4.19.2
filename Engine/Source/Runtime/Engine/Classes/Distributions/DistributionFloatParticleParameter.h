@@ -11,7 +11,7 @@ class UDistributionFloatParticleParameter : public UDistributionFloatParameterBa
 
 
 	// Begin UDistributionFloatParameterBase Interface
-	virtual bool GetParamValue(UObject* Data, FName ParamName, float& OutFloat) const OVERRIDE;
+	virtual bool GetParamValue(UObject* Data, FName ParamName, float& OutFloat) const override;
 	// End UDistributionFloatParameterBase Interface
 };
 

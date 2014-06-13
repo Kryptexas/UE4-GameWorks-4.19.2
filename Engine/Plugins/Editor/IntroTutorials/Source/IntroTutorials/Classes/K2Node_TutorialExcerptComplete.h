@@ -24,23 +24,23 @@ class UK2Node_TutorialExcerptComplete : public UK2Node_CallFunction
 	FString CachedExcerpt;
 
 	// Begin UK2Node_CallFunction interface
-	virtual void PostParameterPinCreated(UEdGraphPin *Pin) OVERRIDE;
+	virtual void PostParameterPinCreated(UEdGraphPin *Pin) override;
 	// End UK2Node_CallFunction interface
 
 	// Begin UEdGraphNode interface
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void PostPlacedNewNode() override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	// End UK2Node interface
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject interface
 
 	static bool IsExcerptInteractive(const FString& InExcerptName);

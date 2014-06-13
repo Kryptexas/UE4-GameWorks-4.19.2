@@ -22,6 +22,6 @@ class AIMODULE_API UEnvQueryGenerator : public UObject
 	virtual FText GetDescriptionDetails() const;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR
 };

@@ -108,7 +108,7 @@ public:
 	/** The mesh element. */
 	FMeshBatch MeshElement;
 
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
 		MeshElement.VertexFactory = &GTileVertexFactory;
@@ -124,7 +124,7 @@ public:
 		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		MeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
 	}

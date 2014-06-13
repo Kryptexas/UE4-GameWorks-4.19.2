@@ -25,7 +25,7 @@ public:
 
 	// Begin IScreenShotData interface
 
-	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) OVERRIDE 
+	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override 
 	{
 		FString ScreenShotNumber = FString::Printf( TEXT( "CL #%d"), InScreenDataItem.ChangeListNumber );
 		TSharedRef<FScreenShotBaseNode> ChildNode = MakeShareable( new FScreenShotBaseNode( ScreenShotNumber, InScreenDataItem.AssetName) );
@@ -33,13 +33,13 @@ public:
 	};
 
 
-	virtual EScreenShotDataType::Type GetScreenNodeType() OVERRIDE 
+	virtual EScreenShotDataType::Type GetScreenNodeType() override 
 	{ 
 		return EScreenShotDataType::SSDT_Platform; 
 	};
 
 
-	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) OVERRIDE 
+	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) override 
 	{
 		FilteredChildren.Empty();
 
@@ -59,7 +59,7 @@ public:
 		return bPassesFilter;
 	};
 
-	virtual void SetDisplayEveryNthScreenshot( int32 NewLastNth ) OVERRIDE
+	virtual void SetDisplayEveryNthScreenshot( int32 NewLastNth ) override
 	{
 		DisplayEveryNthScreenshot = NewLastNth;
 		if( FilteredChildren.Num() > 0 )

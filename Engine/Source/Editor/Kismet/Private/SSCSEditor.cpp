@@ -139,7 +139,7 @@ public:
 	EDropActionType PendingDropAction;
 	
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		return SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("Graph.ConnectorFeedback.Border"))
@@ -759,13 +759,13 @@ protected:
 
 	// FCustomizableTextObjectFactory implementation
 
-	virtual bool CanCreateClass(UClass* ObjectClass) const OVERRIDE
+	virtual bool CanCreateClass(UClass* ObjectClass) const override
 	{
 		// Only allow actor component types to be created
 		return ObjectClass->IsChildOf(UActorComponent::StaticClass());
 	}
 
-	virtual void ProcessConstructedObject(UObject* NewObject) OVERRIDE
+	virtual void ProcessConstructedObject(UObject* NewObject) override
 	{
 		check(NewObject);
 

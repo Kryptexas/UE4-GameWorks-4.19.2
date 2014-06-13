@@ -17,5 +17,5 @@ public:
 
 protected:
 	/** Callback used to populate all actions list in SGraphActionMenu */
-	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) OVERRIDE;
+	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) override;
 };

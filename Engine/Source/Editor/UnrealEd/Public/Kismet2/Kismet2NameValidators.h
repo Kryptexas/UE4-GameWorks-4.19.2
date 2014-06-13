@@ -71,8 +71,8 @@ public:
 	static int32 GetMaximumNameLength();
 
 	// Begin FNameValidatorInterface
-	virtual EValidatorResult IsValid( const FString& Name, bool bOriginal = false) OVERRIDE;
-	virtual EValidatorResult IsValid( const FName& Name, bool bOriginal = false) OVERRIDE;
+	virtual EValidatorResult IsValid( const FString& Name, bool bOriginal = false) override;
+	virtual EValidatorResult IsValid( const FName& Name, bool bOriginal = false) override;
 	// End FNameValidatorInterface
 private:
 	/** Name set to validate */
@@ -90,8 +90,8 @@ class UNREALED_API FStringSetNameValidator : public INameValidatorInterface
 {
 public:
 	// Begin FNameValidatorInterface
-	virtual EValidatorResult IsValid(const FString& Name, bool bOriginal) OVERRIDE;
-	virtual EValidatorResult IsValid(const FName& Name, bool bOriginal) OVERRIDE;
+	virtual EValidatorResult IsValid(const FString& Name, bool bOriginal) override;
+	virtual EValidatorResult IsValid(const FName& Name, bool bOriginal) override;
 	// End FNameValidatorInterface
 
 protected:
@@ -135,8 +135,8 @@ public:
 	FDummyNameValidator(EValidatorResult InReturnValue) : ReturnValue(InReturnValue) {}
 
 	// Begin FNameValidatorInterface
-	virtual EValidatorResult IsValid(const FString& Name, bool bOriginal) OVERRIDE { return ReturnValue; }
-	virtual EValidatorResult IsValid(const FName& Name, bool bOriginal) OVERRIDE { return ReturnValue; }
+	virtual EValidatorResult IsValid(const FString& Name, bool bOriginal) override { return ReturnValue; }
+	virtual EValidatorResult IsValid(const FName& Name, bool bOriginal) override { return ReturnValue; }
 	// End FNameValidatorInterface
 
 private:

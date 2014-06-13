@@ -24,7 +24,7 @@ class FVoiceModule :
 public:
 
 	// FSelfRegisteringExec
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 
 	/**
 	 * Singleton-like access to this module's interface.  This is just for convenience!
@@ -84,13 +84,13 @@ private:
 	 * Called when voice module is loaded
 	 * Initialize platform specific parts of voice handling
 	 */
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 	
 	/**
 	 * Called when voice module is unloaded
 	 * Shutdown platform specific parts of voice handling
 	 */
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
 	/** Is voice interface enabled */
 	bool bEnabled;

@@ -825,27 +825,27 @@ public:
 
 	// IOnlinePlatformData
 
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return (const uint8*)UniqueNetIdStr.GetCharArray().GetData();
 	}
 
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return UniqueNetIdStr.GetCharArray().GetTypeSize() * UniqueNetIdStr.GetCharArray().Num();
 	}
 
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return !UniqueNetIdStr.IsEmpty();
 	}
 
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return UniqueNetIdStr;
 	}
 
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		return UniqueNetIdStr;
 	}

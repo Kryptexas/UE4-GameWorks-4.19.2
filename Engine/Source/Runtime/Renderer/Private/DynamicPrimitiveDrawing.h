@@ -50,13 +50,13 @@ public:
 	void SetPrimitive(const FPrimitiveSceneProxy* NewPrimitiveSceneProxy);
 
 	// FPrimitiveDrawInterface interface.
-	virtual bool IsHitTesting() OVERRIDE;
-	virtual void SetHitProxy(HHitProxy* HitProxy) OVERRIDE;
-	virtual bool IsRenderingSelectionOutline() const OVERRIDE { return bIsSelectionOutlineRendering; }
-	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) OVERRIDE;
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const OVERRIDE;
-	virtual int32 DrawMesh(const FMeshBatch& Mesh) OVERRIDE;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) OVERRIDE;
+	virtual bool IsHitTesting() override;
+	virtual void SetHitProxy(HHitProxy* HitProxy) override;
+	virtual bool IsRenderingSelectionOutline() const override { return bIsSelectionOutlineRendering; }
+	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
+	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const override;
+	virtual int32 DrawMesh(const FMeshBatch& Mesh) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,
@@ -69,7 +69,7 @@ public:
 		float V,
 		float VL,
 		uint8 BlendMode = SE_BLEND_Masked
-		) OVERRIDE;
+		) override;
 	virtual void DrawLine(
 		const FVector& Start,
 		const FVector& End,
@@ -78,13 +78,13 @@ public:
 		float Thickness = 0.0f,
 		float DepthBias = 0.0f,
 		bool bScreenSpace = false
-		) OVERRIDE;
+		) override;
 	virtual void DrawPoint(
 		const FVector& Position,
 		const FLinearColor& Color,
 		float PointSize,
 		uint8 DepthPriorityGroup
-		) OVERRIDE;
+		) override;
 
 	// Accessors.
 	bool IsPreFog() const
@@ -181,10 +181,10 @@ public:
 	FViewElementPDI(FViewInfo* InViewInfo,FHitProxyConsumer* InHitProxyConsumer);
 
 	// FPrimitiveDrawInterface interface.
-	virtual bool IsHitTesting() OVERRIDE;
-	virtual void SetHitProxy(HHitProxy* HitProxy) OVERRIDE;
-	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) OVERRIDE;
-	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) OVERRIDE;
+	virtual bool IsHitTesting() override;
+	virtual void SetHitProxy(HHitProxy* HitProxy) override;
+	virtual void RegisterDynamicResource(FDynamicPrimitiveResource* DynamicResource) override;
+	virtual void AddReserveLines(uint8 DepthPriorityGroup, int32 NumLines, bool bDepthBiased = false) override;
 	virtual void DrawSprite(
 		const FVector& Position,
 		float SizeX,
@@ -197,7 +197,7 @@ public:
 		float V,
 		float VL,
 		uint8 BlendMode = SE_BLEND_Masked
-		) OVERRIDE;
+		) override;
 	virtual void DrawLine(
 		const FVector& Start,
 		const FVector& End,
@@ -206,14 +206,14 @@ public:
 		float Thickness = 0.0f,
 		float DepthBias = 0.0f,
 		bool bScreenSpace = false
-		) OVERRIDE;
+		) override;
 	virtual void DrawPoint(
 		const FVector& Position,
 		const FLinearColor& Color,
 		float PointSize,
 		uint8 DepthPriorityGroup
-		) OVERRIDE;
-	virtual int32 DrawMesh(const FMeshBatch& Mesh) OVERRIDE;
+		) override;
+	virtual int32 DrawMesh(const FMeshBatch& Mesh) override;
 
 private:
 	FViewInfo* ViewInfo;

@@ -12,7 +12,7 @@
 class FPaper2DModule : public IPaper2DModuleInterface
 {
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		check(GConfig);
 
@@ -30,7 +30,7 @@ public:
 		FPaperBatchManager::Initialize();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FPaperBatchManager::Shutdown();
 	}

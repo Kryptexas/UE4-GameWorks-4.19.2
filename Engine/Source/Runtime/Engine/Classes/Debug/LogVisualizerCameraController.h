@@ -16,13 +16,13 @@ public:
 	UPROPERTY()
 	class AActor* PickedActor;
 
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
 	ENGINE_API static ALogVisualizerCameraController* EnableCamera(UWorld* InWorld);
 	ENGINE_API static void DisableCamera(UWorld* InWorld);
 	ENGINE_API static bool IsEnabled(UWorld* InWorld);
 
-	virtual void Select( FHitResult const& Hit ) OVERRIDE;
+	virtual void Select( FHitResult const& Hit ) override;
 
 	void ShowNextEntry();
 	void ShowPrevEntry();
@@ -33,5 +33,5 @@ public:
 	FLogEntryIterationDelegate OnIterateLogEntries;
 
 protected:
-	virtual void SetupInputComponent() OVERRIDE;
+	virtual void SetupInputComponent() override;
 };

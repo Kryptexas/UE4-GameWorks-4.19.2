@@ -288,23 +288,23 @@ class UAnimMontage : public UAnimCompositeBase
 
 public:
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin AnimSequenceBase Interface
-	virtual bool IsValidAdditive() const OVERRIDE;
+	virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
-	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const OVERRIDE;
+	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const override;
 #endif // WITH_EDITOR
 	// End AnimSequenceBase Interface
 
 #if WITH_EDITOR
 	// Begin UAnimationAsset interface
-	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) OVERRIDE;
-	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) OVERRIDE;
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
+	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 	// End UAnimationAsset interface
 
 	/** Calculates what (if any) offset should be applied to the trigger time of a branch point given its display time */
@@ -377,7 +377,7 @@ private:
 #if WITH_EDITOR
 public:
 	// UAnimSequenceBase Interface
-	virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight) const OVERRIDE;
+	virtual void EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight) const override;
 	// End of UAnimSequenceBase Interface
 
 	/**

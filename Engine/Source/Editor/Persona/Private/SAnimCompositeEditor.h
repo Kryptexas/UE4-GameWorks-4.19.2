@@ -49,14 +49,14 @@ private:
 	void CollapseComposite();
 
 protected:
-	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) OVERRIDE;
+	virtual void InitDetailsViewEditorObject(class UEditorAnimBaseObj* EdObj) override;
 
 public:
 	void Construct(const FArguments& InArgs);
 	
 	/** Return the animation composite being edited */
 	UAnimComposite* GetCompositeObj() const { return CompositeObj; }
-	virtual UAnimSequenceBase* GetEditorObject() const OVERRIDE { return GetCompositeObj(); }
+	virtual UAnimSequenceBase* GetEditorObject() const override { return GetCompositeObj(); }
 
 private:
 	/** Pointer to the animation composite being edited */
@@ -64,7 +64,7 @@ private:
 	
 	void PostUndo();
 	
-	virtual float CalculateSequenceLengthOfEditorObject() const OVERRIDE;
+	virtual float CalculateSequenceLengthOfEditorObject() const override;
 
 	/** This will sort all components of the montage and update (recreate) the UI */
 	void SortAndUpdateComposite();
@@ -76,6 +76,6 @@ public:
 	void			PostAnimUpdate();
 
 	// SWidget interface start
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// SWidget interface end
 };

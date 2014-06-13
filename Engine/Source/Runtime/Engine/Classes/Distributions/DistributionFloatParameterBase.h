@@ -44,7 +44,7 @@ class UDistributionFloatParameterBase : public UDistributionFloatConstant
 
 
 	// Begin UDistributionFloat Interface
-	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const OVERRIDE;
+	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const override;
 	// End UDistributionFloat Interface
 	
 	
@@ -53,7 +53,7 @@ class UDistributionFloatParameterBase : public UDistributionFloatConstant
 
 	
 	// Begin Distribution Float
-	virtual bool CanBeBaked() const OVERRIDE { return false; }
+	virtual bool CanBeBaked() const override { return false; }
 };
 
 

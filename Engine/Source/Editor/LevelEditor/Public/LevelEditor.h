@@ -24,29 +24,29 @@ public:
 	/**
 	 * Called right after the module DLL has been loaded and the module object has been created
 	 */
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
 	/**
 	 * Called before the module is unloaded, right before the module object is destroyed.
 	 */
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
 	/**
 	 * Called before the module has been unloaded
 	 */
-	virtual void PreUnloadCallback() OVERRIDE;
+	virtual void PreUnloadCallback() override;
 
 	/**
 	 * Called after the module has been reloaded
 	 */
-	virtual void PostLoadCallback() OVERRIDE;
+	virtual void PostLoadCallback() override;
 
 	/**
 	 * Override this to set whether your module is allowed to be unloaded on the fly
 	 *
 	 * @return Whether the module supports shutdown separate from the rest of the engine.
 	 */
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		// @todo: Eventually, this should probably not be allowed.
 		return true;

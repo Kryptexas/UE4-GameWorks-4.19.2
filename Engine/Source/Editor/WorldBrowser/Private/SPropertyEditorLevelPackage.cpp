@@ -205,7 +205,7 @@ void SPropertyEditorLevelPackage::PopulatePackages()
 			, Output(InOutput)
 		{}
 
-		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 		{
 			FString FullPath = FilenameOrDirectory;
 

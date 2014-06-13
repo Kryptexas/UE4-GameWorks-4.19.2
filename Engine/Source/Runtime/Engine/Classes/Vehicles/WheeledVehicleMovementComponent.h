@@ -265,14 +265,14 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	virtual void UpdateDrag( float DeltaTime );
 
 	/** Used to create any physics engine information for this component */
-	virtual void CreatePhysicsState() OVERRIDE;
+	virtual void CreatePhysicsState() override;
 
 	/** Used to shut down and pysics engine structure for this component */
-	virtual void DestroyPhysicsState() OVERRIDE;
+	virtual void DestroyPhysicsState() override;
 
-	virtual bool ShouldCreatePhysicsState() const OVERRIDE;
+	virtual bool ShouldCreatePhysicsState() const override;
 
-	virtual bool HasValidPhysicsState() const OVERRIDE;
+	virtual bool HasValidPhysicsState() const override;
 
 	/** Draw debug text for the wheels and suspension */
 	virtual void DrawDebug(UCanvas* Canvas, float& YL, float& YPos);
@@ -285,7 +285,7 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 #if WITH_EDITOR
 	/** Respond to a property change in editor */
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif //WITH_EDITOR
 
 #endif // WITH_VEHICLE

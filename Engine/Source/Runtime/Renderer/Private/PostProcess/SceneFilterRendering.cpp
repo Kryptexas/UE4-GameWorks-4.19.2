@@ -16,7 +16,7 @@ class FScreenRectangleVertexBuffer : public FVertexBuffer
 {
 public:
 	/** Initialize the RHI for this rendering resource */
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		TResourceArray<FFilterVertex, VERTEXBUFFER_ALIGNMENT> Vertices;
 		Vertices.Init(6);
@@ -50,7 +50,7 @@ class FScreenRectangleIndexBuffer : public FIndexBuffer
 {
 public:
 	/** Initialize the RHI for this rendering resource */
-	void InitRHI() OVERRIDE
+	void InitRHI() override
 	{
 		// Indices 0 - 5 are used for rendering a quad. Indices 6 - 8 are used for triangle optimization. 
 		const uint16 Indices[] = { 0, 1, 2, 2, 1, 3, 0, 4, 5 };

@@ -21,9 +21,9 @@ class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 	UPROPERTY(Category=Decorator, EditAnywhere)
 	bool bInfiniteLoop;
 
-	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
-	virtual FString GetStaticDescription() const OVERRIDE;
+	virtual uint16 GetInstanceMemorySize() const override;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
@@ -31,5 +31,5 @@ class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 
 protected:
 
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) OVERRIDE;
+	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) override;
 };

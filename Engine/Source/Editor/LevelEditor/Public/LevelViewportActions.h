@@ -169,7 +169,7 @@ public:
 
 public:
 	/** Registers our commands with the binding system */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 private:
 	/** Registers additional commands as they are loaded */
 	void HandleNewStatGroup(const TArray<FStatNameAndInfo>& NameAndInfos);

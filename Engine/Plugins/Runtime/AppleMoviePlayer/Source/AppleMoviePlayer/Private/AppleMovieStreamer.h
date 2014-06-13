@@ -17,12 +17,12 @@ public:
 	FAVPlayerMovieStreamer();
 	virtual ~FAVPlayerMovieStreamer();
 
-	virtual void Init(const TArray<FString>& MoviePaths) OVERRIDE;
-	virtual void ForceCompletion() OVERRIDE;
-	virtual bool Tick(float DeltaTime) OVERRIDE;
-	virtual TSharedPtr<class ISlateViewport> GetViewportInterface() OVERRIDE;
-	virtual float GetAspectRatio() const OVERRIDE;
-	virtual void Cleanup() OVERRIDE;
+	virtual void Init(const TArray<FString>& MoviePaths) override;
+	virtual void ForceCompletion() override;
+	virtual bool Tick(float DeltaTime) override;
+	virtual TSharedPtr<class ISlateViewport> GetViewportInterface() override;
+	virtual float GetAspectRatio() const override;
+	virtual void Cleanup() override;
 
 private:
 

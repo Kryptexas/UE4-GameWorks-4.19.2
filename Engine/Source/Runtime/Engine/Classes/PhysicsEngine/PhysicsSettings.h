@@ -113,12 +113,12 @@ public:
 
 	static UPhysicsSettings * Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
 
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 
-	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual bool CanEditChange( const UProperty* Property ) const override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/** Load Material Type data from INI file **/
 	/** this changes displayname meta data. That means we won't need it outside of editor*/

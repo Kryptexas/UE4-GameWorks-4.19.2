@@ -22,26 +22,26 @@ public:
 	}
 
 	/** Called right after the module DLL has been loaded and the module object has been created */
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 	}
 
 	DECLARE_DERIVED_EVENT(FMatineeModule, IMatineeModule::FMatineeEditorOpenedEvent, FMatineeEditorOpenedEvent);
-	virtual FMatineeEditorOpenedEvent& OnMatineeEditorOpened() OVERRIDE
+	virtual FMatineeEditorOpenedEvent& OnMatineeEditorOpened() override
 	{
 		return MatineeEditorOpenedEvent;
 	}
 
-	virtual TSharedRef<IMatinee> CreateMatinee(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, AMatineeActor* MatineeActor) OVERRIDE
+	virtual TSharedRef<IMatinee> CreateMatinee(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, AMatineeActor* MatineeActor) override
 	{
 		TSharedRef<FMatinee> MatineeEd(new FMatinee());
 		MatineeEd->InitMatinee(Mode, InitToolkitHost, MatineeActor);

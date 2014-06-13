@@ -11,7 +11,7 @@ public:
 	/**
 	 * Overridden function to get the derived object node
 	 */
-	virtual FCategoryPropertyNode* AsCategoryNode() OVERRIDE { return this; }
+	virtual FCategoryPropertyNode* AsCategoryNode() override { return this; }
 
 	/**
 	 * Accessor functions for getting a category name
@@ -26,22 +26,22 @@ public:
 	 */
 	bool IsSubcategory() const;
 
-	virtual FString GetDisplayName() const OVERRIDE;
+	virtual FString GetDisplayName() const override;
 
 protected:
 	/**
 	 * Overridden function for special setup
 	 */
-	virtual void InitBeforeNodeFlags() OVERRIDE;
+	virtual void InitBeforeNodeFlags() override;
 	/**
 	 * Overridden function for Creating Child Nodes
 	 */
-	virtual void InitChildNodes() OVERRIDE;
+	virtual void InitChildNodes() override;
 
 	/**
 	 * Appends my path, including an array index (where appropriate)
 	 */
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const OVERRIDE;
+	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const override;
 
 	FString GetSubcategoryName() const;
 	/**

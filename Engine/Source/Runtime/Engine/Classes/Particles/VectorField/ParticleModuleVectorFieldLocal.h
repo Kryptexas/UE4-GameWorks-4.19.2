@@ -51,7 +51,7 @@ class UParticleModuleVectorFieldLocal : public UParticleModuleVectorFieldBase
 	uint32 bTileZ:1;
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// Begin UParticleModule Interface
 };
 

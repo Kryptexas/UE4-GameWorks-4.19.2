@@ -59,13 +59,13 @@ class ENGINE_API ANavigationData : public AActor
 	virtual ~ANavigationData();
 
 	// Begin UObject/AActor Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostInitializeComponents() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void Destroyed() OVERRIDE;
+	virtual void Destroyed() override;
 	// End UObject Interface
 		
 	virtual void CleanUp();
@@ -77,9 +77,9 @@ class ENGINE_API ANavigationData : public AActor
 	
 	FORCEINLINE uint16 GetNavDataUniqueID() const { return NavDataUniqueID; }
 
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) OVERRIDE;
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
-	virtual void RerunConstructionScripts() OVERRIDE;
+	virtual void RerunConstructionScripts() override;
 
 	virtual bool NeedsRebuild() { return false; }
 

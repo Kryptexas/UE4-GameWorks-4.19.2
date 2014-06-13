@@ -26,7 +26,7 @@ public:
 	}
 
 	// Determine if another payload is the same as this one
-	virtual bool IsEqual(const TSharedRef<FTabPayload>& OtherPayload) const OVERRIDE
+	virtual bool IsEqual(const TSharedRef<FTabPayload>& OtherPayload) const override
 	{
 		if (OtherPayload->PayloadType == PayloadType)
 		{
@@ -36,7 +36,7 @@ public:
 		return false;
 	}
 
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		return DocumentID.IsValid();
 	}
@@ -71,19 +71,19 @@ public:
 public:
 
 	// FWorkflowTabFactory public interface
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		BaseClass* TypedDocumentID = FTabPayload_UObject::CastChecked<BaseClass>(Info.Payload);
 		return CreateTabBodyForObject(Info, TypedDocumentID);
 	}
 
-	virtual const FSlateBrush* GetTabIcon(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual const FSlateBrush* GetTabIcon(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		BaseClass* TypedDocumentID = FTabPayload_UObject::CastChecked<BaseClass>(Info.Payload);
 		return GetTabIconForObject(Info, TypedDocumentID);
 	}
 
-	virtual bool IsPayloadSupported(TSharedRef<FTabPayload> Payload) const OVERRIDE
+	virtual bool IsPayloadSupported(TSharedRef<FTabPayload> Payload) const override
 	{
 		if (Payload->PayloadType == NAME_Object)
 		{
@@ -93,7 +93,7 @@ public:
 		return false;
 	}
 
-	virtual bool IsPayloadValid(TSharedRef<FTabPayload> Payload) const OVERRIDE
+	virtual bool IsPayloadValid(TSharedRef<FTabPayload> Payload) const override
 	{
 		if (Payload->PayloadType == NAME_Object)
 		{
@@ -111,7 +111,7 @@ protected:
 	}
 
 	// Creates the label for the tab
-	virtual TAttribute<FText> ConstructTabName(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TAttribute<FText> ConstructTabName(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		check(Info.Payload.IsValid());
 		BaseClass* TypedDocumentID = FTabPayload_UObject::CastChecked<BaseClass>(Info.Payload);

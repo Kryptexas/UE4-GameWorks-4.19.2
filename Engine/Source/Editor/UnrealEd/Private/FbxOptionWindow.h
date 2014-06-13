@@ -25,7 +25,7 @@ public:
 
 public:
 	void Construct(const FArguments& InArgs);
-	virtual bool SupportsKeyboardFocus() const OVERRIDE { return true; }
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	FReply OnImport()
 	{
@@ -54,7 +54,7 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		if( InKeyboardEvent.GetKey() == EKeys::Escape )
 		{

@@ -56,24 +56,24 @@ public:
 
 	// Begin AActor interface
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
-	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const OVERRIDE;
-	virtual void EditorReplacedActor(AActor* OldActor) OVERRIDE;
-	virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
+	virtual void CheckForErrors() override;
+	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
+	virtual void EditorReplacedActor(AActor* OldActor) override;
+	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 	// End AActor interface
 
 	// Begin IMatineeAnimInterface Interface
-	virtual void PreviewBeginAnimControl(class UInterpGroup* InInterpGroup) OVERRIDE;
-	virtual void PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float AdvanceTime) OVERRIDE;
-	virtual void PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos) OVERRIDE;
-	virtual void PreviewFinishAnimControl(class UInterpGroup* InInterpGroup) OVERRIDE;
-	virtual void GetAnimControlSlotDesc(TArray<struct FAnimSlotDesc>& OutSlotDescs) OVERRIDE {};
-	virtual void SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos ) OVERRIDE;
-	virtual void BeginAnimControl(class UInterpGroup* InInterpGroup) OVERRIDE;
-	virtual void SetAnimPosition(FName SlotName, int32 ChannelIndex, class UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping) OVERRIDE;
-	virtual void FinishAnimControl(class UInterpGroup* InInterpGroup) OVERRIDE;
+	virtual void PreviewBeginAnimControl(class UInterpGroup* InInterpGroup) override;
+	virtual void PreviewSetAnimPosition(FName SlotName, int32 ChannelIndex, UAnimSequence* InAnimSequence, float InPosition, bool bLooping, bool bFireNotifies, float AdvanceTime) override;
+	virtual void PreviewSetAnimWeights(TArray<FAnimSlotInfo>& SlotInfos) override;
+	virtual void PreviewFinishAnimControl(class UInterpGroup* InInterpGroup) override;
+	virtual void GetAnimControlSlotDesc(TArray<struct FAnimSlotDesc>& OutSlotDescs) override {};
+	virtual void SetAnimWeights( const TArray<struct FAnimSlotInfo>& SlotInfos ) override;
+	virtual void BeginAnimControl(class UInterpGroup* InInterpGroup) override;
+	virtual void SetAnimPosition(FName SlotName, int32 ChannelIndex, class UAnimSequence* InAnimSequence, float InPosition, bool bFireNotifies, bool bLooping) override;
+	virtual void FinishAnimControl(class UInterpGroup* InInterpGroup) override;
 	// End IMatineeAnimInterface Interface
 
 private:

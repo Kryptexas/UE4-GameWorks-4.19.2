@@ -512,7 +512,7 @@ class FRCPassPostProcessRoot : public TRenderingCompositePassBase<0, 1>
 public:
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) {}
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const { FPooledRenderTargetDesc Desc; Desc.DebugName = TEXT("Root"); return Desc; }
 };
 

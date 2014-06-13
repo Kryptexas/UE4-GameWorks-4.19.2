@@ -526,7 +526,7 @@ protected:
 		virtual FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
 
 		/** FGCObject interface */
-		virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 		const FTexture2DRHIRef& GetHitProxyTexture(void) const		{ return HitProxyTexture; }
 		const FTexture2DRHIRef& GetHitProxyCPUTexture(void) const		{ return HitProxyCPUTexture; }

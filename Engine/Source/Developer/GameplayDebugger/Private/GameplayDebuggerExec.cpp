@@ -21,7 +21,7 @@ struct FGameplayDebuggerExec : public FSelfRegisteringExec
 	TWeakObjectPtr<AGameplayDebuggingReplicator> GetDebuggingReplicator(UWorld* InWorld);
 
 	// Begin FExec Interface
-	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
 
 	TWeakObjectPtr<AGameplayDebuggingReplicator> CachedDebuggingReplicator;

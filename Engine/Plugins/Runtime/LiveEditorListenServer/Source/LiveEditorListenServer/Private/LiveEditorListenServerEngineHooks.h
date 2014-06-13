@@ -48,7 +48,7 @@ public:
 	{
 		return false;
 	}
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 
 private:
 	FLiveEditorListenServer *Owner;

@@ -34,7 +34,7 @@ public:
 
 	// Begin TTargetPlatformBase interface
 
-	virtual bool IsServerOnly( ) const OVERRIDE
+	virtual bool IsServerOnly( ) const override
 	{
 		return false;
 	}
@@ -45,25 +45,25 @@ public:
 
 	// Begin ITargetPlatform interface
 
-	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE;
+	virtual void EnableDeviceCheck(bool OnOff) override;
 
-	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE;
+	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const override;
 
-	virtual ECompressionFlags GetBaseCompressionMethod() const OVERRIDE
+	virtual ECompressionFlags GetBaseCompressionMethod() const override
 	{
 		return COMPRESS_ZLIB;
 	}
 
-	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const OVERRIDE
+	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const override
 	{
 		return true;
 	}
 
-	virtual ITargetDevicePtr GetDefaultDevice( ) const OVERRIDE;
+	virtual ITargetDevicePtr GetDefaultDevice( ) const override;
 
-	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) OVERRIDE;
+	virtual ITargetDevicePtr GetDevice( const FTargetDeviceId& DeviceId ) override;
 
-	virtual bool IsRunningPlatform( ) const OVERRIDE
+	virtual bool IsRunningPlatform( ) const override
 	{
 		#if PLATFORM_IOS && WITH_EDITOR
 			return true;
@@ -72,7 +72,7 @@ public:
 		#endif
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE
+	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
 	{
 		if (Feature == ETargetPlatformFeatures::Packaging)
 		{
@@ -83,40 +83,40 @@ public:
 		return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
 	}
 
-	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const OVERRIDE;
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
 
 
 #if WITH_ENGINE
-	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override
 	{
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
 	}
 
-	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
-	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const override;
 
-	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const OVERRIDE
+	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const override
 	{
 		return StaticMeshLODSettings;
 	}
 
-	virtual void GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const override;
 
-	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const OVERRIDE;
+	virtual const struct FTextureLODSettings& GetTextureLODSettings( ) const override;
 
-	virtual FName GetWaveFormat( class USoundWave* Wave ) const OVERRIDE;
+	virtual FName GetWaveFormat( class USoundWave* Wave ) const override;
 #endif // WITH_ENGINE
 
 
 	DECLARE_DERIVED_EVENT(FIOSTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
-	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) OVERRIDE
+	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
 		return DeviceDiscoveredEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FIOSTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
-	virtual FOnTargetDeviceLost& OnDeviceLost( ) OVERRIDE
+	virtual FOnTargetDeviceLost& OnDeviceLost( ) override
 	{
 		return DeviceLostEvent;
 	}

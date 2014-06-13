@@ -28,7 +28,7 @@ public:
 	~FGPUSkinCache();
 
 	// FRenderResource overrides
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void ReleaseRHI() override;
 
 	void	Initialize();
 	void	Cleanup();

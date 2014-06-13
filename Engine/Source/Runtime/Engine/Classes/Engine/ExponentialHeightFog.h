@@ -23,7 +23,7 @@ class AExponentialHeightFog : public AInfo
 
 
 	//Begin AActor Interface
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 	//End AActor Interface
 };
 

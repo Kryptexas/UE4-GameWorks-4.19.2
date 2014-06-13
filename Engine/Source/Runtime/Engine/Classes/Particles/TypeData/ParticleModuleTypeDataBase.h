@@ -14,7 +14,7 @@ class UParticleModuleTypeDataBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_TypeData;	}
+	virtual EModuleType	GetModuleType() const override {	return EPMT_TypeData;	}
 	// End UParticleModule Interface
 
 	/**

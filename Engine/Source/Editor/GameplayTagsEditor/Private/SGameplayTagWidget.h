@@ -44,7 +44,7 @@ public:
 		struct FGameplayTagContainer* TagContainer; 
 
 		/** Overridden to emit tag container owner reference */
-		virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 		{
 			Collector.AddReferencedObject(TagContainerOwner);
 		}

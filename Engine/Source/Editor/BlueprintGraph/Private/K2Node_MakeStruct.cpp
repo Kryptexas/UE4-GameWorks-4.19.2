@@ -34,7 +34,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
 	{
 		UK2Node_MakeStruct* Node = CastChecked<UK2Node_MakeStruct>(InNode);
 		if (NULL == Node->StructType)
@@ -64,14 +64,14 @@ public:
 		}
 	}
 
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
 	{
 		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 		Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
 		Context.NetMap.Add(Net, Term);
 	}
 
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* InNode) OVERRIDE
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
 	{
 		UK2Node_MakeStruct* Node = CastChecked<UK2Node_MakeStruct>(InNode);
 		if (NULL == Node->StructType)

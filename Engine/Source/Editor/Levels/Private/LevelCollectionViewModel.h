@@ -34,9 +34,9 @@ public:
 
 public:
 	// Begin FTickableEditorObject Interface
-	virtual bool IsTickable(void) const OVERRIDE { return true; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual bool IsTickable(void) const override { return true; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject
 
 	/** Handler for when a world has been added. */
@@ -245,8 +245,8 @@ private:
 	void AppendSelectLevelNames( TArray< FName >& OutLevelNames ) const;
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE { Refresh(); }
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override { Refresh(); }
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 	/**

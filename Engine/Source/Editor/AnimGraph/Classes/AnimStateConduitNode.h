@@ -15,23 +15,23 @@ public:
 	class UEdGraph* BoundGraph;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual bool CanDuplicateNode() const OVERRIDE { return true; }
-	virtual void PostPasteNode() OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
+	virtual bool CanDuplicateNode() const override { return true; }
+	virtual void PostPasteNode() override;
+	virtual void PostPlacedNewNode() override;
+	virtual void DestroyNode() override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End UEdGraphNode interface
 
 	// Begin UAnimStateNodeBase interface
-	virtual UEdGraphPin* GetInputPin() const OVERRIDE;
-	virtual UEdGraphPin* GetOutputPin() const OVERRIDE;
-	virtual FString GetStateName() const OVERRIDE;
-	virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = true) OVERRIDE;
-	virtual FString GetDesiredNewNodeName() const OVERRIDE;
-	virtual UEdGraph* GetBoundGraph() const OVERRIDE { return BoundGraph; }
+	virtual UEdGraphPin* GetInputPin() const override;
+	virtual UEdGraphPin* GetOutputPin() const override;
+	virtual FString GetStateName() const override;
+	virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = true) override;
+	virtual FString GetDesiredNewNodeName() const override;
+	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
 	// End of UAnimStateNodeBase interface
 };

@@ -85,24 +85,24 @@ public:
 	FByteBulkData Data;
 
 	// Begin UTexture interface.
-	virtual float GetSurfaceWidth() const OVERRIDE { return SizeX; }
-	virtual float GetSurfaceHeight() const OVERRIDE { return SizeY; }
-	virtual FTextureResource* CreateResource() OVERRIDE;
-	virtual EMaterialValueType GetMaterialType() OVERRIDE;
+	virtual float GetSurfaceWidth() const override { return SizeX; }
+	virtual float GetSurfaceHeight() const override { return SizeY; }
+	virtual FTextureResource* CreateResource() override;
+	virtual EMaterialValueType GetMaterialType() override;
 	// End UTexture interface.
 	
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;	
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;	
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void FinishDestroy() override;
+	virtual FString GetDesc() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface.
 
 	/**

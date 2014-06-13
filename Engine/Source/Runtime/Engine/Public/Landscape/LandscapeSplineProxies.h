@@ -32,7 +32,7 @@ struct HLandscapeSplineProxy_Segment : public HLandscapeSplineProxy
 		SplineSegment(InSplineSegment)
 	{
 	}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( SplineSegment );
 	}
@@ -49,7 +49,7 @@ struct HLandscapeSplineProxy_ControlPoint : public HLandscapeSplineProxy
 		ControlPoint(InControlPoint)
 	{
 	}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( ControlPoint );
 	}

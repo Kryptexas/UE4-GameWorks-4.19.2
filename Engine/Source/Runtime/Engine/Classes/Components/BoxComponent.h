@@ -35,17 +35,17 @@ public:
 	FVector GetUnscaledBoxExtent() const;
 
 	// Begin UPrimitiveComponent interface.
-	virtual bool IsZeroExtent() const OVERRIDE;
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const OVERRIDE;
+	virtual bool IsZeroExtent() const override;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End USceneComponent interface
 
 	// Begin UShapeComponent interface
-	virtual void UpdateBodySetup() OVERRIDE;
+	virtual void UpdateBodySetup() override;
 	// End UShapeComponent interface
 
 	// Sets the box extents without triggering a render or physics update.

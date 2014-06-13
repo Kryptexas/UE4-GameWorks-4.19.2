@@ -9,18 +9,18 @@ public:
 	FDetailLayoutBuilderImpl(FClassToPropertyMap& InPropertyMap, const TSharedRef< class IPropertyUtilities >& InPropertyUtilities, const TSharedRef< IDetailsViewPrivate >& InDetailsView);
 
 	/** IDetailLayoutBuilder Interface */
-	virtual const IDetailsView& GetDetailsView() const OVERRIDE;
-	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const OVERRIDE;
+	virtual const IDetailsView& GetDetailsView() const override;
+	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const override;
 	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FString& NewLocalizedDisplayName = TEXT(""), ECategoryPriority::Type CategoryType = ECategoryPriority::Default );
-	virtual TSharedRef<IPropertyHandle> GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName ) OVERRIDE;
-	virtual void HideProperty( const TSharedPtr<IPropertyHandle> Property ) OVERRIDE;
-	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) OVERRIDE;
-	virtual void ForceRefreshDetails() OVERRIDE;
-	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
-	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const OVERRIDE;
-	virtual bool IsPropertyVisible( UProperty* PropertyHandle ) const OVERRIDE;
+	virtual TSharedRef<IPropertyHandle> GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName ) override;
+	virtual void HideProperty( const TSharedPtr<IPropertyHandle> Property ) override;
+	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) override;
+	virtual void ForceRefreshDetails() override;
+	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const override;
+	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const override;
+	virtual bool IsPropertyVisible( UProperty* PropertyHandle ) const override;
 
-	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const OVERRIDE; 
+	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const override; 
 
 	/**
 	 * Creates a default category. The SDetails view will generate widgets in default categories 

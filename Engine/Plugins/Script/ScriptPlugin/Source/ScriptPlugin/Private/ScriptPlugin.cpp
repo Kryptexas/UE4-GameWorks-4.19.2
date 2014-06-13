@@ -23,8 +23,8 @@ DEFINE_LOG_CATEGORY(LogScriptPlugin);
 class FScriptPlugin : public IScriptPlugin
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };
 
 IMPLEMENT_MODULE(FScriptPlugin, ScriptPlugin)

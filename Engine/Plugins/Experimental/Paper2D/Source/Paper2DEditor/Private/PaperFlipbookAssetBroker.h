@@ -10,12 +10,12 @@
 class FPaperFlipbookAssetBroker : public IComponentAssetBroker
 {
 public:
-	UClass* GetSupportedAssetClass() OVERRIDE
+	UClass* GetSupportedAssetClass() override
 	{
 		return UPaperFlipbook::StaticClass();
 	}
 
-	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) OVERRIDE
+	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
 		if (UPaperAnimatedRenderComponent* RenderComp = Cast<UPaperAnimatedRenderComponent>(InComponent))
 		{
@@ -31,7 +31,7 @@ public:
 		return false;
 	}
 
-	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) OVERRIDE
+	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
 		if (UPaperAnimatedRenderComponent* RenderComp = Cast<UPaperAnimatedRenderComponent>(InComponent))
 		{

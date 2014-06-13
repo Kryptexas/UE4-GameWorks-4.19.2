@@ -824,7 +824,7 @@ private:
 	static FShader* ConstructSerializedInstance() { return new ShaderClass(); } \
 	static FShader* ConstructCompiledInstance(const ShaderMetaType::CompiledShaderInitializerType& Initializer) \
 	{ return new ShaderClass(Initializer); } \
-	virtual uint32 GetTypeSize() const OVERRIDE { return sizeof(*this); }
+	virtual uint32 GetTypeSize() const override { return sizeof(*this); }
 #define DECLARE_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut) \
 	DECLARE_EXPORTED_SHADER_TYPE(ShaderClass,ShaderMetaTypeShortcut,)
 

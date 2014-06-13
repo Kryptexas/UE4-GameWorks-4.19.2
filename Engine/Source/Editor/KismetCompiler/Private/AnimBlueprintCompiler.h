@@ -26,15 +26,15 @@ public:
 	virtual ~FAnimBlueprintCompiler();
 protected:
 	// Implementation of FKismetCompilerContext interface
-	virtual UEdGraphSchema_K2* CreateSchema() OVERRIDE;
-	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) OVERRIDE;
-	virtual void ProcessOneFunctionGraph(UEdGraph* SourceGraph) OVERRIDE;
-	virtual void CreateFunctionList() OVERRIDE;
-	virtual void SpawnNewClass(const FString& NewClassName) OVERRIDE;
-	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) OVERRIDE;
-	virtual void PostCompileDiagnostics() OVERRIDE;
-	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) OVERRIDE;
-	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) OVERRIDE;
+	virtual UEdGraphSchema_K2* CreateSchema() override;
+	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) override;
+	virtual void ProcessOneFunctionGraph(UEdGraph* SourceGraph) override;
+	virtual void CreateFunctionList() override;
+	virtual void SpawnNewClass(const FString& NewClassName) override;
+	virtual void CopyTermDefaultsToDefaultObject(UObject* DefaultObject) override;
+	virtual void PostCompileDiagnostics() override;
+	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
+	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;
 	// End of FKismetCompilerContext interface
 
 protected:

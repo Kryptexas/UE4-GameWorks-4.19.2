@@ -9,24 +9,24 @@ public:
 	virtual ~FAssetTools();
 
 	// IAssetTools implementation
-	virtual void RegisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& NewActions) OVERRIDE;
-	virtual void UnregisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& ActionsToRemove) OVERRIDE;
-	virtual void GetAssetTypeActionsList( TArray<TWeakPtr<IAssetTypeActions>>& OutAssetTypeActionsList ) const OVERRIDE;
-	virtual TWeakPtr<IAssetTypeActions> GetAssetTypeActionsForClass( UClass* Class ) const OVERRIDE;
-	virtual bool GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading = true ) OVERRIDE;
-	virtual UObject* CreateAsset(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) OVERRIDE;
-	virtual UObject* DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) OVERRIDE;
-	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const OVERRIDE;
-	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) OVERRIDE;
-	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath) const OVERRIDE;
-	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const OVERRIDE;
-	virtual bool AssetUsesGenericThumbnail( const FAssetData& AssetData ) const OVERRIDE;
-	virtual void DiffAgainstDepot(UObject* InObject, const FString& InPackagePath, const FString& InPackageName) const OVERRIDE;
-	virtual void DiffAssets(UObject* OldAsset1, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const OVERRIDE;
-	virtual FString DumpAssetToTempFile(UObject* Asset) const OVERRIDE;
-	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& OldTextFilename, const FString& NewTextFilename, const FString& DiffArgs = FString("")) const OVERRIDE;
-	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const OVERRIDE;
-	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const OVERRIDE;
+	virtual void RegisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& NewActions) override;
+	virtual void UnregisterAssetTypeActions(const TSharedRef<IAssetTypeActions>& ActionsToRemove) override;
+	virtual void GetAssetTypeActionsList( TArray<TWeakPtr<IAssetTypeActions>>& OutAssetTypeActionsList ) const override;
+	virtual TWeakPtr<IAssetTypeActions> GetAssetTypeActionsForClass( UClass* Class ) const override;
+	virtual bool GetAssetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder, bool bIncludeHeading = true ) override;
+	virtual UObject* CreateAsset(const FString& AssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory, FName CallingContext = NAME_None) override;
+	virtual UObject* DuplicateAsset(const FString& AssetName, const FString& PackagePath, UObject* OriginalObject) override;
+	virtual void RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const override;
+	virtual TArray<UObject*> ImportAssets(const FString& DestinationPath) override;
+	virtual TArray<UObject*> ImportAssets(const TArray<FString>& Files, const FString& DestinationPath) const override;
+	virtual void CreateUniqueAssetName(const FString& InBasePackageName, const FString& InSuffix, FString& OutPackageName, FString& OutAssetName) const override;
+	virtual bool AssetUsesGenericThumbnail( const FAssetData& AssetData ) const override;
+	virtual void DiffAgainstDepot(UObject* InObject, const FString& InPackagePath, const FString& InPackageName) const override;
+	virtual void DiffAssets(UObject* OldAsset1, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const override;
+	virtual FString DumpAssetToTempFile(UObject* Asset) const override;
+	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& OldTextFilename, const FString& NewTextFilename, const FString& DiffArgs = FString("")) const override;
+	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const override;
+	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const override;
 
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */

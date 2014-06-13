@@ -62,11 +62,11 @@ class UMG_API UBorder : public UContentWidget
 	bool bShowEffectWhenDisabled;
 
 	// UContentWidget interface
-	virtual void SetContent(UWidget* Content) OVERRIDE;
+	virtual void SetContent(UWidget* Content) override;
 	// End UContentWidget interface
 
 	// UWidget interface
-	void SyncronizeProperties() OVERRIDE;
+	void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:
@@ -74,7 +74,7 @@ protected:
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 	const FSlateBrush* GetBorderBrush() const;

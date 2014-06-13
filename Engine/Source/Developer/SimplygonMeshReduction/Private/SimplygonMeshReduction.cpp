@@ -13,12 +13,12 @@ class FSimplygonMeshReductionModule : public IMeshReductionModule
 {
 public:
 	// IModuleInterface interface.
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	// IMeshReductionModule interface.
-	virtual class IMeshReduction* GetMeshReductionInterface() OVERRIDE;
-	virtual class IMeshMerging* GetMeshMergingInterface() OVERRIDE;
+	virtual class IMeshReduction* GetMeshReductionInterface() override;
+	virtual class IMeshMerging* GetMeshMergingInterface() override;
 };
 
 
@@ -86,7 +86,7 @@ class FSimplygonMeshReduction
 	, public IMeshMerging
 {
 public:
-	virtual const FString& GetVersionString() const OVERRIDE
+	virtual const FString& GetVersionString() const override
 	{
 		return VersionString;
 	}
@@ -406,7 +406,7 @@ public:
 		const TArray<MaterialExportUtils::FFlattenMaterial>& InputMaterials,
 		const struct FMeshProxySettings& InProxySettings,
 		FRawMesh& OutProxyMesh,
-		MaterialExportUtils::FFlattenMaterial& OutMaterial) OVERRIDE
+		MaterialExportUtils::FFlattenMaterial& OutMaterial) override
 	{
 		if (InputMeshes.Num() == 0)
 		{

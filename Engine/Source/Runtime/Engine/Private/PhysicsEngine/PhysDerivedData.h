@@ -32,12 +32,12 @@ public:
 	// This constructor only used by ULandscapeMeshCollisionComponent, which always only build TriMesh, not Convex...
 	FDerivedDataPhysXCooker( FName InFormat, ULandscapeMeshCollisionComponent* InMeshCollision, bool bMirrored );
 
-	virtual const TCHAR* GetPluginName() const OVERRIDE
+	virtual const TCHAR* GetPluginName() const override
 	{
 		return TEXT("PhysX");
 	}
 
-	virtual const TCHAR* GetVersionString() const OVERRIDE
+	virtual const TCHAR* GetVersionString() const override
 	{
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
@@ -45,7 +45,7 @@ public:
 		return TEXT("{1F0627AE-ABEB-4206-8D78-E16BEB5DDC7E}");
 	}
 
-	virtual FString GetPluginSpecificCacheKeySuffix() const OVERRIDE
+	virtual FString GetPluginSpecificCacheKeySuffix() const override
 	{
 		enum { UE_PHYSX_DERIVEDDATA_VER = 1 };
 
@@ -66,12 +66,12 @@ public:
 	}
 
 
-	virtual bool IsBuildThreadsafe() const OVERRIDE
+	virtual bool IsBuildThreadsafe() const override
 	{
 		return false;
 	}
 
-	virtual bool Build( TArray<uint8>& OutData ) OVERRIDE;
+	virtual bool Build( TArray<uint8>& OutData ) override;
 
 	/** Return true if we can build **/
 	bool CanBuild()

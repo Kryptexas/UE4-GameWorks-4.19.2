@@ -118,7 +118,7 @@ public:
 	/** 
 	 * @return ptr to the resource memory which has been preallocated
 	 */
-	virtual const void* GetResourceBulkData() const OVERRIDE
+	virtual const void* GetResourceBulkData() const override
 	{
 		check(BulkData != NULL);
 		return BulkData;
@@ -127,7 +127,7 @@ public:
 	/** 
 	 * @return size of resource memory
 	 */
-	virtual uint32 GetResourceBulkDataSize() const OVERRIDE
+	virtual uint32 GetResourceBulkDataSize() const override
 	{
 		check(BulkDataSize > 0);
 		return BulkDataSize;
@@ -136,7 +136,7 @@ public:
 	/**
 	 * Free memory after it has been used to initialize RHI resource 
 	 */
-	virtual void Discard() OVERRIDE
+	virtual void Discard() override
 	{
 	}
 
@@ -180,7 +180,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if (VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
@@ -349,7 +349,7 @@ public:
 	 *	This function allows for generating renderer-side resources.
 	 *	Called in the rendering thread.
 	 */
-	virtual void CreateRenderThreadResources() OVERRIDE
+	virtual void CreateRenderThreadResources() override
 	{
 		VisualizationVertexFactory.InitResource();
 	}
@@ -357,7 +357,7 @@ public:
 	/**
 	 * Draws the bounding box for the vector field.
 	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{	
 		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_DrawDynamicElements );
 
@@ -373,7 +373,7 @@ public:
 	/**
 	 * Computes view relevance for this scene proxy.
 	 */
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View); 
@@ -385,7 +385,7 @@ public:
 	/**
 	 * Computes the memory footprint of this scene proxy.
 	 */
-	virtual uint32 GetMemoryFootprint() const OVERRIDE
+	virtual uint32 GetMemoryFootprint() const override
 	{
 		return sizeof(*this) + GetAllocatedSize();
 	}
@@ -604,7 +604,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << AtlasTexture;
@@ -712,7 +712,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
@@ -745,7 +745,7 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VolumeTextureUAV.SafeRelease();
 		FVectorFieldResource::ReleaseRHI();
@@ -832,7 +832,7 @@ public:
 	/**
 	 * Resets the vector field simulation.
 	 */
-	virtual void ResetVectorField() OVERRIDE
+	virtual void ResetVectorField() override
 	{
 		FrameTime = 0.0f;
 	}

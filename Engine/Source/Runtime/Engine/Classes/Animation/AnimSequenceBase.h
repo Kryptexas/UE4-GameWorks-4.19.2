@@ -292,7 +292,7 @@ class UAnimSequenceBase : public UAnimationAsset
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End of UObject interface
 
 	/** Sort the Notifies array by time, earliest first. */
@@ -339,7 +339,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	/** Calculates what (if any) offset should be applied to the trigger time of a notify given its display time */ 
 	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const;
 
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	
 	// Get a pointer to the data for a given Anim Notify
 	ENGINE_API uint8* FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty);
@@ -352,11 +352,11 @@ class UAnimSequenceBase : public UAnimationAsset
 	ENGINE_API virtual void UpgradeMorphTargetCurves();
 
 	// Begin UAnimationAsset interface
-	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const OVERRIDE;
+	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
 	// this is used in editor only when used for transition getter
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
 	// but for BlendSpace CurrentTime is normalized [0,1], so this is 1
-	virtual float GetMaxCurrentTime() OVERRIDE { return SequenceLength; }
+	virtual float GetMaxCurrentTime() override { return SequenceLength; }
 	// End of UAnimationAsset interface
 
 protected:

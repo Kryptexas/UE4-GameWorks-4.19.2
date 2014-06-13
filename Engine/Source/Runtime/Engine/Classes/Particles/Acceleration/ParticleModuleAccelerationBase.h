@@ -18,7 +18,7 @@ class UParticleModuleAccelerationBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
 	// End UParticleModule Interface
 };
 

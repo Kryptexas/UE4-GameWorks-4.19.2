@@ -125,7 +125,7 @@ public:
 		OnLayerCtrlClicked = NewLayerCtrlClicked;
 	}
 	
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) OVERRIDE
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
 	{
 		if (OnLayerDoubleClicked.IsBound())
 		{
@@ -137,7 +137,7 @@ public:
 		}
 	}
 
-	virtual FReply OnMouseButtonUp(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) OVERRIDE
+	virtual FReply OnMouseButtonUp(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override
 	{
 		if (!InMouseEvent.IsControlDown())
 		{

@@ -47,11 +47,11 @@ public:
 	 */
 	bool UpdateLevel( ULevelStreaming* LevelStreamingObject );
 
-	virtual void UpdateOperation(FLatentResponse& Response) OVERRIDE;
+	virtual void UpdateOperation(FLatentResponse& Response) override;
 
 #if WITH_EDITOR
 	// Returns a human readable description of the latent operation's current state
-	virtual FString GetDescription() const OVERRIDE;
+	virtual FString GetDescription() const override;
 #endif
 };
 
@@ -148,10 +148,10 @@ class ULevelStreaming : public UObject
 	int32 LevelLODIndex;
 
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void Serialize( FArchive& Ar ) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 	
 	/** Remove duplicates in EditorStreamingVolumes list*/
 	void RemoveStreamingVolumeDuplicates();

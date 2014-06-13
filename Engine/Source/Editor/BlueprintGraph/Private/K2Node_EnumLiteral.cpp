@@ -58,7 +58,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override
 	{
 		check(Context.Schema && Cast<UK2Node_EnumLiteral>(Node));
 		FNodeHandlingFunctor::RegisterNets(Context, Node);

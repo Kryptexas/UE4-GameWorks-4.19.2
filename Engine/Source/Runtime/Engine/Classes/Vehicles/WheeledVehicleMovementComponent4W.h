@@ -170,10 +170,10 @@ class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMove
 	float AckermannAccuracy;
 
 
-	virtual void Serialize(FArchive & Ar) OVERRIDE;
-	virtual void ComputeConstants() OVERRIDE;
+	virtual void Serialize(FArchive & Ar) override;
+	virtual void ComputeConstants() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 protected:
@@ -181,9 +181,9 @@ protected:
 #if WITH_VEHICLE
 
 	/** Allocate and setup the PhysX vehicle */
-	virtual void SetupVehicle() OVERRIDE;
+	virtual void SetupVehicle() override;
 
-	virtual void UpdateSimulation(float DeltaTime) OVERRIDE;
+	virtual void UpdateSimulation(float DeltaTime) override;
 
 #endif // WITH_VEHICLE
 

@@ -27,21 +27,21 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 
 	// Begin UEdGraphNode Interface
 	virtual class UBehaviorTreeGraph* GetBehaviorTreeGraph();
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual bool CanDuplicateNode() const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual void NodeConnectionListChanged() OVERRIDE;
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
-	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
+	virtual void PostPlacedNewNode() override;
+	virtual void PrepareForCopying() override;
+	virtual bool CanDuplicateNode() const override;
+	virtual bool CanUserDeleteNode() const override;
+	virtual void DestroyNode() override;
+	virtual FString GetTooltip() const override;
+	virtual void NodeConnectionListChanged() override;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;
 	// End UEdGraphNode Interface
 
 	// Begin UObject Interface
-	virtual void PostEditImport() OVERRIDE;
+	virtual void PostEditImport() override;
 	// End UObject
 
 	// @return the input pin for this state

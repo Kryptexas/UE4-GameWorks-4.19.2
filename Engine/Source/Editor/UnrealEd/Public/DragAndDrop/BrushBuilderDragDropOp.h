@@ -29,7 +29,7 @@ public:
 		}
 	}
 
-	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) override
 	{
 		UWorld* World = GEditor->GetEditorWorldContext().World();
 		if ( (World != nullptr) && (World->GetDefaultBrush() != nullptr))
@@ -54,7 +54,7 @@ public:
 		FDragDropOperation::OnDrop( bDropWasHandled, MouseEvent );
 	}
 
-	virtual void OnDragged( const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragged( const FDragDropEvent& DragDropEvent ) override
 	{
 		UWorld* World = GEditor->GetEditorWorldContext().World();
 		if(World != nullptr)
@@ -70,7 +70,7 @@ public:
 		FDragDropOperation::OnDragged(DragDropEvent);
 	}
 
-	virtual TSharedPtr<class SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<class SWidget> GetDefaultDecorator() const override
 	{
 		return SNew(SBox)
 			.WidthOverride(100.0f)

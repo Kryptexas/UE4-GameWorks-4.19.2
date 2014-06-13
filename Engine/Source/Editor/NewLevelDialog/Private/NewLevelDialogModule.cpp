@@ -46,7 +46,7 @@ public:
 
 	virtual FIntPoint GetSize() const { return Size; }
 	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const { return ShaderResource ? (FSlateShaderResource*)this : NULL; }
-	virtual bool RequiresVsync() const OVERRIDE { return false; }
+	virtual bool RequiresVsync() const override { return false; }
 
 	// FSlateShaderResource implementation.
 	virtual uint32 GetWidth() const { return Size.X; }
@@ -259,7 +259,7 @@ private:
 		}
 	}
 
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override
 	{
 		if( InKeyboardEvent.GetKey() == EKeys::Escape )
 		{

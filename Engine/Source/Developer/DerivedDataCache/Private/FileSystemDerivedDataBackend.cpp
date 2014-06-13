@@ -172,7 +172,7 @@ public:
 	 * @param	OutData		Buffer containing the data to cache, can be destroyed after the call returns, immediately
 	 * @param	bPutEvenIfExists	If true, then do not attempt skip the put even if CachedDataProbablyExists returns true
 	 */
-	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) OVERRIDE
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists) override
 	{
 		check(!bFailed);
 		if (!bReadOnly)
@@ -228,7 +228,7 @@ public:
 		}
 	}
 
-	void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) OVERRIDE
+	void RemoveCachedData(const TCHAR* CacheKey, bool bTransient) override
 	{
 		check(!bFailed);
 		if (!bReadOnly && (!bTransient || bPurgeTransient))

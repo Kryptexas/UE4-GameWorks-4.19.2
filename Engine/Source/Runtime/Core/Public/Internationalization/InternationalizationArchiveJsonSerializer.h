@@ -37,7 +37,7 @@ public:
 	 *
 	 * @return true if deserialization was successful, false otherwise.
 	 */
-	virtual bool DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive ) OVERRIDE;
+	virtual bool DeserializeArchive( FArchive& Archive, TSharedRef< FInternationalizationArchive > InternationalizationArchive ) override;
 
 	/**
 	 * Deserializes a Internationalization archive from a string.
@@ -67,7 +67,7 @@ public:
 	 *
 	 * @return true if serialization was successful, false otherwise.
 	 */
-	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive ) OVERRIDE;
+	virtual bool SerializeArchive( TSharedRef< const FInternationalizationArchive > InternationalizationArchive, FArchive& Archive ) override;
 
 	/**
 	 * Serializes a Internationalization archive to a string.

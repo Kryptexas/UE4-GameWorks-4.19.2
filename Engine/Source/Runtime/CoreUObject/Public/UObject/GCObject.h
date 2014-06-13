@@ -55,7 +55,7 @@ public:
 	 * Destroy function that gets called before the object is freed. This might
 	 * be as late as from the destructor.
 	 */
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 };
 
 

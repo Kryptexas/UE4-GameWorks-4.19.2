@@ -146,7 +146,7 @@ public:
 	 *
 	 * @return		Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	// UFont interface
 	FORCEINLINE TCHAR RemapChar(TCHAR CharCode) const
@@ -248,9 +248,9 @@ public:
 	}
 
 	// Begin UObject interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool IsLocalizedResource() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
+	virtual bool IsLocalizedResource() override;
 	// End UObject interface
 
 	/**

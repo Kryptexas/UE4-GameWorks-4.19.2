@@ -44,22 +44,22 @@ public:
 	FVoicePacketImpl(const FVoicePacketImpl& Other);
 
 	/** Returns the amount of space this packet will consume in a buffer */
-	virtual uint16 GetTotalPacketSize() OVERRIDE;
+	virtual uint16 GetTotalPacketSize() override;
 
 	/** @return the amount of space used by the internal voice buffer */
-	virtual uint16 GetBufferSize() OVERRIDE;
+	virtual uint16 GetBufferSize() override;
 
 	/** @return the sender of this voice packet */
-	virtual TSharedPtr<class FUniqueNetId> GetSender() OVERRIDE;
+	virtual TSharedPtr<class FUniqueNetId> GetSender() override;
 
-	virtual bool IsReliable() OVERRIDE { return false; }
+	virtual bool IsReliable() override { return false; }
 
 	/** 
 	 * Serialize the voice packet data to a buffer 
 	 *
 	 * @param Ar buffer to write into
 	 */
-	virtual void Serialize(class FArchive& Ar) OVERRIDE;
+	virtual void Serialize(class FArchive& Ar) override;
 };
 
 /** Holds the current voice packet data state */

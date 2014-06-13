@@ -21,7 +21,7 @@ class UGatherTextCommandlet : public UGatherTextCommandletBase
     GENERATED_UCLASS_BODY()
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 	// Helpler function to generate a changelist description

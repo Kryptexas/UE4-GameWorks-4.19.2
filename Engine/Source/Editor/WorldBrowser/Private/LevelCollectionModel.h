@@ -26,9 +26,9 @@ public:
 	virtual ~FLevelCollectionModel();
 
 	/** FTickableEditorObject interface */
-	void Tick( float DeltaTime ) OVERRIDE;
-	bool IsTickable() const OVERRIDE { return true; }
-	TStatId GetStatId() const OVERRIDE;
+	void Tick( float DeltaTime ) override;
+	bool IsTickable() const override { return true; }
+	TStatId GetStatId() const override;
 	/** FTickableEditorObject interface */
 	
 	/**	@return	Whether level collection is read only now */

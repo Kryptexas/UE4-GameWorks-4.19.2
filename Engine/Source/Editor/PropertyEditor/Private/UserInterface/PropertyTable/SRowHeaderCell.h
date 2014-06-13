@@ -78,7 +78,7 @@ class SRowHeaderCell : public SCompoundWidget
 		];
 	}
 
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		const TSharedRef< IPropertyTable > Table = Cell->GetTable();
 		Table->SetLastClickedCell( Cell );
@@ -86,7 +86,7 @@ class SRowHeaderCell : public SCompoundWidget
 		return FReply::Unhandled();
 	}
 
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		const TSharedRef< IPropertyTable > Table = Cell->GetTable();
 		Table->SetLastClickedCell( Cell );

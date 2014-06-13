@@ -10,7 +10,7 @@ public:
 	FPhysicsManipulationEdMode();
 	~FPhysicsManipulationEdMode();
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 	virtual void Enter();
 	virtual void Exit();

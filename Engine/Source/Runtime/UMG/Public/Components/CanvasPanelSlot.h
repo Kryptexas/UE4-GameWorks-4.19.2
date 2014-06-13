@@ -36,9 +36,9 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
-	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) OVERRIDE;
+	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) override;
 
-	virtual bool CanResize(const FVector2D& Direction) const OVERRIDE;
+	virtual bool CanResize(const FVector2D& Direction) const override;
 
 	/** Sets the position of the slot */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -53,12 +53,12 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	void SetAlignment(FVector2D InAlignment);
 
 	// UPanelSlot interface
-	virtual void Refresh() OVERRIDE;
+	virtual void Refresh() override;
 	// End of UPanelSlot interface
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent);
 	// End of UObject interface
 #endif

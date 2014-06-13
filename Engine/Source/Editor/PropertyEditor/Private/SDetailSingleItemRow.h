@@ -22,7 +22,7 @@ public:
 	void Construct( const FArguments& InArgs, FDetailLayoutCustomization* InCustomization, bool bHasMultipleColumns, TSharedRef<IDetailTreeNode> InOwnerTreeNode, const TSharedRef<STableViewBase>& InOwnerTableView );
 
 protected:
-	virtual bool OnContextMenuOpening( FMenuBuilder& MenuBuilder ) OVERRIDE;
+	virtual bool OnContextMenuOpening( FMenuBuilder& MenuBuilder ) override;
 private:
 	void OnLeftColumnResized( float InNewWidth );
 	void OnCopyProperty();

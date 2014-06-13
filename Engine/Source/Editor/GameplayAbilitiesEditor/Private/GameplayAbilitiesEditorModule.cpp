@@ -8,8 +8,8 @@
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {
 	// Begin IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End IModuleInterface
 };
 

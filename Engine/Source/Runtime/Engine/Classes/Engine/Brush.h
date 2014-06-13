@@ -139,18 +139,18 @@ class ABrush : public AActor
 
 	
 	// Begin UObject interface.
-	ENGINE_API virtual void PostLoad() OVERRIDE;
+	ENGINE_API virtual void PostLoad() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditMove(bool bFinished) OVERRIDE;
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	ENGINE_API virtual void PostEditMove(bool bFinished) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) OVERRIDE;
+	ENGINE_API virtual bool Modify(bool bAlwaysMarkDirty = false) override;
 
-	virtual bool NeedsLoadForClient() const OVERRIDE
+	virtual bool NeedsLoadForClient() const override
 	{ 
 		return !IsNotForClientOrServer(); 
 	}
-	virtual bool NeedsLoadForServer() const OVERRIDE
+	virtual bool NeedsLoadForServer() const override
 	{ 
 		return !IsNotForClientOrServer(); 
 	}
@@ -158,16 +158,16 @@ class ABrush : public AActor
 
 	
 	// Begin AActor interface
-	ENGINE_API virtual void Destroyed() OVERRIDE;
-	ENGINE_API virtual void PostRegisterAllComponents() OVERRIDE;
+	ENGINE_API virtual void Destroyed() override;
+	ENGINE_API virtual void PostRegisterAllComponents() override;
 	
-	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(false); return false; }
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE;
+	virtual bool UpdateNavigationRelevancy() override { SetNavigationRelevancy(false); return false; }
+	virtual bool IsLevelBoundsRelevant() const override;
 
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 
-	ENGINE_API virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) OVERRIDE;
+	ENGINE_API virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) override;
 
 	// End AActor interface
 

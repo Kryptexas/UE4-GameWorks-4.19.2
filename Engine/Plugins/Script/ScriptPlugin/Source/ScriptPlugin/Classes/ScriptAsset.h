@@ -25,7 +25,7 @@ class SCRIPTPLUGIN_API UScriptAsset : public UDataAsset
 	FString SourceCode;
 
 	// UObject interface
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);

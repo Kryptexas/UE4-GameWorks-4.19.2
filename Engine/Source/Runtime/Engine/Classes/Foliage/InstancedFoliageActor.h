@@ -19,16 +19,16 @@ public:
 	TMap<class UStaticMesh*, struct FFoliageMeshInfo> FoliageMeshes;
 
 	// Begin UObject interface. 	
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// Begin UObject interface. 
 
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
-	virtual void RerunConstructionScripts() OVERRIDE {}
+	virtual void RerunConstructionScripts() override {}
 	// Add world origin offset
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor interface.
 
 #if WITH_EDITOR

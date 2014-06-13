@@ -15,46 +15,46 @@ public:
 
 	// Begin IPropertyTable Interface
 
-	virtual FName GetId() const OVERRIDE;
+	virtual FName GetId() const override;
 
-	virtual FText GetDisplayName() const OVERRIDE;
+	virtual FText GetDisplayName() const override;
 
-	virtual TSharedRef< IDataSource > GetDataSource() const OVERRIDE { return DataSource; }
+	virtual TSharedRef< IDataSource > GetDataSource() const override { return DataSource; }
 
-	virtual TSharedRef< class FPropertyPath > GetPartialPath() const OVERRIDE { return PartialPath; }
+	virtual TSharedRef< class FPropertyPath > GetPartialPath() const override { return PartialPath; }
 
-	virtual TSharedRef< class IPropertyTableCell > GetCell( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
+	virtual TSharedRef< class IPropertyTableCell > GetCell( const TSharedRef< class IPropertyTableRow >& Row ) override;
 
-	virtual void RemoveCellsForRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
+	virtual void RemoveCellsForRow( const TSharedRef< class IPropertyTableRow >& Row ) override;
 
-	virtual TSharedRef< class IPropertyTable > GetTable() const OVERRIDE;
+	virtual TSharedRef< class IPropertyTable > GetTable() const override;
 
-	virtual bool CanSelectCells() const OVERRIDE { return !IsHidden(); }
+	virtual bool CanSelectCells() const override { return !IsHidden(); }
 
-	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return SizeMode; }
+	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const override { return SizeMode; }
 
-	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE{ SizeMode = InSizeMode; }
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) override{ SizeMode = InSizeMode; }
 
-	virtual float GetWidth() const OVERRIDE { return Width; } 
+	virtual float GetWidth() const override { return Width; } 
 
-	virtual void SetWidth( float InWidth ) OVERRIDE { Width = InWidth; }
+	virtual void SetWidth( float InWidth ) override { Width = InWidth; }
 
-	virtual bool IsHidden() const OVERRIDE { return bIsHidden; }
+	virtual bool IsHidden() const override { return bIsHidden; }
 
-	virtual void SetHidden( bool InIsHidden ) OVERRIDE { bIsHidden = InIsHidden; }
+	virtual void SetHidden( bool InIsHidden ) override { bIsHidden = InIsHidden; }
 
-	virtual bool IsFrozen() const OVERRIDE { return bIsFrozen; }
+	virtual bool IsFrozen() const override { return bIsFrozen; }
 
-	virtual void SetFrozen( bool InIsFrozen ) OVERRIDE;
+	virtual void SetFrozen( bool InIsFrozen ) override;
 
-	virtual bool CanSortBy() const OVERRIDE;
+	virtual bool CanSortBy() const override;
 
-	virtual void Sort( TArray< TSharedRef< class IPropertyTableRow > >& Rows, const EColumnSortMode::Type SortMode ) OVERRIDE;
+	virtual void Sort( TArray< TSharedRef< class IPropertyTableRow > >& Rows, const EColumnSortMode::Type SortMode ) override;
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
-	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
+	FFrozenStateChanged* OnFrozenStateChanged() override { return &FrozenStateChanged; }
 
 	// End IPropertyTable Interface
 

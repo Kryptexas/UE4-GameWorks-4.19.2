@@ -213,18 +213,18 @@ public:
 		OnGenerateArrayElementWidgetDelegate = InOnGenerateArrayElementWidget;
 	}
 
-	virtual bool RequiresTick() const OVERRIDE { return false; }
+	virtual bool RequiresTick() const override { return false; }
 
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
+	virtual void Tick( float DeltaTime ) override {}
 
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return BaseProperty->GetProperty()->GetFName();
 	}
 	
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
+	virtual bool InitiallyCollapsed() const override { return false; }
 
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override
 	{
 		if (bGenerateHeader)
 		{
@@ -255,7 +255,7 @@ public:
 		}
 	}
 
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override
 	{
 		uint32 NumChildren = 0;
 		ArrayProperty->GetNumElements( NumChildren );
@@ -274,7 +274,7 @@ public:
 	}
 
 protected:
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) OVERRIDE { OnRebuildChildren = InOnRebuildChildren; } 
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) override { OnRebuildChildren = InOnRebuildChildren; } 
 
 	void OnNumChildrenChanged()
 	{
@@ -397,13 +397,13 @@ private:
 	void OnHideMaterialsForElement( int32 SlotIndex );
 
 	/** IDetailCustomNodeBuilder interface */
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) OVERRIDE { OnRebuildChildren = InOnRebuildChildren; } 
-	virtual bool RequiresTick() const OVERRIDE { return true; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual FName GetName() const OVERRIDE { return NAME_None; }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) override { OnRebuildChildren = InOnRebuildChildren; } 
+	virtual bool RequiresTick() const override { return true; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual FName GetName() const override { return NAME_None; }
+	virtual bool InitiallyCollapsed() const override { return false; }
 
 	/**
 	 * Adds a new material item to the list

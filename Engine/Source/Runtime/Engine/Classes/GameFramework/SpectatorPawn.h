@@ -18,6 +18,6 @@ class ENGINE_API ASpectatorPawn : public ADefaultPawn
 
 	// Begin Pawn overrides
 	/** Overridden to avoid changing network role. If subclasses want networked behavior, call the Pawn::PossessedBy() instead. */
-	virtual void PossessedBy(class AController* NewController) OVERRIDE;
+	virtual void PossessedBy(class AController* NewController) override;
 	// End Pawn overrides
 };

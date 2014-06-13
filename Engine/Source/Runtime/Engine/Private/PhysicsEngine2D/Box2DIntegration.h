@@ -14,8 +14,8 @@ struct FStartPhysics2DTickFunction : public FTickFunction
 	struct FPhysicsScene2D* Target;
 
 	// FTickFunction interface
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
-	virtual FString DiagnosticMessage() OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	virtual FString DiagnosticMessage() override;
 	// End of FTickFunction interface
 };
 
@@ -25,8 +25,8 @@ struct FEndPhysics2DTickFunction : public FTickFunction
 	struct FPhysicsScene2D* Target;
 
 	// FTickFunction interface
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
-	virtual FString DiagnosticMessage() OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	virtual FString DiagnosticMessage() override;
 	// End of FTickFunction interface
 };
 
@@ -49,7 +49,7 @@ public:
 	virtual ~FPhysicsScene2D();
 
 	// b2ContactFilter interface
-	virtual bool ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB) OVERRIDE;
+	virtual bool ShouldCollide(b2Fixture* FixtureA, b2Fixture* FixtureB) override;
 	// End of b2ContactFilter interface
 };
 
@@ -67,7 +67,7 @@ struct FPhysicsIntegration2D : public FGCObject
 	static void ShutdownPhysics();
 
 	// FSerializableObject interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FSerializableObject
 
 	static void DrawDebugPhysics(UWorld* World, FPrimitiveDrawInterface* PDI, const FSceneView* View);

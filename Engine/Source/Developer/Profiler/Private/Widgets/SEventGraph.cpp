@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #include "SEventGraphTooltip.h"
@@ -450,7 +450,7 @@ protected:
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
 	 */
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		SCompoundWidget::OnMouseEnter( MyGeometry, MouseEvent );
 		SetHoveredTableCellDelegate.ExecuteIfBound( ColumnID, EventPtr );
@@ -461,7 +461,7 @@ protected:
 	 *
 	 * @param MouseEvent Information about the input event
 	 */
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override
 	{
 		SCompoundWidget::OnMouseLeave( MouseEvent );
 		SetHoveredTableCellDelegate.ExecuteIfBound( NAME_None, nullptr );
@@ -484,7 +484,7 @@ protected:
 	 *
 	 * @return A reply that indicated whether the contents of the DragDropEvent can potentially be processed by this widget.
 	 */
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 		SCompoundWidget::OnDragEnter( MyGeometry, DragDropEvent );
 		SetHoveredTableCellDelegate.ExecuteIfBound( ColumnID, EventPtr );
@@ -495,7 +495,7 @@ protected:
 	 *
 	 * @param DragDropEvent   The drag and drop event.
 	 */
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent )  OVERRIDE
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent )  override
 	{
 		SCompoundWidget::OnDragLeave( DragDropEvent );
 		SetHoveredTableCellDelegate.ExecuteIfBound( NAME_None, nullptr );
@@ -591,7 +591,7 @@ public:
 	 * @return a widget to represent the contents of a cell in this row of a TableView. 
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnID ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnID ) override
 	{
 		return
 
@@ -640,7 +640,7 @@ public:
 	 * @param  InMouseEvent  MouseMove that triggered the drag
 	 * 
 	 */
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ) )
 		{

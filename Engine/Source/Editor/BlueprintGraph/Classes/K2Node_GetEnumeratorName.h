@@ -12,22 +12,22 @@ class UK2Node_GetEnumeratorName : public UK2Node
 	static FString EnumeratorPinName;
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Enum_16x"); }
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Enum_16x"); }
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual FText GetCompactNodeTitle() const OVERRIDE;
-	virtual bool ShouldDrawCompact() const OVERRIDE { return true; }
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
-	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const OVERRIDE;
-	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual void PostReconstructNode() OVERRIDE;
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual FText GetCompactNodeTitle() const override;
+	virtual bool ShouldDrawCompact() const override { return true; }
+	virtual bool IsNodePure() const override { return true; }
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void PostReconstructNode() override;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	// End UK2Node interface
 
 	void UpdatePinType();

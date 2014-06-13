@@ -26,7 +26,7 @@ class UParticleModuleVectorFieldGlobal : public UParticleModuleVectorFieldBase
 	float GlobalVectorFieldTightness;
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) OVERRIDE;
+	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
 	// Begin UParticleModule Interface
 };
 

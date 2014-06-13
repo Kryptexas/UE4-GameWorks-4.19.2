@@ -11,8 +11,8 @@ public:
 	void Construct(const FArguments& InArgs, UK2Node_Composite* InNode);
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
-	virtual TSharedPtr<SToolTip> GetComplexTooltip() OVERRIDE;
+	virtual void UpdateGraphNode() override;
+	virtual TSharedPtr<SToolTip> GetComplexTooltip() override;
 	// End of SGraphNode interface
 protected:
 	virtual UEdGraph* GetInnerGraph() const;

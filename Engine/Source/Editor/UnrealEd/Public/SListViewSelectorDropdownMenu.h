@@ -32,7 +32,7 @@ public:
 	}
 
 	// SWidget interface
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) OVERRIDE
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) override
 	{
 		TSharedPtr< SListView< ListType > > TargetListViewPtr = TargetListView.Pin();
 

@@ -15,15 +15,15 @@ class UInterpTrackFloatProp : public UInterpTrackFloatBase
 
 
 	// Begin InterpTrack interface.
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual bool CanAddKeyframe( UInterpTrackInst* TrackInst ) OVERRIDE;
-	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
-	virtual const FString	GetEdHelperClassName() const OVERRIDE;
-	virtual const FString	GetSlateHelperClassName() const OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
-	virtual void ReduceKeys( float IntervalStart, float IntervalEnd, float Tolerance ) OVERRIDE;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual bool CanAddKeyframe( UInterpTrackInst* TrackInst ) override;
+	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
+	virtual const FString	GetEdHelperClassName() const override;
+	virtual const FString	GetSlateHelperClassName() const override;
+	virtual class UTexture2D* GetTrackIcon() const override;
+	virtual void ReduceKeys( float IntervalStart, float IntervalEnd, float Tolerance ) override;
 	// End InterpTrack interface.
 };
 

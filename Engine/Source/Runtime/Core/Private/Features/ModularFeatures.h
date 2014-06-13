@@ -13,14 +13,14 @@ class FModularFeatures : public IModularFeatures
 public:
 
 	/** IModularFeatures interface */
-	virtual int32 GetModularFeatureImplementationCount( const FName Type ) OVERRIDE;
-	virtual IModularFeature* GetModularFeatureImplementation( const FName Type, const int32 Index ) OVERRIDE;
-	virtual void RegisterModularFeature( const FName Type, class IModularFeature* ModularFeature ) OVERRIDE;
-	virtual void UnregisterModularFeature( const FName Type, class IModularFeature* ModularFeature ) OVERRIDE;
+	virtual int32 GetModularFeatureImplementationCount( const FName Type ) override;
+	virtual IModularFeature* GetModularFeatureImplementation( const FName Type, const int32 Index ) override;
+	virtual void RegisterModularFeature( const FName Type, class IModularFeature* ModularFeature ) override;
+	virtual void UnregisterModularFeature( const FName Type, class IModularFeature* ModularFeature ) override;
 	DECLARE_DERIVED_EVENT(FModularFeatures, IModularFeatures::FOnModularFeatureRegistered, FOnModularFeatureRegistered);
-	virtual IModularFeatures::FOnModularFeatureRegistered& OnModularFeatureRegistered() OVERRIDE;
+	virtual IModularFeatures::FOnModularFeatureRegistered& OnModularFeatureRegistered() override;
 	DECLARE_DERIVED_EVENT(FModularFeatures, IModularFeatures::FOnModularFeatureUnregistered, FOnModularFeatureUnregistered);
-	virtual IModularFeatures::FOnModularFeatureUnregistered& OnModularFeatureUnregistered() OVERRIDE;
+	virtual IModularFeatures::FOnModularFeatureUnregistered& OnModularFeatureUnregistered() override;
 
 private:
 

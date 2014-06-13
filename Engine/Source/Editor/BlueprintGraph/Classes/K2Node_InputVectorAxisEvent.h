@@ -10,8 +10,8 @@ class UK2Node_InputVectorAxisEvent : public UK2Node_InputAxisKeyEvent
 	GENERATED_UCLASS_BODY()
 
 	// Begin UK2Node interface
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	virtual UClass* GetDynamicBindingClass() const OVERRIDE;
-	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const OVERRIDE;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual UClass* GetDynamicBindingClass() const override;
+	virtual void RegisterDynamicBinding(UDynamicBlueprintBinding* BindingObject) const override;
 	// End UK2Node interface
 };

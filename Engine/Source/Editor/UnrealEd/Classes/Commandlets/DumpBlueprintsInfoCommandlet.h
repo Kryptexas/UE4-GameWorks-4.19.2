@@ -11,6 +11,6 @@ class UDumpBlueprintsInfoCommandlet : public UCommandlet
 
 public:		
 	// Begin UCommandlet Interface
-	virtual int32 Main(FString const& Params) OVERRIDE;
+	virtual int32 Main(FString const& Params) override;
 	// End UCommandlet Interface
 };

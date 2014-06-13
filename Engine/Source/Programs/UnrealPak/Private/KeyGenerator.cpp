@@ -58,8 +58,8 @@ public:
 	}
 
 	// Start FRunnable interface
-	virtual bool Init() OVERRIDE { return true; }
-	virtual uint32 Run() OVERRIDE
+	virtual bool Init() override { return true; }
+	virtual uint32 Run() override
 	{
 		int256 Remainder;
 		int32 FactorCheckTimer = 0;
@@ -320,8 +320,8 @@ public:
 	}
 
 	// Start FRunnable interface
-	virtual bool Init() OVERRIDE { return true; }
-	virtual uint32 Run() OVERRIDE
+	virtual bool Init() override { return true; }
+	virtual uint32 Run() override
 	{
 		int256 Remainder;
 		int32 FactorCheckTimer = 0;

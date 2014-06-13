@@ -13,7 +13,7 @@ public:
 
 	// Begin ILauncher interface
 
-	virtual ILauncherWorkerPtr Launch( const ITargetDeviceProxyManagerRef& DeviceProxyManager, const ILauncherProfileRef& Profile ) OVERRIDE;
+	virtual ILauncherWorkerPtr Launch( const ITargetDeviceProxyManagerRef& DeviceProxyManager, const ILauncherProfileRef& Profile ) override;
 
 	// End ILauncher interface
 };

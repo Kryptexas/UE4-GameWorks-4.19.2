@@ -40,14 +40,14 @@ public:
 	 * @param Alignment		The alignment of a hypothetical allocation request
 	 * @return				Returns the usable size that the allocation request would return. In other words you can ask for this greater amount without using any more actual memory.
 	 */
-	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment ) override
 	{
 		return UsedMalloc->QuantizeSize(Size,Alignment); 
 	}
 	/** 
 	 * Malloc
 	 */
-	void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
 		STAT(TotalMallocCalls++);
@@ -57,7 +57,7 @@ public:
 	/** 
 	 * Realloc
 	 */
-	void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE
+	void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
 		STAT(TotalReallocCalls++);
@@ -67,7 +67,7 @@ public:
 	/** 
 	 * Free
 	 */
-	void Free( void* Ptr ) OVERRIDE
+	void Free( void* Ptr ) override
 	{
 		if( Ptr )
 		{
@@ -101,13 +101,13 @@ public:
 	/**
 	 * Validates the allocator's heap
 	 */
-	virtual bool ValidateHeap() OVERRIDE
+	virtual bool ValidateHeap() override
 	{
 		FScopeLock Lock( &SynchronizationObject );
 		return( UsedMalloc->ValidateHeap() );
 	}
 
-	bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
 		return UsedMalloc->Exec( InWorld, Cmd, Ar);
@@ -120,13 +120,13 @@ public:
 	* @param SizeOut - If possible, this value is set to the size of the passed in pointer
 	* @return true if succeeded
 	*/
-	bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE
+	bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override
 	{
 		FScopeLock ScopeLock( &SynchronizationObject );
 		return UsedMalloc->GetAllocationSize(Original,SizeOut);
 	}
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE
+	virtual const TCHAR * GetDescriptiveName() override
 	{ 
 		FScopeLock ScopeLock( &SynchronizationObject );
 		check(UsedMalloc);

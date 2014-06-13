@@ -26,11 +26,11 @@ class ENGINE_API ANavigationObjectBase : public AActor, public INavAgentInterfac
 
 
 	// Begin AActor Interface
-	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const OVERRIDE;
+	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
 
 #if	WITH_EDITOR
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual void PostEditUndo() override;
 #endif	// WITH_EDITOR
 	// End AActor Interface
 

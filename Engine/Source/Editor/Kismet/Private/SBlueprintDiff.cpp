@@ -124,7 +124,7 @@ public:
 	TSharedPtr<FUICommandInfo> Next;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 
 void FDiffListCommands::RegisterCommands()

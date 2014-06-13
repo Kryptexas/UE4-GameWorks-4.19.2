@@ -87,7 +87,7 @@ public:
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 	/** Delegate supplying a label for the page-flipper widget */
 	FString GetPageText() const;

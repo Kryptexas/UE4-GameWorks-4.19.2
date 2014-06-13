@@ -11,18 +11,18 @@ class UBehaviorTreeGraphNode_Root : public UBehaviorTreeGraphNode
 	UPROPERTY(EditAnywhere, Category=BehaviorTree)
 	class UBlackboardData* BlackboardAsset;
 
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual bool CanUserDeleteNode() const OVERRIDE{ return false; }
-	virtual bool HasErrors() const OVERRIDE { return false; }
-	virtual bool RefreshNodeClass() OVERRIDE { return false; }
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void PostPlacedNewNode() override;
+	virtual void AllocateDefaultPins() override;
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual bool CanUserDeleteNode() const override{ return false; }
+	virtual bool HasErrors() const override { return false; }
+	virtual bool RefreshNodeClass() override { return false; }
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	/** gets icon resource name for title bar */
-	virtual FName GetNameIcon() const OVERRIDE;
+	virtual FName GetNameIcon() const override;
 
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual FString	GetDescription() const OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual FString	GetDescription() const override;
 
 	/** notify behavior tree about blackboard change */
 	void UpdateBlackboard();

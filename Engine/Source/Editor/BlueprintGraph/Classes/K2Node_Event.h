@@ -36,33 +36,33 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	uint32 FunctionFlags;
 
 	// Begin UEdGraphNode interface
-	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetTooltip() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetKeywords() const OVERRIDE;	
-	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FName GetCornerIcon() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual bool IsDeprecated() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetDeprecationMessage() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Event_16x"); }
+	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
+	BLUEPRINTGRAPH_API virtual FString GetTooltip() const override;
+	BLUEPRINTGRAPH_API virtual FString GetKeywords() const override;	
+	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	BLUEPRINTGRAPH_API virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const override;
+	BLUEPRINTGRAPH_API virtual FName GetCornerIcon() const override;
+	BLUEPRINTGRAPH_API virtual bool IsDeprecated() const override;
+	BLUEPRINTGRAPH_API virtual FString GetDeprecationMessage() const override;
+	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const override;
+	BLUEPRINTGRAPH_API virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Event_16x"); }
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool DrawNodeAsEntry() const OVERRIDE { return true; }
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	BLUEPRINTGRAPH_API virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void PostReconstructNode() OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetDocumentationExcerptName() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual bool DrawNodeAsEntry() const override { return true; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	BLUEPRINTGRAPH_API virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
+	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	BLUEPRINTGRAPH_API virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
+	BLUEPRINTGRAPH_API virtual void PostReconstructNode() override;
+	BLUEPRINTGRAPH_API virtual FString GetDocumentationLink() const override;
+	BLUEPRINTGRAPH_API virtual FString GetDocumentationExcerptName() const override;
+	BLUEPRINTGRAPH_API virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
+	BLUEPRINTGRAPH_API virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	BLUEPRINTGRAPH_API virtual FText GetToolTipHeading() const;
-	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	// End UK2Node interface
 
 	/** Checks whether the parameters for this event node are compatible with the specified function entry node */

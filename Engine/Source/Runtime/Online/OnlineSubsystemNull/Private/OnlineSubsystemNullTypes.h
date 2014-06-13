@@ -49,35 +49,35 @@ public:
  		return false;
  	}
 
-	virtual const uint8* GetBytes() const OVERRIDE
+	virtual const uint8* GetBytes() const override
 	{
 		return NULL;
 	}
 
-	virtual int32 GetSize() const OVERRIDE
+	virtual int32 GetSize() const override
 	{
 		return sizeof(uint64) + sizeof(TSharedPtr<class FInternetAddr>);
 	}
 
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		// LAN case
 		return HostAddr.IsValid() && HostAddr->IsValid();
 	}
 
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		return SessionId.ToString();
 	}
 
-	virtual FString ToDebugString() const OVERRIDE
+	virtual FString ToDebugString() const override
 	{
 		return FString::Printf(TEXT("HostIP: %s SessionId: %s"), 
 			HostAddr.IsValid() ? *HostAddr->ToString(true) : TEXT("INVALID"), 
 			*SessionId.ToDebugString());
 	}
 
-	virtual const FUniqueNetId& GetSessionId() const OVERRIDE
+	virtual const FUniqueNetId& GetSessionId() const override
 	{
 		return SessionId;
 	}

@@ -20,22 +20,22 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 
 
 	// Begin UEdGraphNode interface
-	virtual void ReconstructNode() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetDocumentationLink() const OVERRIDE;
-	virtual FString GetDocumentationExcerptName() const OVERRIDE;
+	virtual void ReconstructNode() override;
+	virtual void DestroyNode() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
+	virtual FString GetDocumentationLink() const override;
+	virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface
 
 	// Begin K2Node interface
-	virtual AActor* GetReferencedLevelActor() const OVERRIDE;
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
-	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual AActor* GetReferencedLevelActor() const override;
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
 	// End K2Node interface
 
-	virtual bool IsUsedByAuthorityOnlyDelegate() const OVERRIDE;
+	virtual bool IsUsedByAuthorityOnlyDelegate() const override;
 
 	/**
 	 * Initialized the members of the node, given the specified owner and delegate property.  This will fill out all the required members for the event, such as CustomFunctionName

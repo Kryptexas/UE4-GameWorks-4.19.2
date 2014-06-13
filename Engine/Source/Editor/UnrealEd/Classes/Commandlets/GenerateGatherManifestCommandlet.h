@@ -14,7 +14,7 @@ class UGenerateGatherManifestCommandlet : public UGatherTextCommandletBase
 #if CPP || UE_BUILD_DOCS
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main( const FString& Params ) OVERRIDE;
+	virtual int32 Main( const FString& Params ) override;
 
 	bool WriteManifest( const TSharedPtr<FInternationalizationManifest>& InManifest, const FString& OutputFilePath );
 	// End UCommandlet Interface

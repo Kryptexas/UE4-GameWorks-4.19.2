@@ -27,13 +27,13 @@ public:
 	 * abandoned before completion. NOTE: This requires the object to delete
 	 * itself using whatever heap it was allocated in.
 	 */
-	virtual void Abandon() OVERRIDE;
+	virtual void Abandon() override;
 
 	/**
 	 * This method is also used to tell the object to cleanup but not before
 	 * the object has finished it's work.
 	 */ 
-	virtual void DoThreadedWork() OVERRIDE;
+	virtual void DoThreadedWork() override;
 
 	/** Attempt to cancel the operation */
 	void Cancel();

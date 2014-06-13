@@ -87,11 +87,11 @@ public:
 	void SetLoadedFrom(FPluginInfo::ELoadedFrom::Type NewLoadedFrom);
 
 protected:
-	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() OVERRIDE	{ return PluginInfo; }
-	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const OVERRIDE { return PluginInfo; }
+	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() override	{ return PluginInfo; }
+	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const override { return PluginInfo; }
 
-	virtual bool PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject) OVERRIDE;
-	virtual void PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const OVERRIDE;
+	virtual bool PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject) override;
+	virtual void PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const override;
 
 private:
 
@@ -122,13 +122,13 @@ public:
 public:
 
 	/** IPluginManager interface */
-	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
-	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) OVERRIDE;
-	virtual bool IsPluginModule( const FName ModuleName ) const OVERRIDE;
-	virtual bool AreEnabledPluginModulesUpToDate() OVERRIDE;
-	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const OVERRIDE;
-	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) OVERRIDE;
-	virtual bool IsRestartRequired() const OVERRIDE;
+	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
+	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
+	virtual bool IsPluginModule( const FName ModuleName ) const override;
+	virtual bool AreEnabledPluginModulesUpToDate() override;
+	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
+	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) override;
+	virtual bool IsRestartRequired() const override;
 
 private:
 

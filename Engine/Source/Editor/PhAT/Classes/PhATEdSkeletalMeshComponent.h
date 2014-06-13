@@ -47,7 +47,7 @@ class UPhATEdSkeletalMeshComponent : public USkeletalMeshComponent
 
 
 	/** UPrimitiveComponent interface */
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	
 	/** Renders non-hitproxy elements for the viewport, this function is called in the Game Thread */
 	virtual void Render(const FSceneView* View, class FPrimitiveDrawInterface* PDI);

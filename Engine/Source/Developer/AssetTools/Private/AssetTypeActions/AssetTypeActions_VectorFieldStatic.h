@@ -6,11 +6,11 @@ class FAssetTypeActions_VectorFieldStatic : public FAssetTypeActions_VectorField
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldStatic", "Vector Field"); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UVectorFieldStatic::StaticClass(); }
-	virtual bool HasActions ( const TArray<UObject*>& InObjects ) const OVERRIDE { return true; }
-	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) OVERRIDE;
-	virtual bool CanFilter() OVERRIDE { return true; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_VectorFieldStatic", "Vector Field"); }
+	virtual UClass* GetSupportedClass() const override { return UVectorFieldStatic::StaticClass(); }
+	virtual bool HasActions ( const TArray<UObject*>& InObjects ) const override { return true; }
+	virtual void GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder ) override;
+	virtual bool CanFilter() override { return true; }
 
 private:
 	/** Handler for when Edit is selected */

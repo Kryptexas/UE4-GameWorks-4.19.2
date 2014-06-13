@@ -187,8 +187,8 @@ private:
 	UFUNCTION()
 	void OnRep_Visibility(bool OldValue);
 
-	virtual void PreNetReceive() OVERRIDE;
-	virtual void PostNetReceive() OVERRIDE;
+	virtual void PreNetReceive() override;
+	virtual void PostNetReceive() override;
 
 public:
 
@@ -441,15 +441,15 @@ public:
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) OVERRIDE FINAL;
-	virtual void DestroyComponent() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
+	virtual void DestroyComponent() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End ActorComponent interface
 
 	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostInterpChange(UProperty* PropertyThatChanged) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 
 protected:
@@ -626,7 +626,7 @@ public:
 #if WITH_EDITOR
 	/** Called when this component is moved in the editor */
 	virtual void PostEditComponentMove(bool bFinished) {}
-	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+	virtual bool CanEditChange( const UProperty* Property ) const override;
 
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const;
 #endif // WITH_EDITOR

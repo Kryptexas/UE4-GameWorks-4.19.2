@@ -257,7 +257,7 @@ public:
 	/**
 	 * Main thread function.
 	 */
-	uint32 Run() OVERRIDE
+	uint32 Run() override
 	{
 		if (OnSyncProgress.IsBound())
 		{

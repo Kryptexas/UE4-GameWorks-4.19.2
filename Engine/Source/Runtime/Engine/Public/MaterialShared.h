@@ -1522,7 +1522,7 @@ public:
 
 	// FMaterial interface.
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
-	ENGINE_API virtual int32 GetMaterialDomain() const OVERRIDE;
+	ENGINE_API virtual int32 GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const;
@@ -1577,9 +1577,9 @@ public:
 	 * Should shaders compiled for this material be saved to disk?
 	 */
 	ENGINE_API virtual bool IsPersistent() const;
-	ENGINE_API virtual FGuid GetMaterialId() const OVERRIDE;
+	ENGINE_API virtual FGuid GetMaterialId() const override;
 
-	ENGINE_API virtual void NotifyCompilationFinished() OVERRIDE;
+	ENGINE_API virtual void NotifyCompilationFinished() override;
 
 	/**
 	 * Gets instruction counts that best represent the likely usage of this material based on shading model and other factors.
@@ -1595,9 +1595,9 @@ public:
 
 	ENGINE_API virtual void LegacySerialize(FArchive& Ar);
 
-	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const OVERRIDE;
+	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
 
-	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const OVERRIDE;
+	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
 protected:
 	UMaterial* Material;
 	UMaterialInstance* MaterialInstance;

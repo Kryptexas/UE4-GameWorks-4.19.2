@@ -86,28 +86,28 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject interface.
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual const TArray<FExpressionInput*> GetInputs() OVERRIDE;
-	virtual FExpressionInput* GetInput(int32 InputIndex) OVERRIDE;
-	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
-	virtual bool IsInputConnectionRequired(int32 InputIndex) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual const TArray<FExpressionInput*> GetInputs() override;
+	virtual FExpressionInput* GetInput(int32 InputIndex) override;
+	virtual FString GetInputName(int32 InputIndex) const override;
+	virtual bool IsInputConnectionRequired(int32 InputIndex) const override;
 #if WITH_EDITOR
-	virtual FString GetDescription() const OVERRIDE;
-	virtual void GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip) OVERRIDE;
-	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) OVERRIDE;
+	virtual FString GetDescription() const override;
+	virtual void GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip) override;
+	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) override;
 #endif
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
-	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
 #if WITH_EDITOR
-	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE;
+	virtual uint32 GetInputType(int32 InputIndex) override;
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface
 

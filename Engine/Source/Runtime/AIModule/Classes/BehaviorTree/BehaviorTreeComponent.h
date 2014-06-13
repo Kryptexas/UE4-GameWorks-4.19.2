@@ -33,18 +33,18 @@ class AIMODULE_API UBehaviorTreeComponent : public UBrainComponent
 	GENERATED_UCLASS_BODY()
 
 	// Begin UBrainComponent overrides
-	virtual void RestartLogic() OVERRIDE;
+	virtual void RestartLogic() override;
 protected:
-	virtual void StopLogic(const FString& Reason) OVERRIDE;
-	virtual void PauseLogic(const FString& Reason) OVERRIDE;
-	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason) OVERRIDE;
+	virtual void StopLogic(const FString& Reason) override;
+	virtual void PauseLogic(const FString& Reason) override;
+	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason) override;
 
 	/** indicates instance has been initialized to work with specific BT asset */
 	bool TreeHasBeenStarted() const;
 
 public:
-	virtual bool IsRunning() const OVERRIDE;
-	virtual bool IsPaused() const OVERRIDE;
+	virtual bool IsRunning() const override;
+	virtual bool IsPaused() const override;
 	// End UBrainComponent overrides
 
 	/** starts execution from root */
@@ -88,7 +88,7 @@ public:
 	void UnregisterAuxNodesUpTo(const struct FBTNodeIndex& Index);
 
 	/** BEGIN UActorComponent overrides */
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	/** END UActorComponent overrides */
 
 	/** process execution flow */
@@ -130,12 +130,12 @@ public:
 	/** @return status of speficied task */
 	EBTTaskStatus::Type GetTaskStatus(const class UBTTaskNode* TaskNode) const;
 
-	virtual FString GetDebugInfoString() const OVERRIDE;
+	virtual FString GetDebugInfoString() const override;
 	virtual FString DescribeActiveTasks() const;
 	virtual FString DescribeActiveTrees() const;
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const OVERRIDE;
+	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const override;
 #endif
 
 protected:

@@ -43,7 +43,7 @@ class FShaderFormatGLSL : public IShaderFormat
 	}
 
 public:
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		CheckFormat(Format);
 		uint32 GLSLVersion = 0;

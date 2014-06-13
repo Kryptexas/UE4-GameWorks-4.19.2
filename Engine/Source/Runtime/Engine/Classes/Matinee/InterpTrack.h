@@ -164,7 +164,7 @@ public:
 
 public:
 	// Begin FInterpEdInputInterface Interface
-	virtual UObject* GetUObject() OVERRIDE {return this;}
+	virtual UObject* GetUObject() override {return this;}
 	// End FInterpEdInputInterface Interface
 
 	/** @return  The total number of keyframes currently in this track. */

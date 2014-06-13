@@ -15,10 +15,10 @@ class FAssetRegistryModule : public IModuleInterface
 public:
 
 	/** Called right after the module DLL has been loaded and the module object has been created */
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void ShutdownModule() override;
 
 	/** Gets the asset registry singleton */
 	virtual IAssetRegistry& Get() const;

@@ -18,15 +18,15 @@ public:
 	virtual ~FCurveStructCustomization();
 
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 	/** FCurveOwnerInterface interface */
-	virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-	virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
-	virtual UObject* GetOwner() OVERRIDE;
-	virtual void ModifyOwner() OVERRIDE;
-	virtual void MakeTransactional() OVERRIDE;
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual UObject* GetOwner() override;
+	virtual void ModifyOwner() override;
+	virtual void MakeTransactional() override;
 
 private:
 	/**

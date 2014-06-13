@@ -553,8 +553,8 @@ public:
 		: FLandscapeToolBase<FLandscapeToolStrokeRetopologize>(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Retopologize"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }
+	virtual const TCHAR* GetToolName() override { return TEXT("Retopologize"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Retopologize", "Retopologize"); }
 
 	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target)
 	{

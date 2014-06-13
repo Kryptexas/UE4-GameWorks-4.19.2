@@ -73,7 +73,7 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 
 #if WITH_EDITOR
 
-	virtual UClass* GetBlueprintClass() const OVERRIDE;
+	virtual UClass* GetBlueprintClass() const override;
 
 	// Inspects the hierarchy and looks for an override for the requested node GUID
 	// @param NodeGuid - Guid of the node to search for
@@ -86,7 +86,7 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 	bool GetAssetOverrides(TArray<FAnimParentNodeAssetOverride*>& OutOverrides);
 
 	// UBlueprint interface
-	virtual bool SupportedByDefaultBlueprintFactory() const OVERRIDE
+	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;
 	}
@@ -117,7 +117,7 @@ class ENGINE_API UAnimBlueprint : public UBlueprint
 		OnOverrideChanged.Broadcast(Override.ParentNodeGuid, Override.NewAsset);
 	}
 
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 protected:
 	// Broadcast when an override is changed, allowing derived blueprints to be updated

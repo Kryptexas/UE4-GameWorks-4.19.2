@@ -18,12 +18,12 @@ public:
 
 	FDerivedAudioDataCompressor(USoundWave* InSoundNode, FName InFormat);
 
-	virtual const TCHAR* GetPluginName() const OVERRIDE
+	virtual const TCHAR* GetPluginName() const override
 	{
 		return TEXT("Audio");
 	}
 
-	virtual const TCHAR* GetVersionString() const OVERRIDE
+	virtual const TCHAR* GetVersionString() const override
 	{
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
@@ -32,7 +32,7 @@ public:
 		return TEXT("0002_0000");
 	}
 
-	virtual FString GetPluginSpecificCacheKeySuffix() const OVERRIDE
+	virtual FString GetPluginSpecificCacheKeySuffix() const override
 	{
 		int32 FormatVersion = 0xffff; // if the compressor is NULL, this will be used as the version...and in that case we expect everything to fail anyway
 		if (Compressor)
@@ -44,10 +44,10 @@ public:
 		return FString::Printf( TEXT("%s_%04X_%s"), *FormatString, FormatVersion, *SoundNode->CompressedDataGuid.ToString());
 	}
 	
-	virtual bool IsBuildThreadsafe() const OVERRIDE
+	virtual bool IsBuildThreadsafe() const override
 	{
 		return false;
 	}
 
-	virtual bool Build(TArray<uint8>& OutData) OVERRIDE;
+	virtual bool Build(TArray<uint8>& OutData) override;
 };

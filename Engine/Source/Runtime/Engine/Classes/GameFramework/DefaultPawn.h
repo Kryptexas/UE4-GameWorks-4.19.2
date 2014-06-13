@@ -15,8 +15,8 @@ class ENGINE_API ADefaultPawn : public APawn
 	GENERATED_UCLASS_BODY()
 
 	// Begin Pawn overrides
-	virtual class UPawnMovementComponent* GetMovementComponent() const OVERRIDE { return MovementComponent; }
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
+	virtual class UPawnMovementComponent* GetMovementComponent() const override { return MovementComponent; }
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End Pawn overrides
 
 	/** Input callback to move forward. */

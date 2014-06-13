@@ -26,10 +26,10 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 protected:
 	// Begin SGraphPin interface
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 
 	/** @return The color that we should use to draw this pin */
-	virtual FSlateColor GetPinColor() const OVERRIDE;
+	virtual FSlateColor GetPinColor() const override;
 
 	// End SGraphPin interface
 

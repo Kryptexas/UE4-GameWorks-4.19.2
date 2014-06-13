@@ -19,12 +19,12 @@ public:
 
 	// Begin IScreenShotToolsModule interface
 
-	virtual IScreenShotManagerPtr GetScreenShotManager( ) OVERRIDE
+	virtual IScreenShotManagerPtr GetScreenShotManager( ) override
 	{
 		return ScreenShotManager;
 	}
 
-	virtual void UpdateScreenShotData( ) OVERRIDE
+	virtual void UpdateScreenShotData( ) override
 	{
 		if (ScreenShotManager.IsValid())
 		{
@@ -40,7 +40,7 @@ public:
 	/*
 	 * Shutdown the screen shot manager tools module
 	 */
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		ScreenShotManager.Reset();
 	}
@@ -48,7 +48,7 @@ public:
 	/*
 	* Startup the screen shot manager tools module
 	*/
-	void StartupModule() OVERRIDE
+	void StartupModule() override
 	{
 		IMessageBusPtr MessageBus = IMessagingModule::Get().GetDefaultBus();
 		check(MessageBus.IsValid());

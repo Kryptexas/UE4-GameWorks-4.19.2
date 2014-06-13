@@ -33,7 +33,7 @@ public:
 	 *
 	 * @param InAddr the new address to use (must convert to network byte order)
 	 */
-	virtual void SetIp(uint32 InAddr) OVERRIDE
+	virtual void SetIp(uint32 InAddr) override
 	{
 		if(InAddr == 0)
 		{
@@ -61,7 +61,7 @@ public:
 	 * @param InAddr the string containing the new ip address to use
 	 * @param bIsValid will be set to true if InAddr was a valid IPv6 or IPv4 address, false if not.
 	 */
-	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) OVERRIDE
+	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
 		// check for valid IPv6 address
 		auto InAddrAnsi = StringCast<ANSICHAR>(InAddr);
@@ -159,7 +159,7 @@ public:
 	 *
 	 * @param OutAddr the out param receiving the ip address
 	 */
-	virtual void GetIp(uint32& OutAddr) const OVERRIDE
+	virtual void GetIp(uint32& OutAddr) const override
 	{
 		// grab the last 32-bits of the IPv6 address as this will correspond to the IPv4 address
 		// in a dual stack system.
@@ -186,7 +186,7 @@ public:
 	 *
 	 * @param InPort the new port to use (must convert to network byte order)
 	 */
-	virtual void SetPort(int32 InPort) OVERRIDE
+	virtual void SetPort(int32 InPort) override
 	{
 		Addr.sin6_port = htons(InPort);
 	}
@@ -196,26 +196,26 @@ public:
 	 *
 	 * @param OutPort the host byte order int that receives the port
 	 */
-	virtual void GetPort(int32& OutPort) const OVERRIDE
+	virtual void GetPort(int32& OutPort) const override
 	{
 		OutPort = ntohs(Addr.sin6_port);
 	}
 
 	/** Returns the port number from this address in host byte order */
-	virtual int32 GetPort() const OVERRIDE
+	virtual int32 GetPort() const override
 	{
 		return ntohs(Addr.sin6_port);
 	}
 
 	/** Sets the address to be any address */
-	virtual void SetAnyAddress() OVERRIDE
+	virtual void SetAnyAddress() override
 	{
 		SetIp(in6addr_any);
 		SetPort(0);
 	}
 
 	/** Sets the address to broadcast */
-	virtual void SetBroadcastAddress() OVERRIDE
+	virtual void SetBroadcastAddress() override
 	{
 		// broadcast means something different in IPv6, but this is a rough equivalent
 #ifndef in6addr_allnodesonlink
@@ -235,7 +235,7 @@ public:
 	 *
 	 * @param bAppendPort whether to append the port information or not
 	 */
-	virtual FString ToString(bool bAppendPort) const OVERRIDE
+	virtual FString ToString(bool bAppendPort) const override
 	{
 		char IPStr[INET6_ADDRSTRLEN];
 
@@ -259,7 +259,7 @@ public:
 	 *
 	 * @param Other the address to compare against
 	 */
-	virtual bool operator==(const FInternetAddr& Other) const OVERRIDE
+	virtual bool operator==(const FInternetAddr& Other) const override
 	{
 		FInternetAddrBSDIPv6& OtherBSD = (FInternetAddrBSDIPv6&)Other;
 		return memcmp(&Addr.sin6_addr,&OtherBSD.Addr.sin6_addr,sizeof(in6_addr)) == 0 &&
@@ -272,7 +272,7 @@ public:
 	 *
 	 * @return true if a valid IP, false otherwise
 	 */
-	virtual bool IsValid() const OVERRIDE
+	virtual bool IsValid() const override
 	{
 		FInternetAddrBSDIPv6 Temp;
 

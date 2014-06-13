@@ -65,8 +65,8 @@ class ENGINE_API UNavArea : public UObject
 	};
 #endif
 
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void FinishDestroy() override;
 
 	FORCEINLINE uint16 GetAreaFlags() const { return AreaFlags; }
 	FORCEINLINE bool HasFlags(uint16 InFlags) const { return (InFlags & AreaFlags) != 0; }

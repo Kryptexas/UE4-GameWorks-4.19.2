@@ -68,20 +68,20 @@ class UParticleModuleSpawnPerUnit : public UParticleModuleSpawnBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
+	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) override;
+	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
 	// End UParticleModule Interface
 
 	// Begin UParticleModuleSpawnBase Interface
 	virtual bool GetSpawnAmount(FParticleEmitterInstance* Owner, int32 Offset, float OldLeftover, 
-		float DeltaTime, int32& Number, float& Rate) OVERRIDE;
+		float DeltaTime, int32& Number, float& Rate) override;
 	// End UParticleModuleSpawnBase Interface
 };
 

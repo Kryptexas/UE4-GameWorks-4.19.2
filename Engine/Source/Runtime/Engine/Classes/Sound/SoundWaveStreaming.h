@@ -21,17 +21,17 @@ private:
 public:
 
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// End UObject interface. 
 
 	// Begin USoundWave interface.
-	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) OVERRIDE;
-	virtual FByteBulkData* GetCompressedData(FName Format) OVERRIDE;
-	virtual void InitAudioResource( FByteBulkData& CompressedData ) OVERRIDE;
-	virtual bool InitAudioResource(FName Format) OVERRIDE;
-	virtual int32 GetResourceSizeForFormat(FName Format) OVERRIDE;
+	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) override;
+	virtual FByteBulkData* GetCompressedData(FName Format) override;
+	virtual void InitAudioResource( FByteBulkData& CompressedData ) override;
+	virtual bool InitAudioResource(FName Format) override;
+	virtual int32 GetResourceSizeForFormat(FName Format) override;
 	// End USoundWave interface.
 
 

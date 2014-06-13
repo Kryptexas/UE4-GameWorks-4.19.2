@@ -18,12 +18,12 @@ public:
 	virtual ~FObjectPropertyNode();
 
 	/** FPropertyNode Interface */
-	virtual FObjectPropertyNode* AsObjectNode() OVERRIDE { return this;}
-	virtual const FObjectPropertyNode* AsObjectNode() const OVERRIDE { return this; }
-	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData& OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const OVERRIDE;
-	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const OVERRIDE;
+	virtual FObjectPropertyNode* AsObjectNode() override { return this;}
+	virtual const FObjectPropertyNode* AsObjectNode() const override { return this; }
+	virtual bool GetReadAddressUncached(FPropertyNode& InNode, bool InRequiresSingleSelection, FReadAddressListData& OutAddresses, bool bComparePropertyContents = true, bool bObjectForceCompare = false, bool bArrayPropertiesCanDifferInSize = false) const override;
+	virtual bool GetReadAddressUncached(FPropertyNode& InNode, FReadAddressListData& OutAddresses) const override;
 
-	virtual uint8* GetValueBaseAddress( uint8* Base ) OVERRIDE;
+	virtual uint8* GetValueBaseAddress( uint8* Base ) override;
 
 	/**
 	 * Returns the UObject at index "n" of the Objects Array
@@ -79,9 +79,9 @@ public:
 
 protected:
 	/** FPropertyNode interface */
-	virtual void InitBeforeNodeFlags() OVERRIDE;
-	virtual void InitChildNodes() OVERRIDE;
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const OVERRIDE;
+	virtual void InitBeforeNodeFlags() override;
+	virtual void InitChildNodes() override;
+	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const override;
 
 	/**
 	 * Looks at the Objects array and creates the best base class.  Called by

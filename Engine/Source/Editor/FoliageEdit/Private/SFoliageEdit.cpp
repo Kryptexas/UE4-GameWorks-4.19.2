@@ -47,7 +47,7 @@ public:
 		return FReply::Handled();
 	}
 
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr<SFoliageEdit> PinnedPtr = FoliageEditPtr.Pin();
 		if (PinnedPtr.IsValid())
@@ -57,7 +57,7 @@ public:
 		SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
 	}
 
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override
 	{
 		TSharedPtr<SFoliageEdit> PinnedPtr = FoliageEditPtr.Pin();
 		if (PinnedPtr.IsValid())

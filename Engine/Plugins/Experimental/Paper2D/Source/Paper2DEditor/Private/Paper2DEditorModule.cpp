@@ -40,11 +40,11 @@ class FPaper2DEditor : public IPaper2DEditorModule
 {
 public:
 	// IPaper2DEditorModule interface
-	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorMenuExtensibilityManager() OVERRIDE { return SpriteEditor_MenuExtensibilityManager; }
-	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorToolBarExtensibilityManager() OVERRIDE { return SpriteEditor_ToolBarExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorMenuExtensibilityManager() override { return SpriteEditor_MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorToolBarExtensibilityManager() override { return SpriteEditor_ToolBarExtensibilityManager; }
 
-	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorMenuExtensibilityManager() OVERRIDE { return FlipbookEditor_MenuExtensibilityManager; }
-	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorToolBarExtensibilityManager() OVERRIDE { return FlipbookEditor_ToolBarExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorMenuExtensibilityManager() override { return FlipbookEditor_MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorToolBarExtensibilityManager() override { return FlipbookEditor_ToolBarExtensibilityManager; }
 	// End of IPaper2DEditorModule
 
 private:
@@ -65,7 +65,7 @@ private:
 	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		SpriteEditor_MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
 		SpriteEditor_ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
@@ -123,7 +123,7 @@ public:
 		RegisterSettings();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		SpriteEditor_MenuExtensibilityManager.Reset();
 		SpriteEditor_ToolBarExtensibilityManager.Reset();

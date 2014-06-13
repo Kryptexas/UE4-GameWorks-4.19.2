@@ -130,30 +130,30 @@ public:
 	~FDetailCategoryImpl();
 
 	/** IDetailCategoryBuilder interface */
-	virtual IDetailCategoryBuilder& InitiallyCollapsed( bool bShouldBeInitiallyCollapsed ) OVERRIDE;
-	virtual IDetailCategoryBuilder& OnExpansionChanged( FOnBooleanValueChanged InOnExpansionChanged ) OVERRIDE;
-	virtual IDetailCategoryBuilder& RestoreExpansionState( bool bRestore ) OVERRIDE;
-	virtual IDetailCategoryBuilder& HeaderContent( TSharedRef<SWidget> InHeaderContent ) OVERRIDE;
-	virtual IDetailPropertyRow& AddProperty( FName PropertyPath, UClass* ClassOuter = NULL, FName InstanceName = NAME_None,  EPropertyLocation::Type Location = EPropertyLocation::Default ) OVERRIDE;
-	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle,  EPropertyLocation::Type Location = EPropertyLocation::Default ) OVERRIDE;
-	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) OVERRIDE;
-	virtual IDetailLayoutBuilder& GetParentLayout() const OVERRIDE { return *DetailLayoutBuilder.Pin(); }
-	virtual FDetailWidgetRow& AddCustomRow( const FString& FilterString, bool bForAdvanced = false ) OVERRIDE;
-	virtual void AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder> InCustomBuilder, bool bForAdvanced = false ) OVERRIDE;
-	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false ) OVERRIDE;
-	virtual void GetDefaultProperties( TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true ) OVERRIDE;
-	virtual const FString& GetDisplayName() const OVERRIDE { return DisplayName; }
+	virtual IDetailCategoryBuilder& InitiallyCollapsed( bool bShouldBeInitiallyCollapsed ) override;
+	virtual IDetailCategoryBuilder& OnExpansionChanged( FOnBooleanValueChanged InOnExpansionChanged ) override;
+	virtual IDetailCategoryBuilder& RestoreExpansionState( bool bRestore ) override;
+	virtual IDetailCategoryBuilder& HeaderContent( TSharedRef<SWidget> InHeaderContent ) override;
+	virtual IDetailPropertyRow& AddProperty( FName PropertyPath, UClass* ClassOuter = NULL, FName InstanceName = NAME_None,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual IDetailPropertyRow& AddProperty( TSharedPtr<IPropertyHandle> PropertyHandle,  EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) override;
+	virtual IDetailLayoutBuilder& GetParentLayout() const override { return *DetailLayoutBuilder.Pin(); }
+	virtual FDetailWidgetRow& AddCustomRow( const FString& FilterString, bool bForAdvanced = false ) override;
+	virtual void AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder> InCustomBuilder, bool bForAdvanced = false ) override;
+	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false ) override;
+	virtual void GetDefaultProperties( TArray<TSharedRef<IPropertyHandle> >& OutAllProperties, bool bSimpleProperties = true, bool bAdvancedProperties = true ) override;
+	virtual const FString& GetDisplayName() const override { return DisplayName; }
 
 	/** IDetailTreeNode interface */
-	virtual IDetailsViewPrivate& GetDetailsView() const OVERRIDE{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
-	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) OVERRIDE;
-	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren ) OVERRIDE;
-	virtual bool ShouldBeExpanded() const OVERRIDE;
-	virtual ENodeVisibility::Type GetVisibility() const OVERRIDE;
-	virtual void FilterNode( const FDetailFilter& DetailFilter ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool ShouldShowOnlyChildren() const OVERRIDE { return false; }
-	virtual FName GetNodeName() const OVERRIDE { return GetCategoryName(); }
+	virtual IDetailsViewPrivate& GetDetailsView() const override{ return DetailLayoutBuilder.Pin()->GetDetailsView(); }
+	virtual TSharedRef< ITableRow > GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities ) override;
+	virtual void GetChildren( TArray< TSharedRef<IDetailTreeNode> >& OutChildren ) override;
+	virtual bool ShouldBeExpanded() const override;
+	virtual ENodeVisibility::Type GetVisibility() const override;
+	virtual void FilterNode( const FDetailFilter& DetailFilter ) override;
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool ShouldShowOnlyChildren() const override { return false; }
+	virtual FName GetNodeName() const override { return GetCategoryName(); }
 
 	/**
 	 * @return The name of the category
@@ -252,7 +252,7 @@ public:
 	void OnAdvancedDropdownClicked();
 
 private:
-	virtual void OnItemExpansionChanged( bool bIsExpanded ) OVERRIDE;
+	virtual void OnItemExpansionChanged( bool bIsExpanded ) override;
 
 	/**
 	 * Adds a new filter widget to this category (for checking if anything is visible in the category when filtered)

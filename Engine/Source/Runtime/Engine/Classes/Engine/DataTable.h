@@ -41,8 +41,8 @@ class UDataTable : public UObject
 	TMap<FName, uint8*>		RowMap;
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End  UObject interface
 

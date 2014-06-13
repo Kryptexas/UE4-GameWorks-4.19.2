@@ -70,7 +70,7 @@ public:
 		return Template->Name;
 	}
 
-	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) OVERRIDE
+	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
 			.Padding(2.0f)
@@ -96,7 +96,7 @@ public:
 		return GroupName;
 	}
 	
-	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) OVERRIDE
+	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
 			.Padding(2.0f)
@@ -107,7 +107,7 @@ public:
 			];
 	}
 
-	virtual void GetChildren(TArray< TSharedPtr<FWidgetViewModel> >& OutChildren) OVERRIDE
+	virtual void GetChildren(TArray< TSharedPtr<FWidgetViewModel> >& OutChildren) override
 	{
 		for ( TSharedPtr<FWidgetViewModel>& Child : Children )
 		{

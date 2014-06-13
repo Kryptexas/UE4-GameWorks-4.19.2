@@ -24,7 +24,7 @@ class FMetalShaderFormat : public IShaderFormat
 		uint16 OfflineCompiled	: 1;
 	};
 public:
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		static_assert(sizeof(FVersion) == sizeof(uint16), "Out of bits!");
 		union

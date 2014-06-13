@@ -38,7 +38,7 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 		int64 Size, 
 		void* Dest, 
 		FThreadSafeCounter* Counter,
-		EAsyncIOPriority Priority ) OVERRIDE;
+		EAsyncIOPriority Priority ) override;
 
 	/**
 	 * Requests compressed data to be loaded async. Returns immediately.
@@ -62,7 +62,7 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 		void* Dest, 
 		ECompressionFlags CompressionFlags, 
 		FThreadSafeCounter* Counter,
-		EAsyncIOPriority Priority ) OVERRIDE;
+		EAsyncIOPriority Priority ) override;
 
 	/**
 	 * Removes N outstanding requests from the queue and returns how many were canceled. We can't cancel
@@ -71,17 +71,17 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 	 * @param	RequestIndices	Indices of requests to cancel.
 	 * @return	The number of requests that were canceled
 	 */
-	virtual int32 CancelRequests( uint64* RequestIndices, int32 NumIndices ) OVERRIDE;
+	virtual int32 CancelRequests( uint64* RequestIndices, int32 NumIndices ) override;
 	
 	/**
 	 * Removes all outstanding requests from the queue
 	 */
-	virtual void CancelAllOutstandingRequests() OVERRIDE;
+	virtual void CancelAllOutstandingRequests() override;
 	
 	/**
 	 * Blocks till all requests are finished and also flushes potentially open handles.
 	 */
-	virtual void BlockTillAllRequestsFinishedAndFlushHandles() OVERRIDE;
+	virtual void BlockTillAllRequestsFinishedAndFlushHandles() override;
 
 	// FRunnable interface.
 
@@ -93,12 +93,12 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 	 *
 	 * @return True if initialization was successful, false otherwise
 	 */
-	virtual bool Init() OVERRIDE;
+	virtual bool Init() override;
 
 	/**
 	 * Called in the context of the aggregating thread to perform cleanup.
 	 */
-	virtual void Exit() OVERRIDE;
+	virtual void Exit() override;
 
 	/**
 	 * This is where all the actual loading is done. This is only called
@@ -106,38 +106,38 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 	 *
 	 * @return always 0
 	 */
-	virtual uint32 Run() OVERRIDE;
+	virtual uint32 Run() override;
 	
 	/**
 	 * This is called if a thread is requested to terminate early.
 	 */
-	virtual void Stop() OVERRIDE;
+	virtual void Stop() override;
 	
 	/**
 	 * This is called if a thread is requested to suspend its' IO activity
 	 */
-	virtual void Suspend() OVERRIDE;
+	virtual void Suspend() override;
 
 	/**
 	 * This is called if a thread is requested to resume its' IO activity
 	 */
-	virtual void Resume() OVERRIDE;
+	virtual void Resume() override;
 
 	/**
 	 * Returns a pointer to the single threaded interface when mulithreading is disabled.
 	 */
-	virtual FSingleThreadRunnable* GetSingleThreadInterface() OVERRIDE
+	virtual FSingleThreadRunnable* GetSingleThreadInterface() override
 	{
 		return this;
 	}
 
 	// FSingleThreadRunnable interface
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
 	// FIOSystem Interface
 
-	virtual void TickSingleThreaded() OVERRIDE;
+	virtual void TickSingleThreaded() override;
 
 
 	/**
@@ -147,21 +147,21 @@ struct CORE_API FAsyncIOSystemBase : public FIOSystem, FRunnable, FSingleThreadR
 	 *
 	 * @param	MinPriority		Min priority of requests to fulfill
 	 */
-	virtual void SetMinPriority( EAsyncIOPriority MinPriority ) OVERRIDE;
+	virtual void SetMinPriority( EAsyncIOPriority MinPriority ) override;
 
 	/**
 	 * Give the IO system a hint that it is done with the file for now
 	 *
 	 * @param Filename File that was being async loaded from, but no longer is
 	 */
-	virtual void HintDoneWithFile(const FString& Filename) OVERRIDE;
+	virtual void HintDoneWithFile(const FString& Filename) override;
 
 	/**
 	 * The minimum read size...used to be DVD_ECC_BLOCK_SIZE
 	 *
 	 * @return Minimum read size
 	 */
-	virtual int64 MinimumReadSize() OVERRIDE;
+	virtual int64 MinimumReadSize() override;
 
 protected:
 

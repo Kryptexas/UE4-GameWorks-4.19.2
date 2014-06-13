@@ -47,11 +47,11 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
-	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
 	// End AActor Interface
 
 	// Begin AOnlineBeaconHostObject Interface 
-	virtual AOnlineBeaconClient* SpawnBeaconActor(class UNetConnection* ClientConnection) OVERRIDE;
+	virtual AOnlineBeaconClient* SpawnBeaconActor(class UNetConnection* ClientConnection) override;
 	virtual void ClientConnected(class AOnlineBeaconClient* NewClientActor, class UNetConnection* ClientConnection);
 	virtual void RemoveClientActor(class AOnlineBeaconClient* ClientActor);
 	// End AOnlineBeaconHost Interface 

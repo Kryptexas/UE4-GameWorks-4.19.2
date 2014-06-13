@@ -10,11 +10,11 @@ class ONLINEBLUEPRINTSUPPORT_API UK2Node_LeaderboardFlush : public UK2Node_BaseA
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node_BaseAsyncTask interface
-	virtual FString GetCategoryName() OVERRIDE;
+	virtual FString GetCategoryName() override;
 	// End of UK2Node_BaseAsyncTask interface
 };

@@ -129,21 +129,21 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	// -----------------------------
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const;
 	virtual int32 GetNumMaterials() const;
 	virtual UMaterialInterface* GetMaterial(int32 ElementIndex) const;
-	virtual bool ShouldRecreateProxyOnUpdateTransform() const OVERRIDE;
+	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial);
 	virtual FMatrix GetRenderMatrix() const;
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// Begin USceneComponent interface.
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 	// End UObject interface.
 };
 

@@ -64,7 +64,7 @@ protected:
 	TSharedPtr<SSlider> MySlider;
 
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 	void HandleOnValueChanged(float InValue);

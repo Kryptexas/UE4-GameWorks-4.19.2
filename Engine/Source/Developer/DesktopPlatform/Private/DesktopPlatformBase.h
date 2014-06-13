@@ -12,33 +12,33 @@ public:
 	FDesktopPlatformBase();
 
 	// IDesktopPlatform Implementation
-	virtual FString GetEngineDescription(const FString& Identifier) OVERRIDE;
-	virtual FString GetCurrentEngineIdentifier() OVERRIDE;
+	virtual FString GetEngineDescription(const FString& Identifier) override;
+	virtual FString GetCurrentEngineIdentifier() override;
 
-	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
-	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) OVERRIDE;
-	virtual void EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames) OVERRIDE;
-	virtual bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir) OVERRIDE;
-	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) OVERRIDE;
+	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) override;
+	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) override;
+	virtual void EnumerateLauncherSampleProjects(TArray<FString> &OutFileNames) override;
+	virtual bool GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir) override;
+	virtual bool GetEngineIdentifierFromRootDir(const FString &RootDir, FString &OutIdentifier) override;
 
-	virtual bool GetDefaultEngineIdentifier(FString &OutIdentifier) OVERRIDE;
-	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) OVERRIDE;
+	virtual bool GetDefaultEngineIdentifier(FString &OutIdentifier) override;
+	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) override;
 	virtual bool IsPreferredEngineIdentifier(const FString &Identifier, const FString &OtherIdentifier);
 
-	virtual bool IsStockEngineRelease(const FString &Identifier) OVERRIDE;
-	virtual bool IsSourceDistribution(const FString &RootDir) OVERRIDE;
-	virtual bool IsPerforceBuild(const FString &RootDir) OVERRIDE;
-	virtual bool IsValidRootDirectory(const FString &RootDir) OVERRIDE;
+	virtual bool IsStockEngineRelease(const FString &Identifier) override;
+	virtual bool IsSourceDistribution(const FString &RootDir) override;
+	virtual bool IsPerforceBuild(const FString &RootDir) override;
+	virtual bool IsValidRootDirectory(const FString &RootDir) override;
 
-	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) OVERRIDE;
-	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) OVERRIDE;
+	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) override;
+	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) override;
 
-	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) OVERRIDE;
-	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) OVERRIDE;
-	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) OVERRIDE;
+	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) override;
+	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
+	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 
-	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) OVERRIDE;
-	virtual FString GetDefaultProjectCreationPath() OVERRIDE;
+	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) override;
+	virtual FString GetDefaultProjectCreationPath() override;
 
 private:
 	FString CurrentEngineIdentifier;

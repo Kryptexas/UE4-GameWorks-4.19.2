@@ -38,7 +38,7 @@ public:
 
 public:
 
-	virtual bool Create (bool bIsManualReset = false) OVERRIDE
+	virtual bool Create (bool bIsManualReset = false) override
 	{
 		// Create the event and default it to non-signaled
 		Event = CreateEvent(NULL, bIsManualReset, 0, NULL);
@@ -46,21 +46,21 @@ public:
 		return Event != NULL;
 	}
 
-	virtual void Trigger () OVERRIDE
+	virtual void Trigger () override
 	{
 		check(Event);
 
 		SetEvent(Event);
 	}
 
-	virtual void Reset () OVERRIDE
+	virtual void Reset () override
 	{
 		check(Event);
 
 		ResetEvent(Event);
 	}
 
-	virtual bool Wait (uint32 WaitTime) OVERRIDE;
+	virtual bool Wait (uint32 WaitTime) override;
 
 private:
 

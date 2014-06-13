@@ -11,8 +11,8 @@
 class FPluginsEditor : public IPluginsEditor
 {
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** ID name for the plugins editor major tab */
 	static const FName PluginsEditorTabName;

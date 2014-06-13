@@ -25,40 +25,40 @@ public:
 
 public:
 
-	virtual void SetMessageHandler( const TSharedRef< class FGenericApplicationMessageHandler >& InMessageHandler ) OVERRIDE;
+	virtual void SetMessageHandler( const TSharedRef< class FGenericApplicationMessageHandler >& InMessageHandler ) override;
 
-	virtual void PollGameDeviceState( const float TimeDelta ) OVERRIDE;
+	virtual void PollGameDeviceState( const float TimeDelta ) override;
 
-	virtual void PumpMessages( const float TimeDelta ) OVERRIDE;
+	virtual void PumpMessages( const float TimeDelta ) override;
 
-	virtual void ProcessDeferredEvents( const float TimeDelta ) OVERRIDE;
+	virtual void ProcessDeferredEvents( const float TimeDelta ) override;
 
-	virtual TSharedRef< FGenericWindow > MakeWindow() OVERRIDE;
+	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 
-	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) OVERRIDE;
+	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
 
-	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) OVERRIDE;
+	virtual void SetCapture( const TSharedPtr< FGenericWindow >& InWindow ) override;
 
-	virtual void* GetCapture( void ) const OVERRIDE;
+	virtual void* GetCapture( void ) const override;
 
-	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) OVERRIDE;
+	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) override;
 
-	virtual bool IsUsingHighPrecisionMouseMode() const OVERRIDE { return bUsingHighPrecisionMouseInput; }
+	virtual bool IsUsingHighPrecisionMouseMode() const override { return bUsingHighPrecisionMouseInput; }
 
-	virtual bool IsUsingTrackpad() const OVERRIDE { return bUsingTrackpad; }
+	virtual bool IsUsingTrackpad() const override { return bUsingTrackpad; }
 
-	virtual FModifierKeysState GetModifierKeys() const OVERRIDE;
+	virtual FModifierKeysState GetModifierKeys() const override;
 
-	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const OVERRIDE;
+	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const override;
 
-	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
+	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const override;
 
-	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const OVERRIDE
+	virtual EWindowTitleAlignment::Type GetWindowTitleAlignment() const override
 	{
 		return EWindowTitleAlignment::Center;
 	}
 
-	virtual ITextInputMethodSystem *GetTextInputMethodSystem() OVERRIDE
+	virtual ITextInputMethodSystem *GetTextInputMethodSystem() override
 	{
 		return TextInputMethodSystem.Get();
 	}
@@ -78,7 +78,7 @@ public:
 	void UseMouseCaptureWindow( bool bUseMouseCaptureWindow );
 
 #if WITH_EDITOR
-    virtual void SendAnalytics(IAnalyticsProvider* Provider) OVERRIDE;
+    virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
 
 	void SetIsUsingTrackpad(bool bInUsingTrackpad)
 	{

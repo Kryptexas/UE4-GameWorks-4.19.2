@@ -14,17 +14,17 @@ public:
 	/**
 	* Saves viewport layout information between editor sessions
 	*/
-	virtual void SaveLayoutString(const FString& LayoutString) const OVERRIDE;
+	virtual void SaveLayoutString(const FString& LayoutString) const override;
 
-	virtual const FName& GetLayoutTypeName() const OVERRIDE{ return LevelViewportConfigurationNames::OnePane; }
+	virtual const FName& GetLayoutTypeName() const override{ return LevelViewportConfigurationNames::OnePane; }
 protected:
 	/**
 	* Creates the viewport for the single pane
 	*/
-	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) OVERRIDE;
+	virtual TSharedRef<SWidget> MakeViewportLayout(const FString& LayoutString) override;
 
 	/** Overridden from FLevelViewportLayout */
-	virtual void ReplaceWidget(TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement) OVERRIDE;
+	virtual void ReplaceWidget(TSharedRef< SWidget > Source, TSharedRef< SWidget > Replacement) override;
 
 protected:
 	/** The viewport widget parent box */

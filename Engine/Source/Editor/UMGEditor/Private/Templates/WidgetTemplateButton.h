@@ -9,7 +9,7 @@ class FWidgetTemplateButton : public FWidgetTemplate
 public:
 	FWidgetTemplateButton();
 
-	virtual FText GetCategory() OVERRIDE;
+	virtual FText GetCategory() override;
 
-	virtual UWidget* Create(UWidgetTree* Tree) OVERRIDE;
+	virtual UWidget* Create(UWidgetTree* Tree) override;
 };

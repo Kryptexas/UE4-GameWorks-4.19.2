@@ -25,17 +25,17 @@ class UMaterialExpressionDynamicParameter : public UMaterialExpression
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual TArray<FExpressionOutput>& GetOutputs() OVERRIDE;
-	virtual int32 GetWidth() const OVERRIDE;
-	virtual int32 GetLabelPadding() OVERRIDE { return 8; }
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual TArray<FExpressionOutput>& GetOutputs() override;
+	virtual int32 GetWidth() const override;
+	virtual int32 GetLabelPadding() override { return 8; }
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 	// End UMaterialExpression Interface
 };
 

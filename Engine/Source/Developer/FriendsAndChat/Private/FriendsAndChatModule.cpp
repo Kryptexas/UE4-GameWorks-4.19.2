@@ -15,48 +15,48 @@ class FFriendsAndChatModule
 public:
 
 	// Begin IFriendsAndChatModule interface
-	virtual void Init( bool bAllowJoinGame ) OVERRIDE
+	virtual void Init( bool bAllowJoinGame ) override
 	{
 		FFriendsAndChatManager::Get()->Init( FriendsListNotificationDelegate );
 		FFriendsMessageManager::Get()->Init( FriendsListNotificationDelegate, bAllowJoinGame );
 	}
 
-	virtual void SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID ) OVERRIDE
+	virtual void SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID ) override
 	{
 		FFriendsMessageManager::Get()->SetUnhandledNotification( NetID );
 	}
 
-	virtual FOnFriendsNotification& OnFriendsListNotification() OVERRIDE
+	virtual FOnFriendsNotification& OnFriendsListNotification() override
 	{
 		return FriendsListNotificationDelegate;
 	}
 	
-	virtual void CreateFriendsListWidget( TSharedPtr<const SWidget> ParentWidget, const FFriendsAndChatStyle* InStyle ) OVERRIDE
+	virtual void CreateFriendsListWidget( TSharedPtr<const SWidget> ParentWidget, const FFriendsAndChatStyle* InStyle ) override
 	{
 		FFriendsAndChatManager::Get()->GenerateFriendsWindow( ParentWidget, InStyle );
 	}
 
-	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const struct FFriendsAndChatStyle* InStyle ) OVERRIDE
+	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const struct FFriendsAndChatStyle* InStyle ) override
 	{
 		return FFriendsAndChatManager::Get()->GenerateFriendsListWidget( InStyle );
 	}
 
-	virtual void SetInSession( bool bInSession ) OVERRIDE
+	virtual void SetInSession( bool bInSession ) override
 	{
 		FFriendsAndChatManager::Get()->SetInSession( bInSession );
 	}
 
-	virtual void ClearGameInvites() OVERRIDE
+	virtual void ClearGameInvites() override
 	{
 		FFriendsMessageManager::Get()->ClearGameInvites();
 	}
 
-	virtual int32 GetFriendCount() OVERRIDE
+	virtual int32 GetFriendCount() override
 	{
 		return FFriendsAndChatManager::Get()->GetFriendCount();
 	}
 
-	virtual void Logout() OVERRIDE
+	virtual void Logout() override
 	{
 		FFriendsAndChatManager::Get()->Logout();
 		FFriendsMessageManager::Get()->Logout();
@@ -67,13 +67,13 @@ public:
 public:
 
 	// Begin IModuleInterface interface
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Make sure the singletons are created
  		FFriendsAndChatManager::Get();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FFriendsAndChatManager::Shutdown();
 	}

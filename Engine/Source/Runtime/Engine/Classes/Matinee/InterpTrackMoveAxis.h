@@ -38,23 +38,23 @@ class UInterpTrackMoveAxis : public UInterpTrackFloatBase
 
 
 	// Begin UInterpTrack Interface
-	virtual int32 AddKeyframe( float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode ) OVERRIDE;
-	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual int32 SetKeyframeTime( int32 KeyIndex, float NewKeyTime, bool bUpdateOrder ) OVERRIDE;
-	virtual void RemoveKeyframe( int32 KeyIndex ) OVERRIDE;
-	virtual int32 DuplicateKeyframe( int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL ) OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
-	virtual void ReduceKeys( float IntervalStart, float IntervalEnd, float Tolerance ) OVERRIDE;
+	virtual int32 AddKeyframe( float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode ) override;
+	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
+	virtual int32 SetKeyframeTime( int32 KeyIndex, float NewKeyTime, bool bUpdateOrder ) override;
+	virtual void RemoveKeyframe( int32 KeyIndex ) override;
+	virtual int32 DuplicateKeyframe( int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL ) override;
+	virtual class UTexture2D* GetTrackIcon() const override;
+	virtual void ReduceKeys( float IntervalStart, float IntervalEnd, float Tolerance ) override;
 	// End UInterpTrack Interface
 	
 
 
 	// Begin FCurveEdInterface interface.
-	virtual FColor GetSubCurveButtonColor( int32 SubCurveIndex, bool bIsSubCurveHidden ) const OVERRIDE;
-	virtual int32 CreateNewKey( float KeyIn ) OVERRIDE;
-	virtual void DeleteKey( int32 KeyIndex ) OVERRIDE;
-	virtual int32 SetKeyIn( int32 KeyIndex, float NewInVal ) OVERRIDE;
-	virtual FColor GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) OVERRIDE;
+	virtual FColor GetSubCurveButtonColor( int32 SubCurveIndex, bool bIsSubCurveHidden ) const override;
+	virtual int32 CreateNewKey( float KeyIn ) override;
+	virtual void DeleteKey( int32 KeyIndex ) override;
+	virtual int32 SetKeyIn( int32 KeyIndex, float NewInVal ) override;
+	virtual FColor GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) override;
 	// End FCurveEdInterface interface.
 
 	/** @todo document */

@@ -60,6 +60,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemTestAttributeSet : public UAttributeSe
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
 	float	NoStackAttribute;
 
-	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) OVERRIDE;
-	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) OVERRIDE;
+	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) override;
+	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) override;
 };

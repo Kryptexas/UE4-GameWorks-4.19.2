@@ -100,29 +100,29 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	void InitializeDefaults();
 
 	//Begin UObject Interface
-	virtual void	PostLoad() OVERRIDE;
+	virtual void	PostLoad() override;
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostInitProperties() override;
+	virtual void	Serialize(FArchive& Ar) override;
 	// Begin UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
-	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
-	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
-	virtual void	GetCurveObjects(TArray<FParticleCurvePair>& OutCurves) OVERRIDE;
-	virtual bool WillGeneratedModuleBeIdentical(UParticleLODLevel* SourceLODLevel, UParticleLODLevel* DestLODLevel, float Percentage) OVERRIDE
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) override;
+	virtual void	GetCurveObjects(TArray<FParticleCurvePair>& OutCurves) override;
+	virtual bool WillGeneratedModuleBeIdentical(UParticleLODLevel* SourceLODLevel, UParticleLODLevel* DestLODLevel, float Percentage) override
 	{
 		// The assumption is that at 100%, ANY module will be identical...
 		// (Although this is virtual to allow over-riding that assumption on a case-by-case basis!)
 		return true;
 	}
-	virtual void GetParticleSysParamsUtilized(TArray<FString>& ParticleSysParamList) OVERRIDE;
-	virtual void GetParticleParametersUtilized(TArray<FString>& ParticleParameterList) OVERRIDE;
-	virtual void RefreshModule(UInterpCurveEdSetup* EdSetup, UParticleEmitter* InEmitter, int32 InLODLevel) OVERRIDE;
+	virtual void GetParticleSysParamsUtilized(TArray<FString>& ParticleSysParamList) override;
+	virtual void GetParticleParametersUtilized(TArray<FString>& ParticleParameterList) override;
+	virtual void RefreshModule(UInterpCurveEdSetup* EdSetup, UParticleEmitter* InEmitter, int32 InLODLevel) override;
 	// End UParticleModule Interface
 
 	/**

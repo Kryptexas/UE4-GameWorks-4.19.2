@@ -33,8 +33,8 @@ class UMaterialExpressionLinearInterpolate : public UMaterialExpression
 
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 #if WITH_EDITOR
 	virtual FString GetKeywords() const {return TEXT("lerp");}
 #endif // WITH_EDITOR

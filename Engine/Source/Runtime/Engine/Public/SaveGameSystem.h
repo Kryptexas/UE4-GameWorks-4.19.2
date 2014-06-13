@@ -34,12 +34,12 @@ public:
 class FGenericSaveGameSystem : public ISaveGameSystem
 {
 public:
-	virtual bool PlatformHasNativeUI() OVERRIDE
+	virtual bool PlatformHasNativeUI() override
 	{
 		return false;
 	}
 
-	virtual bool DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex) OVERRIDE
+	virtual bool DoesSaveGameExist(const TCHAR* Name, const int32 UserIndex) override
 	{
 #if PLATFORM_HTML5_BROWSER
 		return UE_DoesSaveGameExist(TCHAR_TO_ANSI(Name),UserIndex);
@@ -54,7 +54,7 @@ public:
 #endif
 	}
 
-	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data) OVERRIDE
+	virtual bool SaveGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, const TArray<uint8>& Data) override
 	{
 #if PLATFORM_HTML5_BROWSER
 		return UE_SaveGame(TCHAR_TO_ANSI(Name),UserIndex,(char*)Data.GetData(),Data.Num());
@@ -70,7 +70,7 @@ public:
 
 	}
 
-	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) OVERRIDE
+	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) override
 	{
 #if PLATFORM_HTML5_BROWSER
 		char*	OutData;

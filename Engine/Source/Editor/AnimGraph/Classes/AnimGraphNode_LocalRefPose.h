@@ -10,7 +10,7 @@ class UAnimGraphNode_LocalRefPose : public UAnimGraphNode_RefPoseBase
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 };

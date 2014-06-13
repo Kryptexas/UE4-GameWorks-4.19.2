@@ -173,7 +173,7 @@ public:
 		return Handle;
 	}
 
-	virtual bool PollAsynchronousCompletion(uint32 Handle) OVERRIDE
+	virtual bool PollAsynchronousCompletion(uint32 Handle) override
 	{
 		FAsyncTask<FBuildAsyncWorker>* AsyncTask = NULL;
 		{
@@ -184,7 +184,7 @@ public:
 		return AsyncTask->IsDone();
 	}
 
-	virtual void WaitAsynchronousCompletion(uint32 Handle) OVERRIDE
+	virtual void WaitAsynchronousCompletion(uint32 Handle) override
 	{
 		STAT(double ThisTime = 0);
 		{
@@ -200,7 +200,7 @@ public:
 		INC_FLOAT_STAT_BY(STAT_DDC_ASyncWaitTime,(float)ThisTime);
 	}
 
-	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) OVERRIDE
+	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) override
 	{
 		FAsyncTask<FBuildAsyncWorker>* AsyncTask = NULL;
 		{
@@ -219,17 +219,17 @@ public:
 		return true;
 	}
 
-	virtual IDerivedDataRollup* StartRollup() OVERRIDE
+	virtual IDerivedDataRollup* StartRollup() override
 	{
 		return NULL;
 	}
 
-	virtual void EndRollup(IDerivedDataRollup*& Rollup) OVERRIDE
+	virtual void EndRollup(IDerivedDataRollup*& Rollup) override
 	{
 		check(!Rollup); // this needs to be handled by someone else, if rollups are disabled, then it should be NULL
 	}
 
-	virtual bool GetSynchronous(const TCHAR* CacheKey, TArray<uint8>& OutData) OVERRIDE
+	virtual bool GetSynchronous(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("GetSynchronous %s"), CacheKey);
 		FAsyncTask<FBuildAsyncWorker> PendingTask((FDerivedDataPluginInterface*)NULL, CacheKey, true);
@@ -239,7 +239,7 @@ public:
 		return PendingTask.GetTask().bSuccess;
 	}
 
-	virtual uint32 GetAsynchronous(const TCHAR* CacheKey, IDerivedDataRollup* Rollup = NULL) OVERRIDE
+	virtual uint32 GetAsynchronous(const TCHAR* CacheKey, IDerivedDataRollup* Rollup = NULL) override
 	{
 		check(!Rollup); // this needs to be handled by someone else, if rollups are disabled, then it should be NULL
 		FScopeLock ScopeLock(&SynchronizationObject);
@@ -270,7 +270,7 @@ public:
 		AsyncTask->StartBackgroundTask();
 	}
 
-	virtual void Put(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists = false) OVERRIDE
+	virtual void Put(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists = false) override
 	{
 		STAT(double ThisTime = 0);
 		{
@@ -281,32 +281,32 @@ public:
 		INC_DWORD_STAT(STAT_DDC_NumPuts);
 	}
 
-	virtual void MarkTransient(const TCHAR* CacheKey) OVERRIDE
+	virtual void MarkTransient(const TCHAR* CacheKey) override
 	{
 		FDerivedDataBackend::Get().GetRoot().RemoveCachedData(CacheKey, /*bTransient=*/ true);
 	}
 
-	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) OVERRIDE
+	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
 		return FDerivedDataBackend::Get().GetRoot().CachedDataProbablyExists(CacheKey);
 	}
 
-	void NotifyBootComplete() OVERRIDE
+	void NotifyBootComplete() override
 	{
 		FDerivedDataBackend::Get().NotifyBootComplete();
 	}
 
-	void AddToAsyncCompletionCounter(int32 Addend) OVERRIDE
+	void AddToAsyncCompletionCounter(int32 Addend) override
 	{
 		FDerivedDataBackend::Get().AddToAsyncCompletionCounter(Addend);
 	}
 
-	void WaitForQuiescence(bool bShutdown) OVERRIDE
+	void WaitForQuiescence(bool bShutdown) override
 	{
 		FDerivedDataBackend::Get().WaitForQuiescence(bShutdown);
 	}
 
-	void GetDirectories(TArray<FString>& OutResults) OVERRIDE
+	void GetDirectories(TArray<FString>& OutResults) override
 	{
 		FDerivedDataBackend::Get().GetDirectories(OutResults);
 	}
@@ -742,7 +742,7 @@ public:
 	{
 	}
 
-	virtual void PrintLeaks() OVERRIDE
+	virtual void PrintLeaks() override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		UE_LOG(LogDerivedDataCache, Log, TEXT("Shutdown"));
@@ -759,7 +759,7 @@ public:
 		//check(!PendingRollups.Num()); // leaked rollups
 	}
 
-	virtual bool PollAsynchronousCompletion(uint32 Handle) OVERRIDE
+	virtual bool PollAsynchronousCompletion(uint32 Handle) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		for (TSet<FDerivedDataRollup*>::TIterator Iter(PendingRollups); Iter; ++Iter)
@@ -772,7 +772,7 @@ public:
 		return Super::PollAsynchronousCompletion(Handle);
 	}
 
-	virtual void WaitAsynchronousCompletion(uint32 Handle) OVERRIDE
+	virtual void WaitAsynchronousCompletion(uint32 Handle) override
 	{
 		STAT(double ThisTime = 0);
 		{
@@ -791,7 +791,7 @@ public:
 		Super::WaitAsynchronousCompletion(Handle);
 	}
 
-	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) OVERRIDE
+	virtual bool GetAsynchronousResults(uint32 Handle, TArray<uint8>& OutData) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		for (TSet<FDerivedDataRollup*>::TIterator Iter(PendingRollups); Iter; ++Iter)
@@ -810,7 +810,7 @@ public:
 		return Super::GetAsynchronousResults(Handle, OutData);
 	}
 
-	virtual IDerivedDataRollup* StartRollup() OVERRIDE
+	virtual IDerivedDataRollup* StartRollup() override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		FDerivedDataRollup* Result = new FDerivedDataRollup();
@@ -818,7 +818,7 @@ public:
 		return Result;
 	}
 
-	virtual void EndRollup(IDerivedDataRollup*& InRollup) OVERRIDE
+	virtual void EndRollup(IDerivedDataRollup*& InRollup) override
 	{
 		FDerivedDataRollup* Rollup = static_cast<FDerivedDataRollup*>(InRollup);
 		if (Rollup)
@@ -834,7 +834,7 @@ public:
 		}
 	}
 
-	virtual uint32 GetAsynchronous(const TCHAR* CacheKey, IDerivedDataRollup* Rollup = NULL) OVERRIDE
+	virtual uint32 GetAsynchronous(const TCHAR* CacheKey, IDerivedDataRollup* Rollup = NULL) override
 	{
 		if (Rollup)
 		{
@@ -847,7 +847,7 @@ public:
 		return Super::GetAsynchronous(CacheKey, NULL);
 	}
 
-	virtual void Put(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists = false) OVERRIDE
+	virtual void Put(const TCHAR* CacheKey, TArray<uint8>& Data, bool bPutEvenIfExists = false) override
 	{
 		FScopeLock ScopeLock(&SynchronizationObject);
 		for (TSet<FDerivedDataRollup*>::TIterator Iter(PendingRollups); Iter; ++Iter)
@@ -903,12 +903,12 @@ FDerivedDataCache& InternalSingleton()
 class FDerivedDataCacheModule : public IDerivedDataCacheModule
 {
 public:
-	virtual FDerivedDataCacheInterface& GetDDC() OVERRIDE
+	virtual FDerivedDataCacheInterface& GetDDC() override
 	{
 		return InternalSingleton();
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		FDDCCleanup::Shutdown();
 

@@ -878,7 +878,7 @@ public:
 	 * Returns if the allocator is guaranteed to be thread-safe and therefore
 	 * doesn't need a unnecessary thread-safety wrapper around it.
 	 */
-	virtual bool IsInternallyThreadSafe() const OVERRIDE
+	virtual bool IsInternallyThreadSafe() const override
 	{ 
 #ifdef USE_INTERNAL_LOCKS
 		return true;
@@ -890,7 +890,7 @@ public:
 	/** 
 	 * Malloc
 	 */
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 #ifdef USE_COARSE_GRAIN_LOCKS
 		FScopeLock ScopedLock(&AccessGuard);
@@ -986,7 +986,7 @@ public:
 	/** 
 	 * Realloc
 	 */
-	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE
+	virtual void* Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment ) override
 	{
 		// Handle DEFAULT_ALIGNMENT for binned allocator.
 		if (Alignment == DEFAULT_ALIGNMENT)
@@ -1055,7 +1055,7 @@ public:
 	/** 
 	 * Free
 	 */
-	virtual void Free( void* Ptr ) OVERRIDE
+	virtual void Free( void* Ptr ) override
 	{
 		if( !Ptr )
 		{
@@ -1072,7 +1072,7 @@ public:
 	 * @param SizeOut - If possible, this value is set to the size of the passed in pointer
 	 * @return true if succeeded
 	 */
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override
 	{
 		if (!Original)
 		{
@@ -1087,7 +1087,7 @@ public:
 	/**
 	 * Validates the allocator's heap
 	 */
-	virtual bool ValidateHeap() OVERRIDE
+	virtual bool ValidateHeap() override
 	{
 #ifdef USE_INTERNAL_LOCKS
 		FScopeLock ScopedLock(&AccessGuard);
@@ -1118,7 +1118,7 @@ public:
 
 
 	/** Called once per frame, gathers and sets all memory allocator statistics into the corresponding stats. */
-	virtual void UpdateStats() OVERRIDE
+	virtual void UpdateStats() override
 	{
 #if STATS
 		SIZE_T	LocalOsCurrent = 0;
@@ -1162,14 +1162,14 @@ public:
 	}
 
 	/** Writes allocator stats from the last update into the specified destination. */
-	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) OVERRIDE;
+	virtual void GetAllocatorStats( FGenericMemoryStats& out_Stats ) override;
 
 	/**
 	 * Dumps allocator stats to an output device. Subclasses should override to add additional info
 	 *
 	 * @param Ar	[in] Output device
 	 */
-	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) OVERRIDE
+	virtual void DumpAllocatorStats( class FOutputDevice& Ar ) override
 	{
 		FBufferedOutputDevice BufferedOutput;
 		{
@@ -1258,7 +1258,7 @@ public:
 		BufferedOutput.RedirectTo( Ar );
 	}
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("binned"); }
+	virtual const TCHAR * GetDescriptiveName() override { return TEXT("binned"); }
 
 protected:
 

@@ -79,7 +79,7 @@ public:
 	 *
 	 * @return Size in bytes
 	 */
-	virtual int32 GetSize(void) OVERRIDE;
+	virtual int32 GetSize(void) override;
 
 	/** Format of the sound referenced by this buffer */
 	int32  SoundFormat;
@@ -115,22 +115,22 @@ public:
 	 * @param	WaveInstance	wave instance being primed for playback
 	 * @return	true			if initialization was successful, false otherwise
 	 */
-	virtual bool Init(FWaveInstance* WaveInstance) OVERRIDE;
+	virtual bool Init(FWaveInstance* WaveInstance) override;
 	
 	/**
 	 * Updates the source specific parameter like e.g. volume and pitch based on the associated
 	 * wave instance.	
 	 */
-	virtual void Update(void) OVERRIDE;
+	virtual void Update(void) override;
 	
 	/**  Plays the current wave instance. */
-	virtual void Play(void) OVERRIDE;
+	virtual void Play(void) override;
 	
 	/** Stops the current wave instance and detaches it from the source. */
-	virtual void Stop(void) OVERRIDE;
+	virtual void Stop(void) override;
 	
 	/** Pauses playback of current wave instance. */
-	virtual void Pause(void) OVERRIDE;
+	virtual void Pause(void) override;
 	
 	/**
 	 * Queries the status of the currently associated wave instance.
@@ -138,7 +138,7 @@ public:
 	 * @return	true if the wave instance/ source has finished playback and false if it is 
 	 *			currently playing or paused.
 	 */
-	virtual bool IsFinished(void) OVERRIDE;
+	virtual bool IsFinished(void) override;
 
 	/** Calculates the audio unit element of the input channel relative to the base bus number */
 	AudioUnitElement GetAudioUnitElement(int32 Channel);
@@ -178,7 +178,7 @@ public:
 	FIOSAudioDevice();
 	virtual ~FIOSAudioDevice() { }
 	
-	virtual FName GetRuntimeFormat(USoundWave* SoundWave) OVERRIDE
+	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
 	{
 		static FName NAME_ADPCM(TEXT("ADPCM"));
 		return NAME_ADPCM;
@@ -192,23 +192,23 @@ public:
 	virtual void ResumeContext();
 	virtual void SuspendContext();
 	
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) override;
 
 protected:
 	/** Starts up any platform specific hardware/APIs */
-	virtual bool InitializeHardware() OVERRIDE;
+	virtual bool InitializeHardware() override;
 
 	/** Shuts down any platform specific hardware/APIs */
-	virtual void TeardownHardware() OVERRIDE;
+	virtual void TeardownHardware() override;
 
 	/** Lets the platform any tick actions */
-	virtual void UpdateHardware() OVERRIDE;
+	virtual void UpdateHardware() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FAudioEffectsManager* CreateEffectsManager() OVERRIDE;
+	virtual FAudioEffectsManager* CreateEffectsManager() override;
 
 	/** Creates a new platform specific sound source */
-	virtual FSoundSource* CreateSoundSource() OVERRIDE;
+	virtual FSoundSource* CreateSoundSource() override;
 
 	/** Audio Session management */
 	void GetHardwareSampleRate(double& OutSampleRate);

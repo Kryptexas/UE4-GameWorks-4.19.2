@@ -272,6 +272,6 @@ protected:
 
 private:
 
-	virtual void CreateCustomEngine(const FString& Params) OVERRIDE ; //Disallow other text commandlets to make their own engine.
+	virtual void CreateCustomEngine(const FString& Params) override ; //Disallow other text commandlets to make their own engine.
 	
 };

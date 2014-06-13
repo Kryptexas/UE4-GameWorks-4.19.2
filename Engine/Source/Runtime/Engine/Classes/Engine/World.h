@@ -326,7 +326,7 @@ struct FStartPhysicsTickFunction : public FTickFunction
 		* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 		* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
 };
@@ -349,7 +349,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 		* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 		* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
 };
@@ -372,7 +372,7 @@ struct FStartClothSimulationFunction : public FTickFunction
 	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
 };
@@ -395,7 +395,7 @@ struct FEndClothSimulationFunction : public FTickFunction
 	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
 	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
 	**/
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
 };
@@ -1611,17 +1611,17 @@ public:
 	virtual bool AllowAudioPlayback();
 
 	// Begin UObject Interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook) OVERRIDE;
-	virtual void PostSaveRoot( bool bCleanupIsRequired ) OVERRIDE;
-	virtual UWorld* GetWorld() const OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void FinishDestroy() override;
+	virtual void PostLoad() override;
+	virtual bool PreSaveRoot(const TCHAR* Filename, TArray<FString>& AdditionalPackagesToCook) override;
+	virtual void PostSaveRoot( bool bCleanupIsRequired ) override;
+	virtual UWorld* GetWorld() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
-	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) OVERRIDE;
+	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
 #endif
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 
 	// End UObject Interface
 	
@@ -2169,12 +2169,12 @@ public:
 	bool DestroySwappedPC(UNetConnection* Connection);
 
 	// Begin FNetworkNotify interface
-	virtual EAcceptConnection::Type NotifyAcceptingConnection() OVERRIDE;
+	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 
 	/** @todo document */
-	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) OVERRIDE;
-	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) OVERRIDE;
-	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) OVERRIDE;
+	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;
+	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) override;
+	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
 	// End FNetworkNotify interface
 
 	/** Welcome a new player joining this server. */

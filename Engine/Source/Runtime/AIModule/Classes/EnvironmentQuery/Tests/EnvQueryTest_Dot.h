@@ -19,8 +19,8 @@ class UEnvQueryTest_Dot : public UEnvQueryTest
 
 	void RunTest(struct FEnvQueryInstance& QueryInstance);
 
-	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FText GetDescriptionDetails() const OVERRIDE;
+	virtual FString GetDescriptionTitle() const override;
+	virtual FText GetDescriptionDetails() const override;
 
 protected:
 

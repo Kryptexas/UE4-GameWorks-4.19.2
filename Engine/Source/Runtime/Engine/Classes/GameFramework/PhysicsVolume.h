@@ -16,7 +16,7 @@ class APhysicsVolume : public AVolume
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	ENGINE_API virtual void LoadedFromAnotherClass(const FName& OldClassName) OVERRIDE;
+	ENGINE_API virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif // WITH_EDITOR	
 	// End UObject interface.
 

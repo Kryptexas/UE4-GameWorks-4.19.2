@@ -6,8 +6,8 @@ class FAssetTypeActions_PhysicalMaterial : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_PhysicalMaterial", "Physical Material"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(200,192,128); }
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Physics; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_PhysicalMaterial", "Physical Material"); }
+	virtual FColor GetTypeColor() const override { return FColor(200,192,128); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Physics; }
 };

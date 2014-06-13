@@ -223,17 +223,17 @@ public:
 	}
 
 	/** IDetailCustomNodeBuilder Interface*/
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE 
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override 
 	{
 		OnRegenerateChildren = InOnRegenerateChildren;
 	}
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
 
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE {}
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override {}
 
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE 
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override 
 	{ 
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if(StructureDetailsSP.IsValid())
@@ -245,7 +245,7 @@ public:
 		}
 		return NAME_None; 
 	}
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
+	virtual bool InitiallyCollapsed() const override { return false; }
 
 private:
 	TWeakPtr<class FUserDefinedStructureDetails> StructureDetails;
@@ -447,7 +447,7 @@ public:
 	}
 
 	/** IDetailCustomNodeBuilder Interface*/
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE 
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override 
 	{
 		OnRegenerateChildren = InOnRegenerateChildren;
 	}
@@ -506,7 +506,7 @@ public:
 		}
 	}
 
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE 
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override 
 	{
 		auto K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -574,7 +574,7 @@ public:
 		}
 	}
 
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE 
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override 
 	{
 		ChildrenBuilder.AddChildContent( *LOCTEXT( "UDSVarDefaultValue", "Default Value" ).ToString() )
 		.NameContent()
@@ -640,10 +640,10 @@ public:
 					this, &FUserDefinedStructureFieldLayout::Is3dWidgetOptionVisible)));
 	}
 
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE { return FName(*FieldGuid.ToString()); }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return true; }
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override { return FName(*FieldGuid.ToString()); }
+	virtual bool InitiallyCollapsed() const override { return true; }
 
 private:
 	TWeakPtr<class FUserDefinedStructureDetails> StructureDetails;

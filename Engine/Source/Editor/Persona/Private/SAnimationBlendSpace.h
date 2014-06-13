@@ -481,7 +481,7 @@ public:
 	 *
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE;
+	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	/**
 	 * Clear all points
@@ -492,7 +492,7 @@ public:
 		BlendSpaceGrid.Reset();
 	}
 
-	virtual void ResampleData() OVERRIDE;
+	virtual void ResampleData() override;
 
 	/** 
 	 * Manually AddPoint
@@ -522,13 +522,13 @@ public:
 	/** 
 	 * Mapping function between WidgetPos and EditorPos
 	 */
-	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const OVERRIDE;
-	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const OVERRIDE;
+	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector & EditorPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
 	 * Snaps a position in editor space to the editor grid
 	 */
-	virtual FVector					SnapEditorPosToGrid(const FVector& InPos) const OVERRIDE;
+	virtual FVector					SnapEditorPosToGrid(const FVector& InPos) const override;
 
 	/**
 	 * Utility function to set the grid info for both the BlendSpaceGrid and the Generator in one go
@@ -561,13 +561,13 @@ private:
 	const UBlendSpace* GetBlendSpace() const { return Cast<UBlendSpace>(BlendSpace); }
 
 	/** Utility functions **/
-	virtual FText GetInputText(const FVector & GridPos) const OVERRIDE;
+	virtual FText GetInputText(const FVector & GridPos) const override;
 	bool IsOnTheBorder(const FIntPoint & GridIndices) const;
 
 	/** Utility function for OnPaint **/
 	void DrawHighlightGrid(const FVector2D & LeftTopPos, const FVector2D & RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const;
 
-	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) OVERRIDE;
+	virtual FReply UpdateLastMousePosition( const FGeometry& MyGeometry, const FVector2D& ScreenSpacePosition, bool bClampToWindowRect = false, bool bSnapToGrid = false  ) override;
 	bool GetMinMaxFromGridPos(FVector GridPos, FVector2D & WindowLeftTop, FVector2D & WindowRightBottom, const FSlateRect& WindowRect) const;
 };
 

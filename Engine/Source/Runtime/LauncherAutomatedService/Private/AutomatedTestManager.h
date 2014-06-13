@@ -42,9 +42,9 @@ public:
 
 	// IAutomatedTestManager interface
 
-	virtual bool IsTestingComplete() OVERRIDE;
-	virtual void RunTests() OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE;
+	virtual bool IsTestingComplete() override;
+	virtual void RunTests() override;
+	virtual void Tick( float DeltaTime ) override;
 
 protected:
 

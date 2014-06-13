@@ -42,8 +42,8 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 
 	void RunTest(struct FEnvQueryInstance& QueryInstance);
 
-	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FText GetDescriptionDetails() const OVERRIDE;
+	virtual FString GetDescriptionTitle() const override;
+	virtual FText GetDescriptionDetails() const override;
 
 #if WITH_EDITOR
 	/** update test properties after changing mode */

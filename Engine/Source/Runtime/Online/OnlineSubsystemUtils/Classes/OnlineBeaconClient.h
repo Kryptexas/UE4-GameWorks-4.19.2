@@ -20,11 +20,11 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface
-	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) OVERRIDE;
+	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
 	// End FNetworkNotify Interface
 
 	// Begin OnlineBeacon Interface
-	virtual void DestroyBeacon() OVERRIDE;
+	virtual void DestroyBeacon() override;
 	// End OnlineBeacon Interface
 
 	/**

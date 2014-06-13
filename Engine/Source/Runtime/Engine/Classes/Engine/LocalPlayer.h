@@ -96,13 +96,13 @@ private:
 
 public:
 	// UObject interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void FinishDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
 
 	// FExec interface
-	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) override;
 	// End of FExec interface
 
 	/** 
@@ -124,7 +124,7 @@ public:
 	bool HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	
 	// UPlayer interface
-	virtual void HandleDisconnect(class UWorld *World, class UNetDriver *NetDriver) OVERRIDE;
+	virtual void HandleDisconnect(class UWorld *World, class UNetDriver *NetDriver) override;
 	// End of UPlayer interface
 
 protected:

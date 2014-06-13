@@ -18,7 +18,7 @@ private:
 public:
 
 	// TCommands interface
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	// End of TCommands interface
 
 	/**

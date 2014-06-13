@@ -46,7 +46,7 @@ public:
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:
@@ -63,7 +63,7 @@ class FRCPassPostProcessTonemapES2 : public TRenderingCompositePassBase<3, 1>
 public:
 	FRCPassPostProcessTonemapES2(bool bInUsedFramebufferFetch) : bUsedFramebufferFetch(bInUsedFramebufferFetch) { }
 	virtual void Process(FRenderingCompositePassContext& Context);
-	virtual void Release() OVERRIDE { delete this; }
+	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
 
 private:

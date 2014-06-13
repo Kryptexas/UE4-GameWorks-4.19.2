@@ -44,10 +44,10 @@ public:
 
 protected:
 	// Begin UBlendSpaceBase interface
-	virtual void SnapToBorder(FBlendSample& Sample) const OVERRIDE;
-	virtual EBlendSpaceAxis GetAxisToScale() const OVERRIDE;
-	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const OVERRIDE;
-	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const OVERRIDE;
+	virtual void SnapToBorder(FBlendSample& Sample) const override;
+	virtual EBlendSpaceAxis GetAxisToScale() const override;
+	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const override;
+	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const override;
 	// End UBlendSpaceBase interface
 
 private:

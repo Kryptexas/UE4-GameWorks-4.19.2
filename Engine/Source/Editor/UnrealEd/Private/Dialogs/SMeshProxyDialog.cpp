@@ -28,11 +28,11 @@ public:
 	virtual ~SMeshProxyDialog();
 
 	/** SMeshProxyDialog functions */
-	virtual void AssignWindowContent(TSharedPtr<SWindow> Window) OVERRIDE;
-	virtual TSharedPtr<SWindow> GetParentWindow() OVERRIDE;
-	virtual void SetParentWindow(TSharedPtr<SWindow> Window) OVERRIDE;
-	virtual void OnWindowClosed(const TSharedRef<SWindow>&) OVERRIDE;
-	virtual void MarkDirty() OVERRIDE;
+	virtual void AssignWindowContent(TSharedPtr<SWindow> Window) override;
+	virtual TSharedPtr<SWindow> GetParentWindow() override;
+	virtual void SetParentWindow(TSharedPtr<SWindow> Window) override;
+	virtual void OnWindowClosed(const TSharedRef<SWindow>&) override;
+	virtual void MarkDirty() override;
 
 	/** SWidget functions */
 	void Construct(const FArguments& InArgs);

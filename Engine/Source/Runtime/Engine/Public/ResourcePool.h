@@ -217,28 +217,28 @@ public:
 	}
 	
 public: // From FTickableObjectRenderThread
-	virtual void Tick( float DeltaTime ) OVERRIDE
+	virtual void Tick( float DeltaTime ) override
 	{
 		TResourcePool<ResourceType, ResourcePoolPolicy, ResourceCreationArguments>::DrainPool(false);
 	}
 	
-	virtual bool IsTickable() const OVERRIDE
+	virtual bool IsTickable() const override
 	{
 		return true;
 	}
 	
-	virtual bool NeedsRenderingResumedForRenderingThreadTick() const OVERRIDE
+	virtual bool NeedsRenderingResumedForRenderingThreadTick() const override
 	{
 		return true;
 	}
 	
 public: // From FRenderResource
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FTickableObjectRenderThread::Register();
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		FTickableObjectRenderThread::Unregister();
 		TResourcePool<ResourceType, ResourcePoolPolicy, ResourceCreationArguments>::DrainPool(true);

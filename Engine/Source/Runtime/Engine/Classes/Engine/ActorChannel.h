@@ -81,17 +81,17 @@ class ENGINE_API UActorChannel : public UChannel
 
 	// Begin UChannel interface.
 
-	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally ) OVERRIDE;
+	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally ) override;
 
-	virtual void SetClosingFlag() OVERRIDE;
+	virtual void SetClosingFlag() override;
 
-	virtual void ReceivedBunch( FInBunch& Bunch ) OVERRIDE;
+	virtual void ReceivedBunch( FInBunch& Bunch ) override;
 	
-	virtual void ReceivedNak( int32 NakPacketId ) OVERRIDE;
+	virtual void ReceivedNak( int32 NakPacketId ) override;
 	
-	virtual void Close() OVERRIDE;
+	virtual void Close() override;
 
-	virtual FString Describe() OVERRIDE;
+	virtual FString Describe() override;
 
 	// End UChannel interface.
 
@@ -109,7 +109,7 @@ class ENGINE_API UActorChannel : public UChannel
 
 	void SetChannelActorForDestroy( struct FActorDestructionInfo *DestructInfo );
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -120,7 +120,7 @@ class ENGINE_API UActorChannel : public UChannel
 	virtual bool ReadyForDormancy(bool debug=false);
 	
 	/** Puts the channel in a state to start becoming dormant. It will not become dormant until ReadyForDormancy returns true in Tick */
-	virtual void StartBecomingDormant() OVERRIDE;
+	virtual void StartBecomingDormant() override;
 
 	/** Cleans up replicators and clears references to the actor class this channel was associated with.*/
 	void CleanupReplicators( const bool bKeepReplicators = false );
@@ -234,7 +234,7 @@ protected:
 	TSharedRef< FObjectReplicator > & FindOrCreateReplicator(UObject *Obj);
 	bool ObjectHasReplicator(UObject *Obj);	// returns whether we have already created a replicator for this object or not
 
-	virtual void CleanUp() OVERRIDE;
+	virtual void CleanUp() override;
 
 	/** Closes the actor channel but with a 'dormant' flag set so it can be reopened */
 	virtual void BecomeDormant();

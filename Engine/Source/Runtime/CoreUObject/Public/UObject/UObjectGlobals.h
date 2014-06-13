@@ -1393,9 +1393,9 @@ public:
 	virtual void FindReferences(UObject* Object);	
 
 	// FReferenceCollector interface.
-	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) OVERRIDE;
-	virtual bool IsIgnoringArchetypeRef() const OVERRIDE { return bShouldIgnoreArchetype; }
-	virtual bool IsIgnoringTransient() const OVERRIDE { return bShouldIgnoreTransient; }
+	virtual void HandleObjectReference(UObject*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty) override;
+	virtual bool IsIgnoringArchetypeRef() const override { return bShouldIgnoreArchetype; }
+	virtual bool IsIgnoringTransient() const override { return bShouldIgnoreTransient; }
 
 protected:
 

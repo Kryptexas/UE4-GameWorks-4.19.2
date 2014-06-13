@@ -272,11 +272,11 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 #endif
 
 	// UStruct interface
-	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) OVERRIDE;
+	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	// End of UStruct interface
 
 	// UClass interface
-	virtual void PurgeClass(bool bRecompilingOnLoad) OVERRIDE;
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 	// End of UClass interface
 
 #if WITH_EDITOR

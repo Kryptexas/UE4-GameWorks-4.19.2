@@ -15,8 +15,8 @@ class FNiagaraEditorModule : public IModuleInterface,
 
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Compile the specified script. */
 	virtual void CompileScript(class UNiagaraScript* ScriptToCompile);

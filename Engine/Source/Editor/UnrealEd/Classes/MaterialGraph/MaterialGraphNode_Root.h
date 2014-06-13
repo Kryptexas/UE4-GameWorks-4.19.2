@@ -14,18 +14,18 @@ class UMaterialGraphNode_Root : public UMaterialGraphNode_Base
 	class UMaterial* Material;
 
 	// Begin UEdGraphNode interface.
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual void PostPlacedNewNode() OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetTooltip() const override;
+	virtual bool CanUserDeleteNode() const override { return false; }
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual void PostPlacedNewNode() override;
 	// End UEdGraphNode interface.
 
 	// UMaterialGraphNode_Base interface
-	virtual void CreateInputPins() OVERRIDE;
-	virtual bool IsRootNode() const OVERRIDE {return true;}
-	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const OVERRIDE;
-	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const OVERRIDE;
+	virtual void CreateInputPins() override;
+	virtual bool IsRootNode() const override {return true;}
+	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
+	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
 	// End of UMaterialGraphNode_Base interface
 };

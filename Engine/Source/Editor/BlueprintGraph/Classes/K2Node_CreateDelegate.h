@@ -16,18 +16,18 @@ class UK2Node_CreateDelegate : public UK2Node
 
 public:
 	// UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual void PinTypeChanged(UEdGraphPin* Pin) OVERRIDE;
-	virtual void NodeConnectionListChanged() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
+	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
+	virtual void NodeConnectionListChanged() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual bool IsNodePure() const OVERRIDE { return true; }
-	virtual void PostReconstructNode() OVERRIDE;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
+	virtual bool IsNodePure() const override { return true; }
+	virtual void PostReconstructNode() override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End of UK2Node interface
 
 	bool IsValid(FString* OutMsg = NULL, bool bDontUseSkeletalClassForSelf = false) const;

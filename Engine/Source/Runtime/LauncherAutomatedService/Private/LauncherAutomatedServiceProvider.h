@@ -20,19 +20,19 @@ public:
 
 	// ILauncherAutomatedServiceProvider interface
 
-	virtual int32 GetExitCode( ) OVERRIDE
+	virtual int32 GetExitCode( ) override
 	{
 		return bHasErrors ? 1 : 0;
 	}
 
-	virtual bool IsRunning( ) OVERRIDE
+	virtual bool IsRunning( ) override
 	{
 		return bIsReadyToShutdown == false && bHasErrors == false;
 	}
 
-	virtual void Setup( const TCHAR* Params ) OVERRIDE;
-	virtual void Shutdown( ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE;
+	virtual void Setup( const TCHAR* Params ) override;
+	virtual void Shutdown( ) override;
+	virtual void Tick( float DeltaTime ) override;
 
 protected:
 

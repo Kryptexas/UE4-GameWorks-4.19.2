@@ -50,15 +50,15 @@ public:
 public:
 
 	// Begin IProfilerServiceManager interface
-	virtual void SendData(FProfilerCycleCounter& Data) OVERRIDE;
+	virtual void SendData(FProfilerCycleCounter& Data) override;
 
-	virtual void SendData(FProfilerFloatAccumulator& Data) OVERRIDE;
+	virtual void SendData(FProfilerFloatAccumulator& Data) override;
 
-	virtual void SendData(FProfilerCountAccumulator& Data) OVERRIDE;
+	virtual void SendData(FProfilerCountAccumulator& Data) override;
 
-	virtual void SendData(FProfilerCycleGraph& Data) OVERRIDE;
+	virtual void SendData(FProfilerCycleGraph& Data) override;
 
-	virtual bool IsCapturing() const OVERRIDE
+	virtual bool IsCapturing() const override
 	{ 
 #if STATS
 		return (PreviewClients.Num() > 0 || Archive.IsValid());
@@ -71,16 +71,16 @@ public:
 	
 	virtual void StopCapture();
 
-	virtual void UpdateMetaData() OVERRIDE;
+	virtual void UpdateMetaData() override;
 
-	virtual void StartFrame(uint32 FrameNumber, double FrameStart) OVERRIDE;
+	virtual void StartFrame(uint32 FrameNumber, double FrameStart) override;
 
-	virtual FStatMetaData& GetStatMetaData() OVERRIDE
+	virtual FStatMetaData& GetStatMetaData() override
 	{
 		return MetaData;
 	}
 
-	virtual FProfilerDataDelegate& OnProfilerData() OVERRIDE
+	virtual FProfilerDataDelegate& OnProfilerData() override
 	{
 		return ProfilerDataDelegate;
 	}

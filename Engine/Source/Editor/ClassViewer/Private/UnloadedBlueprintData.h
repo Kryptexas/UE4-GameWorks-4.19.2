@@ -8,17 +8,17 @@ class FUnloadedBlueprintData : public IUnloadedBlueprintData
 public:
 	FUnloadedBlueprintData( TWeakPtr< class FClassViewerNode > InClassViewerNode );
 
-	virtual bool HasAnyClassFlags( uint32 InFlagsToCheck ) const OVERRIDE;
+	virtual bool HasAnyClassFlags( uint32 InFlagsToCheck ) const override;
 
-	virtual bool HasAllClassFlags( uint32 InFlagsToCheck ) const OVERRIDE;
+	virtual bool HasAllClassFlags( uint32 InFlagsToCheck ) const override;
 
-	virtual void SetClassFlags(uint32 InFlags) OVERRIDE;
+	virtual void SetClassFlags(uint32 InFlags) override;
 
-	virtual bool ImplementsInterface(const UClass* InInterface) const OVERRIDE;
+	virtual bool ImplementsInterface(const UClass* InInterface) const override;
 
-	virtual bool IsChildOf(const UClass* InClass) const OVERRIDE;
+	virtual bool IsChildOf(const UClass* InClass) const override;
 
-	virtual bool IsA(const UClass* InClass) const OVERRIDE;
+	virtual bool IsA(const UClass* InClass) const override;
 
 	/** Retrieves the Class Viewer node this data is associated with. */
 	const TWeakPtr< class FClassViewerNode > GetClassViewerNode() const;

@@ -135,7 +135,7 @@ public:
 		OutEnvironment.SetDefine( TEXT("LPV_GV_VOLUME_TEXTURE"),	(uint32)LPV_GV_VOLUME_TEXTURE );
 	}
 	// Serialization
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 
@@ -392,7 +392,7 @@ public:
 
 	explicit FLpvClearCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearCS,TEXT("LPVClear"),TEXT("CSClear"),SF_Compute);
 
@@ -417,7 +417,7 @@ public:
 
 	explicit FLpvClearGeometryVolumeCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearGeometryVolumeCS,TEXT("LPVClear"),TEXT("CSClearGeometryVolume"),SF_Compute);
 
@@ -442,7 +442,7 @@ public:
 
 	explicit FLpvClearListsCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvClearListsCS,TEXT("LPVClearLists"),TEXT("CSClearLists"),SF_Compute);
 
@@ -505,7 +505,7 @@ public:
 	}
 
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			
+	virtual bool Serialize( FArchive& Ar ) override			
 	{ 
 		bool rv = FLpvWriteShaderCSBase::Serialize( Ar ); 
 		Ar << RsmDiffuseTexture;
@@ -555,7 +555,7 @@ public:
 
 	explicit FLpvInject_AccumulateVplListsCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvInject_AccumulateVplListsCS,TEXT("LPVInject_AccumulateVplLists"),TEXT("CSAccumulateVplLists"),SF_Compute);
 
@@ -580,7 +580,7 @@ public:
 
 	explicit FLpvBuildGeometryVolumeCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(,FLpvBuildGeometryVolumeCS,TEXT("LPVBuildGeometryVolume"),TEXT("CSBuildGeometryVolume"),SF_Compute);
 
@@ -618,7 +618,7 @@ public:
 
 	explicit TLpvPropagateCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 
 IMPLEMENT_SHADER_TYPE(template<>,TLpvPropagateCS<0>,													TEXT("LPVPropagate"),TEXT("CSPropogate"),SF_Compute);
@@ -671,7 +671,7 @@ public:
 
 	explicit FLpvInjectShader_Base( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvWriteShaderCSBase(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvWriteShaderCSBase::Serialize( Ar ); }
 };
 
 // ----------------------------------------------------------------------------
@@ -696,7 +696,7 @@ public:
 
 	explicit TLpvInject_PointLightCS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvInjectShader_Base(Initializer)		{	}
 
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE			{ return FLpvInjectShader_Base::Serialize( Ar ); }
+	virtual bool Serialize( FArchive& Ar ) override			{ return FLpvInjectShader_Base::Serialize( Ar ); }
 };
 IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<0>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);
 IMPLEMENT_SHADER_TYPE(template<>,TLpvInject_PointLightCS<INJECT_SHADOWED>,TEXT("LPVDirectLightInject"),TEXT("CSPointLightInject_ListGenCS"),SF_Compute);

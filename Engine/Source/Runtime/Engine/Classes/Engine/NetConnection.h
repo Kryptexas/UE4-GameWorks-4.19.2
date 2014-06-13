@@ -315,9 +315,9 @@ public:
 
 	// Begin UObject interface.
 
-	ENGINE_API virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 
-	ENGINE_API virtual void FinishDestroy() OVERRIDE;
+	ENGINE_API virtual void FinishDestroy() override;
 
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -326,7 +326,7 @@ public:
 
 	// Begin FExec interface.
 
-	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 
 	// End FExec interface.
 

@@ -42,10 +42,10 @@ public:
 		return bLegacyGeneratedClassIsAuthoritative;
 	}
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	/** Gets asset registry tags */
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	/** Generates a new blueprint Guid, used when creating new blueprints */
 	void GenerateNewGuid()

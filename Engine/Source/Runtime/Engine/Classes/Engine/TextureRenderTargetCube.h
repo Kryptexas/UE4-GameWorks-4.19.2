@@ -58,10 +58,10 @@ class UTextureRenderTargetCube : public UTextureRenderTarget
 	ENGINE_API class UTextureCube* ConstructTextureCube(UObject* Outer, const FString& NewTexName, EObjectFlags InFlags);
 
 	// Begin UTexture interface.
-	virtual float GetSurfaceWidth() const  OVERRIDE { return SizeX; }
-	virtual float GetSurfaceHeight()const  OVERRIDE { return SizeX; }	
-	virtual FTextureResource* CreateResource() OVERRIDE;
-	virtual EMaterialValueType GetMaterialType() OVERRIDE;
+	virtual float GetSurfaceWidth() const  override { return SizeX; }
+	virtual float GetSurfaceHeight()const  override { return SizeX; }	
+	virtual FTextureResource* CreateResource() override;
+	virtual EMaterialValueType GetMaterialType() override;
 	// End UTexture interface.
 
 	EPixelFormat GetFormat() const
@@ -82,11 +82,11 @@ class UTextureRenderTargetCube : public UTextureRenderTarget
 	}
 	// Begin UObject interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual FString GetDesc() override;
 	// Begin UObject interface
 };
 

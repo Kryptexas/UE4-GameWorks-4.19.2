@@ -19,12 +19,12 @@
 struct FWorldZoomLevelsContainer 
 	: public FZoomLevelsContainer
 {
-	float	GetZoomAmount(int32 InZoomLevel) const OVERRIDE
+	float	GetZoomAmount(int32 InZoomLevel) const override
 	{
 		return 1.f/FMath::Square(GetNumZoomLevels() - InZoomLevel + 1)*2.f;
 	}
 
-	int32 GetNearestZoomLevel( float InZoomAmount ) const OVERRIDE
+	int32 GetNearestZoomLevel( float InZoomAmount ) const override
 	{
 		for (int32 ZoomLevelIndex=0; ZoomLevelIndex < GetNumZoomLevels(); ++ZoomLevelIndex)
 		{
@@ -37,22 +37,22 @@ struct FWorldZoomLevelsContainer
 		return GetDefaultZoomLevel();
 	}
 
-	FText GetZoomText(int32 InZoomLevel) const OVERRIDE
+	FText GetZoomText(int32 InZoomLevel) const override
 	{
 		return FText::AsNumber(GetZoomAmount(InZoomLevel));
 	}
 
-	int32	GetNumZoomLevels() const OVERRIDE
+	int32	GetNumZoomLevels() const override
 	{
 		return 100;
 	}
 
-	int32	GetDefaultZoomLevel() const OVERRIDE
+	int32	GetDefaultZoomLevel() const override
 	{
 		return GetNumZoomLevels() - 10;
 	}
 
-	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const OVERRIDE
+	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const override
 	{
 		return EGraphRenderingLOD::DefaultDetail;
 	}
@@ -183,7 +183,7 @@ public:
 	}
 		
 	/**  SWidget interface */
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
 		SNodePanel::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
@@ -253,7 +253,7 @@ public:
 	}
 	
 	/**  SWidget interface */
-	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const OVERRIDE
+	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
 	{
 		for (int32 ChildIndex=0; ChildIndex < VisibleChildren.Num(); ++ChildIndex)
 		{
@@ -276,7 +276,7 @@ public:
 	/**  SWidget interface */
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
 							FSlateWindowElementList& OutDrawElements, int32 LayerId, 
-							const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const OVERRIDE
+							const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		// First paint the background
 		{
@@ -375,7 +375,7 @@ public:
 	}
 		
 	/** SWidget interface */
-	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		const bool bIsRightMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::RightMouseButton );
 		const bool bIsLeftMouseButtonDown = MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton );
@@ -565,7 +565,7 @@ protected:
 	}
 		
 	/**  SWidget interface */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) OVERRIDE
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
 		if (CommandList->ProcessCommandBindings(InKeyboardEvent))
 		{
@@ -581,7 +581,7 @@ protected:
 	}
 
 	/**  SWidget interface */
-	bool SupportsKeyboardFocus() const OVERRIDE
+	bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -634,7 +634,7 @@ protected:
 	}
 	
 	/**  SNodePanel interface */
-	virtual void PopulateVisibleChildren(const FGeometry& AllottedGeometry) OVERRIDE
+	virtual void PopulateVisibleChildren(const FGeometry& AllottedGeometry) override
 	{
 		VisibleChildren.Empty();
 
@@ -680,14 +680,14 @@ protected:
 	}
 
 	/**  SNodePanel interface */
-	virtual void OnBeginNodeInteraction(const TSharedRef<SNode>& InNodeToDrag, const FVector2D& GrabOffset) OVERRIDE
+	virtual void OnBeginNodeInteraction(const TSharedRef<SNode>& InNodeToDrag, const FVector2D& GrabOffset) override
 	{
 		bHasNodeInteraction = true;
 		SNodePanel::OnBeginNodeInteraction(InNodeToDrag, GrabOffset);
 	}
 	
 	/**  SNodePanel interface */
-	virtual void OnEndNodeInteraction(const TSharedRef<SNode>& InNodeDragged) OVERRIDE
+	virtual void OnEndNodeInteraction(const TSharedRef<SNode>& InNodeDragged) override
 	{
 		const SWorldTileItem& Item = static_cast<const SWorldTileItem&>(InNodeDragged.Get());
 		if (Item.IsItemEditable())

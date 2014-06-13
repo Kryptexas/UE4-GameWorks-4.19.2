@@ -48,7 +48,7 @@ public:
 	}
 
 	// FViewportClient interface
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	// End of FViewportClient interface
 
 public:
@@ -231,7 +231,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("TextureViewTabMenu_ToolTip", "Shows the viewport");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
 		//TSharedRef<FTileSetEditorViewportClient> ViewportClientPtr = MakeShareable(new FTileSetEditorViewportClient(TileSetEditorPtr));
@@ -262,12 +262,12 @@ public:
 	}
 
 	// SSingleObjectDetailsPanel interface
-	virtual UObject* GetObjectToObserve() const OVERRIDE
+	virtual UObject* GetObjectToObserve() const override
 	{
 		return TileSetEditorPtr.Pin()->GetTileSetBeingEdited();
 	}
 
-	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) OVERRIDE
+	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
 	{
 		return SNew(SVerticalBox)
 			+SVerticalBox::Slot()
@@ -297,7 +297,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("DetailsTabMenu_ToolTip", "Shows the details panel");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
 		return SNew(STileSetPropertiesTabBody, TileSetEditorPtr);
@@ -313,7 +313,7 @@ public:
 	FBasicTileSetEditorMode(TSharedPtr<class FTileSetEditor> InTileSetEditor, FName InModeName);
 
 	// FApplicationMode interface
-	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) OVERRIDE;
+	virtual void RegisterTabFactories(TSharedPtr<FTabManager> InTabManager) override;
 	// End of FApplicationMode interface
 
 protected:

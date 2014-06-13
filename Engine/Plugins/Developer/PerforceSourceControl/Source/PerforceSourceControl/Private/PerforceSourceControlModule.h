@@ -9,8 +9,8 @@ class FPerforceSourceControlModule : public IModuleInterface
 {
 public:
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Access the Perforce source control settings */
 	FPerforceSourceControlSettings& AccessSettings();

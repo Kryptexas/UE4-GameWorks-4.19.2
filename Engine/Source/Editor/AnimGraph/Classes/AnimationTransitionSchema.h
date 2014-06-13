@@ -10,9 +10,9 @@ class UAnimationTransitionSchema : public UEdGraphSchema_K2
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphSchema interface.
-	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const OVERRIDE;
-	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const OVERRIDE { return false; }
+	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
+	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const override { return false; }
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const;
 	// End UEdGraphSchema interface.
 

@@ -9,10 +9,10 @@ class UBehaviorTreeGraphNode_Task : public UBehaviorTreeGraphNode
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	/** Gets a list of actions that can be done to this particular node */
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
 
-	virtual bool CanPlaceBreakpoints() const OVERRIDE { return true; }
+	virtual bool CanPlaceBreakpoints() const override { return true; }
 };

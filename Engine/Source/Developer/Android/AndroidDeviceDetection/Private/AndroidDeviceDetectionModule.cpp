@@ -259,12 +259,12 @@ public:
 		}
 	}
 
-	virtual const TMap<FString,FAndroidDeviceInfo>& GetDeviceMap() OVERRIDE
+	virtual const TMap<FString,FAndroidDeviceInfo>& GetDeviceMap() override
 	{
 		return DeviceMap;
 	}
 
-	virtual FCriticalSection* GetDeviceMapLock() OVERRIDE
+	virtual FCriticalSection* GetDeviceMapLock() override
 	{
 		return &DeviceMapLock;
 	}
@@ -305,7 +305,7 @@ public:
 		AndroidDeviceDetectionSingleton = nullptr;
 	}
 
-	virtual IAndroidDeviceDetection* GetAndroidDeviceDetection() OVERRIDE
+	virtual IAndroidDeviceDetection* GetAndroidDeviceDetection() override
 	{
 		if (AndroidDeviceDetectionSingleton == nullptr)
 		{

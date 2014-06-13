@@ -391,7 +391,7 @@ public:
 		delete this->Stream;
 	}
 
-	virtual bool Close() OVERRIDE
+	virtual bool Close() override
 	{
 		FString Out;
 		for (int32 i = 0; i < Bytes.Num(); i+=sizeof(TCHAR))

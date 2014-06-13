@@ -10,11 +10,11 @@ class UAnimStateNodeBase : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 
 	// UEdGraphNode interface
-	virtual void PostPasteNode() OVERRIDE;
-	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
-	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
-	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
+	virtual void PostPasteNode() override;
+	virtual UObject* GetJumpTargetForDoubleClick() const override;
+	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const override;
+	virtual void OnRenameNode(const FString& NewName) override;
+	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	// End of UEdGraphNode interface
 
 	// @return the input pin for this state
@@ -38,6 +38,6 @@ protected:
 	
 public:
 	// Gets the animation state node documentation link
-	virtual FString GetDocumentationLink() const OVERRIDE;
+	virtual FString GetDocumentationLink() const override;
 
 };

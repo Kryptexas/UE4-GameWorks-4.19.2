@@ -24,19 +24,19 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<class UNavigationComponent*>& /*NotifyList*/);
 
 	// BEGIN INavLinkCustomInterface
-	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const OVERRIDE;
-	virtual TSubclassOf<UNavArea> GetLinkAreaClass() const OVERRIDE;
-	virtual uint32 GetLinkId() const OVERRIDE;
-	virtual bool IsLinkPathfindingAllowed(const UObject* Querier) const OVERRIDE;
-	virtual bool OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint) OVERRIDE;
-	virtual void OnLinkMoveFinished(class UPathFollowingComponent* PathComp) OVERRIDE;
+	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const override;
+	virtual TSubclassOf<UNavArea> GetLinkAreaClass() const override;
+	virtual uint32 GetLinkId() const override;
+	virtual bool IsLinkPathfindingAllowed(const UObject* Querier) const override;
+	virtual bool OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint) override;
+	virtual void OnLinkMoveFinished(class UPathFollowingComponent* PathComp) override;
 	// END INavLinkCustomInterface
 
 	// BEGIN UNavRelevantComponent
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnOwnerRegistered() OVERRIDE;
-	virtual void OnOwnerUnregistered() OVERRIDE;
-	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnOwnerRegistered() override;
+	virtual void OnOwnerUnregistered() override;
+	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) override;
 	// END UNavRelevantComponent
 
 	/** set basic link data: end points and direction */

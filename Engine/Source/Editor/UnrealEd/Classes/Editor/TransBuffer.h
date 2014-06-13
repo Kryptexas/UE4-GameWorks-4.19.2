@@ -48,8 +48,8 @@ public:
 
 	// Begin UObject interface.
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual void FinishDestroy() override;
 
 	// End UObject interface.
 
@@ -57,26 +57,26 @@ public:
 
 	// Begin UTransactor interface.
 
-	virtual int32 Begin( const TCHAR* SessionContext, const FText& Description ) OVERRIDE;
-	virtual int32 End() OVERRIDE;
-	virtual void Cancel( int32 StartIndex = 0 ) OVERRIDE;
-	virtual void Reset( const FText& Reason ) OVERRIDE;
-	virtual bool CanUndo( FText* Text=NULL ) OVERRIDE;
-	virtual bool CanRedo( FText* Text=NULL ) OVERRIDE;
-	virtual int32 GetQueueLength( ) const OVERRIDE { return UndoBuffer.Num(); }
-	virtual const FTransaction* GetTransaction( int32 QueueIndex ) const OVERRIDE;
-	virtual FUndoSessionContext GetUndoContext( bool bCheckWhetherUndoPossible = true ) OVERRIDE;
-	virtual SIZE_T GetUndoSize() const OVERRIDE;
-	virtual int32 GetUndoCount( ) const OVERRIDE { return UndoCount; }
-	virtual FUndoSessionContext GetRedoContext() OVERRIDE;
-	virtual bool Undo() OVERRIDE;
-	virtual bool Redo() OVERRIDE;
-	virtual bool EnableObjectSerialization() OVERRIDE;
-	virtual bool DisableObjectSerialization() OVERRIDE;
-	virtual bool IsObjectSerializationEnabled() OVERRIDE { return DisallowObjectSerialization == 0; }
-	virtual void SetPrimaryUndoObject( UObject* Object ) OVERRIDE;
-	virtual ITransaction* CreateInternalTransaction() OVERRIDE;
-	virtual bool IsActive() OVERRIDE
+	virtual int32 Begin( const TCHAR* SessionContext, const FText& Description ) override;
+	virtual int32 End() override;
+	virtual void Cancel( int32 StartIndex = 0 ) override;
+	virtual void Reset( const FText& Reason ) override;
+	virtual bool CanUndo( FText* Text=NULL ) override;
+	virtual bool CanRedo( FText* Text=NULL ) override;
+	virtual int32 GetQueueLength( ) const override { return UndoBuffer.Num(); }
+	virtual const FTransaction* GetTransaction( int32 QueueIndex ) const override;
+	virtual FUndoSessionContext GetUndoContext( bool bCheckWhetherUndoPossible = true ) override;
+	virtual SIZE_T GetUndoSize() const override;
+	virtual int32 GetUndoCount( ) const override { return UndoCount; }
+	virtual FUndoSessionContext GetRedoContext() override;
+	virtual bool Undo() override;
+	virtual bool Redo() override;
+	virtual bool EnableObjectSerialization() override;
+	virtual bool DisableObjectSerialization() override;
+	virtual bool IsObjectSerializationEnabled() override { return DisallowObjectSerialization == 0; }
+	virtual void SetPrimaryUndoObject( UObject* Object ) override;
+	virtual ITransaction* CreateInternalTransaction() override;
+	virtual bool IsActive() override
 	{
 		return ActiveCount > 0;
 	}

@@ -472,7 +472,7 @@ public:
 	}
 
 	/** @return Widget based on the column name */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		const FString Entry = WidgetInfo.Get()->GetFieldEntry( ColumnName );
 		return

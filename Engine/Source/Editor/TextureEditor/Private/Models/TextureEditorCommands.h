@@ -25,7 +25,7 @@ public:
 public:
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 	
 public:
 

@@ -114,7 +114,7 @@ public:
 	}
 
 	/** SWidget Interface*/
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && FMultiBoxSettings::IsInToolbarEditMode() )
 		{
@@ -124,7 +124,7 @@ public:
 		return FReply::Unhandled();
 	}
 
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		FToolBarBuilder TempBuilder( MakeShareable(new FUICommandList), FMultiBoxCustomization::None );
 		TempBuilder.AddToolBarButton( TreeItem->CommandInfo.ToSharedRef() );

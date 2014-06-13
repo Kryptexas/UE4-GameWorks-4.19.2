@@ -12,9 +12,9 @@ public:
 
 protected:
 	// SGraphNode Interface
-	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) OVERRIDE;
-	virtual EVisibility IsAddPinButtonVisible() const OVERRIDE;
-	virtual FReply OnAddPin() OVERRIDE;
+	virtual void CreateOutputSideAddButton(TSharedPtr<SVerticalBox> OutputBox) override;
+	virtual EVisibility IsAddPinButtonVisible() const override;
+	virtual FReply OnAddPin() override;
 
 private:
 	USoundCueGraphNode* SoundNode;

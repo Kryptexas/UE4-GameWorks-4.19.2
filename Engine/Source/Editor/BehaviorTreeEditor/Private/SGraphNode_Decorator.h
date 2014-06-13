@@ -10,5 +10,5 @@ public:
 
 	void Construct(const FArguments& InArgs, UBehaviorTreeDecoratorGraphNode_Decorator* InNode);
 
-	virtual FString GetNodeComment() const OVERRIDE;
+	virtual FString GetNodeComment() const override;
 };

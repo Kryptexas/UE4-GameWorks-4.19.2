@@ -21,9 +21,9 @@ class ULevelScriptBlueprint : public UBlueprint
 	}
 
 	// Begin UBlueprint interface
-	ENGINE_API virtual UObject* GetObjectBeingDebugged() OVERRIDE;
-	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) OVERRIDE;
-	ENGINE_API virtual FString GetFriendlyName() const OVERRIDE;
+	ENGINE_API virtual UObject* GetObjectBeingDebugged() override;
+	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) override;
+	ENGINE_API virtual FString GetFriendlyName() const override;
 	// End UBlueprint interface
 
 	/** Generate a name for a level script blueprint from the current level */

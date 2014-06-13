@@ -80,8 +80,8 @@ public:
 	FString ToolTip;
 
 	// UObject interface.
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+	virtual void PostEditUndo() override;
+	virtual void PostLoadSubobjects(struct FObjectInstancingGraph* OuterInstanceGraph) override;
 	// End of UObject interface.
 
 	uint32 GenerateUniqueNameIdForMemberVariable();

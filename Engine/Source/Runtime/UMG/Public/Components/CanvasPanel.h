@@ -20,13 +20,13 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	UCanvasPanelSlot* AddSlot(UWidget* Content);
 
 	// UPanelWidget
-	virtual int32 GetChildrenCount() const OVERRIDE;
-	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
-	virtual int32 GetChildIndex(UWidget* Content) const OVERRIDE;
-	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
-	virtual bool RemoveChild(UWidget* Child) OVERRIDE;
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child) OVERRIDE;
-	virtual void InsertChildAt(int32 Index, UWidget* Child) OVERRIDE;
+	virtual int32 GetChildrenCount() const override;
+	virtual UWidget* GetChildAt(int32 Index) const override;
+	virtual int32 GetChildIndex(UWidget* Content) const override;
+	virtual bool AddChild(UWidget* Child, FVector2D Position) override;
+	virtual bool RemoveChild(UWidget* Child) override;
+	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
+	virtual void InsertChildAt(int32 Index, UWidget* Child) override;
 	// End UPanelWidget
 
 	/** Gets the underlying native canvas widget if it has been constructed */
@@ -37,11 +37,11 @@ class UMG_API UCanvasPanel : public UPanelWidget
 
 #if WITH_EDITOR
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
 	// UWidget interface
-	virtual void ConnectEditorData() OVERRIDE;
+	virtual void ConnectEditorData() override;
 	// End UWidget interface
 #endif
 
@@ -51,6 +51,6 @@ protected:
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 };

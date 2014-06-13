@@ -17,9 +17,9 @@ protected:
 	TSet<FString> AlreadyCompiledFullPaths;
 protected:
 	// UResavePackagesCommandlet interface
-	virtual int32 InitializeResaveParameters(const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames) OVERRIDE;
-	virtual void PerformAdditionalOperations(class UObject* Object, bool& bSavePackage) OVERRIDE;
-	virtual FText GetChangelistDescription() const OVERRIDE;
+	virtual int32 InitializeResaveParameters(const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames) override;
+	virtual void PerformAdditionalOperations(class UObject* Object, bool& bSavePackage) override;
+	virtual FText GetChangelistDescription() const override;
 	// End of UResavePackagesCommandlet interface
 
 	void CompileOneBlueprint(UBlueprint* Blueprint);

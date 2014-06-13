@@ -9,7 +9,7 @@ class FGetWorkspaces : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE 
+	virtual FName GetName() const override 
 	{ 
 		return "GetWorkspaces"; 
 	}

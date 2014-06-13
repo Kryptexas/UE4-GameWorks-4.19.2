@@ -290,10 +290,10 @@ public:
 	FRichCurveKey GetLastKey() const;
 
 	/** Get number of key in curve. */
-	virtual int32 GetNumKeys() const OVERRIDE;
+	virtual int32 GetNumKeys() const override;
 	
 	/** Checks to see if the key handle is valid for this curve */
-	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const OVERRIDE;
+	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const override;
 
 	/**
 	  * Add a new key to the curve with the supplied Time and Value. Returns the handle of the new key.
@@ -446,25 +446,25 @@ class UCurveBase : public UObject, public FCurveOwnerInterface
 
 public:
 	// Begin FCurveOwnerInterface
-	virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override
 	{
 		TArray<FRichCurveEditInfoConst> Curves;
 		return Curves;
 	}
 
-	virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE
+	virtual TArray<FRichCurveEditInfo> GetCurves() override
 	{
 		TArray<FRichCurveEditInfo> Curves;
 		return Curves;
 	}
 
-	virtual UObject* GetOwner() OVERRIDE
+	virtual UObject* GetOwner() override
 	{
 		return this;
 	}
 
-	virtual void ModifyOwner() OVERRIDE;
-	virtual void MakeTransactional() OVERRIDE;
+	virtual void ModifyOwner() override;
+	virtual void MakeTransactional() override;
 	// End FCurveOwnerInterface
 
 	// Begin UCurveBase interface
@@ -510,10 +510,10 @@ struct ENGINE_API FIntegralCurve : public FIndexedCurve
 public:
 	
 	/** Get number of keys in curve. */
-	virtual int32 GetNumKeys() const OVERRIDE;
+	virtual int32 GetNumKeys() const override;
 	
 	/** Checks to see if the key handle is valid for this curve */
-	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const OVERRIDE;
+	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const override;
 
 	/** Evaluates the value of an array of keys at a time */
 	int32 Evaluate(float Time) const;

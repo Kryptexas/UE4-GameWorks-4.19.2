@@ -15,22 +15,22 @@
 class FAndroid_DXTTargetPlatform
 	: public FAndroidTargetPlatform
 {
-	virtual FString GetAndroidVariantName( ) OVERRIDE
+	virtual FString GetAndroidVariantName( ) override
 	{
 		return TEXT("DXT");
 	}
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return LOCTEXT("Android_DXT", "Android (DXT)");
 	}
 
-	virtual FString PlatformName() const OVERRIDE
+	virtual FString PlatformName() const override
 	{
 		return FString(FAndroid_DXTPlatformProperties::PlatformName());
 	}
 
-	virtual bool SupportsTextureFormat( FName Format ) const OVERRIDE
+	virtual bool SupportsTextureFormat( FName Format ) const override
 	{
 		if( Format == AndroidTexFormat::NameDXT1 ||
 			Format == AndroidTexFormat::NameDXT5 ||
@@ -41,7 +41,7 @@ class FAndroid_DXTTargetPlatform
 		return false;
 	}
 
-	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const override
 	{
 		return (ExtensionsString.Contains(TEXT("GL_NV_texture_compression_s3tc")) || ExtensionsString.Contains(TEXT("GL_EXT_texture_compression_s3tc")));
 	}
@@ -74,7 +74,7 @@ public:
 	
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetTargetPlatform() override
 	{
 		if (AndroidTargetSingleton == NULL)
 		{

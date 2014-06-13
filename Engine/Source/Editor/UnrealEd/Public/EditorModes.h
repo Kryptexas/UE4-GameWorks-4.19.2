@@ -196,7 +196,7 @@ public:
 
 	virtual FVector GetWidgetNormalFromCurrentAxis( void* InData );
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE {}
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override {}
 
 	virtual void Enter();
 	virtual void Exit();
@@ -424,7 +424,7 @@ public:
 	FEdModeDefault();
 
 	// FEdMode interface
-	virtual bool UsesPropertyWidgets() const OVERRIDE { return true; }
+	virtual bool UsesPropertyWidgets() const override { return true; }
 	// End of FEdMode interface
 };
 
@@ -716,7 +716,7 @@ public:
 	UNREALED_API void ClearAllBookmarks( FLevelEditorViewportClient* InViewportClient );
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	/**

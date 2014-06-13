@@ -27,15 +27,15 @@ public:
 
 public:
 	// FLevelModel interface
-	virtual bool HasValidPackage() const OVERRIDE;
-	virtual UObject* GetNodeObject() OVERRIDE;
-	virtual ULevel* GetLevelObject() const OVERRIDE;
-	virtual FName GetAssetName() const OVERRIDE;
-	virtual FName GetLongPackageName() const OVERRIDE;
-	virtual void Update() OVERRIDE;
-	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
-	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
-	virtual UClass* GetStreamingClass() const OVERRIDE;
+	virtual bool HasValidPackage() const override;
+	virtual UObject* GetNodeObject() override;
+	virtual ULevel* GetLevelObject() const override;
+	virtual FName GetAssetName() const override;
+	virtual FName GetLongPackageName() const override;
+	virtual void Update() override;
+	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) override;
+	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const override;
+	virtual UClass* GetStreamingClass() const override;
 	// FLevelModel interface end
 		
 	/** @return the StreamingLevelIndex */
@@ -55,8 +55,8 @@ private:
 	void UpdatePackageFileAvailability();
 
 	// Begin FEditorUndoClient
-	virtual void PostUndo(bool bSuccess) OVERRIDE { Update(); }
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override { Update(); }
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 private:

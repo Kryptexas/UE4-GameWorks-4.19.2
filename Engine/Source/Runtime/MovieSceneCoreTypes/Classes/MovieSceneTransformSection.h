@@ -14,8 +14,8 @@ class UMovieSceneTransformSection : public UMovieSceneSection
 public:
 
 	/** MovieSceneSection interface */
-	virtual void MoveSection( float DeltaPosition ) OVERRIDE;
-	virtual void DilateSection( float DilationFactor, float Origin ) OVERRIDE;
+	virtual void MoveSection( float DeltaPosition ) override;
+	virtual void DilateSection( float DilationFactor, float Origin ) override;
 
 	/**
 	 * Evaluates the translation component of the transform

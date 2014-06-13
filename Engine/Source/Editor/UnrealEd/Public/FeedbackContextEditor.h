@@ -93,7 +93,7 @@ public:
 
 	UNREALED_API FFeedbackContextEditor();
 
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 	void BeginSlowTask( const FText& Task, bool bShouldShowProgressDialog, bool bShowCancelButton=false );
 	void EndSlowTask();
@@ -104,7 +104,7 @@ public:
 
 	void OnUserCancel();
 
-	virtual bool YesNof( const FText& Question ) OVERRIDE
+	virtual bool YesNof( const FText& Question ) override
 	{
 		return EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, Question );
 	}
@@ -117,7 +117,7 @@ public:
 	 * 
 	 * @return true by default and false if status update is not possible
 	 */
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) OVERRIDE;
+	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
 
 	/** Force updating feedback status
 	 *
@@ -127,7 +127,7 @@ public:
 	 * @return true by default and false if status update is not possible
 	 *
 	 */
-	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) OVERRIDE;
+	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
 
 	/**
 	 * Updates the progress amount without changing the status message text

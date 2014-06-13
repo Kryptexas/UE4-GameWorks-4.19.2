@@ -58,8 +58,8 @@ public:
 
 private:
 	/** IModuleInterface implementation */
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Add the menu extension for summoning the tutorial */
 	void AddSummonTutorialsMenuExtension(FMenuBuilder& MenuBuilder);

@@ -19,7 +19,7 @@ public:
 	}
 
 	/** SWidget interface */
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		float NodeHeight = RootNode->GetNodeHeight();
 	
@@ -33,7 +33,7 @@ public:
 		return FVector2D( 100.0f, NodeHeight );
 	}
 
-	virtual FChildren* GetChildren() OVERRIDE
+	virtual FChildren* GetChildren() override
 	{ 
 		return &Children; 
 	}

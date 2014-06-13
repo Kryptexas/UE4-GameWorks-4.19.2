@@ -55,7 +55,7 @@ public:
 	/** 
 	 * Malloc
 	 */
-	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) OVERRIDE
+	virtual void* Malloc( SIZE_T Size, uint32 Alignment ) override
 	{
 		check(Alignment == DEFAULT_ALIGNMENT && "Alignment currently unsupported in this allocator");
 		FMemDebug* Ptr = NULL;
@@ -87,7 +87,7 @@ public:
 	/** 
 	 * Realloc
 	 */
-	virtual void* Realloc( void* InPtr, SIZE_T NewSize, uint32 Alignment ) OVERRIDE
+	virtual void* Realloc( void* InPtr, SIZE_T NewSize, uint32 Alignment ) override
 	{
 		if( InPtr && NewSize )
 		{
@@ -112,7 +112,7 @@ public:
 	/** 
 	 * Free
 	 */
-	virtual void Free( void* InPtr ) OVERRIDE
+	virtual void Free( void* InPtr ) override
 	{
 		if( !InPtr )
 		{
@@ -150,7 +150,7 @@ public:
 	 * @param SizeOut - If possible, this value is set to the size of the passed in pointer
 	 * @return true if succeeded
 	 */
-	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) OVERRIDE
+	virtual bool GetAllocationSize(void *Original, SIZE_T &SizeOut) override
 	{
 		if( !Original )
 		{
@@ -170,7 +170,7 @@ public:
 	 *
 	 * @param Ar	[in] Output device
 	 */
-	virtual void DumpAllocatorStats( FOutputDevice& Ar ) OVERRIDE
+	virtual void DumpAllocatorStats( FOutputDevice& Ar ) override
 	{
 		Ar.Logf( TEXT( "Total Allocation Size: %u" ), TotalAllocationSize );
 		Ar.Logf( TEXT( "Total Waste Size: %u" ), TotalWasteSize );
@@ -193,7 +193,7 @@ public:
 	/**
 	 * Validates the allocator's heap
 	 */
-	virtual bool ValidateHeap() OVERRIDE
+	virtual bool ValidateHeap() override
 	{
 		for( FMemDebug** Link = &GFirstDebug; *Link; Link=&(*Link)->Next )
 		{
@@ -210,12 +210,12 @@ public:
 		return( true );
 	}
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		return false;
 	}
 
-	virtual const TCHAR * GetDescriptiveName() OVERRIDE { return TEXT("debug"); }
+	virtual const TCHAR * GetDescriptiveName() override { return TEXT("debug"); }
 
 };
 

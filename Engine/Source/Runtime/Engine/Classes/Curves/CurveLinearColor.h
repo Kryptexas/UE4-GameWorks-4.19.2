@@ -18,8 +18,8 @@ class UCurveLinearColor : public UCurveBase
 	ENGINE_API FLinearColor GetLinearColorValue(float InTime) const;
 
 	// Begin FCurveOwnerInterface
-	virtual TArray<FRichCurveEditInfoConst> GetCurves() const OVERRIDE;
-	virtual TArray<FRichCurveEditInfo> GetCurves() OVERRIDE;
+	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
+	virtual TArray<FRichCurveEditInfo> GetCurves() override;
 
 	/** @return True if the curve as any alpha keys */
 	bool HasAnyAlphaKeys() const { return FloatCurves[3].GetNumKeys() > 0; }

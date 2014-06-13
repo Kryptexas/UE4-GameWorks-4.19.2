@@ -192,15 +192,15 @@ class FProgressListener : public IProgressListener
 {
 public:
 	// Begin IProgressListener interface
-	virtual void	setProgress(int progress, const char* taskName = NULL) OVERRIDE {}
+	virtual void	setProgress(int progress, const char* taskName = NULL) override {}
 	// End IProgressListener interface
 };
 
 class FExplicitHierarchicalMeshEmbedding : public IExplicitHierarchicalMesh::IEmbedding
 {
 public:
-	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type) const OVERRIDE {}
-	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type, physx::PxU32 version) OVERRIDE {}
+	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type) const override {}
+	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type, physx::PxU32 version) override {}
 };
 
 #endif // WITH_APEX

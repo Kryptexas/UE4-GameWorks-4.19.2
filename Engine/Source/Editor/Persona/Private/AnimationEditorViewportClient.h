@@ -39,25 +39,25 @@ public:
 	virtual ~FAnimationViewportClient();
 
 	// FEditorViewportClient interface
-	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
-	virtual void Tick(float DeltaSeconds) OVERRIDE;
-	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) OVERRIDE;
-	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) OVERRIDE;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) OVERRIDE;
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) OVERRIDE;
-	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) OVERRIDE;
-	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) OVERRIDE;
-	virtual void TrackingStopped() OVERRIDE;
-	virtual FWidget::EWidgetMode GetWidgetMode() const OVERRIDE;
-	virtual void SetWidgetMode(FWidget::EWidgetMode InWidgetMode) OVERRIDE;
-	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const OVERRIDE;
-	virtual FVector GetWidgetLocation() const OVERRIDE;
-	virtual FMatrix GetWidgetCoordSystem() const OVERRIDE;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const OVERRIDE;
-	virtual void SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem) OVERRIDE;
-	virtual void SetViewMode(EViewModeIndex InViewModeIndex) OVERRIDE;
-	virtual void SetViewportType(ELevelViewportType InViewportType) OVERRIDE;
+	virtual FLinearColor GetBackgroundColor() const override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) override;
+	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
+	virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily) override;
+	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
+	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
+	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) override;
+	virtual void TrackingStopped() override;
+	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual void SetWidgetMode(FWidget::EWidgetMode InWidgetMode) override;
+	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
+	virtual FVector GetWidgetLocation() const override;
+	virtual FMatrix GetWidgetCoordSystem() const override;
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const override;
+	virtual void SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem) override;
+	virtual void SetViewMode(EViewModeIndex InViewModeIndex) override;
+	virtual void SetViewportType(ELevelViewportType InViewportType) override;
 	// End of FEditorViewportClient interface
 
 	/** Draw call to render UV overlay */

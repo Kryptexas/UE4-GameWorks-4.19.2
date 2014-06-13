@@ -11,23 +11,23 @@ class UDEPRECATED_K2Node_SelectEnum : public UK2Node_Select
 	GENERATED_UCLASS_BODY()
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	// End UK2Node interface
 
 	// Begin UK2Node_Select interface
-	virtual void GetOptionPins(TArray<UEdGraphPin*>& OptionPins) const OVERRIDE;
-	virtual bool CanAddOptionPinToNode() const OVERRIDE { return false; }
-	virtual bool CanRemoveOptionPinToNode() const OVERRIDE { return false; }
+	virtual void GetOptionPins(TArray<UEdGraphPin*>& OptionPins) const override;
+	virtual bool CanAddOptionPinToNode() const override { return false; }
+	virtual bool CanRemoveOptionPinToNode() const override { return false; }
 	// End UK2Node_Select interface
 
 	// Bind the option to a named enum 
-	BLUEPRINTGRAPH_API void SetEnum(UEnum* InEnum) OVERRIDE;
+	BLUEPRINTGRAPH_API void SetEnum(UEnum* InEnum) override;
 };
 

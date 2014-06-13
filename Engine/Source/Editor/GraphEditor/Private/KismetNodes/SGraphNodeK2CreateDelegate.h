@@ -20,7 +20,7 @@ public:
 
 	virtual ~SGraphNodeK2CreateDelegate();
 	void Construct(const FArguments& InArgs, UK2Node* InNode);
-	virtual void CreateBelowWidgetControls(TSharedPtr<SVerticalBox> MainBox) OVERRIDE;
+	virtual void CreateBelowWidgetControls(TSharedPtr<SVerticalBox> MainBox) override;
 
 protected:
 	FString GetCurrentFunctionDescription() const;

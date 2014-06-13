@@ -44,14 +44,14 @@ public:
 
 
 	/** Gets the name of this profiler as a string.  This is used to allow the user to select this profiler in a system configuration file or on the command-line */
-	virtual const TCHAR* GetProfilerName() const OVERRIDE
+	virtual const TCHAR* GetProfilerName() const override
 	{
 		return TEXT( "VSPerf" );
 	}
 
 
 	/** Pauses profiling. */
-	virtual void ProfilerPauseFunction() OVERRIDE
+	virtual void ProfilerPauseFunction() override
 	{
 		const int ProcessOrThreadId = PROFILE_CURRENTID;
 		PROFILE_COMMAND_STATUS Result = StopProfileFunction( PROFILE_GLOBALLEVEL, ProcessOrThreadId );
@@ -63,7 +63,7 @@ public:
 
 
 	/** Resumes profiling. */
-	virtual void ProfilerResumeFunction() OVERRIDE
+	virtual void ProfilerResumeFunction() override
 	{
 		const int ProcessOrThreadId = PROFILE_CURRENTID;
 		PROFILE_COMMAND_STATUS Result = StartProfileFunction( PROFILE_GLOBALLEVEL, ProcessOrThreadId );

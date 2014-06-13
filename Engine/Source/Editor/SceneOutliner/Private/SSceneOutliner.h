@@ -92,17 +92,17 @@ namespace SceneOutliner
 		void ExpandActor(AActor* Actor);
 
 		/** SWidget interface */
-		virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+		virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 		/**	Broadcasts whenever the current selection changes */
 		FSimpleMulticastDelegate SelectionChanged;
 
 		/** Sends a requests to the Scene Outliner to refresh itself the next chance it gets */
-		virtual void Refresh() OVERRIDE;
+		virtual void Refresh() override;
 
 		// Begin FEditorUndoClient Interface
-		virtual void PostUndo(bool bSuccess) OVERRIDE;
-		virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+		virtual void PostUndo(bool bSuccess) override;
+		virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 		// End of FEditorUndoClient
 
 		/** Get an array of the currently selected items in this tree */
@@ -277,7 +277,7 @@ namespace SceneOutliner
 		bool IsActorDisplayable( const AActor* Actor ) const;
 
 		/** @return Returns a string to use for highlighting results in the outliner list */
-		virtual FText GetFilterHighlightText() const OVERRIDE;
+		virtual FText GetFilterHighlightText() const override;
 
 		/**
 		 * Handler for when a property changes on any object
@@ -325,10 +325,10 @@ namespace SceneOutliner
 		EVisibility GetSearchBoxVisibility() const;
 
 		/** Overridden from SWidget: Checks to see if this widget supports keyboard focus */
-		virtual bool SupportsKeyboardFocus() const OVERRIDE;
+		virtual bool SupportsKeyboardFocus() const override;
 
 		/** Overridden from SWidget: Called when a key is pressed down */
-		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+		virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 		/** Function to validate actor list shown in scene outliner widget */
 		void ValidateOutlinerTreeView();

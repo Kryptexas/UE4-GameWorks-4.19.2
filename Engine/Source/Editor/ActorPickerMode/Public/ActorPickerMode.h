@@ -16,8 +16,8 @@ class ACTORPICKERMODE_API FActorPickerModeModule : public IModuleInterface
 {
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End of IModuleInterface
 
 	/** 

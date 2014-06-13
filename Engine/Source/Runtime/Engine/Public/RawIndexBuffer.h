@@ -167,7 +167,7 @@ public:
 	void Serialize(FArchive& Ar, bool bNeedsCPUAccess);
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	inline bool Is32Bit() const { return b32Bit; }
 

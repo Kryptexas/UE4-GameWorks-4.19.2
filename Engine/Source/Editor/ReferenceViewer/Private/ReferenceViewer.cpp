@@ -10,7 +10,7 @@
 
 class FGraphPanelNodeFactory_ReferenceViewer : public FGraphPanelNodeFactory
 {
-	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const OVERRIDE
+	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const override
 	{
 		if ( UEdGraphNode_Reference* DependencyNode = Cast<UEdGraphNode_Reference>(Node) )
 		{
@@ -30,7 +30,7 @@ public:
 		
 	}
 
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		GraphPanelNodeFactory = MakeShareable( new FGraphPanelNodeFactory_ReferenceViewer() );
 		FEdGraphUtilities::RegisterVisualNodeFactory(GraphPanelNodeFactory);
@@ -40,7 +40,7 @@ public:
 			.SetMenuType( ETabSpawnerMenuType::Hide );
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if ( GraphPanelNodeFactory.IsValid() )
 		{
@@ -51,14 +51,14 @@ public:
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ReferenceViewerTabId);
 	}
 
-	virtual void InvokeReferenceViewerTab(const TArray<FName>& GraphRootPackageNames) OVERRIDE
+	virtual void InvokeReferenceViewerTab(const TArray<FName>& GraphRootPackageNames) override
 	{
 		TSharedRef<SDockTab> NewTab = FGlobalTabmanager::Get()->InvokeTab( ReferenceViewerTabId );
 		TSharedRef<SReferenceViewer> ReferenceViewer = StaticCastSharedRef<SReferenceViewer>( NewTab->GetContent() );
 		ReferenceViewer->SetGraphRootPackageNames(GraphRootPackageNames);
 	}
 
-	virtual TSharedRef<SWidget> CreateReferenceViewer(const TArray<FName>& GraphRootPackageNames) OVERRIDE
+	virtual TSharedRef<SWidget> CreateReferenceViewer(const TArray<FName>& GraphRootPackageNames) override
 	{
 		TSharedRef<SReferenceViewer> ReferenceViewer = SNew(SReferenceViewer);
 		ReferenceViewer->SetGraphRootPackageNames(GraphRootPackageNames);

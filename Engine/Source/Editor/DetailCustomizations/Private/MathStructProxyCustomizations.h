@@ -138,10 +138,10 @@ class FMathStructProxyCustomization : public FMathStructCustomization
 {
 public:
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 	/** FMathStructCustomization interface */
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
+	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row ) override;
 
 protected:
 
@@ -233,12 +233,12 @@ public:
 	}
 
 	/** FMathStructCustomization interface */
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row ) OVERRIDE;
+	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row ) override;
 
 protected:
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
+	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
 
 protected:
 	/** Cached rotation values */
@@ -270,6 +270,6 @@ public:
 
 protected:
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const OVERRIDE;
+	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
 };

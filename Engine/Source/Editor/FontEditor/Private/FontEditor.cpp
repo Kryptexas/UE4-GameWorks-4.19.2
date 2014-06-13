@@ -55,7 +55,7 @@ public:
 	TSharedPtr<FUICommandInfo> FontForegroundColor;
 
 	/** Initialize commands */
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 };
 
 void FFontEditorCommands::RegisterCommands()

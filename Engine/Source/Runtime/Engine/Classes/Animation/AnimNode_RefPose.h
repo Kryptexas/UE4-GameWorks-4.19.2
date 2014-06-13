@@ -27,8 +27,8 @@ public:
 	{
 	}
 
-	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
-	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
+	virtual void Evaluate(FPoseContext& Output) override;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 
 };
 

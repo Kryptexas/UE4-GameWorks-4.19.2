@@ -12,8 +12,8 @@ class FEnvironmentQueryEditor : public IEnvironmentQueryEditor, public FEditorUn
 
 public:
 
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
 	void InitEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UEnvQuery* Script );
 	FGraphPanelSelectionSet GetSelectedNodes() const;
@@ -22,15 +22,15 @@ public:
 	virtual ~FEnvironmentQueryEditor();
 
 	// Begin IToolkit interface
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	// End IToolkit interface
 
 	// Begin FEditorUndoClient Interface
-	virtual void	PostUndo(bool bSuccess) OVERRIDE;
-	virtual void	PostRedo(bool bSuccess) OVERRIDE;
+	virtual void	PostUndo(bool bSuccess) override;
+	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
 	// Delegates
@@ -53,7 +53,7 @@ public:
 
 protected:
 	/** Called when "Save" is clicked for this asset */
-	virtual void SaveAsset_Execute() OVERRIDE;
+	virtual void SaveAsset_Execute() override;
 
 private:
 	/** Create widget for graph editing */

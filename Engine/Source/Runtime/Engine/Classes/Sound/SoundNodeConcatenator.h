@@ -24,21 +24,21 @@ class USoundNodeConcatenator : public USoundNode
 
 public:	
 	// Begin USoundNode interface. 
-	virtual bool NotifyWaveInstanceFinished( struct FWaveInstance* WaveInstance ) OVERRIDE;
-	virtual float GetDuration( void ) OVERRIDE;
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual int32 GetMaxChildNodes() const OVERRIDE 
+	virtual bool NotifyWaveInstanceFinished( struct FWaveInstance* WaveInstance ) override;
+	virtual float GetDuration( void ) override;
+	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
+	virtual int32 GetMaxChildNodes() const override 
 	{ 
 		return MAX_ALLOWED_CHILD_NODES; 
 	}
-	virtual void CreateStartingConnectors( void ) OVERRIDE;
-	virtual void InsertChildNode( int32 Index ) OVERRIDE;
-	virtual void RemoveChildNode( int32 Index ) OVERRIDE;
+	virtual void CreateStartingConnectors( void ) override;
+	virtual void InsertChildNode( int32 Index ) override;
+	virtual void RemoveChildNode( int32 Index ) override;
 #if WITH_EDITOR
 	/** Ensure amount of inputs matches new amount of children */
-	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) OVERRIDE;
+	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes) override;
 #endif
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual FString GetUniqueString() const override;
 	// End USoundNode interface. 
 };
 

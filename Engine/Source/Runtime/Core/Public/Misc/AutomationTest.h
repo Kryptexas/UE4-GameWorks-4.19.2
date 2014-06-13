@@ -562,7 +562,7 @@ private:
 		 * @param	V		String to serialize within the context
 		 * @param	Event	Event associated with the string
 		 */
-		virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+		virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 		/**
 		 * Set the automation test associated with the feedback context. The automation test is where all warnings, errors, etc.
@@ -1001,7 +1001,7 @@ class CommandName : public IAutomationLatentCommand \
 	public: \
 	virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 }
 
 #define DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
@@ -1013,7 +1013,7 @@ class CommandName : public IAutomationLatentCommand \
 		{} \
 		virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 	private: \
 	ParamType ParamName; \
 }
@@ -1024,7 +1024,7 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 	public: \
 	virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 }
 
 #define DEFINE_ENGINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(CommandName,ParamType,ParamName)	\
@@ -1036,7 +1036,7 @@ class ENGINE_API CommandName : public IAutomationLatentCommand \
 		{} \
 		virtual ~CommandName() \
 		{} \
-		virtual bool Update() OVERRIDE; \
+		virtual bool Update() override; \
 	private: \
 	ParamType ParamName; \
 }
@@ -1055,7 +1055,7 @@ public: \
 	F##ClassDeclaration(int32 InRoleIndex) : RoleIndex(InRoleIndex) {} \
 	virtual ~F##ClassDeclaration() {} \
 	virtual uint32 GetRoleIndex() const { return RoleIndex; } \
-	virtual void Run() OVERRIDE 
+	virtual void Run() override 
 
 //close the class and add to the framework
 #define END_NETWORK_AUTOMATION_COMMAND(ClassDeclaration,InRoleIndex) }; \
@@ -1103,7 +1103,7 @@ public: \
 		virtual bool IsStressTest() const { return true; } \
 		virtual uint32 GetRequiredDeviceNum() const { return 1; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const OVERRIDE; \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override; \
 		virtual bool RunTest(const FString& Parameters); \
 		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
 	};

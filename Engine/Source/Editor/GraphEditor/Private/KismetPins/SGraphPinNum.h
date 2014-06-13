@@ -12,6 +12,6 @@ public:
 
 protected:
 	// Begin SGraphPinText interface
-	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo) OVERRIDE;
+	virtual void SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type CommitInfo) override;
 	// End SGraphPinText interface
 };

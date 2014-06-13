@@ -29,7 +29,7 @@ public:
 	}
 
 protected:
-	virtual bool CanCreateClass(UClass* ObjectClass) const OVERRIDE
+	virtual bool CanCreateClass(UClass* ObjectClass) const override
 	{
 		if (const UEdGraphNode* DefaultNode = Cast<UEdGraphNode>(ObjectClass->GetDefaultObject()))
 		{
@@ -52,7 +52,7 @@ protected:
 		return false;
 	}
 
-	virtual void ProcessConstructedObject(UObject* CreatedObject) OVERRIDE
+	virtual void ProcessConstructedObject(UObject* CreatedObject) override
 	{
 		if (UEdGraphNode* Node = Cast<UEdGraphNode>(CreatedObject))
 		{

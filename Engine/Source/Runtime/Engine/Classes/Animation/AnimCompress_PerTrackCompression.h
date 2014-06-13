@@ -132,7 +132,7 @@ public:
 
 protected:
 	// Begin UAnimCompress Interface
-	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) OVERRIDE;
+	virtual void DoReduction(class UAnimSequence* AnimSeq, const TArray<class FBoneData>& BoneData) override;
 	// Begin UAnimCompress Interface
 
 	// Begin UAnimCompress_RemoveLinearKeys Interface
@@ -142,13 +142,13 @@ protected:
 		const TArray<FTranslationTrack>& TranslationData,
 		const TArray<FRotationTrack>& RotationData,
 		const TArray<FScaleTrack>& ScaleData,
-		const bool bFinalPass) OVERRIDE;
+		const bool bFinalPass) override;
 	virtual void FilterBeforeMainKeyRemoval(
 		UAnimSequence* AnimSeq, 
 		const TArray<FBoneData>& BoneData, 
 		TArray<FTranslationTrack>& TranslationData,
 		TArray<FRotationTrack>& RotationData,
-		TArray<FScaleTrack>& ScaleData) OVERRIDE;
+		TArray<FScaleTrack>& ScaleData) override;
 	// End UAnimCompress_RemoveLinearKeys Interface
 };
 

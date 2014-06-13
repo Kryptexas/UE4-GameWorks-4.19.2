@@ -1348,12 +1348,12 @@ TSharedRef<ITableRow> FPhAT::OnGenerateRowForTree(FTreeElemPtr Item, const TShar
 			Phat = phat;
 		}
 
-		virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE
+		virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 		{
 			Phat->OnTreeHighlightChanged();
 		}
 	
-		virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE
+		virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override
 		{
 			Phat->OnTreeHighlightChanged();
 		}

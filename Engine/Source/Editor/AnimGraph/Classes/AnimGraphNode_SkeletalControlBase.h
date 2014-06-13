@@ -12,14 +12,14 @@ class UAnimGraphNode_SkeletalControlBase : public UAnimGraphNode_Base
 
 public:
 	// UEdGraphNode interface
-	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	ANIMGRAPH_API virtual FString GetTooltip() const OVERRIDE;
+	ANIMGRAPH_API virtual FLinearColor GetNodeTitleColor() const override;
+	ANIMGRAPH_API virtual FString GetTooltip() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	ANIMGRAPH_API virtual FString GetNodeCategory() const OVERRIDE;
-	ANIMGRAPH_API virtual void CreateOutputPins() OVERRIDE;
-	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
+	ANIMGRAPH_API virtual FString GetNodeCategory() const override;
+	ANIMGRAPH_API virtual void CreateOutputPins() override;
+	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	// End of UAnimGraphNode_Base interface
 
 	// Draw function for supporting visualization

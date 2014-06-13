@@ -42,15 +42,15 @@ public:
 
 #if WITH_EDITOR
 	// UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End of UObject interface.
 #endif	// WITH_EDITOR
 
-	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const OVERRIDE;
+	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const override;
 
 	// UScriptStruct interface.
-	virtual void RecursivelyPreload() OVERRIDE;
+	virtual void RecursivelyPreload() override;
 	// End of  UScriptStruct interface.
 };

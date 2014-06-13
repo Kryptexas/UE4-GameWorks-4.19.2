@@ -50,12 +50,12 @@ public:
 	/**
 	 * Constructs render resources for this vertex factory.
 	 */
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	/**
 	 * Release render resources for this vertex factory.
 	 */
-	virtual void ReleaseRHI() OVERRIDE;
+	virtual void ReleaseRHI() override;
 
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 

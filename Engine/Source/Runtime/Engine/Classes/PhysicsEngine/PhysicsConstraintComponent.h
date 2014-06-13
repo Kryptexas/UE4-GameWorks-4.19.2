@@ -58,25 +58,25 @@ public:
 	FConstraintInstance			ConstraintInstance;
 
 	//Begin UObject Interface
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	//End UObject interface
 
 	//Begin ActorComponent interface
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR
-	virtual void OnRegister() OVERRIDE;
-	virtual void OnUnregister() OVERRIDE;
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
+	virtual void InitializeComponent() override;
 	//End ActorComponent interface
 
 	// Begin SceneComponent interface
 #if WITH_EDITOR
-	virtual void PostEditComponentMove(bool bFinished) OVERRIDE;
+	virtual void PostEditComponentMove(bool bFinished) override;
 #endif // WITH_EDITOR
 	// End SceneComponent interface
 

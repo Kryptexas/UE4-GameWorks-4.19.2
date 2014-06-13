@@ -21,7 +21,7 @@ public:
 	{
 	}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const OVERRIDE
+	virtual bool MatchesComponent(const UActorComponent* Component) const override
 	{
 		return (CastChecked<UStaticMeshComponent>(Component)->StaticMesh == StaticMesh && FComponentInstanceDataBase::MatchesComponent(Component));
 	}

@@ -16,13 +16,13 @@ public:
 
 	// FTickableEditorObject interface
 	/* Tick will reimport files if any are modified and enough delta time has elapsed*/
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual bool IsTickable() const OVERRIDE { return true; }
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
 
 	// Begin UObject Interface
-	virtual void BeginDestroy(void) OVERRIDE;
+	virtual void BeginDestroy(void) override;
 	// End UObject Interface
 
 	/** Delegate to process a auto reimport*/

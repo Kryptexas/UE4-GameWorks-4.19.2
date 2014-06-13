@@ -207,7 +207,7 @@ public:
 	virtual ~FBoneBufferPool();
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 };
 
 /** The type for the buffer pool */
@@ -248,7 +248,7 @@ public:
 	virtual ~FBoneTexturePool();
 	
 public: // From FTickableObjectRenderThread
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual TStatId GetStatId() const override;
 };
 
 /** The type for bone buffers */
@@ -284,14 +284,14 @@ public:
 
 	// interface FRenderResource ------------------------------------------
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		DEC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
 		BoneBuffer.SafeRelease();
 		FRenderResource::ReleaseRHI();
 	}
 
-	virtual void InitDynamicRHI() OVERRIDE
+	virtual void InitDynamicRHI() override
 	{
 		if(SizeX)
 		{
@@ -575,9 +575,9 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE;
-	virtual void InitDynamicRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
@@ -665,7 +665,7 @@ public:
 	* Creates declarations for each of the vertex stream components and
 	* initializes the device resource
 	*/
-	virtual void InitRHI() OVERRIDE;
+	virtual void InitRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 
@@ -813,12 +813,12 @@ public:
 		FGPUBaseSkinVertexFactory::UpdateRHI();
 	}
 
-	virtual FGPUBaseSkinVertexFactory* GetVertexFactory() OVERRIDE
+	virtual FGPUBaseSkinVertexFactory* GetVertexFactory() override
 	{
 		return this;
 	}
 
-	virtual const FGPUBaseSkinVertexFactory* GetVertexFactory() const OVERRIDE
+	virtual const FGPUBaseSkinVertexFactory* GetVertexFactory() const override
 	{
 		return this;
 	}
@@ -829,8 +829,8 @@ public:
 	* Creates declarations for each of the vertex stream components and
 	* initializes the device resource
 	*/
-	virtual void InitRHI() OVERRIDE;
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void InitRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
 

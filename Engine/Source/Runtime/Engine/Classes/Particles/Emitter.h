@@ -118,16 +118,16 @@ class ENGINE_API AEmitter : public AActor
 	void AutoPopulateInstanceProperties();
 
 	// Begin UObject Interface
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual FString GetDetailedInfoInternal() const override;
 	// End UObject Interface
 
 
 	// Begin AActor interface
-	virtual void PostActorCreated() OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostActorCreated() override;
+	virtual void PostInitializeComponents() override;
 #if WITH_EDITOR
-	virtual void CheckForErrors() OVERRIDE;
-	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const OVERRIDE;
+	virtual void CheckForErrors() override;
+	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 	// End AActor interface
 
 	/**

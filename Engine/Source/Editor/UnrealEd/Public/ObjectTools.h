@@ -150,7 +150,7 @@ namespace ObjectTools
 	struct UNREALED_API FConsolidationResults : public FGCObject
 	{
 		/** FGCObject interface; Serialize any object references */
-		virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 		{
 			for( int32 Index = 0; Index < DirtiedPackages.Num(); Index++ )
 			{

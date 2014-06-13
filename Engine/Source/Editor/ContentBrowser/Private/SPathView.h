@@ -107,7 +107,7 @@ public:
 	void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString);
 
 	// SWidget implementation
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 	/** Populates the tree with all folders that are not filtered out */
 	void Populate();

@@ -568,18 +568,18 @@ public:
 	void BroadcastObjectReimported(UObject* InObject) { ObjectReimportedEvent.Broadcast(InObject); }
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;	
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void FinishDestroy() override;	
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
 	// Begin UEngine interface.
-	virtual void Init(IEngineLoop* InEngineLoop) OVERRIDE;
-	virtual void InitializeObjectReferences() OVERRIDE;
+	virtual void Init(IEngineLoop* InEngineLoop) override;
+	virtual void InitializeObjectReferences() override;
 	// End UEngine interface.
 	
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	bool	CommandIsDeprecated( const TCHAR* CommandStr, FOutputDevice& Ar );
@@ -628,7 +628,7 @@ public:
 	
 
 	/** Get tick rate limitor. */
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) OVERRIDE;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
 
 	/**
 	 * Initializes the Editor.
@@ -642,7 +642,7 @@ public:
 	 */
 	void InitBuilderBrush( UWorld* InWorld );
 
-	virtual void Tick( float DeltaSeconds, bool bIdleMode ) OVERRIDE;
+	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
 
 	/** Returns the global instance of the editor user settings class. */
 	const UEditorUserSettings& GetEditorUserSettings() const;
@@ -694,7 +694,7 @@ public:
 	/**
 	 * Returns whether or not the map build in progressed was cancelled by the user.
 	 */
-	virtual bool GetMapBuildCancelled() const OVERRIDE
+	virtual bool GetMapBuildCancelled() const override
 	{
 		return false;
 	}
@@ -704,7 +704,7 @@ public:
 	 *
 	 * @param InCancelled	New state for the cancelled flag.
 	 */
-	virtual void SetMapBuildCancelled( bool InCancelled ) OVERRIDE
+	virtual void SetMapBuildCancelled( bool InCancelled ) override
 	{
 		// Intentionally empty.
 	}
@@ -714,7 +714,7 @@ public:
 	 *
 	 * @param InActor	Actor that is being drawn.
 	 */
-	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) OVERRIDE;
+	virtual bool ShouldDrawBrushWireframe( AActor* InActor ) override;
 
 	// Execute a command that is safe for rebuilds.
 	virtual bool SafeExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
@@ -904,7 +904,7 @@ public:
 	 * Notifies tools that a set of objects is being replaced with a new set of objects, so if any of the old
 	 * objects are being edited, they should be discarded and replaced with the new instance.
 	 */
-	virtual void NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*>& OldToNewInstanceMap) OVERRIDE;
+	virtual void NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*>& OldToNewInstanceMap) override;
 
 	//
 	// Pivot handling.
@@ -1585,7 +1585,7 @@ public:
 	 */
 	bool IsAnyViewportRealtime();
 
-	virtual bool ShouldThrottleCPUUsage() const OVERRIDE;
+	virtual bool ShouldThrottleCPUUsage() const override;
 
 	/**
 	 * @return true if all windows are hidden (including minimized)                                                         
@@ -1606,12 +1606,12 @@ public:
 	/**
 	 * Handles freezing/unfreezing of rendering
 	 */
-	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
 
 	/**
 	 * Handles frezing/unfreezing of streaming
 	 */
-	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 
 	// Editor specific
 
@@ -2133,7 +2133,7 @@ public:
 	 * mostly done to check if PIE is being set up, go GWorld is going to change, and it's not really _the_G_World_
 	 * NOTE: hope this goes away once PIE and regular game triggering are not that separate code paths
 	 */
-	virtual bool IsSettingUpPlayWorld() const OVERRIDE { return EditorWorld != NULL && PlayWorld == NULL; }
+	virtual bool IsSettingUpPlayWorld() const override { return EditorWorld != NULL && PlayWorld == NULL; }
 
 	/**
 	 *	Retrieves the active viewport from the editor.
@@ -2234,16 +2234,16 @@ public:
 	/**
 	 * Returns if this world is a PIE world that has its own viewport (is not using the editor viewport)
 	 */
-	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld) OVERRIDE;
+	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld) override;
 
-	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) OVERRIDE;
+	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) override;
 
 	DECLARE_DELEGATE(FPIEInstanceWindowSwitch);
 
 	/** Sets the delegate for when the focused PIE window is changed */
 	void SetPIEInstanceWindowSwitchDelegate(FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate);
 
-	virtual class UGameViewportClient *	GetNextPIEViewport(UGameViewportClient * CurrentViewport) OVERRIDE;
+	virtual class UGameViewportClient *	GetNextPIEViewport(UGameViewportClient * CurrentViewport) override;
 
 private:
 	//
@@ -2293,9 +2293,9 @@ private:
 	/**
 	 * Creates a PIE world by duplicating the editor world	 
 	 */
-	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) OVERRIDE;
+	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
 
-	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) OVERRIDE;
+	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 
 	/** Creates a PIE world by saving to a temp file and then reloading it */
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
@@ -2413,7 +2413,7 @@ private:
 	void EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld = nullptr );
 
 	/** Returns the GameViewport widget */
-	virtual TSharedPtr<SViewport> GetGameViewportWidget() const OVERRIDE;
+	virtual TSharedPtr<SViewport> GetGameViewportWidget() const override;
 
 	/**
 	 * Given a label, attempts to split this into its alpha/numeric parts.
@@ -2460,13 +2460,13 @@ private:
 	/** Updates the project file to auto load and initializes the bLoadTheMostRecentlyLoadedProjectAtStartup flag */
 	void UpdateAutoLoadProject();
 
-	virtual void TriggerStreamingDataRebuild() OVERRIDE;
+	virtual void TriggerStreamingDataRebuild() override;
 
 	/** Remaps a network path for PIE Networking under multiple worlds */
-	virtual bool NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading=true) OVERRIDE;
+	virtual bool NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading=true) override;
 
 	/** Remaps a network path for PIE Networking under multiple worlds */
-	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) OVERRIDE;
+	virtual bool NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading=true) override;
 
 	/** Handles user setting changes. */
 	void HandleSettingChanged( FName Name );
@@ -2546,7 +2546,7 @@ private:
 	/** List of files we are deferring adding to source control */
 	TArray<FString> DeferredFilesToAddToSourceControl;
 
-	virtual void VerifyLoadMapWorldCleanup() OVERRIDE;
+	virtual void VerifyLoadMapWorldCleanup() override;
 
 	FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate;
 

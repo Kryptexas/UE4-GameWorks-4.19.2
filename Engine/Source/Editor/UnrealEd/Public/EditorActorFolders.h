@@ -30,7 +30,7 @@ class UEditorActorFolders : public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 
 	TMap<FName, FActorFolderProps> Folders;
 };
@@ -42,7 +42,7 @@ struct UNREALED_API FActorFolders : public FGCObject
 	~FActorFolders();
 
 	// FGCObject Interface
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End FGCObject Interface
 
 	/** Check whether the singleton is valid */

@@ -15,7 +15,7 @@ public:
 	{
 	}	
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 
 	// File-ish commands
@@ -81,7 +81,7 @@ public:
 	{
 	}	
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	/**
 	 * Returns a graph action assigned to the passed in gesture

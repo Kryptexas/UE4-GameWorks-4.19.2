@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
 #include "InvariantCulture.h"
@@ -411,7 +411,7 @@ void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FS
 			{
 			}
 
-			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 			{
 				if(bIsDirectory)
 				{

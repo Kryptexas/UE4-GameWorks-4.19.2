@@ -9,9 +9,9 @@ class FSubversionConnectWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 private:
 	/** The root of our working copy */
@@ -25,9 +25,9 @@ class FSubversionCheckOutWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Temporary states for results */
@@ -38,9 +38,9 @@ class FSubversionCheckInWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Temporary states for results */
@@ -51,9 +51,9 @@ class FSubversionMarkForAddWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Temporary states for results */
@@ -64,9 +64,9 @@ class FSubversionDeleteWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Map of filenames to Subversion state */
@@ -77,9 +77,9 @@ class FSubversionRevertWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Map of filenames to Subversion state */
@@ -90,9 +90,9 @@ class FSubversionSyncWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Map of filenames to Subversion state */
@@ -103,9 +103,9 @@ class FSubversionUpdateStatusWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Temporary states for results */
@@ -119,9 +119,9 @@ class FSubversionCopyWorker : public ISubversionSourceControlWorker
 {
 public:
 	// ISubversionSourceControlWorker interface
-	virtual FName GetName() const OVERRIDE;
-	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) OVERRIDE;
-	virtual bool UpdateStates() const OVERRIDE;
+	virtual FName GetName() const override;
+	virtual bool Execute(class FSubversionSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
 
 public:
 	/** Map of filenames to Subversion state */

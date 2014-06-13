@@ -59,12 +59,12 @@ public:
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
 	// UWidget interface
-	void SyncronizeProperties() OVERRIDE;
+	void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 protected:

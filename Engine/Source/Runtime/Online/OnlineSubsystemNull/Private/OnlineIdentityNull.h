@@ -15,15 +15,15 @@ public:
 
 	// FOnlineUser
 	
-	virtual TSharedRef<FUniqueNetId> GetUserId() const OVERRIDE { return UserIdPtr; }
-	virtual FString GetRealName() const OVERRIDE { return TEXT("DummyRealName"); }
-	virtual FString GetDisplayName() const OVERRIDE  { return TEXT("DummyDisplayName"); }
-	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const OVERRIDE;
+	virtual TSharedRef<FUniqueNetId> GetUserId() const override { return UserIdPtr; }
+	virtual FString GetRealName() const override { return TEXT("DummyRealName"); }
+	virtual FString GetDisplayName() const override  { return TEXT("DummyDisplayName"); }
+	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 
 	// FUserOnlineAccount
 
-	virtual FString GetAccessToken() const OVERRIDE { return TEXT("DummyAuthTicket"); }
-	virtual bool GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const OVERRIDE;
+	virtual FString GetAccessToken() const override { return TEXT("DummyAuthTicket"); }
+	virtual bool GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 
 	// FUserOnlineAccountNull
 
@@ -53,17 +53,17 @@ public:
 
 	// IOnlineIdentity
 
-	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) OVERRIDE;
-	virtual bool Logout(int32 LocalUserNum) OVERRIDE;
-	virtual bool AutoLogin(int32 LocalUserNum) OVERRIDE;
-	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetId& UserId) const OVERRIDE;
-	virtual TArray<TSharedPtr<FUserOnlineAccount> > GetAllUserAccounts() const OVERRIDE;
-	virtual TSharedPtr<FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const OVERRIDE;
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) OVERRIDE;
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) OVERRIDE;
-	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const OVERRIDE;
-	virtual FString GetPlayerNickname(int32 LocalUserNum) const OVERRIDE;
-	virtual FString GetAuthToken(int32 LocalUserNum) const OVERRIDE;
+	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
+	virtual bool Logout(int32 LocalUserNum) override;
+	virtual bool AutoLogin(int32 LocalUserNum) override;
+	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetId& UserId) const override;
+	virtual TArray<TSharedPtr<FUserOnlineAccount> > GetAllUserAccounts() const override;
+	virtual TSharedPtr<FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const override;
+	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
+	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
+	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const override;
+	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
+	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 
 	// FOnlineIdentityNull
 

@@ -14,10 +14,10 @@ public:
 	void Construct(const FArguments& InArgs, class UK2Node_Knot* InKnot);
 
 	// SGraphNode interface
-	virtual void UpdateGraphNode() OVERRIDE;
-	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const OVERRIDE;
-	virtual TSharedPtr<SGraphPin> CreatePinWidget(UEdGraphPin* Pin) const OVERRIDE;
-	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) OVERRIDE;
-	virtual void RequestRenameOnSpawn() OVERRIDE { }
+	virtual void UpdateGraphNode() override;
+	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
+	virtual TSharedPtr<SGraphPin> CreatePinWidget(UEdGraphPin* Pin) const override;
+	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) override;
+	virtual void RequestRenameOnSpawn() override { }
 	// End of SGraphNode interface
 };

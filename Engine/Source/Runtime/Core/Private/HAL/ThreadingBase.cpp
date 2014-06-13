@@ -77,12 +77,12 @@ public:
 	}
 
 	// FRunnableThread interface
-	virtual void SetThreadPriority(EThreadPriority NewPriority) OVERRIDE
+	virtual void SetThreadPriority(EThreadPriority NewPriority) override
 	{
 		// Not relevant.
 	}
 
-	virtual void Suspend(bool bShouldPause) OVERRIDE
+	virtual void Suspend(bool bShouldPause) override
 	{
 		bIsSuspended = bShouldPause;
 	}
@@ -93,17 +93,17 @@ public:
 		return true;
 	}
 
-	virtual void WaitForCompletion() OVERRIDE
+	virtual void WaitForCompletion() override
 	{
 		FSingleThreadManager::Get().RemoveThread(this);
 	}
 
-	virtual uint32 GetThreadID() OVERRIDE
+	virtual uint32 GetThreadID() override
 	{
 		return ThreadId;
 	}
 
-	virtual FString GetThreadName() OVERRIDE
+	virtual FString GetThreadName() override
 	{
 		return Name;
 	}
@@ -286,7 +286,7 @@ protected:
 	 * The real thread entry point. It waits for work events to be queued. Once
 	 * an event is queued, it executes it and goes back to waiting.
 	 */
-	virtual uint32 Run() OVERRIDE
+	virtual uint32 Run() override
 	{
 		while (!TimeToDie)
 		{
@@ -436,7 +436,7 @@ public:
 		Destroy();
 	}
 
-	virtual bool Create(uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) OVERRIDE
+	virtual bool Create(uint32 InNumQueuedThreads,uint32 StackSize = (32 * 1024),EThreadPriority ThreadPriority=TPri_Normal) override
 	{
 		// Make sure we have synch objects
 		bool bWasSuccessful = true;
@@ -471,7 +471,7 @@ public:
 		return bWasSuccessful;
 	}
 
-	virtual void Destroy() OVERRIDE
+	virtual void Destroy() override
 	{
 		if (SynchQueue)
 		{
@@ -516,7 +516,7 @@ public:
 		}
 	}
 
-	void AddQueuedWork(FQueuedWork* InQueuedWork) OVERRIDE
+	void AddQueuedWork(FQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -552,7 +552,7 @@ public:
 		}
 	}
 
-	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) OVERRIDE
+	virtual bool RetractQueuedWork(FQueuedWork* InQueuedWork) override
 	{
 		if (TimeToDie)
 		{
@@ -564,7 +564,7 @@ public:
 		return !!QueuedWork.RemoveSingle(InQueuedWork);
 	}
 
-	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) OVERRIDE
+	virtual FQueuedWork* ReturnToPoolOrGetNextJob(FQueuedThread* InQueuedThread) override
 	{
 		check(InQueuedThread != NULL);
 		FQueuedWork* Work = NULL;

@@ -33,7 +33,7 @@ class UInterpTrackInstProperty : public UInterpTrackInst
 	void CallPropertyUpdateCallback();
 
 	// Begin UInterpTrackInst Instance
-	virtual void TermTrackInst(UInterpTrack* Track) OVERRIDE;
+	virtual void TermTrackInst(UInterpTrack* Track) override;
 	// End UInterpTrackInst Instance
 };
 

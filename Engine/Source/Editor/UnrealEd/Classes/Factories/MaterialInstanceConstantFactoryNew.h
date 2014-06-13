@@ -16,7 +16,7 @@ class UMaterialInstanceConstantFactoryNew : public UFactory
 	class UMaterialInterface* InitialParent;
 
 	// Begin UFactory Interface
-	UNREALED_API virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) OVERRIDE;
+	UNREALED_API virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
 	// Begin UFactory Interface	
 };
 

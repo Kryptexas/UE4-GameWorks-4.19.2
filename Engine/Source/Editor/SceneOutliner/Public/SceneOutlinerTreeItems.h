@@ -68,10 +68,10 @@ struct SCENEOUTLINER_API TOutlinerActorTreeItem : TOutlinerTreeItem
 	}
 
 	/** Determine if this tree item is visible or not */
-	virtual bool IsVisible() const OVERRIDE;
+	virtual bool IsVisible() const override;
 
 	/** Set the visibility of this item */
-	virtual void SetIsVisible(bool bIsVisible) OVERRIDE;
+	virtual void SetIsVisible(bool bIsVisible) override;
 };
 
 struct SCENEOUTLINER_API TOutlinerFolderTreeItem : TOutlinerTreeItem
@@ -93,10 +93,10 @@ struct SCENEOUTLINER_API TOutlinerFolderTreeItem : TOutlinerTreeItem
 	}
 
 	/** Determine if this tree item is visible or not */
-	virtual bool IsVisible() const OVERRIDE;
+	virtual bool IsVisible() const override;
 	
 	/** Set the visibility of this item */
-	virtual void SetIsVisible(bool bIsVisible) OVERRIDE;
+	virtual void SetIsVisible(bool bIsVisible) override;
 
 	/** Parse a new path (including leaf-name) into this tree item. Does not do any notification */
 	void ParsePath(FName InPath)

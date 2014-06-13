@@ -53,20 +53,20 @@ protected:
 
 public:
 	/** This pawn class spawns its controller in PostInitProperties to have it available in editor mode*/
-	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
 #endif // WITH_EDITOR
 
 	// IEQSQueryResultSourceInterface start
-	virtual const struct FEnvQueryResult* GetQueryResult() const OVERRIDE;
-	virtual const struct FEnvQueryInstance* GetQueryInstance() const  OVERRIDE;
+	virtual const struct FEnvQueryResult* GetQueryResult() const override;
+	virtual const struct FEnvQueryInstance* GetQueryInstance() const  override;
 
-	virtual bool GetShouldDebugDrawLabels() const OVERRIDE { return bDrawLabels; }
-	virtual bool GetShouldDrawFailedItems() const OVERRIDE{ return bDrawFailedItems; }
+	virtual bool GetShouldDebugDrawLabels() const override { return bDrawLabels; }
+	virtual bool GetShouldDrawFailedItems() const override{ return bDrawFailedItems; }
 	// IEQSQueryResultSourceInterface end
 
 	void RunEQSQuery();

@@ -331,19 +331,19 @@ public:
 	TMap<UTexture2D*, struct FLandscapeWeightmapUsage> WeightmapUsageMap;
 
 	// Begin AActor Interface
-	virtual void UnregisterAllComponents() OVERRIDE;
-	virtual void RegisterAllComponents() OVERRIDE;
-	virtual void RerunConstructionScripts() OVERRIDE {}
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return true; }
-	virtual bool UpdateNavigationRelevancy() OVERRIDE;
-	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const OVERRIDE;
+	virtual void UnregisterAllComponents() override;
+	virtual void RegisterAllComponents() override;
+	virtual void RerunConstructionScripts() override {}
+	virtual bool IsLevelBoundsRelevant() const override { return true; }
+	virtual bool UpdateNavigationRelevancy() override;
+	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 #if WITH_EDITOR
-	virtual void Destroyed() OVERRIDE;
-	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) OVERRIDE;
-	virtual bool ShouldExport() OVERRIDE;
-	virtual bool GetSelectedComponents(TArray<UObject*>& SelectedObjects) OVERRIDE;
+	virtual void Destroyed() override;
+	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
+	virtual bool ShouldExport() override;
+	virtual bool GetSelectedComponents(TArray<UObject*>& SelectedObjects) override;
 	// End AActor Interface
 #endif	//WITH_EDITOR
 
@@ -351,20 +351,20 @@ public:
 	virtual class ALandscape* GetLandscapeActor();
 
 	// Begin INavRelevantActorInterface Interface
-	virtual bool DoesSupplyPerComponentNavigationCollision() const OVERRIDE{ return true; }
+	virtual bool DoesSupplyPerComponentNavigationCollision() const override{ return true; }
 	// End INavRelevantActorInterface Interface
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PreEditUndo() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PreEditUndo() override;
+	virtual void PostEditUndo() override;
+	virtual void PostEditImport() override;
 	// End UObject Interface
 
 	FLandscapeLayerStruct* GetLayerInfo_Deprecated(FName LayerName);

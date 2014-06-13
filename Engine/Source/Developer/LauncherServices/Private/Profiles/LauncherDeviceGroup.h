@@ -32,51 +32,51 @@ public:
 
 	// Begin ILauncherDeviceGroup interface
 
-	virtual void AddDevice( const FString& Device ) OVERRIDE
+	virtual void AddDevice( const FString& Device ) override
 	{
 		Devices.AddUnique(Device);
 
 		DeviceAddedDelegate.Broadcast(AsShared(), Device);
 	}
 
-	virtual const TArray<FString>& GetDevices( ) OVERRIDE
+	virtual const TArray<FString>& GetDevices( ) override
 	{
 		return Devices;
 	}
 
-	virtual FGuid GetId( ) const OVERRIDE
+	virtual FGuid GetId( ) const override
 	{
 		return Id;
 	}
 
-	virtual const FString& GetName( ) const OVERRIDE
+	virtual const FString& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual int32 GetNumDevices( ) const OVERRIDE
+	virtual int32 GetNumDevices( ) const override
 	{
 		return Devices.Num();
 	}
 
-	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded( ) OVERRIDE
+	virtual FOnLauncherDeviceGroupDeviceAdded& OnDeviceAdded( ) override
 	{
 		return DeviceAddedDelegate;
 	}
 
-	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved( ) OVERRIDE
+	virtual FOnLauncherDeviceGroupDeviceRemoved& OnDeviceRemoved( ) override
 	{
 		return DeviceRemovedDelegate;
 	}
 
-	virtual void RemoveDevice( const FString& Device ) OVERRIDE
+	virtual void RemoveDevice( const FString& Device ) override
 	{
 		Devices.Remove(Device);
 
 		DeviceRemovedDelegate.Broadcast(AsShared(), Device);
 	}
 
-	virtual void SetName( const FString& NewName ) OVERRIDE
+	virtual void SetName( const FString& NewName ) override
 	{
 		Name = NewName;
 	}

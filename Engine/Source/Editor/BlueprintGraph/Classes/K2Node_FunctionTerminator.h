@@ -23,12 +23,12 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 
 
 	// Begin UEdGraphNode interface
-	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	virtual bool CanDuplicateNode() const override { return false; }
+	virtual FLinearColor GetNodeTitleColor() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
+	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
 	// End UK2Node interface
 };
 

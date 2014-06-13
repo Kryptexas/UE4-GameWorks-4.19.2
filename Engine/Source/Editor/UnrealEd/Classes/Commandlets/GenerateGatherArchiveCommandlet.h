@@ -18,7 +18,7 @@ class UGenerateGatherArchiveCommandlet : public UGatherTextCommandletBase
 #if CPP || UE_BUILD_DOCS
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main( const FString& Params ) OVERRIDE;
+	virtual int32 Main( const FString& Params ) override;
 	// End UCommandlet Interface
 	
 	bool WriteArchiveToFile( TSharedRef< FJsonObject> ArchiveJSONObject, const FString& OutputDirectoryPath, const TCHAR* Culture, const FString& FileName );

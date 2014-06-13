@@ -13,12 +13,12 @@ class FConnect : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE 
+	virtual FName GetName() const override 
 	{ 
 		return "Connect"; 
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Connecting", "Connecting to source control..."); 
 	}
@@ -58,12 +58,12 @@ class FCheckIn : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "CheckIn";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_CheckIn", "Checking file(s) into Source Control..."); 
 	}
@@ -103,12 +103,12 @@ class FCheckOut : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "CheckOut";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_CheckOut", "Checking file(s) out of Source Control..."); 
 	}
@@ -121,12 +121,12 @@ class FMarkForAdd : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "MarkForAdd";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Add", "Adding file(s) to Source Control..."); 
 	}
@@ -139,12 +139,12 @@ class FDelete : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "Delete";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Delete", "Deleting file(s) from Source Control..."); 
 	}
@@ -157,12 +157,12 @@ class FRevert : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "Revert";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Revert", "Reverting file(s) in Source Control..."); 
 	}	
@@ -175,12 +175,12 @@ class FSync : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "Sync";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Sync", "Syncing file(s) from source control..."); 
 	}	
@@ -209,12 +209,12 @@ public:
 	}
 
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "UpdateStatus";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Update", "Updating file(s) source control status..."); 
 	}	
@@ -267,12 +267,12 @@ class FCopy : public ISourceControlOperation
 {
 public:
 	// ISourceControlOperation interface
-	virtual FName GetName() const OVERRIDE
+	virtual FName GetName() const override
 	{
 		return "Copy";
 	}
 
-	virtual FText GetInProgressString() const OVERRIDE
+	virtual FText GetInProgressString() const override
 	{ 
 		return LOCTEXT("SourceControl_Copy", "Copying file(s) in Source Control..."); 
 	}	

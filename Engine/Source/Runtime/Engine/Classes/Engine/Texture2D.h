@@ -158,28 +158,28 @@ public:
 public:
 
 	// Begin UObject interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;	
+	virtual void Serialize(FArchive& Ar) override;	
 #if WITH_EDITOR
-	virtual void CookerWillNeverCookAgain() OVERRIDE;
-	virtual void PostLinkerChange() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void CookerWillNeverCookAgain() override;
+	virtual void PostLinkerChange() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
-	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
-	virtual FString GetDesc() OVERRIDE;
+	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
+	virtual void PreSave() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual FString GetDesc() override;
 	// End UObject interface.
 
 	// Begin UTexture interface.
-	virtual float GetSurfaceWidth() const OVERRIDE { return GetSizeX(); }
-	virtual float GetSurfaceHeight() const OVERRIDE { return GetSizeY(); }
-	virtual FTextureResource* CreateResource() OVERRIDE;
-	virtual EMaterialValueType GetMaterialType() OVERRIDE { return MCT_Texture2D; }
-	virtual void UpdateResource() OVERRIDE;
-	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale) OVERRIDE;
-	virtual FTexturePlatformData** GetRunningPlatformData() OVERRIDE { return &PlatformData; }
-	virtual TMap<FString,FTexturePlatformData*>* GetCookedPlatformData() OVERRIDE { return &CookedPlatformData; }
+	virtual float GetSurfaceWidth() const override { return GetSizeX(); }
+	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
+	virtual FTextureResource* CreateResource() override;
+	virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
+	virtual void UpdateResource() override;
+	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale) override;
+	virtual FTexturePlatformData** GetRunningPlatformData() override { return &PlatformData; }
+	virtual TMap<FString,FTexturePlatformData*>* GetCookedPlatformData() override { return &CookedPlatformData; }
 	// End UTexture interface.
 
 	/** Trivial accessors. */
@@ -287,7 +287,7 @@ public:
 	 * @param	Enum	Which mips to calculate size for.
 	 * @return	Total size of all specified mips, in bytes
 	 */
-	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const OVERRIDE;
+	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const override;
 
 	/**
 	 *	Get the CRC of the source art pixels.
@@ -346,7 +346,7 @@ public:
 	 *
 	 * @return size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	/**
 	 * Returns whether miplevels should be forced resident.

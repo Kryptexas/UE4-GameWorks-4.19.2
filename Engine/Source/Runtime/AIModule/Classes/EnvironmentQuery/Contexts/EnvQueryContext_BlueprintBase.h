@@ -21,7 +21,7 @@ class UEnvQueryContext_BlueprintBase : public UEnvQueryContext
 
 	ECallMode CallMode;
 
-	virtual void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const OVERRIDE;
+	virtual void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const override;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ProvideSingleActor(AActor* QuerierActor, AActor*& ResultingActor) const;

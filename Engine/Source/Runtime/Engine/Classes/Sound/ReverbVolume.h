@@ -174,14 +174,14 @@ class AReverbVolume : public AVolume
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
 	// Begin AActor Interface
-	virtual void PostUnregisterAllComponents() OVERRIDE;
+	virtual void PostUnregisterAllComponents() override;
 protected:
-	virtual void PostRegisterAllComponents() OVERRIDE;
+	virtual void PostRegisterAllComponents() override;
 public:
 	// End AActor Interface
 };

@@ -215,13 +215,13 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		return Visitor.Visit(*this, FExpressionVisitor::VISIT_Leaf);
 	}
 
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		if (Token.TokenType == FBasicToken::TOKEN_Identifier)
 		{
@@ -267,7 +267,7 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		bool bAbort = !Visitor.Visit(*this, FExpressionVisitor::VISIT_Pre);
 		if (bAbort || !LHS->Accept(Visitor) || !RHS->Accept(Visitor))
@@ -278,7 +278,7 @@ public:
 	}
 
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		const FString LeftStr = LHS->ToString();
 		const FString RightStr = RHS->ToString();
@@ -315,7 +315,7 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		bool bAbort = !Visitor.Visit(*this, FExpressionVisitor::VISIT_Pre);
 		if (bAbort || !RHS->Accept(Visitor))
@@ -326,7 +326,7 @@ public:
 	}
 
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		const FString RightStr = RHS->ToString();
 		return FString::Printf(TEXT("(%s%s)"), *Operator, *RightStr);
@@ -363,7 +363,7 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort.  
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		bool bAbort = !Visitor.Visit(*this, FExpressionVisitor::VISIT_Pre);
 		// @TODO: what about the Condition?
@@ -375,7 +375,7 @@ public:
 	}
 
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		const FString ConditionStr = Condition->ToString();
 		const FString TrueStr = TruePart->ToString();
@@ -408,7 +408,7 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		bool bAbort = !Visitor.Visit(*this, FExpressionVisitor::VISIT_Pre);
 		for (TSharedRef<IFExpressionNode> Child : Children)
@@ -422,7 +422,7 @@ public:
 	}
     
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		FString AsString("(");
 		for (TSharedRef<IFExpressionNode> Child : Children)
@@ -464,7 +464,7 @@ public:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool Accept(FExpressionVisitor& Visitor) OVERRIDE
+	virtual bool Accept(FExpressionVisitor& Visitor) override
 	{
 		bool bAbort = !Visitor.Visit(*this, FExpressionVisitor::VISIT_Pre);
 		if (bAbort || !ParamList->Accept(Visitor))
@@ -475,7 +475,7 @@ public:
 	}
 
 	/** For debug purposes, constructs a textual representation of this expression */
-	virtual FString ToString() const OVERRIDE
+	virtual FString ToString() const override
 	{
 		FString const ParamsString = ParamList->ToString();
 		return FString::Printf(TEXT("(%s%s)"), *FuncName, *ParamsString);
@@ -550,7 +550,7 @@ private:
 	 *
 	 * @return True to continue traversing the tree, false to abort. 
 	 */
-	virtual bool VisitUnhandled(class IFExpressionNode& Node, EVisitPhase Phase) OVERRIDE
+	virtual bool VisitUnhandled(class IFExpressionNode& Node, EVisitPhase Phase) override
 	{
 		if (Phase == FExpressionVisitor::VISIT_Pre)
 		{
@@ -1012,7 +1012,7 @@ public:
 	}
 
 	/// Begin FCodeGenFragment Interface
-	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) OVERRIDE
+	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
 		bool bSuccess = false;
 		if (UEdGraphPin* VariablePin = GeneratedNode->FindPin(GeneratedNode->VariableReference.GetMemberName().ToString()))
@@ -1049,7 +1049,7 @@ public:
 	}
 
 	/// Begin FCodeGenFragment Interface
-	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) OVERRIDE
+	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
 		bool bSuccess = false;
 		if (UEdGraphPin* ResultPin = GeneratedNode->GetReturnValuePin())
@@ -1083,7 +1083,7 @@ public:
 	{}
 
 	/// Begin FCodeGenFragment Interface
-	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) OVERRIDE
+	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
 		UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(InputPin->GetSchema());
 		bool bSuccess = true;//K2Schema->ArePinTypesCompatible(GetOutputType(), InputPin->PinType);
@@ -1120,7 +1120,7 @@ public:
 	}
 
 	/// Begin FCodeGenFragment Interface
-	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) OVERRIDE
+	virtual bool ConnectToInput(UEdGraphPin* InputPin, FCompilerResultsLog& MessageLog) override
 	{
 		return SafeConnectPins(TunnelInputPin, InputPin, MessageLog);
 	}
@@ -1229,7 +1229,7 @@ public:
 	 *
 	 * @return True to continue travesing the expression tree, false to stop.
 	 */
-	virtual bool Visit(FTokenWrapperNode& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FTokenWrapperNode& ExpressionNode, EVisitPhase Phase) override
 	{
 		check(ActiveMessageLog != nullptr);
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -1278,7 +1278,7 @@ public:
 	 *
 	 * @return True to continue traversing the expression tree, false to stop.
 	 */
-	virtual bool Visit(FBinaryOperator& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FBinaryOperator& ExpressionNode, EVisitPhase Phase) override
 	{
 		check(ActiveMessageLog != nullptr);
 		
@@ -1312,7 +1312,7 @@ public:
 	 *
 	 * @return Always true, it is expected that cascading errors are handled (and all should be logged).
 	 */
-	virtual bool Visit(FExpressionList& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FExpressionList& ExpressionNode, EVisitPhase Phase) override
 	{
 		// no fragments are generated from a list node, it mostly acts as a link
 		// from a parent node to some set of sub-expressions
@@ -1330,7 +1330,7 @@ public:
 	 *
 	 * @return True to continue traversing the expression tree, false to stop.
 	 */
-	virtual bool Visit(FFunctionExpression& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FFunctionExpression& ExpressionNode, EVisitPhase Phase) override
 	{
 		check(ActiveMessageLog != nullptr);
 		
@@ -1364,7 +1364,7 @@ public:
 	 *
 	 * @return Always true, it is expected that cascading errors are handled (and all should be logged).
 	 */
-	virtual bool Visit(FUnaryOperator& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FUnaryOperator& ExpressionNode, EVisitPhase Phase) override
 	{
 		// don't want to double up on the error message (in the "Post" phase)
 		if (Phase == VISIT_Pre)
@@ -1387,7 +1387,7 @@ public:
 	 *
 	 * @return Always true, it is expected that cascading errors are handled (and all should be logged).
 	 */
-	virtual bool Visit(FConditionalOperator& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool Visit(FConditionalOperator& ExpressionNode, EVisitPhase Phase) override
 	{
 		check(ActiveMessageLog != nullptr);
 		
@@ -1413,7 +1413,7 @@ private:
 	 *
 	 * @return Always true, it is expected that cascading errors can be handled (and all should be logged).
 	 */
-	virtual bool VisitUnhandled(IFExpressionNode& ExpressionNode, EVisitPhase Phase) OVERRIDE
+	virtual bool VisitUnhandled(IFExpressionNode& ExpressionNode, EVisitPhase Phase) override
 	{
 		check(ActiveMessageLog != nullptr);
 		if (Phase == VISIT_Leaf || Phase == VISIT_Pre)

@@ -54,26 +54,26 @@ public:
 	void SetCapsuleHalfHeight(float HalfHeight, bool bUpdateOverlaps=true);
 
 	// Begin UObject interface
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject interface
 
 	// Begin USceneComponent interface
-	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const OVERRIDE;
-	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const OVERRIDE;
+	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
+	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const override;
 	// End USceneComponent interface
 
 	// Begin UPrimitiveComponent interface.
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
-	virtual bool IsZeroExtent() const OVERRIDE;
-	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const OVERRIDE;
-	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const OVERRIDE;
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual bool IsZeroExtent() const override;
+	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
+	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const override;
 	// End UPrimitiveComponent interface.
 
 	// Begin UShapeComponent interface
-	virtual void UpdateBodySetup() OVERRIDE;
+	virtual void UpdateBodySetup() override;
 	// End UShapeComponent interface
 
 	// @return the capsule radius scaled by the component scale.

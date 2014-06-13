@@ -30,19 +30,19 @@ public:
 
 	// Begin ISocketSubsystem interface
 
-	virtual bool HasNetworkDevice( ) OVERRIDE;
+	virtual bool HasNetworkDevice( ) override;
 
-	virtual ESocketErrors GetLastErrorCode( ) OVERRIDE;
+	virtual ESocketErrors GetLastErrorCode( ) override;
 
-	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) OVERRIDE;
+	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override;
 
-	virtual const TCHAR* GetSocketAPIName( ) const OVERRIDE;
+	virtual const TCHAR* GetSocketAPIName( ) const override;
 
-	virtual bool Init( FString& Error ) OVERRIDE;
+	virtual bool Init( FString& Error ) override;
 
-	virtual void Shutdown( ) OVERRIDE;
+	virtual void Shutdown( ) override;
 
-	virtual ESocketErrors TranslateErrorCode( int32 Code ) OVERRIDE;
+	virtual ESocketErrors TranslateErrorCode( int32 Code ) override;
 
 	// End ISocketSubsystem interface
 

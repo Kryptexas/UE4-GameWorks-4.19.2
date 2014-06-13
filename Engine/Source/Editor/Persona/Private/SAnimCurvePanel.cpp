@@ -112,12 +112,12 @@ public:
 
 protected:
 	// SWidget interface
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const OVERRIDE;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	// SWidget interface
 
 	// SCurveEditor interface
-	virtual void SetDefaultOutput(const float MinZoomRange) OVERRIDE;
-	virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const OVERRIDE;
+	virtual void SetDefaultOutput(const float MinZoomRange) override;
+	virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const override;
 	// SCurveEditor interface
 	
 private:

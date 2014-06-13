@@ -90,20 +90,20 @@ public:
 	virtual void RedrawViewports( bool bShouldPresent = true );
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 	// End UObject interface.
 
 	// Begin UEngine interface.
-	virtual void Init(class IEngineLoop* InEngineLoop) OVERRIDE;
-	virtual void PreExit() OVERRIDE;
-	virtual void Tick( float DeltaSeconds, bool bIdleMode ) OVERRIDE;
-	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) OVERRIDE;
-	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) OVERRIDE;
-	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) OVERRIDE;
+	virtual void Init(class IEngineLoop* InEngineLoop) override;
+	virtual void PreExit() override;
+	virtual void Tick( float DeltaSeconds, bool bIdleMode ) override;
+	virtual float GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing = true ) override;
+	virtual void ProcessToggleFreezeCommand( UWorld* InWorld ) override;
+	virtual void ProcessToggleFreezeStreamingCommand( UWorld* InWorld ) override;
 	// End UEngine interface.
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	/** 

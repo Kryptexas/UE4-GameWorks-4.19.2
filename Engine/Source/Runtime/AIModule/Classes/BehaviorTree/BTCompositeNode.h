@@ -124,7 +124,7 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	void ConditionalNotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, const class UBTNode* ChildNode, EBTNodeResult::Type& NodeResult) const;
 
 	/** size of instance memory */
-	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
+	virtual uint16 GetInstanceMemorySize() const override;
 
 	/** @return child node at given index */
 	class UBTNode* GetChildNode(int32 Index) const;
@@ -142,7 +142,7 @@ class AIMODULE_API UBTCompositeNode : public UBTNode
 	void SetChildOverride(FBehaviorTreeSearchData& SearchData, int8 Index) const;
 
 	/** gathers description of all runtime parameters */
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;
+	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 
 	/** check if child node can execute new subtree */
 	virtual bool CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const;

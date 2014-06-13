@@ -261,16 +261,16 @@ class CORE_API IPhysicalPlatformFile : public IPlatformFile
 {
 public:
 	// BEGIN IPlatformFile Interface
-	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const OVERRIDE
+	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return true;
 	}
-	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) OVERRIDE;
-	virtual IPlatformFile* GetLowerLevel() OVERRIDE
+	virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CmdLine) override;
+	virtual IPlatformFile* GetLowerLevel() override
 	{
 		return NULL;
 	}
-	virtual const TCHAR* GetName() const OVERRIDE
+	virtual const TCHAR* GetName() const override
 	{
 		return IPlatformFile::GetPhysicalTypeName();
 	}

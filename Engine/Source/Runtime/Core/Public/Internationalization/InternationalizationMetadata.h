@@ -180,10 +180,10 @@ public:
 protected:
 	FString Value;
 
-	virtual bool EqualTo( const FLocMetadataValue& Other ) const OVERRIDE;
-	virtual bool LessThan( const FLocMetadataValue& Other ) const OVERRIDE;
+	virtual bool EqualTo( const FLocMetadataValue& Other ) const override;
+	virtual bool LessThan( const FLocMetadataValue& Other ) const override;
 
-	virtual FString GetType() const OVERRIDE {return TEXT("String");}
+	virtual FString GetType() const override {return TEXT("String");}
 };
 
 
@@ -199,10 +199,10 @@ public:
 protected:
 	bool Value;
 
-	virtual bool EqualTo( const FLocMetadataValue& Other ) const OVERRIDE;
-	virtual bool LessThan( const FLocMetadataValue& Other ) const OVERRIDE;
+	virtual bool EqualTo( const FLocMetadataValue& Other ) const override;
+	virtual bool LessThan( const FLocMetadataValue& Other ) const override;
 
-	virtual FString GetType() const OVERRIDE {return TEXT("Boolean");}
+	virtual FString GetType() const override {return TEXT("Boolean");}
 };
 
 /** A LocMetadata Array Value. */
@@ -217,10 +217,10 @@ public:
 protected:
 	TArray< TSharedPtr<FLocMetadataValue> > Value;
 
-	virtual bool EqualTo( const FLocMetadataValue& Other ) const OVERRIDE;
-	virtual bool LessThan( const FLocMetadataValue& Other ) const OVERRIDE;
+	virtual bool EqualTo( const FLocMetadataValue& Other ) const override;
+	virtual bool LessThan( const FLocMetadataValue& Other ) const override;
 
-	virtual FString GetType() const OVERRIDE {return TEXT("Array");}
+	virtual FString GetType() const override {return TEXT("Array");}
 };
 
 /** A LocMetadata Object Value. */
@@ -235,10 +235,10 @@ public:
 protected:
 	TSharedPtr<FLocMetadataObject> Value;
 
-	virtual bool EqualTo( const FLocMetadataValue& Other ) const OVERRIDE;
-	virtual bool LessThan( const FLocMetadataValue& Other ) const OVERRIDE;
+	virtual bool EqualTo( const FLocMetadataValue& Other ) const override;
+	virtual bool LessThan( const FLocMetadataValue& Other ) const override;
 
-	virtual FString GetType() const OVERRIDE {return TEXT("Object");}
+	virtual FString GetType() const override {return TEXT("Object");}
 
 private:
 	// Hidden default ctor

@@ -28,11 +28,11 @@ namespace SceneOutliner
 
 	protected:
 
-		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-		virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 
-		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 		/** Weak reference to the outliner widget that owns this list */
 		TWeakPtr<SSceneOutliner> SceneOutlinerWeak;
@@ -61,13 +61,13 @@ namespace SceneOutliner
 
 
 		/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
-		virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+		virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 		TSharedPtr< SSceneOutlinerItemWidget > GetItemWidget();
 
 	protected:
 
-		virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+		virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 		FReply HandleDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 		
@@ -75,14 +75,14 @@ namespace SceneOutliner
 
 		void PerformAttachment(FName SocketName, TWeakObjectPtr<AActor> ParentActorPtr, const TArray< TWeakObjectPtr<AActor> > ChildrenPtrs);
 
-		virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
-		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
+		virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override
 		{
 			return FReply::Handled();
 		}
 
-		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+		virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 
 	private:

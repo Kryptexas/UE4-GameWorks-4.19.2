@@ -290,7 +290,7 @@ FString FSandboxPlatformFile::ConvertToAbsolutePathForExternalAppForWrite( const
 class FSandboxFileModule : public IPlatformFileModule
 {
 public:
-	virtual IPlatformFile* GetPlatformFile() OVERRIDE
+	virtual IPlatformFile* GetPlatformFile() override
 	{
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FSandboxPlatformFile(true));
 		return AutoDestroySingleton.GetOwnedPointer();

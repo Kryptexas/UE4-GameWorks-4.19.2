@@ -60,7 +60,7 @@ class ANavigationGraph : public ANavigationData
 
 protected:
 #if WITH_NAVIGATION_GENERATOR
-	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) override;
 #endif // WITH_NAVIGATION_GENERATOR
 
 public:

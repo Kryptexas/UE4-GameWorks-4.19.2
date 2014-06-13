@@ -25,7 +25,7 @@ public:
 	void OnNoPath();
 
 	// Begin UObject interface
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End UObject interface
 
 	TWeakObjectPtr<class AAIController> AIController;

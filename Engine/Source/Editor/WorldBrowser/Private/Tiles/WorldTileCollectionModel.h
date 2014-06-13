@@ -26,34 +26,34 @@ public:
 	}
 public:
 	/** FLevelCollection interface */
-	virtual void UnloadLevels(const FLevelModelList& InLevelList) OVERRIDE;
-	virtual void TranslateLevels(const FLevelModelList& InList, FVector2D InAbsoluteDelta, bool bSnapDelta = true)  OVERRIDE;
-	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue) OVERRIDE;
-	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const OVERRIDE;
-	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const OVERRIDE;
-	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const OVERRIDE;
-	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const OVERRIDE;
-	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const OVERRIDE;
-	virtual FVector GetObserverPosition() const OVERRIDE;
-	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const OVERRIDE;
-	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  OVERRIDE;
-	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) OVERRIDE;
-	virtual bool IsTileWorld() const OVERRIDE { return true; };
+	virtual void UnloadLevels(const FLevelModelList& InLevelList) override;
+	virtual void TranslateLevels(const FLevelModelList& InList, FVector2D InAbsoluteDelta, bool bSnapDelta = true)  override;
+	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue) override;
+	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
+	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const override;
+	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const override;
+	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
+	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
+	virtual FVector GetObserverPosition() const override;
+	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const override;
+	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  override;
+	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;
+	virtual bool IsTileWorld() const override { return true; };
 	/** FLevelCollection interface end */
 
 private:
 	/** FTickableEditorObject interface */
-	void Tick( float DeltaTime ) OVERRIDE;
+	void Tick( float DeltaTime ) override;
 	/** FTickableEditorObject interface end */
 
 	/** FLevelCollection interface */
-	virtual void Initialize() OVERRIDE;
-	virtual void BindCommands() OVERRIDE;
-	virtual void OnLevelsCollectionChanged() OVERRIDE;
-	virtual void OnLevelsSelectionChanged() OVERRIDE;
-	virtual void OnLevelsHierarchyChanged() OVERRIDE;
-	virtual void OnPreLoadLevels(const FLevelModelList& InList) OVERRIDE;
-	virtual void OnPreShowLevels(const FLevelModelList& InList) OVERRIDE;
+	virtual void Initialize() override;
+	virtual void BindCommands() override;
+	virtual void OnLevelsCollectionChanged() override;
+	virtual void OnLevelsSelectionChanged() override;
+	virtual void OnLevelsHierarchyChanged() override;
+	virtual void OnPreLoadLevels(const FLevelModelList& InList) override;
+	virtual void OnPreShowLevels(const FLevelModelList& InList) override;
 	/** FLevelCollection interface end */
 	
 public:
@@ -121,8 +121,8 @@ public:
 											float SnappingDistance);
 	
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 	enum FocusStrategy 

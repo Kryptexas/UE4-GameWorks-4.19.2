@@ -57,67 +57,67 @@ class FOculusRiftHMD : public IHeadMountedDisplay, public ISceneViewExtension
 
 public:
 	/** IHeadMountedDisplay interface */
-	virtual bool IsHMDEnabled() const OVERRIDE;
-	virtual void EnableHMD(bool allow = true) OVERRIDE;
-	virtual EHMDDeviceType::Type GetHMDDeviceType() const OVERRIDE;
-	virtual bool GetHMDMonitorInfo(MonitorInfo&) const OVERRIDE;
+	virtual bool IsHMDEnabled() const override;
+	virtual void EnableHMD(bool allow = true) override;
+	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
+	virtual bool GetHMDMonitorInfo(MonitorInfo&) const override;
 
-	virtual bool DoesSupportPositionalTracking() const OVERRIDE;
-	virtual bool HasValidTrackingPosition() const OVERRIDE;
-	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const OVERRIDE;
+	virtual bool DoesSupportPositionalTracking() const override;
+	virtual bool HasValidTrackingPosition() const override;
+	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
 
-	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) OVERRIDE;
-	virtual float GetInterpupillaryDistance() const OVERRIDE;
+	virtual void SetInterpupillaryDistance(float NewInterpupillaryDistance) override;
+	virtual float GetInterpupillaryDistance() const override;
     //virtual float GetFieldOfViewInRadians() const OVERRIDE;
-	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const OVERRIDE;
+	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const override;
 
-    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const OVERRIDE;
-	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) OVERRIDE;
-	virtual void UpdatePlayerCameraRotation(APlayerCameraManager*, struct FMinimalViewInfo& POV) OVERRIDE;
+    virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) const override;
+	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) override;
+	virtual void UpdatePlayerCameraRotation(APlayerCameraManager*, struct FMinimalViewInfo& POV) override;
 
-	virtual bool IsChromaAbCorrectionEnabled() const OVERRIDE;
+	virtual bool IsChromaAbCorrectionEnabled() const override;
 
-	virtual class ISceneViewExtension* GetViewExtension() OVERRIDE;
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
-	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) OVERRIDE;
+	virtual class ISceneViewExtension* GetViewExtension() override;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
+	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
 	/** IStereoRendering interface */
-	virtual bool IsStereoEnabled() const OVERRIDE;
-	virtual bool EnableStereo(bool stereo = true) OVERRIDE;
-    virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const OVERRIDE;
+	virtual bool IsStereoEnabled() const override;
+	virtual bool EnableStereo(bool stereo = true) override;
+    virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override;
 	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, 
-										   const float MetersToWorld, FVector& ViewLocation) OVERRIDE;
-	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const OVERRIDE;
-	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) OVERRIDE;
-	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const OVERRIDE;
-	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const OVERRIDE;
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const OVERRIDE;
+										   const float MetersToWorld, FVector& ViewLocation) override;
+	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const override;
+	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
+	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const override;
+	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const override;
+	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 
     /** ISceneViewExtension interface */
-    virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) OVERRIDE;
-    virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) OVERRIDE;
-    virtual void PreRenderView_RenderThread(FSceneView& InView) OVERRIDE;
-	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) OVERRIDE;
+    virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) override;
+    virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
+    virtual void PreRenderView_RenderThread(FSceneView& InView) override;
+	virtual void PreRenderViewFamily_RenderThread(FSceneViewFamily& InViewFamily) override;
 
 	/** Positional tracking control methods */
-	virtual bool IsPositionalTrackingEnabled() const OVERRIDE;
-	virtual bool EnablePositionalTracking(bool enable) OVERRIDE;
+	virtual bool IsPositionalTrackingEnabled() const override;
+	virtual bool EnablePositionalTracking(bool enable) override;
 
 	/** A hookup for latency tester (render thread). */
-	virtual bool GetLatencyTesterColor_RenderThread(FColor& color, const FSceneView& view) OVERRIDE;
+	virtual bool GetLatencyTesterColor_RenderThread(FColor& color, const FSceneView& view) override;
 
-	virtual bool IsHeadTrackingAllowed() const OVERRIDE;
+	virtual bool IsHeadTrackingAllowed() const override;
 
-	virtual bool IsInLowPersistenceMode() const OVERRIDE;
-	virtual void EnableLowPersistenceMode(bool Enable = true) OVERRIDE;
+	virtual bool IsInLowPersistenceMode() const override;
+	virtual void EnableLowPersistenceMode(bool Enable = true) override;
 
 	/** Resets orientation by setting roll and pitch to 0, 
 	    assuming that current yaw is forward direction and assuming
 		current position as 0 point. */
-	virtual void ResetOrientationAndPosition(float yaw = 0.f) OVERRIDE;
+	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 
-	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) OVERRIDE;
-	virtual void UpdateScreenSettings(const FViewport*) OVERRIDE;
+	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) override;
+	virtual void UpdateScreenSettings(const FViewport*) override;
 
 #ifdef OVR_DIRECT_RENDERING
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
@@ -145,16 +145,16 @@ public:
 		bool				bReadOnly;
 	};
 
-	virtual ID3D11Bridge* GetD3D11Bridge() OVERRIDE 
+	virtual ID3D11Bridge* GetD3D11Bridge() override 
 	{ 
 		check(IsInGameThread());
 		return &mD3D11Bridge; 
 	} 
 
-	virtual void UpdateRenderTarget(FRHITexture* TargetableTexture, FRHITexture* ShaderResourceTexture, uint32 SizeX, uint32 SizeY, int NumSamples) OVERRIDE;
-	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const OVERRIDE;
-	virtual bool NeedReAllocateRenderTarget(uint32 InSizeX, uint32 InSizeY) const OVERRIDE;
-	virtual bool ShouldUseSeparateRenderTarget() const OVERRIDE 
+	virtual void UpdateRenderTarget(FRHITexture* TargetableTexture, FRHITexture* ShaderResourceTexture, uint32 SizeX, uint32 SizeY, int NumSamples) override;
+	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const override;
+	virtual bool NeedReAllocateRenderTarget(uint32 InSizeX, uint32 InSizeY) const override;
+	virtual bool ShouldUseSeparateRenderTarget() const override 
 	{ 
 		check(IsInGameThread());
 		return IsStereoEnabled(); 
@@ -165,7 +165,7 @@ public:
 	void FinishRendering_RenderThread(); //!!AB
 #endif // #ifdef OVR_DIRECT_RENDERING
 
-	virtual void DrawDebug(UCanvas* Canvas) OVERRIDE;
+	virtual void DrawDebug(UCanvas* Canvas) override;
 
 #if 0 // !UE_BUILD_SHIPPING
     /** Debugging functionality */

@@ -70,7 +70,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("DebugView_ToolTip", "Shows the debugging view");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
@@ -96,14 +96,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("DefaultEditorView_ToolTip", "Shows the default editor view");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetDefaultEditor();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("DefaultsEditorTooltip", "The defaults editor lets you set the default value for all variables in your Blueprint.");
 	}
@@ -127,7 +127,7 @@ public:
 
 	}
 
-	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo) OVERRIDE
+	virtual void EvokeHistory(TSharedPtr<FTabInfo> InTabInfo) override
 	{
 		FWorkflowTabSpawnInfo SpawnInfo;
 		SpawnInfo.Payload = Payload;
@@ -139,7 +139,7 @@ public:
 		FactoryPtr.Pin()->UpdateTab(InTabInfo->GetTab().Pin(), SpawnInfo, GraphEditorRef);
 	}
 
-	virtual void SaveHistory() OVERRIDE
+	virtual void SaveHistory() override
 	{
 		if(IsHistoryValid())
 		{
@@ -148,7 +148,7 @@ public:
 		}
 	}
 
-	virtual void RestoreHistory() OVERRIDE
+	virtual void RestoreHistory() override
 	{
 		if(IsHistoryValid())
 		{
@@ -181,19 +181,19 @@ public:
 	{
 	}
 
-	virtual void OnTabActivated(TSharedPtr<SDockTab> Tab) const OVERRIDE
+	virtual void OnTabActivated(TSharedPtr<SDockTab> Tab) const override
 	{
 		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
 		BlueprintEditorPtr.Pin()->OnGraphEditorFocused(GraphEditor);
 	}
 
-	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const OVERRIDE
+	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const override
 	{
 		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
 		GraphEditor->NotifyGraphChanged();
 	}
 
-	virtual void SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE
+	virtual void SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override
 	{
 		TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
 
@@ -215,23 +215,23 @@ public:
 //		BlueprintEditorPtr.Pin()->RequestSaveEditedObjectState();
 //	}
 protected:
-	virtual TAttribute<FText> ConstructTabNameForObject(UEdGraph* DocumentID) const OVERRIDE
+	virtual TAttribute<FText> ConstructTabNameForObject(UEdGraph* DocumentID) const override
 	{
 		return TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic<UEdGraph*>(&FLocalKismetCallbacks::GetGraphDisplayName, DocumentID));
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const override
 	{
 		check(Info.TabInfo.IsValid());
 		return OnCreateGraphEditorWidget.Execute(Info.TabInfo.ToSharedRef(), DocumentID);
 	}
 
-	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const OVERRIDE
+	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const override
 	{
 		return FBlueprintEditor::GetGlyphForGraph(DocumentID, false);
 	}
 
-	virtual TSharedRef<FGenericTabHistory> CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload) OVERRIDE
+	virtual TSharedRef<FGenericTabHistory> CreateTabHistoryNode(TSharedPtr<FTabPayload> Payload) override
 	{
 		return MakeShareable(new FGraphTabHistory(SharedThis(this), Payload));
 	}
@@ -252,22 +252,22 @@ public:
 		, BlueprintEditorPtr(InBlueprintEditorPtr)
 	{}
 protected:
-	virtual TAttribute<FText> ConstructTabNameForObject(UTimelineTemplate* DocumentID) const OVERRIDE
+	virtual TAttribute<FText> ConstructTabNameForObject(UTimelineTemplate* DocumentID) const override
 	{
 		return TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic<UObject*>(&FLocalKismetCallbacks::GetObjectName, DocumentID));
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UTimelineTemplate* DocumentID) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UTimelineTemplate* DocumentID) const override
 	{
 		return SNew(STimelineEditor, BlueprintEditorPtr.Pin(), DocumentID);
 	}
 
-	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UTimelineTemplate* DocumentID) const OVERRIDE
+	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UTimelineTemplate* DocumentID) const override
 	{
 		return FEditorStyle::GetBrush("GraphEditor.Timeline_16x");
 	}
 
-	virtual void SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE
+	virtual void SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override
 	{
 		UTimelineTemplate* Timeline = FTabPayload_UObject::CastChecked<UTimelineTemplate>(Payload);
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Timeline));
@@ -278,13 +278,13 @@ protected:
 // 		BlueprintEditorPtr.Pin()->RequestSaveEditedObjectState();
 // 	}
 
-	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const OVERRIDE
+	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const override
 	{
 		TSharedRef<STimelineEditor> TimelineEditor = StaticCastSharedRef<STimelineEditor>(Tab->GetContent());
 		TimelineEditor->OnTimelineChanged();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("TimelineEditorTooltip", "The Timeline editor lets you add tracks and visually keyframe values over time, to be used inside a Blueprint graph.");
 	}
@@ -311,14 +311,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("ComponentsView_ToolTip", "Show the components view");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetSCSEditor();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("ComponentsTabTooltip", "The Components tab is for easily adding, selecting and attaching Components within your Blueprint.");
 	}
@@ -341,7 +341,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("SCSViewportView_ToolTip", "Show the viewport view");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
@@ -382,14 +382,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("PaletteView_ToolTip", "Show palette of all functions and variables");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetPalette();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("PaletteTooltip", "The Palette tab provides access to _all_ nodes that can be placed (functions, variables, events etc).");
 	}
@@ -413,14 +413,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("MyBlueprintTabView_ToolTip", "Show the my blueprint view");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetMyBlueprintWidget().ToSharedRef();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("MyBlueprintTooltip", "The MyBlueprint tab shows you elements that belong to _this_ Blueprint (variables, graphs etc.)");
 	}
@@ -444,14 +444,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("CompilerResultsView_ToolTip", "Show compiler results of all functions and variables");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetCompilerResults();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("CompilerResultsTooltip", "The compiler results tab shows any errors or warnings generated when compiling this Blueprint.");
 	}
@@ -475,14 +475,14 @@ public:
 		ViewMenuTooltip = LOCTEXT("FindResultsView_ToolTip", "Show find results for searching in this blueprint or all blueprints");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
 		return BlueprintEditorPtr->GetFindResults();
 	}
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("FindResultsTooltip", "The find results tab shows results of searching this Blueprint (or all Blueprints).");
 	}

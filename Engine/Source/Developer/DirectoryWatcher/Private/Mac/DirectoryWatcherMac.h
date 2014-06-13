@@ -9,9 +9,9 @@ public:
 	FDirectoryWatcherMac();
 	virtual ~FDirectoryWatcherMac();
 
-	virtual bool RegisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) OVERRIDE;
-	virtual bool UnregisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) OVERRIDE;
-	virtual void Tick (float DeltaSeconds) OVERRIDE;
+	virtual bool RegisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) override;
+	virtual bool UnregisterDirectoryChangedCallback (const FString& Directory, const FDirectoryChanged& InDelegate) override;
+	virtual void Tick (float DeltaSeconds) override;
 
 	/** Map of directory paths to requests */
 	TMap<FString, FDirectoryWatchRequestMac*> RequestMap;

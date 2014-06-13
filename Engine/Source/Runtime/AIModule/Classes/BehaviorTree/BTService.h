@@ -34,7 +34,7 @@ class AIMODULE_API UBTService : public UBTAuxiliaryNode
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual FString GetStaticDescription() const OVERRIDE;
+	virtual FString GetStaticDescription() const override;
 
 protected:
 
@@ -48,11 +48,11 @@ protected:
 
 	/** update next tick interval
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) OVERRIDE;
+	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	/** called when auxiliary node becomes active
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) OVERRIDE;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

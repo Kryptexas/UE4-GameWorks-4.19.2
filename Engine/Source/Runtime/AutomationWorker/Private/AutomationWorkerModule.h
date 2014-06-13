@@ -13,9 +13,9 @@ public:
 
 	// Begin IModuleInterface interface
 
-	virtual void StartupModule() OVERRIDE;
+	virtual void StartupModule() override;
 
-	virtual bool SupportsDynamicReloading() OVERRIDE;
+	virtual bool SupportsDynamicReloading() override;
 
 	// End IModuleInterface interface
 
@@ -23,9 +23,9 @@ public:
 
 	// Begin IAutomationWorkerModule interface
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
-	virtual void RunTest( const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent ) OVERRIDE;
+	virtual void RunTest( const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent ) override;
 
 	// End IAutomationWorkerModule interface
 

@@ -40,7 +40,7 @@ class ALandscapeGizmoActor : public AActor
 	virtual void Duplicate(ALandscapeGizmoActor* Gizmo); 
 	//virtual void EditorApplyTranslation(const FVector& DeltaTranslation, bool bAltDown, bool bShiftDown, bool bCtrlDown);
 
-	bool EditorCanAttachTo(const AActor* InParent, FText& OutReason) const OVERRIDE
+	bool EditorCanAttachTo(const AActor* InParent, FText& OutReason) const override
 	{
 		return false;
 	}
@@ -49,7 +49,7 @@ class ALandscapeGizmoActor : public AActor
 	/** 
 	 * Indicates whether this actor should participate in level bounds calculations
 	 */
-	virtual bool IsLevelBoundsRelevant() const OVERRIDE { return false; }
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 };
 
 

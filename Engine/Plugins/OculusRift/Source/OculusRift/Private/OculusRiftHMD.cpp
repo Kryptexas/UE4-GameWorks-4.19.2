@@ -14,7 +14,7 @@
 class FOculusRiftPlugin : public IOculusRiftPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
-	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() OVERRIDE;
+	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() override;
 };
 
 IMPLEMENT_MODULE( FOculusRiftPlugin, OculusRift )

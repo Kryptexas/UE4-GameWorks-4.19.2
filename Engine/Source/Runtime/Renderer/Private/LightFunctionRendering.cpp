@@ -51,7 +51,7 @@ public:
 	}
 
 	// Begin FShader interface
-	virtual bool Serialize(FArchive& Ar) OVERRIDE
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;

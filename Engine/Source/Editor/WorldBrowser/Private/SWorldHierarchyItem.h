@@ -42,12 +42,12 @@ public:
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs, TSharedRef<STableViewBase> OwnerTableView);
 
-	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 	FReply OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
-	void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 
 private:
 	/** Operations buttons enabled/disabled state */

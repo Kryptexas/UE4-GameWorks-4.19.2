@@ -104,15 +104,15 @@ public:
 
 #if WITH_EDITOR
 	// Begin UObject interface.
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditMove(bool bFinished) override;
 	// End UObject interface.
 
 	virtual FVector SnapToLandscapeGrid(const FVector& GizmoLocation) const;
 	virtual FRotator SnapToLandscapeGrid(const FRotator& GizmoRotation) const;
 
-	virtual void EditorApplyTranslation(const FVector& DeltaTranslation, bool bAltDown, bool bShiftDown, bool bCtrlDown) OVERRIDE;
-	virtual void EditorApplyRotation(const FRotator& DeltaRotation, bool bAltDown, bool bShiftDown, bool bCtrlDown) OVERRIDE;
+	virtual void EditorApplyTranslation(const FVector& DeltaTranslation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void EditorApplyRotation(const FRotator& DeltaRotation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 
 	/**
 	 * Whenever the decal actor has moved:

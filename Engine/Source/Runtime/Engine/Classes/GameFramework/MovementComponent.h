@@ -70,10 +70,10 @@ public:
 	uint32 bAutoRegisterUpdatedComponent:1;
 
 	// Begin ActorComponent interface 
-	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 
 	/** Overridden to auto-register the updated component if it starts NULL, and we can find a root component on our owner. */
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void InitializeComponent() override;
 	// End ActorComponent interface
 
 	/** @return gravity that affects this component */

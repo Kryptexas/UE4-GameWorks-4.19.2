@@ -39,7 +39,7 @@ namespace StencilingGeometry
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			const int32 NumSides = NumSphereSides;
 			const int32 NumRings = NumSphereRings;
@@ -121,7 +121,7 @@ namespace StencilingGeometry
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			const int32 NumSides = NumSphereSides;
 			const int32 NumRings = NumSphereRings;
@@ -169,7 +169,7 @@ namespace StencilingGeometry
 
 		static const uint32 NumVerts = NumSides * NumSlices * 2;
 
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> Indices;
 
@@ -241,7 +241,7 @@ namespace StencilingGeometry
 		/** 
 		* Initialize the RHI for this rendering resource 
 		*/
-		void InitRHI() OVERRIDE
+		void InitRHI() override
 		{
 			TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
 			Verts.Empty(NumVerts);
@@ -888,7 +888,7 @@ public:
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo, int32 ShadowSplitIndex = INDEX_NONE);
 
 	// Begin FShader interface
-	virtual bool Serialize(FArchive& Ar) OVERRIDE
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;
@@ -1130,7 +1130,7 @@ public:
 		int32 ViewIndex,
 		const FSceneView& View,
 		const FProjectedShadowInfo* ShadowInfo
-		) OVERRIDE
+		) override
 	{
 		FShadowProjectionPixelShaderInterface::SetParameters(RHICmdList, ViewIndex,View,ShadowInfo);
 
@@ -1241,7 +1241,7 @@ public:
 		FRHICommandList& RHICmdList, 
 		int32 ViewIndex,
 		const FSceneView& View,
-		const FProjectedShadowInfo* ShadowInfo) OVERRIDE
+		const FProjectedShadowInfo* ShadowInfo) override
 	{
 		TShadowProjectionPS<Quality>::SetParameters(RHICmdList, ViewIndex, View, ShadowInfo);
 

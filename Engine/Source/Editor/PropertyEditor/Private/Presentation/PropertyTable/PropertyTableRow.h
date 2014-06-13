@@ -15,21 +15,21 @@ public:
 
 	FPropertyTableRow( const TSharedRef< class IPropertyTable >& InTable, const TSharedRef< FPropertyPath >& InPropertyPath, const TSharedRef< FPropertyPath >& InPartialPropertyPath );
 
-	virtual TSharedRef< class IDataSource > GetDataSource() const OVERRIDE { return DataSource; }
+	virtual TSharedRef< class IDataSource > GetDataSource() const override { return DataSource; }
 
-	virtual bool HasChildren() const OVERRIDE;
+	virtual bool HasChildren() const override;
 
-	virtual void GetChildRows( TArray< TSharedRef< class IPropertyTableRow > >& OutChildren ) const OVERRIDE;
+	virtual void GetChildRows( TArray< TSharedRef< class IPropertyTableRow > >& OutChildren ) const override;
 
-	virtual TSharedRef< class IPropertyTable > GetTable() const OVERRIDE;
+	virtual TSharedRef< class IPropertyTable > GetTable() const override;
 
-	virtual bool HasCells() const OVERRIDE { return true; }
+	virtual bool HasCells() const override { return true; }
 
-	virtual TSharedRef< class FPropertyPath > GetPartialPath() const OVERRIDE { return PartialPath; }
+	virtual TSharedRef< class FPropertyPath > GetPartialPath() const override { return PartialPath; }
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
-	virtual void Refresh() OVERRIDE;
+	virtual void Refresh() override;
 
 	DECLARE_DERIVED_EVENT( FPropertyTableRow, IPropertyTableRow::FRefreshed, FRefreshed );
 	virtual FRefreshed* OnRefresh() { return &Refreshed; }

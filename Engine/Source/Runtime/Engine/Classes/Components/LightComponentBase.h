@@ -94,7 +94,7 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	float DynamicEditorTextureScale;
 #endif
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 
 	/**
 	 * Called after duplication & serialization and before PostLoad. Used to e.g. make sure GUIDs remains globally unique.
@@ -103,8 +103,8 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 
 #if WITH_EDITOR
 	/** UObject interface */
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditImport() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/**
 	* @return Path to the editor sprite for the light component class
@@ -150,13 +150,13 @@ class ENGINE_API ULightComponentBase : public USceneComponent
 	bool HasStaticShadowing() const;
 
 	/** UActorComponent Interface */
-	virtual void OnRegister() OVERRIDE;
+	virtual void OnRegister() override;
 
 	/** We return a small bounds to allow us to non-interpenetrates when placing lights in the level. */
-	virtual bool ShouldCollideWhenPlacing() const OVERRIDE;
+	virtual bool ShouldCollideWhenPlacing() const override;
 
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
-	virtual FBoxSphereBounds GetPlacementExtent() const OVERRIDE;
+	virtual FBoxSphereBounds GetPlacementExtent() const override;
 
 protected:
 #if WITH_EDITORONLY_DATA

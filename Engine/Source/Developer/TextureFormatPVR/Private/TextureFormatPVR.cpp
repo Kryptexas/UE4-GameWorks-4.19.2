@@ -227,17 +227,17 @@ static void UseOriginal(const FImage& InImage, FCompressedImage2D& OutCompressed
  */
 class FTextureFormatPVR : public ITextureFormat
 {
-	virtual bool AllowParallelBuild() const OVERRIDE
+	virtual bool AllowParallelBuild() const override
 	{
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		return 6;
 	}
 
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const OVERRIDE
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		for (int32 i = 0; i < ARRAY_COUNT(GSupportedTextureFormatNames); ++i)
 		{
@@ -245,7 +245,7 @@ class FTextureFormatPVR : public ITextureFormat
 		}
 	}
 
-	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const override
 	{
 		FTextureFormatCompressorCaps RetCaps;
 		// PVR compressor is limited to <=4096 in any direction.
@@ -258,7 +258,7 @@ class FTextureFormatPVR : public ITextureFormat
 		const struct FTextureBuildSettings& BuildSettings,
 		bool bImageHasAlphaChannel,
 		FCompressedImage2D& OutCompressedImage
-		) const OVERRIDE
+		) const override
 	{
         // Get Raw Image Data from passed in FImage
         FImage Image;

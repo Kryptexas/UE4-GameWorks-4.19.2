@@ -376,7 +376,7 @@ public:
 		: FRHITexture(0,0,PF_Unknown,0)
 	{}
 
-	virtual FRHITextureReference* GetTextureReference() OVERRIDE { return this; }
+	virtual FRHITextureReference* GetTextureReference() override { return this; }
 	inline FRHITexture* GetReferencedTexture() const { return ReferencedTexture.GetReference(); }
 
 protected:

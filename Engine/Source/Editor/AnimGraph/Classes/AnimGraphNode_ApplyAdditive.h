@@ -14,12 +14,12 @@ class UAnimGraphNode_ApplyAdditive : public UAnimGraphNode_Base
 	FAnimNode_ApplyAdditive Node;
 
 	// UEdGraphNode interface
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	virtual FString GetTooltip() const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
-	virtual FString GetNodeCategory() const OVERRIDE;
+	virtual FString GetNodeCategory() const override;
 	// End of UAnimGraphNode_Base interface
 };

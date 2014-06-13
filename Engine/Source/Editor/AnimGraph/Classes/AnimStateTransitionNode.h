@@ -77,29 +77,29 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	int32 SharedCrossfadeIdx;
 
 	// Begin UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostLoad() override;
 	// End UObject interface
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
-	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
+	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual bool CanDuplicateNode() const { return true; }
-	virtual void PrepareForCopying() OVERRIDE;
-	virtual void PostPasteNode() OVERRIDE;
-	virtual void PostPlacedNewNode() OVERRIDE;
-	virtual void DestroyNode() OVERRIDE;
-	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
+	virtual void PrepareForCopying() override;
+	virtual void PostPasteNode() override;
+	virtual void PostPlacedNewNode() override;
+	virtual void DestroyNode() override;
+	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	// End UEdGraphNode interface
 
 	// Begin UAnimStateNodeBase interface
-	virtual UEdGraph* GetBoundGraph() const OVERRIDE { return BoundGraph; }
-	virtual UEdGraphPin* GetInputPin() const OVERRIDE { return Pins[0]; }
-	virtual UEdGraphPin* GetOutputPin() const OVERRIDE { return Pins[1]; }
+	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
+	virtual UEdGraphPin* GetInputPin() const override { return Pins[0]; }
+	virtual UEdGraphPin* GetOutputPin() const override { return Pins[1]; }
 	// End UAnimStateNodeBase interface
 
 	// @return the name of this state

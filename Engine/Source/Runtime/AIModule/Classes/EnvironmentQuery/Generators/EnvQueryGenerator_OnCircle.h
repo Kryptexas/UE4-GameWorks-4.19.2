@@ -39,15 +39,15 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 	UPROPERTY()
 	uint32 bDefineArc:1;
 
-	virtual void PostLoad() OVERRIDE;
+	virtual void PostLoad() override;
 
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
 
-	virtual FText GetDescriptionTitle() const OVERRIDE;
-	virtual FText GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionTitle() const override;
+	virtual FText GetDescriptionDetails() const override;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 
 protected:

@@ -146,7 +146,7 @@ public:
 	bool ResumeMove(FAIRequestID RequestToResume);
 
 	/** Aborts the move the controller is currently performing */
-	virtual void StopMovement() OVERRIDE;
+	virtual void StopMovement() override;
 
 	/** Called on completing current movement request */
 	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
@@ -181,7 +181,7 @@ public:
 	void SetMoveBlockDetection(bool bEnable);
 
 	/** Prepares path finding and path following components. */
-	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp) OVERRIDE;
+	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp) override;
 
 	/** Starts executing behavior tree. */
 	UFUNCTION(BlueprintCallable, Category="AI")
@@ -230,21 +230,21 @@ public:
 	bool SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius=0, bool bOnlyTraceUp=false);
 
 	// Begin AActor Interface
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
+	virtual void PostInitializeComponents() override;
 	// End AActor Interface
 
 	// Begin AController Interface
-	virtual void Possess(class APawn* InPawn) OVERRIDE;
-	virtual void UnPossess() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void Possess(class APawn* InPawn) override;
+	virtual void UnPossess() override;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const OVERRIDE;
+	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const override;
 #endif
 
-	virtual void Reset() OVERRIDE;
-	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const OVERRIDE;
+	virtual void Reset() override;
+	virtual void GetPlayerViewPoint(FVector& out_Location, FRotator& out_Rotation) const override;
 
 	/**
 	 * Checks line to center and top of other actor
@@ -253,7 +253,7 @@ public:
 	 * @param bAlternateChecks used only in AIController implementation
 	 * @return true if controller's pawn can see Other actor.
 	 */
-	virtual bool LineOfSightTo(const class AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) OVERRIDE;
+	virtual bool LineOfSightTo(const class AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) override;
 	// End AController Interface
 
 	/** Update direction AI is looking based on FocalPoint */

@@ -17,7 +17,7 @@ public:
 	}
 
 	// IDetailCustomization interface
-	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) OVERRIDE;
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder) override;
 	
 private:
 	// persona editor 

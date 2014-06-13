@@ -64,27 +64,27 @@ public:
 		FileHandle = -1;
 	}
 
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		check(IsValid());
 		return lseek64(FileHandle, 0, SEEK_CUR);
 	}
 
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(IsValid());
 		check(NewPosition >= 0);
 		return lseek64(FileHandle, NewPosition, SEEK_SET) != -1;
 	}
 
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(IsValid());
 		check(NewPositionRelativeToEnd <= 0);
 		return lseek64(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
 	}
 
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
 		while (BytesToRead)
@@ -102,7 +102,7 @@ public:
 		return true;
 	}
 
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -151,14 +151,14 @@ public:
 		AAsset_close(File);
 	}
 
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		check(IsValid());
 		int64 pos = lseek(FileHandle, 0, SEEK_CUR);
 		return pos - Start; // We are treating 'tell' as a virtual location from file Start
 	}
 
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(IsValid());
 		// we need to offset all positions by the Start offset
@@ -168,7 +168,7 @@ public:
 		return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
 	}
 
-    virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+    virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(IsValid());
 		check(NewPositionRelativeToEnd <= 0);
@@ -177,7 +177,7 @@ public:
 		return lseek(FileHandle, position, SEEK_SET) != -1;
 	}
 
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
 		while (BytesToRead)
@@ -195,7 +195,7 @@ public:
 		return true;
 	}
 
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -252,7 +252,7 @@ public:
 		AssetMgr = AndroidThunkCpp_GetAssetManager();
 	}
 
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		FString NormalizedFilename = NormalizeFilename(Filename);
@@ -271,7 +271,7 @@ public:
 		return S_ISREG(FileInfo.st_mode);
 	}
 
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		FileInfo.st_size = -1;
@@ -303,7 +303,7 @@ public:
 		return FileInfo.st_size;
 	}
 
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		// only delete from write path
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
@@ -314,7 +314,7 @@ public:
 		return unlink(TCHAR_TO_UTF8(*AndroidFilename)) == 0;
 	}
 
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		FString Filepath = ConvertToAndroidPath(NormalizedFilename, false);
@@ -342,7 +342,7 @@ public:
 		return false;
 	}
 
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		// move to the write path
 		FString ToAndroidFilename = ConvertToAndroidPath(NormalizeFilename(To), true);
@@ -354,7 +354,7 @@ public:
 		return rename(TCHAR_TO_UTF8(*FromAndroidFilename), TCHAR_TO_UTF8(*ToAndroidFilename)) != -1;
 	}
 
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		struct stat FileInfo;
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), false);
@@ -378,7 +378,7 @@ public:
 		return false;
 	}
 
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -405,7 +405,7 @@ public:
 		return AndroidEpoch + TimeSinceEpoch;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, const FDateTime DateTime) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -426,7 +426,7 @@ public:
 		utime(TCHAR_TO_UTF8(*AndroidFilename), &Times);
 	}
 
-	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -452,7 +452,7 @@ public:
 		return AndroidEpoch + TimeSinceEpoch;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		FString NormalizedFilename = NormalizeFilename(Filename);
 		// check the read path
@@ -481,7 +481,7 @@ public:
 		return NULL;
 	}
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead) override
 	{
 		FString AndroidFilename = ConvertToAndroidPath(NormalizeFilename(Filename), true);
 		if (AndroidFilename.Contains(TEXT(".pak")) && GOBBinAPK)
@@ -520,7 +520,7 @@ public:
 		return NULL;
 	}
 
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		struct stat FileInfo;
 		FString NormalizedDirectory = NormalizeFilename(Directory);
@@ -536,19 +536,19 @@ public:
 		return S_ISDIR(FileInfo.st_mode);
 	}
 
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 		FString AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
 		return mkdir(TCHAR_TO_UTF8(*AndroidDirectory), 0766) || (errno == EEXIST);
 	}
 
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 		FString AndroidDirectory = ConvertToAndroidPath(NormalizeFilename(Directory), true);
 		return rmdir(TCHAR_TO_UTF8(*AndroidDirectory));
 	}
 
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) OVERRIDE
+	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
 	{
 		// we haven't hijacked a directory yet, and this one ends in Paks, which means the engine is looking for .pak files
 		if (!bLookedForObbs && FString(Directory).EndsWith("/Paks/"))

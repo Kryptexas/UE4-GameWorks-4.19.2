@@ -24,7 +24,7 @@ class SFixedSizeCanvas : public SConstraintCanvas
 	}
 
 	// SWidget interface
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		return CanvasSize;
 	}

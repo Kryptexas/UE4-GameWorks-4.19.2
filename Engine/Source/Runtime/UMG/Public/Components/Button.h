@@ -68,16 +68,16 @@ public:
 	void SetContentPadding(FMargin InContentPadding);
 
 	// UContentWidget interface
-	virtual void SetContent(UWidget* Content) OVERRIDE;
+	virtual void SetContent(UWidget* Content) override;
 	// End UContentWidget interface
 
 	// UWidget interface
-	void SyncronizeProperties() OVERRIDE;
+	void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:
 	// UWidget interface
-	virtual TSharedRef<SWidget> RebuildWidget() OVERRIDE;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 	FReply HandleOnClicked();

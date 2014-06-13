@@ -13,8 +13,8 @@ class FGraphEditorModule : public IModuleInterface
 {
 
 public:
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Delegates to be called to extend the graph menus */
 	

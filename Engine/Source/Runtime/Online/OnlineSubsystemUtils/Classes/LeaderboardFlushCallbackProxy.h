@@ -25,7 +25,7 @@ class ULeaderboardFlushCallbackProxy : public UObject
 
 public:
 	// Begin UObject interface
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 	// End UObject interface
 
 private:

@@ -42,7 +42,7 @@ class SPropertyNameColumnHeader : public SColumnHeader
 			];
 	}
 
-	virtual TSharedRef< SWidget > GenerateCell( const TSharedRef< class IPropertyTableRow >& PropertyTableRow ) OVERRIDE
+	virtual TSharedRef< SWidget > GenerateCell( const TSharedRef< class IPropertyTableRow >& PropertyTableRow ) override
 	{
 		FString PropertyName;
 			

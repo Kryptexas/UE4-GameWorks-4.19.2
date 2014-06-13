@@ -164,13 +164,13 @@ protected:
 
 protected:
 	// FGraphCompilerContext interface
-	virtual void ValidateLink(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const OVERRIDE;
-	virtual void ValidatePin(const UEdGraphPin* Pin) const OVERRIDE;
-	virtual void ValidateNode(const UEdGraphNode* Node) const OVERRIDE;
-	virtual bool CanIgnoreNode(const UEdGraphNode* Node) const OVERRIDE;
-	virtual bool ShouldForceKeepNode(const UEdGraphNode* Node) const OVERRIDE;
-	virtual void PruneIsolatedNodes(const TArray<UEdGraphNode*>& RootSet, TArray<UEdGraphNode*>& GraphNodes) OVERRIDE;
-	virtual bool PinIsImportantForDependancies(const UEdGraphPin* Pin) const OVERRIDE
+	virtual void ValidateLink(const UEdGraphPin* PinA, const UEdGraphPin* PinB) const override;
+	virtual void ValidatePin(const UEdGraphPin* Pin) const override;
+	virtual void ValidateNode(const UEdGraphNode* Node) const override;
+	virtual bool CanIgnoreNode(const UEdGraphNode* Node) const override;
+	virtual bool ShouldForceKeepNode(const UEdGraphNode* Node) const override;
+	virtual void PruneIsolatedNodes(const TArray<UEdGraphNode*>& RootSet, TArray<UEdGraphNode*>& GraphNodes) override;
+	virtual bool PinIsImportantForDependancies(const UEdGraphPin* Pin) const override
 	{
 		// The execution wires do not form data dependencies, they are only important for final scheduling and that is handled thru gotos
 		return Pin->PinType.PinCategory != Schema->PC_Exec;

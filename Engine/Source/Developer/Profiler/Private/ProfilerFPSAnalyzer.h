@@ -45,9 +45,9 @@ public:
 	virtual ~FFPSAnalyzer()
 	{}
 
-	virtual int32 GetCount(float MinVal, float MaxVal) OVERRIDE;
+	virtual int32 GetCount(float MinVal, float MaxVal) override;
 
-	virtual int32 GetTotalCount() OVERRIDE;
+	virtual int32 GetTotalCount() override;
 
 	void Reset();
 

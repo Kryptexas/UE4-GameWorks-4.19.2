@@ -2075,7 +2075,7 @@ protected:
 class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageHandler
 {
 	/** Subclass fills out an archive to send to the server */
-	virtual void FillPayload(FArchive& Payload) OVERRIDE
+	virtual void FillPayload(FArchive& Payload) override
 	{
 		// tell other side all the materials to load, by pathname
 		for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -2097,7 +2097,7 @@ class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageH
 	}
 
 	/** Subclass pulls data response from the server */
-	virtual void ProcessResponse(FArchive& Response) OVERRIDE
+	virtual void ProcessResponse(FArchive& Response) override
 	{
 		// pull back the compiled mesh material data (if any)
 		TArray<uint8> MeshMaterialMaps;

@@ -40,39 +40,39 @@ public:
 
 public:
 
-	virtual bool Connect( ) OVERRIDE
+	virtual bool Connect( ) override
 	{
 		return true;
 	}
 
-	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) OVERRIDE;
+	virtual bool Deploy( const FString& SourceFolder, FString& OutAppId ) override;
 
 	virtual void Disconnect( )
 	{ }
 
-	virtual ETargetDeviceTypes::Type GetDeviceType( ) const OVERRIDE
+	virtual ETargetDeviceTypes::Type GetDeviceType( ) const override
 	{
 		return ETargetDeviceTypes::Desktop;
 	}
 
-	virtual FTargetDeviceId GetId( ) const OVERRIDE
+	virtual FTargetDeviceId GetId( ) const override
 	{
 		return TargetDeviceId;
 	}
 
-	virtual FString GetName( ) const OVERRIDE
+	virtual FString GetName( ) const override
 	{
 		return DeviceName;
 	}
 
-	virtual FString GetOperatingSystemName( ) OVERRIDE
+	virtual FString GetOperatingSystemName( ) override
 	{
 		return TEXT("GNU/Linux");
 	}
 
-	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) OVERRIDE;
+	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) override;
 
-	virtual const class ITargetPlatform& GetTargetPlatform( ) const OVERRIDE
+	virtual const class ITargetPlatform& GetTargetPlatform( ) const override
 	{
 		return TargetPlatform;
 	}
@@ -82,36 +82,36 @@ public:
 		return true;
 	}
 
-	virtual bool IsDefault( ) const OVERRIDE
+	virtual bool IsDefault( ) const override
 	{
 		return true;
 	}
 
-	virtual bool PowerOff( bool Force ) OVERRIDE
+	virtual bool PowerOff( bool Force ) override
 	{
 		return false;
 	}
 
-	virtual bool PowerOn( ) OVERRIDE
+	virtual bool PowerOn( ) override
 	{
 		return false;
 	}
 
-	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId ) OVERRIDE;
+	virtual bool Launch( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, EBuildTargets::Type BuildTarget, const FString& Params, uint32* OutProcessId ) override;
 	
-	virtual bool Reboot( bool bReconnect = false ) OVERRIDE;
+	virtual bool Reboot( bool bReconnect = false ) override;
 
-	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) OVERRIDE;
+	virtual bool Run( const FString& ExecutablePath, const FString& Params, uint32* OutProcessId ) override;
 
-	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const OVERRIDE;
+	virtual bool SupportsFeature( ETargetDeviceFeatures::Type Feature ) const override;
 
-	virtual bool SupportsSdkVersion( const FString& VersionString ) const OVERRIDE;
+	virtual bool SupportsSdkVersion( const FString& VersionString ) const override;
 
-	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) OVERRIDE;
+	virtual void SetUserCredentials( const FString & UserName, const FString & UserPassword ) override;
 
-	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) OVERRIDE;
+	virtual bool GetUserCredentials( FString & OutUserName, FString & OutUserPassword ) override;
 
-	virtual bool TerminateProcess( const int32 ProcessId ) OVERRIDE;
+	virtual bool TerminateProcess( const int32 ProcessId ) override;
 
 
 private:

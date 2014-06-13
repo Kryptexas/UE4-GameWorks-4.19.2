@@ -24,9 +24,9 @@ class ASceneCaptureCube : public ASceneCapture
 public:
 
 	// Begin AActor interface
-	virtual void PostActorCreated() OVERRIDE;
+	virtual void PostActorCreated() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditMove(bool bFinished) OVERRIDE;
+	ENGINE_API virtual void PostEditMove(bool bFinished) override;
 #endif
 	// End AActor interface.
 

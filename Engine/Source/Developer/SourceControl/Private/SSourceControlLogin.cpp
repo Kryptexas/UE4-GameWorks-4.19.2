@@ -41,7 +41,7 @@ public:
 		);
 	}
 
-	virtual EWindowZone::Type GetWindowZoneOverride() const OVERRIDE
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
 	{
 		return EWindowZone::TitleBar;
 	}

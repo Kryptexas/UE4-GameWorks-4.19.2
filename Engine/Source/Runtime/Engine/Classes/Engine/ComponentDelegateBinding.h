@@ -38,6 +38,6 @@ class ENGINE_API UComponentDelegateBinding : public UDynamicBlueprintBinding
 	TArray<FBlueprintComponentDelegateBinding> ComponentDelegateBindings;
 
 	// Begin DynamicBlueprintBinding interface
-	virtual void BindDynamicDelegates(AActor* InInstance) const OVERRIDE;
+	virtual void BindDynamicDelegates(AActor* InInstance) const override;
 	// End DynamicBlueprintBinding interface
 };

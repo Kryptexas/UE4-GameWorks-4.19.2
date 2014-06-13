@@ -210,7 +210,7 @@ public:
 	FVector2D GetTimelineDesiredSize() const;
 
 	// SWidget interface
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	// End of SWidget interface
 private:
 	/** Used by list view to create a track widget from the track item struct */

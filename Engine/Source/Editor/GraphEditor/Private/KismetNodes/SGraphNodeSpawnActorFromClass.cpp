@@ -40,7 +40,7 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 	{
 	public:
 
-		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) OVERRIDE
+		virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
 		{
 			if(NULL != InClass)
 			{
@@ -52,7 +52,7 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 			return false;
 		}
 
-		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) OVERRIDE
+		virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
 		{
 			const bool bActorBased = InUnloadedClassData->IsChildOf(AActor::StaticClass());
 			const bool bNotAbstract = !InUnloadedClassData->HasAnyClassFlags(CLASS_Abstract);
@@ -62,7 +62,7 @@ class SGraphPinActorBasedClass : public SGraphPinObject
 
 protected:
 
-	virtual FReply OnClickUse() OVERRIDE
+	virtual FReply OnClickUse() override
 	{
 		if(GraphPinObj && GraphPinObj->GetSchema())
 		{
@@ -78,14 +78,14 @@ protected:
 		return FReply::Handled();
 	}
 
-	virtual FOnClicked GetOnUseButtonDelegate() OVERRIDE
+	virtual FOnClicked GetOnUseButtonDelegate() override
 	{
 		return FOnClicked::CreateSP( this, &SGraphPinActorBasedClass::OnClickUse );
 	}
 
-	virtual FText GetDefaultComboText() const OVERRIDE { return LOCTEXT( "DefaultComboText", "Select Class" ); }
+	virtual FText GetDefaultComboText() const override { return LOCTEXT( "DefaultComboText", "Select Class" ); }
 
-	virtual TSharedRef<SWidget> GenerateAssetPicker() OVERRIDE
+	virtual TSharedRef<SWidget> GenerateAssetPicker() override
 	{
 		FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
 

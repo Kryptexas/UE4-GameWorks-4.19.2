@@ -77,12 +77,12 @@ public:
 	explicit FOnlineAsyncItemGenericCallable(const CallableType& InCallable)
 		: CallableObject(InCallable) {}
 
-	virtual void Finalize() OVERRIDE
+	virtual void Finalize() override
 	{
 		CallableObject();
 	}
 
-	virtual FString ToString() const OVERRIDE { return FString("FOnlineAsyncItemGenericCallable"); }
+	virtual FString ToString() const override { return FString("FOnlineAsyncItemGenericCallable"); }
 
 private:
 	/** Stored copy of the object to invoke on the game thread. */
@@ -194,7 +194,7 @@ public:
 	 * Check the state of the async task
 	 * @return true if complete, false otherwise
 	 */
-	virtual bool IsDone() OVERRIDE
+	virtual bool IsDone() override
 	{
 		return bIsComplete;
 	}
@@ -203,7 +203,7 @@ public:
 	 * Check the success of the async task
 	 * @return true if successful, false otherwise
 	 */
-	virtual bool WasSuccessful() OVERRIDE
+	virtual bool WasSuccessful() override
 	{
 		return bWasSuccessful;
 	}

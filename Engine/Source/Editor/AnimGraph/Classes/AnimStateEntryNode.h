@@ -11,9 +11,9 @@ class UAnimStateEntryNode : public UEdGraphNode
 
 
 	// Begin UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetTooltip() const OVERRIDE;
+	virtual void AllocateDefaultPins() override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FString GetTooltip() const override;
 	// End UEdGraphNode interface
 	
 	ANIMGRAPH_API UEdGraphNode* GetOutputNode() const;

@@ -117,8 +117,8 @@ class UDistributionFloat : public UDistribution
 	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const;
 
 	// Begin FCurveEdInterface Interface
-	virtual void GetInRange(float& MinIn, float& MaxIn) const OVERRIDE;
-	virtual void GetOutRange(float& MinOut, float& MaxOut) const OVERRIDE;
+	virtual void GetInRange(float& MinIn, float& MaxIn) const override;
+	virtual void GetOutRange(float& MinOut, float& MaxOut) const override;
 	// End FCurveEdInterface Interface
 	
 	/** @return true of this distribution can be baked into a FRawDistribution lookup table, otherwise false */
@@ -137,10 +137,10 @@ class UDistributionFloat : public UDistribution
 
 	/** Begin UObject interface */
 #if	WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif	// WITH_EDITOR
-	virtual bool NeedsLoadForClient() const OVERRIDE;
-	virtual bool NeedsLoadForServer() const OVERRIDE;
+	virtual bool NeedsLoadForClient() const override;
+	virtual bool NeedsLoadForServer() const override;
 	/** End UObject interface */
 };
 

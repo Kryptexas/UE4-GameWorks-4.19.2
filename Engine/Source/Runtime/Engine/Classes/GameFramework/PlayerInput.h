@@ -363,7 +363,7 @@ protected:
 
 public:
 	
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 
 	void FlushPressedKeys();
 	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);

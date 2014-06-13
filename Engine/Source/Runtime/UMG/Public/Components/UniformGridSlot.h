@@ -42,7 +42,7 @@ public:
 	void SetColumn(int32 InColumn);
 
 	// UPanelSlot interface
-	virtual void Refresh() OVERRIDE;
+	virtual void Refresh() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */

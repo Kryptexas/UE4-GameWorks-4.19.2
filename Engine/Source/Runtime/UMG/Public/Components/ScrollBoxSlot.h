@@ -27,7 +27,7 @@ class UMG_API UScrollBoxSlot : public UPanelSlot
 	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
 
 	// UPanelSlot interface
-	virtual void Refresh() OVERRIDE;
+	virtual void Refresh() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */

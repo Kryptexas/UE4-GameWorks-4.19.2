@@ -31,8 +31,8 @@ class UPhyaCollisionHandler : public UPhysicsCollisionHandler
 	GENERATED_UCLASS_BODY()
 
 	// Begin UPhysicsCollisionHandler interface
-	virtual void InitCollisionHandler() OVERRIDE;
-	virtual void HandlePhysicsCollisions(const TArray<FCollisionNotifyInfo>& PendingCollisionNotifies) OVERRIDE;
+	virtual void InitCollisionHandler() override;
+	virtual void HandlePhysicsCollisions(const TArray<FCollisionNotifyInfo>& PendingCollisionNotifies) override;
 	// End UPhysicsCollisionHandler interface
 
 	void TestImpact();

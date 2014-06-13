@@ -60,9 +60,9 @@ public:
 
 protected:
 	// SGraphPalette Interface
-	virtual void RefreshActionsList(bool bPreserveExpansion) OVERRIDE;
-	virtual TSharedRef<SWidget> OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData) OVERRIDE;
-	virtual FReply OnActionDragged(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual void RefreshActionsList(bool bPreserveExpansion) override;
+	virtual TSharedRef<SWidget> OnCreateWidgetForAction(FCreateWidgetForActionData* const InCreateData) override;
+	virtual FReply OnActionDragged(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent) override;
 	// End of SGraphPalette Interface
 
 	/**

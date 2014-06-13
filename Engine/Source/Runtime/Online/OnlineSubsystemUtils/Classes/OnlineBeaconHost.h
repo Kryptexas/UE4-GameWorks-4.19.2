@@ -26,15 +26,15 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHost : public AOnlineBeacon
 	int32 ListenPort;
 
 	// Begin AActor Interface
-	virtual void OnNetCleanup(class UNetConnection* Connection) OVERRIDE;
+	virtual void OnNetCleanup(class UNetConnection* Connection) override;
 	// End AActor Interface
 
 	// Begin OnlineBeacon Interface
-	virtual void HandleNetworkFailure(UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString) OVERRIDE;
+	virtual void HandleNetworkFailure(UWorld* World, class UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString) override;
 	// End OnlineBeacon Interface
 
 	// Begin FNetworkNotify Interface
-	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) OVERRIDE;
+	virtual void NotifyControlMessage(class UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
 	// End FNetworkNotify Interface
 
 	/**

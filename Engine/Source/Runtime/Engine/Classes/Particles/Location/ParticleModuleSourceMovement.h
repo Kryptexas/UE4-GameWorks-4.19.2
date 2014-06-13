@@ -18,13 +18,13 @@ class UParticleModuleSourceMovement : public UParticleModuleLocationBase
 	struct FRawDistributionVector SourceMovementScale;
 
 	//Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	//Begin UParticleModule Interface
-	virtual void FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual void FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

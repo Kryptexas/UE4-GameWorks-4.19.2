@@ -354,17 +354,17 @@ public:
 	virtual ~FTextRenderSceneProxy();
 
 	// Begin FPrimitiveSceneProxy interface
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
-	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual uint32 GetMemoryFootprint() const OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual bool CanBeOccluded() const override;
+	virtual uint32 GetMemoryFootprint() const override;
 	uint32 GetAllocatedSize() const;
 	// End FPrimitiveSceneProxy interface
 
 private:
 	// Begin FPrimitiveSceneProxy interface
-	virtual void CreateRenderThreadResources() OVERRIDE;
+	virtual void CreateRenderThreadResources() override;
 	// End FPrimitiveSceneProxy interface
 
 	void ReleaseRenderThreadResources();

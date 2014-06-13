@@ -87,7 +87,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FMoveCompletedSignature OnMoveFinished;
 
 	// Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent Interface
 
 	/** initialize component to use */
@@ -234,10 +234,10 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual void FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink);
 
 	// IAIResourceInterface begin
-	virtual void LockResource(EAILockSource::Type LockSource) OVERRIDE;
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) OVERRIDE;
-	virtual void ForceUnlockResource() OVERRIDE;
-	virtual bool IsResourceLocked() const OVERRIDE;
+	virtual void LockResource(EAILockSource::Type LockSource) override;
+	virtual void ClearResourceLock(EAILockSource::Type LockSource) override;
+	virtual void ForceUnlockResource() override;
+	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
 
 protected:

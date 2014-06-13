@@ -21,7 +21,7 @@ public:
 	
 PRAGMA_DISABLE_OPTIMIZATION
 	/** Initialize the commands */
-	virtual void RegisterCommands() OVERRIDE
+	virtual void RegisterCommands() override
 	{
 		//selected level
 		UI_COMMAND( MakeLevelCurrent, "Make Current", "Make this Level the Current Level", EUserInterfaceActionType::Button, FInputGesture( EKeys::Enter ) );

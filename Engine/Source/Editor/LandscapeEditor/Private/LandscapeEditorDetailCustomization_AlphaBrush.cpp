@@ -29,7 +29,7 @@ public:
 	}
 
 	/** FViewportClient interface */
-	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) OVERRIDE;
+	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 
 private:
 	TWeakPtr<STextureMaskThumbnail> Parent;

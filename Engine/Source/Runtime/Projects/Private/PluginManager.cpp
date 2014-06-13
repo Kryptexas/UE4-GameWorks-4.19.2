@@ -79,7 +79,7 @@ void FPluginManager::DiscoverAllPlugins()
 					{
 					}
 
-					virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+					virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 					{
 						if( bIsDirectory )
 						{
@@ -124,7 +124,7 @@ void FPluginManager::DiscoverAllPlugins()
 								{
 								}
 
-								virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+								virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 								{
 									bool bShouldContinue = true;
 									if( !bIsDirectory )

@@ -11,8 +11,8 @@ public:
 	FMovieSceneTransformTrackInstance( UMovieSceneTransformTrack& InTransformTrack );
 
 	/** IMovieSceneTrackInstance interface */
-	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) OVERRIDE;
-	virtual void RefreshInstance( IMovieScenePlayer& Player ) OVERRIDE {}
+	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;
+	virtual void RefreshInstance( IMovieScenePlayer& Player ) override {}
 private:
 	/** Track that is being instanced */
 	UMovieSceneTransformTrack* TransformTrack;

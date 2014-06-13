@@ -208,36 +208,36 @@ public:
 	// End interface IBlendableInterface
 
 	// Begin UMaterialInterface interface.
-	virtual UMaterial* GetMaterial() OVERRIDE;
-	virtual const UMaterial* GetMaterial() const OVERRIDE;
-	virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const OVERRIDE;
-	virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) OVERRIDE;
-	virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const OVERRIDE;
-	virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const OVERRIDE;
-	virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const OVERRIDE;
-	virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const OVERRIDE;
-	virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const OVERRIDE;
-	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const OVERRIDE;
-	virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) OVERRIDE;
-	virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) OVERRIDE;
-	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const OVERRIDE;
-	virtual bool GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid) OVERRIDE;
-	virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A,FGuid &OutExpressionGuid) OVERRIDE;
-	virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) OVERRIDE;
-	virtual bool IsDependent(UMaterialInterface* TestDependency) OVERRIDE;
-	virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const OVERRIDE;
-	virtual UPhysicalMaterial* GetPhysicalMaterial() const OVERRIDE;
-	virtual bool UpdateLightmassTextureTracking() OVERRIDE;
-	virtual bool GetCastShadowAsMasked() const OVERRIDE;
-	virtual float GetEmissiveBoost() const OVERRIDE;
-	virtual float GetDiffuseBoost() const OVERRIDE;
-	virtual float GetExportResolutionScale() const OVERRIDE;
-	virtual float GetDistanceFieldPenumbraScale() const OVERRIDE;
+	virtual UMaterial* GetMaterial() override;
+	virtual const UMaterial* GetMaterial() const override;
+	virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
+	virtual FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) override;
+	virtual const FMaterialResource* GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel = EMaterialQualityLevel::Num) const override;
+	virtual bool GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const override;
+	virtual bool GetScalarParameterValue(FName ParameterName,float& OutValue) const override;
+	virtual bool GetTextureParameterValue(FName ParameterName,class UTexture*& OutValue) const override;
+	virtual bool GetVectorParameterValue(FName ParameterName,FLinearColor& OutValue) const override;
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels) const override;
+	virtual void OverrideTexture( const UTexture* InTextureToOverride, UTexture* OverrideTexture ) override;
+	virtual bool CheckMaterialUsage(const EMaterialUsage Usage, const bool bSkipPrim = false) override;
+	virtual bool CheckMaterialUsage_Concurrent(const EMaterialUsage Usage, const bool bSkipPrim = false) const override;
+	virtual bool GetStaticSwitchParameterValue(FName ParameterName,bool &OutValue,FGuid &OutExpressionGuid) override;
+	virtual bool GetStaticComponentMaskParameterValue(FName ParameterName, bool &R, bool &G, bool &B, bool &A,FGuid &OutExpressionGuid) override;
+	virtual bool GetTerrainLayerWeightParameterValue(FName ParameterName, int32& OutWeightmapIndex, FGuid &OutExpressionGuid) override;
+	virtual bool IsDependent(UMaterialInterface* TestDependency) override;
+	virtual FMaterialRenderProxy* GetRenderProxy(bool Selected, bool bHovered=false) const override;
+	virtual UPhysicalMaterial* GetPhysicalMaterial() const override;
+	virtual bool UpdateLightmassTextureTracking() override;
+	virtual bool GetCastShadowAsMasked() const override;
+	virtual float GetEmissiveBoost() const override;
+	virtual float GetDiffuseBoost() const override;
+	virtual float GetExportResolutionScale() const override;
+	virtual float GetDistanceFieldPenumbraScale() const override;
 	virtual bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures, 
-		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) OVERRIDE;
-	virtual void RecacheUniformExpressions() const OVERRIDE;
-	virtual bool GetRefractionSettings(float& OutBiasValue) const OVERRIDE;
-	ENGINE_API virtual void ForceRecompileForRendering() OVERRIDE;
+		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
+	virtual void RecacheUniformExpressions() const override;
+	virtual bool GetRefractionSettings(float& OutBiasValue) const override;
+	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
@@ -260,19 +260,19 @@ public:
 	// End UMaterialInterface interface.
 
 	// Begin UObject interface.
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;	
-	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) OVERRIDE;
-	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) OVERRIDE;
-	virtual void ClearAllCachedCookedPlatformData() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual bool IsReadyForFinishDestroy() OVERRIDE;
-	virtual void FinishDestroy() OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void PostInitProperties() override;	
+	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) override;
+	virtual void ClearAllCachedCookedPlatformData() override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
+	virtual void FinishDestroy() override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	/**
 	 * Sets new static parameter overrides on the instance and recompiles the static permutation resources if needed (can be forced with bForceRecompile).

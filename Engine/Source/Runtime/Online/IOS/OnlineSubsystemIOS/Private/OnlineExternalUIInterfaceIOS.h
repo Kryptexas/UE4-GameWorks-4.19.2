@@ -14,13 +14,13 @@ PACKAGE_SCOPE:
 public:
 
 	// Begin IOnlineExternalUI interface
-	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate) OVERRIDE;
-	virtual bool ShowFriendsUI(int32 LocalUserNum) OVERRIDE;
-	virtual bool ShowInviteUI(int32 LocalUserNum) OVERRIDE;
-	virtual bool ShowAchievementsUI(int32 LocalUserNum) OVERRIDE;
-	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) OVERRIDE;
-	virtual bool ShowWebURL(const FString& WebURL) OVERRIDE;
-	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) OVERRIDE;
+	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate) override;
+	virtual bool ShowFriendsUI(int32 LocalUserNum) override;
+	virtual bool ShowInviteUI(int32 LocalUserNum) override;
+	virtual bool ShowAchievementsUI(int32 LocalUserNum) override;
+	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) override;
+	virtual bool ShowWebURL(const FString& WebURL) override;
+	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) override;
 	// End IOnlineExternalUI interface
 };
 

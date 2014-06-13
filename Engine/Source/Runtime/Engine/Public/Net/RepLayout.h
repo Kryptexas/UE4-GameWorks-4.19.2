@@ -28,7 +28,7 @@ public:
 	FRepChangedPropertyTracker() : LastReplicationGroupFrame( 0 ), LastReplicationFrame( 0 ), ActiveStatusChanged( false ), UnconditionalPropChanged( false ) { }
 	virtual ~FRepChangedPropertyTracker() { }
 
-	virtual void SetCustomIsActiveOverride( const uint16 RepIndex, const bool bIsActive ) OVERRIDE
+	virtual void SetCustomIsActiveOverride( const uint16 RepIndex, const bool bIsActive ) override
 	{
 		FRepChangedParent & Parent = Parents[RepIndex];
 

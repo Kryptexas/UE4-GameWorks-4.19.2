@@ -82,20 +82,20 @@ public:
 
 protected:
 	// Begin UActorComponent interface.
-	virtual void CreateRenderState_Concurrent() OVERRIDE;
-	virtual void SendRenderTransform_Concurrent() OVERRIDE;
-	virtual void DestroyRenderState_Concurrent() OVERRIDE;
+	virtual void CreateRenderState_Concurrent() override;
+	virtual void SendRenderTransform_Concurrent() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	// End UActorComponent interface.
 
 	void AddFogIfNeeded();
 
 public:
 	// Begin UObject Interface
-	virtual void PostLoad() OVERRIDE; 
+	virtual void PostLoad() override; 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostInterpChange(UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	// End UObject Interface
 };
 

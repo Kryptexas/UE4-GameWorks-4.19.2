@@ -72,13 +72,13 @@ class ENGINE_API UProjectileMovementComponent : public UMovementComponent
 	virtual void SetVelocityInLocalSpace(FVector NewVelocity);
 
 	//Begin UActorComponent Interface
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
-	virtual void Serialize( FArchive& Ar) OVERRIDE;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+	virtual void Serialize( FArchive& Ar) override;
 	//End UActorComponent Interface
 
 	//Begin UMovementComponent Interface
-	virtual float GetMaxSpeed() const OVERRIDE { return MaxSpeed; }
-	virtual void InitializeComponent() OVERRIDE;
+	virtual float GetMaxSpeed() const override { return MaxSpeed; }
+	virtual void InitializeComponent() override;
 	//End UMovementComponent Interface
 
 	/**
@@ -106,7 +106,7 @@ protected:
 	bool HandleHitWall(const FHitResult& Hit, float TimeTick, const FVector& MoveDelta);
 
 	/** Applies bounce logic (if enabled) to affect velocity upon impact, or stops the projectile if bounces are not enabled (or velocity is below threshold). Fires applicable events. */
-	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) OVERRIDE;
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/** Computes result of a bounce and returns the new velocity. */
 	virtual FVector ComputeBounceResult(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta);

@@ -30,7 +30,7 @@ class UParticleModuleSpawnBase : public UParticleModule
 
 
 	// Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Spawn;	}
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Spawn;	}
 	// End UParticleModule Interface
 
 	/**

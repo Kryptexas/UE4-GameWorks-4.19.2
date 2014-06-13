@@ -13,8 +13,8 @@ class UK2Node_DoOnceMultiInput : public UK2Node
 	UPROPERTY()
 	int32 NumAdditionalInputs;
 
-	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
-	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 
 	/** Reference to the integer that contains */
 	UPROPERTY(transient)
@@ -45,11 +45,11 @@ public:
 	BLUEPRINTGRAPH_API void RemoveInputPin(UEdGraphPin* Pin);
 
 	// UEdGraphNode interface
-	virtual void AllocateDefaultPins() OVERRIDE;
+	virtual void AllocateDefaultPins() override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
-	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const OVERRIDE;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) OVERRIDE;
+	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End of UK2Node interface
 };

@@ -10,7 +10,7 @@ class UParticleModuleMaterialBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

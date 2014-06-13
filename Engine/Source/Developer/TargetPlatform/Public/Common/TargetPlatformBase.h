@@ -18,17 +18,17 @@ public:
 
 	// Begin ITargetPlatform interface
 
-	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) OVERRIDE
+	virtual bool AddDevice( const FString& DeviceName, bool bDefault ) override
 	{
 		return false;
 	}
 
-	virtual FText DisplayName( ) const OVERRIDE
+	virtual FText DisplayName( ) const override
 	{
 		return PlatformInfo->DisplayName;
 	}
 
-	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const OVERRIDE
+	virtual const PlatformInfo::FPlatformInfo& GetPlatformInfo( ) const override
 	{
 		return *PlatformInfo;
 	}
@@ -156,12 +156,12 @@ public:
 #endif //TEXTURE_H_INCLUDED
 #endif //WITH_ENGINE
 
-	virtual bool PackageBuild( const FString& InPackgeDirectory ) OVERRIDE
+	virtual bool PackageBuild( const FString& InPackgeDirectory ) override
 	{
 		return true;
 	}
 
-	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const OVERRIDE
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override
 	{
 		return true;
 	}
@@ -205,52 +205,52 @@ public:
 
 	// Begin ITargetPlatform interface
 
-	virtual bool HasEditorOnlyData( ) const OVERRIDE
+	virtual bool HasEditorOnlyData( ) const override
 	{
 		return TPlatformProperties::HasEditorOnlyData();
 	}
 
-	virtual bool IsLittleEndian( ) const OVERRIDE
+	virtual bool IsLittleEndian( ) const override
 	{
 		return TPlatformProperties::IsLittleEndian();
 	}
 
-	virtual bool IsServerOnly( ) const OVERRIDE
+	virtual bool IsServerOnly( ) const override
 	{
 		return TPlatformProperties::IsServerOnly();
 	}
 
-	virtual bool IsClientOnly( ) const OVERRIDE
+	virtual bool IsClientOnly( ) const override
 	{
 		return TPlatformProperties::IsClientOnly();
 	}
 
-	virtual FString PlatformName( ) const OVERRIDE
+	virtual FString PlatformName( ) const override
 	{
 		return FString(TPlatformProperties::PlatformName());
 	}
 
-	virtual FString IniPlatformName( ) const OVERRIDE
+	virtual FString IniPlatformName( ) const override
 	{
 		return FString(TPlatformProperties::IniPlatformName());
 	}
 
-	virtual bool RequiresCookedData( ) const OVERRIDE
+	virtual bool RequiresCookedData( ) const override
 	{
 		return TPlatformProperties::RequiresCookedData();
 	}
 
-	virtual bool RequiresUserCredentials() const OVERRIDE
+	virtual bool RequiresUserCredentials() const override
 	{
 		return TPlatformProperties::RequiresUserCredentials();
 	}
 
-	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const OVERRIDE
+	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const override
 	{
 		return TPlatformProperties::SupportsBuildTarget(BuildTarget);
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE
+	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
 	{
 		switch (Feature)
 		{
@@ -285,13 +285,13 @@ public:
 		return false;
 	}
 	
-	virtual uint32 MaxGpuSkinBones( ) const OVERRIDE
+	virtual uint32 MaxGpuSkinBones( ) const override
 	{
 		return TPlatformProperties::MaxGpuSkinBones();
 	}
 
 #if WITH_ENGINE
-	virtual FName GetPhysicsFormat( class UBodySetup* Body ) const OVERRIDE
+	virtual FName GetPhysicsFormat( class UBodySetup* Body ) const override
 	{
 		return FName(TPlatformProperties::GetPhysicsFormat());
 	}

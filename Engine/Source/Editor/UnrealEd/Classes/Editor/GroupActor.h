@@ -26,25 +26,25 @@ class AGroupActor : public AActor
 
 
 	// Begin UObject interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
-	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
-	virtual bool NeedsLoadForClient() const OVERRIDE
+	virtual void PostLoad() override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditUndo() override;
+	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
+	virtual bool NeedsLoadForClient() const override
 	{ 
 		return false; 
 	}
-	virtual bool NeedsLoadForServer() const OVERRIDE
+	virtual bool NeedsLoadForServer() const override
 	{ 
 		return false;
 	}
 	// End UObject interface
 
 	// Begin AActor interface
-	virtual void PostActorCreated() OVERRIDE;
-	virtual void InvalidateLightingCacheDetailed(bool bTranslationOnly) OVERRIDE;
-	virtual void PostEditMove(bool bFinished) OVERRIDE;
-	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) OVERRIDE;
+	virtual void PostActorCreated() override;
+	virtual void InvalidateLightingCacheDetailed(bool bTranslationOnly) override;
+	virtual void PostEditMove(bool bFinished) override;
+	virtual void SetIsTemporarilyHiddenInEditor( bool bIsHidden ) override;
 	// End AActor interface
 
 	// @todo document

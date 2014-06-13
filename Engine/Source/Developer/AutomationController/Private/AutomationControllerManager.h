@@ -17,176 +17,176 @@ public:
 
 	// Begin IAutomationController Interface
 
-	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) OVERRIDE;
+	virtual void RequestAvailableWorkers( const FGuid& InSessionId ) override;
 
-	virtual void RequestTests() OVERRIDE;
+	virtual void RequestTests() override;
 
-	virtual void RunTests( const bool bIsLocalSession) OVERRIDE;
+	virtual void RunTests( const bool bIsLocalSession) override;
 
-	virtual void StopTests() OVERRIDE;
+	virtual void StopTests() override;
 
-	virtual void Init() OVERRIDE;
+	virtual void Init() override;
 
-	virtual void RequestLoadAsset( const FString& InAssetName ) OVERRIDE;
+	virtual void RequestLoadAsset( const FString& InAssetName ) override;
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
-	virtual void SetNumPasses(const int32 InNumPasses) OVERRIDE
+	virtual void SetNumPasses(const int32 InNumPasses) override
 	{
 		NumTestPasses = InNumPasses;
 	}
 
-	virtual int32 GetNumPasses() OVERRIDE
+	virtual int32 GetNumPasses() override
 	{
 		return NumTestPasses;
 	}
 
-	virtual bool IsUsingFullSizeScreenshots() const OVERRIDE
+	virtual bool IsUsingFullSizeScreenshots() const override
 	{
 		return bScreenshotsEnabled && bRequestFullScreenScreenshots;
 	}
 
-	virtual void SetUsingFullSizeScreenshots( const bool bNewValue ) OVERRIDE
+	virtual void SetUsingFullSizeScreenshots( const bool bNewValue ) override
 	{
 		bRequestFullScreenScreenshots = bNewValue;
 	}
 
-	virtual bool IsScreenshotAllowed() const OVERRIDE
+	virtual bool IsScreenshotAllowed() const override
 	{
 		return bScreenshotsEnabled;
 	}
 
-	virtual void SetScreenshotsEnabled( const bool bNewValue ) OVERRIDE
+	virtual void SetScreenshotsEnabled( const bool bNewValue ) override
 	{
 		bScreenshotsEnabled = bNewValue;
 	}
 
-	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) OVERRIDE
+	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) override
 	{
 		ReportManager.SetFilter( InFilter );
 	}
 
-	virtual TArray <TSharedPtr <IAutomationReport> >& GetReports() OVERRIDE
+	virtual TArray <TSharedPtr <IAutomationReport> >& GetReports() override
 	{
 		return ReportManager.GetFilteredReports();
 	}
 
-	virtual int32 GetNumDeviceClusters() const OVERRIDE
+	virtual int32 GetNumDeviceClusters() const override
 	{
 		return DeviceClusterManager.GetNumClusters();
 	}
 
-	virtual int32 GetNumDevicesInCluster(const int32 ClusterIndex) const OVERRIDE
+	virtual int32 GetNumDevicesInCluster(const int32 ClusterIndex) const override
 	{
 		return DeviceClusterManager.GetNumDevicesInCluster(ClusterIndex);
 	}
 
-	virtual FString GetClusterGroupName(const int32 ClusterIndex) const OVERRIDE
+	virtual FString GetClusterGroupName(const int32 ClusterIndex) const override
 	{
 		return DeviceClusterManager.GetClusterGroupName(ClusterIndex);
 	}
 
-	virtual FString GetDeviceTypeName(const int32 ClusterIndex) const OVERRIDE
+	virtual FString GetDeviceTypeName(const int32 ClusterIndex) const override
 	{
 		return DeviceClusterManager.GetClusterDeviceType(ClusterIndex);
 	}
 
-	virtual FString GetGameInstanceName(const int32 ClusterIndex, const int32 DeviceIndex) const OVERRIDE
+	virtual FString GetGameInstanceName(const int32 ClusterIndex, const int32 DeviceIndex) const override
 	{
 		return DeviceClusterManager.GetClusterDeviceName(ClusterIndex, DeviceIndex);
 	}
 
-	virtual void SetVisibleTestsEnabled(const bool bEnabled) OVERRIDE
+	virtual void SetVisibleTestsEnabled(const bool bEnabled) override
 	{
 		ReportManager.SetVisibleTestsEnabled (bEnabled);
 	}
 
-	virtual int32 GetEnabledTestsNum() const OVERRIDE
+	virtual int32 GetEnabledTestsNum() const override
 	{
 		return ReportManager.GetEnabledTestsNum();
 	}
 
-	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const OVERRIDE
+	virtual void GetEnabledTestNames(TArray<FString>& OutEnabledTestNames) const override
 	{
 		ReportManager.GetEnabledTestNames(OutEnabledTestNames);
 	}
 
-	virtual void SetEnabledTests(const TArray<FString>& EnabledTests) OVERRIDE
+	virtual void SetEnabledTests(const TArray<FString>& EnabledTests) override
 	{
 		ReportManager.SetEnabledTests(EnabledTests);
 	}
 
-	virtual EAutomationControllerModuleState::Type GetTestState( ) const OVERRIDE
+	virtual EAutomationControllerModuleState::Type GetTestState( ) const override
 	{
 		return AutomationTestState;
 	}
 
-	virtual void SetDeveloperDirectoryIncluded(const bool bInDeveloperDirectoryIncluded) OVERRIDE
+	virtual void SetDeveloperDirectoryIncluded(const bool bInDeveloperDirectoryIncluded) override
 	{
 		bDeveloperDirectoryIncluded = bInDeveloperDirectoryIncluded;
 	}
 
-	virtual bool IsDeveloperDirectoryIncluded(void) const OVERRIDE
+	virtual bool IsDeveloperDirectoryIncluded(void) const override
 	{
 		return bDeveloperDirectoryIncluded;
 	}
 
-	virtual void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn) OVERRIDE
+	virtual void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn) override
 	{
 		bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
 	}
 
-	virtual bool IsVisualCommandletFilterOn(void) const OVERRIDE
+	virtual bool IsVisualCommandletFilterOn(void) const override
 	{
 		return bVisualCommandletFilterOn;
 	}
 
-	virtual const bool CheckTestResultsAvailable() const OVERRIDE
+	virtual const bool CheckTestResultsAvailable() const override
 	{
 		return 	bTestResultsAvailable;
 	}
 
-	virtual const bool ReportsHaveErrors() const OVERRIDE
+	virtual const bool ReportsHaveErrors() const override
 	{
 		return bHasErrors;
 	}
 
-	virtual const bool ReportsHaveWarnings() const OVERRIDE
+	virtual const bool ReportsHaveWarnings() const override
 	{
 		return bHasWarning;
 	}
 
-	virtual const bool ReportsHaveLogs() const OVERRIDE
+	virtual const bool ReportsHaveLogs() const override
 	{
 		return bHasLogs;
 	}
 
-	virtual void ClearAutomationReports() OVERRIDE
+	virtual void ClearAutomationReports() override
 	{
 		ReportManager.Empty();
 	}
 
-	virtual const bool ExportReport(uint32 FileExportTypeMask) OVERRIDE;
+	virtual const bool ExportReport(uint32 FileExportTypeMask) override;
 
-	virtual bool IsTestRunnable( IAutomationReportPtr InReport ) const OVERRIDE;
+	virtual bool IsTestRunnable( IAutomationReportPtr InReport ) const override;
 
-	virtual void RemoveCallbacks() OVERRIDE;
+	virtual void RemoveCallbacks() override;
 
-	virtual void Shutdown() OVERRIDE;
+	virtual void Shutdown() override;
 
-	virtual void Startup() OVERRIDE;
+	virtual void Startup() override;
 
-	virtual FOnAutomationControllerManagerShutdown& OnShutdown( ) OVERRIDE
+	virtual FOnAutomationControllerManagerShutdown& OnShutdown( ) override
 	{
 		return ShutdownDelegate;
 	}
 
-	virtual FOnAutomationControllerManagerTestsAvailable& OnTestsAvailable( ) OVERRIDE
+	virtual FOnAutomationControllerManagerTestsAvailable& OnTestsAvailable( ) override
 	{
 		return TestsAvailableDelegate;
 	}
 
-	virtual FOnAutomationControllerTestsRefreshed& OnTestsRefreshed( ) OVERRIDE
+	virtual FOnAutomationControllerTestsRefreshed& OnTestsRefreshed( ) override
 	{
 		return TestsRefreshedDelegate;
 	}
@@ -197,7 +197,7 @@ public:
 
 	void UpdateDeviceGroups();
 
-	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) OVERRIDE
+	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) override
 	{
 		TestsCompleteDelegate = NewCallback;
 	}

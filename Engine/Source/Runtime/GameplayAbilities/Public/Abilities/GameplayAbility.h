@@ -303,7 +303,7 @@ protected:
 
 	virtual void ClientActivateAbilitySucceed_Internal(int32 PredictionKey);
 
-	bool IsSupportedForNetworking() const OVERRIDE;
+	bool IsSupportedForNetworking() const override;
 
 	/** Checks cooldown. returns true if we can be used again. False if not */
 	bool	CheckCooldown(const FGameplayAbilityActorInfo* ActorInfo) const;

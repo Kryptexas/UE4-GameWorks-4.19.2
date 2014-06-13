@@ -124,33 +124,33 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	};
 
 	// Begin UActorComponent interface.
-	virtual void CreatePhysicsState() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void CreatePhysicsState() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void DestroyComponent() OVERRIDE;
-	virtual FBoxSphereBounds CalcBounds(const FTransform &BoundTransform) const OVERRIDE;
+	virtual void DestroyComponent() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform &BoundTransform) const override;
 
-	virtual ECollisionEnabled::Type GetCollisionEnabled() const OVERRIDE;
-	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const OVERRIDE;
-	virtual ECollisionChannel GetCollisionObjectType() const OVERRIDE;
-	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const OVERRIDE;
+	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
+	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
+	virtual ECollisionChannel GetCollisionObjectType() const override;
+	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
 	//End UPrimitiveComponent interface
 
 	// Begin UObject Interface.
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
-	virtual void BeginDestroy() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void BeginDestroy() override;
+	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
-	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
+	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
+	virtual void PostEditImport() override;
+	virtual void PostEditUndo() override;
 	// End UObject Interface.
 
 	// Update Collision object for add LandscapeComponent tool

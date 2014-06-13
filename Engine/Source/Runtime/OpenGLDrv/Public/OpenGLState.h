@@ -359,14 +359,14 @@ struct FOpenGLContextState : public FOpenGLCommonState
 		FMemory::Memzero(UniformBufferOffsets, sizeof(UniformBufferOffsets));
 	}
 
-	virtual void InitializeResources(int32 NumCombinedTextures, int32 NumComputeUAVUnits) OVERRIDE
+	virtual void InitializeResources(int32 NumCombinedTextures, int32 NumComputeUAVUnits) override
 	{
 		FOpenGLCommonState::InitializeResources(NumCombinedTextures, NumComputeUAVUnits);
 		CachedSamplerStates.Empty(NumCombinedTextures);
 		CachedSamplerStates.AddZeroed(NumCombinedTextures);
 	}
 
-	virtual void CleanupResources() OVERRIDE
+	virtual void CleanupResources() override
 	{
 		CachedSamplerStates.Empty();
 		FOpenGLCommonState::CleanupResources();
@@ -468,7 +468,7 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 		CleanupResources();
 	}
 
-	virtual void InitializeResources(int32 NumCombinedTextures, int32 NumComputeUAVUnits) OVERRIDE
+	virtual void InitializeResources(int32 NumCombinedTextures, int32 NumComputeUAVUnits) override
 	{
 		check(!ShaderParameters);
 		FOpenGLCommonState::InitializeResources(NumCombinedTextures, NumComputeUAVUnits);
@@ -494,7 +494,7 @@ struct FOpenGLRHIState : public FOpenGLCommonState
 		}
 	}
 
-	virtual void CleanupResources() OVERRIDE
+	virtual void CleanupResources() override
 	{
 		delete [] ShaderParameters;
 		ShaderParameters = NULL;

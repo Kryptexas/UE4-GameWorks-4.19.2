@@ -850,7 +850,7 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 static class FFileProfileWrapperExec: private FSelfRegisteringExec
 {
 	/** Console commands, see embeded usage statement **/
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if( FParse::Command( &Cmd, TEXT("Profile") ) )
 		{

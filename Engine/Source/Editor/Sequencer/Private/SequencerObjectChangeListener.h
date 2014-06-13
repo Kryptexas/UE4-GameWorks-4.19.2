@@ -14,9 +14,9 @@ public:
 	~FSequencerObjectChangeListener();
 
 	/** ISequencerObjectChangeListener interface */
-	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass ) OVERRIDE;
-	virtual FOnPropagateObjectChanges& GetOnPropagateObjectChanges() OVERRIDE;
-	virtual void TriggerAllPropertiesChanged(UObject* Object) OVERRIDE;
+	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass ) override;
+	virtual FOnPropagateObjectChanges& GetOnPropagateObjectChanges() override;
+	virtual void TriggerAllPropertiesChanged(UObject* Object) override;
 
 private:
 	/**

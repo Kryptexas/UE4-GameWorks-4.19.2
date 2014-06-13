@@ -10,7 +10,7 @@ public:
 	TArray< TWeakObjectPtr<UClass> > ClassesToDrop;
 	
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		// Just use the first class for the cursor decorator.
 		const FSlateBrush* ClassIcon = FEditorStyle::GetOptionalBrush(*FString::Printf( TEXT( "ClassIcon.%s" ), *ClassesToDrop[0]->GetName() ), nullptr, nullptr );
@@ -88,7 +88,7 @@ public:
 	TSharedPtr< TArray< FClassPackageData > >	AssetsToDrop;
 	
 	/** The widget decorator to use */
-	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	{
 		// Create hover widget
 		return SNew(SBorder)

@@ -387,17 +387,17 @@ static bool CompressImageUsingNVTT(
  */
 class FTextureFormatDXT : public ITextureFormat
 {
-	virtual bool AllowParallelBuild() const OVERRIDE
+	virtual bool AllowParallelBuild() const override
 	{
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		return 0;
 	}
 
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const OVERRIDE
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		for (int32 i = 0; i < ARRAY_COUNT(GSupportedTextureFormatNames); ++i)
 		{
@@ -405,7 +405,7 @@ class FTextureFormatDXT : public ITextureFormat
 		}
 	}
 	
-	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const override
 	{
 		return FTextureFormatCompressorCaps(); // Default capabilities.
 	}
@@ -415,7 +415,7 @@ class FTextureFormatDXT : public ITextureFormat
 		const struct FTextureBuildSettings& BuildSettings,
 		bool bImageHasAlphaChannel,
 		FCompressedImage2D& OutCompressedImage
-		) const OVERRIDE
+		) const override
 	{
 		FImage Image;
 		InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.bSRGB);

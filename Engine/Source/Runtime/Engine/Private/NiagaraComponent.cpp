@@ -70,7 +70,7 @@ private:
 	}
 
 	// FPrimitiveSceneProxy interface.
-	virtual void CreateRenderThreadResources() OVERRIDE
+	virtual void CreateRenderThreadResources() override
 	{
 		VertexFactory.InitResource();
 
@@ -86,17 +86,17 @@ private:
 		UniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
 	}
 
-	virtual void OnActorPositionChanged() OVERRIDE
+	virtual void OnActorPositionChanged() override
 	{
 		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 	}
 
-	virtual void OnTransformChanged() OVERRIDE
+	virtual void OnTransformChanged() override
 	{
 		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 	}
 
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE
+	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraPreRenderView);
 
@@ -147,7 +147,7 @@ private:
 		}
 	}
 		  
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraRender);
 
@@ -209,7 +209,7 @@ private:
 		*/
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  OVERRIDE
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
 	{
 		FPrimitiveViewRelevance Result;
 		bool bHasDynamicData = DynamicData && DynamicData->VertexData.Num() > 0;
@@ -227,12 +227,12 @@ private:
 		return Result;
 	}
 
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return !MaterialRelevance.bDisableDepthTest;
 	}
 
-	virtual uint32 GetMemoryFootprint() const OVERRIDE 
+	virtual uint32 GetMemoryFootprint() const override 
 	{ 
 		return (sizeof(*this) + GetAllocatedSize()); 
 	}

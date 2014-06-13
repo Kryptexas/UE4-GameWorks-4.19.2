@@ -281,16 +281,16 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() OVERRIDE;
-	virtual FString GetDetailedInfoInternal() const OVERRIDE;
+	virtual void PostLoad() override;
+	virtual FString GetDetailedInfoInternal() const override;
 	// End UObject interface.
 
 	// Begin USceneComponent Interface
-	virtual void Activate(bool bReset=false) OVERRIDE;
-	virtual void Deactivate() OVERRIDE;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) OVERRIDE;
+	virtual void Activate(bool bReset=false) override;
+	virtual void Deactivate() override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
 	// End USceneComponent Interface
 
 	/** @return true if this component is currently playing a SoundCue. */
@@ -300,9 +300,9 @@ public:
 
 	// Begin ActorComponent interface.
 #if WITH_EDITORONLY_DATA
-	virtual void OnRegister() OVERRIDE;
+	virtual void OnRegister() override;
 #endif
-	virtual void OnUnregister() OVERRIDE;
+	virtual void OnUnregister() override;
 	// End ActorComponent interface.
 
 	const FAttenuationSettings* GetAttenuationSettingsToApply() const;

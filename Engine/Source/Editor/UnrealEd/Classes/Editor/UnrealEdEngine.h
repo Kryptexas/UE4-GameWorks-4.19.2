@@ -163,47 +163,47 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 
 	// Begin UObject interface.
 	~UUnrealEdEngine();
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End UObject interface.
 
 	// Begin FNotify interface.
-	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) OVERRIDE;
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) OVERRIDE;
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
 	// End FNotify interface.
 
 	// Begin UEditorEngine Interface
-	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) OVERRIDE;
-	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const OVERRIDE;
-	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) OVERRIDE;
-	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) OVERRIDE;
-	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) OVERRIDE;
-	virtual void NoteSelectionChange() OVERRIDE;
-	virtual void NoteActorMovement() OVERRIDE;
-	virtual void FinishAllSnaps() OVERRIDE;
-	virtual void Cleanse( bool ClearSelection, bool Redraw, const FText& Reason ) OVERRIDE;
-	virtual bool GetMapBuildCancelled() const OVERRIDE;
-	virtual void SetMapBuildCancelled( bool InCancelled ) OVERRIDE;
-	virtual FVector GetPivotLocation() OVERRIDE;
-	virtual void SetPivot(FVector NewPivot, bool bSnapPivotToGrid, bool bIgnoreAxis, bool bAssignPivot=false) OVERRIDE;
-	virtual void ResetPivot() OVERRIDE;
-	virtual void RedrawLevelEditingViewports(bool bInvalidateHitProxies=true) OVERRIDE;
-	virtual void TakeHighResScreenShots() OVERRIDE;
-	virtual void GetPackageList( TArray<UPackage*>* InPackages, UClass* InClass ) OVERRIDE;
-	virtual bool ShouldAbortActorDeletion() const OVERRIDE;
-	virtual void CloseEditor() OVERRIDE;
-	virtual void OnOpenMatinee() OVERRIDE;
+	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) override;
+	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const override;
+	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) override;
+	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) override;
+	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) override;
+	virtual void NoteSelectionChange() override;
+	virtual void NoteActorMovement() override;
+	virtual void FinishAllSnaps() override;
+	virtual void Cleanse( bool ClearSelection, bool Redraw, const FText& Reason ) override;
+	virtual bool GetMapBuildCancelled() const override;
+	virtual void SetMapBuildCancelled( bool InCancelled ) override;
+	virtual FVector GetPivotLocation() override;
+	virtual void SetPivot(FVector NewPivot, bool bSnapPivotToGrid, bool bIgnoreAxis, bool bAssignPivot=false) override;
+	virtual void ResetPivot() override;
+	virtual void RedrawLevelEditingViewports(bool bInvalidateHitProxies=true) override;
+	virtual void TakeHighResScreenShots() override;
+	virtual void GetPackageList( TArray<UPackage*>* InPackages, UClass* InClass ) override;
+	virtual bool ShouldAbortActorDeletion() const override;
+	virtual void CloseEditor() override;
+	virtual void OnOpenMatinee() override;
 	// End UEditorEngine Interface 
 	
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 
 	// Begin UEngine Interface.
-	virtual void Init(IEngineLoop* InEngineLoop) OVERRIDE;
-	virtual void PreExit() OVERRIDE;
-	virtual void Tick(float DeltaSeconds, bool bIdleMode) OVERRIDE;
+	virtual void Init(IEngineLoop* InEngineLoop) override;
+	virtual void PreExit() override;
+	virtual void Tick(float DeltaSeconds, bool bIdleMode) override;
 	// End UEngine Interface.
 
 	/** Builds a list of sprite categories for use in menus */
@@ -377,7 +377,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param	bVerifyDeletionCanHappen	[opt] If true (default), verify that deletion can be performed.
 	 * @return								true unless the delete operation was aborted.
 	 */
-	virtual bool edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletionCanHappen=true ) OVERRIDE;
+	virtual bool edactDeleteSelected( UWorld* InWorld, bool bVerifyDeletionCanHappen=true ) override;
 
 	/**
 	 * Creates a new group from the current selection removing any existing groups.
@@ -426,7 +426,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param	InWorld					World context
 	 * @param	DestinationData			If != NULL, additionally copy data to string
 	 */
-	virtual void edactCopySelected(UWorld* InWorld, FString* DestinationData = NULL) OVERRIDE;
+	virtual void edactCopySelected(UWorld* InWorld, FString* DestinationData = NULL) override;
 
 	/**
 	 * Paste selected actors from the clipboard.
@@ -437,7 +437,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param	bWarnIfHidden		If true displays a warning if the destination level is hidden
 	 * @param	SourceData			If != NULL, use instead of clipboard data
 	 */
-	virtual void edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool bOffsetLocations, bool bWarnIfHidden, FString* SourceData = NULL) OVERRIDE;
+	virtual void edactPasteSelected(UWorld* InWorld, bool bDuplicate, bool bOffsetLocations, bool bWarnIfHidden, FString* SourceData = NULL) override;
 
 	/**
 	 * Duplicates selected actors.  Handles the case where you are trying to duplicate PrefabInstance actors.
@@ -445,7 +445,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @param	InLevel				Level to place duplicate
 	 * @param	bUseOffset			Should the actor locations be offset after they are created?
 	 */
-	virtual void edactDuplicateSelected(ULevel* InLevel, bool bUseOffset) OVERRIDE;
+	virtual void edactDuplicateSelected(ULevel* InLevel, bool bUseOffset) override;
 
 	/**
 	 * Replace all selected brushes with the default brush.

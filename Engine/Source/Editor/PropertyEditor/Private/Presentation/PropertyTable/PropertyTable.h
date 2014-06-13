@@ -9,124 +9,124 @@ public:
 
 	FPropertyTable();
 
-	virtual void Tick() OVERRIDE;
+	virtual void Tick() override;
 
-	virtual void RequestRefresh() OVERRIDE;
+	virtual void RequestRefresh() override;
 
-	virtual class FNotifyHook* GetNotifyHook() const OVERRIDE;
-	virtual bool AreFavoritesEnabled() const OVERRIDE;
-	virtual void ToggleFavorite( const TSharedRef< class FPropertyEditor >& PropertyEditor ) const OVERRIDE;
-	virtual void CreateColorPickerWindow( const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha ) const OVERRIDE;
-	virtual void EnqueueDeferredAction( FSimpleDelegate DeferredAction ) OVERRIDE;
-	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
-	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE {}
+	virtual class FNotifyHook* GetNotifyHook() const override;
+	virtual bool AreFavoritesEnabled() const override;
+	virtual void ToggleFavorite( const TSharedRef< class FPropertyEditor >& PropertyEditor ) const override;
+	virtual void CreateColorPickerWindow( const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha ) const override;
+	virtual void EnqueueDeferredAction( FSimpleDelegate DeferredAction ) override;
+	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override;
+	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override {}
 
-	virtual bool GetIsUserAllowedToChangeRoot() OVERRIDE;
-	virtual void SetIsUserAllowedToChangeRoot( bool InAllowUserToChangeRoot ) OVERRIDE;
+	virtual bool GetIsUserAllowedToChangeRoot() override;
+	virtual void SetIsUserAllowedToChangeRoot( bool InAllowUserToChangeRoot ) override;
 
-	virtual void AddColumn( const TWeakObjectPtr< UObject >& Object ) OVERRIDE;
-	virtual void AddColumn( const TWeakObjectPtr< UProperty >& Property ) OVERRIDE;
-	virtual void AddColumn( const TSharedRef< FPropertyPath >& PropertyPath ) OVERRIDE;
-	virtual void AddColumn( const TSharedRef< class IPropertyTableColumn >& Column ) OVERRIDE;
-	virtual void RemoveColumn( const TSharedRef< class IPropertyTableColumn >& Column ) OVERRIDE;
+	virtual void AddColumn( const TWeakObjectPtr< UObject >& Object ) override;
+	virtual void AddColumn( const TWeakObjectPtr< UProperty >& Property ) override;
+	virtual void AddColumn( const TSharedRef< FPropertyPath >& PropertyPath ) override;
+	virtual void AddColumn( const TSharedRef< class IPropertyTableColumn >& Column ) override;
+	virtual void RemoveColumn( const TSharedRef< class IPropertyTableColumn >& Column ) override;
 
-	virtual void AddRow( const TWeakObjectPtr< UObject >& Object ) OVERRIDE;
-	virtual void AddRow( const TWeakObjectPtr< UProperty >& Property ) OVERRIDE;
-	virtual void AddRow( const TSharedRef< FPropertyPath >& PropertyPath ) OVERRIDE;
-	virtual void AddRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
-	virtual void RemoveRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
+	virtual void AddRow( const TWeakObjectPtr< UObject >& Object ) override;
+	virtual void AddRow( const TWeakObjectPtr< UProperty >& Property ) override;
+	virtual void AddRow( const TSharedRef< FPropertyPath >& PropertyPath ) override;
+	virtual void AddRow( const TSharedRef< class IPropertyTableRow >& Row ) override;
+	virtual void RemoveRow( const TSharedRef< class IPropertyTableRow >& Row ) override;
 
-	virtual const EPropertyTableOrientation::Type GetOrientation() const OVERRIDE { return Orientation; }
-	virtual void SetOrientation( EPropertyTableOrientation::Type InOrientation ) OVERRIDE;
+	virtual const EPropertyTableOrientation::Type GetOrientation() const override { return Orientation; }
+	virtual void SetOrientation( EPropertyTableOrientation::Type InOrientation ) override;
 
-	virtual void SetRootPath( const TSharedPtr< FPropertyPath >& Path ) OVERRIDE;
-	virtual TSharedRef< FPropertyPath > GetRootPath() const OVERRIDE { return RootPath; }
-	virtual TArray< FPropertyInfo > GetPossibleExtensionsForPath( const TSharedRef< FPropertyPath >& Path ) const OVERRIDE;
+	virtual void SetRootPath( const TSharedPtr< FPropertyPath >& Path ) override;
+	virtual TSharedRef< FPropertyPath > GetRootPath() const override { return RootPath; }
+	virtual TArray< FPropertyInfo > GetPossibleExtensionsForPath( const TSharedRef< FPropertyPath >& Path ) const override;
 
-	virtual void GetSelectedObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const OVERRIDE;
+	virtual void GetSelectedObjects( TArray< TWeakObjectPtr< UObject > >& OutSelectedObjects) const override;
 
-	virtual const TArray< TWeakObjectPtr< UObject > >& GetObjects() const OVERRIDE { return SourceObjects; }
-	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& Objects ) OVERRIDE;
-	virtual void SetObjects( const TArray< UObject* >& Objects ) OVERRIDE;
+	virtual const TArray< TWeakObjectPtr< UObject > >& GetObjects() const override { return SourceObjects; }
+	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& Objects ) override;
+	virtual void SetObjects( const TArray< UObject* >& Objects ) override;
 
-	virtual TSharedRef< class FObjectPropertyNode > GetObjectPropertyNode( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableRow >& Row ) OVERRIDE;
-	virtual TSharedRef< class FObjectPropertyNode > GetObjectPropertyNode( const TWeakObjectPtr< UObject >& Object ) OVERRIDE;
+	virtual TSharedRef< class FObjectPropertyNode > GetObjectPropertyNode( const TSharedRef< IPropertyTableColumn >& Column, const TSharedRef< IPropertyTableRow >& Row ) override;
+	virtual TSharedRef< class FObjectPropertyNode > GetObjectPropertyNode( const TWeakObjectPtr< UObject >& Object ) override;
 
-	virtual bool GetShowRowHeader() const OVERRIDE { return ShowRowHeader; }
-	virtual void SetShowRowHeader( const bool InShowRowHeader ) OVERRIDE;
+	virtual bool GetShowRowHeader() const override { return ShowRowHeader; }
+	virtual void SetShowRowHeader( const bool InShowRowHeader ) override;
 
-	virtual bool GetShowObjectName() const OVERRIDE { return ShowObjectName; }
-	virtual void SetShowObjectName( const bool ShowObjectName ) OVERRIDE;
+	virtual bool GetShowObjectName() const override { return ShowObjectName; }
+	virtual void SetShowObjectName( const bool ShowObjectName ) override;
 
-	virtual const TArray< TSharedRef< class IPropertyTableColumn > >& GetColumns() OVERRIDE { return Columns; }
-	virtual TArray< TSharedRef< class IPropertyTableRow > >& GetRows() OVERRIDE { return Rows; }
+	virtual const TArray< TSharedRef< class IPropertyTableColumn > >& GetColumns() override { return Columns; }
+	virtual TArray< TSharedRef< class IPropertyTableRow > >& GetRows() override { return Rows; }
 
-	virtual const TSet< TSharedRef< class IPropertyTableRow > >& GetSelectedRows() OVERRIDE { return SelectedRows; }
-	virtual void SetSelectedRows( const TSet< TSharedRef< IPropertyTableRow > >& InSelectedRows ) OVERRIDE;
+	virtual const TSet< TSharedRef< class IPropertyTableRow > >& GetSelectedRows() override { return SelectedRows; }
+	virtual void SetSelectedRows( const TSet< TSharedRef< IPropertyTableRow > >& InSelectedRows ) override;
 
-	virtual const TSet< TSharedRef< class IPropertyTableCell > >& GetSelectedCells() OVERRIDE { return SelectedCells; }
-	virtual void SetSelectedCells( const TSet< TSharedRef< class IPropertyTableCell > >& InSelectedCells ) OVERRIDE;
+	virtual const TSet< TSharedRef< class IPropertyTableCell > >& GetSelectedCells() override { return SelectedCells; }
+	virtual void SetSelectedCells( const TSet< TSharedRef< class IPropertyTableCell > >& InSelectedCells ) override;
 
-	virtual void SelectCellRange( const TSharedRef< class IPropertyTableCell >& StartingCell, const TSharedRef< class IPropertyTableCell >& EndingCell ) OVERRIDE;
+	virtual void SelectCellRange( const TSharedRef< class IPropertyTableCell >& StartingCell, const TSharedRef< class IPropertyTableCell >& EndingCell ) override;
 
-	virtual float GetItemHeight() const OVERRIDE { return ItemHeight; }
-	virtual void SetItemHeight( float NewItemHeight ) OVERRIDE { ItemHeight = NewItemHeight; }
+	virtual float GetItemHeight() const override { return ItemHeight; }
+	virtual void SetItemHeight( float NewItemHeight ) override { ItemHeight = NewItemHeight; }
 
-	virtual TSharedPtr< class IPropertyTableCell > GetLastClickedCell() const OVERRIDE { return LastClickedCell; }
-	virtual void SetLastClickedCell( const TSharedPtr< class IPropertyTableCell >& Cell ) OVERRIDE { LastClickedCell = Cell; }
+	virtual TSharedPtr< class IPropertyTableCell > GetLastClickedCell() const override { return LastClickedCell; }
+	virtual void SetLastClickedCell( const TSharedPtr< class IPropertyTableCell >& Cell ) override { LastClickedCell = Cell; }
 
-	virtual TSharedPtr< class IPropertyTableCell > GetCurrentCell() const OVERRIDE { return CurrentCell; }
-	virtual void SetCurrentCell( const TSharedPtr< class IPropertyTableCell >& Cell ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetCurrentCell() const override { return CurrentCell; }
+	virtual void SetCurrentCell( const TSharedPtr< class IPropertyTableCell >& Cell ) override;
 
-	virtual TSharedPtr< class IPropertyTableColumn > GetCurrentColumn() const OVERRIDE { return CurrentColumn; }
-	virtual void SetCurrentColumn( const TSharedPtr< class IPropertyTableColumn >& Column ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableColumn > GetCurrentColumn() const override { return CurrentColumn; }
+	virtual void SetCurrentColumn( const TSharedPtr< class IPropertyTableColumn >& Column ) override;
 
-	virtual TSharedPtr< class IPropertyTableRow > GetCurrentRow() const OVERRIDE { return CurrentRow; }
-	virtual void SetCurrentRow( const TSharedPtr< class IPropertyTableRow >& Row ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableRow > GetCurrentRow() const override { return CurrentRow; }
+	virtual void SetCurrentRow( const TSharedPtr< class IPropertyTableRow >& Row ) override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInSelection() OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInSelection() OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInSelection() override;
+	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInSelection() override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetNextCellInRow( const TSharedRef< class IPropertyTableCell >& Cell ) OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetPreviousCellInRow( const TSharedRef< class IPropertyTableCell >& Cell ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetNextCellInRow( const TSharedRef< class IPropertyTableCell >& Cell ) override;
+	virtual TSharedPtr< class IPropertyTableCell > GetPreviousCellInRow( const TSharedRef< class IPropertyTableCell >& Cell ) override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetNextCellInColumn( const TSharedRef< class IPropertyTableCell >& Cell ) OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetPreviousCellInColumn( const TSharedRef< class IPropertyTableCell >& Cell ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetNextCellInColumn( const TSharedRef< class IPropertyTableCell >& Cell ) override;
+	virtual TSharedPtr< class IPropertyTableCell > GetPreviousCellInColumn( const TSharedRef< class IPropertyTableCell >& Cell ) override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInRow( const TSharedRef< class IPropertyTableRow >& Row ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInRow( const TSharedRef< class IPropertyTableRow >& Row ) override;
+	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInRow( const TSharedRef< class IPropertyTableRow >& Row ) override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInColumn( const TSharedRef< class IPropertyTableColumn >& Column ) OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInColumn( const TSharedRef< class IPropertyTableColumn >& Column ) OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInColumn( const TSharedRef< class IPropertyTableColumn >& Column ) override;
+	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInColumn( const TSharedRef< class IPropertyTableColumn >& Column ) override;
 
-	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInTable() OVERRIDE;
-	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInTable() OVERRIDE;
+	virtual TSharedPtr< class IPropertyTableCell > GetFirstCellInTable() override;
+	virtual TSharedPtr< class IPropertyTableCell > GetLastCellInTable() override;
 
-	virtual EPropertyTableSelectionUnit::Type GetSelectionUnit() const OVERRIDE { return SelectionUnit; }
-	virtual void SetSelectionUnit( const EPropertyTableSelectionUnit::Type Unit ) OVERRIDE { SelectionUnit = Unit; }
+	virtual EPropertyTableSelectionUnit::Type GetSelectionUnit() const override { return SelectionUnit; }
+	virtual void SetSelectionUnit( const EPropertyTableSelectionUnit::Type Unit ) override { SelectionUnit = Unit; }
 
-	virtual ESelectionMode::Type GetSelectionMode() const OVERRIDE { return SelectionMode; }
-	virtual void SetSelectionMode( const ESelectionMode::Type Mode ) OVERRIDE;
+	virtual ESelectionMode::Type GetSelectionMode() const override { return SelectionMode; }
+	virtual void SetSelectionMode( const ESelectionMode::Type Mode ) override;
 
-	virtual EColumnSortMode::Type GetColumnSortMode( const TSharedRef< class IPropertyTableColumn > Column ) const OVERRIDE;
-	virtual void SortByColumnWithId( const FName& ColumnId, EColumnSortMode::Type SortMode ) OVERRIDE;
-	virtual void SortByColumn( const TSharedRef< class IPropertyTableColumn >& Column, EColumnSortMode::Type SortMode ) OVERRIDE;
+	virtual EColumnSortMode::Type GetColumnSortMode( const TSharedRef< class IPropertyTableColumn > Column ) const override;
+	virtual void SortByColumnWithId( const FName& ColumnId, EColumnSortMode::Type SortMode ) override;
+	virtual void SortByColumn( const TSharedRef< class IPropertyTableColumn >& Column, EColumnSortMode::Type SortMode ) override;
 
-	virtual void PasteTextAtCell( const FString& Text, const TSharedRef< class IPropertyTableCell >& Cell ) OVERRIDE;
+	virtual void PasteTextAtCell( const FString& Text, const TSharedRef< class IPropertyTableCell >& Cell ) override;
 
 	DECLARE_DERIVED_EVENT( FPropertyTable, IPropertyTable::FSelectionChanged, FSelectionChanged );
-	FSelectionChanged* OnSelectionChanged() OVERRIDE { return &SelectionChanged; }
+	FSelectionChanged* OnSelectionChanged() override { return &SelectionChanged; }
 
 	DECLARE_DERIVED_EVENT( FPropertyTable, IPropertyTable::FColumnsChanged, FColumnsChanged );
-	FColumnsChanged* OnColumnsChanged() OVERRIDE { return &ColumnsChanged; }
+	FColumnsChanged* OnColumnsChanged() override { return &ColumnsChanged; }
 
 	DECLARE_DERIVED_EVENT( FPropertyTable, IPropertyTable::FRowsChanged, FRowsChanged );
-	FRowsChanged* OnRowsChanged() OVERRIDE { return &RowsChanged; }
+	FRowsChanged* OnRowsChanged() override { return &RowsChanged; }
 
 	DECLARE_DERIVED_EVENT( FPropertyTable, IPropertyTable::FRootPathChanged, FRootPathChanged );
-	virtual FRootPathChanged* OnRootPathChanged() OVERRIDE { return &RootPathChanged; }
+	virtual FRootPathChanged* OnRootPathChanged() override { return &RootPathChanged; }
 
-	virtual bool IsPropertyEditingEnabled() const OVERRIDE { return true; }
+	virtual bool IsPropertyEditingEnabled() const override { return true; }
 private:
 
 	void UpdateColumns();

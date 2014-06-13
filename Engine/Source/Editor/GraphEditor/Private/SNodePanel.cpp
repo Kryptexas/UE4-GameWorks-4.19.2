@@ -51,13 +51,13 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		}
 	}
 
-	float GetZoomAmount(int32 InZoomLevel) const OVERRIDE
+	float GetZoomAmount(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].ZoomAmount;
 	}
 
-	int32 GetNearestZoomLevel(float InZoomAmount) const OVERRIDE
+	int32 GetNearestZoomLevel(float InZoomAmount) const override
 	{
 		for (int32 ZoomLevelIndex=0; ZoomLevelIndex < GetNumZoomLevels(); ++ZoomLevelIndex)
 		{
@@ -70,23 +70,23 @@ struct FFixedZoomLevelsContainer : public FZoomLevelsContainer
 		return GetDefaultZoomLevel();
 	}
 	
-	FText GetZoomText(int32 InZoomLevel) const OVERRIDE
+	FText GetZoomText(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].DisplayText;
 	}
 	
-	int32 GetNumZoomLevels() const OVERRIDE
+	int32 GetNumZoomLevels() const override
 	{
 		return ZoomLevels.Num();
 	}
 	
-	int32 GetDefaultZoomLevel() const OVERRIDE
+	int32 GetDefaultZoomLevel() const override
 	{
 		return 12;
 	}
 
-	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const OVERRIDE
+	EGraphRenderingLOD::Type GetLOD(int32 InZoomLevel) const override
 	{
 		checkSlow(ZoomLevels.IsValidIndex(InZoomLevel));
 		return ZoomLevels[InZoomLevel].LOD;

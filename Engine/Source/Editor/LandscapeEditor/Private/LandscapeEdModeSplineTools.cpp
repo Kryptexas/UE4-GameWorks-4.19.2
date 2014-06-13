@@ -54,13 +54,13 @@ public:
 		}
 	}
 
-	virtual const TCHAR* GetToolName() OVERRIDE { return TEXT("Splines"); }
-	virtual FText GetDisplayName() OVERRIDE { return NSLOCTEXT("UnrealEd", "LandscapeMode_Splines", "Splines"); };
+	virtual const TCHAR* GetToolName() override { return TEXT("Splines"); }
+	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Splines", "Splines"); };
 
-	virtual void SetEditRenderType() OVERRIDE { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
-	virtual bool SupportsMask() OVERRIDE { return false; }
+	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
+	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) OVERRIDE
+	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
 	{
 		return true; // applied to all...
 	}
@@ -622,7 +622,7 @@ public:
 		}
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) OVERRIDE
+	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		LandscapeInfo = InTarget.LandscapeInfo.Get();
 
@@ -646,12 +646,12 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) OVERRIDE
+	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override
 	{
 		LandscapeInfo = NULL;
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) OVERRIDE
+	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override
 	{
 		FVector HitLocation;
 		if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
@@ -670,7 +670,7 @@ public:
 	{
 	}
 
-	virtual bool HandleClick( HHitProxy* HitProxy, const FViewportClick& Click ) OVERRIDE
+	virtual bool HandleClick( HHitProxy* HitProxy, const FViewportClick& Click ) override
 	{
 		if ( (!HitProxy || !HitProxy->IsA(HWidgetAxis::StaticGetType()))
 			&& !Click.IsShiftDown())
@@ -765,7 +765,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) OVERRIDE
+	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
 	{
 		if (InKey == EKeys::F4 && InEvent == IE_Pressed)
 		{
@@ -1061,7 +1061,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) OVERRIDE
+	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override
 	{
 		FVector Drag = InDrag;
 
@@ -1228,7 +1228,7 @@ public:
 		UpdatePropertiesWindows();
 	}
 
-	virtual void EnterTool() OVERRIDE
+	virtual void EnterTool() override
 	{
 		GEditor->SelectNone(true, true, false);
 
@@ -1242,7 +1242,7 @@ public:
 		}
 	}
 
-	virtual void ExitTool() OVERRIDE
+	virtual void ExitTool() override
 	{
 		ClearSelection();
 		UpdatePropertiesWindows();
@@ -1257,7 +1257,7 @@ public:
 		}
 	}
 
-	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) OVERRIDE
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override
 	{
 		for (ULandscapeSplineControlPoint* ControlPoint : SelectedSplineControlPoints)
 		{
@@ -1309,12 +1309,12 @@ public:
 		}
 	}
 
-	virtual bool OverrideSelection() const OVERRIDE
+	virtual bool OverrideSelection() const override
 	{
 		return true;
 	}
 
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const OVERRIDE
+	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override
 	{
 		// Only filter selection not deselection
 		if (bInSelection)
@@ -1325,7 +1325,7 @@ public:
 		return true;
 	}
 
-	virtual bool UsesTransformWidget() const OVERRIDE
+	virtual bool UsesTransformWidget() const override
 	{
 		if (SelectedSplineControlPoints.Num() > 0)
 		{
@@ -1335,7 +1335,7 @@ public:
 		return false;
 	}
 
-	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const OVERRIDE
+	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode CheckMode) const override
 	{
 		if (SelectedSplineControlPoints.Num() > 0)
 		{
@@ -1358,7 +1358,7 @@ public:
 		return EAxisList::None;
 	}
 
-	virtual FVector GetWidgetLocation() const OVERRIDE
+	virtual FVector GetWidgetLocation() const override
 	{
 		if (SelectedSplineControlPoints.Num() > 0)
 		{
@@ -1370,7 +1370,7 @@ public:
 		return FVector::ZeroVector;
 	}
 
-	virtual FMatrix GetWidgetRotation() const OVERRIDE
+	virtual FMatrix GetWidgetRotation() const override
 	{
 		if (SelectedSplineControlPoints.Num() > 0)
 		{
@@ -1382,7 +1382,7 @@ public:
 		return FMatrix::Identity;
 	}
 
-	virtual EEditAction::Type GetActionEditDuplicate() OVERRIDE
+	virtual EEditAction::Type GetActionEditDuplicate() override
 	{
 		if (SelectedSplineControlPoints.Num() > 0 || SelectedSplineSegments.Num() > 0)
 		{
@@ -1392,7 +1392,7 @@ public:
 		return EEditAction::Skip;
 	}
 
-	virtual EEditAction::Type GetActionEditDelete() OVERRIDE
+	virtual EEditAction::Type GetActionEditDelete() override
 	{
 		if (SelectedSplineControlPoints.Num() > 0 || SelectedSplineSegments.Num() > 0)
 		{
@@ -1402,7 +1402,7 @@ public:
 		return EEditAction::Skip;
 	}
 
-	virtual EEditAction::Type GetActionEditCut() OVERRIDE
+	virtual EEditAction::Type GetActionEditCut() override
 	{
 		if (SelectedSplineControlPoints.Num() > 0 || SelectedSplineSegments.Num() > 0)
 		{
@@ -1412,7 +1412,7 @@ public:
 		return EEditAction::Skip;
 	}
 
-	virtual EEditAction::Type GetActionEditCopy() OVERRIDE
+	virtual EEditAction::Type GetActionEditCopy() override
 	{
 		if (SelectedSplineControlPoints.Num() > 0 || SelectedSplineSegments.Num() > 0)
 		{
@@ -1422,7 +1422,7 @@ public:
 		return EEditAction::Skip;
 	}
 
-	virtual EEditAction::Type GetActionEditPaste() OVERRIDE
+	virtual EEditAction::Type GetActionEditPaste() override
 	{
 		FString PasteString;
 		FPlatformMisc::ClipboardPaste(PasteString);
@@ -1434,31 +1434,31 @@ public:
 		return EEditAction::Skip;
 	}
 
-	virtual bool ProcessEditDuplicate() OVERRIDE
+	virtual bool ProcessEditDuplicate() override
 	{
 		InternalProcessEditDuplicate();
 		return true;
 	}
 
-	virtual bool ProcessEditDelete() OVERRIDE
+	virtual bool ProcessEditDelete() override
 	{
 		InternalProcessEditDelete();
 		return true;
 	}
 
-	virtual bool ProcessEditCut() OVERRIDE
+	virtual bool ProcessEditCut() override
 	{
 		InternalProcessEditCut();
 		return true;
 	}
 
-	virtual bool ProcessEditCopy() OVERRIDE
+	virtual bool ProcessEditCopy() override
 	{
 		InternalProcessEditCopy();
 		return true;
 	}
 
-	virtual bool ProcessEditPaste() OVERRIDE
+	virtual bool ProcessEditPaste() override
 	{
 		InternalProcessEditPaste();
 		return true;
@@ -1597,8 +1597,8 @@ public:
 
 protected:
 	// Begin FEditorUndoClient
-	virtual void PostUndo(bool bSuccess) OVERRIDE { OnUndo(); }
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override { OnUndo(); }
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 protected:

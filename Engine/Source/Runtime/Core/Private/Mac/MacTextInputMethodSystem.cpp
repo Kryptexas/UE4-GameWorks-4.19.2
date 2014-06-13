@@ -359,10 +359,10 @@ namespace
 		void SetContextWindow(TSharedPtr<FGenericWindow> Window);
 		TSharedPtr<FGenericWindow> GetContextWindow(void) const;
 		
-		virtual void NotifyLayoutChanged(const ELayoutChangeType ChangeType) OVERRIDE;
-		virtual void NotifySelectionChanged() OVERRIDE;
-		virtual void NotifyTextChanged(const uint32 BeginIndex, const uint32 OldLength, const uint32 NewLength) OVERRIDE;
-		virtual void CancelComposition() OVERRIDE;
+		virtual void NotifyLayoutChanged(const ELayoutChangeType ChangeType) override;
+		virtual void NotifySelectionChanged() override;
+		virtual void NotifyTextChanged(const uint32 BeginIndex, const uint32 OldLength, const uint32 NewLength) override;
+		virtual void CancelComposition() override;
 		
 	private:
 		TWeakPtr<ITextInputMethodContext> Context;

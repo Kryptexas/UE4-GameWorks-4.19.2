@@ -16,17 +16,17 @@ class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionText
 
 
 	// Begin UMaterialExpression Interface
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual const TArray<FExpressionInput*> GetInputs() OVERRIDE;
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual const TArray<FExpressionInput*> GetInputs() override;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 #if WITH_EDITOR
-	virtual uint32 GetOutputType(int32 InputIndex) OVERRIDE {return MCT_Texture;}
+	virtual uint32 GetOutputType(int32 InputIndex) override {return MCT_Texture;}
 #endif
 	// End UMaterialExpression Interface
 
 	// Begin UMaterialExpressionTextureSampleParameter Interface
-	virtual const TCHAR* GetRequirements() OVERRIDE;
+	virtual const TCHAR* GetRequirements() override;
 	// End UMaterialExpressionTextureSampleParameter Interface
 
 };

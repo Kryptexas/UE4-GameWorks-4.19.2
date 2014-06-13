@@ -74,11 +74,11 @@ public:
 	}
 
 protected:
-	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() OVERRIDE { return ProjectInfo; }
-	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const OVERRIDE { return ProjectInfo; }
+	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() override { return ProjectInfo; }
+	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const override { return ProjectInfo; }
 
-	virtual bool PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject) OVERRIDE;
-	virtual void PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const OVERRIDE;
+	virtual bool PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject) override;
+	virtual void PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const override;
 
 private:
 	/** The descriptor of this project that we loaded from disk */
@@ -95,22 +95,22 @@ public:
 	FProjectManager();
 
 	/** IProjectManager interface */
-	virtual bool LoadProjectFile( const FString& ProjectFile ) OVERRIDE;
-	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) OVERRIDE;
-	virtual bool AreProjectModulesUpToDate( ) OVERRIDE;
-	virtual const FString& GetAutoLoadProjectFileName() OVERRIDE;
-	virtual const FString& NonStaticGetProjectFileExtension() OVERRIDE;
-	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& ModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
-	virtual bool DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
-	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) OVERRIDE;
-	virtual bool SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason) OVERRIDE;
-	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const OVERRIDE;
-	virtual bool QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const OVERRIDE;
-	virtual void UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
-	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) OVERRIDE;
-	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) OVERRIDE;
-	virtual void ClearSupportedTargetPlatformsForCurrentProject() OVERRIDE;
-	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() OVERRIDE { return OnTargetPlatformsForCurrentProjectChangedEvent; }
+	virtual bool LoadProjectFile( const FString& ProjectFile ) override;
+	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) override;
+	virtual bool AreProjectModulesUpToDate( ) override;
+	virtual const FString& GetAutoLoadProjectFileName() override;
+	virtual const FString& NonStaticGetProjectFileExtension() override;
+	virtual bool GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& ModuleNames, const FString& EngineIdentifier, FText& OutFailReason) override;
+	virtual bool DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason) override;
+	virtual bool UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason) override;
+	virtual bool SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason) override;
+	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const override;
+	virtual bool QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const override;
+	virtual void UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported) override;
+	virtual void UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported) override;
+	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) override;
+	virtual void ClearSupportedTargetPlatformsForCurrentProject() override;
+	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() override { return OnTargetPlatformsForCurrentProjectChangedEvent; }
 
 private:
 	static void QueryStatusForProjectImpl(const FProject& Project, const FString& FilePath, FProjectStatus& OutProjectStatus);

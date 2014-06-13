@@ -59,9 +59,9 @@ class UParticleModuleBeamBase : public UParticleModule
 
 
 	//Begin UParticleModule Interface
-	virtual EModuleType	GetModuleType() const OVERRIDE {	return EPMT_Beam;	}
+	virtual EModuleType	GetModuleType() const override {	return EPMT_Beam;	}
 
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}

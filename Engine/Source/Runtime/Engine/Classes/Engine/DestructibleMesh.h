@@ -451,11 +451,11 @@ public:
 #endif // WITH_APEX
 
 	// Begin UObject interface.
-	virtual void				PostLoad() OVERRIDE;
-	virtual void				Serialize(FArchive& Ar) OVERRIDE;
-	virtual void				FinishDestroy() OVERRIDE;
+	virtual void				PostLoad() override;
+	virtual void				Serialize(FArchive& Ar) override;
+	virtual void				FinishDestroy() override;
 #if WITH_EDITOR
-	virtual void				PreEditChange(UProperty* PropertyAboutToChange) OVERRIDE;
+	virtual void				PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 	// End UObject interface.
 

@@ -19,7 +19,7 @@ const FName FBehaviorTreeEditorModule::BehaviorTreeEditorAppIdentifier( TEXT( "B
 
 class FGraphPanelNodeFactory_BehaviorTree : public FGraphPanelNodeFactory
 {
-	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const OVERRIDE
+	virtual TSharedPtr<class SGraphNode> CreateNode(UEdGraphNode* Node) const override
 	{
 		if (UBehaviorTreeGraphNode* BTNode = Cast<UBehaviorTreeGraphNode>(Node))
 		{

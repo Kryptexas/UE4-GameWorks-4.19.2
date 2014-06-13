@@ -114,7 +114,7 @@ public:
 	}
 
 	/** Whether or not this mapping should be processed or imported */
-	virtual bool IsValidMapping() const OVERRIDE {return Primitive.IsValid();}
+	virtual bool IsValidMapping() const override {return Primitive.IsValid();}
 
 protected:
 

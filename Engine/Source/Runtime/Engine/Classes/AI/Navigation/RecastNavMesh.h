@@ -92,7 +92,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	FORCEINLINE void OnPathCorridorUpdated() { bCorridorEdgesGenerated = false; }
 
-	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const OVERRIDE;
+	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const override;
 	
 	bool ContainsWithSameEnd(const FNavMeshPath* Other) const;
 	
@@ -133,11 +133,11 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
-	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const OVERRIDE;
+	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const OVERRIDE;
-	virtual FString GetDescription() const OVERRIDE;
+	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const override;
+	virtual FString GetDescription() const override;
 #endif // ENABLE_VISUAL_LOG
 
 protected:
@@ -403,7 +403,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 
 	typedef uint16 FNavPolyFlags;
 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 
 	/** should we draw edges of every navmesh's triangle */
 	UPROPERTY(EditAnywhere, Category=Display)
@@ -624,11 +624,11 @@ public:
 	virtual ~ARecastNavMesh();
 
 	// Begin UObject Interface
-	virtual void PostInitProperties() OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;	
+	virtual void PostInitProperties() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End UObject Interface
 
@@ -637,33 +637,33 @@ public:
 
 #if WITH_EDITOR
 	/** RecastNavMesh instances are dynamically spawned and should not be coppied */
-	virtual bool ShouldExport() OVERRIDE { return false; }
+	virtual bool ShouldExport() override { return false; }
 #endif
 
 	/** called by TickHelper, works in game AND in editor */
 	void TickMe(float DeltaTime);
 
-	virtual void CleanUp() OVERRIDE;
+	virtual void CleanUp() override;
 
 	// Begin ANavigationData Interface
-	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
+	virtual bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 
-	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual bool ProjectPoint(const FVector& Point, FNavLocation& OutLocation, const FVector& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	
-	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const OVERRIDE;
-	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const OVERRIDE;
+	virtual ENavigationQueryResult::Type CalcPathCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
+	virtual ENavigationQueryResult::Type CalcPathLength(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
+	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const override;
 
-	virtual UPrimitiveComponent* ConstructRenderingComponent() OVERRIDE;
+	virtual UPrimitiveComponent* ConstructRenderingComponent() override;
 	/** Returns bounding box for the navmesh. */
-	virtual FBox GetBounds() const OVERRIDE { return GetNavMeshBounds(); }
+	virtual FBox GetBounds() const override { return GetNavMeshBounds(); }
 	/** Called on world origin changes **/
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 
 protected:
 #if WITH_NAVIGATION_GENERATOR
-	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) OVERRIDE;
+	virtual FNavDataGenerator* ConstructGenerator(const FNavAgentProperties& AgentProps) override;
 	virtual void SortNavigationTiles();
 #endif // WITH_NAVIGATION_GENERATOR
 	// End ANavigationData Interface
@@ -700,9 +700,9 @@ public:
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
 	void RequestDrawingUpdate();
 
-	virtual void SetConfig(const FNavDataConfig& Src) OVERRIDE;
+	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
-	virtual void FillConfig(FNavDataConfig& Dest) OVERRIDE;
+	virtual void FillConfig(FNavDataConfig& Dest) override;
 
 	FORCEINLINE const FNavigationQueryFilter& GetRightFilterRef(TSharedPtr<const FNavigationQueryFilter> Filter) const 
 	{
@@ -725,7 +725,7 @@ public:
 	void DrawDebugPathCorridor(NavNodeRef const* PathPolys, int32 NumPathPolys, bool bPersistent=true) const;
 
 #if !UE_BUILD_SHIPPING
-	virtual uint32 LogMemUsed() const OVERRIDE;
+	virtual uint32 LogMemUsed() const override;
 #endif // !UE_BUILD_SHIPPING
 
 	void UpdateNavMeshDrawing();
@@ -733,9 +733,9 @@ public:
 	//----------------------------------------------------------------------//
 	// Utilities
 	//----------------------------------------------------------------------//
-	virtual void OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex) OVERRIDE;
-	virtual int32 GetNewAreaID(const UClass* AreaClass) const OVERRIDE;
-	virtual int32 GetMaxSupportedAreas() const OVERRIDE { return RECAST_MAX_AREAS; }
+	virtual void OnNavAreaAdded(const UClass* NavAreaClass, int32 AgentIndex) override;
+	virtual int32 GetNewAreaID(const UClass* AreaClass) const override;
+	virtual int32 GetMaxSupportedAreas() const override { return RECAST_MAX_AREAS; }
 	
 	/** Get forbidden area flags from default query filter */
 	uint16 GetDefaultForbiddenFlags() const;
@@ -749,7 +749,7 @@ public:
 	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink) OVERRIDE;
+	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink) override;
 
 	/** update area class and poly flags for all offmesh links with given UserId */
 	void UpdateNavigationLinkArea(int32 UserId, TSubclassOf<UNavArea> AreaClass) const;
@@ -844,7 +844,7 @@ public:
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
 
 	/** Checks whether this instance of navmesh supports given Agent type */
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const OVERRIDE;
+	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const override;
 
 	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }
@@ -858,7 +858,7 @@ public:
 	const FTileSetItem* GetTileSet() const { return TileSet.GetTypedData(); }
 	FTileSetItem* GetTileSet() { return TileSet.GetTypedData(); }
 	
-	virtual bool NeedsRebuild() OVERRIDE;
+	virtual bool NeedsRebuild() override;
 
 	/** update offset for navmesh in recast library, to current one */
 	/** @param Offset - current offset */
@@ -868,7 +868,7 @@ protected:
 	// @todo docuement
 	UPrimitiveComponent* ConstructRenderingComponentImpl();
 
-	virtual void DestroyGenerator() OVERRIDE;
+	virtual void DestroyGenerator() override;
 
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);

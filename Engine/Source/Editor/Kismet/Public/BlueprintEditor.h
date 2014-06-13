@@ -44,9 +44,9 @@ struct KISMET_API FSelectionDetailsSummoner : public FWorkflowTabFactory
 public:
 	FSelectionDetailsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE;
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
-	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		return LOCTEXT("SelectionDetailsTooltip", "The Details tab allows you see and edit properties of whatever is selected.");
 	}
@@ -107,7 +107,7 @@ class KISMET_API FBlueprintEditor : public IBlueprintEditor, public FGCObject, p
 
 public:
 	// IToolkit interface
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 
 public:
@@ -130,37 +130,37 @@ public:
 
 public:
 	// FAssetEditorToolkit interface
-	virtual bool OnRequestClose() OVERRIDE;
-	virtual void ToolkitBroughtToFront() OVERRIDE;
+	virtual bool OnRequestClose() override;
+	virtual void ToolkitBroughtToFront() override;
 	// End of FAssetEditorToolkit 
 
 	// IToolkit interface
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
-	virtual bool IsBlueprintEditor() const OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual bool IsBlueprintEditor() const override;
 	// End of IToolkit interface
 
 	// FGCObject interface
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE;
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// End of FGCObject interface
 
 	// IBlueprintEditor interface
-	virtual void RefreshEditors() OVERRIDE;
-	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) OVERRIDE;
-	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) OVERRIDE;
-	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const OVERRIDE;
-	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) OVERRIDE;
-	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
-	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const OVERRIDE;
+	virtual void RefreshEditors() override;
+	virtual void JumpToHyperlink(const UObject* ObjectReference, bool bRequestRename = false) override;
+	virtual void SummonSearchUI(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false) override;
+	virtual TArray<TSharedPtr<class FSCSEditorTreeNode> > GetSelectedSCSEditorTreeNodes() const override;
+	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) override;
+	virtual int32 GetNumberOfSelectedNodes() const override;
+	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const override;
 	// End of IBlueprintEditor interface
 
 	// FTickableEditorObject interface
-	virtual void Tick(float DeltaTime) OVERRIDE;
-	virtual bool IsTickable() const OVERRIDE { return true; }
-	virtual TStatId GetStatId() const OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
 
 public:
@@ -198,7 +198,7 @@ public:
 	TSharedPtr<class FBlueprintEditorToolbar> GetToolbarBuilder() {return Toolbar;}
 
 	/** @return the documentation location for this editor */
-	virtual FString GetDocumentationLink() const OVERRIDE;
+	virtual FString GetDocumentationLink() const override;
 
 	/**	Returns whether the edited blueprint has components */
 	bool CanAccessComponentsMode() const;
@@ -491,7 +491,7 @@ protected:
 	EVisibility ParentClassButtonsVisibility() const;
 
 	/** Recreates the overlay on the menu bar */
-	virtual void PostRegenerateMenusAndToolbars() OVERRIDE;
+	virtual void PostRegenerateMenusAndToolbars() override;
 
 	/** Returns the name of the Blueprint's parent class */
 	FText GetParentClassNameText() const;
@@ -636,10 +636,10 @@ protected:
 	bool CanCopyNodes() const;
 	
 	/** Paste on graph at specific location */
-	virtual void PasteNodesHere(class UEdGraph* DestinationGraph, const FVector2D& GraphLocation) OVERRIDE;
+	virtual void PasteNodesHere(class UEdGraph* DestinationGraph, const FVector2D& GraphLocation) override;
 	
 	void PasteNodes();
-	virtual bool CanPasteNodes() const OVERRIDE;
+	virtual bool CanPasteNodes() const override;
 
 	void DuplicateNodes();
 	bool CanDuplicateNodes() const;
@@ -762,8 +762,8 @@ protected:
 	void FindInBlueprints_OnClicked();
 
 	// FNotifyHook interface
-	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) OVERRIDE;
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) OVERRIDE;
+	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 	// End of FNotifyHook interface
 
 	/** Callback when properties have finished being handled */
@@ -786,8 +786,8 @@ protected:
 	void LoadLibrariesFromAssetRegistry();
 
 	// Begin FEditorUndoClient Interface
-	virtual void	PostUndo(bool bSuccess) OVERRIDE;
-	virtual void	PostRedo(bool bSuccess) OVERRIDE;
+	virtual void	PostUndo(bool bSuccess) override;
+	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
 	/** Get graph appearance */

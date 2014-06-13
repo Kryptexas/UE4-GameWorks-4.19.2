@@ -181,7 +181,7 @@ public:
 	}
 
 	/** Called when a key is pressed on the widget */
-	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) OVERRIDE
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
 		if (InKeyboardEvent.GetKey() == EKeys::Escape)
 		{
@@ -474,7 +474,7 @@ public:
 	}
 
 	/** Compute the desired size for this widget */
-	virtual FVector2D ComputeDesiredSize() const OVERRIDE
+	virtual FVector2D ComputeDesiredSize() const override
 	{
 		const float MinWidthVal = MinWidth.Get();
 
@@ -623,7 +623,7 @@ class FUserFeedbackModuleImpl : public IUserFeedbackModule
 public:
 
 	/** Create a widget which allows the user to send positive or negative feedback about a feature */
-	virtual TSharedRef<SWidget> CreateFeedbackWidget(FText Context) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateFeedbackWidget(FText Context) const override
 	{
 		if (FEngineAnalytics::IsAvailable() )
 		{

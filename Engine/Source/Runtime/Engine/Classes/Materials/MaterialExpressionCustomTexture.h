@@ -15,25 +15,25 @@ class UMaterialExpressionCustomTexture : public UMaterialExpression
 
 
 	// Begin UMaterialExpression Interface
-	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
-	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
-	virtual int32 GetWidth() const OVERRIDE;
-	virtual int32 GetLabelPadding() OVERRIDE { return 8; }
-	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) OVERRIDE;
+	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
+	virtual int32 CompilePreview(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
+	virtual int32 GetWidth() const override;
+	virtual int32 GetLabelPadding() override { return 8; }
+	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
 
 	/** 
 	 * Callback to get any texture reference this expression emits.
 	 * This is used to link the compiled uniform expressions with their default texture values. 
 	 * Any UMaterialExpression whose compilation creates a texture uniform expression (eg Compiler->Texture, Compiler->TextureParameter) must implement this.
 	 */
-	virtual UTexture* GetReferencedTexture() OVERRIDE
+	virtual UTexture* GetReferencedTexture() override
 	{
 		return Texture;
 	}
 
 #if WITH_EDITOR
-	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE;
+	virtual uint32 GetOutputType(int32 OutputIndex) override;
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface
 };

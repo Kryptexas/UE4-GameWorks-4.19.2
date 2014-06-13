@@ -49,7 +49,7 @@ struct HActor : public HHitProxy
 		, MaterialIndex(InMaterialIndex)
 		{}
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
 
@@ -77,7 +77,7 @@ struct HBSPBrushVert : public HHitProxy
 		Brush(InBrush),
 		Vertex(InVertex)
 	{}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		//@todo: Brush Hit proxies are currently referencing between UWorld's (undesired), 
 		// once this issue is resolved remove the TWeakObjectPtr and replace with Standard ABrush*.
@@ -100,7 +100,7 @@ struct HStaticMeshVert : public HHitProxy
 		Actor(InActor),
 		Vertex(InVertex)
 	{}
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
 	{
 		Collector.AddReferencedObject( Actor );
 	}
@@ -551,7 +551,7 @@ public:
 		Console(InConsole)
 	{}
 
-	virtual void Serialize(const TCHAR* Text, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE;
+	virtual void Serialize(const TCHAR* Text, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 
 private:
 

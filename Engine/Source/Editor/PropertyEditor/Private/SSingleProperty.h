@@ -23,9 +23,9 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** ISinglePropertyView interface */
-	virtual bool HasValidProperty() const OVERRIDE { return RootPropertyNode.IsValid() && ValueNode.IsValid(); }
-	virtual void SetObject( UObject* InObject ) OVERRIDE;
-	virtual void SetOnPropertyValueChanged( FSimpleDelegate& InOnPropertyValueChanged ) OVERRIDE;
+	virtual bool HasValidProperty() const override { return RootPropertyNode.IsValid() && ValueNode.IsValid(); }
+	virtual void SetObject( UObject* InObject ) override;
+	virtual void SetOnPropertyValueChanged( FSimpleDelegate& InOnPropertyValueChanged ) override;
 
 	/**
 	 * Replaces objects being observed by the view with new objects

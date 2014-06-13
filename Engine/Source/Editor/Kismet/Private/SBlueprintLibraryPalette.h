@@ -29,13 +29,13 @@ public:
 
 private:
 	// SGraphPalette Interface
-	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) OVERRIDE;
+	virtual void CollectAllActions(FGraphActionListBuilderBase& OutAllActions) override;
 	// End SGraphPalette Interface
 
 	// SBlueprintSubPalette Interface
-	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTip) OVERRIDE;
-	virtual void BindCommands(TSharedPtr<FUICommandList> CommandListIn) const OVERRIDE;
-	virtual void GenerateContextMenuEntries(FMenuBuilder& MenuBuilder) const OVERRIDE;
+	virtual TSharedRef<SVerticalBox> ConstructHeadingWidget(FSlateBrush const* const Icon, FString const& TitleText, FString const& ToolTip) override;
+	virtual void BindCommands(TSharedPtr<FUICommandList> CommandListIn) const override;
+	virtual void GenerateContextMenuEntries(FMenuBuilder& MenuBuilder) const override;
 	// End SBlueprintSubPalette Interface
 
 	/**

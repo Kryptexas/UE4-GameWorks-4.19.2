@@ -17,12 +17,12 @@ class FNullDynamicRHIModule : public IDynamicRHIModule
 public:
 
 	// IModuleInterface
-	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
+	virtual bool SupportsDynamicReloading() override { return false; }
 
 	// IDynamicRHIModule
-	virtual bool IsSupported() OVERRIDE;
+	virtual bool IsSupported() override;
 
-	virtual FDynamicRHI* CreateRHI() OVERRIDE
+	virtual FDynamicRHI* CreateRHI() override
 	{
 		return new FNullDynamicRHI();
 	}

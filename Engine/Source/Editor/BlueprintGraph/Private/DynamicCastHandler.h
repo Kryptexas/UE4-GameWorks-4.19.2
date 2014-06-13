@@ -20,7 +20,7 @@ public:
 	{
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) OVERRIDE;
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) OVERRIDE;
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
+	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override;
+	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* Node) override;
 };

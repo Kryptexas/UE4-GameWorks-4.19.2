@@ -99,22 +99,22 @@ class UParticleModuleLocationBoneSocket : public UParticleModuleLocationBase
 #endif // WITH_EDITORONLY_DATA
 
 	// Begin UParticleModule Interface
-	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
-	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
-	virtual void	FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
-	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
-	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
-	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) OVERRIDE;
-	virtual bool	TouchesMeshRotation() const OVERRIDE { return true; }
-	virtual void	AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) OVERRIDE;
-	virtual bool CanTickInAnyThread() OVERRIDE
+	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
+	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual void	FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
+	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	RequiredBytesPerInstance(FParticleEmitterInstance* Owner = NULL) override;
+	virtual uint32	PrepPerInstanceBlock(FParticleEmitterInstance* Owner, void* InstData) override;
+	virtual bool	TouchesMeshRotation() const override { return true; }
+	virtual void	AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp) override;
+	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}
 #if WITH_EDITOR
-	virtual int32 GetNumberOfCustomMenuOptions() const OVERRIDE;
-	virtual bool GetCustomMenuEntryDisplayString(int32 InEntryIndex, FString& OutDisplayString) const OVERRIDE;
-	virtual bool PerformCustomMenuEntry(int32 InEntryIndex) OVERRIDE;
+	virtual int32 GetNumberOfCustomMenuOptions() const override;
+	virtual bool GetCustomMenuEntryDisplayString(int32 InEntryIndex, FString& OutDisplayString) const override;
+	virtual bool PerformCustomMenuEntry(int32 InEntryIndex) override;
 #endif
 	// End UParticleModule Interface
 

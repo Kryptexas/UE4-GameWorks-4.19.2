@@ -74,8 +74,8 @@ public:
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
 	// Begin UObject interface.
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	// Begin UObject interface.
 
 	/** Post process after importing **/
@@ -85,8 +85,8 @@ public:
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
 	// Begin UVertexAnimBase interface
-	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) OVERRIDE;
-	virtual bool HasDataForLOD(int32 LODIndex) OVERRIDE;
+	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) override;
+	virtual bool HasDataForLOD(int32 LODIndex) override;
 	// End UVertexAnimBase interface
 
 private:

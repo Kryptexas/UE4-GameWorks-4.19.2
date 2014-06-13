@@ -38,22 +38,22 @@ class UParticleModuleSpawn : public UParticleModuleSpawnBase
 
 	// Begin UObject Interface
 #if WITH_EDITOR
-	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void	PostInitProperties() OVERRIDE;
-	virtual void	Serialize(FArchive& Ar) OVERRIDE;
+	virtual void	PostInitProperties() override;
+	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface
-	virtual bool	GenerateLODModuleValues(UParticleModule* SourceModule, float Percentage, UParticleLODLevel* LODLevel) OVERRIDE;
+	virtual bool	GenerateLODModuleValues(UParticleModule* SourceModule, float Percentage, UParticleLODLevel* LODLevel) override;
 	// End UParticleModule Interface
 
 	// Begin UParticleModuleSpawnBase Interface
 	virtual bool GetSpawnAmount(FParticleEmitterInstance* Owner, int32 Offset, float OldLeftover, 
-		float DeltaTime, int32& Number, float& Rate) OVERRIDE;
-	virtual float GetMaximumSpawnRate() OVERRIDE;
-	virtual float GetEstimatedSpawnRate() OVERRIDE;
-	virtual int32 GetMaximumBurstCount() OVERRIDE;
+		float DeltaTime, int32& Number, float& Rate) override;
+	virtual float GetMaximumSpawnRate() override;
+	virtual float GetEstimatedSpawnRate() override;
+	virtual int32 GetMaximumBurstCount() override;
 	// End UParticleModuleSpawnBase Interface
 };
 

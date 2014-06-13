@@ -20,12 +20,12 @@ class KISMET_API FWorkflowCentricApplication : public FAssetEditorToolkit
 {
 public:
 	// IToolkit interface
-	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
-	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) OVERRIDE;
+	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
+	virtual void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	// End of IToolkit interface
 	
 	// FAssetEditorToolkit interface
-	virtual bool OnRequestClose() OVERRIDE;
+	virtual bool OnRequestClose() override;
 	// End of FAssetEditorToolkit interface
 
 	// Returns the current mode of this application

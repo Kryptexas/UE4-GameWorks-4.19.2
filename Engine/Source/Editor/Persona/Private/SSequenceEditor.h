@@ -38,7 +38,7 @@ public:
 	void SetSequenceObj(UAnimSequenceBase * NewSequence);
 	UAnimSequenceBase * GetSequenceObj() const { return SequenceObj; }
 
-	virtual UAnimSequenceBase* GetEditorObject() const OVERRIDE { return GetSequenceObj(); }
+	virtual UAnimSequenceBase* GetEditorObject() const override { return GetSequenceObj(); }
 
 private:
 	/** Pointer to the animation sequence being edited */

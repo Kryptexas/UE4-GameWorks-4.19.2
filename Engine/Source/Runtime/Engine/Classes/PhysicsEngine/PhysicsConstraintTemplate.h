@@ -99,8 +99,8 @@ class UPhysicsConstraintTemplate : public UObject
 
 
 	// Begin UObject interface.
-	virtual void PostLoad() OVERRIDE;
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface.
 
 private:

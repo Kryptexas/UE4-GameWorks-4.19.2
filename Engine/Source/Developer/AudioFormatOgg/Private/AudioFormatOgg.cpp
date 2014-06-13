@@ -40,7 +40,7 @@ public:
 		return false;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
 		check(Format == NAME_OGG);
 		return UE_AUDIO_OGG_VER;

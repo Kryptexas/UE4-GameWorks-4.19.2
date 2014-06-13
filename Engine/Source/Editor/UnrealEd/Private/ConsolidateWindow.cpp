@@ -194,21 +194,21 @@ private:
 	// Drag-drop Support
 
 	/** Called in response to the user beginning to drag something over the consolidation panel; parses the drop data into dropped assets, if possible */
-	void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	/** Called in response to the user's drag operation exiting the consolidation panel; deletes any dropped asset data */
-	void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	
 	/** Called in response to the user performing a drop operation in the consolidation panel; adds the dropped objects to the panel */
-	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	/** Called while the user is dragging something over the consolidation panel; provides visual feedback on whether a drop is allowed or not */
-	FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE;
+	FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 	// Input Responses
 
 	/** Called in response to the user releasing a keyboard key while the consolidation panel has keyboard focus */
-	FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 	/** Track if the panel has already warned the user about consolidating assets with different types, so as not to repeatedly (and annoyingly) warn */
 	bool bAlreadyWarnedAboutTypes;

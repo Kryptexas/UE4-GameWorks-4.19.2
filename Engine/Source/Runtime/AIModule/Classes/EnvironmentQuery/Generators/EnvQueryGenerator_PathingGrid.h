@@ -40,8 +40,8 @@ class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator
 
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
 
-	virtual FText GetDescriptionTitle() const OVERRIDE;
-	virtual FText GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionTitle() const override;
+	virtual FText GetDescriptionDetails() const override;
 
 protected:
 #if WITH_RECAST

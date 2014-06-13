@@ -14,12 +14,12 @@ public:
 	~FPaperRenderSceneProxy();
 
 	// FPrimitiveSceneProxy interface.
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual void OnTransformChanged() OVERRIDE;
-	virtual uint32 GetMemoryFootprint() const OVERRIDE;
-	virtual bool CanBeOccluded() const OVERRIDE;
-	virtual void CreateRenderThreadResources() OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual void OnTransformChanged() override;
+	virtual uint32 GetMemoryFootprint() const override;
+	virtual bool CanBeOccluded() const override;
+	virtual void CreateRenderThreadResources() override;
 	// End of FPrimitiveSceneProxy interface.
 
 	void SetDrawCall_RenderThread(const FSpriteDrawCallRecord& NewDynamicData);

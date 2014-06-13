@@ -38,7 +38,7 @@ public:
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& OwnerTableView );
 
 	/** Overridden from SMultiColumnTableRow.  Generates a widget for this column of the tree row. */
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE;
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 private:
 

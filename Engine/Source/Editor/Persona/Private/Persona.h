@@ -84,7 +84,7 @@ public:
 
 	void SetDetailObject(UObject* Obj);
 
-	virtual void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated) OVERRIDE;
+	virtual void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated) override;
 
 	/** handle after compile **/
 	UDebugSkelMeshComponent* GetPreviewMeshComponent();
@@ -192,25 +192,25 @@ public:
 
 public:
 	// IToolkit interface
-	virtual FName GetToolkitFName() const OVERRIDE;
-	virtual FText GetBaseToolkitName() const OVERRIDE;
-	virtual FText GetToolkitName() const OVERRIDE;
-	virtual FString GetWorldCentricTabPrefix() const OVERRIDE;
-	virtual FLinearColor GetWorldCentricTabColorScale() const OVERRIDE;
-	virtual void SaveAsset_Execute() OVERRIDE;
+	virtual FName GetToolkitFName() const override;
+	virtual FText GetBaseToolkitName() const override;
+	virtual FText GetToolkitName() const override;
+	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FLinearColor GetWorldCentricTabColorScale() const override;
+	virtual void SaveAsset_Execute() override;
 	// End of IToolkit interface
 
 	/** @return the documentation location for this editor */
-	virtual FString GetDocumentationLink() const OVERRIDE
+	virtual FString GetDocumentationLink() const override
 	{
 		return FString(TEXT("Engine/Animation/Persona"));
 	}
 	
 	/** Returns a pointer to the Blueprint object we are currently editing, as long as we are editing exactly one */
-	virtual UBlueprint* GetBlueprintObj() const OVERRIDE;
+	virtual UBlueprint* GetBlueprintObj() const override;
 
 	// FTickableEditorObject interface
-	virtual void Tick(float DeltaTime) OVERRIDE;
+	virtual void Tick(float DeltaTime) override;
 	// End of FTickableEditorObject interface
 
 	/** Returns the image brush to use for each modes dirty marker */
@@ -221,41 +221,41 @@ public:
 protected:
 	// FBlueprintEditor interface
 	//virtual void CreateDefaultToolbar() OVERRIDE;
-	virtual void CreateDefaultCommands() OVERRIDE;
-	virtual void OnSelectBone() OVERRIDE;
-	virtual bool CanSelectBone() const OVERRIDE;
-	virtual void OnAddPosePin() OVERRIDE;
-	virtual bool CanAddPosePin() const OVERRIDE;
-	virtual void OnRemovePosePin() OVERRIDE;
-	virtual bool CanRemovePosePin() const OVERRIDE;
-	virtual void StartEditingDefaults(bool bAutoFocus, bool bForceRefresh = false) OVERRIDE;
-	virtual void Compile() OVERRIDE;
-	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor) OVERRIDE;
-	virtual FString GetDefaultEditorTitle() OVERRIDE;
-	virtual void OnConvertToSequenceEvaluator() OVERRIDE;
-	virtual void OnConvertToSequencePlayer() OVERRIDE;
-	virtual void OnConvertToBlendSpaceEvaluator() OVERRIDE;
-	virtual void OnConvertToBlendSpacePlayer() OVERRIDE;
-	virtual bool IsInAScriptingMode() const OVERRIDE;
-	virtual void OnOpenRelatedAsset() OVERRIDE;
-	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const OVERRIDE;
-	virtual void CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints) OVERRIDE;
-	virtual FGraphAppearanceInfo GetGraphAppearance() const OVERRIDE;
-	virtual bool IsEditable(UEdGraph* InGraph) const OVERRIDE;
-	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const OVERRIDE;
+	virtual void CreateDefaultCommands() override;
+	virtual void OnSelectBone() override;
+	virtual bool CanSelectBone() const override;
+	virtual void OnAddPosePin() override;
+	virtual bool CanAddPosePin() const override;
+	virtual void OnRemovePosePin() override;
+	virtual bool CanRemovePosePin() const override;
+	virtual void StartEditingDefaults(bool bAutoFocus, bool bForceRefresh = false) override;
+	virtual void Compile() override;
+	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor) override;
+	virtual FString GetDefaultEditorTitle() override;
+	virtual void OnConvertToSequenceEvaluator() override;
+	virtual void OnConvertToSequencePlayer() override;
+	virtual void OnConvertToBlendSpaceEvaluator() override;
+	virtual void OnConvertToBlendSpacePlayer() override;
+	virtual bool IsInAScriptingMode() const override;
+	virtual void OnOpenRelatedAsset() override;
+	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const override;
+	virtual void CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints) override;
+	virtual FGraphAppearanceInfo GetGraphAppearance() const override;
+	virtual bool IsEditable(UEdGraph* InGraph) const override;
+	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const override;
 	// End of FBlueprintEditor interface
 
 	// IAssetEditorInstance interface
-	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) OVERRIDE;
+	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
 	// End of IAssetEditorInstance interface
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE;
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
 	// Begin FAssetEditorToolkit Interface
-	virtual void FindInContentBrowser_Execute() OVERRIDE;
+	virtual void FindInContentBrowser_Execute() override;
 	// End of FAssetEditorToolkit
 
 	// Generic Command handlers

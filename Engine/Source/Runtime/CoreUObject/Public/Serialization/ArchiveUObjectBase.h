@@ -14,7 +14,7 @@ class COREUOBJECT_API FArchiveUObject : public FArchive
 public:
 
 	// Begin FArchive Interface
-	virtual FArchive& operator<< (class FLazyObjectPtr& Value) OVERRIDE;
-	virtual FArchive& operator<< (class FAssetPtr& Value) OVERRIDE;
+	virtual FArchive& operator<< (class FLazyObjectPtr& Value) override;
+	virtual FArchive& operator<< (class FAssetPtr& Value) override;
 	// End FArchive Interface
 };

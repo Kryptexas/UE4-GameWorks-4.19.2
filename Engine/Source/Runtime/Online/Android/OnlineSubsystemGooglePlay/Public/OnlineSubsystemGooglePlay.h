@@ -21,39 +21,39 @@ public:
 	virtual ~FOnlineSubsystemGooglePlay() {}
 
 	// Begin IOnlineSubsystem Interface
-	virtual IOnlineSessionPtr GetSessionInterface() const OVERRIDE;
-	virtual IOnlineFriendsPtr GetFriendsInterface() const OVERRIDE;
-	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const OVERRIDE;
-	virtual IOnlineUserCloudPtr GetUserCloudInterface() const OVERRIDE;
-	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const OVERRIDE;
-	virtual IOnlineVoicePtr GetVoiceInterface() const  OVERRIDE;
-	virtual IOnlineExternalUIPtr GetExternalUIInterface() const OVERRIDE;
-	virtual IOnlineTimePtr GetTimeInterface() const OVERRIDE;
-	virtual IOnlineIdentityPtr GetIdentityInterface() const OVERRIDE;
-	virtual IOnlinePartyPtr GetPartyInterface() const OVERRIDE;
-	virtual IOnlineTitleFilePtr GetTitleFileInterface() const OVERRIDE;
-	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const OVERRIDE;
-	virtual IOnlineStorePtr GetStoreInterface() const OVERRIDE;
-	virtual IOnlineEventsPtr GetEventsInterface() const OVERRIDE { return NULL; }
-	virtual IOnlineMessagePtr GetMessageInterface() const OVERRIDE { return NULL; }
-	virtual IOnlineSharingPtr GetSharingInterface() const OVERRIDE { return NULL; }
-	virtual IOnlineUserPtr GetUserInterface() const OVERRIDE { return NULL; }
-	virtual IOnlineAchievementsPtr GetAchievementsInterface() const OVERRIDE;
-	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE { return NULL; }
-	virtual class UObject* GetNamedInterface(FName InterfaceName) OVERRIDE { return NULL; }
-	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) OVERRIDE {}
-	virtual bool IsDedicated() const OVERRIDE { return false; }
-	virtual bool IsServer() const OVERRIDE { return true; }
-	virtual void SetForceDedicated(bool bForce) OVERRIDE {}
-	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const OVERRIDE { return true; }
+	virtual IOnlineSessionPtr GetSessionInterface() const override;
+	virtual IOnlineFriendsPtr GetFriendsInterface() const override;
+	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const override;
+	virtual IOnlineUserCloudPtr GetUserCloudInterface() const override;
+	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const override;
+	virtual IOnlineVoicePtr GetVoiceInterface() const  override;
+	virtual IOnlineExternalUIPtr GetExternalUIInterface() const override;
+	virtual IOnlineTimePtr GetTimeInterface() const override;
+	virtual IOnlineIdentityPtr GetIdentityInterface() const override;
+	virtual IOnlinePartyPtr GetPartyInterface() const override;
+	virtual IOnlineTitleFilePtr GetTitleFileInterface() const override;
+	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
+	virtual IOnlineStorePtr GetStoreInterface() const override;
+	virtual IOnlineEventsPtr GetEventsInterface() const override { return NULL; }
+	virtual IOnlineMessagePtr GetMessageInterface() const override { return NULL; }
+	virtual IOnlineSharingPtr GetSharingInterface() const override { return NULL; }
+	virtual IOnlineUserPtr GetUserInterface() const override { return NULL; }
+	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
+	virtual IOnlinePresencePtr GetPresenceInterface() const override { return NULL; }
+	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return NULL; }
+	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override {}
+	virtual bool IsDedicated() const override { return false; }
+	virtual bool IsServer() const override { return true; }
+	virtual void SetForceDedicated(bool bForce) override {}
+	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override { return true; }
 
-	virtual bool Init() OVERRIDE;
-	virtual bool Shutdown() OVERRIDE;
-	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Init() override;
+	virtual bool Shutdown() override;
+	virtual FString GetAppId() const override;
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End IOnlineSubsystem Interface
 
-	virtual bool Tick(float DeltaTime) OVERRIDE;
+	virtual bool Tick(float DeltaTime) override;
 	
 PACKAGE_SCOPE:
 

@@ -57,17 +57,17 @@ private:
 public:
 	FDerivedDataNavCollisionCooker(FName InFormat, UNavCollision* InInstance);
 
-	virtual const TCHAR* GetPluginName() const OVERRIDE
+	virtual const TCHAR* GetPluginName() const override
 	{
 		return TEXT("NavCollision");
 	}
 
-	virtual const TCHAR* GetVersionString() const OVERRIDE
+	virtual const TCHAR* GetVersionString() const override
 	{
 		return TEXT("B89838347A4348138EE337A847529C5C");
 	}
 
-	virtual FString GetPluginSpecificCacheKeySuffix() const OVERRIDE
+	virtual FString GetPluginSpecificCacheKeySuffix() const override
 	{
 		const uint16 Version = 13;
 
@@ -79,12 +79,12 @@ public:
 			);
 	}
 
-	virtual bool IsBuildThreadsafe() const OVERRIDE
+	virtual bool IsBuildThreadsafe() const override
 	{
 		return false;
 	}
 
-	virtual bool Build( TArray<uint8>& OutData ) OVERRIDE;
+	virtual bool Build( TArray<uint8>& OutData ) override;
 
 	/** Return true if we can build **/
 	bool CanBuild()

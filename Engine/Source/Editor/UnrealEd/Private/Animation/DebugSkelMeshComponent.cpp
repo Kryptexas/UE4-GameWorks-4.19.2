@@ -67,7 +67,7 @@ public:
 		return FSkeletalMeshSceneProxy::GetAllocatedSize();
 	}
 
-	virtual uint32 GetMemoryFootprint() const OVERRIDE
+	virtual uint32 GetMemoryFootprint() const override
 	{
 		return sizeof(*this) + GetAllocatedSize();
 	}

@@ -50,15 +50,15 @@ public:
 	virtual ~FOnlineStoreInterfaceIOS();
 
 	// Begin IOnlineStore interface
-	virtual bool QueryForAvailablePurchases() OVERRIDE;
+	virtual bool QueryForAvailablePurchases() override;
 
-	virtual bool IsAllowedToMakePurchases() OVERRIDE;
+	virtual bool IsAllowedToMakePurchases() override;
 
-	virtual bool BeginPurchase(int Index) OVERRIDE;
+	virtual bool BeginPurchase(int Index) override;
 	// End IOnlineStore interface
 
 	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) OVERRIDE;
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 	// End FExec Interface
 
 	/**

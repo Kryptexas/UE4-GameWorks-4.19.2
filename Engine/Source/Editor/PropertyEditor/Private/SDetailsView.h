@@ -19,7 +19,7 @@ public:
 	virtual ~SDetailsView();
 
 	/** Causes the details view to be refreshed (new widgets generated) with the current set of objects */
-	void ForceRefresh() OVERRIDE;
+	void ForceRefresh() override;
 
 	/**
 	 * Constructs the property view widgets                   
@@ -27,9 +27,9 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	/** IDetailsView interface */
-	virtual void SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh = false ) OVERRIDE;
-	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false ) OVERRIDE;
-	virtual void SetObject( UObject* InObject, bool bForceRefresh = false ) OVERRIDE;
+	virtual void SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh = false ) override;
+	virtual void SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false ) override;
+	virtual void SetObject( UObject* InObject, bool bForceRefresh = false ) override;
 
 	/**
 	 * Replaces objects being observed by the view with new objects
@@ -58,42 +58,42 @@ public:
 	 * @param PropertyEditor				The slate property node to edit.
 	 * @param bUseAlpha			Whether or not alpha is supported
 	 */
-	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) OVERRIDE;
+	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
 
 	/** Sets the callback for when the property view changes */
 	virtual void SetOnObjectArrayChanged( FOnObjectArrayChanged OnObjectArrayChangedDelegate);
 
 	/** @return	Returns list of selected objects we're inspecting */
-	virtual const TArray< TWeakObjectPtr<UObject> >& GetSelectedObjects() const OVERRIDE
+	virtual const TArray< TWeakObjectPtr<UObject> >& GetSelectedObjects() const override
 	{
 		return SelectedObjects;
 	} 
 
 	/** @return	Returns list of selected actors we're inspecting */
-	virtual const TArray< TWeakObjectPtr<AActor> >& GetSelectedActors() const OVERRIDE
+	virtual const TArray< TWeakObjectPtr<AActor> >& GetSelectedActors() const override
 	{
 		return SelectedActors;
 	}
 
 	/** @return Returns information about the selected set of actors */
-	virtual const FSelectedActorInfo& GetSelectedActorInfo() const OVERRIDE
+	virtual const FSelectedActorInfo& GetSelectedActorInfo() const override
 	{
 		return SelectedActorInfo;
 	}
 
-	virtual bool HasClassDefaultObject() const OVERRIDE
+	virtual bool HasClassDefaultObject() const override
 	{
 		return bViewingClassDefaultObject;
 	}
 
 	/** Gets the base class being viewed */
-	const UClass* GetBaseClass() const OVERRIDE;
-	UClass* GetBaseClass() OVERRIDE;
+	const UClass* GetBaseClass() const override;
+	UClass* GetBaseClass() override;
 
 	// SWidget interface
-	virtual bool SupportsKeyboardFocus() const OVERRIDE;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) OVERRIDE;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
 	/**
@@ -106,7 +106,7 @@ public:
 	/**
 	 * @return True if a category is hidden by any of the uobject classes currently in view by this details panel
 	 */
-	bool IsCategoryHiddenByClass(FName CategoryName) const OVERRIDE;
+	bool IsCategoryHiddenByClass(FName CategoryName) const override;
 
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
@@ -155,7 +155,7 @@ private:
 	/**
 	 * Updates the details with the passed in filter                                                              
 	 */
-	virtual void UpdateFilteredDetails() OVERRIDE;
+	virtual void UpdateFilteredDetails() override;
 
 	/** Called when the filter button is clicked */
 	void OnFilterButtonClicked();

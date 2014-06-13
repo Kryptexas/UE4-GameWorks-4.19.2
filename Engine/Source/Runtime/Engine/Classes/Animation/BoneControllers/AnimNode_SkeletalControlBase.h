@@ -37,10 +37,10 @@ public:
 
 public:
 	// FAnimNode_Base interface
-	virtual void Initialize(const FAnimationInitializeContext& Context) OVERRIDE;
-	virtual void CacheBones(const FAnimationCacheBonesContext & Context)  OVERRIDE;
-	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
-	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) OVERRIDE;
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
+	virtual void CacheBones(const FAnimationCacheBonesContext & Context)  override;
+	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void EvaluateComponentSpace(FComponentSpacePoseContext& Output) override;
 	// End of FAnimNode_Base interface
 	
 protected:

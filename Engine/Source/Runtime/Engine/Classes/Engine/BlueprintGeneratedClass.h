@@ -421,16 +421,16 @@ public:
 	virtual void CreateComponentsForActor(AActor* Actor) const;
 
 	// UObject interface
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostLoad() override;
+	virtual void PostInitProperties() override;
 	// End UObject interface
 	
 	// UClass interface
 #if WITH_EDITOR
-	virtual UClass* GetAuthoritativeClass() OVERRIDE;
-	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) OVERRIDE;
+	virtual UClass* GetAuthoritativeClass() override;
+	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) override;
 #endif //WITH_EDITOR
-	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const OVERRIDE;
+	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const override;
 	// End UClass interface
 
 #if WITH_EDITORONLY_DATA

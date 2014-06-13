@@ -22,7 +22,7 @@ class ULevelBase : public UObject
 	ULevelBase( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL );
 
 	// Begin UObject Interface
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 

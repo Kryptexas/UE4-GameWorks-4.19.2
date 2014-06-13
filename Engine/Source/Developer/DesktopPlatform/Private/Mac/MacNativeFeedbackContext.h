@@ -16,17 +16,17 @@ public:
 	FMacNativeFeedbackContext();
 	virtual ~FMacNativeFeedbackContext();
 
-	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE;
+	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
-	virtual bool YesNof(const FText& Text) OVERRIDE;
+	virtual bool YesNof(const FText& Text) override;
 
-	virtual bool ReceivedUserCancel() OVERRIDE;
-	virtual void BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton=false ) OVERRIDE;
-	virtual void EndSlowTask() OVERRIDE;
+	virtual bool ReceivedUserCancel() override;
+	virtual void BeginSlowTask( const FText& Task, bool bShowProgressDialog, bool bInShowCancelButton=false ) override;
+	virtual void EndSlowTask() override;
 
-	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus ) OVERRIDE;
-	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) OVERRIDE;
-	virtual void UpdateProgress(int32 Numerator, int32 Denominator) OVERRIDE;
+	virtual bool StatusUpdate( int32 Numerator, int32 Denominator, const FText& NewStatus ) override;
+	virtual bool StatusForceUpdate( int32 Numerator, int32 Denominator, const FText& StatusText ) override;
+	virtual void UpdateProgress(int32 Numerator, int32 Denominator) override;
 
 	FContextSupplier* GetContext() const;
 	void SetContext( FContextSupplier* InSupplier );

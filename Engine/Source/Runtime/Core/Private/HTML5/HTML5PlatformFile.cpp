@@ -71,27 +71,27 @@ public:
 		FileHandle = -1;
 	}
 
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 		check(IsValid());
 		return lseek(FileHandle, 0, SEEK_CUR);
 	}
 
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(IsValid());
 		check(NewPosition >= 0);
 		return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
 	}
 
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(IsValid());
 		check(NewPositionRelativeToEnd <= 0);
 		return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
 	}
 
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		check(IsValid());
 		while (BytesToRead)
@@ -109,7 +109,7 @@ public:
 		return true;
 	}
 
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -177,7 +177,7 @@ protected:
 	}
 
 public:
-	virtual bool FileExists(const TCHAR* Filename) OVERRIDE
+	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo) != -1)
@@ -187,7 +187,7 @@ public:
 		return false;
 	}
 
-	virtual int64 FileSize(const TCHAR* Filename) OVERRIDE
+	virtual int64 FileSize(const TCHAR* Filename) override
 	{
 		struct stat FileInfo;
 		FileInfo.st_size = -1;
@@ -200,12 +200,12 @@ public:
 		return FileInfo.st_size;
 	}
 
-	virtual bool DeleteFile(const TCHAR* Filename) OVERRIDE
+	virtual bool DeleteFile(const TCHAR* Filename) override
 	{
 		return unlink(TCHAR_TO_UTF8(*NormalizeFilename(Filename))) == 0;
 	}
 
-	virtual bool IsReadOnly(const TCHAR* Filename) OVERRIDE
+	virtual bool IsReadOnly(const TCHAR* Filename) override
 	{
 		if (access(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), F_OK) == -1)
 		{
@@ -218,12 +218,12 @@ public:
 		return false;
 	}
 
-	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) OVERRIDE
+	virtual bool MoveFile(const TCHAR* To, const TCHAR* From) override
 	{
 		return rename(TCHAR_TO_UTF8(*NormalizeFilename(From)), TCHAR_TO_UTF8(*NormalizeFilename(To))) != -1;
 	}
 
-	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) OVERRIDE
+	virtual bool SetReadOnly(const TCHAR* Filename, bool bNewReadOnlyValue) override
 	{
 		struct stat FileInfo;
 		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo) != -1)
@@ -241,7 +241,7 @@ public:
 		return false;
 	}
 
-	virtual FDateTime GetTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -255,7 +255,7 @@ public:
 		return HTML5Epoch + TimeSinceEpoch;
 	}
 
-	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) OVERRIDE
+	virtual void SetTimeStamp(const TCHAR* Filename, FDateTime DateTime) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -271,7 +271,7 @@ public:
 		utime(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &Times);
 	}
 
-	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) OVERRIDE
+	virtual FDateTime GetAccessTimeStamp(const TCHAR* Filename) override
 	{
 		// get file times
 		struct stat FileInfo;
@@ -285,7 +285,7 @@ public:
 		return HTML5Epoch + TimeSinceEpoch;
 	}
 
-	virtual IFileHandle* OpenRead(const TCHAR* Filename) OVERRIDE
+	virtual IFileHandle* OpenRead(const TCHAR* Filename) override
 	{
 		FString fn = NormalizeFilename(Filename);
 		int32 Handle = open(TCHAR_TO_UTF8(*fn), O_RDONLY | O_BINARY);
@@ -300,7 +300,7 @@ public:
 		return NULL;
 	}
 
-	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) OVERRIDE
+	virtual IFileHandle* OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override
 	{
 		int Flags = O_CREAT;
 		if (bAppend)
@@ -332,7 +332,7 @@ public:
 		return NULL;
 	}
 
-	virtual bool DirectoryExists(const TCHAR* Directory) OVERRIDE
+	virtual bool DirectoryExists(const TCHAR* Directory) override
 	{
 		struct stat FileInfo;
 		if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Directory)), &FileInfo) != -1)
@@ -341,7 +341,7 @@ public:
 		}
 		return false;
 	}
-	virtual bool CreateDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool CreateDirectory(const TCHAR* Directory) override
 	{
 #if PLATFORM_HTML5_WIN32
 		return _mkdir(TCHAR_TO_ANSI(*NormalizeFilename(Directory))) || (errno == EEXIST);
@@ -351,7 +351,7 @@ public:
 #endif 
 	}
 
-	virtual bool DeleteDirectory(const TCHAR* Directory) OVERRIDE
+	virtual bool DeleteDirectory(const TCHAR* Directory) override
 	{
 #if PLATFORM_HTML5_WIN32
 		return false;

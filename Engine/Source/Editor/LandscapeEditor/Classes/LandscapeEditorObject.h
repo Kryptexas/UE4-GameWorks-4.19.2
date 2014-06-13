@@ -489,7 +489,7 @@ class ULandscapeEditorObject : public UObject
 
 #if WITH_EDITOR
 	// Begin UObject Interface
-	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
 #endif // WITH_EDITOR
 

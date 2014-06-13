@@ -19,7 +19,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 };
 
 class FParticleModuleSubUVDetails : public FParticleModuleDetailsBase
@@ -29,7 +29,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 };
 
 class FParticleModuleAccelerationDetails : public FParticleModuleDetailsBase
@@ -39,7 +39,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 };
 
 class FParticleModuleAccelerationDragDetails : public FParticleModuleDetailsBase
@@ -49,7 +49,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 };
 
  class FParticleModuleAccelerationDragScaleOverLifeDetails : public FParticleModuleDetailsBase
@@ -59,7 +59,7 @@ public:
  	static TSharedRef<IDetailCustomization> MakeInstance();
  
  	/** IDetailCustomization interface */
- 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+ 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleCollisionGPUDetails : public FParticleModuleDetailsBase
@@ -69,7 +69,7 @@ public:
  	static TSharedRef<IDetailCustomization> MakeInstance();
  
  	/** IDetailCustomization interface */
- 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+ 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleOrbitDetails : public FParticleModuleDetailsBase
@@ -79,7 +79,7 @@ public:
 	 static TSharedRef<IDetailCustomization> MakeInstance();
 
 	 /** IDetailCustomization interface */
-	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleSizeMultiplyLifeDetails : public FParticleModuleDetailsBase
@@ -89,7 +89,7 @@ public:
 	 static TSharedRef<IDetailCustomization> MakeInstance();
 
 	 /** IDetailCustomization interface */
-	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleSizeScaleDetails : public FParticleModuleDetailsBase
@@ -99,7 +99,7 @@ public:
 	 static TSharedRef<IDetailCustomization> MakeInstance();
 
 	 /** IDetailCustomization interface */
-	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleVectorFieldScaleDetails : public FParticleModuleDetailsBase
@@ -109,7 +109,7 @@ public:
 	 static TSharedRef<IDetailCustomization> MakeInstance();
 
 	 /** IDetailCustomization interface */
-	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
 
  class FParticleModuleVectorFieldScaleOverLifeDetails : public FParticleModuleDetailsBase
@@ -119,6 +119,6 @@ public:
 	 static TSharedRef<IDetailCustomization> MakeInstance();
 
 	 /** IDetailCustomization interface */
-	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	 virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
  };
  

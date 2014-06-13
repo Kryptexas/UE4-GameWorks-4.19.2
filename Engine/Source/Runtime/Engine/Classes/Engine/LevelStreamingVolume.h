@@ -50,7 +50,7 @@ class ALevelStreamingVolume : public AVolume
 
 #if WITH_EDITOR
 	// Begin AActor interface.
-	virtual void CheckForErrors() OVERRIDE;
+	virtual void CheckForErrors() override;
 	// End AActor interface.
 #endif
 };

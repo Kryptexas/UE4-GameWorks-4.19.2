@@ -18,7 +18,7 @@ class AIMODULE_API UEnvQueryItemType : public UObject
 	virtual bool StoreInBlackboard(struct FBlackboardKeySelector& KeySelector, class UBlackboardComponent* Blackboard, const uint8* RawData) const;
 
 	/** unregister from known types in EnvQueryManager */
-	virtual void FinishDestroy() OVERRIDE;
+	virtual void FinishDestroy() override;
 
 	/** describe item */
 	virtual FString GetDescription(const uint8* RawData) const;

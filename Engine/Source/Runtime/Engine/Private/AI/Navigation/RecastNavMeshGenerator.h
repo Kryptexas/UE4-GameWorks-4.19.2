@@ -341,14 +341,14 @@ private:
 public:
 
 	// Triggers navmesh building process
-	virtual bool Generate() OVERRIDE;
+	virtual bool Generate() override;
 
 	/** Asks generator to update navigation affected by DirtyAreas */
-	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) OVERRIDE;
+	virtual void RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& DirtyAreas) override;
 
-	virtual void TriggerGeneration() OVERRIDE;
+	virtual void TriggerGeneration() override;
 
-	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const OVERRIDE;
+	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const override;
 
 	bool AreAnyTilesBeingBuilt(bool bCheckDirtyToo = false) const;
 	bool IsAsyncBuildInProgress() const;
@@ -357,7 +357,7 @@ public:
 	 *	If TileIndex is out of bounds function returns false (i.e. not being built) */
 	bool IsTileFresh(int32 X, int32 Y, float FreshnessTime = FRecastNavMeshGenerator::DefaultFreshness) const;
 
-	virtual void OnWorldInitDone(bool bAllowedToRebuild) OVERRIDE;
+	virtual void OnWorldInitDone(bool bAllowedToRebuild) override;
 
 	/** Moves data from this generator to it's destination navmesh object. 
 	 *	@return fail if DestNavMesh is not valid in some way, true otherwise */
@@ -459,7 +459,7 @@ private:
 	//void NotifyBoxDirty(FBox Bounds, const AActor* Actor);
 	//void MarkBoxDirty(FBox Bounds, const AActor* Actor);
 
-	virtual void RebuildAll() OVERRIDE;
+	virtual void RebuildAll() override;
 
 	void RequestDirtyTilesRebuild();
 	
@@ -491,16 +491,16 @@ public:
 	/** Called to trigger generation at earliest convenience */
 	void RequestGeneration();
 
-	virtual void OnNavigationBuildingLocked() OVERRIDE;
-	virtual void OnNavigationBuildingUnlocked(bool bForce) OVERRIDE;
-	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) OVERRIDE;
+	virtual void OnNavigationBuildingLocked() override;
+	virtual void OnNavigationBuildingUnlocked(bool bForce) override;
+	virtual void OnNavigationBoundsUpdated(class AVolume* Volume) override;
 
-	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) OVERRIDE;
+	virtual void OnNavigationDataDestroyed(class ANavigationData* NavData) override;
 
 	//----------------------------------------------------------------------//
 	// debug
 	//----------------------------------------------------------------------//
-	virtual uint32 LogMemUsed() const OVERRIDE;
+	virtual uint32 LogMemUsed() const override;
 
 private:
 	/** Parameters defining navmesh tiles */

@@ -16,8 +16,8 @@ class FEnvironmentQueryEditorModule : public IModuleInterface,
 
 public:
 	// IModuleInterface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	/** Creates an instance of Niagara editor.  Only virtual so that it can be called across the DLL boundary. */
 	virtual TSharedRef<IEnvironmentQueryEditor> CreateEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, class UEnvQuery* Script );

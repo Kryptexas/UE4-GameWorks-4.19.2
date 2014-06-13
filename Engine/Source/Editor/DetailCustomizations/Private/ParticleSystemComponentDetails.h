@@ -9,7 +9,7 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 private:
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& InDetailLayout ) OVERRIDE;
+	virtual void CustomizeDetails( IDetailLayoutBuilder& InDetailLayout ) override;
 
 	/** Handles the Auto-Populate button's on click event */
 	FReply OnAutoPopulateClicked();

@@ -497,7 +497,7 @@ public:
 	/** Set the canvas and debug canvas to use during drawing */
 	void SetCanvas(class UCanvas* InCanvas, class UCanvas* InDebugCanvas);
 
-	virtual void PostInitializeComponents() OVERRIDE;
+	virtual void PostInitializeComponents() override;
 
 	/** draw overlays for actors that were rendered this tick and have added themselves to the PostRenderedActors array	*/
 	virtual void DrawActorOverlays(FVector Viewpoint, FRotator ViewRotation);

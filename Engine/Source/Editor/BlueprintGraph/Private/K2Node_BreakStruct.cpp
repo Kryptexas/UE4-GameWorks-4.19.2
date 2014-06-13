@@ -94,7 +94,7 @@ public:
 		}
 	}
 
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) OVERRIDE
+	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
 	{
 		UK2Node_BreakStruct* Node = Cast<UK2Node_BreakStruct>(InNode);
 		check(NULL != Node);

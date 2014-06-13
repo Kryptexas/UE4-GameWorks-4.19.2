@@ -41,7 +41,7 @@ void FRealtimeProfiler::Update(TSharedPtr< FVisualizerEvent > InProfileData, FRe
 class FRealtimeProfilerModule : public IModuleInterface
 {
 public:
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 	}
 };

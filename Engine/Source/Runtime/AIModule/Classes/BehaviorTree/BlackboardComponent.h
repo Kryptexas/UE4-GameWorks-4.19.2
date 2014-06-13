@@ -34,7 +34,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	GENERATED_UCLASS_BODY()
 
 	/** BEGIN UActorComponent overrides */
-	virtual void InitializeComponent() OVERRIDE;
+	virtual void InitializeComponent() override;
 	/** END UActorComponent overrides */
 
 	/** @return name of key */

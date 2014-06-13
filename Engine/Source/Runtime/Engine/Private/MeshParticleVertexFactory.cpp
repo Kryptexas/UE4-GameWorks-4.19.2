@@ -14,7 +14,7 @@ class FMeshParticleVertexFactoryShaderParameters : public FVertexFactoryShaderPa
 {
 public:
 
-	virtual void Bind(const FShaderParameterMap& ParameterMap) OVERRIDE
+	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
 		Transform1.Bind(ParameterMap,TEXT("Transform1"));
 		Transform2.Bind(ParameterMap,TEXT("Transform2"));
@@ -25,7 +25,7 @@ public:
 		ParticleColor.Bind(ParameterMap,TEXT("ParticleColor"));
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << Transform1;
 		Ar << Transform2;
@@ -36,7 +36,7 @@ public:
 		Ar << ParticleColor;
 	}
 
-	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
 		const bool bInstanced = View.GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 		FMeshParticleVertexFactory* MeshParticleVF = (FMeshParticleVertexFactory*)VertexFactory;

@@ -46,39 +46,39 @@ public:
 public:
 
 	/** Begin IPropertyTableCellPresenter interface */
-	virtual TSharedRef<class SWidget> ConstructDisplayWidget() OVERRIDE;
+	virtual TSharedRef<class SWidget> ConstructDisplayWidget() override;
 
-	virtual bool RequiresDropDown() OVERRIDE
+	virtual bool RequiresDropDown() override
 	{
 		return false;
 	}
 
-	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() OVERRIDE
+	virtual TSharedRef< class SWidget > ConstructEditModeCellWidget() override
 	{
 		return ConstructDisplayWidget();
 	}
 
-	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() OVERRIDE
+	virtual TSharedRef< class SWidget > ConstructEditModeDropDownWidget() override
 	{
 		return SNullWidget::NullWidget;
 	}
 
-	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() OVERRIDE
+	virtual TSharedRef< class SWidget > WidgetToFocusOnEdit() override
 	{
 		return SNullWidget::NullWidget;
 	}
 
-	virtual bool HasReadOnlyEditMode() OVERRIDE
+	virtual bool HasReadOnlyEditMode() override
 	{
 		return true;
 	}
 
-	virtual FString GetValueAsString() OVERRIDE
+	virtual FString GetValueAsString() override
 	{
 		return TEXT("");
 	}
 
-	virtual FText GetValueAsText() OVERRIDE
+	virtual FText GetValueAsText() override
 	{
 		return FText::FromString(TEXT(""));
 	}

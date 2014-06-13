@@ -63,7 +63,7 @@ public:
 		}
 		FileHandle = -1;
 	}
-	virtual int64 Tell() OVERRIDE
+	virtual int64 Tell() override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )
@@ -77,7 +77,7 @@ public:
 			return lseek(FileHandle, 0, SEEK_CUR);
 		}
 	}
-	virtual bool Seek(int64 NewPosition) OVERRIDE
+	virtual bool Seek(int64 NewPosition) override
 	{
 		check(NewPosition >= 0);
 
@@ -94,7 +94,7 @@ public:
 			return lseek(FileHandle, NewPosition, SEEK_SET) != -1;
 		}
 	}
-	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) OVERRIDE
+	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd = 0) override
 	{
 		check(NewPositionRelativeToEnd <= 0);
 
@@ -111,7 +111,7 @@ public:
 			return lseek(FileHandle, NewPositionRelativeToEnd, SEEK_END) != -1;
 		}
 	}
-	virtual bool Read(uint8* Destination, int64 BytesToRead) OVERRIDE
+	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )
@@ -127,7 +127,7 @@ public:
 			return ReadInternal(Destination, BytesToRead) == BytesToRead;
 		}
 	}
-	virtual bool Write(const uint8* Source, int64 BytesToWrite) OVERRIDE
+	virtual bool Write(const uint8* Source, int64 BytesToWrite) override
 	{
 		check(IsValid());
 		while (BytesToWrite)
@@ -144,7 +144,7 @@ public:
 		}
 		return true;
 	}
-	virtual int64 Size() OVERRIDE
+	virtual int64 Size() override
 	{
 #if MANAGE_FILE_HANDLES
 		if( IsManaged() )

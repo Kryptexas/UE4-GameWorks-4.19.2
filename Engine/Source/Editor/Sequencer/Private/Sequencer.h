@@ -32,31 +32,31 @@ public:
 	virtual ~FSequencer();
 
 	/** FGCObject interface */
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) OVERRIDE;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 
 	/** ISequencer interface */
-	virtual TSharedRef<SWidget> GetSequencerWidget() const OVERRIDE { return SequencerWidget.ToSharedRef(); }
+	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
 	virtual UMovieScene* GetRootMovieScene() const;
-	virtual UMovieScene* GetFocusedMovieScene() const OVERRIDE;
-	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const OVERRIDE;
-	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const OVERRIDE;
-	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) OVERRIDE;
-	TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const OVERRIDE;
-	virtual void AddNewShot(FGuid CameraGuid) OVERRIDE;
-	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) OVERRIDE;
-	virtual bool IsAutoKeyEnabled() const OVERRIDE;
-	virtual bool IsRecordingLive() const OVERRIDE;
-	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) OVERRIDE;
-	virtual float GetGlobalTime() OVERRIDE;
-	virtual void SetGlobalTime(float Time) OVERRIDE;
-	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) OVERRIDE;
-	virtual FGuid GetHandleToObject(UObject* Object) OVERRIDE;
-	virtual ISequencerObjectChangeListener& GetObjectChangeListener() const OVERRIDE;
-	virtual void NotifyMovieSceneDataChanged() OVERRIDE;
-	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) OVERRIDE;
-	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) OVERRIDE;
-	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) OVERRIDE;
+	virtual UMovieScene* GetFocusedMovieScene() const override;
+	virtual TSharedRef<FMovieSceneInstance> GetRootMovieSceneInstance() const override;
+	virtual TSharedRef<FMovieSceneInstance> GetFocusedMovieSceneInstance() const override;
+	virtual void FocusSubMovieScene( TSharedRef<FMovieSceneInstance> SubMovieSceneInstance ) override;
+	TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const override;
+	virtual void AddNewShot(FGuid CameraGuid) override;
+	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) override;
+	virtual bool IsAutoKeyEnabled() const override;
+	virtual bool IsRecordingLive() const override;
+	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) override;
+	virtual float GetGlobalTime() override;
+	virtual void SetGlobalTime(float Time) override;
+	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
+	virtual FGuid GetHandleToObject(UObject* Object) override;
+	virtual ISequencerObjectChangeListener& GetObjectChangeListener() const override;
+	virtual void NotifyMovieSceneDataChanged() override;
+	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) override;
+	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) override;
+	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
 
 	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
 
@@ -233,10 +233,10 @@ public:
 
 	/** IMovieScenePlayer interface */
 	virtual void GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const;
-	virtual void UpdateViewports(AActor* ActorToViewThrough) const OVERRIDE;
-	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const OVERRIDE;
-	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) OVERRIDE;
-	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) OVERRIDE;
+	virtual void UpdateViewports(AActor* ActorToViewThrough) const override;
+	virtual EMovieScenePlayerStatus::Type GetPlaybackStatus() const override;
+	virtual void AddMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToAdd ) override;
+	virtual void RemoveMovieSceneInstance( class UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneInstance> InstanceToRemove ) override;
 
 	virtual void SpawnActorsForMovie( TSharedRef<FMovieSceneInstance> MovieSceneInstance );
 
@@ -384,8 +384,8 @@ protected:
 	void BindSequencerCommands();
 
 	// Begin FEditorUndoClient Interface
-	virtual void PostUndo(bool bSuccess) OVERRIDE;
-	virtual void PostRedo(bool bSuccess) OVERRIDE { PostUndo(bSuccess); }
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
 private:

@@ -163,16 +163,16 @@ class UMaterialExpression : public UObject
 	TArray<FExpressionOutput> Outputs;
 
 	// Begin UObject interface.
-	virtual void PostInitProperties() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
-	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditImport() override;
+	virtual bool CanEditChange( const UProperty* InProperty ) const override;
 #endif // WITH_EDITOR
 
-	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
+	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void Serialize( FArchive& Ar );
 	// End UObject interface.
 

@@ -8,20 +8,20 @@ public:
 	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode = NULL);
 
 	/** IDetailPropertyRow interface */
-	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) OVERRIDE;
-	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) OVERRIDE;
-	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) OVERRIDE;
-	virtual IDetailPropertyRow& EditCondition( TAttribute<bool> EditConditionValue, FOnBooleanValueChanged OnEditConditionValueChanged ) OVERRIDE;
-	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) OVERRIDE;
-	virtual IDetailPropertyRow& Visibility( TAttribute<EVisibility> Visibility ) OVERRIDE;
-	virtual IDetailPropertyRow& OverrideResetToDefault( TAttribute<bool> IsResetToDefaultVisible, FSimpleDelegate OnResetToDefaultClicked ) OVERRIDE;
-	virtual FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) OVERRIDE;
-	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget ) OVERRIDE;
-	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, FDetailWidgetRow& Row ) OVERRIDE;
+	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) override;
+	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) override;
+	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) override;
+	virtual IDetailPropertyRow& EditCondition( TAttribute<bool> EditConditionValue, FOnBooleanValueChanged OnEditConditionValueChanged ) override;
+	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) override;
+	virtual IDetailPropertyRow& Visibility( TAttribute<EVisibility> Visibility ) override;
+	virtual IDetailPropertyRow& OverrideResetToDefault( TAttribute<bool> IsResetToDefaultVisible, FSimpleDelegate OnResetToDefaultClicked ) override;
+	virtual FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) override;
+	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget ) override;
+	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, FDetailWidgetRow& Row ) override;
 
 	/** IPropertyTypeCustomizationUtils interface */
-	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
-	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const OVERRIDE;
+	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override;
+	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const override;
 
 	/** @return true if this row has widgets with columns */
 	bool HasColumns() const;

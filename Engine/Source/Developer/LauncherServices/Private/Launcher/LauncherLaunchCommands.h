@@ -19,17 +19,17 @@ public:
 		, CookCommand(InCook)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskGame", "Launching Game").ToString());
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskDesc", "Launch on %s as %s").ToString(), *DeviceProxy->GetName(), *Role->GetName());
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 
@@ -109,17 +109,17 @@ public:
 		, CookCommand(InCook)
 	{ }
 
-	virtual FString GetName() const OVERRIDE
+	virtual FString GetName() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskServer", "Launching Server").ToString());
 	}
 
-	virtual FString GetDesc() const OVERRIDE
+	virtual FString GetDesc() const override
 	{
 		return FString::Printf(*NSLOCTEXT("FLauncherTask", "LauncherTaskDesc", "Launch on %s as %s").ToString(), *DeviceProxy->GetName(), *Role->GetName());
 	}
 
-	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const OVERRIDE
+	virtual FString GetArguments(FLauncherTaskChainState& ChainState) const override
 	{
 		FString CommandLine;
 

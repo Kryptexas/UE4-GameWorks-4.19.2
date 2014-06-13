@@ -436,9 +436,9 @@ public:
 	virtual void Serialize( FArchive& Ar );	
 	virtual void PostLoad();
 #if WITH_EDITOR
-	virtual void PostEditUndo() OVERRIDE;
+	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual bool Modify( bool bAlwaysMarkDirty=false ) OVERRIDE;
+	virtual bool Modify( bool bAlwaysMarkDirty=false ) override;
 	virtual bool Rename( const TCHAR* InName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None );
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
@@ -462,12 +462,12 @@ public:
 	virtual void BeginDestroy();
 	virtual bool IsReadyForFinishDestroy();
 	
-	virtual bool IsAsset() const OVERRIDE { return false; }
+	virtual bool IsAsset() const override { return false; }
 
 	/**
 	* @return		Sum of the size of textures referenced by this material.
 	*/
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
 	// UModel interface.
 	ENGINE_API void EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys );

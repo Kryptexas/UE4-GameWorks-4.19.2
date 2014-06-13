@@ -6,11 +6,11 @@ class FAssetTypeActions_Struct : public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_Struct", "Structure"); }
-	virtual FColor GetTypeColor() const OVERRIDE { return FColor(0, 0, 255); }
-	virtual UClass* GetSupportedClass() const OVERRIDE { return UUserDefinedStruct::StaticClass(); }
-	virtual uint32 GetCategories() OVERRIDE { return EAssetTypeCategories::Misc; }
+	virtual FText GetName() const override { return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_Struct", "Structure"); }
+	virtual FColor GetTypeColor() const override { return FColor(0, 0, 255); }
+	virtual UClass* GetSupportedClass() const override { return UUserDefinedStruct::StaticClass(); }
+	virtual uint32 GetCategories() override { return EAssetTypeCategories::Misc; }
 
-	virtual FText GetAssetDescription(const FAssetData& AssetData) const OVERRIDE;
-	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) OVERRIDE;
+	virtual FText GetAssetDescription(const FAssetData& AssetData) const override;
+	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 };

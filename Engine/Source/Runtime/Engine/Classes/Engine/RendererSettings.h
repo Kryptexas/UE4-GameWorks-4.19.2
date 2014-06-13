@@ -175,9 +175,9 @@ public:
 
 	// Begin UObject interface
 
-	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() override;
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	// End UObject interface

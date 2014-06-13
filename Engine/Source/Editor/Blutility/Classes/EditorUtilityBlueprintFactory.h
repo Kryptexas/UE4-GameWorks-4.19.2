@@ -18,8 +18,8 @@ class UEditorUtilityBlueprintFactory : public UFactory
 	TSubclassOf<class UObject> ParentClass;
 
 	// UFactory interface
-	virtual bool ConfigureProperties() OVERRIDE;
-	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) OVERRIDE;
+	virtual bool ConfigureProperties() override;
+	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 	// End of UFactory interface
 
 	/** Handler for when a class is picked in the class picker */

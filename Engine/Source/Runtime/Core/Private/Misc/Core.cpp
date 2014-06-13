@@ -12,7 +12,7 @@
 class FCoreModule : public FDefaultModuleImpl
 {
 public:
-	virtual bool SupportsDynamicReloading() OVERRIDE
+	virtual bool SupportsDynamicReloading() override
 	{
 		// Core cannot be unloaded or reloaded
 		return false;

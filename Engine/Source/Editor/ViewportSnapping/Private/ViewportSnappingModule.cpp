@@ -11,7 +11,7 @@ class FMergedSnappingPolicy : public ISnappingPolicy
 public:
 	TArray< TSharedPtr<ISnappingPolicy> > PolicyList;
 public:
-	virtual void SnapScale(FVector& Point, const FVector& GridBase) OVERRIDE
+	virtual void SnapScale(FVector& Point, const FVector& GridBase) override
 	{
 		for (auto PolicyIt = PolicyList.CreateConstIterator(); PolicyIt; ++PolicyIt)
 		{
@@ -19,7 +19,7 @@ public:
 		}
 	}
 
-	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) OVERRIDE
+	virtual void SnapPointToGrid(FVector& Point, const FVector& GridBase) override
 	{
 		for (auto PolicyIt = PolicyList.CreateConstIterator(); PolicyIt; ++PolicyIt)
 		{
@@ -27,7 +27,7 @@ public:
 		}
 	}
 
-	virtual void SnapRotatorToGrid(FRotator& Rotation) OVERRIDE
+	virtual void SnapRotatorToGrid(FRotator& Rotation) override
 	{
 		for (auto PolicyIt = PolicyList.CreateConstIterator(); PolicyIt; ++PolicyIt)
 		{
@@ -35,7 +35,7 @@ public:
 		}
 	}
 
-	virtual void ClearSnappingHelpers(bool bClearImmediately) OVERRIDE
+	virtual void ClearSnappingHelpers(bool bClearImmediately) override
 	{
 		for (auto PolicyIt = PolicyList.CreateConstIterator(); PolicyIt; ++PolicyIt)
 		{
@@ -65,7 +65,7 @@ public:
 	}
 
 	// IViewportSnappingModule interface
-	virtual void RegisterSnappingPolicy(TSharedPtr<ISnappingPolicy> NewPolicy) OVERRIDE
+	virtual void RegisterSnappingPolicy(TSharedPtr<ISnappingPolicy> NewPolicy) override
 	{
 		MergedPolicy->PolicyList.Add(NewPolicy);
 	}
@@ -75,7 +75,7 @@ public:
 		MergedPolicy->PolicyList.Remove(PolicyToRemove);
 	}
 	
-	virtual TSharedPtr<ISnappingPolicy> GetMergedPolicy() OVERRIDE
+	virtual TSharedPtr<ISnappingPolicy> GetMergedPolicy() override
 	{
 		return MergedPolicy;
 	}
@@ -83,12 +83,12 @@ public:
 	// End of IViewportSnappingModule interface
 
 	// IModuleInterface interface
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		MergedPolicy = MakeShareable(new FMergedSnappingPolicy);
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		MergedPolicy.Reset();
 	}

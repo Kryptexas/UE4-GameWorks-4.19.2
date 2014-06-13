@@ -62,69 +62,69 @@ PACKAGE_SCOPE:
 
 
 	// Begin IOnlineSession interface
-	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) OVERRIDE;
+	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;
 
-	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSession& Session) OVERRIDE;
+	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSession& Session) override;
 
 public:
 
 	virtual ~FOnlineSessionIOS();
 
-	FNamedOnlineSession* GetNamedSession(FName SessionName) OVERRIDE;
+	FNamedOnlineSession* GetNamedSession(FName SessionName) override;
 
-	virtual void RemoveNamedSession(FName SessionName) OVERRIDE;
+	virtual void RemoveNamedSession(FName SessionName) override;
 
-	virtual EOnlineSessionState::Type GetSessionState(FName SessionName) const OVERRIDE;
+	virtual EOnlineSessionState::Type GetSessionState(FName SessionName) const override;
 
-	virtual bool HasPresenceSession() OVERRIDE;
+	virtual bool HasPresenceSession() override;
 
-	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings) OVERRIDE;
+	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings) override;
 
-	virtual bool StartSession(FName SessionName) OVERRIDE;
+	virtual bool StartSession(FName SessionName) override;
 
-	virtual bool UpdateSession(FName SessionName, FOnlineSessionSettings& UpdatedSessionSettings, bool bShouldRefreshOnlineData = false) OVERRIDE;
+	virtual bool UpdateSession(FName SessionName, FOnlineSessionSettings& UpdatedSessionSettings, bool bShouldRefreshOnlineData = false) override;
 
-	virtual bool EndSession(FName SessionName) OVERRIDE;
+	virtual bool EndSession(FName SessionName) override;
 
-	virtual bool DestroySession(FName SessionName) OVERRIDE;
+	virtual bool DestroySession(FName SessionName) override;
 
-	virtual bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) OVERRIDE;
+	virtual bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) override;
 
-	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) OVERRIDE;
+	virtual bool StartMatchmaking(int32 SearchingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) override;
 
-	virtual bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) OVERRIDE;
+	virtual bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) override;
 
-	virtual bool FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings) OVERRIDE;
+	virtual bool FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings) override;
 
-	virtual bool CancelFindSessions() OVERRIDE;
+	virtual bool CancelFindSessions() override;
 
-	virtual bool PingSearchResults(const FOnlineSessionSearchResult& SearchResult) OVERRIDE;
+	virtual bool PingSearchResults(const FOnlineSessionSearchResult& SearchResult) override;
 
-	virtual bool JoinSession(int32 PlayerNum, FName SessionName, const FOnlineSessionSearchResult& DesiredSession) OVERRIDE;
+	virtual bool JoinSession(int32 PlayerNum, FName SessionName, const FOnlineSessionSearchResult& DesiredSession) override;
 
-	virtual bool FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend) OVERRIDE;
+	virtual bool FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend) override;
 
-	virtual bool SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend) OVERRIDE;
+	virtual bool SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend) override;
 
-	virtual bool SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends) OVERRIDE;
+	virtual bool SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends) override;
 
-	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo) OVERRIDE;
+	virtual bool GetResolvedConnectString(FName SessionName, FString& ConnectInfo) override;
 
-	virtual bool GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo) OVERRIDE;
+	virtual bool GetResolvedConnectString(const class FOnlineSessionSearchResult& SearchResult, FName PortType, FString& ConnectInfo) override;
 
-	virtual FOnlineSessionSettings* GetSessionSettings(FName SessionName) OVERRIDE;
+	virtual FOnlineSessionSettings* GetSessionSettings(FName SessionName) override;
 
-	virtual bool RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited) OVERRIDE;
+	virtual bool RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited) override;
 
-	virtual bool RegisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasInvited = false) OVERRIDE;
+	virtual bool RegisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasInvited = false) override;
 
-	virtual bool UnregisterPlayer(FName SessionName, const FUniqueNetId& PlayerId) OVERRIDE;
+	virtual bool UnregisterPlayer(FName SessionName, const FUniqueNetId& PlayerId) override;
 
-	virtual bool UnregisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players) OVERRIDE;
+	virtual bool UnregisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players) override;
 
-	virtual int32 GetNumSessions() OVERRIDE;
+	virtual int32 GetNumSessions() override;
 
-	virtual void DumpSessionState() OVERRIDE;
+	virtual void DumpSessionState() override;
 	// End IOnlineSession interface
 };
 

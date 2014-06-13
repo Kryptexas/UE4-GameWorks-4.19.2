@@ -14,7 +14,7 @@ public:
 	{
 	}	
 
-	virtual void RegisterCommands() OVERRIDE;
+	virtual void RegisterCommands() override;
 
 	TSharedPtr< FUICommandInfo > SaveAsset;
 	TSharedPtr< FUICommandInfo > ReimportAsset;

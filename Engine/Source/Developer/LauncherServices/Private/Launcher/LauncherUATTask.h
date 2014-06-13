@@ -39,7 +39,7 @@ protected:
 	 *
 	 * @return true if the task completed successfully, false otherwise.
 	 */
-	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) OVERRIDE
+	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 	{
 		// spawn a UAT process to cook the data
 		// UAT executable

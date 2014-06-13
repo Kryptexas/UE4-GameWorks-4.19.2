@@ -21,13 +21,13 @@ public:
 	FActionMappingsNodeBuilder( IDetailLayoutBuilder* InDetailLayoutBuilder, const TSharedPtr<IPropertyHandle>& InPropertyHandle );
 
 	/** IDetailCustomNodeBuilder interface */
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) OVERRIDE { OnRebuildChildren = InOnRebuildChildren; } 
-	virtual bool RequiresTick() const OVERRIDE { return true; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual bool InitiallyCollapsed() const OVERRIDE { return true; };
-	virtual FName GetName() const OVERRIDE { return NAME_None; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) override { OnRebuildChildren = InOnRebuildChildren; } 
+	virtual bool RequiresTick() const override { return true; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual bool InitiallyCollapsed() const override { return true; };
+	virtual FName GetName() const override { return NAME_None; }
 
 private:
 	void AddActionMappingButton_OnClick();
@@ -62,13 +62,13 @@ public:
 	FAxisMappingsNodeBuilder( IDetailLayoutBuilder* InDetailLayoutBuilder, const TSharedPtr<IPropertyHandle>& InPropertyHandle );
 
 	/** IDetailCustomNodeBuilder interface */
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) OVERRIDE { OnRebuildChildren = InOnRebuildChildren; } 
-	virtual bool RequiresTick() const OVERRIDE { return true; }
-	virtual void Tick( float DeltaTime ) OVERRIDE;
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual bool InitiallyCollapsed() const OVERRIDE { return true; };
-	virtual FName GetName() const OVERRIDE { return NAME_None; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren  ) override { OnRebuildChildren = InOnRebuildChildren; } 
+	virtual bool RequiresTick() const override { return true; }
+	virtual void Tick( float DeltaTime ) override;
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual bool InitiallyCollapsed() const override { return true; };
+	virtual FName GetName() const override { return NAME_None; }
 
 private:
 	void AddAxisMappingButton_OnClick();
@@ -104,5 +104,5 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** ILayoutDetails interface */
-	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) override;
 };

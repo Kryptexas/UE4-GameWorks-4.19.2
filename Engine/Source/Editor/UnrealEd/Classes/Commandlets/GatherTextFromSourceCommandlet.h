@@ -174,7 +174,7 @@ private:
 
 public:
 	// Begin UCommandlet Interface
-	virtual int32 Main(const FString& Params) OVERRIDE;
+	virtual int32 Main(const FString& Params) override;
 	// End UCommandlet Interface
 
 #undef LOC_DEFINE_REGION

@@ -17,15 +17,15 @@ public:
 
 	// FOnlineUser
 
-	virtual TSharedRef<FUniqueNetId> GetUserId() const OVERRIDE;
-	virtual FString GetRealName() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
-	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const OVERRIDE;
+	virtual TSharedRef<FUniqueNetId> GetUserId() const override;
+	virtual FString GetRealName() const override;
+	virtual FString GetDisplayName() const override;
+	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 
 	// FOnlineFriend
 	
-	virtual EInviteStatus::Type GetInviteStatus() const OVERRIDE;
-	virtual const FOnlineUserPresence& GetPresence() const OVERRIDE;
+	virtual EInviteStatus::Type GetInviteStatus() const override;
+	virtual const FOnlineUserPresence& GetPresence() const override;
 
 	// FOnlineFriendMcp
 
@@ -83,15 +83,15 @@ public:
 
 	// IOnlineFriends
 
-	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) OVERRIDE;
-	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) OVERRIDE;
-	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
-	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
- 	virtual bool RejectInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
- 	virtual bool DeleteFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
-	virtual bool GetFriendsList(int32 LocalUserNum, const FString& ListName, TArray< TSharedRef<FOnlineFriend> >& OutFriends) OVERRIDE;
-	virtual TSharedPtr<FOnlineFriend> GetFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
-	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) OVERRIDE;
+	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) override;
+	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) override;
+	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+ 	virtual bool RejectInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+ 	virtual bool DeleteFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+	virtual bool GetFriendsList(int32 LocalUserNum, const FString& ListName, TArray< TSharedRef<FOnlineFriend> >& OutFriends) override;
+	virtual TSharedPtr<FOnlineFriend> GetFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 
 	// FOnlineFriendsFacebook
 

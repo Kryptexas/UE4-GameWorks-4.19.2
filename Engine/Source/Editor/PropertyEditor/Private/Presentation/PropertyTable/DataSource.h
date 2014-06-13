@@ -12,10 +12,10 @@ public:
 	{
 	}
 
-	virtual TWeakObjectPtr< UObject > AsUObject() const OVERRIDE { return Object; }
-	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const OVERRIDE { return NULL; }
+	virtual TWeakObjectPtr< UObject > AsUObject() const override { return Object; }
+	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return NULL; }
 
-	virtual bool IsValid() const OVERRIDE { return Object.IsValid(); }
+	virtual bool IsValid() const override { return Object.IsValid(); }
 
 private:
 
@@ -31,10 +31,10 @@ public:
 	{
 	}
 
-	virtual TWeakObjectPtr< UObject > AsUObject() const OVERRIDE { return NULL; }
-	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const OVERRIDE { return Path; }
+	virtual TWeakObjectPtr< UObject > AsUObject() const override { return NULL; }
+	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return Path; }
 
-	virtual bool IsValid() const OVERRIDE { return true; }
+	virtual bool IsValid() const override { return true; }
 
 private:
 
@@ -45,8 +45,8 @@ class NoDataSource : public IDataSource
 {
 public:
 
-	virtual TWeakObjectPtr< UObject > AsUObject() const OVERRIDE { return NULL; }
-	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const OVERRIDE { return NULL; }
+	virtual TWeakObjectPtr< UObject > AsUObject() const override { return NULL; }
+	virtual TSharedPtr< FPropertyPath > AsPropertyPath() const override { return NULL; }
 
-	virtual bool IsValid() const OVERRIDE { return false; }
+	virtual bool IsValid() const override { return false; }
 };

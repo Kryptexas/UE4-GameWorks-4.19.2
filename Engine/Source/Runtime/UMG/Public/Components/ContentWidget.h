@@ -16,11 +16,11 @@ class UMG_API UContentWidget : public UPanelWidget
 	virtual void SetContent(UWidget* InContent);
 
 	// UPanelWidget
-	virtual int32 GetChildrenCount() const OVERRIDE;
-	virtual UWidget* GetChildAt(int32 Index) const OVERRIDE;
-	virtual bool AddChild(UWidget* Child, FVector2D Position) OVERRIDE;
-	virtual bool RemoveChild(UWidget* Child) OVERRIDE;
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child) OVERRIDE;
+	virtual int32 GetChildrenCount() const override;
+	virtual UWidget* GetChildAt(int32 Index) const override;
+	virtual bool AddChild(UWidget* Child, FVector2D Position) override;
+	virtual bool RemoveChild(UWidget* Child) override;
+	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
 	// End UPanelWidget
 
 protected:

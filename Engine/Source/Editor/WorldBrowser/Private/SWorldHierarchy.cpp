@@ -205,7 +205,7 @@ public:
 		struct FExpander : public FLevelModelVisitor 
 		{
 			TSharedPtr<SLevelsTreeWidget> TreeWidget;
-			virtual void Visit(FLevelModel& Item) OVERRIDE
+			virtual void Visit(FLevelModel& Item) override
 			{
 				TreeWidget->SetItemExpansion(Item.AsShared(), Item.GetLevelExpansionFlag());
 			};
@@ -309,7 +309,7 @@ private:
 	 *
 	 * @return  True if this widget can take keyboard focus
 	 */
-	virtual bool SupportsKeyboardFocus() const OVERRIDE
+	virtual bool SupportsKeyboardFocus() const override
 	{
 		return true;
 	}
@@ -322,7 +322,7 @@ private:
 	 *
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) OVERRIDE
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
 	{
 		if (WorldModel->GetCommandList()->ProcessCommandBindings(InKeyboardEvent))
 		{

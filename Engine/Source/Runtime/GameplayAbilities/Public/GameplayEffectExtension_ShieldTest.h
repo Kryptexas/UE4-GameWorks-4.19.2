@@ -15,8 +15,8 @@ class GAMEPLAYABILITIES_API UGameplayEffectExtension_ShieldTest : public UGamepl
 
 public:
 
-	void PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const OVERRIDE;
-	void PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const OVERRIDE;
+	void PreGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, FGameplayEffectModCallbackData &Data) const override;
+	void PostGameplayEffectExecute(const FGameplayModifierEvaluatedData &SelfData, const FGameplayEffectModCallbackData &Data) const override;
 
 	UPROPERTY(EditDefaultsOnly, Category = Lifesteal)
 	UGameplayEffect * ShieldRemoveGameplayEffect;

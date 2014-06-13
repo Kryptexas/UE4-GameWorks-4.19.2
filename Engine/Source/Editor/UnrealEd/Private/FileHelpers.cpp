@@ -43,7 +43,7 @@ static const size_t NumInvalidNames = sizeof(InvalidFilenames) / sizeof(FString)
 class FSaveErrorOutputDevice : public FOutputDevice
 {
 public:
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		if ( Verbosity == ELogVerbosity::Error || Verbosity == ELogVerbosity::Warning )
 		{
@@ -64,7 +64,7 @@ public:
 		}
 	}
 
-	virtual void Flush() OVERRIDE
+	virtual void Flush() override
 	{
 		if ( ErrorMessages.Num() > 0 )
 		{

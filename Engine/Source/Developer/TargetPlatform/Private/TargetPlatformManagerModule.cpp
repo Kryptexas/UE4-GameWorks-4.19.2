@@ -56,7 +56,7 @@ public:
 		bForceCacheUpdate = false;
 	}
 
-	virtual const TArray<ITargetPlatform*>& GetTargetPlatforms() OVERRIDE
+	virtual const TArray<ITargetPlatform*>& GetTargetPlatforms() override
 	{
 		if (Platforms.Num() == 0 || bForceCacheUpdate)
 		{
@@ -66,7 +66,7 @@ public:
 		return Platforms;
 	}
 
-	virtual ITargetDevicePtr FindTargetDevice(const FTargetDeviceId& DeviceId) OVERRIDE
+	virtual ITargetDevicePtr FindTargetDevice(const FTargetDeviceId& DeviceId) override
 	{
 		ITargetPlatform* Platform = FindTargetPlatform(DeviceId.GetPlatformName());
 
@@ -78,7 +78,7 @@ public:
 		return NULL;
 	}
 
-	virtual ITargetPlatform* FindTargetPlatform(FString Name) OVERRIDE
+	virtual ITargetPlatform* FindTargetPlatform(FString Name) override
 	{
 		const TArray<ITargetPlatform*>& TargetPlatforms = GetTargetPlatforms();	
 		
@@ -93,7 +93,7 @@ public:
 		return NULL;
 	}
 
-	virtual const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() OVERRIDE
+	virtual const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() override
 	{
 		static bool bInitialized = false;
 		static TArray<ITargetPlatform*> Results;
@@ -115,7 +115,7 @@ public:
 		return Results;
 	}
 
-	virtual const TArray<ITargetPlatform*>& GetActiveTargetPlatforms() OVERRIDE
+	virtual const TArray<ITargetPlatform*>& GetActiveTargetPlatforms() override
 	{
 		static bool bInitialized = false;
 		static TArray<ITargetPlatform*> Results;
@@ -191,14 +191,14 @@ public:
 		return Results;
 	}
 
-	virtual bool RestrictFormatsToRuntimeOnly() OVERRIDE
+	virtual bool RestrictFormatsToRuntimeOnly() override
 	{
 		GetActiveTargetPlatforms(); // make sure this is initialized
 
 		return bRestrictFormatsToRuntimeOnly;
 	}
 
-	virtual ITargetPlatform* GetRunningTargetPlatform() OVERRIDE
+	virtual ITargetPlatform* GetRunningTargetPlatform() override
 	{
 		static bool bInitialized = false;
 		static ITargetPlatform* Result = NULL;
@@ -228,7 +228,7 @@ public:
 		return Result;
 	}
 
-	virtual const TArray<const IAudioFormat*>& GetAudioFormats() OVERRIDE
+	virtual const TArray<const IAudioFormat*>& GetAudioFormats() override
 	{
 		static bool bInitialized = false;
 		static TArray<const IAudioFormat*> Results;
@@ -264,7 +264,7 @@ public:
 		return Results;
 	}
 
-	virtual const IAudioFormat* FindAudioFormat(FName Name) OVERRIDE
+	virtual const IAudioFormat* FindAudioFormat(FName Name) override
 	{
 		const TArray<const IAudioFormat*>& AudioFormats = GetAudioFormats();
 
@@ -286,7 +286,7 @@ public:
 		return NULL;
 	}
 
-	virtual const TArray<const ITextureFormat*>& GetTextureFormats() OVERRIDE
+	virtual const TArray<const ITextureFormat*>& GetTextureFormats() override
 	{
 		static bool bInitialized = false;
 		static TArray<const ITextureFormat*> Results;
@@ -322,7 +322,7 @@ public:
 		return Results;
 	}
 
-	virtual const ITextureFormat* FindTextureFormat(FName Name) OVERRIDE
+	virtual const ITextureFormat* FindTextureFormat(FName Name) override
 	{
 		const TArray<const ITextureFormat*>& TextureFormats = GetTextureFormats();
 
@@ -344,7 +344,7 @@ public:
 		return NULL;
 	}
 
-	virtual const TArray<const IShaderFormat*>& GetShaderFormats() OVERRIDE
+	virtual const TArray<const IShaderFormat*>& GetShaderFormats() override
 	{
 		static bool bInitialized = false;
 		static TArray<const IShaderFormat*> Results;
@@ -379,7 +379,7 @@ public:
 		return Results;
 	}
 
-	virtual const IShaderFormat* FindShaderFormat(FName Name) OVERRIDE
+	virtual const IShaderFormat* FindShaderFormat(FName Name) override
 	{
 		const TArray<const IShaderFormat*>& ShaderFormats = GetShaderFormats();	
 
@@ -401,7 +401,7 @@ public:
 		return NULL;
 	}
 
-	virtual uint16 ShaderFormatVersion(FName Name) OVERRIDE
+	virtual uint16 ShaderFormatVersion(FName Name) override
 	{
 		static TMap<FName, uint16> AlreadyFound;
 		uint16* Result = AlreadyFound.Find(Name);
@@ -421,7 +421,7 @@ public:
 		return *Result;
 	}
 
-	virtual const TArray<const IPhysXFormat*>& GetPhysXFormats() OVERRIDE
+	virtual const TArray<const IPhysXFormat*>& GetPhysXFormats() override
 	{
 		static bool bInitialized = false;
 		static TArray<const IPhysXFormat*> Results;
@@ -456,7 +456,7 @@ public:
 		return Results;
 	}
 
-	virtual const IPhysXFormat* FindPhysXFormat(FName Name) OVERRIDE
+	virtual const IPhysXFormat* FindPhysXFormat(FName Name) override
 	{
 		const TArray<const IPhysXFormat*>& PhysXFormats = GetPhysXFormats();
 

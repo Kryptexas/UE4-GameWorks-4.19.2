@@ -26,7 +26,7 @@ public:
 	~FStaticMeshDetails();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
+	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder ) override;
 
 	/** @return true if settings have been changed and need to be applied to the static mesh */
 	bool IsApplyNeeded() const;
@@ -124,13 +124,13 @@ public:
 
 private:
 	/** IDetailCustomNodeBuilder Interface*/
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE {}
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE{}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE { static FName MeshBuildSettings("MeshBuildSettings"); return MeshBuildSettings; }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return true; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {}
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual void Tick( float DeltaTime ) override{}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override { static FName MeshBuildSettings("MeshBuildSettings"); return MeshBuildSettings; }
+	virtual bool InitiallyCollapsed() const override { return true; }
 
 	FReply OnApplyChanges();
 	ESlateCheckBoxState::Type ShouldRecomputeNormals() const;
@@ -166,13 +166,13 @@ public:
 	void UpdateSettings(const FMeshReductionSettings& InSettings);
 private:
 	/** IDetailCustomNodeBuilder Interface*/
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE {}
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE{}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE { static FName MeshReductionSettings("MeshReductionSettings"); return MeshReductionSettings; }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return true; }
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override {}
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual void Tick( float DeltaTime ) override{}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override { static FName MeshReductionSettings("MeshReductionSettings"); return MeshReductionSettings; }
+	virtual bool InitiallyCollapsed() const override { return true; }
 
 	FReply OnApplyChanges();
 	float GetPercentTriangles() const;

@@ -162,7 +162,7 @@ public:
 	FEdGraphNodeSpawnInfo(UClass* InClass) : NodeClass(InClass), GraphNode(NULL) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) OVERRIDE
+	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
 		TSharedPtr<FEdGraphSchemaAction_NewNode> NewActionNode = TSharedPtr<FEdGraphSchemaAction_NewNode>(new FEdGraphSchemaAction_NewNode);
 
@@ -194,7 +194,7 @@ public:
 	FFunctionNodeSpawnInfo(UFunction* InFunctionPtr) : FunctionPtr(InFunctionPtr) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) OVERRIDE
+	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
 		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
 		FBlueprintPaletteListBuilder TempListBuilder(Blueprint);
@@ -247,7 +247,7 @@ public:
 	FMacroNodeSpawnInfo(UEdGraph* InMacroGraph) : MacroGraph(InMacroGraph) {}
 
 	// FNodeSpawnInfo interface
-	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) OVERRIDE
+	virtual TSharedPtr< FEdGraphSchemaAction > GetAction(FBlueprintPaletteListBuilder& InPaletteBuilder, UEdGraph* InDestGraph) override
 	{
 		const UBlueprint* Blueprint = InPaletteBuilder.Blueprint;
 		FBlueprintPaletteListBuilder TempListBuilder(Blueprint);

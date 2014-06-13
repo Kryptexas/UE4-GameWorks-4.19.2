@@ -142,7 +142,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	GENERATED_UCLASS_BODY()
 
 	virtual void Tick(float DeltaTime);
-	virtual void BeginDestroy() OVERRIDE;
+	virtual void BeginDestroy() override;
 
 	/** adds new agent to crowd */
 	void RegisterAgent(const class ICrowdAgentInterface* Agent);
@@ -197,7 +197,7 @@ class AIMODULE_API UCrowdManager : public UObject
 	void AdjustAgentPathStart(const UCrowdFollowingComponent* AgentComponent, const FNavMeshPath* Path, int32& PathStartIdx) const;
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	void DebugTick() const;
 #endif

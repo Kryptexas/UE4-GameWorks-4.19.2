@@ -38,14 +38,14 @@ private:
 	 * @param MyGeometry	Information about the size of the toolbar
 	 * @param MouseEvent	The mouse event that triggered this function
 	 */
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 	/**
 	 * Called when the mouse leaves the toolbar area.  We fade out the toolbar when this happens
 	 *
 	 * @param MouseEvent	The mouse event that triggered this function
 	 */
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) OVERRIDE;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
 
 private:
 	/** Curve sequence for fading out the toolbar */

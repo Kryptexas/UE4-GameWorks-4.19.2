@@ -20,13 +20,13 @@ public:
 	}
 		
 	// FDragDropOperation interface
-	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) OVERRIDE;
+	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
 	// End of FDragDropOperation interface
 
 	UEdGraphPin* GetBestPin() const;
 
 	// FDragConnection interface
-	virtual void ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins) OVERRIDE;
+	virtual void ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins) override;
 	// End of FDragConnection interface
 
 protected:
@@ -141,15 +141,15 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 
 	// SWidget interface
-	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) OVERRIDE;
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	// End of SWidget interface
 
 protected:
 	// Begin SGraphPin interface
-	virtual TSharedRef<SWidget>	GetDefaultValueWidget() OVERRIDE;
-	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation) OVERRIDE;
-	virtual FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
-	virtual FSlateColor GetPinColor() const OVERRIDE;
+	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
+	virtual TSharedRef<FDragDropOperation> SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation) override;
+	virtual FReply OnPinMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FSlateColor GetPinColor() const override;
 	// End SGraphPin interface
 };
 

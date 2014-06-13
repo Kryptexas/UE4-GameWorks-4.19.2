@@ -99,12 +99,12 @@ public:
 	/**
 	 * Initializes all D3D resources.
 	 */
-	virtual void InitDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all D3D resources.
 	 */
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void ReleaseDynamicRHI() override;
 
 private:
 	/**
@@ -142,12 +142,12 @@ public:
 	/**
 	 * Initializes all D3D resources.
 	 */
-	virtual void InitDynamicRHI() OVERRIDE;
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all D3D resources.
 	 */
-	virtual void ReleaseDynamicRHI() OVERRIDE;
+	virtual void ReleaseDynamicRHI() override;
 
 
 private:
@@ -178,15 +178,15 @@ public:
 	 * Returns the time in ms that the GPU spent in this draw event.  
 	 * This blocks the CPU if necessary, so can cause hitching.
 	 */
-	virtual float GetTiming() OVERRIDE;
+	virtual float GetTiming() override;
 
 
-	virtual void StartTiming() OVERRIDE
+	virtual void StartTiming() override
 	{
 		Timing.StartTiming();
 	}
 
-	virtual void StopTiming() OVERRIDE
+	virtual void StopTiming() override
 	{
 		Timing.EndTiming();
 	}
@@ -217,15 +217,15 @@ public:
 	}
 
 	/** Start this frame of per tracking */
-	virtual void StartFrame() OVERRIDE;
+	virtual void StartFrame() override;
 
 	/** End this frame of per tracking, but do not block yet */
-	virtual void EndFrame() OVERRIDE;
+	virtual void EndFrame() override;
 
 	/** Calculates root timing base frequency (if needed by this RHI) */
-	virtual float GetRootTimingResults() OVERRIDE;
+	virtual float GetRootTimingResults() override;
 
-	virtual void LogDisjointQuery() OVERRIDE;
+	virtual void LogDisjointQuery() override;
 
 	/** Timer tracking inclusive time spent in the root nodes. */
 	FD3D11BufferedGPUTiming RootEventTiming;
@@ -281,14 +281,14 @@ struct FD3DGPUProfiler : public FGPUProfiler
 		FrameTiming.InitResource();
 	}
 
-	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) OVERRIDE
+	virtual FGPUProfilerEventNode* CreateEventNode(const TCHAR* InName, FGPUProfilerEventNode* InParent) override
 	{
 		FD3D11EventNode* EventNode = new FD3D11EventNode(InName, InParent, D3D11RHI);
 		return EventNode;
 	}
 
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE;
-	virtual void PopEvent() OVERRIDE;
+	virtual void PushEvent(const TCHAR* Name) override;
+	virtual void PopEvent() override;
 
 	void BeginFrame(class FD3D11DynamicRHI* InRHI);
 
@@ -325,10 +325,10 @@ public:
 	virtual void InitD3DDevice();
 
 	// FDynamicRHI interface.
-	virtual void Init() OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void PushEvent(const TCHAR* Name) OVERRIDE { GPUProfilingData.PushEvent(Name); }
-	virtual void PopEvent() OVERRIDE { GPUProfilingData.PopEvent(); }
+	virtual void Init() override;
+	virtual void Shutdown() override;
+	virtual void PushEvent(const TCHAR* Name) override { GPUProfilingData.PushEvent(Name); }
+	virtual void PopEvent() override { GPUProfilingData.PopEvent(); }
 
 	/**
 	 * Reads a D3D query's data into the provided buffer.
@@ -624,11 +624,11 @@ class FD3D11DynamicRHIModule : public IDynamicRHIModule
 {
 public:
 	// IModuleInterface
-	virtual bool SupportsDynamicReloading() OVERRIDE { return false; }
+	virtual bool SupportsDynamicReloading() override { return false; }
 
 	// IDynamicRHIModule
-	virtual bool IsSupported() OVERRIDE;
-	virtual FDynamicRHI* CreateRHI() OVERRIDE;
+	virtual bool IsSupported() override;
+	virtual FDynamicRHI* CreateRHI() override;
 
 private:
 	FD3D11Adapter ChosenAdapter;
@@ -730,13 +730,13 @@ class FVector4VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 		Elements.Add(FVertexElement(0,0,VET_Float4,0));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}

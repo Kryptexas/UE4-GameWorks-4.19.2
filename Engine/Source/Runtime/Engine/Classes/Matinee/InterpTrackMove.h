@@ -148,56 +148,56 @@ class UInterpTrackMove : public UInterpTrack
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
-	virtual void PostEditImport() OVERRIDE;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditImport() override;
 #endif
 	// End UObject interface.
 
 	// Begin UInterpTrack interface.
-	virtual int32 GetNumKeyframes() const OVERRIDE;
-	virtual void GetTimeRange(float& StartTime, float& EndTime) const OVERRIDE;
-	virtual float GetTrackEndTime() const OVERRIDE;
-	virtual float GetKeyframeTime(int32 KeyIndex) const OVERRIDE;
-	virtual int32 GetKeyframeIndex( float KeyTime ) const OVERRIDE;
-	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual int32 AddChildKeyframe(class UInterpTrack* ChildTrack, float Time, UInterpTrackInst* TrackInst, EInterpCurveMode InitInterpMode) OVERRIDE;
-	virtual bool CanAddKeyframe( UInterpTrackInst* TrackInst ) OVERRIDE;
-	virtual bool CanAddChildKeyframe( UInterpTrackInst* TrackInst ) OVERRIDE;
-	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateChildKeyframe( class UInterpTrack* ChildTrack, int32 KeyIndex, UInterpTrackInst* TrackInst ) OVERRIDE;
-	virtual int32 SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdateOrder=true) OVERRIDE;
-	virtual void RemoveKeyframe(int32 KeyIndex) OVERRIDE;
-	virtual int32 DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL) OVERRIDE;
-	virtual bool GetClosestSnapPosition(float InPosition, TArray<int32> &IgnoreKeys, float& OutPosition) OVERRIDE;
-	virtual void ConditionalPreviewUpdateTrack(float NewPosition, class UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) OVERRIDE;
-	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) OVERRIDE;
-	virtual class UTexture2D* GetTrackIcon() const OVERRIDE;
-	virtual FColor GetKeyframeColor(int32 KeyIndex) const OVERRIDE;
-	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) OVERRIDE;
-	virtual void Render3DTrack(UInterpTrackInst* TrInst, const FSceneView* View, class FPrimitiveDrawInterface* PDI, int32 TrackIndex, const FColor& TrackColor, TArray<struct FInterpEdSelKey>& SelectedKeys) OVERRIDE;
-	virtual void SetTrackToSensibleDefault() OVERRIDE;
-	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+	virtual int32 GetNumKeyframes() const override;
+	virtual void GetTimeRange(float& StartTime, float& EndTime) const override;
+	virtual float GetTrackEndTime() const override;
+	virtual float GetKeyframeTime(int32 KeyIndex) const override;
+	virtual int32 GetKeyframeIndex( float KeyTime ) const override;
+	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
+	virtual int32 AddChildKeyframe(class UInterpTrack* ChildTrack, float Time, UInterpTrackInst* TrackInst, EInterpCurveMode InitInterpMode) override;
+	virtual bool CanAddKeyframe( UInterpTrackInst* TrackInst ) override;
+	virtual bool CanAddChildKeyframe( UInterpTrackInst* TrackInst ) override;
+	virtual void UpdateKeyframe(int32 KeyIndex, UInterpTrackInst* TrInst) override;
+	virtual void UpdateChildKeyframe( class UInterpTrack* ChildTrack, int32 KeyIndex, UInterpTrackInst* TrackInst ) override;
+	virtual int32 SetKeyframeTime(int32 KeyIndex, float NewKeyTime, bool bUpdateOrder=true) override;
+	virtual void RemoveKeyframe(int32 KeyIndex) override;
+	virtual int32 DuplicateKeyframe(int32 KeyIndex, float NewKeyTime, UInterpTrack* ToTrack = NULL) override;
+	virtual bool GetClosestSnapPosition(float InPosition, TArray<int32> &IgnoreKeys, float& OutPosition) override;
+	virtual void ConditionalPreviewUpdateTrack(float NewPosition, class UInterpTrackInst* TrInst) override;
+	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
+	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
+	virtual class UTexture2D* GetTrackIcon() const override;
+	virtual FColor GetKeyframeColor(int32 KeyIndex) const override;
+	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) override;
+	virtual void Render3DTrack(UInterpTrackInst* TrInst, const FSceneView* View, class FPrimitiveDrawInterface* PDI, int32 TrackIndex, const FColor& TrackColor, TArray<struct FInterpEdSelKey>& SelectedKeys) override;
+	virtual void SetTrackToSensibleDefault() override;
+	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End UInterpTrack interface.
 
 	// Begin FCurveEdInterface interface.
-	virtual int32		GetNumKeys() const OVERRIDE;
-	virtual int32		GetNumSubCurves() const OVERRIDE;
-	virtual FColor	GetSubCurveButtonColor(int32 SubCurveIndex, bool bIsSubCurveHidden) const OVERRIDE;
-	virtual float	GetKeyIn(int32 KeyIndex) OVERRIDE;
-	virtual float	GetKeyOut(int32 SubIndex, int32 KeyIndex) OVERRIDE;
-	virtual void	GetInRange(float& MinIn, float& MaxIn) const OVERRIDE;
-	virtual void	GetOutRange(float& MinOut, float& MaxOut) const OVERRIDE;
-	virtual FColor	GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) OVERRIDE;
-	virtual EInterpCurveMode	GetKeyInterpMode(int32 KeyIndex) const OVERRIDE;
-	virtual void	GetTangents(int32 SubIndex, int32 KeyIndex, float& ArriveTangent, float& LeaveTangent) const OVERRIDE;
-	virtual float	EvalSub(int32 SubIndex, float InVal) OVERRIDE;
-	virtual int32		CreateNewKey(float KeyIn) OVERRIDE;
-	virtual void	DeleteKey(int32 KeyIndex) OVERRIDE;
-	virtual int32		SetKeyIn(int32 KeyIndex, float NewInVal) OVERRIDE;
-	virtual void	SetKeyOut(int32 SubIndex, int32 KeyIndex, float NewOutVal) OVERRIDE;
-	virtual void	SetKeyInterpMode(int32 KeyIndex, EInterpCurveMode NewMode) OVERRIDE;
-	virtual void	SetTangents(int32 SubIndex, int32 KeyIndex, float ArriveTangent, float LeaveTangent) OVERRIDE;
+	virtual int32		GetNumKeys() const override;
+	virtual int32		GetNumSubCurves() const override;
+	virtual FColor	GetSubCurveButtonColor(int32 SubCurveIndex, bool bIsSubCurveHidden) const override;
+	virtual float	GetKeyIn(int32 KeyIndex) override;
+	virtual float	GetKeyOut(int32 SubIndex, int32 KeyIndex) override;
+	virtual void	GetInRange(float& MinIn, float& MaxIn) const override;
+	virtual void	GetOutRange(float& MinOut, float& MaxOut) const override;
+	virtual FColor	GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColor& CurveColor) override;
+	virtual EInterpCurveMode	GetKeyInterpMode(int32 KeyIndex) const override;
+	virtual void	GetTangents(int32 SubIndex, int32 KeyIndex, float& ArriveTangent, float& LeaveTangent) const override;
+	virtual float	EvalSub(int32 SubIndex, float InVal) override;
+	virtual int32		CreateNewKey(float KeyIn) override;
+	virtual void	DeleteKey(int32 KeyIndex) override;
+	virtual int32		SetKeyIn(int32 KeyIndex, float NewInVal) override;
+	virtual void	SetKeyOut(int32 SubIndex, int32 KeyIndex, float NewOutVal) override;
+	virtual void	SetKeyInterpMode(int32 KeyIndex, EInterpCurveMode NewMode) override;
+	virtual void	SetTangents(int32 SubIndex, int32 KeyIndex, float ArriveTangent, float LeaveTangent) override;
 	// End FCurveEdInterface interface.
 
 

@@ -26,8 +26,8 @@ class UCurveTable : public UObject
 	TMap<FName, FRichCurve*>	RowMap;
 
 	// Begin UObject interface.
-	virtual void FinishDestroy() OVERRIDE;
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void FinishDestroy() override;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End  UObject interface
 
 	// Begin UCurveTable interface

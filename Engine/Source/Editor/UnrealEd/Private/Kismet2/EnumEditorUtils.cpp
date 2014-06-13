@@ -184,7 +184,7 @@ public:
 	{
 	}
 
-	virtual bool UseToResolveEnumerators() const OVERRIDE
+	virtual bool UseToResolveEnumerators() const override
 	{
 		return true;
 	}

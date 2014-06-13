@@ -10,12 +10,12 @@ public:
 	static TSharedRef< FBspMode > Create();
 
 	~FBspMode();
-	virtual bool UsesToolkits() const OVERRIDE;
+	virtual bool UsesToolkits() const override;
 
-	virtual void Enter() OVERRIDE;
-	virtual void Exit() OVERRIDE;
+	virtual void Enter() override;
+	virtual void Exit() override;
 
-	virtual bool UsesPropertyWidgets() const OVERRIDE { return true; }
+	virtual bool UsesPropertyWidgets() const override { return true; }
 
 private:
 	FBspMode();

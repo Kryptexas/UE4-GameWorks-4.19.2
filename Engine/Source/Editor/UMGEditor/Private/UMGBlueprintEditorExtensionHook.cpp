@@ -48,7 +48,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("SlatePreview_ViewMenu_ToolTip", "Show the UI preview");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		//TSharedPtr<SWidget> Result;
 		//if ( BlueprintEditorPtr->CanAccessComponentsMode() )
@@ -88,7 +88,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("SlateHierarchy_ViewMenu_ToolTip", "Show the Hierarchy");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
@@ -120,7 +120,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("WidgetTemplates_ViewMenu_ToolTip", "Show the Templates");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FWidgetBlueprintEditor>(BlueprintEditor.Pin());
 
@@ -150,7 +150,7 @@ public:
 		ViewMenuTooltip = LOCTEXT("Sequencer_ViewMenu_ToolTip", "Show the Animation editor");
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FWidgetBlueprintEditor> BlueprintEditorPinned = BlueprintEditor.Pin();
 
@@ -255,7 +255,7 @@ public:
 		);
 	}
 
-	virtual void PreDeactivateMode() OVERRIDE
+	virtual void PreDeactivateMode() override
 	{
 		FBlueprintDefaultsApplicationMode::PreDeactivateMode();
 
@@ -266,7 +266,7 @@ public:
 		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("CanvasPanelSlot"));
 	}
 
-	virtual void PostActivateMode() OVERRIDE
+	virtual void PostActivateMode() override
 	{
 		FBlueprintDefaultsApplicationMode::PostActivateMode();
 
@@ -311,12 +311,12 @@ public:
 		: FBlueprintEditorApplicationMode(InBlueprintEditor, InModeName, bRegisterViewport, bRegisterDefaultsTab)
 	{}
 
-	virtual void PreDeactivateMode() OVERRIDE
+	virtual void PreDeactivateMode() override
 	{
 		FBlueprintEditorApplicationMode::PreDeactivateMode();
 	}
 
-	virtual void PostActivateMode() OVERRIDE
+	virtual void PostActivateMode() override
 	{
 		FBlueprintEditorApplicationMode::PostActivateMode();
 	}

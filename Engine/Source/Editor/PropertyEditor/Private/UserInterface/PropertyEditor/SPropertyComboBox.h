@@ -46,7 +46,7 @@ private:
 	TSharedRef<SWidget> OnGenerateComboWidget( TSharedPtr<FString> InComboString );
 
 	/** SWidget interface */
-	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
+	FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 private:
 

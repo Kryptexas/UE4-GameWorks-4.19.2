@@ -108,7 +108,7 @@ public:
 	FByteBulkData				RawData;
 
 	// Begin UObject interface. 
-	virtual void Serialize( FArchive& Ar ) OVERRIDE;
+	virtual void Serialize( FArchive& Ar ) override;
 	// End UObject interface. 
 
 };

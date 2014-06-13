@@ -168,7 +168,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		check(!IsValidRef(VertexBufferRHI));
 		FRHIResourceCreateInfo CreateInfo;
@@ -177,14 +177,14 @@ public:
 		AllocatedByteCount = 0;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		FVertexBuffer::ReleaseRHI();
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual FString GetFriendlyName() const OVERRIDE
+	virtual FString GetFriendlyName() const override
 	{
 		return TEXT("FDynamicVertexBuffer");
 	}
@@ -350,7 +350,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		check(!IsValidRef(IndexBufferRHI));
 		FRHIResourceCreateInfo CreateInfo;
@@ -359,14 +359,14 @@ public:
 		AllocatedByteCount = 0;
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		FIndexBuffer::ReleaseRHI();
 		MappedBuffer = NULL;
 		AllocatedByteCount = 0;
 	}
 
-	virtual FString GetFriendlyName() const OVERRIDE
+	virtual FString GetFriendlyName() const override
 	{
 		return TEXT("FDynamicIndexBuffer");
 	}

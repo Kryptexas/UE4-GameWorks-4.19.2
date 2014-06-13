@@ -247,7 +247,7 @@ public:
 		return Result;
 	}
 
-	virtual void OnTransformChanged() OVERRIDE
+	virtual void OnTransformChanged() override
 	{
 		Origin = GetLocalToWorld().GetOrigin();
 	}

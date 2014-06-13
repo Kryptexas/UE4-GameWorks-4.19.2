@@ -1697,7 +1697,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type InFeatureLevel) const override
 	{
 		const bool bInstanced = InFeatureLevel >= ERHIFeatureLevel::SM3;
 		return bInstanced ? sizeof(FParticleSpriteVertex) : sizeof(FParticleSpriteVertexNonInstanced);
@@ -1706,7 +1706,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleVertexDynamicParameter);
 	}
@@ -1757,10 +1757,10 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
 	 *	@param	FrameNumber		The frame number of this pre-render
 	 */
-	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE;
+	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Render thread only draw call
@@ -1769,7 +1769,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	PDI			The primitive draw interface to render with
 	 *	@param	View		The scene view being rendered
 	 */
-	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
+	virtual int32 Render(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 
 	/**
 	 *	Create the render thread resources for this emitter data
@@ -1949,17 +1949,17 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber); 
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FMeshParticleInstanceVertex);
 	}
 
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE 
+	virtual int32 GetDynamicParameterVertexStride() const override 
 	{
 		return sizeof(FMeshParticleInstanceVertexDynamicParameter);
 	}
@@ -1967,7 +1967,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the source replay data for this emitter
 	 */
-	virtual const FDynamicSpriteEmitterReplayDataBase* GetSourceData() const OVERRIDE
+	virtual const FDynamicSpriteEmitterReplayDataBase* GetSourceData() const override
 	{
 		return &Source;
 	}
@@ -2249,7 +2249,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}
@@ -2257,7 +2257,7 @@ struct FDynamicBeam2EmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleBeamTrailVertexDynamicParameter);
 	}
@@ -2432,7 +2432,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
 	 */
-	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const OVERRIDE
+	virtual int32 GetDynamicVertexStride(ERHIFeatureLevel::Type /*InFeatureLevel*/) const override
 	{
 		return sizeof(FParticleBeamTrailVertex);
 	}
@@ -2440,7 +2440,7 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 	/**
 	 *	Get the vertex stride for the dynamic parameter rendering data
 	 */
-	virtual int32 GetDynamicParameterVertexStride() const OVERRIDE
+	virtual int32 GetDynamicParameterVertexStride() const override
 	{
 		return sizeof(FParticleBeamTrailVertexDynamicParameter);
 	}
@@ -2590,14 +2590,14 @@ public:
 	virtual ~FParticleSystemSceneProxy();
 
 	// FPrimitiveSceneProxy interface.
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return false;
 	}
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
-	virtual void OnActorPositionChanged() OVERRIDE;
-	virtual void OnTransformChanged() OVERRIDE;
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual void OnActorPositionChanged() override;
+	virtual void OnTransformChanged() override;
 
 	/**
 	 *	Helper function for determining the LOD distance for a given view.
@@ -2618,7 +2618,7 @@ public:
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber);
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const override;
 
 	/**
 	 *	Called when the rendering thread adds the proxy to the scene.
@@ -2739,7 +2739,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	/** @return true if the proxy requires occlusion queries */
-	virtual bool CanBeOccluded() const OVERRIDE
+	virtual bool CanBeOccluded() const override
 	{
 		return !MaterialRelevance.bDisableDepthTest;
 	}

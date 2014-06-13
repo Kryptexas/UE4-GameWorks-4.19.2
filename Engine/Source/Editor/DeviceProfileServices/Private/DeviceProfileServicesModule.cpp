@@ -15,7 +15,7 @@ class FDeviceProfileServicesModule
 public:
 
 		// Begin IDeviceProfileServicesModule interface
-		virtual IDeviceProfileServicesUIManagerRef GetProfileServicesManager( ) OVERRIDE
+		virtual IDeviceProfileServicesUIManagerRef GetProfileServicesManager( ) override
 		{
 			if (!DeviceProfileServicesUIManagerSingleton.IsValid())
 			{

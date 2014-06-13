@@ -43,9 +43,9 @@ public:
 	UPROPERTY(Category=Node, EditAnywhere)
 	TSubclassOf<class UNavigationQueryFilter> FilterClass;
 
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const OVERRIDE;
-	virtual FString GetStaticDescription() const OVERRIDE;
-	virtual void InitializeFromAsset(class UBehaviorTree* Asset) OVERRIDE;
+	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual FString GetStaticDescription() const override;
+	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

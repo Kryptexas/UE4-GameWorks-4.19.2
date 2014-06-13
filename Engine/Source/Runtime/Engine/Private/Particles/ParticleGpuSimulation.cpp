@@ -171,7 +171,7 @@ public:
 	/**
 	 * Initialize RHI resources used for particle simulation.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		const int32 SizeX = GParticleSimulationTextureSizeX;
 		const int32 SizeY = GParticleSimulationTextureSizeY;
@@ -217,7 +217,7 @@ public:
 	/**
 	 * Releases RHI resources used for particle simulation.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		// Release textures.
 		PositionTextureTargetRHI.SafeRelease();
@@ -243,7 +243,7 @@ public:
 	/**
 	 * Initialize RHI resources used for particle simulation.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		const int32 SizeX = GParticleSimulationTextureSizeX;
 		const int32 SizeY = GParticleSimulationTextureSizeY;
@@ -266,7 +266,7 @@ public:
 	/**
 	 * Releases RHI resources used for particle simulation.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		TextureTargetRHI.SafeRelease();
 		TextureRHI.SafeRelease();
@@ -284,7 +284,7 @@ public:
 	FShaderResourceViewRHIRef VertexBufferSRV;
 
 	/** Release RHI resources. */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VertexBufferSRV.SafeRelease();
 		FVertexBuffer::ReleaseRHI();
@@ -465,7 +465,7 @@ typedef TUniformBufferRef<FGPUSpriteEmitterDynamicUniformParameters> FGPUSpriteE
 class FGPUSpriteVertexFactoryShaderParameters : public FVertexFactoryShaderParameters
 {
 public:
-	virtual void Bind( const FShaderParameterMap& ParameterMap ) OVERRIDE
+	virtual void Bind( const FShaderParameterMap& ParameterMap ) override
 	{
 		ParticleIndices.Bind(ParameterMap, TEXT("ParticleIndices"));
 		ParticleIndicesOffset.Bind(ParameterMap, TEXT("ParticleIndicesOffset"));
@@ -481,7 +481,7 @@ public:
 		CurveTextureSampler.Bind(ParameterMap, TEXT("CurveTextureSampler"));
 	}
 
-	virtual void Serialize(FArchive& Ar) OVERRIDE
+	virtual void Serialize(FArchive& Ar) override
 	{
 		Ar << ParticleIndices;
 		Ar << ParticleIndicesOffset;
@@ -497,7 +497,7 @@ public:
 		Ar << CurveTextureSampler;
 	}
 
-	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE;
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
 
@@ -536,7 +536,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 
@@ -549,7 +549,7 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -586,7 +586,7 @@ public:
 	/**
 	 * Constructs render resources for this vertex factory.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FVertexStream Stream;
 
@@ -797,7 +797,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << TileOffsets;
@@ -878,7 +878,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize(FArchive& Ar) OVERRIDE
+	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << PositionTexture;
@@ -1067,7 +1067,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		return bShaderHasOutdatedParameters;
@@ -1090,7 +1090,7 @@ public:
 	/** The vertex declaration. */
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 		// TexCoord.
@@ -1098,7 +1098,7 @@ public:
 		VertexDeclarationRHI = RHICreateVertexDeclaration( Elements );
 	}
 
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -1437,7 +1437,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		return bShaderHasOutdatedParameters;
@@ -1659,7 +1659,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << VisualizationMode;
@@ -1911,7 +1911,7 @@ public:
 	}
 
 	/** Serialization. */
-	virtual bool Serialize( FArchive& Ar ) OVERRIDE
+	virtual bool Serialize( FArchive& Ar ) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize( Ar );
 		Ar << InParticleIndices;
@@ -2171,7 +2171,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if ( AlignedTileCount > 0 )
 		{
@@ -2186,7 +2186,7 @@ public:
 	/**
 	 * Release RHI resources.
 	 */
-	virtual void ReleaseRHI() OVERRIDE
+	virtual void ReleaseRHI() override
 	{
 		TileCount = 0;
 		AlignedTileCount = 0;
@@ -2226,7 +2226,7 @@ public:
 	}
 
 	/** Initialize RHI resources. */
-	virtual void InitRHI() OVERRIDE
+	virtual void InitRHI() override
 	{
 		if ( ParticleCount > 0 && CurrentRHISupportsGPUParticles() )
 		{
@@ -2584,7 +2584,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 * Called once the emitter has been determined to be visible. The emitter
 	 * will generate per-view render data.
 	 */
-	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE
+	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
 	{
 		auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
 
@@ -3010,7 +3010,7 @@ public:
 	/**
 	 * Initializes parameters for this emitter instance.
 	 */
-	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources) OVERRIDE
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources) override
 	{
 		FParticleEmitterInstance::InitParameters( InTemplate, InComponent, bClearResources );
 		SetupEmitterDuration();
@@ -3236,7 +3236,7 @@ public:
 	 *	Force kill all particles in the emitter.
 	 *	@param	bFireEvents		If true, fire events for the particles being killed.
 	 */
-	virtual void KillParticlesForced(bool bFireEvents) OVERRIDE
+	virtual void KillParticlesForced(bool bFireEvents) override
 	{
 		// Clear all active tiles. This will effectively kill all particles.
 		ClearAllocatedTiles();
@@ -3245,11 +3245,11 @@ public:
 	/**
 	 *	Called when the particle system is deactivating...
 	 */
-	virtual void OnDeactivateSystem() OVERRIDE
+	virtual void OnDeactivateSystem() override
 	{
 	}
 
-	virtual void Rewind() OVERRIDE
+	virtual void Rewind() override
 	{
 		FParticleEmitterInstance::Rewind();
 		InitLocalVectorField();
