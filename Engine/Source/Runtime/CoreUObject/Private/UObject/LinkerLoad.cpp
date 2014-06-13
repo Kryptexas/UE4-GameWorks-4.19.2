@@ -3636,6 +3636,7 @@ void ULinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 	const int32 FileSize = IFileManager::Get().FileSize(*PackageFilename);
 
 	// if we were compressed, the size we care about on the other end is the uncompressed size
+	CA_SUPPRESS(6326)
 	PrecacheInfo.PackageDataSize = UncompressedSize == -1 ? FileSize : UncompressedSize;
 	
 	// allocate enough space
@@ -3643,6 +3644,7 @@ void ULinkerLoad::AsyncPreloadPackage(const TCHAR* PackageName)
 
 	uint64 RequestId;
 	// kick off the async read (uncompressing if needed) of the whole file and make sure it worked
+	CA_SUPPRESS(6326)
 	if (UncompressedSize != -1)
 	{
 		PrecacheInfo.PackageDataSize = UncompressedSize;

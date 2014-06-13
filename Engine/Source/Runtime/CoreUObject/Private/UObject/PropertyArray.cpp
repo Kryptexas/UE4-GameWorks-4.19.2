@@ -248,6 +248,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 	}
 
 	// Make sure we ended on a )
+	CA_SUPPRESS(6011)
 	if (*Buffer++ != TCHAR(')'))
 	{
 		return NULL;

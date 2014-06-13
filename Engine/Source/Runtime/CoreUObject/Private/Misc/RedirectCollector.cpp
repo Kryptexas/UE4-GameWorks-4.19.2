@@ -92,6 +92,7 @@ void FRedirectCollector::ResolveStringAssetReference()
 				Redir.PackageFilename = RefFilename;
 				Redir.RedirectorName = Redirector->GetFullName();
 				Redir.RedirectorPackageFilename = Redirector->GetLinker()->Filename;
+				CA_SUPPRESS(28182)
 				Redir.DestinationObjectName = Redirector->DestinationObject->GetFullName();
 				Redirections.AddUnique(Redir);
 				Loaded = Redirector->DestinationObject;

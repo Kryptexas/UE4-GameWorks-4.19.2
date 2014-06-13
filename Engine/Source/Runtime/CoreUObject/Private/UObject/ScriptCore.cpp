@@ -264,6 +264,7 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 #if !IS_MONOLITHIC
 			if (GIsHotReload)
 			{
+				CA_SUPPRESS(6385)
 				AddHotReloadFunctionRemap(Func, GNatives[NativeBytecodeIndex]);
 			}
 			else
@@ -272,6 +273,7 @@ COREUOBJECT_API uint8 GRegisterNative( int32 NativeBytecodeIndex, const Native& 
 			GNativeDuplicate = NativeBytecodeIndex;
 			}
 		}
+		CA_SUPPRESS(6386)
 		GNatives[NativeBytecodeIndex] = Func;
 	}
 
@@ -403,6 +405,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
  				Property = *ParmIt;
  				if( Property->HasAnyPropertyFlags(CPF_ReturnParm) )
  				{
+					CA_SUPPRESS(6263)
  					FOutParmRec* RetVal = (FOutParmRec*)FMemory_Alloca(sizeof(FOutParmRec));
  
  					// Our context should be that we're in a variable assignment to the return value, so ensure that we have a valid property to return to
@@ -435,6 +438,7 @@ void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 				// evaluate the expression for this parameter, which sets Stack.MostRecentPropertyAddress to the address of the property accessed
 				Stack.Step(Stack.Object, NULL);
 
+				CA_SUPPRESS(6263)
 				FOutParmRec* Out = (FOutParmRec*)FMemory_Alloca(sizeof(FOutParmRec));
 				// set the address and property in the out param info
 				// warning: Stack.MostRecentPropertyAddress could be NULL for optional out parameters
@@ -822,6 +826,7 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 				// bytecode
 				if ( Property->HasAnyPropertyFlags(CPF_OutParm) )
 				{
+					CA_SUPPRESS(6263)
 					FOutParmRec* Out = (FOutParmRec*)FMemory_Alloca(sizeof(FOutParmRec));
 					// set the address and property in the out param info
 					// note that since C++ doesn't support "optional out" we can ignore that here

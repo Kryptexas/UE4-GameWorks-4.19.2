@@ -803,10 +803,12 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 		}
 
 		// Save the filename we load from
+		CA_SUPPRESS(28182)
 		Result->FileName = FName(*FileToLoad);
 
 		// is there a script SHA hash for this package?
 		uint8 SavedScriptSHA[20];
+		CA_SUPPRESS(6011)
 		bool bHasScriptSHAHash = FSHA1::GetFileSHAHash(*Linker->LinkerRoot->GetName(), SavedScriptSHA, false);
 		if (bHasScriptSHAHash)
 		{
