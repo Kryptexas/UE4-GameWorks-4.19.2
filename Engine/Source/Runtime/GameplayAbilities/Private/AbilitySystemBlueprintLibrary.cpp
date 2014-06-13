@@ -114,37 +114,3 @@ UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitM
 	return NULL;
 }
 
-/**
- *	Need:
- *	-Easy way to specify which primitive components should be used for this overlap test
- *	-Easy way to specify which types of actors/collision overlaps that we care about/want to block on
- */
-
-UAbilityTask_WaitOverlap* UAbilitySystemBlueprintLibrary::CreateWaitOverlap(class UObject* WorldContextObject, EMovementMode NewMode)
-{
-	check(WorldContextObject);
-	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (Ability)
-	{
-		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
-
-		UAbilityTask_WaitOverlap * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitOverlap>();
-
-
-		// TEMP - we are just using root component's collision. A real system will need more data to specify which component to use
-		UPrimitiveComponent * PrimComponent = Cast<UPrimitiveComponent>(ActorOwner->GetRootComponent());
-		if (!PrimComponent)
-		{			
-			PrimComponent = ActorOwner->FindComponentByClass<UPrimitiveComponent>();
-		}
-		check(PrimComponent);
-
-		PrimComponent->OnComponentBeginOverlap.AddDynamic(MyObj, &UAbilityTask_WaitOverlap::OnOverlapCallback);
-		PrimComponent->OnComponentHit.AddDynamic(MyObj, &UAbilityTask_WaitOverlap::OnHitCallback);
-
-		return MyObj;
-	}
-
-	return NULL;
-}

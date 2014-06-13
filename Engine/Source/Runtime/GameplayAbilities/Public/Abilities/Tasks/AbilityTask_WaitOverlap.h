@@ -23,6 +23,12 @@ class UAbilityTask_WaitOverlap : public UAbilityTask
 	UFUNCTION()
 	void OnHitCallback(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	virtual void Activate() override;
+
+	/** Wait until an overlap occurs. This will need to be better fleshed out so we can specify game specific collision requirements */
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitOverlap* WaitForOverlap(UObject* WorldContextObject);
+
 public:
 	
 };

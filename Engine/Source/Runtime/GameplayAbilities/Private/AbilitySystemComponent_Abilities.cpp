@@ -299,11 +299,9 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent *InputCompone
 
 void UAbilitySystemComponent::InputConfirm()
 {
-	if (GetOwnerRole() != ROLE_Authority)
+	if (GetOwnerRole() != ROLE_Authority && ConfirmCallbacks.IsBound())
 	{
-		// Tell the server we confirmed input
-		// FIXME TODO: we don't need to do this everytime! just when there is an activae ability waiting for this!
-		// 
+		// Tell the server we confirmed input.
 		ServerSetReplicatedConfirm(true);
 	}
 	

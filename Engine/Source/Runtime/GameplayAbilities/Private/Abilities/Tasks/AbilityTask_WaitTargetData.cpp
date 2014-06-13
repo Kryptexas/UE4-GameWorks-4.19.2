@@ -20,6 +20,11 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject
 	return MyObj;	
 }
 
+UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::CreateWaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
+{
+	return WaitTargetData(WorldContextObject, InTargetClass);
+}
+
 void UAbilityTask_WaitTargetData::Activate()
 {
 	if (Ability.IsValid())
