@@ -25,6 +25,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "GPUSkinCache.h"
+#include "Animation/VertexAnim/VertexAnimBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalGPUSkinMesh, Warning, All);
 
@@ -364,7 +365,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 
 				// Allocate temp state
 				FVertexAnimEvalStateBase* AnimState = VertAnim.VertAnim->InitEval();
-
+				
 				// Get deltas
 				int32 NumDeltas;
 				FVertexAnimDelta* Deltas = VertAnim.VertAnim->GetDeltasAtTime(VertAnim.Time, LODIndex, AnimState, NumDeltas);

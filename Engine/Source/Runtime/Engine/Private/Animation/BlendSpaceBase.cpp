@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
+#include "Animation/BlendSpaceBase.h"
 
 // global variable that's used in editor when you change the property only
 // I can't make this member since I  need to change this in const function

@@ -5,6 +5,8 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/BlendSpace.h"
 #include "AnimationUtils.h"
 
 UBlendSpace::UBlendSpace(const class FPostConstructInitializeProperties& PCIP)

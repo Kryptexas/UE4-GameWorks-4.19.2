@@ -18,6 +18,7 @@
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "GameFramework/Character.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
 #ifndef EXPERIMENTAL_PARALLEL_CODE  
 	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one

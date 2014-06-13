@@ -12,8 +12,12 @@
 #include "GameFramework/Character.h"
 #include "ParticleDefinitions.h"
 #include "DisplayDebugHelpers.h"
-
 #include "MessageLog.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AnimComposite.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimMontage.h"
 
 /** Anim stats */
 

@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "AnimCompositeBase.h"
 #include "AnimComposite.generated.h"
 
 UCLASS(config=Engine, hidecategories=UObject, MinimalAPI, BlueprintType)

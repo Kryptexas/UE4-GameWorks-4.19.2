@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
 
 #define NOTIFY_TRIGGER_OFFSET KINDA_SMALL_NUMBER;
 

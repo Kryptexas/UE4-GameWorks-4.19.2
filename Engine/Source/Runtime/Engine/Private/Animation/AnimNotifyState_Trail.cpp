@@ -1,11 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "MessageLog.h"
+#include "Animation/AnimNotifies/AnimNotifyState_Trail.h"
 #include "ParticleDefinitions.h"
 #include "Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "MessageLog.h"
+#include "AssertionMacros.h"
+#include "Animation/AnimInstance.h"
+
 #define LOCTEXT_NAMESPACE "AnimNotifyState_Trail"
 
 DEFINE_LOG_CATEGORY(LogAnimTrails);

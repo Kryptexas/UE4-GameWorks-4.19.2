@@ -20,6 +20,10 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "RawIndexBuffer.h"
 #include "PhysicsPublic.h"
+#include "Animation/VertexAnim/MorphTarget.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

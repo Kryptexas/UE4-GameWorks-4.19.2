@@ -6,8 +6,12 @@
 =============================================================================*/ 
 
 #pragma once
+#include "Animation/AnimInstance.h"
 
 struct FInputBlendPose;
+struct FA2Pose;
+struct FAnimTrack;
+class UBlendSpaceBase;
 
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/

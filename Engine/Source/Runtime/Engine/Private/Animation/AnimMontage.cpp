@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimMontage.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 #include "GameFramework/CharacterMovementComponent.h"

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Animation/AnimSequence.h"
+
 // switches to toggle subsets of the new animation codec system
 #define USE_ANIMATION_CODEC_BATCH_SOLVER 1
 

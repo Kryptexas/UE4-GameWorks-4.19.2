@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_BlendSpaceEvaluator.h"
+#include "Animation/BlendSpaceBase.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_BlendSpaceEvaluator
@@ -24,7 +25,7 @@ void FAnimNode_BlendSpaceEvaluator::Update(const FAnimationUpdateContext& Contex
 void FAnimNode_BlendSpaceEvaluator::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
-	
+
 	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *BlendSpace->GetName(), InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine, true);
 }

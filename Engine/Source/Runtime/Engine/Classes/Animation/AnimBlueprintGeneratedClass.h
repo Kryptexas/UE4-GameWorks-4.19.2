@@ -2,11 +2,12 @@
 
 #pragma once
 
+#include "AnimStateMachineTypes.h"
+#include "AnimSequenceBase.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "AnimBlueprintGeneratedClass.generated.h"
 
 struct FAnimNotifyEvent;
-struct FBakedAnimationStateMachine;
 class  UAnimInstance;
 class  UEdGraph;
 class  UEdGraphNode;

@@ -2,14 +2,18 @@
 
 #pragma once
 
-#include "AnimMontage.h"
-#include "AnimSequence.h"
 #include "AnimationAsset.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "AnimSequence.h"
 #include "AnimInstance.generated.h"
 
 struct FBoneContainer;
+struct FAnimMontageInstance;
 class  USkeletalMesh;
+class UAnimMontage;
+
+DECLARE_DELEGATE_TwoParams(FOnMontageEnded, class UAnimMontage*, bool /*bInterrupted*/)
+DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, class UAnimMontage*, bool /*bInterrupted*/)
 
 /**
 * Delegate for when Montage is completed, whether interrupted or finished

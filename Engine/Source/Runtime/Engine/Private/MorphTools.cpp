@@ -8,6 +8,7 @@
 #include "RawIndexBuffer.h"
 #include "MeshBuild.h"
 #include "PhysicsEngine/PhysXSupport.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 
 /** compare based on base mesh source vertex indices */

@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/AnimComposite.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
 

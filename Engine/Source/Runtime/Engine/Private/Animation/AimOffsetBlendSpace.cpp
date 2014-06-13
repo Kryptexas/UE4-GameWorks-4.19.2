@@ -5,6 +5,9 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AnimSequence.h"
 
 UAimOffsetBlendSpace::UAimOffsetBlendSpace(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

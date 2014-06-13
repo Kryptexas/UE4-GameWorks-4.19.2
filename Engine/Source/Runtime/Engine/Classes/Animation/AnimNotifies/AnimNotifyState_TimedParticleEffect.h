@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "AnimNotifyState.h"
 #include "AnimNotifyState_TimedParticleEffect.generated.h"
 
 // Timed Particle Effect Notify

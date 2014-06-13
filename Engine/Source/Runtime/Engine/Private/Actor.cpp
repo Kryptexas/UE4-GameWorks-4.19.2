@@ -15,6 +15,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "VisualLog.h"
+#include "Animation/AnimInstance.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);

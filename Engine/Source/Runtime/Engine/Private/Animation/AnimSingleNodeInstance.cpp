@@ -7,8 +7,15 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNodeBase.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "AnimationRuntime.h"
+#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AnimComposite.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimMontage.h"
 
 /////////////////////////////////////////////////////
 // UAnimSingleNodeInstance

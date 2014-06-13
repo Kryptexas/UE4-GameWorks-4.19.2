@@ -7,8 +7,10 @@
 
 #pragma once 
 
+#include "BlendSpace.h"
 #include "AimOffsetBlendSpace.generated.h"
 
+struct FBlendSample;
 
 UCLASS(config=Engine, hidecategories=Object, dependson=UAnimInstance, MinimalAPI, BlueprintType)
 class UAimOffsetBlendSpace : public UBlendSpace

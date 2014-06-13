@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "BlendSpaceBase.h"
 #include "AnimInterpFilter.h"
 #include "BlendSpace.generated.h"
 

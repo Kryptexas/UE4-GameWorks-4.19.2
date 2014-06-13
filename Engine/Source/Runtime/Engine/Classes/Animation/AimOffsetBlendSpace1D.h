@@ -7,6 +7,7 @@
 
 #pragma once 
 
+#include "BlendSpace1D.h"
 #include "AimOffsetBlendSpace1D.generated.h"
 
 

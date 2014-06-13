@@ -8,6 +8,7 @@
 #pragma once
 
 #include "AnimInterpFilter.h"
+#include "BlendSpaceBase.h"
 #include "BlendSpace1D.generated.h"
 
 UCLASS(config=Engine, hidecategories=Object, dependson=UVimInstance, MinimalAPI, BlueprintType)

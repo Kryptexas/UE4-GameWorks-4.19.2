@@ -11,6 +11,7 @@
 #include "SkeletalRenderGPUSkin.h"
 #include "AnimationUtils.h"
 #include "AnimTree.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 

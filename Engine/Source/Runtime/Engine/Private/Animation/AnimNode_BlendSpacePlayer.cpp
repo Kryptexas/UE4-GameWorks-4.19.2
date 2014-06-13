@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_BlendSpacePlayer.h"
+#include "Animation/BlendSpaceBase.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_BlendSpacePlayer

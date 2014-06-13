@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_Slot.h"
+#include "Animation/AnimMontage.h"
 
 /////////////////////////////////////////////////////
 // FAnimNode_Slot

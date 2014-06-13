@@ -2,6 +2,7 @@
 
 #pragma once
 #include "ParticleHelper.h"
+#include "AnimNotifyState.h"
 #include "AnimNotifyState_Trail.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAnimTrails, Log, All);

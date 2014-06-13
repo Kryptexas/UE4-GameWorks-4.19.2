@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "AnimSequence.h"
 #include "BlendSpaceBase.generated.h"
 
 // Interpolation data types.

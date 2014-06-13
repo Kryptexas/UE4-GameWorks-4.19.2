@@ -3,6 +3,8 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UAnimBlueprint

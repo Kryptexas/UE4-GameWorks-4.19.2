@@ -11,6 +11,8 @@
 #include "AnimationRuntime.h"
 #include "TargetPlatform.h"
 #include "Animation/AnimCompress_RevertToRaw.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 
 #define USE_SLERP 0
 

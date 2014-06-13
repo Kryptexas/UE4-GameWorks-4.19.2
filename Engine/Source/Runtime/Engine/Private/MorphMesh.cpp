@@ -5,6 +5,8 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Animation/VertexAnim/VertexAnimBase.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 UVertexAnimBase::UVertexAnimBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

@@ -22,6 +22,10 @@
 
 #include "EnginePrivate.h"
 #include "SkeletalRenderCPUSkin.h"
+#include "Animation/VertexAnim/VertexAnimBase.h"
+
+struct FVertexAnimDelta;
+struct FVertexAnimEvalStateBase;
 
 template<typename BaseVertexType, typename VertexType>
 static void SkinVertices( FFinalSkinVertex* DestVertex, FMatrix* ReferenceToLocal, int32 LODIndex, FStaticLODModel& LOD, TArray<FActiveVertexAnim>& ActiveVertexAnims  );
