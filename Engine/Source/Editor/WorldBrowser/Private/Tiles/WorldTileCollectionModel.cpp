@@ -1713,264 +1713,247 @@ bool FWorldTileCollectionModel::HasGenerateLODLevelSupport() const
 	return bMeshProxyAvailable;
 }
 
-bool FWorldTileCollectionModel::GenerateLODLevel(TSharedPtr<FLevelModel> InLevelModel, int32 TargetLODIndex)
+bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, int32 TargetLODIndex)
 {
 	if (!HasGenerateLODLevelSupport())
 	{
 		return false;
-	}
-	
-	ULevel* SourceLevel = InLevelModel->GetLevelObject();
-	if (SourceLevel == nullptr)
-	{
-		return false;
-	}
-
-	TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(InLevelModel);
-	FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
-
-	if (!TileInfo.LODList.IsValidIndex(TargetLODIndex))
-	{
-		return false;
-	}
-
-	// We have to make original level visible, to correctly export it
-	const bool bVisibleLevel = InLevelModel->IsVisible();
-	if (!bVisibleLevel)
-	{
-		GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
-		InLevelModel->SetVisible(true);
 	}
 
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 	IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
 	check(MeshMerging);
 
-	GWarn->BeginSlowTask(LOCTEXT("GenerateLODLevel", "Generating LOD Level"), true);
+	// Select tiles that can be processed
+	TArray<TSharedPtr<FWorldTileModel>> TilesToProcess;
+	TArray<FString>						LODPackageNames;
+	for (TSharedPtr<FLevelModel> LevelModel : InLevelList)
+	{
+		ULevel* SourceLevel = LevelModel->GetLevelObject();
+		if (SourceLevel == nullptr)
+		{
+			continue;
+		}
+
+		TSharedPtr<FWorldTileModel> TileModel = StaticCastSharedPtr<FWorldTileModel>(LevelModel);
+		FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
+		if (!TileInfo.LODList.IsValidIndex(TargetLODIndex))
+		{
+			continue;
+		}
+
+		TilesToProcess.Add(TileModel);
+	}
+
+	// TODO: Need to check out all LOD maps here
+	
+	GWarn->BeginSlowTask(LOCTEXT("GenerateLODLevel", "Generating LOD Levels"), true);
+	// Generate LOD maps for each tile
+	for (TSharedPtr<FWorldTileModel> TileModel : TilesToProcess)
+	{
+		// We have to make original level visible, to correctly export it
+		const bool bVisibleLevel = TileModel->IsVisible();
+		if (!bVisibleLevel)
+		{
+			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = true;
+			TileModel->SetVisible(true);
+		}
+				
+		FWorldTileInfo TileInfo = TileModel->TileDetails->GetInfo();
+		FWorldTileLODInfo LODInfo = TileModel->TileDetails->GetInfo().LODList[TargetLODIndex];
+		
+		// Source level package name
+		FString SourceLongPackageName = TileModel->TileDetails->PackageName.ToString();
+		FString SourceShortPackageName = FPackageName::GetShortName(SourceLongPackageName);
+		// Target PackageName for generated level: /LongPackageName+LOD/ShortPackageName_LOD[LODIndex]
+		const FString LODLevelPackageName = FString::Printf(TEXT("%sLOD/%s_LOD%d"),	*SourceLongPackageName, *SourceShortPackageName, TargetLODIndex+1);
+		// Target level filename
+		const FString LODLevelFileName = FPackageName::LongPackageNameToFilename(LODLevelPackageName) + FPackageName::GetMapPackageExtension();
+
+		// Create a package for a LOD level
+		UPackage* LODPackage = CreatePackage(NULL, *LODLevelPackageName);
+		LODPackage->FullyLoad();
+		LODPackage->Modify();
+		// This is a hack to avoid save file dialog when we will be saving LOD map package
+		LODPackage->FileName = FName(*LODLevelFileName);
+				
+		// This is current actors offset from their original position
+		FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
+		if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
+		{
+			ActorsOffset = FVector::ZeroVector;
+		}
+	
+		TArray<UStaticMesh*>		AssetsToSpawn;
+		TArray<FTransform>			AssetsToSpawnTransform;
+		TArray<AActor*>				Actors;
+		TArray<ALandscapeProxy*>	LandscapeActors;
+		// Separate flies from cutlets
+		for (AActor* Actor : TileModel->GetLevelObject()->Actors)
+		{
+			if (Actor)
+			{
+				ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
+				if (LandscapeProxy)
+				{
+					LandscapeActors.Add(LandscapeProxy);
+				}
+				else
+				{
+					Actors.Add(Actor);
+				}
+			}
+		}
+	
+		// Generate Proxy LOD mesh for all actors excluding landscapes
+		if (Actors.Num())
+		{
+			GWarn->StatusUpdate(0, 10, LOCTEXT("GeneratingProxyMesh", "Generating Proxy Mesh"));
+
+			FMeshProxySettings ProxySettings;
+			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(LODInfo.GenDetailsPercentage/100.f);
+			TArray<UObject*> OutAssets;
+			FVector OutProxyLocation;
+			FString ProxyPackageName = TEXT("PROXY_") + FPackageName::GetShortName(TileModel->TileDetails->PackageName);
+			// Generate proxy mesh and proxy material assets
+			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, LODPackage, ProxyPackageName, OutAssets, OutProxyLocation);
+		
+			if (OutAssets.Num())
+			{
+				UStaticMesh* ProxyMesh = nullptr;
+				if (OutAssets.FindItemByClass(&ProxyMesh))
+				{
+					AssetsToSpawn.Add(ProxyMesh);
+					AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
+				}
+			}
+		}
+
+		using namespace MaterialExportUtils;
+
+		// Convert landscape actors into static meshes and apply mesh reduction 
+		int32 LandscapeActorIndex = 0;
+		for (ALandscapeProxy* Landscape : LandscapeActors)
+		{
+			GWarn->StatusUpdate(LandscapeActorIndex, LandscapeActors.Num(), LOCTEXT("ExportingLandscape", "Exporting Landscape Actors"));
+		
+			FRawMesh LandscapeRawMesh;
+			FFlattenMaterial LandscapeFlattenMaterial;
+			FVector LandscapeWorldLocation = Landscape->GetActorLocation();
+		
+			Landscape->ExportToRawMesh(MAX_int32, LandscapeRawMesh);
+		
+			for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
+			{
+				VertexPos-= LandscapeWorldLocation;
+			}
+								
+			// This is texture resolution for a landscape, probably need to be calculated using landscape size
+			LandscapeFlattenMaterial.DiffuseSize	= FIntPoint(1024, 1024);
+			LandscapeFlattenMaterial.NormalSize		= FIntPoint(1024, 1024);
+			ExportMaterial(Landscape, LandscapeFlattenMaterial);
+		
+			// TODO: Disabled landscape mesh simplification, does not really needed since exporting highest landscape LOD already provide low triangle count
+			// Reduce landscape mesh
+			//if (LODInfo.GenDetailsPercentage != 100.f)
+			//{
+			//	FMeshReductionSettings Settings;
+			//	Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
+			//	float OutMaxDeviation = 0.f;
+			//	FRawMesh LandscapeReducedMesh;
+
+			//	MeshUtilities.GetMeshReductionInterface()->Reduce(
+			//		LandscapeReducedMesh,
+			//		OutMaxDeviation,
+			//		LandscapeRawMesh,
+			//		Settings);
+
+			//	LandscapeRawMesh = LandscapeReducedMesh;
+			//}
+
+			FString LandscapeBaseAssetName = Landscape->GetName();
+			// Construct landscape material
+			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
+				LandscapeFlattenMaterial, LODPackage, *LandscapeBaseAssetName, RF_Public|RF_Standalone);
+			// Currently landscape exports world space normal map
+			StaticLandscapeMaterial->bTangentSpaceNormal = false;
+			StaticLandscapeMaterial->PostEditChange();
+	
+			// Construct landscape static mesh
+			FString LandscapeMeshAssetName = TEXT("SM_") + LandscapeBaseAssetName;
+			UStaticMesh* StaticMesh = new(LODPackage, *LandscapeMeshAssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+			StaticMesh->InitResources();
+			{
+				FString OutputPath = StaticMesh->GetPathName();
+
+				// make sure it has a new lighting guid
+				StaticMesh->LightingGuid = FGuid::NewGuid();
+
+				// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
+				StaticMesh->LightMapResolution = 128;
+				StaticMesh->LightMapCoordinateIndex = 1;
+
+				FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
+				/*Don't allow the engine to recalculate normals*/
+				SrcModel->BuildSettings.bRecomputeNormals = false;
+				SrcModel->BuildSettings.bRecomputeTangents = false;
+				SrcModel->BuildSettings.bRemoveDegenerates = false;
+				SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
+				SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
+
+				//Assign the proxy material to the static mesh
+				StaticMesh->Materials.Add(StaticLandscapeMaterial);
+
+				StaticMesh->Build();
+				StaticMesh->PostEditChange();
+			}
+
+			AssetsToSpawn.Add(StaticMesh);
+			AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
+
+			LandscapeActorIndex++;
+		}
+
+		// Restore level original visibility
+		if (!bVisibleLevel)
+		{
+			TileModel->SetVisible(false);
+			GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
+		}
+	
+		// Create new level and spawn generated assets in it
+		if (AssetsToSpawn.Num())
+		{
+			// Create a new world
+			UWorld* LODWorld = UWorld::CreateWorld(EWorldType::None, false, FPackageName::GetShortFName(LODPackage->GetFName()), LODPackage);
+			LODWorld->SetFlags(RF_Standalone);
+
+			for (int32 AssetIdx = 0; AssetIdx < AssetsToSpawn.Num(); ++AssetIdx)
+			{
+				FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
+				FRotator Rotation(ForceInit);
+				AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
+				MeshActor->StaticMeshComponent->StaticMesh = AssetsToSpawn[AssetIdx];
+				MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
+			}
+		
+			// Save generated level
+			if (FEditorFileUtils::PromptToCheckoutLevels(false, LODWorld->PersistentLevel))
+			{
+				FEditorFileUtils::SaveLevel(LODWorld->PersistentLevel, *LODLevelFileName);
+			}
 			
-	FWorldTileLODInfo LODInfo = TileModel->TileDetails->GetInfo().LODList[TargetLODIndex];
-			
-	// Target folder to save generated assets: /Content/LevelsLOD/PackageName/LODIndex/
-	const FString LODContentDir =
-		FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) +
-		FString::Printf(TEXT("MapsLOD/%s/%d/"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
-
-	// Target filename for generated level: /LongPackageName+LOD/PackageName_LOD[LodIndex].umap
-	const FString LODLevelFilename =
-		FPackageName::LongPackageNameToFilename(
-			FString::Printf(
-				TEXT("%sLOD/%s_LOD%d"),	
-				*TileModel->TileDetails->PackageName.ToString(), 
-				*FPackageName::GetShortName(TileModel->TileDetails->PackageName), 
-				TargetLODIndex+1)) +
-		FPackageName::GetMapPackageExtension();
-		
-	// This is current actors offset from their original position
-	FVector ActorsOffset = FVector(TileModel->GetAbsoluteLevelPosition() - CurrentWorld->GlobalOriginOffset);
-	if (GetWorld()->WorldComposition->bTemporallyDisableOriginTracking)
-	{
-		ActorsOffset = FVector::ZeroVector;
-	}
-	
-	TArray<UObject*>			GeneratedAssets;
-	TArray<UStaticMesh*>		AssetsToSpawn;
-	TArray<FTransform>			AssetsToSpawnTransform;
-	TArray<AActor*>				Actors;
-	TArray<ALandscapeProxy*>	LandscapeActors;
-	// Separate flies from cutlets
-	for (AActor* Actor : SourceLevel->Actors)
-	{
-		if (Actor)
-		{
-			ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
-			if (LandscapeProxy)
-			{
-				LandscapeActors.Add(LandscapeProxy);
-			}
-			else
-			{
-				Actors.Add(Actor);
-			}
-		}
-	}
-	
-	// Generate Proxy LOD mesh for all actors excluding landscapes
-	if (Actors.Num())
-	{
-		FMeshProxySettings ProxySettings;
-		ProxySettings.ScreenSize = ProxySettings.ScreenSize*(LODInfo.GenDetailsPercentage/100.f);
-		TArray<UObject*> OutAssets;
-		FVector OutProxyLocation;
-		FString ProxyPackageName = LODContentDir + TEXT("ProxyMesh");
-		ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
-
-		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, ProxyPackageName, OutAssets, OutProxyLocation);
-		
-		if (OutAssets.Num())
-		{
-			GeneratedAssets.Append(OutAssets);
-			UStaticMesh* ProxyMesh = nullptr;
-			if (OutAssets.FindItemByClass(&ProxyMesh))
-			{
-				AssetsToSpawn.Add(ProxyMesh);
-				AssetsToSpawnTransform.Add(FTransform(OutProxyLocation - ActorsOffset));
-			}
+			// Destroy the new world we created and collect the garbage
+			LODWorld->ClearFlags(RF_Standalone);
+			LODWorld->DestroyWorld(false);
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 		}
 	}
 
-	using namespace MaterialExportUtils;
-
-	// Convert landscape actors into static meshes and apply mesh reduction 
-	int32 LandscapeActorIndex = 0;
-	for (ALandscapeProxy* Landscape : LandscapeActors)
-	{
-		GWarn->StatusUpdate(LandscapeActorIndex, LandscapeActors.Num(), LOCTEXT("ExportingLandscape", "Exporting Landscape Actors"));
-		
-		FRawMesh LandscapeRawMesh;
-		FFlattenMaterial LandscapeFlattenMaterial;
-		FVector LandscapeWorldLocation = Landscape->GetActorLocation();
-		
-		Landscape->ExportToRawMesh(MAX_int32, LandscapeRawMesh);
-		
-		for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
-		{
-			VertexPos-= LandscapeWorldLocation;
-		}
-					
-		// This is texture resolution for a landscape, probably need to be calculated using landscape size
-		LandscapeFlattenMaterial.DiffuseSize	= FIntPoint(1024, 1024);
-		LandscapeFlattenMaterial.NormalSize		= FIntPoint(1024, 1024);
-		ExportMaterial(Landscape, LandscapeFlattenMaterial);
-		
-		// TODO: Disabled landscape mesh simplification, does not really needed since exporting highest landscape LOD already provide low triangle count
-		// Reduce landscape mesh
-		//if (LODInfo.GenDetailsPercentage != 100.f)
-		//{
-		//	FMeshReductionSettings Settings;
-		//	Settings.PercentTriangles = LODInfo.GenDetailsPercentage/100.f;
-		//	float OutMaxDeviation = 0.f;
-		//	FRawMesh LandscapeReducedMesh;
-
-		//	MeshUtilities.GetMeshReductionInterface()->Reduce(
-		//		LandscapeReducedMesh,
-		//		OutMaxDeviation,
-		//		LandscapeRawMesh,
-		//		Settings);
-
-		//	LandscapeRawMesh = LandscapeReducedMesh;
-		//}
-
-		FString PackageName = LODContentDir + TEXT("LandscapeStatic");
-		PackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *PackageName).ToString();
-		
-		UPackage* Package = CreatePackage(NULL, *PackageName);
-		Package->FullyLoad();
-		Package->Modify();
-
-		// Construct landscape material
-		UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
-			LandscapeFlattenMaterial, Package, TEXT("FlattenLandscapeMaterial"), RF_Public|RF_Standalone);
-		// Currently landscape exports world space normal map
-		StaticLandscapeMaterial->bTangentSpaceNormal = false;
-		StaticLandscapeMaterial->PostEditChange();
-	
-		// Construct landscape static mesh
-		FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), TEXT("LandscapeStaticMesh"));
-		UStaticMesh* StaticMesh = new(Package, StaticMeshName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
-		StaticMesh->InitResources();
-		{
-			FString OutputPath = StaticMesh->GetPathName();
-
-			// make sure it has a new lighting guid
-			StaticMesh->LightingGuid = FGuid::NewGuid();
-
-			// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-			StaticMesh->LightMapResolution = 128;
-			StaticMesh->LightMapCoordinateIndex = 1;
-
-			FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
-			/*Don't allow the engine to recalculate normals*/
-			SrcModel->BuildSettings.bRecomputeNormals = false;
-			SrcModel->BuildSettings.bRecomputeTangents = false;
-			SrcModel->BuildSettings.bRemoveDegenerates = false;
-			SrcModel->BuildSettings.bUseFullPrecisionUVs = false;
-			SrcModel->RawMeshBulkData->SaveRawMesh(LandscapeRawMesh);
-
-			//Assign the proxy material to the static mesh
-			StaticMesh->Materials.Add(StaticLandscapeMaterial);
-
-			StaticMesh->Build();
-			StaticMesh->PostEditChange();
-		}
-
-		AssetsToSpawn.Add(StaticMesh);
-		AssetsToSpawnTransform.Add(FTransform(LandscapeWorldLocation - ActorsOffset));
-
-		GeneratedAssets.Add(StaticMesh);
-		GeneratedAssets.Add(StaticLandscapeMaterial);
-		LandscapeActorIndex++;
-	}
-
-	// Restore level original visibility
-	if (!bVisibleLevel)
-	{
-		InLevelModel->SetVisible(false);
-		GetWorld()->WorldComposition->bTemporallyDisableOriginTracking = false;
-	}
-
-	// Save generated assets
-	TArray<UPackage*> AssetsPackagesToSave;
-	for (UObject* Asset : GeneratedAssets)
-	{
-		if (Asset->IsAsset())
-		{
-			AssetsPackagesToSave.AddUnique(Asset->GetOutermost());
-		}
-	}
-	
-	FEditorFileUtils::PromptForCheckoutAndSave(AssetsPackagesToSave, false, false);
-
-	// Create new level and spawn generated assets in it
-	if (AssetsToSpawn.Num())
-	{
-		// Create a new world - so we can 'borrow' its level
-		UWorld* LODWorld = UWorld::CreateWorld(EWorldType::None, false);
-
-		for (int32 AssetIdx = 0; AssetIdx < AssetsToSpawn.Num(); ++AssetIdx)
-		{
-			FVector Location = AssetsToSpawnTransform[AssetIdx].GetLocation();
-			FRotator Rotation(ForceInit);
-			AStaticMeshActor* MeshActor = LODWorld->SpawnActor<AStaticMeshActor>(Location, Rotation);
-			MeshActor->StaticMeshComponent->StaticMesh = AssetsToSpawn[AssetIdx];
-			MeshActor->SetActorLabel(AssetsToSpawn[AssetIdx]->GetName());
-		}
-
-		FEditorFileUtils::SaveLevel(LODWorld->PersistentLevel, LODLevelFilename);
-		// Destroy the new world we created and collect the garbage
-		LODWorld->DestroyWorld(false);
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-	}
-
-	//Update the asset registry that a new static mash and material has been created
-	if (GeneratedAssets.Num())
-	{
-		FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-		int32 AssetCount = GeneratedAssets.Num();
-		for (int32 AssetIndex = 0; AssetIndex < AssetCount; AssetIndex++)
-		{
-			AssetRegistry.AssetCreated(GeneratedAssets[AssetIndex]);
-			GEditor->BroadcastObjectReimported(GeneratedAssets[AssetIndex]);
-		}
-
-		//Also notify the content browser that the new assets exists
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().SyncBrowserToAssets(GeneratedAssets, true);
-	}
-	
 	// Rescan world root
 	PopulateLevelsList();
-
 	GWarn->EndSlowTask();	
+	
 	return true;
 }
 

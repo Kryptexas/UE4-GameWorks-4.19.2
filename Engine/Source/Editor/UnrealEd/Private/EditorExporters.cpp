@@ -2843,11 +2843,23 @@ namespace MaterialExportUtils
 		return true;
 	}
 
-	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UObject* Outer, const FString& BaseName, EObjectFlags Flags)
+	UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* Outer, const FString& BaseName, EObjectFlags Flags)
 	{
-		FName MaterialName = MakeUniqueObjectName(Outer, UMaterial::StaticClass(), *(BaseName + TEXT("_Material")));
-		
-		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), Outer, MaterialName, Flags);
+		const FString AssetBaseName = FPackageName::GetShortName(BaseName);
+		const FString AssetBasePath = FPackageName::IsShortPackageName(BaseName) ? 
+			FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) : (FPackageName::GetLongPackagePath(BaseName) + TEXT("/"));
+				
+		// Create material
+		const FString MaterialAssetName = TEXT("M_") + AssetBaseName;
+		UPackage* MaterialOuter = Outer;
+		if (MaterialOuter == NULL)
+		{
+			MaterialOuter = CreatePackage(NULL, *(AssetBasePath + MaterialAssetName));
+			MaterialOuter->FullyLoad();
+			MaterialOuter->Modify();
+		}
+
+		UMaterial* Material = ConstructObject<UMaterial>(UMaterial::StaticClass(), MaterialOuter, FName(*MaterialAssetName), Flags);
 		Material->TwoSided = false;
 		Material->SetShadingModel(MSM_DefaultLit);
 
@@ -2876,19 +2888,27 @@ namespace MaterialExportUtils
 		//Build the Diffuse UTexture
 		if (InFlattenMaterial.DiffuseSamples.Num() > 1)
 		{
-			FString DiffuseTextureName = MakeUniqueObjectName(Outer, UTexture2D::StaticClass(), *(BaseName + TEXT("_Diffuse"))).ToString();
 			FCreateTexture2DParameters TexParams;
 			TexParams.bUseAlpha = false;
 			TexParams.CompressionSettings = TC_Default;
 			TexParams.bDeferCompression = true;
 			TexParams.bSRGB = false;
 
+			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_D");
+			UPackage* TextureOuter = Outer;
+			if (TextureOuter == NULL)
+			{
+				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
+				TextureOuter->FullyLoad();
+				TextureOuter->Modify();
+			}
+
 			UTexture2D* DiffuseTexture = FImageUtils::CreateTexture2D(
 				InFlattenMaterial.DiffuseSize.X, 
 				InFlattenMaterial.DiffuseSize.Y,
 				InFlattenMaterial.DiffuseSamples,
-				Outer,
-				DiffuseTextureName,
+				TextureOuter,
+				TextureAssetName,
 				Flags, 
 				TexParams);
 
@@ -2905,19 +2925,27 @@ namespace MaterialExportUtils
 		//Build the Normal UTexture
 		if (InFlattenMaterial.NormalSamples.Num() > 1)
 		{
-			FString NormalTextureName = MakeUniqueObjectName(Outer, UTexture2D::StaticClass(), *(BaseName + TEXT("_Normal"))).ToString();
 			FCreateTexture2DParameters TexParams;
 			TexParams.bUseAlpha = false;
 			TexParams.CompressionSettings = TC_Normalmap;
 			TexParams.bDeferCompression = true;
 			TexParams.bSRGB = false;
 
+			const FString TextureAssetName = TEXT("T_") + AssetBaseName + TEXT("_N");
+			UPackage* TextureOuter = Outer;
+			if (TextureOuter == NULL)
+			{
+				TextureOuter = CreatePackage(NULL, *(AssetBasePath + TextureAssetName));
+				TextureOuter->FullyLoad();
+				TextureOuter->Modify();
+			}
+
 			UTexture2D* NormalTexture = FImageUtils::CreateTexture2D(
 				InFlattenMaterial.NormalSize.X, 
 				InFlattenMaterial.NormalSize.Y,
 				InFlattenMaterial.NormalSamples,
-				Outer,
-				NormalTextureName,
+				TextureOuter,
+				TextureAssetName,
 				Flags, 
 				TexParams);
 

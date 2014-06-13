@@ -277,7 +277,8 @@ void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 	ChildBuilder.AddChildProperty(LODIndexHandle.ToSharedRef())
 		.Visibility(EVisibility::Hidden);
 
-	ChildBuilder.AddChildProperty(DistanceProperty.ToSharedRef());
+	ChildBuilder.AddChildProperty(DistanceProperty.ToSharedRef())
+		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsLODDistanceEnabled)));
 	// Reduction settings available if editor supports LOD levels generation
 	ChildBuilder.AddChildProperty(DetailsPercentage.ToSharedRef())
 		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsGenerateTileEnabled)));
@@ -295,10 +296,7 @@ FReply FTileLODEntryDetailsCustomization::OnGenerateTile()
 		if (PinnedWorldModel.IsValid())
 		{
 			FLevelModelList LevelsList = PinnedWorldModel->GetSelectedLevels();
-			for (auto Level : LevelsList)
-			{
-				PinnedWorldModel->GenerateLODLevel(Level, LODIndex);
-			}
+			PinnedWorldModel->GenerateLODLevels(LevelsList, LODIndex);
 		}
 	}
 	
@@ -310,7 +308,18 @@ bool FTileLODEntryDetailsCustomization::IsGenerateTileEnabled() const
 	TSharedPtr<FWorldTileCollectionModel> PinnedWorldModel = WorldModel.Pin();
 	if (PinnedWorldModel.IsValid())
 	{
-		return PinnedWorldModel->HasGenerateLODLevelSupport();
+		return PinnedWorldModel->HasGenerateLODLevelSupport() && PinnedWorldModel->AreAnySelectedLevelsLoaded();
+	}
+	
+	return false;
+}
+
+bool FTileLODEntryDetailsCustomization::IsLODDistanceEnabled() const
+{
+	TSharedPtr<FWorldTileCollectionModel> PinnedWorldModel = WorldModel.Pin();
+	if (PinnedWorldModel.IsValid())
+	{
+		return PinnedWorldModel->AreAnySelectedLevelsEditable();
 	}
 	
 	return false;

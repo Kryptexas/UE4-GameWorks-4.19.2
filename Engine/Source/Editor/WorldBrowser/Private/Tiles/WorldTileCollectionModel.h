@@ -232,11 +232,11 @@ public:
 	bool HasGenerateLODLevelSupport() const;
 	
 	/** 
-	 * Generates LOD level from a specified level. Level has to be loaded.
-	 * Currently all static meshes will be merged into one proxy mesh using Simplygon ProxyLOD
-	 * Landscape actors will be converted into static meshes and simplified using mesh reduction interface
+	 * Generates simplified versions of a specified levels. Levels has to be loaded.
+	 * Currently all static meshes found inside one level will be merged into one proxy mesh using Simplygon ProxyLOD
+	 * Landscape actors will be converted into static meshes using highest landscape LOD entry
 	 */	
-	bool GenerateLODLevel(TSharedPtr<FLevelModel> InLevelModel, int32 TargetLODIndex);
+	bool GenerateLODLevels(FLevelModelList InLevelList, int32 TargetLODIndex);
 
 	/** Assign selected levels to current layer */
 	void AssignSelectedLevelsToLayer_Executed(FWorldTileLayer InLayer);

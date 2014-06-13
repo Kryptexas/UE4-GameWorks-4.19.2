@@ -55,11 +55,11 @@ namespace MaterialExportUtils
 	/**
 	 * Creates UMaterial object from a flatten material
 	 *
-	 * @param Outer			Outer for the material and texture objects.
-	 * @param BaseName		BaseName for the material and texture objects.
+	 * @param Outer			Outer for the material and texture objects, if NULL new packages will be created for each asset
+	 * @param BaseName		BaseName for the material and texture objects, should be a long package name in case Outer is not specified
 	 * @param Flags			Object flags for the material and texture objects.
 	 * @return				Returns a pointer to the constructed UMaterial object.
 	 */
-	UNREALED_API UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UObject* Outer,const FString& BaseName, EObjectFlags Flags);
+	UNREALED_API UMaterial* CreateMaterial(const FFlattenMaterial& InFlattenMaterial, UPackage* InOuter,const FString& BaseName, EObjectFlags Flags);
 }
 

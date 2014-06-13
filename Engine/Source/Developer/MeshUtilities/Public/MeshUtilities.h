@@ -249,14 +249,16 @@ public:
 	 *
 	 *	@param	Actors					List of Actors to merge
 	 *	@param	InProxySettings			Merge settings
-	 *	@param	ProxyPackageName		Destination package name for a generated assets
+	 *	@param	InOuter					Package for a generated assets, if NULL new packages will be created for each asset
+	 *	@param	ProxyBasePackageName	Will be used for naming generated assets, in case InOuter is not specified ProxyBasePackageName will be used as long package name for creating new packages
 	 *	@param	OutAssetsToSync			Result assets - mesh, material
 	 *	@param	OutProxyLocation		Proxy mesh location in the world (bounding box origin of merged actors)
 	 */
 	virtual void CreateProxyMesh(
 		const TArray<AActor*>& Actors,
 		const struct FMeshProxySettings& InProxySettings,
-		const FString& ProxyPackageName,
+		UPackage* InOuter,
+		const FString& ProxyBasePackageName,
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutProxyLocation
 		) = 0;

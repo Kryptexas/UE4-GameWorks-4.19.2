@@ -647,7 +647,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 		GEditor->BeginTransaction( LOCTEXT( "MeshProxy_Create", "Creating Mesh Proxy" ) );
 
 		FVector ProxyLocation = FVector::ZeroVector;
-		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, ProxyPackageName, AssetsToSync, ProxyLocation);
+		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, AssetsToSync, ProxyLocation);
 
 		GEditor->EndTransaction();
 		GWarn->EndSlowTask();
@@ -710,7 +710,7 @@ void SMeshProxyDialog::GenerateNewProxyPackageName()
 				if (Component->StaticMesh)
 				{
 					ProxyPackageName = FPackageName::GetLongPackagePath(Component->StaticMesh->GetOutermost()->GetName());
-					ProxyPackageName+= FString(TEXT("/ProxyMesh_")) + Component->StaticMesh->GetName();
+					ProxyPackageName+= FString(TEXT("/PROXY_")) + Component->StaticMesh->GetName();
 					break;
 				}
 			}
@@ -724,10 +724,9 @@ void SMeshProxyDialog::GenerateNewProxyPackageName()
 
 	if (ProxyPackageName.IsEmpty())
 	{
-		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("ProxyMesh"));
+		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("PROXY"));
+		ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
 	}
-
-	ProxyPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *ProxyPackageName).ToString();
 }
 
 FText SMeshProxyDialog::GetProxyPackagName() const

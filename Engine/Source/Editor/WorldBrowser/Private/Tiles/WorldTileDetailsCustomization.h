@@ -62,6 +62,7 @@ public:
 private:
 	FReply OnGenerateTile();
 	bool IsGenerateTileEnabled() const;
+	bool IsLODDistanceEnabled() const;
 
 private:
 	TWeakPtr<FWorldTileCollectionModel> WorldModel;

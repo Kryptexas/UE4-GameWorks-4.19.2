@@ -531,8 +531,9 @@ private:
 	
 	virtual void CreateProxyMesh( 
 		const TArray<AActor*>& Actors, 
-		const struct FMeshProxySettings& InProxySettings, 
-		const FString& ProxyPackageName,
+		const struct FMeshProxySettings& InProxySettings,
+		UPackage* InOuter,
+		const FString& ProxyBasePackageName,
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutProxyLocation
 		) OVERRIDE;
@@ -2984,7 +2985,8 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 void FMeshUtilities::CreateProxyMesh( 
 	const TArray<AActor*>& SourceActors, 
 	const struct FMeshProxySettings& InProxySettings,
-	const FString& ProxyPackageName,
+	UPackage* InOuter,
+	const FString& ProxyBasePackageName,
 	TArray<UObject*>& OutAssetsToSync,
 	FVector& OutProxyLocation)
 {
@@ -3009,6 +3011,9 @@ void FMeshUtilities::CreateProxyMesh(
 		{
 			TArray<UStaticMeshComponent*> Components;
 			Actor->GetComponents<UStaticMeshComponent>(Components);
+			// TODO: support instanced static meshes
+			Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
+			//
 			ComponentsToMerge.Append(Components);
 		}
 	}
@@ -3113,32 +3118,25 @@ void FMeshUtilities::CreateProxyMesh(
 	}
 	
 	//
-	//Create New Package for the Proxy mesh
+	// Base asset name for a new assets
 	//
-	FString PackageName = ProxyPackageName;
-	FString AssetName = TEXT("ProxyMesh");
-	if (PackageName.IsEmpty())
-	{
-		// Proxy package will be stored in Content folder
-		PackageName = FPaths::GameContentDir() + AssetName;
-	}
-	else
-	{
-		AssetName = FPackageName::GetShortName(PackageName);
-	}
-
-	UPackage* Package = CreatePackage(NULL, *PackageName);
-
-	check(Package);
-	Package->FullyLoad();
-	Package->Modify();
+	const FString AssetBaseName = FPackageName::GetShortName(ProxyBasePackageName);
+	const FString AssetBasePath = FPackageName::IsShortPackageName(ProxyBasePackageName) ? 
+		FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) : (FPackageName::GetLongPackagePath(ProxyBasePackageName) + TEXT("/"));
 
 	// Construct proxy material
-	UMaterial* ProxyMaterial = MaterialExportUtils::CreateMaterial(ProxyFlattenMaterial, Package, AssetName, RF_Public|RF_Standalone);
+	UMaterial* ProxyMaterial = MaterialExportUtils::CreateMaterial(ProxyFlattenMaterial, InOuter, ProxyBasePackageName, RF_Public|RF_Standalone);
 	
 	// Construct proxy static mesh
-	FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), *AssetName);
-	UStaticMesh* StaticMesh = new(Package, StaticMeshName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+	UPackage* MeshPackage = InOuter;
+	if (MeshPackage == nullptr)
+	{
+		MeshPackage = CreatePackage(NULL, *(AssetBasePath + TEXT("SM_") + AssetBaseName));
+		MeshPackage->FullyLoad();
+		MeshPackage->Modify();
+	}
+
+	UStaticMesh* StaticMesh = new(MeshPackage, FName(*(TEXT("SM_") + AssetBaseName)), RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
 	StaticMesh->InitResources();
 	{
 		FString OutputPath = StaticMesh->GetPathName();
@@ -3173,7 +3171,12 @@ void FMeshUtilities::CreateProxyMesh(
 	{
 		if (FlatMat.DiffuseSamples.Num() > 1)
 		{
-			FString DiffuseTextureName = MakeUniqueObjectName(Package, UTexture2D::StaticClass(), TEXT("FlattenMaterial_Diffuse")).ToString();
+			FString DiffuseTextureName = MakeUniqueObjectName(Package, UTexture2D::StaticClass(), *(TEXT("T_FLATTEN_") + AssetBaseName + TEXT("_D"))).ToString();
+			
+			UPackage* TexPackage = CreatePackage(NULL, *(AssetBasePath + DiffuseTextureName));
+			TexPackage->FullyLoad();
+			TexPackage->Modify();
+					
 			FCreateTexture2DParameters TexParams;
 			TexParams.bUseAlpha = false;
 			TexParams.CompressionSettings = TC_Default;
@@ -3184,7 +3187,7 @@ void FMeshUtilities::CreateProxyMesh(
 				FlatMat.DiffuseSize.X, 
 				FlatMat.DiffuseSize.Y,
 				FlatMat.DiffuseSamples,
-				Package,
+				TexPackage,
 				DiffuseTextureName,
 				RF_Public|RF_Standalone, 
 				TexParams);
@@ -3582,24 +3585,21 @@ void FMeshUtilities::MergeActors(
 		FString PackageName;
 		if (InPackageName.IsEmpty())
 		{
-			AssetName = FString(TEXT("MergedMesh_")) + FPackageName::GetShortName(MergedMesh.AssetPackageName);
-			PackageName = FPackageName::GetLongPackagePath(MergedMesh.AssetPackageName) + AssetName;
+			AssetName = TEXT("SM_MERGED_") + FPackageName::GetShortName(MergedMesh.AssetPackageName);
+			PackageName = FPackageName::GetLongPackagePath(MergedMesh.AssetPackageName) + TEXT("/") + AssetName;
 		}
 		else
 		{
 			AssetName = FPackageName::GetShortName(InPackageName);
 			PackageName = InPackageName;
 		}
-		
-		FName UniquePackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *PackageName);
 
-		UPackage* Package = CreatePackage(NULL, *UniquePackageName.ToString());
+		UPackage* Package = CreatePackage(NULL, *PackageName);
 		check(Package);
 		Package->FullyLoad();
 		Package->Modify();
 
-		FName StaticMeshName = MakeUniqueObjectName(Package, UStaticMesh::StaticClass(), *AssetName);
-		UStaticMesh* StaticMesh = new(Package, StaticMeshName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
+		UStaticMesh* StaticMesh = new(Package, *AssetName, RF_Public|RF_Standalone) UStaticMesh(FPostConstructInitializeProperties());
 		StaticMesh->InitResources();
 		
 		FString OutputPath = StaticMesh->GetPathName();

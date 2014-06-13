@@ -287,7 +287,7 @@ void SMeshMergingDialog::GenerateNewPackageName()
 				if (Component->StaticMesh)
 				{
 					MergedMeshPackageName = FPackageName::GetLongPackagePath(Component->StaticMesh->GetOutermost()->GetName());
-					MergedMeshPackageName+= FString(TEXT("/MergedMesh_")) + Component->StaticMesh->GetName();
+					MergedMeshPackageName+= FString(TEXT("/SM_MERGED_")) + Component->StaticMesh->GetName();
 					break;
 				}
 			}
@@ -301,10 +301,9 @@ void SMeshMergingDialog::GenerateNewPackageName()
 
 	if (MergedMeshPackageName.IsEmpty())
 	{
-		MergedMeshPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("MergedMesh"));
+		MergedMeshPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir() + TEXT("SM_MERGED"));
+		MergedMeshPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *MergedMeshPackageName).ToString();
 	}
-
-	MergedMeshPackageName = MakeUniqueObjectName(NULL, UPackage::StaticClass(), *MergedMeshPackageName).ToString();
 }
 
 FText SMeshMergingDialog::GetMergedMeshPackageName() const

@@ -227,7 +227,7 @@ void UWorldComposition::Rescan()
 		if (TileLODList.Num())
 		{
 			Tile.LODPackageNames.SetNum(WORLDTILE_LOD_MAX_INDEX);
-			FString TilePath = FPackageName::GetLongPackagePath(TilePackageName);
+			FString TilePath = FPackageName::GetLongPackagePath(TilePackageName) + TEXT("/");
 			for (const auto& TileLOD : TileLODList)
 			{
 				// LOD tiles should be in the same directory or in nested directory
