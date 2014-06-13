@@ -27,13 +27,13 @@ private:
 
 public:	
 	// Begin UObject interface. 
-	virtual void Serialize(FArchive& Ar) OVERRIDE;
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface. 
 
 	// Begin USoundBase interface.
-	virtual bool IsPlayable() const OVERRIDE;
-	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) OVERRIDE;
-	virtual float GetMaxAudibleDistance() OVERRIDE;
+	virtual bool IsPlayable() const override;
+	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
+	virtual float GetMaxAudibleDistance() override;
 	// End USoundBase interface.
 };
 

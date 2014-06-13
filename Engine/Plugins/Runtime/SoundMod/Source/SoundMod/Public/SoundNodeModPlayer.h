@@ -21,12 +21,12 @@ class USoundNodeModPlayer : public USoundNode
 
 public:	
 	// Begin USoundNode Interface
-	virtual int32 GetMaxChildNodes() const OVERRIDE;
-	virtual float GetDuration() OVERRIDE;
-	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) OVERRIDE;
-	virtual FString GetUniqueString() const OVERRIDE;
+	virtual int32 GetMaxChildNodes() const override;
+	virtual float GetDuration() override;
+	virtual void ParseNodes(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
+	virtual FString GetUniqueString() const override;
 #if WITH_EDITOR
-	virtual FString GetTitle() const OVERRIDE;
+	virtual FString GetTitle() const override;
 #endif
 	// End USoundNode Interface
 

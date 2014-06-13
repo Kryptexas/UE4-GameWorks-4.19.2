@@ -13,14 +13,14 @@ public:
 	TSharedPtr<FAssetTypeActions_SoundMod> SoundModAssetTypeActions;
 
 public:
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule() override
 	{
 		// Register the asset type
 		SoundModAssetTypeActions = MakeShareable(new FAssetTypeActions_SoundMod);
 		FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get().RegisterAssetTypeActions(SoundModAssetTypeActions.ToSharedRef());
 	}
 
-	virtual void ShutdownModule() OVERRIDE
+	virtual void ShutdownModule() override
 	{
 		if (!UObjectInitialized())
 		{

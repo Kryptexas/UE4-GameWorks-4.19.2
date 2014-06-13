@@ -8,14 +8,14 @@ class FAssetTypeActions_SoundMod: public FAssetTypeActions_Base
 {
 public:
 	// IAssetTypeActions Implementation
-	virtual FText GetName() const OVERRIDE{ return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundMod", "Sound Mod"); }
-	virtual FColor GetTypeColor() const OVERRIDE{ return FColor(255, 175, 0); }
-	virtual UClass* GetSupportedClass() const OVERRIDE;
-	virtual bool HasActions(const TArray<UObject*>& InObjects) const OVERRIDE{ return true; }
-	virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) OVERRIDE;
-	virtual void AssetsActivated(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) OVERRIDE;
-	virtual uint32 GetCategories() OVERRIDE{ return EAssetTypeCategories::Sounds; }
-	virtual bool CanFilter() OVERRIDE{ return false; }
+	virtual FText GetName() const override{ return NSLOCTEXT("AssetTypeActions", "AssetTypeActions_SoundMod", "Sound Mod"); }
+	virtual FColor GetTypeColor() const override{ return FColor(255, 175, 0); }
+	virtual UClass* GetSupportedClass() const override;
+	virtual bool HasActions(const TArray<UObject*>& InObjects) const override{ return true; }
+	virtual void GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder) override;
+	virtual void AssetsActivated(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) override;
+	virtual uint32 GetCategories() override{ return EAssetTypeCategories::Sounds; }
+	virtual bool CanFilter() override { return false; }
 
 private:
 	/** Handler for when PlaySound is selected */

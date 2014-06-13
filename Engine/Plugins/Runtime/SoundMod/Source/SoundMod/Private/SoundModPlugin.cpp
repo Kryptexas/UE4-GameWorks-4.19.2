@@ -6,8 +6,8 @@ class FSoundModPlugin : public ISoundModPlugin
 {
 public:
 	// IModuleInterface implementation
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 	// End of IModuleInterface implementation
 };
 
