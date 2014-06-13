@@ -165,6 +165,11 @@ FString FPaths::AutomationTransientDir()
 	return FPaths::AutomationDir() + TEXT("Transient/");
 }
 
+FString FPaths::AutomationLogDir()
+{
+	return FPaths::AutomationDir() + TEXT("Logs/");
+}
+
 FString FPaths::CloudDir()
 {
 	return FPaths::GameSavedDir() + TEXT("Cloud/");

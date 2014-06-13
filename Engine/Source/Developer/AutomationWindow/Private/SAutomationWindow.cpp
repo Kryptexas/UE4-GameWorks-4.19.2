@@ -104,6 +104,10 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 
 	bIsRequestingTests = false;
 
+	// Test history tracking
+	bIsTrackingHistory = AutomationController->IsTrackingHistory();
+	NumHistoryElementsToTrack = AutomationController->GetNumberHistoryItemsTracking();
+	
 	//make the widget for platforms
 	PlatformsHBox = SNew (SHorizontalBox);
 
@@ -124,7 +128,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 #endif
 		.HeaderRow
 		(
-		SNew(SHeaderRow)
+		SAssignNew(TestTableHeaderRow,SHeaderRow)
 		+ SHeaderRow::Column( AutomationTestWindowConstants::Title )
 		.FillWidth(300.0f)
 		[
@@ -181,6 +185,19 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 		.DefaultLabel( LOCTEXT("TestDurationRange", "Duration") )
 
 		);
+
+	if(bIsTrackingHistory)
+	{
+		TestTableHeaderRow->AddColumn(
+			SHeaderRow::Column(AutomationTestWindowConstants::History)
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.HAlignCell(HAlign_Center)
+			.VAlignCell(VAlign_Center)
+			.FixedWidth(100.0f)
+			.DefaultLabel(LOCTEXT("TestHistory", "Test History"))
+		);
+	}
 
 	TSharedRef<SNotificationList> NotificationList = SNew(SNotificationList) .Visibility( EVisibility::HitTestInvisible );
 
@@ -477,7 +494,7 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TWeakPtr<class SAutomationWindow> InAutomationWindow )
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
 		{
 			ToolbarBuilder.BeginSection("Automation");
 			{
@@ -521,6 +538,20 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			ToolbarBuilder.BeginSection("Presets");
 			{
 				ToolbarBuilder.AddWidget( PresetBox );
+			}
+			ToolbarBuilder.EndSection();
+			ToolbarBuilder.BeginSection("History");
+			{
+				ToolbarBuilder.AddWidget(HistoryBox);
+
+				FUIAction DefaultAction;
+				ToolbarBuilder.AddComboButton(
+					DefaultAction,
+					FOnGetContent::CreateStatic(&SAutomationWindow::GenerateTestHistoryMenuContent, InAutomationWindow),
+					LOCTEXT("TestOptions_Label", "Test History Options"),
+					LOCTEXT("TestOptionsToolTip", "Test History Options"),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), "AutomationWindow.TestHistoryOptions"),
+					true);
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -588,6 +619,44 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			.OnTextChanged( this, &SAutomationWindow::OnFilterTextChanged )
 			.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
 			.MinDesiredWidth(SearchWidth)
+		];
+
+	const float HistoryWidth = 200.0f;
+	TSharedRef<SWidget> History =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.MaxWidth(HistoryWidth)
+		.AutoWidth()
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SCheckBox)
+			.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+			.Type(ESlateCheckBoxType::ToggleButton)
+			.IsChecked(this, &SAutomationWindow::IsTrackingHistory)
+			.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+			.OnCheckStateChanged(this, &SAutomationWindow::OnToggleTrackHistory)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.FillHeight(1.f)
+				.Padding(2.0f)
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("AutomationWindow.TrackHistory"))
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2.0f)
+				.VAlign(VAlign_Bottom)
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.ShadowOffset(FVector2D::UnitVector)
+					.Text(LOCTEXT("AutomationHistoryLabel", "Track History"))
+					.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+				]
+			]
 		];
 
 	TSharedRef<SWidget> TestPresets = 
@@ -702,7 +771,7 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 
 	FToolBarBuilder ToolbarBuilder( InCommandList, FMultiBoxCustomization::None );
 	TWeakPtr<SAutomationWindow> AutomationWindow = SharedThis(this);
-	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, AutomationWindow );
+	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, History, AutomationWindow );
 
 	// Create the tool bar!
 	return
@@ -958,9 +1027,9 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 			[
 				SNew(SSpinBox<int32>)
 				.MinValue(1)
-				.MaxValue(10)
+				.MaxValue(AutomationReportConstants::MaximumLogsToKeep)
 				.MinSliderValue(1)
-				.MaxSliderValue(10)
+				.MaxSliderValue(AutomationReportConstants::MaximumLogsToKeep)
 				.Value(this,&SAutomationWindow::GetRepeatCount)
 				.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount)
 				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
@@ -1005,6 +1074,64 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 	{
 		MenuBuilder.AddWidget(EnableScreenshotsWidget, FText::GetEmpty());
 		MenuBuilder.AddWidget(FullSizeScreenshotsWidget, FText::GetEmpty());
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent(TWeakPtr<class SAutomationWindow> InAutomationWindow)
+{
+	TSharedPtr<SAutomationWindow> AutomationWindow(InAutomationWindow.Pin());
+	if (AutomationWindow.IsValid())
+	{
+		return AutomationWindow->GenerateTestHistoryMenuContent();
+	}
+
+	//Return empty menu
+	FMenuBuilder MenuBuilder(true, NULL);
+	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
+	MenuBuilder.EndSection();
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, AutomationWindowActions);
+
+	TSharedRef<SWidget> HistoryCountWidget =
+	SNew(SHorizontalBox)
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Bottom)
+	.Padding(FMargin( 0.f, 0.f, 4.f, 0.f ))
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("NumberItemsToTrack", "Number Items To Track:"))
+	]
+	+ SHorizontalBox::Slot()
+	.AutoWidth()
+	.VAlign(VAlign_Bottom)
+	[
+		SNew(SBox)
+		.WidthOverride(50.0f)
+		[
+			SNew(SSpinBox<int32>)
+			.MinValue(1)
+			.MaxValue(10)
+			.MinSliderValue(1)
+			.MaxSliderValue(10)
+			.Value(this, &SAutomationWindow::GetTestHistoryCount)
+			.OnValueChanged(this, &SAutomationWindow::OnChangeTestHistoryCount)
+			.IsEnabled(this, &SAutomationWindow::IsAutomationControllerIdle)
+		]
+
+	];
+
+	MenuBuilder.BeginSection("AutomationWindowTestHistory", LOCTEXT("AutomationWindowTestHistory", "Settings"));
+	{
+		MenuBuilder.AddWidget(HistoryCountWidget, FText::GetEmpty());
 	}
 	MenuBuilder.EndSection();
 
@@ -1508,9 +1635,54 @@ void SAutomationWindow::OnToggleErrorFilter()
 	OnRefreshTestCallback();
 }
 
+
+ESlateCheckBoxState::Type SAutomationWindow::IsTrackingHistory() const
+{
+	return bIsTrackingHistory ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SAutomationWindow::OnToggleTrackHistory(ESlateCheckBoxState::Type InState)
+{
+	bIsTrackingHistory = InState == ESlateCheckBoxState::Checked;
+
+	AutomationController->TrackReportHistory(bIsTrackingHistory, NumHistoryElementsToTrack);
+
+	if (bIsTrackingHistory)
+	{
+		TestTableHeaderRow->AddColumn(
+			SHeaderRow::Column(AutomationTestWindowConstants::History)
+			.HAlignHeader(HAlign_Center)
+			.VAlignHeader(VAlign_Center)
+			.HAlignCell(HAlign_Center)
+			.VAlignCell(VAlign_Center)
+			.FixedWidth(100.0f)
+			.DefaultLabel(LOCTEXT("TestHistory", "Test History"))
+		);
+	}
+	else
+	{
+		TestTableHeaderRow->RemoveColumn(AutomationTestWindowConstants::History);
+	}
+
+
+	OnRefreshTestCallback();
+}
+
+void SAutomationWindow::OnChangeTestHistoryCount(int32 InNewValue)
+{
+	NumHistoryElementsToTrack = InNewValue;
+	AutomationController->TrackReportHistory(bIsTrackingHistory, InNewValue);
+}
+
+int32 SAutomationWindow::GetTestHistoryCount() const
+{
+	return NumHistoryElementsToTrack;
+}
+
+
 void SAutomationWindow::OnChangeRepeatCount(int32 InNewValue)
 {
-	AutomationController->SetNumPasses(InNewValue);
+	AutomationController->SetNumPasses(NumHistoryElementsToTrack);
 }
 
 int32 SAutomationWindow::GetRepeatCount() const

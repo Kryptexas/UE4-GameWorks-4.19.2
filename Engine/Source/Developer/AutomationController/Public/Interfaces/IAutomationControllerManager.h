@@ -399,6 +399,25 @@ public:
 	 * Sets the test complete callback delegate.
 	 */
 	virtual void SetTestsCompleteCallback(const FOnAutomationControllerTestsComplete& NewCallback) = 0;
+
+	/**
+	 * Dictate whether to save the reports history and the number of history items to track
+	 *
+	 * @param bShouldTrack - Flag that determines whether to track history
+	 * @param NumReportsToTrack - The number of history reports to keep
+	 */
+	virtual void TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack) = 0;
+
+	/**
+	* Returns whether the controller is tracking history of reports.
+	*/
+	virtual const bool IsTrackingHistory() const = 0;
+
+	/**
+	* Returns the number of history items the controller is maintaining.
+	*/
+	virtual const int32 GetNumberHistoryItemsTracking() const = 0;
+
 public:
 
 	/**

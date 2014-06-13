@@ -201,6 +201,12 @@ public:
 	{
 		TestsCompleteDelegate = NewCallback;
 	}
+
+	virtual void TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack) override;
+
+	virtual const bool IsTrackingHistory() const override;
+
+	virtual const int32 GetNumberHistoryItemsTracking() const override;
 	// End IAutomationController Interface
 
 
@@ -381,6 +387,13 @@ private:
 
 	/** If we should request full screen screen shots */
 	bool bRequestFullScreenScreenshots;
+
+	/** If we should track any test history for the next run */
+	bool bTrackHistory;
+
+	/** The number of history items we wish to track */
+	int32 NumberOfHistoryItemsTracked;
+
 private:
 
 	// Holds a delegate that is invoked when the controller shuts down.

@@ -232,10 +232,38 @@ public:
 	/** Stop the test which is creating this report */
 	virtual void StopRunningTest() OVERRIDE;
 
+	/**
+	* Notification on whether we should, or should not, track this reports history
+	*/
+	virtual void TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack) override;
+
+	/**
+	* Get the history items of this particular test
+	*
+	* @return A reference to the items of this tests previous runs.
+	*/
+	virtual const TArray<TSharedPtr<FAutomationHistoryItem>>& GetHistory() const override;
+
 	// End IAutomationReport Interface
 	
 private:
 
+	/** 
+	 * Export the current report as part of it's tracked history 
+	 */
+	void AddToHistory();
+
+	/** 
+	 * Load this reports tracked history 
+	 */
+	void LoadHistory();
+
+	/**
+	 * Update what is tracked for this reports history.
+	 */
+	void MaintainHistory();
+
+private:
 
 	/** True if this test should be executed */
 	bool bEnabled;
@@ -269,4 +297,13 @@ private:
 
 	/** Structure holding the test info */
 	FAutomationTestInfo TestInfo;
+
+	/** Flag to determine whether this report should track it's history */
+	bool bTrackingHistory;
+
+	/** Flag to determine how many history items to keep */
+	int32 NumRecordsToKeep;
+
+	/** The collection of history items which holds the results of previous runs. */
+	TArray<TSharedPtr<FAutomationHistoryItem> > HistoryItems;
 };

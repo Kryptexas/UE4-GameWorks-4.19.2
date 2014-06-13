@@ -2,6 +2,13 @@
 
 #include "AutomationControllerPrivatePCH.h"
 
+
+namespace AutomationControllerConstants
+{
+	const FString HistoryConfigSectionName = TEXT("AutomationController.History");
+}
+
+
 void FAutomationControllerManager::RequestAvailableWorkers( const FGuid& SessionId )
 {
 	//invalidate previous tests
@@ -120,6 +127,14 @@ void FAutomationControllerManager::Init()
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
 	bRequestFullScreenScreenshots = false;
+
+	// Update the ini with the settings
+	bTrackHistory = false;
+	GConfig->GetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
+
+	// Default num of items to track
+	NumberOfHistoryItemsTracked = 5;
+	GConfig->GetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
 }
 
 
@@ -345,6 +360,9 @@ void FAutomationControllerManager::SetTestNames( const FMessageAddress& Automati
 	if (RefreshTestResponses == DeviceClusterManager.GetNumClusters())
 	{
 		TestsRefreshedDelegate.ExecuteIfBound();
+
+		// Update the tests with tracking details
+		ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
 	}
 }
 
@@ -681,4 +699,26 @@ void FAutomationControllerManager::UpdateDeviceGroups( )
 	// Update the reports in case the number of clusters changed
 	int32 NumOfClusters = DeviceClusterManager.GetNumClusters();
 	ReportManager.ClustersUpdated(NumOfClusters);
+}
+
+void FAutomationControllerManager::TrackReportHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
+{
+	bTrackHistory = bShouldTrack;
+	NumberOfHistoryItemsTracked = NumReportsToTrack;
+
+	// Update the ini with the settings
+	GConfig->SetBool(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("bTrackHistory"), bTrackHistory, GEngineIni);
+	GConfig->SetInt(*AutomationControllerConstants::HistoryConfigSectionName, TEXT("NumberOfHistoryItemsTracked"), NumberOfHistoryItemsTracked, GEngineIni);
+
+	ReportManager.TrackHistory(bTrackHistory, NumberOfHistoryItemsTracked);
+}
+
+const bool FAutomationControllerManager::IsTrackingHistory() const
+{
+	return bTrackHistory;
+}
+
+const int32 FAutomationControllerManager::GetNumberHistoryItemsTracking() const
+{
+	return NumberOfHistoryItemsTracked;
 }

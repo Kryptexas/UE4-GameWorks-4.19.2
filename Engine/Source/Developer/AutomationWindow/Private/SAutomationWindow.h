@@ -9,6 +9,7 @@ namespace AutomationTestWindowConstants
 	const FName SmokeTest( TEXT("SmokeTest") );
 	const FName RequiredDeviceCount( TEXT("RequiredDeviceCount") );
 	const FName Status( TEXT("Status") );
+	const FName History( TEXT("History") );
 	const FName Timing( TEXT("Timing") );
 }
 
@@ -167,6 +168,14 @@ private:
 	TSharedRef< SWidget > GenerateGroupOptionsMenuContent( );
 
 	/**
+	* Static: Creates the test history options menu widget
+	*
+	* @return	New widget
+	*/
+	static TSharedRef< SWidget > GenerateTestHistoryMenuContent(TWeakPtr<class SAutomationWindow> InAutomationWindow);
+	TSharedRef< SWidget > GenerateTestHistoryMenuContent();
+
+	/**
 	 * Creates a combo item for the preset list
 	 *
 	 * @return	New combo item widget
@@ -238,6 +247,10 @@ private:
 	bool IsErrorFilterOn() const;
 	/** Toggles filtering of tests based on error condition */
 	void OnToggleErrorFilter();
+	/** Returns if we're tracking history for automation tests */
+	ESlateCheckBoxState::Type IsTrackingHistory() const;
+	/** Toggles whether we are tracking history of automation tests */
+	void OnToggleTrackHistory(ESlateCheckBoxState::Type InState);
 
 	/** Returns if full size screen shots are enabled */
 	ESlateCheckBoxState::Type IsFullSizeScreenshotsCheckBoxChecked() const;
@@ -261,6 +274,11 @@ private:
 	void OnChangeRepeatCount(int32 InNewValue);
 	/** Returns the number of times to repeat the tests */
 	int32 GetRepeatCount() const;
+
+	/** Sets the number of history items we wish to track */
+	void OnChangeTestHistoryCount(int32 InValue);
+	/** Returns the number of history items we currently track */
+	int32 GetTestHistoryCount() const;
 
 	/** Update the test list background style (Editor vs Game) */
 	void UpdateTestListBackgroundStyle();
@@ -543,5 +561,12 @@ private:
 	// Holds a pointer to the preset text box
 	TSharedPtr<SEditableTextBox> PresetTextBox;
 
+	// Hold a pointer to the test tables header row.
+	TSharedPtr<SHeaderRow> TestTableHeaderRow;
 
+	// Flag to determine whether we are tracking test history
+	bool bIsTrackingHistory;
+
+	// The number of history elements we are tracking in this session
+	int32 NumHistoryElementsToTrack;
 };

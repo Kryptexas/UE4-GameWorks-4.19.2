@@ -128,6 +128,13 @@ const bool FAutomationReportManager::ExportReport(uint32 FileExportTypeMask, con
 }
 
 
+void FAutomationReportManager::TrackHistory(const bool bShouldTrack, const int32 NumReportsToTrack)
+{
+	// push this request straight to the reports.
+	ReportRoot->TrackHistory(bShouldTrack, NumReportsToTrack);
+}
+
+
 void FAutomationReportManager::AddResultReport(TSharedPtr< IAutomationReport > InReport, const int32 NumDeviceClusters, TArray< FString >& ResultsLog, uint32 FileExportTypeMask)
 {
 	if (InReport->IsEnabled())
