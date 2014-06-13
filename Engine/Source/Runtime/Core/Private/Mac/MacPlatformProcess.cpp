@@ -206,6 +206,29 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	
 	if (![[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
 	{
+		NSString* AppName = [[LaunchPath lastPathComponent] stringByDeletingPathExtension];
+		LaunchPath = [[NSWorkspace sharedWorkspace] fullPathForApplication:AppName];
+	}
+	
+	if ([[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
+	{
+		if([[NSWorkspace sharedWorkspace] isFilePackageAtPath: LaunchPath])
+		{
+			NSBundle* Bundle = [NSBundle bundleWithPath:LaunchPath];
+			LaunchPath = Bundle ? [Bundle executablePath] : NULL;
+		}
+		else
+		{
+			LaunchPath = LaunchPath;
+		}
+	}
+	else
+	{
+		LaunchPath = NULL;
+	}
+	
+	if(LaunchPath == NULL)
+	{
 		*OutReturnCode = ENOENT;
 		*OutStdErr = TEXT("No such executable");
 		return false;
@@ -312,6 +335,29 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ProcessPath);
 
 	if (![[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
+	{
+		NSString* AppName = [[LaunchPath lastPathComponent] stringByDeletingPathExtension];
+		LaunchPath = [[NSWorkspace sharedWorkspace] fullPathForApplication:AppName];
+	}
+	
+	if ([[NSFileManager defaultManager] fileExistsAtPath: LaunchPath])
+	{
+		if([[NSWorkspace sharedWorkspace] isFilePackageAtPath: LaunchPath])
+		{
+			NSBundle* Bundle = [NSBundle bundleWithPath:LaunchPath];
+			LaunchPath = Bundle ? [Bundle executablePath] : NULL;
+		}
+		else
+		{
+			LaunchPath = LaunchPath;
+		}
+	}
+	else
+	{
+		LaunchPath = NULL;
+	}
+	
+	if(LaunchPath == NULL)
 	{
 		return FProcHandle(NULL);
 	}

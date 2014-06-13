@@ -923,9 +923,9 @@ FString FAssetTools::DumpAssetToTempFile(UObject* Asset) const
 FString WrapArgument(const FString& Argument)
 {
 	// Wrap the passed in argument so it changes from Argument to "Argument"
-	return FString::Printf(TEXT("%s%s%s"),	(Argument.StartsWith("\"")) ? "": "\"",
+	return FString::Printf(TEXT("%s%s%s"),	(Argument.StartsWith("\"")) ? TEXT(""): TEXT("\""),
 											*Argument,
-											(Argument.EndsWith("\"")) ? "": "\"");
+											(Argument.EndsWith("\"")) ? TEXT(""): TEXT("\""));
 }
 
 bool FAssetTools::CreateDiffProcess(const FString& DiffCommand,  const FString& OldTextFilename,  const FString& NewTextFilename, const FString& DiffArgs) const
