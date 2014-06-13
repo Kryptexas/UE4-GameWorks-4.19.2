@@ -29,6 +29,32 @@ static void AddVertexIfNotPresent(TArray<FVector> &vertices, FVector &newVertex)
 
 }
 
+static bool PromptToRemoveExistingCollision(UStaticMesh* StaticMesh)
+{
+	check(StaticMesh);
+	UBodySetup* bs = StaticMesh->BodySetup;
+	if(bs && (bs->AggGeom.GetElementCount() > 0))
+	{
+		// If we already have some simplified collision for this mesh - check before we clobber it.
+		/*const EAppReturnType::Type ret = FMessageDialog::Open(EAppMsgType::YesNoCancel, NSLOCTEXT("UnrealEd", "StaticMeshAlreadyHasGeom", "Static Mesh already has simple collision.\nDo you want to replace it?"));
+		if (ret == EAppReturnType::Yes)
+		{
+			bs->RemoveSimpleCollision();
+		}
+		else if (ret == EAppReturnType::Cancel)
+		{
+			return false;
+		}*/
+	}
+	else
+	{
+		// Otherwise, create one here.
+		StaticMesh->CreateBodySetup();
+		bs = StaticMesh->BodySetup;
+	}
+	return true;
+}
+
 /* ******************************** KDOP ******************************** */
 
 // This function takes the current collision model, and fits a k-DOP around it.
@@ -37,35 +63,20 @@ static void AddVertexIfNotPresent(TArray<FVector> &vertices, FVector &newVertex)
 // THIS FUNCTION REPLACES EXISTING SIMPLE COLLISION MODEL WITH KDOP
 #define MY_FLTMAX (3.402823466e+38F)
 
-void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs)
+int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, TArray<FVector> &Dirs)
 {
 	// Make sure rendering is done - so we are not changing data being used by collision drawing.
 	FlushRenderingCommands();
 
-	UBodySetup* bs = StaticMesh->BodySetup;
-	if(bs && (bs->AggGeom.GetElementCount() > 0))
+	if (!PromptToRemoveExistingCollision(StaticMesh))
 	{
-		// If we already have some simplified collision for this mesh - check before we clobber it.
-		bool doReplace = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "StaticMeshAlreadyHasGeom", "Static Mesh already has simple collision.\nAre you sure you want replace it?") );
+		return INDEX_NONE;
+	}
 
-		if(doReplace)
-		{
-			bs->RemoveSimpleCollision();
-		}
-		else
-		{
-			return;
-		}
-	}
-	else
-	{
-		// Otherwise, create one here.
-		StaticMesh->CreateBodySetup();
-		bs = StaticMesh->BodySetup;
-	}
+	UBodySetup* bs = StaticMesh->BodySetup;
 
 	// Do k- specific stuff.
-	int32 kCount = dirs.Num();
+	int32 kCount = Dirs.Num();
 	TArray<float> maxDist;
 	for(int32 i=0; i<kCount; i++)
 		maxDist.Add(-MY_FLTMAX);
@@ -79,7 +90,7 @@ void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs
 	{
 		for(int32 j=0; j<kCount; j++)
 		{
-			float dist = RenderData.PositionVertexBuffer.VertexPosition(i) | dirs[j];
+			float dist = RenderData.PositionVertexBuffer.VertexPosition(i) | Dirs[j];
 			maxDist[j] = FMath::Max(dist, maxDist[j]);
 		}
 	}
@@ -98,7 +109,7 @@ void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs
 	// Now we have the planes of the kdop, we work out the face polygons.
 	TArray<FPlane> planes;
 	for(int32 i=0; i<kCount; i++)
-		planes.Add( FPlane(dirs[i], maxDist[i]) );
+		planes.Add( FPlane(Dirs[i], maxDist[i]) );
 
 	for(int32 i=0; i<planes.Num(); i++)
 	{
@@ -144,7 +155,7 @@ void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs
 	if(TempModel->Polys->Element.Num() < 4)
 	{
 		TempModel = NULL;
-		return;
+		return INDEX_NONE;
 	}
 
 	// Build bounding box.
@@ -155,13 +166,70 @@ void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs
 	FBSPOps::bspRefresh(TempModel,1);
 	FBSPOps::bspBuildBounds(TempModel);
 
-	bs->CreateFromModel(TempModel, true);
+	bs->Modify();
+
+	bs->CreateFromModel(TempModel, false);
 	
 	// create all body instances
 	RefreshCollisionChange(StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
+
+	return bs->AggGeom.ConvexElems.Num() - 1;
+}
+
+/* ******************************** BOX ******************************** */
+
+static void CalcBoundingBox(const FRawMesh& RawMesh, FVector& Center, FVector& Extents, FVector& LimitVec)
+{
+	FBox Box(0);
+
+	for (uint32 i = 0; i < (uint32)RawMesh.VertexPositions.Num(); i++)
+	{
+		Box += RawMesh.VertexPositions[i] * LimitVec;
+	}
+
+	Box.GetCenterAndExtents(Center, Extents);
+}
+
+int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh)
+{
+	if (!PromptToRemoveExistingCollision(StaticMesh))
+	{
+		return INDEX_NONE;
+	}
+
+	UBodySetup* bs = StaticMesh->BodySetup;
+
+	// Calculate bounding Box.
+	FRawMesh RawMesh;
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	FVector unitVec = bs->BuildScale3D;
+	FVector Center, Extents;
+	CalcBoundingBox(RawMesh, Center, Extents, unitVec);
+
+	bs->Modify();
+
+	// Create new GUID
+	bs->InvalidatePhysicsData();
+
+	FKBoxElem BoxElem;
+	BoxElem.Center = Center;
+	BoxElem.X = Extents.X * 2.0f;
+	BoxElem.Y = Extents.Y * 2.0f;
+	BoxElem.Z = Extents.Z * 2.0f;
+	bs->AggGeom.BoxElems.Add(BoxElem);
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
+
+	// Mark staticmesh as dirty, to help make sure it gets saved.
+	StaticMesh->MarkPackageDirty();
+
+	return bs->AggGeom.BoxElems.Num() - 1;
 }
 
 /* ******************************** SPHERE ******************************** */
@@ -173,19 +241,19 @@ void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs
 // This one seems to do well with asymmetric input.
 static void CalcBoundingSphere(const FRawMesh& RawMesh, FSphere& sphere, FVector& LimitVec)
 {
-	FBox Box;
-
 	if(RawMesh.VertexPositions.Num() == 0)
 		return;
 
-	int32 minIx[3], maxIx[3]; // Extreme points.
+	FBox Box;
 
 	// First, find AABB, remembering furthest points in each dir.
 	Box.Min = RawMesh.VertexPositions[0] * LimitVec;
 	Box.Max = Box.Min;
 
-	minIx[0] = minIx[1] = minIx[2] = 0;
-	maxIx[0] = maxIx[1] = maxIx[2] = 0;
+	FIntVector minIx, maxIx; // Extreme points.
+
+	minIx = FIntVector::ZeroValue;
+	maxIx = FIntVector::ZeroValue;
 
 	for(uint32 i=1; i<(uint32)RawMesh.VertexPositions.Num(); i++) 
 	{
@@ -195,75 +263,76 @@ static void CalcBoundingSphere(const FRawMesh& RawMesh, FSphere& sphere, FVector
 		if(p.X < Box.Min.X)
 		{
 			Box.Min.X = p.X;
-			minIx[0] = i;
+			minIx.X = i;
 		}
 		else if(p.X > Box.Max.X)
 		{
 			Box.Max.X = p.X;
-			maxIx[0] = i;
+			maxIx.X = i;
 		}
 
 		// Y //
 		if(p.Y < Box.Min.Y)
 		{
 			Box.Min.Y = p.Y;
-			minIx[1] = i;
+			minIx.Y = i;
 		}
 		else if(p.Y > Box.Max.Y)
 		{
 			Box.Max.Y = p.Y;
-			maxIx[1] = i;
+			maxIx.Y = i;
 		}
 
 		// Z //
 		if(p.Z < Box.Min.Z)
 		{
 			Box.Min.Z = p.Z;
-			minIx[2] = i;
+			minIx.Z = i;
 		}
 		else if(p.Z > Box.Max.Z)
 		{
 			Box.Max.Z = p.Z;
-			maxIx[2] = i;
+			maxIx.Z = i;
 		}
 	}
 
-	//  Now find extreme points furthest apart, and initial centre and radius of sphere.
+	const FVector Extremes[3]={ (RawMesh.VertexPositions[maxIx.X] - RawMesh.VertexPositions[minIx.X]) * LimitVec,
+								(RawMesh.VertexPositions[maxIx.Y] - RawMesh.VertexPositions[minIx.Y]) * LimitVec,
+								(RawMesh.VertexPositions[maxIx.Z] - RawMesh.VertexPositions[minIx.Z]) * LimitVec };
+
+	// Now find extreme points furthest apart, and initial center and radius of sphere.
 	float d2 = 0.f;
 	for(int32 i=0; i<3; i++)
 	{
-		FVector diff = (RawMesh.VertexPositions[maxIx[i]] - RawMesh.VertexPositions[minIx[i]]) * LimitVec;
-		float tmpd2 = diff.SizeSquared();
-
+		const float tmpd2 = Extremes[i].SizeSquared();
 		if(tmpd2 > d2)
 		{
 			d2 = tmpd2;
-			FVector centre = RawMesh.VertexPositions[minIx[i]] + (0.5f * diff);
-			centre *= LimitVec;
-			sphere.Center.X = centre.X;
-			sphere.Center.Y = centre.Y;
-			sphere.Center.Z = centre.Z;
+			sphere.Center = (RawMesh.VertexPositions[minIx(i)] + (0.5f * Extremes[i])) * LimitVec;
 			sphere.W = 0.f;
 		}
 	}
 
+	const FVector Extents = FVector(Extremes[0].X, Extremes[1].Y, Extremes[2].Z);
+
 	// radius and radius squared
-	float r = 0.5f * FMath::Sqrt(d2);
-	float r2 = r * r;
+	float r = 0.5f * Extents.GetMax();
+	float r2 = FMath::Square(r);
 
 	// Now check each point lies within this sphere. If not - expand it a bit.
 	for(uint32 i=0; i<(uint32)RawMesh.VertexPositions.Num(); i++) 
 	{
-		FVector cToP = (RawMesh.VertexPositions[i] * LimitVec) - sphere.Center;
-		float pr2 = cToP.SizeSquared();
+		const FVector cToP = (RawMesh.VertexPositions[i] * LimitVec) - sphere.Center;
 
-		// If this point is outside our current bounding sphere..
+		const float pr2 = cToP.SizeSquared();
+
+		// If this point is outside our current bounding sphere's radius
 		if(pr2 > r2)
 		{
-			// ..expand sphere just enough to include this point.
-			float pr = FMath::Sqrt(pr2);
+			// ..expand radius just enough to include this point.
+			const float pr = FMath::Sqrt(pr2);
 			r = 0.5f * (r + pr);
-			r2 = r * r;
+			r2 = FMath::Square(r);
 
 			sphere.Center += ((pr-r)/pr * cToP);
 		}
@@ -276,20 +345,11 @@ static void CalcBoundingSphere(const FRawMesh& RawMesh, FSphere& sphere, FVector
 // Seems to do better with more symmetric input...
 static void CalcBoundingSphere2(const FRawMesh& RawMesh, FSphere& sphere, FVector& LimitVec)
 {
-	FBox Box(0);
-	
-	for(uint32 i=0; i<(uint32)RawMesh.VertexPositions.Num(); i++)
-	{
-		Box += RawMesh.VertexPositions[i] * LimitVec;
-	}
+	FVector Center, Extents;
+	CalcBoundingBox(RawMesh, Center, Extents, LimitVec);
 
-	FVector centre, extent;
-	Box.GetCenterAndExtents(centre, extent);
-
-	sphere.Center.X = centre.X;
-	sphere.Center.Y = centre.Y;
-	sphere.Center.Z = centre.Z;
-	sphere.W = 0;
+	sphere.Center = Center;
+	sphere.W = 0.0f;
 
 	for( uint32 i=0; i<(uint32)RawMesh.VertexPositions.Num(); i++ )
 	{
@@ -302,28 +362,14 @@ static void CalcBoundingSphere2(const FRawMesh& RawMesh, FSphere& sphere, FVecto
 
 // // //
 
-void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
+int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 {
-	UBodySetup* bs = StaticMesh->BodySetup;
-	if(bs && (bs->AggGeom.GetElementCount() > 0))
+	if (!PromptToRemoveExistingCollision(StaticMesh))
 	{
-		bool doReplace = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "StaticMeshAlreadyHasGeom", "Static Mesh already has simple collision.\nAre you sure you want replace it?") );
+		return INDEX_NONE;
+	}
 
-		if(doReplace)
-		{
-			bs->RemoveSimpleCollision();
-		}
-		else
-		{
-			return;
-		}
-	}
-	else
-	{
-		// Otherwise, create one here.
-		StaticMesh->CreateBodySetup();
-		bs = StaticMesh->BodySetup;
-	}
+	UBodySetup* bs = StaticMesh->BodySetup;
 
 	// Calculate bounding sphere.
 	FRawMesh RawMesh;
@@ -331,7 +377,7 @@ void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
 
 	FSphere bSphere, bSphere2, bestSphere;
-	FVector unitVec = StaticMesh->BodySetup ? StaticMesh->BodySetup->BuildScale3D : FVector(1.f, 1.f, 1.f);
+	FVector unitVec = bs->BuildScale3D;
 	CalcBoundingSphere(RawMesh, bSphere, unitVec);
 	CalcBoundingSphere2(RawMesh, bSphere2, unitVec);
 
@@ -344,39 +390,176 @@ void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh)
 	if(bestSphere.W <= 0.f)
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Prompt_10", "Could not create geometry.") );
-		return;
+		return INDEX_NONE;
 	}
 
-	int ex = bs->AggGeom.SphereElems.AddZeroed();
-	FKSphereElem* s = &bs->AggGeom.SphereElems[ex];
-	s->Center = bestSphere.Center;
-	s->Radius = bestSphere.W;
+	bs->Modify();
 
 	// Create new GUID
 	bs->InvalidatePhysicsData();
+
+	FKSphereElem SphereElem;
+	SphereElem.Center = bestSphere.Center;
+	SphereElem.Radius = bestSphere.W;
+	bs->AggGeom.SphereElems.Add(SphereElem);
 
 	// refresh collision change back to staticmesh components
 	RefreshCollisionChange(StaticMesh);
 
 	// Mark staticmesh as dirty, to help make sure it gets saved.
 	StaticMesh->MarkPackageDirty();
+
+	return bs->AggGeom.SphereElems.Num() - 1;
 }
 
+/* ******************************** SPHYL ******************************** */
 
-/**
- * Refresh Collision Change
- * 
- * Collision has been changed, so it will need to recreate physics state to reflect it
- * Utilities functions to propagate BodySetup change for StaticMesh
- *
- * @param	InStaticMesh	StaticMesh that collision has been changed for
- */
-void RefreshCollisionChange(const UStaticMesh * InStaticMesh)
+static void CalcBoundingSphyl(const FRawMesh& RawMesh, FSphere& sphere, float& length, FRotator& rotation, FVector& LimitVec)
+{
+	if (RawMesh.VertexPositions.Num() == 0)
+		return;
+
+	FVector Center, Extents;
+	CalcBoundingBox(RawMesh, Center, Extents, LimitVec);
+
+	// @todo sphere.Center could perhaps be adjusted to best fit if model is non-symmetric on it's longest axis
+	sphere.Center = Center;
+
+	// Work out best axis aligned orientation (longest side)
+	float Extent = Extents.GetMax();
+	if (Extent == Extents.X)
+	{
+		rotation = FRotator(90.f, 0.f, 0.f);
+		Extents.X = 0.0f;
+	}
+	else if (Extent == Extents.Y)
+	{
+		rotation = FRotator(0.f, 0.f, 90.f);
+		Extents.Y = 0.0f;
+	}
+	else
+	{
+		rotation = FRotator(0.f, 0.f, 0.f);
+		Extents.Z = 0.0f;
+	}
+
+	// Cleared the largest axis above, remaining determines the radius
+	float r = Extents.GetMax();
+	float r2 = FMath::Square(r);
+	
+	// Now check each point lies within this the radius. If not - expand it a bit.
+	for (uint32 i = 0; i<(uint32)RawMesh.VertexPositions.Num(); i++)
+	{
+		FVector cToP = (RawMesh.VertexPositions[i] * LimitVec) - sphere.Center;
+		cToP = rotation.UnrotateVector(cToP);
+
+		const float pr2 = cToP.SizeSquared2D();	// Ignore Z here...
+
+		// If this point is outside our current bounding sphere's radius
+		if (pr2 > r2)
+		{
+			// ..expand radius just enough to include this point.
+			const float pr = FMath::Sqrt(pr2);
+			r = 0.5f * (r + pr);
+			r2 = FMath::Square(r);
+		}
+	}
+	
+	// The length is the longest side minus the radius.
+	float hl = FMath::Max(0.0f, Extent - r);
+
+	// Now check each point lies within the length. If not - expand it a bit.
+	for (uint32 i = 0; i<(uint32)RawMesh.VertexPositions.Num(); i++)
+	{
+		FVector cToP = (RawMesh.VertexPositions[i] * LimitVec) - sphere.Center;
+		cToP = rotation.UnrotateVector(cToP);
+
+		// If this point is outside our current bounding sphyl's length
+		if (FMath::Abs(cToP.Z) > hl)
+		{
+			const bool bFlip = (cToP.Z < 0.f ? true : false);
+			const FVector cOrigin(0.f, 0.f, (bFlip ? -hl : hl));
+
+			const float pr2 = (cOrigin - cToP).SizeSquared();
+
+			// If this point is outside our current bounding sphyl's radius
+			if (pr2 > r2)
+			{
+				FVector cPoint;
+				FMath::SphereDistToLine(cOrigin, r, cToP, (bFlip ? FVector(0.f, 0.f, 1.f) : FVector(0.f, 0.f, -1.f)), cPoint);
+
+				// Don't accept zero as a valid diff when we know it's outside the sphere (saves needless retest on further iterations of like points)
+				hl += FMath::Max(FMath::Abs(cToP.Z - cPoint.Z), 1.e-6f);
+			}
+		}
+	}
+
+	sphere.W = r;
+	length = hl * 2.0f;
+}
+
+// // //
+
+int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh)
+{
+	if (!PromptToRemoveExistingCollision(StaticMesh))
+	{
+		return INDEX_NONE;
+	}
+
+	UBodySetup* bs = StaticMesh->BodySetup;
+
+	// Calculate bounding box.
+	FRawMesh RawMesh;
+	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[0];
+	SrcModel.RawMeshBulkData->LoadRawMesh(RawMesh);
+
+	FSphere sphere;
+	float length;
+	FRotator rotation;
+	FVector unitVec = bs->BuildScale3D;
+	CalcBoundingSphyl(RawMesh, sphere, length, rotation, unitVec);
+
+	// Dont use if radius is zero.
+	if (sphere.W <= 0.f)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Prompt_10", "Could not create geometry."));
+		return INDEX_NONE;
+	}
+
+	// If height is zero, then a sphere would be better (should we just create one instead?)
+	if (length <= 0.f)
+	{
+		length = SMALL_NUMBER;
+	}
+
+	bs->Modify();
+
+	// Create new GUID
+	bs->InvalidatePhysicsData();
+
+	FKSphylElem SphylElem;
+	SphylElem.Center = sphere.Center;
+	SphylElem.Orientation = rotation.Quaternion();
+	SphylElem.Radius = sphere.W;
+	SphylElem.Length = length;
+	bs->AggGeom.SphylElems.Add(SphylElem);
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
+
+	// Mark staticmesh as dirty, to help make sure it gets saved.
+	StaticMesh->MarkPackageDirty();
+
+	return bs->AggGeom.SphylElems.Num() - 1;
+}
+
+void RefreshCollisionChange(const UStaticMesh * StaticMesh)
 {
 	for (FObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
 	{
 		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(*Iter);
-		if  (StaticMeshComponent->StaticMesh == InStaticMesh)
+		if  (StaticMeshComponent->StaticMesh == StaticMesh)
 		{
 			// it needs to recreate IF it already has been created
 			if (StaticMeshComponent->IsPhysicsStateCreated())

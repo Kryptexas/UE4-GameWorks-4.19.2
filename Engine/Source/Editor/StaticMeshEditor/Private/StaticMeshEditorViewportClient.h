@@ -82,6 +82,12 @@ public:
 	/** Callback for checking the binormals show flag. */
 	bool IsSetShowBinormalsChecked() const;
 
+	/** Callback for toggling the collision show flag. */
+	void SetShowWireframeCollision();
+
+	/** Callback for checking the collision show flag. */
+	bool IsSetShowWireframeCollisionChecked() const;
+
 	/** Callback for toggling the socket show flag. */
 	void SetShowSockets();
 
@@ -119,6 +125,7 @@ private:
 
 	/** Flags for various options in the editor. */
 	bool bDrawUVs;
+	bool bShowCollision;
 	bool bShowSockets;
 	bool bDrawNormals;
 	bool bDrawTangents;

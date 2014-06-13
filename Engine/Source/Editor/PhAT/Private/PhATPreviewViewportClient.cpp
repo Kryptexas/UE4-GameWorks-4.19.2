@@ -931,53 +931,30 @@ void FPhATEdPreviewViewportClient::ModifyPrimitiveSize(int32 BodyIndex, EKCollis
 
 	if (PrimType == KPT_Sphere)
 	{
-		// Find element with largest magnitude, btu preserve sign.
-		float DeltaRadius = DeltaSize.X;
-		if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
-			DeltaRadius = DeltaSize.Y;
-		else if (FMath::Abs(DeltaSize.Z) > FMath::Abs(DeltaRadius))
-			DeltaRadius = DeltaSize.Z;
-
-		AggGeom->SphereElems[PrimIndex].Radius = FMath::Max(AggGeom->SphereElems[PrimIndex].Radius + DeltaRadius, MinPrimSize);
+		check(AggGeom->SphereElems.IsValidIndex(PrimIndex));
+		AggGeom->SphereElems[PrimIndex].ScaleElem(DeltaSize, MinPrimSize);
 	}
 	else if (PrimType == KPT_Box)
 	{
-		// Sizes are lengths, so we double the delta to get similar increase in size.
-		AggGeom->BoxElems[PrimIndex].X = FMath::Max(AggGeom->BoxElems[PrimIndex].X + 2*DeltaSize.X, MinPrimSize);
-		AggGeom->BoxElems[PrimIndex].Y = FMath::Max(AggGeom->BoxElems[PrimIndex].Y + 2*DeltaSize.Y, MinPrimSize);
-		AggGeom->BoxElems[PrimIndex].Z = FMath::Max(AggGeom->BoxElems[PrimIndex].Z + 2*DeltaSize.Z, MinPrimSize);
-
+		check(AggGeom->BoxElems.IsValidIndex(PrimIndex));
+		AggGeom->BoxElems[PrimIndex].ScaleElem(DeltaSize, MinPrimSize);
 	}
 	else if (PrimType == KPT_Sphyl)
 	{
-		FKSphylElem & SphylElem = AggGeom->SphylElems[PrimIndex];
-		float DeltaRadius = DeltaSize.X;
-		if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
-		{
-			DeltaRadius = DeltaSize.Y;
-		}
-
-		float DeltaHeight = DeltaSize.Z;
-		float Radius = FMath::Max(SphylElem.Radius + DeltaRadius, MinPrimSize);
-		float Length = SphylElem.Length + DeltaHeight;
-		
-		Length += SphylElem.Radius - Radius;
-		Length = FMath::Max(0.f, Length);
-
-		SphylElem.Radius = Radius;
-		SphylElem.Length = Length;
+		check(AggGeom->SphylElems.IsValidIndex(PrimIndex));
+		AggGeom->SphylElems[PrimIndex].ScaleElem(DeltaSize, MinPrimSize);
 	}
 	else if (PrimType == KPT_Convex)
 	{
-		FVector ModifiedScale = DeltaSize;
-		if( GEditor->UsePercentageBasedScaling() )
+		check(AggGeom->ConvexElems.IsValidIndex(PrimIndex));
+
+		FVector ModifiedSize = DeltaSize;
+		if (GEditor->UsePercentageBasedScaling())
 		{
-			ModifiedScale = DeltaSize * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
+			ModifiedSize = DeltaSize * ((GEditor->GetScaleGridSize() / 100.0f) / GEditor->GetGridSize());
 		}
 
-		FTransform Transform = AggGeom->ConvexElems[PrimIndex].GetTransform();
-		Transform.SetScale3D(Transform.GetScale3D() + ModifiedScale);
-		AggGeom->ConvexElems[PrimIndex].SetTransform(Transform);
+		AggGeom->ConvexElems[PrimIndex].ScaleElem(ModifiedSize, MinPrimSize);
 	}
 }
 

@@ -43,13 +43,14 @@ public:
 	TSharedPtr< FUICommandInfo > SetShowPivot;
 
 	// Collision Menu Commands
-	TSharedPtr< FUICommandInfo > CreateDOP6;
 	TSharedPtr< FUICommandInfo > CreateDOP10X;
 	TSharedPtr< FUICommandInfo > CreateDOP10Y;
 	TSharedPtr< FUICommandInfo > CreateDOP10Z;
 	TSharedPtr< FUICommandInfo > CreateDOP18;
 	TSharedPtr< FUICommandInfo > CreateDOP26;
+	TSharedPtr< FUICommandInfo > CreateBoxCollision;
 	TSharedPtr< FUICommandInfo > CreateSphereCollision;
+	TSharedPtr< FUICommandInfo > CreateSphylCollision;
 	TSharedPtr< FUICommandInfo > CreateAutoConvexCollision;
 	TSharedPtr< FUICommandInfo > RemoveCollision;
 	TSharedPtr< FUICommandInfo > ConvertBoxesToConvex;

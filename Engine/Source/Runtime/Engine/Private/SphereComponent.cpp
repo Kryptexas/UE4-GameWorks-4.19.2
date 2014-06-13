@@ -29,7 +29,7 @@ void USphereComponent::UpdateBodySetup()
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-		ShapeBodySetup->AggGeom.SphereElems.AddZeroed();
+		ShapeBodySetup->AggGeom.SphereElems.Add(FKSphereElem());
 	}
 
 	check (ShapeBodySetup->AggGeom.SphereElems.Num() == 1);

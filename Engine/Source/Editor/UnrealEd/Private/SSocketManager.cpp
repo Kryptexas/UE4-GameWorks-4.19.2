@@ -371,18 +371,29 @@ UStaticMeshSocket* SSocketManager::GetSelectedSocket() const
 
 void SSocketManager::SetSelectedSocket(UStaticMeshSocket* InSelectedSocket)
 {
-	for( int32 i=0; i < SocketList.Num(); i++)
+	if (InSelectedSocket)
 	{
-		if(SocketList[i]->Socket == InSelectedSocket)
+		for( int32 i=0; i < SocketList.Num(); i++)
 		{
-			SocketListView->SetSelection(SocketList[i]);
+			if(SocketList[i]->Socket == InSelectedSocket)
+			{
+				SocketListView->SetSelection(SocketList[i]);
 
-			SocketListView->RequestListRefresh();
+				SocketListView->RequestListRefresh();
 
-			SocketSelectionChanged(InSelectedSocket);
+				SocketSelectionChanged(InSelectedSocket);
 
-			return;
+				break;
+			}
 		}
+	}
+	else
+	{
+		SocketListView->ClearSelection();
+
+		SocketListView->RequestListRefresh();
+
+		SocketSelectionChanged(NULL);
 	}
 }
 

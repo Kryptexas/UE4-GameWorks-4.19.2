@@ -336,9 +336,9 @@ void SStaticMeshEditorViewport::BindCommands()
 
 	CommandList->MapAction(
 		Commands.SetShowCollision,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowCollision ),
+		FExecuteAction::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::SetShowWireframeCollision ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowCollisionChecked ) );
+		FIsActionChecked::CreateSP( EditorViewportClientRef, &FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked ) );
 
 	CommandList->MapAction(
 		Commands.SetShowSockets,
@@ -380,22 +380,35 @@ void SStaticMeshEditorViewport::BindCommands()
 
 void SStaticMeshEditorViewport::OnFocusViewportToSelection()
 {
+	// If we have selected sockets, focus on them
 	UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
-
 	if( SelectedSocket && PreviewMeshComponent )
 	{
 		FTransform SocketTransform;
 		SelectedSocket->GetSocketTransform( SocketTransform, PreviewMeshComponent );
 
-		FVector Extent(30.0f);
+		const FVector Extent(30.0f);
 
-		FVector Origin = SocketTransform.GetLocation();
-		FBox Box( Origin - Extent, Origin + Extent);
-	
+		const FVector Origin = SocketTransform.GetLocation();
+		const FBox Box(Origin - Extent, Origin + Extent);
+
 		EditorViewportClient->FocusViewportOnBox( Box );
+		return;
 	}
-	else if( PreviewMeshComponent )
+
+	// If we have selected primitives, focus on them 
+	FBox Box(0);
+	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->CalcSelectedPrimsAABB(Box);
+	if (bSelectedPrim)
+	{
+		EditorViewportClient->FocusViewportOnBox(Box);
+		return;
+	}
+
+	// Fallback to focusing on the mesh, if nothing else
+	if( PreviewMeshComponent )
 	{
 		EditorViewportClient->FocusViewportOnBox( PreviewMeshComponent->Bounds.GetBox() );
+		return;
 	}
 }

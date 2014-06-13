@@ -10,7 +10,6 @@
 #include "StaticMeshResources.h"
 #include "RawMesh.h"
 
-
 #include "StaticMeshEditor.h"
 #include "BusyCursor.h"
 #include "MeshBuild.h"
@@ -63,6 +62,7 @@ FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStati
 	OverrideNearClipPlane(1.0f);
 	bUsingOrbitCamera = true;
 
+	bShowCollision = false;
 	bShowSockets = true;
 	bDrawUVs = false;
 	bDrawNormals = false;
@@ -88,18 +88,36 @@ void FStaticMeshEditorViewportClient::Tick(float DeltaSeconds)
 }
 
 /**
+ * A hit proxy class for the wireframe collision geometry
+ */
+struct HSMECollisionProxy : public HHitProxy
+{
+	DECLARE_HIT_PROXY();
+
+	IStaticMeshEditor::FPrimData	PrimData;
+
+	HSMECollisionProxy(const IStaticMeshEditor::FPrimData& InPrimData) :
+		HHitProxy(HPP_UI),
+		PrimData(InPrimData) {}
+
+	HSMECollisionProxy(EKCollisionPrimitiveType InPrimType, int32 InPrimIndex) :
+		HHitProxy(HPP_UI),
+		PrimData(InPrimType, InPrimIndex) {}
+};
+IMPLEMENT_HIT_PROXY(HSMECollisionProxy, HHitProxy);
+
+/**
  * A hit proxy class for sockets.
  */
 struct HSMESocketProxy : public HHitProxy
 {
 	DECLARE_HIT_PROXY( );
 
-	int32		SocketIndex;
+	int32							SocketIndex;
 
-	HSMESocketProxy(int32 InSocketIndex)
-		:	HHitProxy( HPP_UI )
-		,	SocketIndex( InSocketIndex )
-	{}
+	HSMESocketProxy(int32 InSocketIndex) :
+		HHitProxy( HPP_UI ), 
+		SocketIndex( InSocketIndex ) {}
 };
 IMPLEMENT_HIT_PROXY(HSMESocketProxy, HHitProxy);
 
@@ -108,51 +126,74 @@ bool FStaticMeshEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAx
 	bool bHandled = false;
 	if (bManipulating)
 	{
-		UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
-
-		if(SelectedSocket && CurrentAxis != EAxisList::None)
+		if (CurrentAxis != EAxisList::None)
 		{
-			UProperty* ChangedProperty = NULL;
-			const FWidget::EWidgetMode MoveMode = GetWidgetMode();
-			if(MoveMode == FWidget::WM_Rotate)
+			UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+			if(SelectedSocket)
 			{
-				ChangedProperty = FindField<UProperty>( UStaticMeshSocket::StaticClass(), "RelativeRotation" );
-				SelectedSocket->PreEditChange(ChangedProperty);
+				UProperty* ChangedProperty = NULL;
+				const FWidget::EWidgetMode MoveMode = GetWidgetMode();
+				if(MoveMode == FWidget::WM_Rotate)
+				{
+					ChangedProperty = FindField<UProperty>( UStaticMeshSocket::StaticClass(), "RelativeRotation" );
+					SelectedSocket->PreEditChange(ChangedProperty);
 
-				FRotator CurrentRot = SelectedSocket->RelativeRotation;
-				FRotator SocketWinding, SocketRotRemainder;
-				CurrentRot.GetWindingAndRemainder(SocketWinding, SocketRotRemainder);
+					FRotator CurrentRot = SelectedSocket->RelativeRotation;
+					FRotator SocketWinding, SocketRotRemainder;
+					CurrentRot.GetWindingAndRemainder(SocketWinding, SocketRotRemainder);
 
-				const FQuat ActorQ = SocketRotRemainder.Quaternion();
-				const FQuat DeltaQ = Rot.Quaternion();
-				const FQuat ResultQ = DeltaQ * ActorQ;
-				const FRotator NewSocketRotRem = FRotator( ResultQ );
-				FRotator DeltaRot = NewSocketRotRem - SocketRotRemainder;
-				DeltaRot.Normalize();
+					const FQuat ActorQ = SocketRotRemainder.Quaternion();
+					const FQuat DeltaQ = Rot.Quaternion();
+					const FQuat ResultQ = DeltaQ * ActorQ;
+					const FRotator NewSocketRotRem = FRotator( ResultQ );
+					FRotator DeltaRot = NewSocketRotRem - SocketRotRemainder;
+					DeltaRot.Normalize();
 
-				SelectedSocket->RelativeRotation += DeltaRot;
-				SelectedSocket->RelativeRotation.Pitch = FRotator::ClampAxis( SelectedSocket->RelativeRotation.Pitch );
-				SelectedSocket->RelativeRotation.Yaw = FRotator::ClampAxis( SelectedSocket->RelativeRotation.Yaw );
-				SelectedSocket->RelativeRotation.Roll = FRotator::ClampAxis( SelectedSocket->RelativeRotation.Roll );
+					SelectedSocket->RelativeRotation += DeltaRot;
+					SelectedSocket->RelativeRotation = SelectedSocket->RelativeRotation.Clamp();
+				}
+				else if(MoveMode == FWidget::WM_Translate)
+				{
+					ChangedProperty = FindField<UProperty>( UStaticMeshSocket::StaticClass(), "RelativeLocation" );
+					SelectedSocket->PreEditChange(ChangedProperty);
+
+					//FRotationMatrix SocketRotTM( SelectedSocket->RelativeRotation );
+					//FVector SocketMove = SocketRotTM.TransformVector( Drag );
+
+					SelectedSocket->RelativeLocation += Drag;
+				}
+				if ( ChangedProperty )
+				{			
+					FPropertyChangedEvent PropertyChangedEvent( ChangedProperty );
+					SelectedSocket->PostEditChangeProperty(PropertyChangedEvent);
+				}
+
+				StaticMeshEditorPtr.Pin()->GetStaticMesh()->MarkPackageDirty();
 			}
-			else if(MoveMode == FWidget::WM_Translate)
+			else
 			{
-				ChangedProperty = FindField<UProperty>( UStaticMeshSocket::StaticClass(), "RelativeLocation" );
-				SelectedSocket->PreEditChange(ChangedProperty);
+				const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+				if (bSelectedPrim && CurrentAxis != EAxisList::None)
+				{
+					const FWidget::EWidgetMode MoveMode = GetWidgetMode();
+					if (MoveMode == FWidget::WM_Rotate)
+					{
+						StaticMeshEditorPtr.Pin()->RotateSelectedPrims(Rot);
+					}
+					else if (MoveMode == FWidget::WM_Scale)
+					{
+						StaticMeshEditorPtr.Pin()->ScaleSelectedPrims(Scale);
+					}
+					else if (MoveMode == FWidget::WM_Translate)
+					{
+						StaticMeshEditorPtr.Pin()->TranslateSelectedPrims(Drag);
+					}
 
-				//FRotationMatrix SocketRotTM( SelectedSocket->RelativeRotation );
-				//FVector SocketMove = SocketRotTM.TransformVector( Drag );
-
-				SelectedSocket->RelativeLocation += Drag;
+					StaticMeshEditorPtr.Pin()->GetStaticMesh()->MarkPackageDirty();
+				}
 			}
-			if ( ChangedProperty )
-			{			
-				FPropertyChangedEvent PropertyChangedEvent( ChangedProperty );
-				SelectedSocket->PostEditChangeProperty(PropertyChangedEvent);
-			}
-
-			StaticMeshEditorPtr.Pin()->GetStaticMesh()->MarkPackageDirty();
 		}
+
 		Invalidate();		
 		bHandled = true;
 	}
@@ -164,25 +205,71 @@ void FStaticMeshEditorViewportClient::TrackingStarted( const struct FInputEventS
 {
 	if( !bManipulating && bIsDraggingWidget )
 	{
-		if( GetWidgetMode() == FWidget::WM_Rotate )
+		const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+		if (SelectedSocket)
 		{
-			GEditor->BeginTransaction( LOCTEXT("FStaticMeshEditorViewportClient_RotateSocket", "Rotate Socket" ) );
-		}
-		else
-		{
-			if( InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ) )
+			FText TransText;
+			if( GetWidgetMode() == FWidget::WM_Rotate )
 			{
-				const bool bAltDown = InInputState.IsAltButtonPressed();
-				if ( bAltDown )
+				TransText = LOCTEXT("FStaticMeshEditorViewportClient_RotateSocket", "Rotate Socket");
+			}
+			else if (GetWidgetMode() == FWidget::WM_Translate)
+			{
+				if( InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ) )
 				{
-					// Rather than moving/rotating the selected socket, copy it and move the copy instead
-					StaticMeshEditorPtr.Pin()->DuplicateSelectedSocket();
+					const bool bAltDown = InInputState.IsAltButtonPressed();
+					if ( bAltDown )
+					{
+						// Rather than moving/rotating the selected socket, copy it and move the copy instead
+						StaticMeshEditorPtr.Pin()->DuplicateSelectedSocket();
+					}
 				}
+
+				TransText = LOCTEXT("FStaticMeshEditorViewportClient_TranslateSocket", "Translate Socket");
 			}
 
-			GEditor->BeginTransaction( LOCTEXT("FStaticMeshEditorViewportClient_TranslateSocket", "Translate Socket" ) );
-		}	
+			if (!TransText.IsEmpty())
+			{
+				GEditor->BeginTransaction(TransText);
+			}
+		}
 		
+		const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+		if (bSelectedPrim)
+		{
+			FText TransText;
+			if (GetWidgetMode() == FWidget::WM_Rotate)
+			{
+				TransText = LOCTEXT("FStaticMeshEditorViewportClient_RotateCollision", "Rotate Collision");
+			}
+			else if (GetWidgetMode() == FWidget::WM_Scale)
+			{
+				TransText = LOCTEXT("FStaticMeshEditorViewportClient_ScaleCollision", "Scale Collision");
+			}
+			else if (GetWidgetMode() == FWidget::WM_Translate)
+			{
+				if (InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ))
+				{
+					const bool bAltDown = InInputState.IsAltButtonPressed();
+					if (bAltDown)
+					{
+						// Rather than moving/rotating the selected primitives, copy them and move the copies instead
+						StaticMeshEditorPtr.Pin()->DuplicateSelectedPrims(NULL);
+					}
+				}
+
+				TransText = LOCTEXT("FStaticMeshEditorViewportClient_TranslateCollision", "Translate Collision");
+			}
+			if (!TransText.IsEmpty())
+			{
+				GEditor->BeginTransaction(TransText);
+				if (StaticMesh->BodySetup)
+				{
+					StaticMesh->BodySetup->Modify();
+				}
+			}
+		}
+
 		bManipulating = true;
 	}
 
@@ -190,8 +277,14 @@ void FStaticMeshEditorViewportClient::TrackingStarted( const struct FInputEventS
 
 FWidget::EWidgetMode FStaticMeshEditorViewportClient::GetWidgetMode() const
 {
-	UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+	const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
 	if( SelectedSocket )
+	{
+		return WidgetMode;
+	}
+
+	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+	if (bSelectedPrim)
 	{
 		return WidgetMode;
 	}
@@ -210,7 +303,7 @@ void FStaticMeshEditorViewportClient::TrackingStopped()
 
 FVector FStaticMeshEditorViewportClient::GetWidgetLocation() const
 {
-	UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+	const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
 	if( SelectedSocket )
 	{
 		FMatrix SocketTM;
@@ -219,18 +312,32 @@ FVector FStaticMeshEditorViewportClient::GetWidgetLocation() const
 		return SocketTM.GetOrigin();
 	}
 
+	FTransform PrimTransform = FTransform::Identity;
+	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->GetLastSelectedPrimTransform(PrimTransform);
+	if (bSelectedPrim)
+	{
+		return PrimTransform.GetLocation();
+	}
+
 	return FVector::ZeroVector;
 }
 
 FMatrix FStaticMeshEditorViewportClient::GetWidgetCoordSystem() const 
 {
-	UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+	const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
 	if( SelectedSocket )
 	{
 		//FMatrix SocketTM;
 		//SelectedSocket->GetSocketMatrix(SocketTM, StaticMeshComponent);
 
 		return FRotationMatrix( SelectedSocket->RelativeRotation );
+	}
+
+	FTransform PrimTransform = FTransform::Identity;
+	const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->GetLastSelectedPrimTransform(PrimTransform);
+	if (bSelectedPrim)
+	{
+		return FRotationMatrix(PrimTransform.Rotator());
 	}
 
 	return FMatrix::Identity;
@@ -251,8 +358,71 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 {
 	FEditorViewportClient::Draw(View, PDI);
 
+	if (bShowCollision && StaticMesh->BodySetup)
+	{
+		const FColor SelectedColor(149, 223, 157);
+		const FColor UnselectedColor(157, 149, 223);
+
+		// Draw bodies
+		FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
+
+		for (int32 i = 0; i < AggGeom->SphereElems.Num(); ++i)
+		{
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphere, i);
+			PDI->SetHitProxy(HitProxy);
+
+			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FKSphereElem& SphereElem = AggGeom->SphereElems[i];
+			const FTransform ElemTM = SphereElem.GetTransform();
+			SphereElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+
+			PDI->SetHitProxy(NULL);
+		}
+
+		for (int32 i = 0; i < AggGeom->BoxElems.Num(); ++i)
+		{
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Box, i);
+			PDI->SetHitProxy(HitProxy);
+
+			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FKBoxElem& BoxElem = AggGeom->BoxElems[i];
+			const FTransform ElemTM = BoxElem.GetTransform();
+			BoxElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+
+			PDI->SetHitProxy(NULL);
+		}
+
+		for (int32 i = 0; i < AggGeom->SphylElems.Num(); ++i)
+		{
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Sphyl, i);
+			PDI->SetHitProxy(HitProxy);
+
+			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FKSphylElem& SphylElem = AggGeom->SphylElems[i];
+			const FTransform ElemTM = SphylElem.GetTransform();
+			SphylElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+
+			PDI->SetHitProxy(NULL);
+		}
+
+		for (int32 i = 0; i < AggGeom->ConvexElems.Num(); ++i)
+		{
+			HSMECollisionProxy* HitProxy = new HSMECollisionProxy(KPT_Convex, i);
+			PDI->SetHitProxy(HitProxy);
+
+			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
+			const FKConvexElem& ConvexElem = AggGeom->ConvexElems[i];
+			const FTransform ElemTM = ConvexElem.GetTransform();
+			ConvexElem.DrawElemWire(PDI, ElemTM, CollisionColor);
+
+			PDI->SetHitProxy(NULL);
+		}
+	}
+
 	if( bShowSockets )
 	{
+		const FColor SocketColor = FColor(255, 128, 128);
+
 		for(int32 i=0; i < StaticMesh->Sockets.Num(); i++)
 		{
 			UStaticMeshSocket* Socket = StaticMesh->Sockets[i];
@@ -261,7 +431,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 				FMatrix SocketTM;
 				Socket->GetSocketMatrix(SocketTM, StaticMeshComponent);
 				PDI->SetHitProxy( new HSMESocketProxy(i) );
-				DrawWireDiamond(PDI, SocketTM, 5.f, FColor(255,128,128), SDPG_Foreground );
+				DrawWireDiamond(PDI, SocketTM, 5.f, SocketColor, SDPG_Foreground);
 				PDI->SetHitProxy( NULL );
 			}
 		}
@@ -436,7 +606,8 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 					FCanvasTextItem TextItem( FVector2D( XPos, YPos ), FText::FromString( Socket->SocketName.ToString() ), GEngine->GetSmallFont(), FLinearColor(FColor(255,196,196)) );
 					Canvas.DrawItem( TextItem );	
 
-					if (bManipulating && StaticMeshEditorPtr.Pin()->GetSelectedSocket() == Socket)
+					const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+					if (bManipulating && SelectedSocket == Socket)
 					{
 						//Figure out the text height
 						FTextSizingParameters Parameters(GEngine->GetSmallFont(), 1.0f, 1.0f);
@@ -562,7 +733,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	YPos += 18;
 
 	// Show the number of collision primitives if we are drawing collision.
-	if(EngineShowFlags.Collision && StaticMesh->BodySetup)
+	if(bShowCollision && StaticMesh->BodySetup)
 	{
 		Canvas.DrawShadowedString(
 			6,
@@ -607,20 +778,78 @@ bool FStaticMeshEditorViewportClient::InputKey(FViewport* Viewport, int32 Contro
 
 	if( Event == IE_Pressed) 
 	{
-		if(Key == EKeys::SpaceBar)
+		if (Key == EKeys::W)
 		{
-			if( StaticMeshEditorPtr.Pin()->GetSelectedSocket() && !Widget->IsDragging() )
+			if (!Widget->IsDragging())
 			{
-				const FWidget::EWidgetMode MoveMode = GetWidgetMode();
-				if(MoveMode == FWidget::WM_Rotate)
+				const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+				const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+				if ((SelectedSocket || bSelectedPrim))
 				{
 					WidgetMode = FWidget::WM_Translate;
+					Invalidate();
 				}
-				else if(MoveMode == FWidget::WM_Translate)
+			}
+			bHandled = true;
+		}
+		else if (Key == EKeys::E)
+		{
+			if (!Widget->IsDragging())
+			{
+				const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+				const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+				if ((SelectedSocket || bSelectedPrim))
 				{
 					WidgetMode = FWidget::WM_Rotate;
+					Invalidate();
 				}
-				Invalidate();
+			}
+			bHandled = true;
+		}
+		else if (Key == EKeys::R)
+		{
+			if (!Widget->IsDragging())
+			{
+				const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+				if ((bSelectedPrim))	// Sockets don't support scaling
+				{
+					WidgetMode = FWidget::WM_Scale;
+					Invalidate();
+				}
+			}
+			bHandled = true;
+		}
+		else if(Key == EKeys::SpaceBar)
+		{
+			if(!Widget->IsDragging())
+			{
+				const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+				const bool bSelectedPrim = StaticMeshEditorPtr.Pin()->HasSelectedPrims();
+				if ((SelectedSocket || bSelectedPrim))
+				{
+					const FWidget::EWidgetMode MoveMode = GetWidgetMode();
+					if(MoveMode == FWidget::WM_Rotate)
+					{
+						// Sockets don't support scaling
+						if (bSelectedPrim)
+						{
+							WidgetMode = FWidget::WM_Scale;
+						}
+						else
+						{
+							WidgetMode = FWidget::WM_Translate;
+						}
+					}
+					else if(MoveMode == FWidget::WM_Scale)
+					{
+						WidgetMode = FWidget::WM_Translate;
+					}
+					else if(MoveMode == FWidget::WM_Translate)
+					{
+						WidgetMode = FWidget::WM_Rotate;
+					}
+					Invalidate();
+				}
 			}
 			bHandled = true;
 		}
@@ -645,28 +874,68 @@ bool FStaticMeshEditorViewportClient::InputAxis(FViewport* Viewport, int32 Contr
 
 void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	if( HitProxy && HitProxy->IsA( HSMESocketProxy::StaticGetType() ) )
+	const bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
+
+	bool ClearSelectedSockets = true;
+	bool ClearSelectedPrims = true;
+	bool ClearSelectedEdges = true;
+
+	if( HitProxy )
 	{
-		HSMESocketProxy* SocketProxy = (HSMESocketProxy*)HitProxy;
-
-		UStaticMeshSocket* Socket = NULL;
-
-		if(SocketProxy->SocketIndex < StaticMesh->Sockets.Num())
+		if(HitProxy->IsA( HSMESocketProxy::StaticGetType() ) )
 		{
-			Socket = StaticMesh->Sockets[SocketProxy->SocketIndex];
-		}
+			HSMESocketProxy* SocketProxy = (HSMESocketProxy*)HitProxy;
 
-		if(Socket)
+			UStaticMeshSocket* Socket = NULL;
+
+			if(SocketProxy->SocketIndex < StaticMesh->Sockets.Num())
+			{
+				Socket = StaticMesh->Sockets[SocketProxy->SocketIndex];
+			}
+
+			if(Socket)
+			{
+				StaticMeshEditorPtr.Pin()->SetSelectedSocket(Socket);
+			}
+
+			ClearSelectedSockets = false;
+		}
+		else if (HitProxy->IsA(HSMECollisionProxy::StaticGetType()) && StaticMesh->BodySetup)
 		{
-			StaticMeshEditorPtr.Pin()->SetSelectedSocket(Socket);
-		}
-		
+			HSMECollisionProxy* CollisionProxy = (HSMECollisionProxy*)HitProxy;			
 
-		Invalidate();
+			if (StaticMeshEditorPtr.Pin()->IsSelectedPrim(CollisionProxy->PrimData))
+			{
+				if (!bCtrlDown)
+				{
+					StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
+					StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData);
+				}
+				else
+				{
+					StaticMeshEditorPtr.Pin()->RemoveSelectedPrim(CollisionProxy->PrimData);
+				}
+			}
+			else
+			{
+				if (!bCtrlDown)
+				{
+					StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
+				}
+				StaticMeshEditorPtr.Pin()->AddSelectedPrim(CollisionProxy->PrimData);
+			}
+
+			// Force the widget to translate, if not already set
+			if (WidgetMode == FWidget::WM_None)
+			{
+				WidgetMode = FWidget::WM_Translate;
+			}
+
+			ClearSelectedPrims = false;
+		}
 	}
-	else if(!HitProxy)
+	else
 	{
-		const bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 		const bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 
 		if(!bCtrlDown && !bShiftDown)
@@ -865,9 +1134,24 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 							}
 						}
 					}
+
+					ClearSelectedEdges = false;
 				}
 			}
 		}
+	}
+
+	if (ClearSelectedSockets && StaticMeshEditorPtr.Pin()->GetSelectedSocket())
+	{
+		StaticMeshEditorPtr.Pin()->SetSelectedSocket(NULL);
+	}
+	if (ClearSelectedPrims)
+	{
+		StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
+	}
+	if (ClearSelectedEdges)
+	{
+		SelectedEdgeIndices.Empty();
 	}
 
 	Invalidate();
@@ -991,6 +1275,18 @@ bool FStaticMeshEditorViewportClient::IsSetShowBinormalsChecked() const
 	return bDrawBinormals;
 }
 
+void FStaticMeshEditorViewportClient::SetShowWireframeCollision()
+{
+	bShowCollision = !bShowCollision;
+	StaticMeshEditorPtr.Pin()->ClearSelectedPrims();
+	Invalidate();
+}
+
+bool FStaticMeshEditorViewportClient::IsSetShowWireframeCollisionChecked() const
+{
+	return bShowCollision;
+}
+
 void FStaticMeshEditorViewportClient::SetShowSockets()
 {
 	bShowSockets = !bShowSockets;
@@ -1030,9 +1326,14 @@ TSet< int32 >& FStaticMeshEditorViewportClient::GetSelectedEdges()
 
 void FStaticMeshEditorViewportClient::OnSocketSelectionChanged( UStaticMeshSocket* SelectedSocket )
 {
-	if( SelectedSocket && WidgetMode == FWidget::WM_None )
+	if (SelectedSocket)
 	{
-		WidgetMode = FWidget::WM_Translate;
+		SelectedEdgeIndices.Empty();
+
+		if (WidgetMode == FWidget::WM_None || WidgetMode == FWidget::WM_Scale)
+		{
+			WidgetMode = FWidget::WM_Translate;
+		}
 	}
 
 	Invalidate();

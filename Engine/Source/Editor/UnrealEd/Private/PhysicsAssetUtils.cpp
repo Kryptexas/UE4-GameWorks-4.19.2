@@ -313,36 +313,38 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	if(Params.GeomType == EFG_Box)
 	{
 		// Add a new box geometry to this body the size of the bounding box.
-		int32 ex = bs->AggGeom.BoxElems.AddZeroed();
-		FKBoxElem* be = &bs->AggGeom.BoxElems[ex];
+		FKBoxElem BoxElem;
 
-		be->SetTransform( FTransform( ElemTM ) );
+		BoxElem.SetTransform(FTransform(ElemTM));
 
-		be->X = BoxExtent.X * 2.0f * 1.01f; // Side Lengths (add 1% to avoid graphics glitches)
-		be->Y = BoxExtent.Y * 2.0f * 1.01f;
-		be->Z = BoxExtent.Z * 2.0f * 1.01f;	
+		BoxElem.X = BoxExtent.X * 2.0f * 1.01f; // Side Lengths (add 1% to avoid graphics glitches)
+		BoxElem.Y = BoxExtent.Y * 2.0f * 1.01f;
+		BoxElem.Z = BoxExtent.Z * 2.0f * 1.01f;
+
+		bs->AggGeom.BoxElems.Add(BoxElem);
 	}
 	else if (Params.GeomType == EFG_Sphere)
 	{
-		int32 sx = bs->AggGeom.SphereElems.AddZeroed();
-		FKSphereElem* se = &bs->AggGeom.SphereElems[sx];
+		FKSphereElem SphereElem;
 
-		se->Center = ElemTM.GetOrigin();
-		se->Radius = BoxExtent.GetMax() * 1.01f;
+		SphereElem.Center = ElemTM.GetOrigin();
+		SphereElem.Radius = BoxExtent.GetMax() * 1.01f;
+
+		bs->AggGeom.SphereElems.Add(SphereElem);
 	}
 	// Deal with creating a single convex hull
 	else if (Params.GeomType == EFG_SingleConvexHull)
 	{
-		int32 ex = bs->AggGeom.ConvexElems.Add(FKConvexElem());
-		FKConvexElem* ce = &bs->AggGeom.ConvexElems[ex];
+		FKConvexElem ConvexElem;
 
 		// Add all of the vertices for this bone to the convex element
 		for( int32 index=0; index<BoneInfo->Positions.Num(); index++ )
 		{
-			ce->VertexData.Add( BoneInfo->Positions[index] );
+			ConvexElem.VertexData.Add(BoneInfo->Positions[index]);
 		}
+		ConvexElem.UpdateElemBox();
 
-		ce->UpdateElemBox();		
+		bs->AggGeom.ConvexElems.Add(ConvexElem);
 	}
 	else if (Params.GeomType == EFG_MultiConvexHull)
 	{
@@ -408,13 +410,15 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	}
 	else
 	{
-		int32 sx = bs->AggGeom.SphylElems.AddZeroed();
-		FKSphylElem* se = &bs->AggGeom.SphylElems[sx];
+		
+		FKSphylElem SphylElem;
 
-		se->SetTransform( FTransform( ElemTM ) );
+		SphylElem.SetTransform(FTransform(ElemTM));
 
-		se->Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
-		se->Length = BoxExtent.Z * 1.01f;
+		SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
+		SphylElem.Length = BoxExtent.Z * 1.01f;
+
+		bs->AggGeom.SphylElems.Add(SphylElem);
 	}
 }
 

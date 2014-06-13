@@ -67,50 +67,51 @@ struct FKConvexElem
 	UPROPERTY()
 	FTransform Transform;
 
-		/** Convex mesh for this body, created from cooked data in CreatePhysicsMeshes */
-		physx::PxConvexMesh*   ConvexMesh;	
+	/** Convex mesh for this body, created from cooked data in CreatePhysicsMeshes */
+	physx::PxConvexMesh*   ConvexMesh;	
 
-		/** Convex mesh for this body, flipped across X, created from cooked data in CreatePhysicsMeshes */
-		physx::PxConvexMesh*   ConvexMeshNegX;
+	/** Convex mesh for this body, flipped across X, created from cooked data in CreatePhysicsMeshes */
+	physx::PxConvexMesh*   ConvexMeshNegX;
 
-		FKConvexElem() 
-		: ElemBox(0)
-		, Transform(FTransform::Identity)
-		, ConvexMesh(NULL)
-		, ConvexMeshNegX(NULL)
-		{}
+	FKConvexElem() 
+	: ElemBox(0)
+	, Transform(FTransform::Identity)
+	, ConvexMesh(NULL)
+	, ConvexMeshNegX(NULL)
+	{}
 
-		ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color);
-		void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const;
+	void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
 
-		/** Reset the hull to empty all arrays */
-		ENGINE_API void	Reset();
+	/** Reset the hull to empty all arrays */
+	ENGINE_API void	Reset();
 
-		/** Updates internal ElemBox based on current value of VertexData */
-		ENGINE_API void	UpdateElemBox();
+	/** Updates internal ElemBox based on current value of VertexData */
+	ENGINE_API void	UpdateElemBox();
 
-		/** Calculate a bounding box for this convex element with the specified transform and scale */
-		FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D);		
+	/** Calculate a bounding box for this convex element with the specified transform and scale */
+	ENGINE_API FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D) const;
 
-		/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
-		bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
+	/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
+	bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
 
-		/** Returns the volume of this element */
-		float GetVolume(const FVector& Scale) const;
+	/** Returns the volume of this element */
+	float GetVolume(const FVector& Scale) const;
 
-		FTransform GetTransform() const
-		{
-			return Transform;
-		};
+	FTransform GetTransform() const
+	{
+		return Transform;
+	};
 
-		void SetTransform( const FTransform& InTransform )
-		{
-			ensure(InTransform.IsValid());
-			Transform = InTransform;
-		}
+	void SetTransform( const FTransform& InTransform )
+	{
+		ensure(InTransform.IsValid());
+		Transform = InTransform;
+	}
 
-		friend FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem);
+	friend FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem);
 	
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Sphere shape used for collision */
@@ -156,11 +157,19 @@ struct FKSphereElem
 		return FTransform( Center );
 	};
 
+	void SetTransform(const FTransform& InTransform)
+	{
+		ensure(InTransform.IsValid());
+		Center = InTransform.GetLocation();
+	}
+
 	FORCEINLINE float GetVolume(const FVector& Scale) const { return 1.3333f * PI * FMath::Pow(Radius * Scale.GetMin(), 3); }
 	
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Box shape used for collision */
@@ -240,9 +249,11 @@ struct FKBoxElem
 
 	FORCEINLINE float GetVolume(const FVector& Scale) const { float MinScale = Scale.GetMin(); return (X * MinScale) * (Y * MinScale) * (Z * MinScale); }
 
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Capsule shape used for collision */
@@ -310,9 +321,11 @@ struct FKSphylElem
 
 	FORCEINLINE float GetVolume(const FVector& Scale) const { float ScaledRadius = Radius * Scale.GetMin(); return PI * FMath::Square(ScaledRadius) * ( 1.3333f * ScaledRadius + (Length * Scale.GetMin())); }
 
-	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color);
-	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy);
-	FBox CalcAABB(const FTransform& BoneTM, float Scale);
+	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FColor Color) const;
+	ENGINE_API void	DrawElemSolid(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, float Scale, const FMaterialRenderProxy* MaterialRenderProxy) const;
+	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+
+	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
 
 /** Container for an aggregate of collision shapes */
@@ -364,19 +377,19 @@ struct ENGINE_API FKAggregateGeom
 	/** Release the RenderInfo (if its there) and safely clean up any resources. Call on the game thread. */
 	void FreeRenderInfo();
 
-	FBox CalcAABB(const FTransform& Transform);
+	FBox CalcAABB(const FTransform& Transform) const;
 
 	/**
-		* Calculates a tight box-sphere bounds for the aggregate geometry; this is more expensive than CalcAABB
-		* (tight meaning the sphere may be smaller than would be required to encompass the AABB, but all individual components lie within both the box and the sphere)
-		*
-		* @param Output The output box-sphere bounds calculated for this set of aggregate geometry
-		*	@param LocalToWorld Transform
-		*/
-	void CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld);
+	 * Calculates a tight box-sphere bounds for the aggregate geometry; this is more expensive than CalcAABB
+	 * (tight meaning the sphere may be smaller than would be required to encompass the AABB, but all individual components lie within both the box and the sphere)
+	 *
+	 *  @param Output The output box-sphere bounds calculated for this set of aggregate geometry
+	 *  @param LocalToWorld Transform
+	 */
+	void CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld) const;
 
 	/** Returns the volume of this element */
-	float GetVolume(const FVector& Scale) const;
+	float GetVolume(const FVector& Scale3D) const;
 };
 
 UCLASS(hidecategories=Object, MinimalAPI, dependson=BodyInstance)
@@ -484,6 +497,9 @@ public:
 	virtual void FinishDestroy() OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
+#if WITH_EDITOR
+	virtual void PostEditUndo() OVERRIDE;
+#endif // WITH_EDITOR
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
 	// End UObject interface.
 

@@ -411,14 +411,13 @@ void AddBoxGeomFromTris( const TArray<FPoly>& Tris, FKAggregateGeom* AggGeom, co
 	BoxTM.SetOrigin( Box.GetCenter() );
 
 	// Allocate box in array
-	int32 NewIndex = AggGeom->BoxElems.AddZeroed();
-	FKBoxElem* BoxElem = &AggGeom->BoxElems[NewIndex];
-
-	BoxElem->SetTransform( FTransform( BoxTM ) );	
+	FKBoxElem BoxElem;
+	BoxElem.SetTransform( FTransform( BoxTM ) );	
 	// distance between parallel planes is box edge lengths.
-	BoxElem->X = FMath::Abs(Planes[0].PlaneDist[0] - Planes[0].PlaneDist[1]);
-	BoxElem->Y = FMath::Abs(Planes[1].PlaneDist[0] - Planes[1].PlaneDist[1]);
-	BoxElem->Z = FMath::Abs(Planes[2].PlaneDist[0] - Planes[2].PlaneDist[1]);
+	BoxElem.X = FMath::Abs(Planes[0].PlaneDist[0] - Planes[0].PlaneDist[1]);
+	BoxElem.Y = FMath::Abs(Planes[1].PlaneDist[0] - Planes[1].PlaneDist[1]);
+	BoxElem.Z = FMath::Abs(Planes[2].PlaneDist[0] - Planes[2].PlaneDist[1]);
+	AggGeom->BoxElems.Add(BoxElem);
 }
 
 /**
@@ -483,12 +482,10 @@ void AddSphereGeomFromVerts( const TArray<FVector>& Verts, FKAggregateGeom* AggG
 	}
 
 	// Allocate sphere in array
-	int32 NewIndex = AggGeom->SphereElems.AddZeroed();
-	FKSphereElem* SphereElem = &AggGeom->SphereElems[NewIndex];
-
-	SphereElem->Center = Center;
-
-	SphereElem->Radius = Radius;
+	FKSphereElem SphereElem;
+	SphereElem.Center = Center;
+	SphereElem.Radius = Radius;
+	AggGeom->SphereElems.Add(SphereElem);
 }
 
 /** Utility for adding one convex hull from the given verts */

@@ -38,6 +38,7 @@ UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
 	BuildScale_DEPRECATED = 1.0f;
 	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
+	SetFlags(RF_Transactional);
 }
 
 void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
@@ -843,6 +844,20 @@ void UBodySetup::PostInitProperties()
 	}
 }
 
+#if WITH_EDITOR
+void UBodySetup::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	// If we have any convex elems, ensure they are recreated whenever anything is modified!
+	if(AggGeom.ConvexElems.Num() > 0)
+	{
+		InvalidatePhysicsData();
+		CreatePhysicsMeshes();
+	}
+}
+#endif // WITH_EDITOR
+
 SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 {
 	SIZE_T ResourceSize = 0;
@@ -951,6 +966,13 @@ int32 FKAggregateGeom::GetElementCount(int32 Type) const
 	}
 }
 
+void FKConvexElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	FTransform Transform = GetTransform();
+	Transform.SetScale3D(Transform.GetScale3D() + DeltaSize);
+	SetTransform(Transform);
+}
+
 // References: 
 // http://amp.ece.cmu.edu/Publication/Cha/icip01_Cha.pdf
 // http://stackoverflow.com/questions/1406029/how-to-calculate-the-volume-of-a-3d-mesh-object-the-surface-of-which-is-made-up
@@ -1007,6 +1029,18 @@ void FKSphereElem::Serialize( const FArchive& Ar )
 	}
 }
 
+void FKSphereElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	// Find element with largest magnitude, btu preserve sign.
+	float DeltaRadius = DeltaSize.X;
+	if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
+		DeltaRadius = DeltaSize.Y;
+	else if (FMath::Abs(DeltaSize.Z) > FMath::Abs(DeltaRadius))
+		DeltaRadius = DeltaSize.Z;
+
+	Radius = FMath::Max(Radius + DeltaRadius, MinSize);
+}
+
 void FKBoxElem::Serialize( const FArchive& Ar )
 {
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PHYSICS_TRANSFORMS )
@@ -1016,6 +1050,14 @@ void FKBoxElem::Serialize( const FArchive& Ar )
 	}
 }
 
+void FKBoxElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	// Sizes are lengths, so we double the delta to get similar increase in size.
+	X = FMath::Max(X + 2 * DeltaSize.X, MinSize);
+	Y = FMath::Max(Y + 2 * DeltaSize.Y, MinSize);
+	Z = FMath::Max(Z + 2 * DeltaSize.Z, MinSize);
+}
+
 void FKSphylElem::Serialize( const FArchive& Ar )
 {
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REFACTOR_PHYSICS_TRANSFORMS )
@@ -1023,6 +1065,25 @@ void FKSphylElem::Serialize( const FArchive& Ar )
 		Center = TM_DEPRECATED.GetOrigin();
 		Orientation = TM_DEPRECATED.ToQuat();
 	}
+}
+
+void FKSphylElem::ScaleElem(FVector DeltaSize, float MinSize)
+{
+	float DeltaRadius = DeltaSize.X;
+	if (FMath::Abs(DeltaSize.Y) > FMath::Abs(DeltaRadius))
+	{
+		DeltaRadius = DeltaSize.Y;
+	}
+
+	float DeltaHeight = DeltaSize.Z;
+	float radius = FMath::Max(Radius + DeltaRadius, MinSize);
+	float length = Length + DeltaHeight;
+
+	length += Radius - radius;
+	length = FMath::Max(0.f, length);
+
+	Radius = radius;
+	Length = length;
 }
 
 class UPhysicalMaterial* UBodySetup::GetPhysMaterial() const

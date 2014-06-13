@@ -1870,7 +1870,7 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 
 			if (PrimitiveType == KPT_Sphere)
 			{
-				NewPrimIndex = BodySetup->AggGeom.SphereElems.AddZeroed();
+				NewPrimIndex = BodySetup->AggGeom.SphereElems.Add(FKSphereElem());
 				NewSelection[i].PrimitiveType = KPT_Sphere;
 				NewSelection[i].PrimitiveIndex = NewPrimIndex;
 				FKSphereElem* SphereElem = &BodySetup->AggGeom.SphereElems[NewPrimIndex];
@@ -1891,7 +1891,7 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 			}
 			else if (PrimitiveType == KPT_Box)
 			{
-				NewPrimIndex = BodySetup->AggGeom.BoxElems.AddZeroed();
+				NewPrimIndex = BodySetup->AggGeom.BoxElems.Add(FKBoxElem());
 				NewSelection[i].PrimitiveType = KPT_Box;
 				NewSelection[i].PrimitiveIndex = NewPrimIndex;
 				FKBoxElem* BoxElem = &BodySetup->AggGeom.BoxElems[NewPrimIndex];
@@ -1916,7 +1916,7 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 			}
 			else if (PrimitiveType == KPT_Sphyl)
 			{
-				NewPrimIndex = BodySetup->AggGeom.SphylElems.AddZeroed();
+				NewPrimIndex = BodySetup->AggGeom.SphylElems.Add(FKSphylElem());
 				NewSelection[i].PrimitiveType = KPT_Sphyl;
 				NewSelection[i].PrimitiveIndex = NewPrimIndex;
 				FKSphylElem* SphylElem = &BodySetup->AggGeom.SphylElems[NewPrimIndex];

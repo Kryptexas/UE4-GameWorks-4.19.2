@@ -38,7 +38,7 @@ void UBoxComponent::UpdateBodySetup()
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
-		ShapeBodySetup->AggGeom.BoxElems.AddZeroed();
+		ShapeBodySetup->AggGeom.BoxElems.Add(FKBoxElem());
 	}
 
 	check(ShapeBodySetup->AggGeom.BoxElems.Num() == 1);

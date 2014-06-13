@@ -124,13 +124,13 @@ void FPhATSharedData::Initialize()
 		UBodySetup* BodySetup = PhysicsAsset->BodySetup[i];
 		if (BodySetup->AggGeom.GetElementCount() == 0)
 		{
-			BodySetup->AggGeom.BoxElems.AddZeroed(1);
+			FKBoxElem BoxElem;
+			BoxElem.SetTransform(FTransform::Identity);
+			BoxElem.X = 15.f;
+			BoxElem.Y = 15.f;
+			BoxElem.Z = 15.f;
+			BodySetup->AggGeom.BoxElems.Add(BoxElem);
 			check(BodySetup->AggGeom.BoxElems.Num() == 1);
-			FKBoxElem& Box = BodySetup->AggGeom.BoxElems[0];
-			Box.SetTransform( FTransform::Identity );
-			Box.X = 15.f;
-			Box.Y = 15.f;
-			Box.Z = 15.f;
 
 			bFoundEmptyShape = true;
 		}

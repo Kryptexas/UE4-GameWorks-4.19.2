@@ -10,16 +10,6 @@
 #define RCP_SQRT3 (0.57735026918962576450914878050196f)
 
 
-const FVector KDopDir6[6] = 
-{
-	FVector( 1.f, 0.f, 0.f),
-	FVector(-1.f, 0.f, 0.f),
-	FVector( 0.f, 1.f, 0.f),
-	FVector( 0.f,-1.f, 0.f),
-	FVector( 0.f, 0.f, 1.f),
-	FVector( 0.f, 0.f,-1.f)
-};
-
 const FVector KDopDir10X[10] = 
 {
 	FVector( 1.f, 0.f, 0.f),
@@ -115,8 +105,10 @@ const FVector KDopDir26[26] =
 };
 
 // Utilities
-UNREALED_API void GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh,TArray<FVector> &dirs);
-UNREALED_API void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh);
+UNREALED_API int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, TArray<FVector> &dirs);
+UNREALED_API int32 GenerateBoxAsSimpleCollision(UStaticMesh* StaticMesh);
+UNREALED_API int32 GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh);
+UNREALED_API int32 GenerateSphylAsSimpleCollision(UStaticMesh* StaticMesh);
 
 /**
  * Refresh Collision Change
@@ -124,6 +116,7 @@ UNREALED_API void GenerateSphereAsSimpleCollision(UStaticMesh* StaticMesh);
  * Collision has been changed, so it will need to recreate physics state to reflect it
  * Utilities functions to propagate BodySetup change for StaticMesh
  *
- * @param	InStaticMesh	StaticMesh that collision has been changed for
+ * @param	StaticMesh	StaticMesh that collision has been changed for
  */
-UNREALED_API void RefreshCollisionChange(const UStaticMesh * InStaticMesh);
+UNREALED_API void RefreshCollisionChange(const UStaticMesh * StaticMesh);
+	

@@ -12,6 +12,8 @@ class FStaticMeshEditor : public IStaticMeshEditor, public FGCObject, public FEd
 public:
 	FStaticMeshEditor()
 		: StaticMesh( NULL )
+		, NumLODLevels(0)
+		, MinPrimSize(0.5f)
 	{}
 
 	~FStaticMeshEditor();
@@ -57,6 +59,22 @@ public:
 	virtual void SetSelectedSocket(UStaticMeshSocket* InSelectedSocket) OVERRIDE;
 	virtual void DuplicateSelectedSocket() OVERRIDE;
 	virtual void RequestRenameSelectedSocket() OVERRIDE;
+
+	virtual bool IsPrimValid(const FPrimData& InPrimData) const override;
+	virtual bool HasSelectedPrims() const;
+	virtual void AddSelectedPrim(const FPrimData& InPrimData) override;
+	virtual void RemoveSelectedPrim(const FPrimData& InPrimData) override;
+	virtual void RemoveInvalidPrims() override;
+	virtual bool IsSelectedPrim(const FPrimData& InPrimData) const override;
+	virtual void ClearSelectedPrims() override;
+	virtual void DuplicateSelectedPrims(const FVector* InOffset) override;
+	virtual void TranslateSelectedPrims(const FVector& InDrag) override;
+	virtual void RotateSelectedPrims(const FRotator& InRot) override;
+	virtual void ScaleSelectedPrims(const FVector& InScale) override;
+	virtual bool CalcSelectedPrimsAABB(FBox &OutBox) const override;
+	virtual bool GetLastSelectedPrimTransform(FTransform& OutTransform) const;
+	FTransform GetPrimTransform(const FPrimData& InPrimData) const;
+	void SetPrimTransform(const FPrimData& InPrimData, const FTransform& InPrimTransform) const;
 
 	virtual int32 GetNumTriangles( int32 LODLevel = 0 ) const OVERRIDE;
 	virtual int32 GetNumVertices( int32 LODLevel = 0 ) const OVERRIDE;
@@ -129,8 +147,14 @@ private:
 	/** Helper function for generating K-DOP collision geometry. */
 	void GenerateKDop(const FVector* Directions, uint32 NumDirections);
 
+	/** Callback for creating box collision. */
+	void OnCollisionBox();
+
 	/** Callback for creating sphere collision. */
 	void OnCollisionSphere();
+
+	/** Callback for creating sphyl collision. */
+	void OnCollisionSphyl();
 
 	/** Event for exporting the light map channel of a static mesh to an intermediate file for Max/Maya */
 	void OnExportLightmapMesh( bool IsFBX );
@@ -165,11 +189,26 @@ private:
 	/** Rebuilds the UV Channel combo list and attempts to set it to the same channel. */
 	void RegenerateUVChannelComboList();
 
+	/** Delete whats currently selected */
+	void DeleteSelected();
+
+	/** Whether we currently have any selected that can be deleted */
+	bool CanDeleteSelected() const;
+
 	/** Delete the currently selected sockets */
 	void DeleteSelectedSockets();
 
-	/** Whether we currently have selected sockets */
-	bool HasSelectedSockets() const;
+	/** Delete the currently selected prims */
+	void DeleteSelectedPrims();
+
+	/** Duplicate whats currently selected */
+	void DuplicateSelected();
+
+	/** Whether we currently have any selected that can be duplicated */
+	bool CanDuplicateSelected() const;
+
+	/** Whether we currently have any selected that can be renamed */
+	bool CanRenameSelected() const;
 
 	/** Handler for when FindInExplorer is selected */
 	void ExecuteFindInExplorer();
@@ -255,6 +294,12 @@ private:
 
 	/** Delegates called after an undo operation for child widgets to refresh */
 	FOnPostUndoMulticaster OnPostUndo;	
+
+	/** Information on the selected collision primitives */
+	TArray<FPrimData> SelectedPrims;
+
+	/** Misc consts */
+	const float	MinPrimSize;
 
 	/**	The tab ids for all the tabs used */
 	static const FName ViewportTabId;

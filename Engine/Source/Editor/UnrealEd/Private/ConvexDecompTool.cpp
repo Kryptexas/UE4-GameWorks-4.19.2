@@ -67,8 +67,7 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 	for(int32 HullIdx=0; HullIdx<NumHulls; HullIdx++)
 	{
 		// Create a new hull in the aggregate geometry
-		const int32 NewConvexIndex = InBodySetup->AggGeom.ConvexElems.Add(FKConvexElem());
-		FKConvexElem& Convex = InBodySetup->AggGeom.ConvexElems[NewConvexIndex];
+		FKConvexElem ConvexElem;
 
 		// Read out each hull vertex
 		const HACD_API::Hull* Hull = HAPI->getHull(HullIdx);
@@ -76,10 +75,12 @@ void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVert
 		{
 			FVector* V = (FVector*)(Hull->mVertices + (VertIdx*3));
 
-			Convex.VertexData.Add(*V);
+			ConvexElem.VertexData.Add(*V);
 		}
 
-		Convex.UpdateElemBox();
+		ConvexElem.UpdateElemBox();
+
+		InBodySetup->AggGeom.ConvexElems.Add(ConvexElem);
 	}
 
 	InBodySetup->InvalidatePhysicsData(); // update GUID
