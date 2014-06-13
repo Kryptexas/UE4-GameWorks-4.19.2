@@ -85,11 +85,11 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 		}
 
 		// perform test for each line pair
-		for (int32 iLineA = 0; iLineA < LineADirs.Num(); iLineA++)
+		for (int32 LineAIndex = 0; LineAIndex < LineADirs.Num(); LineAIndex++)
 		{
-			for (int32 iLineB = 0; iLineB < LineBDirs.Num(); iLineB++)
+			for (int32 LineBIndex = 0; LineBIndex < LineBDirs.Num(); LineBIndex++)
 			{
-				const float DotValue = FVector::DotProduct(LineADirs[iLineA], LineBDirs[iLineB]);
+				const float DotValue = FVector::DotProduct(LineADirs[LineAIndex], LineBDirs[LineBIndex]);
 				It.SetScore(TestPurpose, FilterType, DotValue, MinThresholdValue, MaxThresholdValue);
 			}
 		}
@@ -109,7 +109,7 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 		QueryInstance.PrepareContext(LineFrom, ContextLocationFrom);
 	}
 	
-	for (int32 i = 0; i < ContextLocationFrom.Num(); i++)
+	for (int32 FromIndex = 0; FromIndex < ContextLocationFrom.Num(); FromIndex++)
 	{
 		TArray<FVector> ContextLocationTo;
 		if (IsContextPerItem(LineTo))
@@ -121,9 +121,9 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 			QueryInstance.PrepareContext(LineTo, ContextLocationTo);
 		}
 		
-		for (int32 i2 = 0; i2 < ContextLocationTo.Num(); i2++)
+		for (int32 ToIndex = 0; ToIndex < ContextLocationTo.Num(); ToIndex++)
 		{
-			const FVector Dir = (ContextLocationTo[i2] - ContextLocationFrom[i]).SafeNormal();
+			const FVector Dir = (ContextLocationTo[ToIndex] - ContextLocationFrom[FromIndex]).SafeNormal();
 			Directions.Add(Dir);
 		}
 	}
@@ -142,9 +142,9 @@ void UEnvQueryTest_Dot::GatherLineDirections(TArray<FVector>& Directions, struct
 		QueryInstance.PrepareContext(LineDirection, ContextRotations);
 	}
 
-	for (int32 i = 0; i < ContextRotations.Num(); i++)
+	for (int32 RotationIndex = 0; RotationIndex < ContextRotations.Num(); RotationIndex++)
 	{
-		const FVector Dir = ContextRotations[i].Vector();
+		const FVector Dir = ContextRotations[RotationIndex].Vector();
 		Directions.Add(Dir);
 	}
 }

@@ -1118,17 +1118,17 @@ bool UPathFollowingComponent::IsBlocked() const
 	if (LocationSamples.Num() == BlockDetectionSampleCount && BlockDetectionSampleCount > 0)
 	{
 		FVector Center = FVector::ZeroVector;
-		for (int32 i = 0; i < LocationSamples.Num(); i++)
+		for (int32 SampleIndex = 0; SampleIndex < LocationSamples.Num(); SampleIndex++)
 		{
-			Center += *LocationSamples[i];
+			Center += *LocationSamples[SampleIndex];
 		}
 
 		Center /= LocationSamples.Num();
 		bBlocked = true;
 
-		for (int32 i = 0; i < LocationSamples.Num(); i++)
+		for (int32 SampleIndex = 0; SampleIndex < LocationSamples.Num(); SampleIndex++)
 		{
-			const float TestDistance = FVector::DistSquared(*LocationSamples[i], Center);
+			const float TestDistance = FVector::DistSquared(*LocationSamples[SampleIndex], Center);
 			if (TestDistance > BlockDetectionDistance)
 			{
 				bBlocked = false;
@@ -1409,10 +1409,10 @@ FString UPathFollowingComponent::GetDebugString() const
 	GetDebugStringTokens(Tokens, Flags);
 
 	FString Desc;
-	for (int32 i = 0; i < Tokens.Num(); i++)
+	for (int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++)
 	{
-		Desc += Tokens[i];
-		Desc += (Flags.IsValidIndex(i) && Flags[i] == EPathFollowingDebugTokens::ParamName) ? TEXT(": ") : TEXT(", ");
+		Desc += Tokens[TokenIndex];
+		Desc += (Flags.IsValidIndex(TokenIndex) && Flags[TokenIndex] == EPathFollowingDebugTokens::ParamName) ? TEXT(": ") : TEXT(", ");
 	}
 
 	return Desc;

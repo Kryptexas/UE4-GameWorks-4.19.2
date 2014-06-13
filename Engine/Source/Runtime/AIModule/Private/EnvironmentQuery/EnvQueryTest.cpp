@@ -85,9 +85,9 @@ void UEnvQueryTest::NormalizeItemScores(struct FEnvQueryInstance& QueryInstance)
 		(ClampMaxType == EEnvQueryTestClamping::None)
 	   )
 	{
-		for (int32 iItem = 0; iItem < QueryInstance.Items.Num(); iItem++, DetailInfo++)
+		for (int32 ItemIndex = 0; ItemIndex < QueryInstance.Items.Num(); ItemIndex++, DetailInfo++)
 		{
-			if (!QueryInstance.Items[iItem].IsValid())
+			if (!QueryInstance.Items[ItemIndex].IsValid())
 			{
 				continue;
 			}

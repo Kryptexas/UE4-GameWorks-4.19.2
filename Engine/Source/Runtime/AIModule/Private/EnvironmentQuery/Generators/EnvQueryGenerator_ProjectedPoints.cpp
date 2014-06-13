@@ -25,13 +25,13 @@ void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVecto
 
 			if (NavMesh)
 			{
-				for (int32 i = Points.Num() -1; i >= 0; i--)
+				for (int32 PointIndex = Points.Num() -1; PointIndex >= 0; PointIndex--)
 				{
 #if WITH_RECAST
-					const bool bProjected = ProjectNavPointInRange(Points[i], ProjectionData.ExtentX, ProjectionData.ProjectDown, ProjectionData.ProjectUp, NavMesh, NavigationFilter, TempPoints);
+					const bool bProjected = ProjectNavPointInRange(Points[PointIndex], ProjectionData.ExtentX, ProjectionData.ProjectDown, ProjectionData.ProjectUp, NavMesh, NavigationFilter, TempPoints);
 					if (!bProjected)
 					{
-						Points.RemoveAt(i);
+						Points.RemoveAt(PointIndex);
 					}
 #endif
 				}
@@ -41,12 +41,12 @@ void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVecto
 		{
 			const FVector ProjectionExtent(ProjectionData.ExtentX, ProjectionData.ExtentX, ProjectionData.ProjectDown);
 
-			for (int32 i = Points.Num() -1; i >= 0; i--)
+			for (int32 PointIndex = Points.Num() -1; PointIndex >= 0; PointIndex--)
 			{
-				const bool bProjected = ProjectNavPointSimple(Points[i], ProjectionExtent, NavData, NavigationFilter);
+				const bool bProjected = ProjectNavPointSimple(Points[PointIndex], ProjectionExtent, NavData, NavigationFilter);
 				if (!bProjected)
 				{
-					Points.RemoveAt(i);
+					Points.RemoveAt(PointIndex);
 				}
 			}
 		}

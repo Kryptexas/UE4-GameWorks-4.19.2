@@ -79,9 +79,9 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		return;
 	}
 
-	for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+	for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 	{
-		ContextLocations[iContext].Z += ContextZ;
+		ContextLocations[ContextIndex].Z += ContextZ;
 	}
 
 	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
@@ -89,9 +89,9 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		const FVector ItemLocation = GetItemLocation(QueryInstance, *It) + FVector(0,0,ItemZ);
 		AActor* ItemActor = GetItemActor(QueryInstance, *It);
 
-		for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+		for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 		{
-			const bool bHit = TraceFunc.Execute(ItemLocation, ContextLocations[iContext], ItemActor, QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
+			const bool bHit = TraceFunc.Execute(ItemLocation, ContextLocations[ContextIndex], ItemActor, QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
 			It.SetScore(TestPurpose, FilterType, bHit, bWantsHit);
 		}
 	}

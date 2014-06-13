@@ -65,9 +65,9 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
-			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+			for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 			{
-				const float Distance = CalcDistance3D(ItemLocation, ContextLocations[iContext]);
+				const float Distance = CalcDistance3D(ItemLocation, ContextLocations[ContextIndex]);
 				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}
@@ -76,9 +76,9 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
-			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+			for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 			{
-				const float Distance = CalcDistance2D(ItemLocation, ContextLocations[iContext]);
+				const float Distance = CalcDistance2D(ItemLocation, ContextLocations[ContextIndex]);
 				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}
@@ -87,9 +87,9 @@ void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
-			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+			for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 			{
-				const float Distance = CalcDistanceZ(ItemLocation, ContextLocations[iContext]);
+				const float Distance = CalcDistanceZ(ItemLocation, ContextLocations[ContextIndex]);
 				It.SetScore(TestPurpose, FilterType, Distance, MinThresholdValue, MaxThresholdValue);
 			}
 		}

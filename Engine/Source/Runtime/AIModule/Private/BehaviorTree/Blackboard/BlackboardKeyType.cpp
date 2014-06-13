@@ -12,9 +12,9 @@ UBlackboardKeyType::UBlackboardKeyType(const class FPostConstructInitializePrope
 FString UBlackboardKeyType::DescribeValue(const uint8* RawData) const
 {
 	FString DescBytes;
-	for (int32 i = 0; i < ValueSize; i++)
+	for (int32 ValueIndex = 0; ValueIndex < ValueSize; ValueIndex++)
 	{
-		DescBytes += FString::Printf(TEXT("%X"), RawData[i]);
+		DescBytes += FString::Printf(TEXT("%X"), RawData[ValueIndex]);
 	}
 
 	return DescBytes.Len() ? (FString("0x") + DescBytes) : FString("empty");

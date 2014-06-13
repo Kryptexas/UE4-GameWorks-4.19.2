@@ -333,26 +333,26 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		int32 imax = 0;
 		float currentmin = (Points[0] - ViewPoint).SizeSquared();
 		float currentmax = currentmin;
-		for ( int32 i=1; i<4; i++ )
+		for ( int32 PointIndex=1; PointIndex<4; PointIndex++ )
 		{
-			float nextsize = (Points[i] - ViewPoint).SizeSquared();
+			float nextsize = (Points[PointIndex] - ViewPoint).SizeSquared();
 			if (nextsize > currentmax)
 			{
 				currentmax = nextsize;
-				imax = i;
+				imax = PointIndex;
 			}
 			else if (nextsize < currentmin)
 			{
 				currentmin = nextsize;
-				imin = i;
+				imin = PointIndex;
 			}
 		}
 
-		for ( int32 i=0; i<4; i++ )
+		for ( int32 PointIndex=0; PointIndex<4; PointIndex++ )
 		{
-			if	( (i != imin) && (i != imax) )
+			if	( (PointIndex != imin) && (PointIndex != imax) )
 			{
-				bHit = GetWorld()->LineTraceTest(ViewPoint,  Points[i], ECC_Visibility, CollisionParams);
+				bHit = GetWorld()->LineTraceTest(ViewPoint,  Points[PointIndex], ECC_Visibility, CollisionParams);
 				if ( !bHit )
 				{
 					return true;

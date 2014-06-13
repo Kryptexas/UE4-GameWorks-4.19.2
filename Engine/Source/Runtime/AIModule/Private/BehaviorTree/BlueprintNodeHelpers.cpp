@@ -8,9 +8,9 @@ namespace BlueprintNodeHelpers
 	uint16 GetPropertiesMemorySize(const TArray<UProperty*>& PropertyData)
 	{
 		int32 TotalMem = 0;
-		for (int32 i = 0; i < PropertyData.Num(); i++)
+		for (int32 PropertyIndex = 0; PropertyIndex < PropertyData.Num(); PropertyIndex++)
 		{
-			TotalMem += PropertyData[i]->GetSize();
+			TotalMem += PropertyData[PropertyIndex]->GetSize();
 		}
 
 		if (TotalMem > MAX_uint16)
@@ -169,9 +169,9 @@ namespace BlueprintNodeHelpers
 
 	void DescribeRuntimeValues(const UObject* Ob, const TArray<UProperty*>& PropertyData, TArray<FString>& RuntimeValues)
 	{
-		for (int32 i = 0; i < PropertyData.Num(); i++)
+		for (int32 PropertyIndex = 0; PropertyIndex < PropertyData.Num(); PropertyIndex++)
 		{
-			UProperty* TestProperty = PropertyData[i];
+			UProperty* TestProperty = PropertyData[PropertyIndex];
 			const uint8* PropAddr = TestProperty->ContainerPtrToValuePtr<uint8>(Ob);
 
 			RuntimeValues.Add(DescribeProperty(TestProperty, PropAddr));
@@ -192,9 +192,9 @@ namespace BlueprintNodeHelpers
 		{
 			TArray<UBehaviorTreeComponent*> Components;
 			OwningActor->GetComponents(Components);
-			for (int32 i = 0; i < Components.Num(); i++)
+			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 			{
-				UBehaviorTreeComponent* BTComp = Components[i];
+				UBehaviorTreeComponent* BTComp = Components[ComponentIndex];
 				if (BTComp)
 				{
 					const int32 InstanceIdx = BTComp->FindInstanceContainingNode(Node);

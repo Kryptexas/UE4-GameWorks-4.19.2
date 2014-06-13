@@ -64,9 +64,9 @@ void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& 
 	ContextData.RawData.Init(sizeof(FVector) * MultipleDirections.Num());
 
 	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
-	for (int32 i = 0; i < MultipleDirections.Num(); i++)
+	for (int32 DirectionIndex = 0; DirectionIndex < MultipleDirections.Num(); DirectionIndex++)
 	{
-		UEnvQueryItemType_Direction::SetValue(RawData, MultipleDirections[i]);
+		UEnvQueryItemType_Direction::SetValue(RawData, MultipleDirections[DirectionIndex]);
 		RawData += sizeof(FVector);
 	}
 }
@@ -78,9 +78,9 @@ void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& 
 	ContextData.RawData.Init(sizeof(FVector) * MultipleRotations.Num());
 
 	uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
-	for (int32 i = 0; i < MultipleRotations.Num(); i++)
+	for (int32 RotationIndex = 0; RotationIndex < MultipleRotations.Num(); RotationIndex++)
 	{
-		UEnvQueryItemType_Direction::SetValueRot(RawData, MultipleRotations[i]);
+		UEnvQueryItemType_Direction::SetValueRot(RawData, MultipleRotations[RotationIndex]);
 		RawData += sizeof(FVector);
 	}
 }

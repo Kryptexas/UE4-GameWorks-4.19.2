@@ -64,11 +64,11 @@ int32 UBlackboardData::GetNumKeys() const
 
 FBlackboard::FKey UBlackboardData::InternalGetKeyID(const FName& KeyName, EKeyLookupMode LookupMode) const
 {
-	for (int32 i = 0; i < Keys.Num(); i++)
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); KeyIndex++)
 	{
-		if (Keys[i].EntryName == KeyName)
+		if (Keys[KeyIndex].EntryName == KeyName)
 		{
-			return i + FirstKeyID;
+			return KeyIndex + FirstKeyID;
 		}
 	}
 
@@ -79,13 +79,13 @@ bool UBlackboardData::IsValid() const
 {
 	if (Parent)
 	{
-		for (int32 i = 0; i < Keys.Num(); i++)
+		for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); KeyIndex++)
 		{
-			const FBlackboard::FKey KeyID = Parent->InternalGetKeyID(Keys[i].EntryName, CheckParentKeys);
+			const FBlackboard::FKey KeyID = Parent->InternalGetKeyID(Keys[KeyIndex].EntryName, CheckParentKeys);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
 				UE_LOG(LogBehaviorTree, Warning, TEXT("Blackboard asset (%s) has duplicated key (%s) in parent chain!"),
-					*GetName(), *Keys[i].EntryName.ToString());
+					*GetName(), *Keys[KeyIndex].EntryName.ToString());
 
 				return false;
 			}
@@ -118,17 +118,17 @@ void UBlackboardData::PostEditChangeProperty(struct FPropertyChangedEvent& Prope
 
 static bool ContainsKeyName(FName KeyName, const TArray<FBlackboardEntry>& Keys, const TArray<FBlackboardEntry>& ParentKeys)
 {
-	for (int32 i = 0; i < Keys.Num(); i++)
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); KeyIndex++)
 	{
-		if (Keys[i].EntryName == KeyName)
+		if (Keys[KeyIndex].EntryName == KeyName)
 		{
 			return true;
 		}
 	}
 
-	for (int32 i = 0; i < ParentKeys.Num(); i++)
+	for (int32 KeyIndex = 0; KeyIndex < ParentKeys.Num(); KeyIndex++)
 	{
-		if (ParentKeys[i].EntryName == KeyName)
+		if (ParentKeys[KeyIndex].EntryName == KeyName)
 		{
 			return true;
 		}
@@ -149,12 +149,12 @@ void UBlackboardData::UpdateParentKeys()
 
 	for (UBlackboardData* It = Parent; It; It = It->Parent)
 	{
-		for (int32 i = 0; i < It->Keys.Num(); i++)
+		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 		{
-			const bool bAlreadyExist = ContainsKeyName(It->Keys[i].EntryName, Keys, ParentKeys);
+			const bool bAlreadyExist = ContainsKeyName(It->Keys[KeyIndex].EntryName, Keys, ParentKeys);
 			if (!bAlreadyExist)
 			{
-				ParentKeys.Add(It->Keys[i]);
+				ParentKeys.Add(It->Keys[KeyIndex]);
 			}
 		}
 	}

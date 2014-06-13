@@ -258,9 +258,9 @@ void UBrainComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 	{
 		for (auto Message : MessagesToProcess)
 		{
-			for (int32 i = 0; i < MessageObservers.Num(); i++)
+			for (int32 ObserverIndex = 0; ObserverIndex < MessageObservers.Num(); ObserverIndex++)
 			{
-				MessageObservers[i]->OnMessage(Message);
+				MessageObservers[ObserverIndex]->OnMessage(Message);
 			}
 		}
 		MessagesToProcess.Reset();

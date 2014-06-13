@@ -120,9 +120,9 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Res
 
 void UBTTask_RunEQSQuery::CollectKeyFilters()
 {
-	for (int32 i = 0; i < UEnvQueryManager::RegisteredItemTypes.Num(); i++)
+	for (int32 TypeIndex = 0; TypeIndex < UEnvQueryManager::RegisteredItemTypes.Num(); TypeIndex++)
 	{
-		UEnvQueryItemType* ItemTypeCDO = (UEnvQueryItemType*)UEnvQueryManager::RegisteredItemTypes[i]->GetDefaultObject();
+		UEnvQueryItemType* ItemTypeCDO = (UEnvQueryItemType*)UEnvQueryManager::RegisteredItemTypes[TypeIndex]->GetDefaultObject();
 		ItemTypeCDO->AddBlackboardFilters(BlackboardKey, this);
 	}
 }

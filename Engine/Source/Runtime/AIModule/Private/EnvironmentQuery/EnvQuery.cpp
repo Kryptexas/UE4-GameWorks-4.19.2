@@ -12,9 +12,9 @@ UEnvQuery::UEnvQuery(const class FPostConstructInitializeProperties& PCIP) : Sup
 
 static bool HasNamedValue(const FName& ParamName, const TArray<FEnvNamedValue>& NamedValues)
 {
-	for (int32 i = 0; i < NamedValues.Num(); i++)
+	for (int32 ValueIndex = 0; ValueIndex < NamedValues.Num(); ValueIndex++)
 	{
-		if (NamedValues[i].ParamName == ParamName)
+		if (NamedValues[ValueIndex].ParamName == ParamName)
 		{
 			return true;
 		}
@@ -47,7 +47,9 @@ static void AddNamedValue(const FName& ParamName, const EEnvQueryParam::Type& Pa
 static void AddNamedValuesFromObject(const UObject* Ob, TArray<FEnvNamedValue>& NamedValues, TArray<FName>& RequiredParams)
 {
 	if (Ob == NULL)
+	{
 		return;
+	}
 
 	for (UProperty* TestProperty = Ob->GetClass()->PropertyLink; TestProperty; TestProperty = TestProperty->PropertyLinkNext)
 	{
@@ -83,24 +85,24 @@ void UEnvQuery::CollectQueryParams(TArray<FEnvNamedValue>& NamedValues) const
 	TArray<FName> RequiredParams;
 
 	// collect all params
-	for (int32 iOption = 0; iOption < Options.Num(); iOption++)
+	for (int32 OptionIndex = 0; OptionIndex < Options.Num(); OptionIndex++)
 	{
-		const UEnvQueryOption* Option = Options[iOption];
+		const UEnvQueryOption* Option = Options[OptionIndex];
 		AddNamedValuesFromObject(Option->Generator, NamedValues, RequiredParams);
 
-		for (int32 iTest = 0; iTest < Option->Tests.Num(); iTest++)
+		for (int32 TestIndex = 0; TestIndex < Option->Tests.Num(); TestIndex++)
 		{
-			const UEnvQueryTest* TestOb = Option->Tests[iTest];
+			const UEnvQueryTest* TestOb = Option->Tests[TestIndex];
 			AddNamedValuesFromObject(TestOb, NamedValues, RequiredParams);
 		}
 	}
 
 	// remove unnecessary params
-	for (int32 i = NamedValues.Num() - 1; i >= 0; i--)
+	for (int32 ValueIndex = NamedValues.Num() - 1; ValueIndex >= 0; ValueIndex--)
 	{
-		if (!RequiredParams.Contains(NamedValues[i].ParamName))
+		if (!RequiredParams.Contains(NamedValues[ValueIndex].ParamName))
 		{
-			NamedValues.RemoveAt(i);
+			NamedValues.RemoveAt(ValueIndex);
 		}
 	}
 }

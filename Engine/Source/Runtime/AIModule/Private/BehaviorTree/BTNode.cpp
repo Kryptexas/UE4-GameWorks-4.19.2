@@ -138,10 +138,10 @@ FString UBTNode::GetRuntimeDescription(const class UBehaviorTreeComponent* Owner
 		NodeOb->DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, RuntimeValues);
 	}
 
-	for (int32 i = 0; i < RuntimeValues.Num(); i++)
+	for (int32 ValueIndex = 0; ValueIndex < RuntimeValues.Num(); ValueIndex++)
 	{
 		Description += TEXT(", ");
-		Description += RuntimeValues[i];
+		Description += RuntimeValues[ValueIndex];
 	}
 
 	return Description;

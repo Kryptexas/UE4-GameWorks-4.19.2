@@ -60,12 +60,12 @@ int32 UBTCompositeNode::GetChildIndex(struct FBehaviorTreeSearchData& SearchData
 
 int32 UBTCompositeNode::GetChildIndex(const class UBTNode* ChildNode) const
 {
-	for (int32 i = 0; i < Children.Num(); i++)
+	for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ChildIndex++)
 	{
-		if (Children[i].ChildComposite == ChildNode ||
-			Children[i].ChildTask == ChildNode)
+		if (Children[ChildIndex].ChildComposite == ChildNode ||
+			Children[ChildIndex].ChildTask == ChildNode)
 		{
-			return i;
+			return ChildIndex;
 		}
 	}
 
@@ -129,9 +129,9 @@ void UBTCompositeNode::OnNodeActivation(struct FBehaviorTreeSearchData& SearchDa
 	}
 
 	// add services when execution flow enters this composite
-	for (int32 i = 0; i < Services.Num(); i++)
+	for (int32 ServiceIndex = 0; ServiceIndex < Services.Num(); ServiceIndex++)
 	{
-		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[i], SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Add));
+		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[ServiceIndex], SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Add));
 	}
 }
 
@@ -149,9 +149,9 @@ void UBTCompositeNode::OnNodeDeactivation(struct FBehaviorTreeSearchData& Search
 	}
 
 	// remove all services if execution flow leaves this composite
-	for (int32 i = 0; i < Services.Num(); i++)
+	for (int32 ServiceIndex = 0; ServiceIndex < Services.Num(); ServiceIndex++)
 	{
-		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[i], SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
+		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Services[ServiceIndex], SearchData.OwnerComp->GetActiveInstanceIdx(), EBTNodeUpdateMode::Remove));
 	}
 }
 
@@ -165,9 +165,9 @@ void UBTCompositeNode::OnNodeRestart(struct FBehaviorTreeSearchData& SearchData)
 void UBTCompositeNode::NotifyDecoratorsOnActivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIdx) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
-	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
+	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 	{
-		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
+		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
 		DecoratorOb->WrappedOnNodeActivation(SearchData);
 
 		switch (DecoratorOb->GetFlowAbortMode())
@@ -190,9 +190,9 @@ void UBTCompositeNode::NotifyDecoratorsOnActivation(struct FBehaviorTreeSearchDa
 void UBTCompositeNode::NotifyDecoratorsOnDeactivation(struct FBehaviorTreeSearchData& SearchData, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
-	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
+	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 	{
-		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
+		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
 		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
 		DecoratorOb->WrappedOnNodeDeactivation(SearchData, NodeResult);
 
@@ -215,9 +215,9 @@ void UBTCompositeNode::NotifyDecoratorsOnFailedActivation(struct FBehaviorTreeSe
 	const FBTCompositeChild& ChildInfo = Children[ChildIdx];
 	const uint16 ActiveInstanceIdx = SearchData.OwnerComp->GetActiveInstanceIdx();
 
-	for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
+	for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 	{
-		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[i];
+		const UBTDecorator* DecoratorOb = ChildInfo.Decorators[DecoratorIndex];
 		DecoratorOb->WrappedOnNodeProcessed(SearchData, NodeResult);
 
 		if (DecoratorOb->GetFlowAbortMode() == EBTFlowAbortMode::LowerPriority ||
@@ -246,11 +246,11 @@ void UBTCompositeNode::ConditionalNotifyChildExecution(class UBehaviorTreeCompon
 {
 	if (bUseChildExecutionNotify)
 	{
-		for (int32 i = 0; i < Children.Num(); i++)
+		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ChildIndex++)
 		{
-			if (Children[i].ChildComposite == ChildNode || Children[i].ChildTask == ChildNode)
+			if (Children[ChildIndex].ChildComposite == ChildNode || Children[ChildIndex].ChildTask == ChildNode)
 			{
-				NotifyChildExecution(OwnerComp, NodeMemory, i, NodeResult);
+				NotifyChildExecution(OwnerComp, NodeMemory, ChildIndex, NodeResult);
 				break;
 			}
 		}
@@ -360,9 +360,9 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 	if (ChildInfo.DecoratorOps.Num() == 0)
 	{
 		// simple check: all decorators must agree
-		for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			const UBTDecorator* TestDecorator = ChildInfo.Decorators[i];
+			const UBTDecorator* TestDecorator = ChildInfo.Decorators[DecoratorIndex];
 			const bool bIsAllowed = TestDecorator ? TestDecorator->WrappedCanExecute(OwnerComp, TestDecorator->GetNodeMemory<uint8>(MyInstance)) : false;
 			OwnerComp->StoreDebuggerSearchStep(TestDecorator, InstanceIdx, bIsAllowed);
 
@@ -393,9 +393,9 @@ bool UBTCompositeNode::DoDecoratorsAllowExecution(class UBehaviorTreeComponent* 
 		int32 FailedDecoratorIdx = INDEX_NONE;
 		bool bShouldStoreNodeIndex = true;
 
-		for (int32 i = 0; i < ChildInfo.DecoratorOps.Num(); i++)
+		for (int32 OperationIndex = 0; OperationIndex < ChildInfo.DecoratorOps.Num(); OperationIndex++)
 		{
-			const FBTDecoratorLogic& DecoratorOp = ChildInfo.DecoratorOps[i];
+			const FBTDecoratorLogic& DecoratorOp = ChildInfo.DecoratorOps[OperationIndex];
 			if (IsLogicOp(DecoratorOp))
 			{
 				OperationStack.Add(FOperationStackInfo(DecoratorOp));
@@ -453,12 +453,12 @@ int32 UBTCompositeNode::GetMatchingChildIndex(int32 ActiveInstanceIdx, struct FB
 		}
 
 		// find child outside range
-		for (int32 i = 0; i < Children.Num(); i++)
+		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ChildIndex++)
 		{
-			const UBTNode* ChildNode = GetChildNode(i);
+			const UBTNode* ChildNode = GetChildNode(ChildIndex);
 			if (ChildNode->GetExecutionIndex() > NodeIdx.ExecutionIndex)
 			{
-				return i ? (i - 1) : 0;
+				return ChildIndex ? (ChildIndex - 1) : 0;
 			}
 		}
 

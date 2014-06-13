@@ -78,11 +78,11 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 
 			for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 			{
-				for (int32 i = 0; i < It->Keys.Num(); i++)
+				for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 				{
-					if (It->Keys[i].KeyType)
+					if (It->Keys[KeyIndex].KeyType)
 					{
-						InitList.Add(FBlackboardInitializationData(i + It->GetFirstKeyID(), It->Keys[i].KeyType->GetValueSize()));
+						InitList.Add(FBlackboardInitializationData(KeyIndex + It->GetFirstKeyID(), It->Keys[KeyIndex].KeyType->GetValueSize()));
 					}
 				}
 			}
@@ -92,19 +92,19 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 			// but since all Engine level keys are good... 
 			InitList.Sort(FBlackboardInitializationData::FMemorySort());
 			uint16 MemoryOffset = 0;
-			for (int32 i = 0; i < InitList.Num(); i++)
+			for (int32 Index = 0; Index < InitList.Num(); Index++)
 			{
-				ValueOffsets[InitList[i].KeyID] = MemoryOffset;
-				MemoryOffset += InitList[i].DataSize;
+				ValueOffsets[InitList[Index].KeyID] = MemoryOffset;
+				MemoryOffset += InitList[Index].DataSize;
 			}
 
 			ValueMemory.AddZeroed(MemoryOffset);
 
 			// initialize memory
-			for (int32 i = 0; i < InitList.Num(); i++)
+			for (int32 Index = 0; Index < InitList.Num(); Index++)
 			{
-				const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[i].KeyID);
-				uint8* RawData = GetKeyRawData(InitList[i].KeyID);
+				const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[Index].KeyID);
+				uint8* RawData = GetKeyRawData(InitList[Index].KeyID);
 
 				KeyData->KeyType->Initialize(RawData);
 			}
@@ -165,9 +165,9 @@ void UBlackboardComponent::ResumeUpdates()
 {
 	bPausedNotifies = false;
 
-	for (int32 i = 0; i < QueuedUpdates.Num(); i++)
+	for (int32 UpdateIndex = 0; UpdateIndex < QueuedUpdates.Num(); UpdateIndex++)
 	{
-		NotifyObservers(QueuedUpdates[i]);
+		NotifyObservers(QueuedUpdates[UpdateIndex]);
 	}
 
 	QueuedUpdates.Empty();
@@ -216,18 +216,18 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 	uint8 Offset = 0;
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 	{
-		for (int32 i = 0; i < It->Keys.Num(); i++)
+		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 		{
-			KeyDesc.Add(DescribeKeyValue(i + Offset, Mode));
+			KeyDesc.Add(DescribeKeyValue(KeyIndex + Offset, Mode));
 		}
 		Offset += It->Keys.Num();
 	}
 	
 	KeyDesc.Sort();
-	for (int32 i = 0; i < KeyDesc.Num(); i++)
+	for (int32 KeyDescIndex = 0; KeyDescIndex < KeyDesc.Num(); KeyDescIndex++)
 	{
 		DebugString += TEXT("  ");
-		DebugString += KeyDesc[i];
+		DebugString += KeyDesc[KeyDescIndex];
 		DebugString += TEXT('\n');
 	}
 
@@ -296,11 +296,11 @@ void UBlackboardComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) c
 
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 	{
-		for (int32 i = 0; i < It->Keys.Num(); i++)
+		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 		{
-			const FBlackboardEntry& Key = It->Keys[i];
+			const FBlackboardEntry& Key = It->Keys[KeyIndex];
 
-			const uint8* ValueData = GetKeyRawData(It->GetFirstKeyID() + i);
+			const uint8* ValueData = GetKeyRawData(It->GetFirstKeyID() + KeyIndex);
 			FString ValueDesc = Key.KeyType ? *(Key.KeyType->DescribeValue(ValueData)) : TEXT("empty");
 
 			Category.Add(Key.EntryName.ToString(), ValueDesc);

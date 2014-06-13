@@ -71,9 +71,9 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerC
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (BlackboardComp && CDO)
 	{
-		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
+		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
 		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->RegisterObserver(KeyID, BBKeyObserver);
@@ -88,9 +88,9 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerCo
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (BlackboardComp && CDO)
 	{
-		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
+		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
 		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
 				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserver);

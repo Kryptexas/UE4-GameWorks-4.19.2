@@ -76,9 +76,9 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(struct FEnvQueryInstance& Quer
 #endif // WITH_RECAST
 
 	QueryInstance.ReserveItemData(GridPoints.Num());
-	for (int32 i = 0; i < GridPoints.Num(); i++)
+	for (int32 PointIndex = 0; PointIndex < GridPoints.Num(); PointIndex++)
 	{
-		QueryInstance.AddItemData<UEnvQueryItemType_Point>(GridPoints[i]);
+		QueryInstance.AddItemData<UEnvQueryItemType_Point>(GridPoints[PointIndex]);
 	}
 }
 

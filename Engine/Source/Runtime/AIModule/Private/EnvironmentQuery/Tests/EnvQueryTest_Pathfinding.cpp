@@ -71,9 +71,9 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
-			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+			for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 			{
-				const float PathValue = FindPathFunc.Execute(ItemLocation, ContextLocations[iContext], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
+				const float PathValue = FindPathFunc.Execute(ItemLocation, ContextLocations[ContextIndex], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
 				It.SetScore(TestPurpose, FilterType, PathValue, MinThresholdValue, MaxThresholdValue);
 
 				if (bDiscardFailed && PathValue >= BIG_NUMBER)
@@ -93,9 +93,9 @@ void UEnvQueryTest_Pathfinding::RunTest(struct FEnvQueryInstance& QueryInstance)
 		for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 		{
 			const FVector ItemLocation = GetItemLocation(QueryInstance, *It);
-			for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
+			for (int32 ContextIndex = 0; ContextIndex < ContextLocations.Num(); ContextIndex++)
 			{
-				const bool bFoundPath = TestPathFunc.Execute(ItemLocation, ContextLocations[iContext], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
+				const bool bFoundPath = TestPathFunc.Execute(ItemLocation, ContextLocations[ContextIndex], PFMode, NavData, NavSys, QueryInstance.Owner.Get());
 				It.SetScore(TestPurpose, FilterType, bFoundPath, bWantsPath);
 			}
 		}

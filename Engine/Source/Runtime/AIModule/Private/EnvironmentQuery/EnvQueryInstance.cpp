@@ -94,10 +94,10 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 		uint8* RawData = ContextData.RawData.GetTypedData();
 
 		Data.Init(ContextData.NumValues);
-		for (int32 i = 0; i < ContextData.NumValues; i++)
+		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[i].Location = DefTypeOb->GetLocation(RawData);
-			Data[i].Rotation = DefTypeOb->GetRotation(RawData);
+			Data[ValueIndex].Location = DefTypeOb->GetLocation(RawData);
+			Data[ValueIndex].Rotation = DefTypeOb->GetRotation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -122,9 +122,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 		uint8* RawData = (uint8*)ContextData.RawData.GetTypedData();
 
 		Data.Init(ContextData.NumValues);
-		for (int32 i = 0; i < ContextData.NumValues; i++)
+		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[i] = DefTypeOb->GetLocation(RawData);
+			Data[ValueIndex] = DefTypeOb->GetLocation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -149,9 +149,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 		uint8* RawData = ContextData.RawData.GetTypedData();
 
 		Data.Init(ContextData.NumValues);
-		for (int32 i = 0; i < ContextData.NumValues; i++)
+		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[i] = DefTypeOb->GetRotation(RawData);
+			Data[ValueIndex] = DefTypeOb->GetRotation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -176,9 +176,9 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 		uint8* RawData = ContextData.RawData.GetTypedData();
 
 		Data.Init(ContextData.NumValues);
-		for (int32 i = 0; i < ContextData.NumValues; i++)
+		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[i] = DefTypeOb->GetActor(RawData);
+			Data[ValueIndex] = DefTypeOb->GetActor(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -367,7 +367,7 @@ void FEnvQueryInstance::SortScores()
 {
 	if (Options[OptionIndex].bShuffleItems)
 	{
-		for (int32 i = 0; i < Items.Num(); i++)
+		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
 		{
 			const int32 Idx1 = FMath::RandHelper(Items.Num());
 			const int32 Idx2 = FMath::RandHelper(Items.Num());
@@ -410,11 +410,11 @@ void FEnvQueryInstance::PickBestItem()
 {
 	// find first valid item with score worse than best one
 	int32 NumBestItems = NumValidItems;
-	for (int32 i = 1; i < NumValidItems; i++)
+	for (int32 ItemIndex = 1; ItemIndex < NumValidItems; ItemIndex++)
 	{
-		if (Items[i].Score < Items[0].Score)
+		if (Items[ItemIndex].Score < Items[0].Score)
 		{
-			NumBestItems = i;
+			NumBestItems = ItemIndex;
 			break;
 		}
 	}
@@ -512,9 +512,9 @@ void FEnvQueryInstance::FinalizeGeneration()
 	if (NumValidItems > 0)
 	{
 		ItemDetails.Reserve(NumValidItems);
-		for (int32 i = 0; i < NumValidItems; i++)
+		for (int32 ItemIndex = 0; ItemIndex < NumValidItems; ItemIndex++)
 		{
-			ItemDetails.Add(FEnvQueryItemDetails(NumTests, i));
+			ItemDetails.Add(FEnvQueryItemDetails(NumTests, ItemIndex));
 		}
 	}
 
@@ -584,7 +584,7 @@ void FEnvQueryInstance::OnFinalCondition()
 		DebugData.Store(this);
 
 		// randomize before sorting, so items with the same score can be chosen randomly
-		for (int32 i = 0; i < Items.Num(); i++)
+		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
 		{
 			const int32 Idx1 = FMath::RandHelper(Items.Num());
 			const int32 Idx2 = FMath::RandHelper(Items.Num());
@@ -605,7 +605,7 @@ void FEnvQueryInstance::OnFinalCondition()
 		ItemDetails.Reset();
 
 		// randomize before sorting, so items with the same score can be chosen randomly
-		for (int32 i = 0; i < Items.Num(); i++)
+		for (int32 ItemIndex = 0; ItemIndex < Items.Num(); ItemIndex++)
 		{
 			Items.Swap(FMath::RandHelper(Items.Num()), FMath::RandHelper(Items.Num()));
 		}
@@ -628,9 +628,9 @@ uint32 FEnvQueryInstance::GetAllocatedSize() const
 	MemSize += ItemDetails.GetAllocatedSize();
 	MemSize += Options.GetAllocatedSize();
 
-	for (int32 i = 0; i < Options.Num(); i++)
+	for (int32 OptionIndex = 0; OptionIndex < Options.Num(); OptionIndex++)
 	{
-		MemSize += Options[i].GetAllocatedSize();
+		MemSize += Options[OptionIndex].GetAllocatedSize();
 	}
 
 	return MemSize;

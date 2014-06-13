@@ -118,11 +118,11 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 	const bool bUseBacktracking = !bPathFromContext;
 	NavMesh->GetClustersWithinPathingDistance(ContextLocation, InMaxPathDistance, NodeRefs, bUseBacktracking);
 
-	for (int32 i = 0; i < NodeRefs.Num(); i++)
+	for (int32 RefIndex = 0; RefIndex < NodeRefs.Num(); RefIndex++)
 	{
 		FBox ClusterBounds;
 		
-		const bool bSuccess = NavMesh->GetClusterBounds(NodeRefs[i], ClusterBounds);
+		const bool bSuccess = NavMesh->GetClusterBounds(NodeRefs[RefIndex], ClusterBounds);
 		if (bSuccess)
 		{
 			MyBounds += ClusterBounds;
@@ -137,11 +137,11 @@ void UEnvQueryGenerator_PathingGrid::FindNodeRefsInPathDistance(const class ARec
 	NavMesh->GetPolysWithinPathingDistance(ContextLocation, InMaxPathDistance, NodeRefs, NavFilterInstance);
 
 	TArray<FVector> PolyVerts;
-	for (int32 i = 0; i < NodeRefs.Num(); i++)
+	for (int32 RefIndex = 0; RefIndex < NodeRefs.Num(); RefIndex++)
 	{
 		PolyVerts.Reset();
 		
-		const bool bSuccess = NavMesh->GetPolyVerts(NodeRefs[i], PolyVerts);
+		const bool bSuccess = NavMesh->GetPolyVerts(NodeRefs[RefIndex], PolyVerts);
 		if (bSuccess)
 		{
 			MyBounds += FBox(PolyVerts);

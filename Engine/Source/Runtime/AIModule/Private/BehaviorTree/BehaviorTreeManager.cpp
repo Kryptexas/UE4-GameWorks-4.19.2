@@ -109,20 +109,20 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 	UBTCompositeNode* CompositeOb = Cast<UBTCompositeNode>(NodeOb);
 	if (CompositeOb)
 	{
-		for (int32 i = 0; i < CompositeOb->Services.Num(); i++)
+		for (int32 ServiceIndex = 0; ServiceIndex < CompositeOb->Services.Num(); ServiceIndex++)
 		{
-			if (CompositeOb->Services[i] == NULL)
+			if (CompositeOb->Services[ServiceIndex] == NULL)
 			{
 				UE_LOG(LogBehaviorTree, Warning, TEXT("%s has missing service node! (parent: %s)"),
 					*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb));
 
-				CompositeOb->Services.RemoveAt(i, 1, false);
-				i--;
+				CompositeOb->Services.RemoveAt(ServiceIndex, 1, false);
+				ServiceIndex--;
 				continue;
 			}
 
-			UBTService* Service = Cast<UBTService>(StaticDuplicateObject(CompositeOb->Services[i], NodeOuter, TEXT("None")));;
-			CompositeOb->Services[i] = Service;
+			UBTService* Service = Cast<UBTService>(StaticDuplicateObject(CompositeOb->Services[ServiceIndex], NodeOuter, TEXT("None")));;
+			CompositeOb->Services[ServiceIndex] = Service;
 
 			InitList.Add(FNodeInitializationData(Service, CompositeOb, ExecutionIndex, TreeDepth,
 				Service->GetInstanceMemorySize(), Service->GetSpecialMemorySize()));
@@ -131,29 +131,29 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			ExecutionIndex++;
 		}
 
-		for (int32 i = 0; i < CompositeOb->Children.Num(); i++)
+		for (int32 ChildIndex = 0; ChildIndex < CompositeOb->Children.Num(); ChildIndex++)
 		{
-			FBTCompositeChild& ChildInfo = CompositeOb->Children[i];
-			for (int32 j = 0; j < ChildInfo.Decorators.Num(); j++)
+			FBTCompositeChild& ChildInfo = CompositeOb->Children[ChildIndex];
+			for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 			{
-				if (ChildInfo.Decorators[j] == NULL)
+				if (ChildInfo.Decorators[DecoratorIndex] == NULL)
 				{
 					UE_LOG(LogBehaviorTree, Warning, TEXT("%s has missing decorator node! (parent: %s, branch: %d)"),
-						*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb), i);
+						*GetNameSafe(TreeAsset), *UBehaviorTreeTypes::DescribeNodeHelper(CompositeOb), ChildIndex);
 
-					ChildInfo.Decorators.RemoveAt(j, 1, false);
-					j--;
+					ChildInfo.Decorators.RemoveAt(DecoratorIndex, 1, false);
+					DecoratorIndex--;
 					continue;
 				}
 
-				UBTDecorator* Decorator = Cast<UBTDecorator>(StaticDuplicateObject(ChildInfo.Decorators[j], NodeOuter, TEXT("None")));
-				ChildInfo.Decorators[j] = Decorator;
+				UBTDecorator* Decorator = Cast<UBTDecorator>(StaticDuplicateObject(ChildInfo.Decorators[DecoratorIndex], NodeOuter, TEXT("None")));
+				ChildInfo.Decorators[DecoratorIndex] = Decorator;
 
 				InitList.Add(FNodeInitializationData(Decorator, CompositeOb, ExecutionIndex, TreeDepth,
 					Decorator->GetInstanceMemorySize(), Decorator->GetSpecialMemorySize()));
 
 				Decorator->InitializeFromAsset(TreeAsset);
-				Decorator->InitializeDecorator(i);
+				Decorator->InitializeDecorator(ChildIndex);
 				ExecutionIndex++;
 			}
 
@@ -184,9 +184,9 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_BehaviorTree_LoadTime);
 
-	for (int32 i = 0; i < LoadedTemplates.Num(); i++)
+	for (int32 TemplateIndex = 0; TemplateIndex < LoadedTemplates.Num(); TemplateIndex++)
 	{
-		FBehaviorTreeTemplateInfo& TemplateInfo = LoadedTemplates[i];
+		FBehaviorTreeTemplateInfo& TemplateInfo = LoadedTemplates[TemplateIndex];
 		if (TemplateInfo.Asset == Asset)
 		{
 			Root = TemplateInfo.Template;
@@ -207,9 +207,9 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 
 #if USE_BEHAVIORTREE_DEBUGGER
 		// fill in information about next nodes in execution index, before sorting memory offsets
-		for (int32 i = 0; i < InitList.Num() - 1; i++)
+		for (int32 Index = 0; Index < InitList.Num() - 1; Index++)
 		{
-			InitList[i].Node->InitializeExecutionOrder(InitList[i + 1].Node);
+			InitList[Index].Node->InitializeExecutionOrder(InitList[Index + 1].Node);
 		}
 #endif
 
@@ -218,10 +218,10 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 		// but since all Engine level nodes are good... 
 		InitList.Sort(FNodeInitializationData::FMemorySort());
 		uint16 MemoryOffset = 0;
-		for (int32 i = 0; i < InitList.Num(); i++)
+		for (int32 Index = 0; Index < InitList.Num(); Index++)
 		{
-			InitList[i].Node->InitializeNode(InitList[i].ParentNode, InitList[i].ExecutionIndex, InitList[i].SpecialDataSize + MemoryOffset, InitList[i].TreeDepth);
-			MemoryOffset += InitList[i].DataSize;
+			InitList[Index].Node->InitializeNode(InitList[Index].ParentNode, InitList[Index].ExecutionIndex, InitList[Index].SpecialDataSize + MemoryOffset, InitList[Index].TreeDepth);
+			MemoryOffset += InitList[Index].DataSize;
 		}
 		
 		TemplateInfo.InstanceMemorySize = MemoryOffset;
@@ -239,9 +239,9 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 void UBehaviorTreeManager::InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize)
 {
 	TArray<FNodeInitializationData> InitList;
-	for (int32 i = 0; i < Nodes.Num(); i++)
+	for (int32 NodeIndex = 0; NodeIndex < Nodes.Num(); NodeIndex++)
 	{
-		InitList.Add(FNodeInitializationData(Nodes[i], NULL, 0, 0, Nodes[i]->GetInstanceMemorySize(), Nodes[i]->GetSpecialMemorySize()));
+		InitList.Add(FNodeInitializationData(Nodes[NodeIndex], NULL, 0, 0, Nodes[NodeIndex]->GetInstanceMemorySize(), Nodes[NodeIndex]->GetSpecialMemorySize()));
 	}
 
 	InitList.Sort(FNodeInitializationData::FMemorySort());
@@ -249,10 +249,10 @@ void UBehaviorTreeManager::InitializeMemoryHelper(const TArray<UBTDecorator*>& N
 	uint16 MemoryOffset = 0;
 	MemoryOffsets.AddZeroed(Nodes.Num());
 
-	for (int32 i = 0; i < InitList.Num(); i++)
+	for (int32 Index = 0; Index < InitList.Num(); Index++)
 	{
-		MemoryOffsets[i] = InitList[i].SpecialDataSize + MemoryOffset;
-		MemoryOffset += InitList[i].DataSize;
+		MemoryOffsets[Index] = InitList[Index].SpecialDataSize + MemoryOffset;
+		MemoryOffset += InitList[Index].DataSize;
 	}
 
 	MemorySize = MemoryOffset;

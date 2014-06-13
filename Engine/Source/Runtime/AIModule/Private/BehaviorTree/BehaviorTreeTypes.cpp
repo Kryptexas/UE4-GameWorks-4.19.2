@@ -17,20 +17,20 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 		return;
 	}
 
-	for (int32 i = 0; i < Node->Services.Num(); i++)
+	for (int32 ServiceIndex = 0; ServiceIndex < Node->Services.Num(); ServiceIndex++)
 	{
-		Node->Services[i]->InitializeForInstance(OwnerComp, Node->Services[i]->GetNodeMemory<uint8>(*this), InstancedIndex);
+		Node->Services[ServiceIndex]->InitializeForInstance(OwnerComp, Node->Services[ServiceIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
 	}
 
 	Node->InitializeForInstance(OwnerComp, Node->GetNodeMemory<uint8>(*this), InstancedIndex);
 
-	for (int32 iChild = 0; iChild < Node->Children.Num(); iChild++)
+	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
 	{
-		FBTCompositeChild& ChildInfo = Node->Children[iChild];
+		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
 
-		for (int32 i = 0; i < ChildInfo.Decorators.Num(); i++)
+		for (int32 DecoratorIndex = 0; DecoratorIndex < ChildInfo.Decorators.Num(); DecoratorIndex++)
 		{
-			ChildInfo.Decorators[i]->InitializeForInstance(OwnerComp, ChildInfo.Decorators[i]->GetNodeMemory<uint8>(*this), InstancedIndex);
+			ChildInfo.Decorators[DecoratorIndex]->InitializeForInstance(OwnerComp, ChildInfo.Decorators[DecoratorIndex]->GetNodeMemory<uint8>(*this), InstancedIndex);
 		}
 
 		if (ChildInfo.ChildComposite)
@@ -51,9 +51,9 @@ void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp,
 		return;
 	}
 
-	for (int32 iChild = 0; iChild < Node->Children.Num(); iChild++)
+	for (int32 ChildIndex = 0; ChildIndex < Node->Children.Num(); ChildIndex++)
 	{
-		FBTCompositeChild& ChildInfo = Node->Children[iChild];
+		FBTCompositeChild& ChildInfo = Node->Children[ChildIndex];
 		if (ChildInfo.ChildComposite)
 		{
 			InjectNodes(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
@@ -112,9 +112,9 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 		*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
 
 	bool bSkipAdding = false;
-	for (int32 i = 0; i < PendingUpdates.Num(); i++)
+	for (int32 UpdateIndex = 0; UpdateIndex < PendingUpdates.Num(); UpdateIndex++)
 	{
-		const FBehaviorTreeSearchUpdate& Info = PendingUpdates[i];
+		const FBehaviorTreeSearchUpdate& Info = PendingUpdates[UpdateIndex];
 		if (Info.AuxNode == UpdateInfo.AuxNode && Info.TaskNode == UpdateInfo.TaskNode)
 		{
 			// duplicate, skip
@@ -129,7 +129,7 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 			// don't add pairs add-remove
 			bSkipAdding = (Info.Mode == EBTNodeUpdateMode::Remove) || (UpdateInfo.Mode == EBTNodeUpdateMode::Remove);
 
-			PendingUpdates.RemoveAt(i, 1, false);
+			PendingUpdates.RemoveAt(UpdateIndex, 1, false);
 		}
 	}
 
@@ -162,17 +162,17 @@ void FBlackboardKeySelector::InitSelectedKey(class UBlackboardData* BlackboardAs
 	check(BlackboardAsset);
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 	{
-		for (int32 i = 0; i < It->Keys.Num(); i++)
+		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 		{
-			const FBlackboardEntry& EntryInfo = It->Keys[i];
+			const FBlackboardEntry& EntryInfo = It->Keys[KeyIndex];
 			if (EntryInfo.KeyType)
 			{
 				bool bFilterPassed = false;
 				if (AllowedTypes.Num())
 				{
-					for (int32 iFilter = 0; iFilter < AllowedTypes.Num(); iFilter++)
+					for (int32 FilterIndex = 0; FilterIndex < AllowedTypes.Num(); FilterIndex++)
 					{
-						if (EntryInfo.KeyType->IsAllowedByFilter(AllowedTypes[iFilter]))
+						if (EntryInfo.KeyType->IsAllowedByFilter(AllowedTypes[FilterIndex]))
 						{
 							bFilterPassed = true;
 							break;
