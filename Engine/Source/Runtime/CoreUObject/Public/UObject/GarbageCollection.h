@@ -175,6 +175,14 @@ public:
 	 */
 	const FTokenInfo& GetTokenInfo(int32 TokenIndex) const;
 
+	/**
+	 * Empties the map.
+	 */
+	void Empty()
+	{
+		TokenMap.Empty();
+	}
+
 private:
 	/* Token map. */
 	TArray<FTokenInfo> TokenMap;
