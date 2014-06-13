@@ -210,7 +210,7 @@ public:
 		}
 	}
 
-//	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE
+//	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override
 //	{
 //		BlueprintEditorPtr.Pin()->RequestSaveEditedObjectState();
 //	}
@@ -273,7 +273,7 @@ protected:
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Timeline));
 	}
 
-// 	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE
+// 	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override
 // 	{
 // 		BlueprintEditorPtr.Pin()->RequestSaveEditedObjectState();
 // 	}

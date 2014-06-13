@@ -14,5 +14,5 @@ public:
 
 	static TSharedRef<FWidgetTemplateDragDropOp> New(const TSharedPtr<FWidgetTemplate>& InTemplate);
 
-	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE;
+	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
 };

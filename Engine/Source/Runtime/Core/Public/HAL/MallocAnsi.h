@@ -122,7 +122,7 @@ public:
 	}
 
 // #if PLATFORM_MAC
-// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) override
 // 	{
 // 		// @todo implement in platform memory
 // 		// Just get memory information for the process and report the working set instead
@@ -132,7 +132,7 @@ public:
 // 		MemStats.TotalUsed___UsedPhysical = MemStats.TotalAllocated___UsedVirtual = TaskInfo.resident_size;
 // 	}
 // #elif PLATFORM_IOS
-// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
+// 	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) override
 // 	{
 // 		// @todo implement in platform memory
 // 		task_basic_info info;

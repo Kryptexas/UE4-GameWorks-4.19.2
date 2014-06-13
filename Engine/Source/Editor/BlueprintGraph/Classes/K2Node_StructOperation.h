@@ -15,11 +15,11 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UScriptStruct* StructType;
 
 	// Begin UEdGraphNode interface
-	//virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
+	//virtual FLinearColor GetNodeTitleColor() const override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
-	//virtual bool DrawNodeAsVariable() const OVERRIDE { return true; }
+	//virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override {}
 	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput) const override;

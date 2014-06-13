@@ -41,28 +41,28 @@ public:
 	virtual bool UsesToolkits() const override;
 	virtual void Enter() override;
 	virtual void Exit() override;
-	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) OVERRIDE;
+	//virtual bool BoxSelect(FBox& InBox, bool bInSelect) override;
 
-	//	virtual void PostUndo() OVERRIDE;
+	//	virtual void PostUndo() override;
 	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override;
 	virtual bool CapturedMouseMove(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) override;
 	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
 	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
-	// 	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) OVERRIDE;
+	// 	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override;
 	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override;
 	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override;
 	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
 	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) override;
-	// 	virtual bool Select(AActor* InActor, bool bInSelected) OVERRIDE;
-	// 	virtual bool IsSelectionAllowed(AActor* InActor) const OVERRIDE;
-	// 	virtual void ActorSelectionChangeNotify() OVERRIDE;
-	// 	virtual FVector GetWidgetLocation() const OVERRIDE;
+	// 	virtual bool Select(AActor* InActor, bool bInSelected) override;
+	// 	virtual bool IsSelectionAllowed(AActor* InActor) const override;
+	// 	virtual void ActorSelectionChangeNotify() override;
+	// 	virtual FVector GetWidgetLocation() const override;
 	virtual bool AllowWidgetMove();
 	virtual bool ShouldDrawWidget() const override;
 	virtual bool UsesTransformWidget() const override;
 	virtual void PeekAtSelectionChangedEvent(UObject* ItemUndergoingChange) override;
-	// 	virtual int32 GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const OVERRIDE;
-	// 	virtual bool DisallowMouseDeltaTracking() const OVERRIDE;
+	// 	virtual int32 GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;
+	// 	virtual bool DisallowMouseDeltaTracking() const override;
 	// End of FEdMode interface
 
 	void SetActiveTool(ETileMapEditorTool::Type NewTool);

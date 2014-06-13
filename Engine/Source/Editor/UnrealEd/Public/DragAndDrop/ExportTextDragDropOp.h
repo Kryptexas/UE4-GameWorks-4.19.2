@@ -59,7 +59,7 @@ public:
 	int32 NumActors;
 
 	/** The widget decorator to use */
-	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
+	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override
 	//{
 		
 	//}

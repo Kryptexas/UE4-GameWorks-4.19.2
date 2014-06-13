@@ -101,7 +101,7 @@ public:
 	 *
 	 * @return true if the ip address was parseable, false otherwise
 	 */
-// 	static bool IsValidIp(const TCHAR* IpAddr) OVERRIDE
+// 	static bool IsValidIp(const TCHAR* IpAddr) override
 // 	{
 // 		FInternetAddr LocalAddr;
 // 		bool bIsValid = false;

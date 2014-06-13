@@ -294,10 +294,14 @@
 
 // Legacy method modifier macros.  You shouldn't use these macros in modern code.  Use the built-in keyword directly.
 #ifndef OVERRIDE
-	#define OVERRIDE override
+	#define OVERRIDE \
+		EMIT_DEPRECATED_WARNING_MESSAGE("OVERRIDE macro is deprecated. Please use override keyword instead.") \
+		override
 #endif
 #ifndef FINAL						
-	#define FINAL final
+	#define FINAL \
+		EMIT_DEPRECATED_WARNING_MESSAGE("FINAL macro is deprecated. Please use final keyword instead.") \
+		final
 #endif
 
 // Method modifiers

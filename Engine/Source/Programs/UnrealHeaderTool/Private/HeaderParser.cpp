@@ -5068,7 +5068,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 
 	if (FuncInfo.FunctionFlags & FUNC_Net)
 	{
-		// Network replicated functions are always events, and are only FINAL if sealed
+		// Network replicated functions are always events, and are only final if sealed
 		TypeOfFunction = TEXT("event");
 		bAutomaticallyFinal = false;
 	}
@@ -5197,7 +5197,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	// Process the virtualness
 	if (bSawVirtual)
 	{
-		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
+		// Remove the implicit final, the user can still specifying an explicit final at the end of the declaration
 		bAutomaticallyFinal = false;
 
 		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
@@ -5228,7 +5228,7 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 	}
 
 	// Handle the initial implicit/explicit final
-	// A user can still specify an explicit FINAL after the parameter list as well.
+	// A user can still specify an explicit final after the parameter list as well.
 	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
 	{
 		FuncInfo.FunctionFlags |= FUNC_Final;
@@ -5392,8 +5392,8 @@ void FHeaderParser::CompileFunctionDeclaration(FClasses& AllClasses)
 		}
 	}
 
-	// Look for the FINAL macro to indicate this function is sealed
-	if (MatchIdentifier(TEXT("FINAL")))
+	// Look for the final keyword to indicate this function is sealed
+	if (MatchIdentifier(TEXT("final")))
 	{
 		// This is a final (prebinding, non-overridable) function
 		FuncInfo.FunctionFlags |= FUNC_Final;

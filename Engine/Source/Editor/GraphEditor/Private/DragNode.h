@@ -15,7 +15,7 @@ public:
 	virtual void HoverTargetChanged() override;
 	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	virtual FReply DroppedOnPanel( const TSharedRef< SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
-	//virtual void OnDragBegin( const TSharedRef<class SGraphPin>& InPin) OVERRIDE;
+	//virtual void OnDragBegin( const TSharedRef<class SGraphPin>& InPin) override;
 	virtual void OnDragged (const class FDragDropEvent& DragDropEvent ) override;
 	// End of FGraphEditorDragDropAction interface
 	

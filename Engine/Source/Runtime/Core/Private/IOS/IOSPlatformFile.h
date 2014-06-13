@@ -39,7 +39,7 @@ protected:
 	virtual FString NormalizeDirectory(const TCHAR* Directory);
 
 public:
-	//virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) OVERRIDE;
+	//virtual bool Initialize(IPlatformFile* Inner, const TCHAR* CommandLineParam) override;
 
 	virtual bool FileExists(const TCHAR* Filename) override;
 	virtual int64 FileSize(const TCHAR* Filename) override;

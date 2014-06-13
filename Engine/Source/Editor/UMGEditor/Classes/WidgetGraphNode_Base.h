@@ -19,8 +19,8 @@ class UWidgetGraphNode_Base : public UK2Node
 	//// UEdGraphNode interface
 	UMGEDITOR_API virtual void AllocateDefaultPins() override;
 	UMGEDITOR_API virtual FLinearColor GetNodeTitleColor() const override;
-	//UMGEDITOR_API virtual FString GetDocumentationLink() const OVERRIDE;
-	//UMGEDITOR_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const OVERRIDE;
+	//UMGEDITOR_API virtual FString GetDocumentationLink() const override;
+	//UMGEDITOR_API virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	UMGEDITOR_API virtual bool ShowPaletteIconOnNode() const override { return false; }
 	//	// End of UEdGraphNode interface
 

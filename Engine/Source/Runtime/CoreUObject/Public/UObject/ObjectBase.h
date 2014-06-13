@@ -641,7 +641,7 @@ namespace UF
 		BlueprintNativeEvent,
 
 		/// This function is sealed and cannot be overridden in subclasses.
-		/// It is only a valid keyword for events; declare other methods as static or FINAL to indicate that they are sealed.
+		/// It is only a valid keyword for events; declare other methods as static or final to indicate that they are sealed.
 		SealedEvent,
 
 		/// This function is executable from the command line.

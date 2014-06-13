@@ -220,7 +220,7 @@ public:
 
 protected:
 	// FBlueprintEditor interface
-	//virtual void CreateDefaultToolbar() OVERRIDE;
+	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
 	virtual void OnSelectBone() override;
 	virtual bool CanSelectBone() const override;
