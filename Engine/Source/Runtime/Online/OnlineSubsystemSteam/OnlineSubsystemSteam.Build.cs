@@ -31,8 +31,8 @@ public class OnlineSubsystemSteam : ModuleRules
 		Definitions.Add("WITH_STEAMGC=0");
 
 #if false
-		if (Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true &&
-			Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SteamGC") == true)
+		if (Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true &&
+			Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SteamGC") == true)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"ProtoBuf",

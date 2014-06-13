@@ -8,7 +8,7 @@ public class UElibPNG : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string libPNGPath = UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2";
+		string libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2";
 		PublicIncludePaths.Add(libPNGPath);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -37,12 +37,12 @@ public class UElibPNG : ModuleRules
 			if (Target.Architecture == "-simulator")
             {
                 PublicLibraryPaths.Add(libPNGPath + "/lib/ios/Simulator");
-                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2/lib/ios/Simulator/libpng152.a");
+                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/ios/Simulator/libpng152.a");
             }
             else
             {
                 PublicLibraryPaths.Add(libPNGPath + "/lib/ios/Device");
-                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2/lib/ios/Device/libpng152.a");
+                PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2/lib/ios/Device/libpng152.a");
             }
 
             PublicAdditionalLibraries.Add("png152");

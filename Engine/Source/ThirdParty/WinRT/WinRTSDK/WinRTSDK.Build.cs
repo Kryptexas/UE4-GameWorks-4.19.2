@@ -39,7 +39,7 @@ public class WinRTSDK : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win64)
 		{
-			string DirectXSDKDir = UEBuildConfiguration.UEThirdPartyDirectory + "Windows/DirectX";
+			string DirectXSDKDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX";
 
 			// Just include the DX11 stuff
 			PublicSystemIncludePaths.Add(DirectXSDKDir + "/include");

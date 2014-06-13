@@ -9,7 +9,7 @@ public class coremod: ModuleRules
 		Type = ModuleType.External;
 
 		string CoreModVersion = "4.2.6";
-		string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "coremod/coremod-" + CoreModVersion + "/";
+		string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "coremod/coremod-" + CoreModVersion + "/";
 
 		PublicIncludePaths.Add(LibraryPath + "include/coremod");
 

@@ -8,21 +8,21 @@ public class portmidi : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "portmidi/include");
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "portmidi/include");
 
         if (Target.Platform == UnrealTargetPlatform.Win32)
         {
-            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "portmidi/lib/Win32");
+            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "portmidi/lib/Win32");
             PublicAdditionalLibraries.Add("portmidi.lib");
         }
         else if (Target.Platform == UnrealTargetPlatform.Win64)
         {
-            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "portmidi/lib/Win64");
+            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "portmidi/lib/Win64");
             PublicAdditionalLibraries.Add("portmidi_64.lib");
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-            PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartyDirectory + "portmidi/lib/Mac/libportmidi.a");
+            PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "portmidi/lib/Mac/libportmidi.a");
 			PublicAdditionalFrameworks.Add( new UEBuildFramework( "CoreAudio" ));
 			PublicAdditionalFrameworks.Add( new UEBuildFramework( "CoreMIDI" ));
         }

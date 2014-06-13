@@ -8,7 +8,7 @@ public class ForsythTriOptimizer : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string ForsythTriOptimizerPath = UEBuildConfiguration.UEThirdPartyDirectory + "ForsythTriOO/";
+		string ForsythTriOptimizerPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ForsythTriOO/";
         PublicIncludePaths.Add(ForsythTriOptimizerPath + "Src");
 
 		string ForsythTriOptimizerLibPath = ForsythTriOptimizerPath + "Lib/";

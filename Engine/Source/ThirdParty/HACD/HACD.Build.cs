@@ -7,7 +7,7 @@ public class HACD : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string HACDDirectory = UEBuildConfiguration.UEThirdPartyDirectory + "HACD/HACD_1.0/";
+		string HACDDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "HACD/HACD_1.0/";
 		string HACDLibPath = HACDDirectory;
 		PublicIncludePaths.Add(HACDDirectory + "public");
 

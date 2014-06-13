@@ -8,11 +8,11 @@ public class elftoolchain : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "elftoolchain/include");
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "elftoolchain/include");
 
         if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "elftoolchain/lib/Linux/" + Target.Architecture);
+            PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "elftoolchain/lib/Linux/" + Target.Architecture);
             PublicAdditionalLibraries.Add("elf");
             PublicAdditionalLibraries.Add("dwarf");
         }

@@ -89,7 +89,7 @@ public class PhysX : ModuleRules
 			Definitions.Add("WITH_VEHICLE=0");
 		}
 
-		string PhysXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/PhysX-3.3/";
+		string PhysXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/PhysX-3.3/";
 
 		string PhysXLibDir = PhysXDir + "lib/";
 

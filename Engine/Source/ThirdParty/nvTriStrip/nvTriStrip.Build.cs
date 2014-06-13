@@ -8,7 +8,7 @@ public class nvTriStrip : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string NvTriStripPath = UEBuildConfiguration.UEThirdPartyDirectory + "nvTriStrip/nvTriStrip-1.0.0/";
+		string NvTriStripPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "nvTriStrip/nvTriStrip-1.0.0/";
         PublicIncludePaths.Add(NvTriStripPath + "Inc");
 
 		string NvTriStripLibPath = NvTriStripPath + "Lib/";

@@ -95,9 +95,18 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bIncludeADO;
 
-		/** Directory for the third part files/libs */
+		/** Directory for the third party files/libs */
+        [Obsolete("Use UEThirdPartySourceDirectory instead of UEThirdPartyDirectory.", true)]
 		[XmlConfig]
 		public static string UEThirdPartyDirectory;
+
+        /** Directory for the third party source */
+        [XmlConfig]
+        public static string UEThirdPartySourceDirectory;
+
+        /** Directory for the third party binaries */
+        [XmlConfig]
+        public static string UEThirdPartyBinariesDirectory;
 
 		/** If true, force header regeneration. Intended for the build machine */
 		[XmlConfig]
@@ -180,7 +189,8 @@ namespace UnrealBuildTool
 			bCompileLeanAndMeanUE = false;
 			bCompileAgainstEngine = true;
 			bCompileAgainstCoreUObject = true;
-			UEThirdPartyDirectory = "ThirdParty/";
+            UEThirdPartySourceDirectory = "ThirdParty/";
+            UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
 			bWithServerCode = true;
@@ -204,21 +214,21 @@ namespace UnrealBuildTool
 			// Configuration overrides.
 			string SteamVersion = "Steamv129a";
 			bCompileSteamOSS = bCompileSteamOSS
-			   && Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/" + SteamVersion) == true;
+			   && Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/" + SteamVersion) == true;
 
 			bCompileMcpOSS = bCompileMcpOSS
 			   && Directory.Exists("Runtime/Online/NotForLicensees/OnlineSubsystemMcp") == true;
 
 
 			bCompileSimplygon = bCompileSimplygon
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true
 				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 
 			bCompileSpeedTree = bCompileSpeedTree
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SpeedTree") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
+				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SpeedTree") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 		}
 

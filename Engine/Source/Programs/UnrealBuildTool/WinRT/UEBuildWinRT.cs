@@ -283,7 +283,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "PhysX")
 				{
-					string PhysXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/PhysX-3.3/";
+					string PhysXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/PhysX-3.3/";
 
 					InModule.AddPublicIncludePath("include/foundation/WinRT");
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
@@ -334,7 +334,7 @@ namespace UnrealBuildTool
 					InModule.RemovePublicDefinition("APEX_STATICALLY_LINKED=0");
 					InModule.AddPublicDefinition("APEX_STATICALLY_LINKED=1");
 					
-					string APEXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/APEX-1.3/";
+					string APEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/APEX-1.3/";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(APEXDir + "lib/WinRT");
@@ -369,7 +369,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "FreeType2")
 				{
-					string FreeType2Path = UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/";
+					string FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(FreeType2Path + "Lib/WinRT/Win64");
@@ -382,7 +382,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "UElibPNG")
 				{
-					string libPNGPath = UEBuildConfiguration.UEThirdPartyDirectory + "libPNG/libPNG-1.5.2";
+					string libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(libPNGPath + "/lib/WinRT/Win64");
@@ -424,7 +424,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "UEOgg")
 				{
-					string OggPath = UEBuildConfiguration.UEThirdPartyDirectory + "Ogg/libogg-1.2.2/";
+					string OggPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Ogg/libogg-1.2.2/";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(OggPath + "WinRT/VS2012/WinRT/x64/Release");
@@ -437,7 +437,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "Vorbis")
 				{
-					string VorbisPath = UEBuildConfiguration.UEThirdPartyDirectory + "Vorbis/libvorbis-1.3.2/";
+					string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
@@ -450,7 +450,7 @@ namespace UnrealBuildTool
 				}
 				else if (InModule.ToString() == "VorbisFile")
 				{
-					string VorbisPath = UEBuildConfiguration.UEThirdPartyDirectory + "Vorbis/libvorbis-1.3.2/";
+					string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
 						InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
@@ -470,11 +470,11 @@ namespace UnrealBuildTool
 				{
 					if (Target.Platform == UnrealTargetPlatform.WinRT)
 					{
-						InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartyDirectory + "zlib/zlib-1.2.5/Lib/WinRT/Win64");
+						InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/Win64");
 					}
 					else
 					{
-						InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartyDirectory + "zlib/zlib-1.2.5/Lib/WinRT/ARM");
+						InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/ARM");
 					}
 					InModule.AddPublicAdditionalLibrary("zlib125.lib");
 				}

@@ -8,7 +8,7 @@ public class UEOgg : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string OggPath = UEBuildConfiguration.UEThirdPartyDirectory + "Ogg/libogg-1.2.2/";
+		string OggPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Ogg/libogg-1.2.2/";
 
 		PublicSystemIncludePaths.Add(OggPath + "include");
 

@@ -269,7 +269,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/stlport/libs/armeabi-v7a");
 
             // Add path to statically compiled version of cxa_demangle
-            InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Android/cxa_demangle/armeabi-v7a");
+            InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
 
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("stdc++");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");

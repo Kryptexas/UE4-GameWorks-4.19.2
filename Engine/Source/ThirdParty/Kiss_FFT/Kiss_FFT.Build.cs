@@ -11,7 +11,7 @@ public class Kiss_FFT : ModuleRules
 		Definitions.Add("WITH_KISSFFT=1");
 
 		// Compile and link with kissFFT
-		string Kiss_FFTPath = UEBuildConfiguration.UEThirdPartyDirectory + "Kiss_FFT/kiss_fft129";
+		string Kiss_FFTPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Kiss_FFT/kiss_fft129";
 
 		PublicIncludePaths.Add(Kiss_FFTPath);
 

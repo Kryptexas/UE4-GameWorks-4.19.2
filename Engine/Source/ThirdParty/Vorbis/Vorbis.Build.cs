@@ -7,7 +7,7 @@ public class Vorbis : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string VorbisPath = UEBuildConfiguration.UEThirdPartyDirectory + "Vorbis/libvorbis-1.3.2/";
+		string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
 
 		PublicIncludePaths.Add(VorbisPath + "include");
 		Definitions.Add("WITH_OGGVORBIS=1");

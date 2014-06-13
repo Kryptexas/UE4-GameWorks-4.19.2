@@ -7,7 +7,7 @@ public class WebSockets : ModuleRules
     public WebSockets(TargetInfo Target)
 	{
 		Type = ModuleType.External;
-            string WebsocketPath = UEBuildConfiguration.UEThirdPartyDirectory + "WebSockets/libwebsockets/";
+            string WebsocketPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "WebSockets/libwebsockets/";
 		    if (Target.Platform == UnrealTargetPlatform.Win64)
             {
                 PublicIncludePaths.Add(WebsocketPath + "include/");

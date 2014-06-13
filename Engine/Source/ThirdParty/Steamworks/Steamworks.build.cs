@@ -11,7 +11,7 @@ public class Steamworks : ModuleRules
 		string SteamVersion = "v129a";
 		Type = ModuleType.External;
 
-		string SdkBase = UEBuildConfiguration.UEThirdPartyDirectory + "Steamworks/Steam" + SteamVersion + "/sdk";
+		string SdkBase = UEBuildConfiguration.UEThirdPartySourceDirectory + "Steamworks/Steam" + SteamVersion + "/sdk";
 		if (!Directory.Exists(SdkBase))
 		{
 			string Err = string.Format("steamworks SDK not found in {0}", SdkBase);

@@ -8,7 +8,7 @@ public class OpenGL : ModuleRules
 		Type = ModuleType.External;
 
 		if (Target.Platform != UnrealTargetPlatform.HTML5)
-			PublicSystemIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "OpenGL");
+			PublicSystemIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "OpenGL");
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))

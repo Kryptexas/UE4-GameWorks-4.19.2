@@ -7,7 +7,7 @@ public class zlib : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string zlibPath = UEBuildConfiguration.UEThirdPartyDirectory + "zlib/zlib-1.2.5/";
+		string zlibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/";
 
 		PublicIncludePaths.Add(zlibPath + "inc");
 

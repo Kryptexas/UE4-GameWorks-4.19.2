@@ -15,9 +15,9 @@ public class LibOVR : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
+            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
 
-            string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/";
+            string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/";
 			string LibraryName = "libovr";
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
@@ -36,9 +36,9 @@ public class LibOVR : ModuleRules
 		}
 //		else if ((Target.Platform == UnrealTargetPlatform.Mac))
 //		{
-//            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
+//            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
 //
-//          string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
+//          string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
 //			string LibraryName = "libovr";
 //			PublicLibraryPaths.Add(LibraryPath);
 //			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");

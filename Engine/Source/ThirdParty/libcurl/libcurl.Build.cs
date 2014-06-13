@@ -9,7 +9,7 @@ public class libcurl : ModuleRules
 		Type = ModuleType.External;
 
 		Definitions.Add("WITH_LIBCURL=1");
-		string LibCurlPath = UEBuildConfiguration.UEThirdPartyDirectory + "libcurl/";
+		string LibCurlPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libcurl/";
 		if (Target.Platform == UnrealTargetPlatform.Linux)
         {
 			PublicIncludePaths.Add(LibCurlPath + "include");

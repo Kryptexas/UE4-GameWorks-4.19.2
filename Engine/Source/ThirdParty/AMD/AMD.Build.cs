@@ -10,7 +10,7 @@ public class AMD : ModuleRules
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
-			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "AMD");
+			PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "AMD");
 		}
 	}
 }

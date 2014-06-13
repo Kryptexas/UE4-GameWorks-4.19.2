@@ -11,7 +11,7 @@ public class Simplygon : ModuleRules
 
         Definitions.Add("SGDEPRECATED_OFF=1");
 
-		string SimplygonPath = UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon/Simplygon-5.5.2156/";
+		string SimplygonPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon/Simplygon-5.5.2156/";
 		PublicIncludePaths.Add(SimplygonPath + "Inc");
 
 		// Simplygon depends on D3DX9.
@@ -20,11 +20,11 @@ public class Simplygon : ModuleRules
 		{
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
-				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartyDirectory + "Windows/DirectX/Lib/x64" );
+				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x64" );
 			}
 			else
 			{
-				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartyDirectory + "Windows/DirectX/Lib/x86" );
+				PublicLibraryPaths.Add( UEBuildConfiguration.UEThirdPartySourceDirectory + "Windows/DirectX/Lib/x86" );
 			}
 			PublicAdditionalLibraries.Add(
 				(Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d3dx9d.lib" : "d3dx9.lib"

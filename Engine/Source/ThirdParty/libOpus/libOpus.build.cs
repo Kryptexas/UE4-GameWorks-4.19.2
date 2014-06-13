@@ -11,8 +11,8 @@ public class libOpus : ModuleRules
 		string OpusVersion = "1.1";
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "libOpus/opus-" + OpusVersion + "/include");
-		string LibraryPath = UEBuildConfiguration.UEThirdPartyDirectory + "libOpus/opus-" + OpusVersion + "/";
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "libOpus/opus-" + OpusVersion + "/include");
+		string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libOpus/opus-" + OpusVersion + "/";
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))

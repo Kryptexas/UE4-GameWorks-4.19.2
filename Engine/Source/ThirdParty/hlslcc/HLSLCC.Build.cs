@@ -8,9 +8,9 @@ public class HLSLCC : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartyDirectory + "hlslcc/hlslcc/src/hlslcc_lib");
+		PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "hlslcc/hlslcc/src/hlslcc_lib");
 
-		string LibPath = UEBuildConfiguration.UEThirdPartyDirectory + "hlslcc/hlslcc/lib/";
+		string LibPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "hlslcc/hlslcc/lib/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{

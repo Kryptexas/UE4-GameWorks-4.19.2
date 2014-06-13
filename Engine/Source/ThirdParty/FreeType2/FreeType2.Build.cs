@@ -10,7 +10,7 @@ public class FreeType2 : ModuleRules
 
         Definitions.Add("WITH_FREETYPE=1");
       
-        string FreeType2Path = UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/";
+        string FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
 
         PublicSystemIncludePaths.Add(FreeType2Path + "include");
 
@@ -34,12 +34,12 @@ public class FreeType2 : ModuleRules
 			if (Target.Architecture == "-simulator")
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Simulator");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Simulator/libfreetype2412.a");
             }
             else
             {
                 PublicLibraryPaths.Add(FreeType2LibPath + "ios/Device");
-				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartyDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
+				PublicAdditionalShadowFiles.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/Lib/ios/Device/libfreetype2412.a");
             }
 
 			PublicAdditionalLibraries.Add("freetype2412");

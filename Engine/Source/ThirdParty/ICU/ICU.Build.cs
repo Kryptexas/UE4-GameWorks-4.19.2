@@ -7,7 +7,7 @@ public class ICU : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string ICURootPath = UEBuildConfiguration.UEThirdPartyDirectory + "ICU/icu4c-51_2/";
+		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/icu4c-51_2/";
 
 		// Includes
 		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");

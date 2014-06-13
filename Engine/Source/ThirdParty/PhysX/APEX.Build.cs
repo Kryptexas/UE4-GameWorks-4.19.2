@@ -75,7 +75,7 @@ public class APEX : ModuleRules
 
 		Definitions.Add("WITH_APEX=1");
 
-		string APEXDir = UEBuildConfiguration.UEThirdPartyDirectory + "PhysX/APEX-1.3/";
+		string APEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/APEX-1.3/";
 
 		string APEXLibDir = APEXDir + "lib";
 
