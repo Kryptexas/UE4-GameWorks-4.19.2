@@ -192,8 +192,8 @@ bool FClassBrowseHelper::IsHidingParentClass(UClass* Class)
 
 bool FClassBrowseHelper::IsPackageSaved(FName PackageName)
 {
-	UPackage* Package = LoadPackage(NULL, *PackageName.ToString(), LOAD_None);
-	return Package != NULL;
+	const bool bFound = FPackageName::SearchForPackageOnDisk(PackageName.ToString());
+	return bFound;
 }
 
 void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
@@ -269,7 +269,11 @@ TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class F
 		Node = MakeShareable(new FClassDataNode);
 		Node->ParentClassName = AssetParentClassName;
 
-		FClassData NewData(AssetData.AssetName.ToString(), AssetData.PackageName.ToString(), AssetClassName);
+		UObject* AssetOb = AssetData.IsAssetLoaded() ? AssetData.GetAsset() : NULL;
+		UBlueprint* AssetBP = Cast<UBlueprint>(AssetOb);
+		UClass* AssetClass = AssetBP ? AssetBP->GeneratedClass : AssetOb ? AssetOb->GetClass() : NULL;
+
+		FClassData NewData(AssetData.AssetName.ToString(), AssetData.PackageName.ToString(), AssetClassName, AssetClass);
 		Node->Data = NewData;
 	}
 

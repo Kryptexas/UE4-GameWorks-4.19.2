@@ -22,8 +22,8 @@ struct FClassData
 	FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
 		bIsHidden(0), bHideParent(0), Class(InClass), DeprecatedMessage(InDeprecatedMessage)
 	{}
-	FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName) :
-		bIsHidden(0), bHideParent(0), AssetName(InAssetName), GeneratedClassPackage(InGeneratedClassPackage), ClassName(InClassName) 
+	FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass) :
+		bIsHidden(0), bHideParent(0), Class(InClass), AssetName(InAssetName), GeneratedClassPackage(InGeneratedClassPackage), ClassName(InClassName) 
 	{}
 
 	FString ToString() const;
