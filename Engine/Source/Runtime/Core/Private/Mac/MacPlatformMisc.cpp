@@ -568,7 +568,7 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 			{
 				if( !bIsMouseClickEvent || [Event window] == NULL )
 				{
-					MacApplication->AddPendingEvent( Event );
+					MacApplication->ProcessEvent( Event );
 				}
 
 				if( [Event type] == NSLeftMouseUp )

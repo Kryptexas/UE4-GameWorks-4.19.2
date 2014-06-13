@@ -31,8 +31,6 @@ public:
 
 	virtual void PumpMessages( const float TimeDelta ) override;
 
-	virtual void ProcessDeferredEvents( const float TimeDelta ) override;
-
 	virtual TSharedRef< FGenericWindow > MakeWindow() override;
 
 	virtual void InitializeWindow( const TSharedRef< FGenericWindow >& Window, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately ) override;
@@ -63,7 +61,7 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
-	void AddPendingEvent( NSEvent* Event );
+	void ProcessEvent(NSEvent* Event);
 
 	void OnWindowDraggingFinished();
 
@@ -75,7 +73,7 @@ public:
 
 	uint32 GetModifierKeysFlags() { return ModifierKeysFlags; }
 
-	void UseMouseCaptureWindow( bool bUseMouseCaptureWindow );
+	void UseMouseCaptureWindow(bool bUseMouseCaptureWindow);
 
 #if WITH_EDITOR
     virtual void SendAnalytics(IAnalyticsProvider* Provider) override;
@@ -115,7 +113,6 @@ private:
 	TCHAR ConvertChar( TCHAR Character );
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
-	void ProcessEvent( NSEvent* Event );
 	FSlateCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
@@ -141,8 +138,6 @@ private:
 	EMouseButtons::Type LastPressedMouseButton;
 
 	TArray< TSharedRef< FMacWindow > > Windows;
-
-	TArray< NSEvent* > PendingEvents;
 
 	TSharedRef< class HIDInputInterface > HIDInput;
 

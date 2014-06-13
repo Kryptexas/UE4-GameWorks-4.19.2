@@ -548,7 +548,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -563,7 +563,7 @@
 
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -571,7 +571,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -579,7 +579,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -587,7 +587,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -595,7 +595,7 @@
 {
 	if(self.bForwardEvents)
 	{
-		MacApplication->AddPendingEvent( Event );
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -679,32 +679,32 @@
 
 - (void)mouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)otherMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)mouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)rightMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 - (void)otherMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	MacApplication->ProcessEvent( Event );
 }
 
 @end
@@ -1047,8 +1047,7 @@ void FMacWindow::Show()
 			bool isMainAndKey = false;
 			do
 			{
-				OwningApplication->PumpMessages(0.f);
-				OwningApplication->ProcessDeferredEvents(0.f);
+				FPlatformMisc::PumpMessages(true);
 				bIsVisible = [WindowHandle isVisible];
 				isMainAndKey = [WindowHandle isKeyWindow];
 			} while(!bIsVisible && isMainAndKey != bMakeMainAndKey);
@@ -1094,8 +1093,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		// and OpenGL contexts due to bad event ordering.
 		do
 		{
-			OwningApplication->PumpMessages(0.f);
-			OwningApplication->ProcessDeferredEvents(0.f);
+			FPlatformMisc::PumpMessages(true);
 			WindowIsFullScreen = [WindowHandle windowMode] != EWindowMode::Windowed;
 		} while(WindowIsFullScreen != bMakeFullscreen);
 		

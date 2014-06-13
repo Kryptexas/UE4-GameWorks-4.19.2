@@ -60,7 +60,7 @@ FMacApplication::FMacApplication()
 {
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
-	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){AddPendingEvent(Event);}];
+	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){ ProcessEvent(Event); }];
 
 #if WITH_EDITOR
 	NSMutableArray* MultiTouchDevices = (__bridge NSMutableArray*)MTDeviceCreateList();
@@ -136,12 +136,6 @@ void FMacApplication::PumpMessages( const float TimeDelta )
 	FPlatformMisc::PumpMessages( true );
 }
 
-void FMacApplication::AddPendingEvent( NSEvent* Event )
-{
-	SCOPED_AUTORELEASE_POOL;
-	PendingEvents.Add( [Event retain] );
-}
-
 void FMacApplication::OnWindowDraggingFinished()
 {
 	if( DraggedWindow )
@@ -197,21 +191,6 @@ bool FMacApplication::IsWindowMovable(FSlateCocoaWindow* Win, bool* OutMovableBy
 		}
 	}
 	return true;
-}
-
-void FMacApplication::ProcessDeferredEvents( const float TimeDelta )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	// Processing some events may result in adding more events and calling this function recursively. To avoid problems,
-	// we make a local copy of pending events and empty the global one.
-	TArray< NSEvent* > Events( PendingEvents );
-	PendingEvents.Empty();
-	for( int32 Index = 0; Index < Events.Num(); Index++ )
-	{
-		ProcessEvent( Events[Index] );
-		[Events[Index] release];
-	}
 }
 
 void FMacApplication::HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
