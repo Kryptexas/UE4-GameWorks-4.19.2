@@ -82,7 +82,8 @@ class FRunnableThreadWin : public FRunnableThread
 		}
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 		__except( EXCEPTION_EXECUTE_HANDLER )
-		{
+		CA_SUPPRESS(6322)
+		{	
 		}
 #endif
 	}

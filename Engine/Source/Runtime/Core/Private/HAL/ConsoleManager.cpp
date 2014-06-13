@@ -931,7 +931,7 @@ IConsoleObject* FConsoleManager::AddConsoleObject(const TCHAR* Name, IConsoleObj
 			UE_LOG(LogConsoleManager, Fatal, TEXT( "Console object named '%s' can't be replaced with the new one of different type!"), Name );
 		}
 
-		if( ExistingVar )
+		if( ExistingVar && Var )
 		{
 			if(ExistingVar->TestFlags(ECVF_CreatedFromIni))
 			{

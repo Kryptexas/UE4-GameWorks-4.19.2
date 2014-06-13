@@ -511,6 +511,8 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 		const TSharedRef<FString> UnlocalizedString = MakeShareable( new FString( SourceString ? **SourceString : TEXT("") ) );
 
 		// If live-culture-swap is enabled or the system is uninitialized - make entries so that they can be updated when system is initialized or a culture swap occurs.
+		CA_SUPPRESS(6236)
+		CA_SUPPRESS(6316)
 		if( !(bIsInitialized) || ENABLE_LOC_TESTING )
 		{
 #if ENABLE_LOC_TESTING

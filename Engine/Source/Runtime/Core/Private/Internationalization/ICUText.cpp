@@ -263,6 +263,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
+	CA_SUPPRESS(6316)
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
 
 	TArray<icu::UnicodeString> ArgumentNames;
@@ -351,6 +352,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
+	CA_SUPPRESS(6316)
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
 
 	TArray<icu::Formattable> ArgumentValues;
@@ -436,6 +438,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
 
+	CA_SUPPRESS(6316)
 	const bool bEnableErrorResults = ENABLE_TEXT_ERROR_CHECKING_RESULTS && bEnableErrorCheckingResults;
 
 	TArray<icu::UnicodeString> ArgumentNames;

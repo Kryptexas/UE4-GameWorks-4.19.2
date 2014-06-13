@@ -165,6 +165,7 @@ void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 
 void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr )
 {
+	CA_SUPPRESS(6001)
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);
 }
 

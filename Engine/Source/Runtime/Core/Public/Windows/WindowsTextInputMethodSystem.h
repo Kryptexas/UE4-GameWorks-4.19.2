@@ -25,7 +25,7 @@ public:
 	// IUnknown Interface End
 
 	// ITfInputProcessorProfileActivationSink Interface Begin
-	STDMETHODIMP OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID clsid, REFGUID catid, REFGUID guidProfile, HKL hkl, DWORD dwFlags) override;
+	STDMETHODIMP OnActivated(DWORD dwProfileType, LANGID langid, __RPC__in REFCLSID clsid, __RPC__in REFGUID catid, __RPC__in REFGUID guidProfile, HKL hkl, DWORD dwFlags) override;
 	// ITfInputProcessorProfileActivationSink Interface End
 
 	// ITfActiveLanguageProfileNotifySink Interface Begin

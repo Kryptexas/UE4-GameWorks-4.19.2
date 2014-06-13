@@ -246,6 +246,7 @@ void FTextHistory_FormatNumber::Serialize(FArchive& Ar)
 		{
 			FormatOptions = new FNumberFormattingOptions;
 		}
+		CA_SUPPRESS(6011)
 		Ar << *FormatOptions;
 	}
 

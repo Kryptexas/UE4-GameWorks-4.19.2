@@ -105,7 +105,7 @@
  * ensure() resolves to a regular assertion (crash) in shipping or test builds.
  */
 
-#if DO_CHECK
+#if DO_CHECK && !USING_CODE_ANALYSIS // The Visual Studio 2013 analyzer doesn't understand these complex conditionals
 
 	#define ensure( InExpression ) \
 		FDebug::EnsureNotFalse( ( ( InExpression ) != 0 ), #InExpression, __FILE__, __LINE__ )

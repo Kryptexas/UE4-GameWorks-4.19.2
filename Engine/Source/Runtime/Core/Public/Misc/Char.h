@@ -216,7 +216,7 @@ template <> inline bool TChar<WIDECHAR>::IsPunct( CharType c )				{ return ::isw
 -----------------------------------------------------------------------------*/
 template <> inline TChar<ANSICHAR>::CharType TChar<ANSICHAR>::ToUpper( CharType c )	{ return (ANSICHAR)::toupper(c); }
 template <> inline TChar<ANSICHAR>::CharType TChar<ANSICHAR>::ToLower( CharType c )	{ return (ANSICHAR)::tolower(c); }
-template <> inline bool TChar<ANSICHAR>::IsUpper( CharType c )							{ return ::isupper(c) != 0; }
-template <> inline bool TChar<ANSICHAR>::IsLower( CharType c )							{ return ::islower(c) != 0; }
-template <> inline bool TChar<ANSICHAR>::IsAlpha( CharType c )							{ return ::isalpha(c) != 0; }
-template <> inline bool TChar<ANSICHAR>::IsPunct( CharType c )							{ return ::ispunct( c ) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsUpper( CharType c )							{ return ::isupper(static_cast<unsigned char>(c)) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsLower(CharType c)							{ return ::islower(static_cast<unsigned char>(c)) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsAlpha(CharType c)							{ return ::isalpha(static_cast<unsigned char>(c)) != 0; }
+template <> inline bool TChar<ANSICHAR>::IsPunct(CharType c)							{ return ::ispunct(static_cast<unsigned char>(c)) != 0; }

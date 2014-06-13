@@ -465,9 +465,9 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 	LCID DefaultLocale = GetSystemDefaultLCID();
 	const int32 MaxLocaleStringLength = 9;
 	TCHAR LangBuffer[MaxLocaleStringLength];
-	int LangReturn = GetLocaleInfo(DefaultLocale, LOCALE_SISO639LANGNAME, LangBuffer, MaxLocaleStringLength * sizeof(TCHAR));
+	int LangReturn = GetLocaleInfo(DefaultLocale, LOCALE_SISO639LANGNAME, LangBuffer, ARRAY_COUNT(LangBuffer));
 	TCHAR CountryBuffer[MaxLocaleStringLength];
-	int CountryReturn = GetLocaleInfo(DefaultLocale, LOCALE_SISO3166CTRYNAME, CountryBuffer, MaxLocaleStringLength * sizeof(TCHAR));
+	int CountryReturn = GetLocaleInfo(DefaultLocale, LOCALE_SISO3166CTRYNAME, CountryBuffer, ARRAY_COUNT(CountryBuffer));
 
 	if (LangReturn == 0 || CountryReturn == 0)
 	{
@@ -588,10 +588,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 						OutResults.GPUPerformanceIndex = 0.5f * (GPU3DScoreIndex + GPUDesktopScoreIndex);
 					}
 				}
-			}
-
-			if (WinSATResults)
-			{
+				
 				WinSATResults->Release();
 			}
 		}
@@ -668,10 +665,7 @@ bool FWindowsPlatformSurvey::GetSubComponentIndex( IProvideWinSATResultsInfo* Wi
 		{
 			bSuccess = true;
 		}
-	}
 
-	if (AssessmentInfo)
-	{
 		AssessmentInfo->Release();
 	}
 #endif
@@ -697,6 +691,7 @@ void FWindowsPlatformSurvey::GetOSVersionLabels(const SYSTEM_INFO& SystemInfo, F
 		OSVERSIONINFOEX OsVersionInfo = {0};
 		OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
 #pragma warning(disable : 4996) // 'function' was declared deprecated
+		CA_SUPPRESS(28159)
 		GetVersionEx( (LPOSVERSIONINFO)&OsVersionInfo );
 #pragma warning(default : 4996)
 

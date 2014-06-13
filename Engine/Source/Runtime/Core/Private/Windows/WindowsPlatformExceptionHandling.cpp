@@ -103,20 +103,20 @@ void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 	DWORD InfoSize = GetFileVersionInfoSize( ModuleName, &Handle );
 	if( InfoSize > 0 )
 	{
-		char* VersionInfo = new char[InfoSize];
-		if( GetFileVersionInfo( ModuleName, 0, InfoSize, VersionInfo ) )
+		TArray<char> VersionInfo;
+		VersionInfo.SetNum(InfoSize);
+
+		if( GetFileVersionInfo( ModuleName, 0, InfoSize, VersionInfo.GetData() ) )
 		{
 			VS_FIXEDFILEINFO* FixedFileInfo;
 
 			UINT InfoLength = 0;
-			if( VerQueryValue( VersionInfo, TEXT( "\\" ), ( void** )&FixedFileInfo, &InfoLength ) )
+			if( VerQueryValue( VersionInfo.GetData(), TEXT( "\\" ), ( void** )&FixedFileInfo, &InfoLength ) )
 			{
-				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%d.%d.%d.%d" ), 
+				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%u.%u.%u.%u" ), 
 					HIWORD( FixedFileInfo->dwProductVersionMS ), LOWORD( FixedFileInfo->dwProductVersionMS ), HIWORD( FixedFileInfo->dwProductVersionLS ), LOWORD( FixedFileInfo->dwProductVersionLS ) );
 			}
 		}
-
-		delete VersionInfo;
 	}
 }
 
@@ -166,6 +166,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	Result = WerReportSetParameter( ReportHandle, WER_P6, TEXT( "Exception Code" ), StringBuffer );
 
 	INT_PTR ExceptionOffset = ( char* )( ExceptionInfo->ExceptionRecord->ExceptionAddress ) - ( char* )FaultModuleHandle;
+	CA_SUPPRESS(6066) // The format specifier should probably be something like %tX, but VS 2013 doesn't support 't'.
 	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "%p" ), ExceptionOffset );
 	Result = WerReportSetParameter( ReportHandle, WER_P7, TEXT( "Exception Offset" ), StringBuffer );
 
@@ -392,6 +393,7 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 	}
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	__except(ReportCrashUsingCrashReportClient(GetExceptionInformation(), ErrorMessage, EErrorReportUI::ReportInUnattendedMode))
+	CA_SUPPRESS(6322)
 	{
 	}
 #endif

@@ -317,7 +317,7 @@ private:
 #endif
 
 	// Implementation. 
-	void OutOfMemory(uint64 Size, uint32 Alignment=0)
+	CA_NORETURN void OutOfMemory(uint64 Size, uint32 Alignment=0)
 	{
 		// this is expected not to return
 		FPlatformMemory::OnOutOfMemory(Size, Alignment);
@@ -384,6 +384,7 @@ private:
 				{
 					collision->Key=Key;
 					InitializeHashBucket(collision);
+					CA_ASSUME(collision->FirstPool);
 				}
 				return &collision->FirstPool[PoolIndex];
 			}

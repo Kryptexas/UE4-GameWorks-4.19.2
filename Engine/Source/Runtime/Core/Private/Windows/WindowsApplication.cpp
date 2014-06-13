@@ -61,6 +61,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	const bool bClassRegistered = RegisterClass( InstanceHandle, IconHandle );
 
 	// Initialize OLE for Drag and Drop support.
+	CA_SUPPRESS(6031);
 	OleInitialize( NULL );
 
 	TextInputMethodSystem = MakeShareable( new FWindowsTextInputMethodSystem );
@@ -159,7 +160,7 @@ void FWindowsApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWind
 	}
 	else
 	{
-		::SetCapture( NULL );
+		::ReleaseCapture();
 	}
 }
 
@@ -413,13 +414,16 @@ void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics 
 
 	// Get the screen rect of the primary monitor, excluding taskbar etc.
 	RECT WorkAreaRect;
-	WorkAreaRect.top = WorkAreaRect.bottom = WorkAreaRect.left = WorkAreaRect.right = 0;
-	SystemParametersInfo( SPI_GETWORKAREA, 0, &WorkAreaRect, 0 );
+	if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &WorkAreaRect, 0))
+	{
+		WorkAreaRect.top = WorkAreaRect.bottom = WorkAreaRect.left = WorkAreaRect.right = 0;
+	}
+
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = WorkAreaRect.left;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = WorkAreaRect.top;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = WorkAreaRect.right;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = WorkAreaRect.bottom;
-
+	
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
 	OutDisplayMetrics.VirtualDisplayRect.Top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );

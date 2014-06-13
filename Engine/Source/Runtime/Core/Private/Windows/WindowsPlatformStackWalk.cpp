@@ -491,9 +491,13 @@ static void LoadProcessModules()
 		// Set the search path to find PDBs in the same folder as the DLL.
 		ANSICHAR SearchPath[1024];
 		ANSICHAR* FileName = NULL;
-		GetFullPathNameA( ImageName, 1024, SearchPath, &FileName );
-		*FileName = 0;
-		SymSetSearchPath( GetCurrentProcess(), SearchPath );
+		const auto Result =	GetFullPathNameA( ImageName, ARRAY_COUNT( SearchPath ), SearchPath, &FileName );
+
+		if(Result != 0 && Result < ARRAY_COUNT(SearchPath))
+		{
+			*FileName = 0;
+			SymSetSearchPath(GetCurrentProcess(), SearchPath);
+		}
 
 		// Load module.
 		DWORD64 BaseAddress = SymLoadModule64( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, ModuleName, (DWORD64) ModuleInfo.lpBaseOfDll, (uint32) ModuleInfo.SizeOfImage );

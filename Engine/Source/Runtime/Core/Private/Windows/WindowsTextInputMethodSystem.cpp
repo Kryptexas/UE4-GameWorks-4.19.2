@@ -119,7 +119,7 @@ STDMETHODIMP_(ULONG) FTSFActivationProxy::Release()
 	return LocalReferenceCount;
 }
 
-STDAPI FTSFActivationProxy::OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID clsid, REFGUID catid, REFGUID guidProfile, HKL hkl, DWORD dwFlags)
+STDAPI FTSFActivationProxy::OnActivated(DWORD dwProfileType, LANGID langid, __RPC__in REFCLSID clsid, __RPC__in REFGUID catid, __RPC__in REFGUID guidProfile, HKL hkl, DWORD dwFlags)
 {
 	FString APIString;
 	if(::ImmGetIMEFileName(::GetKeyboardLayout(0), nullptr, 0) > 0)
@@ -325,6 +325,7 @@ bool FWindowsTextInputMethodSystem::InitializeTSF()
 		TSFActivationProxy = new FTSFActivationProxy(this);
 
 #pragma warning(disable : 4996) // 'function' was was declared deprecated
+		CA_SUPPRESS(28159)
 		const DWORD WindowsVersion = ::GetVersion();
 #pragma warning(default : 4996)
 
@@ -556,7 +557,7 @@ void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInpu
 	{
 		UE_LOG(LogWindowsTextInputMethodSystem, Error, TEXT("Deactivating a context failed while getting the currently focused document manager."));
 	}
-	if(FocusedDocumentManger == TextStore->TSFDocumentManager)
+	else if(FocusedDocumentManger == TextStore->TSFDocumentManager)
 	{
 		Result = TSFThreadManager->SetFocus(TSFDisabledDocumentManager);
 		if(FAILED(Result))

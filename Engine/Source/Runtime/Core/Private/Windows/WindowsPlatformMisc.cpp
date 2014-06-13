@@ -60,6 +60,7 @@ int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FStri
 	out_OSVersionLabel = TEXT( "Windows (unknown version)" );
 	out_OSSubVersionLabel = FString();
 #pragma warning(disable : 4996) // 'function' was declared deprecated
+	CA_SUPPRESS(28159)
 	if( GetVersionEx( (LPOSVERSIONINFO)&OsVersionInfo ) )
 #pragma warning(default : 4996)
 	{
@@ -908,6 +909,7 @@ uint32 FWindowsPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uin
 
 void FWindowsPlatformMisc::SetUTF8Output()
 {
+	CA_SUPPRESS(6031)
 	_setmode(_fileno(stdout), _O_U8TEXT);
 }
 
@@ -1349,6 +1351,7 @@ static bool HandleGameExplorerIntegration()
 
 					// convert guid to a string
 					TCHAR GuidDir[MAX_PATH];
+					CA_SUPPRESS(6031)
 					StringFromGUID2(GEGuid, GuidDir, MAX_PATH - 1);
 
 					// make the base path for all tasks
@@ -1389,6 +1392,7 @@ static bool HandleGameExplorerIntegration()
 					Link->Release();
 
 					IUniformResourceLocator* InternetLink;
+					CA_SUPPRESS(6031)
 					CoCreateInstance (CLSID_InternetShortcut, NULL, 
 						CLSCTX_INPROC_SERVER, IID_IUniformResourceLocator, (LPVOID*) &InternetLink);
 
@@ -1769,7 +1773,6 @@ bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Comm
 		NULL,
 		SW_SHOWNORMAL);
 	bool bSucceeded = hApp > (HINSTANCE)32;
-	CloseHandle(hApp);
 	return bSucceeded;
 }
 

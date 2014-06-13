@@ -91,19 +91,25 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 	#pragma intrinsic( _BitScanReverse )
 	static FORCEINLINE uint32 FloorLog2(uint32 Value) 
 	{
-		if (Value == 0) return 0;
 		// Use BSR to return the log2 of the integer
 		DWORD Log2;
-		_BitScanReverse( &Log2, Value );
-		return Log2;
+		if(_BitScanReverse(&Log2, Value) != 0)
+		{
+			return Log2;
+		}
+
+		return 0;
 	}
 	static FORCEINLINE uint32 CountLeadingZeros(uint32 Value)
 	{
-		if (Value == 0) return 32;
 		// Use BSR to return the log2 of the integer
 		DWORD Log2;
-		_BitScanReverse( &Log2, Value );
-		return 31 - Log2;
+		if(_BitScanReverse(&Log2, Value) != 0)
+		{
+			return 31 - Log2;
+		}
+
+		return 32;
 	}
 	static FORCEINLINE uint32 CeilLogTwo( uint32 Arg )
 	{

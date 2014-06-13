@@ -106,6 +106,8 @@ public:
 				// copy from the cache to the destination
 				if (Result)
 				{
+					// Analyzer doesn't see this - if this code ever changes make sure there are no buffer overruns!
+					CA_ASSUME(CacheIndex < CacheCount);
 					uint64 CorrectedBytesToRead=FMath::Min<uint64>(BytesToRead, CacheEnd[CacheIndex]-FilePos);
 					FMemory::Memcpy(Destination, BufferCache[CacheIndex]+(FilePos-CacheStart[CacheIndex]), CorrectedBytesToRead);
 					FilePos += CorrectedBytesToRead;
