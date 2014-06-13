@@ -40,7 +40,6 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "ScreenSpaceReflections.h"
 #include "PostProcessTestImage.h"
-#include "PostProcessSceneColorFringe.h"
 #include "PostProcessSubsurface.h"
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
@@ -180,15 +179,6 @@ static void AddPostProcessAA(FPostprocessContext& Context)
 	uint32 Quality = FMath::Clamp(CVar->GetValueOnRenderThread(), 1, 6);
 
 	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAA(Quality));
-
-	Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-
-	Context.FinalOutput = FRenderingCompositeOutputRef(Node);
-}
-
-static void AddSceneColorFringe(FPostprocessContext& Context)
-{
-	FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSceneColorFringe());
 
 	Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
@@ -1014,20 +1004,6 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				AddPostProcessAA(Context);
 			}
 			
-			{
-				static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
-
-				int32 FringeQuality = CVar->GetValueOnRenderThread();
-
-				if(View.Family->EngineShowFlags.SceneColorFringe
-					&& View.Family->EngineShowFlags.CameraImperfections
-					&& View.FinalPostProcessSettings.SceneFringeIntensity > 0.01f
-					&& FringeQuality > 0)
-				{
-					AddSceneColorFringe(Context);
-				}
-			}
-
 			if(bDepthOfField && Context.View.Family->EngineShowFlags.VisualizeDOF)
 			{
 				FRenderingCompositePass* VisualizeNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeDOF());

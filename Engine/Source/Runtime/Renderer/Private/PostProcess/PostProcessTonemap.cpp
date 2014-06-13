@@ -34,6 +34,8 @@ typedef enum {
 	TonemapperVignetteColor     = (1<<10),
 	TonemapperLightShafts       = (1<<11),
 	TonemapperMosaic            = (1<<12),
+	TonemapperColorFringe       = (1<<13),
+
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -53,6 +55,7 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperVignetteColor
 	1, //TonemapperLightShafts
 	1, //TonemapperMosaic
+	1, //TonemapperColorFringe
 };
 
 // Edit the following to add and remove configurations.
@@ -71,6 +74,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperGrainQuantization +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom +
@@ -79,6 +83,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperGrainQuantization +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom + 
@@ -109,6 +114,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperGrainIntensity +
 	TonemapperVignette +
 	TonemapperVignetteColor +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom +
@@ -116,6 +122,7 @@ static uint32 TonemapperConfBitmaskPC[11] = {
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperVignette +
+	TonemapperColorFringe +
 	0,
 
 	TonemapperBloom + 
@@ -463,6 +470,7 @@ static uint32 TonemapperGenerateBitmask(const FRenderingCompositePassContext* RE
 	Bitmask += (Settings->GrainIntensity > 0.0f)       ? TonemapperGrainIntensity : 0;
 	Bitmask += (Settings->VignetteIntensity > 0.0f)    ? TonemapperVignette       : 0;
 	Bitmask += (VignetteColor.GetAbsMax() != 0.0f)     ? TonemapperVignetteColor  : 0;
+
 	return Bitmask;
 }
 
@@ -499,6 +507,18 @@ static uint32 TonemapperGenerateBitmaskPC(const FRenderingCompositePassContext* 
 		{
 			Bitmask |= TonemapperGrainQuantization;
 		}
+	}
+
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
+
+	int32 FringeQuality = CVar->GetValueOnRenderThread();
+	if(Context->View.Family->EngineShowFlags.SceneColorFringe
+		// Removed this from the camera imperfections toggle because this no longer takes an extra pass.
+		// && Context->View.Family->EngineShowFlags.CameraImperfections
+		&& Context->View.FinalPostProcessSettings.SceneFringeIntensity > 0.01f
+		&& FringeQuality > 0)
+	{
+		Bitmask |= TonemapperColorFringe;
 	}
 
 	return Bitmask + TonemapperGenerateBitmaskPost(Context);
@@ -752,6 +772,7 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_QUANTIZATION"), TonemapperIsDefined(ConfigBitmask, TonemapperGrainQuantization));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
+		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && !PLATFORM_MAC));
 

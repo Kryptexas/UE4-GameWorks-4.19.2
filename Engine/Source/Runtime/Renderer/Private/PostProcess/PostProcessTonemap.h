@@ -90,6 +90,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FShaderResourceParameter EyeAdaptation;
 	FShaderParameter GrainRandomFull;
+	FShaderParameter FringeUVParams;
 
 	/** Initialization constructor. */
 	FPostProcessTonemapVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -98,6 +99,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		EyeAdaptation.Bind(Initializer.ParameterMap, TEXT("EyeAdaptation"));
 		GrainRandomFull.Bind(Initializer.ParameterMap, TEXT("GrainRandomFull"));
+		FringeUVParams.Bind(Initializer.ParameterMap, TEXT("FringeUVParams"));
 	}
 
 	void SetVS(const FRenderingCompositePassContext& Context)
@@ -126,13 +128,22 @@ public:
 				SetTextureParameter(Context.RHICmdList, ShaderRHI, EyeAdaptation, GWhiteTexture->TextureRHI);
 			}
 		}
+
+		{
+			// for scene color fringe
+			// from percent to fraction
+			float Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
+			// we only get bigger to not leak in content from outside
+			FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, FringeUVParams, Value);
+		}
 	}
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation;
+		Ar << PostprocessParameter << GrainRandomFull << EyeAdaptation << FringeUVParams;
 		return bShaderHasOutdatedParameters;
 	}
 };

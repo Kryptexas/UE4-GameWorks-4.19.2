@@ -99,6 +99,21 @@ float PseudoRandomTex(float2 xy)
 
 float SwitchVerticalAxis;
 
+
+
+// can be optimized
+float2 ScreenPosToUV(float2 ScreenPos)
+{
+	return (ScreenPos * ScreenPosToPixel.xy + ScreenPosToPixel.zw) * PostprocessInput0Size.zw;
+}
+
+float2 UVToScreenPos(float2 UV)
+{
+	return (UV * PostprocessInput0Size.xy - ScreenPosToPixel.zw) / ScreenPosToPixel.xy;
+}
+
+float4 FringeUVParams;
+
 // vertex shader entry point
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
@@ -106,6 +121,7 @@ void MainVS(
 	out float4 OutTexCoord : TEXCOORD0,
 	out float3 OutExposureScaleVignette : TEXCOORD1,
 	out float4 OutGrainUV : TEXCOORD2,
+	out float4 OutFringe : TEXCOORD3,
 	out float4 OutPosition : SV_POSITION
 	)
 {
@@ -126,6 +142,11 @@ void MainVS(
 	// Grain
 	OutGrainUV.xy = OutTexCoord.xy + PostprocessInput0Size.zw * float2(-0.5,0.5);
 	OutGrainUV.zw = OutTexCoord.xy + GrainRandomFull.xy;
+
+	// Fringe
+	float2 ScreenPos = UVToScreenPos(OutTexCoord.xy);
+	OutFringe.xy = ScreenPosToUV(ScreenPos * FringeUVParams.r);
+	OutFringe.zw = ScreenPosToUV(ScreenPos * FringeUVParams.g);
 }
 
 // Function graphing
@@ -175,28 +196,41 @@ void MainPS(
 	in float4 UVAndScreenPos : TEXCOORD0,
 	in float3 InExposureScaleVignette : TEXCOORD1,
 	in float4 GrainUV : TEXCOORD2,
+	in float4 FringeUV : TEXCOORD3,
 	out float4 OutColor : SV_Target0
 	)
 {
 	float2 UV = UVAndScreenPos.xy;
 	float2 ScreenSpacePos = UVAndScreenPos.zw;
 
-	half4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+	#if USE_GRAIN_JITTER || USE_GRAIN_INTENSITY || USE_GRAIN_QUANTIZATION
+		half Grain = GrainFromUV(GrainUV.zw);
+	#endif
+
+	float2 SceneUV = UV.xy;
+	#if USE_GRAIN_JITTER
+		SceneUV = lerp(UV.xy, GrainUV.xy, (1.0 - Grain*Grain) * GrainScaleBiasJitter.z);
+	#endif
+
+	#if USE_COLOR_FRINGE
+		float2 SceneUVJitter = float2(0.0, 0.0);
+		#if USE_GRAIN_JITTER
+			SceneUVJitter = SceneUV.xy - UV.xy;
+		#endif
+		half4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV);
+		half SceneColorG = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.xy + SceneUVJitter.xy).g;
+		half SceneColorB = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.zw + SceneUVJitter.xy).b;
+		SceneColor.g = SceneColorG;
+		SceneColor.b = SceneColorB;
+	#else
+		half4 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV);
+	#endif
 
 	#if USE_GAMMA_ONLY
 
 		OutColor = pow(SceneColor, InverseGamma.x);
 
 	#else 
-
-		#if USE_GRAIN_JITTER || USE_GRAIN_INTENSITY || USE_GRAIN_QUANTIZATION
-			half Grain = GrainFromUV(GrainUV.zw);
-		#endif
-
-		#if USE_GRAIN_JITTER
-			half3 GrainColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, GrainUV.xy).rgb;
-			SceneColor.rgb = lerp(SceneColor.rgb, GrainColor.rgb, (1.0 - Grain*Grain) * GrainScaleBiasJitter.z);
-		#endif
 
 		half3 LinearColor = SceneColor.rgb * ColorScale0.rgb;
 
