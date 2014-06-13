@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherDeviceGroup.h: Declares the FLauncherDeviceGroup class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -31,7 +27,6 @@ public:
 		: Id(InId)
 		, Name(InName)
 	{ }
-
 
 public:
 
@@ -88,7 +83,6 @@ public:
 
 	// End ILauncherDeviceGroup interface
 
-
 private:
 
 	// Holds the devices that are part of this group.
@@ -99,7 +93,6 @@ private:
 
 	// Holds the human readable name of this group.
 	FString Name;
-
 
 private:
 

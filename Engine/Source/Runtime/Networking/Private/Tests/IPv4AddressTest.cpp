@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPv4AddresTest.cpp: Unit test for the FIPv4AddresTest class.
-=============================================================================*/
-
 #include "NetworkingPrivatePCH.h"
-
 #include "AutomationTest.h"
 
 

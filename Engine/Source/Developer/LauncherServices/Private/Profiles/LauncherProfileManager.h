@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherProfileManager.h: Declares the FLauncherProfileManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,9 +11,7 @@ class FLauncherProfileManager
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FLauncherProfileManager( );
 
 
@@ -77,7 +71,6 @@ public:
 
 	// End ILauncherProfileManager interface
 
-
 protected:
 
 	/*
@@ -109,7 +102,6 @@ protected:
 	 */
 	void SaveProfiles( );
 
-
 protected:
 
 	/**
@@ -122,7 +114,6 @@ protected:
 		return FPaths::EngineSavedDir() / TEXT("Launcher");
 	}
 
-
 private:
 
 	// Holds the collection of device groups.
@@ -130,7 +121,6 @@ private:
 
 	// Holds the collection of launcher profiles.
 	TArray<ILauncherProfilePtr> Profiles;
-
 
 private:
 

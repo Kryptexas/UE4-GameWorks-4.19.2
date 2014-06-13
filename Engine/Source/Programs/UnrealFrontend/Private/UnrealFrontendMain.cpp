@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnrealFrontendMain.cpp: Implements the UnrealFrontend application's main loop.
-=============================================================================*/
-
 #include "UnrealFrontendMain.h"
 
 #include "RequiredProgramMainCPPInclude.h"
@@ -20,6 +16,7 @@
 IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
 
 #define IDEAL_FRAMERATE 60;
+
 
 namespace WorkspaceMenu
 {

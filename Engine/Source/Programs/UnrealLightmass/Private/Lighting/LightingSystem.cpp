@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightingSystem.cpp: Private static lighting system implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Exporter.h"
 #include "LightmassSwarm.h"

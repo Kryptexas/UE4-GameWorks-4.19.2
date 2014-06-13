@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TestTrackTaskDatabaseProvider.cpp: Integrates TestTrack Pro task database
-=============================================================================*/
-
 #include "TaskBrowserPrivatePCH.h"
 #include "TestTrackTaskDatabaseProvider.h"
+
 
 #if WITH_TESTTRACK
 
@@ -29,6 +26,7 @@
 	#endif
 #endif
 
+
 /**
  * Static: Creates a new instance of a TestTrack task database object
  *
@@ -50,7 +48,6 @@ FTestTrackProvider* FTestTrackProvider::CreateTestTrackProvider()
 }
 
 
-
 /**
  * FTestTrackProvider constructor
  */
@@ -61,9 +58,7 @@ FTestTrackProvider::FTestTrackProvider()
 	  ANSIServerEndpointURLString( NULL ),
 	  IDCookie( 0 ),
 	  UserRealName()
-{
-}
-
+{ }
 
 
 /**
@@ -91,7 +86,6 @@ FTestTrackProvider::~FTestTrackProvider()
 
 	TDLOG( TEXT( "TestTrack: TestTrack provider finished destroying" ) );
 }
-
 
 
 /**
@@ -132,7 +126,6 @@ bool FTestTrackProvider::Init()
 }
 
 
-
 /**
  * Sets the TestTrack server endpoint address using the specified URL string
  *
@@ -157,7 +150,6 @@ void FTestTrackProvider::SetupServerEndpoint( const FString& InServerURL )
 	// Point the SOAP library toward the server endpoint
 	TestTrackSoap->endpoint = ANSIServerEndpointURLString;
 }
-
 
 
 /**
@@ -220,7 +212,6 @@ bool FTestTrackProvider::VerifyTTPSucceeded( const int32 ResultCode )
 }
 
 
-
 /**
  * Queries the server for a list of databases that the user has access to.  This can be called before
  * the user is logged into the server
@@ -268,7 +259,6 @@ bool FTestTrackProvider::QueryAvailableDatabases( const FString& InServerURL, co
 
 	return true;
 }
-
 
 
 /**
@@ -493,7 +483,6 @@ bool FTestTrackProvider::ConnectToDatabase( const FString& InServerURL, const FS
 }
 
 
-
 /**
  * Logs the user off and disconnects from the database
  *
@@ -518,7 +507,6 @@ bool FTestTrackProvider::DisconnectFromDatabase()
 
 	return true;
 }
-
 
 
 /**
@@ -564,7 +552,6 @@ bool FTestTrackProvider::QueryFilters( TArray< FString >& OutFilterNames )
 
 	return true;
 }
-
 
 
 /**
@@ -757,8 +744,6 @@ bool FTestTrackProvider::QueryTasks( const FString& InFilterName, TArray< FTaskD
 }
 
 
-
- 
 /**
  * Retrieves details about a specific task from the database
  *
@@ -838,8 +823,6 @@ bool FTestTrackProvider::QueryTaskDetails( const uint32 InNumber, FTaskDatabaseE
 
 	return true;
 }
-
-
 
 
 /**
@@ -1000,5 +983,3 @@ bool FTestTrackProvider::MarkTaskComplete( const uint32 InNumber, const FTaskRes
 
 
 #endif	// WITH_TESTTRACK
-
-

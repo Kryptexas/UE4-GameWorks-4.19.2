@@ -1,9 +1,5 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SUndoHistory.h: Declares the SUndoHistory class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -39,7 +35,7 @@ public:
 	/**
 	 * Construct this widget
 	 *
-	 * @param InArgs - The declaration data for this widget.
+	 * @param InArgs The declaration data for this widget.
 	 */
 	void Construct( const FArguments& InArgs );
 

@@ -1,15 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformProcess.cpp: Generic implementations of Process platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 
+
 #if PLATFORM_HAS_BSD_TIME 
-#include <unistd.h> // for usleep
-#include <sched.h>  // for sched_yield
+	#include <unistd.h> // for usleep
+	#include <sched.h>  // for sched_yield
 #endif
+
 
 void* FGenericPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {

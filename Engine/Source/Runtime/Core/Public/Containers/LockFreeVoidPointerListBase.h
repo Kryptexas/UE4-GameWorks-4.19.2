@@ -1,12 +1,9 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LockFreeVoidPointerListBase.h: A lock free single linked list
-=============================================================================*/
-
 #pragma once
 
 #define CHECK_NON_CONCURRENT_ASSUMPTIONS (0)
+
 
 /** 
  * Base class for a lock free list of pointers 

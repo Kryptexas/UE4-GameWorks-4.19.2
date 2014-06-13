@@ -8,19 +8,17 @@
 
 #include "TaskDatabase.h"
 
+
 /**
  * Base class for describing an in-flight task database request
  */
 class FTaskDatabaseRequest
 {
-
 public:
 
 	/** The request type */
 	ETaskDatabaseRequestType::Type RequestType;
-
 };
-
 
 
 /**
@@ -29,7 +27,6 @@ public:
 class FTaskDatabaseRequest_QueryAvailableDatabases
 	: public FTaskDatabaseRequest
 {
-
 public:
 
 	/** Server URL */
@@ -40,10 +37,7 @@ public:
 
 	/** Login password */
 	FString LoginPassword;
-
 };
-
-
 
 
 /**
@@ -52,7 +46,6 @@ public:
 class FTaskDatabaseRequest_ConnectToDatabase
 	: public FTaskDatabaseRequest
 {
-
 public:
 
 	/** Server URL */
@@ -66,9 +59,7 @@ public:
 
 	/** The database name to connect to */
 	FString DatabaseName;
-
 };
-
 
 
 /**
@@ -77,15 +68,11 @@ public:
 class FTaskDatabaseRequest_QueryTasks
 	: public FTaskDatabaseRequest
 {
-
 public:
 
 	/** Filter name string */
 	FString FilterName;
-
 };
-
-
 
 
 /**
@@ -94,14 +81,11 @@ public:
 class FTaskDatabaseRequest_QueryTaskDetails
 	: public FTaskDatabaseRequest
 {
-
 public:
 
 	/** The task number to query details about */
 	uint32 TaskNumber;
-
 };
-
 
 
 /**
@@ -110,7 +94,6 @@ public:
 class FTaskDatabaseRequest_MarkTaskComplete
 	: public FTaskDatabaseRequest
 {
-
 public:
 
 	/** The task number to mark as fixed */
@@ -118,9 +101,7 @@ public:
 
 	/** Resolution data for this task */
 	FTaskResolutionData ResolutionData;
-
 };
-
 
 
 /**
@@ -129,7 +110,6 @@ public:
 class FTaskDatabaseThreadRunnable
 	: public FRunnable
 {
-
 public:
 
 	/**
@@ -169,7 +149,6 @@ public:
 	 */
 	virtual void Exit();
 
-
 public:
 
 	/** Synchronization object for the task database */
@@ -187,7 +166,6 @@ public:
 		NOTE: This is shared between the main thread and the task database thread */
 	FTaskDatabaseResponse* volatile ThreadSafeResponse;
 
-
 private:
 
 	/** Task database server URL */
@@ -198,5 +176,4 @@ private:
 
 	/** True if the task database thread has been explicitly asked to stop.  Usually at shutdown time. */
 	bool bAskedToStop;
-
 };

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsSection.h: Declares the FSettingsSection class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -69,9 +65,9 @@ public:
 
 public:
 
-	// Begin ISettingsSection interface
+	// ISettingsSection interface
 
-	virtual bool CanEdit( ) const OVERRIDE
+	virtual bool CanEdit( ) const override
 	{
 		if (CanEditDelegate.IsBound())
 		{
@@ -81,32 +77,32 @@ public:
 		return true;
 	}
 
-	virtual bool CanExport( ) const OVERRIDE
+	virtual bool CanExport( ) const override
 	{
 		return (ExportDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
 	}
 
-	virtual bool CanImport( ) const OVERRIDE
+	virtual bool CanImport( ) const override
 	{
 		return (ImportDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
 	}
 
-	virtual bool CanResetDefaults( ) const OVERRIDE
+	virtual bool CanResetDefaults( ) const override
 	{
 		return (ResetDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
 	}
 
-	virtual bool CanSave( ) const OVERRIDE
+	virtual bool CanSave( ) const override
 	{
 		return (SaveDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
 	}
 
-	virtual bool CanSaveDefaults( ) const OVERRIDE
+	virtual bool CanSaveDefaults( ) const override
 	{
 		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
 	}
 
-	virtual bool Export( const FString& Filename ) OVERRIDE
+	virtual bool Export( const FString& Filename ) override
 	{
 		if (ExportDelegate.IsBound())
 		{
@@ -123,37 +119,37 @@ public:
 		return false;
 	}
 
-	virtual ISettingsCategoryWeakPtr GetCategory( ) OVERRIDE
+	virtual ISettingsCategoryWeakPtr GetCategory( ) override
 	{
 		return Category;
 	}
 
-	virtual TWeakPtr<SWidget> GetCustomWidget( ) const OVERRIDE
+	virtual TWeakPtr<SWidget> GetCustomWidget( ) const override
 	{
 		return CustomWidget;
 	}
 
-	virtual const FText& GetDescription( ) const OVERRIDE
+	virtual const FText& GetDescription( ) const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const OVERRIDE
+	virtual const FText& GetDisplayName( ) const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetName( ) const OVERRIDE
+	virtual const FName& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual TWeakObjectPtr<UObject> GetSettingsObject( ) const OVERRIDE
+	virtual TWeakObjectPtr<UObject> GetSettingsObject( ) const override
 	{
 		return SettingsObject;
 	}
 
-	virtual FText GetStatus( ) const OVERRIDE
+	virtual FText GetStatus( ) const override
 	{
 		if (StatusDelegate.IsBound())
 		{
@@ -163,7 +159,7 @@ public:
 		return FText::GetEmpty();
 	}
 
-	virtual bool HasDefaultSettingsObject( ) OVERRIDE
+	virtual bool HasDefaultSettingsObject( ) override
 	{
 		if (!SettingsObject.IsValid())
 		{
@@ -173,7 +169,7 @@ public:
 		return SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig);
 	}
 
-	virtual bool Import( const FString& Filename ) OVERRIDE
+	virtual bool Import( const FString& Filename ) override
 	{
 		if (ImportDelegate.IsBound())
 		{
@@ -190,7 +186,7 @@ public:
 		return false;	
 	}
 
-	virtual bool ResetDefaults( ) OVERRIDE
+	virtual bool ResetDefaults( ) override
 	{
 		if (ResetDefaultsDelegate.IsBound())
 		{
@@ -214,7 +210,7 @@ public:
 		return false;
 	}
 
-	virtual bool Save( ) OVERRIDE
+	virtual bool Save( ) override
 	{
 		if (ModifiedDelegate.IsBound() && !ModifiedDelegate.Execute())
 		{
@@ -243,7 +239,7 @@ public:
 		return false;
 	}
 
-	virtual bool SaveDefaults( ) OVERRIDE
+	virtual bool SaveDefaults( ) override
 	{
 		if (SaveDefaultsDelegate.IsBound())
 		{
@@ -260,8 +256,6 @@ public:
 
 		return false;
 	}
-
-	// End ISettingsSection interface
 
 private:
 

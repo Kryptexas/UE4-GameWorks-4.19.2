@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteClasses.cpp: Implements the module's script classes.
-=============================================================================*/
-
 #include "SlateRemotePrivatePCH.h"
 
 

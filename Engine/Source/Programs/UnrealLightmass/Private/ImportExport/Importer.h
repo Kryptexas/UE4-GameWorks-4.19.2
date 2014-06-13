@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Importer.h: Lightmass importer class.
-=============================================================================*/
-
 #pragma once
 
 #include "LMCore.h"

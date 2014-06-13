@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TaskDataManager.h: Data management layer between task GUI system and database connection
-=============================================================================*/
-
 #pragma once
 
 #include "TaskDatabaseDefs.h"
+
 
 /** GUI refresh options for the task browser */
 namespace ETaskBrowserGUIRefreshOptions
@@ -31,14 +28,11 @@ namespace ETaskBrowserGUIRefreshOptions
 }
 
 
-
-
 /**
  * Classes derived from this implement a GUI front end for the task data manager
  */
 class FTaskDataGUIInterface
 {
-
 public:
 
 	/**
@@ -47,10 +41,7 @@ public:
 	 * @param	Options		Bitfield that contains the types of GUI elements to refresh
 	 */
 	virtual void Callback_RefreshGUI( const ETaskBrowserGUIRefreshOptions::Type Options ) = 0;
-
 };
-
-
 
 
 /** Status field for the task data manager */
@@ -78,10 +69,8 @@ namespace ETaskDataManagerStatus
 
 		/** Disconnecting */
 		Disconnecting,
-
 		
 		// ...
-
 
 		/** Querying filters */
 		QueryingFilters,
@@ -94,11 +83,8 @@ namespace ETaskDataManagerStatus
 
 		/** Marking task as fixed */
 		MarkingTaskComplete,
-
 	};
 }
-
-
 
 
 /**
@@ -106,7 +92,6 @@ namespace ETaskDataManagerStatus
  */
 class FTaskDataManagerConnectionSettings
 {
-
 public:
 
 	/** Server name */
@@ -124,7 +109,6 @@ public:
 	/** Project name */
 	FString ProjectName;
 
-
 public:
 
 	/** FTaskDataManagerConnectionSettings constructor */
@@ -134,12 +118,8 @@ public:
 		  UserName(),
 		  Password(),
 		  ProjectName()
-	{
-	}
-
+	{ }
 };
-
-
 
 
 /**
@@ -149,7 +129,6 @@ class FTaskDataManager
 	: public FTaskDatabaseListener,		// Listens for task database responses
 	  public FTickableEditorObject			// Tickable, so we can update the task database
 {
-
 public:
 
 	/**
@@ -159,8 +138,12 @@ public:
 	 */
 	FTaskDataManager( FTaskDataGUIInterface* InGUICallbackObject );
 
-	/** FTaskDataManager destructor */
+	/**
+	 * Virtual destructor.
+	 */
 	virtual ~FTaskDataManager();
+
+public:
 
 	/**
 	 * Used to determine whether an object is ready to be ticked. This is 
@@ -174,7 +157,6 @@ public:
 		return true;
 	}
 
-
 	/**
 	 * Called from within LevelTick.cpp after ticking all actors or from
 	 * the rendering thread (depending on bIsRenderingThreadObject)
@@ -185,7 +167,6 @@ public:
 
 	virtual TStatId GetStatId() const OVERRIDE;
 
-
 	/**
 	 * Sets the connection settings used to connect and login to the task database server
 	 *
@@ -195,7 +176,6 @@ public:
 	{
 		ConnectionSettings = InConnectionSettings;
 	}
-
 
 	/**
 	 * Returns the user's real name (retrieved from the server, if available)
@@ -218,7 +198,6 @@ public:
 		return ResolutionValues;
 	}
 
-
 	/**
 	 * Returns the string name for 'Open' task status
 	 *
@@ -229,7 +208,6 @@ public:
 		return OpenTaskStatusPrefix;
 	}
 
-
 	/**
 	 * Returns the current connection status of the task data manager
 	 *
@@ -239,7 +217,6 @@ public:
 	{
 		return ConnectionStatus;
 	}
-
 
 	/**
 	 * Returns the current status to display in the GUI
@@ -260,7 +237,6 @@ public:
 		return GUIStatus;
 	}
 
-
 	/**
 	 * Changes the active filter
 	 *
@@ -275,7 +251,6 @@ public:
 		}
 	}
 
-
 	/**
 	 * Returns the active filter name
 	 *
@@ -285,7 +260,6 @@ public:
 	{
 		return ActiveFilterName;
 	}
-
 
 	/**
 	 * Sets the 'focused task number' (the task we should retrieve details about)
@@ -301,7 +275,6 @@ public:
 		}
 	}
 
-
 	/**
 	 * Returns the current focused task number
 	 *
@@ -312,7 +285,6 @@ public:
 		return FocusedTaskNumber;
 	}
 
-
 	/**
 	 * Starts process of marking the specified task numbers as completed
 	 *
@@ -321,7 +293,6 @@ public:
 	 */
 	void StartMarkingTasksComplete( const TArray< uint32 >& InTaskNumbers,
 									const FTaskResolutionData& InResolutionData );
-
 
 	/**
 	 * Returns the list of cached filter names
@@ -333,7 +304,6 @@ public:
 		return CachedFilterNames;
 	}
 
-
 	/**
 	 * Returns the list of cached task entries
 	 *
@@ -343,8 +313,6 @@ public:
 	{
 		return CachedTaskArray;
 	}
-
-
 
 	/**
 	 * Searches for details about the specified task number in our cache and returns it if found
@@ -356,27 +324,20 @@ public:
 		return CachedTaskDetailsMap.Find( InTaskNumber );
 	}
 
-
-
 	/** Initiates or re-initiates a connection to the task database server */
 	void AttemptConnection();
-
 
 	/** Initiates a disconnection from the task database server */
 	void AttemptDisconnection();
 
-
 	/** Starts a forced a refresh of task list/description data from the server */
 	void ClearTaskDataAndInitiateRefresh();
-
 
 	/** Updates our state machine.  Should be called frequently (every Tick is OK) */
 	void UpdateTaskDataManager();
 
-
 	/** We've been disconnected (either voluntarily or otherwise), so clean up state and refresh GUI */
 	void CleanUpAfterDisconnect();
-
 
 	/**
 	 * Called when a response is received from the task database
@@ -385,7 +346,6 @@ public:
 	 *								that should be casted to the appropriate response type for the request.
 	 */
 	virtual void OnTaskDatabaseRequestCompleted( const FTaskDatabaseResponse* InGenericResponse );
-
 
 private:
 
@@ -431,7 +391,7 @@ private:
 	uint32 CurrentlyProcessingTaskNumber;
 
 	/** Array of cached filters from server */
-	TArray< FString > CachedFilterNames;
+	TArray<FString> CachedFilterNames;
 
 	/** Array of cached tasks from server */
 	TArray< FTaskDatabaseEntry > CachedTaskArray;
@@ -440,6 +400,5 @@ private:
 	FString CachedLastTaskArrayFilterName;
 
 	/** Map of task number to cached task details */
-	TMap< int32, FTaskDatabaseEntryDetails > CachedTaskDetailsMap;
-
+	TMap<int32, FTaskDatabaseEntryDetails> CachedTaskDetailsMap;
 };

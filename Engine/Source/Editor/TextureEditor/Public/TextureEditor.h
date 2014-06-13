@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditor.h: TextureEditor module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "UnrealEd.h"
@@ -16,7 +12,7 @@
 #include "Toolkits/IToolkit.h"
 
 
-/* Interfaces
+/* Public Includes
  *****************************************************************************/
 
 #include "ITextureEditorToolkit.h"

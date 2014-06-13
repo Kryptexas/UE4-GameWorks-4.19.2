@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherBuildCommands.h: Declares the FLauncherBuildCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,10 +10,10 @@ class FLauncherBuildGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherBuildGameCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -52,10 +48,10 @@ class FLauncherBuildServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherBuildServerCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{

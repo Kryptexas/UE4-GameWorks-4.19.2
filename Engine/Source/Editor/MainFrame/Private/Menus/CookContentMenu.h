@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PackageProjectMenu.h: Declares the FPackageProjectMenu class.
-=============================================================================*/
-
 #pragma once
 
 #include "ProjectTargetPlatformEditor.h"
+
 
 #define LOCTEXT_NAMESPACE "FCookContentMenu"
 
@@ -21,7 +18,7 @@ public:
 	/**
 	 * Creates the menu.
 	 *
-	 * @param MenuBuilder - The builder for the menu that owns this menu.
+	 * @param MenuBuilder The builder for the menu that owns this menu.
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder )
 	{
@@ -74,11 +71,11 @@ public:
 protected:
 
 	/**
-	* Creates the platform menu entries.
-	*
-	* @param MenuBuilder	- The builder for the menu that owns this menu.
-	* @param Platform		- The target platform we allow packaging for
-	*/
+	 * Creates the platform menu entries.
+	 *
+	 * @param MenuBuilder The builder for the menu that owns this menu.
+	 * @param Platform The target platform we allow packaging for
+	 */
 	static void AddPlatformToMenu(FMenuBuilder& MenuBuilder, const PlatformInfo::FPlatformInfo& PlatformInfo)
 	{
 		IProjectTargetPlatformEditorModule& ProjectTargetPlatformEditorModule = FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor");
@@ -109,14 +106,13 @@ protected:
 			);
 	}
 
-
 	/**
-	* Creates the platform menu entries for a given platforms sub-platforms.
-	* e.g. Windows has multiple sub-platforms - Win32 and Win64
-	*
-	* @param MenuBuilder		- The builder for the menu that owns this menu.
-	* @param SubPlatformInfos	- The Sub-platform information
-	*/
+	 * Creates the platform menu entries for a given platforms sub-platforms.
+	 * e.g. Windows has multiple sub-platforms - Win32 and Win64
+	 *
+	 * @param MenuBuilder The builder for the menu that owns this menu.
+	 * @param SubPlatformInfos The Sub-platform information
+	 */
 	static void AddPlatformSubPlatformsToMenu(FMenuBuilder& MenuBuilder, TArray<const PlatformInfo::FPlatformInfo*> SubPlatformInfos)
 	{
 		for (const PlatformInfo::FPlatformInfo* SubPlatformInfo : SubPlatformInfos)

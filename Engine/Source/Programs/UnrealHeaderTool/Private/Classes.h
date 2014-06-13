@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Classes.h: Container structure for all the Classes.
-=============================================================================*/
-
 #pragma once
 
 #include "ClassTree.h"

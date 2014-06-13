@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileServerConnection.h: Declares the FNetworkFileServerClientConnection class.
-=============================================================================*/
-
 #include "NetworkFileSystemPrivatePCH.h"
 #include "PackageName.h"
 #include "TargetPlatform.h"

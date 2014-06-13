@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FluidSurface.cpp: Static lighting FluidSurface mesh/mapping implementation.
-=============================================================================*/
 #include "stdafx.h"
 #include "Importer.h"
 #include "FluidSurface.h"

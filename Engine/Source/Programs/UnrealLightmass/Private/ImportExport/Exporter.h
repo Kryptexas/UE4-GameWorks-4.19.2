@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Exporter.h: Lightmass solver exporter class.
-=============================================================================*/
-
 #pragma once
 
 #include "LMCore.h"
+
 
 namespace Lightmass
 {

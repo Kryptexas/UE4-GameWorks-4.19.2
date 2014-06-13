@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StaticBitArray.h: Static bit array definition
-=============================================================================*/
-
 #pragma once
+
 
 /** Used to read/write a bit in the static array as a bool. */
 template<typename T>
@@ -34,9 +31,11 @@ public:
 	}
 
 private:
+
 	T& Data;
 	T Mask;
 };
+
 
 /** Used to read a bit in the static array as a bool. */
 template<typename T>
@@ -55,6 +54,7 @@ public:
 	}
 
 private:
+
 	const T& Data;
 	T Mask;
 };
@@ -71,6 +71,7 @@ class TStaticBitArray
 	struct FBoolType;
 	typedef int32* FBoolType::* UnspecifiedBoolType;
 	typedef float* FBoolType::* UnspecifiedZeroType;
+
 public:
 
 	/**
@@ -307,7 +308,9 @@ public:
 	}
 
 	static const uint32 NumOfBits = NumBits;
+
 private:
+
 //	checkAtCompileTime( NumBits > 0, mustHaveAtLeast1Bit );
 	static const uint32 NumBitsPerWord = sizeof(WordType) * 8;
 	static const uint32 NumWords = ((NumBits + NumBitsPerWord - 1) & ~(NumBitsPerWord - 1)) / NumBitsPerWord;
@@ -349,4 +352,3 @@ private:
 		LowLevelFatalError(TEXT("invalid TStaticBitArray<NumBits> character"));
 	}
 };
-

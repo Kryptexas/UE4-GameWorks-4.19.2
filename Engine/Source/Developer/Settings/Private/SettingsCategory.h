@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsCategory.h: Declares the FSettingsCategory class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -102,34 +98,34 @@ public:
 
 public:
 
-	// Begin ISettingsCategory interface
+	// ISettingsCategory interface
 
-	virtual const FText& GetDescription( ) const OVERRIDE
+	virtual const FText& GetDescription( ) const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const OVERRIDE
+	virtual const FText& GetDisplayName( ) const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetIconName( ) const OVERRIDE
+	virtual const FName& GetIconName( ) const override
 	{
 		return IconName;
 	}
 
-	virtual const FName& GetName( ) const OVERRIDE
+	virtual const FName& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const OVERRIDE
+	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override
 	{
 		return Sections.FindRef(SectionName);
 	}
 
-	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const OVERRIDE
+	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override
 	{
 		OutSections.Empty(Sections.Num());
 
@@ -140,8 +136,6 @@ public:
 
 		return OutSections.Num();
 	}
-
-	// End ISettingsCategory interface
 
 private:
 

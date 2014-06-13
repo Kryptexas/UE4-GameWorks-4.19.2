@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TcpListener.h: Declares the FTcpListener class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -28,8 +24,8 @@ public:
 	/**
 	 * Creates and initializes a new instance from the specified IP endpoint.
 	 *
-	 * @param LocalEndpoint - The local IP endpoint to listen on.
-	 * @param SleepTime - The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param LocalEndpoint The local IP endpoint to listen on.
+	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
 	FTcpListener( const FIPv4Endpoint& LocalEndpoint, const FTimespan& InSleepTime = FTimespan::Zero())
 		: DeleteSocket(true)
@@ -44,8 +40,8 @@ public:
 	/**
 	 * Creates and initializes a new instance from the specified socket.
 	 *
-	 * @param InSocket - The socket to listen on.
-	 * @param SleepTime - The time to sleep between checking for pending connections (default = 0 seconds).
+	 * @param InSocket The socket to listen on.
+	 * @param SleepTime The time to sleep between checking for pending connections (default = 0 seconds).
 	 */
 	FTcpListener( FSocket& InSocket, const FTimespan& InSleepTime = FTimespan::Zero() )
 		: DeleteSocket(false)
@@ -77,7 +73,6 @@ public:
 			Socket = NULL;
 		}
 	}
-
 
 public:
 
@@ -111,7 +106,6 @@ public:
 		return ((Socket != NULL) && !Stopping);
 	}
 
-
 public:
 
 	/**
@@ -121,19 +115,16 @@ public:
 	 * To temporarily disable accepting connections, use the Enable() and Disable() methods.
 	 *
 	 * @return The delegate.
-	 *
-	 * @see Enable
-	 * @see Disable
+	 * @see Enable, Disable
 	 */
 	FOnTcpListenerConnectionAccepted& OnConnectionAccepted( )
 	{
 		return ConnectionAcceptedDelegate;
 	}
 
-
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
 	virtual bool Init( ) override
 	{
@@ -194,9 +185,6 @@ public:
 
 	virtual void Exit( ) override { }
 
-	// End FRunnable interface
-
-
 private:
 
 	// Holds a flag indicating whether the socket should be deleted in the destructor.
@@ -216,7 +204,6 @@ private:
 
 	// Holds the thread object.
 	FRunnableThread* Thread;
-
 
 private:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceProcesses.h: Declares the SDeviceProcesses class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,11 +33,9 @@ public:
 
 public:
 
-	// Begin SCompoundWidget overrides
+	// SCompoundWidget overrides
 
-	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime );
-
-	// End SCompoundWidget overrides
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 

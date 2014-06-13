@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsEditorModel.h: Declares the FSettingsEditorModel interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -36,24 +32,24 @@ public:
 
 public:
 
-	// Begin ISettingsEditorModel interface
+	// ISettingsEditorModel interface
 
-	virtual const ISettingsSectionPtr& GetSelectedSection( ) const OVERRIDE
+	virtual const ISettingsSectionPtr& GetSelectedSection( ) const override
 	{
 		return SelectedSection;
 	}
 
-	virtual const ISettingsContainerRef& GetSettingsContainer( ) const OVERRIDE
+	virtual const ISettingsContainerRef& GetSettingsContainer( ) const override
 	{
 		return SettingsContainer;
 	}
 
-	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) OVERRIDE
+	virtual FSimpleMulticastDelegate& OnSelectionChanged( ) override
 	{
 		return OnSelectionChangedDelegate;
 	}
 
-	virtual void SelectSection( const ISettingsSectionPtr& Section ) OVERRIDE
+	virtual void SelectSection( const ISettingsSectionPtr& Section ) override
 	{
 		if (Section == SelectedSection)
 		{
@@ -64,8 +60,6 @@ public:
 
 		OnSelectionChangedDelegate.Broadcast();
 	}
-
-	// End ISettingsEditorModel interface
 
 private:
 

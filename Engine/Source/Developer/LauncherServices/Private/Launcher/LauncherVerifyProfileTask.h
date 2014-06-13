@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherVerifyProfileTask.h: Declares the FLauncherVerifyProfileTask class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -25,7 +21,6 @@ public:
 	FLauncherVerifyProfileTask( )
 		: FLauncherTask(NSLOCTEXT("FLauncherTask", "LauncherVerifyProfileName", "Verify").ToString(), NSLOCTEXT("FLauncherTask", "LauncherVerifyProfileDesc", "Verify profile settings").ToString(), NULL, NULL)
 	{ }
-
 
 protected:
 

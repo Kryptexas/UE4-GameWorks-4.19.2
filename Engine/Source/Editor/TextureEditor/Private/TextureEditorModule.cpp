@@ -19,9 +19,9 @@ class FTextureEditorModule
 {
 public:
 
-	// Begin ITextureEditorModule interface
+	// ITextureEditorModule interface
 
-	virtual TSharedRef<ITextureEditorToolkit> CreateTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UTexture* Texture ) OVERRIDE
+	virtual TSharedRef<ITextureEditorToolkit> CreateTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UTexture* Texture ) override
 	{
 		TSharedRef<FTextureEditorToolkit> NewTextureEditor(new FTextureEditorToolkit());
 		NewTextureEditor->InitTextureEditor(Mode, InitToolkitHost, Texture);
@@ -39,13 +39,11 @@ public:
 		return ToolBarExtensibilityManager;
 	}
 
-	// End ITextureEditorModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		// register menu extensions
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
@@ -64,7 +62,7 @@ public:
 		}
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		// unregister settings
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
@@ -78,8 +76,6 @@ public:
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 	}
-
-	// End IModuleInterface interface
 
 private:
 

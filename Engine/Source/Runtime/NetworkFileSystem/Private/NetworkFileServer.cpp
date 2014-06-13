@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileServer.cpp: Implements the FNetworkFileServer class.
-=============================================================================*/
-
 #include "NetworkFileSystemPrivatePCH.h"
 #include "TargetPlatform.h"
 #include "NetworkFileServerConnection.h"

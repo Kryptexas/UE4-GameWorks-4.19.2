@@ -1,9 +1,5 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SUndoHistoryTableRow.h: Declares the SUndoHistoryTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -29,7 +25,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
+	 * @param InArgs The construction arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{

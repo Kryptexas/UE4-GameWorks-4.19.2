@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsEditorModule.cpp: Implements the FSettingsEditorModule class.
-=============================================================================*/
-
 #include "SettingsEditorPrivatePCH.h"
 
 
@@ -15,19 +11,17 @@ class FSettingsEditorModule
 {
 public:
 
-	// Begin ISettingsEditorModule interface
+	// ISettingsEditorModule interface
 
-	virtual TSharedRef<SWidget> CreateEditor( const ISettingsEditorModelRef& Model ) OVERRIDE
+	virtual TSharedRef<SWidget> CreateEditor( const ISettingsEditorModelRef& Model ) override
 	{
 		return SNew(SSettingsEditor, Model);
 	}
 
-	virtual ISettingsEditorModelRef CreateModel( const ISettingsContainerRef& SettingsContainer ) OVERRIDE
+	virtual ISettingsEditorModelRef CreateModel( const ISettingsContainerRef& SettingsContainer ) override
 	{
 		return MakeShareable(new FSettingsEditorModel(SettingsContainer));
 	}
-
-	// End ISettingsEditorModule interface
 };
 
 

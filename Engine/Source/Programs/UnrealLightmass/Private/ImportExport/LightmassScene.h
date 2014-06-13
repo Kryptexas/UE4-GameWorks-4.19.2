@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Scene.h: Scene classes.
-=============================================================================*/
-
 #pragma once
 
-#include "../Public/SceneExport.h"
+#include "SceneExport.h"
+
 
 namespace Lightmass
 {

@@ -1,15 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MatineeKeyReduction.cpp: KeyReduction dialog definitions
-=============================================================================*/
-
 #include "MatineeModule.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpGroupInst.h"
 #include "Matinee.h"
 #include "Slate.h"
 #include "SNumericEntryBox.h"
+
 
 /**
  * Dialog that requests the key reduction parameters from the user.

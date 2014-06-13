@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleCommandBar.h: Declares the SSessionConsoleCommandBar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -25,14 +21,10 @@ public:
 
 	SLATE_BEGIN_ARGS(SSessionConsoleCommandBar) { }
 
-		/**
-		 * Called when the filter settings have changed.
-		 */
+		/** Called when the filter settings have changed. */
 		SLATE_EVENT(FOnSessionConsoleCommandSubmitted, OnCommandSubmitted)
 
-		/**
-		 * Called when the promote to shortcut button is clicked.
-		 */
+		/** Called when the promote to shortcut button is clicked. */
 		SLATE_EVENT(FOnSessionConsoleCommandSubmitted, OnPromoteToShortcutClicked)
 
 	SLATE_END_ARGS()

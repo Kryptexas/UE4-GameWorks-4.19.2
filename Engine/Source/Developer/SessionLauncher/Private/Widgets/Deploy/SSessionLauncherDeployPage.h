@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDevicesPage.h: Declares the SSessionLauncherDevicesPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,14 +14,12 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherDeployPage) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Destructor.
 	 */
 	~SSessionLauncherDeployPage( );
-
 
 public:
 
@@ -36,7 +30,6 @@ public:
 	 * @param InModel - The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel, bool IsFromRepository = false );
-
 
 private:
 
@@ -60,7 +53,6 @@ private:
 
 	// Callback for determining the visibility of a validation error icon.
 	EVisibility HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const;
-
 
 private:
 

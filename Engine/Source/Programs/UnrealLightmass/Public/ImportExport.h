@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImportExport.h: Import proper export data definitions.
-=============================================================================*/
-
 #pragma once
 
 namespace Lightmass

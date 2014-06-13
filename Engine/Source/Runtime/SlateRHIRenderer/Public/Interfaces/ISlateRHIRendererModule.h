@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISlateRHIRendererModule.h: Declares the ISlateRHIRendererModule interface.
-=============================================================================*/
-
 #pragma once
 
 #include "ModuleInterface.h"

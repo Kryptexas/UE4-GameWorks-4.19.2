@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionServiceMessages.h: Declares message types used by session services.
-=============================================================================*/
-
 #pragma once
 
 #include "SessionServiceMessages.generated.h"

@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FTargetDeviceProxy.h: Declares the FTargetDeviceProxy class.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of FTargetDeviceProxy.
- */
+/** Type definition for shared pointers to instances of FTargetDeviceProxy. */
 typedef TSharedPtr<class FTargetDeviceProxy> FTargetDeviceProxyPtr;
 
-/**
- * Type definition for shared references to instances of FTargetDeviceProxy.
- */
+/** Type definition for shared references to instances of FTargetDeviceProxy. */
 typedef TSharedRef<class FTargetDeviceProxy> FTargetDeviceProxyRef;
 
 
@@ -34,16 +26,16 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InId - The identifier of the target device to create this proxy for.
+	 * @param InId The identifier of the target device to create this proxy for.
 	 */
 	FTargetDeviceProxy( const FString& InId );
 
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InId - The identifier of the target device to create this proxy for.
-	 * @param Message - The message to initialize from.
-	 * @param Context - The message context.
+	 * @param InId The identifier of the target device to create this proxy for.
+	 * @param Message The message to initialize from.
+	 * @param Context The message context.
 	 */
 	FTargetDeviceProxy( const FString& InId, const FTargetDeviceServicePong& Message, const IMessageContextRef& Context );
 
@@ -62,123 +54,121 @@ public:
 	/*
 	 * Updates the proxy's information from the given device service response.
 	 *
-	 * @param Message - The message containing the response.
-	 * @param Context - The message context.
+	 * @param Message The message containing the response.
+	 * @param Context The message context.
 	 */
 	void UpdateFromMessage( const FTargetDeviceServicePong& Message, const IMessageContextRef& Context );
 
 public:
 
-	// Begin ITargetDeviceProxy interface
+	// ITargetDeviceProxy interface
 
-	virtual const bool CanMultiLaunch( ) const OVERRIDE
+	virtual const bool CanMultiLaunch( ) const override
 	{
 		return SupportsMultiLaunch;
 	}
 
-	virtual bool CanPowerOff( ) const OVERRIDE
+	virtual bool CanPowerOff( ) const override
 	{
 		return SupportsPowerOff;
 	}
 
-	virtual bool CanPowerOn( ) const OVERRIDE
+	virtual bool CanPowerOn( ) const override
 	{
 		return SupportsPowerOn;
 	}
 
-	virtual bool CanReboot( ) const OVERRIDE
+	virtual bool CanReboot( ) const override
 	{
 		return SupportsReboot;
 	}
 
-	virtual bool DeployApp( const TMap<FString, FString>& Files, const FGuid& TransactionId ) OVERRIDE;
+	virtual bool DeployApp( const TMap<FString, FString>& Files, const FGuid& TransactionId ) override;
 
-	virtual const FString& GetDeviceId( ) OVERRIDE
+	virtual const FString& GetDeviceId( ) override
 	{
 		return Id;
 	}
 
-	virtual const FString& GetHostName( ) const OVERRIDE
+	virtual const FString& GetHostName( ) const override
 	{
 		return HostName;
 	}
 
-	virtual const FString& GetHostUser( ) const OVERRIDE
+	virtual const FString& GetHostUser( ) const override
 	{
 		return HostUser;
 	}
 
-	virtual const FString& GetMake( ) const OVERRIDE
+	virtual const FString& GetMake( ) const override
 	{
 		return Make;
 	}
 
-	virtual const FString& GetModel( ) const OVERRIDE
+	virtual const FString& GetModel( ) const override
 	{
 		return Model;
 	}
 
-	virtual const FString& GetName( ) const OVERRIDE
+	virtual const FString& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual const FString& GetDeviceUser( ) const OVERRIDE
+	virtual const FString& GetDeviceUser( ) const override
 	{
 		return DeviceUser;
 	}
 
-	virtual const FString& GetDeviceUserPassword( ) const OVERRIDE
+	virtual const FString& GetDeviceUserPassword( ) const override
 	{
 		return DeviceUserPassword;
 	}
 
-	virtual const FString& GetPlatformName( ) const OVERRIDE
+	virtual const FString& GetPlatformName( ) const override
 	{
 		return Platform;
 	}
 
-	virtual const FString& GetType( ) const OVERRIDE
+	virtual const FString& GetType( ) const override
 	{
 		return Type;
 	}
 
-	virtual bool IsConnected( ) const OVERRIDE
+	virtual bool IsConnected( ) const override
 	{
 		return Connected;
 	}
 
-	virtual bool IsShared( ) const OVERRIDE
+	virtual bool IsShared( ) const override
 	{
 		return Shared;
 	}
 
-	virtual bool LaunchApp( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params ) OVERRIDE;
+	virtual bool LaunchApp( const FString& AppId, EBuildConfigurations::Type BuildConfiguration, const FString& Params ) override;
 
-	virtual FOnTargetDeviceProxyDeployCommitted& OnDeployCommitted( ) OVERRIDE
+	virtual FOnTargetDeviceProxyDeployCommitted& OnDeployCommitted( ) override
 	{
 		return DeployCommittedDelegate;
 	}
 
-	virtual FOnTargetDeviceProxyDeployFailed& OnDeployFailed( ) OVERRIDE
+	virtual FOnTargetDeviceProxyDeployFailed& OnDeployFailed( ) override
 	{
 		return DeployFailedDelegate;
 	}
 
-	virtual FOnTargetDeviceProxyLaunchFailed& OnLaunchFailed( ) OVERRIDE
+	virtual FOnTargetDeviceProxyLaunchFailed& OnLaunchFailed( ) override
 	{
 		return LaunchFailedDelegate;
 	}
 
-	virtual void PowerOff( bool Force ) OVERRIDE;
+	virtual void PowerOff( bool Force ) override;
 
-	virtual void PowerOn( ) OVERRIDE;
+	virtual void PowerOn( ) override;
 
-	virtual void Reboot( ) OVERRIDE;
+	virtual void Reboot( ) override;
 
-	virtual void Run( const FString& ExecutablePath, const FString& Params ) OVERRIDE;
-
-	// End ITargetDeviceProxy interface
+	virtual void Run( const FString& ExecutablePath, const FString& Params ) override;
 
 protected:
 

@@ -1,11 +1,7 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LockFreeVoidPointerListBase128.h: A lock free single linked list
-	Version using 128-bit CAS operation
-=============================================================================*/
-
 #pragma once
+
 
 /** Defines initial values used by the lock free linked list. */
 struct FLockFreeListConstants

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageProcessor.h: Declares the FUdpMessageProcessor class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -160,17 +156,12 @@ public:
 	
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE;
-
-	virtual uint32 Run( ) OVERRIDE;
-
-	virtual void Stop( ) OVERRIDE;
-
-	virtual void Exit( ) OVERRIDE { }
-	
-	// End FRunnable interface
+	virtual bool Init( ) override;
+	virtual uint32 Run( ) override;
+	virtual void Stop( ) override;
+	virtual void Exit( ) override { }
 
 protected:
 

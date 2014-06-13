@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherCookCommands.h: Declares the FLauncherCookCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,10 +10,10 @@ class FLauncherCookGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookGameCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -95,10 +91,10 @@ class FLauncherCookServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookServerCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -186,6 +182,7 @@ class FLauncherCookOnTheFlyCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherCookOnTheFlyCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
@@ -320,10 +317,10 @@ class FLauncherStandAloneCookOnTheFlyCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherStandAloneCookOnTheFlyCommand( const ITargetPlatform& InTargetPlatform )
 		: TargetPlatform(InTargetPlatform)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{

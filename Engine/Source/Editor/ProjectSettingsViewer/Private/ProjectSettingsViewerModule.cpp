@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProjectSettingsViewerModule.cpp: Implements the FProjectSettingsViewerModule class.
-=============================================================================*/
-
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
+
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
 
@@ -22,9 +19,9 @@ class FProjectSettingsViewerModule
 {
 public:
 
-	// Begin ISettingsViewer interface
+	// ISettingsViewer interface
 
-	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) OVERRIDE
+	virtual void ShowSettings( const FName& CategoryName, const FName& SectionName ) override
 	{
 		FGlobalTabmanager::Get()->InvokeTab(ProjectSettingsTabName);
 		ISettingsEditorModelPtr SettingsEditorModel = SettingsEditorModelPtr.Pin();
@@ -40,13 +37,11 @@ public:
 		}
 	}
 
-	// End ISettingsViewer interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		ISettingsModule* SettingsModule = ISettingsModule::Get();
 
@@ -63,18 +58,16 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hide);
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ProjectSettingsTabName);
 		UnregisterSettings();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 

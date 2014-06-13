@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	XmlMessageSerializer.h: Declares the FXmlMessageSerializer structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -13,7 +9,9 @@
 class FXmlMessageSerializer
 	: public ISerializeMessages
 {
-	// Begin ISerializeMessages interface
+public:
+
+	// ISerializeMessages interface
 
 	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) override
 	{
@@ -26,6 +24,4 @@ class FXmlMessageSerializer
 		// not implemented yet
 		return false;
 	}
-
-	// End ISerializeMessages interface
 };

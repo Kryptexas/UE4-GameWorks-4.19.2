@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherLaunchRoleEditor.h: Declares the SSessionLauncherLaunchRoleEditor class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,31 +19,24 @@ public:
 		, _AvailableMaps()
 	{ }
 		
-		/**
-		 * The role to be edited initially.
-		 */
+		/** The role to be edited initially. */
 		SLATE_ARGUMENT(ILauncherProfileLaunchRolePtr, InitialRole)
 
-		/**
-		 * The list of available cultures.
-		 */
+		/** The list of available cultures. */
 		SLATE_ARGUMENT(const TArray<FString>*, AvailableCultures)
 
-		/**
-		 * The list of available maps.
-		 */
+		/** The list of available maps. */
 		SLATE_ARGUMENT(const TArray<FString>*, AvailableMaps)
 
 	SLATE_END_ARGS()
-
 
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InRole - The launch role to edit.
+	 * @param InArgs The Slate argument list.
+	 * @param InRole The launch role to edit.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct(	const FArguments& InArgs )
@@ -184,7 +173,7 @@ public:
 	/**
 	 * Refreshes the widget.
 	 *
-	 * @param InRole - The role to edit, or NULL if no role is being edited.
+	 * @param InRole The role to edit, or NULL if no role is being edited.
 	 */
 	void Refresh( const ILauncherProfileLaunchRolePtr& InRole )
 	{
@@ -255,7 +244,6 @@ public:
 		CultureComboBox->RefreshOptions();
 		MapComboBox->RefreshOptions();
 	}
-
 
 private:
 
@@ -434,7 +422,6 @@ private:
 
 		return ESlateCheckBoxState::Unchecked;
 	}
-
 
 private:
 

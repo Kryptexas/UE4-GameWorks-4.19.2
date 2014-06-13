@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RangeStructCustomization.cpp: Implements the FRangeStructCustomization class.
-  =============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RangeStructCustomization.h"
 
@@ -13,11 +9,12 @@
 
 /* Helper traits for getting a metadata property based on the template parameter type
  *****************************************************************************/
+
 namespace
 {
 	template <typename NumericType>
 	struct FGetMetaDataHelper
-	{};
+	{ };
 
 	template <>
 	struct FGetMetaDataHelper<float>
@@ -227,7 +224,6 @@ void FRangeStructCustomization<NumericType>::CustomizeChildren(TSharedRef<IPrope
 }
 
 
-
 /* FRangeStructCustomization callbacks
  *****************************************************************************/
 
@@ -257,6 +253,7 @@ TOptional<NumericType> FRangeStructCustomization<NumericType>::OnGetValue(TWeakP
 	return TOptional<NumericType>();
 }
 
+
 template <typename NumericType>
 void FRangeStructCustomization<NumericType>::OnValueCommitted(NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> HandleWeakPtr)
 {
@@ -266,6 +263,7 @@ void FRangeStructCustomization<NumericType>::OnValueCommitted(NumericType NewVal
 		ensure(HandleSharedPtr->SetValue(NewValue) == FPropertyAccess::Success);
 	}
 }
+
 
 template <typename NumericType>
 void FRangeStructCustomization<NumericType>::OnValueChanged(NumericType NewValue, TWeakPtr<IPropertyHandle> HandleWeakPtr)
@@ -280,6 +278,7 @@ void FRangeStructCustomization<NumericType>::OnValueChanged(NumericType NewValue
 	}
 }
 
+
 template <typename NumericType>
 void FRangeStructCustomization<NumericType>::OnBeginSliderMovement()
 {
@@ -291,6 +290,7 @@ void FRangeStructCustomization<NumericType>::OnBeginSliderMovement()
 	}
 }
 
+
 template <typename NumericType>
 void FRangeStructCustomization<NumericType>::OnEndSliderMovement(NumericType /*NewValue*/)
 {
@@ -301,6 +301,7 @@ void FRangeStructCustomization<NumericType>::OnEndSliderMovement(NumericType /*N
 		GEditor->EndTransaction();
 	}
 }
+
 
 template <typename NumericType>
 bool FRangeStructCustomization<NumericType>::OnQueryIfEnabled(TWeakPtr<IPropertyHandle> HandleWeakPtr) const
@@ -318,6 +319,7 @@ bool FRangeStructCustomization<NumericType>::OnQueryIfEnabled(TWeakPtr<IProperty
 	return false;
 }
 
+
 template <typename NumericType>
 bool FRangeStructCustomization<NumericType>::ShouldAllowSpin() const
 {
@@ -331,6 +333,7 @@ bool FRangeStructCustomization<NumericType>::ShouldAllowSpin() const
 
 	return false;
 }
+
 
 template <typename NumericType>
 TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidget(TSharedPtr<FString> InComboString)
@@ -361,6 +364,7 @@ TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidge
 		];
 }
 
+
 template <typename NumericType>
 void FRangeStructCustomization<NumericType>::OnComboSelectionChanged(TSharedPtr<FString> InSelectedItem, ESelectInfo::Type SelectInfo, TWeakPtr<IPropertyHandle> HandleWeakPtr)
 {
@@ -378,6 +382,7 @@ void FRangeStructCustomization<NumericType>::OnComboSelectionChanged(TSharedPtr<
 
 /* Only explicitly instantiate the types which are supported
  *****************************************************************************/
+
 template class FRangeStructCustomization<float>;
 template class FRangeStructCustomization<int32>;
 

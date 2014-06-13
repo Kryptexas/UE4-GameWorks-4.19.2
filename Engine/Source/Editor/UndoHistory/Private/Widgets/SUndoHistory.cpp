@@ -1,9 +1,5 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SUndoHistory.cpp: Implements the SUndoHistory class.
-=============================================================================*/
-
 #include "UndoHistoryPrivatePCH.h"
 
 
@@ -207,5 +203,6 @@ FText SUndoHistory::HandleUndoSizeTextBlockText( ) const
 
 	return FText::Format(LOCTEXT("TransactionCountF", "{0} Transactions ({1})"), FText::AsNumber(UndoList.Num()), FText::AsMemory(GEditor->Trans->GetUndoSize()));
 }
+
 
 #undef LOCTEXT_NAMESPACE

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherTask.h: Declares the FLauncherTask class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -29,7 +25,6 @@ public:
 		, WritePipe(InWritePipe)
 		, Status(ELauncherTaskStatus::Pending)
 	{ }
-
 
 public:
 
@@ -61,7 +56,7 @@ public:
 
 		Thread = FRunnableThread::Create(this, TEXT("FLauncherTask"));
 
-		if (Thread == NULL)
+		if (Thread == nullptr)
 		{
 
 		}
@@ -173,7 +168,6 @@ public:
 
 	// End FRunnable interface
 
-
 public:
 
 	// Begin ILauncherTask interface
@@ -241,7 +235,6 @@ public:
 
 	// End ILauncherTask interface
 
-
 protected:
 
 	/**
@@ -252,7 +245,6 @@ protected:
 	 * @return true if the task completed successfully, false otherwise.
 	 */
 	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) = 0;
-
 
 protected:
 
@@ -277,7 +269,6 @@ protected:
 			Continuations[ContinuationIndex]->Execute(LocalChainState);
 		}
 	}
-
 
 private:
 

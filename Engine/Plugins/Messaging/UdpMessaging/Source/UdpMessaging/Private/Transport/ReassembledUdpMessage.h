@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ReassembledUdpMessage.h: Declares the FReassembledUdpMessage class.
-=============================================================================*/
-
 #pragma once
 
 

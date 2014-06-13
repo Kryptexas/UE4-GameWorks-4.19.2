@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceServiceManager.h: Declares the FTargetDeviceServiceManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -29,36 +25,32 @@ public:
 
 public:
 
-	// Begin ITargetDeviceServiceManager interface
+	// ITargetDeviceServiceManager interface
 
-	virtual bool AddStartupService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName ) OVERRIDE;
-
-	virtual int32 GetServices( TArray<ITargetDeviceServicePtr>& OutServices ) OVERRIDE;
+	virtual bool AddStartupService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName ) override;
+	virtual int32 GetServices( TArray<ITargetDeviceServicePtr>& OutServices ) override;
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceServiceManager, ITargetDeviceServiceManager::FOnTargetDeviceServiceAdded, FOnTargetDeviceServiceAdded);
-	virtual FOnTargetDeviceServiceAdded& OnServiceAdded( ) OVERRIDE
+	virtual FOnTargetDeviceServiceAdded& OnServiceAdded( ) override
 	{
 		return ServiceAddedDelegate;
 	}
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceServiceManager, ITargetDeviceServiceManager::FOnTargetDeviceServiceRemoved, FOnTargetDeviceServiceRemoved);
-	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved( ) OVERRIDE
+	virtual FOnTargetDeviceServiceRemoved& OnServiceRemoved( ) override
 	{
 		return ServiceRemovedDelegate;
 	}
 
-	virtual void RemoveStartupService( const FTargetDeviceId& DeviceId ) OVERRIDE;
-
-	// End ITargetDeviceServiceManager interface
+	virtual void RemoveStartupService( const FTargetDeviceId& DeviceId ) override;
 
 protected:
 
 	/**
 	 * Adds a device service for the given target device.
 	 *
-	 * @param DeviceId - The identifier of the device to add a service for.
-	 * @param PreliminaryDeviceName - The preliminary name to assign to this device.
-	 *
+	 * @param DeviceId The identifier of the device to add a service for.
+	 * @param PreliminaryDeviceName The preliminary name to assign to this device.
 	 * @return true if the service was created, false otherwise.
 	 */
 	bool AddService( const FTargetDeviceId& DeviceId, const FString& PreliminaryDeviceName );
@@ -80,7 +72,7 @@ protected:
 	/**
 	 * Removes the device service for the given target device.
 	 *
-	 * @param DeviceId - The identifier of the device to remove the service for.
+	 * @param DeviceId The identifier of the device to remove the service for.
 	 */
 	void RemoveService( const FTargetDeviceId& DeviceId );
 

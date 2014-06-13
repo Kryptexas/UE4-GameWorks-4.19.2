@@ -3,4 +3,4 @@
 #pragma once
 
 #include "Engine.h"
-#include "../Public/GammaUI.h"
+#include "GammaUI.h"

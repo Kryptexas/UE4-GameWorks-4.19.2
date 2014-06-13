@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherLaunchTaskSettings.cpp: Implements the SSessionLauncherLaunchTaskSettings class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 

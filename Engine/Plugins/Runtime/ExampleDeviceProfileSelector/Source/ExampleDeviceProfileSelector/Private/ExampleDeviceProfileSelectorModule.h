@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ExampleDeviceProfileSelectorModule.h: Declares the FExampleDeviceProfileSelectorModule class.
-=============================================================================*/
-
 #pragma once
 
 

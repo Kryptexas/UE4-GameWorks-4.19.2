@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IMessageHandler.h: Declares the IMessageHandler interface and related helper templates.
-=============================================================================*/
-
 #pragma once
 
 
@@ -84,7 +80,7 @@ public:
 
 public:
 
-	// Begin IMessageHandler interface
+	// IMessageHandler interface
 	
 	virtual const FName GetHandledMessageType( ) const override
 	{
@@ -95,8 +91,6 @@ public:
 	{
 		(Handler->*HandlerFunc)(*static_cast<const MessageType*>(Context->GetMessage()), Context);
 	}
-	
-	// End IMessageHandler interface
 	
 private:
 

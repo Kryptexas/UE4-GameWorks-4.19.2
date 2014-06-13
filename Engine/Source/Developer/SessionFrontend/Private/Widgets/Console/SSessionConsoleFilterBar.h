@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleFilterBar.h: Declares the SSessionConsoleFilterBar class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,9 +13,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SSessionConsoleFilterBar) { }
 
-		/**
-		 * Called when the filter settings have changed.
-		 */
+		/** Called when the filter settings have changed. */
 		SLATE_EVENT(FSimpleDelegate, OnFilterChanged)
 
 	SLATE_END_ARGS()

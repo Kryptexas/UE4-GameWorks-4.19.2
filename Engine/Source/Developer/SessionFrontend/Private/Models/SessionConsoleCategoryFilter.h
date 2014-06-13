@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionConsoleCategoryFilter.h: Declares the FSessionConsoleCategoryFilter class.
-=============================================================================*/
-
 #pragma once
 
 

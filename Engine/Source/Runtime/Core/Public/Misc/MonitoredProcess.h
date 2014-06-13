@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	MonitoredProcess.h: Declares the FMonitoredProcess class
-==============================================================================================*/
-
 #pragma once
 
 /**
@@ -32,9 +28,9 @@ public:
 	/**
 	 * Creates a new monitored process.
 	 *
-	 * @param InURL - The URL of the executable to launch.
-	 * @param InParams - The command line parameters.
-	 * @param InHidden - Whether the window of the process should be hidden.
+	 * @param InURL The URL of the executable to launch.
+	 * @param InParams The command line parameters.
+	 * @param InHidden Whether the window of the process should be hidden.
 	 */
 	FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden );
 
@@ -43,13 +39,12 @@ public:
 	 */
 	~FMonitoredProcess( );
 
-
 public:
 
 	/**
 	 * Cancels the process.
 	 *
-	 * @param InKillTree - Whether to kill the entire process tree when canceling this process.
+	 * @param InKillTree Whether to kill the entire process tree when canceling this process.
 	 */
 	void Cancel( bool InKillTree = false )
 	{
@@ -112,37 +107,32 @@ public:
 		return OutputDelegate;
 	}
 
-
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE;
+	virtual uint32 Run( ) override;
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Cancel();
 	}
 
-	virtual void Exit( ) OVERRIDE { }
-
-	// End FRunnable interface
-
+	virtual void Exit( ) override { }
 
 protected:
 
 	/**
 	 * Processes the given output string.
 	 *
-	 * @param Output - The output string to process.
+	 * @param Output The output string to process.
 	 */
 	void ProcessOutput( const FString& Output );
-
 
 private:
 
@@ -178,7 +168,6 @@ private:
 
 	// Holds the write pipe.
 	void* WritePipe;
-
 
 private:
 

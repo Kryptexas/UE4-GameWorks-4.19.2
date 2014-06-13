@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IImageWrapper.h: Declares the IImageWrapper interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,10 +10,17 @@ namespace EImageFormat
 	 */
 	enum Type
 	{
-		PNG,	// Portable Network Graphics
-		JPEG,	// Joint Photographic Experts Group
-		BMP,	// Windows Bitmap
-		ICO,	// Windows Icon resource
+		/** Portable Network Graphics */
+		PNG,
+
+		/** Joint Photographic Experts Group */
+		JPEG,
+
+		/** Windows Bitmap */
+		BMP,
+
+		/** Windows Icon resource */
+		ICO,
 	};
 };
 
@@ -37,14 +40,10 @@ namespace ERGBFormat
 };
 
 
-/**
- * Type definition for shared pointers to instances of IImageWrapper.
- */
+/** Type definition for shared pointers to instances of IImageWrapper. */
 typedef TSharedPtr<class IImageWrapper> IImageWrapperPtr;
 
-/**
- * Type definition for shared references to instances of IImageWrapper.
- */
+/** Type definition for shared references to instances of IImageWrapper. */
 typedef TSharedRef<class IImageWrapper> IImageWrapperRef;
 
 
@@ -60,7 +59,6 @@ public:
 	 *
 	 * @param InCompressedData - The memory address of the start of the compressed data
 	 * @param InCompressedSize - The size of the compressed data parsed
-	 *
 	 * @return	true if data was the expected format
 	 */
 	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) = 0;
@@ -74,7 +72,6 @@ public:
 	 * @param InHeight - the height of the image data
 	 * @param InFormat - the format the raw data is in, normally RGBA
 	 * @param InBitDepth - the bit-depth per channel, normally 8
-	 *
 	 * @return true if data was the expected format
 	 */
 	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) = 0;
@@ -92,7 +89,6 @@ public:
 	 * @param InFormat -  How we want to manipulate the RGB data
 	 * @param InBitDepth - The output bit-depth per channel, normally 8
 	 * @param OutRawData - Pointer to the uncompressed raw data.
-	 *
 	 * @return Array of the raw data
 	 */
 	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) = 0;

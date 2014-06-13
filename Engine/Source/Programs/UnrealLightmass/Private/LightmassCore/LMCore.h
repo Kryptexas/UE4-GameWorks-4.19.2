@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMCore.h: Most basic include file for LMCore 
-=============================================================================*/
-
 #pragma once
 
 // recommended that these are included by all files (ie, leave in LMCore.h, and maybe include LMCore.h in stdafx.h)

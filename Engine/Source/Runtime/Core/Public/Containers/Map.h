@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Map.h: Dynamic map definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "Core.h"
@@ -11,6 +7,7 @@
 #include "Set.h"
 
 #define ExchangeB(A,B) {bool T=A; A=B; B=T;}
+
 
 /** An initializer type for pairs that's passed to the pair set when adding a new pair. */
 template <typename KeyInitType, typename ValueInitType>

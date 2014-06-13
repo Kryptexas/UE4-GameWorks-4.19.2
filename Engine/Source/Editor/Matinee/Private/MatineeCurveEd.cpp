@@ -1,10 +1,4 @@
-
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-  MatineeCurveEd.cpp: Functionality pertaining to the Curve Editor in Matinee
-=============================================================================*/
-
 
 #include "MatineeModule.h"
 
@@ -14,6 +8,7 @@
 #include "Matinee/InterpTrackColorProp.h"
 
 #include "Matinee.h"
+
 
 /** Ensure the curve editor is synchronised with the track editor. */
 void FMatinee::SyncCurveEdView()

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherCookedPlatforms.h: Declares the SSessionLauncherCookedPlatforms class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -21,14 +17,13 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherCookedPlatforms) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel )
 	{
@@ -92,7 +87,6 @@ public:
 		];
 	}
 
-
 protected:
 
 	/**
@@ -136,7 +130,6 @@ protected:
 			.ColorAndOpacity(FLinearColor::Red)
 			.Text(LOCTEXT("NoPlatformsFoundErrorText", "Error: No platforms found."));
 	}
-
 
 private:
 
@@ -228,7 +221,6 @@ private:
 
 		return ESlateCheckBoxState::Unchecked;
 	}
-
 
 private:
 

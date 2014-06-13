@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceQuickInfo.h: Declares the SDeviceQuickInfo class.
-=============================================================================*/
-
 #pragma once
 
 

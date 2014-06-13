@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherFormLabel.h: Declares the SSessionLauncherFormLabel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -21,30 +17,23 @@ public:
 		, _LabelText()
 	{ }
 
-		/**
-		 * The tool tip text for the validation error icon.
-		 */
+		/** The tool tip text for the validation error icon. */
 		SLATE_ATTRIBUTE(FText, ErrorToolTipText)
 
-		/**
-		 * The visibility of the validation error icon.
-		 */
+		/** The visibility of the validation error icon. */
 		SLATE_ATTRIBUTE(EVisibility, ErrorVisibility)
 
-		/**
-		 * The text of the form label.
-		 */
+		/** The text of the form label. */
 		SLATE_ATTRIBUTE(FText, LabelText)
 
 	SLATE_END_ARGS()
-
 
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
+	 * @param InArgs The Slate argument list.
 	 */
 	void Construct(	const FArguments& InArgs )
 	{

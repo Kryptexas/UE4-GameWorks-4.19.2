@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeployToDeviceSettings.h: Declares the SSessionLauncherDeployToDeviceSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherDeployToDeviceSettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -29,7 +24,6 @@ public:
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel, EVisibility InShowAdvanced = EVisibility::Visible );
 
-
 private:
 
 	// Callback for check state changes of the 'UnrealPak' check box.
@@ -37,7 +31,6 @@ private:
 
 	// Callback for determining the checked state of the 'UnrealPak' check box.
 	ESlateCheckBoxState::Type HandleUnrealPakCheckBoxIsChecked( ) const;
-
 
 private:
 

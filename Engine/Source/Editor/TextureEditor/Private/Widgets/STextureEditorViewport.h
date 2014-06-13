@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	STextureEditorViewport.h: Declares the STextureEditorViewport class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,7 +23,7 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
+	 * @param InArgs The construction arguments.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<ITextureEditorToolkit>& InToolkit );
 	
@@ -59,15 +55,17 @@ public:
 
 public:
 
-	// Begin SWidget overrides
+	// SWidget overrides
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
 
-	// End SWidget overrides
-
 protected:
 
-	/** Returns a string representation of the currently displayed textures resolution */
+	/**
+	 * Gets the displayed textures resolution as a string.
+	 *
+	 * @return Texture resolution string.
+	 */
 	FString GetDisplayedResolution() const;
 
 private:

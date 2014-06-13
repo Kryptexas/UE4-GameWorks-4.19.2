@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightingSystem.h: Private static lighting system definitions.
-=============================================================================*/
-
 #pragma once
 
 #include "CPUSolver.h"

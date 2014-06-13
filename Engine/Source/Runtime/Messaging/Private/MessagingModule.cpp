@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingModule.cpp: Implements the FMessagingModule class.
-=============================================================================*/
-
 #include "MessagingPrivatePCH.h"
 #include "ModuleManager.h"
 
@@ -22,9 +18,9 @@ class FMessagingModule
 {
 public:
 
-	// Begin FSelfRegisteringExec interface
+	// FSelfRegisteringExec interface
 
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
+	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override
 	{
 		if (FParse::Command(&Cmd, TEXT("MESSAGING")))
 		{
@@ -54,39 +50,35 @@ public:
 		return false;
 	}
 
-	// End FSelfRegisteringExec interface
-
 public:
 
-	// Begin IMessagingModule interface
+	// IMessagingModule interface
 
-	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const ITransportMessagesRef& Transport ) OVERRIDE
+	virtual IMessageBridgePtr CreateBridge( const FMessageAddress& Address, const IMessageBusRef& Bus, const ISerializeMessagesRef& Serializer, const ITransportMessagesRef& Transport ) override
 	{
 		return MakeShareable(new FMessageBridge(Address, Bus, Serializer, Transport));
 	}
 
-	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) OVERRIDE
+	virtual IMessageBusPtr CreateBus( const IAuthorizeMessageRecipientsPtr& RecipientAuthorizer ) override
 	{
 		return MakeShareable(new FMessageBus(RecipientAuthorizer));
 	}
 
-	virtual ISerializeMessagesPtr CreateJsonMessageSerializer( ) OVERRIDE
+	virtual ISerializeMessagesPtr CreateJsonMessageSerializer( ) override
 	{
 		return MakeShareable(new FJsonMessageSerializer());
 	}
 
-	virtual IMessageBusPtr GetDefaultBus( ) const OVERRIDE
+	virtual IMessageBusPtr GetDefaultBus( ) const override
 	{
 		return DefaultBus;
 	}
 
-	// End IMessagingModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 #if PLATFORM_SUPPORTS_MESSAGEBUS
 		FCoreDelegates::OnPreExit.AddRaw(this, &FMessagingModule::HandleCorePreExit);
@@ -94,17 +86,15 @@ public:
 #endif	//PLATFORM_SUPPORTS_MESSAGEBUS
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		ShutdownDefaultBus();
 	}
 
-	virtual bool SupportsDynamicReloading( ) OVERRIDE
+	virtual bool SupportsDynamicReloading( ) override
 	{
 		return false;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 

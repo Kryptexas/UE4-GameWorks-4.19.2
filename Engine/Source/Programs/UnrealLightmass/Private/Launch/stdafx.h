@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Scene.cpp: PCH master include file.
-=============================================================================*/
-
 #pragma once
 
 // basic stuff needed by everybody

@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionServicesModule.cpp: Implements the FSessionServicesModule class.
-=============================================================================*/
-
 #include "SessionServicesPrivatePCH.h"
-
 #include "ModuleManager.h"
 
 
@@ -29,9 +24,9 @@ public:
 
 public:
 
-	// Begin ISessionServicesModule interface
+	// ISessionServicesModule interface
 
-	virtual ISessionManagerRef GetSessionManager( ) OVERRIDE
+	virtual ISessionManagerRef GetSessionManager( ) override
 	{
 		if (!SessionManager.IsValid())
 		{
@@ -41,7 +36,7 @@ public:
 		return SessionManager.ToSharedRef();
 	}
 
-	virtual ISessionServiceRef GetSessionService( ) OVERRIDE
+	virtual ISessionServiceRef GetSessionService( ) override
 	{
 		if (!SessionService.IsValid())
 		{
@@ -51,25 +46,21 @@ public:
 		return SessionService.ToSharedRef();
 	}
 
-	// End ISessionServicesModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
-	virtual void StartupModule( ) OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		MessageBusPtr = IMessagingModule::Get().GetDefaultBus();
 		check(MessageBusPtr.IsValid());
 	}
 
-	virtual void ShutdownModule( ) OVERRIDE
+	virtual void ShutdownModule( ) override
 	{
 		SessionManager.Reset();
 		SessionService.Reset();
 	}
-
-	// End IModuleInterface interface
 
 private:
 	

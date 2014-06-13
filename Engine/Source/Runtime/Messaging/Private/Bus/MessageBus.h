@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageBus.h: Declares the FMessageBus class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,7 +26,7 @@ public:
 
 public:
 
-	// Begin IMessageBus interface
+	// IMessageBus interface
 
 	virtual void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay, const ISendMessagesRef& Forwarder ) override
 	{
@@ -117,8 +113,6 @@ public:
 			}
 		}
 	}
-
-	// End IMessageBus interface
 
 private:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDevicesListRow.h: Declares the SSessionLauncherDevicesListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,7 +33,6 @@ public:
 
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -54,7 +49,6 @@ public:
 
 		SMultiColumnTableRow<ITargetDeviceProxyPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
-
 
 public:
 
@@ -127,7 +121,6 @@ public:
 
 		return SNullWidget::NullWidget;
 	}
-
 
 private:
 

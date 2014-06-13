@@ -5,10 +5,18 @@
 class FNavLinkStructCustomization : public IPropertyTypeCustomization
 {
 public:
-	// Begin IPropertyTypeCustomization interface
-	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-	// End IPropertyTypeCustomization interface
 
+	// IPropertyTypeCustomization interface
+
+	virtual void CustomizeHeader( TSharedRef<IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+
+public:
+
+	/**
+	 * Creates a new instance.
+	 *
+	 * @return A new struct customization for Keys.
+	 */
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 };

@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SConstraintCanvas.cpp: Implements the SConstraintCanvas class.
-=============================================================================*/
-
 #include "UMGPrivatePCH.h"
-
 #include "LayoutUtils.h"
 
 

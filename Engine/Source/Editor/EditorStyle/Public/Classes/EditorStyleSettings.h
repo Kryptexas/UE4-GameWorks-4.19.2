@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorStyleSettings.h: Declares the UEditorStyleSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -90,13 +86,11 @@ public:
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 #endif
-
-	// End UObject overrides
 
 private:
 

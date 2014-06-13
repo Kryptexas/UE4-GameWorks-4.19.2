@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EnumAsByte.h: FEnumAsByte template
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,7 +20,7 @@ public:
 	/**
 	 * Copy constructor.
 	 *
-	 * @param InValue value to construct with 
+	 * @param InValue value to construct with.
 	 */
 	FORCEINLINE TEnumAsByte( const TEnumAsByte &InValue )
 		: Value(InValue.Value)
@@ -33,7 +29,7 @@ public:
 	/**
 	 * Constructor, initialize to the enum value.
 	 *
-	 * @param InValue value to construct with .
+	 * @param InValue value to construct with.
 	 */
 	FORCEINLINE TEnumAsByte( TEnum InValue )
 		: Value(InValue)
@@ -42,14 +38,14 @@ public:
 	/**
 	 * Constructor, initialize to the int32 value.
 	 *
-	 * @param InValue value to construct with 
+	 * @param InValue value to construct with.
 	 */
 	explicit FORCEINLINE TEnumAsByte( int32 InValue )
 		: Value(InValue)
 	{ }
 
 	/**
-	 * Constructor, initialize to the int32 value
+	 * Constructor, initialize to the int32 value.
 	 *
 	 * @param InValue value to construct with.
 	 */

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherTaskListRow.h: Declares the SSessionLauncherTaskListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -17,8 +13,7 @@ struct FLauncherMessage
 	FLauncherMessage(const FString& NewMessage, ELogVerbosity::Type InVerbosity)
 		: Message(NewMessage)
 		, Verbosity(InVerbosity)
-	{
-	}
+	{ }
 };
 
 
@@ -34,14 +29,13 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<FLauncherMessage>, Message)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceProxyManager - The device proxy manager to use.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceProxyManager The device proxy manager to use.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
@@ -50,14 +44,12 @@ public:
 		SMultiColumnTableRow<TSharedPtr<FLauncherMessage>>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
-
 public:
 
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -79,7 +71,6 @@ public:
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-
 private:
 
 	// Callback for getting the task's status text.
@@ -99,8 +90,6 @@ private:
 			return FSlateColor::UseForeground();
 		}
 	}
-
-
 
 private:
 

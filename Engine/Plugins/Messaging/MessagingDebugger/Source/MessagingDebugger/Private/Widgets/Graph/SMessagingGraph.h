@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingGraph.h: Declares the SMessagingGraph class.
-=============================================================================*/
-
 #pragma once
 
 

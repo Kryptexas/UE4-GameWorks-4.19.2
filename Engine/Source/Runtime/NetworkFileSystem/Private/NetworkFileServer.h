@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	StreamingNetworkFileServer.h: Declares the FStreamingNetworkFileServer class.
-=============================================================================*/
-
 #pragma once
 
 /**
@@ -18,8 +14,8 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InPort - The port number to bind to (0 = any available port).
-	 * @param InFileRequestDelegate -
+	 * @param InPort The port number to bind to (0 = any available port).
+	 * @param InFileRequestDelegate 
 	 */
 	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
 		const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
@@ -29,10 +25,9 @@ public:
 	 */
 	~FNetworkFileServer( );
 
-
 public:
 
-	// Begin FRunnable Interface
+	// FRunnable Interface
 
 	virtual bool Init( ) OVERRIDE
 	{
@@ -48,18 +43,14 @@ public:
 
 	virtual void Exit( ) OVERRIDE;
 
-	// End FRunnable Interface
-
-
 public:
 
-	// INetworkFileServer Interface.
+	// INetworkFileServer interface
 
 	virtual bool IsItReadyToAcceptConnections(void) const; 
 	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const;
 	virtual int32 NumConnections() const;
 	virtual void Shutdown();
-
 
 private:
 
@@ -80,7 +71,6 @@ private:
 
 	// Is the Listner thread up and running. 
 	FThreadSafeCounter Running;
-
 
 public:
 

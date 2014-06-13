@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceProxyManager.h: Declares the FTargetDeviceProxyManager class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,27 +23,23 @@ public:
 
 public:
 
-	// Begin ITargetDeviceProxyLocator interface
+	// ITargetDeviceProxyLocator interface
 
-	virtual ITargetDeviceProxyRef FindOrAddProxy( const FString& DeviceId ) OVERRIDE;
-
-	virtual ITargetDeviceProxyPtr FindProxy( const FString& DeviceId ) OVERRIDE;
-
-	virtual void GetProxies( const FString& PlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies ) OVERRIDE;
+	virtual ITargetDeviceProxyRef FindOrAddProxy( const FString& DeviceId ) override;
+	virtual ITargetDeviceProxyPtr FindProxy( const FString& DeviceId ) override;
+	virtual void GetProxies( const FString& PlatformName, bool IncludeUnshared, TArray<ITargetDeviceProxyPtr>& OutProxies ) override;
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceProxyManager, ITargetDeviceProxyManager::FOnTargetDeviceProxyAdded, FOnTargetDeviceProxyAdded);
-	virtual FOnTargetDeviceProxyAdded& OnProxyAdded( ) OVERRIDE
+	virtual FOnTargetDeviceProxyAdded& OnProxyAdded( ) override
 	{
 		return ProxyAddedDelegate;
 	}
 
 	DECLARE_DERIVED_EVENT(FTargetDeviceProxyManager, ITargetDeviceProxyManager::FOnTargetDeviceProxyRemoved, FOnTargetDeviceProxyRemoved);
-	virtual FOnTargetDeviceProxyRemoved& OnProxyRemoved( ) OVERRIDE
+	virtual FOnTargetDeviceProxyRemoved& OnProxyRemoved( ) override
 	{
 		return ProxyRemovedDelegate;
 	}
-
-	// End ITargetDeviceProxyLocator interface
 
 protected:
 

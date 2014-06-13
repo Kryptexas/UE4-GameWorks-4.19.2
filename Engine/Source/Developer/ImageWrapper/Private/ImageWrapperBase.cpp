@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImageWrapperBase.cpp: Implements the FImageWrapperBase class.
-=============================================================================*/
-
 #include "ImageWrapperPrivatePCH.h"
 
 
@@ -82,6 +78,7 @@ bool FImageWrapperBase::SetCompressed( const void* InCompressedData, int32 InCom
 
 	return true;
 }
+
 
 bool FImageWrapperBase::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
 {

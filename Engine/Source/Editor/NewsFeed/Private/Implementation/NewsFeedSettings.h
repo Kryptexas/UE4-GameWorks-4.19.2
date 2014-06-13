@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NewsFeedSettings.h: Declares the UNewsFeedSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "NewsFeedSettings.generated.h"
@@ -37,15 +33,11 @@ class UNewsFeedSettings
 
 public:
 
-	/**
-	 * The URL at which the news feed data files are located when using the Source=Cdn.
-	 */
+	/** The URL at which the news feed data files are located when using the Source=Cdn. */
 	UPROPERTY(config)
 	FString CdnSourceUrl;
 
-	/**
-	 * The path to the local data files when using Source=Local.
-	 */
+	/** The path to the local data files when using Source=Local. */
 	UPROPERTY(config)
 	FString LocalSourcePath;
 
@@ -59,21 +51,15 @@ public:
 
 public:
 
-	/**
-	 * The maximum number of news items to show.
-	 */
+	/** The maximum number of news items to show. */
 	UPROPERTY(config, EditAnywhere, Category=Display, meta=(DisplayName="Most Recent Items To Show"))
 	int32 MaxItemsToShow;
 
-	/**
-	 * List of news feed items that have been marked as read.
-	 */
+	/** List of news feed items that have been marked as read. */
 	UPROPERTY(config)
 	TArray<FGuid> ReadItems;
 
-	/**
-	 * Whether to show only unread news feed items.
-	 */
+	/** Whether to show only unread news feed items. */
 	UPROPERTY(config, EditAnywhere, Category=Display)
 	bool ShowOnlyUnreadItems;
 
@@ -85,15 +71,16 @@ public:
 	 * @return The delegate.
 	 */
 	DECLARE_EVENT_OneParam(UNewsFeedSettings, FSettingChangedEvent, FName /*PropertyName*/);
-	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
+	FSettingChangedEvent& OnSettingChanged( )
+	{
+		return SettingChangedEvent;
+	}
 
 protected:
 
-	// Begin UObject overrides
+	// UObject overrides
 
-	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) OVERRIDE;
-
-	// End UObject overrides
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 private:
 

@@ -1,11 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Array.h: Data structure containing the contents of an
-	         UnrealHeaderTool.manifest file.
-=============================================================================*/
-
 #pragma once
+
 
 struct FManifestModule
 {
@@ -46,6 +42,7 @@ struct FManifestModule
 	bool SaveExportedHeaders;
 };
 
+
 struct FManifest
 {
 	bool    IsGameTarget;
@@ -61,7 +58,6 @@ struct FManifest
 	 * Loads an UnrealHeaderTool.manifest from the specified filename.
 	 *
 	 * @param Filename The filename of the manifest to load.
-	 *
 	 * @return The loaded module info.
 	 */
 	static FManifest LoadFromFile(const FString& Filename);

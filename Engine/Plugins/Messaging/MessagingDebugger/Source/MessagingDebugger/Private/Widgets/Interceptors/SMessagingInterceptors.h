@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingInterceptors.h: Declares the SMessagingInterceptors class.
-=============================================================================*/
-
 #pragma once
 
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Lighting.h: Private static lighting system includes.
-=============================================================================*/
-
 #pragma once
 
 #include "LMCore.h"

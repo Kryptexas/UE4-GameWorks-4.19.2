@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileServerClientConnection.h: Declares the NetworkFileServerClientConnection class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * This class processes all incoming messages from the client.
@@ -28,12 +25,23 @@ public:
 	virtual ~FNetworkFileServerClientConnection( );
 
 public:
-	/** Executes actions from the received payload. */
+
+	/**
+	 * Processes the given payload.
+	 *
+	 * @param Ar An archive containing the payload data.
+	 * @param Out An archive that will contain the processed data.
+	 */
 	void ProcessPayload(FArchive& Ar,FArchive& Out);
 
+	/**
+	 * Gets the client connection's description.
+	 *
+	 * @return Description string.
+	 */
 	FString GetDescription() const;
 
-private:
+protected:
 
 	/**
 	 *	Convert the given filename from the client to the server version of it
@@ -50,6 +58,7 @@ private:
 	 *	@param	FilenameToConvert		Upon input, the server version of the filename. After the call, the client version
 	 */
 	void ConvertServerFilenameToClientFilename(FString& FilenameToConvert);
+	
 	/** Opens a file for reading or writing. */
 	void ProcessOpenFile(FArchive& In, FArchive& Out, bool bIsWriting);
 
@@ -138,6 +147,8 @@ private:
 	 */
 	void ProcessSyncFile( FArchive& In, FArchive& Out );
 
+private:
+
 	// Hold the name of the currently connected platform.
 	FString ConnectedPlatformName;
 
@@ -176,5 +187,4 @@ private:
 
 	// cached copy of the active target platforms (if any)
 	const TArray<ITargetPlatform*>& ActiveTargetPlatforms;
-
 };

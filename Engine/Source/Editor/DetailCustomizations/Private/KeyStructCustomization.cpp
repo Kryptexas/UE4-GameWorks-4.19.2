@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	KeyStructCustomization.cpp: Implements the FKeyStructCustomization class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "KeyStructCustomization.h"
 #include "ScopedTransaction.h"

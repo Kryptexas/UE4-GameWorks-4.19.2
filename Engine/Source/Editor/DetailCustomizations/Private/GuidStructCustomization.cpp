@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GuidStructCustomization.cpp: Implements the FGuidStructCustomization class.
-=============================================================================*/
-
 #include "DetailCustomizationsPrivatePCH.h"
 #include "GuidStructCustomization.h"
 

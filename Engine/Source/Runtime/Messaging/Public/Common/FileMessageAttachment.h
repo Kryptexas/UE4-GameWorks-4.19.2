@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FileMessageAttachment.h: Declares the FFileMessageAttachment class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -49,14 +45,12 @@ public:
 
 public:
 
-	// Begin IMessageAttachment interface
+	// IMessageAttachment interface
 
 	virtual FArchive* CreateReader( ) override
 	{
 		return IFileManager::Get().CreateFileReader(*Filename);
 	}
-
-	// End IMessageAttachment interface
 
 private:
 

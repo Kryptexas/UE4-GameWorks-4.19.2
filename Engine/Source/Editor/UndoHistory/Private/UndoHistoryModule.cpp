@@ -1,9 +1,5 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UndoHistoryModule.cpp: Implements the FUndoHistoryModule class.
-=============================================================================*/
-
 #include "UndoHistoryPrivatePCH.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 

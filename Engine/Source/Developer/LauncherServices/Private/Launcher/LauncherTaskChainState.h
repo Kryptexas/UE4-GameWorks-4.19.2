@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherTaskChainState.h: Declares the FLauncherTaskChainState class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -12,33 +8,21 @@
  */
 struct FLauncherTaskChainState
 {
-	/**
-	 * Holds the path to the binaries directory (for deployment).
-	 */
+	/** The path to the binaries directory (for deployment). */
 	FString BinariesDirectory;
 
-	/**
-	 * Holds the path to the content directory (for deployment).
-	 */
+	/** The path to the content directory (for deployment). */
 	FString ContentDirectory;
 
-	/**
-	 * Holds the identifier of the deployed application.
-	 */
+	/** The identifier of the deployed application. */
 	FString DeployedAppId;
 
-	/**
-	 * Holds the list of IP addresses and port numbers at which the file server is reachable.
-	 */
+	/** The list of IP addresses and port numbers at which the file server is reachable. */
 	FString FileServerAddressListString;
 
-	/**
-	 * Holds a pointer to the launcher profile.
-	 */
+	/** A pointer to the launcher profile. */
 	ILauncherProfilePtr Profile;
 
-	/**
-	 * Holds the session identifier.
-	 */
+	/** The session identifier. */
 	FGuid SessionId;
 };

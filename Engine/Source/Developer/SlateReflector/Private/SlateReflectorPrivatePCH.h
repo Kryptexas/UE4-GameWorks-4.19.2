@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateReflectorPrivatePCH.h: Pre-compiled header file for the SlateReflector module.
-=============================================================================*/
-
 #pragma once
 
 #include "SlateReflector.h"

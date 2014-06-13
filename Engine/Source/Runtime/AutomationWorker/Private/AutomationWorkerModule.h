@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWorkerModule.h: Declares the FAutomationWorkerModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -63,7 +59,7 @@ protected:
 	/** 
 	 * Send a list of all the tests supported by the worker
 	 *
-	 * @param ControllerAddress - The message address of the controller that requested the tests.
+	 * @param ControllerAddress The message address of the controller that requested the tests.
 	 */
 	void SendTests( const FMessageAddress& ControllerAddress );
 
@@ -92,13 +88,13 @@ private:
 
 #if WITH_ENGINE
 	/** Invoked when we have screen shot to send. */
-	void HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName);
+	void HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName );
 #endif
 
 private:
 
 	// The collection of test data we are to send to a controller
-	TArray< FAutomationTestInfo > TestInfo;
+	TArray<FAutomationTestInfo> TestInfo;
 
 private:
 

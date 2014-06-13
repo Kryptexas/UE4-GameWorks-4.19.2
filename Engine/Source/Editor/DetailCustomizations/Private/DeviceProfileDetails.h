@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	DeviceProfileDetails.h: Declares the FDeviceProfileDetails class.
-=============================================================================*/
-
 #pragma once
 
 class UDeviceProfile;
+
 
 /* FDeviceProfileParentPropertyDetails
  *****************************************************************************/
@@ -23,7 +20,7 @@ public:
 	/**
 	 * Constructor for the parent property details view
 	 *
-	 * @param InDetailsBuilder - Where we are adding our property view to
+	 * @param InDetailsBuilder Where we are adding our property view to
 	 */
 	FDeviceProfileParentPropertyDetails(IDetailLayoutBuilder* InDetailBuilder);
 
@@ -38,21 +35,18 @@ private:
 	/**
 	 * Select a parent Combo-box listings
 	 *
-	 * @param InItem - The prospective parent profile name we are creating a listing for
-	 *
+	 * @param InItem The prospective parent profile name we are creating a listing for
 	 * @return The slate widget with the listed profile name
 	 */
 	TSharedRef<SWidget> HandleDeviceProfileParentComboBoxGenarateWidget(TSharedPtr<FString> InItem);
 
-
 	/**
 	 * Handle a new parent profile being selected for the active device profile
 	 *
-	 * @param NewSelection	- The name of the selected parent profile
-	 * @param SelectionInfo	- The selection type information
+	 * @param NewSelection The name of the selected parent profile
+	 * @param SelectionInfo	The selection type information
 	 */
 	void HandleDeviceProfileParentSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-
 
 	/**
 	* Delegate used when the device profiles parent is updated from any source.
@@ -90,7 +84,7 @@ public:
 	/**
 	 * Constructor for the active profiles' console variables property details view
 	 *
-	 * @param InDetailsBuilder - Where we are adding our property view to
+	 * @param InDetailsBuilder Where we are adding our property view to
 	 */
 	FDeviceProfileConsoleVariablesPropertyDetails(IDetailLayoutBuilder* InDetailBuilder);
 
@@ -105,7 +99,7 @@ private:
 	/**
 	 * Action when a CVar has been selected for add to the device profile
 	 *
-	 * @param SelectedCVar - The CVar added
+	 * @param SelectedCVar The CVar added
 	 */
 	void HandleCVarAdded(const FString& SelectedCVar);
 
@@ -113,8 +107,8 @@ private:
 	/**
 	 * Action when a CVar has been selected for add to the device profile
 	 *
-	 * @param InProperty	- The property handle of which we are creating a row for.
-	 * @param InGroup	- The group the property is to be listed under.
+	 * @param InProperty The property handle of which we are creating a row for.
+	 * @param InGroup The group the property is to be listed under.
 	 */
 	void CreateRowWidgetForCVarProperty(TSharedPtr<IPropertyHandle> InProperty, IDetailGroup& InGroup) const;
 
@@ -122,9 +116,9 @@ private:
 	/**
 	 * Action when a CVar has been updated on the device profile
 	 *
-	 * @param NewValue				- The New value for the given CVar
-	 * @param CommitInfo			- Details of how the action was commited
-	 * @param CVarPropertyHandle	- The CVar property which has been updated
+	 * @param NewValue The New value for the given CVar
+	 * @param CommitInfo Details of how the action was committed
+	 * @param CVarPropertyHandle The CVar property which has been updated
 	 */
 	void OnCVarValueCommited(const FText& NewValue, ETextCommit::Type CommitInfo, TSharedPtr<IPropertyHandle> CVarPropertyHandle);
 
@@ -132,8 +126,7 @@ private:
 	/**
 	 * Action when a CVar has removed from the device profile
 	 *
-	 * @param InProperty - The property which has been removed from the profile
-	 *
+	 * @param InProperty The property which has been removed from the profile
 	 * @return Whether the event was handled
 	 */
 	FReply OnRemoveCVarProperty(TSharedPtr<IPropertyHandle> InProperty);
@@ -143,7 +136,6 @@ private:
 	 * Action when a group of CVars have been removed from the device profile
 	 *
 	 * @param GroupName - The name of the group all Cvars have been removed for.
-	 *
 	 * @return Whether the event was handled
 	 */
 	FReply OnRemoveAllFromGroup(const TSharedPtr<FString> GroupName);
@@ -190,11 +182,9 @@ public:
 
 public:
 
-	// Begin IDetailCustomization interface
+	// IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& InDetailBuilder ) OVERRIDE;
-
-	// End IDetailCustomization interface
+	virtual void CustomizeDetails( IDetailLayoutBuilder& InDetailBuilder ) override;
 
 private:
 

@@ -1,17 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SparseArray.h: Sparse array definition.
-=============================================================================*/
-
 #pragma once
 
 #include "Array.h"
 #include "BitArray.h"
 
+
 // Forward declarations.
 template<typename ElementType,typename Allocator = FDefaultSparseArrayAllocator >
 class TSparseArray;
+
 
 /** The result of a sparse array allocation. */
 struct FSparseArrayAllocationInfo

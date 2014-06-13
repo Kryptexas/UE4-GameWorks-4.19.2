@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRHIRenderingPolicy.cpp: Implements the FSlateRHIResourceManager class.
-=============================================================================*/
-
 #include "SlateRHIRendererPrivatePCH.h"
 #include "ImageWrapper.h"
 

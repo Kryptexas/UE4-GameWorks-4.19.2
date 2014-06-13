@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRHITextureAtlas.cpp: Implements the FSlateTextureAtlasRHI class.
-=============================================================================*/
-
 #include "SlateRHIRendererPrivatePCH.h"
 
 

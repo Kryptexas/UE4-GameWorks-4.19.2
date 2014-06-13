@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherLaunchCommands.h: Declares the FLauncherLaunchCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,14 +10,14 @@ class FLauncherLaunchGameCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherLaunchGameCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -79,6 +75,7 @@ public:
 	}
 
 private:
+
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
 
@@ -103,14 +100,14 @@ class FLauncherLaunchDedicatedServerCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherLaunchDedicatedServerCommand(const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const ILauncherProfileLaunchRoleRef& InRole, const TSharedPtr<FLauncherUATCommand>& InCook)
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, Role(InRole)
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -177,6 +174,7 @@ public:
 	}
 
 private:
+
 	// Holds the device proxy to launch on.
 	ITargetDeviceProxyPtr DeviceProxy;
 
@@ -189,6 +187,6 @@ private:
 	// Holds the role of the instance to launch.
 	ILauncherProfileLaunchRoleRef Role;
 
-	// cook command used for this build
+	// Cook command used for this build
 	const TSharedPtr<FLauncherUATCommand> CookCommand;
 };

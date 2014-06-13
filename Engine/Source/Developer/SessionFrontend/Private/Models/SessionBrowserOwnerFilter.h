@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionBrowserOwnerFilter.h: Declares the FSessionBrowserOwnerFilter class.
-=============================================================================*/
-
 #pragma once
 
 

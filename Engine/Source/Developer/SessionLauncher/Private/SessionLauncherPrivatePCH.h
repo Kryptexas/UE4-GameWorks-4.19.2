@@ -1,17 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionLauncherPrivatePCH.h: Pre-compiled header file for the SessionLauncher module.
-=============================================================================*/
+#pragma once
 
-#ifndef UNREAL_SESSIONLAUNCHER_PRIVATEPCH_H
-#define UNREAL_SESSIONLAUNCHER_PRIVATEPCH_H
+#include "SessionLauncher.h"
 
 
-#include "../Public/SessionLauncher.h"
-
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "DesktopPlatformModule.h"
@@ -97,6 +91,3 @@ static TSharedRef<SButton> MakeImageButton( const FSlateBrush* ButtonImage, cons
 #include "SSessionLauncherToolbar.h"
 #include "SSessionLauncherValidation.h"
 #include "SSessionLauncher.h"
-
-
-#endif //UNREAL_SESSIONLAUNCHER_PRIVATEPCH_H

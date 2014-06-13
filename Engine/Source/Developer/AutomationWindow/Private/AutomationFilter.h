@@ -10,48 +10,16 @@ class FAutomationFilter : public IFilter< const TSharedPtr< class IAutomationRep
 {
 public:
 
+	/**
+	 * Default constructor.
+	 */
 	FAutomationFilter()
 		: OnlySmokeTests( false )
 		, ShowErrors( false )
 		, ShowWarnings( false )
-	{}
+	{ }
 
-	// Begin IFilter functions
-	DECLARE_DERIVED_EVENT(FAutomationFilter, IFilter< const TSharedPtr< class IAutomationReport >& >::FChangedEvent, FChangedEvent);
-	virtual FChangedEvent& OnChanged() OVERRIDE { return ChangedEvent; }
-
-	/**
-	 * Checks if the report passes the filter
-	 * @param InReport - The automation report
-	 * @return true if it passes the test
-	 */
-	virtual bool PassesFilter( const TSharedPtr< IAutomationReport >& InReport ) const OVERRIDE
-	{
-		bool FilterPassed = true;
-		if( OnlySmokeTests && !InReport->IsSmokeTest( ) )
-		{
-			FilterPassed = false;
-		}
-
-		if (ShowWarnings && ShowErrors)
-		{
-			FilterPassed = InReport->HasWarnings() || InReport->HasErrors();
-		}
-		else if (!ShowWarnings && ShowErrors)
-		{
-			FilterPassed = InReport->HasErrors();
-		}
-		else if (ShowWarnings && !ShowErrors)
-		{
-			// Do not show report as a warning if it should be highlighted as an Error!
-			FilterPassed = InReport->HasWarnings() && !InReport->HasErrors();
-		}
-
-		return FilterPassed;
-	}
-
-	// End IFilter functions
-
+public:
 
 	/**
 	 * Set if we should only show warnings
@@ -105,6 +73,38 @@ public:
 	const bool OnlyShowSmokeTests( ) const
 	{
 		return OnlySmokeTests;
+	}
+
+public:
+
+	// IFilter interface
+
+	DECLARE_DERIVED_EVENT(FAutomationFilter, IFilter< const TSharedPtr< class IAutomationReport >& >::FChangedEvent, FChangedEvent);
+	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
+
+	virtual bool PassesFilter( const TSharedPtr< IAutomationReport >& InReport ) const override
+	{
+		bool FilterPassed = true;
+		if( OnlySmokeTests && !InReport->IsSmokeTest( ) )
+		{
+			FilterPassed = false;
+		}
+
+		if (ShowWarnings && ShowErrors)
+		{
+			FilterPassed = InReport->HasWarnings() || InReport->HasErrors();
+		}
+		else if (!ShowWarnings && ShowErrors)
+		{
+			FilterPassed = InReport->HasErrors();
+		}
+		else if (ShowWarnings && !ShowErrors)
+		{
+			// Do not show report as a warning if it should be highlighted as an Error!
+			FilterPassed = InReport->HasWarnings() && !InReport->HasErrors();
+		}
+
+		return FilterPassed;
 	}
 
 private:

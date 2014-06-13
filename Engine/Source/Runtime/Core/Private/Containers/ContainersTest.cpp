@@ -1,16 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ContainersTest.cpp: Unit test for containers.
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "AutomationTest.h"
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FContainersTest, "Core.Misc.Containers", EAutomationTestFlags::ATF_SmokeTest)
 
 #define MAX_TEST_OBJECTS      65
 #define MAX_TEST_OBJECTS_STEP 1
+
 
 namespace
 {

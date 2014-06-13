@@ -1,14 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
- PropertyTablePropertyNameColumn.cpp: Implements the FPropertyTablePropertyNameColumn class.
-=============================================================================*/
-
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyTableCell.h"
 #include "PropertyTablePropertyNameColumn.h"
 
+
 #define LOCTEXT_NAMESPACE "PropertyNameColumnHeader"
+
 
 FPropertyTablePropertyNameColumn::FPropertyTablePropertyNameColumn( const TSharedRef< IPropertyTable >& InTable )
 	: Table( InTable )

@@ -1,14 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	JpegImageWrapper.h: Declares the FJpegImageWrapper class.
-
-	
-	Source code for JPEG decompression from:
-	http://code.google.com/p/jpeg-compressor/
-=============================================================================*/
-
 #include "ImageWrapperPrivatePCH.h"
+
 
 #if WITH_UNREALJPEG
 
@@ -38,7 +31,7 @@ FCriticalSection GJPEGSection;
 
 FJpegImageWrapper::FJpegImageWrapper( )
 	: FImageWrapperBase()
-{}
+{ }
 
 
 /* FImageWrapperBase interface
@@ -75,6 +68,7 @@ bool FJpegImageWrapper::SetCompressed( const void* InCompressedData, int32 InCom
 	return bResult;
 }
 
+
 bool FJpegImageWrapper::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
 {
 	check((InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA) && InBitDepth == 8);
@@ -83,6 +77,7 @@ bool FJpegImageWrapper::SetRaw( const void* InRawData, int32 InRawSize, const in
 
 	return bResult;
 }
+
 
 void FJpegImageWrapper::Compress( int32 Quality )
 {
@@ -126,6 +121,7 @@ void FJpegImageWrapper::Compress( int32 Quality )
 		CompressedData.RemoveAt(OutBufferSize, CompressedData.Num() - OutBufferSize);
 	}
 }
+
 
 void FJpegImageWrapper::Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth )
 {

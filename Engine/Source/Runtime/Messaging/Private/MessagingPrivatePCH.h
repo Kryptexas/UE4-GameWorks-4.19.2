@@ -1,16 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingPrivatePCH.h: Pre-compiled header file for the Messaging module.
-=============================================================================*/
-
 #pragma once
 
+#include "Messaging.h"
 
-#include "../Public/Messaging.h"
 
-
-/* Private Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Json.h"

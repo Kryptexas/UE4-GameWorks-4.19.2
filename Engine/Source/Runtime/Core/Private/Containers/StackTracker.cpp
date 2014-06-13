@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-StackTracker.cpp: Stack Tracking within Unreal Engine.
-=============================================================================*/
 #include "CorePrivate.h"
-
 #include "StackTracker.h"
 
+
 DEFINE_LOG_CATEGORY_STATIC(LogStackTracker, Log, All);
+
 
 /**
  * Captures the current stack and updates stack tracking information.

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	MeshPaintEdMode.cpp: Mesh paint tool
-================================================================================*/
-
 #include "MeshPaintPrivatePCH.h"
 
 #include "Materials/MaterialExpressionTextureBase.h"
@@ -31,6 +27,7 @@
 
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
+
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerCommands.h: Declares the FMessagingDebuggerCommands class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,9 +20,9 @@ public:
 
 public:
 
-	// Begin TCommands interface
+	// TCommands interface
 
-	virtual void RegisterCommands( ) OVERRIDE
+	virtual void RegisterCommands( ) override
 	{
 		UI_COMMAND(BreakDebugger, "Break", "Break the debugger at the next message", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(ClearHistory, "Clear History", "Clears the message history list", EUserInterfaceActionType::Button, FInputGesture());
@@ -35,8 +31,6 @@ public:
 		UI_COMMAND(StepDebugger, "Step", "Step over the current message", EUserInterfaceActionType::Button, FInputGesture());
 		UI_COMMAND(StopDebugger, "Stop", "Stop the debugger", EUserInterfaceActionType::Button, FInputGesture());
 	}
-
-	// End TCommands interface
 
 public:
 

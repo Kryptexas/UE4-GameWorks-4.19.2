@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	JsonMessageSerializer.h: Declares the FJsonMessageSerializer structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,13 +11,10 @@ class FJsonMessageSerializer
 {
 public:
 
-	// Begin ISerializeMessages interface
+	// ISerializeMessages interface
 
 	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) override;
-
 	virtual bool SerializeMessage( const IMessageContextRef& Context, FArchive& Archive ) override;
-
-	// End ISerializeMessages interface
 
 protected:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GameInstanceInfo.h: Declares the FSessionInstanceInfo class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -90,7 +86,7 @@ public:
 
 public:	
 
-	// Begin IGameInstanceInfo interface
+	// IGameInstanceInfo interface
 
 	virtual void ExecuteCommand( const FString& CommandString )
 	{
@@ -100,90 +96,88 @@ public:
 		}
 	}
 
-	virtual const FString GetBuildDate() const OVERRIDE
+	virtual const FString GetBuildDate() const override
 	{
 		return BuildDate;
 	}
 
-	virtual const FString GetCurrentLevel() const OVERRIDE
+	virtual const FString GetCurrentLevel() const override
 	{
 		return CurrentLevel;
 	}
 
-	virtual const FString GetDeviceName() const OVERRIDE
+	virtual const FString GetDeviceName() const override
 	{
 		return DeviceName;
 	}
 
-	virtual int32 GetEngineVersion( ) const OVERRIDE
+	virtual int32 GetEngineVersion( ) const override
 	{
 		return EngineVersion;
 	}
 
-	virtual const FGuid GetInstanceId( ) const OVERRIDE
+	virtual const FGuid GetInstanceId( ) const override
 	{
 		return InstanceId;
 	}
 
-	virtual const FString GetInstanceName() const OVERRIDE
+	virtual const FString GetInstanceName() const override
 	{
 		return InstanceName;
 	}
 
-	virtual const FString GetInstanceType() const OVERRIDE
+	virtual const FString GetInstanceType() const override
 	{
 		return InstanceType;
 	}
 
-	virtual FDateTime GetLastUpdateTime( ) OVERRIDE
+	virtual FDateTime GetLastUpdateTime( ) override
 	{
 		return LastUpdateTime;
 	}
 
-	virtual const TArray<FSessionLogMessagePtr>& GetLog( ) OVERRIDE
+	virtual const TArray<FSessionLogMessagePtr>& GetLog( ) override
 	{
 		return LogMessages;
 	}
 
-	virtual ISessionInfoPtr GetOwnerSession( ) OVERRIDE
+	virtual ISessionInfoPtr GetOwnerSession( ) override
 	{
 		return Owner.Pin();
 	}
 
-	virtual const FString& GetPlatformName( ) const OVERRIDE
+	virtual const FString& GetPlatformName( ) const override
 	{
 		return PlatformName;
 	}
 
-	virtual float GetWorldTimeSeconds( ) const OVERRIDE
+	virtual float GetWorldTimeSeconds( ) const override
 	{
 		return WorldTimeSeconds;
 	}
 
-	virtual const bool IsConsole() const OVERRIDE
+	virtual const bool IsConsole() const override
 	{
 		return IsConsoleBuild;
 	}
 
-	virtual FOnSessionInstanceLogReceived& OnLogReceived( ) OVERRIDE
+	virtual FOnSessionInstanceLogReceived& OnLogReceived( ) override
 	{
 		return LogReceivedDelegate;
 	}
 
-	virtual bool PlayHasBegun( ) const OVERRIDE
+	virtual bool PlayHasBegun( ) const override
 	{
 		return HasBegunPlay;
 	}
 
-	virtual void Terminate( ) OVERRIDE
+	virtual void Terminate( ) override
 	{
 		if (MessageEndpoint.IsValid() && EngineAddress.IsValid())
 		{
 			MessageEndpoint->Send(new FEngineServiceTerminate(FPlatformProcess::UserName(false)), EngineAddress);
 		}
 	}
-
-	// End IGameInstanceInfo interface
 
 private:
 

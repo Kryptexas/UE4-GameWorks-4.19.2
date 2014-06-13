@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageContext.h: Declares the FMessageContext class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -87,7 +83,7 @@ public:
 
 public:
 
-	// Begin IMessageContext interface
+	// IMessageContext interface
 
 	virtual IMessageAttachmentPtr GetAttachment( ) const override
 	{
@@ -214,11 +210,9 @@ public:
 		return ((Message != nullptr) && TypeInfo.IsValid(false, true));
 	}
 
-	// End IMessageContext interface
-
 public:
 
-	// Begin IMutableMessageContext interface
+	// IMutableMessageContext interface
 
 	virtual void AddRecipient( const FMessageAddress& Recipient ) override
 	{
@@ -260,8 +254,6 @@ public:
 	{
 		TimeSent = InTimeSent;
 	}
-
-	// Begin IMutableMessageContext interface
 
 private:
 

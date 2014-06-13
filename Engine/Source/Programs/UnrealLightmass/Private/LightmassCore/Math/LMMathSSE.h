@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LMMathSSE.h: Intel SSE specific vector intrinsics (also using D3D9X)
-=============================================================================*/
-
-
 #pragma once
 
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionService.h: Declares the FSessionService class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,29 +26,24 @@ public:
 
 public:
 
-	// Begin FOutputDevice interface
+	// FOutputDevice interface
 
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
 		SendLog(Data, Verbosity, Category);
 	}
 
-	// End FOutputDevice interface
-
 public:
 
-	// Begin ISessionService interface
+	// ISessionService interface
 
-	virtual bool IsRunning( ) OVERRIDE
+	virtual bool IsRunning( ) override
 	{
 		return MessageEndpoint.IsValid();
 	}
 
-	virtual bool Start( ) OVERRIDE;
-
-	virtual void Stop( ) OVERRIDE;
-
-	// End ISessionService interface
+	virtual bool Start( ) override;
+	virtual void Stop( ) override;
 
 protected:
 

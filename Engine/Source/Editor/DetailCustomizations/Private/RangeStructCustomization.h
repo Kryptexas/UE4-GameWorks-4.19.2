@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RangeStructCustomization.h: Declares the FRangeStructCustomization<> class.
-=============================================================================*/
-
 #pragma once
 
 /**
@@ -17,13 +13,12 @@ public:
 	FRangeStructCustomization()
 		: bIsUsingSlider(false) {}
 
-	// Begin IPropertyTypeCustomization interface
+public:
 
-	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) OVERRIDE;
+	// IPropertyTypeCustomization interface
 
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) OVERRIDE;
-
-	// End IPropertyTypeCustomization interface
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 public:
 
@@ -41,7 +36,6 @@ protected:
 	 *
 	 * @param	ValueWeakPtr	Handle to the property to get the value from
 	 * @param	TypeWeakPtr		Handle to the property to get the type from
-	 *
 	 * @return	The value or unset if it could not be accessed
 	 */
 	TOptional<NumericType> OnGetValue(TWeakPtr<IPropertyHandle> ValueWeakPtr, TWeakPtr<IPropertyHandle> TypeWeakPtr) const;
@@ -79,15 +73,14 @@ protected:
 	 * Determines if the value is valid from the handle of the range type passed in
 	 *
 	 * @param	HandleWeakPtr	Handle to the property to get the type from
-	 *
 	 * @return	Whether the value is valid or not.
 	 */
 	bool OnQueryIfEnabled(TWeakPtr<IPropertyHandle> HandleWeakPtr) const;
 
 	/**
-	 * Determines if the spinbox is enabled on a numeric value widget
+	 * Determines if the spin box is enabled on a numeric value widget
 	 *
-	 * @return Whether the spinbox should be enabled.
+	 * @return Whether the spin box should be enabled.
 	 */
 	bool ShouldAllowSpin() const;
 
@@ -95,7 +88,6 @@ protected:
 	 * Generates a row of the combo widget
 	 *
 	 * @param	InComboString	Item string to be displayed in the combo item
-	 *
 	 * @return	An SWidget representing the combo row.
 	 */
 	TSharedRef<SWidget> OnGenerateComboWidget(TSharedPtr<FString> InComboString);

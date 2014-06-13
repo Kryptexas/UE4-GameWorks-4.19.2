@@ -101,7 +101,7 @@ public:
 
 public:
 
-	// Begin IDelegateInstance interface
+	// IDelegateInstance interface
 
 	virtual FName GetFunctionName( ) const override
 	{
@@ -133,11 +133,9 @@ public:
 		return UserObject.IsValid();
 	}
 
-	// End IDelegateInstance interface
-
 public:
 
-	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy() override
 	{
@@ -193,8 +191,6 @@ public:
 
 		return false;
 	}
-
-	// End DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 public:
 
@@ -295,7 +291,7 @@ public:
 
 public:
 
-	// Begin IDelegateInstance interface
+	// IDelegateInstance interface
 
 	virtual FName GetFunctionName( ) const override
 	{
@@ -329,11 +325,9 @@ public:
 		return true;
 	}
 
-	// End IDelegateInstance interface
-
 public:
 
-	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
 	{
@@ -462,7 +456,7 @@ public:
 
 public:
 
-	// Begin IDelegateInstance interface
+	// IDelegateInstance interface
 
 	virtual FName GetFunctionName( ) const override
 	{
@@ -499,11 +493,9 @@ public:
 		return !!UserObject.Get();
 	}
 
-	// End IDelegateInstance interface
-
 public:
 
-	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
 	{
@@ -638,7 +630,7 @@ public:
 
 public:
 
-	// Begin IDelegateInstance interface
+	// IDelegateInstance interface
 
 	virtual FName GetFunctionName( ) const override
 	{
@@ -672,11 +664,9 @@ public:
 		return true;
 	}
 
-	// End IDelegateInstance interface
-
 public:
 
-	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
 	{
@@ -792,7 +782,7 @@ public:
 	
 public:
 
-	// Begin IDelegateInstance interface
+	// IDelegateInstance interface
 
 	virtual FName GetFunctionName( ) const override
 	{
@@ -829,11 +819,9 @@ public:
 		return UserObjectPtr.IsValid();
 	}
 
-	// End IDelegateInstance interface
-
 public:
 
-	// Begin DELEGATE_INSTANCE_INTERFACE_CLASS interface
+	// DELEGATE_INSTANCE_INTERFACE_CLASS interface
 
 	virtual DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>* CreateCopy( ) override
 	{

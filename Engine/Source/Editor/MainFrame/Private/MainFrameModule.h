@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainFrameModule.h: Declares the FMainFrameModule class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -15,14 +11,11 @@ class FMainFrameModule
 {
 public:
 
-	// Begin IMainFrameModule interface
+	// IMainFrameModule interface
 
 	virtual void CreateDefaultMainFrame( const bool bStartImmersivePIE ) OVERRIDE;
-
 	virtual TSharedRef<SWidget> MakeMainMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const OVERRIDE;
-
 	virtual TSharedRef<SWidget> MakeMainTabMenu( const TSharedPtr<FTabManager>& TabManager, const TSharedRef< FExtender > Extender ) const OVERRIDE;
-
 	virtual TSharedRef<SWidget> MakeDeveloperTools( ) const OVERRIDE;
 
 	virtual bool IsWindowInitialized( ) const OVERRIDE
@@ -105,22 +98,17 @@ public:
 		return MainFrameSDKNotInstalled.Broadcast(PlatformName, DocLink);
 	}
 
-	// End IMainFrameModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule( ) OVERRIDE;
-
 	virtual void ShutdownModule( ) OVERRIDE;
 
 	virtual bool SupportsDynamicReloading( ) OVERRIDE
 	{
 		return true; // @todo: Eventually, this should probably not be allowed.
 	}
-
-	// EndIModuleInterface interface
 
 protected:
 

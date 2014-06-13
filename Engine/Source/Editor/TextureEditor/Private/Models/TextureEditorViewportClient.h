@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorViewportClient.h: Declares the FTextureEditorViewportClient class.
-=============================================================================*/
-
 #pragma once
 
 

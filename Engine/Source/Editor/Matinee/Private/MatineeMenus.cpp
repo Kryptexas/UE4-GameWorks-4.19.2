@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	InterpEditorMenus.cpp: Interpolation editing menus
-=============================================================================*/
-
 #include "MatineeModule.h"
 
 #include "Matinee/InterpTrackInst.h"
@@ -45,6 +41,7 @@
 
 #include "IDocumentation.h"
 #include "MainFrame.h"
+
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"
 

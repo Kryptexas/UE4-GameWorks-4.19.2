@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MacUnrealFrontendMain.mm: Implements the main entry point for MacOS.
-=============================================================================*/
-
 #include "UnrealFrontendMain.h"
 
 

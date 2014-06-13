@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ITargetDeviceServiceManager.h: Declares the ITargetDeviceServiceManager interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ITargetDeviceServiceManager.
- */
+/** Type definition for shared pointers to instances of ITargetDeviceServiceManager. */
 typedef TSharedPtr<class ITargetDeviceServiceManager> ITargetDeviceServiceManagerPtr;
 
-/**
- * Type definition for shared references to instances of ITargetDeviceServiceManager.
- */
+/** Type definition for shared references to instances of ITargetDeviceServiceManager. */
 typedef TSharedRef<class ITargetDeviceServiceManager> ITargetDeviceServiceManagerRef;
 
 
@@ -32,11 +24,9 @@ public:
 	 * could not be discovered automatically or are currently unavailable. This name will
 	 * be replaced with the actual device name once the physical device becomes available.
 	 *
-	 * @param DeviceId - The device identifier for the service to add.
-	 * @param PreliminaryDeviceName - The preliminary device name.
-	 *
+	 * @param DeviceId The device identifier for the service to add.
+	 * @param PreliminaryDeviceName The preliminary device name.
 	 * @return true if the service added, false otherwise.
-	 *
 	 * @see GetServices
 	 * @see RemoveStartupService
 	 */
@@ -45,8 +35,7 @@ public:
 	/**
 	 * Gets the collection of target device services managed by this instance.
 	 *
-	 * @param OutServices - Will contain the collection of services.
-	 *
+	 * @param OutServices Will contain the collection of services.
 	 * @return The number of services returned.
 	 */
 	virtual int32 GetServices( TArray<ITargetDeviceServicePtr>& OutServices ) = 0;
@@ -54,8 +43,7 @@ public:
 	/**
 	 * Removes a service from the list of services that are started automatically.
 	 *
-	 * @param DeviceId - The device identifier for the service to remove.
-	 *
+	 * @param DeviceId The device identifier for the service to remove.
 	 * @see AddStartupService
 	 * @see GetServices
 	 */

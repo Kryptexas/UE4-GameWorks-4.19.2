@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FAutomatedTestManager: Declares the FAutomatedTestManager class.
-=============================================================================*/
-
 #pragma once
+
 
 /** States for running the automation process */
 namespace EAutomationTestState
@@ -20,6 +17,7 @@ namespace EAutomationTestState
 	};
 };
 
+
 /**
  * Implements a helper class that runs the automation tests
  */
@@ -27,10 +25,11 @@ class FAutomatedTestManager
 	: public IAutomatedTestManager
 {
 public:
+
 	/**
 	 * Constructor.
 	 *
-	 *@Param SessionID - the session ID used to select the session in the automation controller
+	 * @param SessionID The session ID used to select the session in the automation controller.
 	 */
 	FAutomatedTestManager( const FGuid SessionID );
 
@@ -39,40 +38,37 @@ public:
 	 */
 	~FAutomatedTestManager();
 
-	// Begin IAutomatedTestManager interface
+public:
+
+	// IAutomatedTestManager interface
 
 	virtual bool IsTestingComplete() OVERRIDE;
-
 	virtual void RunTests() OVERRIDE;
-
 	virtual void Tick( float DeltaTime ) OVERRIDE;
-
-
-	// End IAutomatedTestManager interface
-
 
 protected:
 
 	/*
-	 * Find some automation workers on the discovered game instances
+	 * Finds some automation workers on the discovered game instances.
 	 *
-	 * @param DeltaTime - Time since last update. Used to add a delay before we send the request
+	 * @param DeltaTime Time since last update. Used to add a delay before we send the request.
 	 */
 	void FindWorkers( float DeltaTime );
 
 	/*
-	 * Generate the automation report, and finish the testing process
+	 * Generates the automation report, and finish the testing process.
 	 */
 	void GenerateReport();
 
 	/*
-	 * Monitor the testing process to see if we have finished
+	 * Monitors the testing process to see if we have finished.
 	 */
 	void MonitorTests();
 
 private:
+
 	/*
-	 * Callback function from the automation controller to let us know there are tests available
+	 * Callback function from the automation controller to let us know there are tests available.
 	 */
 	void HandleRefreshTestCallback();
 

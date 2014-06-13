@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BSP.cpp: Static lighting BSP mesh/mapping implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Importer.h"
 

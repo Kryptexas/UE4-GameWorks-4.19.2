@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CrashVideoCapture.h: Declares the FCrashVideoCapture class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -11,7 +7,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCrashTracker, Log, All);
 
 
 /**
- * A buffer for holding a compressed video frame
+ * A buffer for holding a compressed video frame.
  */
 class FCompressedDataFrame
 {
@@ -29,7 +25,9 @@ public:
 
 
 
-/** An asynchronous task for compressing an image */
+/**
+ * An asynchronous task for compressing an image.
+ */
 class FAsyncImageCompress : public FNonAbandonableTask
 {
 public:
@@ -49,8 +47,7 @@ private:
 
 
 /**
- * The crash tracker handles slate key logging
- * and if CRASH_TRACKER_ENABLED, also crash video capture
+ * The crash tracker handles slate key logging and if CRASH_TRACKER_ENABLED, also crash video capture.
  */
 class FCrashVideoCapture
 {

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeployFileServerSettings.h: Declares the SSessionLauncherDeployFileServerSettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,14 +14,13 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherDeployFileServerSettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
 
@@ -43,7 +38,6 @@ private:
 
 	// Callback for determining the checked state of the 'Streaming Server' check box.
 	ESlateCheckBoxState::Type HandleStreamingServerCheckBoxIsChecked( ) const;
-
 
 private:
 

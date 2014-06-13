@@ -8,10 +8,10 @@ class UMatineeTrackColorPropHelper : public UMatineeTrackVectorPropHelper
 {
 	GENERATED_UCLASS_BODY()
 
+public:
 
-	// Begin UInterpTrackHelper Interface
-	virtual	bool PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, bool bDuplicatingTrack, bool bAllowPrompts ) const OVERRIDE;
-	virtual void  PostCreateTrack( UInterpTrack *Track, bool bDuplicatingTrack, int32 TrackIndex ) const OVERRIDE;
-	// End UInterpTrackHelper Interface
+	// UInterpTrackHelper interface
+
+	virtual	bool PreCreateTrack( UInterpGroup* Group, const UInterpTrack *TrackDef, bool bDuplicatingTrack, bool bAllowPrompts ) const override;
+	virtual void  PostCreateTrack( UInterpTrack *Track, bool bDuplicatingTrack, int32 TrackIndex ) const override;
 };
-

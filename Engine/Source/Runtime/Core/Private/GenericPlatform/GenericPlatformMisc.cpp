@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
@@ -18,13 +14,14 @@
 #include "UProjectInfo.h"
 
 #if UE_ENABLE_ICU
-#include <unicode/locid.h>
+	#include <unicode/locid.h>
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenericPlatformMisc, Log, All);
 
 /** Holds an override path if a program has special needs */
 FString OverrideGameDir;
+
 
 /* EBuildConfigurations interface
  *****************************************************************************/
@@ -56,7 +53,6 @@ namespace EBuildConfigurations
 
 		return Unknown;
 	}
-
 
 	const TCHAR* ToString( EBuildConfigurations::Type Configuration )
 	{
@@ -131,7 +127,6 @@ namespace EBuildTargets
 		return Unknown;
 	}
 
-
 	const TCHAR* ToString( EBuildTargets::Type Target )
 	{
 		switch (Target)
@@ -154,10 +149,12 @@ namespace EBuildTargets
 
 /* FGenericPlatformMisc interface
  *****************************************************************************/
+
 #if !UE_BUILD_SHIPPING
 	bool FGenericPlatformMisc::bShouldPromptForRemoteDebugging = false;
 	bool FGenericPlatformMisc::bPromptForRemoteDebugOnEnsure = false;
 #endif	//#if !UE_BUILD_SHIPPING
+
 
 GenericApplication* FGenericPlatformMisc::CreateApplication()
 {

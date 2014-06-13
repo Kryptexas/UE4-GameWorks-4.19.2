@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Photon.cpp: Static lighting photon mapping implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightingSystem.h"
 #include "MonteCarlo.h"

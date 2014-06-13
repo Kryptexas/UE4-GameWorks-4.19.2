@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageProcessor.cpp: Implements the FUdpMessageProcessor class.
-=============================================================================*/
-
 #include "UdpMessagingPrivatePCH.h"
 
 

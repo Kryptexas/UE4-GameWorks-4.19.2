@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainFrameModule.cpp: Implements the FMainFrameModule class.
-=============================================================================*/
-
 #include "MainFramePrivatePCH.h"
 #include "CompilerResultsLog.h"
 

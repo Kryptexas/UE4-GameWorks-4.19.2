@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageSubscription.h: Declares the FMessageSubscription structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -36,7 +32,7 @@ public:
 
 public:
 
-	// Begin IMessageSubscription interface
+	// IMessageSubscription interface
 
 	virtual void Disable( ) override
 	{
@@ -67,8 +63,6 @@ public:
 	{
 		return Enabled;
 	}
-
-	// End IMessageSubscription interface
 
 private:
 

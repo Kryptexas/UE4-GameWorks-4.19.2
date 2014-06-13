@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeployRepositorySettings.cpp: Implements the SSessionLauncherDeployRepositorySettings class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 
@@ -125,6 +121,7 @@ FReply SSessionLauncherDeployRepositorySettings::HandleBrowseButtonClicked( )
 	return FReply::Handled();
 }
 
+
 void SSessionLauncherDeployRepositorySettings::OnTextChanged(const FText& InText)
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
@@ -134,6 +131,7 @@ void SSessionLauncherDeployRepositorySettings::OnTextChanged(const FText& InText
 		SelectedProfile->SetPackageDirectory(InText.ToString());
 	}
 }
+
 
 void SSessionLauncherDeployRepositorySettings::OnTextCommitted( const FText& InText, ETextCommit::Type CommitInfo)
 {
@@ -147,5 +145,6 @@ void SSessionLauncherDeployRepositorySettings::OnTextCommitted( const FText& InT
 		}
 	}
 }
+
 
 #undef LOCTEXT_NAMESPACE

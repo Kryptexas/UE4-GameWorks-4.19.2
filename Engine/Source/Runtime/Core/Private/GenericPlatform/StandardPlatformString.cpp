@@ -1,20 +1,18 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
- StandardPlatformString.cpp: Standard implementations of string functions
- =============================================================================*/
-
 #include "CorePrivate.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogStandardPlatformString, Log, All);
 
 #if !PLATFORM_USE_SYSTEM_VSWPRINTF
 
 #if PLATFORM_IOS
-#define VA_LIST_REF va_list&
+	#define VA_LIST_REF va_list&
 #else
-#define VA_LIST_REF va_list
+	#define VA_LIST_REF va_list
 #endif
+
 
 struct FFormatInfo
 {

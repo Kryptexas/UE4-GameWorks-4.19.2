@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MatineeDraw.cpp: Functions covering drawing the Matinee window
-=============================================================================*/
-
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeViewportClient.h"
@@ -24,6 +20,7 @@
 #include "Materials/MaterialInstanceActor.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Particles/Emitter.h"
+
 
 static const int32 GroupHeadHeight = 24;
 static const int32 TrackHeight = 24;

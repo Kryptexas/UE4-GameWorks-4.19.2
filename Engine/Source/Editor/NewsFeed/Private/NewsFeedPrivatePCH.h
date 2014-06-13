@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NewsFeedPrivatePCH.h: Pre-compiled header file for the NewsFeed module.
-=============================================================================*/
-
 #pragma once
 
-#include "../Public/NewsFeed.h"
+#include "NewsFeed.h"
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "AnalyticsEventAttribute.h"

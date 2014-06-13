@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImageWrapperBase.h: Declares the FImageWrapperBase class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,11 +16,24 @@ public:
 	 */
 	FImageWrapperBase( );
 
+public:
+
+	/**
+	 * Gets the image's raw data.
+	 *
+	 * @return A read-only byte array containing the data.
+	 */
+	const TArray<uint8>& GetRawData() const
+	{
+		return RawData;
+	}
 
 public:
 
 	/**
 	 * Compresses the data.
+	 *
+	 * @param Quality The compression quality.
 	 */
 	virtual void Compress( int32 Quality ) = 0;
 
@@ -35,55 +44,48 @@ public:
 
 	/**
 	 * Sets last error message.
+	 *
+	 * @param ErrorMessage The error message to set.
 	 */
 	virtual void SetError( const TCHAR* ErrorMessage );
 
 	/**  
 	 * Function to uncompress our data 
 	 *
-	 * @param	InFormat		how we want to manipulate the RGB data
+	 * @param InFormat How we want to manipulate the RGB data
 	 */
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) = 0;
 
-
 public:
 
-	// Begin IImageWrapper interface
+	// IImageWrapper interface
 
-	virtual const TArray<uint8>& GetCompressed( int32 Quality = 0 ) OVERRIDE;
+	virtual const TArray<uint8>& GetCompressed( int32 Quality = 0 ) override;
 
-	virtual int32 GetBitDepth( ) const OVERRIDE
+	virtual int32 GetBitDepth( ) const override
 	{
 		return BitDepth;
 	}
 
-	virtual ERGBFormat::Type GetFormat() const OVERRIDE
+	virtual ERGBFormat::Type GetFormat() const override
 	{
 		return Format;
 	}
 
-	virtual int32 GetHeight( ) const OVERRIDE
+	virtual int32 GetHeight( ) const override
 	{
 		return Height;
 	}
 
-	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) OVERRIDE;
+	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) override;
 
-	virtual int32 GetWidth( ) const OVERRIDE
+	virtual int32 GetWidth( ) const override
 	{
 		return Width;
 	}
 
-	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) OVERRIDE;
-
-	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) OVERRIDE;
-
-	// End IImageWrapper interface
-
-	const TArray<uint8>& GetRawData() const
-	{
-		return RawData;
-	}
+	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
+	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) override;
 
 protected:
 

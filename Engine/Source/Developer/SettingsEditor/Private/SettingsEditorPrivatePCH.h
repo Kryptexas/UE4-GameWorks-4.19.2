@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsEditorPrivatePCH.h: Pre-compiled header file for the SettingsEditor module.
-=============================================================================*/
-
 #pragma once
 
 
-#include "../Public/SettingsEditor.h"
+#include "SettingsEditor.h"
 
 
 /* Dependencies

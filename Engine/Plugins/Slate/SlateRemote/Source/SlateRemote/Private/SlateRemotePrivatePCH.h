@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemotePrivatePCH.h: Pre-compiled header file for the SlateRemote module.
-=============================================================================*/
-
 #pragma once
 
 
-/* Private Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -20,7 +16,7 @@
 #include "SocketSubsystem.h"
 
 
-/* Private Constants
+/* Private constants
  *****************************************************************************/
 
 /**

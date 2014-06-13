@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageRouter.h: Declares the FMessageRouter class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -114,17 +110,12 @@ public:
 
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
 	virtual bool Init( ) override;
-
 	virtual uint32 Run( ) override;
-
 	virtual void Stop( ) override;
-
 	virtual void Exit( ) override;
-
-	// End FRunnable interface
 
 protected:
 

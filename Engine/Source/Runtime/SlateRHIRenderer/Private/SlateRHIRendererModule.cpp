@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRHIRendererModule.cpp: Implements the FSlateRHIRendererModule class.
-=============================================================================*/
-
 #include "SlateRHIRendererPrivatePCH.h"
 
 
@@ -15,7 +11,7 @@ class FSlateRHIRendererModule
 {
 public:
 
-	// Begin ISlateRHIRendererModule interface
+	// ISlateRHIRendererModule interface
 
 	virtual TSharedRef<FSlateRenderer> CreateSlateRHIRenderer( ) override
 	{
@@ -23,10 +19,7 @@ public:
 	}
 
 	virtual void StartupModule( ) override { }
-	
 	virtual void ShutdownModule( ) override { }
-
-	// End ISlateRHIRendererModule interface
 };
 
 

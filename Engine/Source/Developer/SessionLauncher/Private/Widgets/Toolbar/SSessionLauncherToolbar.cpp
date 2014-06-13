@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherToolbar.cpp: Implements the SSessionLauncherToolbar class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 

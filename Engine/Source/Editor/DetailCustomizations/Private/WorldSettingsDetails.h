@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	WorldSettingsDetails.h: Declares the FWorldSettingsDetails class.
-=============================================================================*/
-
 #pragma once
 
 #include "GameModeInfoCustomizer.h"
@@ -17,12 +13,9 @@ class FWorldSettingsDetails
 {
 public:
 
-	// Begin IDetailCustomization interface
+	// IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
-
-	// End IDetailCustomization interface
-
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 public:
 
@@ -36,22 +29,21 @@ public:
 		return MakeShareable(new FWorldSettingsDetails);
 	}
 
-
 protected:
 
 	/**
 	 * Customizes an AGameInfo property with the given name.
 	 *
-	 * @param PropertyName - The property to customize.
-	 * @param DetailBuilder - The detail builder.
-	 * @param CategoryBuilder - The category builder
+	 * @param PropertyName The property to customize.
+	 * @param DetailBuilder The detail builder.
+	 * @param CategoryBuilder The category builder
 	 */
 	void CustomizeGameInfoProperty( const FName& PropertyName, IDetailLayoutBuilder& DetailBuilder, IDetailCategoryBuilder& CategoryBuilder );
 
 	/**
 	 * Adds the lightmap customization to the Lightmass section
 	 *
-	 * @param DetailBuilder - The detail builder.
+	 * @param DetailBuilder The detail builder.
 	 */
 	void AddLightmapCustomization( IDetailLayoutBuilder& DetailBuilder );
 
@@ -68,6 +60,7 @@ private:
 	TSharedPtr<FGameModeInfoCustomizer>	GameInfoModeCustomizer;
 };
 
+
 /** Custom struct for each group of arguments in the function editing details */
 class FLightmapCustomNodeBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FLightmapCustomNodeBuilder>
 {
@@ -77,15 +70,14 @@ public:
 
 protected:
 
-	// Begin IDetailCustomNodeBuilder interface
-	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) OVERRIDE;
-	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE;
-	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE;
-	virtual void Tick( float DeltaTime ) OVERRIDE {}
-	virtual bool RequiresTick() const OVERRIDE { return false; }
-	virtual FName GetName() const OVERRIDE { return FName(TEXT("Lightmaps")); }
-	virtual bool InitiallyCollapsed() const OVERRIDE { return false; }
-	// End IDetailCustomNodeBuilder interface
+	// IDetailCustomNodeBuilder interface
+	virtual void SetOnRebuildChildren( FSimpleDelegate InOnRegenerateChildren ) override;
+	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
+	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
+	virtual void Tick( float DeltaTime ) override {}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override { return FName(TEXT("Lightmaps")); }
+	virtual bool InitiallyCollapsed() const override { return false; }
 
 private:
 

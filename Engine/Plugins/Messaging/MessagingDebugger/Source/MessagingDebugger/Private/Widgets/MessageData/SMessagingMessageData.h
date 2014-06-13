@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingMessageData.h: Declares the SMessagingMessageData class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -39,11 +35,9 @@ public:
 
 public:
 
-	// Begin FNotifyHook interface
+	// FNotifyHook interface
 
-	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) OVERRIDE;
-
-	// End FNotifyHook interface
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged ) override;
 
 private:
 

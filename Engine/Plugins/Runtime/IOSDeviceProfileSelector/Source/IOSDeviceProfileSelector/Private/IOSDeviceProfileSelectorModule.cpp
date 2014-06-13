@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IOSDeviceProfileSelectorModule.cpp: Implements the FIOSDeviceProfileSelectorModule class.
-=============================================================================*/
-
 #include "IOSDeviceProfileSelectorPrivatePCH.h"
+
 
 IMPLEMENT_MODULE(FIOSDeviceProfileSelectorModule, IOSDeviceProfileSelector);
 

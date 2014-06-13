@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherProfileManager.cpp: Implements the FLauncherProfileManager class.
-=============================================================================*/
-
 #include "LauncherServicesPrivatePCH.h"
 
 
@@ -110,7 +106,7 @@ ILauncherProfilePtr FLauncherProfileManager::FindProfile( const FString& Profile
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -138,7 +134,7 @@ ILauncherDeviceGroupPtr FLauncherProfileManager::GetDeviceGroup( const FGuid& Gr
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -154,7 +150,7 @@ ILauncherProfilePtr FLauncherProfileManager::GetProfile( const FGuid& ProfileId 
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -169,7 +165,7 @@ ILauncherProfilePtr FLauncherProfileManager::LoadProfile( FArchive& Archive )
 		return MakeShareable(Profile);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -225,11 +221,11 @@ void FLauncherProfileManager::SaveSettings( )
 
 void FLauncherProfileManager::LoadDeviceGroups( )
 {
-	if (GConfig != NULL)
+	if (GConfig != nullptr)
 	{
 		FConfigSection* LoadedDeviceGroups = GConfig->GetSectionPrivate(TEXT("Launcher.DeviceGroups"), false, true, GEngineIni);
 
-		if (LoadedDeviceGroups != NULL)
+		if (LoadedDeviceGroups != nullptr)
 		{
 			// parse the configuration file entries into device groups
 			for (FConfigSection::TIterator It(*LoadedDeviceGroups); It; ++It)
@@ -255,7 +251,7 @@ void FLauncherProfileManager::LoadProfiles( )
 		FString ProfileFilePath = GetProfileFolder() / *It;
 		FArchive* ProfileFileReader = IFileManager::Get().CreateFileReader(*ProfileFilePath);
 
-		if (ProfileFileReader != NULL)
+		if (ProfileFileReader != nullptr)
 		{
 			ILauncherProfilePtr LoadedProfile = LoadProfile(*ProfileFileReader);
 			delete ProfileFileReader;
@@ -311,7 +307,7 @@ ILauncherDeviceGroupPtr FLauncherProfileManager::ParseDeviceGroup( const FString
 
 void FLauncherProfileManager::SaveDeviceGroups( )
 {
-	if (GConfig != NULL)
+	if (GConfig != nullptr)
 	{
 		GConfig->EmptySection(TEXT("Launcher.DeviceGroups"), GEngineIni);
 
@@ -354,7 +350,7 @@ void FLauncherProfileManager::SaveProfiles( )
 		FString ProfileFileName = GetProfileFolder() / (*It)->GetId().ToString() + TEXT(".ulp");
 		FArchive* ProfileFileWriter = IFileManager::Get().CreateFileWriter(*ProfileFileName);
 
-		if (ProfileFileWriter != NULL)
+		if (ProfileFileWriter != nullptr)
 		{
 			SaveProfile((*It).ToSharedRef(), *ProfileFileWriter);
 

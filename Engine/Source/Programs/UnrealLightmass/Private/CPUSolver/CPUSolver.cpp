@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CPUSolver.cpp: CPU solver implementation.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "LightmassScene.h"
 #include "Importer.h"

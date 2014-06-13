@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageData.h: Declares the FMessageData class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -46,7 +42,7 @@ public:
 
 public:
 
-	// Begin IMessageAttachment interface
+	// IMessageAttachment interface
 
 	virtual FArchive* CreateReader( ) override
 	{
@@ -62,8 +58,6 @@ public:
 	{
 		return StateChangedDelegate;
 	}
-
-	// End IMessageAttachment interface
 
 private:
 

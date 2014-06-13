@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FLauncherUATCommand.h: Declares the FLauncherUATCommand class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * class for setting up UAT command arguments for various launcher commands
@@ -95,4 +92,3 @@ public:
 		return true;
 	}
 };
-

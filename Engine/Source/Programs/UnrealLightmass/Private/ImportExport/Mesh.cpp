@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Mesh.cpp: Mesh classes.
-=============================================================================*/
-
 #include "stdafx.h"
 #include "Mesh.h"
 #include "Importer.h"

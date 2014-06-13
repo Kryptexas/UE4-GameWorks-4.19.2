@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageTracer.h: Declares the FMessageTracer class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -223,7 +219,7 @@ public:
 
 public:
 
-	// Begin IMessageTracer interface
+	// IMessageTracer interface
 
 	virtual void Break( ) override
 	{
@@ -242,9 +238,7 @@ public:
 	}
 
 	virtual int32 GetEndpoints( TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints ) const override;
-
 	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const override;
-
 	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const override;
 
 	virtual bool HasMessages( ) const override
@@ -319,8 +313,6 @@ public:
 	}
 
 	virtual bool Tick( float DeltaTime ) override;
-
-	// End IMessageTracer interface
 
 protected:
 

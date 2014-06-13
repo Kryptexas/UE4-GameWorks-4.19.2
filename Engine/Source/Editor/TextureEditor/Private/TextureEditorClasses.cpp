@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorClasses.cpp: Implements the module's script classes.
-=============================================================================*/
-
 #include "TextureEditorPrivatePCH.h"
-
 
 
 UTextureEditorSettings::UTextureEditorSettings( const class FPostConstructInitializeProperties& PCIP )

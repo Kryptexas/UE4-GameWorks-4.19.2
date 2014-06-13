@@ -1,13 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformMath.cpp: Generic implementations of Math platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "BigInt.h"
 
 static int32 GSRandSeed;
+
 
 void FGenericPlatformMath::SRandInit( int32 Seed ) 
 {

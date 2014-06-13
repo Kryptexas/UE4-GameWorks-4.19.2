@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SConstraintCanvas.h: Declares the SConstraintCanvas class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * ConstraintCanvas is a layout widget that allows you to arbitrary position and size child widgets in a relative coordinate space

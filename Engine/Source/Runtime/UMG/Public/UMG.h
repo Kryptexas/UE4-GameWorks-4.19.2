@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UMG.h: UMG module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -20,9 +16,11 @@
 #include "Anchors.h"
 #include "SConstraintCanvas.h"
 
-/* Components
+
+/* Public Includes
  *****************************************************************************/
 
+// Components
 #include "SlateWrapperTypes.h"
 
 #include "PanelSlot.h"
@@ -70,14 +68,10 @@
 #include "ListView.h"
 #include "TileView.h"
 
-/* Slate
- *****************************************************************************/
- 
+// Slate
 #include "SObjectWidget.h"
 
-/* Blueprint
- *****************************************************************************/
-
+// Blueprint
 #include "WidgetTree.h"
 #include "UserWidget.h"
 
@@ -89,7 +83,5 @@
 
 #include "WidgetActor.h"
 
-/* Interfaces
- *****************************************************************************/
-
+// Interfaces
 #include "IUMGModule.h"

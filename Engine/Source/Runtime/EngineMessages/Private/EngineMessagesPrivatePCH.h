@@ -1,24 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineMessagesPrivatePCH.h: Pre-compiled header file for the EngineMessages module.
-=============================================================================*/
+#pragma once
 
-#ifndef ENGINEMESSAGES_PRIVATEPCH_H
-#define ENGINEMESSAGES_PRIVATEPCH_H
+#include "EngineMessages.h"
 
 
-#include "../Public/EngineMessages.h"
-
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "ModuleManager.h"
-
-
-/* Private includes
- *****************************************************************************/
-
-
-#endif

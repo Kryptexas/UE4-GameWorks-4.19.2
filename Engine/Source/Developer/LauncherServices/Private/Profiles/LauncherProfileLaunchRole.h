@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherProfileLaunchRole.h: Declares the FLauncherProfileLaunchRole class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -12,9 +8,7 @@ class FLauncherProfileLaunchRole
 {
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FLauncherProfileLaunchRole(  )
 		: InstanceType(ELauncherProfileRoleInstanceTypes::StandaloneClient)
 		, Name(TEXT("Unnamed Role"))
@@ -29,7 +23,6 @@ public:
 	{
 		Serialize(Archive);
 	}
-
 
 public:
 
@@ -113,7 +106,6 @@ public:
 	}
 
 	// End ILauncherProfileLaunchRole interface
-
 
 private:
 

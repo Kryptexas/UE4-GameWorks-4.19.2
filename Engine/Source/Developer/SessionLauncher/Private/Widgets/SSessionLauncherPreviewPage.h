@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherPreviewPage.h: Declares the SSessionLauncherPreviewPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,22 +14,19 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherPreviewPage) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
 
 protected:
 
@@ -41,7 +34,6 @@ protected:
 	 * Refreshes the list of device proxies.
 	 */
 	void RefreshDeviceProxyList( );
-
 
 private:
 
@@ -102,13 +94,12 @@ private:
 	// Callback for determining the visibility of a validation error icon.
 	EVisibility HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const;
 
-
 private:
 
 	// Holds the list of available device proxies.
 	TArray<ITargetDeviceProxyPtr> DeviceProxyList;
 
-	// Holds the device proxy list view .
+	// Holds the device proxy list view.
 	TSharedPtr<SListView<ITargetDeviceProxyPtr> > DeviceProxyListView;
 
 	// Holds a pointer to the data model.

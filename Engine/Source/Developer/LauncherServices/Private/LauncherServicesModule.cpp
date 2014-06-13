@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherServicesModule.cpp: Implements the FLauncherServicesModule class.
-=============================================================================*/
-
 #include "LauncherServicesPrivatePCH.h"
 
 
@@ -58,7 +54,6 @@ public:
 	}
 
 	// End ILauncherServicesModule interface
-
 
 private:
 	

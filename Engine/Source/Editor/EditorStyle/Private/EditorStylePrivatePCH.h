@@ -1,13 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EditorStylePrivatePCH.h: Pre-compiled header file for the EditorStyle module.
-=============================================================================*/
-
 #pragma once
 
 
-#include "../Public/EditorStyle.h"
+#include "EditorStyle.h"
 
 
 /* Dependencies

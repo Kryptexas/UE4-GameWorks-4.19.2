@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageEndpoint.h: Declares the FMessageEndpoint class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -290,11 +286,7 @@ public:
 	 *
 	 * The inbox is disabled by default.
 	 *
-	 * @see EnableInbox
-	 * @see IsInboxEmpty
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see EnableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	void DisableInbox( )
 	{
@@ -308,11 +300,7 @@ public:
 	 * invoke the registered message handlers for all queued up messages, or ReceiveFromInbox() to
 	 * manually receive one message from the inbox at a time. The inbox is disabled by default.
 	 *
-	 * @see DisableInbox
-	 * @see IsInboxEmpty
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, IsInboxEmpty, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	void EnableInbox( )
 	{
@@ -324,11 +312,7 @@ public:
 	 *
 	 * @return true if the inbox is empty, false otherwise.
 	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEnabled
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEmpty( ) const
 	{
@@ -338,11 +322,7 @@ public:
 	/**
 	 * Checks whether the inbox is enabled.
 	 *
-	 * @see DisableInbox
-	 * @see EnableInbox
-	 * @see IsInboxEmpty
-	 * @see ProcessInbox
-	 * @see ReceiveFromInbox
+	 * @see DisableInbox, EnableInbox, IsInboxEmpty, ProcessInbox, ReceiveFromInbox
 	 */
 	bool IsInboxEnabled( ) const
 	{
@@ -376,9 +356,7 @@ public:
 	 * must be enabled using the EnableInbox() method.
 	 *
 	 * @param OutContext Will hold the context of the received message.
-	 *
 	 * @return true if a message was received, false if the inbox was empty.
-	 *
 	 * @see DisableInbox, EnableInbox, IsInboxEnabled, ProcessInbox
 	 */
 	bool ReceiveFromInbox( IMessageContextPtr& OutContext )
@@ -403,7 +381,7 @@ public:
 
 public:
 
-	// Begin IReceiveMessages interface
+	// IReceiveMessages interface
 
 	virtual FName GetDebugName( ) const override
 	{
@@ -447,11 +425,9 @@ public:
 		}
 	}
 
-	// End IReceiveMessages interface
-
 public:
 
-	// Begin ISendMessages interface
+	// ISendMessages interface
 
 	virtual FMessageAddress GetSenderAddress( ) override
 	{
@@ -462,8 +438,6 @@ public:
 	{
 		ErrorDelegate.ExecuteIfBound(Context, Error);
 	}
-
-	// End ISendMessages interface
 
 public:
 

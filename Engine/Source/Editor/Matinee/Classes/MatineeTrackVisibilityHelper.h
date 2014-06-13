@@ -9,12 +9,13 @@ class UMatineeTrackVisibilityHelper : public UInterpTrackHelper
 {
 	GENERATED_UCLASS_BODY()
 
-
-	// Begin UInterpTrackHelper Interface
-	virtual	bool PreCreateKeyframe( UInterpTrack *Track, float KeyTime ) const OVERRIDE;
-	virtual void  PostCreateKeyframe( UInterpTrack *Track, int32 KeyIndex ) const OVERRIDE;
-	// End UInterpTrackHelper Interface
-
 	void OnAddKeyTextEntry(const FString& ChosenText, IMatineeBase* Matinee, UInterpTrack* Track);
+
+public:
+
+	// UInterpTrackHelper Interface
+
+	virtual	bool PreCreateKeyframe( UInterpTrack *Track, float KeyTime ) const override;
+	virtual void  PostCreateKeyframe( UInterpTrack *Track, int32 KeyIndex ) const override;
 };
 

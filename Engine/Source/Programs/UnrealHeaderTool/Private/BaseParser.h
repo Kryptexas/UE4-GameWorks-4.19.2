@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	HeaderParser.h: Parses annotated C++ headers to generate additional code and metadata.
-=============================================================================*/
-
 #pragma once
 
 #include "ParserHelper.h"

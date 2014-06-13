@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherAutomatedServiceModule.h: Declares the FLauncherAutomatedServiceModule class.
-=============================================================================*/
-
 #pragma once
-
 
 
 /**
@@ -15,11 +10,10 @@ class FLauncherAutomatedServiceModule
 	: public ILauncherAutomatedServiceModule
 {
 public:
-	// Begin ILauncherAutomatedServiceModule interface
+
+	// ILauncherAutomatedServiceModule interface
 
 	virtual ILauncherAutomatedServiceProviderPtr CreateAutomatedServiceProvider() OVERRIDE;
-
-	// End ILauncherAutomatedServiceModule interface
 
 public:
 

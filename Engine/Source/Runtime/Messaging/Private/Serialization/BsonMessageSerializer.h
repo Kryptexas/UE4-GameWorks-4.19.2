@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	BsonMessageSerializer.h: Declares the FBsonMessageSerializer structure.
-=============================================================================*/
-
 #pragma once
 
 
@@ -13,7 +9,9 @@
 class FBsonMessageSerializer
 	: public ISerializeMessages
 {
-	// Begin ISerializeMessages interface
+public:
+
+	// ISerializeMessages interface
 
 	virtual bool DeserializeMessage( FArchive& Archive, IMutableMessageContextRef& OutContext ) override
 	{
@@ -26,6 +24,4 @@ class FBsonMessageSerializer
 		// not implemented yet
 		return false;
 	}
-
-	// End ISerializeMessages interface
 };

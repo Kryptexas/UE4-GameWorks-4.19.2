@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessageBridge.h: Declares the FMessageBridge class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -35,10 +31,9 @@ public:
 
 public:
 
-	// Begin IMessageBridge interface
+	// IMessageBridge interface
 
 	virtual void Disable( ) override;
-
 	virtual void Enable( ) override;
 
 	virtual bool IsEnabled( ) const override
@@ -46,11 +41,9 @@ public:
 		return Enabled;
 	}
 
-	// End IMessageBridge interface
-
 public:
 
-	// Begin IReceiveMessages interface
+	// IReceiveMessages interface
 
 	virtual FName GetDebugName( ) const override
 	{
@@ -74,11 +67,9 @@ public:
 
 	virtual void ReceiveMessage( const IMessageContextRef& Context ) override;
 
-	// End IReceiveMessages interface
-
 public:
 
-	// Begin ISendMessages interface
+	// ISendMessages interface
 
 	virtual FMessageAddress GetSenderAddress( ) override
 	{
@@ -86,8 +77,6 @@ public:
 	}
 
 	virtual void NotifyMessageError( const IMessageContextRef& Context, const FString& Error ) override;
-
-	// End ISendMessages interface
 
 protected:
 

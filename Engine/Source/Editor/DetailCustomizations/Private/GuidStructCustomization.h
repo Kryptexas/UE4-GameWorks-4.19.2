@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GuidStructCustomization.h: Declares the FGuidCustomization class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,30 +10,27 @@ namespace EPropertyEditorGuidActions
 	 */
 	enum Type
 	{
-		// Generate a new GUID.
+		/** Generate a new GUID. */
 		Generate,
 
-		// Set a null GUID.
+		/** Set a null GUID. */
 		Invalidate
 	};
 }
 
 
 /**
- * Implements a details panel customization for  FGuid structures.
+ * Implements a details panel customization for FGuid structures.
  */
 class FGuidStructCustomization
 	: public IPropertyTypeCustomization
 {
 public:
 
-	// Begin IPropertyTypeCustomization interface
+	// IPropertyTypeCustomization interface
 
-	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-
-	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) OVERRIDE;
-
-	// End IPropertyTypeCustomization interface
+	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
+	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 public:
 
@@ -53,7 +46,7 @@ protected:
 	/**
 	 * Sets the property's value.
 	 *
-	 * @param Guid - The value to set.
+	 * @param Guid The value to set.
 	 */
 	void SetGuidValue( const FGuid& Guid );
 

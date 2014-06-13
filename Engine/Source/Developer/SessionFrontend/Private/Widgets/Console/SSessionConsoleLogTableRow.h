@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleLogTableRow.h: Declares the SSessionConsoleLogTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -37,9 +33,9 @@ public:
 
 public:
 
-	// Begin SMultiColumnTableRow interface
+	// SMultiColumnTableRow interface
 
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "Instance")
 		{
@@ -113,8 +109,6 @@ public:
 
 		return SNullWidget::NullWidget;
 	}
-
-	// End SMultiColumnTableRow interface
 
 private:
 

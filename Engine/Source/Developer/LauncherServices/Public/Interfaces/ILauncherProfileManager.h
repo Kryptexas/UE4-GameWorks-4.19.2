@@ -1,20 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherProfileManager.h: Declares the ILauncherProfileManager interface.
-=============================================================================*/
-
 #pragma once
 
 
-/**
- * Type definition for shared pointers to instances of ILauncherProfileManager.
- */
+/** Type definition for shared pointers to instances of ILauncherProfileManager. */
 typedef TSharedPtr<class ILauncherProfileManager> ILauncherProfileManagerPtr;
 
-/**
- * Type definition for shared references to instances of ILauncherProfileManager.
- */
+/** Type definition for shared references to instances of ILauncherProfileManager. */
 typedef TSharedRef<class ILauncherProfileManager> ILauncherProfileManagerRef;
 
 
@@ -90,7 +82,6 @@ public:
 	 *( @param DeviceGroup - The group to remove.
 	 */
 	virtual void RemoveDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) = 0;
-
 
 public:
 
@@ -174,7 +165,6 @@ public:
 	 */
 	virtual void SaveProfile( const ILauncherProfileRef& Profile, FArchive& Archive ) = 0;
 
-
 public:
 
 	/**
@@ -194,7 +184,6 @@ public:
 	 * @see LoadSettings
 	 */
 	virtual void SaveSettings( ) = 0;
-
 
 public:
 
@@ -225,7 +214,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnLauncherProfileManagerProfileRemoved& OnProfileRemoved( ) = 0;
-
 
 public:
 

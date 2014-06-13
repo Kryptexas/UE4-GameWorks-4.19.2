@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceServiceMessages.h: Declares message types used in target device services.
-=============================================================================*/
-
 #pragma once
 
 #include "TargetDeviceServiceMessages.generated.h"

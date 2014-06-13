@@ -14,34 +14,22 @@ namespace ESessionLauncherWizardPages
 	 */
 	enum Type
 	{
-		/**
-		 * The 'Build' page.
-		 */
+		/** The 'Build' page. */
 		BuildPage,
 
-		/**
-		 * The 'Cook' page.
-		 */
+		/** The 'Cook' page. */
 		CookPage,
 
-		/**
-		 * The 'Package' page.
-		 */
+		/** The 'Package' page. */
 		PackagePage,
 
-		/**
-		 * The 'Deploy' page.
-		 */
+		/** The 'Deploy' page. */
 		DeployPage,
 
-		/**
-		 * The 'Launch' page.
-		 */
+		/** The 'Launch' page. */
 		LaunchPage,
 
-		/**
-		 * The 'Preview' page.
-		 */
+		/** The 'Preview' page. */
 		PreviewPage
 	};
 }
@@ -58,7 +46,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherSettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -66,18 +53,15 @@ public:
 	 */
 	~SSessionLauncherSettings( );
 
-
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 private:
 
@@ -86,7 +70,6 @@ private:
 
 	// Callback for getting the visibility of the settings scroll box.
 	EVisibility HandleSettingsScrollBoxVisibility( ) const;
-
 
 private:
 

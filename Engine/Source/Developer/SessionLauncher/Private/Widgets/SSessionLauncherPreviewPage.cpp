@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherPreviewPage.cpp: Implements the SSessionLauncherPreviewPage class.
-=============================================================================*/
-
 #include "SessionLauncherPrivatePCH.h"
 
 
@@ -363,7 +359,6 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 									]
 							]
 					]
-
 /*
 				// package section
 				+ SGridPanel::Slot(0, 3)
@@ -389,7 +384,6 @@ void SSessionLauncherPreviewPage::Construct( const FArguments& InArgs, const FSe
 						SNullWidget::NullWidget
 					]
 */
-
 				// deploy section
 				+ SGridPanel::Slot(0, 5)
 					.ColumnSpan(3)

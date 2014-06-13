@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherValidation.h: Declares the SSessionLauncherValidation class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,8 +23,8 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel )
 	{
@@ -112,15 +108,14 @@ public:
 		];
 	}
 
-
 protected:
 
 	/**
 	 * Creates a widget for a validation message.
 	 *
-	 * @param IconName - The name of the message icon.
-	 * @param MessageText - The message text.
-	 * @param MessageType - The message type.
+	 * @param IconName The name of the message icon.
+	 * @param MessageText The message text.
+	 * @param MessageType The message type.
 	 */
 	TSharedRef<SWidget> MakeValidationMessage( const TCHAR* IconName, const FString& MessageText, ELauncherProfileValidationErrors::Type Message )
 	{
@@ -144,7 +139,6 @@ protected:
 			];
 	}
 
-
 private:
 
 	// Callback for getting the visibility state of a validation message.
@@ -162,7 +156,6 @@ private:
 
 		return EVisibility::Collapsed;
 	}
-
 
 private:
 

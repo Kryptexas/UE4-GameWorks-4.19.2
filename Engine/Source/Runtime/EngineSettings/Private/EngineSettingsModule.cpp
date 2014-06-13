@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	EngineSettingsModule.cpp: Implements the FEngineSettingsModule class.
-=============================================================================*/
-
 #include "EngineSettingsPrivatePCH.h"
 
 
@@ -15,18 +11,15 @@ class FEngineSettingsModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule( ) OVERRIDE { }
-
 	virtual void ShutdownModule( ) OVERRIDE { }
 
 	virtual bool SupportsDynamicReloading( ) OVERRIDE
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 };
 
 

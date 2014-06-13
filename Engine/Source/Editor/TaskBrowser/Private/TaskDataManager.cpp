@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TaskDataManager.cpp: Data management layer between task GUI system and database connection
-=============================================================================*/
-
 #include "TaskBrowserPrivatePCH.h"
 #include "TaskDataManager.h"
 #include "TaskDatabase.h"
+
 
 /**
  * FTaskDataManager constructor
@@ -54,7 +51,6 @@ FTaskDataManager::FTaskDataManager( FTaskDataGUIInterface* InGUICallbackObject )
 }
 
 
-
 /** FTaskDataManager destructor */
 FTaskDataManager::~FTaskDataManager()
 {
@@ -68,7 +64,6 @@ FTaskDataManager::~FTaskDataManager()
 		TaskDatabaseSystem::Destroy();
 	}
 }
-
 
 
 /**
@@ -88,6 +83,7 @@ void FTaskDataManager::Tick( float DeltaTime )
 		TaskDatabaseSystem::Update();
 	}
 }
+
 
 TStatId FTaskDataManager::GetStatId() const
 {
@@ -117,8 +113,6 @@ void FTaskDataManager::StartMarkingTasksComplete( const TArray< uint32 >& InTask
 }
 
 
-
-
 /** Initiates or re-initiates a connection to the task database server */
 void FTaskDataManager::AttemptConnection()
 {
@@ -128,7 +122,6 @@ void FTaskDataManager::AttemptConnection()
 		ConnectionStatus = ETaskDataManagerStatus::Connecting;
 	}
 }
-
 
 
 /** Initiates a disconnection from the task database server */
@@ -143,7 +136,6 @@ void FTaskDataManager::AttemptDisconnection()
 }
 
 
-
 /** Starts a forced a refresh of task list/description data from the server */
 void FTaskDataManager::ClearTaskDataAndInitiateRefresh()
 {
@@ -155,7 +147,6 @@ void FTaskDataManager::ClearTaskDataAndInitiateRefresh()
 	// We'll clear the last filter name to force a full refresh of the task list.
 	CachedLastTaskArrayFilterName = TEXT( "" );
 }
-
 
 
 /** Updates our state machine.  Should be called frequently (every Tick is OK) */
@@ -285,7 +276,6 @@ void FTaskDataManager::UpdateTaskDataManager()
 }
 
 
-
 /** We've been disconnected (either voluntarily or otherwise), so clean up state and refresh GUI */
 void FTaskDataManager::CleanUpAfterDisconnect()
 {
@@ -318,7 +308,6 @@ void FTaskDataManager::CleanUpAfterDisconnect()
 			ETaskBrowserGUIRefreshOptions::UpdateTaskDescription ) );
 	}
 }
-
 
 
 /**

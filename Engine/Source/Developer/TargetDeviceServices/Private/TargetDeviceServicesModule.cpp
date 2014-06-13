@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceServicesModule.cpp: Implements the FTargetDeviceServicesModule class.
-=============================================================================*/
-
 #include "TargetDeviceServicesPrivatePCH.h"
-
 
 
 DEFINE_LOG_CATEGORY(TargetDeviceServicesLog);
@@ -19,9 +14,9 @@ class FTargetDeviceServicesModule
 {
 public:
 
-	// Begin ITargetDeviceServicesModule interface
+	// ITargetDeviceServicesModule interface
 
-	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager( ) OVERRIDE
+	virtual ITargetDeviceProxyManagerRef GetDeviceProxyManager( ) override
 	{
 		if (!DeviceProxyManagerSingleton.IsValid())
 		{
@@ -31,7 +26,7 @@ public:
 		return DeviceProxyManagerSingleton.ToSharedRef();
 	}
 
-	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager( ) OVERRIDE
+	virtual ITargetDeviceServiceManagerRef GetDeviceServiceManager( ) override
 	{
 		if (!DeviceServiceManagerSingleton.IsValid())
 		{
@@ -40,8 +35,6 @@ public:
 
 		return DeviceServiceManagerSingleton.ToSharedRef();
 	}
-
-	// End ITargetDeviceServicesModule interface
 
 private:
 

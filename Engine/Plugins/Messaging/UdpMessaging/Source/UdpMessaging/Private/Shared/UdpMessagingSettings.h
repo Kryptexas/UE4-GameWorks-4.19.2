@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessagingSettings.h: Declares the UUdpMessagingSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "UdpMessagingSettings.generated.h"

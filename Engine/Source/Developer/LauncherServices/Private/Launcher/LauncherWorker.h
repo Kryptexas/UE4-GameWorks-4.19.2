@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherWorker.h: Declares the FLauncherWorker class.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * Implements the launcher's worker thread.
@@ -38,7 +35,6 @@ public:
 	virtual void Stop( ) OVERRIDE;
 
 	virtual void Exit( ) OVERRIDE { }
-
 
 public:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	INetworkFileServer.h: Declares the INetworkFileServer interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,13 +16,14 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	 virtual bool IsItReadyToAcceptConnections(void) const = 0;
-	/**
-	 * Gets the list of local network addresses that the file server listens on.
-	 *
-	 * @param OutAddresses - Will hold the address list.
-	 *
-	 * @return true on success, false otherwise.
-	 */
+
+	 /**
+	  * Gets the list of local network addresses that the file server listens on.
+	  *
+	  * @param OutAddresses - Will hold the address list.
+	  *
+	  * @return true on success, false otherwise.
+	  */
 	virtual bool GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const = 0;
 
 	/**
@@ -40,6 +37,8 @@ public:
 	 * Shuts down the file server.
 	 */
 	virtual void Shutdown(void) = 0;
+
+public:
 
 	/**
 	 * Virtual destructor.

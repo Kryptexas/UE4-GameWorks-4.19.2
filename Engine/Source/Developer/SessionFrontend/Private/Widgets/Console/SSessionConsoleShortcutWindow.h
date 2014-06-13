@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionConsoleShortcutWindow.h: Declares the SSessionConsoleShortcutWindow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -27,9 +23,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SSessionConsoleShortcutWindow) { }
 
-		/**
-		 * Called when the filter settings have changed.
-		 */
+		/** Called when the filter settings have changed. */
 		SLATE_EVENT(FOnSessionConsoleCommandSubmitted, OnCommandSubmitted)
 
 	SLATE_END_ARGS()

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherMapListRow.h: Declares the SSessionLauncherMapListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -24,14 +20,13 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<FString>, MapName)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InProfileManager - The profile manager to use.
+	 * @param InArgs The construction arguments.
+	 * @param InProfileManager The profile manager to use.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel )
 	{
@@ -42,14 +37,12 @@ public:
 		SMultiColumnTableRow<TSharedPtr<FString> >::Construct(FSuperRowType::FArguments(), InArgs._OwnerTableView.ToSharedRef());
 	}
 
-
 public:
 
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
@@ -68,7 +61,6 @@ public:
 
 		return SNullWidget::NullWidget;
 	}
-
 
 private:
 
@@ -102,7 +94,6 @@ private:
 
 		return ESlateCheckBoxState::Unchecked;
 	}
-
 
 private:
 

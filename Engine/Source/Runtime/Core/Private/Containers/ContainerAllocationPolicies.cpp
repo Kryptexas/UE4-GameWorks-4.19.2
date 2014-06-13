@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ContainerAllocationPolicies.cpp: Container allocation policy implementation.
-=============================================================================*/
-
 #include "CorePrivate.h"
 
 #if TRACK_ARRAY_SLACK 
@@ -11,6 +7,7 @@
 #include "StackTracker.h"
 
 FStackTracker* GSlackTracker = NULL;
+
 
 /** Updates an existing call stack trace with new data for this particular call*/
 static void SlackTrackerUpdateFn(const FStackTracker::FCallStack& CallStack, void* UserData)

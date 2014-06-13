@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSettingsEditor.h: Implements the SSettingsEditor class.
-=============================================================================*/
-
 #include "SettingsEditorPrivatePCH.h"
 
 

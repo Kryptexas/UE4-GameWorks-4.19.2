@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingBreakpointsTableRow.h: Declares the SMessagingBreakpointsTableRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -44,10 +40,10 @@ public:
 
 public:
 
-	// Begin SMultiColumnTableRow interface
+	// SMultiColumnTableRow interface
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		if (ColumnName == "HitCount")
 		{
@@ -81,8 +77,6 @@ public:
 		return SNullWidget::NullWidget;
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-	// End SMultiColumnTableRow interface
 
 private:
 

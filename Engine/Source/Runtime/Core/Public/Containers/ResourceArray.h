@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ResourceArray.h: Resource array definitions and platform includes.
-=============================================================================*/
-
 #pragma once
+
 
 /**
  * An element type independent interface to the resource array.
@@ -14,55 +11,57 @@ class FResourceArrayInterface
 public:
 
 	/**
-	* @return A pointer to the resource data.
-	*/
+	 * @return A pointer to the resource data.
+	 */
 	virtual const void* GetResourceData() const = 0;
 
 	/**
-	* @return size of resource data allocation
-	*/
+	 * @return size of resource data allocation
+	 */
 	virtual uint32 GetResourceDataSize() const = 0;
 
 	/**
-	* Called on non-UMA systems after the RHI has copied the resource data, and no longer needs the CPU's copy.
-	*/
+	 * Called on non-UMA systems after the RHI has copied the resource data, and no longer needs the CPU's copy.
+	 */
 	virtual void Discard() = 0;
 
 	/**
-	* @return true if the resource array is static and shouldn't be modified
-	*/
+	 * @return true if the resource array is static and shouldn't be modified
+	 */
 	virtual bool IsStatic() const = 0;
 
 	/**
-	* @return true if the resource keeps a copy of its resource data after the RHI resource has been created
-	*/
+	 * @return true if the resource keeps a copy of its resource data after the RHI resource has been created
+	 */
 	virtual bool GetAllowCPUAccess() const = 0;
 
 	/** 
-	* Sets whether the resource array will be accessed by CPU. 
-	*/
+	 * Sets whether the resource array will be accessed by CPU. 
+	 */
 	virtual void SetAllowCPUAccess( bool bInNeedsCPUAccess ) = 0;
 };
 
+
 /**
-* allows for direct GPU mem allocation for bulk resource types
-*/
+ * allows for direct GPU mem allocation for bulk resource types
+ */
 class FResourceBulkDataInterface
 {
 public:
 	/** 
-	* @return ptr to the resource memory which has been preallocated
-	*/
+	 * @return ptr to the resource memory which has been preallocated
+	 */
 	virtual const void* GetResourceBulkData() const = 0;
 	/** 
-	* @return size of resource memory
-	*/
+	 * @return size of resource memory
+	 */
 	virtual uint32 GetResourceBulkDataSize() const = 0;
 	/**
-	* Free memory after it has been used to initialize RHI resource 
-	*/
+	 * Free memory after it has been used to initialize RHI resource 
+	 */
 	virtual void Discard() = 0;
 };
+
 
 /**
 * allows for direct GPU mem allocation for texture resource
@@ -71,25 +70,25 @@ class FTexture2DResourceMem : public FResourceBulkDataInterface
 {
 public:
 	/**
-	* @param MipIdx index for mip to retrieve
-	* @return ptr to the offset in bulk memory for the given mip
-	*/
+	 * @param MipIdx index for mip to retrieve
+	 * @return ptr to the offset in bulk memory for the given mip
+	 */
 	virtual void* GetMipData(int32 MipIdx) = 0;
 	/**
-	* @return total number of mips stored in this resource
-	*/
+	 * @return total number of mips stored in this resource
+	 */
 	virtual int32	GetNumMips() = 0;
 	/** 
-	* @return width of texture stored in this resource
-	*/
+	 * @return width of texture stored in this resource
+	 */
 	virtual int32 GetSizeX() = 0;
 	/** 
-	* @return height of texture stored in this resource
-	*/
+	 * @return height of texture stored in this resource
+	 */
 	virtual int32 GetSizeY() = 0;
 	/**
 	 * @return Whether the resource memory is properly allocated or not.
-	 **/
+	 */
 	virtual bool IsValid() = 0;
 
 	/**
@@ -110,6 +109,6 @@ public:
 	virtual ~FTexture2DResourceMem() {}
 };
 
+
 // Default to the dynamically bound RHI.
 #include "DynamicRHIResourceArray.h"
-

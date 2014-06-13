@@ -2,13 +2,12 @@
 
 #pragma once
 
-/* Public includes
- *****************************************************************************/
-#include "../Public/AndroidDeviceProfileSelector.h"
+#include "AndroidDeviceProfileSelector.h"
 
 
-/* Dependencies
+/* Private dependencies
 *****************************************************************************/
+
 #include "Core.h"
 #include "Engine.h"
 #include "ModuleManager.h"
@@ -17,4 +16,5 @@
 
 /* Private includes
  *****************************************************************************/
+
 #include "AndroidDeviceProfileSelectorModule.h"

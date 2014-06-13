@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeployRepositorySettings.h: Declares the SSessionLauncherDeployRepositorySettings class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherDeployRepositorySettings) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -28,7 +23,6 @@ public:
 	 * @param InModel - The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
-
 
 private:
 

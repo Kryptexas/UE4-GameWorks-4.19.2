@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateShaders.cpp: Implements shader related classes for the Slate RHI Renderer.
-=============================================================================*/
-
 #include "SlateRHIRendererPrivatePCH.h"
 
 

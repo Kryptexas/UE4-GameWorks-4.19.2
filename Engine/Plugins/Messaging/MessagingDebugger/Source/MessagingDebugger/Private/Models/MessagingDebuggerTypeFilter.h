@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MessagingDebuggerTypeFilter.h: Declares the FMessagingDebuggerTypeFilter class.
-=============================================================================*/
-
 #pragma once
 
 

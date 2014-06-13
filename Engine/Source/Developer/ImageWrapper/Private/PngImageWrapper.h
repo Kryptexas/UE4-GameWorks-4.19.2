@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PngImageWrapper.h: Declares the FPngImageWrapper class.
-=============================================================================*/
-
 #pragma once
 
 #if WITH_UNREALPNG
@@ -15,7 +11,13 @@
 
 
 /**
- * PNG implementation of the helper class
+ * PNG implementation of the helper class.
+ *
+ * The implementation of this class is almost entirely based on the sample from the libPNG documentation.
+ * See http://www.libpng.org/pub/png/libpng-1.2.5-manual.html for details.
+ *	
+ * InitCompressed and InitRaw will set initial state and you will then be able to fill in Raw or
+ * CompressedData by calling Uncompress or Compress respectively.
  */
 class FPngImageWrapper
 	: public FImageWrapperBase
@@ -26,7 +28,6 @@ public:
 	 * Default Constructor.
 	 */
 	FPngImageWrapper();
-
 
 public:
 
@@ -41,6 +42,8 @@ public:
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) OVERRIDE;
 	
 	// End FImageWrapper Interface
+
+public:
 
 	/** 
 	 * Query whether this is a valid PNG type.
@@ -69,7 +72,6 @@ protected:
 	static void  user_warning_fn( png_structp png_ptr, png_const_charp warning_msg );
 	static void* user_malloc( png_structp png_ptr, png_size_t size);
 	static void  user_free(png_structp png_ptr, png_voidp struct_ptr );
-
 
 private:
 

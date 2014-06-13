@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionLauncherModel.h: Declares the FSessionLauncherModel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -26,14 +22,10 @@ namespace ESessionLauncherTasks
 }
 
 
-/**
- * Type definition for shared pointers to instances of FSessionLauncherModel.
- */
+/** Type definition for shared pointers to instances of FSessionLauncherModel. */
 typedef TSharedPtr<class FSessionLauncherModel> FSessionLauncherModelPtr;
 
-/**
- * Type definition for shared references to instances of FSessionLauncherModel.
- */
+/** Type definition for shared references to instances of FSessionLauncherModel. */
 typedef TSharedRef<class FSessionLauncherModel> FSessionLauncherModelRef;
 
 

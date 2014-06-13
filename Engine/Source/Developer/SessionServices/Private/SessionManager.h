@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SessionManager.h: Declares the FSessionManager interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -32,59 +28,54 @@ public:
 
 	// Begin ISessionManager Interface
 
-	virtual void AddOwner( const FString& InOwner ) OVERRIDE;
+	virtual void AddOwner( const FString& InOwner ) override;
+	virtual void GetSelectedInstances( TArray<ISessionInstanceInfoPtr>& OutInstances) const override;
 
-	virtual void GetSelectedInstances( TArray<ISessionInstanceInfoPtr>& OutInstances) const OVERRIDE;
-
-	virtual const ISessionInfoPtr& GetSelectedSession( ) const OVERRIDE
+	virtual const ISessionInfoPtr& GetSelectedSession( ) const override
 	{
 		return SelectedSession;
 	}
 
-	virtual void GetSessions( TArray<ISessionInfoPtr>& OutSessions ) const OVERRIDE;
+	virtual void GetSessions( TArray<ISessionInfoPtr>& OutSessions ) const override;
 
-	virtual bool IsInstanceSelected( const ISessionInstanceInfoRef& Instance ) const OVERRIDE
+	virtual bool IsInstanceSelected( const ISessionInstanceInfoRef& Instance ) const override
 	{
 		return ((Instance->GetOwnerSession() == SelectedSession) && !DeselectedInstances.Contains(Instance));
 	}
 
-	virtual FOnCanSelectSession& OnCanSelectSession( ) OVERRIDE
+	virtual FOnCanSelectSession& OnCanSelectSession( ) override
 	{
 		return CanSelectSessionDelegate;
 	}
 
-	virtual FOnSessionInstanceSelectionChanged& OnInstanceSelectionChanged( ) OVERRIDE
+	virtual FOnSessionInstanceSelectionChanged& OnInstanceSelectionChanged( ) override
 	{
 		return InstanceSelectionChangedDelegate;
 	}
 
-	virtual FOnSessionLogReceived& OnLogReceived( ) OVERRIDE
+	virtual FOnSessionLogReceived& OnLogReceived( ) override
 	{
 		return LogReceivedDelegate;
 	}
 
-	virtual FOnSelectedSessionChanged& OnSelectedSessionChanged( ) OVERRIDE
+	virtual FOnSelectedSessionChanged& OnSelectedSessionChanged( ) override
 	{
 		return SelectedSessionChangedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnSessionsUpdated( ) OVERRIDE
+	virtual FSimpleMulticastDelegate& OnSessionsUpdated( ) override
 	{
 		return SessionsUpdatedDelegate;
 	}
 
-	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated( ) OVERRIDE
+	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated( ) override
 	{
 		return SessionInstanceUpdatedDelegate;
 	}
 
-	virtual void RemoveOwner( const FString& InOwner ) OVERRIDE;
-
-	virtual bool SelectSession( const ISessionInfoPtr& Session ) OVERRIDE;
-
-	virtual bool SetInstanceSelected( const ISessionInstanceInfoPtr& Instance, bool Selected ) OVERRIDE;
-
-	// End ISessionManager Interface
+	virtual void RemoveOwner( const FString& InOwner ) override;
+	virtual bool SelectSession( const ISessionInfoPtr& Session ) override;
+	virtual bool SetInstanceSelected( const ISessionInstanceInfoPtr& Instance, bool Selected ) override;
 
 protected:
 

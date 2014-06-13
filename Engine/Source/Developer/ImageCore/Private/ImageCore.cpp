@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ImageCore.cpp: Implements the ImageCore module.
-=============================================================================*/
-
 #include "ImageCorePCH.h"
 
 
@@ -24,6 +20,7 @@ static void InitImageStorage(FImage& Image)
 	Image.RawData.Empty(NumBytes);
 	Image.RawData.AddUninitialized(NumBytes);
 }
+
 
 /**
  * Copies an image accounting for format differences. Sizes must match.

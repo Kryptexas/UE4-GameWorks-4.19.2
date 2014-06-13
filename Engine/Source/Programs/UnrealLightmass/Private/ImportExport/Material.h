@@ -1,13 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Material.h: Material classes.
-=============================================================================*/
 #pragma once
 
 // @todo UE4: This seems wrong to me to be needed (scene uses mesh, not the other way around), and is only needed for the MAX_TEXCOORDS
-#include "../Public/MaterialExport.h"
-#include "../Public/SceneExport.h"
+#include "MaterialExport.h"
+#include "SceneExport.h"
+
 
 namespace Lightmass
 {

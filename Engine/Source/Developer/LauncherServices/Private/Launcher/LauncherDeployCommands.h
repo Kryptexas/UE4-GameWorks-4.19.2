@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherDeployCommands.h: Declares the FLauncherDeployCommands.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,8 +16,7 @@ public:
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
 		, LauncherCommandLine(InCmdLine)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -122,13 +117,13 @@ class FLauncherDeployServerToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployServerToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -218,14 +213,14 @@ class FLauncherDeployGamePackageToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployGamePackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook, const FString& InCmdLine )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
 		, LauncherCommandLine(InCmdLine)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{
@@ -313,13 +308,13 @@ class FLauncherDeployServerPackageToDeviceCommand
 	: public FLauncherUATCommand
 {
 public:
+
 	FLauncherDeployServerPackageToDeviceCommand( const ITargetDeviceProxyRef& InDeviceProxy, const ITargetPlatform& InTargetPlatform, const TSharedPtr<FLauncherUATCommand>& InCook )
 		: DeviceProxy(InDeviceProxy)
 		, TargetPlatform(InTargetPlatform)
 		, InstanceId(FGuid::NewGuid())
 		, CookCommand(InCook)
-	{
-	}
+	{ }
 
 	virtual FString GetName() const OVERRIDE
 	{

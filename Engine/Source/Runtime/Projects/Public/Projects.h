@@ -1,19 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Projects.h: Projects module public header file.
-=============================================================================*/
-
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "Core.h"
 
 
-/* Interfaces
+/* Public Includes
  *****************************************************************************/
 
 #include "IPluginManagerShared.h"

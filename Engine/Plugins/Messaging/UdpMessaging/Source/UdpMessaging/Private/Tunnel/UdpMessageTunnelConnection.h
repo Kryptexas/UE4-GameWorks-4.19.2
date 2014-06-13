@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageTunnelConnection.h: Declares the FUdpMessageTunnelConnection class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -101,14 +97,14 @@ public:
 
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return (Socket != nullptr);
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		bRun = true;
 
@@ -128,31 +124,29 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Socket->Close();
 		bRun = false;
 	}
 
-	virtual void Exit( ) OVERRIDE { }
-
-	// End FRunnable interface
+	virtual void Exit( ) override { }
 
 public:
 
-	// Begin IUdpMessageTunnelConnection interface
+	// IUdpMessageTunnelConnection interface
 
-	virtual void Close( ) OVERRIDE
+	virtual void Close( ) override
 	{
 		Stop();
 	}
 
-	virtual uint64 GetTotalBytesReceived( ) const OVERRIDE
+	virtual uint64 GetTotalBytesReceived( ) const override
 	{
 		return TotalBytesReceived;
 	}
 
-	virtual uint64 GetTotalBytesSent( ) const OVERRIDE
+	virtual uint64 GetTotalBytesSent( ) const override
 	{
 		return TotalBytesSent;
 	}
@@ -162,7 +156,7 @@ public:
 		return RemoteEndpoint.ToText();
 	}
 
-	virtual FTimespan GetUptime( ) const OVERRIDE
+	virtual FTimespan GetUptime( ) const override
 	{
 		if (IsOpen())
 		{
@@ -172,12 +166,10 @@ public:
 		return (ClosedTime - OpenedTime);
 	}
 
-	virtual bool IsOpen( ) const OVERRIDE
+	virtual bool IsOpen( ) const override
 	{
 		return (Socket->GetConnectionState() == SCS_Connected);
 	}
-
-	// End IUdpMessageTunnelConnection interface
 
 protected:
 

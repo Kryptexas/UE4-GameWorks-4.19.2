@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISettingsContainer.h: Declares the ISettingsContainer interface.
-=============================================================================*/
-
 #pragma once
 
 

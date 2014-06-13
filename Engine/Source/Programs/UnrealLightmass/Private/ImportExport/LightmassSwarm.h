@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LightmassSwarm.h: Lightmass interface to swarm.
-=============================================================================*/
-
 #pragma once
 
 #ifndef SWARMINTERFACE_API

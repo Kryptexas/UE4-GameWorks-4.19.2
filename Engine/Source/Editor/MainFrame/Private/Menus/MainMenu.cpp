@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainMenu.cpp: Implements the FMainMenu class.
-=============================================================================*/
-
 #include "MainFramePrivatePCH.h"
 
 #include "../../WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -15,6 +11,7 @@
 
 
 #define LOCTEXT_NAMESPACE "MainFileMenu"
+
 
 void FMainMenu::FillFileMenu( FMenuBuilder& MenuBuilder, const TSharedRef<FExtender> Extender )
 {

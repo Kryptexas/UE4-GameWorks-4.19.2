@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainFrameHandler.h: Declares the FMainFrameHandler class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -57,7 +53,6 @@ public:
 		{
 			GConfig->EmptySection(TEXT("EditorLayouts"), *GEditorLayoutIni);
 		}
-
 
 		// Clear the callback for destructionfrom the main tab; otherwise it will re-enter this shutdown function.
 		if ( MainTabPtr.IsValid() )

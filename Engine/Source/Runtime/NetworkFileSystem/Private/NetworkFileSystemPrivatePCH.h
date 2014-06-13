@@ -1,17 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileSystemPrivatePCH.h: Pre-compiled header file for the NetworkFileSystem module.
-=============================================================================*/
+#pragma once
 
-#ifndef NETWORK_FILESYSTEM_PRIVATEPCH_H
-#define NETWORK_FILESYSTEM_PRIVATEPCH_H
+#include "NetworkFileSystem.h"
 
 
-#include "../Public/NetworkFileSystem.h"
-
-
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
@@ -30,5 +24,3 @@ DECLARE_LOG_CATEGORY_EXTERN(LogFileServer, Log, All);
 #include "NetworkFileServerConnection.h"
 #include "NetworkFileServer.h"
 #include "NetworkFileServerHttp.h"
-
-#endif

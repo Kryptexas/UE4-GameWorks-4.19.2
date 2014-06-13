@@ -1,11 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	CrashTrackerModule.cpp: Implements the FCrashTrackerModule class.
-=============================================================================*/
-
 #include "CrashTrackerPrivatePCH.h"
 #include "EngineBuildSettings.h"
+
 
 #if (PLATFORM_WINDOWS || PLATFORM_MAC) && !UE_BUILD_MINIMAL
 	#define CRASH_TRACKER_SUPPORTED 1
@@ -20,7 +17,7 @@ class FCrashTrackerEventLogger : public FStabilityEventLogger
 public:
 	FCrashTrackerEventLogger(TSharedPtr<FCrashVideoCapture> InVideoCapture = NULL);
 
-	virtual void Log(EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget) OVERRIDE;
+	virtual void Log(EEventLog::Type Event, const FString& AdditionalContent, TSharedPtr<SWidget> Widget) override;
 	
 	void OnHandleError();
 	void OnHandleEnsure();
@@ -77,28 +74,33 @@ class FCrashTrackerModule
 	: public ICrashTrackerModule
 {
 public:
-	// Begin IModuleInterface interface
-	virtual void StartupModule() OVERRIDE;
-	virtual void ShutdownModule() OVERRIDE;
-	// End IModuleInterface interface
 
+	// IModuleInterface interface
 
-	// Begin ICrashTracker interface
-	virtual void Update(float DeltaSeconds) OVERRIDE;
-	virtual void ForceCompleteCapture() OVERRIDE;
-	virtual void SetCrashTrackingEnabled(bool bEnabled) OVERRIDE;
-	virtual bool IsVideoCaptureAvailable() const OVERRIDE;
-	virtual bool IsCurrentlyCapturing() const OVERRIDE;
-	virtual void InvalidateCrashTrackerFrame() OVERRIDE;
-	virtual EWriteUserCaptureVideoError::Type WriteUserVideoNow( FString& OutFinalSaveName ) OVERRIDE;
-	// End ICrashTracker interface
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+
+public:
+
+	// ICrashTracker interface
+
+	virtual void Update(float DeltaSeconds) override;
+	virtual void ForceCompleteCapture() override;
+	virtual void SetCrashTrackingEnabled(bool bEnabled) override;
+	virtual bool IsVideoCaptureAvailable() const override;
+	virtual bool IsCurrentlyCapturing() const override;
+	virtual void InvalidateCrashTrackerFrame() override;
+	virtual EWriteUserCaptureVideoError::Type WriteUserVideoNow( FString& OutFinalSaveName ) override;
 
 private:
+
 	// The video capture instance
 	TSharedPtr<FCrashVideoCapture> VideoCapture;
+
 	// The event logger instance
 	TSharedPtr<FCrashTrackerEventLogger> EventLogger;
 };
+
 
 void FCrashTrackerModule::StartupModule()
 {

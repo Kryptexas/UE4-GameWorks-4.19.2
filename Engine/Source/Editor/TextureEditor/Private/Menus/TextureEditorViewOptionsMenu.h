@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TextureEditorViewOptionsMenu.h: Declares the FTextureEditorViewOptionsMenu class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,7 +16,7 @@ public:
 	/**
 	 * Creates the menu.
 	 *
-	 * @param MenuBuilder - The builder for the menu that owns this menu.
+	 * @param MenuBuilder The builder for the menu that owns this menu.
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder )
 	{
@@ -58,7 +54,7 @@ protected:
 	/**
 	 * Creates the 'Background' sub-menu.
 	 *
-	 * @param MenuBuilder - The builder for the menu that owns this menu.
+	 * @param MenuBuilder The builder for the menu that owns this menu.
 	 */
 	static void GenerateBackgroundMenuContent( FMenuBuilder& MenuBuilder )
 	{

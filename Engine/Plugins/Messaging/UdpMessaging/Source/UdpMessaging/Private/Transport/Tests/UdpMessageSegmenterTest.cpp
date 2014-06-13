@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageSegmenterTest.cpp: Unit test for the FUdpMessageSegmenter class.
-=============================================================================*/
-
 #include "UdpMessagingPrivatePCH.h"
 #include "AutomationTest.h"
 

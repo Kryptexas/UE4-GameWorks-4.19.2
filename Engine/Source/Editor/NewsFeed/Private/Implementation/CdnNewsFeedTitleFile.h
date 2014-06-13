@@ -40,23 +40,15 @@ public:
 
 public:
 
-	// Begin IOnlineTitleFile interface
+	// IOnlineTitleFile interface
 
-	virtual bool GetFileContents(const FString& DLName, TArray<uint8>& FileContents) OVERRIDE;
-
-	virtual bool ClearFiles() OVERRIDE;
-
-	virtual bool ClearFile(const FString& DLName) OVERRIDE;
-
-	virtual bool EnumerateFiles() OVERRIDE;
-
-	virtual bool EnumerateFiles(int32 Start, int32 Count) OVERRIDE;
-
-	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) OVERRIDE;
-
-	virtual bool ReadFile(const FString& DLName) OVERRIDE;
-
-	// Begin IOnlineTitleFile interface
+	virtual bool GetFileContents(const FString& DLName, TArray<uint8>& FileContents) override;
+	virtual bool ClearFiles() override;
+	virtual bool ClearFile(const FString& DLName) override;
+	virtual bool EnumerateFiles() override;
+	virtual bool EnumerateFiles(int32 Start, int32 Count) override;
+	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) override;
+	virtual bool ReadFile(const FString& DLName) override;
 
 protected:
 	

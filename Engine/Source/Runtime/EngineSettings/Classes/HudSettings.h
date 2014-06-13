@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	HudSettings.h: Declares the UHudSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "HudSettings.generated.h"
+
 
 UCLASS(config=Game)
 class ENGINESETTINGS_API UHudSettings

@@ -1,24 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherDeployTargets.h: Declares the SSessionLauncherDeployTargets class.
-=============================================================================*/
-
 #pragma once
 
 
 namespace EShowDevicesChoices
 {
+	/**
+	 * Enumerates choices for the 'Show Devices' filter.
+	 */
 	enum Type
 	{
-		/**
-		 * Show all available devices.
-		 */
+		/** Show all available devices. */
 		ShowAllDevices,
 
-		/**
-		 * Only show devices that are included in the selected device group.
-		 */
+		/** Only show devices that are included in the selected device group. */
 		ShowGroupDevices
 	};
 }
@@ -35,7 +30,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherDeployTargets) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -43,26 +37,21 @@ public:
 	 */
 	~SSessionLauncherDeployTargets( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel, bool InIsAlwaysEnabled = false );
 
-
 public:
 
-	// Begin SCompoundWidget overrides
+	// SCompoundWidget overrides
 
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
-
-	// End SCompoundWidget overrides
-
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
 protected:
 
@@ -70,7 +59,6 @@ protected:
 	 * Refreshes the list of device proxies.
 	 */
 	void RefreshDeviceProxyList( );
-
 
 private:
 
@@ -115,7 +103,6 @@ private:
 
 	// Callback for determining the checked state of the specified 'Show devices' check box.
 	ESlateCheckBoxState::Type HandleShowCheckBoxIsChecked( EShowDevicesChoices::Type Choice ) const;
-
 
 private:
 

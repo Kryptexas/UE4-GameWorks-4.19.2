@@ -4,32 +4,19 @@
 
 #include "MatineeTransBuffer.generated.h"
 
+
 /**
- * Special transaction buffer for Matinee undo/redo
+ * Special transaction buffer for Matinee undo/redo.
  * Will be capped at InMaxMemory.
- * 
  */
 UCLASS(transient)
 class UMatineeTransBuffer : public UTransBuffer
 {
     GENERATED_UCLASS_BODY()
+
 	UMatineeTransBuffer(const class FPostConstructInitializeProperties& PCIP, SIZE_T InMaxMemory)
 		:	UTransBuffer( PCIP, InMaxMemory )
-	{}
-
-	// Begin UTransactor Interface
-	virtual int32 Begin( const TCHAR* SessionContext, const FText& Description ) OVERRIDE
-	{
-		return 0;
-	}
-
-	virtual int32 End() OVERRIDE
-	{
-		return 1;
-	}
-
-	virtual void Cancel(int32 StartIndex = 0) OVERRIDE {}
-	// End UTransactor Interface
+	{ }
 
 	/**  
 	 * Begin a Matinee specific transaction
@@ -39,4 +26,19 @@ class UMatineeTransBuffer : public UTransBuffer
 
 	/** End a Matinee specific transaction */
 	virtual void EndSpecial();
+
+public:
+
+	// UTransactor Interface
+	virtual int32 Begin( const TCHAR* SessionContext, const FText& Description ) override
+	{
+		return 0;
+	}
+
+	virtual int32 End() override
+	{
+		return 1;
+	}
+
+	virtual void Cancel(int32 StartIndex = 0) override {}
 };

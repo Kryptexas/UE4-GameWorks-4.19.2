@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherTaskListRow.h: Declares the SSessionLauncherTaskListRow class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -23,14 +19,13 @@ public:
 		SLATE_ARGUMENT(ILauncherTaskPtr, Task)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The construction arguments.
-	 * @param InDeviceProxyManager - The device proxy manager to use.
+	 * @param InArgs The construction arguments.
+	 * @param InDeviceProxyManager The device proxy manager to use.
 	 */
 	void Construct( const FArguments& InArgs )
 	{
@@ -39,14 +34,12 @@ public:
 		SMultiColumnTableRow<ILauncherTaskPtr>::Construct(FSuperRowType::FArguments(), InArgs._OwnerTableView.ToSharedRef());
 	}
 
-
 public:
 
 	/**
 	 * Generates the widget for the specified column.
 	 *
-	 * @param ColumnName - The name of the column to generate the widget for.
-	 *
+	 * @param ColumnName The name of the column to generate the widget for.
 	 * @return The widget.
 	 */
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -114,7 +107,6 @@ public:
 		return SNullWidget::NullWidget;
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
 
 private:
 
@@ -243,7 +235,6 @@ private:
 
 		return EVisibility::Hidden;
 	}
-
 
 private:
 

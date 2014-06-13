@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SceneOutlinerSettings.h: Declares the USceneOutlinerSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "SceneOutlinerSettings.generated.h"

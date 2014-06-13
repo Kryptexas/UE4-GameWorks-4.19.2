@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ConsoleSettings.h: Declares the UConsoleSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "ConsoleSettings.generated.h"

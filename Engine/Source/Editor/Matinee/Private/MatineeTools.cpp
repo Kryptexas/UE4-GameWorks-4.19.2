@@ -1,10 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MatineeTools.cpp: Interpolation editing support tools
-=============================================================================*/
-
-
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeClasses.h"
@@ -38,6 +33,7 @@
 
 #include "SoundDefinitions.h"
 #include "EditorSupportDelegates.h"
+
 
 ///// UTILS
 

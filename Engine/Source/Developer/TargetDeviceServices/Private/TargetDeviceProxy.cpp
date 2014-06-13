@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	TargetDeviceProxy.cpp: Implements the FTargetDeviceProxy class.
-=============================================================================*/
-
 #include "TargetDeviceServicesPrivatePCH.h"
 
 

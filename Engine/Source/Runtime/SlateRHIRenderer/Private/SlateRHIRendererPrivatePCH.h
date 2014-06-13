@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRHIRendererPrivatePCH.h: Pre-compiled header file for the SlateRHIRenderer module.
-=============================================================================*/
-
 #pragma once
 
 #include "ISlateRHIRendererModule.h"
 
 
-/* Private Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "Slate.h"
@@ -24,7 +20,7 @@
 #include "ShaderParameterUtils.h"
 
 
-/* Private Includes
+/* Private includes
  *****************************************************************************/
 
 #include "SlateRHIFontTexture.h"

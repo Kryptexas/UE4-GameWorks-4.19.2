@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	KeyStructCustomization.h: Declares the FGuidCustomization class.
-=============================================================================*/
-
 #pragma once
 
 /**
@@ -14,12 +10,12 @@ class FKeyStructCustomization
 {
 public:
 
-	// Begin IPropertyTypeCustomization interface
+	// IPropertyTypeCustomization interface
 
-	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) OVERRIDE;
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) OVERRIDE {};
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override { };
 
-	// End IPropertyTypeCustomization interface
+public:
 
 	/**
 	 * Creates a new instance.
@@ -37,5 +33,5 @@ private:
 	TSharedPtr<IPropertyHandle> PropertyHandle;
 	TSharedPtr<STextBlock> TextBlock;
 
-	TArray< TSharedPtr<FKey> > InputKeys;
+	TArray<TSharedPtr<FKey>> InputKeys;
 };

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ILauncherProfile.h: Declares the ILauncherProfile interface.
-=============================================================================*/
-
 #pragma once
 
 
@@ -14,19 +10,13 @@ namespace ELauncherProfileCookModes
 	 */
 	enum Type
 	{
-		/**
-		 * Do not cook the build (default).
-		 */
+		/** Do not cook the build (default). */
 		DoNotCook,
 
-		/**
-		 * Pre-cook using user specified settings.
-		 */
+		/** Pre-cook using user specified settings. */
 		ByTheBook,
 
-		/**
-		 * Cook the build on the fly while the game is running.
-		 */
+		/** Cook the build on the fly while the game is running. */
 		OnTheFly
 	};
 }
@@ -39,19 +29,13 @@ namespace ELauncherProfileCookedMaps
 	 */
 	enum Type
 	{
-		/**
-		 * Cook all maps.
-		 */
+		/** Cook all maps. */
 		AllMaps,
 
-		/**
-		 * Don't cook any maps. Only startup packages will be cooked.
-		 */
+		/** Don't cook any maps. Only startup packages will be cooked. */
 		NoMaps,
 
-		/**
-		 * Cook user selected maps.
-		 */
+		/** Cook user selected maps. */
 		SelectedMaps
 
 	};
@@ -65,24 +49,16 @@ namespace ELauncherProfileDeploymentModes
 	 */
 	enum Type
 	{
-		/**
-		 * Do not deploy the build to any device.
-		 */
+		/** Do not deploy the build to any device. */
 		DoNotDeploy,
 
-		/**
-		 * Copy all required file to the device.
-		 */
+		/** Copy all required file to the device. */
 		CopyToDevice,
 
-		/**
-		 * Let the device get required files from a file server.
-		 */
+		/** Let the device get required files from a file server. */
 		FileServer,
 
-		/**
-		 * Copy a build from a repository to the device.
-		 */
+		/** Copy a build from a repository to the device. */
 		 CopyRepository,
 	};
 }
@@ -95,19 +71,13 @@ namespace ELauncherProfileLaunchModes
 	 */
 	enum Type
 	{
-		/**
-		 * Do not launch.
-		 */
+		/** Do not launch. */
 		DoNotLaunch,
 
-		/**
-		 * Launch with customized roles per device.
-		 */
+		/** Launch with customized roles per device. */
 		CustomRoles,
 
-		/**
-		 * Launch with the default role on all deployed devices.
-		 */
+		/** Launch with the default role on all deployed devices. */
 		DefaultRole	
 	};
 }
@@ -120,19 +90,13 @@ namespace ELauncherProfilePackagingModes
 	 */
 	enum Type
 	{
-		/**
-		 * Do not package.
-		 */
+		/** Do not package. */
 		DoNotPackage,
 
-		/**
-		 * Package and store the build locally.
-		 */
+		/** Package and store the build locally. */
 		Locally,
 
-		/**
-		 * Package and store the build in a shared repository.
-		 */
+		/** Package and store the build in a shared repository. */
 		SharedRepository
 	};
 }
@@ -151,77 +115,49 @@ namespace ELauncherProfileValidationErrors
 		 */
 		CopyToDeviceRequiresCookByTheBook,
 
-		/**
-		 * Custom launch roles are not yet supported.
-		 */
+		/** Custom launch roles are not yet supported. */
 		CustomRolesNotSupportedYet,
 
-		/**
-		 * A device group must be selected when deploying builds.
-		 */
+		/** A device group must be selected when deploying builds. */
 		DeployedDeviceGroupRequired,
 		
-		/**
-		 * The initial culture configured for launch is not part of the selected build.
-		 */
+		/** The initial culture configured for launch is not part of the selected build. */
 		InitialCultureNotAvailable,
 
-		/**
-		 * The initial map configured for launch is not part of the selected build.
-		 */
+		/** The initial map configured for launch is not part of the selected build. */
 		InitialMapNotAvailable,
 
-		/**
-		 * The specified launch command line is not formatted correctly.
-		 */
+		/** The specified launch command line is not formatted correctly. */
 		MalformedLaunchCommandLine,
 
-		/**
-		 * A build configuration is required when creating new builds.
-		 */
+		/** A build configuration is required when creating new builds. */
 		NoBuildConfigurationSelected,
 
-		/**
-		 * When cooking a build, at least one culture must be included.
-		 */
+		/** When cooking a build, at least one culture must be included. */
 		NoCookedCulturesSelected,
 
-		/**
-		 * One or more launch roles do not have a device assigned.
-		 */
+		/** One or more launch roles do not have a device assigned. */
 		NoLaunchRoleDeviceAssigned,
 
-		/**
-		 * At least one platform is required when creating new builds.
-		 */
+		/** At least one platform is required when creating new builds. */
 		NoPlatformSelected,
 
-		/**
-		 * A game is required when creating new builds.
-		 */
+		/** A game is required when creating new builds. */
 		NoProjectSelected,
 
-		/**
-		 * The deployment requires a package directory to be specified
-		 */
+		/** The deployment requires a package directory to be specified */
 		NoPackageDirectorySpecified,
 		
-		/**
-		 * The platform SDK is not installed but is required.
-		 */
+		/** The platform SDK is not installed but is required. */
 		NoPlatformSDKInstalled,
 	};
 }
 
 
-/**
- * Type definition for shared pointers to instances of ILauncherProfile.
- */
+/** Type definition for shared pointers to instances of ILauncherProfile. */
 typedef TSharedPtr<class ILauncherProfile> ILauncherProfilePtr;
 
-/**
- * Type definition for shared references to instances of ILauncherProfile.
- */
+/** Type definition for shared references to instances of ILauncherProfile. */
 typedef TSharedRef<class ILauncherProfile> ILauncherProfileRef;
 
 
@@ -232,10 +168,9 @@ typedef TSharedRef<class ILauncherProfile> ILauncherProfileRef;
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLauncherProfileDeployedDeviceGroupChanged, const ILauncherDeviceGroupPtr&)
 
-/**
- * Delegate type for a change in project
- */
+/** Delegate type for a change in project */
 DECLARE_MULTICAST_DELEGATE(FOnProfileProjectChanged);
+
 
 /**
  * Interface for launcher profile.
@@ -306,7 +241,6 @@ public:
 	 * @param NewName - The new name of the profile.
 	 */
 	virtual void SetName( const FString& NewName ) = 0;
-
 
 public:
 
@@ -542,7 +476,6 @@ public:
 	 * @return true if Engine maps are supported, false otherwise.
 	 */
 	virtual bool SupportsEngineMaps( ) const = 0;
-
 
 public:
 

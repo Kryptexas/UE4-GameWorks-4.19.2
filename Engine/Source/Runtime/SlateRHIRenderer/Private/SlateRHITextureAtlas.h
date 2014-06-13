@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRHITextureAtlas.h: Declares the FSlateTextureAtlasRHI class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -56,11 +52,9 @@ public:
 
 public:
 
-	// Begin FSlateTextureAtlas overrides.
+	// FSlateTextureAtlas overrides.
 
 	virtual void ConditionalUpdateTexture( );
-
-	// End FSlateTextureAtlas interface.
 
 private:
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SMessagingGraph.cpp: Implements the SMessagingGraph class.
-=============================================================================*/
-
 #include "MessagingDebuggerPrivatePCH.h"
 
 

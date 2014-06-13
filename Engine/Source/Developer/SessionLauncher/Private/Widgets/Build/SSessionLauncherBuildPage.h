@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherBuildPage.h: Declares the SSessionLauncherBuildPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherBuildPage) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -26,17 +21,26 @@ public:
 	 */
 	~SSessionLauncherBuildPage( );
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct(	const FArguments& InArgs, const FSessionLauncherModelRef& InModel );
 
+protected:
+
+	/**
+	 * Generates the DSYM for the project.
+	 *
+	 * @param ProjectName The name of the project.
+	 * @param Configuration The build configuration name.
+	 * @return true on success, false otherwise.
+	 */
+    bool GenerateDSYMForProject( const FString& ProjectName, const FString& Configuration );
 
 private:
 
@@ -54,8 +58,9 @@ private:
 
     // Callback for pressing the Advanced Setting - Generate DSYM button.
     FReply HandleGenDSYMClicked();
+
+	// Callback for getting the enabled state of the Generate DSYM button.
     bool HandleGenDSYMButtonEnabled() const;
-    bool GenerateDSYMForProject( const FString& ProjectName, const FString& Configuration );
 
 private:
 

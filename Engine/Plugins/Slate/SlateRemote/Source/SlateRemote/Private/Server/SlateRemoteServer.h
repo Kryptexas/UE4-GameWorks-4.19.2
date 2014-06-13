@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteServer.h: Declares the FSlateRemoteServer class.
-=============================================================================*/
-
 #pragma once
 
 

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherWorker.cpp: Implements the FLauncherWorker class.
-=============================================================================*/
-
 #include "LauncherServicesPrivatePCH.h"
 
 
@@ -164,15 +160,18 @@ int32 FLauncherWorker::GetTasks( TArray<ILauncherTaskPtr>& OutTasks ) const
 	return OutTasks.Num();
 }
 
+
 void FLauncherWorker::OnTaskStarted(const FString& TaskName)
 {
 	StageStarted.Broadcast(TaskName);
 }
 
+
 void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 {
 	StageCompleted.Broadcast(TaskName);
 }
+
 
 /* FLauncherWorker implementation
  *****************************************************************************/
@@ -222,7 +221,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 		const FString& TargetPlatformName = Platforms[PlatformIndex];
 		const ITargetPlatform* TargetPlatform = GetTargetPlatformManager()->FindTargetPlatform(TargetPlatformName);
 
-		if (TargetPlatform == NULL)
+		if (TargetPlatform == nullptr)
 		{
 			continue;
 		}

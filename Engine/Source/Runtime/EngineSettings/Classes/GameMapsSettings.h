@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GameMapsSettings.h: Declares the UGameMapsSettings class.
-=============================================================================*/
-
 #pragma once
 
 #include "GameMapsSettings.generated.h"
@@ -62,21 +58,15 @@ class ENGINESETTINGS_API UGameMapsSettings
 
 public:
 
-	/**
-	 * If set, this map will be loaded when the Editor starts up.
-	 */
+	/** If set, this map will be loaded when the Editor starts up. */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps)
 	FString EditorStartupMap;
 
-	/**
-	 * The default options that will be appended to a map being loaded.
-	 */
+	/** The default options that will be appended to a map being loaded. */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps, AdvancedDisplay)
 	FString LocalMapOptions;
 
-	/**
-	 * The map loaded when transition from one map to another.
-	 */
+	/** The map loaded when transition from one map to another. */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps, AdvancedDisplay)
 	FString TransitionMap;
 
@@ -91,21 +81,15 @@ public:
 
 private:
 
-	/**
-	 * The map that will be loaded by default when no other map is loaded.
-	 */
+	/** The map that will be loaded by default when no other map is loaded. */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps)
 	FString GameDefaultMap;
 
-	/**
-	 * The map that will be loaded by default when no other map is loaded (DEDICATED SERVER).
-	 */
+	/** The map that will be loaded by default when no other map is loaded (DEDICATED SERVER). */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps, AdvancedDisplay)
 	FString ServerDefaultMap;
 
-	/**
-	 * GameMode to use if not specified in any other way. (e.g. per-map DefaultGameMode or on the URL).
-	 */
+	/** GameMode to use if not specified in any other way. (e.g. per-map DefaultGameMode or on the URL). */
 	UPROPERTY(config, noclear, EditAnywhere, Category=DefaultModes, meta=(MetaClass="GameMode", DisplayName="Default GameMode"))
 	FStringClassReference GlobalDefaultGameMode;
 

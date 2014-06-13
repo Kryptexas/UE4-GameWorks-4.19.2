@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================================
-	MonitoredProcess.cpp: Implements the FMonitoredProcess class
-==============================================================================================*/
-
 #include "CorePrivate.h"
 
 

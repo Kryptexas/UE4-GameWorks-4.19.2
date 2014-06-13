@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ClaimedTargetDevice.h: Declares and implements the FClaimedTargetDevice class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,9 +14,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InDeviceId - The identifier of the target device to expose.
-	 * @param InDeviceName - The name of the device to expose.
-	 * @param InMessageBus - The message bus to listen on for clients.
+	 * @param InDeviceId The identifier of the target device to expose.
+	 * @param InDeviceName The name of the device to expose.
+	 * @param InMessageBus The message bus to listen on for clients.
 	 */
 	FTargetDeviceService( const FTargetDeviceId& InDeviceId, const FString& InDeviceName, const IMessageBusRef& InMessageBus )
 		: CachedDeviceName(InDeviceName)
@@ -61,9 +57,9 @@ public:
 
 public:
 
-	// Begin ITargetDeviceService interface
+	// ITargetDeviceService interface
 
-	virtual bool CanStart( ) const OVERRIDE
+	virtual bool CanStart( ) const override
 	{
 		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
 
@@ -75,27 +71,27 @@ public:
 		return false;
 	}
 
-	virtual const FString& GetClaimHost( ) OVERRIDE
+	virtual const FString& GetClaimHost( ) override
 	{
 		return ClaimHost;
 	}
 
-	virtual const FString& GetClaimUser( ) OVERRIDE
+	virtual const FString& GetClaimUser( ) override
 	{
 		return ClaimUser;
 	}
 
-	virtual ITargetDevicePtr GetDevice( ) OVERRIDE
+	virtual ITargetDevicePtr GetDevice( ) override
 	{
 		return AcquireDevice();
 	}
 
-	virtual const FTargetDeviceId& GetDeviceId( ) const OVERRIDE
+	virtual const FTargetDeviceId& GetDeviceId( ) const override
 	{
 		return DeviceId;
 	}
 
-	virtual FString GetCachedDeviceName( ) const OVERRIDE
+	virtual FString GetCachedDeviceName( ) const override
 	{
 		ITargetDevicePtr TargetDevice = TargetDevicePtr.Pin();
 
@@ -112,22 +108,22 @@ public:
 		return CachedDeviceName;
 	}
 
-	virtual bool IsRunning( ) const OVERRIDE
+	virtual bool IsRunning( ) const override
 	{
 		return (Running && TargetDevicePtr.IsValid());
 	}
 
-	virtual bool IsShared( ) const OVERRIDE
+	virtual bool IsShared( ) const override
 	{
 		return (Running && Shared);
 	}
 
-	virtual void SetShared( bool InShared ) OVERRIDE
+	virtual void SetShared( bool InShared ) override
 	{
 		Shared = InShared;
 	}
 
-	virtual bool Start( ) OVERRIDE
+	virtual bool Start( ) override
 	{
 		if (!Running && MessageEndpoint.IsValid())
 		{
@@ -154,7 +150,7 @@ public:
 		return true;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		if (Running)
 		{
@@ -172,8 +168,6 @@ public:
 			Running = false;
 		}
 	}
-
-	// End ITargetDeviceService interface
 
 protected:
 
@@ -198,6 +192,8 @@ protected:
 	/**
 	 * Stores the specified file to deploy.
 	 *
+	 * @param FileReader The archive reader providing access to the file data.
+	 * @param TargetFileName The desired name of the file on the target device.
 	 */
 	bool StoreDeployedFile( FArchive* FileReader, const FString& TargetFileName  ) const
 	{

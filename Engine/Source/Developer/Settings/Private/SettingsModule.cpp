@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsModule.cpp: Implements the FSettingsModule class.
-=============================================================================*/
-
 #include "SettingsPrivatePCH.h"
 
 
@@ -18,24 +14,24 @@ class FSettingsModule
 {
 public:
 
-	// Begin ISettingsModule interface
+	// ISettingsModule interface
 
-	virtual void GetContainerNames( TArray<FName>& OutNames ) const OVERRIDE
+	virtual void GetContainerNames( TArray<FName>& OutNames ) const override
 	{
 		ContainerNamesToContainers.GenerateKeyArray(OutNames);
 	}
 
-	virtual ISettingsContainerPtr GetContainer( const FName& ContainerName ) OVERRIDE
+	virtual ISettingsContainerPtr GetContainer( const FName& ContainerName ) override
 	{
 		return ContainerNamesToContainers.FindRef(ContainerName);
 	}
 
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates ) OVERRIDE
+	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TWeakObjectPtr<UObject>& SettingsObject, const FSettingsSectionDelegates& Delegates ) override
 	{
 		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, SettingsObject, Delegates);
 	}
 
-	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates ) OVERRIDE
+	virtual ISettingsSectionPtr RegisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName, const FText& DisplayName, const FText& Description, const TSharedRef<SWidget>& CustomWidget, const FSettingsSectionDelegates& Delegates ) override
 	{
 		return FindOrAddContainer(ContainerName)->AddSection(CategoryName, SectionName, DisplayName, Description, CustomWidget, Delegates);
 	}
@@ -60,7 +56,7 @@ public:
 		ContainerNamesToViewers.Remove(ContainerName);
 	}
 
-	virtual void UnregisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName ) OVERRIDE
+	virtual void UnregisterSettings( const FName& ContainerName, const FName& CategoryName, const FName& SectionName ) override
 	{
 		TSharedPtr<FSettingsContainer> Container = ContainerNamesToContainers.FindRef(ContainerName);
 
@@ -70,13 +66,11 @@ public:
 		}
 	}
 
-	// End ISettingsModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 	
-	virtual void StartupModule() OVERRIDE
+	virtual void StartupModule( ) override
 	{
 		// @todo gmp: move this into the modules that own these setting categories
 		TSharedRef<FSettingsContainer> EditorSettingsContainer = FindOrAddContainer("Editor");
@@ -95,17 +89,14 @@ public:
 		ProjectSettingsContainer->DescribeCategory("Plugins", LOCTEXT("ProjectPluginsCategoryName", "Plugins"), LOCTEXT("ProjectPluginsCategoryDescription", "Plugins settings description text here"), "SettingsEditor.Category_Plugins");
 	}
 
-	virtual void ShutdownModule() OVERRIDE { }
-	
-	// End IModuleInterface interface
+	virtual void ShutdownModule( ) override { }
 
 protected:
 
 	/**
 	 * Finds or adds the specified settings container.
 	 *
-	 * @param ContainerName - The name of the container to find or add.
-	 *
+	 * @param ContainerName The name of the container to find or add.
 	 * @return The container.
 	 */
 	TSharedRef<FSettingsContainer> FindOrAddContainer( const FName& ContainerName )

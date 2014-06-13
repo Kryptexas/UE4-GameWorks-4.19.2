@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsContainer.h: Declares the FSettingsContainer class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -18,7 +14,7 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InName - The container's name.
+	 * @param InName The container's name.
 	 */
 	FSettingsContainer( const FName& InName )
 		: Name(InName)
@@ -107,16 +103,16 @@ public:
 
 public:
 
-	// Begin ISettingsContainer interface
+	// ISettingsContainer interface
 
-	virtual void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) OVERRIDE
+	virtual void Describe( const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) override
 	{
 		Description = InDescription;
 		DisplayName = InDisplayName;
 		IconName = InIconName;
 	}
 
-	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) OVERRIDE
+	virtual void DescribeCategory( const FName& CategoryName, const FText& InDisplayName, const FText& InDescription, const FName& InIconName ) override
 	{
 		TSharedPtr<FSettingsCategory>& Category = Categories.FindOrAdd(CategoryName);
 
@@ -129,7 +125,7 @@ public:
 		CategoryModifiedDelegate.Broadcast(CategoryName);
 	}
 
-	virtual int32 GetCategories( TArray<ISettingsCategoryPtr>& OutCategories ) const OVERRIDE
+	virtual int32 GetCategories( TArray<ISettingsCategoryPtr>& OutCategories ) const override
 	{
 		OutCategories.Empty(Categories.Num());
 
@@ -141,42 +137,40 @@ public:
 		return OutCategories.Num();
 	}
 
-	virtual ISettingsCategoryPtr GetCategory( const FName& CategoryName ) const OVERRIDE
+	virtual ISettingsCategoryPtr GetCategory( const FName& CategoryName ) const override
 	{
 		return Categories.FindRef(CategoryName);
 	}
 
-	virtual const FText& GetDescription( ) const OVERRIDE
+	virtual const FText& GetDescription( ) const override
 	{
 		return Description;
 	}
 
-	virtual const FText& GetDisplayName( ) const OVERRIDE
+	virtual const FText& GetDisplayName( ) const override
 	{
 		return DisplayName;
 	}
 
-	virtual const FName& GetIconName( ) const OVERRIDE
+	virtual const FName& GetIconName( ) const override
 	{
 		return IconName;
 	}
 
-	virtual const FName& GetName( ) const OVERRIDE
+	virtual const FName& GetName( ) const override
 	{
 		return Name;
 	}
 
-	virtual FOnSettingsContainerCategoryModified& OnCategoryModified( ) OVERRIDE
+	virtual FOnSettingsContainerCategoryModified& OnCategoryModified( ) override
 	{
 		return CategoryModifiedDelegate;
 	}
 
-	virtual FOnSettingsContainerSectionRemoved& OnSectionRemoved( ) OVERRIDE
+	virtual FOnSettingsContainerSectionRemoved& OnSectionRemoved( ) override
 	{
 		return SectionRemovedDelegate;
 	}
-
-	// End ISettingsContainer interface
 
 private:
 

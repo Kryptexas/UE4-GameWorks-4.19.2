@@ -1,11 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationMessagesModule.cpp: Implements the FAutomationMessagesModule class.
-=============================================================================*/
-
 #include "AutomationMessagesPrivatePCH.h"
-
 
 
 /**

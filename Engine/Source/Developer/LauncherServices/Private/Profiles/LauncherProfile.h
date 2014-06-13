@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	LauncherProfile.h: Declares the FLauncherProfile class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -40,7 +36,6 @@ public:
 	 */
 	~FLauncherProfile( ) { }
 
-
 public:
 
 	/**
@@ -56,7 +51,6 @@ public:
 	{
 		return DeployedDeviceGroupId;
 	}
-
 
 public:
 
@@ -686,7 +680,6 @@ public:
 
 	// End ILauncherProfile interface
 
-
 protected:
 
 	/**
@@ -839,7 +832,6 @@ protected:
 			ValidatePlatformSDKs();
 		}
 	}
-
 
 private:
 

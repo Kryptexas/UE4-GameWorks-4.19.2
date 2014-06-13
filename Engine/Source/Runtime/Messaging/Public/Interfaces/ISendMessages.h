@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISendMessages.h: Declares the ISendMessages interface.
-=============================================================================*/
-
 #pragma once
 
 

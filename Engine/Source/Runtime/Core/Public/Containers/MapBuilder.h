@@ -1,18 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MapBuilder.h: Declares the TMapBuilder template.
-=============================================================================*/
-
 #pragma once
 
 
 /**
  * Template for fluent map builders.
  *
- * @param KeyType - The type of keys stored in the map.
- * @param ValueType - The type of values stored in the map.
- * @param SetAllocator - The allocator to use for key-value pairs.
+ * @param KeyType The type of keys stored in the map.
+ * @param ValueType The type of values stored in the map.
+ * @param SetAllocator The allocator to use for key-value pairs.
  */
 template<typename KeyType, typename ValueType, typename SetAllocator = FDefaultSetAllocator> class TMapBuilder
 {
@@ -26,21 +22,19 @@ public:
 	/**
 	 * Creates and initializes a new map builder from another map.
 	 *
-	 * @param InMap - The map to copy.
+	 * @param InMap The map to copy.
 	 */
 	template<typename OtherAllocator> TMapBuilder( const TMap<KeyType, ValueType, OtherAllocator>& InMap )
 		: Map(InMap)
 	{ }
-
 
 public:
 
 	/**
 	 * Adds a key-value pair to the map.
 	 *
-	 * @param InKey - The key of the pair to add.
-	 * @param InValue - The value of the pair to add.
-	 *
+	 * @param InKey The key of the pair to add.
+	 * @param InValue The value of the pair to add.
 	 * @return This instance (for method chaining).
 	 */
 	TMapBuilder& Add( KeyType InKey, ValueType InValue )
@@ -53,8 +47,7 @@ public:
 	/**
 	 * Appends another map.
 	 *
-	 * @param OtherMap - The map to append.
-	 *
+	 * @param OtherMap The map to append.
 	 * @return This instance (for method chaining).
 	 */
 	TMapBuilder& Append( const TMap<KeyType, ValueType, SetAllocator>& OtherMap )
@@ -63,7 +56,6 @@ public:
 
 		return *this;
 	}
-
 
 public:
 
@@ -86,7 +78,6 @@ public:
 	{
 		return Build();
 	}
-
 
 private:
 

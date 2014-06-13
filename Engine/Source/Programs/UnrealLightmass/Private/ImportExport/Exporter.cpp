@@ -1,8 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Exporter.cpp: Lightmass solver exporter class.
-=============================================================================*/
 #include "stdafx.h"
 #include "LightmassSwarm.h"
 #include "Exporter.h"

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SReflectorTreeWidgetItem.h: Declares the SReflectorTreeWidgetItem class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -30,7 +26,7 @@ public:
 	/**
 	 * Construct child widgets that comprise this widget.
 	 *
-	 * @param InArgs  Declaration from which to construct this widget
+	 * @param InArgs Declaration from which to construct this widget.
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Matinee.cpp: Interpolation/Cinema editing
-=============================================================================*/
-
 #include "MatineeModule.h"
 
 #include "Matinee/InterpFilter.h"
@@ -39,6 +35,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "MessageLog.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 

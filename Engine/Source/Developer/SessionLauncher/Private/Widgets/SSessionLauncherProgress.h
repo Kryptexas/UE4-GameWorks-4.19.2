@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherProgressPage.h: Declares the SSessionLauncherProgressPage class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -21,7 +17,6 @@ public:
 	SLATE_BEGIN_ARGS(SSessionLauncherProgress) { }
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -32,13 +27,12 @@ public:
 
 	}
 
-
 public:
 
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
+	 * @param InArgs The Slate argument list.
 	 */
 	void Construct( const FArguments& InArgs )
 	{
@@ -180,7 +174,7 @@ public:
 	/**
 	 * Sets the launcher worker to track the progress for.
 	 *
-	 * @param Worker - The launcher worker.
+	 * @param Worker The launcher worker.
 	 */
 	void SetLauncherWorker( const ILauncherWorkerRef& Worker )
 	{
@@ -211,6 +205,7 @@ public:
 		ClearButton->SetEnabled(MessageList.Num() > 0);
 		CopyButton->SetEnabled(MessageListView->GetNumItemsSelected() > 0);
 	}
+
 private:
 
 	void HandleOutputReceived(const FString& InMessage)
@@ -430,10 +425,10 @@ private:
 	TWeakPtr<ILauncherWorker> LauncherWorker;
 
 	// Holds the output log.
-	TArray<TSharedPtr<FString> > OutputList;
+	TArray<TSharedPtr<FString>> OutputList;
 
 	// Holds the output list view.
-	TSharedPtr<SListView<TSharedPtr<FString> > > OutputListView;
+	TSharedPtr<SListView<TSharedPtr<FString>>> OutputListView;
 
 	// Holds the progress bar.
 	TSharedPtr<SProgressBar> ProgressBar;
@@ -442,16 +437,16 @@ private:
 	TArray<ILauncherTaskPtr> TaskList;
 
 	// Holds the message list.
-	TArray< TSharedPtr<FLauncherMessage > > MessageList;
+	TArray< TSharedPtr<FLauncherMessage>> MessageList;
 
 	// Holds the pending message list.
-	TArray< TSharedPtr<FLauncherMessage > > PendingMessages;
+	TArray< TSharedPtr<FLauncherMessage>> PendingMessages;
 
 	// Holds the message list view.
-	TSharedPtr<SListView<TSharedPtr<FLauncherMessage>> > MessageListView;
+	TSharedPtr<SListView<TSharedPtr<FLauncherMessage>>> MessageListView;
 
 	// Holds the task list view.
-	TSharedPtr<SListView<ILauncherTaskPtr> > TaskListView;
+	TSharedPtr<SListView<ILauncherTaskPtr>> TaskListView;
 
 	// Holds the box of task statuses.
 	TSharedPtr<SVerticalBox> TaskStatusBox;

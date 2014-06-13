@@ -1,14 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWorkerModule.cpp: Implements the FAutomationWorkerModule class.
-=============================================================================*/
-
 #include "AutomationWorkerPrivatePCH.h"
 
 
 #define LOCTEXT_NAMESPACE "AutomationTest"
-
 
 IMPLEMENT_MODULE(FAutomationWorkerModule, AutomationWorker);
 
@@ -152,13 +147,13 @@ void FAutomationWorkerModule::ReportNetworkCommandComplete()
 	}
 }
 
+
 /**
  *	Takes a large transport array and splits it into pieces of a desired size and returns the portion of this which is requested
  *
- * @param FullTransportArray	- The whole series of data
- * @param CurrentChunkIndex		- The The chunk we are requesting
- * @param NumToSend				- The maximum number of bytes we should be splitting into.
- *
+ * @param FullTransportArray The whole series of data
+ * @param CurrentChunkIndex The The chunk we are requesting
+ * @param NumToSend The maximum number of bytes we should be splitting into.
  * @return The section of the transport array which matches our index requested
  */
 TArray< uint8 > GetTransportSection( const TArray< uint8 >& FullTransportArray, const int32 NumToSend, const int32 RequestedChunkIndex )
@@ -292,7 +287,7 @@ void FAutomationWorkerModule::HandlePingMessage( const FAutomationWorkerPing& Me
 	MessageEndpoint->Send(new FAutomationWorkerPong(), Context->GetSender());
 }
 
-// Handles FAutomationWorkerResetTests messages.
+
 void FAutomationWorkerModule::HandleResetTests( const FAutomationWorkerResetTests& Message, const IMessageContextRef& Context )
 {
 	FAutomationTestFramework::GetInstance().ResetTests();
@@ -366,6 +361,7 @@ void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Heigh
 }
 #endif
 
+
 void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context )
 {
 	ExecutionCount = Message.ExecutionCount;
@@ -382,6 +378,7 @@ void FAutomationWorkerModule::HandleRunTestsMessage( const FAutomationWorkerRunT
 	FAutomationTestFramework::GetInstance().StartTestByName(Message.TestName, Message.RoleIndex);
 }
 
+
 void FAutomationWorkerModule::RunTest(const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent)
 {
 	TestName = InTestToRun;
@@ -396,8 +393,10 @@ void FAutomationWorkerModule::RunTest(const FString& InTestToRun, const int32 In
 	FAutomationTestFramework::GetInstance().StartTestByName(InTestToRun, InRoleIndex);
 }
 
-// This is sortof a local controller to run tests and spew results, mostly used by automated testing
 
+/**
+ * Implements a local controller to run tests and spew results, mostly used by automated testing.
+ */
 static struct FQueueTests
 {
 	struct FJob
@@ -423,8 +422,7 @@ static struct FQueueTests
 		: NumTestsRun(0)
 		, bTestInPogress(false)
 		, bTicking(false)
-	{
-	}
+	{ }
 
 	void NewTest(FString const& Command, int32 RoleIndex = 0, FOutputDevice* Ar = GLog)
 	{
@@ -505,6 +503,7 @@ static struct FQueueTests
 
 } QueueTests;
 
+
 bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 {
 	bool bResult = false;
@@ -553,7 +552,6 @@ bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 }
 
 
-
 static class FAutomationTestCmd : private FSelfRegisteringExec
 {
 public:
@@ -563,8 +561,6 @@ public:
 		return DirectAutomationCommand(Cmd, &Ar);
 	}
 } AutomationTestCmd;
-
-
 
 
 #undef LOCTEXT_NAMESPACE

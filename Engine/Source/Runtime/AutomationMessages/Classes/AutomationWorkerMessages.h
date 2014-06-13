@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	AutomationWorkerMessages.h: Declares message types used by automation workers.
-=============================================================================*/
-
 #pragma once
 
 #include "AutomationWorkerMessages.generated.h"
@@ -20,39 +16,26 @@ struct FAutomationWorkerFindWorkers
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the change list number to find workers for.
-	 */
+	/** Holds the change list number to find workers for. */
 	UPROPERTY()
 	int32 Changelist;
 
-	/**
-	 * The name of the game.
-	 */
+	/** The name of the game. */
 	UPROPERTY()
 	FString GameName;
 
-	/**
-	 * The name of the process.
-	 */
+	/** The name of the process. */
 	UPROPERTY()
 	FString ProcessName;
 
-	/**
-	 * Holds the session identifier to find workers for.
-	 */
+	/** Holds the session identifier to find workers for. */
 	UPROPERTY()
 	FGuid SessionId;
 
-
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FAutomationWorkerFindWorkers( ) { }
 
-	/**
-	 * Creates and initializes a new instance.
-	 */
+	/** Creates and initializes a new instance. */
 	FAutomationWorkerFindWorkers( int32 InChangelist, const FString& InGameName, const FString& InProcessName, const FGuid& InSessionId )
 		: Changelist(InChangelist)
 		, GameName(InGameName)
@@ -60,6 +43,7 @@ struct FAutomationWorkerFindWorkers
 		, SessionId(InSessionId)
 	{ }
 };
+
 
 template<>
 struct TStructOpsTypeTraits<FAutomationWorkerFindWorkers> : public TStructOpsTypeTraitsBase
@@ -79,66 +63,45 @@ struct FAutomationWorkerFindWorkersResponse
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the name of the device that the worker is running on.
-	 */
+	/** Holds the name of the device that the worker is running on. */
 	UPROPERTY()
 	FString DeviceName;
 
-	/**
-	 * Holds the name of the worker's application instance.
-	 */
+	/** Holds the name of the worker's application instance. */
 	UPROPERTY()
 	FString InstanceName;
 
-	/**
-	 * Holds the name of the platform that the worker is running on.
-	 */
+	/** Holds the name of the platform that the worker is running on. */
 	UPROPERTY()
 	FString Platform;
 
-	/**
-	 * Holds the name of the operating system version.
-	 */
+	/** Holds the name of the operating system version. */
 	UPROPERTY()
 	FString OSVersionName;
 
-	/**
-	 * Holds the name of the device model.
-	 */
+	/** Holds the name of the device model. */
 	UPROPERTY()
 	FString ModelName;
 
-	/**
-	 * Holds the name of the GPU.
-	 */
+	/** Holds the name of the GPU. */
 	UPROPERTY()
 	FString GPUName;
 
-	/**
-	 * Holds the name of the CPU model.
-	 */
+	/** Holds the name of the CPU model. */
 	UPROPERTY()
 	FString CPUModelName;
 
-	/**
-	 * Holds the amount of RAM this device has in gigabytes.
-	 */
+	/** Holds the amount of RAM this device has in gigabytes. */
 	UPROPERTY()
 	uint32 RAMInGB;
 
-	/**
-	 * Holds the name of the current render mode.
-	 */
+	/** Holds the name of the current render mode. */
 	UPROPERTY()
 	FString RenderModeName;
 
-	/**
-	 * Holds the worker's application session identifier.
-	 */
+	/** Holds the worker's application session identifier. */
 	UPROPERTY()
 	FGuid SessionId;
-
 
 	/**
 	 * Default constructor.
@@ -237,18 +200,13 @@ struct FAutomationWorkerRequestTests
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds a flag indicating whether the developer directory should be included.
-	 */
+	/** Holds a flag indicating whether the developer directory should be included. */
 	UPROPERTY()
 	bool DeveloperDirectoryIncluded;
 
-	/**
-	 * Holds a flag indicating whether the visual commandlet filter is enabled.
-	 */
+	/** Holds a flag indicating whether the visual commandlet filter is enabled. */
 	UPROPERTY()
 	bool VisualCommandletFilterOn;
-
 
 	/**
 	 * Default constructor.
@@ -282,18 +240,13 @@ struct FAutomationWorkerRequestTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 * Holds the test information serialized into a string.
-	 */
+	/** Holds the test information serialized into a string. */
 	UPROPERTY()
 	FString TestInfo;
 
-	/**
-	 * Holds the total number of tests returned.
-	 */
+	/** Holds the total number of tests returned. */
 	UPROPERTY()
 	int32 TotalNumTests;
-
 
 	/**
 	 * Default constructor.
@@ -327,34 +280,25 @@ struct FAutomationWorkerRunTests
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	uint32 ExecutionCount;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	int32 RoleIndex;
 
-	/**
-	 * Holds the name of the test to run.
-	 */
+	/** Holds the name of the test to run. */
 	UPROPERTY()
 	FString TestName;
 
-	/**
-	 * If true, we will save out screenshots for tests that support them.
-	 */
+	/** If true, we will save out screenshots for tests that support them. */
 	UPROPERTY()
 	bool bScreenshotsEnabled;
 
-	/**
-	 * If true, we will not resize screen shots.
-	 */
+	/** If true, we will not resize screen shots. */
 	UPROPERTY()
 	bool bUseFullSizeScreenShots;
-
 
 	/**
 	 * Default constructor.
@@ -391,38 +335,31 @@ struct FAutomationWorkerRunTestsReply
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	float Duration;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	TArray<FString> Errors;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	uint32 ExecutionCount;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	TArray<FString> Logs;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	bool Success;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	FString TestName;
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	TArray<FString> Warnings;
 };
@@ -444,11 +381,9 @@ struct FAutomationWorkerRequestNextNetworkCommand
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**
-	 */
+	/** */
 	UPROPERTY()
 	uint32 ExecutionCount;
-
 
 	/**
 	 * Default constructor.
@@ -490,6 +425,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerNextNetworkCommandReply> : public T
 	};
 };
 
+
 /**
  * Implements a message that is sent in containing a screen shot run during performance test.
  */
@@ -498,11 +434,11 @@ struct FAutomationWorkerScreenImage
 {
 	GENERATED_USTRUCT_BODY()
 
-	// The screen shot data
+	/** The screen shot data. */
 	UPROPERTY()
 	TArray<uint8> ScreenImage;
 
-	// The screen shot name
+	/** The screen shot name. */
 	UPROPERTY()
 	FString ScreenShotName;
 };
@@ -515,6 +451,7 @@ struct TStructOpsTypeTraits<FAutomationWorkerScreenImage> : public TStructOpsTyp
 		WithMessageHandling = true
 	};
 };
+
 
 /* Dummy class
  *****************************************************************************/

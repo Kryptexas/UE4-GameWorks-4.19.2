@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	IPv4Endpoint.h: Declares the FIPv4Endpoint class.
-=============================================================================*/
-
 #pragma once
 
 

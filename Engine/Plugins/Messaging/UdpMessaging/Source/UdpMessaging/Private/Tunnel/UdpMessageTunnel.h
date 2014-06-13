@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UdpMessageTunnel.h: Declares the FUdpMessageTunnel class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -90,14 +86,14 @@ public:
 
 public:
 
-	// Begin FRunnable interface
+	// FRunnable interface
 
-	virtual bool Init( ) OVERRIDE
+	virtual bool Init( ) override
 	{
 		return true;
 	}
 
-	virtual uint32 Run( ) OVERRIDE
+	virtual uint32 Run( ) override
 	{
 		while (!Stopping)
 		{
@@ -117,20 +113,18 @@ public:
 		return 0;
 	}
 
-	virtual void Stop( ) OVERRIDE
+	virtual void Stop( ) override
 	{
 		Stopping = true;
 	}
 
-	virtual void Exit( ) OVERRIDE { }
-
-	// End FRunnable interface
+	virtual void Exit( ) override { }
 
 public:
 
-	// Begin IUdpMessageTunnel interface
+	// IUdpMessageTunnel interface
 
-	virtual bool Connect( const FIPv4Endpoint& RemoteEndpoint ) OVERRIDE
+	virtual bool Connect( const FIPv4Endpoint& RemoteEndpoint ) override
 	{
 		FSocket* Socket = FTcpSocketBuilder(TEXT("FUdpMessageTunnel.RemoteConnection"));
 
@@ -151,7 +145,7 @@ public:
 		return false;
 	}
 
-	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) OVERRIDE
+	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) override
 	{
 		FScopeLock Lock(&CriticalSection);
 
@@ -163,27 +157,27 @@ public:
 		return OutConnections.Num();
 	}
 
-	virtual uint64 GetTotalInboundBytes( ) const OVERRIDE
+	virtual uint64 GetTotalInboundBytes( ) const override
 	{
 		return TotalInboundBytes;
 	}
 
-	virtual uint64 GetTotalOutboundBytes( ) const OVERRIDE
+	virtual uint64 GetTotalOutboundBytes( ) const override
 	{
 		return TotalOutboundBytes;
 	}
 
-	virtual bool IsServerRunning( ) const OVERRIDE
+	virtual bool IsServerRunning( ) const override
 	{
 		return (Listener != nullptr);
 	}
 
-	virtual FSimpleDelegate& OnConnectionsChanged( ) OVERRIDE
+	virtual FSimpleDelegate& OnConnectionsChanged( ) override
 	{
 		return ConnectionsChangedDelegate;
 	}
 
-	virtual void StartServer( const FIPv4Endpoint& LocalEndpoint ) OVERRIDE
+	virtual void StartServer( const FIPv4Endpoint& LocalEndpoint ) override
 	{
 		StopServer();
 
@@ -191,13 +185,11 @@ public:
 		Listener->OnConnectionAccepted().BindRaw(this, &FUdpMessageTunnel::HandleListenerConnectionAccepted);
 	}
 
-	virtual void StopServer( ) OVERRIDE
+	virtual void StopServer( ) override
 	{
 		delete Listener;
 		Listener = nullptr;
 	}
-
-	// End IUdpMessageTunnel interface
 
 protected:
 

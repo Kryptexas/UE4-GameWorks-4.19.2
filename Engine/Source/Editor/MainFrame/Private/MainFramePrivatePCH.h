@@ -1,16 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MainFramePrivatePCH.h: Pre-compiled header file for the MainFrame module.
-=============================================================================*/
-
 #pragma once
 
 
 #include "MainFrame.h"
 
 
-/* Dependencies
+/* Private dependencies
  *****************************************************************************/
 
 #include "AboutScreen.h"

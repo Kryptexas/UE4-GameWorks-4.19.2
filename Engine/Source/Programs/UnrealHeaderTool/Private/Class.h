@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Class.h: Represents a parsed class.
-=============================================================================*/
-
 #pragma once
 
 struct EEnforceInterfacePrefix

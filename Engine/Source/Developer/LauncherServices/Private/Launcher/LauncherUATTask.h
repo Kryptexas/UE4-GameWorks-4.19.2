@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	FLauncherUATTask.h: Declares the FLauncherUATTask class.
-=============================================================================*/
-
 #pragma once
 
 #include "PlatformInfo.h"
+
 
 /**
  * class for UAT launcher tasks.
@@ -32,7 +29,6 @@ public:
 	{
 		NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
 	}
-
 
 protected:
 
@@ -136,7 +132,6 @@ protected:
 
 		return (ReturnCode == 0);
 	}
-
 
 private:
 

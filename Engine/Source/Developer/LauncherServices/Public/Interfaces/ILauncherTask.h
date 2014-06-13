@@ -14,34 +14,22 @@ namespace ELauncherTaskStatus
 	 */
 	enum Type
 	{
-		/**
-		 * The task is currently busy executing.
-		 */
+		/** The task is currently busy executing. */
 		Busy,
 
-		/**
-		 * The task has been canceled.
-		 */
+		/** The task has been canceled. */
 		Canceled,
 
-		/**
-		 * The task is being canceled.
-		 */
+		/** The task is being canceled. */
 		Canceling,
 
-		/**
-		 * The task completed successfully.
-		 */
+		/** The task completed successfully. */
 		Completed,
 
-		/**
-		 * The task failed.
-		 */
+		/** The task failed. */
 		Failed,
 
-		/**
-		 * The task is waiting to execute.
-		 */
+		/** The task is waiting to execute. */
 		Pending
 	};
 }
@@ -52,14 +40,11 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnTaskStartedDelegate, const FString&);
 /** Delegate used to notify when a stage ends */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnTaskCompletedDelegate, const FString&);
 
-/**
- * Type definition for shared pointers to instances of ILauncherTask.
- */
+
+/** Type definition for shared pointers to instances of ILauncherTask. */
 typedef TSharedPtr<class ILauncherTask> ILauncherTaskPtr;
 
-/**
- * Type definition for shared references to instances of ILauncherTask.
- */
+/** Type definition for shared references to instances of ILauncherTask. */
 typedef TSharedRef<class ILauncherTask> ILauncherTaskRef;
 
 

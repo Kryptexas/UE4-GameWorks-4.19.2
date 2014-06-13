@@ -1,14 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SSessionLauncherToolbar.h: Declares the SSessionLauncherToolbar class.
-=============================================================================*/
-
 #pragma once
 
 
 #define LOCTEXT_NAMESPACE "SSessionLauncherTaskSelector"
-
 
 class SSessionLauncher;
 
@@ -38,15 +33,15 @@ public:
 	/**
 	 * Constructs the widget.
 	 *
-	 * @param InArgs - The Slate argument list.
-	 * @param InModel - The data model.
+	 * @param InArgs The Slate argument list.
+	 * @param InModel The data model.
 	 */
 	void Construct( const FArguments& InArgs, const FSessionLauncherModelRef& InModel, SSessionLauncher* InLauncher );
 
 	/**
 	 * Sets the currently selected task.
 	 *
-	 * @param InTask - The identifier of the task to set.
+	 * @param InTask The identifier of the task to set.
 	 */
 	void SetCurrentTask( ESessionLauncherTasks::Type InTask )
 	{
@@ -63,8 +58,7 @@ protected:
 	/**
 	 * Creates the toolbar widget.
 	 *
-	 * @param CommandList - The command list to use for the toolbar buttons.
-	 *
+	 * @param CommandList The command list to use for the toolbar buttons.
 	 * @return The toolbar widget.
 	 */
 	TSharedRef<SWidget> MakeToolbar( const TSharedRef<FUICommandList>& CommandList );

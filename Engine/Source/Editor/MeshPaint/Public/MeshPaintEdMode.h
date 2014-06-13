@@ -1,13 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	MeshPaintEdMode.h: Mesh paint tool
-================================================================================*/
-
-
-#ifndef __MeshPaintEdMode_h__
-#define __MeshPaintEdMode_h__
-
 #pragma once
 
 #include "GenericOctree.h"
@@ -27,7 +19,6 @@ namespace EMeshPaintResource
 }
 
 
-
 /** Mesh paint mode */
 namespace EMeshPaintMode
 {
@@ -42,7 +33,6 @@ namespace EMeshPaintMode
 }
 
 
-
 /** Vertex paint target */
 namespace EMeshVertexPaintTarget
 {
@@ -55,8 +45,6 @@ namespace EMeshVertexPaintTarget
 		Mesh
 	};
 }
-
-
 
 
 /** Mesh paint color view modes (somewhat maps to EVertexColorViewMode engine enum.) */
@@ -90,7 +78,6 @@ namespace EMeshPaintColorViewMode
  */
 class FMeshPaintSettings
 {
-
 public:
 
 	/** Static: Returns global mesh paint settings */
@@ -99,13 +86,10 @@ public:
 		return StaticMeshPaintSettings;
 	}
 
-
 protected:
 
 	/** Static: Global mesh paint settings */
 	static FMeshPaintSettings StaticMeshPaintSettings;
-
-
 
 public:
 
@@ -131,9 +115,7 @@ public:
 		  UVChannel( 0 ),
 		  ColorViewMode( EMeshPaintColorViewMode::Normal ),
 		  bEnableSeamPainting( true )
-	{
-	}
-
+	{ }
 
 public:
 
@@ -155,11 +137,9 @@ public:
 	/** Resource type we're editing */
 	EMeshPaintResource::Type ResourceType;
 
-
 	/** Mode we're painting in.  If this is set to PaintColors we're painting colors directly; if it's set
 	    to PaintWeights we're painting texture blend weights using a single channel. */
 	EMeshPaintMode::Type PaintMode;
-
 
 	/** Colors Mode: Paint color */
 	FLinearColor PaintColor;
@@ -179,7 +159,6 @@ public:
 	/** Colors Mode: True if alpha colors values should be written */
 	bool bWriteAlpha;
 
-
 	/** Weights Mode: Total weight count */
 	int32 TotalWeightCount;
 
@@ -189,7 +168,6 @@ public:
 	/** Weights Mode: Weight index that we're currently using to erase with */
 	int32 EraseWeightIndex;
 
-
 	/**
 	 * Vertex paint settings
 	 */
@@ -197,14 +175,12 @@ public:
 	/** Vertex paint target */
 	EMeshVertexPaintTarget::Type VertexPaintTarget;
 
-
 	/**
 	 * Texture paint settings
 	 */
 	
 	/** UV channel to paint textures using */
 	int32 UVChannel;
-
 
 	/**
 	 * View settings
@@ -216,7 +192,6 @@ public:
 	/** Seam painting flag, True if we should enable dilation to allow the painting of texture seams */
 	bool bEnableSeamPainting; 
 };
-
 
 
 /** Mesh painting action (paint, erase) */
@@ -237,7 +212,6 @@ namespace EMeshPaintAction
 		PushInstanceColorsToMesh
 	};
 }
-
 
 
 namespace MeshPaintDefs
@@ -267,6 +241,7 @@ struct FTextureTargetListInfo
 	{}
 };
 
+
 /** 
  *  Wrapper to store which of a meshes materials is selected as well as the total number of materials. 
  */
@@ -280,6 +255,7 @@ struct FMeshSelectedMaterialInfo
 		,	SelectedMaterialIndex(0)
 	{}
 };
+
 
 /**
  * Mesh Paint editor mode
@@ -747,6 +723,7 @@ private:
 
 	/** Caches the currently selected actors info into CurrentlySelectedActorsMaterialInfo */
 	void CacheActorInfo();
+
 private:
 
 	/** Whether we're currently painting */
@@ -832,9 +809,7 @@ private:
 
 	/** The currently selected actor, used to refer into the Map of Selected actor info */
 	TWeakObjectPtr<AActor> ActorBeingEdited;
-
 };
-
 
 
 /**
@@ -843,32 +818,44 @@ private:
 class FImportVertexTextureHelper  
 {
 public:
-	enum ChannelsMask{
+
+	/**
+	 * Enumerates channel masks.
+	 */
+	enum ChannelsMask
+	{
+		/** Red channel. */
 		ERed		= 0x1,
+
+		/** Green channel. */
 		EGreen		= 0x2,
+
+		/** Blue channel. */
 		EBlue		= 0x4,
+
+		/** Alpha channel. */
 		EAlpha		= 0x8,
 	};
 
 	/**
-	* PickVertexColorFromTex() - Color picker function. Retrieves pixel color from coordinates and mask.
-	* @param NewVertexColor - returned color
-	* @param MipData - Highest mip-map with pixels data
-	* @param UV - texture coordinate to read
-	* @param Tex - texture info
-	* @param ColorMask - mask for filtering which colors to use
-	*/
+	 * Color picker function. Retrieves pixel color from coordinates and mask.
+	 *
+	 * @param NewVertexColor Returned color.
+	 * @param MipData Highest mip-map with pixels data.
+	 * @param UV Texture coordinate to read.
+	 * @param Tex Texture info.
+	 * @param ColorMask Mask for filtering which colors to use.
+	 */
 	void PickVertexColorFromTex(FColor & NewVertexColor, uint8* MipData, FVector2D & UV, UTexture2D* Tex, uint8 & ColorMask);
 	
 	/**
-	* Imports Vertex Color data from texture scanning thought uv vertex coordinates for selected actors.  
-	* @param Filename - path for loading TGA file
-	* @param UVIndex - Coordinate index
-	* @param ImportLOD - LOD level to work with
-	* @param Tex - texture info
-	* @param ColorMask - mask for filtering which colors to use
-	*/
+	 * Imports Vertex Color data from texture scanning thought uv vertex coordinates for selected actors.  
+	 *
+	 * @param Filename path for loading TGA file.
+	 * @param UVIndex Coordinate index.
+	 * @param ImportLOD LOD level to work with.
+	 * @param Tex Texture info.
+	 * @param ColorMask Mask for filtering which colors to use.
+	 */
 	void ImportVertexColors(const FString & Filename, int32 UVIndex, int32 ImportLOD, uint8 ColorMask);
-
 };
-#endif	// __MeshPaintEdMode_h__

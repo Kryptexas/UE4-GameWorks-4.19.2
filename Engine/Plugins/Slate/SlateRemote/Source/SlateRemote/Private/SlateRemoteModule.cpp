@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateRemoteModule.cpp: Implements the SlateRemote module.
-=============================================================================*/
-
 #include "SlateRemotePrivatePCH.h"
 
 
@@ -18,7 +14,7 @@ class FSlateRemoteModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule( ) override
 	{
@@ -72,8 +68,6 @@ public:
 	{
 		return true;
 	}
-
-	// End IModuleInterface interface
 
 protected:
 

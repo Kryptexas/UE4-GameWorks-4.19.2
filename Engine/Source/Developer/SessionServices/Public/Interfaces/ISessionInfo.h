@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ISessionInfo.h: Declares the ISessionInfo interface.
-=============================================================================*/
-
 #pragma once
 
 

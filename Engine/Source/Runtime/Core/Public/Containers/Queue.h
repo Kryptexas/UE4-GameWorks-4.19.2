@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	Queue.h: Declares the TQueue class template.
-=============================================================================*/
-
 #pragma once
 
 
@@ -34,10 +30,9 @@ namespace EQueueMode
  * writing it in a way that does not depend on possible instruction reordering on the CPU.
  * The Enqueue() method uses an atomic compare-and-swap in multiple-producers scenarios.
  *
- * @param ItemType - The type of items stored in the queue.
- * @param Mode - The queue mode (single-producer, single-consumer by default).
- *
- * @todo gmp: Implement node pooling.
+ * @param ItemType The type of items stored in the queue.
+ * @param Mode The queue mode (single-producer, single-consumer by default).
+  * @todo gmp: Implement node pooling.
  */
 template<typename ItemType, EQueueMode::Type Mode = EQueueMode::Spsc>
 class TQueue

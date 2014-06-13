@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SettingsMenu.h: Declares the FSettingsMenu class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -20,8 +16,8 @@ public:
 	/**
 	 * Creates the menu.
 	 *
-	 * @param MenuBuilder - The builder for the menu that owns this menu.
-	 * @param SettingsContainerName - The name of the settings container to create the menu for.
+	 * @param MenuBuilder The builder for the menu that owns this menu.
+	 * @param SettingsContainerName The name of the settings container to create the menu for.
 	 */
 	static void MakeMenu( FMenuBuilder& MenuBuilder, FName SettingsContainerName )
 	{
@@ -75,9 +71,9 @@ public:
 	/**
 	 * Opens the settings tab with the specified settings section.
 	 *
-	 * @param ContainerName - The name of the settings container to open.
-	 * @param CategoryName - The name of the settings category that contains the section.
-	 * @param SectionName - The name of the settings section to select.
+	 * @param ContainerName The name of the settings container to open.
+	 * @param CategoryName The name of the settings category that contains the section.
+	 * @param SectionName The name of the settings section to select.
 	 */
 	static void OpenSettings( FName ContainerName, FName CategoryName, FName SectionName )
 	{

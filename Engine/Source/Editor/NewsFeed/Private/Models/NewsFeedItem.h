@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NewsFeedItem.h: Declares the FNewsFeedItem class.
-=============================================================================*/
-
 #pragma once
 
 
@@ -48,7 +44,7 @@ public:
 	/**
 	 * Creates and initializes a new item with the specified identifier.
 	 *
-	 * @param InItemId - The item identifier.
+	 * @param InItemId The item identifier.
 	 */
 	FNewsFeedItem( const FGuid& InItemId )
 		: ItemId(InItemId)

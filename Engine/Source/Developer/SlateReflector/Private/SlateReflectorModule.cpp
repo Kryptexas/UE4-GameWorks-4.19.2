@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SlateReflectorModule.cpp: Implements the FSlateReflectorModule class.
-=============================================================================*/
-
 #include "SlateReflectorPrivatePCH.h"
 #include "ModuleManager.h"
 
@@ -19,7 +15,7 @@ class FSlateReflectorModule
 {
 public:
 
-	// Begin ISlateReflectorModule interface
+	// ISlateReflectorModule interface
 
 	virtual TSharedRef<SWidget> GetWidgetReflector( ) override
 	{
@@ -48,11 +44,9 @@ public:
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("WidgetReflector");
 	}
 
-	// End ISlateReflectorModule interface
-
 public:
 
-	// Begin IModuleInterface interface
+	// IModuleInterface interface
 
 	virtual void StartupModule( ) override { }
 
@@ -60,8 +54,6 @@ public:
 	{
 		UnregisterTabSpawner();
 	}
-
-	// End IModuleInterface interface
 
 private:
 

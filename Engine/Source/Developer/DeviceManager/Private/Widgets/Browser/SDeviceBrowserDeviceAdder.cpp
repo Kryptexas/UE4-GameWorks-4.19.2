@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserDeviceAdder.cpp: Implements the SDeviceBrowserDeviceAdder class.
-=============================================================================*/
-
 #include "DeviceManagerPrivatePCH.h"
 
 

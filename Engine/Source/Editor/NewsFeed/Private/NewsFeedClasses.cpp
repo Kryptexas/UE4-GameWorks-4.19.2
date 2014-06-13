@@ -1,12 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NewsFeedClasses.cpp: Implements the module's script classes.
-=============================================================================*/
-
 #include "NewsFeedPrivatePCH.h"
 
-/* UNewsFeedSettings interface
+
+/* UNewsFeedSettings structors
  *****************************************************************************/
 
 UNewsFeedSettings::UNewsFeedSettings( const class FPostConstructInitializeProperties& PCIP )
@@ -15,6 +12,9 @@ UNewsFeedSettings::UNewsFeedSettings( const class FPostConstructInitializeProper
 	, ShowOnlyUnreadItems(true)
 { }
 
+
+/* UObject overrides
+ *****************************************************************************/
 
 void UNewsFeedSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {

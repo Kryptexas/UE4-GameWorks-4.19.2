@@ -1,19 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	PngImageWrapper.cpp: Implements the FPngImageWrapper class.
-
-	http://www.libpng.org/pub/png/libpng-1.2.5-manual.html
-
-	The below code isn't documented as it's black box behavior is almost 
-	entirely based on the sample from the libPNG documentation. 
-	
-	InitCompressed and InitRaw will set initial state and you will then be 
-	able to fill in Raw or CompressedData by calling Uncompress or Compress 
-	respectively.
-=============================================================================*/
-
 #include "ImageWrapperPrivatePCH.h"
+
 
 #if WITH_UNREALPNG
 
@@ -26,7 +14,7 @@ FCriticalSection GPNGSection;
  *****************************************************************************/
 
 /**
- * Guard that safely releases PNG reader resources
+ * Guard that safely releases PNG reader resources.
  */
 class PNGReadGuard
 {

@@ -1,10 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MonteCarlo.h: Utilities for Monte Carlo integration.
-=============================================================================*/
-
 #pragma once
+
 
 namespace Lightmass
 {

@@ -1,30 +1,21 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	ProfilerPrivatePCH.h: Pre-compiled header file for the Profiler module.
-=============================================================================*/
+#pragma once
 
-#ifndef __ProfilerPrivatePCH_h__
-#define __ProfilerPrivatePCH_h__
+#include "Profiler.h"
 
-/*-----------------------------------------------------------------------------
-	Public included
------------------------------------------------------------------------------*/
 
-#include "../Public/Profiler.h"
-#include "StatsData.h"
-#include "StatsFile.h"
-
-/*-----------------------------------------------------------------------------
-	Dependencies
------------------------------------------------------------------------------*/
+/* Private dependencies
+ *****************************************************************************/
 
 #include "Messaging.h"
 #include "ProfilerClient.h"
+#include "StatsData.h"
+#include "StatsFile.h"
 
-/*-----------------------------------------------------------------------------
-	Private includes
------------------------------------------------------------------------------*/
+
+/* Private includes
+ *****************************************************************************/
 
 // TODO: Remove dependencies between generic profiler code and profiler ui code
 
@@ -51,5 +42,3 @@
 #include "SProfilerWindow.h"
 #include "SHistogram.h"
 #include "StatDragDropOp.h"
-
-#endif // __ProfilerPrivatePCH_h__

@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	UnitTest.cpp: Unit test implementation
-=============================================================================*/
-
 #include "stdafx.h"
 #include "UnitTest.h"
 

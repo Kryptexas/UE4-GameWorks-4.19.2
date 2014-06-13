@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	GenericPlatformMemory.cpp: Generic implementations of memory platform functions
-=============================================================================*/
-
 #include "CorePrivate.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"

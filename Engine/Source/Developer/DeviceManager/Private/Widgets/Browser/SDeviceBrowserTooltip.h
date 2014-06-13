@@ -1,9 +1,5 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SDeviceBrowserTooltip.h: Declares the SDeviceBrowserTooltip class.
-=============================================================================*/
-
 #pragma once
 
 

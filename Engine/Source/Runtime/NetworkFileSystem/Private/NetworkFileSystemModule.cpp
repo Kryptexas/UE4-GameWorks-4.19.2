@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	NetworkFileSystemModule.cpp: Implements the FNetworkFileSystemModule class.
-=============================================================================*/
-
 #include "NetworkFileSystemPrivatePCH.h"
-
 #include "TargetDeviceId.h"
 #include "ITargetDevice.h"
 #include "ITargetPlatformManagerModule.h"
 #include "ModuleManager.h"
+
 
 DEFINE_LOG_CATEGORY(LogFileServer);
 
@@ -22,7 +18,7 @@ class FNetworkFileSystemModule
 {
 public:
 
-	// Begin INetworkFileSystemModule interface
+	// INetworkFileSystemModule interface
 
 	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port, const FFileRequestDelegate* InFileRequestDelegate, const FRecompileShadersDelegate* InRecompileShadersDelegate ) const OVERRIDE
 	{
@@ -48,8 +44,6 @@ public:
 		return new FNetworkFileServerHttp(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
 #endif 
 	}
-
-	// End INetworkFileSystemModule interface
 };
 
 
