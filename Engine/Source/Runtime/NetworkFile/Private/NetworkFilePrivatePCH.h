@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "NetworkMessage.h"
-
 #include "Core.h"
 #include "ModuleManager.h"
+
+#include "NetworkMessage.h"

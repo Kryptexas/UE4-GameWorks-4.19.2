@@ -4,8 +4,6 @@
 #include "TCPTransport.h"
 #include "MultichannelTCP.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
-
 FTCPTransport::FTCPTransport()
 	:FileSocket(NULL)
 	,MCSocket(NULL)
