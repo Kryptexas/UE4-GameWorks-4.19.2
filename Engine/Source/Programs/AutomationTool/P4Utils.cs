@@ -1517,6 +1517,21 @@ namespace AutomationTool
 			return Result;
 		}
 
+        /// <summary>
+        /// Returns the output from p4 opened
+        /// </summary>
+        /// <param name="CL">Changelist to get the specification from.</param>
+        /// <returns>Specification of the changelist.</returns>
+        public string OpenedOutput()
+        {
+            CheckP4Enabled();
+            string CmdOutput;
+            if (LogP4Output(out CmdOutput, "opened"))
+            {
+                return CmdOutput;
+            }
+            throw new P4Exception("OpenedOutput failed, output follows\n{0}", CmdOutput);
+        }
 		/// <summary>
 		/// Deletes the specified label.
 		/// </summary>
