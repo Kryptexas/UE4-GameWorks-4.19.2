@@ -16,7 +16,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 {
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
-
+#if WITH_EDITORONLY_DATA
 	SetTickableWhenPaused(true);
 	SetIsTemporarilyHiddenInEditor(true);
 	SetActorHiddenInGame(false);
@@ -24,6 +24,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	bHiddenEdLayer = true;
 	bHiddenEd = true;
 	bEditable = false;
+#endif
 }
 
 void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
