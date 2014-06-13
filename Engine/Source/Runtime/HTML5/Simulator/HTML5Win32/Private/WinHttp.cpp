@@ -33,21 +33,21 @@ static size_t
 	return realsize;
 }
 
-static char *GURL;
+static char GURL[1024];
 void HTML5Win32::NFSHttp::Init(char* URL)
 {
-	 GURL = URL; 
+	 strcpy(GURL,URL); 
 	 curl_global_init(CURL_GLOBAL_ALL); 
 	 curl = curl_easy_init();
 }
 
 
-void HTML5Win32::NFSHttp::SendPayLoadAndRecieve(const unsigned char* In, unsigned int InSize, unsigned char** Out, unsigned int& size)
+bool HTML5Win32::NFSHttp::SendPayLoadAndRecieve(const unsigned char* In, unsigned int InSize, unsigned char** Out, unsigned int& size)
 {
 	struct curl_slist *headerlist=NULL;
 	static const char buf[] = "Expect:"; 
 
-	curl_easy_setopt(curl, CURLOPT_URL, "http://127.0.0.1:9000");
+	curl_easy_setopt(curl, CURLOPT_URL, GURL);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
@@ -76,12 +76,14 @@ void HTML5Win32::NFSHttp::SendPayLoadAndRecieve(const unsigned char* In, unsigne
 	/* check for errors */ 
 	if(result != CURLE_OK) {
 		fprintf(stderr, "curl_easy_perform() failed: %s\n",
-			curl_easy_strerror(result));
+		curl_easy_strerror(result));
+		return false; 
 	}
 
 	*Out = chunk.memory; 
 	size= chunk.size; 
 
 	curl_easy_reset(curl);
+
+	return true;
 }
-#endif 

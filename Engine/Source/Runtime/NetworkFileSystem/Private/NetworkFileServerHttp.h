@@ -8,7 +8,7 @@
 =============================================================================*/
 #pragma  once
 
-#if USE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NFS
 class FNetworkFileServerHttp
 	:	public INetworkFileServer // It is a NetworkFileServer
 	,	private FRunnable // Also spins up a thread but others don't need to know. 

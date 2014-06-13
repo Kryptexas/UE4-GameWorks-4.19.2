@@ -9,6 +9,6 @@ namespace HTML5Win32
 	namespace NFSHttp
 	{
 		void Init(char* URL); 
-		void SendPayLoadAndRecieve(const unsigned char* In, unsigned int Size, unsigned char** Out, unsigned int& size); 
+		bool SendPayLoadAndRecieve(const unsigned char* In, unsigned int Size, unsigned char** Out, unsigned int& size); 
 	};
 }

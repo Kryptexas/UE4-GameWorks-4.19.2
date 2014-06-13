@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#if USE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NFS
 
 #include "NetworkFileSystemPrivatePCH.h"
 #include "NetworkFileServerHttp.h"
@@ -262,13 +262,17 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				TCHAR ServerBanner[] = TEXT("<HTML>This is Unreal File Server</HTML>");
 				int x  = FCString::Sprintf(
 					Buffer,
-					TEXT("HTTP/1.0 200 OK\x0d\x0a Server: Unreal File Server\x0d\x0a Connection: close\x0d\x0a Content-Type: text/html; charset=utf-8\x0d\x0a Content-Length: %u\x0d\x0a\x0d\x0a%s"), 
+					TEXT("HTTP/1.0 200 OK\x0d\x0a")
+					TEXT("Server: Unreal File Server\x0d\x0a")
+					TEXT("Connection: close\x0d\x0a") 
+					TEXT("Content-Type: text/html; charset=utf-8\x0d\x0a")
+					TEXT("Content-Length: %u\x0d\x0a\x0d\x0a%s"), 
 					FCString::Strlen(ServerBanner),
 					ServerBanner
 					);
 
 				// very small data being sent, its fine to just send.  
-				libwebsocket_write(wsi,(unsigned char*)TCHAR_TO_ANSI(Buffer),FCString::Strlen(Buffer), LWS_WRITE_HTTP);
+				libwebsocket_write(wsi,(unsigned char*)TCHAR_TO_ANSI(Buffer),FCStringAnsi::Strlen(TCHAR_TO_ANSI(Buffer)), LWS_WRITE_HTTP);
 			}
 			else
 			{
@@ -324,7 +328,12 @@ int FNetworkFileServerHttp::CallBack_HTTP(
 				// file up the header. 
 				TCHAR header[1024];
 				int x  = FCString::Sprintf(header,
-					TEXT("HTTP/1.1 200 OK\x0d\x0a Server: Unreal File Server\x0d\x0a Connection: close\x0d\x0a Content-Type: %s \x0d\x0a Content-Length: %u\x0d\x0a\x0d\x0a"),Mime,fsize);
+					TEXT("HTTP/1.1 200 OK\x0d\x0a")
+					TEXT("Server: Unreal File Server\x0d\x0a")
+					TEXT("Connection: close\x0d\x0a")
+					TEXT("Content-Type: %s \x0d\x0a")
+					TEXT("Content-Length: %u\x0d\x0a\x0d\x0a"),
+					Mime,fsize);
 
 				// make space for the whole file in our out buffer. 
 				bufferInfo->Out.Append((const unsigned char*)TCHAR_TO_ANSI(header),x); 

@@ -7,7 +7,6 @@ public class WebSockets : ModuleRules
     public WebSockets(TargetInfo Target)
 	{
 		Type = ModuleType.External;
-        /*  
             string WebsocketPath = UEBuildConfiguration.UEThirdPartyDirectory + "WebSockets/libwebsockets/";
 		    if (Target.Platform == UnrealTargetPlatform.Win64)
             {
@@ -16,7 +15,6 @@ public class WebSockets : ModuleRules
 			    PublicAdditionalLibraries.Add("websockets_static.lib");
 			    PublicAdditionalLibraries.Add("ZLIB.lib");
 		    }
-         */
     }
 }
 

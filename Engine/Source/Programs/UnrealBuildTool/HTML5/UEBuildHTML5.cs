@@ -10,8 +10,18 @@ namespace UnrealBuildTool
 {
 	class HTML5Platform : UEBuildPlatform
 	{
+        // use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
 		[XmlConfig]
 		public static string HTML5Architecture = "";
+
+        // Enable and link in code for serving HTTP request via NFS. 
+        [XmlConfig]
+        public static bool EnableHTTPForNFS = false;
+
+        // Actually use HTTP code path for both Client and Server. 
+        [XmlConfig]
+        public static bool UseHTTPForNFS = false;
+
 
 		// The current architecture - affects everything about how UBT operates on HTML5
 		public override string GetActiveArchitecture()
@@ -24,7 +34,7 @@ namespace UnrealBuildTool
 		public override string ModifyNMakeOutput(string ExeName)
 		{
 			// nmake Run should always run the win32 version
-			return Path.ChangeExtension(ExeName+GetActiveArchitecture(), ".exe");
+			return Path.ChangeExtension(ExeName+"-win32", ".exe");
 		}
 
 		/**
@@ -81,6 +91,10 @@ namespace UnrealBuildTool
                     }
 				}
 			}
+
+            // if HTTP is not enabled, we can't use it. 
+            if (EnableHTTPForNFS == false)
+                UseHTTPForNFS = false; 
 		}
 
 		/**
@@ -269,15 +283,25 @@ namespace UnrealBuildTool
 					InModule.AddPrivateDependencyModule("UElibPNG");
 					InModule.AddPublicDependencyModule("UEOgg");
 					InModule.AddPublicDependencyModule("Vorbis");
-				}
-                else if (InModule.ToString() == "NetworkFile")
+                }
+
+                if (InModule.ToString() == "NetworkFile")
                 {
-                    if (Target.Architecture == "-win32")
+                    if (EnableHTTPForNFS)
+                    {   
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                        if (Target.Architecture == "-win32")
+                        {
+                            InModule.AddPrivateDependencyModule("HTML5Win32");
+                        }
+                        else
+                        {
+                            InModule.AddPrivateDependencyModule("HTML5JS");
+                        }
+                    }
+                    if (UseHTTPForNFS)
                     {
-                        InModule.AddPrivateDependencyModule("HTML5Win32");
-                    }else
-                    {
-                        InModule.AddPrivateDependencyModule("HTML5JS");
+                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
                     }
                 }
 			}
@@ -290,14 +314,33 @@ namespace UnrealBuildTool
 				{
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
 				}
-                if (InModule.ToString() == "NetworkFile") // client
+
+                if (EnableHTTPForNFS)
                 {
-                    InModule.AddPrivateDependencyModule("HTTP");
+                    if (InModule.ToString() == "NetworkFile") // client
+                    {
+                        InModule.AddPrivateDependencyModule("HTTP");
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    }
+                    else if (InModule.ToString() == "NetworkFileSystem") // server 
+                    {
+                        InModule.AddPublicDependencyModule("WebSockets");
+                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    }
                 }
-                else if (InModule.ToString() == "NetworkFileSystem") // server 
+                if (UseHTTPForNFS)
                 {
-                    InModule.AddPublicDependencyModule("WebSockets");
+                    if (InModule.ToString() == "NetworkFile") // client
+                    {
+                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
+                    }
+                    else if (InModule.ToString() == "NetworkFileSystem") // server 
+                    {
+                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
+                    }
                 }
+
+
 			}
 		}
 
@@ -309,6 +352,9 @@ namespace UnrealBuildTool
 		 */
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
+            if (GetActiveArchitecture() == "-win32")
+                InBuildTarget.GlobalLinkEnvironment.Config.ExcludedLibraries.Add("LIBCMT");
+
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_HTML5=1");
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HTML5=1");
             if (InBuildTarget.GlobalCompileEnvironment.Config.Target.Architecture == "-win32")

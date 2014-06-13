@@ -1,9 +1,14 @@
 #include "NetworkFilePrivatePCH.h"
 
-#if USE_HTTP_FOR_NFS
+#if ENABLE_HTTP_FOR_NFS
 
 #include "HTTPTransport.h"
 #include "NetworkMessage.h"
+
+#if PLATFORM_HTML5_WIN32 
+#include "WinHttp.h"
+#endif 
+
 
 FHTTPTransport::FHTTPTransport()
 	:Guid(FGuid::NewGuid())
@@ -14,10 +19,14 @@ bool FHTTPTransport::Initialize(const TCHAR* HostIp)
 {
 	TCHAR Url[1048];
 	FCString::Sprintf( Url, TEXT("http://%s:%d"), HostIp, (int)DEFAULT_FILE_SERVING_PORT); 
+
+#if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest(); 
 	HttpRequest->SetURL(Url);
+#endif 
+
 #if PLATFORM_HTML5_WIN32
-	HTML5Win32::NFSHttp::Init(TCHAR_TO_ANSI(HostIp));
+	HTML5Win32::NFSHttp::Init(TCHAR_TO_ANSI(Url));
 #endif 
 
 	TArray<uint8> In,Out; 
@@ -84,7 +93,7 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 	HttpRequest->CancelRequest();
 
 	return false; 
-#else 
+#else  // PLATFORM_HTML5
 
 	FBufferArchive Ar; 
 	if ( In.Num() )
@@ -97,18 +106,27 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 	unsigned int OutSize= 0; 
 
 #if PLATFORM_HTML5_WIN32
-	HTML5Win32::NFSHttp::SendPayLoadAndRecieve(Ar.GetData(), Ar.Num(), &OutData, OutSize);
-	Out.Append(OutData,OutSize); 
-	free (OutData); 
-#else
+
+
+	bool RetVal = HTML5Win32::NFSHttp::SendPayLoadAndRecieve(Ar.GetData(), Ar.Num(), &OutData, OutSize);
+	if (OutSize)
+	{
+		Out.Append(OutData,OutSize); 
+		free (OutData); 
+	}
+
+	return RetVal; 
+#endif 
+
+#if PLATFORM_HTML5_BROWSER
 	UE_SendAndRecievePayLoad("http://127.0.0.1:9000",(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
 	Out.Append(OutData,OutSize); 
 	// don't go through the Unreal Memory system. 
 	::free (OutData); 
-#endif 
-#endif
 
 	return true; 
+#endif 
+#endif
 
 }
 
