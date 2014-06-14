@@ -1,52 +1,30 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 using UnrealBuildTool;
-using System.IO;
 
 public class ICU : ModuleRules
 {
-    enum EICULinkType
-    {
-        None,
-        Static,
-        Dynamic
-    }
-
 	public ICU(TargetInfo Target)
 	{
 		Type = ModuleType.External;
 
-		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/icu4c-53_1/";
+		string ICURootPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "ICU/icu4c-51_2/";
 
 		// Includes
 		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");
 
 		string PlatformFolderName = Target.Platform.ToString();
 
-        EICULinkType ICULinkType;
-        switch (Target.Type)
-        {
-            case TargetRules.TargetType.Game:
-            case TargetRules.TargetType.Client:
-            case TargetRules.TargetType.Server:
-            case TargetRules.TargetType.RocketGame:
-                ICULinkType = EICULinkType.Static;
-                break;
-            case TargetRules.TargetType.Editor:
-            case TargetRules.TargetType.Program:
-                ICULinkType = EICULinkType.Dynamic;
-                break;
-            default:
-                ICULinkType = EICULinkType.None;
-                break;
-        }
-
-        string TargetSpecificPath = ICURootPath + PlatformFolderName + "/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
-			TargetSpecificPath += VSVersionFolderName + "/";
+			string TargetSpecificPath = ICURootPath + PlatformFolderName + "/" + VSVersionFolderName + "/";
 
+			// Library Paths
+			PublicLibraryPaths.Add(TargetSpecificPath + "lib" + "/");
+
+			// Libraries
+			string LibraryNamePrefix = "sicu";
 			string[] LibraryNameStems =
 			{
 				"dt",   // Data
@@ -58,53 +36,17 @@ public class ICU : ModuleRules
 			};
 			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
 				"d" : string.Empty;
+			string LibraryExtension = "lib";
 
-            // Library Paths
-            PublicLibraryPaths.Add(TargetSpecificPath + "lib" + "/");
-
-            switch(ICULinkType)
-            {
-            case EICULinkType.Static:
-			    foreach (string Stem in LibraryNameStems)
-			    {
-				    string LibraryName = "sicu" + Stem + LibraryNamePostfix + "." + "lib";
-				    PublicAdditionalLibraries.Add(LibraryName);
-			    }
-                break;
-            case EICULinkType.Dynamic:
 			foreach (string Stem in LibraryNameStems)
 			{
-                        string LibraryName = "icu" + Stem + LibraryNamePostfix + "." + "lib";
+				string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
-
-                foreach (string Stem in LibraryNameStems)
-                {
-                    string LibraryName = "icu" + Stem + LibraryNamePostfix + "53" + "." + "dll";
-                    PublicDelayLoadDLLs.Add(LibraryName);
-                }
-                break;
-            }
 		}
 		else if ((Target.Platform == UnrealTargetPlatform.Mac) ||
 			(Target.Platform == UnrealTargetPlatform.Linux))
 		{
-            string StaticLibraryExtension = "a";
-            string DynamicLibraryExtension;
-            switch (Target.Platform)
-            {
-            case UnrealTargetPlatform.Mac:
-                DynamicLibraryExtension = "dylib";
-                break;
-            case UnrealTargetPlatform.Linux:
-                TargetSpecificPath += Target.Architecture + "/";
-                DynamicLibraryExtension = "so";
-                break;
-            default: // Should be impossible, but the compiler won't accept not having DynamicLibraryExtension assigned.
-                DynamicLibraryExtension = string.Empty;
-                break;
-            }
-
 			string[] LibraryNameStems =
 			{
 				"data", // Data
@@ -114,31 +56,24 @@ public class ICU : ModuleRules
 				"lx",   // Layout Extensions
 				"io"	// Input/Output
 			};
-            string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ?
-                "d" : string.Empty;
-
-            // Library Paths
-            PublicLibraryPaths.Add(TargetSpecificPath + "lib" + "/");
+			string LibraryNamePostfix = string.Empty;
+			if (Target.Platform == UnrealTargetPlatform.Mac)
+			{
+				ICURootPath += "Mac/lib/";
+				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					LibraryNamePostfix = "d";
+			}
+            else
+            {
+                ICURootPath += "Linux/" + Target.Architecture + "/";
+            }
+			string LibraryExtension = "a";
 			string LibraryNamePrefix = "libicu";
 
-            switch (ICULinkType)
-            {
-                case EICULinkType.Static:
-                    foreach (string Stem in LibraryNameStems)
-			{
-                        string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + "." + StaticLibraryExtension;
-                        PublicAdditionalLibraries.Add(LibraryName);
-			}
-                    break;
-                case EICULinkType.Dynamic:
-            {
 			foreach (string Stem in LibraryNameStems)
 			{
-                            string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + ".53.1" + "." + DynamicLibraryExtension;
-                            PublicDelayLoadDLLs.Add(UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName);
-                        }
-                    }
-                    break;
+				string LibraryName = ICURootPath + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.PS4)
@@ -182,7 +117,6 @@ public class ICU : ModuleRules
 			Definitions.Add("U_NO_DEFAULT_INCLUDE_UTF_HEADERS=1"); // Disables unnecessary inclusion of headers - inclusions are for ease of use.
 			Definitions.Add("UNISTR_FROM_CHAR_EXPLICIT=explicit"); // Makes UnicodeString constructors for ICU character types explicit.
 			Definitions.Add("UNISTR_FROM_STRING_EXPLICIT=explicit"); // Makes UnicodeString constructors for "char"/ICU string types explicit.
-            Definitions.Add("UCONFIG_NO_TRANSLITERATION=1"); // Disables declarations and compilation of unused ICU transliteration functionality.
 		}
 		
 		if (Target.Platform == UnrealTargetPlatform.PS4)

@@ -83,11 +83,6 @@ private:
 	CORE_API void Initialize();
 	CORE_API void Terminate();
 
-#if UE_ENABLE_ICU && (IS_PROGRAM || !IS_MONOLITHIC)
-	void LoadDLLs();
-	void UnloadDLLs();
-#endif
-
 private:
 	static FInternationalization* Instance;
 	bool bIsInitialized;
@@ -98,7 +93,6 @@ private:
 
 	TSharedPtr< FCulture > DefaultCulture;
 	TSharedPtr< FCulture > InvariantCulture;
-	TArray< void* > DLLHandles;
 };
 
 #undef LOC_DEFINE_REGION
