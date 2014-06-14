@@ -180,14 +180,31 @@ public:
 			// Index of the item at which we start generating based on how far scrolled down we are
 			int32 StartIndex = FMath::Max( 0, FMath::FloorToInt(ClampedScrollOffset / NumItemsWide) * NumItemsWide );
 
-			// Let the WidgetGenerator that we are starting a pass so that it can keep track of data items and widgets.
+			// Let the WidgetGenerator know that we are starting a pass so that it can keep track of data items and widgets.
 			this->WidgetGenerator.OnBeginGenerationPass();
 
 			// Actually generate the widgets.
 			bool bKeepGenerating = true;
+			bool bNewRow = true;
+			double NumRowsShownOnScreen = 0;
 			for( int32 ItemIndex = StartIndex; bKeepGenerating && ItemIndex < SourceItems->Num(); ++ItemIndex )
 			{
 				const ItemType& CurItem = (*SourceItems)[ItemIndex];
+
+				if (bNewRow)
+				{
+					bNewRow = false;
+					HeightUsedSoFar += ItemHeight;
+
+					if (HeightUsedSoFar > MyGeometry.Size.Y)
+					{
+						NumRowsShownOnScreen += 1.0f - ((HeightUsedSoFar - MyGeometry.Size.Y) / ItemHeight);
+					}
+					else
+					{
+						++NumRowsShownOnScreen;
+					}
+				}
 
 				const float GeneratedItemHeight = SListView<ItemType>::GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
 
@@ -199,7 +216,8 @@ public:
 				{
 					// A new row of widgets was added.
 					WidthUsedSoFar = 0;
-					HeightUsedSoFar += ItemHeight;	
+					bNewRow = true;
+
 					// Stop when we've generated a widget that's partially clipped by the bottom of the list.
 					if ( HeightUsedSoFar > MyGeometry.Size.Y + ItemHeight )
 					{
@@ -211,9 +229,7 @@ public:
 			// We have completed the generation pass. The WidgetGenerator will clean up unused Widgets.
 			this->WidgetGenerator.OnEndGenerationPass();
 
-			const double ExactNumItemsOnScreen = MyGeometry.Size.Y / ItemHeight * NumItemsWide;
-
-			return STableViewBase::FReGenerateResults(ClampedScrollOffset, ItemHeight * ExactNumItemsOnScreen, ExactNumItemsOnScreen, bAtEndOfList);
+			return STableViewBase::FReGenerateResults(ClampedScrollOffset, HeightUsedSoFar, NumRowsShownOnScreen, bAtEndOfList);
 		}
 
 		return STableViewBase::FReGenerateResults(0, 0, 0, false);

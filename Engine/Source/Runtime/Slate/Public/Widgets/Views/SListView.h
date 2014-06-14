@@ -1077,7 +1077,7 @@ protected:
 				if (NumLiveWidgets == 0 && IsPendingRefresh())
 				{
 					// Use the last number of widgets on screen to estimate if we actually need to scroll.
-					NumLiveWidgets = LastGenerateResults.ExactNumWidgetsOnScreen;
+					NumLiveWidgets = LastGenerateResults.ExactNumRowsOnScreen;
 				}
 
 				// Only scroll the item into view if it's not already in the visible range

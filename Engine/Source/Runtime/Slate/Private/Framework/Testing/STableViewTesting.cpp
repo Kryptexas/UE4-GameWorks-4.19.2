@@ -733,7 +733,7 @@ public:
 							// Tile view items are this wide
 							.ItemWidth(128)
 							// Tile view items are this tall
-							.ItemHeight(64)
+							.ItemHeight(75)
 							// Tell the tile view where to get its source data
 							.ListItemsSource( &Items )
 							// When the list view needs to generate a widget for some data item, use this method

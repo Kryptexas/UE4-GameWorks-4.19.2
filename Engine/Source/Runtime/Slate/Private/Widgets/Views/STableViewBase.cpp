@@ -195,7 +195,8 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 			const int32 NumItemsBeingObserved = GetNumItemsBeingObserved();
 
-			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumWidgetsOnScreen >= NumItemsBeingObserved;
+			const int32 NumItemsWide = GetNumItemsWide();
+			const bool bEnoughRoomForAllItems = ReGenerateResults.ExactNumRowsOnScreen >= (NumItemsBeingObserved / NumItemsWide);
 			if (bEnoughRoomForAllItems)
 			{
 				// We can show all the items, so make sure there is no scrolling.
@@ -218,14 +219,14 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			{
 				// The thumb size is whatever fraction of the items we are currently seeing (including partially seen items).
 				// e.g. if we are seeing 0.5 of the first generated widget and 0.75 of the last widget, that's 1.25 widgets.
-				const double ThumbSizeFraction = ReGenerateResults.ExactNumWidgetsOnScreen / NumItemsBeingObserved;
+				const double ThumbSizeFraction = ReGenerateResults.ExactNumRowsOnScreen / (NumItemsBeingObserved / NumItemsWide);
 				const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
 				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 			}
 
 			NotifyItemScrolledIntoView();
 
-			bWasAtEndOfList = ScrollBar->DistanceFromBottom() <= 0.f ? true : false;
+			bWasAtEndOfList = FMath::IsNearlyZero(ScrollBar->DistanceFromBottom()) ? true : false;
 
 			bItemsNeedRefresh = false;
 			ItemsPanel->SetRefreshPending(false);
@@ -646,9 +647,9 @@ void STableViewBase::OnRightMouseButtonUp(const FVector2D& SummonLocation)
 
 float STableViewBase::GetScrollRateInItems() const
 {
-	return ( LastGenerateResults.HeightOfGeneratedItems != 0 && LastGenerateResults.ExactNumWidgetsOnScreen != 0)
+	return (LastGenerateResults.HeightOfGeneratedItems != 0 && LastGenerateResults.ExactNumRowsOnScreen != 0)
 		// Approximate a consistent scrolling rate based on the average item height.
-		? LastGenerateResults.ExactNumWidgetsOnScreen / LastGenerateResults.HeightOfGeneratedItems
+		? LastGenerateResults.ExactNumRowsOnScreen / LastGenerateResults.HeightOfGeneratedItems
 		// Scroll 1/2 an item at a time as a default.
 		: 0.5f;
 }

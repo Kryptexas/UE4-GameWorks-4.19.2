@@ -161,7 +161,7 @@ protected:
 		FReGenerateResults( double InNewScrollOffset, double InHeightGenerated, double InItemsOnScreen, bool AtEndOfList )
 		: NewScrollOffset( InNewScrollOffset )
 		, HeightOfGeneratedItems( InHeightGenerated )
-		, ExactNumWidgetsOnScreen( InItemsOnScreen )
+		, ExactNumRowsOnScreen( InItemsOnScreen )
 		, bGeneratedPastLastItem( AtEndOfList )
 		{
 
@@ -173,8 +173,8 @@ protected:
 		/** The total height of the widgets that we have generated to represent the visible subset of the items*/
 		double HeightOfGeneratedItems;
 
-		/** How many items are fitting on the screen, including fractions */
-		double ExactNumWidgetsOnScreen;
+		/** How many rows are fitting on the screen, including fractions */
+		double ExactNumRowsOnScreen;
 
 		/** True when we have generated  */
 		bool bGeneratedPastLastItem;
