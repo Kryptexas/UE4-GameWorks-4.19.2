@@ -16,6 +16,7 @@
 #include "Anchors.h"
 #include "SConstraintCanvas.h"
 
+#include "Slate/SlateBrushAsset.h"
 
 /* Public Includes
  *****************************************************************************/
