@@ -32,6 +32,9 @@ public:
 		, _Percent( TOptional<float>() )
 		, _FillColorAndOpacity( FLinearColor::White )
 		, _BorderPadding( FVector2D(1,0) )
+		, _BackgroundImage(nullptr)
+		, _FillImage(nullptr)
+		, _MarqueeImage(nullptr)
 		{}
 
 		/** Style used for the progress bar */
@@ -48,6 +51,15 @@ public:
 
 		/** Border Padding around fill bar */
 		SLATE_ATTRIBUTE( FVector2D, BorderPadding )
+	
+		/** The brush to use as the background of the progress bar */
+		SLATE_ARGUMENT(const FSlateBrush*, BackgroundImage)
+	
+		/** The brush to use as the fill image */
+		SLATE_ARGUMENT(const FSlateBrush*, FillImage)
+	
+		/** The brush to use as the marquee image */
+		SLATE_ARGUMENT(const FSlateBrush*, MarqueeImage)
 
 	SLATE_END_ARGS()
 
@@ -62,10 +74,42 @@ public:
 
 	FVector2D ComputeDesiredSize() const;
 
-	/** See Slate attribute Percent */
+	/** See attribute Percent */
 	void SetPercent(TAttribute< TOptional<float> > InPercent);
+	
+	/** See attribute Style */
+	void SetStyle(const FProgressBarStyle* InStyle);
+	
+	/** See attribute BarFillType */
+	void SetBarFillType(EProgressBarFillType::Type InBarFillType);
+	
+	/** See attribute SetFillColorAndOpacity */
+	void SetFillColorAndOpacity(TAttribute< FSlateColor > InFillColorAndOpacity);
+	
+	/** See attribute BorderPadding */
+	void SetBorderPadding(TAttribute< FVector2D > InBorderPadding);
+	
+	/** See attribute BackgroundImage */
+	void SetBackgroundImage(const FSlateBrush* InBackgroundImage);
+	
+	/** See attribute FillImage */
+	void SetFillImage(const FSlateBrush* InFillImage);
+	
+	/** See attribute MarqueeImage */
+	void SetMarqueeImage(const FSlateBrush* InMarqueeImage);
+	
+private:
+	/** Gets the current background image. */
+	const FSlateBrush* GetBackgroundImage() const;
+	/** Gets the current fill image */
+	const FSlateBrush* GetFillImage() const;
+	/** Gets the current marquee image */
+	const FSlateBrush* GetMarqueeImage() const;
 
 private:
+	
+	/** The style of the progress bar */
+	const FProgressBarStyle* Style;
 
 	/** The text displayed over the progress bar */
 	TAttribute< TOptional<float> > Percent;
@@ -89,6 +133,5 @@ private:
 
 	/** Curve sequence to drive progress bar animation */
 	FCurveSequence CurveSequence;
-
 };
 
