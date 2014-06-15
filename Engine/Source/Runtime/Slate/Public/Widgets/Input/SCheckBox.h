@@ -16,7 +16,6 @@ namespace ESlateCheckBoxState
 
 		/** Neither checked nor unchecked */
 	const Type Undetermined = 2;
-	
 };
 
 
@@ -43,6 +42,15 @@ public:
 		, _ForegroundColor()
 		, _BorderBackgroundColor ()
 		, _IsFocusable( true )
+		, _UncheckedImage( NULL )
+		, _UncheckedHoveredImage( NULL )
+		, _UncheckedPressedImage( NULL )
+		, _CheckedImage( NULL )
+		, _CheckedHoveredImage( NULL )
+		, _CheckedPressedImage( NULL )
+		, _UndeterminedImage( NULL )
+		, _UndeterminedHoveredImage( NULL )
+		, _UndeterminedPressedImage( NULL )
 		{}
 
 		/** Content to be placed next to the check box, or for a toggle button, the content to be placed inside the button */
@@ -88,6 +96,33 @@ public:
 		/** The sound to play when the check box is hovered */
 		SLATE_ARGUMENT( TOptional<FSlateSound>, HoveredSoundOverride )
 
+		/** The unchecked image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedImage)
+
+		/** The unchecked hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedHoveredImage)
+
+		/** The unchecked pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UncheckedPressedImage)
+
+		/** The checked image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedImage)
+
+		/** The checked hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedHoveredImage)
+
+		/** The checked pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, CheckedPressedImage)
+
+		/** The undetermined image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedImage)
+
+		/** The undetermined hovered image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedHoveredImage)
+
+		/** The undetermined pressed image for the checkbox - overrides the style's */
+		SLATE_ARGUMENT(const FSlateBrush*, UndeterminedPressedImage)
+
 	SLATE_END_ARGS()
 
 
@@ -132,6 +167,30 @@ public:
 	 * Toggles the checked state for this check box, fire events as needed
 	 */
 	void ToggleCheckedState();
+	
+	/** See the Style attribute */
+	void SetStyle(const FCheckBoxStyle* InStyle);
+	
+	/** See the UncheckedImage attribute */
+	void SetUncheckedImage(const FSlateBrush* Brush);
+	/** See the UncheckedHoveredImage attribute */
+	void SetUncheckedHoveredImage(const FSlateBrush* Brush);
+	/** See the UncheckedPressedImage attribute */
+	void SetUncheckedPressedImage(const FSlateBrush* Brush);
+	
+	/** See the CheckedImage attribute */
+	void SetCheckedImage(const FSlateBrush* Brush);
+	/** See the CheckedHoveredImage attribute */
+	void SetCheckedHoveredImage(const FSlateBrush* Brush);
+	/** See the CheckedPressedImage attribute */
+	void SetCheckedPressedImage(const FSlateBrush* Brush);
+	
+	/** See the UndeterminedImage attribute */
+	void SetUndeterminedImage(const FSlateBrush* Brush);
+	/** See the UndeterminedHoveredImage attribute */
+	void SetUndeterminedHoveredImage(const FSlateBrush* Brush);
+	/** See the UndeterminedPressedImage attribute */
+	void SetUndeterminedPressedImage(const FSlateBrush* Brush);
 
 protected:
 
@@ -140,9 +199,22 @@ protected:
 	 * @return	The name of the image to display
 	 */
 	const FSlateBrush* OnGetCheckImage() const;
-
-
+	
+	const FSlateBrush* GetUncheckedImage() const;
+	const FSlateBrush* GetUncheckedHoveredImage() const;
+	const FSlateBrush* GetUncheckedPressedImage() const;
+	
+	const FSlateBrush* GetCheckedImage() const;
+	const FSlateBrush* GetCheckedHoveredImage() const;
+	const FSlateBrush* GetCheckedPressedImage() const;
+	
+	const FSlateBrush* GetUndeterminedImage() const;
+	const FSlateBrush* GetUndeterminedHoveredImage() const;
+	const FSlateBrush* GetUndeterminedPressedImage() const;
+	
 protected:
+	
+	const FCheckBoxStyle* Style;
 
 	/** True if this check box is currently in a pressed state */
 	bool bIsPressed;
