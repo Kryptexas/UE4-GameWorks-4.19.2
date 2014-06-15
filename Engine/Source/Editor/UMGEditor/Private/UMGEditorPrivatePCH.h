@@ -23,3 +23,6 @@
 
 #include "DetailCustomizations.h"
 #include "CanvasSlotCustomization.h"
+
+#include "WidgetTemplate.h"
+#include "WidgetTemplateDragDropOp.h"

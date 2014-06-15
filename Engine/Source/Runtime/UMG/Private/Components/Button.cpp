@@ -21,7 +21,8 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();
 	ContentScale = ButtonDefaults._ContentScale.Get();
 
-	ButtonColorAndOpacity = FLinearColor::White;
+	ColorAndOpacity = FLinearColor::White;
+	BackgroundColor = FLinearColor::White;
 	ForegroundColor = FLinearColor::Black;
 }
 
@@ -57,21 +58,21 @@ void UButton::SyncronizeProperties()
 		OptionalHoveredSound = HoveredSound;
 	}
 
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetButtonStyle(StylePtr);
-		MyButton->SetHAlign(HorizontalAlignment);
-		MyButton->SetVAlign(VerticalAlignment);
-		MyButton->SetContentPadding(ContentPadding);
-		MyButton->SetForegroundColor(ForegroundColor);
-		//MyButton->SetColorAndOpacity(ButtonColorAndOpacity);
-		MyButton->SetDesiredSizeScale(DesiredSizeScale);
-		MyButton->SetContentScale(ContentScale);
-		MyButton->SetBorderBackgroundColor(ButtonColorAndOpacity);
-		MyButton->SetPressedSound(OptionalPressedSound);
-		MyButton->SetHoveredSound(OptionalHoveredSound);
-		MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
-	}
+	MyButton->SetButtonStyle(StylePtr);
+	MyButton->SetHAlign(HorizontalAlignment);
+	MyButton->SetVAlign(VerticalAlignment);
+	MyButton->SetContentPadding(ContentPadding);
+	
+	MyButton->SetForegroundColor( ForegroundColor );
+	MyButton->SetColorAndOpacity( ColorAndOpacity );
+	MyButton->SetBorderBackgroundColor( BackgroundColor );
+	
+	MyButton->SetDesiredSizeScale(DesiredSizeScale);
+	MyButton->SetContentScale(ContentScale);
+	MyButton->SetPressedSound(OptionalPressedSound);
+	MyButton->SetHoveredSound(OptionalHoveredSound);
+
+	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
 }
 
 void UButton::SetContent(UWidget* InContent)
@@ -103,10 +104,15 @@ FReply UButton::HandleOnClicked()
 {
 	if ( OnClickedEvent.IsBound() )
 	{
-		return OnClickedEvent.Execute().ToReply();
+		return OnClickedEvent.Execute().ToReply( MyButton.ToSharedRef() );
 	}
 	
 	return FReply::Unhandled();
+}
+
+bool UButton::IsPressed() const
+{
+	return MyButton->IsPressed();
 }
 
 

@@ -39,6 +39,7 @@ public:
 
 	// Events
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSReply, FOnReply);
+	DECLARE_DYNAMIC_DELEGATE_RetVal_TwoParams(FSReply, FOnPointerEvent, FGeometry, MyGeometry, const FPointerEvent&, MouseEvent);
 
 	/**
 	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
@@ -120,7 +121,7 @@ public:
 	bool IsHovered() const;
 
 	/** Gets the underlying Slate SWidget for this UWidget. */
-	TSharedRef<SWidget> GetWidget();
+	TSharedRef<SWidget> GetWidget() const;
 
 	/**
 	 * Applies all properties to the native widget if possible.  This is called after a widget is constructed.
@@ -129,17 +130,21 @@ public:
 	 */
 	virtual void SyncronizeProperties();
 
+	/** Returns if the widget is currently being displayed in the designer, it may want to display different data. */
+	bool IsDesignTime() const;
+	
+	/** Sets that this widget is being designed */
+	void IsDesignTime(bool bInDesignTime);
+	
 #if WITH_EDITOR
+	/** Gets a widget representing the tiny preview of the toolbox */
+	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
+	
 	/** Allows general fixups and connections only used at editor time. */
 	virtual void ConnectEditorData() { }
 
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override
-	{
-		Super::PostEditChangeProperty(PropertyChangedEvent);
-
-		SyncronizeProperties();
-	}
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 #endif
 
@@ -153,6 +158,8 @@ public:
 protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
 	virtual TSharedRef<SWidget> RebuildWidget();
+	
+	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
 	{
@@ -161,5 +168,8 @@ protected:
 
 protected:
 	/** The underlying SWidget. */
-	TSharedPtr<SWidget> MyWidget;
+	mutable TSharedPtr<SWidget> MyWidget;
+	
+	/** Is this widget being displayed on a designer surface */
+	bool bDesignTime;
 };

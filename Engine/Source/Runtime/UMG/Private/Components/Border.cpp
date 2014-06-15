@@ -39,28 +39,25 @@ void UBorder::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
-	if ( MyBorder.IsValid() )
-	{
-		MyBorder->SetHAlign(HorizontalAlignment);
-		MyBorder->SetVAlign(VerticalAlignment);
-		MyBorder->SetPadding(ContentPadding);
+	MyBorder->SetHAlign(HorizontalAlignment);
+	MyBorder->SetVAlign(VerticalAlignment);
+	MyBorder->SetPadding(ContentPadding);
+	
+	MyBorder->SetBorderBackgroundColor(BorderColorAndOpacity);
+	MyBorder->SetColorAndOpacity(ContentColorAndOpacity);
+	MyBorder->SetForegroundColor(ForegroundColor);
+	
+	MyBorder->SetContentScale(ContentScale);
+	MyBorder->SetDesiredSizeScale(DesiredSizeScale);
+	
+	MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled);
+	
+	MyBorder->SetBorderImage(GetBorderBrush());
 
-		MyBorder->SetBorderBackgroundColor(BorderColorAndOpacity);
-		MyBorder->SetColorAndOpacity(ContentColorAndOpacity);
-		MyBorder->SetForegroundColor(ForegroundColor);
-
-		MyBorder->SetContentScale(ContentScale);
-		MyBorder->SetDesiredSizeScale(DesiredSizeScale);
-
-		MyBorder->SetShowEffectWhenDisabled(bShowEffectWhenDisabled);
-
-		MyBorder->SetBorderImage(GetBorderBrush());
-
-		// SLATE_EVENT( FPointerEventHandler, OnMouseButtonDown )
-		// SLATE_EVENT( FPointerEventHandler, OnMouseButtonUp )
-		// SLATE_EVENT( FPointerEventHandler, OnMouseMove )
-		// SLATE_EVENT( FPointerEventHandler, OnMouseDoubleClick )
-	}
+	MyBorder->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
+	MyBorder->SetOnMouseButtonUp(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonUp));
+	MyBorder->SetOnMouseMove(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseMove));
+	MyBorder->SetOnMouseDoubleClick(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseDoubleClick));
 }
 
 void UBorder::SetContent(UWidget* Content)
@@ -82,6 +79,46 @@ const FSlateBrush* UBorder::GetBorderBrush() const
 	}
 
 	return &BorderBrush->Brush;
+}
+
+FReply UBorder::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
+{
+	if ( OnMouseButtonDownEvent.IsBound() )
+	{
+		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply UBorder::HandleMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
+{
+	if ( OnMouseButtonUpEvent.IsBound() )
+	{
+		return OnMouseButtonUpEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply UBorder::HandleMouseMove(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
+{
+	if ( OnMouseMoveEvent.IsBound() )
+	{
+		return OnMouseMoveEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
+{
+	if ( OnMouseDoubleClickEvent.IsBound() )
+	{
+		return OnMouseDoubleClickEvent.Execute(Geometry, MouseEvent).ToReply( MyBorder.ToSharedRef() );
+	}
+
+	return FReply::Unhandled();
 }
 
 /////////////////////////////////////////////////////

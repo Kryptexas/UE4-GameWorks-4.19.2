@@ -19,7 +19,7 @@ public class UMG : ModuleRules
                 "Engine",
                 "InputCore",
 				"Slate",
-				"SlateCore",	
+				"SlateCore",
 				"MovieSceneCore",
 			}
 		);

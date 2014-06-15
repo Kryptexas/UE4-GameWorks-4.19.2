@@ -35,7 +35,7 @@ class UMG_API UOverlay : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SOverlay> MyVerticalBox;
+	TSharedPtr<class SOverlay> MyOverlay;
 
 protected:
 	// UWidget interface

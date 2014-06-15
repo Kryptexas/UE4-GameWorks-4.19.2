@@ -43,7 +43,7 @@ class UMG_API UVerticalBox : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SVerticalBox> MyVerticalBox;
+	TSharedPtr<class SVerticalBox> MyVerticalBox;
 
 protected:
 	// UWidget interface

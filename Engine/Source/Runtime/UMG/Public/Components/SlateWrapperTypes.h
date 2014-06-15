@@ -52,13 +52,21 @@ struct FSReply
 	UPROPERTY(EditAnywhere, Category=User)
 	uint32 bIsHandled : 1;
 
-	FReply ToReply() const
+	UPROPERTY(EditAnywhere, Category=User)
+	uint32 bCaptureMouse : 1;
+
+	FReply ToReply( TSharedRef<SWidget> Widget ) const
 	{
 		FReply Reply = FReply::Unhandled();
 
 		if ( bIsHandled )
 		{
 			Reply = FReply::Handled();
+		}
+
+		if ( bCaptureMouse )
+		{
+			Reply = Reply.CaptureMouse(Widget);
 		}
 
 		return Reply;

@@ -17,6 +17,8 @@ public:
 
 	UPROPERTY()
 	class UWidget* Content;
+	
+	bool IsDesignTime() const;
 
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
 

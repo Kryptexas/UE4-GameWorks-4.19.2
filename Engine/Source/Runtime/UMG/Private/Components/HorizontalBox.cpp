@@ -38,7 +38,14 @@ int32 UHorizontalBox::GetChildIndex(UWidget* Content) const
 
 bool UHorizontalBox::AddChild(UWidget* Child, FVector2D Position)
 {
-	AddSlot(Child);
+	UHorizontalBoxSlot* Slot = AddSlot(Child);
+	
+	// Add the child to the live canvas if it already exists
+	if (MyHorizontalBox.IsValid())
+	{
+		Slot->BuildSlot(MyHorizontalBox.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -48,6 +55,13 @@ bool UHorizontalBox::RemoveChild(UWidget* Child)
 	if ( SlotIndex != -1 )
 	{
 		Slots.RemoveAt(SlotIndex);
+		
+		// Remove the widget from the live slot if it exists.
+		if (MyHorizontalBox.IsValid())
+		{
+			MyHorizontalBox->RemoveSlot(Child->GetWidget());
+		}
+		
 		return true;
 	}
 
@@ -80,16 +94,15 @@ void UHorizontalBox::InsertChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 {
-	TSharedRef<SHorizontalBox> NewWidget = SNew(SHorizontalBox);
-	MyHorizontalBox = NewWidget;
+	MyHorizontalBox = SNew(SHorizontalBox);
 
 	for ( auto Slot : Slots )
 	{
 		Slot->Parent = this;
-		Slot->BuildSlot(NewWidget);
+		Slot->BuildSlot( MyHorizontalBox.ToSharedRef() );
 	}
 
-	return NewWidget;
+	return BuildDesignTimeWidget( MyHorizontalBox.ToSharedRef() );
 }
 
 UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)

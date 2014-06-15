@@ -48,7 +48,7 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 		OptionalHoveredSound = HoveredSound;
 	}
 
-	return SNew(SCheckBox)
+	MyCheckbox = SNew(SCheckBox)
 		.Style(StylePtr)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
 		.IsChecked( BIND_UOBJECT_ATTRIBUTE(ESlateCheckBoxState::Type, GetCheckState) )
@@ -60,9 +60,35 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 		.UncheckedSoundOverride(OptionalUncheckedSound)
 		.HoveredSoundOverride(OptionalHoveredSound)
 		;
-// 		SLATE_ATTRIBUTE( bool, ReadOnly )
-// 		SLATE_ARGUMENT( bool, IsFocusable )
-// 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
+	
+	return MyCheckbox.ToSharedRef();
+}
+
+void UCheckBox::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+	
+	MyCheckbox->SetUncheckedImage(UncheckedImage ? &UncheckedImage->Brush : nullptr);
+	MyCheckbox->SetUncheckedHoveredImage(UncheckedHoveredImage ? &UncheckedHoveredImage->Brush : nullptr);
+	MyCheckbox->SetUncheckedPressedImage(UncheckedPressedImage ? &UncheckedPressedImage->Brush : nullptr);
+	
+	MyCheckbox->SetCheckedImage(CheckedImage ? &CheckedImage->Brush : nullptr);
+	MyCheckbox->SetCheckedHoveredImage(CheckedHoveredImage ? &CheckedHoveredImage->Brush : nullptr);
+	MyCheckbox->SetCheckedPressedImage(CheckedPressedImage ? &CheckedPressedImage->Brush : nullptr);
+	
+	MyCheckbox->SetUndeterminedImage(UndeterminedImage ? &UndeterminedImage->Brush : nullptr);
+	MyCheckbox->SetUndeterminedHoveredImage(UndeterminedHoveredImage ? &UndeterminedHoveredImage->Brush : nullptr);
+	MyCheckbox->SetUndeterminedPressedImage(UndeterminedPressedImage ? &UndeterminedPressedImage->Brush : nullptr);
+}
+
+bool UCheckBox::IsPressed() const
+{
+	return MyCheckbox->IsPressed();
+}
+
+bool UCheckBox::IsChecked() const
+{
+	return MyCheckbox->IsChecked();
 }
 
 ESlateCheckBoxState::Type UCheckBox::GetCheckState() const

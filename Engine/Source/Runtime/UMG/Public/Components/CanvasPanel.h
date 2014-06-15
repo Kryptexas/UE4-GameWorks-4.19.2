@@ -17,6 +17,7 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FVector2D DesiredCanvasSize;
 
+	/** Adds content to a new slot.  The slot will automatically be allocated and returned. */
 	UCanvasPanelSlot* AddSlot(UWidget* Content);
 
 	// UPanelWidget

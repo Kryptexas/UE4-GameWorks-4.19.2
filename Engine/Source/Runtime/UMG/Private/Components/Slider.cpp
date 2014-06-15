@@ -17,20 +17,22 @@ USlider::USlider(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> USlider::RebuildWidget()
 {
-	// TODO UMG Bind these
-	//FOnMouseCaptureBeginEvent OnMouseCaptureBegin;
-	//FOnMouseCaptureEndEvent OnMouseCaptureEnd;
-
 	MySlider = SNew(SSlider)
-		.Orientation(Orientation)
-		.SliderBarColor(SliderBarColor)
-		.SliderHandleColor(SliderHandleColor)
-		.Value(Value)
 		.OnMouseCaptureBegin(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureBegin))
 		.OnMouseCaptureEnd(BIND_UOBJECT_DELEGATE(FSimpleDelegate, HandleOnMouseCaptureEnd))
 		.OnValueChanged(BIND_UOBJECT_DELEGATE(FOnFloatValueChanged, HandleOnValueChanged));
 
 	return MySlider.ToSharedRef();
+}
+
+void USlider::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+	
+	MySlider->SetOrientation(Orientation);
+	MySlider->SetSliderBarColor(SliderBarColor);
+	MySlider->SetSliderHandleColor(SliderHandleColor);
+	MySlider->SetValue(Value);
 }
 
 void USlider::HandleOnValueChanged(float InValue)
@@ -55,6 +57,7 @@ float USlider::GetValue()
 
 void USlider::SetValue(float InValue)
 {
+	Value = InValue;
 	return MySlider->SetValue(InValue);
 }
 

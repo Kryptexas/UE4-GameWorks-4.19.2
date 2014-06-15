@@ -36,13 +36,17 @@ public:
 	/** The scaling factor for the button content */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D ContentScale;
-
+	
 	/** The color multiplier for the button images */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor ButtonColorAndOpacity;
+	UPROPERTY(EditDefaultsOnly, Category=Appearance )
+	FLinearColor ColorAndOpacity;
+	
+	/** The color multiplier for the button background */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance )
+	FLinearColor BackgroundColor;
 
 	/** The foreground color of the button */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance )
 	FLinearColor ForegroundColor;
 
 	UPROPERTY(EditDefaultsOnly, Category=Sound)
@@ -55,17 +59,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnReply OnClickedEvent;
 	
-	/*  */
+	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity);
 
-	/*  */
+	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetForegroundColor(FLinearColor InForegroundColor);
 
-	/*  */
+	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetContentPadding(FMargin InContentPadding);
+	
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsPressed() const;
 
 	// UContentWidget interface
 	virtual void SetContent(UWidget* Content) override;

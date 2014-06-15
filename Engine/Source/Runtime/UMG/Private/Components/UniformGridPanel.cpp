@@ -23,7 +23,14 @@ UWidget* UUniformGridPanel::GetChildAt(int32 Index) const
 
 bool UUniformGridPanel::AddChild(UWidget* Child, FVector2D Position)
 {
-	AddSlot(Child);
+	UUniformGridSlot* Slot = AddSlot(Child);
+	
+	// Add the child to the live panel if it already exists
+	if (MyUniformGridPanel.IsValid())
+	{
+		Slot->BuildSlot(MyUniformGridPanel.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -36,6 +43,13 @@ bool UUniformGridPanel::RemoveChild(UWidget* Child)
 		if ( Slot->Content == Child )
 		{
 			Slots.RemoveAt(SlotIndex);
+			
+			// Remove the widget from the live slot if it exists.
+			if (MyUniformGridPanel.IsValid())
+			{
+				MyUniformGridPanel->RemoveSlot(Child->GetWidget());
+			}
+			
 			return true;
 		}
 	}
@@ -55,21 +69,19 @@ void UUniformGridPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 {
-	TSharedRef<SUniformGridPanel> NewPanel =
+	MyUniformGridPanel =
 		SNew(SUniformGridPanel)
 		.SlotPadding(SlotPadding)
 		.MinDesiredSlotWidth(MinDesiredSlotWidth)
 		.MinDesiredSlotHeight(MinDesiredSlotHeight);
-	
-	MyUniformGridPanel = NewPanel;
 
 	for ( auto Slot : Slots )
 	{
 		Slot->Parent = this;
-		Slot->BuildSlot(NewPanel);
+		Slot->BuildSlot(MyUniformGridPanel.ToSharedRef());
 	}
 
-	return NewPanel;
+	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
 }
 
 UUniformGridSlot* UUniformGridPanel::AddSlot(UWidget* Content)

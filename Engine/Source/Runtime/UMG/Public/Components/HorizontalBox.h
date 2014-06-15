@@ -37,7 +37,7 @@ class UMG_API UHorizontalBox : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SHorizontalBox> MyHorizontalBox;
+	TSharedPtr<class SHorizontalBox> MyHorizontalBox;
 
 protected:
 	// UWidget interface

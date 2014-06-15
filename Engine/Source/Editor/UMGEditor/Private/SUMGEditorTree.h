@@ -29,7 +29,6 @@ private:
 	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo);
 
-	FReply CreateTestUI();
 	void RefreshTree();
 
 	FReply HandleDeleteSelected();

@@ -18,13 +18,28 @@ UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UProgressBar::RebuildWidget()
 {
-	MyProgressBar = SNew(SProgressBar)
-		.BarFillType(BarFillType)
-		.Percent(Percent)
-		.FillColorAndOpacity(FillColorAndOpacity)
-		.BorderPadding(BorderPadding);
+	MyProgressBar = SNew(SProgressBar);
 
 	return MyProgressBar.ToSharedRef();
+}
+
+void UProgressBar::SyncronizeProperties()
+{
+	const FProgressBarStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FProgressBarStyle>() : NULL;
+	if ( StylePtr )
+	{
+		MyProgressBar->SetStyle(StylePtr);
+	}
+	
+	MyProgressBar->SetPercent(bOverride_Percent ? Percent : TOptional<float>());
+	
+	MyProgressBar->SetBarFillType(BarFillType);
+	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);
+	MyProgressBar->SetBorderPadding(BorderPadding);
+	
+	MyProgressBar->SetBackgroundImage(BackgroundImage ? &BackgroundImage->Brush : nullptr);
+	MyProgressBar->SetFillImage(FillImage ? &FillImage->Brush : nullptr);
+	MyProgressBar->SetMarqueeImage(MarqueeImage ? &MarqueeImage->Brush : nullptr);
 }
 
 void UProgressBar::SetPercent(float InPercent)

@@ -38,7 +38,14 @@ int32 UVerticalBox::GetChildIndex(UWidget* Content) const
 
 bool UVerticalBox::AddChild(UWidget* Child, FVector2D Position)
 {
-	AddSlot(Child);
+	UVerticalBoxSlot* Slot = AddSlot(Child);
+	
+	// Add the child to the live canvas if it already exists
+	if (MyVerticalBox.IsValid())
+	{
+		Slot->BuildSlot(MyVerticalBox.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -48,6 +55,13 @@ bool UVerticalBox::RemoveChild(UWidget* Child)
 	if ( SlotIndex != -1 )
 	{
 		Slots.RemoveAt(SlotIndex);
+		
+		// Remove the widget from the live slot if it exists.
+		if (MyVerticalBox.IsValid())
+		{
+			MyVerticalBox->RemoveSlot(Child->GetWidget());
+		}
+		
 		return true;
 	}
 
@@ -80,16 +94,15 @@ void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UVerticalBox::RebuildWidget()
 {
-	TSharedRef<SVerticalBox> NewWidget = SNew(SVerticalBox);
-	MyVerticalBox = NewWidget;
+	MyVerticalBox = SNew(SVerticalBox);
 
 	for ( auto Slot : Slots )
 	{
 		Slot->Parent = this;
-		Slot->BuildSlot(NewWidget);
+		Slot->BuildSlot(MyVerticalBox.ToSharedRef());
 	}
 
-	return NewWidget;
+	return BuildDesignTimeWidget( MyVerticalBox.ToSharedRef() );
 }
 
 UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)

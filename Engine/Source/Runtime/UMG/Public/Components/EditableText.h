@@ -86,18 +86,19 @@ protected:
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 	UPROPERTY(BlueprintAssignable)
 	FOnEditableTextCommittedEvent OnTextCommitted;
+	
+	// UWidget interface
+	void SyncronizeProperties() override;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 
-#if WITH_EDITOR
-	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End of UObject interface
-#endif
-
 	void HandleOnTextChanged(const FText& Text);
 	void HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+
+protected:
+	TSharedPtr<SEditableText> MyEditableText;
 };

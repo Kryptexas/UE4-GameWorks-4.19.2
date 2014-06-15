@@ -51,7 +51,7 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SUniformGridPanel> MyUniformGridPanel;
+	TSharedPtr<SUniformGridPanel> MyUniformGridPanel;
 
 protected:
 	// UWidget interface

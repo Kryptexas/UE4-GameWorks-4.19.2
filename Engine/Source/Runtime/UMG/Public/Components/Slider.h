@@ -14,11 +14,13 @@ class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	///** Whether the slidable area should be indented to fit the handle. */
-	//SLATE_ATTRIBUTE(bool, IndentHandle)
+	/** Whether the slidable area should be indented to fit the handle. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	bool IndentHandle;
 
-	///** Whether the handle is interactive or fixed. */
-	//SLATE_ATTRIBUTE(bool, Locked)
+	/** Whether the handle is interactive or fixed. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	bool Locked;
 
 	///** The style used to draw the slider. */
 	//SLATE_STYLE_ARGUMENT(FSliderStyle, Style)
@@ -58,6 +60,10 @@ class UMG_API USlider : public UWidget
 	/** Sets the current value of the slider. */
 	UFUNCTION(BlueprintCallable, Category="Behavior")
 	void SetValue(float InValue);
+	
+	// UWidget interface
+	void SyncronizeProperties() override;
+	// End of UWidget interface
 
 protected:
 	/** Native Slate Widget */

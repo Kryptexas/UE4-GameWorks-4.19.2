@@ -4,6 +4,29 @@
 
 #include "SceneViewport.h"
 
+TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New()
+{
+	TSharedRef<FUMGDragDropOp> Operation = MakeShareable(new FUMGDragDropOp);
+	Operation->Construct();
+
+	return Operation;
+}
+
+void FUMGDragDropOp::OnDrop(bool bDropWasHandled, const FPointerEvent& MouseEvent)
+{
+	FDragDropOperation::OnDrop(bDropWasHandled, MouseEvent);
+}
+
+void FUMGDragDropOp::OnDragged(const class FDragDropEvent& DragDropEvent)
+{
+	FDragDropOperation::OnDragged(DragDropEvent);
+}
+
+TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
+{
+	return DecoratorWidget;
+}
+
 class SViewportWidgetHost : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(SViewportWidgetHost)
@@ -132,7 +155,7 @@ void UUserWidget::PostInitProperties()
 		BGClass->InitializeWidget(this);
 	}
 
-	RebuildWidget();
+	//RebuildWidget();
 }
 
 UWorld* UUserWidget::GetWorld() const
@@ -154,6 +177,8 @@ UWorld* UUserWidget::GetWorld() const
 
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
+	GetWidget();
+	
 	return WidgetToComponent.FindRef(InWidget);
 }
 
@@ -199,6 +224,8 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
+	GetWidget();
+	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -212,6 +239,8 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 
 UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
+	GetWidget();
+	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -233,6 +262,8 @@ TSharedRef<SWidget> UUserWidget::MakeWidget()
 
 TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 {
+	GetWidget();
+	
 	if ( bAbsoluteLayout )
 	{
 		return SNew(SCanvas)
@@ -266,6 +297,8 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 
 UWidget* UUserWidget::GetRootWidgetComponent()
 {
+	GetWidget();
+	
 	if ( Components.Num() > 0 )
 	{
 		return Components[0];
@@ -276,6 +309,8 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 
 void UUserWidget::Show()
 {
+	GetWidget();
+	
 	if ( !FullScreenWidget.IsValid() )
 	{
 		TSharedRef<SWidget> RootWidget = MakeFullScreenWidget();
@@ -309,6 +344,8 @@ void UUserWidget::Show()
 
 void UUserWidget::Hide()
 {
+	GetWidget();
+	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
@@ -337,11 +374,15 @@ void UUserWidget::Hide()
 
 bool UUserWidget::GetIsVisible()
 {
+	GetWidget();
+	
 	return FullScreenWidget.IsValid();
 }
 
 TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 {
+	GetWidget();
+	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();

@@ -99,11 +99,12 @@ public:
 	virtual TSharedRef<ITableRow> BuildRow(const TSharedRef<STableViewBase>& OwnerTable) override
 	{
 		return SNew(STableRow< TSharedPtr<FWidgetViewModel> >, OwnerTable)
+        .Style( FEditorStyle::Get(), "UMGEditor.ToolboxHeader" )
 			.Padding(2.0f)
 			.ShowSelection(false)
 			[
-				SNew(STextBlock)
-				.Text(GroupName)
+                SNew(STextBlock)
+                .Text(GroupName)
 			];
 	}
 

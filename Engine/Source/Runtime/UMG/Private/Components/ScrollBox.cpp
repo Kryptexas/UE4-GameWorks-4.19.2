@@ -40,7 +40,14 @@ int32 UScrollBox::GetChildIndex(UWidget* Content) const
 
 bool UScrollBox::AddChild(UWidget* Child, FVector2D Position)
 {
-	AddSlot(Child);
+	UScrollBoxSlot* Slot = AddSlot(Child);
+	
+	// Add the child to the live canvas if it already exists
+	if (MyScrollBox.IsValid())
+	{
+		Slot->BuildSlot(MyScrollBox.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -50,6 +57,13 @@ bool UScrollBox::RemoveChild(UWidget* Child)
 	if ( SlotIndex != -1 )
 	{
 		Slots.RemoveAt(SlotIndex);
+		
+		// Remove the widget from the live slot if it exists.
+		if (MyScrollBox.IsValid())
+		{
+			MyScrollBox->RemoveSlot(Child->GetWidget());
+		}
+		
 		return true;
 	}
 
@@ -82,22 +96,15 @@ void UScrollBox::InsertChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
-	TSharedRef<SScrollBox> NewCanvas = SNew(SScrollBox);
-	MyScrollBox = NewCanvas;
+	MyScrollBox = SNew(SScrollBox);
 
-	TSharedPtr<SScrollBox> Canvas = MyScrollBox.Pin();
-	if ( Canvas.IsValid() )
+	for ( auto Slot : Slots )
 	{
-		Canvas->ClearChildren();
-
-		for ( auto Slot : Slots )
-		{
-			Slot->Parent = this;
-			Slot->BuildSlot(NewCanvas);
-		}
+		Slot->Parent = this;
+		Slot->BuildSlot(MyScrollBox.ToSharedRef());
 	}
-
-	return NewCanvas;
+	
+	return BuildDesignTimeWidget( MyScrollBox.ToSharedRef() );
 }
 
 UScrollBoxSlot* UScrollBox::AddSlot(UWidget* Content)

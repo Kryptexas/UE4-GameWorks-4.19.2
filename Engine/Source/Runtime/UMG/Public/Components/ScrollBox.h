@@ -40,7 +40,7 @@ class UMG_API UScrollBox : public UPanelWidget
 
 protected:
 
-	TWeakPtr<class SScrollBox> MyScrollBox;
+	TSharedPtr<class SScrollBox> MyScrollBox;
 
 protected:
 	// UWidget interface

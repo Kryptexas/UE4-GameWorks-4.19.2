@@ -29,3 +29,8 @@ bool UPanelSlot::CanMove() const
 {
 	return false;
 }
+
+bool UPanelSlot::IsDesignTime() const
+{
+	return Parent->IsDesignTime();
+}

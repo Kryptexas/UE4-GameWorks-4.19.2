@@ -30,36 +30,39 @@ UEditableText::UEditableText(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
-
-	SEditableText::FArguments Defaults;
-
-	return SNew(SEditableText)
-		.Text(Text)
-		//.Style(Style ? Style->TextBlockStyle : Defaults._Style)
-		.HintText(HintText)
-		.Font(FSlateFontInfo(FontPath, Font.Size))
-		.ColorAndOpacity(ColorAndOpacity)
-		.IsReadOnly(IsReadOnly)
-		.IsPassword(IsPassword)
-		.MinDesiredWidth(MinimumDesiredWidth)
-		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
-		.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
-		.RevertTextOnEscape(RevertTextOnEscape)
-		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
-		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
-		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		;
-}
-
-#if WITH_EDITOR
-
-void UEditableText::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
 	
+	SEditableText::FArguments Defaults;
+	
+	const FEditableTextStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		StylePtr = Defaults._Style;
+	}
+	
+	MyEditableText = SNew(SEditableText)
+	.Style(StylePtr)
+	.Font(FSlateFontInfo(FontPath, Font.Size))
+	.MinDesiredWidth(MinimumDesiredWidth)
+	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
+	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
+	.RevertTextOnEscape(RevertTextOnEscape)
+	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
+	.SelectAllTextOnCommit(SelectAllTextOnCommit)
+	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
+	;
+	
+	return MyEditableText.ToSharedRef();
 }
 
-#endif
+void UEditableText::SyncronizeProperties()
+{
+	MyEditableText->SetText(Text);
+	MyEditableText->SetHintText(HintText);
+	MyEditableText->SetIsReadOnly(IsReadOnly);
+	MyEditableText->SetIsPassword(IsPassword);
+	MyEditableText->SetColorAndOpacity(ColorAndOpacity);
+}
 
 void UEditableText::HandleOnTextChanged(const FText& Text)
 {

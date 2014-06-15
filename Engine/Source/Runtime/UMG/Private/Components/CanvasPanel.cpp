@@ -75,7 +75,13 @@ bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
 {
 	UCanvasPanelSlot* Slot = AddSlot(Child);
 	Slot->LayoutData.Offsets = FMargin(Position.X, Position.Y, 100, 25);
-
+	
+	// Add the child to the live canvas if it already exists
+	if (MyCanvas.IsValid())
+	{
+		Slot->BuildSlot(MyCanvas.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -85,6 +91,13 @@ bool UCanvasPanel::RemoveChild(UWidget* Child)
 	if ( SlotIndex != -1 )
 	{
 		Slots.RemoveAt(SlotIndex);
+		
+		// Remove the widget from the live slot if it exists.
+		if (MyCanvas.IsValid())
+		{
+			MyCanvas->RemoveSlot(Child->GetWidget());
+		}
+		
 		return true;
 	}
 
@@ -99,6 +112,8 @@ void UCanvasPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 #if WITH_EDITOR
 	Content->Slot = Slot;
 #endif
+	
+	//TODO UMG How do we handle this swap for live controls?  It doesn't matter for canvas, but matters for flow controls it will matter
 }
 
 void UCanvasPanel::InsertChildAt(int32 Index, UWidget* Content)
@@ -125,7 +140,7 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 		Slot->BuildSlot(MyCanvas.ToSharedRef());
 	}
 
-	return MyCanvas.ToSharedRef();
+	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
 UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
@@ -143,8 +158,6 @@ UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 
 	return Slot;
 }
-
-
 
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
 {
@@ -186,4 +199,5 @@ void UCanvasPanel::ConnectEditorData()
 void UCanvasPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 }
+
 #endif

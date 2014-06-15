@@ -193,7 +193,7 @@ void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& Prope
 {
 	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
 	
-	if ( PropertyChangedEvent.ChangeType == EPropertyChangeType::ValueSet )
+	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
 		MigrateFromChain(PropertyThatChanged, false);
 	}
@@ -286,6 +286,13 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 
 		PreviewActor = ConstructObject<UUserWidget>(PreviewBlueprint->GeneratedClass, PreviewScene.GetWorld()->GetCurrentLevel());
 		PreviewActor->SetFlags(RF_Standalone | RF_Transactional);
+        
+        // Configure all the widgets to be set to design time.
+        PreviewActor->IsDesignTime(true);
+        for(UWidget* SubPreviewWidget : PreviewActor->Components)
+        {
+            SubPreviewWidget->IsDesignTime(true);
+        }
 
 		PreviewWidgetActorPtr = PreviewActor;
 	}

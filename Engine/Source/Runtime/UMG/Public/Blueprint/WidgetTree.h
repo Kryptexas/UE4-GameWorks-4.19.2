@@ -32,4 +32,8 @@ class UMG_API UWidgetTree : public UObject
 
 		return (T*)Widget;
 	}
+	
+private:
+	bool RemoveWidgetRecursive(UWidget* InRemovedWidget);
+	
 };

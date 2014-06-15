@@ -17,6 +17,10 @@ class UMG_API USpacer : public UWidget
 	/** Sets the size of the spacer */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetSize(FVector2D InSize);
+	
+	// UWidget interface
+	void SyncronizeProperties() override;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface

@@ -31,17 +31,6 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SButton)
-			.OnClicked(this, &SUMGEditorTree::CreateTestUI)
-			[
-				SNew(STextBlock)
-				.Text(NSLOCTEXT("SUMGEditorTree", "CreateTestUI", "Create Test UI"))
-			]
-		]
-
-		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
 			SAssignNew(WidgetTreeView, STreeView< UWidget* >)
@@ -218,49 +207,6 @@ void SUMGEditorTree::WrapSelectedWidgets(UClass* WidgetClass)
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
-}
-
-FReply SUMGEditorTree::CreateTestUI()
-{
-	UWidgetBlueprint* BP = GetBlueprint();
-	TArray<UWidget*>& WidgetTemplates = BP->WidgetTree->WidgetTemplates;
-
-	if ( WidgetTemplates.Num() > 0 )
-	{
-		UVerticalBox* Vertical = CastChecked<UVerticalBox>(WidgetTemplates[2]);
-
-		UButton* NewButton = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-
-		Vertical->AddChild(NewButton, FVector2D(0,0));
-	}
-	else
-	{
-		UCanvasPanel* Canvas = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		UBorder* Border = BP->WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		UVerticalBox* Vertical = BP->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		UButton* Button1 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		UButton* Button2 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		UButton* Button3 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-		UButton* Button4 = BP->WidgetTree->ConstructWidget<UButton>(UButton::StaticClass());
-
-		UTextBlock* Text1 = BP->WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		Text1->Text = FText::FromString(TEXT("Button!"));
-		Button4->SetContent(Text1);
-
-		UCanvasPanelSlot* Slot = Canvas->AddSlot(Border);
-		Slot->LayoutData.Offsets = FMargin(200, 300, 20, 50);
-
-		Border->SetContent(Vertical);
-
-		Vertical->AddSlot(Button1);
-		Vertical->AddSlot(Button2);
-		Vertical->AddSlot(Button3);
-		Vertical->AddSlot(Button4);
-	}
-
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
-
-	return FReply::Handled();
 }
 
 FReply SUMGEditorTree::HandleDeleteSelected()

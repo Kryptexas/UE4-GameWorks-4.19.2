@@ -15,10 +15,6 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	//PrimaryComponentTick.bCanEverTick = true;
-
-	//bAutoActivate = true;
-	//bTickInEditor = true;
 }
 
 UWidget* UContentWidget::GetContent()
@@ -43,15 +39,20 @@ UWidget* UContentWidget::GetChildAt(int32 Index) const
 
 bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 {
-	Content = InContent;
-	return true;
+	if ( Content == NULL )
+	{
+		SetContent(InContent);
+		return true;
+	}
+
+	return false;
 }
 
 bool UContentWidget::RemoveChild(UWidget* Child)
 {
 	if ( Content == Child )
 	{
-		Content = NULL;
+		SetContent(NULL);
 		return true;
 	}
 
@@ -61,7 +62,7 @@ bool UContentWidget::RemoveChild(UWidget* Child)
 void UContentWidget::ReplaceChildAt(int32 Index, UWidget* Child)
 {
 	check(Index == 0);
-	Content = Child;
+	SetContent(Child);
 }
 
 /////////////////////////////////////////////////////

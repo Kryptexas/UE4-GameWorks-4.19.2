@@ -14,7 +14,7 @@ class UMG_API UCheckBox : public UWidget
 
 protected:
 	/** Style of the check box */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Style)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
 	/** Called when the checked state has changed */
@@ -22,23 +22,23 @@ protected:
 	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
 
 	/** Whether the check box is currently in a checked state */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Appearance)
 	bool bIsChecked;
 
 	/** How the content of the toggle button should align within the given space */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Spacing between the check box image and its content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FMargin Padding;
 
 	/** Foreground color for the checkbox's content and parts */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateColor ForegroundColor;
 
 	/** The color of the background border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
 
 	//SLATE_ATTRIBUTE( bool, ReadOnly )
@@ -46,14 +46,62 @@ protected:
 
 	//SLATE_EVENT( FOnGetContent, OnGetMenuContent )
 
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound CheckedSound;
 
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound UncheckedSound;
 
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound HoveredSound;
+	
+	/** Image to use when the checkbox is unchecked */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UncheckedImage;
+	
+	/** Image to use when the checkbox is unchecked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UncheckedHoveredImage;
+	
+	/** Image to use when the checkbox is unchecked and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UncheckedPressedImage;
+	
+	/** Image to use when the checkbox is checked */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* CheckedImage;
+	
+	/** Image to use when the checkbox is checked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* CheckedHoveredImage;
+	
+	/** Image to use when the checkbox is checked and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* CheckedPressedImage;
+	
+	/** Image to use when the checkbox is in an ambiguous state and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UndeterminedImage;
+	
+	/** Image to use when the checkbox is checked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UndeterminedHoveredImage;
+	
+	/** Image to use when the checkbox is in an ambiguous state and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
+	USlateBrushAsset* UndeterminedPressedImage;
+	
+	/** Returns true if this button is currently pressed */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsPressed() const;
+	
+	/** Returns true if the checkbox is currently checked */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool IsChecked() const;
+	
+	// UWidget interface
+	void SyncronizeProperties() override;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface
@@ -62,4 +110,7 @@ protected:
 
 	ESlateCheckBoxState::Type GetCheckState() const;
 	void SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState);
+	
+protected:
+	TSharedPtr<SCheckBox> MyCheckbox;
 };

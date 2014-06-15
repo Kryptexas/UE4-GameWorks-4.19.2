@@ -114,8 +114,23 @@ void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainE
 	Refresh();
 
 	static FName AnchorsProperty(TEXT("Anchors"));
+	
+	FEditPropertyChain::TDoubleLinkedListNode* AnchorNode = PropertyChangedEvent.PropertyChain.GetHead()->GetNextNode();
+	if (!AnchorNode)
+	{
+		return;
+	}
+	
+	FEditPropertyChain::TDoubleLinkedListNode* LayoutDataNode = AnchorNode->GetNextNode();
+	
+	if (!LayoutDataNode)
+	{
+		return;
+	}
+	
+	UProperty* AnchorProperty = LayoutDataNode->GetValue();
 
-	if ( PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetFName() == AnchorsProperty )
+	if ( AnchorProperty && AnchorProperty->GetFName() == AnchorsProperty )
 	{
 		// Ensure we have a parent canvas
 		if ( UCanvasPanel* Canvas = Cast<UCanvasPanel>(Parent) )
@@ -139,17 +154,17 @@ void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainE
 				FVector2D PositionDelta = PreEditGeometry.Position - DefaultAnchorPosition;// ( Geometry.Position - DefaultAnchorOffset );
 
 				// Adjust the size to remain constant
-				if ( LayoutData.Anchors.IsStretchedHorizontal() && !PreEditLayoutData.Anchors.IsStretchedHorizontal() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Left = PositionDelta.X;
-					LayoutData.Offsets.Right = AnchorPositions.Right - ( PositionDelta.X + PreEditGeometry.Size.X );
-				}
-				else if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
+				if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
 				{
 					// Adjust the position to remain constant
 					LayoutData.Offsets.Left = PositionDelta.X + AlignmentOffset.X;
 					LayoutData.Offsets.Right = PreEditGeometry.Size.X;
+				}
+				else if ( LayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Left = PositionDelta.X;
+					LayoutData.Offsets.Right = AnchorPositions.Right - ( PositionDelta.X + PreEditGeometry.Size.X );
 				}
 				else
 				{
@@ -157,17 +172,17 @@ void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainE
 					LayoutData.Offsets.Left = PositionDelta.X + AlignmentOffset.X;
 				}
 
-				if ( LayoutData.Anchors.IsStretchedVertical() && !PreEditLayoutData.Anchors.IsStretchedVertical() )
-				{
-					// Adjust the position to remain constant
-					LayoutData.Offsets.Top = PositionDelta.Y;
-					LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( PositionDelta.Y + PreEditGeometry.Size.Y );
-				}
-				else if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
+				if ( !LayoutData.Anchors.IsStretchedVertical() && PreEditLayoutData.Anchors.IsStretchedVertical() )
 				{
 					// Adjust the position to remain constant
 					LayoutData.Offsets.Top = PositionDelta.Y + AlignmentOffset.Y;
 					LayoutData.Offsets.Bottom = PreEditGeometry.Size.Y;
+				}
+				else if ( LayoutData.Anchors.IsStretchedVertical() )
+				{
+					// Adjust the position to remain constant
+					LayoutData.Offsets.Top = PositionDelta.Y;
+					LayoutData.Offsets.Bottom = AnchorPositions.Bottom - ( PositionDelta.Y + PreEditGeometry.Size.Y );
 				}
 				else
 				{

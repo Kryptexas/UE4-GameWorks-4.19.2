@@ -16,50 +16,56 @@ class UMG_API UBorder : public UContentWidget
 	GENERATED_UCLASS_BODY()
 
 	/** Horizontal positioning of the content within the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Vertical positioning of the content within the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
 	/** The padding to add around the inner content. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FMargin ContentPadding;
 
 	/** The scaling factor for the border content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FVector2D ContentScale;
 
 	/** Color and opacity multiplier of content in the border */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Content Layout")
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FLinearColor ContentColorAndOpacity;
 
-	//@TODO: Should these be exposed?
-	// SLATE_EVENT( FPointerEventHandler, OnMouseButtonDown )
-	// SLATE_EVENT( FPointerEventHandler, OnMouseButtonUp )
-	// SLATE_EVENT( FPointerEventHandler, OnMouseMove )
-	// SLATE_EVENT( FPointerEventHandler, OnMouseDoubleClick )
-
 	/** Image to use for the border */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( DisplayThumbnail = "true" ))
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
 	USlateBrushAsset* BorderBrush;
 
 	/** The scaling factor for the border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FVector2D DesiredSizeScale;
 
 	/** Color and opacity of the actual border image */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor BorderColorAndOpacity;
 
 	/** The foreground color of text and some glyphs that appear as the border's content. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor ForegroundColor;
 
 	/** Whether or not to show the disabled effect when this border is disabled */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	bool bShowEffectWhenDisabled;
+
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnPointerEvent OnMouseButtonDownEvent;
+
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnPointerEvent OnMouseButtonUpEvent;
+
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnPointerEvent OnMouseMoveEvent;
+
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnPointerEvent OnMouseDoubleClickEvent;
 
 	// UContentWidget interface
 	virtual void SetContent(UWidget* Content) override;
@@ -76,6 +82,11 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+	FReply HandleMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+	FReply HandleMouseMove(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+	FReply HandleMouseDoubleClick(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 
 	const FSlateBrush* GetBorderBrush() const;
 };

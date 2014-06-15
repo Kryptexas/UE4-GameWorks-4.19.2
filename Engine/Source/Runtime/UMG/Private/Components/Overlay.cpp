@@ -23,7 +23,14 @@ UWidget* UOverlay::GetChildAt(int32 Index) const
 
 bool UOverlay::AddChild(UWidget* Child, FVector2D Position)
 {
-	AddSlot(Child);
+	UOverlaySlot* Slot = AddSlot(Child);
+	
+	// Add the child to the live canvas if it already exists
+	if (MyOverlay.IsValid())
+	{
+		Slot->BuildSlot(MyOverlay.ToSharedRef());
+	}
+	
 	return true;
 }
 
@@ -36,6 +43,13 @@ bool UOverlay::RemoveChild(UWidget* Child)
 		if ( Slot->Content == Child )
 		{
 			Slots.RemoveAt(SlotIndex);
+			
+			// Remove the widget from the live slot if it exists.
+			if (MyOverlay.IsValid())
+			{
+				MyOverlay->RemoveSlot(Child->GetWidget());
+			}
+			
 			return true;
 		}
 	}
@@ -55,16 +69,15 @@ void UOverlay::ReplaceChildAt(int32 Index, UWidget* Content)
 
 TSharedRef<SWidget> UOverlay::RebuildWidget()
 {
-	TSharedRef<SOverlay> NewWidget = SNew(SOverlay);
-	MyVerticalBox = NewWidget;
+	MyOverlay = SNew(SOverlay);
 
 	for ( auto Slot : Slots )
 	{
 		Slot->Parent = this;
-		Slot->BuildSlot(NewWidget);
+		Slot->BuildSlot(MyOverlay.ToSharedRef());
 	}
 
-	return NewWidget;
+	return BuildDesignTimeWidget( MyOverlay.ToSharedRef() );
 }
 
 UOverlaySlot* UOverlay::AddSlot(UWidget* Content)
