@@ -64,6 +64,14 @@ public:
 	 * @return A reference to the newly-added slot
 	 */
 	FSlot& AddSlot( int32 Column, int32 Row );
+	
+	/**
+	 * Removes a slot from this panel which contains the specified SWidget
+	 *
+	 * @param SlotWidget The widget to match when searching through the slots
+	 * @returns The true if the slot was removed and false if no slot was found matching the widget
+	 */
+	bool RemoveSlot( const TSharedRef<SWidget>& SlotWidget );
 
 	/** Removes all slots from the panel */
 	void ClearChildren();

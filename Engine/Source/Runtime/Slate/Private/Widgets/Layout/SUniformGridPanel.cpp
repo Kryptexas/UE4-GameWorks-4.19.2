@@ -96,6 +96,19 @@ SUniformGridPanel::FSlot& SUniformGridPanel::AddSlot( int32 Column, int32 Row )
 	return NewSlot;
 }
 
+bool SUniformGridPanel::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
+{
+	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
+	{
+		if ( SlotWidget == Children[SlotIdx].Widget )
+		{
+			Children.RemoveAt(SlotIdx);
+			return true;
+		}
+	}
+	
+	return false;
+}
 
 void SUniformGridPanel::ClearChildren()
 {
