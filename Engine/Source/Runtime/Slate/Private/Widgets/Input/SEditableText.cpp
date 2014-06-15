@@ -1966,3 +1966,23 @@ void SEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 	// Give this focus when the context menu has been dismissed
 	FSlateApplication::Get().SetKeyboardFocus( AsShared(), EKeyboardFocusCause::OtherWidgetLostFocus );
 }
+
+void SEditableText::SetHintText( const TAttribute< FText >& InHintText )
+{
+    HintText = InHintText;
+}
+
+void SEditableText::SetIsReadOnly( TAttribute< bool > InIsReadOnly )
+{
+    IsReadOnly = InIsReadOnly;
+}
+
+void SEditableText::SetIsPassword( TAttribute< bool > InIsPassword )
+{
+    IsPassword = InIsPassword;
+}
+
+void SEditableText::SetColorAndOpacity(TAttribute<FSlateColor> Color)
+{
+    ColorAndOpacity = Color;
+}
