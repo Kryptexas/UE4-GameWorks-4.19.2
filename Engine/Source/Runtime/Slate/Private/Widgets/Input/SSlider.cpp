@@ -199,3 +199,28 @@ void SSlider::SetValue(const TAttribute<float>& InValueAttribute)
 {
 	ValueAttribute = InValueAttribute;
 }
+
+void SSlider::SetIndentHandle(const TAttribute<bool>& InIndentHandle)
+{
+    IndentHandle = InIndentHandle;
+}
+
+void SSlider::SetLocked(const TAttribute<bool>& InLocked)
+{
+    LockedAttribute = InLocked;
+}
+
+void SSlider::SetOrientation(EOrientation InOrientation)
+{
+    Orientation = InOrientation;
+}
+
+void SSlider::SetSliderBarColor(FSlateColor InSliderBarColor)
+{
+    SliderBarColor = InSliderBarColor;
+}
+
+void SSlider::SetSliderHandleColor(FSlateColor InSliderHandleColor)
+{
+    SliderHandleColor = InSliderHandleColor;
+}

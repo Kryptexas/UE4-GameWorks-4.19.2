@@ -68,6 +68,21 @@ public:
 
 	/** See the Value attribute */
 	void SetValue(const TAttribute<float>& InValueAttribute);
+    
+    /** See the IndentHandle attribute */
+	void SetIndentHandle(const TAttribute<bool>& InIndentHandle);
+    
+    /** See the Locked attribute */
+	void SetLocked(const TAttribute<bool>& InLocked);
+    
+    /** See the Orientation attribute */
+	void SetOrientation(EOrientation InOrientation);
+    
+    /** See the SliderBarColor attribute */
+	void SetSliderBarColor(FSlateColor InSliderBarColor);
+    
+    /** See the SliderHandleColor attribute */
+	void SetSliderHandleColor(FSlateColor InSliderHandleColor);
 
 public:
 
