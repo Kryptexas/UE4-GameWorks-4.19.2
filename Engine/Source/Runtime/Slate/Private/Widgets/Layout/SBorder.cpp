@@ -241,3 +241,23 @@ void SBorder::SetBorderImage(const TAttribute<const FSlateBrush*>& InBorderImage
 {
 	BorderImage = InBorderImage;
 }
+
+void SBorder::SetOnMouseButtonDown(FPointerEventHandler EventHandler)
+{
+	MouseButtonDownHandler = EventHandler;
+}
+
+void SBorder::SetOnMouseButtonUp(FPointerEventHandler EventHandler)
+{
+	MouseButtonUpHandler = EventHandler;
+}
+
+void SBorder::SetOnMouseMove(FPointerEventHandler EventHandler)
+{
+	MouseMoveHandler = EventHandler;
+}
+
+void SBorder::SetOnMouseDoubleClick(FPointerEventHandler EventHandler)
+{
+	MouseDoubleClickHandler = EventHandler;
+}

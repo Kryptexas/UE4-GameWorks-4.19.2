@@ -107,6 +107,18 @@ public:
 	/** See BorderImage attribute */
 	void SetBorderImage(const TAttribute<const FSlateBrush*>& InBorderImage);
 
+	/** See OnMouseButtonDown event */
+	void SetOnMouseButtonDown(FPointerEventHandler EventHandler);
+
+	/** See OnMouseButtonUp event */
+	void SetOnMouseButtonUp(FPointerEventHandler EventHandler);
+
+	/** See OnMouseMove event */
+	void SetOnMouseMove(FPointerEventHandler EventHandler);
+
+	/** See OnMouseDoubleClick event */
+	void SetOnMouseDoubleClick(FPointerEventHandler EventHandler);
+
 public:
 	// SWidget interface
 	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
