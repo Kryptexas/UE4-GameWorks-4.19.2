@@ -10,7 +10,7 @@
 #include "Sequencer.h"
 #include "MovieScene.h"
 #include "EditorWidgetsModule.h"
-#include "SequencerObjectSpawner.h"
+#include "SequencerActorBindingManager.h"
 #include "SequencerObjectChangeListener.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
