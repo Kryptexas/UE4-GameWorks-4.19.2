@@ -107,7 +107,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	// AActor interface end
 
-	bool IsSuccessful() const { Result == EFunctionalTestResult::Succeeded; }
+	bool IsSuccessful() const { return Result == EFunctionalTestResult::Succeeded; }
 
 protected:
 	void GoToObservationPoint();
