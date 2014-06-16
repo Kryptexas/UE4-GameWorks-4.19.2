@@ -2884,7 +2884,7 @@ void FLightmassProcessor::ImportVolumeSamples()
 	if (VolumeSampleTaskCompleted > 0)
 	{
 		{
-			checkAtCompileTime(sizeof(FDebugVolumeLightingSample) == sizeof(Lightmass::FDebugVolumeLightingSample), DebugTypeSizesMustMatch);
+			static_assert(sizeof(FDebugVolumeLightingSample) == sizeof(Lightmass::FDebugVolumeLightingSample), "Debug type sizes must match.");
 			const FString ChannelName = Lightmass::CreateChannelName(Lightmass::VolumeLightingDebugOutputGuid, Lightmass::LM_VOLUMEDEBUGOUTPUT_VERSION, Lightmass::LM_VOLUMEDEBUGOUTPUT_EXTENSION);
 			const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_VOLUMEDEBUGOUTPUT_CHANNEL_FLAGS );
 			if (Channel >= 0)
@@ -3646,13 +3646,13 @@ void FLightmassProcessor::ReadArray(int32 Channel, TArray<T>& Array)
 /** Fills out GDebugStaticLightingInfo with the output from Lightmass */
 void FLightmassProcessor::ImportDebugOutput()
 {
-	checkAtCompileTime(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), DebugTypeSizesMustMatch_FDebugStaticLightingRay);
-	checkAtCompileTime(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), DebugTypeSizesMustMatch_FDebugStaticLightingVertex);
-	checkAtCompileTime(sizeof(FDebugLightingCacheRecord) == sizeof(Lightmass::FDebugLightingCacheRecord), DebugTypeSizesMustMatch_FDebugLightingCacheRecord);
-	checkAtCompileTime(STRUCT_OFFSET(FDebugLightingCacheRecord,RecordId) == STRUCT_OFFSET(Lightmass::FDebugLightingCacheRecord,RecordId), DebugStructOffsetMustMatch_FDebugLightingCacheRecord_RecordId);
-	checkAtCompileTime(sizeof(FDebugPhoton) == sizeof(Lightmass::FDebugPhoton), DebugTypeSizesMustMatch_FDebugPhoton);
-	checkAtCompileTime(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), DebugTypeSizesMustMatch_FDebugOctreeNode);
-	checkAtCompileTime(NumTexelCorners == Lightmass::NumTexelCorners, DebugTypeSizesMustMatch_NumTexelCorners);
+	static_assert(sizeof(FDebugStaticLightingRay) == sizeof(Lightmass::FDebugStaticLightingRay), "Debug type sizes must match for FDebugStaticLightingRay.");
+	static_assert(sizeof(FDebugStaticLightingVertex) == sizeof(Lightmass::FDebugStaticLightingVertex), "Debug type sizes must match for FDebugStaticLightingVertex.");
+	static_assert(sizeof(FDebugLightingCacheRecord) == sizeof(Lightmass::FDebugLightingCacheRecord), "Debug type sizes must match for FDebugLightingCacheRecord.");
+	static_assert(STRUCT_OFFSET(FDebugLightingCacheRecord, RecordId) == STRUCT_OFFSET(Lightmass::FDebugLightingCacheRecord, RecordId), "Debug struct offset must match for FDebugLightingCacheRecord::RecordId.");
+	static_assert(sizeof(FDebugPhoton) == sizeof(Lightmass::FDebugPhoton), "Debug type sizes must match for FDebugPhoton.");
+	static_assert(sizeof(FDebugOctreeNode) == sizeof(Lightmass::FDebugOctreeNode), "Debug type sizes must match for FDebugOctreeNode.");
+	static_assert(NumTexelCorners == Lightmass::NumTexelCorners, "Debug type sizes must match for NumTexelCorners.");
 
 	const FString ChannelName = Lightmass::CreateChannelName(Lightmass::DebugOutputGuid, Lightmass::LM_DEBUGOUTPUT_VERSION, Lightmass::LM_DEBUGOUTPUT_EXTENSION);
 	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DEBUGOUTPUT_CHANNEL_FLAGS );
@@ -3828,7 +3828,7 @@ bool FLightmassProcessor::ImportSignedDistanceFieldShadowMapData2D(int32 Channel
 		Lightmass::FShadowMapData2DData SMData(0,0);
 		Swarm.ReadChannel(Channel, &SMData, sizeof(Lightmass::FShadowMapData2DData));
 
-		checkAtCompileTime(sizeof(FQuantizedSignedDistanceFieldShadowSample) == sizeof(Lightmass::FQuantizedSignedDistanceFieldShadowSampleData), SampleDataSizesMustMatch);
+		static_assert(sizeof(FQuantizedSignedDistanceFieldShadowSample) == sizeof(Lightmass::FQuantizedSignedDistanceFieldShadowSampleData), "Sample data sizes must match.");
 
 		FQuantizedShadowSignedDistanceFieldData2D* ShadowMapData = new FQuantizedShadowSignedDistanceFieldData2D(SMData.SizeX, SMData.SizeY);
 		check(ShadowMapData);

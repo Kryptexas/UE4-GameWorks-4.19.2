@@ -544,7 +544,7 @@ bool FLinuxCrashContext::GetInfoForAddress(void * Address, const char **OutFunct
 	Dwarf_Unsigned Addr = reinterpret_cast< Dwarf_Unsigned >( Address ), LineNumber = 0;
 	const char * SrcFile = NULL;
 
-	checkAtCompileTime(sizeof(Dwarf_Unsigned) >= sizeof(Address), _Dwarf_Unsigned_type_should_be_long_enough_to_represent_pointers_Check_libdwarf_bitness);
+	static_assert(sizeof(Dwarf_Unsigned) >= sizeof(Address), "Dwarf_Unsigned type should be long enough to represent pointers. Check libdwarf bitness.");
 
 	int ReturnCode = DW_DLV_OK;
 	Dwarf_Error ErrorInfo;
@@ -749,7 +749,7 @@ namespace
 	void WriteUTF16String(FArchive* ReportFile, const TCHAR * UTFString4BytesChar, uint32 NumChars)
 	{
 		check(UTFString4BytesChar != NULL || NumChars == 0);
-		checkAtCompileTime(sizeof(TCHAR) == 4, _PlatformTCHARIsNot4BytesRevisitThisFunction);
+		static_assert(sizeof(TCHAR) == 4, "Platform TCHAR is not 4 bytes. Revisit this function.");
 
 		for (uint32 Idx = 0; Idx < NumChars; ++Idx)
 		{

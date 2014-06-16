@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
+/*=============================================================================
+	StaticBitArray.h: Static bit array definition
+=============================================================================*/
 
+#pragma once
 
 /** Used to read/write a bit in the static array as a bool. */
 template<typename T>
@@ -102,7 +105,7 @@ public:
 		 the initialization point
 
 		***********************************************************************/
-//		checkAtCompileTime( InBitIndex >= 0 && InBitIndex < NumBits, invalidBitValue );
+//		static_assert(InBitIndex >= 0 && InBitIndex < NumBits, "Invalid bit value.");
 
 		check((NumBits > 0) ? (InBitIndex<NumBits):1);
 
@@ -311,7 +314,7 @@ public:
 
 private:
 
-//	checkAtCompileTime( NumBits > 0, mustHaveAtLeast1Bit );
+//	static_assert(NumBits > 0, "Must have at least 1 bit.");
 	static const uint32 NumBitsPerWord = sizeof(WordType) * 8;
 	static const uint32 NumWords = ((NumBits + NumBitsPerWord - 1) & ~(NumBitsPerWord - 1)) / NumBitsPerWord;
 	WordType Words[NumWords];

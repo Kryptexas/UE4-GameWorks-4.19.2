@@ -45,7 +45,7 @@ struct FBoneIndices
 		Data[2] = InData2; 
 		Data[3] = InData3;
 
-		checkAtCompileTime(MAX_INFLUENCES_PER_STREAM == sizeof(Data), Mismatched_BoneInfluences_Per_Vertex);
+		static_assert(MAX_INFLUENCES_PER_STREAM == sizeof(Data), "Mismatched bone influences per vertex.");
 	}
 };
 

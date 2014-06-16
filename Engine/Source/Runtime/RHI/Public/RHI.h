@@ -623,7 +623,7 @@ public:
 	FBlendStateInitializerRHI(const TStaticArray<FRenderTarget,NumRenderTargets>& InRenderTargetBlendStates)
 	:	bUseIndependentRenderTargetBlendStates(NumRenderTargets > 1)
 	{
-		checkAtCompileTime(NumRenderTargets <= MaxSimultaneousRenderTargets,TooManyRenderTargetBlendStates);
+		static_assert(NumRenderTargets <= MaxSimultaneousRenderTargets, "Too many render target blend states.");
 
 		for(uint32 RenderTargetIndex = 0;RenderTargetIndex < NumRenderTargets;++RenderTargetIndex)
 		{

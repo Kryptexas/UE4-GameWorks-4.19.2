@@ -40,17 +40,17 @@ const int32 GParticleSimulationTextureSizeX = 1024;
 const int32 GParticleSimulationTextureSizeY = 1024;
 
 /** Texture size must be power-of-two. */
-checkAtCompileTime( (GParticleSimulationTextureSizeX & (GParticleSimulationTextureSizeX-1)) == 0, ParticleSimulationTextureSizeXNotPowerOfTwo );
-checkAtCompileTime( (GParticleSimulationTextureSizeY & (GParticleSimulationTextureSizeY-1)) == 0, ParticleSimulationTextureSizeYNotPowerOfTwo );
+static_assert((GParticleSimulationTextureSizeX & (GParticleSimulationTextureSizeX - 1)) == 0, "Particle simulation texture size X is not a power of two.");
+static_assert((GParticleSimulationTextureSizeY & (GParticleSimulationTextureSizeY - 1)) == 0, "Particle simulation texture size Y is not a power of two.");
 
 /** The tile size. Texture space is allocated in TileSize x TileSize units. */
 const int32 GParticleSimulationTileSize = 4;
 const int32 GParticlesPerTile = GParticleSimulationTileSize * GParticleSimulationTileSize;
 
 /** Tile size must be power-of-two and <= each dimension of the simulation texture. */
-checkAtCompileTime( (GParticleSimulationTileSize & (GParticleSimulationTileSize-1)) == 0, ParticleSimulationTileSizeNotPowerOfTwo );
-checkAtCompileTime( GParticleSimulationTileSize <= GParticleSimulationTextureSizeX, ParticleSimulationTileSizeLargerThanTexture );
-checkAtCompileTime( GParticleSimulationTileSize <= GParticleSimulationTextureSizeY, ParticleSimulationTileSizeLargerThanTexture );
+static_assert((GParticleSimulationTileSize & (GParticleSimulationTileSize - 1)) == 0, "Particle simulation tile size is not a power of two.");
+static_assert(GParticleSimulationTileSize <= GParticleSimulationTextureSizeX, "Particle simulation tile size is larger than texture.");
+static_assert(GParticleSimulationTileSize <= GParticleSimulationTextureSizeY, "Particle simulation tile size is larger than texture.");
 
 /** How many tiles are in the simulation textures. */
 const int32 GParticleSimulationTileCountX = GParticleSimulationTextureSizeX / GParticleSimulationTileSize;
@@ -58,16 +58,16 @@ const int32 GParticleSimulationTileCountY = GParticleSimulationTextureSizeY / GP
 const int32 GParticleSimulationTileCount = GParticleSimulationTileCountX * GParticleSimulationTileCountY;
 
 /** GPU particle rendering code assumes that the number of particles per instanced draw is <= 16. */
-checkAtCompileTime( MAX_PARTICLES_PER_INSTANCE <= 16, MaxParticlesPerInstanceGreaterThan16 );
+static_assert(MAX_PARTICLES_PER_INSTANCE <= 16, "Max particles per instance is greater than 16.");
 /** Also, it must be a power of 2. */
-checkAtCompileTime( (MAX_PARTICLES_PER_INSTANCE & (MAX_PARTICLES_PER_INSTANCE - 1)) == 0, MaxParticlesPerInstanceNotPowerOfTwo );
+static_assert((MAX_PARTICLES_PER_INSTANCE & (MAX_PARTICLES_PER_INSTANCE - 1)) == 0, "Max particles per instance is not a power of two.");
 
 /** Particle tiles are aligned to the same number as when rendering. */
 enum { TILES_PER_INSTANCE = 8 };
 /** The number of tiles per instance must be <= MAX_PARTICLES_PER_INSTANCE. */
-checkAtCompileTime( TILES_PER_INSTANCE <= MAX_PARTICLES_PER_INSTANCE, TilesPerInstanceGreaterThanMaxParticlesPerInstance );
+static_assert(TILES_PER_INSTANCE <= MAX_PARTICLES_PER_INSTANCE, "Tiles per instance is greater than max particles per instance.");
 /** Also, it must be a power of 2. */
-checkAtCompileTime( (TILES_PER_INSTANCE & (TILES_PER_INSTANCE-1)) == 0, TilesPerInstanceNotPowerOfTwo );
+static_assert((TILES_PER_INSTANCE & (TILES_PER_INSTANCE - 1)) == 0, "Tiles per instance is not a power of two.");
 
 /** Maximum number of vector fields that can be evaluated at once. */
 enum { MAX_VECTOR_FIELDS = 4 };

@@ -32,7 +32,7 @@ protected:
 template< typename T, uint32 Size >
 FORCEINLINE TCacheDirect<T, Size>::TCacheDirect()
 {
-	checkAtCompileTime( ( Size & (Size - 1) ) == 0, Size_must_be_power_of_2 );
+	static_assert((Size & (Size - 1)) == 0, "Size must be power of 2.");
 
 	FMemory::MemSet( Keys, 0xff );
 }
@@ -92,7 +92,7 @@ protected:
 template< typename T, uint32 size >
 FORCEINLINE TCache4Way<T, size>::TCache4Way()
 {
-	checkAtCompileTime( ( Size & (Size - 1) ) == 0, Size_must_be_power_of_2 );
+	static_assert((Size & (Size - 1)) == 0, "Size must be power of 2.");
 
 	FMemory::MemSet( Keys, 0xff );
 

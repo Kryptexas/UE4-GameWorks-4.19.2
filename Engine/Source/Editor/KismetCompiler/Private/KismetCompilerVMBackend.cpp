@@ -108,11 +108,11 @@ public:
 	{
 		//@TODO: Any endian issues?
 #if SCRIPT_LIMIT_BYTECODE_TO_64KB
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 2, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 2, "Update this code as size changed.");
 		ScriptBuffer[WriteOffset] = NewValue & 0xFF;
 		ScriptBuffer[WriteOffset+1] = (NewValue >> 8) & 0xFF;
 #else
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 		ScriptBuffer[WriteOffset] = NewValue & 0xFF;
 		ScriptBuffer[WriteOffset+1] = (NewValue >> 8) & 0xFF;
 		ScriptBuffer[WriteOffset+2] = (NewValue >> 16) & 0xFF;
@@ -161,11 +161,11 @@ struct FSkipOffsetEmitter
 
 		//@TODO: Any endian issues?
 #if SCRIPT_LIMIT_BYTECODE_TO_64KB
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 2, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 2, "Update this code as size changed.");
 		Script[SkipWriteIndex] = BytesToSkip & 0xFF;
 		Script[SkipWriteIndex+1] = (BytesToSkip >> 8) & 0xFF;
 #else
-		checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+		static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 		Script[SkipWriteIndex] = BytesToSkip & 0xFF;
 		Script[SkipWriteIndex+1] = (BytesToSkip >> 8) & 0xFF;
 		Script[SkipWriteIndex+2] = (BytesToSkip >> 16) & 0xFF;
@@ -1275,6 +1275,6 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 		ScriptArray.Add(EX_EndOfScript);
 	}
 #else
-	checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+	static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 #endif
 }

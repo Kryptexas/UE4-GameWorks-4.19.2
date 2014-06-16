@@ -2226,7 +2226,7 @@ struct FReplicationFlags
 	}
 };
 
-checkAtCompileTime( sizeof( FReplicationFlags ) == 4, FReplicationFlags_InvalidSize );
+static_assert(sizeof(FReplicationFlags) == 4, "FReplicationFlags has invalid size.");
 
 /** Struct used to specify the property name of the component to constrain */
 USTRUCT()

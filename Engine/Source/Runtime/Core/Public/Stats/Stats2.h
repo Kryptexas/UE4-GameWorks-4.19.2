@@ -233,7 +233,7 @@ struct EMemoryRegion
 		Shift = EStatMetaFlags::Shift + EStatMetaFlags::NumBits,
 		NumBits = 4
 	};
-	checkAtCompileTime(FPlatformMemory::MCR_MAX < (1 << NumBits), need_to_expand_memoryregion_field);
+	static_assert(FPlatformMemory::MCR_MAX < (1 << NumBits), "Need to expand memory region field.");
 };
 
 
@@ -249,7 +249,7 @@ namespace EStatAllFields
 	};
 }
 
-checkAtCompileTime(EStatAllFields::StartShift > 0, too_many_stat_fields);
+static_assert(EStatAllFields::StartShift > 0, "Too many stat fields.");
 
 FORCEINLINE int64 ToPackedCallCountDuration(uint32 CallCount, uint32 Duration)
 {
@@ -286,7 +286,7 @@ public:
 	FORCEINLINE_STATS FStatNameAndInfo(FStatNameAndInfo const& Other)
 		: NameAndInfo(Other.NameAndInfo)
 	{
-		checkAtCompileTime(EStatAllFields::StartShift >= 0, too_many__fields);
+		static_assert(EStatAllFields::StartShift >= 0, "Too many fields.");
 		CheckInvariants();
 	}
 
@@ -638,7 +638,7 @@ struct FStatMessage
 	*/
 	FORCEINLINE_STATS void Clear()
 	{
-		checkAtCompileTime(sizeof(uint64) == DATA_SIZE, bad_clear);
+		static_assert(sizeof(uint64) == DATA_SIZE, "Bad clear.");
 		*(int64*)&StatData = 0;
 	}
 
@@ -647,7 +647,7 @@ struct FStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64()
 	{
-		checkAtCompileTime(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		return *(int64*)&StatData;
 	}
@@ -675,7 +675,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double()
 	{
-		checkAtCompileTime(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		return *(double*)&StatData;
 	}
@@ -688,7 +688,7 @@ struct FStatMessage
 
 	FORCEINLINE_STATS FName& GetValue_FName()
 	{
-		checkAtCompileTime(sizeof(FName) <= DATA_SIZE && ALIGNOF(FName) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(FName) <= DATA_SIZE && ALIGNOF(FName) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_FName);
 		return *(FName*)&StatData;
 	}
@@ -818,7 +818,7 @@ struct TStatMessage
 	*/
 	FORCEINLINE_STATS void Clear()
 	{
-		checkAtCompileTime(sizeof(uint64) == DATA_SIZE/EnumCount, bad_clear);
+		static_assert(sizeof(uint64) == DATA_SIZE / EnumCount, "Bad clear.");
 
 		for( int32 FieldIndex = 0; FieldIndex < EnumCount; ++FieldIndex )
 		{
@@ -831,7 +831,7 @@ struct TStatMessage
 	*/
 	FORCEINLINE_STATS int64& GetValue_int64( typename TEnum::Type Index )
 	{
-		checkAtCompileTime(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(int64) <= DATA_SIZE && ALIGNOF(int64) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64);
 		checkStats(Index<EnumCount);
 		int64& Value = *((int64*)&StatData+(uint32)Index);
@@ -868,7 +868,7 @@ struct TStatMessage
 
 	FORCEINLINE_STATS double& GetValue_double( typename TEnum::Type Index )
 	{
-		checkAtCompileTime(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, bad_data_for_stat_message );
+		static_assert(sizeof(double) <= DATA_SIZE && ALIGNOF(double) <= DATA_ALIGN, "Bad data for stat message.");
 		checkStats(Index<EnumCount);
 		checkStats(NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_double);
 		double& Value = *((double*)&StatData+(uint32)Index);
@@ -1312,7 +1312,7 @@ struct FThreadSafeStaticStatInner : public FThreadSafeStaticStatBase
 {
 	FORCEINLINE TStatId GetStatId() const
 	{
-		checkAtCompileTime(sizeof(HighPerformanceEnable) == sizeof(TStatId), unsafe_cast_requires_these_to_be_the_same_thing);
+		static_assert(sizeof(HighPerformanceEnable) == sizeof(TStatId), "Unsafe cast requires these to be the same thing.");
 		if (!HighPerformanceEnable)
 		{
 			DoSetup(TStatData::GetStatName(), TStatData::GetDescription(), TStatData::TGroup::GetGroupName(), TStatData::TGroup::GetGroupCategory(), TStatData::TGroup::GetDescription(), TStatData::TGroup::IsDefaultEnabled(), TStatData::IsClearEveryFrame(), TStatData::GetStatType(), TStatData::IsCycleStat(), TStatData::GetMemoryRegion() );

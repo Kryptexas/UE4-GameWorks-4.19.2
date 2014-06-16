@@ -831,7 +831,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialData(
 	}
 
 	// Set the blend mode
-	checkAtCompileTime(EBlendMode::BLEND_MAX == (EBlendMode)Lightmass::BLEND_MAX, DebugTypeSizesMustMatch);
+	static_assert(EBlendMode::BLEND_MAX == (EBlendMode)Lightmass::BLEND_MAX, "Debug type sizes must match.");
 	OutMaterialData.BlendMode = (Lightmass::EBlendMode)((int32)BlendMode);
 	// Set the two-sided flag
 	OutMaterialData.bTwoSided = (uint32)InMaterial.IsTwoSided();

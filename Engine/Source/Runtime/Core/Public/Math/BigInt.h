@@ -17,7 +17,7 @@ class TBigInt
 		BitsPerWord = 32
 	};
 
-	checkAtCompileTime(NumBits >= 64, TBigInt_must_have_at_least_64bits);
+	static_assert(NumBits >= 64, "TBigInt must have at least 64 bits.");
 
 	/** All bits stored as an array of words. */
 	uint32 Bits[NumBits / BitsPerWord];

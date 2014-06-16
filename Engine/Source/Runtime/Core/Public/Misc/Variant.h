@@ -75,7 +75,7 @@ template<typename T> struct TVariantTraits
 {
 	static int32 GetType( )
 	{
-		checkAtCompileTime(!sizeof(T), Variant_trait_must_be_specialized_for_this_type);
+		static_assert(!sizeof(T), "Variant trait must be specialized for this type.");
 	}
 };
 

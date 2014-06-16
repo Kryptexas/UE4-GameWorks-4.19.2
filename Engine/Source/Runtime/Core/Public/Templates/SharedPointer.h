@@ -133,7 +133,7 @@ template< class ObjectType, ESPMode::Type Mode >
 class TSharedRef
 {
 	// TSharedRefs with UObjects are illegal.
-	checkAtCompileTime((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), You_Cannot_Use_TSharedRefs_With_UObjects);
+	static_assert((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), "You cannot use TSharedRef with UObjects.");
 
 public:
 
@@ -425,7 +425,7 @@ template< class ObjectType, ESPMode::Type Mode >
 class TSharedPtr
 {
 	// TSharedPtrs with UObjects are illegal.
-	checkAtCompileTime((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), You_Cannot_Use_TSharedPtrs_With_UObjects);
+	static_assert((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), "You cannot use TSharedPtr with UObjects.");
 
 public:
 

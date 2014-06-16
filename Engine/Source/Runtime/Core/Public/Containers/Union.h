@@ -353,15 +353,14 @@ private:
 		}
 		else
 		{
-			checkAtCompileTime(
+			static_assert(
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeA, Subtype)>::Value ||
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeB, Subtype)>::Value ||
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeC, Subtype)>::Value ||
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeD, Subtype)>::Value ||
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeE, Subtype)>::Value ||
 				TAreTypesEqual<TEMPLATE_PARAMETERS2(TypeF, Subtype)>::Value,
-				TypeIsNotSubtypeOfUnion
-				);
+				"Type is not subtype of union.");
 			OutIndex = -1;
 			OutValuePointer = NULL;
 		}

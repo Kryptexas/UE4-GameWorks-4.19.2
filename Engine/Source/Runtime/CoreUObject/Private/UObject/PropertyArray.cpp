@@ -354,6 +354,6 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UArrayProperty, UProperty,
 
 		// Ensure that TArray and FScriptArray are interchangeable, as FScriptArray will be used to access a native array property
 		// from script that is declared as a TArray in C++.
-		checkAtCompileTime(sizeof(FScriptArray) == sizeof(TArray<uint8>),FScriptArrayAndTArrayMustBeInterchangable);
+		static_assert(sizeof(FScriptArray) == sizeof(TArray<uint8>), "FScriptArray and TArray<uint8> must be interchangable.");
 	}
 );

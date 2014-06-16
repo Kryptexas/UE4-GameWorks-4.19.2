@@ -58,7 +58,7 @@ void FProfilerCommands::RegisterCommands()
 }
 PRAGMA_ENABLE_OPTIMIZATION
 
-//checkAtCompileTime(sizeof(FProfilerActionManager) == 0, FProfilerActionManager_CannotContainAnyVariablesAtThisMoment);
+//static_assert(sizeof(FProfilerActionManager) == 0, "Cannot contain any variables at this moment.");
 
 /*-----------------------------------------------------------------------------
 	FProfilerMenuBuilder

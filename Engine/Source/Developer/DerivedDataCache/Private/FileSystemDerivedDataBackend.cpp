@@ -32,7 +32,8 @@ public:
 		, DaysToDeleteUnusedFiles(InDaysToDeleteUnusedFiles)
 	{
 		// If we find a platform that has more stingent limits, this needs to be rethought.
-		checkAtCompileTime(MAX_BACKEND_KEY_LENGTH + MAX_CACHE_DIR_LEN + MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH + MAX_CACHE_EXTENTION_LEN < PLATFORM_MAX_FILEPATH_LENGTH, not_enough_room_left_for_cache_keys_in_max_path);
+		static_assert(MAX_BACKEND_KEY_LENGTH + MAX_CACHE_DIR_LEN + MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH + MAX_CACHE_EXTENTION_LEN < PLATFORM_MAX_FILEPATH_LENGTH,
+			"Not enough room left for cache keys in max path.");
 		const double SlowInitDuration = 10.0;
 		double AccessDuration = 0.0;
 

@@ -267,7 +267,7 @@ template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME>
 class RAW_METHOD_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
 {
-	checkAtCompileTime((!CanConvertPointerFromTo<UserClass, UObjectBase>::Result), You_Cannot_Use_Raw_Method_Delegates_With_UObjects);
+	static_assert((!CanConvertPointerFromTo<UserClass, UObjectBase>::Result), "You cannot use raw method delegates with UObjects.");
 
 public:
 
@@ -431,7 +431,7 @@ template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME>
 class UOBJECT_METHOD_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
 {
-	checkAtCompileTime((CanConvertPointerFromTo<UserClass, UObjectBase>::Result), You_Cannot_Use_UObject_Method_Delegates_With_Raw_Pointers);
+	static_assert((CanConvertPointerFromTo<UserClass, UObjectBase>::Result), "You cannot use UObject method delegates with raw pointers.");
 
 public:
 
@@ -741,7 +741,7 @@ template<class UserClass, FUNC_PAYLOAD_TEMPLATE_DECL_TYPENAME>
 class UFUNCTION_DELEGATE_INSTANCE_CLASS
 	: public DELEGATE_INSTANCE_INTERFACE_CLASS<FUNC_TEMPLATE_ARGS>
 {
-	checkAtCompileTime((CanConvertPointerFromTo<UserClass, UObjectBase>::Result), You_Cannot_Use_UFunction_Delegates_With_Non_UObject_Classes);
+	static_assert((CanConvertPointerFromTo<UserClass, UObjectBase>::Result), "You cannot use UFunction delegates with non UObject classes.");
 
 	// Structure for UFunction call parameter marshaling.
 	struct FParmsWithPayload

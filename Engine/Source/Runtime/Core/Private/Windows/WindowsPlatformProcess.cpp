@@ -451,7 +451,7 @@ FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
 		TCHAR ProcessNameBuffer[ProcessNameBufferSize];
 		
 		int32 InOutSize = ProcessNameBufferSize;
-		checkAtCompileTime(sizeof(::DWORD) == sizeof(int32), "DWORD size doesn't match int32.  Is it the future or the past?");
+		static_assert(sizeof(::DWORD) == sizeof(int32), "DWORD size doesn't match int32. Is it the future or the past?");
 
 #if WINVER == 0x0502
 		GetProcessImageFileName(ProcessHandle, ProcessNameBuffer, InOutSize);

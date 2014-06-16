@@ -26,12 +26,12 @@
 // bunch of compile-time checks to assure types used by Recast and our
 // mid-layer are the same size
 //----------------------------------------------------------------------//
-checkAtCompileTime(sizeof(NavNodeRef) == sizeof(dtPolyRef), NavNodeRef_and_dtPolyRef_should_be_same_size);
-checkAtCompileTime(RECAST_MAX_AREAS <= DT_MAX_AREAS, Number_of_allowed_areas_cannot_exceed_DT_MAX_AREAS);
-checkAtCompileTime(RECAST_STRAIGHTPATH_OFFMESH_CONNECTION == DT_STRAIGHTPATH_OFFMESH_CONNECTION, Path_flags_values_differ);
+static_assert(sizeof(NavNodeRef) == sizeof(dtPolyRef), "NavNodeRef and dtPolyRef should be the same size.");
+static_assert(RECAST_MAX_AREAS <= DT_MAX_AREAS, "Number of allowed areas cannot exceed DT_MAX_AREAS.");
+static_assert(RECAST_STRAIGHTPATH_OFFMESH_CONNECTION == DT_STRAIGHTPATH_OFFMESH_CONNECTION, "Path flags values differ.");
 // @todo ps4 compile issue: FLT_MAX constexpr issue
 #if !PLATFORM_PS4
-checkAtCompileTime(RECAST_UNWALKABLE_POLY_COST == DT_UNWALKABLE_POLY_COST, Unwalkable_poly_cost_differ);
+static_assert(RECAST_UNWALKABLE_POLY_COST == DT_UNWALKABLE_POLY_COST, "Unwalkable poly cost differ.");
 #endif
 
 /// Helper for accessing navigation query from different threads

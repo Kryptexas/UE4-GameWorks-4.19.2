@@ -43,7 +43,7 @@ void LoadFBxLibraries()
 		FString RootFBxPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/FBx/Win64/");
 		FBxHandle = LoadLibraryW(*(RootFBxPath + "libfbxsdk.dll"));
 	#else
-		checkAtCompileTime( false, TEXT("FBX importing currently not supported in 32 bit versions") );
+		static_assert(false, TEXT("FBX importing currently not supported in 32 bit versions"));
 	#endif // PLATFORM_64BITS
 #endif // PLATFORM_WINDOWS && _MSC_VER == 1700
 

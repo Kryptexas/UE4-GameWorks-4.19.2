@@ -194,7 +194,6 @@ public:
 	void ProcessTasks(int32 QueueIndex, bool bAllowStall)
 	{
 #if STATS
-		checkAtCompileTime(ENamedThreads::StatsThread == 0, delete_this_testing_a_build_fail);
 		TStatId StatName;
 		FCycleCounter ProcessingTasks;
 		if (ThreadId == ENamedThreads::GameThread)
@@ -950,7 +949,7 @@ private:
 	**/
 	ENamedThreads::Type GetCurrentThread()
 	{
-		checkAtCompileTime(offsetof(FWorkerThread,TaskGraphWorker)==0,taskgraph_worker_must_be_first_member);
+		static_assert(offsetof(FWorkerThread,TaskGraphWorker)==0, "Task graph worker must be the first member.");
 		ENamedThreads::Type CurrentThreadIfKnown = ENamedThreads::AnyThread;
 		FWorkerThread* TLSPointer = (FWorkerThread*)FPlatformTLS::GetTlsValue(PerThreadIDTLSSlot);
 		if (TLSPointer)

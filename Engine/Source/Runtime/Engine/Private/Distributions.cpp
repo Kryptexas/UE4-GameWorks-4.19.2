@@ -26,7 +26,7 @@ ENGINE_API uint32 GDistributionType = 1;
 #define LOOKUP_TABLE_MAX_SAMPLES (128)
 
 // The maximum number of samples must be a power of two.
-checkAtCompileTime( (LOOKUP_TABLE_MAX_SAMPLES & (LOOKUP_TABLE_MAX_SAMPLES-1)) == 0, LookupTableMaxSamplesNotPowerOfTwo );
+static_assert((LOOKUP_TABLE_MAX_SAMPLES & (LOOKUP_TABLE_MAX_SAMPLES - 1)) == 0, "Lookup table max samples is not a power of two.");
 
 // Log category for distributions.
 DEFINE_LOG_CATEGORY_STATIC(LogDistributions,Warning,Warning);

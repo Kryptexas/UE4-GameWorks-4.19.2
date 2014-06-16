@@ -1704,7 +1704,7 @@ void UEdGraphSchema_K2::ClearPinWatch(UEdGraphPin const* Pin) const
 bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FString& PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InNewDefaultText, FString* OutMsg /*= NULL*/) const
 {
 #ifdef DVSV_RETURN_MSG
-	checkAtCompileTime(false, DVSV_RETURN_MSG_macro_redefined);
+	static_assert(false, "Macro redefinition.");
 #endif
 #define DVSV_RETURN_MSG(Str) if(NULL != OutMsg) { *OutMsg = Str; } return false;
 

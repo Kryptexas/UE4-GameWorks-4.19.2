@@ -339,8 +339,8 @@ const TCHAR* GLFrequencyStringTable[] =
 };
 
 /** Compile time check to verify that the GL mapping tables are up-to-date. */
-checkAtCompileTime(SF_NumFrequencies == ARRAY_COUNT(GLFrequencyTable), SF_NumFrequencesChanged_PleaseUpdateTables);
-checkAtCompileTime(ARRAY_COUNT(GLFrequencyTable) == ARRAY_COUNT(GLFrequencyStringTable), FrequencyTableSizeMismatch);
+static_assert(SF_NumFrequencies == ARRAY_COUNT(GLFrequencyTable), "NumFrequencies changed. Please update tables.");
+static_assert(ARRAY_COUNT(GLFrequencyTable) == ARRAY_COUNT(GLFrequencyStringTable), "Frequency table size mismatch.");
 
 /**
  * Parse a GLSL error.

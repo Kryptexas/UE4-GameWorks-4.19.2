@@ -512,7 +512,7 @@ private:
 		typedef TAlignedTypedef<FShaderResourceViewRHIParamRef,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
-	checkAtCompileTime(sizeof(FShaderResourceViewRHIParamRef) == sizeof(void*),SRVParamRef_NotPointerSized);
+	static_assert(sizeof(FShaderResourceViewRHIParamRef) == sizeof(void*), "FShaderResourceViewRHIParamRef should have size of a pointer.");
 	static_assert(sizeof(TUniformBufferTypeInfo<FShaderResourceViewRHIParamRef>::TAlignedType) == sizeof(void*), "SRV UniformBufferParam is not aligned to pointer type");
 
 	template<>
@@ -528,7 +528,7 @@ private:
 		typedef TAlignedTypedef<FUnorderedAccessViewRHIParamRef,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
-	checkAtCompileTime(sizeof(FUnorderedAccessViewRHIParamRef) == sizeof(void*),UAVParamRef_NotPointerSized);
+	static_assert(sizeof(FUnorderedAccessViewRHIParamRef) == sizeof(void*), "FUnorderedAccessViewRHIParamRef should have size of a pointer.");
 	static_assert(sizeof(TUniformBufferTypeInfo<FUnorderedAccessViewRHIParamRef>::TAlignedType) == sizeof(void*), "UAV UniformBufferParam is not aligned to pointer type");
 
 	template<>
@@ -544,7 +544,7 @@ private:
 		typedef TAlignedTypedef<FSamplerStateRHIParamRef,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
-	checkAtCompileTime(sizeof(FSamplerStateRHIParamRef) == sizeof(void*),SamplerStateParamRef_NotPointerSized);
+	static_assert(sizeof(FSamplerStateRHIParamRef) == sizeof(void*), "FSamplerStateRHIParamRef should have size of a pointer.");
 	static_assert(sizeof(TUniformBufferTypeInfo<FSamplerStateRHIParamRef>::TAlignedType) == sizeof(void*), "SamplerState UniformBufferParam is not aligned to pointer type");
 
 	template<>
@@ -560,7 +560,7 @@ private:
 		typedef TAlignedTypedef<FTextureRHIParamRef,Alignment>::TAlignedType TAlignedType;
 		static const FUniformBufferStruct* GetStruct() { return NULL; }
 	};
-	checkAtCompileTime(sizeof(FTextureRHIParamRef) == sizeof(void*),TextureParamRef_NotPointerSized);
+	static_assert(sizeof(FTextureRHIParamRef) == sizeof(void*), "FTextureRHIParamRef should have size of a pointer.");
 	static_assert(sizeof(TUniformBufferTypeInfo<FTextureRHIParamRef>::TAlignedType) == sizeof(void*), "Texture UniformBufferParam is not aligned to pointer type");
 
 //
@@ -603,14 +603,14 @@ private:
 		typedef MemberType zzA##MemberName ArrayDecl; \
 		typedef TUniformBufferTypeInfo<zzA##MemberName>::TAlignedType zzT##MemberName; \
 		zzT##MemberName MemberName; \
-		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_INVALID,InvalidMemberType_##MemberName_##MemberType); \
-		checkAtCompileTime(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_UAV,UAVsNotYetSupportedInResourceTables_##MemberName_##MemberType); \
+		static_assert(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_INVALID, "Invalid type " #MemberType " of member " #MemberName "."); \
+		static_assert(TUniformBufferTypeInfo<zzA##MemberName>::BaseType != UBMT_UAV, "UAV is not yet supported in resource tables for " #MemberName " of type " #MemberType "."); \
 	private: \
 		struct zzNextMemberId##MemberName { enum { HasDeclaredResource = zzMemberId##MemberName::HasDeclaredResource || TUniformBufferTypeInfo<zzT##MemberName>::IsResource }; }; \
 		static TArray<FUniformBufferStruct::FMember> zzGetMembersBefore(zzNextMemberId##MemberName) \
 		{ \
-			checkAtCompileTime(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 1 || zzMemberId##MemberName::HasDeclaredResource == 0, AllResourcesMustBeDeclaredLast_##MemberName); \
-			checkAtCompileTime(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 0 || IS_TCHAR_ARRAY(OptionalShaderType), NoShaderTypeFor_##MemberName); \
+			static_assert(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 1 || zzMemberId##MemberName::HasDeclaredResource == 0, "All resources must be declared last for " #MemberName "."); \
+			static_assert(TUniformBufferTypeInfo<zzT##MemberName>::IsResource == 0 || IS_TCHAR_ARRAY(OptionalShaderType), "No shader type for " #MemberName "."); \
 			/* Route the member enumeration on to the function for the member following this. */ \
 			TArray<FUniformBufferStruct::FMember> OutMembers = zzGetMembersBefore(zzMemberId##MemberName()); \
 			/* Add this member. */ \
@@ -625,10 +625,9 @@ private:
 				TUniformBufferTypeInfo<zzA##MemberName>::NumElements, \
 				TUniformBufferTypeInfo<zzA##MemberName>::GetStruct() \
 				)); \
-			checkAtCompileTime( \
+			static_assert( \
 				(STRUCT_OFFSET(zzTThisStruct,MemberName) & (TUniformBufferTypeInfo<zzA##MemberName>::Alignment - 1)) == 0, \
-				MisalignedUniformBufferStructMember##MemberName \
-				); \
+				"Misaligned uniform buffer struct member " #MemberName "."); \
 			return OutMembers; \
 		} \
 		typedef zzNextMemberId##MemberName

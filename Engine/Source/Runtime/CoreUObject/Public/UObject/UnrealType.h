@@ -3079,7 +3079,7 @@ struct FTestType
 template<>
 struct FTestType<bool>
 {
-	checkAtCompileTime(sizeof(bool)==sizeof(uint8), bool_is_not_one_byte);
+	static_assert(sizeof(bool) == sizeof(uint8), "Bool is not one byte.");
 	typedef uint8 TestType;
 };
 
@@ -3132,7 +3132,7 @@ struct COREUOBJECT_API DetermineBitfieldOffsetAndMask
 	void DoDetermineBitfieldOffsetAndMask(const SIZE_T SizeOf)
 	{
 		typedef typename FTestType<BitfieldType>::TestType TTestType;
-		checkAtCompileTime(sizeof(TTestType)==sizeof(BitfieldType), wrong_size_for_test_type);
+		static_assert(sizeof(TTestType) == sizeof(BitfieldType), "Wrong size for test type.");
 
 		void* Buffer = AllocateBuffer(SizeOf);
 		TTestType* Test = (TTestType*)Buffer;

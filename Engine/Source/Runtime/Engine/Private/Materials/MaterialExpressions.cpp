@@ -6709,7 +6709,7 @@ bool UMaterialExpressionMaterialFunctionCall::IsInputConnectionRequired(int32 In
 
 static FString GetInputDefaultValueString(EFunctionInputType InputType, const FVector4& PreviewValue)
 {
-	checkAtCompileTime(FunctionInput_Scalar < FunctionInput_Vector4, ERROR_EnumValuesOutOfOrder);
+	static_assert(FunctionInput_Scalar < FunctionInput_Vector4, "Enum values out of order.");
 	check(InputType <= FunctionInput_Vector4);
 
 	FString ValueString = FString::Printf(TEXT("DefaultValue = (%.2f"), PreviewValue.X);

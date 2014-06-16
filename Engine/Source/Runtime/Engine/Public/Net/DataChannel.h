@@ -75,7 +75,7 @@ private:
 		/** sends a message of this type on the specified connection's control channel */ \
 		static void Send(UNetConnection* Conn) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -101,7 +101,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -139,7 +139,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA, TypeB& ParamB) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -179,7 +179,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -222,7 +222,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -269,7 +269,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \
@@ -325,7 +325,7 @@ private:
 		 */ \
 		static void Send(UNetConnection* Conn, TypeA& ParamA, TypeB& ParamB, TypeC& ParamC, TypeD& ParamD, TypeE& ParamE, TypeF& ParamF, TypeG& ParamG, TypeH& ParamH) \
 		{ \
-			checkAtCompileTime(Index < 256, CONTROL_CHANNEL_MESSAGE_MUST_BE_BYTE); \
+			static_assert(Index < 256, "Control channel message must be a byte."); \
 			checkSlow(!Conn->IsA(UChildConnection::StaticClass())); /** control channel messages can only be sent on the parent connection */ \
 			if (Conn->Channels[0] != NULL && !Conn->Channels[0]->Closing) \
 			{ \

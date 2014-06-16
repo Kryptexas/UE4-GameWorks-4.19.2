@@ -229,7 +229,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 	void EnableStat(FName StatName, FName *DisablePtr)
 	{
 		// This is all complicated to ensure an atomic 8 byte write
-		checkAtCompileTime(sizeof(FName) == sizeof(uint64), assumption_about_size_of_fname);
+		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
 		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
 		MS_ALIGN(8) struct FAligner
 		{
@@ -244,7 +244,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	void DisableStat(FName *DisablePtr)
 	{
-		checkAtCompileTime(sizeof(FName) == sizeof(uint64), assumption_about_size_of_fname);
+		static_assert(sizeof(FName) == sizeof(uint64), "FName should have the same size of uint64.");
 		check(UPTRINT(DisablePtr) % sizeof(FName) == 0);
 		*(uint64*)DisablePtr = 0;
 	}
@@ -676,7 +676,6 @@ public:
 
 	virtual uint32 Run()
 	{
-		checkAtCompileTime(ENamedThreads::StatsThread == 0, delete_this_testing_a_build_fail);
 		StatsThreadId = FPlatformTLS::GetCurrentThreadId();
 		FTaskGraphInterface::Get().AttachToThread(ENamedThreads::StatsThread);
 		FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::StatsThread);

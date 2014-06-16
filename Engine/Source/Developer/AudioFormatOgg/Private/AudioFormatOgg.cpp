@@ -14,7 +14,7 @@
 	#pragma pack(pop)
 #endif
 
-checkAtCompileTime(WITH_OGGVORBIS, no_point_in_compiling_the_ogg_compressor_if_we_dont_have_vorbis);
+static_assert(WITH_OGGVORBIS, "No point in compiling the OGG compressor if we don't have Vorbis.");
 
 // Vorbis encoded sound is about 15% better quality than XMA - adjust the quality setting to get consistent cross platform sound quality
 #define VORBIS_QUALITY_MODIFIER		-15

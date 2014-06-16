@@ -56,7 +56,7 @@ public:
 	FMessageEndpointBuilder& Handling( HandlerType* Handler, typename TMessageHandlerFunc<MessageType, HandlerType>::Type HandlerFunc )
 	{
 		// @todo gmp: implement proper async message deserialization, so this can be removed
-		checkAtCompileTime(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, Please_Add_A_WithMessageHandling_TypeTrait);
+		static_assert(TStructOpsTypeTraits<MessageType>::WithMessageHandling == true, "Please add a WithMessageHandling type trait.");
 
 		Handlers.Add(MakeShareable(new TMessageHandler<MessageType, HandlerType>(Handler, HandlerFunc)));
 

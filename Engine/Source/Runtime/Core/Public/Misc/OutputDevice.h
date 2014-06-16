@@ -193,9 +193,9 @@ namespace ELogVerbosity
 		BreakOnLog		= 0x80
 	};
 }
-checkAtCompileTime(ELogVerbosity::NumVerbosity - 1 < ELogVerbosity::VerbosityMask, bad_ELogVerbosity_VerbosityMask);
-checkAtCompileTime(!(ELogVerbosity::VerbosityMask & ELogVerbosity::BreakOnLog), bad_ELogVerbosity_VerbosityMask2);
-checkAtCompileTime((ELogVerbosity::VerbosityMask | ELogVerbosity::BreakOnLog) < 256, bad_ELogVerbosity_VerbosityMask3); // we use a byte for storage
+static_assert(ELogVerbosity::NumVerbosity - 1 < ELogVerbosity::VerbosityMask, "Bad verbosity mask.");
+static_assert(!(ELogVerbosity::VerbosityMask & ELogVerbosity::BreakOnLog), "Bad verbosity mask.");
+static_assert((ELogVerbosity::VerbosityMask | ELogVerbosity::BreakOnLog) < 256, "Bad verbosity mask."); // we use a byte for storage
 
 /**
  * Enum that defines how the log times are to be displayed.

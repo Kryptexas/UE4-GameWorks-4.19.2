@@ -114,7 +114,7 @@ struct TFormatSpecifier
 		// If the static_assert below were a constant 0 or something not dependent on T, compilers are free to detect this and fail to compile the template.
 		// As specified in the C++ standard s14.6p8. A compiler is free to give a diagnostic here or not. MSVC ignores it, and clang/gcc instantiates the 
 		// template and triggers the static_assert.
-		checkAtCompileTime(sizeof(T) < 0, FormatSpeciferNotSupportedForThisType); // request for a format specifier for a type we do not know about
+		static_assert(sizeof(T) < 0, "Format specifer not supported for this type."); // request for a format specifier for a type we do not know about
 		return TEXT("Unknown");
 	}
 };

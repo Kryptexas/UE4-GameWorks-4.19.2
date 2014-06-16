@@ -330,10 +330,10 @@ struct FGCReferenceTokenStream
 	{
 		UPTRINT Result = UPTRINT(Tokens[CurrentIndex++]);
 #if PLATFORM_64BITS // warning C4293: '<<' : shift count negative or too big, undefined behavior, so we needed the ifdef
-		checkAtCompileTime(sizeof(void*) == 8, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 8, "Pointer size mismatch.");
 		Result |= UPTRINT(Tokens[CurrentIndex++]) << 32;
 #else
-		checkAtCompileTime(sizeof(void*) == 4, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 4, "Pointer size mismatch.");
 #endif
 		return (void*)Result;
 	}
@@ -406,11 +406,11 @@ private:
 	FORCEINLINE void StorePointer( uint32* Stream, void const* Ptr )
 	{
 	#if PLATFORM_64BITS // warning C4293: '<<' : shift count negative or too big, undefined behavior, so we needed the ifdef
-		checkAtCompileTime(sizeof(void*) == 8, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 8, "Pointer size mismatch.");
 		Stream[0] = UPTRINT(Ptr) & 0xffffffff;
 		Stream[1] = UPTRINT(Ptr) >> 32;
 	#else
-		checkAtCompileTime(sizeof(void*) == 4, pointer_size_mismatch);
+		static_assert(sizeof(void*) == 4, "Pointer size mismatch.");
 		Stream[0] = PTRINT(Ptr);
 	#endif
 	}

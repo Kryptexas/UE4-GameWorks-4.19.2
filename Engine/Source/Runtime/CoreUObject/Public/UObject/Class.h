@@ -557,7 +557,7 @@ FORCEINLINE typename TEnableIf<!TStructOpsTypeTraits<CPPSTRUCT>::WithCopy, bool>
 template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithCopy, bool>::Type CopyOrNot(CPPSTRUCT* Dest, CPPSTRUCT const* Src, int32 ArrayDim)
 {
-	checkAtCompileTime((!TIsPODType<CPPSTRUCT>::Value),you_probably_dont_want_custom_copy_for_a_pod_type); 
+	static_assert((!TIsPODType<CPPSTRUCT>::Value), "You probably don't want custom copy for a POD type.");
 	for (;ArrayDim;--ArrayDim)
 	{
 		*Dest++ = *Src++;
@@ -587,7 +587,7 @@ FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithAddStructRef
 template<class CPPSTRUCT>
 FORCEINLINE typename TEnableIf<TStructOpsTypeTraits<CPPSTRUCT>::WithIdentical && TStructOpsTypeTraits<CPPSTRUCT>::WithIdenticalViaEquality, bool>::Type IdenticalOrNot(const CPPSTRUCT* A, const CPPSTRUCT* B, uint32 PortFlags, bool& bOutResult)
 {
-	checkAtCompileTime(sizeof(CPPSTRUCT) == 0,should_not_have_both_WithIdenticalViaEquality_and_WithIdentical);
+	static_assert(sizeof(CPPSTRUCT) == 0, "Should not have both WithIdenticalViaEquality and WithIdentical.");
 }
 
 template<class CPPSTRUCT>

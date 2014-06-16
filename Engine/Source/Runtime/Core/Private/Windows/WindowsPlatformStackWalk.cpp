@@ -480,9 +480,9 @@ static void LoadProcessModules()
 		ANSICHAR ModuleName[1024];
 		ANSICHAR ImageName[1024];
 #if PLATFORM_64BITS
-		checkAtCompileTime(sizeof(ModuleInfo) == 24, broken_alignment_for_64bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 24, "Broken alignment for 64bit Windows include.");
 #else
-		checkAtCompileTime(sizeof(ModuleInfo) == 12, broken_alignment_for_32bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 12, "Broken alignment for 32bit Windows include.");
 #endif
 		FGetModuleInformation( ProcessHandle, ModuleHandleArray[ModuleIndex], &ModuleInfo,sizeof( ModuleInfo ) );
 		FGetModuleFileNameEx( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, 1024 );
@@ -594,9 +594,9 @@ int32 FWindowsPlatformStackWalk::GetProcessModuleSignatures(FStackWalkModuleInfo
 		ANSICHAR ModuleName[1024];
 		ANSICHAR ImageName[1024];
 #if PLATFORM_64BITS
-		checkAtCompileTime(sizeof(ModuleInfo) == 24, broken_alignment_for_64bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 24, "Broken alignment for 64bit Windows include.");
 #else
-		checkAtCompileTime(sizeof(ModuleInfo) == 12, broken_alignment_for_32bit_windows_include);
+		static_assert(sizeof(ModuleInfo) == 12, "Broken alignment for 32bit Windows include.");
 #endif
 		FGetModuleInformation( ProcessHandle, ModuleHandleArray[ModuleIndex], &ModuleInfo,sizeof( ModuleInfo ) );
 		FGetModuleFileNameEx( ProcessHandle, ModuleHandleArray[ModuleIndex], ImageName, 1024 );

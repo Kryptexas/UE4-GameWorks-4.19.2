@@ -613,21 +613,21 @@ public:
 	TSubobjectPtr()
 		: FSubobjectPtr((UObject*)FSubobjectPtr::InvalidPtrValue)
 	{
-		checkAtCompileTime(sizeof(TSubobjectPtr) == sizeof(UObject*), TSuobjectPtr_Equals_Pointer_Size_Assumption_Failed);
+		static_assert(sizeof(TSubobjectPtr) == sizeof(UObject*), "TSuobjectPtr should equal pointer size.");
 	}
 	/** Copy constructor */
 	template <class DerivedSubobjectType>
 	TSubobjectPtr(TSubobjectPtr<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
 	/** Initialization constructor. Can only be used with PCIP.CreateDefaultSubobject(). */
 	template <class DerivedSubobjectType>
 	TSubobjectPtr(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 		: FSubobjectPtr(Other.Object)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 	}
 	/** Gets the sub-object pointer. */
 	FORCEINLINE SubobjectType* Get() const
@@ -638,7 +638,7 @@ public:
 	template <class DerivedSubobjectType>
 	FORCEINLINE TSubobjectPtr& operator=(const TSubobjectPtrConstructor<DerivedSubobjectType>& Other)
 	{
-		checkAtCompileTime((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), Subobject_Pointers_Must_Be_Compatible);
+		static_assert((CanConvertPointerFromTo<DerivedSubobjectType, SubobjectType>::Result), "Subobject pointers must be compatible.");
 		Set(Other.Object);
 		return *this;
 	}

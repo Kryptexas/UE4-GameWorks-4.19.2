@@ -546,7 +546,7 @@ void FPhysScene::ProcessPhysScene(uint32 SceneType)
 
 	if (FrameLagAsync())
 	{
-		checkAtCompileTime(PST_MAX == 3, Assumtiopns_about_physics_scenes); // Here we assume the PST_Sync is the master and never fame lagged
+		static_assert(PST_MAX == 3, "Physics scene static test failed."); // Here we assume the PST_Sync is the master and never fame lagged
 		if (SceneType == PST_Sync)
 		{
 			// the one frame lagged one should be done by now.

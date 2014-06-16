@@ -214,7 +214,7 @@ public:
 	:	Indices(InNeedsCPUAccess)
 	{
 #if DISALLOW_32BIT_INDICES
-		checkAtCompileTime( sizeof(INDEX_TYPE) == sizeof(uint16), DISALLOW_32BIT_INDICESIsDefinedDoNotUse32BitIndices );
+		static_assert(sizeof(INDEX_TYPE) == sizeof(uint16), "DISALLOW_32BIT_INDICES is defined, so you should not use 32-bit indices.");
 #endif
 	}
 

@@ -17,8 +17,8 @@
 #define OVERLAP_BUFFER_SIZE						1024
 #define OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES	992
 
-checkAtCompileTime(HIT_BUFFER_SIZE > 0, InvalidPhysXHitBufferSize);
-checkAtCompileTime(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, InvalidPhysXSyncBufferSize);
+static_assert(HIT_BUFFER_SIZE > 0, "Invalid PhysX hit buffer size.");
+static_assert(HIT_BUFFER_MAX_SYNC_QUERIES < HIT_BUFFER_SIZE, "Invalid PhysX sync buffer size.");
 
 
 

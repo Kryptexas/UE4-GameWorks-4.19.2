@@ -26,7 +26,7 @@ FName MaterialQualityLevelNames[] =
 	FName(TEXT("Num"))
 };
 
-checkAtCompileTime(ARRAY_COUNT(MaterialQualityLevelNames) == EMaterialQualityLevel::Num + 1, MissingEntryFromMaterialQualityLevelNames);
+static_assert(ARRAY_COUNT(MaterialQualityLevelNames) == EMaterialQualityLevel::Num + 1, "Missing entry from material quality level names.");
 
 void GetMaterialQualityLevelName(EMaterialQualityLevel::Type InQualityLevel, FString& OutName)
 {

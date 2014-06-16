@@ -64,7 +64,7 @@ namespace Lightmass
 			for (TMap<FGuid,TArray<FVolumeLightingSample> >::TConstIterator It(VolumeSamples); It; ++It)
 			{
 				Swarm->Write(&It.Key(), sizeof(It.Key()));
-				checkAtCompileTime(sizeof(FVolumeLightingSample) == sizeof(FVolumeLightingSampleData), VolumeDerivedSizeMustMatch);
+				static_assert(sizeof(FVolumeLightingSample) == sizeof(FVolumeLightingSampleData), "Volume derived size must match.");
 				WriteArray(It.Value());
 			}
 			Swarm->CloseCurrentChannel();
@@ -83,7 +83,7 @@ namespace Lightmass
 		if( ErrorCode >= 0 )
 		{
 			Swarm->Write(&DominantLightShadowInfo, sizeof(FDominantLightShadowInfoData));
-			checkAtCompileTime(sizeof(FDominantLightShadowSample) == sizeof(FDominantLightShadowSampleData), ShadowDerivedSizeMustMatch);
+			static_assert(sizeof(FDominantLightShadowSample) == sizeof(FDominantLightShadowSampleData), "Shadow derived size must match.");
 			WriteArray(DominantLightShadowInfo.ShadowMap);
 			Swarm->CloseCurrentChannel();
 		}

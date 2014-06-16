@@ -4,7 +4,7 @@
 
 // it doesn't seem worthwhile to risk changing Cast<>/IsA() to work with interfaces at this time,
 // so we'll just make sure it fails... spectacularly
-#define CATCH_UNSUPPORTED_INTERFACECAST(TheType) checkAtCompileTime((TheType::StaticClassFlags & CLASS_Interface) == 0, __CASTING_TO_INTERFACE_TYPE_##TheType##_IS_UNSUPPORTED)
+#define CATCH_UNSUPPORTED_INTERFACECAST(TheType) static_assert((TheType::StaticClassFlags & CLASS_Interface) == 0, "Casting to interface type " #TheType " is unsupported.")
 
 COREUOBJECT_API void CastLogError(const TCHAR* FromType, const TCHAR* ToType);
 

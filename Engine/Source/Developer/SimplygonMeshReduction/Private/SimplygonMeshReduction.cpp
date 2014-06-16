@@ -843,7 +843,7 @@ private:
 			8.0f,	// Highest
 		};
 
-		checkAtCompileTime( ARRAY_COUNT( ImportanceTable ) == (EMeshFeatureImportance::Highest+1), ImportanceTableSizeMismatch ); // -1 because of TEMP_BROKEN(?)
+		static_assert(ARRAY_COUNT(ImportanceTable) == (EMeshFeatureImportance::Highest + 1), "Importance table size mismatch."); // -1 because of TEMP_BROKEN(?)
 		check(Settings.SilhouetteImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.TextureImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
 		check(Settings.ShadingImportance < EMeshFeatureImportance::Highest+1); // -1 because of TEMP_BROKEN(?)
@@ -1362,7 +1362,7 @@ private:
 			8.0f,	// Highest
 		};
 
-		checkAtCompileTime( ARRAY_COUNT( ImportanceTable ) == SMOI_MAX, BadImportanceTableSize );
+		static_assert(ARRAY_COUNT(ImportanceTable) == SMOI_MAX, "Bad importance table size.");
 		check( Settings.SilhouetteImportance < SMOI_MAX );
 		check( Settings.TextureImportance < SMOI_MAX );
 		check( Settings.ShadingImportance < SMOI_MAX );

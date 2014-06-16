@@ -323,7 +323,7 @@ public:
 	virtual void* allocate(size_t size, const char* typeName, const char* filename, int line) override
 	{
 #if PHYSX_MEMORY_STATS
-		checkAtCompileTime(sizeof(FPhysXAllocationHeader) <= 16,FPhysXAllocationHeaderMustBeLessThan16Bytes);
+		static_assert(sizeof(FPhysXAllocationHeader) <= 16, "FPhysXAllocationHeader size must be less than 16 bytes.");
 
 		INC_DWORD_STAT_BY(STAT_MemoryPhysXTotalAllocationSize, size);
 

@@ -49,7 +49,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Shader MapMemory"),STAT_Shaders_ShaderMapMemory
 
 inline TStatId GetMemoryStatType(EShaderFrequency ShaderFrequency)
 {
-	checkAtCompileTime(6 == SF_NumFrequencies, Bad_EShaderFrequency);
+	static_assert(6 == SF_NumFrequencies, "EShaderFrequency has a bad size.");
 	switch(ShaderFrequency)
 	{
 		case SF_Pixel:		return GET_STATID(STAT_PixelShaderMemory);

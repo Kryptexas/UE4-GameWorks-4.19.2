@@ -20,8 +20,8 @@ extern const int32 GParticleCurveTextureSizeX = 256;
 extern const int32 GParticleCurveTextureSizeY = 256;
 
 /** The texel allocator uses 16-bit integers internally. */
-checkAtCompileTime( GParticleCurveTextureSizeX <= 0xffff, CurveTextureWiderThanSixteenBits );
-checkAtCompileTime( GParticleCurveTextureSizeY <= 0xffff, CurveTextureTallerThanSixteenBits );
+static_assert(GParticleCurveTextureSizeX <= 0xffff, "Curve texture wider than sixteen bits.");
+static_assert(GParticleCurveTextureSizeY <= 0xffff, "Curve texture taller than sixteen bits.");
 
 /** The global curve texture resource. */
 TGlobalResource<FParticleCurveTexture> GParticleCurveTexture;

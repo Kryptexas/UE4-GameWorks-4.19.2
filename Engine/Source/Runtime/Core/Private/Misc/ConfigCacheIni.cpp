@@ -2372,8 +2372,8 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 			// Flag indicating whether the user has requested 'Yes/No To All'.
 			static int32 GIniYesNoToAll = -1;
 			// Make sure GIniYesNoToAll's 'uninitialized' value is kosher.
-			checkAtCompileTime( EAppReturnType::YesAll != -1, YesAll_MustNotBeNegOne );
-			checkAtCompileTime( EAppReturnType::NoAll != -1, NoAll_MustNotBeNegOne );
+			static_assert(EAppReturnType::YesAll != -1, "EAppReturnType::YesAll must not be -1.");
+			static_assert(EAppReturnType::NoAll != -1, "EAppReturnType::NoAll must not be -1.");
 
 			// The file exists but is different.
 			// Prompt the user if they haven't already responded with a 'Yes/No To All' answer.

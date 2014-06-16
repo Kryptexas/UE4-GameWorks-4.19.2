@@ -595,7 +595,7 @@ namespace NvTriStrip
 	template<typename IndexDataType, typename Allocator>
 	void CacheOptimizeIndexBuffer(TArray<IndexDataType,Allocator>& Indices)
 	{
-		checkAtCompileTime(sizeof(IndexDataType) == 2 || sizeof(IndexDataType) == 4, IndicesMustBeShortOrInt);
+		static_assert(sizeof(IndexDataType) == 2 || sizeof(IndexDataType) == 4, "Indices must be short or int.");
 
 		PrimitiveGroup*	PrimitiveGroups = NULL;
 		uint32			NumPrimitiveGroups = 0;
@@ -668,7 +668,7 @@ namespace Forsyth
 	template<typename IndexDataType, typename Allocator>
 	void CacheOptimizeIndexBuffer(TArray<IndexDataType,Allocator>& Indices)
 	{
-		checkAtCompileTime(sizeof(IndexDataType) == 2 || sizeof(IndexDataType) == 4, IndicesMustBeShortOrInt);
+		static_assert(sizeof(IndexDataType) == 2 || sizeof(IndexDataType) == 4, "Indices must be short or int.");
 		bool Is32Bit = sizeof(IndexDataType) == 4;
 
 		// Count the number of vertices

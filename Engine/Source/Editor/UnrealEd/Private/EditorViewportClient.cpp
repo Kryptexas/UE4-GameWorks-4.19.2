@@ -4047,7 +4047,7 @@ void FEditorViewportStats::SendUsageData()
 {
 	Initialize();
 
-	checkAtCompileTime(FEditorViewportStats::CAT_MAX == 22, "If the number of categories change you need to add more entries below!");
+	static_assert(FEditorViewportStats::CAT_MAX == 22, "If the number of categories change you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> PerspectiveUsage;
 	PerspectiveUsage.Add(FAnalyticsEventAttribute(FString("Keyboard.WASD"),			DataPoints[FEditorViewportStats::CAT_PERSPECTIVE_KEYBOARD_WASD]));

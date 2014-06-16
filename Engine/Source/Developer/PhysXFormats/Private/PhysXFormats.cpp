@@ -8,7 +8,7 @@
 #include "TargetPlatform.h"
 #include "PhysXFormats.h"
 
-checkAtCompileTime(WITH_PHYSX, no_point_in_compiling_physx_cooker_if_we_dont_have_physx);
+static_assert(WITH_PHYSX, "No point in compiling PhysX cooker, if we don't have PhysX.");
 
 static FName NAME_PhysXPC(TEXT("PhysXPC"));
 static FName NAME_PhysXXboxOne(TEXT("PhysXXboxOne"));

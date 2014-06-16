@@ -41,23 +41,23 @@ class CanConvertPointerFromTo_Unrelated
 {
 };
 
-checkAtCompileTime((CanConvertPointerFromTo<bool, bool>::Result), Platform_failed__CanConvertPointerFromTo1);
-checkAtCompileTime((CanConvertPointerFromTo<void, void>::Result), Platform_failed__CanConvertPointerFromTo2);
-checkAtCompileTime((CanConvertPointerFromTo<bool, void>::Result), Platform_failed__CanConvertPointerFromTo2b);
-checkAtCompileTime((CanConvertPointerFromTo<const bool, void>::Result), Platform_failed__CanConvertPointerFromTo3);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo4);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo5);
-checkAtCompileTime((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo6);
-checkAtCompileTime((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo7);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo8);
-checkAtCompileTime((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, void>::Result), Platform_failed__CanConvertPointerFromTo9);
+static_assert((CanConvertPointerFromTo<bool, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<void, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<bool, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const bool, void>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<const CanConvertPointerFromTo_TestDerived, const CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert((CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, void>::Result), "Platform CanConvertPointerFromTo test failed.");
 
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestDerived>::Result), Platform_failed__CanConvertPointerFromTo10);
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_Unrelated, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo10b);
-checkAtCompileTime(!(CanConvertPointerFromTo<bool, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo11);
-checkAtCompileTime(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>::Result), Platform_failed__CanConvertPointerFromTo12);
-checkAtCompileTime(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), Platform_failed__CanConvertPointerFromTo13);
-checkAtCompileTime(!(CanConvertPointerFromTo<void, bool>::Result), Platform_failed__CanConvertPointerFromTo14);
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, CanConvertPointerFromTo_TestDerived>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_Unrelated, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<bool, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<void, CanConvertPointerFromTo_TestBase>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<CanConvertPointerFromTo_TestBase, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
+static_assert(!(CanConvertPointerFromTo<void, bool>::Result), "Platform CanConvertPointerFromTo test failed.");
 
 #endif
 

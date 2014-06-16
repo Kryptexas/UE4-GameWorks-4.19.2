@@ -371,7 +371,9 @@
 #endif
 
 #ifndef checkAtCompileTime
-	#define checkAtCompileTime(expr, msg)  static_assert(expr, #msg)
+	#define checkAtCompileTime(expr, msg) \
+		EMIT_DEPRECATED_WARNING_MESSAGE("checkAtCompileTime is deprecated. Please use static_assert instead.") \
+		static_assert(expr, #msg)
 #endif
 
 // DLL export and import definitions
@@ -450,8 +452,8 @@ struct THasOperatorNotEquals
 					public: \
 						FORCEINLINE operator int UE_PrivateBoolType::*() const \
 						{ \
-							checkAtCompileTime(THasOperatorEquals   <decltype(UE_ClassTypeHelper(*this))>::Value, "Class_needs_operator_equals"); \
-							checkAtCompileTime(THasOperatorNotEquals<decltype(UE_ClassTypeHelper(*this))>::Value, "Class_needs_operator_not_equals"); \
+							static_assert(THasOperatorEquals   <decltype(UE_ClassTypeHelper(*this))>::Value, "Class needs operator==()."); \
+							static_assert(THasOperatorNotEquals<decltype(UE_ClassTypeHelper(*this))>::Value, "Class needs operator!=()."); \
 							return UE_OperatorBool() ? &UE_PrivateBoolType::x : 0; \
 						} \
 						FORCEINLINE bool UE_OperatorBool
@@ -576,62 +578,62 @@ namespace TypeTests
 		enum { Value = true };
 	};
 
-	checkAtCompileTime(!PLATFORM_TCHAR_IS_4_BYTES || sizeof(TCHAR) == 4,TypeTests_TCHAR_size);
-	checkAtCompileTime(PLATFORM_TCHAR_IS_4_BYTES || sizeof(TCHAR) == 2,TypeTests_TCHAR_size);
+	static_assert(!PLATFORM_TCHAR_IS_4_BYTES || sizeof(TCHAR) == 4, "TCHAR size must be 4 bytes.");
+	static_assert(PLATFORM_TCHAR_IS_4_BYTES || sizeof(TCHAR) == 2, "TCHAR size must be 2 bytes.");
 
-	checkAtCompileTime(PLATFORM_32BITS || PLATFORM_64BITS,TypeTests_pointer_size);
-	checkAtCompileTime(PLATFORM_32BITS != PLATFORM_64BITS,TypeTests_pointer_exclusive);
-	checkAtCompileTime(!PLATFORM_64BITS || sizeof(void*) == 8,TypeTests_pointer_size_64bit_but_short_pointers);
-	checkAtCompileTime(PLATFORM_64BITS || sizeof(void*) == 4,TypeTests_pointer_size_32bit_but_long_pointers);
+	static_assert(PLATFORM_32BITS || PLATFORM_64BITS, "Type tests pointer size failed.");
+	static_assert(PLATFORM_32BITS != PLATFORM_64BITS, "Type tests pointer exclusive failed.");
+	static_assert(!PLATFORM_64BITS || sizeof(void*) == 8, "Pointer size is 64bit, but pointers are short.");
+	static_assert(PLATFORM_64BITS || sizeof(void*) == 4, "Pointer size is 32bit, but pointers are long.");
 
-	checkAtCompileTime(char(-1) < char(0),TypeTests_char_unsigned);
+	static_assert(char(-1) < char(0), "Unsigned char type test failed.");
 
-	checkAtCompileTime((!TAreTypesEqual<ANSICHAR, WIDECHAR>::Value),TypeTests_ANSICHAR_and_WIDECHAR_should_be_different_types);
-	checkAtCompileTime((!TAreTypesEqual<ANSICHAR, UCS2CHAR>::Value),TypeTests_ANSICHAR_and_CHAR16_should_be_different_types);
-	checkAtCompileTime((!TAreTypesEqual<WIDECHAR, UCS2CHAR>::Value),TypeTests_WIDECHAR_and_CHAR16_should_be_different_types);
-	checkAtCompileTime((TAreTypesEqual<TCHAR, ANSICHAR>::Value || TAreTypesEqual<TCHAR, WIDECHAR>::Value),TypeTests_TCHAR_should_either_be_ANSICHAR_or_WIDECHAR);
+	static_assert((!TAreTypesEqual<ANSICHAR, WIDECHAR>::Value), "ANSICHAR and WIDECHAR should be different types.");
+	static_assert((!TAreTypesEqual<ANSICHAR, UCS2CHAR>::Value), "ANSICHAR and CHAR16 should be different types.");
+	static_assert((!TAreTypesEqual<WIDECHAR, UCS2CHAR>::Value), "WIDECHAR and CHAR16 should be different types.");
+	static_assert((TAreTypesEqual<TCHAR, ANSICHAR>::Value || TAreTypesEqual<TCHAR, WIDECHAR>::Value), "TCHAR should either be ANSICHAR or WIDECHAR.");
 
-	checkAtCompileTime(sizeof(uint8) == 1,TypeTests_BYTE_size);
-	checkAtCompileTime(int32(uint8(-1)) == 0xFF,TypeTests_BYTE_sign);
+	static_assert(sizeof(uint8) == 1, "BYTE type size test failed.");
+	static_assert(int32(uint8(-1)) == 0xFF, "BYTE type sign test failed.");
 
-	checkAtCompileTime(sizeof(uint16) == 2,TypeTests_WORD_size);
-	checkAtCompileTime(int32(uint16(-1)) == 0xFFFF,TypeTests_WORD_sign);
+	static_assert(sizeof(uint16) == 2, "WORD type size test failed.");
+	static_assert(int32(uint16(-1)) == 0xFFFF, "WORD type sign test failed.");
 
-	checkAtCompileTime(sizeof(uint32) == 4,TypeTests_DWORD_size);
-	checkAtCompileTime(int64(uint32(-1)) == int64(0xFFFFFFFF),TypeTests_DWORD_sign);
+	static_assert(sizeof(uint32) == 4, "DWORD type size test failed.");
+	static_assert(int64(uint32(-1)) == int64(0xFFFFFFFF), "DWORD type sign test failed.");
 
-	checkAtCompileTime(sizeof(uint64) == 8,TypeTests_QWORD_size);
-	checkAtCompileTime(uint64(-1) > uint64(0),TypeTests_QWORD_sign);
+	static_assert(sizeof(uint64) == 8, "QWORD type size test failed.");
+	static_assert(uint64(-1) > uint64(0), "QWORD type sign test failed.");
 
 
-	checkAtCompileTime(sizeof(int8) == 1,TypeTests_SBYTE_size);
-	checkAtCompileTime(int32(int8(-1)) == -1,TypeTests_SBYTE_sign);
+	static_assert(sizeof(int8) == 1, "SBYTE type size test failed.");
+	static_assert(int32(int8(-1)) == -1, "SBYTE type sign test failed.");
 
-	checkAtCompileTime(sizeof(int16) == 2,TypeTests_SWORD_size);
-	checkAtCompileTime(int32(int16(-1)) == -1,TypeTests_SWORD_sign);
+	static_assert(sizeof(int16) == 2, "SWORD type size test failed.");
+	static_assert(int32(int16(-1)) == -1, "SWORD type sign test failed.");
 
-	checkAtCompileTime(sizeof(int32) == 4,TypeTests_INT_size);
-	checkAtCompileTime(int64(int32(-1)) == int64(-1),TypeTests_INT_sign);
+	static_assert(sizeof(int32) == 4, "INT type size test failed.");
+	static_assert(int64(int32(-1)) == int64(-1), "INT type sign test failed.");
 
-	checkAtCompileTime(sizeof(int64) == 8,TypeTests_SQWORD_size);
-	checkAtCompileTime(int64(-1) < int64(0),TypeTests_SQWORD_sign);
+	static_assert(sizeof(int64) == 8, "SQWORD type size test failed.");
+	static_assert(int64(-1) < int64(0), "SQWORD type sign test failed.");
 
-	checkAtCompileTime(sizeof(ANSICHAR) == 1,TypeTests_ANSICHAR_size);
-	checkAtCompileTime(int32(ANSICHAR(-1)) == -1,TypeTests_ANSICHAR_sign);
+	static_assert(sizeof(ANSICHAR) == 1, "ANSICHAR type size test failed.");
+	static_assert(int32(ANSICHAR(-1)) == -1, "ANSICHAR type sign test failed.");
 
-	checkAtCompileTime(sizeof(WIDECHAR) == 2 || sizeof(WIDECHAR) == 4,TypeTests_WIDECHAR_size);
+	static_assert(sizeof(WIDECHAR) == 2 || sizeof(WIDECHAR) == 4, "WIDECHAR type size test failed.");
 
-	checkAtCompileTime(sizeof(UCS2CHAR) == 2,TypeTests_UCS2CHAR_size);
+	static_assert(sizeof(UCS2CHAR) == 2, "UCS2CHAR type size test failed.");
 
-	checkAtCompileTime(sizeof(uint32) == 4,TypeTests_BITFIELD_size);
-	checkAtCompileTime(int64(uint32(-1)) == int64(0xFFFFFFFF),TypeTests_BITFIELD_sign);
+	static_assert(sizeof(uint32) == 4, "BITFIELD type size test failed.");
+	static_assert(int64(uint32(-1)) == int64(0xFFFFFFFF), "BITFIELD type sign test failed.");
 
-	checkAtCompileTime(sizeof(PTRINT) == sizeof(void *),TypeTests_PTRINT_size);
-	checkAtCompileTime(PTRINT(-1) < PTRINT(0),TypeTests_PTRINT_sign);
+	static_assert(sizeof(PTRINT) == sizeof(void *), "PTRINT type size test failed.");
+	static_assert(PTRINT(-1) < PTRINT(0), "PTRINT type sign test failed.");
 
-	checkAtCompileTime(sizeof(UPTRINT) == sizeof(void *),TypeTests_UPTRINT_size);
-	checkAtCompileTime(UPTRINT(-1) > UPTRINT(0),TypeTests_UPTRINT_sign);
+	static_assert(sizeof(UPTRINT) == sizeof(void *), "UPTRINT type size test failed.");
+	static_assert(UPTRINT(-1) > UPTRINT(0), "UPTRINT type sign test failed.");
 
-	checkAtCompileTime(sizeof(SIZE_T) == sizeof(void *),TypeTests_SIZE_T_size);
-	checkAtCompileTime(SIZE_T(-1) > SIZE_T(0),TypeTests_SIZE_T_sign);
+	static_assert(sizeof(SIZE_T) == sizeof(void *), "SIZE_T type size test failed.");
+	static_assert(SIZE_T(-1) > SIZE_T(0), "SIZE_T type sign test failed.");
 }

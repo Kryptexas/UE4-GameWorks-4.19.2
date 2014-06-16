@@ -681,7 +681,7 @@ void CookSurroundWave( USoundWave* SoundWave, FName FormatName, const IAudioForm
 
 	// Front left channel is the master
 	ChannelCount = 1;
-	checkAtCompileTime(SPEAKER_FrontLeft == 0, frontleft_must_be_first);
+	static_assert(SPEAKER_FrontLeft == 0, "Front-left speaker must be first.");
 	if( WaveInfo.ReadWaveHeader( RawWaveData, SoundWave->ChannelSizes[ SPEAKER_FrontLeft ], SoundWave->ChannelOffsets[ SPEAKER_FrontLeft ] ) )
 	{
 		{

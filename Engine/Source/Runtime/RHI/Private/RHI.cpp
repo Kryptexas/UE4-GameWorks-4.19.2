@@ -194,7 +194,7 @@ FName FeatureLevelNames[] =
 	FName(TEXT("SM5")),
 };
 
-checkAtCompileTime(ARRAY_COUNT(FeatureLevelNames) == ERHIFeatureLevel::Num, MissingEntryFromFeatureLevelNames);
+static_assert(ARRAY_COUNT(FeatureLevelNames) == ERHIFeatureLevel::Num, "Missing entry from feature level names.");
 
 RHI_API bool GetFeatureLevelFromName(FName Name, ERHIFeatureLevel::Type& OutFeatureLevel)
 {

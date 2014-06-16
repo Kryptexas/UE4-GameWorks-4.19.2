@@ -25,7 +25,7 @@ void SetShaderValue(
 	uint32 ElementIndex = 0
 	)
 {
-	checkAtCompileTime(!TIsPointerType<ParameterType>::Value, ErrorPassByValue);
+	static_assert(!TIsPointerType<ParameterType>::Value, "Passing by value is not valid.");
 
 	const uint32 AlignedTypeSize = Align(sizeof(ParameterType),ShaderArrayElementAlignBytes);
 	const int32 NumBytesToSet = FMath::Min<int32>(sizeof(ParameterType),Parameter.GetNumBytes() - ElementIndex * AlignedTypeSize);

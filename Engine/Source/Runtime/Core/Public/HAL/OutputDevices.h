@@ -158,8 +158,8 @@ protected:
 template<uint8 InDefaultVerbosity, uint8 InCompileTimeVerbosity>
 struct FLogCategory : public FLogCategoryBase
 {
-	checkAtCompileTime((InDefaultVerbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity, bogus_default_verbosity);
-	checkAtCompileTime(InCompileTimeVerbosity < ELogVerbosity::NumVerbosity, bogus_compile_time_verbosity);
+	static_assert((InDefaultVerbosity & ELogVerbosity::VerbosityMask) < ELogVerbosity::NumVerbosity, "Bogus default verbosity.");
+	static_assert(InCompileTimeVerbosity < ELogVerbosity::NumVerbosity, "Bogus compile time verbosity.");
 	enum
 	{
 		CompileTimeVerbosity = InCompileTimeVerbosity

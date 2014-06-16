@@ -141,7 +141,7 @@ CodeSkipSizeType FKismetBytecodeDisassembler::ReadSkipCount(int32& ScriptIndex)
 #if SCRIPT_LIMIT_BYTECODE_TO_64KB
 	return ReadWORD(ScriptIndex);
 #else
-	checkAtCompileTime(sizeof(CodeSkipSizeType) == 4, updateThisCodeAsSizeChanged);
+	static_assert(sizeof(CodeSkipSizeType) == 4, "Update this code as size changed.");
 	return ReadINT(ScriptIndex);
 #endif
 }

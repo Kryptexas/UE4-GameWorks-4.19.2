@@ -108,7 +108,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPadAir",
 			L"Unknown",
 		};
-		checkAtCompileTime((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), Mismatched_IOSDeviceNames_And_EIOSDevice);
+		static_assert((sizeof(IOSDeviceNames) / sizeof(IOSDeviceNames[0])) == ((int32)IOS_Unknown + 1), "Mismatched IOSDeviceNames and EIOSDevice.");
 		
 		// look up into the string array by the enum
 		return IOSDeviceNames[(int32)GetIOSDeviceType()];

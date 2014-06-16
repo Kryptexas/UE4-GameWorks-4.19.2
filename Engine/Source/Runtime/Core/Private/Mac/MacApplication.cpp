@@ -1146,7 +1146,7 @@ void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 
 void FMacApplication::SendAnalytics(IAnalyticsProvider* Provider)
 {
-	checkAtCompileTime(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
+	static_assert(EGestureEvent::Count == 5, "If the number of gestures changes you need to add more entries below!");
 
 	TArray<FAnalyticsEventAttribute> GestureAttributes;
 	GestureAttributes.Add(FAnalyticsEventAttribute(FString("Scroll"),	GestureUsage[EGestureEvent::Scroll]));

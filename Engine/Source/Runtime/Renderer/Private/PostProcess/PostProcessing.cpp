@@ -351,7 +351,7 @@ static FRenderingCompositeOutputRef AddBloom(FPostprocessContext Context, FRende
 	{
 		static const TCHAR* PassLabels[] =
 			{NULL, TEXT("BloomDownsample1"), TEXT("BloomDownsample2"), TEXT("BloomDownsample3"), TEXT("BloomDownsample4")};
-		checkAtCompileTime(ARRAY_COUNT(PassLabels) == DownSampleStages, PassLabel_count_must_equal_DownSampleStages);
+		static_assert(ARRAY_COUNT(PassLabels) == DownSampleStages, "PassLabel count must be equal to DownSampleStages.");
 		FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_Unknown, 1, EPostProcessRectSource::GBS_ViewRect, PassLabels[i]));
 		Pass->SetInput(ePId_Input0, PostProcessDownsamples[i - 1]);
 		PostProcessDownsamples[i] = FRenderingCompositeOutputRef(Pass);
