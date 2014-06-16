@@ -284,6 +284,11 @@ private:
 	void OnToggleImmersive();
 
 	/**
+	* Called to determine whether the maximize mode of current viewport can be toggled
+	*/
+	bool CanToggleMaximizeMode() const;
+
+	/**
 	* Called to toggle maximize mode of current viewport
 	*/
 	void OnToggleMaximizeMode();

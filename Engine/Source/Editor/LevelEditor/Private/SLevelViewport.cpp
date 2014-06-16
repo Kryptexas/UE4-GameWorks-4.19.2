@@ -989,7 +989,8 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 
 	CommandList.MapAction( 
 		ViewportActions.ToggleMaximize,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleMaximizeMode ) );
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleMaximizeMode ),
+		FCanExecuteAction::CreateSP( this, &SLevelViewport::CanToggleMaximizeMode ) );
 
 	
 	CommandList.MapAction(
@@ -1365,14 +1366,16 @@ EVisibility SLevelViewport::GetToolBarVisibility() const
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
 {
 	bool bIsMaximizeSupported = false;
+	bool bShowMaximizeToggle = false;
 	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
 	if (LayoutPinned.IsValid())
 	{
 		bIsMaximizeSupported = LayoutPinned->IsMaximizeSupported();
+		bShowMaximizeToggle = !LayoutPinned->IsTransitioning();
 	}
 
 	// Do not show the maximize/minimize toggle when in immersive mode
-	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : EVisibility::Visible;
+	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : (bShowMaximizeToggle ? EVisibility::Visible : EVisibility::Hidden);
 }
 
 EVisibility SLevelViewport::GetCloseImmersiveButtonVisibility() const
@@ -2143,6 +2146,12 @@ void SLevelViewport::RedrawViewport( bool bInvalidateHitProxies )
 			CurActorPreview.LevelViewportClient->Viewport->InvalidateDisplay();
 		}
 	}
+}
+
+bool SLevelViewport::CanToggleMaximizeMode() const
+{
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	return (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported() && !ParentLayoutPinned->IsTransitioning());
 }
 
 void  SLevelViewport::OnToggleMaximizeMode()
