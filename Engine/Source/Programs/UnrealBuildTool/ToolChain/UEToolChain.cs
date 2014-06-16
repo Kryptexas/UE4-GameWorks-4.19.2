@@ -32,8 +32,8 @@ namespace UnrealBuildTool
 		
 		void PreBuildSync();
 		
-		void PostBuildSync(UEBuildTarget Target);
-		
+        void PostBuildSync(UEBuildTarget Target);
+        
 		void SetUpGlobalEnvironment();
 	}
 
@@ -128,7 +128,7 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public virtual void PostBuildSync(UEBuildTarget Target)
+        public virtual void PostBuildSync(UEBuildTarget Target)
 		{
 		}
 

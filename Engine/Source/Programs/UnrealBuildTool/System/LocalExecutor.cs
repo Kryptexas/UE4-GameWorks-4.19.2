@@ -90,6 +90,25 @@ namespace UnrealBuildTool
 			}
 		}
 
+
+        /**
+         * Used when debuging Actions outputs all action return values to debug out
+         * 
+         * @param	sender		Sending object
+         * @param	e			Event arguments (In this case, the line of string output)
+         */
+        protected void ActionDebugOutput(object sender, DataReceivedEventArgs e)
+        {
+            var Output = e.Data;
+            if (Output == null)
+            {
+                return;
+            }
+
+            Log.TraceInformation(Output);
+        }
+
+
 		/**
 		 * The actual function to run in a thread. This is potentially long and blocking
 		 */
@@ -143,6 +162,10 @@ namespace UnrealBuildTool
 				{
 					Log.TraceVerbose("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
 				}
+                if (Action.bPrintDebugInfo)
+                {
+                    Log.TraceInformation("Executing: {0} {1}", ExpandedCommandPath, ActionStartInfo.Arguments);
+                }
 				// Log summary if wanted.
 				else if (Action.bShouldOutputStatusDescription)
 				{
@@ -165,14 +188,24 @@ namespace UnrealBuildTool
 					{
 						ActionProcess = new Process();
 						ActionProcess.StartInfo = ActionStartInfo;
-						bool bShouldRedirectOuput = Action.OutputEventHandler != null;
+						bool bShouldRedirectOuput = Action.OutputEventHandler != null || Action.bPrintDebugInfo;
 						if (bShouldRedirectOuput)
 						{
 							ActionStartInfo.RedirectStandardOutput = true;
 							ActionStartInfo.RedirectStandardError = true;
 							ActionProcess.EnableRaisingEvents = true;
-							ActionProcess.OutputDataReceived += Action.OutputEventHandler;
-							ActionProcess.ErrorDataReceived += Action.OutputEventHandler;
+
+                            if (Action.OutputEventHandler != null)
+                            {
+                                ActionProcess.OutputDataReceived += Action.OutputEventHandler;
+                                ActionProcess.ErrorDataReceived += Action.OutputEventHandler;
+                            }
+                            
+                            if ( Action.bPrintDebugInfo)
+                            {
+                                ActionProcess.OutputDataReceived += new DataReceivedEventHandler(ActionDebugOutput);
+                                ActionProcess.ErrorDataReceived += new DataReceivedEventHandler(ActionDebugOutput);
+                            }
 						}
 						ActionProcess.Start();
 						if (bShouldRedirectOuput)
