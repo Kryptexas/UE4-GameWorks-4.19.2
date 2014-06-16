@@ -73,6 +73,12 @@ UWidget* FSelectedWidget::GetPreview() const
 
 // Designer Extension
 
+FDesignerExtension::FDesignerExtension()
+	: ScopedTransaction(NULL)
+{
+
+}
+
 void FDesignerExtension::Initialize(UWidgetBlueprint* InBlueprint)
 {
 	Blueprint = InBlueprint;
@@ -81,6 +87,29 @@ void FDesignerExtension::Initialize(UWidgetBlueprint* InBlueprint)
 FName FDesignerExtension::GetExtensionId() const
 {
 	return ExtensionId;
+}
+
+void FDesignerExtension::BeginTransaction(const FText& SessionName)
+{
+	if ( ScopedTransaction == NULL )
+	{
+		ScopedTransaction = new FScopedTransaction(SessionName);
+	}
+
+	for ( FSelectedWidget& Selection : SelectionCache )
+	{
+		Selection.GetPreview()->Modify();
+		Selection.GetTemplate()->Modify();
+	}
+}
+
+void FDesignerExtension::EndTransaction()
+{
+	if ( ScopedTransaction != NULL )
+	{
+		delete ScopedTransaction;
+		ScopedTransaction = NULL;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

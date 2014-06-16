@@ -19,7 +19,7 @@ UTileView::UTileView(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UTileView::RebuildWidget()
 {
-	return SNew(STileView< UObject* >)
+	MyTileView = SNew(STileView< UObject* >)
 		.SelectionMode(SelectionMode)
 		.ListItemsSource(&Items)
 		.ItemWidth(ItemWidth)
@@ -35,6 +35,8 @@ TSharedRef<SWidget> UTileView::RebuildWidget()
 		//		+ SHeaderRow::Column(TEXT("Socket"))
 		//	);
 		;
+
+	return BuildDesignTimeWidget( MyTileView.ToSharedRef() );
 }
 
 TSharedRef<ITableRow> UTileView::HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const
@@ -57,6 +59,21 @@ TSharedRef<ITableRow> UTileView::HandleOnGenerateTile(UObject* Item, const TShar
 		[
 			SNew(STextBlock).Text(Item ? FText::FromString(Item->GetName()) : LOCTEXT("null", "null"))
 		];
+}
+
+void UTileView::SetItemWidth(float Width)
+{
+	MyTileView->SetItemWidth(Width);
+}
+
+void UTileView::SetItemHeight(float Height)
+{
+	MyTileView->SetItemHeight(Height);
+}
+
+void UTileView::RequestListRefresh()
+{
+	MyTileView->RequestListRefresh();
 }
 
 /////////////////////////////////////////////////////

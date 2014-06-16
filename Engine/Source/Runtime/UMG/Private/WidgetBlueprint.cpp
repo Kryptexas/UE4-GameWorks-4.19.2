@@ -22,6 +22,7 @@ UWidgetBlueprint::UWidgetBlueprint(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 {
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	WidgetTree->SetFlags(RF_Transactional);
 }
 
 void UWidgetBlueprint::PostLoad()

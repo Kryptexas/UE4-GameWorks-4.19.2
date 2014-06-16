@@ -135,6 +135,9 @@ public:
 	
 	/** Sets that this widget is being designed */
 	void IsDesignTime(bool bInDesignTime);
+
+	/** Mark this object as modified, also mark the slot as modified. */
+	virtual bool Modify(bool bAlwaysMarkDirty = true);
 	
 #if WITH_EDITOR
 	/** Gets a widget representing the tiny preview of the toolbox */

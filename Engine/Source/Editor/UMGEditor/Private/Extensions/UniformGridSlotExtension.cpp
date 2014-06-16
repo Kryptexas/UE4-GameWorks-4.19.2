@@ -59,11 +59,15 @@ void FUniformGridSlotExtension::BuildWidgetsForSelection(const TArray< FSelected
 
 FReply FUniformGridSlotExtension::HandleShiftRow(int32 ShiftAmount)
 {
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
 		ShiftRow(Selection.GetPreview(), ShiftAmount);
 		ShiftRow(Selection.GetTemplate(), ShiftAmount);
 	}
+
+	EndTransaction();
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 
@@ -72,11 +76,15 @@ FReply FUniformGridSlotExtension::HandleShiftRow(int32 ShiftAmount)
 
 FReply FUniformGridSlotExtension::HandleShiftColumn(int32 ShiftAmount)
 {
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
 		ShiftColumn(Selection.GetPreview(), ShiftAmount);
 		ShiftColumn(Selection.GetTemplate(), ShiftAmount);
 	}
+
+	EndTransaction();
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 

@@ -27,6 +27,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
+	/** Background image for the selected text (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageSelected;
+
+	/** Background image for the selection targeting effect (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageSelectionTarget;
+
+	/** Background image for the composing text (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* BackgroundImageComposing;
+
+	/** Image brush used for the caret (overrides Style) */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* CaretImage;
+
 	/** Font color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateFontInfo Font;
@@ -66,18 +82,6 @@ protected:
 	/** Whether to select all text when pressing enter to commit changes */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
 	bool SelectAllTextOnCommit;
-
-	///** Background image for the selected text (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageSelected)
-
-	///** Background image for the selection targeting effect (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageSelectionTarget)
-
-	///** Background image for the composing text (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, BackgroundImageComposing)
-
-	///** Image brush used for the caret (overrides Style) */
-	//SLATE_ATTRIBUTE(const FSlateBrush*, CaretImage)
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable)

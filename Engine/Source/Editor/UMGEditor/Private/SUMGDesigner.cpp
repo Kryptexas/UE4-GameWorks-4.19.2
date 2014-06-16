@@ -67,9 +67,11 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 
 void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
+	ScopedTransaction = NULL;
+
 	PreviewWidgetObject = NULL;
-    DropPreviewWidget = NULL;
-    DropPreviewParent = NULL;
+	DropPreviewWidget = NULL;
+	DropPreviewParent = NULL;
 	BlueprintEditor = InBlueprintEditor;
 	CurrentHandle = DH_NONE;
 
@@ -187,14 +189,14 @@ FSelectedWidget SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, con
 		{
 			FArrangedWidget& Child = Children.GetInternalArray()[ChildIndex];
 			Preview = WidgetActor->GetWidgetHandle(Child.Widget);
-            
-            // Ignore the drop preview widget when doing widget picking
-            if (Preview == DropPreviewWidget)
-            {
-                Preview = NULL;
-                continue;
-            }
-            
+			
+			// Ignore the drop preview widget when doing widget picking
+			if (Preview == DropPreviewWidget)
+			{
+				Preview = NULL;
+				continue;
+			}
+			
 			if ( Preview )
 			{
 				ArrangedWidget = Child;
@@ -219,6 +221,8 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	{
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 		CurrentSelection = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
+
+		//TODO UMG Undoable Selection
 
 		if ( CurrentSelection.IsValid() )
 		{
@@ -265,6 +269,9 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	}
 	else
 	{
+		BeginTransaction(LOCTEXT("ResizeWidget", "Resize Widget"));
+
+		// Capture mouse for the drag handle
 		return FReply::Handled().PreventThrottling().CaptureMouse(AsShared());
 	}
 
@@ -273,6 +280,8 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 
 FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	EndTransaction();
+
 	CurrentHandle = DH_NONE;
 	return FReply::Handled().ReleaseMouseCapture();
 }
@@ -681,157 +690,187 @@ void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	{
 		DragDropOp->ResetToDefaultToolTip();
 	}
-    
-    if (DropPreviewWidget)
-    {
-        UWidgetBlueprint* BP = GetBlueprint();
-        BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-        DropPreviewWidget = NULL;
-    }
+	
+	if (DropPreviewWidget)
+	{
+		UWidgetBlueprint* BP = GetBlueprint();
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		DropPreviewWidget = NULL;
+	}
 }
 
 FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-    UWidgetBlueprint* BP = GetBlueprint();
-    
+	UWidgetBlueprint* BP = GetBlueprint();
+	
 	if (DropPreviewWidget)
-    {
-        if (DropPreviewParent)
-        {
-            DropPreviewParent->RemoveChild(DropPreviewWidget);
-        }
-        
-        BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-        DropPreviewWidget = NULL;
-    }
-    
-    DropPreviewWidget = AddPreview(MyGeometry, DragDropEvent);
-    if ( DropPreviewWidget )
-    {
-        //@TODO UMG Drop Feedback
-        return FReply::Handled();
-    }
+	{
+		if (DropPreviewParent)
+		{
+			DropPreviewParent->RemoveChild(DropPreviewWidget);
+		}
+		
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		DropPreviewWidget = NULL;
+	}
+	
+	DropPreviewWidget = AddPreview(MyGeometry, DragDropEvent);
+	if ( DropPreviewWidget )
+	{
+		//@TODO UMG Drop Feedback
+		return FReply::Handled();
+	}
 
 	return FReply::Unhandled();
 }
 
 UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-    TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
 	{
-        FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-        FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-        
-        UWidgetBlueprint* BP = GetBlueprint();
-        
-        if ( Selection.IsValid() )
-        {
-            UWidget* Target = Selection.GetPreview();
-            if ( Target->IsA(UPanelWidget::StaticClass()) )
-            {
-                UPanelWidget* Parent = Cast<UPanelWidget>(Target);
-                
-                UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-				Widget->IsDesignTime(true);
-            
-                FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-                Parent->AddChild(Widget, LocalPosition);
-                //@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-                //@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-            
-                DropPreviewParent = Parent;
-            
-                return Widget;
-            }
-            else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
-            {
-                UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-                Widget->IsDesignTime(true);
+		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+		FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+		
+		UWidgetBlueprint* BP = GetBlueprint();
+		
+		if ( Selection.IsValid() )
+		{
+			UWidget* Target = Selection.GetPreview();
+			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			{
+				UPanelWidget* Parent = Cast<UPanelWidget>(Target);
 				
-                DropPreviewParent = NULL;
-                
-                return Widget;
-            }
-        }
-    }
-    
-    return NULL;
+				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+				Widget->IsDesignTime(true);
+			
+				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				Parent->AddChild(Widget, LocalPosition);
+				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+			
+				DropPreviewParent = Parent;
+			
+				return Widget;
+			}
+			else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
+			{
+				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+				Widget->IsDesignTime(true);
+				
+				DropPreviewParent = NULL;
+				
+				return Widget;
+			}
+		}
+	}
+	
+	return NULL;
 }
 
 bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-    TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
 	{
-        FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-        FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-        
-        UWidgetBlueprint* BP = GetBlueprint();
-        
-        if ( Selection.IsValid() )
-        {
-            UWidget* Target = Selection.GetTemplate();
-            if ( Target->IsA(UPanelWidget::StaticClass()) )
-            {
-                UPanelWidget* Parent = Cast<UPanelWidget>(Target);
-                
-                UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+		FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+		
+		UWidgetBlueprint* BP = GetBlueprint();
+		
+		if ( Selection.IsValid() )
+		{
+			UWidget* Target = Selection.GetTemplate();
+			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			{
+				UPanelWidget* Parent = Cast<UPanelWidget>(Target);
+
+				const FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
+				Parent->SetFlags(RF_Transactional);
+				Parent->Modify();
+				
+				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 				Widget->IsDesignTime(true);
-                
-                FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-                Parent->AddChild(Widget, LocalPosition);
-                //@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-                //@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-                
-                // Update the selected template to be the newly created one.
-                CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
-                
-                return true;
-            }
-        }
-        
-        if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
-        {
-            // TODO UMG This method isn't great, maybe the user widget should just be a canvas.
-            
-            // Add it to the root if there are no other widgets to add it to.
-            UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+				
+				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				Parent->AddChild(Widget, LocalPosition);
+				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+				
+				// Update the selected template to be the newly created one.
+				CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
+				
+				return true;
+			}
+		}
+		
+		if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
+		{
+			const FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
+			BP->WidgetTree->SetFlags(RF_Transactional);
+			BP->WidgetTree->Modify();
+
+			// TODO UMG This method isn't great, maybe the user widget should just be a canvas.
+			
+			// Add it to the root if there are no other widgets to add it to.
+			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 			Widget->IsDesignTime(true);
-            
-            CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
-            
-            return true;
-        }
-    }
-    
-    return false;
+			
+			CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
+			
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-    UWidgetBlueprint* BP = GetBlueprint();
-    
-    if (DropPreviewWidget)
-    {
-        if (DropPreviewParent)
-        {
-            DropPreviewParent->RemoveChild(DropPreviewWidget);
-        }
-        
-        BP->WidgetTree->RemoveWidget(DropPreviewWidget);
-        DropPreviewWidget = NULL;
-    }
-    
-    if ( AddToTemplate(MyGeometry, DragDropEvent) )
-    {
-        FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	UWidgetBlueprint* BP = GetBlueprint();
+	
+	if (DropPreviewWidget)
+	{
+		if (DropPreviewParent)
+		{
+			DropPreviewParent->RemoveChild(DropPreviewWidget);
+		}
+		
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		DropPreviewWidget = NULL;
+	}
+	
+	if ( AddToTemplate(MyGeometry, DragDropEvent) )
+	{
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 
 		return FReply::Handled();
-    }
-    
+	}
+	
 	return FReply::Unhandled();
 }
 
+void SUMGDesigner::BeginTransaction(const FText& SessionName)
+{
+	if ( ScopedTransaction == NULL )
+	{
+		ScopedTransaction = new FScopedTransaction(SessionName);
+	}
+
+	if ( CurrentSelection.IsValid() )
+	{
+		CurrentSelection.GetPreview()->Modify();
+		CurrentSelection.GetTemplate()->Modify();
+	}
+}
+
+void SUMGDesigner::EndTransaction()
+{
+	if ( ScopedTransaction != NULL )
+	{
+		delete ScopedTransaction;
+		ScopedTransaction = NULL;
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

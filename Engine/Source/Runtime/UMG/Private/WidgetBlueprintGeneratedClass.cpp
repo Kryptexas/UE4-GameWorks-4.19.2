@@ -11,6 +11,7 @@ UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstr
 	: Super(PCIP)
 {
 	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	WidgetTree->SetFlags(RF_Transactional);
 }
 
 void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)

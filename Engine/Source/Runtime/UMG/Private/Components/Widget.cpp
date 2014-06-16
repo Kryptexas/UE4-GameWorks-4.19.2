@@ -128,6 +128,16 @@ void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 #endif
 
+bool UWidget::Modify(bool bAlwaysMarkDirty)
+{
+	bool Modified = Super::Modify(bAlwaysMarkDirty);
+
+	if ( Slot )
+		Modified &= Slot->Modify(bAlwaysMarkDirty);
+
+	return Modified;
+}
+
 TSharedRef<SWidget> UWidget::RebuildWidget()
 {
 	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));

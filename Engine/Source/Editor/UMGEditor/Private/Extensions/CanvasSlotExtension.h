@@ -21,7 +21,6 @@ private:
 
 	void MoveByAmount(UWidget* Widget, FVector2D Delta);
 
-	TArray< FSelectedWidget > SelectionCache;
 	bool bDragging;
 
 	TSharedPtr<SBorder> MoveHandle;

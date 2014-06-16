@@ -10,37 +10,45 @@ class UMG_API UTileView : public UTableViewBase
 {
 	GENERATED_UCLASS_BODY()
 
-public:
-
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	/**  */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float ItemWidth;
 
-	UPROPERTY(EditDefaultsOnly, Category=Content)
+	/**  */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float ItemHeight;
 
+	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Content)
 	TArray<UObject*> Items;
 
+	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	TEnumAsByte<ESelectionMode::Type> SelectionMode;
 
+	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnGenerateRowUObject OnGenerateTileEvent;
 
+	/** Set item width */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetItemWidth(float Width);
+
+	/** Set item height */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetItemHeight(float Height);
+
+	/** Refreshes the list */
+	UFUNCTION(BlueprintCallable, Category="Behavior")
+	void RequestListRefresh();
+
 protected:
-	TSharedPtr< STileView<UObject*> > ListWidget() const
-	{
-		if ( MyWidget.IsValid() )
-		{
-			return StaticCastSharedRef< STileView<UObject*> >(MyWidget.ToSharedRef());
-		}
-
-		return TSharedPtr< STileView<UObject*> >();
-	}
-
 	TSharedRef<ITableRow> HandleOnGenerateTile(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const;
 
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+protected:
+	TSharedPtr< STileView< UObject* > > MyTileView;
 };

@@ -20,8 +20,4 @@ private:
 
 	void ShiftRow(UWidget* Widget, int32 ShiftAmount);
 	void ShiftColumn(UWidget* Widget, int32 ShiftAmount);
-
-private:
-
-	TArray< FSelectedWidget > SelectionCache;
 };

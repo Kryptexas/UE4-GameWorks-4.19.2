@@ -51,12 +51,17 @@ void FCanvasSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidge
 FReply FCanvasSlotExtension::HandleBeginDrag(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	bDragging = true;
+
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
 	return FReply::Handled().CaptureMouse(MoveHandle.ToSharedRef());
 }
 
 FReply FCanvasSlotExtension::HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	bDragging = false;
+
+	EndTransaction();
 
 	FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 

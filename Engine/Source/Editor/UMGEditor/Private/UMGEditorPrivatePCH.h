@@ -9,6 +9,8 @@
 
 #include "BlueprintEditorUtils.h"
 
+#include "ScopedTransaction.h"
+
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"

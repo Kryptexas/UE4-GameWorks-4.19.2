@@ -48,11 +48,15 @@ void FHorizontalSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedW
 
 FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)
 {
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
 		ShiftHorizontal(Selection.GetPreview(), ShiftAmount);
 		ShiftHorizontal(Selection.GetTemplate(), ShiftAmount);
 	}
+
+	EndTransaction();
 
 	//TODO UMG Reorder the live slot without rebuilding the structure
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);

@@ -35,23 +35,34 @@ void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWid
 	TSharedRef<SButton> UpButton =
 		SNew(SButton)
 		.Text(LOCTEXT("UpArrow", "↑"))
-		.OnClicked(this, &FVerticalSlotExtension::HandleUpPressed);
+		.OnClicked(this, &FVerticalSlotExtension::HandleShiftVertical, -1);
 
 	TSharedRef<SButton> DownButton =
 		SNew(SButton)
 		.Text(LOCTEXT("DownArrow", "↓"))
-		.OnClicked(this, &FVerticalSlotExtension::HandleDownPressed);
+		.OnClicked(this, &FVerticalSlotExtension::HandleShiftVertical, 1);
+
+	UpButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FVerticalSlotExtension::CanShift, -1)));
+	DownButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FVerticalSlotExtension::CanShift, 1)));
 
 	Widgets.Add(UpButton);
 	Widgets.Add(DownButton);
 }
 
-FReply FVerticalSlotExtension::HandleUpPressed()
+bool FVerticalSlotExtension::CanShift(int32 ShiftAmount) const
 {
+	//TODO UMG Provide feedback if shifting is possible.  Tricky with multiple items selected, if we ever support that.
+	return true;
+}
+
+FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
+{
+	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
+
 	for ( FSelectedWidget& Selection : SelectionCache )
 	{
-		MoveUp(Selection.GetPreview());
-		MoveUp(Selection.GetTemplate());
+		ShiftVertical(Selection.GetPreview(), ShiftAmount);
+		ShiftVertical(Selection.GetTemplate(), ShiftAmount);
 	}
 
 	//TODO UMG Reorder the live slot without rebuilding the structure
@@ -60,38 +71,14 @@ FReply FVerticalSlotExtension::HandleUpPressed()
 	return FReply::Handled();
 }
 
-FReply FVerticalSlotExtension::HandleDownPressed()
+void FVerticalSlotExtension::ShiftVertical(UWidget* Widget, int32 ShiftAmount)
 {
-	for ( FSelectedWidget& Selection : SelectionCache )
-	{
-		MoveDown(Selection.GetPreview());
-		MoveDown(Selection.GetTemplate());
-	}
-
-	//TODO UMG Reorder the live slot without rebuilding the structure
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-
-	return FReply::Handled();
-}
-
-void FVerticalSlotExtension::MoveUp(UWidget* Widget)
-{
-	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBox* Parent = Cast<UVerticalBox>(VerticalSlot->Parent);
+	UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot);
+	UVerticalBox* Parent = Cast<UVerticalBox>(Slot->Parent);
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
 	Parent->Slots.RemoveAt(CurrentIndex);
-	Parent->Slots.Insert(VerticalSlot, FMath::Max(CurrentIndex - 1, 0));
-}
-
-void FVerticalSlotExtension::MoveDown(UWidget* Widget)
-{
-	UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBox* Parent = Cast<UVerticalBox>(VerticalSlot->Parent);
-
-	int32 CurrentIndex = Parent->GetChildIndex(Widget);
-	Parent->Slots.RemoveAt(CurrentIndex);
-	Parent->Slots.Insert(VerticalSlot, FMath::Min(CurrentIndex + 1, Parent->GetChildrenCount()));
+	Parent->Slots.Insert(Slot, FMath::Clamp(CurrentIndex + ShiftAmount, 0, Parent->GetChildrenCount()));
 }
 
 #undef LOCTEXT_NAMESPACE

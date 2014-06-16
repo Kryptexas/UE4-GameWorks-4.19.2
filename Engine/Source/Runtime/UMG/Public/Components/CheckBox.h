@@ -17,6 +17,42 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
+	/** Image to use when the checkbox is unchecked */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UncheckedImage;
+	
+	/** Image to use when the checkbox is unchecked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UncheckedHoveredImage;
+	
+	/** Image to use when the checkbox is unchecked and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UncheckedPressedImage;
+	
+	/** Image to use when the checkbox is checked */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* CheckedImage;
+	
+	/** Image to use when the checkbox is checked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* CheckedHoveredImage;
+	
+	/** Image to use when the checkbox is checked and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* CheckedPressedImage;
+	
+	/** Image to use when the checkbox is in an ambiguous state and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UndeterminedImage;
+	
+	/** Image to use when the checkbox is checked and hovered */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UndeterminedHoveredImage;
+	
+	/** Image to use when the checkbox is in an ambiguous state and pressed */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
+	USlateBrushAsset* UndeterminedPressedImage;
+
 	/** Called when the checked state has changed */
 	UPROPERTY(BlueprintAssignable)
 	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
@@ -54,42 +90,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound HoveredSound;
-	
-	/** Image to use when the checkbox is unchecked */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UncheckedImage;
-	
-	/** Image to use when the checkbox is unchecked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UncheckedHoveredImage;
-	
-	/** Image to use when the checkbox is unchecked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UncheckedPressedImage;
-	
-	/** Image to use when the checkbox is checked */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* CheckedImage;
-	
-	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* CheckedHoveredImage;
-	
-	/** Image to use when the checkbox is checked and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* CheckedPressedImage;
-	
-	/** Image to use when the checkbox is in an ambiguous state and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UndeterminedImage;
-	
-	/** Image to use when the checkbox is checked and hovered */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UndeterminedHoveredImage;
-	
-	/** Image to use when the checkbox is in an ambiguous state and pressed */
-	UPROPERTY(EditDefaultsOnly, Category="Style Overrides", meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* UndeterminedPressedImage;
 	
 	/** Returns true if this button is currently pressed */
 	UFUNCTION(BlueprintCallable, Category="Widget")

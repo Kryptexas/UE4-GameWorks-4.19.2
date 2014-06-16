@@ -18,6 +18,4 @@ private:
 	FReply HandleShift(int32 ShiftAmount);
 	
 	void ShiftHorizontal(UWidget* Widget, int32 ShiftAmount);
-
-	TArray< FSelectedWidget > SelectionCache;
 };

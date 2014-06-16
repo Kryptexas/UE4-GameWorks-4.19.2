@@ -34,7 +34,7 @@ TSharedRef<SWidget> UListView::RebuildWidget()
 		//	);
 		;
 
-	return MyListView.ToSharedRef();
+	return BuildDesignTimeWidget( MyListView.ToSharedRef() );
 }
 
 TSharedRef<ITableRow> UListView::HandleOnGenerateRow(UObject* Item, const TSharedRef< STableViewBase >& OwnerTable) const

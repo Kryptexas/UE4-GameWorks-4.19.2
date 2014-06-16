@@ -223,6 +223,10 @@ void SUMGEditorTree::DeleteSelected()
 	{
 		UWidgetBlueprint* BP = GetBlueprint();
 
+		const FScopedTransaction Transaction(LOCTEXT("RemoveWidget", "Remove Widget"));
+		BP->WidgetTree->SetFlags(RF_Transactional);
+		BP->WidgetTree->Modify();
+
 		bool bRemoved = false;
 		for ( UWidget* Item : SelectedItems )
 		{

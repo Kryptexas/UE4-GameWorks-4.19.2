@@ -15,11 +15,9 @@ public:
 
 private:
 
-	FReply HandleUpPressed();
-	FReply HandleDownPressed();
+	bool CanShift(int32 ShiftAmount) const;
 
-	void MoveUp(UWidget* Widget);
-	void MoveDown(UWidget* Widget);
+	FReply HandleShiftVertical(int32 ShiftAmount);
 
-	TArray< FSelectedWidget > SelectionCache;
+	void ShiftVertical(UWidget* Widget, int32 ShiftAmount);
 };

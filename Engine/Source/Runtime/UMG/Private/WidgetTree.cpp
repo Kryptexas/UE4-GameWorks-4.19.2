@@ -12,9 +12,10 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 
 void UWidgetTree::RenameWidget(UWidget* Widget, FString& NewName)
 {
+	Widget->Modify();
 	Widget->Rename(*NewName);
 
-	// TODO Update nodes in the blueprint!
+	// TODO UMG Update nodes in the blueprint!
 }
 
 UWidget* UWidgetTree::FindWidget(FString& Name) const
@@ -73,6 +74,7 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
 		if ( NonLeafTemplate )
 		{
+			NonLeafTemplate->Modify();
 			if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )
 			{
 				return true;

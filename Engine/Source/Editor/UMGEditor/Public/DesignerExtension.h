@@ -35,6 +35,8 @@ private:
 class FDesignerExtension : public TSharedFromThis<FDesignerExtension>
 {
 public:
+	FDesignerExtension();
+
 	virtual void Initialize(UWidgetBlueprint* InBlueprint);
 
 	virtual void BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets) = 0;
@@ -42,6 +44,16 @@ public:
 	FName GetExtensionId() const;
 
 protected:
+	void BeginTransaction(const FText& SessionName);
+
+	void EndTransaction();
+
+protected:
 	FName ExtensionId;
 	UWidgetBlueprint* Blueprint;
+
+	TArray< FSelectedWidget > SelectionCache;
+
+private:
+	FScopedTransaction* ScopedTransaction;
 };

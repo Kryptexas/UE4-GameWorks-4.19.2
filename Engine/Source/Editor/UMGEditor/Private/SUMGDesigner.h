@@ -52,6 +52,9 @@ private:
 	FVector2D GetSelectionDesignerWidgetsLocation() const;
 	FVector2D GetCachedSelectionDesignerWidgetsLocation() const;
 
+	void BeginTransaction(const FText& SessionName);
+	void EndTransaction();
+
 private:
 	enum DragHandle
 	{
@@ -82,11 +85,11 @@ private:
 private:
 	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
-    
-    UWidget* AddPreview(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-    
-    bool AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-    
+	
+	UWidget* AddPreview(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+	
+	bool AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+	
 private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 
@@ -95,9 +98,9 @@ private:
 
 	FSelectedWidget CurrentSelection;
 	TWeakPtr<SWidget> SelectedWidget;
-    
-    UWidget* DropPreviewWidget;
-    UPanelWidget* DropPreviewParent;
+	
+	UWidget* DropPreviewWidget;
+	UPanelWidget* DropPreviewParent;
 
 	TSharedPtr<SBorder> PreviewSurface;
 	TSharedPtr<SCanvas> ExtensionWidgetCanvas;
@@ -105,4 +108,6 @@ private:
 	DragHandle CurrentHandle;
 
 	FVector2D CachedDesignerWidgetLocation;
+
+	FScopedTransaction* ScopedTransaction;
 };
