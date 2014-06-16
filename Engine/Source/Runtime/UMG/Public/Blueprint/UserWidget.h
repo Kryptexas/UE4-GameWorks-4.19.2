@@ -262,7 +262,7 @@ protected:
 
 private:
 	TSharedPtr<SWidget> UserRootWidget;
-	TMap< TWeakPtr<SWidget>, UWidget* > WidgetToComponent;
+	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;
 
 	TWeakPtr<SWidget> FullScreenWidget;
 };
