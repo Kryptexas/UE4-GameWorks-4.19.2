@@ -2,7 +2,6 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #if WITH_EDITOR
-//#include "UnrealEd.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"
 #endif // WITH_EDITOR
@@ -97,13 +96,30 @@ bool FStartFTestsOnMap::Update()
 /**
  * 
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FFunctionalTestingMaps, "Maps.Functional Testing", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor) )
 
+// create test base class
+IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE(FFunctionalTestingMapsBase, "Maps.Functional Testing", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor))
+// implement specific class with non-standard overrides
+class FFunctionalTestingMaps : public FFunctionalTestingMapsBase
+{
+public:
+	FFunctionalTestingMaps(const FString& InName) : FFunctionalTestingMapsBase(InName)
+	{}
+	virtual ~FFunctionalTestingMaps()
+	{
+		UFunctionalTestingManager::SetAutomationExecutionInfo(NULL);
+	}
+};
+
+namespace
+{
+	FFunctionalTestingMaps FFunctionalTestingMapsAutomationTestInstance(TEXT("FFunctionalTestingMaps"));
+}
 
 /** 
  * Requests a enumeration of all maps to be loaded
  */
-void FFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+void FFunctionalTestingMapsBase::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 {
 	TArray<FString> FileList;
 #if WITH_EDITOR
@@ -123,7 +139,7 @@ void FFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames, TArra
 #endif
 
 	// Iterate over all files, adding the ones with the map extension..
-	for( int32 FileIndex=0; FileIndex< FileList.Num(); FileIndex++ )
+	for( int32 FileIndex = 0; FileIndex< FileList.Num(); FileIndex++ )
 	{
 		const FString& Filename = FileList[FileIndex];
 
@@ -149,9 +165,13 @@ void FFunctionalTestingMaps::GetTests(TArray<FString>& OutBeautifiedNames, TArra
  * @param Parameters - Should specify which map name to load
  * @return	TRUE if the test was successful, FALSE otherwise
  */
-bool FFunctionalTestingMaps::RunTest(const FString& Parameters)
+bool FFunctionalTestingMapsBase::RunTest(const FString& Parameters)
 {
 	FString MapName = Parameters;
+
+	SetSuppressLogs(true);
+	ExecutionInfo.Clear();
+	UFunctionalTestingManager::SetAutomationExecutionInfo(&ExecutionInfo);
 
 #if WITH_EDITOR
 	if (GIsEditor)

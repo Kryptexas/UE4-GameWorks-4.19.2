@@ -1084,13 +1084,13 @@ public: \
 		virtual bool IsStressTest() const { return false; } \
 		virtual uint32 GetRequiredDeviceNum() const { return 1; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
 			OutBeautifiedNames.Add(PrettyName); \
 			OutTestCommands.Add(FString()); \
 		} \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 #define IMPLEMENT_COMPLEX_AUTOMATION_TEST_PRIVATE( TClass, PrettyName, TFlags ) \
@@ -1104,8 +1104,8 @@ public: \
 		virtual uint32 GetRequiredDeviceNum() const { return 1; } \
 	protected: \
 		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override; \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 #define IMPLEMENT_NETWORKED_AUTOMATION_TEST_PRIVATE(TClass, PrettyName, TFlags, NumParticipants) \
@@ -1117,13 +1117,13 @@ public: \
 		virtual uint32 GetTestFlags() const { return (TFlags & ~(EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_Commandlet | EAutomationTestFlags::ATF_SmokeTest)); } \
 		virtual uint32 GetRequiredDeviceNum() const { return NumParticipants; } \
 	protected: \
-		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const \
+		virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override \
 		{ \
 			OutBeautifiedNames.Add(PrettyName); \
 			OutTestCommands.Add(FString()); \
 		} \
-		virtual bool RunTest(const FString& Parameters); \
-		virtual FString GetBeautifiedTestName() const { return PrettyName; } \
+		virtual bool RunTest(const FString& Parameters) override; \
+		virtual FString GetBeautifiedTestName() const override { return PrettyName; } \
 	};
 
 

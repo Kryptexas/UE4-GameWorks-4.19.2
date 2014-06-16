@@ -146,11 +146,25 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 			break;
 	}
 
-	FMessageLog("FunctionalTestingLog").Message(MessageLogSeverity, FText::FromString(GetActorLabel()))
+	TSharedRef<FTokenizedMessage> LogMessage = FTokenizedMessage::Create(MessageLogSeverity, FText::FromString(GetActorLabel()))
 		->AddToken(FTextToken::Create(ResultText))
 		->AddToken(FTextToken::Create(FText::FromString(Message)))
 		->AddToken(FTextToken::Create(FText::FromString(AdditionalDetails)))
 		->AddToken(FTextToken::Create(FText::FromString(FailureMessage)));
+
+	switch (MessageLogSeverity)
+	{
+	case EMessageSeverity::Error:
+		UFunctionalTestingManager::AddError(LogMessage->ToText());
+		break;
+	case EMessageSeverity::Warning:
+		UFunctionalTestingManager::AddWarning(LogMessage->ToText());
+		break;
+	default:
+		UFunctionalTestingManager::AddLogItem(LogMessage->ToText());
+		break;
+	}
+
 
 	TestFinishedObserver.ExecuteIfBound(this);
 }

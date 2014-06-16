@@ -34,6 +34,9 @@
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
+
+FAutomationTestExecutionInfo* UFunctionalTestingManager::ExecutionInfo = NULL;
+
 UFunctionalTestingManager::UFunctionalTestingManager( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, bIsRunning(false)
@@ -49,7 +52,7 @@ void UFunctionalTestingManager::SetUpTests()
 	OnSetupTests.Broadcast();
 }
 
-bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, bool bLoopOnlyFailedTests)
 {
 	UFunctionalTestingManager* Manager = GetManager(WorldContext);
 
@@ -69,6 +72,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	Manager->bLooped = bRunLooped;
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
+	Manager->bDiscardSuccessfulTests = bLoopOnlyFailedTests;
 
 	for (TActorIterator<AFunctionalTest> It(GWorld); It; ++It)
 	{
@@ -89,7 +93,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 
 	if (Manager->bIsRunning == false)
 	{
-		FunctionalTestingLog.Info(LOCTEXT("NoTestsDefined", "No tests defined on map or . DONE."));		
+		AddLogItem(LOCTEXT("NoTestsDefined", "No tests defined on map or . DONE.")); 
 		return false;
 	}
 
@@ -150,11 +154,13 @@ void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
 
 void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 {
-	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
-
 	if (FTest->WantsToRunAgain() == false)
 	{
 		TestsLeft.RemoveSingle(FTest);
+		/*if (bDiscardSuccessfulTests && FTest->IsSuccessful())
+		{
+			AllTests.RemoveSingle(FTest);
+		}*/
 		FTest->CleanUp();
 	}
 
@@ -175,12 +181,12 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 			TestsLeft = AllTests;
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("IterationIndex"), CurrentIteration);
-			FunctionalTestingLog.Info( FText::Format(LOCTEXT("StartingIteration", "----- Starting iteration {IterationIndex} -----"), Arguments) );
+			AddLogItem(FText::Format(LOCTEXT("StartingIteration", "----- Starting iteration {IterationIndex} -----"), Arguments));
 			bIsRunning = RunFirstValidTest();
 		}
 		else
 		{
-			FunctionalTestingLog.Info( LOCTEXT("TestDone", "DONE.") );
+			AddLogItem(LOCTEXT("TestDone", "DONE."));
 			RemoveFromRoot();
 		}
 	}
@@ -220,4 +226,38 @@ void UFunctionalTestingManager::TickMe(float DeltaTime)
 	
 }
 
+//----------------------------------------------------------------------//
+// logging
+//----------------------------------------------------------------------//
+void UFunctionalTestingManager::AddError(const FText& InError)
+{
+	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
+	FunctionalTestingLog.Error(InError);
+	if (ExecutionInfo)
+	{
+		ExecutionInfo->Errors.Add(InError.ToString());
+	}
+}
+
+
+void UFunctionalTestingManager::AddWarning(const FText& InWarning)
+{
+	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
+	FunctionalTestingLog.Warning(InWarning);
+	if (ExecutionInfo)
+	{
+		ExecutionInfo->Warnings.Add(InWarning.ToString());
+	}
+}
+
+
+void UFunctionalTestingManager::AddLogItem(const FText& InLogItem)
+{
+	FMessageLog FunctionalTestingLog("FunctionalTestingLog");
+	FunctionalTestingLog.Info(InLogItem);
+	if (ExecutionInfo)
+	{
+		ExecutionInfo->LogItems.Add(InLogItem.ToString());
+	}
+}
 #undef LOCTEXT_NAMESPACE

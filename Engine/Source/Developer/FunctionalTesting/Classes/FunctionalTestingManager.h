@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Misc/AutomationTest.h"
 #include "FunctionalTestingManager.generated.h"
 
 UCLASS(BlueprintType, MinimalAPI)
@@ -21,7 +22,7 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
 	/** Triggers in sequence all functional tests found on the level.
 	 *	@return true if any tests have been triggered */
-	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog=true, bool bRunLooped=false, bool bWaitForNavigationBuildFinish=true);
+	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog=true, bool bRunLooped=false, bool bWaitForNavigationBuildFinish=true, bool bLoopOnlyFailedTests = true);
 		
 	bool IsRunning() const { return bIsRunning; }
 	bool IsLooped() const { return bLooped; }
@@ -29,6 +30,14 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 
 	void TickMe(float DeltaTime);
 
+	//----------------------------------------------------------------------//
+	// Automation logging
+	//----------------------------------------------------------------------//
+	static void SetAutomationExecutionInfo(FAutomationTestExecutionInfo* InExecutionInfo) { ExecutionInfo = InExecutionInfo; }
+	static void AddError(const FText& InError);
+	static void AddWarning(const FText& InWarning);
+	static void AddLogItem(const FText& InLogItem);
+	
 private:
 	void LogMessage(const FString& MessageString, TSharedPtr<IMessageLogListing> LogListing = NULL);
 	
@@ -49,5 +58,8 @@ protected:
 	bool bLooped;
 	bool bWaitForNavigationBuildFinish;
 	bool bInitialDelayApplied;
+	bool bDiscardSuccessfulTests;
 	uint32 CurrentIteration;
+
+	static FAutomationTestExecutionInfo* ExecutionInfo;
 };
