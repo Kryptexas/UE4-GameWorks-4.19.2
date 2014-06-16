@@ -21,8 +21,17 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Templates"),STAT_AI_BehaviorTree_Num
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_BehaviorTree_NumInstances,STATGROUP_AIBehaviorTree, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_BehaviorTree_InstanceMemory,STATGROUP_AIBehaviorTree, AIMODULE_API);
 
+namespace FBlackboard
+{
+	const FName KeySelf = TEXT("SelfActor");
+
+	typedef uint8 FKey;
+
+	const FKey InvalidKey = FKey(-1);
+}
+
 // delegate defines
-DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const class UBlackboardComponent*, uint8 /*key ID*/);
+DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const class UBlackboardComponent*, FBlackboard::FKey /*key ID*/);
 
 namespace BTSpecialChild
 {
@@ -132,15 +141,6 @@ namespace EBTDescriptionVerbosity
 		Basic,
 		Detailed,
 	};
-}
-
-namespace FBlackboard
-{
-	const FName KeySelf = TEXT("SelfActor");
-
-	typedef uint8 FKey;
-
-	const FKey InvalidKey = FKey(-1);
 }
 
 /** debugger data about subtree instance */
@@ -369,8 +369,7 @@ protected:
 	UPROPERTY(transient, EditInstanceOnly, Category=Blackboard)
 	uint8 SelectedKeyID;
 	// SelectedKeyId type should be FBlackboard::FKey, but typedefs are not supported by UHT
-	// Please also check key id in FOnBlackboardChange delegate
-	static_assert(sizeof(FBlackboard::FKey) == 1, "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey type.");
+	static_assert(sizeof(uint8) == sizeof(FBlackboard::FKey), "FBlackboardKeySelector::SelectedKeyId should be of FBlackboard::FKey-compatible type.");
 
 	UPROPERTY(transient, EditDefaultsOnly, Category=Blackboard)
 	uint32 bNoneIsAllowedValue:1;

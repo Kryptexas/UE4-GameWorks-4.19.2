@@ -30,7 +30,7 @@ class AIMODULE_API UBTDecorator_BlueprintBase : public UBTDecorator
 	virtual void PostInitProperties() override;
 
 	/** notify about changes in blackboard */
-	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);
+	void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
 
 	virtual FString GetStaticDescription() const override;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;

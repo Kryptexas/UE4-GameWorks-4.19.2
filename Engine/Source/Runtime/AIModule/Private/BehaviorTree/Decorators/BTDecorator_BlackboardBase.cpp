@@ -44,7 +44,7 @@ void UBTDecorator_BlackboardBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerC
 	}
 }
 
-void UBTDecorator_BlackboardBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
+void UBTDecorator_BlackboardBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
 	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID && BehaviorComp)

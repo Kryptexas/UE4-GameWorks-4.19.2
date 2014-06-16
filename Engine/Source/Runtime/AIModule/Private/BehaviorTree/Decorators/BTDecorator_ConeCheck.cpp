@@ -87,7 +87,7 @@ void UBTDecorator_ConeCheck::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp,
 	DecoratorMemory->bLastRawResult = CalcConditionImpl(OwnerComp, NodeMemory);
 }
 
-void UBTDecorator_ConeCheck::OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
+void UBTDecorator_ConeCheck::OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	check(false);
 }

@@ -12,7 +12,7 @@ class AIMODULE_API UBTDecorator_BlackboardBase : public UBTDecorator
 	virtual void InitializeFromAsset(class UBehaviorTree* Asset) override;
 
 	/** notify about change in blackboard keys */
-	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID);
+	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
