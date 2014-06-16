@@ -228,3 +228,12 @@ bool SListPanel::ShouldArrangeHorizontally() const
 	return ItemWidth.Get() > 0;
 }
 
+void SListPanel::SetItemHeight(TAttribute<float> Height)
+{
+	ItemHeight = Height;
+}
+
+void SListPanel::SetItemWidth(TAttribute<float> Width)
+{
+	ItemWidth = Width;
+}

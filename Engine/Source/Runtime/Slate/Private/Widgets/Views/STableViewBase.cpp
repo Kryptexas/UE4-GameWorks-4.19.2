@@ -31,7 +31,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 			.FillWidth(1)
 			[
 				SAssignNew( ItemsPanel, SListPanel )
-				.ItemWidth(InItemWidth)
+				.ItemWidth( InItemWidth )
 				.ItemHeight( InItemHeight )
 				.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
 			]
@@ -50,7 +50,7 @@ void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, co
 		: StaticCastSharedRef<SWidget>
 		(
 			SAssignNew( ItemsPanel, SListPanel )
-			.ItemWidth(InItemWidth)
+			.ItemWidth( InItemWidth )
 			.ItemHeight( InItemHeight )
 			.NumDesiredItems( this, &STableViewBase::GetNumItemsBeingObserved )
 		);
@@ -613,6 +613,16 @@ float STableViewBase::GetItemWidth() const
 float STableViewBase::GetItemHeight() const
 {
 	return ItemsPanel->GetItemHeight();
+}
+
+void STableViewBase::SetItemHeight(TAttribute<float> Height)
+{
+	ItemsPanel->SetItemHeight(Height);
+}
+
+void STableViewBase::SetItemWidth(TAttribute<float> Width)
+{
+	ItemsPanel->SetItemWidth(Width);
 }
 
 float STableViewBase::GetNumLiveWidgets() const

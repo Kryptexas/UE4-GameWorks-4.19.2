@@ -23,6 +23,12 @@ public:
 	/** Create the child widgets that comprise the list */
 	void ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InColumnHeaders, const TSharedPtr<SScrollBar>& InScrollBar  );
 
+	/** Sets the item height */
+	void SetItemHeight(TAttribute<float> Height);
+
+	/** Sets the item width */
+	void SetItemWidth(TAttribute<float> Width);
+
 	/**
 	 * Invoked by the scrollbar when the user scrolls.
 	 *

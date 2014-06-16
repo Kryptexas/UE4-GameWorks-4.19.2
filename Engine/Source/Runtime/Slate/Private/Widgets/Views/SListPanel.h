@@ -85,6 +85,12 @@ public:
 
 	/** Returns true if this list panel is pending a refresh, false otherwise */
 	bool IsRefreshPending() const;
+
+	/** See ItemHeight attribute */
+	void SetItemHeight(TAttribute<float> Height);
+
+	/** See ItemWidth attribute */
+	void SetItemWidth(TAttribute<float> Width);
 	
 protected:
 
