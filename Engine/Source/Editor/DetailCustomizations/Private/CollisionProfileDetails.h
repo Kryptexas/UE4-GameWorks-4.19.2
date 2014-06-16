@@ -173,7 +173,5 @@ private:
 	};
 
 	FCollsiionProfileData SavedData;
-
-	TSharedPtr<IPropertyHandle> ProfilesPropertyHandle;
 };
 
