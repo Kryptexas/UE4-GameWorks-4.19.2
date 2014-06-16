@@ -1345,6 +1345,9 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	CollisionProfile= UCollisionProfile::Get();
 	check(CollisionProfile);
 
+	ProfilesPropertyHandle = DetailBuilder.GetProperty(TEXT("Profiles"));
+	check(ProfilesPropertyHandle->IsValidHandle());
+
 	// save currently loaded data
 	SavedData.Save(CollisionProfile);
 
@@ -1815,6 +1818,7 @@ void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
 	}
 
 	CollisionProfile->LoadProfileConfig(true);
+	ProfilesPropertyHandle->NotifyPostChange();
 
 	// update profile list if the name changed, this has to be refreshed
 	RefreshProfileList();
@@ -1826,6 +1830,7 @@ void FCollisionProfileDetails::UpdateProfile()
 	RefreshProfileList();
 	ProfileListView->RequestListRefresh();
 	CollisionProfile->LoadProfileConfig(true);
+	ProfilesPropertyHandle->NotifyPostChange();
 }
 
 void FCollisionProfileDetails::RefreshChannelList(bool bTraceType)

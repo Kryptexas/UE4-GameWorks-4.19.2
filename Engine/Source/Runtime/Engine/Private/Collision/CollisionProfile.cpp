@@ -47,7 +47,7 @@ UCollisionProfile* UCollisionProfile::Get()
 {
 	static bool bInitialized = false;
 	// this is singletone. Use default object
-	UCollisionProfile* CollisionProfile = CastChecked<UCollisionProfile>(UCollisionProfile::StaticClass()->GetDefaultObject());
+	UCollisionProfile* CollisionProfile = GetMutableDefault<UCollisionProfile>();
 
 	if (!bInitialized)
 	{

@@ -129,7 +129,9 @@ class UCollisionProfile
 	GENERATED_UCLASS_BODY()
 
 private:
-	UPROPERTY(globalconfig)
+	// This is hacky, but without this edit tag, we can't get valid property handle
+	// and we can't save them properly to config, so we need this tag. 
+	UPROPERTY(globalconfig,Category=Collision, VisibleAnywhere)
 	TArray<FCollisionResponseTemplate>	Profiles;
 
 	UPROPERTY(globalconfig)
