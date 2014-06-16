@@ -28,6 +28,21 @@ FSimpleSlot& SWidgetSwitcher::AddSlot( int32 SlotIndex )
 }
 
 
+int32 SWidgetSwitcher::RemoveSlot(TSharedRef<SWidget> WidgetToRemove)
+{
+	for( int32 SlotIndex=0; SlotIndex < AllChildren.Num(); ++SlotIndex )
+	{
+		if ( AllChildren[SlotIndex].Widget == WidgetToRemove )
+		{
+			AllChildren.RemoveAt(SlotIndex);
+			return SlotIndex;
+		}
+	}
+
+	return -1;
+}
+
+
 void SWidgetSwitcher::Construct( const FArguments& InArgs )
 {
 	OneDynamicChild = FOneDynamicChild( &AllChildren, &WidgetIndex );

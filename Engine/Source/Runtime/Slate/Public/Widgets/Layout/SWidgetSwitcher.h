@@ -40,6 +40,13 @@ public:
 	FSimpleSlot& AddSlot( int32 SlotIndex = INDEX_NONE );
 
 	/**
+	 * Removes a slot with the corresponding widget in it.  Returns the index where the widget was found, otherwise -1.
+	 *
+	 * @param Widget - The widget to find and remove.
+	 */
+	int32 RemoveSlot( TSharedRef<SWidget> WidgetToRemove );
+
+	/**
 	 * Constructs the widget.
 	 */
 	void Construct( const FArguments& InArgs );

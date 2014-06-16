@@ -39,13 +39,6 @@ int32 UVerticalBox::GetChildIndex(UWidget* Content) const
 bool UVerticalBox::AddChild(UWidget* Child, FVector2D Position)
 {
 	UVerticalBoxSlot* Slot = AddSlot(Child);
-	
-	// Add the child to the live canvas if it already exists
-	if (MyVerticalBox.IsValid())
-	{
-		Slot->BuildSlot(MyVerticalBox.ToSharedRef());
-	}
-	
 	return true;
 }
 
@@ -118,6 +111,12 @@ UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 	
 	Slots.Add(Slot);
 
+	// Add the child to the live canvas if it already exists
+	if ( MyVerticalBox.IsValid() )
+	{
+		Slot->BuildSlot(MyVerticalBox.ToSharedRef());
+	}
+
 	return Slot;
 }
 
@@ -135,9 +134,5 @@ void UVerticalBox::ConnectEditorData()
 		}
 		//TODO UMG Should we auto delete empty slots?
 	}
-}
-
-void UVerticalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
 }
 #endif

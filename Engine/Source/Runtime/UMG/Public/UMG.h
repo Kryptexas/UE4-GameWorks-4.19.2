@@ -49,6 +49,9 @@
 #include "ScrollBoxSlot.h"
 #include "ScrollBox.h"
 
+#include "WidgetSwitcherSlot.h"
+#include "WidgetSwitcher.h"
+
 #include "TextBlock.h"
 #include "Border.h"
 #include "Button.h"

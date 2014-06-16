@@ -2,24 +2,40 @@
 
 #pragma once
 
-#include "VerticalBox.generated.h"
+#include "WidgetSwitcher.generated.h"
 
 /**
  * A vertical box widget is a layout panel allowing child widgets to be automatically laid out
  * vertically.
  */
 UCLASS(meta=( Category="Panel" ), ClassGroup=UserInterface)
-class UMG_API UVerticalBox : public UPanelWidget
+class UMG_API UWidgetSwitcher : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
 	/** The slots containing the widgets that are flowed vertically. */
 	UPROPERTY()
-	TArray<UVerticalBoxSlot*> Slots;
+	TArray<UWidgetSwitcherSlot*> Slots;
 
+	/** Image to draw */
+	UPROPERTY(EditDefaultsOnly, Category="Switcher", meta=( UIMin=0, ClampMin=0 ))
+	int32 ActiveWidgetIndex;
+
+	/** Gets the number of widgets that this switcher manages. */
+	UFUNCTION(BlueprintCallable, Category="Switcher")
+	int32 GetNumWidgets() const;
+
+	/** Gets the slot index of the currently active widget */
+	UFUNCTION(BlueprintCallable, Category="Switcher")
+	int32 GetActiveWidgetIndex() const;
+
+	/** Activates the widget at the specified index. */
+	UFUNCTION(BlueprintCallable, Category="Switcher")
+	void SetActiveWidgetIndex( int32 Index );
+	
 	//TODO UMG Add ways to make adding slots callable by blueprints.
 
-	UVerticalBoxSlot* AddSlot(UWidget* Content);
+	UWidgetSwitcherSlot* AddSlot(UWidget* Content);
 
 	// UPanelWidget
 	virtual int32 GetChildrenCount() const override;
@@ -31,6 +47,8 @@ class UMG_API UVerticalBox : public UPanelWidget
 	virtual void InsertChildAt(int32 Index, UWidget* Child) override;
 	// End UPanelWidget
 
+	void SyncronizeProperties();
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual void ConnectEditorData() override;
@@ -39,7 +57,7 @@ class UMG_API UVerticalBox : public UPanelWidget
 
 protected:
 
-	TSharedPtr<class SVerticalBox> MyVerticalBox;
+	TSharedPtr<class SWidgetSwitcher> MyWidgetSwitcher;
 
 protected:
 	// UWidget interface

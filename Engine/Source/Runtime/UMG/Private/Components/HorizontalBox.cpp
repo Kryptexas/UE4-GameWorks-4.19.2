@@ -39,13 +39,6 @@ int32 UHorizontalBox::GetChildIndex(UWidget* Content) const
 bool UHorizontalBox::AddChild(UWidget* Child, FVector2D Position)
 {
 	UHorizontalBoxSlot* Slot = AddSlot(Child);
-	
-	// Add the child to the live canvas if it already exists
-	if (MyHorizontalBox.IsValid())
-	{
-		Slot->BuildSlot(MyHorizontalBox.ToSharedRef());
-	}
-	
 	return true;
 }
 
@@ -117,6 +110,12 @@ UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
 #endif
 	
 	Slots.Add(Slot);
+
+	// Add the child to the live canvas if it already exists
+	if ( MyHorizontalBox.IsValid() )
+	{
+		Slot->BuildSlot(MyHorizontalBox.ToSharedRef());
+	}
 
 	return Slot;
 }
