@@ -376,6 +376,23 @@ namespace AutomationTool
 				}
 			}
 		}
+        /// <summary>
+        /// Deletes a file(s). 
+        /// If the file does not exist, silently succeeds.
+        /// If the deletion of the file fails, this function throws an Exception.
+        /// </summary>
+        /// <param name="Filename">Filename</param>
+        public static void DeleteFile(bool bQuiet, params string[] Filenames)
+        {
+            foreach (var Filename in Filenames)
+            {
+                var NormalizedFilename = ConvertSeparators(PathSeparator.Default, Filename);
+                if (!InternalUtils.SafeDeleteFile(NormalizedFilename, bQuiet))
+                {
+                    throw new AutomationException(String.Format("Failed to delete file '{0}'", NormalizedFilename));
+                }
+            }
+        }
 
 		/// <summary>
 		/// Deletes a file(s). 

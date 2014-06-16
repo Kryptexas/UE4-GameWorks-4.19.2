@@ -692,6 +692,11 @@ namespace AutomationTool
             }
             return false;
         }
+        public static void DeleteLocalTempStorage(CommandEnvironment Env, string StorageBlockName, bool bQuiet = false)
+        {
+            var LocalManifest = LocalTempStorageManifestFilename(Env, StorageBlockName);
+            DeleteFile(bQuiet, LocalManifest);
+        }
         public static bool SharedTempStorageExists(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", bool bQuiet = false)
         {
             var SharedManifest = SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder);
