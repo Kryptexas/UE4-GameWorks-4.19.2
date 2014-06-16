@@ -13,18 +13,6 @@
 	It is inevitable that specific actors and games will have to handle GameplayCues in their own way.
 */
 
-UENUM(BlueprintType)
-namespace EGameplayCueEvent
-{
-	enum Type
-	{
-		Applied,
-		Added,
-		Executed,
-		Removed
-	};
-}
-
 USTRUCT()
 struct FGameplayCueViewEffects
 {
@@ -57,7 +45,10 @@ struct FGameplayCueViewInfo
 	TEnumAsByte<EGameplayCueEvent::Type> CueType;
 
 	// This needs to be fleshed out more:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
 	bool	InstigatorLocalOnly;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
 	bool	TargetLocalOnly;
 
 	// -----------------------------

@@ -1842,30 +1842,31 @@ bool FActiveGameplayEffectsContainer::HasAllTags(FGameplayTagContainer &Tags)
 
 	for (auto It = Tags.CreateConstIterator(); It;  ++It)
 	{
-		bool Found = false;
-		for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
-		{
-			// Fixme: check stacking rules!
-
-			/**
-			 *	The desired behavior here is:
-			 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
-			 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
-			 */
-
-			if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasTag(*It, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
-			{
-				Found = true;
-				break;
-			}
-		}
-		if (!Found)
+		if (!HasTag(*It))
 		{
 			return false;
 		}
 	}
 
 	return true;
+}
+
+bool FActiveGameplayEffectsContainer::HasTag(const FGameplayTag Tag)
+{
+	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
+	{
+		/**
+		 *	The desired behavior here is:
+		 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
+		 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
+		 */
+
+		if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)

@@ -36,6 +36,26 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 	}
 }
 
+void UGameplayAbility::PostNetInit()
+{
+	/** We were dynamically spawned from replication - we need to init a currentactorinfo by looking at outer.
+	 *  This may need to be updated further if we start having abilities live on different outers than player AbilitySystemComponents.
+	 */
+	
+	if (CurrentActorInfo == NULL)
+	{
+		AActor *OwnerActor = Cast<AActor>(GetOuter());
+		if (ensure(OwnerActor))
+		{
+			UAbilitySystemComponent* AbilitySystemComponent = OwnerActor->FindComponentByClass<UAbilitySystemComponent>();
+			if (ensure(AbilitySystemComponent))
+			{
+				CurrentActorInfo = AbilitySystemComponent->AbilityActorInfo.Get();
+			}
+		}
+	}
+}
+
 bool UGameplayAbility::IsSupportedForNetworking() const
 {
 	/**
@@ -217,13 +237,18 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 
 void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
+	// MarkPending kill if we are instance per execution
 	if (InstancingPolicy == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 	{
-		MarkPendingKill();
+		// If not replicated, or if authority (clients should not delete subobjects on their own)
+		if (ReplicationPolicy == EGameplayAbilityReplicationPolicy::ReplicateNone || ActorInfo->IsNetAuthority())
+		{
+			MarkPendingKill();
+		}
 	}
 
-	// Remove from owning AbilitySystemComponent?
-	// generic way of releasing all callbacks!
+	// -Remove from owning AbilitySystemComponent
+	// -generic way of releasing all callbacks
 }
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -422,6 +447,8 @@ void UGameplayAbility::MontageBranchPoint_AbilityDecisionStart(const FGameplayAb
 
 void UGameplayAbility::ClientActivateAbilitySucceed_Implementation(int32 PredictionKey)
 {
+	PostNetInit();
+
 	// Child classes can't override ClientActivateAbilitySucceed_Implementation, so just call ClientActivateAbilitySucceed_Internal
 	ClientActivateAbilitySucceed_Internal(PredictionKey);
 }
@@ -481,6 +508,20 @@ bool FGameplayAbilityActorInfo::IsLocallyControlled() const
 		return PlayerController->IsLocalController();
 	}
 
+	return false;
+}
+
+bool FGameplayAbilityActorInfo::IsNetAuthority() const
+{
+	if (Actor.IsValid())
+	{
+		return (Actor->Role == ROLE_Authority);
+	}
+
+	// If we encounter issues with this being called before or after the owning actor is destroyed,
+	// we may need to cache off the authority (or look for it on some global/world state).
+
+	ensure(false);
 	return false;
 }
 

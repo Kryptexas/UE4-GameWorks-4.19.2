@@ -8,6 +8,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "GameplayCueInterface.h"
 #include "GameplayTagsModule.h"
 
 UGameplayCueView::UGameplayCueView(const class FPostConstructInitializeProperties& PCIP)
@@ -29,7 +30,7 @@ FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEven
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == Type && View.Tags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+				if (View.CueType == Type && View.Tags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 				{
 					return &View;
 				}
@@ -45,7 +46,7 @@ void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & Gam
 	check(Owner);
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Applied, *TagIt))
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::OnActive, *TagIt))
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
@@ -61,6 +62,12 @@ void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & Game
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
+
+		
+		{
+			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::Executed);
+		}
+
 	}
 }
 
@@ -76,12 +83,14 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 		ClearEffects(Effects);
 		check(Effects.Num() == 0);
 
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Added, *TagIt))
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::WhileActive, *TagIt))
 		{
-			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
-
 			TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View->SpawnViewEffects(Owner, &SpawnedObjects, InstigatorContext);
 			Effects.Add(SpawnedEffects);
+		}
+
+		{
+			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::WhileActive);
 		}
 	}
 }
@@ -104,6 +113,10 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Removed, *TagIt))
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+		}
+
+		{
+			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::Removed);
 		}
 	}
 }

@@ -208,6 +208,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	bool HasAnyTags(FGameplayTagContainer &Tags);
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	bool HasTag(const FGameplayTag Tag);
+
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool HasAllTags(FGameplayTagContainer &Tags);
 	
 

@@ -175,6 +175,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 
 	bool IsLocallyControlled() const;
 
+	bool IsNetAuthority() const;
+
 	virtual void InitFromActor(AActor *Actor);
 };
 

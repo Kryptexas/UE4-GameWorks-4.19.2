@@ -168,9 +168,11 @@ public:
 		return GetOuter()->GetWorld();
 	}
 
-	int32 GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack);
+	int32 GetFunctionCallspace(UFunction* Function, void* Parameters, FFrame* Stack) override;
 
-	bool CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack);
+	bool CallRemoteFunction(UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack) override;
+
+	void PostNetInit();
 
 protected:
 		

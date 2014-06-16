@@ -220,6 +220,11 @@ bool UAbilitySystemComponent::HasAnyTags(FGameplayTagContainer &Tags)
 	return ActiveGameplayEffects.HasAnyTags(Tags);
 }
 
+bool UAbilitySystemComponent::HasTag(FGameplayTag Tag)
+{
+	return ActiveGameplayEffects.HasTag(Tag);
+}
+
 bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
 {
 	return ActiveGameplayEffects.HasAllTags(Tags);
@@ -523,7 +528,7 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 
 	for (UGameplayAbility* Ability : ReplicatedInstancedAbilities)
 	{
-		if (Ability)
+		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
 		}
