@@ -26,6 +26,7 @@ namespace UnrealBuildTool.Rules
 					"SlateCore",
                     "EditorStyle",
 					"BlueprintGraph",
+                    "Kismet",
 					"KismetCompiler",
 					"GraphEditor",
 					"MainFrame",

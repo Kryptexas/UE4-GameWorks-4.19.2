@@ -4,7 +4,6 @@
 
 #include "ModuleManager.h"
 
-
 /**
  * The public interface to this module
  */
@@ -34,4 +33,3 @@ public:
 		return FModuleManager::Get().IsModuleLoaded( "GameplayAbilitiesEditor" );
 	}
 };
-
