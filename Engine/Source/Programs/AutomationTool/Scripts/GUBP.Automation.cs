@@ -4128,7 +4128,7 @@ public class GUBP : BuildCommand
             }
             else
             {
-                if (!HashSetEqual(CurrentErrors, ThisErrors))
+                if (CurrentErrors.Count == 0 || !HashSetEqual(CurrentErrors, ThisErrors))
                 {
                     break;
                 }
