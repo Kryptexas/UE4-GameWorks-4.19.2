@@ -87,6 +87,8 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
+	Modify();
+
 	bool bRemoved = RemoveWidgetRecursive(InRemovedWidget);
 
 	int32 IndexRemoved = WidgetTemplates.Remove(InRemovedWidget);

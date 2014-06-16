@@ -10,22 +10,27 @@ class UMG_API UWidgetTree : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+public:
 	/** Array of templates for widgets */
 	UPROPERTY()
-	TArray<class UWidget*> WidgetTemplates;
+	TArray<UWidget*> WidgetTemplates;
+
+public:
 
 	void RenameWidget(UWidget* Widget, FString& NewName);
 
-	class UWidget* FindWidget(FString& Name) const;
+	UWidget* FindWidget(FString& Name) const;
 
-	bool RemoveWidget(class UWidget* Widget);
+	bool RemoveWidget(UWidget* Widget);
 
-	class UPanelWidget* FindWidgetParent(class UWidget* Widget, int32& OutChildIndex);
+	class UPanelWidget* FindWidgetParent(UWidget* Widget, int32& OutChildIndex);
 
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
-	T* ConstructWidget(TSubclassOf<class UWidget> WidgetType)
+	T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
 	{
+		Modify();
+
 		UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
 		Widget->SetFlags(RF_Transactional);
 		WidgetTemplates.Add(Widget);
@@ -35,5 +40,4 @@ class UMG_API UWidgetTree : public UObject
 	
 private:
 	bool RemoveWidgetRecursive(UWidget* InRemovedWidget);
-	
 };

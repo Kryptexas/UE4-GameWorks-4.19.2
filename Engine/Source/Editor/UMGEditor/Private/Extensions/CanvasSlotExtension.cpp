@@ -95,6 +95,20 @@ void FCanvasSlotExtension::MoveByAmount(UWidget* Widget, FVector2D Delta)
 		Offsets.Left += Delta.X;
 		Offsets.Top += Delta.Y;
 
+		// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
+		// now represents margin from the right stretched side.
+		if ( CanvasSlot->LayoutData.Anchors.IsStretchedHorizontal() )
+		{
+			Offsets.Right -= Delta.X;
+		}
+
+		// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
+		// now represents margin from the bottom stretched side.
+		if ( CanvasSlot->LayoutData.Anchors.IsStretchedVertical() )
+		{
+			Offsets.Bottom -= Delta.Y;
+		}
+
 		CanvasSlot->SetOffset(Offsets);
 	}
 }

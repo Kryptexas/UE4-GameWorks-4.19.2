@@ -11,7 +11,7 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 {
 	LayoutData.Offsets = FMargin(0, 0, 1, 1);
 	LayoutData.Anchors = FAnchors(0.0f, 0.0f);
-	LayoutData.Alignment = FVector2D(0.5f, 0.5f);
+	LayoutData.Alignment = FVector2D(0.0f, 0.0f);
 }
 
 void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
@@ -30,20 +30,49 @@ void UCanvasPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amoun
 	if ( Direction.X < 0 )
 	{
 		LayoutData.Offsets.Left -= Amount.X * Direction.X;
-		LayoutData.Offsets.Right += Amount.X * Direction.X;
+
+		// Keep the right side stable if it's not stretched and we're resizing left.
+		if ( !LayoutData.Anchors.IsStretchedHorizontal() )
+		{
+			// TODO UMG This doesn't work correctly with Alignment, fix or remove alignment
+			LayoutData.Offsets.Right += Amount.X * Direction.X;
+		}
 	}
+	
 	if ( Direction.Y < 0 )
 	{
 		LayoutData.Offsets.Top -= Amount.Y * Direction.Y;
-		LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
+
+		// Keep the bottom side stable if it's not stretched and we're resizing top.
+		if ( !LayoutData.Anchors.IsStretchedVertical() )
+		{
+			// TODO UMG This doesn't work correctly with Alignment, fix or remove alignment
+			LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
+		}
 	}
+	
 	if ( Direction.X > 0 )
 	{
-		LayoutData.Offsets.Right += Amount.X * Direction.X;
+		if ( LayoutData.Anchors.IsStretchedHorizontal() )
+		{
+			LayoutData.Offsets.Right -= Amount.X * Direction.X;
+		}
+		else
+		{
+			LayoutData.Offsets.Right += Amount.X * Direction.X;
+		}
 	}
+
 	if ( Direction.Y > 0 )
 	{
-		LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
+		if ( LayoutData.Anchors.IsStretchedVertical() )
+		{
+			LayoutData.Offsets.Bottom -= Amount.Y * Direction.Y;
+		}
+		else
+		{
+			LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
+		}
 	}
 
 	if ( Slot )
