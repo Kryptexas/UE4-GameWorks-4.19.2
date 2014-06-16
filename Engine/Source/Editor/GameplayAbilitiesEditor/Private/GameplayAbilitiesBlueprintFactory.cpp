@@ -6,6 +6,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 
 #include "Abilities/GameplayAbility.h"
+#include "GameplayAbilityBlueprint.h"
 
 #include "GameplayAbilityBlueprintGeneratedClass.h"
 

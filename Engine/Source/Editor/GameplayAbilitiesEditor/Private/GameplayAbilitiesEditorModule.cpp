@@ -5,6 +5,10 @@
 #include "AttributeDetails.h"
 #include "AttributeSet.h"
 
+#include "IAssetTypeActions.h"
+#include "AssetToolsModule.h"
+#include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
+
 class FGameplayAbilitiesEditorModule : public IGameplayAbilitiesEditorModule
 {
 	// Begin IModuleInterface

@@ -3,6 +3,8 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "GameplayAbilitiesEditor.h"
 
+#include "GameplayAbilityBlueprint.h"
+
 #define LOCTEXT_NAMESPACE "FGameplayAbilitiesEditor"
 
 
