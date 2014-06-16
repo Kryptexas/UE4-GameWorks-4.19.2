@@ -567,6 +567,12 @@ protected:
 	void OnPromoteToVariable();
 	bool CanPromoteToVariable() const;
 
+	void OnSplitStructPin();
+	bool CanSplitStructPin() const;
+
+	void OnRecombineStructPin();
+	bool CanRecombineStructPin() const;
+
 	void OnAddExecutionPin();
 	bool CanAddExecutionPin() const;
 

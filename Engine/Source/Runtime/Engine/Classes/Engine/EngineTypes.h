@@ -1271,7 +1271,7 @@ struct FPrimitiveMaterialRef
 };
 
 /** Structure containing information about one hit of the trace */
-USTRUCT(BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(BlueprintType, meta=(HasNativeBreak="Engine.GameplayStatics.BreakHitResult"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
@@ -2108,7 +2108,7 @@ struct FRepAttachment
 
 	UPROPERTY()
 	FName AttachSocket;
-	
+
 	UPROPERTY()
 	class USceneComponent* AttachComponent;
 
@@ -2356,7 +2356,7 @@ namespace EComponentMobility
 		// - Totally Dynamic
 		// - Allows Dynamic Shadows
 		// - Slowest Rendering
-		Movable
+		Movable		
 	};
 }
 

@@ -126,7 +126,7 @@ UK2Node_BreakStruct::UK2Node_BreakStruct(const class FPostConstructInitializePro
 bool UK2Node_BreakStruct::CanBeBroken(const UScriptStruct* Struct)
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-	if(Struct && Schema && !Struct->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
+	if(Struct && Schema && !Struct->HasMetaData(TEXT("HasNativeBreak")))
 	{
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
@@ -217,9 +217,28 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
+	if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
-		Result = ERedirectType_Custom;
+		if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
+		{
+			Result = ERedirectType_Custom;
+		}
+	}
+		else if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
+		{
+			TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(StructType->GetFName());
+			if (StructRedirects)
+			{
+				FName* PropertyRedirect = StructRedirects->Find(FName(*OldPin->PinName));
+				if (PropertyRedirect)
+				{
+					Result = ((FCString::Stricmp(*PropertyRedirect->ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
+				}
+			}
+		}
 	}
 	return Result;
 }

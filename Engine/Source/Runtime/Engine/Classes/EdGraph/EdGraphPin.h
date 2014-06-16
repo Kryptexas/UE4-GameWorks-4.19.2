@@ -194,6 +194,14 @@ class UEdGraphPin : public UObject
 	UPROPERTY()
 	TArray<class UEdGraphPin*> LinkedTo;
 
+	/** The pins created when a pin is split and hidden */ 
+	UPROPERTY()
+	TArray<class UEdGraphPin*> SubPins;
+
+	/** The pin that was split and generated this pin */
+	UPROPERTY()
+	UEdGraphPin* ParentPin;
+
 #if WITH_EDITORONLY_DATA
 	/** If true, this connector is currently hidden. */
 	UPROPERTY()

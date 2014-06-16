@@ -182,7 +182,7 @@ struct FNetworkGUID
 };
 
 // A point or direction FVector in 3d space.
-USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeVector", HasNativeBreak="Engine.KismetMathLibrary.BreakVector"))
 struct FVector
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector, SaveGame)
@@ -214,7 +214,7 @@ struct FVector4
 };
 
 
-USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeVector2D", HasNativeBreak="Engine.KismetMathLibrary.BreakVector2D"))
 struct FVector2D
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Vector2D, SaveGame)
@@ -252,7 +252,7 @@ struct FPlane : public FVector
 
 // An orthogonal rotation in 3d space.
 
-USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="true", HasNativeBreak="true"))
 struct FRotator
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame)
@@ -606,7 +606,7 @@ struct FInterpCurveLinearColor
 
 /** Transform definition. */
 
-USTRUCT(noexport, BlueprintType, meta=(HasNativeMakeBreak="true"))
+USTRUCT(noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeTransform", HasNativeBreak="Engine.KismetMathLibrary.BreakTransform"))
 struct FTransform
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Transform, SaveGame)

@@ -163,7 +163,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		ParentClass = UObject::StaticClass();
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
-	
+    
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
@@ -187,31 +187,31 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		{
 			SubObjectsToSave.AddObject(Blueprint->SimpleConstructionScript);
 			if (const USCS_Node* DefaultScene = Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode())
-			{
+	{
 				SubObjectsToSave.AddObject(DefaultScene->ComponentTemplate);
-			}
+	}
 
 			TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
 			for (auto SCSNode : SCSNodes)
-			{
+	{
 				SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
 			}
-		}
-		{
+	}
+	{
 			TSet<class UCurveBase*> Curves;
 			for (auto Timeline : Blueprint->Timelines)
 			{
 				if (Timeline)
-				{
+		{
 					Timeline->GetAllCurves(Curves);
-				}
+		}
 			}
 			for (auto Component : Blueprint->ComponentTemplates)
 			{
 				if (auto TimelineComponent = Cast<UTimelineComponent>(Component))
-				{
+		{
 					TimelineComponent->GetAllCurves(Curves);
-				}
+		}
 			}
 			for (auto Curve : Curves)
 			{
@@ -294,11 +294,11 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 		UEdGraphPin* MutablePin = const_cast<UEdGraphPin*>(Pin);
 
 		if (NewClass && MutablePin->PinType.PinSubCategoryObject.Get() == NewClass)
-		{
-			MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
-			MutablePin->PinType.PinSubCategoryObject = NULL;
+			{
+				MutablePin->PinType.PinSubCategory = Schema->PSC_Self;
+				MutablePin->PinType.PinSubCategoryObject = NULL;
+			}
 		}
-	}
 
 	if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
 	{
@@ -1010,7 +1010,7 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0))
 					{
 						FEdGraphPinType SelfType;
-						SelfType.PinCategory    = Schema->PC_Object;
+						SelfType.PinCategory = Schema->PC_Object;
 						SelfType.PinSubCategory = Schema->PSC_Self;
 
 						if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
@@ -1105,7 +1105,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		}
 
 		// Determine if this is a new function or if it overrides a parent function
-		//@TODO: Does not support multiple overloads for a parent virtual function
+			//@TODO: Does not support multiple overloads for a parent virtual function
 		UFunction* ParentFunction = Blueprint->ParentClass->FindFunctionByName(NewFunctionName);
 
 		const FString NewFunctionNameString = NewFunctionName.ToString();
@@ -1540,7 +1540,7 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		// No defaults for object/class pins
 		if(	!Schema->IsMetaPin(*EntryPin) && 
 			(EntryPin->PinType.PinCategory != Schema->PC_Object) && 
-			(EntryPin->PinType.PinCategory != Schema->PC_Class)  && 
+			(EntryPin->PinType.PinCategory != Schema->PC_Class) && 
 			(EntryPin->PinType.PinCategory != Schema->PC_Interface) && 
 			!EntryPin->DefaultValue.IsEmpty() )
 		{
@@ -2190,20 +2190,20 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	// If this is a customizable event, make sure to copy over the user defined pins
 	if (UK2Node_CustomEvent const* SrcCustomEventNode = Cast<UK2Node_CustomEvent const>(SrcEventNode))
-	{
+ 	{
 		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
 		// CustomEvents may inherit net flags (so let's use their GetNetFlags() incase this is an override)
 		StubContext.MarkAsNetFunction(SrcCustomEventNode->GetNetFlags());
-	}
+ 	}
 	EntryNode->AllocateDefaultPins();
 
 	// Confirm that the event node matches the latest function signature, which the newly created EntryNode should have
-	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
-	{
-		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
-		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
-		return;
-	}
+ 	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
+ 	{
+ 		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
+ 		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
+ 		return;
+ 	}
 
 	// Copy each event parameter to the assignment node, if there are any inputs
 	UK2Node_VariableSet* AssignmentNode = NULL;
@@ -2248,7 +2248,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	CallIntoUbergraph->NodePosX = 300;
 
 	// Use the ExecuteUbergraph base function to generate the pins...
-	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
+ 	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
 	CallIntoUbergraph->AllocateDefaultPins();
 	
 	// ...then swap to the generated version for this level
@@ -2321,29 +2321,29 @@ void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraph
 {
 	if (bIsFullCompile)
 	{
-		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_Expansion);
+	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_Expansion);
 
-		// Collapse any remaining tunnels or macros
-		ExpandTunnelsAndMacros(Graph);
+	// Collapse any remaining tunnels or macros
+	ExpandTunnelsAndMacros(Graph);
 
-		for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
+	for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
+	{
+		UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
+		if (Node)
 		{
-			UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
-			if (Node)
-			{
-				Node->ExpandNode(*this, Graph);
-			}
-		}
-
-		if (bAllowUbergraphExpansions)
-		{
-			// Expand timeline nodes
-			ExpandTimelineNodes(Graph);
-
-			// Expand PlayMovieScene nodes
-			ExpandPlayMovieSceneNodes(Graph);
+			Node->ExpandNode(*this, Graph);
 		}
 	}
+
+	if (bAllowUbergraphExpansions)
+	{
+		// Expand timeline nodes
+		ExpandTimelineNodes(Graph);
+
+		// Expand PlayMovieScene nodes
+		ExpandPlayMovieSceneNodes(Graph);
+	}
+}
 }
 
 void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
@@ -2621,10 +2621,10 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 								ClonedPin->PinType.PinSubCategory = MacroInstanceNode->ResolvedWildcardType.PinSubCategory;
 								ClonedPin->PinType.PinSubCategoryObject = MacroInstanceNode->ResolvedWildcardType.PinSubCategoryObject;
 							}
+							}
 						}
 					}
 				}
-			}
 
 			// Handle any nodes that need to inherit their macro instance's NodeGUID
 			for( auto ClonedNode : MacroNodes)
@@ -2636,21 +2636,30 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				}
 			}
 
-			// Since we don't support array literals, drop a make array node on any unconnected array pins, which will allow macro expansion to succeed even if disconnected
-			for (auto PinIt = MacroInstanceNode->Pins.CreateIterator(); PinIt; ++PinIt)
+			// We iterate the array in reverse so we can both remove the subpins safely after we've read them and
+			// so we have split nested structs we combine them back together in the right order
+			for (int32 PinIndex = MacroInstanceNode->Pins.Num() - 1; PinIndex >= 0; --PinIndex)
 			{
-				UEdGraphPin* Pin = *PinIt;
-				if (Pin 
-					&& Pin->PinType.bIsArray
+				UEdGraphPin* Pin = MacroInstanceNode->Pins[PinIndex];
+				if (Pin)
+				{
+					// Since we don't support array literals, drop a make array node on any unconnected array pins, which will allow macro expansion to succeed even if disconnected
+					if (Pin->PinType.bIsArray
 					&& (Pin->Direction == EGPD_Input)
 					&& (Pin->LinkedTo.Num() == 0))
-				{
-					UK2Node_MakeArray* MakeArrayNode = SpawnIntermediateNode<UK2Node_MakeArray>(MacroInstanceNode, SourceGraph);
-					MakeArrayNode->AllocateDefaultPins();
-					UEdGraphPin* MakeArrayOut = MakeArrayNode->GetOutputPin();
-					check(MakeArrayOut);
-					MakeArrayOut->MakeLinkTo(Pin);
-					MakeArrayNode->PinConnectionListChanged(MakeArrayOut);
+					{
+						UK2Node_MakeArray* MakeArrayNode = SpawnIntermediateNode<UK2Node_MakeArray>(MacroInstanceNode, SourceGraph);
+						MakeArrayNode->AllocateDefaultPins();
+						UEdGraphPin* MakeArrayOut = MakeArrayNode->GetOutputPin();
+						check(MakeArrayOut);
+						MakeArrayOut->MakeLinkTo(Pin);
+						MakeArrayNode->PinConnectionListChanged(MakeArrayOut);
+					}
+					// Otherwise we need to handle the pin splitting
+					else if (Pin->SubPins.Num() > 0)
+					{
+						MacroInstanceNode->ExpandSplitPin(this, SourceGraph, Pin);
+					}
 				}
 			}
 
@@ -2753,7 +2762,7 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 				}
 			}
 
-			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, TunnelNode->GetOutputSource());
+			bool bSuccess = Schema->CollapseGatewayNode(TunnelNode, InputSink, TunnelNode->GetOutputSource(), this);
 			if (!bSuccess)
 			{
 				MessageLog.Error(*LOCTEXT("CollapseTunnel_Error", "Failed to collapse tunnel @@").ToString(), TunnelNode);
@@ -2931,25 +2940,25 @@ void FKismetCompilerContext::Compile()
 	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
 
 	// >>> Backwards Compatibility: Make sure that skeleton generated classes have the proper "SKEL_" naming convention
-	const FString SkeletonPrefix(TEXT("SKEL_"));
-	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
-	{
-		FString NewName = SkeletonPrefix + TargetClass->GetName();
+ 	const FString SkeletonPrefix(TEXT("SKEL_"));
+ 	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
+ 	{
+ 		FString NewName = SkeletonPrefix + TargetClass->GetName();
  
-		// Ensure we have a free name for this class
-		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
-		if( AnyClassWithGoodName )
-		{
-			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
-			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
-			{
-				AnyClassWithGoodName->ClassDefaultObject = NULL;
-				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
-				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
-			}
+ 		// Ensure we have a free name for this class
+ 		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
+ 		if( AnyClassWithGoodName )
+ 		{
+ 			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
+ 			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
+ 			{
+ 				AnyClassWithGoodName->ClassDefaultObject = NULL;
+ 				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
+ 				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
+ 			}
  
 			// Get rid of the old class to make room for renaming our class to the final SKEL name
-			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
+ 			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
 
 			// Update the refs to the old SKC
 			TMap<UObject*, UObject*> ClassReplacementMap;
@@ -2960,11 +2969,11 @@ void FKismetCompilerContext::Compile()
 			{
 				FArchiveReplaceObjectRef<UObject> ReplaceInBlueprintAr(AllGraphs[i], ClassReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 			}
-		}
+ 		}
  
-		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
-		TargetClass->Rename(*NewName, NULL, RenameFlags);
-	}
+ 		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
+ 		TargetClass->Rename(*NewName, NULL, RenameFlags);
+ 	}
 	// <<< End Backwards Compatibility
 
 	// >>> Backwards compatibility:  If SkeletonGeneratedClass == GeneratedClass, we need to make a new generated class the first time we need it
@@ -3263,7 +3272,7 @@ void FKismetCompilerContext::Compile()
 						}
 					}
 
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
+					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);			
 				}
 
 				// >>> Backwards Compatibility: Propagate data from the skel CDO to the gen CDO if we haven't already done so for this blueprint
@@ -3358,29 +3367,29 @@ void FKismetCompilerContext::Compile()
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
-	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
-	{
-		TArray<UObject*> AllBlueprints;
-		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
+  	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
+  	{
+  		TArray<UObject*> AllBlueprints;
+  		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
   
-		// Mark any blueprints that implement this interface as dirty
-		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
-		{
-			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
+  		// Mark any blueprints that implement this interface as dirty
+  		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
+  		{
+  			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
   
-			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
-			{
+  			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
+  			{
 				CurrentBP->Status = BS_Dirty;
-				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
+  				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
 				CurrentBP->BroadcastChanged();
-			}
-		}
-	}
+  			}
+  		}
+  	}
 
 	// Clear out pseudo-local members that are only valid within a Compile call
 	UbergraphContext = NULL;
-	CallsIntoUbergraph.Empty();
-	TimelineToMemberVariableMap.Empty();
+ 	CallsIntoUbergraph.Empty();
+ 	TimelineToMemberVariableMap.Empty();
 
 
 	check(NewClass->PropertiesSize >= UObject::StaticClass()->PropertiesSize);

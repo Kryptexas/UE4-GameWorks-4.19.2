@@ -169,6 +169,12 @@ void UEdGraphPin::CopyPersistentDataFromOldPin(const UEdGraphPin& SourcePin)
 		OtherPin->MakeLinkTo(this);
 	}
 
+	// If the source pin is split, then split the new one
+	if (SourcePin.SubPins.Num() > 0)
+	{
+		GetOwningNode()->GetSchema()->SplitPin(this);
+	}
+
 #if WITH_EDITORONLY_DATA
 	// Copy advanced visibility property, since it can be changed by user
 	bAdvancedView = SourcePin.bAdvancedView;

@@ -150,6 +150,8 @@ FString UK2Node_ForEachElementInEnum::GetNodeNativeTitle(ENodeTitleType::Type Ti
 
 void UK2Node_ForEachElementInEnum::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
 	if (CompilerContext.bIsFullCompile)
 	{
 		if (!Enum)

@@ -2533,11 +2533,11 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 
 		static const FName NativeMakeFunc(TEXT("NativeMakeFunc"));
 		static const FName NativeBrakeFunc(TEXT("NativeBreakFunc"));
-		static const FName HasNativeMakeBreak(TEXT("HasNativeMakeBreak"));
+		static const FName HasNativeMake(TEXT("HasNativeMake"));
+		static const FName HasNativeBreak(TEXT("HasNativeBreak"));
 		const UScriptStruct* ScriptStruct = Cast<const UScriptStruct>(DesiredPinType.PinSubCategoryObject.Get());
-		const bool bStructWithNativeBrakeAndMake = ScriptStruct && ScriptStruct->GetBoolMetaData(HasNativeMakeBreak);
-		const bool bUseNativeMake = bStructWithNativeBrakeAndMake && bWantOutput;
-		const bool bUseNativeBrake = bStructWithNativeBrakeAndMake && !bWantOutput;
+		const bool bUseNativeMake = bWantOutput && ScriptStruct && ScriptStruct->GetBoolMetaData(HasNativeMake);
+		const bool bUseNativeBrake = !bWantOutput && ScriptStruct && ScriptStruct->GetBoolMetaData(HasNativeBreak);
 
 		for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 		{

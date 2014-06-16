@@ -442,6 +442,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanPromoteToVariable )
 				);
 
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().SplitStructPin,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnSplitStructPin ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanSplitStructPin )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RecombineStructPin,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnRecombineStructPin ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanRecombineStructPin )
+				);
+
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AddExecutionPin,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAddExecutionPin ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanAddExecutionPin )
@@ -2689,6 +2699,72 @@ bool FBlueprintEditor::CanPromoteToVariable() const
 	}
 	
 	return bCanPromote;
+}
+
+void FBlueprintEditor::OnSplitStructPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		UEdGraphPin* TargetPin = FocusedGraphEd->GetGraphPinForMenu();
+
+		check(IsEditingSingleBlueprint());
+		check(GetBlueprintObj()->SkeletonGeneratedClass);
+		check(TargetPin);
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		K2Schema->SplitPin(TargetPin);
+	}
+}
+
+bool FBlueprintEditor::CanSplitStructPin() const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool bCanSplit = false;
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
+		{
+			bCanSplit = K2Schema->CanSplitStructPin(*Pin);
+		}
+	}
+
+	return bCanSplit;
+}
+
+void FBlueprintEditor::OnRecombineStructPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		UEdGraphPin* TargetPin = FocusedGraphEd->GetGraphPinForMenu();
+
+		check(IsEditingSingleBlueprint());
+		check(GetBlueprintObj()->SkeletonGeneratedClass);
+		check(TargetPin);
+
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		K2Schema->RecombinePin(TargetPin);
+	}
+}
+
+bool FBlueprintEditor::CanRecombineStructPin() const
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	bool bCanRecombine = false;
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (FocusedGraphEd.IsValid())
+	{
+		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
+		{
+			bCanRecombine = K2Schema->CanRecombineStructPin(*Pin);
+		}
+	}
+
+	return bCanRecombine;
 }
 
 void FBlueprintEditor::OnAddExecutionPin()

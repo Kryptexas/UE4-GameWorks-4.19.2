@@ -136,48 +136,48 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 				InPin.DefaultTextValue = FText::FromString(Value);
 			}
 			else
-			{
+	{
 				InPin.DefaultValue = Value;
 			}
-		}
+	}
 	};
 
 	UK2Node_StructOperation::FStructOperationOptionalPinManager::CustomizePinData(Pin, SourcePropertyName, ArrayIndex, Property);
-	if (Pin && Property)
-	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		check(Schema);
+		if(Pin && Property)
+		{
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+			check(Schema);
 		const bool bIsText = Property->IsA<UTextProperty>();
 		checkSlow(bIsText == (Schema->PC_Text == Pin->PinType.PinCategory));
 
-		const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
-		if (!MetadataDefaultValue.IsEmpty())
-		{
-			FPinDefaultValueHelper::Set(*Pin, MetadataDefaultValue, bIsText);
-			return;
-		}
-
-		if (NULL != SampleStructMemory)
-		{
-			FString NewDefaultValue;
-			if (Property->ExportText_InContainer(0, NewDefaultValue, SampleStructMemory, SampleStructMemory, NULL, PPF_None))
+			const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
+			if (!MetadataDefaultValue.IsEmpty())
 			{
-				if (Schema->IsPinDefaultValid(Pin, NewDefaultValue, NULL, FText::GetEmpty()).IsEmpty())
+			FPinDefaultValueHelper::Set(*Pin, MetadataDefaultValue, bIsText);
+				return;
+			}
+
+			if(NULL != SampleStructMemory)
+			{
+				FString NewDefaultValue;
+				if(Property->ExportText_InContainer(0, NewDefaultValue, SampleStructMemory, SampleStructMemory, NULL, PPF_None))
 				{
+					if(Schema->IsPinDefaultValid(Pin, NewDefaultValue, NULL, FText::GetEmpty()).IsEmpty())
+					{
 					FPinDefaultValueHelper::Set(*Pin, NewDefaultValue, bIsText);
-					return;
+						return;
+					}
 				}
 			}
+			
+			Schema->SetPinDefaultValueBasedOnType(Pin);
 		}
-
-		Schema->SetPinDefaultValueBasedOnType(Pin);
 	}
-}
 
 bool UK2Node_MakeStruct::FMakeStructPinManager::CanTreatPropertyAsOptional(UProperty* TestProperty) const
-{
-	return UK2Node_MakeStruct::CanBeExposed(TestProperty);
-}
+	{
+		return UK2Node_MakeStruct::CanBeExposed(TestProperty);
+	}
 
 UK2Node_MakeStruct::UK2Node_MakeStruct(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -281,7 +281,7 @@ bool UK2Node_MakeStruct::CanBeExposed(const UProperty* Property)
 
 bool UK2Node_MakeStruct::CanBeMade(const UScriptStruct* Struct)
 {
-	if(!Struct->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
+	if(!Struct->HasMetaData(TEXT("HasNativeMake")))
 	{
 		for (TFieldIterator<UProperty> It(Struct); It; ++It)
 		{
@@ -302,9 +302,29 @@ FNodeHandlingFunctor* UK2Node_MakeStruct::CreateNodeHandler(FKismetCompilerConte
 UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, false))
+	if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
-		Result = ERedirectType_Custom;
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
+		{
+			Result = ERedirectType_Custom;
+		}
+	}
+		else if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
+		{
+			TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(StructType->GetFName());
+			if (StructRedirects)
+			{
+				FName* PropertyRedirect = StructRedirects->Find(FName(*OldPin->PinName));
+				if (PropertyRedirect)
+				{
+					Result = ((FCString::Stricmp(*PropertyRedirect->ToString(), *NewPin->PinName) != 0) ? ERedirectType_None : ERedirectType_Name);
+				}
+			}
+		}
 	}
 	return Result;
 }

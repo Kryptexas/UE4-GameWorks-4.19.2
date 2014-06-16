@@ -17,9 +17,9 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 	UStruct* Struct;
 
 	void AddReferencedObjects( FReferenceCollector& Collector ) override
-	{
+{
 		if( Struct )
-		{
+	{
 			Collector.AddReferencedObject(Struct);
 		}
 	}
@@ -45,7 +45,7 @@ public:
 	// Struct/Enum/Class:
 	// If true, this class, struct, or enum is a valid type for use as a variable in a blueprint
 	static const FName MD_AllowableBlueprintVariableType;
-	
+
 	// If true, this class, struct, or enum is not valid for use as a variable in a blueprint
 	static const FName MD_NotAllowableBlueprintVariableType;
 
@@ -77,7 +77,7 @@ public:
 
 	// [FunctionMetadata] Indicates that the function should be drawn as a compact node with the specified body title
 	static const FName MD_CompactNodeTitle;
-	
+
 	// [FunctionMetadata] Indicates that the function should be drawn with this title over the function name
 	static const FName MD_FriendlyName;
 
@@ -233,13 +233,13 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Name;
 
 	UPROPERTY()
-	FString PC_Delegate;	// SubCategoryObject is the UFunction of the delegate signature
+	FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_MCDelegate;	// SubCategoryObject is the UFunction of the delegate signature
+	FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_Object;		// SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
 
 	UPROPERTY()
 	FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
@@ -254,7 +254,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
 
 	UPROPERTY()
-	FString PC_Wildcard;  // Special matching rules are imposed by the node itself
+	FString PC_Wildcard;    // Special matching rules are imposed by the node itself
 
 	// Common PinType.PinSubCategory values
 	UPROPERTY()
@@ -351,7 +351,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	/** Whether or not the schema should allow the user to use blueprint communications */
 	UPROPERTY(globalconfig)
 	bool bAllowBlueprintComms;
-	
+
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
 
@@ -493,7 +493,16 @@ public:
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const override;
 	virtual bool FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, const UEdGraphPin* Pin) const override;
 	virtual void BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const override;
+	virtual void SplitPin(UEdGraphPin* Pin) const override;
+	virtual void RecombinePin(UEdGraphPin* Pin) const override;
 	// End EdGraphSchema Interface
+
+	// Returns whether the supplied Pin is a splittable struct
+	bool PinHasSplittableStructType(const UEdGraphPin* InGraphPin) const;
+
+	/** Helper function to create the expansion node.  
+		If the CompilerContext is specified this will be created as an intermediate node */
+	class UK2Node* CreateSplitPinNode(UEdGraphPin* Pin, class FKismetCompilerContext* CompilerContext = NULL, UEdGraph* SourceGraph = NULL) const;
 
 	// Do validation, that doesn't require a knowledge about actual pin. 
 	virtual bool DefaultValueSimpleValidation(const FEdGraphPinType& PinType, const FString& PinName, const FString& NewDefaultValue, UObject* NewDefaultObject, const FText& InText, FString* OutMsg = NULL) const;
@@ -614,6 +623,12 @@ public:
 	/** Can Pin be promoted to a variable? */
 	bool CanPromotePinToVariable (const UEdGraphPin& Pin) const;
 
+	/** Can Pin be split in to its component elements */
+	bool CanSplitStructPin(const UEdGraphPin& Pin) const;
+
+	/** Can Pin be recombined back to its original form */
+	bool CanRecombineStructPin(const UEdGraphPin& Pin) const;
+
 	/**
 	 * Convert the type of a UProperty to the corresponding pin type.
 	 *
@@ -632,7 +647,7 @@ public:
 		FT_Const		= 0x04,
 		FT_Protected	= 0x08,
 	};
-	
+
 	/**
 	 * Finds the parent function for the specified function, if any
 	 *
@@ -752,7 +767,7 @@ public:
 	 */
 	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* Class) const;
 
-	/** 
+	/**
 	 * Populate new function graph with entry and possibly return node
 	 * 
 	 * @param	Graph			Graph to add the function terminators to
@@ -859,6 +874,9 @@ public:
 	 */
 	virtual bool ArePinTypesCompatible(const FEdGraphPinType& Output, const FEdGraphPinType& Input, const UClass* CallingContext = NULL, bool bIgnoreArray = false) const;
 
+	// Sets the Pin default property potentially using the default value set in metadata of the param
+	virtual void SetPinDefaultValue(UEdGraphPin* Pin, const UFunction* Function = NULL, const UProperty* Param = NULL) const;
+
 	/**
 	 * Sets the default value of a pin based on the type of the pin (0 for int, false for boolean, etc...)
 	 */
@@ -894,7 +912,7 @@ public:
 	/** Calculates an estimated height for the specified node */
 	static float EstimateNodeHeight( UEdGraphNode* Node );
 
-	/**
+	/** 
 	 * Checks if the graph supports impure functions
 	 *
 	 * @param InGraph		Graph to check
@@ -927,9 +945,9 @@ public:
 	 *
 	 * @return						Returns TRUE if successful
 	 */
-	bool CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode) const;
+	bool CollapseGatewayNode(UK2Node* InNode, UEdGraphNode* InEntryNode, UEdGraphNode* InResultNode, class FKismetCompilerContext* CompilerContext = NULL) const;
 
-	/**
+	/** 
 	 * Connects all of the linked pins from PinA to all of the linked pins from PinB, removing
 	 * both PinA and PinB from being linked to anything else
 	 * Requires the nodes that own the pins to be in the same graph already (post-merging)
