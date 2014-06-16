@@ -267,7 +267,7 @@ public:
 	 *
 	 * @return	Spawnable object that was found (or NULL if not found)
 	 */
-	virtual struct FMovieSceneSpawnable* FindSpawnableForCounterpart( UObject* GamePreviewObject );
+	virtual const struct FMovieSceneSpawnable* FindSpawnableForCounterpart( UObject* GamePreviewObject ) const;
 
 	/**
 	 * @return Returns the number of spawnables in this MovieScene

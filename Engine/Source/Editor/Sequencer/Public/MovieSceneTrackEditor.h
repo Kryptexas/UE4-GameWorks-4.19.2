@@ -86,25 +86,21 @@ public:
 		}
 	}
 	
-	bool TrackForObjectExists( UObject* Object, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName )
+	/**
+	 * Finds or creates a binding to an object
+	 *
+	 * @param Object	The object to create a binding for
+	 * @return A handle to the binding or an invalid handle if the object could not be bound
+	 */
+	FGuid FindOrCreateHandleToObject( UObject* Object )
 	{
-		check( UniqueTypeName != NAME_None );
-
-		// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-		FGuid ObjectHandle = GetSequencer()->GetHandleToObject( Object );
-		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
-
-		UMovieSceneTrack* Type = MovieScene->FindTrack( TrackClass, ObjectHandle, UniqueTypeName );
-
-		return Type != NULL;
+		return GetSequencer()->GetHandleToObject( Object );
 	}
 
-	UMovieSceneTrack* GetTrackForObject( UObject* Object, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName )
+	UMovieSceneTrack* GetTrackForObject( const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName )
 	{
 		check( UniqueTypeName != NAME_None );
 
-		// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-		FGuid ObjectHandle = GetSequencer()->GetHandleToObject( Object );
 		UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieScene();
 
 		UMovieSceneTrack* Type = MovieScene->FindTrack( TrackClass, ObjectHandle, UniqueTypeName );

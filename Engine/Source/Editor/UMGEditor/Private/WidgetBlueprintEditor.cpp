@@ -232,7 +232,10 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
 		UMovieScene* MovieScene = Blueprint->AnimationData.Num() ? Blueprint->AnimationData[0] : GetDefaultMovieScene();
-		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer(MovieScene);
+		
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable( new FUMGSequencerObjectBindingManager( *Blueprint ) );
+		
+		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( MovieScene, ObjectBindingManager );
 	}
 
 	return Sequencer;

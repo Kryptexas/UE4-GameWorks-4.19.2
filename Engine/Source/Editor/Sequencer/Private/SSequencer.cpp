@@ -568,8 +568,8 @@ void SSequencer::OnAssetsDropped( const FAssetDragDropOp& DragDropOp )
 
 		if (!SequencerRef.OnHandleAssetDropped(CurObject, TargetObjectGuid))
 		{
-			SequencerRef.AddSpawnableForAssetOrClass( CurObject, NULL );
-			bSpawnableAdded = true;
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( CurObject, NULL );
+			bSpawnableAdded = NewGuid.IsValid();
 		}
 		bObjectAdded = true;
 	}
@@ -600,9 +600,9 @@ void SSequencer::OnClassesDropped( const FClassDragDropOp& DragDropOp )
 		{
 			UObject* Object = Class->GetDefaultObject();
 
-			SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
 
-			bSpawnableAdded = true;
+			bSpawnableAdded = NewGuid.IsValid();
 
 		}
 	}
@@ -657,8 +657,8 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 
 		if( Object != NULL )
 		{
-			SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
-			bSpawnableAdded = true;
+			FGuid NewGuid = SequencerRef.AddSpawnableForAssetOrClass( Object, NULL );
+			bSpawnableAdded = NewGuid.IsValid();
 		}
 	}
 
@@ -673,50 +673,7 @@ void SSequencer::OnUnloadedClassesDropped( const FUnloadedClassDragDropOp& DragD
 
 void SSequencer::OnActorsDropped( FActorDragDropGraphEdOp& DragDropOp )
 {
-	FSequencer& SequencerRef = *Sequencer.Pin();
-	bool bPossessableAdded = false;
-	for( auto ActorIter = DragDropOp.Actors.CreateIterator(); ActorIter; ++ActorIter )
-	{
-		AActor* Actor = ( *ActorIter ).Get();
-		if( Actor != NULL )
-		{
-			// Grab the MovieScene that is currently focused.  We'll add our Blueprint as an inner of the
-			// MovieScene asset.
-			UMovieScene* OwnerMovieScene = SequencerRef.GetFocusedMovieScene();
-
-			// @todo sequencer: Undo doesn't seem to be working at all
-			const FScopedTransaction Transaction( LOCTEXT("UndoPossessingObject", "Possess Object with MovieScene") );
-
-			// Possess the object!
-			{
-				// Update level script
-				const bool bCreateIfNotFound = true;
-				UK2Node_PlayMovieScene* PlayMovieSceneNode = SequencerRef.BindToPlayMovieSceneNode( bCreateIfNotFound );
-
-				// Create a new possessable
-				OwnerMovieScene->Modify();
-				const FString PossessableName = Actor->GetActorLabel();
-				const FGuid PossessableGuid = OwnerMovieScene->AddPossessable( PossessableName, Actor->GetClass() );
-
-				if (Sequencer.Pin()->IsShotFilteringOn()) {Sequencer.Pin()->AddUnfilterableObject(PossessableGuid);}
-
-				// Bind the actor to the new possessable
-				// @todo sequencer: Handle Undo properly here (new UObjects being created and modified)
-				TArray< UObject* > Actors;
-				Actors.Add( Actor );
-				PlayMovieSceneNode->BindPossessableToObjects( PossessableGuid, Actors );
-
-				bPossessableAdded = true;
-			}
-		}
-	}
-
-	if( bPossessableAdded )
-	{
-		SequencerRef.SpawnOrDestroyPuppetObjects( SequencerRef.GetFocusedMovieSceneInstance() );
-
-		SequencerRef.NotifyMovieSceneDataChanged();
-	}
+	Sequencer.Pin()->OnActorsDropped( DragDropOp.Actors );
 }
 
 void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)

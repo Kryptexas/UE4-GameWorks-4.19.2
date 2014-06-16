@@ -16,16 +16,7 @@ public:
 		SLATE_ATTRIBUTE( float, OutlinerFillPercent )
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
-	{
-		ViewRange = InArgs._ViewRange;
-		OutlinerFillPercent = InArgs._OutlinerFillPercent;
-		Sequencer = InSequencer;
-		ChildSlot
-		[
-			SAssignNew( ScrollBox, SScrollBox )
-		];
-	}
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer );
 
 	/**
 	 * Updates the track area with new nodes

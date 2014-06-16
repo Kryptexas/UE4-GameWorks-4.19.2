@@ -5,6 +5,8 @@
 #include "ModuleInterface.h"
 #include "ISequencer.h"
 
+class ISequencerObjectBindingManager;
+
 /**
  * A delegate which will create an auto-key handler
  */
@@ -25,7 +27,7 @@ public:
 	 * @param 	InRootMovieScene	The movie scene to edit
 	 * @return	Interface to the new editor
 	 */
-	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* InRootMovieScene ) = 0;
+	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* InRootMovieScene, TSharedRef<ISequencerObjectBindingManager> ObjectBindingManager ) = 0;
 
 	/**
 	 * Creates a new instance of a Sequencer, the editor for MovieScene assets in an asset editor

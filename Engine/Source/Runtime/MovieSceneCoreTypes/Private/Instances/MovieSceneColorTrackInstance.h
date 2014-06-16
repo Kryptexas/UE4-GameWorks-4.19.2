@@ -12,8 +12,10 @@ public:
 
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;
-	virtual void RefreshInstance( class IMovieScenePlayer& Player ) override {}
+	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;
 private:
 	/** The track being instanced */
 	UMovieSceneColorTrack* ColorTrack;
+	/** Mapping of objects to bound functions that will be called to update data on the track */
+	TMap< TWeakObjectPtr<UObject>, UFunction* > RuntimeObjectToFunctionMap;
 };

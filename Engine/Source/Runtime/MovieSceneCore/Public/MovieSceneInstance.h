@@ -25,7 +25,7 @@ public:
 	/** @return The movie scene being instanced */
 	UMovieScene* GetMovieScene() { return MovieScene.Get(); }
 private:
-	void RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, FMovieSceneInstanceMap& InstanceMap, class IMovieScenePlayer& Player  );
+	void RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, class IMovieScenePlayer& Player );
 private:
 	/** A paring of a runtime object guid to a runtime data and track instances animating the runtime objects */
 	struct FMovieSceneObjectBindingInstance

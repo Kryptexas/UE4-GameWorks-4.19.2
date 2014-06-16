@@ -14,10 +14,23 @@ class FSequencerModule : public ISequencerModule
 {
 
 	/** ISequencerModule interface */
-	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene ) override
+	virtual TSharedPtr<ISequencer> CreateSequencer( UMovieScene* RootMovieScene, TSharedRef<ISequencerObjectBindingManager> ObjectBindingManager ) override
 	{
 		TSharedRef< FSequencer > Sequencer = MakeShareable(new FSequencer);
-		Sequencer->InitSequencer( RootMovieScene, nullptr, TrackEditorDelegates, false );
+		
+		FSequencerInitParams SequencerInitParams;
+		SequencerInitParams.ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( Sequencer, false ) );
+		
+		SequencerInitParams.ObjectBindingManager = ObjectBindingManager;
+		
+		SequencerInitParams.RootMovieScene = RootMovieScene;
+		
+		SequencerInitParams.bEditWithinLevelEditor = false;
+		
+		SequencerInitParams.ToolkitHost = nullptr;
+		
+		Sequencer->InitSequencer( SequencerInitParams, TrackEditorDelegates );
+		
 		return Sequencer;
 	}
 	

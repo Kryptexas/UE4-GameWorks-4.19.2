@@ -11,7 +11,7 @@ public:
 	FMovieSceneDirectorTrackInstance( UMovieSceneDirectorTrack& InDirectorTrack );
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;
-	virtual void RefreshInstance( class IMovieScenePlayer& Player ) override {}
+	virtual void RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player  ) override {}
 private:
 	/** Track that is being instanced */
 	UMovieSceneDirectorTrack* DirectorTrack;

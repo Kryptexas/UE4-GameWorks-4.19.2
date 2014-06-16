@@ -111,7 +111,7 @@ public:
 	/**
 	 * @return Returns the object change listener for sequencer instance
 	 */
-	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() const = 0;
+	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
 	virtual void NotifyMovieSceneDataChanged() = 0;
 };

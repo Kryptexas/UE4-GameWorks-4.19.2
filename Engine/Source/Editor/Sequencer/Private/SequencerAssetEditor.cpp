@@ -10,6 +10,8 @@
 #include "Sequencer.h"
 #include "MovieScene.h"
 #include "EditorWidgetsModule.h"
+#include "SequencerObjectSpawner.h"
+#include "SequencerObjectChangeListener.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -46,7 +48,7 @@ void FSequencerAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabMan
 
 void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor )
 {
-	if(InitToolkitHost.IsValid())
+	
 	{
 		const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Sequencer_Layout")
 		->AddArea
@@ -63,10 +65,22 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 		const bool bCreateDefaultToolbar = false;
 		FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, InRootMovieScene);
 	}
-
-	// Init Sequencer 
+	
+	// Init Sequencer
 	Sequencer = MakeShareable(new FSequencer);
-	Sequencer->InitSequencer( InRootMovieScene, InitToolkitHost, TrackEditorDelegates, bEditWithinLevelEditor);
+	
+	FSequencerInitParams SequencerInitParams;
+	SequencerInitParams.ObjectChangeListener = MakeShareable( new FSequencerObjectChangeListener( Sequencer.ToSharedRef(), bEditWithinLevelEditor ) );
+	
+	SequencerInitParams.ObjectBindingManager = MakeShareable( new FSequencerActorBindingManager( InitToolkitHost->GetWorld(), SequencerInitParams.ObjectChangeListener.ToSharedRef(), Sequencer.ToSharedRef() ) );
+
+	SequencerInitParams.RootMovieScene = InRootMovieScene;
+	
+	SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
+	
+	SequencerInitParams.ToolkitHost = InitToolkitHost;
+	
+	Sequencer->InitSequencer( SequencerInitParams, TrackEditorDelegates );
 
 	if(bEditWithinLevelEditor)
 	{

@@ -10,7 +10,7 @@ class IPropertyHandle;
 class FSequencerObjectChangeListener : public ISequencerObjectChangeListener
 {
 public:
-	FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer );
+	FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer, bool bInListenForActorsOnly );
 	~FSequencerObjectChangeListener();
 
 	/** ISequencerObjectChangeListener interface */
@@ -47,6 +47,11 @@ private:
 	 */
 	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey );
 
+	/**
+	 * @return True if an object is valid for listening to property changes 
+	 */
+	bool IsObjectValidForListening( UObject* Object ) const;
+
 private:
 	/** Mapping of object to a listener used to check for property changes */
 	TMap< TWeakObjectPtr<UObject>, TSharedPtr<class IPropertyChangeListener> > ActivePropertyChangeListeners;
@@ -59,4 +64,7 @@ private:
 
 	/** The owning sequencer */
 	TWeakPtr< ISequencer > Sequencer;
+
+	/** True to listen for actors only */
+	bool bListenForActorsOnly;
 };

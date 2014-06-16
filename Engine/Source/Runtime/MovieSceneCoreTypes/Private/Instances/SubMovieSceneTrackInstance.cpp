@@ -12,7 +12,7 @@ FSubMovieSceneTrackInstance::FSubMovieSceneTrackInstance( USubMovieSceneTrack& I
 	SubMovieSceneTrack = &InTrack;
 }
 
-void FSubMovieSceneTrackInstance::RefreshInstance( class IMovieScenePlayer& Player )
+void FSubMovieSceneTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	TArray<UMovieSceneSection*> AllSections = SubMovieSceneTrack->GetAllSections();
 

@@ -212,10 +212,8 @@ void FTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalA
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneInstance(), ObjectGuid, OutObjects);
 
-	for (int32 i = 0; i < OutObjects.Num(); ++i)
+	for ( UObject* Object : OutObjects )
 	{
-		UObject* Object = OutObjects[i];
-		
 		FGuid ObjectHandle;
 		USceneComponent* SceneComponent = NULL;
 		AActor* Actor = Cast<AActor>( Object );
@@ -254,23 +252,24 @@ void FTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* 
 	const bool bUnwindRotation = GetSequencer()->IsRecordingLive();
 
 	FName Transform("Transform");
-	bool bTrackExists = TrackForObjectExists(InObject, UMovieSceneTransformTrack::StaticClass(), Transform);
-
-	UMovieSceneTrack* Track = GetTrackForObject( InObject, UMovieSceneTransformTrack::StaticClass(), Transform );
-	UMovieSceneTransformTrack* TransformTrack = CastChecked<UMovieSceneTransformTrack>( Track );
-	TransformTrack->SetPropertyName( Transform );
+	if (ObjectHandle.IsValid())
+	{
+		UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneTransformTrack::StaticClass(), Transform );
+		UMovieSceneTransformTrack* TransformTrack = CastChecked<UMovieSceneTransformTrack>( Track );
+		TransformTrack->SetPropertyName( Transform );
 	
-	if (!TransformPair.LastTransformData.IsValid())
-	{
-		bool bHasTranslationKeys = false, bHasRotationKeys = false, bHasScaleKeys = false;
-		TransformPair.LastTransformData.bValid = TransformTrack->Eval(KeyTime, KeyTime, TransformPair.LastTransformData.Translation, TransformPair.LastTransformData.Rotation, TransformPair.LastTransformData.Scale, bHasTranslationKeys, bHasRotationKeys, bHasScaleKeys);
-	}
+		if (!TransformPair.LastTransformData.IsValid())
+		{
+			bool bHasTranslationKeys = false, bHasRotationKeys = false, bHasScaleKeys = false;
+			TransformPair.LastTransformData.bValid = TransformTrack->Eval(KeyTime, KeyTime, TransformPair.LastTransformData.Translation, TransformPair.LastTransformData.Rotation, TransformPair.LastTransformData.Scale, bHasTranslationKeys, bHasRotationKeys, bHasScaleKeys);
+		}
 
-	FTransformKey TransformKey = FTransformKey(KeyTime, TransformPair.TransformData, TransformPair.LastTransformData);
+		FTransformKey TransformKey = FTransformKey(KeyTime, TransformPair.TransformData, TransformPair.LastTransformData);
 
-	bool bSuccessfulAdd = TransformTrack->AddKeyToSection( ObjectHandle, TransformKey, bUnwindRotation );
-	if (bSuccessfulAdd && (bAutoKeying || bTrackExists))
-	{
-		TransformTrack->SetAsShowable();
+		bool bSuccessfulAdd = TransformTrack->AddKeyToSection( ObjectHandle, TransformKey, bUnwindRotation );
+		if (bSuccessfulAdd)
+		{
+			TransformTrack->SetAsShowable();
+		}
 	}
 }

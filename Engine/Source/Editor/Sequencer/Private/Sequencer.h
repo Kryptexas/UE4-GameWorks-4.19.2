@@ -7,6 +7,27 @@
 
 class UMovieScene;
 class IToolkitHost;
+class ISequencerObjectBindingManager;
+class ISequencerObjectChangeListener;
+
+/** Parameters for initializing a Sequencer */
+struct FSequencerInitParams
+{
+	/** The root movie scene being edited */
+	UMovieScene* RootMovieScene;
+	
+	/** The interface for managing runtime object bindings */
+	TSharedPtr<ISequencerObjectBindingManager> ObjectBindingManager;
+	
+	/** The Object change listener for various systems that need to be notified when objects change */
+	TSharedPtr<ISequencerObjectChangeListener> ObjectChangeListener;
+	
+	/** The asset editor created for this (if any) */
+	TSharedPtr<IToolkitHost> ToolkitHost;
+	
+	/** Whether or not sequencer should be edited within the level editor */
+	bool bEditWithinLevelEditor;
+};
 
 /**
  * Sequencer is the editing tool for MovieScene assets
@@ -18,12 +39,11 @@ public:
 	/**
 	 * Initializes sequencer
 	 *
-	 * @param	RootMovieScene					The root movie scene being edited
-	 * @param	InAssetEditor					The asset editor created for this (if any) 
-	 * @param	TrackEditorDelegates			Delegates to call to create auto-key handlers for this sequencer
-	 * @param	bEditWithinLevelEditor			Whether or not sequencer should be edited within the level editor
+	 * @param	InitParams		Initialization options
+	 * @param	TrackEditorDelegates	Delegates to call to create auto-key handlers for this sequencer
+
 	 */
-	void InitSequencer( UMovieScene* InRootMovieScene, TSharedPtr<IToolkitHost> InToolKitHost, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
+	void InitSequencer( const FSequencerInitParams& InitParams, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates );
 
 	/** Constructor */
 	FSequencer();
@@ -52,7 +72,7 @@ public:
 	virtual void SetGlobalTime(float Time) override;
 	virtual void SetPerspectiveViewportPossessionEnabled(bool bEnabled) override;
 	virtual FGuid GetHandleToObject(UObject* Object) override;
-	virtual ISequencerObjectChangeListener& GetObjectChangeListener() const override;
+	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
 	virtual void NotifyMovieSceneDataChanged() override;
 	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) override;
 	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) override;
@@ -242,18 +262,11 @@ public:
 
 	virtual TArray< UMovieScene* > GetMovieScenesBeingEdited();
 
-	/**
-	 * Binds to a 'PlayMovieScene' node in level script that is associated with the MovieScene we're editing.  If
-	 * requested, can also create a new node.  Only valid to call when in world-centric mode.
-	 *
-	 * @param	bCreateIfNotFound	True to create a node if we can't find one
-	 *
-	 * @return	The LevelScript node we found or created, or NULL if nothing is still bound
-	 */
-	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound );
-
 	/** Called by LevelEditor when the map changes */
 	void OnMapChanged(class UWorld* NewWorld, EMapChangeType::Type MapChangeType);
+
+	/** Called when an actor is dropped into Sequencer */
+	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
 
 	/** Functions to push on to the transport controls we use */
 	FReply OnPlay();
@@ -303,32 +316,6 @@ protected:
 	 * If there are no shot filters, an empty range is returned.
 	 */
 	TRange<float> GetFilteringShotsTimeBounds() const;
-
-
-	/**
-	 * Given a MovieScene to search for, attempts to find a LevelScript node that is playing the
-	 * supplied MovieScene.  Only valid to call when in world-centric mode.
-	 *
-	 * @param	MovieScene	The MovieScene to search for
-	 *
-	 * @return	The LevelScript node we found, or NULL for no matches
-	 */
-	class UK2Node_PlayMovieScene* FindPlayMovieSceneNodeInLevelScript( const class UMovieScene* MovieScene );
-
-
-	/**
-	 * Creates a new "PlayMovieScene" node in the level script for the current level and associates it with the
-	 * supplied MovieScene.  Only valid to call when in world-centric mode.
-	 *
-	 * @param	MovieScene	The MovieScene to associate with the newly-created node
-	 *
-	 * @return	The LevelScript node we created, or NULL on failure (does not assert)
-	 */
-	class UK2Node_PlayMovieScene* CreateNewPlayMovieSceneNode( UMovieScene* MovieScene );
-
-
-	/** Called by UK2Node_PlayMovieScene when the bindings for that node are changed through Kismet */
-	void OnPlayMovieSceneBindingsChanged();
 
 	/** @return The current view range */
 	virtual TRange<float> OnGetViewRange() const;
@@ -401,11 +388,11 @@ private:
 	TWeakPtr<FMovieSceneTrackEditor> DirectorTrackEditor;
 	TWeakPtr<FMovieSceneTrackEditor> AnimationTrackEditor;
 
-	/** Object spawner */
-	TSharedPtr< class ISequencerObjectSpawner > ObjectSpawner;
+	/** Manager for handling runtime object bindings */
+	TSharedPtr< ISequencerObjectBindingManager > ObjectBindingManager;
 
 	/** Listener for object changes being made while this sequencer is open*/
-	TSharedPtr< class FSequencerObjectChangeListener > ObjectChangeListener; 
+	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;
 
 	/** The runtime instance for the root movie scene */
 	TSharedPtr< class FMovieSceneInstance > RootMovieSceneInstance;
@@ -418,10 +405,6 @@ private:
 
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;
-
-	/** 'PlayMovieScene' node in level script that we're currently associating with the active MovieScene.  This node contains the bindings
-	    information that we need to be able to preview possessed actors in the level */
-	TWeakObjectPtr< UK2Node_PlayMovieScene > PlayMovieSceneNode;
 
 	/** A list of all shots that are acting as filters */
 	TArray< TWeakObjectPtr<class UMovieSceneSection> > FilteringShots;

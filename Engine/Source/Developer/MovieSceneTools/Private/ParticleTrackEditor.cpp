@@ -169,9 +169,10 @@ void FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneParticleTrack::StaticClass(), FName("ParticleSystem"));
 
 			if (ensure(Track))
 			{

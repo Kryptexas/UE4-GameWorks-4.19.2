@@ -498,9 +498,11 @@ void FAudioTrackEditor::AddNewAttachedSound( float KeyTime, USoundBase* Sound, T
 	{
 		UObject* Object = ObjectsToAttachTo[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
+			
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAudioTrack::StaticClass(), AudioTrackConstants::UniqueTrackName );
 
 			if (ensure(Track))
 			{

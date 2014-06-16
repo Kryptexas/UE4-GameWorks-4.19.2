@@ -32,8 +32,9 @@ void FMovieSceneInstance::Update( float Position, float LastPosition, class IMov
 void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 {
 	// Get all the master tracks and create instances for them if needed
-	const TArray<UMovieSceneTrack*>& MasterTracks = MovieScene->GetMasterTracks();	
-	RefreshInstanceMap( MasterTracks, MasterTrackInstances, Player );
+	const TArray<UMovieSceneTrack*>& MasterTracks = MovieScene->GetMasterTracks();
+	TArray<UObject*> Objects;
+	RefreshInstanceMap( MasterTracks, Objects, MasterTrackInstances, Player );
 
 	TSet< FGuid > FoundObjectBindings;
 	// Get all tracks for each object binding and create instances for them if needed
@@ -48,14 +49,14 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 
 		FoundObjectBindings.Add( ObjectBinding.GetObjectGuid() );
 
-		// Refresh the instance's tracks
-		const TArray<UMovieSceneTrack*>& Tracks = ObjectBinding.GetTracks();
-		RefreshInstanceMap( Tracks, BindingInstance.TrackInstances, Player );
-
 		// Spawn the runtime objects
 		// @todo Sequencer SubMovieScenes: We need to know which actors were removed and which actors were added so we know which saved actor state to restore/create
 		BindingInstance.RuntimeObjects.Empty();
 		Player.GetRuntimeObjects( SharedThis( this ), BindingInstance.ObjectGuid, BindingInstance.RuntimeObjects );
+		
+		// Refresh the instance's tracks
+		const TArray<UMovieSceneTrack*>& Tracks = ObjectBinding.GetTracks();
+		RefreshInstanceMap( Tracks, BindingInstance.RuntimeObjects, BindingInstance.TrackInstances, Player );
 	}
 
 
@@ -72,7 +73,7 @@ void FMovieSceneInstance::RefreshInstance( IMovieScenePlayer& Player )
 }
 
 
-void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, FMovieSceneInstanceMap& InstanceMap, class IMovieScenePlayer& Player )
+void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& Tracks, const TArray<UObject*>& RuntimeObjects, FMovieSceneInstanceMap& TrackInstances, IMovieScenePlayer& Player  )
 {
 	// All the tracks we found during this pass
 	TSet< UMovieSceneTrack* > FoundTracks;
@@ -86,26 +87,26 @@ void FMovieSceneInstance::RefreshInstanceMap( const TArray<UMovieSceneTrack*>& T
 		FoundTracks.Add( Track );
 
 		// See if the track has an instance
-		TSharedPtr<IMovieSceneTrackInstance> Instance = InstanceMap.FindRef( Track );
+		TSharedPtr<IMovieSceneTrackInstance> Instance = TrackInstances.FindRef( Track );
 		if ( !Instance.IsValid() )
 		{
 			// The track does not have an instance, create one
 			Instance = Track->CreateInstance();
 
-			Instance->RefreshInstance( Player );
+			Instance->RefreshInstance( RuntimeObjects, Player );
 
-			InstanceMap.Add( Track, Instance );
+			TrackInstances.Add( Track, Instance );
 		}
 		else
 		{
 			// The track has an instance, refresh it
-			Instance->RefreshInstance( Player );
+			Instance->RefreshInstance( RuntimeObjects, Player );
 		}
 
 	}
 
 	// Remove entries which no longer have a track associated with them
-	FMovieSceneInstanceMap::TIterator It = InstanceMap.CreateIterator();
+	FMovieSceneInstanceMap::TIterator It = TrackInstances.CreateIterator();
 	for( ; It; ++It )
 	{
 		if( !FoundTracks.Contains( It.Key().Get() ) )

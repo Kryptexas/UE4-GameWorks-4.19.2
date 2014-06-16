@@ -239,9 +239,10 @@ void FAnimationTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*
 	{
 		UObject* Object = Objects[ObjectIndex];
 
-		if (Object)
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UMovieSceneTrack* Track = GetTrackForObject( Object, UMovieSceneAnimationTrack::StaticClass(), FName("Animation"));
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneAnimationTrack::StaticClass(), FName("Animation"));
 
 			if (ensure(Track))
 			{

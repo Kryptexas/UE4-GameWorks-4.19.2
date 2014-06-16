@@ -487,11 +487,10 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 	{
 		UObject* Object = InObjectsThatChanged[ObjectIndex];
 
-		if( Object )
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			bool bTrackExists = TrackForObjectExists(Object, TrackType::StaticClass(), PropertyName);
-
-			UMovieSceneTrack* Track = GetTrackForObject( Object, TrackType::StaticClass(), PropertyName );
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, TrackType::StaticClass(), PropertyName );
 			if( ensure( Track ) )
 			{
 				TrackType* TypedTrack = CastChecked<TrackType>(Track);
@@ -499,7 +498,7 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, *Value );
-				if (bSuccessfulAdd && (bAutoKeying || bTrackExists))
+				if (bSuccessfulAdd)
 				{
 					TypedTrack->SetAsShowable();
 				}
@@ -507,3 +506,4 @@ void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FName PropertyName, con
 		}
 	}
 }
+

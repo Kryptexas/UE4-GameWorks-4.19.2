@@ -129,7 +129,7 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnable( const FGuid& Guid )
 }
 
 
-FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePreviewObject )
+const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePreviewObject ) const
 {
 	check( GamePreviewObject != NULL );
 
@@ -137,7 +137,7 @@ FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* GamePre
 	const bool bIsGamePreviewObject = !!( GamePreviewObject->GetOutermost()->PackageFlags & PKG_PlayInEditor );
 	check( bIsGamePreviewObject );
 
-	for( auto CurSpawnableIt( Spawnables.CreateIterator() ); CurSpawnableIt; ++CurSpawnableIt )
+	for( auto CurSpawnableIt( Spawnables.CreateConstIterator() ); CurSpawnableIt; ++CurSpawnableIt )
 	{
 		auto& CurSpawnable = *CurSpawnableIt;
 		if( CurSpawnable.GetCounterpartGamePreviewObject() == GamePreviewObject )
@@ -272,8 +272,10 @@ void UMovieScene::RemoveObjectBinding( const FGuid& Guid )
 UMovieSceneTrack* UMovieScene::FindTrack( TSubclassOf<UMovieSceneTrack> TrackClass, const FGuid& ObjectGuid, FName UniqueTrackName ) const
 {
 	UMovieSceneTrack* FoundTrack = NULL;
-	check( UniqueTrackName != NAME_None && ObjectGuid.IsValid() )
-
+	
+	check( UniqueTrackName != NAME_None );
+	check( ObjectGuid.IsValid() );
+	
 	for( int32 ObjectBindingIndex = 0; ObjectBindingIndex < ObjectBindings.Num(); ++ObjectBindingIndex )
 	{
 		const FMovieSceneObjectBinding& ObjectBinding = ObjectBindings[ObjectBindingIndex];
