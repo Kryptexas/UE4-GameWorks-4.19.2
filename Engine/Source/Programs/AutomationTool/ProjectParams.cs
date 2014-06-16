@@ -417,11 +417,13 @@ namespace AutomationTool
             if (this.Prebuilt)
             {
                 this.SkipCook = true;
-                this.SkipPak = true;
+                /*this.SkipPak = true;
                 this.SkipStage = true;
-                this.Cook = true;
-                this.Stage = true;
                 this.Pak = true;
+                this.Stage = true;*/
+                this.Cook = true;
+                this.Archive = true;
+                
                 this.Deploy = true;
                 this.Run = true;
                 //this.StageDirectoryParam = this.PrebuiltDir;

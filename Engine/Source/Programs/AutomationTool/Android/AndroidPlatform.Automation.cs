@@ -260,20 +260,6 @@ public class AndroidPlatform : Platform
 		string InstallCommandline = AdbCommand + "install \"" + ApkName + "\"";
 		RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline);
 
-        if (Params.Prebuilt)
-        {
-            // deploy the obb if there is one
-            string ObbPath = Path.Combine(SC.StageDirectory, GetFinalObbName(ApkName));
-            if (File.Exists(ObbPath))
-            {
-                // cache some strings
-                string BaseCommandline = AdbCommand + "push";
-
-                string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, ObbPath, DeviceObbName );
-                Run(CmdEnv.CmdExe, Commandline);
-            }
-        }
-
 		// update the ue4commandline.txt
 		// update and deploy ue4commandline.txt
 		// always delete the existing commandline text file, so it doesn't reuse an old one
@@ -319,6 +305,19 @@ public class AndroidPlatform : Platform
 			// delete the .obb file, since it will cause nothing we just deployed to be used
 			Run(CmdEnv.CmdExe, AdbCommand + "shell rm " + DeviceObbName);
 		}
+        else if (SC.Archive)
+        {
+            // deploy the obb if there is one
+            string ObbPath = Path.Combine(SC.StageDirectory, GetFinalObbName(ApkName));
+            if (File.Exists(ObbPath))
+            {
+                // cache some strings
+                string BaseCommandline = AdbCommand + "push";
+
+                string Commandline = string.Format("{0} \"{1}\" \"{2}\"", BaseCommandline, ObbPath, DeviceObbName);
+                Run(CmdEnv.CmdExe, Commandline);
+            }
+        }
         else
         {
             // cache some strings
