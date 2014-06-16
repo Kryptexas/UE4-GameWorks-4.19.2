@@ -58,7 +58,10 @@ public class ECJobPropsUtils
                                                             }
                                                             if (IsMessage && PropertySheetChildDiagSheetElemInner2.Name == "value")
                                                             {
-                                                                Result.Add(PropertySheetChildDiagSheetElemInner2.InnerText);
+                                                                if (!PropertySheetChildDiagSheetElemInner2.InnerText.Contains("LogTailsAndChanges"))
+                                                                {
+                                                                    Result.Add(PropertySheetChildDiagSheetElemInner2.InnerText);
+                                                                }
                                                             }
                                                         }
                                                     }
