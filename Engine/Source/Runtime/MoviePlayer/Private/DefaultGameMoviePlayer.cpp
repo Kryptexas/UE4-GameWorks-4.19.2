@@ -123,7 +123,7 @@ void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes&
 bool FDefaultGameMoviePlayer::PlayMovie()
 {
 	bool bBeganPlaying = false;
-	if (LoadingScreenIsPrepared() && !IsMovieCurrentlyPlaying() )
+	if (LoadingScreenIsPrepared() && !IsMovieCurrentlyPlaying() && FPlatformMisc::NumberOfCores() > 1)
 	{
 		check(LoadingScreenAttributes.IsValid());
 
