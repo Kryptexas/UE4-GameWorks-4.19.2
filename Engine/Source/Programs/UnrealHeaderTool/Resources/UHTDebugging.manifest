@@ -5,6 +5,7 @@
 	"TargetName": "UHTDebugging",
 	"Modules":[{
 			"Name": "CoreUObject",
+			"ModuleType": "Runtime",
 			"BaseDirectory": "..\\..\\..\\Runtime\\CoreUObject",
 			"IncludeBase": "..\\..\\..\\Runtime\\CoreUObject",
 			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\CoreUObject\\",
@@ -20,6 +21,7 @@
 			"SaveExportedHeaders": true
 		}, {
 			"Name": "UHTDebugging",
+			"ModuleType": "Game",
 			"BaseDirectory": ".\\UHTDebugging",
 			"IncludeBase": ".\\UHTDebugging",
 			"OutputDirectory": "..\\..\\..\\..\\Intermediate/Build/Inc\\UHTDebugging\\",
