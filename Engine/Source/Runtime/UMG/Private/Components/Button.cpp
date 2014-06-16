@@ -85,9 +85,14 @@ void UButton::SetContent(UWidget* InContent)
 	}
 }
 
-void UButton::SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity)
+void UButton::SetColorAndOpacity(FLinearColor Color)
 {
-	MyButton->SetBorderBackgroundColor(InButtonColorAndOpacity);
+	MyButton->SetColorAndOpacity(Color);
+}
+
+void UButton::SetBackgroundColor(FLinearColor Color)
+{
+	MyButton->SetBorderBackgroundColor(Color);
 }
 
 void UButton::SetForegroundColor(FLinearColor InForegroundColor)

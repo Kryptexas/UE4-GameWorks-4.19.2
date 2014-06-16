@@ -61,7 +61,11 @@ public:
 	
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetButtonColorAndOpacity(FLinearColor InButtonColorAndOpacity);
+	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBackgroundColor(FLinearColor InBackgroundColor);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
