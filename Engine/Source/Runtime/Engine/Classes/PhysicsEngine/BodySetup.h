@@ -67,49 +67,49 @@ struct FKConvexElem
 	UPROPERTY()
 	FTransform Transform;
 
-	/** Convex mesh for this body, created from cooked data in CreatePhysicsMeshes */
-	physx::PxConvexMesh*   ConvexMesh;	
+		/** Convex mesh for this body, created from cooked data in CreatePhysicsMeshes */
+		physx::PxConvexMesh*   ConvexMesh;	
 
-	/** Convex mesh for this body, flipped across X, created from cooked data in CreatePhysicsMeshes */
-	physx::PxConvexMesh*   ConvexMeshNegX;
+		/** Convex mesh for this body, flipped across X, created from cooked data in CreatePhysicsMeshes */
+		physx::PxConvexMesh*   ConvexMeshNegX;
 
-	FKConvexElem() 
-	: ElemBox(0)
-	, Transform(FTransform::Identity)
-	, ConvexMesh(NULL)
-	, ConvexMeshNegX(NULL)
-	{}
+		FKConvexElem() 
+		: ElemBox(0)
+		, Transform(FTransform::Identity)
+		, ConvexMesh(NULL)
+		, ConvexMeshNegX(NULL)
+		{}
 
 	ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color) const;
-	void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
+		void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
 
-	/** Reset the hull to empty all arrays */
-	ENGINE_API void	Reset();
+		/** Reset the hull to empty all arrays */
+		ENGINE_API void	Reset();
 
-	/** Updates internal ElemBox based on current value of VertexData */
-	ENGINE_API void	UpdateElemBox();
+		/** Updates internal ElemBox based on current value of VertexData */
+		ENGINE_API void	UpdateElemBox();
 
-	/** Calculate a bounding box for this convex element with the specified transform and scale */
+		/** Calculate a bounding box for this convex element with the specified transform and scale */
 	ENGINE_API FBox	CalcAABB(const FTransform& BoneTM, const FVector& Scale3D) const;
 
-	/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
-	bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
+		/** Utility for creating a convex hull from a set of planes. Will reset current state of this elem. */
+		bool	HullFromPlanes(const TArray<FPlane>& InPlanes, const TArray<FVector>& SnapVerts);
 
-	/** Returns the volume of this element */
-	float GetVolume(const FVector& Scale) const;
+		/** Returns the volume of this element */
+		float GetVolume(const FVector& Scale) const;
 
-	FTransform GetTransform() const
-	{
-		return Transform;
-	};
+		FTransform GetTransform() const
+		{
+			return Transform;
+		};
 
-	void SetTransform( const FTransform& InTransform )
-	{
-		ensure(InTransform.IsValid());
-		Transform = InTransform;
-	}
+		void SetTransform( const FTransform& InTransform )
+		{
+			ensure(InTransform.IsValid());
+			Transform = InTransform;
+		}
 
-	friend FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem);
+		friend FArchive& operator<<(FArchive& Ar,FKConvexElem& Elem);
 	
 	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
 };
@@ -380,12 +380,12 @@ struct ENGINE_API FKAggregateGeom
 	FBox CalcAABB(const FTransform& Transform) const;
 
 	/**
-	 * Calculates a tight box-sphere bounds for the aggregate geometry; this is more expensive than CalcAABB
-	 * (tight meaning the sphere may be smaller than would be required to encompass the AABB, but all individual components lie within both the box and the sphere)
-	 *
-	 *  @param Output The output box-sphere bounds calculated for this set of aggregate geometry
-	 *  @param LocalToWorld Transform
-	 */
+		* Calculates a tight box-sphere bounds for the aggregate geometry; this is more expensive than CalcAABB
+		* (tight meaning the sphere may be smaller than would be required to encompass the AABB, but all individual components lie within both the box and the sphere)
+		*
+		* @param Output The output box-sphere bounds calculated for this set of aggregate geometry
+		*	@param LocalToWorld Transform
+		*/
 	void CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTransform& LocalToWorld) const;
 
 	/** Returns the volume of this element */
@@ -560,7 +560,7 @@ public:
 	 * In 99% of cases you should be fine using a physics asset created for the skeletal mesh
 	 * @param	InSkeletalMeshComponent		The skeletal mesh component we'll be grabbing the skinning information from
 	 */
-	ENGINE_API void UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices);
+	ENGINE_API void UpdateTriMeshVertices(const TArray<FVector> & NewPositions);
 
 	/**
 	 * Given a format name returns its cooked data.

@@ -115,7 +115,7 @@ public:
 		return false;
 	}
 
-	virtual bool CookTriMesh(FName Format, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer) const override
+	virtual bool CookTriMesh(FName Format, const TArray<FVector>& SrcVertices, const TArray<FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bPerPolySkeletalMesh = false) const override
 	{
 #if WITH_PHYSX
 		PxPlatform::Enum PhysXFormat = PxPlatform::ePC;
@@ -137,11 +137,26 @@ public:
 		const PxCookingParams& Params = PhysXCooking->getParams();
 		PxCookingParams NewParams = Params;
 		NewParams.targetPlatform = PhysXFormat;
+		PxMeshPreprocessingFlags OldCookingFlags = NewParams.meshPreprocessParams;
+
+		if (bPerPolySkeletalMesh)
+		{
+			//per poly skeletal mesh requires deforming mesh. This is a very special case so we have to change the cook params
+			NewParams.meshPreprocessParams = PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+		}
+
 		PhysXCooking->setParams(NewParams);
+
 
 		// Cook TriMesh Data
 		FPhysXOutputStream Buffer(&OutBuffer);
 		bool Result = PhysXCooking->cookTriangleMesh(PTriMeshDesc, Buffer);
+		
+		if (bPerPolySkeletalMesh)	//restore old params
+		{
+			NewParams.meshPreprocessParams = OldCookingFlags;
+			PhysXCooking->setParams(NewParams);
+		}
 		return Result;
 #else
 		return false;

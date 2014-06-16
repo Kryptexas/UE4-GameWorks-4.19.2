@@ -42,9 +42,10 @@ public:
 	 * @param Format The desired format.
 	 * @param SrcBuffer The source buffer.
 	 * @param OutBuffer The resulting cooked data.
+	 * @param bPerPolySkeletalMesh This is a very special case that requires different cooking parameters set.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool CookTriMesh( FName Format, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer ) const = 0;
+	virtual bool CookTriMesh( FName Format, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer, bool bPerPolySkeletalMesh = false ) const = 0;
 		
 	/**
 	 * Cooks the source height field data for the platform and stores the cooked data internally.

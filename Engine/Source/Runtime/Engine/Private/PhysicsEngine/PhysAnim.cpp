@@ -387,10 +387,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport, bool 
 						}
 					}
 				}
-
-				TArray<uint32> Indices;
-				Model.MultiSizeIndexContainer.GetIndexBuffer(Indices);
-				BodyInstance.UpdateTriMeshVertices(NewPositions, Indices);
+				BodyInstance.UpdateTriMeshVertices(NewPositions);
 			}
 			
 			BodyInstance.SetBodyTransform(CurrentLocalToWorld, bTeleport);

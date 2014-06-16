@@ -309,7 +309,7 @@ TArray<PxShape*> FBodyInstance::GetAllShapes(int32& OutNumSyncShapes) const
 }
 #endif
 
-void FBodyInstance::UpdateTriMeshVertices(const TArray<FVector> & NewPositions, const TArray<uint32> & Indices)
+void FBodyInstance::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
 {
 #if WITH_PHYSX
 	if (BodySetup.IsValid())
@@ -317,7 +317,7 @@ void FBodyInstance::UpdateTriMeshVertices(const TArray<FVector> & NewPositions, 
 		SCOPED_SCENE_WRITE_LOCK((RigidActorSync ? RigidActorSync->getScene() : NULL));
 		SCOPED_SCENE_WRITE_LOCK((RigidActorAsync ? RigidActorAsync->getScene() : NULL));
 
-		BodySetup->UpdateTriMeshVertices(NewPositions, Indices);
+		BodySetup->UpdateTriMeshVertices(NewPositions);
 
 		//after updating the vertices we must call setGeometry again to update any shapes referencing the mesh
 
