@@ -94,36 +94,35 @@ protected:
 	 *
 	 * @return Platform menu widget.
 	 */
-	TSharedRef<SWidget> MakePlatformMenu( ) const
+	TSharedRef<SWidget> MakePlatformMenu( )
 	{
 		TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
 		if (Platforms.Num() > 0)
 		{
-			TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-
+			PlatformList.Reset();
 			for (int32 PlatformIndex = 0; PlatformIndex < Platforms.Num(); ++PlatformIndex)
 			{
 				FString PlatformName = Platforms[PlatformIndex]->PlatformName();
 
-				VerticalBox->AddSlot()
-					.AutoHeight()
-					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-					[
-						SNew(SCheckBox)
-							.IsChecked(this, &SSessionLauncherCookedPlatforms::HandlePlatformMenuEntryIsChecked, PlatformName)
-							.OnCheckStateChanged(this, &SSessionLauncherCookedPlatforms::HandlePlatformMenuEntryCheckedStateChanged, PlatformName)
-							.Padding(FMargin(4.0f, 0.0f))
-							.Content()
-							[
-								SNew(STextBlock)
-									.ColorAndOpacity(this, &SSessionLauncherCookedPlatforms::HandlePlatformMenuEntryColorAndOpacity, PlatformName)
-									.Text(PlatformName)
-							]
-					];
+				PlatformList.Add(MakeShareable(new FString(PlatformName)));
 			}
 
-			return VerticalBox;
+			SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
+				.HeaderRow(
+				SNew(SHeaderRow)
+				.Visibility(EVisibility::Collapsed)
+
+				+ SHeaderRow::Column("PlatformName")
+				.DefaultLabel(LOCTEXT("PlatformListPlatformNameColumnHeader", "Platform"))
+				.FillWidth(1.0f)
+				)
+				.ItemHeight(16.0f)
+				.ListItemsSource(&PlatformList)
+				.OnGenerateRow(this, &SSessionLauncherCookedPlatforms::HandlePlatformListViewGenerateRow)
+				.SelectionMode(ESelectionMode::None);
+
+			return PlatformListView.ToSharedRef();
 		}
 
 		return SNew(STextBlock)
@@ -167,24 +166,6 @@ private:
 		return EVisibility::Collapsed;
 	}
 
-	// Callback for changing the checked state of a platform menu check box. 
-	void HandlePlatformMenuEntryCheckedStateChanged( ESlateCheckBoxState::Type CheckState, FString PlatformName )
-	{
-		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
-
-		if (SelectedProfile.IsValid())
-		{
-			if (CheckState == ESlateCheckBoxState::Checked)
-			{
-				SelectedProfile->AddCookedPlatform(PlatformName);
-			}
-			else
-			{
-				SelectedProfile->RemoveCookedPlatform(PlatformName);
-			}
-		}
-	}
-
 	// Callback for getting the color of a platform menu check box.
 	FSlateColor HandlePlatformMenuEntryColorAndOpacity( FString PlatformName ) const
 	{
@@ -206,26 +187,25 @@ private:
 		return FLinearColor::Yellow;
 	}
 
-	// Callback for determining whether a platform menu entry is checked.
-	ESlateCheckBoxState::Type HandlePlatformMenuEntryIsChecked( FString PlatformName ) const
+	// Handles generating a row widget in the map list view.
+	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable )
 	{
-		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
-
-		if (SelectedProfile.IsValid())
-		{
-			if (SelectedProfile->GetCookedPlatforms().Contains(PlatformName))
-			{
-				return ESlateCheckBoxState::Checked;
-			}
-		}
-
-		return ESlateCheckBoxState::Unchecked;
+		return SNew(SSessionLauncherPlatformListRow, Model.ToSharedRef())
+			.PlatformName(InItem)
+			.OwnerTableView(OwnerTable);
 	}
 
 private:
 
 	// Holds a pointer to the data model.
 	FSessionLauncherModelPtr Model;
+
+	// Holds the platform list.
+	TArray<TSharedPtr<FString> > PlatformList;
+
+	// Holds the platform list view.
+	TSharedPtr<SListView<TSharedPtr<FString> > > PlatformListView;
+
 };
 
 

@@ -55,6 +55,7 @@ static TSharedRef<SButton> MakeImageButton( const FSlateBrush* ButtonImage, cons
 
 #include "SSessionLauncherMapListRow.h"
 #include "SSessionLauncherCultureListRow.h"
+#include "SSessionLauncherPlatformListRow.h"
 #include "SSessionLauncherCookedPlatforms.h"
 #include "SSessionLauncherCookByTheBookSettings.h"
 #include "SSessionLauncherCookOnTheFlySettings.h"
