@@ -47,92 +47,75 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 		}
 	}
 	// Don't show literal buttons for component type objects
-	UClass* ObjectClass = Cast<UClass>(GraphPinObj->PinType.PinSubCategoryObject.Get());
-	if (ObjectClass != NULL && ObjectClass->IsChildOf(UActorComponent::StaticClass()))
+	if (GraphPinObj->GetSchema()->ShouldShowAssetPickerForPin(GraphPinObj))
 	{
 		return
 			SNew(SHorizontalBox)
 			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-			// Icon to show object assigned or not
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2,0)
+			.MaxWidth(100.0f)
+			[
+				SAssignNew(AssetPickerAnchor, SComboButton)
+				.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
+				.ForegroundColor( this, &SGraphPinObject::OnGetComboForeground)
+				.ContentPadding( FMargin(2,2,2,1) )
+				.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
+				.MenuPlacement(MenuPlacement_BelowAnchor)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.ColorAndOpacity( this, &SGraphPinObject::OnGetComboForeground )
+					.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
+					.Font( FEditorStyle::GetFontStyle( "PropertyWindow.NormalFont" ) )
+					.Text( this, &SGraphPinObject::OnGetComboTextValue )
+					.ToolTipText( this, &SGraphPinObject::GetObjectToolTip )
+				]
+				.MenuContent()
+				[
+					GenerateAssetPicker()
+				]
+			]
+			// Use button
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding(1,0)
-			.MaxWidth(120)
+			.VAlign(VAlign_Center)
 			[
-				SNew(SEditableTextBox)
-				.Style(FEditorStyle::Get(), "Graph.EditableTextBox")
-				.Text( this, &SGraphPinObject::GetObjectName )
-				.ForegroundColor( FLinearColor(0.004f,0.5f,1.0f) )
-				.IsReadOnly(true)
-				.ToolTipText(this, &SGraphPinObject::GetObjectToolTipAsString)
-				.BackgroundColor( FLinearColor(0.004f,0.5f,1.0f) )	
+				SAssignNew(UseButton, SButton)
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
+				.OnClicked( GetOnUseButtonDelegate() )
+				.ContentPadding(1.f)
+				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Use", "Use asset browser selection").ToString())
+				[
+					SNew(SImage)
+					.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
+					.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Use")) )
+				]
+			]
+			// Browse button
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(1,0)
+			.VAlign(VAlign_Center)
+			[
+				SAssignNew(BrowseButton, SButton)
+				.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+				.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
+				.OnClicked( GetOnBrowseButtonDelegate() )
+				.ContentPadding(0)
+				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Browse", "Browse").ToString())
+				[
+					SNew(SImage)
+					.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
+					.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Browse")) )
+				]
 			];
 	}
 
-	return
-		SNew(SHorizontalBox)
-		.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2,0)
-		.MaxWidth(100.0f)
-		[
-			SAssignNew(AssetPickerAnchor, SComboButton)
-			.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
-			.ForegroundColor( this, &SGraphPinObject::OnGetComboForeground)
-			.ContentPadding( FMargin(2,2,2,1) )
-			.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
-			.MenuPlacement(MenuPlacement_BelowAnchor)
-			.ButtonContent()
-			[
-				SNew(STextBlock)
-				.ColorAndOpacity( this, &SGraphPinObject::OnGetComboForeground )
-				.TextStyle( FEditorStyle::Get(), "PropertyEditor.AssetClass" )
-				.Font( FEditorStyle::GetFontStyle( "PropertyWindow.NormalFont" ) )
-				.Text( this, &SGraphPinObject::OnGetComboTextValue )
-				.ToolTipText( this, &SGraphPinObject::GetObjectToolTip )
-			]
-			.MenuContent()
-			[
-				GenerateAssetPicker()
-			]
-		]
-		// Use button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(1,0)
-		.VAlign(VAlign_Center)
-		[
-			SAssignNew(UseButton, SButton)
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
-			.OnClicked( GetOnUseButtonDelegate() )
-			.ContentPadding(1.f)
-			.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Use", "Use asset browser selection").ToString())
-			[
-				SNew(SImage)
-				.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
-				.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Use")) )
-			]
-		]
-		// Browse button
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(1,0)
-		.VAlign(VAlign_Center)
-		[
-			SAssignNew(BrowseButton, SButton)
-			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-			.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
-			.OnClicked( GetOnBrowseButtonDelegate() )
-			.ContentPadding(0)
-			.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Browse", "Browse").ToString())
-			[
-				SNew(SImage)
-				.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
-				.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Browse")) )
-			]
-		];
+	return SNullWidget::NullWidget;
 }
 
 FOnClicked SGraphPinObject::GetOnUseButtonDelegate()

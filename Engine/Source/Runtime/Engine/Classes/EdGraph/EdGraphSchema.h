@@ -551,6 +551,9 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/** If we should disallow viewing and editing of the supplied pin */
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const { return false; }
 
+	/** Should the Pin in question display an asset picker */
+	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const { return true; }
+
 	/**
 	 * Gets the draw color of a pin based on it's type.
 	 *

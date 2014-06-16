@@ -3008,6 +3008,21 @@ bool UEdGraphSchema_K2::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 	return false;
 }
 
+bool UEdGraphSchema_K2::ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const
+{
+	bool bShow = true;
+	if (Pin->PinType.PinCategory == PC_Object)
+	{
+		UClass* ObjectClass = Cast<UClass>(Pin->PinType.PinSubCategoryObject.Get());
+		if (ObjectClass)
+		{
+			// Don't show literal buttons for component type objects
+			bShow = !ObjectClass->IsChildOf(UActorComponent::StaticClass());
+		}
+	}
+	return bShow;
+}
+
 void UEdGraphSchema_K2::SetPinDefaultValue(UEdGraphPin* Pin, const UFunction* Function, const UProperty* Param) const
 {
 	if (Function && Param)
