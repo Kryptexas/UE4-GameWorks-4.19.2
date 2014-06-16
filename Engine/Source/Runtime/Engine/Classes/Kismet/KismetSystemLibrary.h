@@ -574,6 +574,39 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(bIgnoreSelf="true", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore", FriendlyName = "MultiSphereTraceByChannel"))
 	static ENGINE_API bool SphereTraceMulti_NEW(UObject* WorldContextObject, const FVector& Start, const FVector& End, float Radius, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf);
+
+	/**
+	* Sweeps a box along the given line and returns the first blocking hit encountered.
+	* This trace finds the objects that RESPONDS to the given TraceChannel
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param HalfSize	    Distance from the center of box along each axis
+	* @param Orientation	Orientation of the box
+	* @param TraceChannel
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", FriendlyName = "SingleBoxTraceByChannel"))
+	static ENGINE_API bool BoxTraceSingle(UObject* WorldContextObject, const FVector& Start, const FVector& End, const FVector & HalfSize, const FRotator & Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf);
+
+	/**
+	* Sweeps a box along the given line and returns all hits encountered.
+	* This trace finds the objects that RESPONDS to the given TraceChannel
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param HalfSize	    Distance from the center of box along each axis
+	* @param Orientation	Orientation of the box
+	* @param TraceChannel
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHits		A list of hits, sorted along the trace from start to finish. The blocking hit will be the last hit, if there was one.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", FriendlyName = "MultiBoxTraceByChannel"))
+	static ENGINE_API bool BoxTraceMulti(UObject* WorldContextObject, const FVector& Start, const FVector& End, const FVector & HalfSize, const FRotator & Orientation, ETraceTypeQuery TraceChannel, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf);
+
 	
 	/**
 	 * Sweeps a capsule along the given line and returns the first blocking hit encountered.
@@ -670,6 +703,40 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(bIgnoreSelf="true", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore", FriendlyName = "MultiSphereTraceForObjects"))
 	static ENGINE_API bool SphereTraceMultiForObjects(UObject* WorldContextObject, const FVector& Start, const FVector& End, float Radius, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf);
 	
+
+	/**
+	* Sweeps a box along the given line and returns the first hit encountered.
+	* This only finds objects that are of a type specified by ObjectTypes.
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Orientation	
+	* @param HalfSize		Radius of the sphere to sweep
+	* @param ObjectTypes	Array of Object Types to trace
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHit			Properties of the trace hit.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", FriendlyName = "SingleBoxTraceForObjects"))
+	static ENGINE_API bool BoxTraceSingleForObjects(UObject* WorldContextObject, const FVector& Start, const FVector& End, const FVector & HalfSize, const FRotator & Orientation, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, FHitResult& OutHit, bool bIgnoreSelf);
+
+
+	/**
+	* Sweeps a box along the given line and returns all hits encountered.
+	* This only finds objects that are of a type specified by ObjectTypes.
+	*
+	* @param Start			Start of line segment.
+	* @param End			End of line segment.
+	* @param Orientation
+	* @param HalfSize		Radius of the sphere to sweep
+	* @param ObjectTypes	Array of Object Types to trace
+	* @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
+	* @param OutHits		A list of hits, sorted along the trace from start to finish.  The blocking hit will be the last hit, if there was one.
+	* @return				True if there was a hit, false otherwise.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision", meta = (bIgnoreSelf = "true", HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", AutoCreateRefTerm = "ActorsToIgnore", FriendlyName = "MultiBoxTraceForObjects"))
+	static ENGINE_API bool BoxTraceMultiForObjects(UObject* WorldContextObject, const FVector& Start, const FVector& End, const FVector & HalfSize, const FRotator & Orientation, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, const TArray<AActor*>& ActorsToIgnore, EDrawDebugTrace::Type DrawDebugType, TArray<FHitResult>& OutHits, bool bIgnoreSelf);
+
 	/**
 	 * Sweeps a capsule along the given line and returns the first hit encountered.
 	 * This only finds objects that are of a type specified by ObjectTypes.
