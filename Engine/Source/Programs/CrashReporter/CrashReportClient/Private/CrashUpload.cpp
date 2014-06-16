@@ -114,6 +114,8 @@ void FCrashUpload::Cancel()
 
 bool FCrashUpload::SendCheckReportRequest()
 {
+	FString XMLString;
+
 	UE_LOG(CrashReportClientLog, Log, TEXT("Sending HTTP request (checking report)"));
 	auto Request = CreateHttpRequest();
 	if (State == EUploadState::CheckingReport)
@@ -125,11 +127,18 @@ bool FCrashUpload::SendCheckReportRequest()
 	else
 	{
 		// This part is Windows-specific on the server
-		ErrorReport.LoadWindowsReportXmlFile(PostData);
+		ErrorReport.LoadWindowsReportXmlFile( XMLString );
+		// Copy the string data into a TArray<uint8>.
+		const int32 XMLStringSize = XMLString.Len() * sizeof(TCHAR);
+		PostData.Reset( XMLStringSize );
+		PostData.AddUninitialized( XMLStringSize );
+		FMemory::Memcpy( PostData.GetData(), *XMLString, XMLStringSize );
+
 		Request->SetURL(UrlPrefix / TEXT("CheckReportDetail"));
 		Request->SetHeader(TEXT("Content-Type"), TEXT("text/plain; charset=utf-16"));
 	}
 
+	UE_LOG( CrashReportClientLog, Log, TEXT( "PostData Num: %i" ), PostData.Num() );
 	Request->SetVerb(TEXT("POST"));
 	Request->SetContent(PostData);
 

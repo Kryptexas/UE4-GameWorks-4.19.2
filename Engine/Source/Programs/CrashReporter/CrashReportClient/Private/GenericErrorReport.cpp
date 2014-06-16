@@ -87,7 +87,7 @@ TArray<FString> FGenericErrorReport::GetFilesToUpload() const
 	return FilesToUpload;
 }
 
-bool FGenericErrorReport::LoadWindowsReportXmlFile(TArray<uint8>& OutBuffer) const
+bool FGenericErrorReport::LoadWindowsReportXmlFile( FString& OutString ) const
 {
 	// Find .xml file
 	FString XmlFilename;
@@ -96,7 +96,7 @@ bool FGenericErrorReport::LoadWindowsReportXmlFile(TArray<uint8>& OutBuffer) con
 		return false;
 	}
 
-	return FFileHelper::LoadFileToArray(OutBuffer, *(ReportDirectory / XmlFilename));
+	return FFileHelper::LoadFileToString( OutString, *(ReportDirectory / XmlFilename) );
 }
 
 bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)

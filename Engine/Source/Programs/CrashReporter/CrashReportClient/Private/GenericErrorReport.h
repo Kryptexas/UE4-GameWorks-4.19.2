@@ -54,10 +54,10 @@ public:
 	 * Load the WER XML file for this report
 	 * @note This is Windows specific and so shouldn't really be part of the public interface, but currently the server
 	 * is Windows-specific in its checking of reports, so this is needed.
-	 * @param OutBuffer Buffer to load the file into
+	 * @param OutString String to load the file into
 	 * @return Whether finding and loading the file succeeded
 	 */
-	bool LoadWindowsReportXmlFile(TArray<uint8>& OutBuffer) const;
+	bool LoadWindowsReportXmlFile( FString& OutString ) const;
 
 	/**
 	 * @param Description (exception and callstack) to fill in if succesful
