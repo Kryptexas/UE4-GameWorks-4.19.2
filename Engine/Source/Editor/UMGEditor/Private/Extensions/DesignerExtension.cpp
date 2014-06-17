@@ -20,24 +20,24 @@ FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEdit
 {
 }
 
-FWidgetReference FWidgetReference::FromTemplate(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
+FWidgetReference FWidgetReference::FromTemplate(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, UWidget* TemplateWidget)
 {
-	return FWidgetReference(WidgetEditor, TemplateWidget);
+	return FWidgetReference(InWidgetEditor, TemplateWidget);
 }
 
-FWidgetReference FWidgetReference::FromPreview(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget)
+FWidgetReference FWidgetReference::FromPreview(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor, UWidget* PreviewWidget)
 {
-	if ( WidgetEditor.IsValid() )
+	if ( InWidgetEditor.IsValid() )
 	{
-		UUserWidget* PreviewRoot = WidgetEditor->GetPreview();
+		UUserWidget* PreviewRoot = InWidgetEditor->GetPreview();
 		if ( PreviewRoot )
 		{
-			UWidgetBlueprint* Blueprint = WidgetEditor->GetWidgetBlueprintObj();
+			UWidgetBlueprint* Blueprint = InWidgetEditor->GetWidgetBlueprintObj();
 
 			if ( PreviewWidget )
 			{
 				FString Name = PreviewWidget->GetName();
-				return FromTemplate(WidgetEditor, Blueprint->WidgetTree->FindWidget(Name));
+				return FromTemplate(InWidgetEditor, Blueprint->WidgetTree->FindWidget(Name));
 			}
 		}
 	}
@@ -59,7 +59,7 @@ UWidget* FWidgetReference::GetPreview() const
 {
 	if ( WidgetEditor.IsValid() )
 	{
-		UUserWidget* PreviewRoot = WidgetEditor->GetPreview();
+		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
 
 		if ( PreviewRoot && TemplateWidget )
 		{

@@ -16,12 +16,12 @@ public:
 	/**
 	 * Creates a widget reference using the template.
 	 */
-	static FWidgetReference FromTemplate(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+	static FWidgetReference FromTemplate(TSharedPtr<class FWidgetBlueprintEditor> InWidgetEditor, UWidget* TemplateWidget);
 
 	/**
 	 * Creates a widget reference using the preview.  Which is used to lookup the stable template pointer.
 	 */
-	static FWidgetReference FromPreview(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget);
+	static FWidgetReference FromPreview(TSharedPtr<class FWidgetBlueprintEditor> InWidgetEditor, UWidget* PreviewWidget);
 
 	/** Constructor for the null widget reference.  Not intended for normal use. */
 	FWidgetReference();
@@ -46,7 +46,7 @@ private:
 
 private:
 
-	TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor;
+	TWeakPtr<class FWidgetBlueprintEditor> WidgetEditor;
 
 	UWidget* TemplateWidget;
 };
