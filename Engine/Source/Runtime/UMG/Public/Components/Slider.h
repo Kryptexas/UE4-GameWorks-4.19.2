@@ -62,7 +62,7 @@ class UMG_API USlider : public UWidget
 	void SetValue(float InValue);
 	
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:

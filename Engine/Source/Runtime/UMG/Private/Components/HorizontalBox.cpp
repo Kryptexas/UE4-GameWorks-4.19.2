@@ -129,8 +129,4 @@ void UHorizontalBox::ConnectEditorData()
 		Slot->Parent = this;
 	}
 }
-
-void UHorizontalBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-}
 #endif

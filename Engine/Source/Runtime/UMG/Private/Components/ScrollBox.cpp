@@ -124,6 +124,7 @@ UScrollBoxSlot* UScrollBox::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
+
 void UScrollBox::ConnectEditorData()
 {
 	for ( UScrollBoxSlot* Slot : Slots )
@@ -139,9 +140,6 @@ void UScrollBox::ConnectEditorData()
 	}
 }
 
-void UScrollBox::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-}
 #endif
 
 /////////////////////////////////////////////////////

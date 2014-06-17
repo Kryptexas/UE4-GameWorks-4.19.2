@@ -693,6 +693,11 @@ void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	
 	if (DropPreviewWidget)
 	{
+		if ( DropPreviewParent )
+		{
+			DropPreviewParent->RemoveChild(DropPreviewWidget);
+		}
+
 		UWidgetBlueprint* BP = GetBlueprint();
 		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
 		DropPreviewWidget = NULL;
@@ -788,6 +793,9 @@ bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEve
 				const FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
 				Parent->SetFlags(RF_Transactional);
 				Parent->Modify();
+
+				BP->WidgetTree->SetFlags(RF_Transactional);
+				BP->WidgetTree->Modify();
 				
 				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 				Widget->IsDesignTime(true);

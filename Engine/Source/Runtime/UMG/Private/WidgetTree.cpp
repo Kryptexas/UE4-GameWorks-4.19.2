@@ -74,9 +74,9 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
 		if ( NonLeafTemplate )
 		{
-			NonLeafTemplate->Modify();
 			if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )
 			{
+				NonLeafTemplate->Modify();
 				return true;
 			}
 		}
@@ -87,10 +87,7 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
-	Modify();
-
 	bool bRemoved = RemoveWidgetRecursive(InRemovedWidget);
-
 	int32 IndexRemoved = WidgetTemplates.Remove(InRemovedWidget);
 	
 	return bRemoved || IndexRemoved != -1;

@@ -111,8 +111,4 @@ void UUniformGridPanel::ConnectEditorData()
 	}
 }
 
-void UUniformGridPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-}
-
 #endif

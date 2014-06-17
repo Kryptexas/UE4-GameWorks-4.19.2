@@ -100,7 +100,7 @@ protected:
 	bool IsChecked() const;
 	
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:

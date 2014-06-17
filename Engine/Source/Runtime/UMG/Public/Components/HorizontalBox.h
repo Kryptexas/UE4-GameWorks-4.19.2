@@ -26,10 +26,6 @@ class UMG_API UHorizontalBox : public UPanelWidget
 	// End UPanelWidget
 
 #if WITH_EDITOR
-	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End of UObject interface
-
 	// UWidget interface
 	virtual void ConnectEditorData() override;
 	// End UWidget interface

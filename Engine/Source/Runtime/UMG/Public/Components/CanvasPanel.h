@@ -36,11 +36,11 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
 	bool GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const;
 
-#if WITH_EDITOR
-	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End of UObject interface
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
 
+#if WITH_EDITOR
 	// UWidget interface
 	virtual void ConnectEditorData() override;
 	// End UWidget interface

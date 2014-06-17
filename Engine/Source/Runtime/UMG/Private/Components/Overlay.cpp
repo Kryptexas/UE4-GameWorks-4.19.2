@@ -97,6 +97,7 @@ UOverlaySlot* UOverlay::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
+
 void UOverlay::ConnectEditorData()
 {
 	for ( UOverlaySlot* Slot : Slots )
@@ -109,8 +110,4 @@ void UOverlay::ConnectEditorData()
 	}
 }
 
-void UOverlay::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
-
-}
 #endif

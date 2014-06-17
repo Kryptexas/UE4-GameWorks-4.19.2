@@ -23,6 +23,11 @@ class SFixedSizeCanvas : public SConstraintCanvas
 		CanvasSize = InSize;
 	}
 
+	void SetDesiredSize(FVector2D InSize)
+	{
+		CanvasSize = InSize;
+	}
+
 	// SWidget interface
 	virtual FVector2D ComputeDesiredSize() const override
 	{
@@ -143,6 +148,13 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
+void UCanvasPanel::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyCanvas->SetDesiredSize(DesiredCanvasSize);
+}
+
 UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 {
 	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
@@ -194,10 +206,6 @@ void UCanvasPanel::ConnectEditorData()
 		Slot->Parent = this;
 		Slot->Content->Slot = Slot;
 	}
-}
-
-void UCanvasPanel::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
-{
 }
 
 #endif
