@@ -13,15 +13,37 @@ UImage::UImage(const FPostConstructInitializeProperties& PCIP)
 	, Image()
 	, ColorAndOpacity(FLinearColor::White)
 {
-	//@TODO: Would like to default to the checkerboard, but TextureName always wins over TextureObject :(
-	//	Image = *FEditorStyle::GetDefaultBrush();
 }
 
 TSharedRef<SWidget> UImage::RebuildWidget()
 {
-	return SNew(SImage)
-		.Image( BIND_UOBJECT_ATTRIBUTE(const FSlateBrush*, GetImageBrush) )
-		.ColorAndOpacity( BIND_UOBJECT_ATTRIBUTE(FSlateColor, GetColorAndOpacity) );
+	MyImage = SNew(SImage);
+	return MyImage.ToSharedRef();
+}
+
+void UImage::SyncronizeProperties()
+{
+	MyImage->SetImage(GetImageBrush());
+	MyImage->SetColorAndOpacity(ColorAndOpacity);
+	MyImage->SetOnMouseButtonDown(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseButtonDown));
+}
+
+void UImage::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+{
+	ColorAndOpacity = InColorAndOpacity;
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetColorAndOpacity(ColorAndOpacity);
+	}
+}
+
+void UImage::SetImage(USlateBrushAsset* InImage)
+{
+	Image = InImage;
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetImage(GetImageBrush());
+	}
 }
 
 const FSlateBrush* UImage::GetImageBrush() const
@@ -35,9 +57,14 @@ const FSlateBrush* UImage::GetImageBrush() const
 	return &Image->Brush;
 }
 
-FSlateColor UImage::GetColorAndOpacity() const
+FReply UImage::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
 {
-	return ColorAndOpacity;
+	if ( OnMouseButtonDownEvent.IsBound() )
+	{
+		return OnMouseButtonDownEvent.Execute(Geometry, MouseEvent).ToReply(MyImage.ToSharedRef());
+	}
+
+	return FReply::Unhandled();
 }
 
 /////////////////////////////////////////////////////

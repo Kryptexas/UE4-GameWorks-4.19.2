@@ -52,7 +52,7 @@ public:
 	void SetPercent(float InPercent);
 	
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:

@@ -84,7 +84,7 @@ public:
 	// End UContentWidget interface
 
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:

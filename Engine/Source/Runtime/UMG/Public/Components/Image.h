@@ -15,12 +15,27 @@ class UMG_API UImage : public UWidget
 public:
 
 	/** Image to draw */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance, meta=( DisplayThumbnail = "true" ))
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
 	USlateBrushAsset* Image;
 
 	/** Color and opacity */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateColor ColorAndOpacity;
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FLinearColor ColorAndOpacity;
+
+	UPROPERTY(EditDefaultsOnly, Category=Events)
+	FOnPointerEvent OnMouseButtonDownEvent;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetImage(USlateBrushAsset* InImage);
+
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
 
 protected:
 	// UWidget interface
@@ -28,5 +43,9 @@ protected:
 	// End of UWidget interface
 
 	const FSlateBrush* GetImageBrush() const;
-	FSlateColor GetColorAndOpacity() const;
+
+	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+
+protected:
+	TSharedPtr<SImage> MyImage;
 };

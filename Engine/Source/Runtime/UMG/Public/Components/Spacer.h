@@ -19,7 +19,7 @@ class UMG_API USpacer : public UWidget
 	void SetSize(FVector2D InSize);
 	
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:

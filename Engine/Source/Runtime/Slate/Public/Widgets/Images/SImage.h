@@ -39,11 +39,17 @@ public:
 
 public:
 
-	/** The the color and opacity of this image */
+	/** See the ColorAndOpacity attribute */
 	void SetColorAndOpacity( const TAttribute<FSlateColor>& InColorAndOpacity );
-	/** The the color and opacity of this image */
+	
+	/** See the ColorAndOpacity attribute */
 	void SetColorAndOpacity( FLinearColor InColorAndOpacity );
 
+	/** See the Image attribute */
+	void SetImage(TAttribute<const FSlateBrush*> InImage);
+	
+	/** See OnMouseButtonDown event */
+	void SetOnMouseButtonDown(FPointerEventHandler EventHandler);
 
 protected:
 
