@@ -647,7 +647,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, i
 						if(SkelMeshComponent->SkeletalMesh &&
 							NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton))
 						{
-							SkelMeshComponent->SetAnimClass(DroppedObjAsAnimBlueprint->GeneratedClass);
+							SkelMeshComponent->SetAnimInstanceClass(DroppedObjAsAnimBlueprint->GeneratedClass);
 							bResult = true;
 						}
 					}

@@ -1133,7 +1133,7 @@ void USkeletalMeshComponent::SetForceRefPose(bool bNewForceRefPose)
 	MarkRenderStateDirty();
 }
 
-void USkeletalMeshComponent::SetAnimClass(class UClass* NewClass)
+void USkeletalMeshComponent::SetAnimInstanceClass(class UClass* NewClass)
 {
 	if (NewClass != NULL)
 	{

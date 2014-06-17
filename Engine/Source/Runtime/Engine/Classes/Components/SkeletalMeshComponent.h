@@ -238,7 +238,7 @@ public:
 
 	/** 
 	 * The AnimBlueprint class to use
-	 * Use 'SetAnimClass' to change at runtime. 
+	 * Use 'SetAnimInstanceClass' to change at runtime. 
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
 	class UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass;
@@ -444,8 +444,8 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FConstraintBrokenSignature OnConstraintBroken;
 
-	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetAnimClass(class UClass* NewClass);
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(Keywords = "AnimBlueprint"))
+	void SetAnimInstanceClass(class UClass* NewClass);
 
 	/** 
 	 * Returns the animation instance that is driving the class (if available). This is typically an instance of
