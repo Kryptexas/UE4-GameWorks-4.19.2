@@ -20,7 +20,10 @@ void SLevelEditorToolBox::Construct( const FArguments& InArgs, const TSharedRef<
 {
 	LevelEditor = OwningLevelEditor;
 
-	GEditor->AccessEditorUserSettings().OnUserSettingChanged().AddSP( this, &SLevelEditorToolBox::HandleUserSettingsChange );
+	// Important: We use a raw binding here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
+
+	GEditor->AccessEditorUserSettings().OnUserSettingChanged().AddRaw( this, &SLevelEditorToolBox::HandleUserSettingsChange );
 
 	ChildSlot
 	[

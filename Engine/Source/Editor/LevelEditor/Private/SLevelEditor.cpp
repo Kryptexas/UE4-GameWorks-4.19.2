@@ -149,20 +149,23 @@ void SLevelEditor::BindCommands()
 
 void SLevelEditor::Construct( const SLevelEditor::FArguments& InArgs)
 {
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
-	LevelEditorModule.OnNotificationBarChanged().AddSP( this, &SLevelEditor::ConstructNotificationBar );
+	// Important: We use raw bindings here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
 
-	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddSP(this, &SLevelEditor::HandleExperimentalSettingChanged);
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked< FLevelEditorModule >( LevelEditorModuleName );
+	LevelEditorModule.OnNotificationBarChanged().AddRaw( this, &SLevelEditor::ConstructNotificationBar );
+
+	GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &SLevelEditor::HandleExperimentalSettingChanged);
 
 	BindCommands();
 
 	// We need to register when modes list changes so that we can refresh the auto generated commands.
-	GEditorModeTools().OnRegisteredModesChanged().AddSP(this, &SLevelEditor::RefreshEditorModeCommands);
+	GEditorModeTools().OnRegisteredModesChanged().AddRaw(this, &SLevelEditor::RefreshEditorModeCommands);
 
 	// @todo This is a hack to get this working for now. This won't work with multiple worlds
 	GEditor->GetEditorWorldContext(true).AddRef(World);
 
-	FEditorDelegates::MapChange.AddSP(this, &SLevelEditor::HandleEditorMapChange);
+	FEditorDelegates::MapChange.AddRaw(this, &SLevelEditor::HandleEditorMapChange);
 	HandleEditorMapChange(MapChangeEventFlags::NewMap);
 }
 

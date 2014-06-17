@@ -76,9 +76,9 @@ SLevelViewport::~SLevelViewport()
 
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
+	LevelEditor.OnTakeHighResScreenShots().RemoveAll( this );
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
-	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
 	GEngine->OnLevelActorDeleted().RemoveAll( this );
 
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
@@ -107,7 +107,7 @@ bool SLevelViewport::IsVisible() const
 
 void SLevelViewport::Construct(const FArguments& InArgs)
 {
-	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddSP(this, &SLevelViewport::HandleViewportSettingChanged);
+	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &SLevelViewport::HandleViewportSettingChanged);
 
 	ParentLayout = InArgs._ParentLayout;
 	ParentLevelEditor = InArgs._ParentLevelEditor;
@@ -134,17 +134,20 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 	// If a map has already been loaded, this will test for it and copy the correct camera location out
 	OnMapChanged( GWorld, EMapChangeType::LoadMap );
 
+	// Important: We use raw bindings here because we are releasing our binding in our destructor (where a weak pointer would be invalid)
+	// It's imperative that our delegate is removed in the destructor for the level editor module to play nicely with reloading.
+
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnRedrawLevelEditingViewports().AddSP( this, &SLevelViewport::RedrawViewport );
-	LevelEditor.OnTakeHighResScreenShots().AddSP( this, &SLevelViewport::TakeHighResScreenShot );
+	LevelEditor.OnRedrawLevelEditingViewports().AddRaw( this, &SLevelViewport::RedrawViewport );
+	LevelEditor.OnTakeHighResScreenShots().AddRaw( this, &SLevelViewport::TakeHighResScreenShot );
 
 	// Tell the level editor we want to be notified when selection changes
-	LevelEditor.OnActorSelectionChanged().AddSP( this, &SLevelViewport::OnActorSelectionChanged );
+	LevelEditor.OnActorSelectionChanged().AddRaw( this, &SLevelViewport::OnActorSelectionChanged );
 
 	// Tell the level editor we want to be notified when selection changes
-	LevelEditor.OnMapChanged().AddSP( this, &SLevelViewport::OnMapChanged );
+	LevelEditor.OnMapChanged().AddRaw( this, &SLevelViewport::OnMapChanged );
 
-	GEngine->OnLevelActorDeleted().AddSP( this, &SLevelViewport::OnLevelActorsRemoved );
+	GEngine->OnLevelActorDeleted().AddRaw( this, &SLevelViewport::OnLevelActorsRemoved );
 }
 
 void SLevelViewport::ConstructViewportOverlayContent()
