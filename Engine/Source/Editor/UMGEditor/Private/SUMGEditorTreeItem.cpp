@@ -23,6 +23,7 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBluepri
 		SNew(STextBlock)
 		.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
 		.Text(this, &SUMGEditorTreeItem::GetItemText)
+		.HighlightText(InArgs._HighlightText)
 	];
 }
 

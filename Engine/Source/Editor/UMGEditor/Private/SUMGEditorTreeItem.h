@@ -5,11 +5,17 @@
 #include "SCompoundWidget.h"
 #include "BlueprintEditor.h"
 
-//TODO rename SUMGEditorHierarchy
+/**
+ * An widget item in the hierarchy tree view.
+ */
 class SUMGEditorTreeItem : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SUMGEditorTreeItem ){}
+		
+		/** The current text to highlight */
+		SLATE_ATTRIBUTE( FText, HighlightText )
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, UWidget* InItem);

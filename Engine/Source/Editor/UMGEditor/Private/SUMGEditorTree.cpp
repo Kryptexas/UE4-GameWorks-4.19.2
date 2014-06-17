@@ -20,6 +20,10 @@
 void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
+	bRefreshRequested = false;
+	bIsFilterActive = false;
+
+	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SUMGEditorTree::TransformWidgetToString)));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
@@ -83,10 +87,30 @@ SUMGEditorTree::~SUMGEditorTree()
 	}
 }
 
+void SUMGEditorTree::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if ( bRefreshRequested )
+	{
+		bRefreshRequested = false;
+
+		RefreshTree();
+	}
+}
+
+void SUMGEditorTree::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
+{
+	Array.Add(Widget->GetName());
+}
+
 void SUMGEditorTree::OnSearchChanged(const FText& InFilterText)
 {
 	bRefreshRequested = true;
-	SearchText = InFilterText;
+	SearchBoxWidgetFilter->SetRawFilterText(InFilterText);
+}
+
+FText SUMGEditorTree::GetSearchText() const
+{
+	return SearchBoxWidgetFilter->GetRawFilterText();
 }
 
 void SUMGEditorTree::OnEditorSelectionChanged()
@@ -108,13 +132,18 @@ void SUMGEditorTree::OnEditorSelectionChanged()
 			WidgetTreeView->RequestScrollIntoView(WidgetRef.GetTemplate());
 		}
 
-		// Expand the path leading to this widget in the tree.
-		UWidget* Parent = WidgetRef.GetTemplate()->GetParent();
-		while ( Parent != NULL )
-		{
-			WidgetTreeView->SetItemExpansion(Parent, true);
-			Parent = Parent->GetParent();
-		}
+		ExpandPathToWidget(WidgetRef.GetTemplate());
+	}
+}
+
+void SUMGEditorTree::ExpandPathToWidget(UWidget* TemplateWidget)
+{
+	// Expand the path leading to this widget in the tree.
+	UWidget* Parent = TemplateWidget->GetParent();
+	while ( Parent != NULL )
+	{
+		WidgetTreeView->SetItemExpansion(Parent, true);
+		Parent = Parent->GetParent();
 	}
 }
 
@@ -220,6 +249,11 @@ void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UW
 			UWidget* Child = Widget->GetChildAt(i);
 			if ( Child )
 			{
+				if ( bIsFilterActive && !WidgetsPassingFilter.Contains(Child) )
+				{
+					continue;
+				}
+
 				OutChildren.Add(Child);
 			}
 		}
@@ -234,6 +268,7 @@ TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(UWidget* I
 //		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
 		[
 			SNew(SUMGEditorTreeItem, BlueprintEditor.Pin(), InItem)
+			.HighlightText(this, &SUMGEditorTree::GetSearchText)
 		];
 }
 
@@ -290,13 +325,54 @@ void SUMGEditorTree::DeleteSelected()
 		for ( UWidget* Item : SelectedItems )
 		{
 			bRemoved = BP->WidgetTree->RemoveWidget(Item);
+
+			CachedExpandedWidgets.Remove(Item);
 		}
+
+		//TODO UMG There needs to be an event for widget removal so that caches can be updated, and selection
 
 		if ( bRemoved )
 		{
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 		}
 	}
+}
+
+bool SUMGEditorTree::FilterWidgetHierarchy(UWidget* CurrentWidget)
+{
+	bool bAnyChildrenPass = false;
+
+	// Iterate over children and check to see if any of them pass the current filter
+	UPanelWidget* Widget = Cast<UPanelWidget>(CurrentWidget);
+	if ( Widget )
+	{
+		for ( int32 i = 0; i < Widget->GetChildrenCount(); i++ )
+		{
+			UWidget* Child = Widget->GetChildAt(i);
+			if ( Child )
+			{
+				bAnyChildrenPass |= FilterWidgetHierarchy(Child);
+			}
+		}
+	}
+
+	// Check to see if I pass the filter
+	const bool bWidgetPass = SearchBoxWidgetFilter->PassesFilter(CurrentWidget);
+
+	// If this particular widget passes the filter, expand every widget leading up to it.
+	if ( bWidgetPass )
+	{
+		ExpandPathToWidget(CurrentWidget);
+	}
+
+	// If either the widget or the children pass, add the current widget
+	if ( bWidgetPass || bAnyChildrenPass )
+	{
+		WidgetsPassingFilter.Add(CurrentWidget);
+		return true;
+	}
+
+	return false;
 }
 
 void SUMGEditorTree::RefreshTree()
@@ -308,7 +384,39 @@ void SUMGEditorTree::RefreshTree()
 
 	if ( WidgetTemplates.Num() > 0 )
 	{
-		RootWidgets.Add(WidgetTemplates[0]);
+		bool bRootPassed = true;
+
+		const bool bWillFilterBeActive = !SearchBoxWidgetFilter->GetRawFilterText().IsEmpty();
+
+		// Save the expansion state when the filter becomes active
+		if ( !bIsFilterActive && bWillFilterBeActive )
+		{
+			CachedExpandedWidgets.Empty();
+			WidgetTreeView->GetExpandedItems(CachedExpandedWidgets);
+		}
+		// Restore the expansion state when the filter is removed
+		else if ( bIsFilterActive && !bWillFilterBeActive )
+		{
+			WidgetTreeView->ClearExpandedItems();
+			for ( UWidget* ExpandedWidget : CachedExpandedWidgets )
+			{
+				WidgetTreeView->SetItemExpansion(ExpandedWidget, true);
+			}
+			CachedExpandedWidgets.Empty();
+		}
+		
+		bIsFilterActive = bWillFilterBeActive;
+
+		WidgetsPassingFilter.Empty( WidgetTemplates.Num() );
+		if ( bIsFilterActive )
+		{
+			bRootPassed = FilterWidgetHierarchy(WidgetTemplates[0]);
+		}
+
+		if ( bRootPassed )
+		{
+			RootWidgets.Add(WidgetTemplates[0]);
+		}
 	}
 
 	WidgetTreeView->RequestTreeRefresh();

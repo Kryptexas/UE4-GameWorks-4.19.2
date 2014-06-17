@@ -10,6 +10,7 @@
 #include "BlueprintEditorUtils.h"
 
 #include "ScopedTransaction.h"
+#include "TextFilter.h"
 
 #include "UMG.h"
 
