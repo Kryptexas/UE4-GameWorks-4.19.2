@@ -364,7 +364,7 @@ bool ContentBrowserUtils::LoadAssetsIfNeeded(const TArray<FString>& ObjectPaths,
 			FNotificationInfo Info(LOCTEXT("LoadObjectFailed", "Failed to load assets"));
 			Info.ExpireDuration = 5.0f;
 			Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FMessageLog("LoadErrors").Open(EMessageSeverity::Info, true); });
-			Info.HyperlinkText = LOCTEXT("LoadObjectHyperlink", "Show Log");
+			Info.HyperlinkText = LOCTEXT("LoadObjectHyperlink", "Show Message Log");
 
 			FSlateNotificationManager::Get().AddNotification(Info);
 			return false;

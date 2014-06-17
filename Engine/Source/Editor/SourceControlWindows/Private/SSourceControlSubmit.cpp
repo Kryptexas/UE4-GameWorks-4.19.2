@@ -559,7 +559,7 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 					// report success with a notification
 					FNotificationInfo Info(CheckInOperation->GetSuccessMessage());
 					Info.ExpireDuration = 8.0f;
-					Info.HyperlinkText = LOCTEXT("SCC_Checkin_ShowLog", "Show Log");
+					Info.HyperlinkText = LOCTEXT("SCC_Checkin_ShowLog", "Show Message Log");
 					Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FMessageLog("SourceControl").Open(EMessageSeverity::Info, true); });
 					FSlateNotificationManager::Get().AddNotification(Info);
 

@@ -328,6 +328,7 @@ bool FTranslationDataManager::WriteJSONToTextFile(TSharedRef<FJsonObject>& Outpu
 		FNotificationInfo Info( LOCTEXT("ArchiveCheckedOut", "Translation Archive Successfully Checked Out and Saved.") );
 		Info.ExpireDuration = 5;
 		Info.Hyperlink = FSimpleDelegate::CreateStatic(&Local::OpenSourceControlMessageLog);
+		Info.HyperlinkText = LOCTEXT("ShowMessageLogHyperlink", "Show Message Log");
 		Info.bFireAndForget = true;
 		Info.bUseSuccessFailIcons = true;
 		Info.Image = FEditorStyle::GetBrush(TEXT("NotificationList.SuccessImage"));

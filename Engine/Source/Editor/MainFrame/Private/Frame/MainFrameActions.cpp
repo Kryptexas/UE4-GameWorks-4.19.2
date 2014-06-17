@@ -972,6 +972,7 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 	Info.bFireAndForget = false;
 	Info.ExpireDuration = 3.0f;
 	Info.Hyperlink = FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::HandleUatHyperlinkNavigate);
+	Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
 	Info.ButtonDetails.Add(
 		FNotificationButtonInfo(
 			LOCTEXT("UatTaskCancel", "Cancel"),

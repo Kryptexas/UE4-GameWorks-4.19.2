@@ -1281,6 +1281,7 @@ void UEditorEngine::PlayUsingLauncher()
 		Info.bFireAndForget = false;
 		Info.ExpireDuration = 3.0f;
 		Info.Hyperlink = FSimpleDelegate::CreateStatic(HandleHyperlinkNavigate);
+		Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
 		Info.ButtonDetails.Add(
 			FNotificationButtonInfo(
 				LOCTEXT("LauncherTaskCancel", "Cancel"),
