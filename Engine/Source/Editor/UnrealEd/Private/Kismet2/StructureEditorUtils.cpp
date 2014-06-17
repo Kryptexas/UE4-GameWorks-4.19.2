@@ -340,9 +340,8 @@ bool FStructureEditorUtils::ChangeVariableDefaultValue(UUserDefinedStruct* Struc
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-	if (VarDesc 
-		&& (NewDefaultValue != VarDesc->DefaultValue) 
-		&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
+	if (VarDesc && (NewDefaultValue != VarDesc->DefaultValue))
+		//&& K2Schema->DefaultValueSimpleValidation(VarDesc->ToPinType(), FString(), NewDefaultValue, NULL, FText::GetEmpty()))
 	{
 		bool bAdvancedValidation = true;
 		if (!NewDefaultValue.IsEmpty())
@@ -468,9 +467,10 @@ void FStructureEditorUtils::OnStructureChanged(UUserDefinedStruct* Struct)
 {
 	if (Struct)
 	{
+		FStructEditorManager::Get().PreChange(Struct);
 		Struct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
 		CompileStructure(Struct);
-		FStructEditorManager::Get().OnChanged(Struct);
+		FStructEditorManager::Get().PostChange(Struct);
 		Struct->MarkPackageDirty();
 	}
 }
@@ -652,6 +652,13 @@ bool FStructureEditorUtils::Is3dWidgetEnabled(const UUserDefinedStruct* Struct, 
 	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
 	const auto PropertyStruct = VarDesc ? Cast<const UStruct>(VarDesc->SubCategoryObject.Get()) : NULL;
 	return VarDesc && VarDesc->bEnable3dWidget && FEdMode::CanCreateWidgetForStructure(PropertyStruct);
+}
+
+FGuid FStructureEditorUtils::GetGuidForProperty(const UProperty* Property)
+{
+	auto UDStruct = Property ? Cast<const UUserDefinedStruct>(Property->GetOwnerStruct()) : NULL;
+	auto VarDesc = UDStruct ? GetVarDesc(UDStruct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(Property->GetFName())) : NULL;
+	return VarDesc ? VarDesc->VarGuid : FGuid();
 }
 
 #undef LOCTEXT_NAMESPACE

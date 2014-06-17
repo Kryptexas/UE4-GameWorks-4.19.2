@@ -69,7 +69,8 @@ public:
 	void OnForceRefresh();
 
 	/** FEnumEditorUtils::INotifyOnEnumChanged */
-	virtual void OnChanged(const class UUserDefinedEnum* Enum) override;
+	virtual void PreChange(const class UUserDefinedEnum* Struct) override;
+	virtual void PostChange(const class UUserDefinedEnum* Enum) override;
 
 private:
 	/** Handles new enum element request */

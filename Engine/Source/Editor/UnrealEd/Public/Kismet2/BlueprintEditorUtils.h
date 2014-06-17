@@ -669,6 +669,8 @@ public:
 
 	static bool PropertyValueFromString(const UProperty* Property, const FString& StrValue, uint8* ContainerMem);
 
+	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
+
 	/** Call PostEditChange() on all Actors based on the given Blueprint */
 	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint);
 

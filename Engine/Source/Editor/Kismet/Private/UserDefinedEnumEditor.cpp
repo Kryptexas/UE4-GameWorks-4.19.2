@@ -180,7 +180,11 @@ void FEnumDetails::OnForceRefresh()
 	}
 }
 
-void FEnumDetails::OnChanged(const class UUserDefinedEnum* Enum)
+void FEnumDetails::PreChange(const class UUserDefinedEnum* Enum)
+{
+}
+
+void FEnumDetails::PostChange(const class UUserDefinedEnum* Enum)
 {
 	if (Enum && (TargetEnum.Get() == Enum))
 	{

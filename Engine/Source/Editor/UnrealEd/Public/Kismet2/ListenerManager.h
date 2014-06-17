@@ -6,7 +6,8 @@ template<typename TType>
 class INotifyOnChanged
 {
 public:
-	virtual void OnChanged(const TType* Changed) = 0;
+	virtual void PreChange(const TType* Changed) = 0;
+	virtual void PostChange(const TType* Changed) = 0;
 };
 
 template<typename TType>
@@ -32,11 +33,19 @@ public:
 		Listeners.Remove(Listener);
 	}
 
-	void OnChanged(const TType* Changed)
+	void PreChange(const TType* Changed)
 	{
 		for (auto Listener : Listeners)
 		{
-			Listener->OnChanged(Changed);
+			Listener->PreChange(Changed);
+		}
+	}
+
+	void PostChange(const TType* Changed)
+	{
+		for (auto Listener : Listeners)
+		{
+			Listener->PostChange(Changed);
 		}
 	}
 };

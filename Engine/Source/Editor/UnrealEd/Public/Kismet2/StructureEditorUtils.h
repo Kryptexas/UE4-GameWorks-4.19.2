@@ -101,6 +101,8 @@ public:
 
 	static void RemoveInvalidStructureMemberVariableFromBlueprint(UBlueprint* Blueprint);
 
+	static FGuid GetGuidForProperty(const UProperty* Property);
+
 	/*
 	 Default values for member variables in User Defined Structure are stored in meta data "MakeStructureDefaultValue"
 	 The following functions are used to fill an instance of user defined struct with those default values.

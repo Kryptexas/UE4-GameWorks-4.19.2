@@ -5586,7 +5586,8 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 		}
 		else if( Property->IsA(UClassProperty::StaticClass()) )
 		{
-			CastChecked<UClassProperty>(Property)->SetPropertyValue_InContainer(DefaultObject, FindObject<UClass>(ANY_PACKAGE, *Value, true));
+			UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *Value);
+			CastChecked<UClassProperty>(Property)->SetPropertyValue_InContainer(DefaultObject, FoundClass);
 		}
 		else if( Property->IsA(UObjectPropertyBase::StaticClass()) )
 		{
@@ -5657,6 +5658,54 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 	}
 
 	return bParseSuccedded;
+}
+
+bool FBlueprintEditorUtils::PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm)
+{
+	check(Property && Container);
+	OutForm.Empty();
+	if (Property->IsA(UStructProperty::StaticClass()))
+	{
+		static UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+		static UScriptStruct* RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+		static UScriptStruct* TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+		static UScriptStruct* LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+
+		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
+
+		// Struct properties must be handled differently, unfortunately.  We only support FVector, FRotator, and FTransform
+		if (StructProperty->Struct == VectorStruct)
+		{
+			FVector Vector;
+			Property->CopyCompleteValue(&Vector, Property->ContainerPtrToValuePtr<uint8>(Container));
+			OutForm = FString::Printf(TEXT("%f,%f,%f"), Vector.X, Vector.Y, Vector.Z);
+		}
+		else if (StructProperty->Struct == RotatorStruct)
+		{
+			FRotator Rotator;
+			Property->CopyCompleteValue(&Rotator, Property->ContainerPtrToValuePtr<uint8>(Container));
+			OutForm = FString::Printf(TEXT("%f,%f,%f"), Rotator.Pitch, Rotator.Yaw, Rotator.Roll);
+		}
+		else if (StructProperty->Struct == TransformStruct)
+		{
+			FTransform Transform;
+			Property->CopyCompleteValue(&Transform, Property->ContainerPtrToValuePtr<uint8>(Container));
+			OutForm = Transform.ToString();
+		}
+		else if (StructProperty->Struct == LinearColorStruct)
+		{
+			FLinearColor Color;
+			Property->CopyCompleteValue(&Color, Property->ContainerPtrToValuePtr<uint8>(Container));
+			OutForm = Color.ToString();
+		}
+	}
+
+	bool bSuccedded = true;
+	if (OutForm.IsEmpty())
+	{
+		bSuccedded = Property->ExportText_InContainer(0, OutForm, Container, Container, NULL, 0);
+	}
+	return bSuccedded;
 }
 
 FName FBlueprintEditorUtils::GenerateUniqueGraphName(UBlueprint* const BlueprintOuter, FString const& ProposedName)
