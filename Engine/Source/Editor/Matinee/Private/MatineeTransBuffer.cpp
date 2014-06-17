@@ -15,6 +15,7 @@ UMatineeTransBuffer::UMatineeTransBuffer(const class FPostConstructInitializePro
 void UMatineeTransBuffer::BeginSpecial(const FText& Description)
 {
 	CheckState();
+	const int32 Result = ActiveCount;
 	if( ActiveCount++==0 )
 	{
 		// Cancel redo buffer.
@@ -34,6 +35,8 @@ void UMatineeTransBuffer::BeginSpecial(const FText& Description)
 		// Begin a new transaction.
 		GUndo = new(UndoBuffer)FMatineeTransaction( Description, 1 );
 	}
+	const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
+	ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
 	CheckState();
 }
 
@@ -45,5 +48,6 @@ void UMatineeTransBuffer::EndSpecial()
 	{
 		GUndo = NULL;
 	}
+	ActiveRecordCounts.Pop();
 	CheckState();
 }
