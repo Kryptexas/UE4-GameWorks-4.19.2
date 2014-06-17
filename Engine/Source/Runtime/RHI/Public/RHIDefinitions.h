@@ -40,8 +40,9 @@ enum EShaderPlatform
 	SP_OPENGL_ES2		= 8,
 	SP_OPENGL_ES2_WEBGL = 9, 
 	SP_OPENGL_ES2_IOS	= 10,
+	SP_METAL			= 11,
 
-	SP_NumPlatforms		= 11,
+	SP_NumPlatforms		= 12,
 	SP_NumBits			= 4,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -523,7 +524,7 @@ inline bool IsPCPlatform(const EShaderPlatform Platform)
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS; 
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL; 
 }
 
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
@@ -552,7 +553,8 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_PCES2:
 	case SP_OPENGL_ES2:
 	case SP_OPENGL_ES2_WEBGL:
-	case  SP_OPENGL_ES2_IOS:
+	case SP_OPENGL_ES2_IOS:
+	case SP_METAL:
 		return ERHIFeatureLevel::ES2;
 	default:
 		check(0);
@@ -587,6 +589,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	case SP_XBOXONE:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
+	case SP_METAL: 
+		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	default:
 		return false;
 	}	

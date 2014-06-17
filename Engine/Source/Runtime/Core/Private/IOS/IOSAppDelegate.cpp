@@ -69,6 +69,9 @@ void InstallSignalHandlers()
 
 @synthesize Window;
 @synthesize GLView;
+#if HAS_METAL
+@synthesize MetalView;
+#endif
 @synthesize IOSController;
 @synthesize SlateController;
 
@@ -168,10 +171,30 @@ void InstallSignalHandlers()
 	self.bCommandLineReady = true;
 }
 
+-(void)AudioInterrupted:(NSNotification*)notification
+{
+	// pull the type of notification out
+	NSDictionary* Info = [notification userInfo];
+	NSNumber* Type = (NSNumber*)[Info valueForKey:AVAudioSessionInterruptionTypeKey];
+
+	NSLog(@"AUDIO INTERRUPTION NOTIFICATION: %d, (began = %d, ended = %d)", (int)[Type integerValue], (int)AVAudioSessionInterruptionTypeBegan, (int)AVAudioSessionInterruptionTypeEnded);
+	if ([Type integerValue] == AVAudioSessionInterruptionTypeBegan)
+	{
+		FAppEntry::Suspend();
+		[self ToggleAudioSession:false];
+	}
+	else if ([Type integerValue] == AVAudioSessionInterruptionTypeEnded)
+	{
+		[self ToggleAudioSession:true];
+	    FAppEntry::Resume();
+	}
+}
+
 - (void)InitializeAudioSession
 {
 	// get notified about interruptions
-	[[AVAudioSession sharedInstance] setDelegate:self];
+	// @todo ios8: Test this (I can't make a notification happen so far)
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(AudioInterrupted:) name:AVAudioSessionInterruptionNotification object:[AVAudioSession sharedInstance]];
 	
 	self.bUsingBackgroundMusic = [self IsBackgroundAudioPlaying];
 	if (!self.bUsingBackgroundMusic)
@@ -201,10 +224,9 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
 		}
 		ActiveError = nil;
- 	}
-    self.bAudioActive = true;
+	}
 
-	/* TODO::JTM - Jan 16, 2013 06:22PM - Music player support */
+    self.bAudioActive = true;
 }
 
 - (void)ToggleAudioSession:(bool)bActive
@@ -213,61 +235,61 @@ void InstallSignalHandlers()
 	{
         if (!self.bAudioActive)
         {
-		bool bWasUsingBackgroundMusic = self.bUsingBackgroundMusic;
-		self.bUsingBackgroundMusic = [self IsBackgroundAudioPlaying];
-
-		if (bWasUsingBackgroundMusic != self.bUsingBackgroundMusic)
-		{
-			if (!self.bUsingBackgroundMusic)
+			bool bWasUsingBackgroundMusic = self.bUsingBackgroundMusic;
+			self.bUsingBackgroundMusic = [self IsBackgroundAudioPlaying];
+	
+			if (bWasUsingBackgroundMusic != self.bUsingBackgroundMusic)
+			{
+				if (!self.bUsingBackgroundMusic)
+				{
+					NSError* ActiveError = nil;
+					[[AVAudioSession sharedInstance] setActive:YES error:&ActiveError];
+					if (ActiveError)
+					{
+						UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as active! [Error = %s]"), *FString([ActiveError description]));
+					}
+					ActiveError = nil;
+	
+					[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:&ActiveError];
+					if (ActiveError)
+					{
+						UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategorySoloAmbient! [Error = %s]"), *FString([ActiveError description]));
+					}
+					ActiveError = nil;
+	
+					/* TODO::JTM - Jan 16, 2013 05:05PM - Music player support */
+				}
+				else
+				{
+					/* TODO::JTM - Jan 16, 2013 05:05PM - Music player support */
+	
+					// Allow iPod music to continue playing in the background
+					NSError* ActiveError = nil;
+					[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&ActiveError];
+					if (ActiveError)
+					{
+						UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient! [Error = %s]"), *FString([ActiveError description]));
+					}
+					ActiveError = nil;
+				}
+			}
+			else if (!self.bUsingBackgroundMusic)
 			{
 				NSError* ActiveError = nil;
 				[[AVAudioSession sharedInstance] setActive:YES error:&ActiveError];
 				if (ActiveError)
 				{
-					UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as active!"));
+					UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as active! [Error = %s]"), *FString([ActiveError description]));
 				}
 				ActiveError = nil;
-
+				
 				[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:&ActiveError];
 				if (ActiveError)
 				{
-					UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategorySoloAmbient!"));
-				}
-				ActiveError = nil;
-
-				/* TODO::JTM - Jan 16, 2013 05:05PM - Music player support */
-			}
-			else
-			{
-				/* TODO::JTM - Jan 16, 2013 05:05PM - Music player support */
-
-				// Allow iPod music to continue playing in the background
-				NSError* ActiveError = nil;
-				[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&ActiveError];
-				if (ActiveError)
-				{
-					UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
+					UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategorySoloAmbient! [Error = %s]"), *FString([ActiveError description]));
 				}
 				ActiveError = nil;
 			}
-		}
-		else if (!self.bUsingBackgroundMusic)
-		{
-			NSError* ActiveError = nil;
-			[[AVAudioSession sharedInstance] setActive:YES error:&ActiveError];
-			if (ActiveError)
-			{
-				UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as active!"));
-			}
-			ActiveError = nil;
-			
-			[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:&ActiveError];
-			if (ActiveError)
-			{
-				UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategorySoloAmbient!"));
-			}
-			ActiveError = nil;
-		}
         }
 	}
 	else if (self.bAudioActive && !self.bUsingBackgroundMusic)
@@ -276,7 +298,7 @@ void InstallSignalHandlers()
 		[[AVAudioSession sharedInstance] setActive:NO error:&ActiveError];
 		if (ActiveError)
 		{
-			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as inactive!"));
+			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as inactive! [Error = %s]"), *FString([ActiveError description]));
 		}
 		ActiveError = nil;
         
@@ -284,7 +306,7 @@ void InstallSignalHandlers()
 		[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&ActiveError];
 		if (ActiveError)
 		{
-			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
+			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient! [Error = %s]"), *FString([ActiveError description]));
 		}
 		ActiveError = nil;
  	}
@@ -309,11 +331,28 @@ void InstallSignalHandlers()
 {
     self.bHasSuspended = !bSuspend;
     self.bIsSuspended = bSuspend;
+
+	if (bSuspend)
+	{
+		FAppEntry::Suspend();
+	}
+	else
+	{
+		FAppEntry::Resume();
+	}
     
-    while(!self.bHasSuspended)
-    {
-        FPlatformProcess::Sleep(0.05f);
-    }
+	// if you run this on the main thread super early, it will deadlock
+	if ((GLView && GLView->bIsInitialized) 
+#if HAS_METAL
+		|| (MetalView && MetalView->bIsInitialized)
+#endif
+		)
+	{
+		while(!self.bHasSuspended)
+		{
+			FPlatformProcess::Sleep(0.05f);
+		}
+	}
 }
 
 - (BOOL)application:(UIApplication *)application willFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -354,7 +393,11 @@ void InstallSignalHandlers()
 
 	self.CommandLineParseTimer = [NSTimer scheduledTimerWithTimeInterval:0.01f target:self selector:@selector(NoUrlCommandLine) userInfo:nil repeats:NO];
 #if !UE_BUILD_SHIPPING
-	self.ConsoleHistoryValues = [[NSMutableArray alloc] init];
+	self.ConsoleHistoryValues = [[NSUserDefaults standardUserDefaults] objectForKey:@"ConsoleHistory"];
+	if (self.ConsoleHistoryValues == nil)
+	{
+		self.ConsoleHistoryValues = [[NSMutableArray alloc] init];
+	}
 	self.ConsoleHistoryValuesIndex = -1;
 #endif
 
@@ -388,20 +431,6 @@ void InstallSignalHandlers()
 	self.CommandLineParseTimer = nil;
 	
 	return YES;
-}
-
-- (void)beginInterruption
-{
-    FAppEntry::Suspend();
-
-	[self ToggleAudioSession:false];
- }
-
-- (void)endInterruption
-{
-	[self ToggleAudioSession:true];
-
-    FAppEntry::Resume();
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application

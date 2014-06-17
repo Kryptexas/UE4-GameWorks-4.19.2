@@ -7,6 +7,7 @@
 #import <GameKit/GKGameCenterViewController.h>
 
 @class EAGLView;
+@class FMetalView;
 @class IOSViewController;
 @class SlateOpenGLESViewController;
 @class IOSAppDelegate;
@@ -30,13 +31,18 @@ namespace FAppEntry
 	UIGestureRecognizerDelegate,
 #endif
 	GKGameCenterControllerDelegate,
-UITextFieldDelegate, AVAudioSessionDelegate>
+UITextFieldDelegate>
 
 /** Window object */
 @property (strong, retain, nonatomic) UIWindow *Window;
 
 /** Main GL View */
-@property (retain) EAGLView *GLView;
+@property (retain) EAGLView* GLView;
+
+#if HAS_METAL
+/** Main GL View */
+@property (retain) FMetalView* MetalView;
+#endif
 
 /** The controller to handle rotation of the view */
 @property (retain) IOSViewController* IOSController;

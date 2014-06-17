@@ -5,21 +5,29 @@
 #include "LaunchPrivatePCH.h"
 #include "IOSAppDelegate.h"
 #include "EAGLView.h"
+#include "BLView.h"
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
 #include "AudioDevice.h"
+
 
 FEngineLoop GEngineLoop;
 FGameLaunchDaemonMessageHandler GCommandSystem;
 
 void FAppEntry::Suspend()
 {
-    GEngine->AudioDevice->SuspendContext();
+	if (GEngine && GEngine->AudioDevice)
+	{
+		GEngine->AudioDevice->SuspendContext();
+	}
 }
 
 void FAppEntry::Resume()
 {
-    GEngine->AudioDevice->ResumeContext();
+	if (GEngine && GEngine->AudioDevice)
+	{
+	    GEngine->AudioDevice->ResumeContext();
+	}
 }
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
@@ -54,9 +62,9 @@ static void MainThreadInit()
 	// Size the view appropriately for any potentially dynamically attached displays,
 	// prior to creating any framebuffers
 	CGRect MainFrame = [[UIScreen mainScreen] bounds];
-	if (!AppDelegate.bDeviceInPortraitMode)
+	if ([IOSAppDelegate GetDelegate].OSVersion < 8.0f && !AppDelegate.bDeviceInPortraitMode)
 	{
-		Swap<float>(MainFrame.size.width, MainFrame.size.height);
+		Swap(MainFrame.size.width, MainFrame.size.height);
 	}
 	
 	// @todo: use code similar for presizing for secondary screens
@@ -73,16 +81,33 @@ static void MainThreadInit()
 // 		);
 	CGRect FullResolutionRect = MainFrame;
 
-	// create the fullscreen EAGLView
-	AppDelegate.GLView = [[EAGLView alloc] initWithFrame:FullResolutionRect];
-	AppDelegate.GLView.clearsContextBeforeDrawing = NO;
-	AppDelegate.GLView.multipleTouchEnabled = YES;
+#if HAS_METAL
+	if (FPlatformMisc::HasPlatformFeature(TEXT("Metal")) && !FParse::Param(FCommandLine::Get(), TEXT("ES2")))
+	{
+		AppDelegate.MetalView = [[FMetalView alloc] initWithFrame:FullResolutionRect];
+		AppDelegate.MetalView.clearsContextBeforeDrawing = NO;
+		AppDelegate.MetalView.multipleTouchEnabled = YES;
 
-	// add it to the window
-	[AppDelegate.RootView addSubview:AppDelegate.GLView];
+		// add it to the window
+		[AppDelegate.RootView addSubview:AppDelegate.MetalView];
 
-	// initialize the backbuffer of the view (so the RHI can use it)
-	[AppDelegate.GLView CreateFramebuffer:YES];
+		// initialize the backbuffer of the view (so the RHI can use it)
+		[AppDelegate.MetalView CreateFramebuffer:YES];
+	}
+	else
+#endif
+	{
+		// create the fullscreen EAGLView
+		AppDelegate.GLView = [[EAGLView alloc] initWithFrame:FullResolutionRect];
+		AppDelegate.GLView.clearsContextBeforeDrawing = NO;
+		AppDelegate.GLView.multipleTouchEnabled = YES;
+
+		// add it to the window
+		[AppDelegate.RootView addSubview:AppDelegate.GLView];
+
+		// initialize the backbuffer of the view (so the RHI can use it)
+		[AppDelegate.GLView CreateFramebuffer:YES];
+	}
 
 	// Final adjustment to the viewport (this is deferred and won't run until the first engine tick)
 	[FIOSAsyncTask CreateTaskWithBlock:^ bool (void)
@@ -113,14 +138,29 @@ void FAppEntry::PlatformInit()
 
 	// wait until the GLView is fully initialized, so the RHI can be initialized
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	while (!AppDelegate.GLView || !AppDelegate.GLView->bIsInitialized)
+
+#if HAS_METAL
+	if (!FParse::Param(FCommandLine::Get(), TEXT("ES2")))
 	{
-		FPlatformProcess::Sleep(0.001f);
+		while (!AppDelegate.MetalView || !AppDelegate.MetalView->bIsInitialized)
+		{
+			FPlatformProcess::Sleep(0.001f);
+		}
+
+		// set the Metal context to this thread
+		//		[AppDelegate.MetalView MakeCurrent];		
 	}
+	else
+#endif
+	{
+		while (!AppDelegate.GLView || !AppDelegate.GLView->bIsInitialized)
+		{
+			FPlatformProcess::Sleep(0.001f);
+		}
 
-	// set the GL context to this thread
-	[AppDelegate.GLView MakeCurrent];
-
+		// set the GL context to this thread
+		[AppDelegate.GLView MakeCurrent];
+	}
 }
 
 void FAppEntry::Init()

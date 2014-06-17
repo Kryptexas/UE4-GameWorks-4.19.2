@@ -5,6 +5,7 @@
 #include "IOSAppDelegate.h"
 #include "IOS/IOSInputInterface.h"
 
+#include <OpenGLES/ES2/gl.h>
 #import <QuartzCore/QuartzCore.h>
 #import <OpenGLES/EAGLDrawable.h>
 #import <UIKit/UIGeometry.h>
@@ -336,7 +337,7 @@ void GetInputStack(/*TArray<FPointerEvent>& TouchEvents*/)
 	CGRect Frame = [[UIScreen mainScreen] bounds];
 	if (![IOSAppDelegate GetDelegate].bDeviceInPortraitMode)
 	{
-		Swap<float>(Frame.size.width, Frame.size.height);
+		Swap(Frame.size.width, Frame.size.height);
 	}
 
 	self.view = [[UIView alloc] initWithFrame:Frame];

@@ -330,11 +330,43 @@ public:
 	// Destructor 
 	~FMetalUniformBuffer();
 	
+
+	/** Cache resources if needed. */
+	inline void CacheResources(uint32 InFrameCounter)
+	{
+		if (InFrameCounter == INDEX_NONE || LastCachedFrame != InFrameCounter)
+		{
+			CacheResourcesInternal();
+			LastCachedFrame = InFrameCounter;
+		}
+	}
+
+	bool IsConstantBuffer() const
+	{
+		return Buffer.length > 0;
+	}
+
+
 	/** The buffer containing the contents - either a fresh buffer or the ring buffer */
 	id<MTLBuffer> Buffer;
 	
 	/** This offset is used when passing to setVertexBuffer, etc */
 	uint32 Offset;
+
+
+	/** Resource table containing RHI references. */
+	TArray<TRefCountPtr<FRHIResource> > ResourceTable;
+
+	/** Raw resource table, cached once per frame. */
+	TArray<void*> RawResourceTable;
+
+	/** The frame in which RawResourceTable was last cached. */
+	uint32 LastCachedFrame;
+
+private:
+	/** Actually cache resources. */
+	void CacheResourcesInternal();
+
 };
 
 

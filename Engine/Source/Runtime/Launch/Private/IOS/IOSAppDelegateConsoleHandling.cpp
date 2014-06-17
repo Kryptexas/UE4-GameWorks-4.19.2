@@ -74,6 +74,9 @@
 		if (ExistingCommand == NSNotFound)
 		{
 			[self.ConsoleHistoryValues addObject:ConsoleCommand];
+			// save to local storage
+			[[NSUserDefaults standardUserDefaults] setObject:self.ConsoleHistoryValues forKey:@"ConsoleHistory"];
+			[[NSUserDefaults standardUserDefaults] synchronize];
 		}
 	}
 }

@@ -83,7 +83,7 @@
 
 - (void)session:(GKSession *)session connectionWithPeerFailed:(NSString *)peerID withError:(NSError *)error
 {
-	NSString* ErrorString = [NSString stringWithFormat:@"connectionWithPeerFailed - Failed to connect to %@ with error code %i", [session displayNameForPeer:peerID], [error code]];
+	NSString* ErrorString = [NSString stringWithFormat:@"connectionWithPeerFailed - Failed to connect to %@ with error code %d", [session displayNameForPeer:peerID], (uint32)[error code]];
 	const FString ConvertedErrorStr(ErrorString);
 	UE_LOG(LogOnline, Display, TEXT("%s"), *ConvertedErrorStr);
 }

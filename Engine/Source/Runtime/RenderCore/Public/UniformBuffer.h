@@ -30,6 +30,7 @@ class TUniformBuffer : public FRenderResource
 public:
 
 	TUniformBuffer()
+		: BufferUsage(UniformBuffer_MultiFrame)
 	{
 		Contents = (uint8*)FMemory::Malloc(sizeof(TBufferStruct),UNIFORM_BUFFER_STRUCT_ALIGNMENT);
 	}
@@ -50,7 +51,7 @@ public:
 	// FRenderResource interface.
 	virtual void InitDynamicRHI()
 	{
-		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),UniformBuffer_MultiFrame);
+		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}
 	virtual void ReleaseDynamicRHI()
 	{
@@ -60,6 +61,7 @@ public:
 	// Accessors.
 	FUniformBufferRHIParamRef GetUniformBufferRHI() const { return UniformBufferRHI; }
 
+	EUniformBufferUsage BufferUsage;
 private:
 
 	FUniformBufferRHIRef UniformBufferRHI;

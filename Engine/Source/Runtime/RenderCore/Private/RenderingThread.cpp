@@ -323,6 +323,8 @@ public:
 	{
 		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
 
+		FPlatformProcess::SetupGameOrRenderThread(true);
+
 #if PLATFORM_WINDOWS
 		if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
 		{

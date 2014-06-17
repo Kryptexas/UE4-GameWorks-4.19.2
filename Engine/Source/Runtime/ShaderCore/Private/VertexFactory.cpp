@@ -248,7 +248,7 @@ FVertexElement FVertexFactory::AccessStreamComponent(const FVertexStreamComponen
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
 
-	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,Component.bUseInstanceIndex);
+	return FVertexElement(Streams.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }
 
 FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStreamComponent& Component,uint8 AttributeIndex)
@@ -258,7 +258,7 @@ FVertexElement FVertexFactory::AccessPositionStreamComponent(const FVertexStream
 	VertexStream.Stride = Component.Stride;
 	VertexStream.Offset = 0;
 
-	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,Component.bUseInstanceIndex);
+	return FVertexElement(PositionStream.AddUnique(VertexStream),Component.Offset,Component.Type,AttributeIndex,VertexStream.Stride,Component.bUseInstanceIndex);
 }
 
 //TTP:51684
@@ -329,6 +329,7 @@ static void PatchVertexStreamOffsetsToBeUnique( FVertexDeclarationElementList& E
 				VertElement.StreamIndex = Elements[ i ].StreamIndex;
 				VertElement.Type		= Elements[ i ].Type;
 				VertElement.AttributeIndex	= Elements[ i ].AttributeIndex;
+				VertElement.Stride = Elements[ i ].Stride;
 				VertElement.bUseInstanceIndex = Elements[i].bUseInstanceIndex;
 
 				// remove the old redundant element

@@ -744,6 +744,14 @@ public:
 		return PLATFORM_HAS_TOUCH_MAIN_SCREEN;
 	}
 
+	/**
+	 * Returns whether the given platform feature is currently available (for instance, Metal is only available in IOS8 and with A7 devices)
+	 */
+	static bool HasPlatformFeature(const TCHAR* FeatureName)
+	{
+		return false;
+	}
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

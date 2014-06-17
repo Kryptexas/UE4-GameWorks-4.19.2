@@ -155,7 +155,7 @@ void DrawRectangle(
 			/*NumVertices=*/ 3,
 			/*StartIndex=*/ 6,
 			/*NumPrimitives=*/ 1,
-			/*NumInstances=*/ 0
+			/*NumInstances=*/ 1
 			);
 	}
 	else
@@ -168,7 +168,7 @@ void DrawRectangle(
 			/*NumVertices=*/ 4,
 			/*StartIndex=*/ 0,
 			/*NumPrimitives=*/ 2,
-			/*NumInstances=*/ 0
+			/*NumInstances=*/ 1
 			);
 	}
 }

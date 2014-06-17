@@ -88,11 +88,6 @@ public:
 	void PrepareToDraw(uint32 NumVertices);
 	
 	/**
-	 * Check the stride against what we expected
-	 */
-	void CheckStride(uint32 StreamIndex, uint32 Stride);
-	
-	/**
 	 * Functions to update the pipeline descriptor and/or context
 	 */
 	void SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled);

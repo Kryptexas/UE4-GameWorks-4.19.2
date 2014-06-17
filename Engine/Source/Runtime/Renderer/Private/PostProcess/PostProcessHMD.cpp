@@ -27,12 +27,13 @@ public:
 
 	virtual void InitRHI()
 	{
+		uint16 Stride = sizeof(FDistortionVertex);
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, Position),VET_Float2,0));
-		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexR), VET_Float2, 1));
-		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexG), VET_Float2, 2));
-		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexB), VET_Float2, 3));
-		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, Color), VET_Float4, 4));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, Position),VET_Float2,0,Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexR), VET_Float2, 1,Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexG), VET_Float2, 2,Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, TexB), VET_Float2, 3,Stride));
+		Elements.Add(FVertexElement(0, STRUCT_OFFSET(FDistortionVertex, Color), VET_Float4, 4,Stride));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 

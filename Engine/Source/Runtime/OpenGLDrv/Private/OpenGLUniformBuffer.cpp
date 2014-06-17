@@ -36,7 +36,7 @@ namespace OpenGLConsoleVariables
 
 #define NUM_SAFE_FRAMES 3
 
-const uint32 RequestedUniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
+static const uint32 RequestedUniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
 	16,32,48,64,80,96,112,128,	// 16-byte increments
 	160,192,224,256,			// 32-byte increments
 	320,384,448,512,			// 64-byte increments
@@ -54,7 +54,7 @@ const uint32 RequestedUniformBufferSizeBuckets[NUM_POOL_BUCKETS] = {
 };
 
 // Maps desired size buckets to aligment actually 
-TArray<uint32> UniformBufferSizeBuckets;
+static TArray<uint32> UniformBufferSizeBuckets;
 
 
 static inline bool IsSuballocatingUBOs()

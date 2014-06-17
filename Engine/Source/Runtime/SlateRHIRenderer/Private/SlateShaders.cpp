@@ -40,10 +40,11 @@ TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
 void FSlateVertexDeclaration::InitRHI()
 {
 	FVertexDeclarationElementList Elements;
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,TexCoords),VET_Float4,0));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipCoords),VET_Short4,1));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Position),VET_Short2,2));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Color),VET_Color,3));
+	uint32 Stride = sizeof(FSlateVertex);
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,TexCoords),VET_Float4,0,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipCoords),VET_Short4,1,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Position),VET_Short2,2,Stride));
+	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Color),VET_Color,3,Stride));
 
 	VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 }

@@ -206,6 +206,13 @@ struct CORE_API FGenericPlatformProcess
 	 * @param AffinityMask A bitfield indicating what processors the thread is allowed to run on
 	 */
 	static void SetThreadAffinityMask( uint64 AffinityMask );
+
+	/**
+	 * Allow the platform to do anything it needs for game or render thread (this would use the NamedThreads enum if we could forward declare the enum)
+	 */
+	static void SetupGameOrRenderThread(bool bIsRenderThread)
+	{
+	}
 	
 	/** Get startup directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* BaseDir();

@@ -63,7 +63,7 @@ public:
 	virtual void InitRHI()
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add(FVertexElement(0,0,VET_Float4,0));
+		Elements.Add(FVertexElement(0, 0, VET_Float4, 0, sizeof(FVector4)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 

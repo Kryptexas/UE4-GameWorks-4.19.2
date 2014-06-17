@@ -13,9 +13,13 @@ class FString;
 @interface NSString (FString_Extensions)
 
 /**
+* Converts an TCHAR string to an NSString
+*/
++ (NSString*) stringWithTCHARString:(const TCHAR*)MyTCHARString;
+
+/**
  * Converts an FString to an NSString
  */
 + (NSString*) stringWithFString:(const FString&)MyFString;
 
 @end
-

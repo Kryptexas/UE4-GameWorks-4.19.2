@@ -478,6 +478,12 @@ void FCanvas::Flush(bool bForce)
 	// current render target set for the canvas
 	check(RenderTarget);	 	
 
+	// no need to set the render target if we aren't going to draw anything to it!
+	if (SortedElements.Num() == 0)
+	{
+		return;
+	}
+
 	// FCanvasSortElement compare class
 	struct FCompareFCanvasSortElement
 	{

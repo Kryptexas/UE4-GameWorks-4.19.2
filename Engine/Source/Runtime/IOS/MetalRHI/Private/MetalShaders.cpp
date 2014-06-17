@@ -248,12 +248,10 @@ FMetalBoundShaderState::FMetalBoundShaderState(
 	GeometryShader = InGeometryShader;
 
 #if !UE_BUILD_SHIPPING
-	extern FString GMaterialNameHack;
-	if (GFrameCounter > 3 || GMaterialNameHack == TEXT("M_Butterfly_OnGround") ||
-		GMaterialNameHack == TEXT("M_BillBoardBGTree") || GMaterialNameHack == TEXT("M_WaterSplash_Particulate"))
+	if (GFrameCounter > 3)
 	{
 		NSLog(@"===============================================================");
-		NSLog(@"Creating a BSS at runtime frame %lld... this may hitch! [%s, this = %p]", GFrameCounter, TCHAR_TO_ANSI(*GMaterialNameHack), this);
+		NSLog(@"Creating a BSS at runtime frame %lld... this may hitch! [this = %p]", GFrameCounter, this);
 		NSLog(@"Vertex declaration:");
 		FVertexDeclarationElementList& Elements = VertexDeclaration->Elements;
 		for (int32 i = 0; i < Elements.Num(); i++)

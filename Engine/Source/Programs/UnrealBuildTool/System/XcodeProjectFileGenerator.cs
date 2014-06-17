@@ -1430,6 +1430,8 @@ namespace UnrealBuildTool
 			List<XcodeContainerItemProxy> ContainerItemProxies = new List<XcodeContainerItemProxy>();
             List<XcodeFramework> Frameworks = new List<XcodeFramework>();
             Frameworks.Add(new XcodeFramework("OpenGLES.framework", "System/Library/Frameworks/OpenGLES.framework", "SDKROOT"));
+			// @todo metal: putting this into the project will make for VERY slow Metal runtime by default...
+//			Frameworks.Add(new XcodeFramework("Metal.framework", "System/Library/Frameworks/Metal.framework", "SDKROOT"));
 
 			XcodeFramework XCTestFramework = new XcodeFramework("XCTest.framework", "Library/Frameworks/XCTest.framework", "DEVELOPER_DIR");
             Frameworks.Add(XCTestFramework);

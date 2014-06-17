@@ -701,7 +701,7 @@ OSStatus FIOSAudioSoundSource::IOSAudioRenderCallbackADPCM(AudioSampleType* OutD
 			ADPCM::DecodeBlock(EncodedADPCMBlock, Buffer->CompressedBlockSize, BufferState.StreamBuffer);
 		}
 
-		uint32 NumSamples = FMath::Min(NumFrames, StreamBufferSize / sizeof(AudioSampleType) - BufferState.StreamReadCursor);
+		uint32 NumSamples = FMath::Min<uint32>(NumFrames, StreamBufferSize / sizeof(AudioSampleType)-BufferState.StreamReadCursor);
 		for (uint32 SampleScan = 0; SampleScan < NumSamples; SampleScan++)
 		{
 			*OutData++ = BufferState.StreamBuffer[BufferState.StreamReadCursor++];

@@ -4,12 +4,18 @@
 	Common.usf: Common shader code
 =============================================================================*/
   
+#pragma once
+
 #if PS4_PROFILE  
 	// always #include PS4Common.usf so it can #define override anything in any other included file.
 	#include "PS4/PS4Common.usf"
 #endif 
- 
-#if !COMPILER_GLSL_ES2
+
+#ifndef FORCE_FLOATS
+#define FORCE_FLOATS 0
+#endif
+
+#if (!COMPILER_GLSL_ES2 && !METAL_PROFILE) || FORCE_FLOATS
 	// Always use floats when not using the ES2 compiler, because low precision modifiers are currently only tweaked for ES2, 
 	// And we don't want potential side effects on other platforms
 	#define half float
@@ -71,14 +77,15 @@
 
 #include "Definitions.usf"
 
-#define FEATURE_LEVEL_ES2 1
-#define FEATURE_LEVEL_SM3 2
-#define FEATURE_LEVEL_SM4 3 
-#define FEATURE_LEVEL_SM5 4
+#define FEATURE_LEVEL_ES2	1
+#define FEATURE_LEVEL_ES3_1	2
+#define FEATURE_LEVEL_SM3	3
+#define FEATURE_LEVEL_SM4	4	 
+#define FEATURE_LEVEL_SM5	5
 
 // A8 textures when sampled either have their component in R or A. D3D uses A and that is the default.
 #define A8_SAMPLE_MASK .a
-    
+	
 #if PS4_PROFILE
 
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
@@ -108,7 +115,9 @@
 	#if GL4_PROFILE
 		#define class struct
 	#endif
-
+#elif METAL_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif ES2_PROFILE
 
 	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
@@ -122,7 +131,7 @@
 		// A8 textures when sampled have their component in R.
 		#undef A8_SAMPLE_MASK
 		#define A8_SAMPLE_MASK .r
-#endif
+	#endif
 #else
 
 	#error Add your platform here
@@ -211,7 +220,12 @@ MaterialFloat4 TextureCubeSampleBias(TextureCube Tex, SamplerState Sampler, floa
 	#define TANGENTTOWORLD2					TEXCOORD11
 
 	// TangentToWorld0 is float4 only to match D3D11
+#if METAL_PROFILE
+		//@todo-rco: FIXME!
+		#define TANGENTTOWORLD_INTERPOLATOR_BLOCK	float4 TangentToWorld0 : TANGENTTOWORLD0; float4	TangentToWorld2	: TANGENTTOWORLD2;
+#else
 	#define TANGENTTOWORLD_INTERPOLATOR_BLOCK	MaterialFloat4 TangentToWorld0 : TANGENTTOWORLD0; MaterialFloat4	TangentToWorld2	: TANGENTTOWORLD2;
+#endif
 #endif
 
 MaterialFloat Luminance( MaterialFloat3 LinearColor )
@@ -419,7 +433,7 @@ MaterialFloat3 CalcSceneColor(MaterialFloat2 ScreenUV)
 /** return all channels of the scene lighting texture */
 MaterialFloat4 CalcFullSceneColor(MaterialFloat2 ScreenUV)
 {
-      return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV);
+	  return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV);
 }
 
 /** Encodes HDR linear scene color for storage in the 8 bit light attenuation texture. */
@@ -587,6 +601,8 @@ float CalcSceneDepth( float2 ScreenUV )
 			#else 
 				return 65000.0f; 
 			#endif 
+		#elif METAL_PROFILE
+				return FramebufferFetchES2().w;
 		#else
 			return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
 		#endif

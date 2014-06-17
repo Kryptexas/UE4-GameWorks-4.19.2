@@ -13,8 +13,6 @@
 #include "BRDF.usf"
 #include "SHCommon.usf"
 
-#define MATERIAL_NONMETAL	0
-
 /** Prenormalized capture of the scene that's closest to the object being rendered. */
 #if !MATERIAL_FULLY_ROUGH
 TextureCube ReflectionCubemap;

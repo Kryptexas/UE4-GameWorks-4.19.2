@@ -43,7 +43,6 @@ TMap<id, int32> ClassCounts;
 	}
 #define GET_HASH(Offset, NumBits) ((Hash >> Offset) & ((1ULL << NumBits) - 1))
 
-extern FString GMaterialNameHack;
 DEFINE_STAT(STAT_MetalMakeDrawableTime);
 DEFINE_STAT(STAT_MetalDrawCallTime);
 DEFINE_STAT(STAT_MetalPrepareDrawTime);
@@ -113,10 +112,6 @@ id<MTLRenderPipelineState> FPipelineShadow::CreatePipelineStateForBoundShaderSta
 	// some basic settings
 	Desc.depthWriteEnabled = bIsDepthWriteEnabled;
 	Desc.stencilWriteEnabled = bIsStencilWriteEnabled;
-	if (FParse::Param(FCommandLine::Get(), TEXT("labels")))
-	{
-		Desc.label = GMaterialNameHack.GetNSString();
-	}
 
 	// set per-MRT settings
 	for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
@@ -490,20 +485,6 @@ void FMetalManager::PrepareToDraw(uint32 NumVertices)
 	}
 }
 
-void FMetalManager::CheckStride(uint32 StreamIndex, uint32 Stride)
-{
-	FVertexDeclarationElementList& Elements = CurrentBoundShaderState->VertexDeclaration->Elements;
-	for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
-	{
-		FVertexElement& Element = Elements[ElementIndex];
-		if (Element.StreamIndex == StreamIndex)
-		{
-			check(Element.Stride != 0xFFFF);
-//			checkf(Element.Stride == Stride, TEXT("Strides didn't match up in Stream %d, expected %d, it was %d"), StreamIndex, Stride, Element.Stride);
-		}
-	}
-}
-
 void FMetalManager::SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled)
 {
 	Pipeline.bIsDepthWriteEnabled = bIsDepthWriteEnabled;
@@ -843,3 +824,122 @@ void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& Sta
 
 	bFirstRasterizerState = false;
 }
+
+
+
+// @todo metal srt
+#if 0 
+template <class ShaderType>
+void FMetalManager::SetResourcesFromTables(const ShaderType* RESTRICT Shader, Gnm::ShaderStage ShaderStage)
+{
+	checkSlow(Shader);
+
+	// Mask the dirty bits by those buffers from which the shader has bound resources.
+	uint32 DirtyBits = Shader->ShaderResourceTable.ResourceTableBits & DirtyUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency];
+	uint32 NumSetCalls = 0;
+	while (DirtyBits)
+	{
+		// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
+		const uint32 LowestBitMask = (DirtyBits) & (-(int32)DirtyBits);
+		const int32 BufferIndex = FMath::FloorLog2(LowestBitMask); // todo: This has a branch on zero, we know it could never be zero...
+		DirtyBits ^= LowestBitMask;
+		auto* Buffer = (FGnmUniformBuffer*)BoundUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency][BufferIndex].GetReference();
+		check(Buffer);
+		check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
+		check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+		Buffer->CacheResources(ResourceTableFrameCounter);
+
+		// todo: could make this two pass: gather then set
+		NumSetCalls +=
+		SetShaderResourcesFromBuffer<FGnmSurface>(ShaderStage, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+		SetShaderResourcesFromBuffer<Gnm::Sampler>(ShaderStage, Buffer, Shader->ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
+	}
+	DirtyUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency] = 0;
+	SetTextureInTableCalls += NumSetCalls;
+}
+
+void FMetalManager::CommitGraphicsResourceTables()
+{
+	uint32 Start = FPlatformTime::Cycles();
+
+	GRHICommandList.Verify();
+
+	auto* RESTRICT CurrentBoundShaderState = (FGnmBoundShaderState*)GGnmManager.BoundShaderStateHistory.GetLast();
+	check(CurrentBoundShaderState);
+
+	if (auto* Shader = CurrentBoundShaderState->VertexShader.GetReference())
+	{
+		SetResourcesFromTables(Shader, Shader->ShaderStage);
+	}
+	if (auto* Shader = CurrentBoundShaderState->PixelShader.GetReference())
+	{
+		SetResourcesFromTables(Shader, Gnm::kShaderStagePs);
+	}
+	if (auto* Shader = CurrentBoundShaderState->HullShader.GetReference())
+	{
+		SetResourcesFromTables(Shader, Gnm::kShaderStageHs);
+		auto* DomainShader = CurrentBoundShaderState->DomainShader.GetReference();
+		check(DomainShader);
+		check(0);
+/*
+		SetResourcesFromTables(DomainShader, Gnm::kShaderStageDs);
+*/
+	}
+	if (auto* Shader = CurrentBoundShaderState->GeometryShader.GetReference())
+	{
+		SetResourcesFromTables(Shader, Gnm::kShaderStageGs);
+	}
+
+	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
+}
+
+void FMetalManager::CommitNonComputeShaderConstants()
+{
+	GRHICommandList.Verify();
+	auto* CurrentBoundShaderState = (FGnmBoundShaderState*)BoundShaderStateHistory.GetLast();
+	check(CurrentBoundShaderState);
+
+	// update constant buffers from local shadow memory, and send to GPU
+	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Vertex ] )
+	{
+		VSConstantBuffer->CommitConstantsToDevice(CurrentVertexShaderStage, 0, bDiscardSharedConstants);
+	}
+	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Pixel ] )
+	{
+		PSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStagePs, 0, bDiscardSharedConstants);
+	}
+	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Geometry ] )
+	{
+		GSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageGs, 0, bDiscardSharedConstants);
+	}
+/*
+	// Skip HS/DS CB updates in cases where tessellation isn't being used
+	// Note that this is *potentially* unsafe because bDiscardSharedConstants is cleared at the
+	// end of the function, however we're OK for now because bDiscardSharedConstants
+	// is always reset whenever bUsingTessellation changes in SetBoundShaderState()
+	if (bUsingTessellation)
+	{
+		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Hull ] )
+		{
+			HSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageHs, 0, bDiscardSharedConstants);
+		}
+		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Domain ] )
+		{
+			check(0);
+			//DSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageDs, 0, bDiscardSharedConstants);
+		}
+	}
+*/
+
+	// don't need to discard again until next shader is set
+	bDiscardSharedConstants = false;
+}
+
+void FGnmManager::CommitComputeResourceTables( FGnmComputeShader* ComputeShader )
+{
+	GRHICommandList.Verify();
+
+	check(ComputeShader);
+	SetResourcesFromTables(ComputeShader, Gnm::kShaderStageCs);
+}
+#endif

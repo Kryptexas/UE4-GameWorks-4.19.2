@@ -328,7 +328,7 @@ GLenum GLFrequencyTable[] =
 };
 
 /** Map shader frequency -> string for messages. */
-const TCHAR* GLFrequencyStringTable[] =
+static const TCHAR* GLFrequencyStringTable[] =
 {
 	TEXT("Vertex"),
 	TEXT("Hull"),

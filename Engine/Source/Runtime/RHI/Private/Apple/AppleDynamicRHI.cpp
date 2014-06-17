@@ -8,9 +8,20 @@
 FDynamicRHI* PlatformCreateDynamicRHI()
 {
 	FDynamicRHI* DynamicRHI = NULL;
-	// Load the dynamic RHI module.
-	IDynamicRHIModule* DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
+	IDynamicRHIModule* DynamicRHIModule = NULL;
 
+	// Load the dynamic RHI module.
+#if PLATFORM_IOS && HAS_METAL
+	if (FPlatformMisc::HasPlatformFeature(TEXT("Metal")) && !FParse::Param(FCommandLine::Get(), TEXT("ES2")))
+	{
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("MetalRHI"));
+	}
+	else
+#endif
+	{
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("OpenGLDrv"));
+	}
+	
 	// Create the dynamic RHI.
 	DynamicRHI = DynamicRHIModule->CreateRHI();
 	return DynamicRHI;

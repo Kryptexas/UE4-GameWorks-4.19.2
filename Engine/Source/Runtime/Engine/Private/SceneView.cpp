@@ -336,24 +336,24 @@ void FSceneView::UpdateViewMatrix()
 
 	ViewMatrices.ViewOrigin = StereoViewLocation;
 
- 	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
- 	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
- 	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FMatrix(
- 		FPlane(0,	0,	1,	0),
- 		FPlane(1,	0,	0,	0),
- 		FPlane(0,	1,	0,	0),
- 		FPlane(0,	0,	0,	1));
+	ViewMatrices.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FInverseRotationMatrix(ViewRotation);
+	ViewMatrices.ViewMatrix = ViewMatrices.ViewMatrix * FMatrix(
+		FPlane(0,	0,	1,	0),
+		FPlane(1,	0,	0,	0),
+		FPlane(0,	1,	0,	0),
+		FPlane(0,	0,	0,	1));
  
 	ViewMatrices.PreViewTranslation = -ViewMatrices.ViewOrigin;
-  	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
+	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
 	
 	// Compute a transform from view origin centered world-space to clip space.
- 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
- 	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
+	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
+	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.InverseSafe();
 
- 	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
- 	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
- 	InvViewProjectionMatrix = ViewMatrices.GetInvViewProjMatrix();
+	ViewProjectionMatrix = ViewMatrices.GetViewProjMatrix();
+	InvViewMatrix = ViewMatrices.GetInvViewMatrix();
+	InvViewProjectionMatrix = ViewMatrices.GetInvViewProjMatrix();
 
 }
 
@@ -952,14 +952,15 @@ void FSceneView::EndFinalPostprocessSettings()
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PostProcessAAQuality")); 
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 		static auto* MobileMSAACvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+		static uint32 MSAAValue = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : MobileMSAACvar->GetValueOnGameThread();
 
 		int32 Quality = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 6);
 		const auto FeatureLevel = GetFeatureLevel();
 
 		if( !Family->EngineShowFlags.PostProcessing || !Family->EngineShowFlags.AntiAliasing || Quality <= 0
 			// Disable antialiasing in GammaLDR mode to avoid jittering.
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
-			|| (FeatureLevel == ERHIFeatureLevel::ES2 && MobileMSAACvar->GetValueOnGameThread()))
+			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && MobileHDRCvar->GetValueOnGameThread() == 0)
+			|| (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && (MSAAValue == 2 || MSAAValue == 4)) )
 		{
 			FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}

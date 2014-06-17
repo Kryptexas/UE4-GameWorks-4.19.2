@@ -69,19 +69,22 @@ protected:
 			case TPri_AboveNormal: return 25;
 			case TPri_Normal: return 15;
 			case TPri_BelowNormal: return 5;
-			default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priroty passed to FRunnableThreadPThread::TranslateThreadPriority()"));
+			default: UE_LOG(LogHAL, Fatal, TEXT("Unknown Priority passed to FRunnableThreadPThread::TranslateThreadPriority()"));
 		}
 	}
 
 	virtual void SetThreadPriority(pthread_t InThread, EThreadPriority NewPriority)
 	{
-		// initialize the structure
 		struct sched_param Sched;
 		FMemory::Memzero(&Sched, sizeof(struct sched_param));
-		
+		int32 Policy = SCHED_RR;
+
+		// Read the current policy
+		pthread_getschedparam(InThread, &Policy, &Sched);
+
 		// set the priority appropriately
 		Sched.sched_priority = TranslateThreadPriority(NewPriority);
-		pthread_setschedparam(InThread, SCHED_RR, &Sched);
+		pthread_setschedparam(InThread, Policy, &Sched);
 	}
 
 	/**

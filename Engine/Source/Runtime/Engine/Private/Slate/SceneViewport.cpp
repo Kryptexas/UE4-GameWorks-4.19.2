@@ -1022,7 +1022,11 @@ void FSceneViewport::BeginRenderFrame()
 	{
 		// Get the backbuffer render target to render directly to it
 		RenderTargetTextureRHI = RHIGetViewportBackBuffer( ViewportRHI );
-		RHISetRenderTarget( RenderTargetTextureRHI,  FTexture2DRHIRef() );
+		if (GRHIShaderPlatform != SP_METAL)
+		{
+			// unused set render targets are bad on Metal
+			RHISetRenderTarget(RenderTargetTextureRHI, FTexture2DRHIRef());
+		}
 	}
 }
 

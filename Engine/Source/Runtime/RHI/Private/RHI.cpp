@@ -235,6 +235,7 @@ static FName NAME_OPENGL_150_ES2(TEXT("GLSL_150_ES2"));
 static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
+static FName NAME_SF_METAL(TEXT("SF_METAL"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -266,6 +267,8 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_OPENGL_ES2_WEBGL;
 	case SP_OPENGL_ES2_IOS:
 		return NAME_OPENGL_ES2_IOS;
+	case SP_METAL:
+		return NAME_SF_METAL;
 	default:
 		check(0);
 		return NAME_PCD3D_SM5;
@@ -286,6 +289,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_OPENGL_ES2)		return SP_OPENGL_ES2;
 	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
 	if (ShaderFormat == NAME_OPENGL_ES2_IOS)	return SP_OPENGL_ES2_IOS;
+	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
 	return SP_NumPlatforms;
 }
 

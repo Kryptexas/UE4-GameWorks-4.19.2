@@ -43,10 +43,17 @@ float3 SplineMeshY;
 struct FVertexFactoryInput
 {
 	float4	Position	: ATTRIBUTE0;
+#if METAL_PROFILE
+		//@todo-rco: FIXME!
+		float3	TangentX	: ATTRIBUTE1;
+		float4	TangentZ	: ATTRIBUTE2;
+		float4	Color		: ATTRIBUTE3;
+#else
 	half3	TangentX	: ATTRIBUTE1;
 	// TangentZ.w contains sign of tangent basis determinant
 	half4	TangentZ	: ATTRIBUTE2;
 	half4	Color		: ATTRIBUTE3;
+#endif
 
 #if NUM_MATERIAL_TEXCOORDS_VERTEX
 

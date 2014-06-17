@@ -45,24 +45,25 @@ public:
 
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
 	{
+		uint16 Stride = sizeof(FParticleBeamTrailVertex);
 		/** The stream to read the vertex position from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,0));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 0, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex old position from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float3,1));
+		Elements.Add(FVertexElement(0, Offset, VET_Float3, 1, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex size/rot/subimage from. */
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,2));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 2, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the color from.					*/
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,4));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 4, Stride));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the texture coordinates from.	*/
-		Elements.Add(FVertexElement(0,Offset,VET_Float4,3));
+		Elements.Add(FVertexElement(0, Offset, VET_Float4, 3, Stride));
 		Offset += sizeof(float) * 4;
 		
 		/** Dynamic parameters come from a second stream */
-		Elements.Add(FVertexElement(1,0,VET_Float4,5));
+		Elements.Add(FVertexElement(1, 0, VET_Float4, 5, sizeof(FVector4)));
 	}
 
 	virtual void InitDynamicRHI()

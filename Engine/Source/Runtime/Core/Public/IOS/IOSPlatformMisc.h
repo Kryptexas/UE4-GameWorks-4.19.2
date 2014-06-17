@@ -40,7 +40,9 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			//If you want an immediate break use the trap instruction, continued execuction is halted
 #if WITH_SIMULATOR
             __asm__ ( "int $3" );
-#else   
+#elif PLATFORM_64BITS
+			__asm__ ( "svc 0" );
+#else
             __asm__ ( "trap" );
 #endif
 		}
@@ -60,7 +62,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCores();
 	static void LoadPreInitModules();
 	static void SetMemoryWarningHandler(void (* Handler)(const FGenericMemoryWarningContext & Context));
-
+	static bool HasPlatformFeature(const TCHAR* FeatureName);
 
 	//////// Platform specific
 	static void* CreateAutoreleasePool();

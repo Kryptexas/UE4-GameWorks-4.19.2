@@ -182,42 +182,58 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 	, Buffer(nil)
 	, Offset(0)
 {
-	// for single use buffers, allocate from the ring buffer to avoid thrashing memory
-	if (Usage == UniformBuffer_SingleDraw)
+	if (Layout.ConstantBufferSize > 0)
 	{
-		// use a bit of the ring buffer
-		Offset = FMetalManager::Get()->AllocateFromRingBuffer(Layout.ConstantBufferSize);
-		Buffer = FMetalManager::Get()->GetRingBuffer();
-	}
-	else
-	{
-		// Find the appropriate bucket based on size
-		const uint32 BucketIndex = GetPoolBucketIndex(Layout.ConstantBufferSize);
-		TArray<FPooledUniformBuffer>& PoolBucket = UniformBufferPool[BucketIndex];
-		if (PoolBucket.Num() > 0)
+		// for single use buffers, allocate from the ring buffer to avoid thrashing memory
+		if (Usage == UniformBuffer_SingleDraw)
 		{
-			// Reuse the last entry in this size bucket
-			FPooledUniformBuffer FreeBufferEntry = PoolBucket.Pop();
-			DEC_DWORD_STAT(STAT_MetalNumFreeUniformBuffers);
-			DEC_MEMORY_STAT_BY(STAT_MetalFreeUniformBufferMemory, FreeBufferEntry.CreatedSize);
-
-			// reuse the one
-			Buffer = FreeBufferEntry.Buffer;
-			Offset = FreeBufferEntry.Offset;
+			// use a bit of the ring buffer
+			Offset = FMetalManager::Get()->AllocateFromRingBuffer(Layout.ConstantBufferSize);
+			Buffer = FMetalManager::Get()->GetRingBuffer();
 		}
 		else
 		{
-			// Nothing usable was found in the free pool, create a new uniform buffer (full size, not NumBytes)
-			uint32 BufferSize = UniformBufferSizeBuckets[BucketIndex];
-			Buffer = SuballocateUB(BufferSize, Offset);
+			// Find the appropriate bucket based on size
+			const uint32 BucketIndex = GetPoolBucketIndex(Layout.ConstantBufferSize);
+			TArray<FPooledUniformBuffer>& PoolBucket = UniformBufferPool[BucketIndex];
+			if (PoolBucket.Num() > 0)
+			{
+				// Reuse the last entry in this size bucket
+				FPooledUniformBuffer FreeBufferEntry = PoolBucket.Pop();
+				DEC_DWORD_STAT(STAT_MetalNumFreeUniformBuffers);
+				DEC_MEMORY_STAT_BY(STAT_MetalFreeUniformBufferMemory, FreeBufferEntry.CreatedSize);
+
+				// reuse the one
+				Buffer = FreeBufferEntry.Buffer;
+				Offset = FreeBufferEntry.Offset;
+			}
+			else
+			{
+				// Nothing usable was found in the free pool, create a new uniform buffer (full size, not NumBytes)
+				uint32 BufferSize = UniformBufferSizeBuckets[BucketIndex];
+				Buffer = SuballocateUB(BufferSize, Offset);
+			}
 		}
+
+		// copy the contents
+		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Contents, Layout.ConstantBufferSize);
 	}
 
-	// copy the contents
-	FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Contents, Layout.ConstantBufferSize);
-
 	// @todo metal: Add support for resource tables!
-	check(Layout.Resources.Num() == 0);
+	if (Layout.Resources.Num())
+	{
+		int32 NumResources = Layout.Resources.Num();
+		FRHIResource** InResources = (FRHIResource**)((uint8*)Contents + Layout.ResourceOffset);
+		ResourceTable.Empty(NumResources);
+		ResourceTable.AddZeroed(NumResources);
+		for (int32 i = 0; i < NumResources; ++i)
+		{
+			check(InResources[i]);
+			ResourceTable[i] = InResources[i];
+		}
+		RawResourceTable.Empty(NumResources);
+		RawResourceTable.AddZeroed(NumResources);
+	}
 }
 
 FMetalUniformBuffer::~FMetalUniformBuffer()
@@ -229,6 +245,65 @@ FMetalUniformBuffer::~FMetalUniformBuffer()
 		//	FMetalManager::ReleaseObject(Buffer);
 	}
 }
+
+void FMetalUniformBuffer::CacheResourcesInternal()
+{
+	const FRHIUniformBufferLayout& Layout = GetLayout();
+	int32 NumResources = Layout.Resources.Num();
+	const uint8* RESTRICT ResourceTypes = Layout.Resources.GetData();
+	const TRefCountPtr<FRHIResource>* RESTRICT Resources = ResourceTable.GetData();
+	void** RESTRICT RawResources = RawResourceTable.GetData();
+	float CurrentTime = FApp::GetCurrentTime();
+
+	// todo: Immutable resources, i.e. not textures, can be safely cached across frames.
+	// Texture streaming makes textures complicated :)
+	for (int32 i = 0; i < NumResources; ++i)
+	{
+		switch (ResourceTypes[i])
+		{
+			case UBMT_SRV:
+				{
+					FMetalShaderResourceView* SRV = (FMetalShaderResourceView*)Resources[i].GetReference();
+					if (IsValidRef(SRV->SourceTexture))
+					{
+						FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(SRV->SourceTexture);
+						RawResources[i] = Surface.Texture;
+					}
+					else
+					{
+						check(0);
+						RawResources[i] = &SRV->SourceVertexBuffer->Buffer;
+					}
+				}
+				break;
+
+			case UBMT_TEXTURE:
+				{
+					// todo: this does multiple virtual function calls to find the right type to cast to
+					// this is due to multiple inheritance nastiness, NEEDS CLEANUP
+					FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
+					TextureRHI->SetLastCachedTime(CurrentTime);
+					FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
+					RawResources[i] = &Surface;
+				}
+				break;
+
+			case UBMT_UAV:
+				RawResources[i] = 0;
+				break;
+
+			case UBMT_SAMPLER:
+				RawResources[i] = &((FMetalSamplerState*)Resources[i].GetReference())->State;
+				break;
+
+			default:
+				check(0);
+				break;
+		}
+	}
+}
+
+
 
 FUniformBufferRHIRef FMetalDynamicRHI::RHICreateUniformBuffer(const void* Contents, const FRHIUniformBufferLayout& Layout, EUniformBufferUsage Usage)
 {

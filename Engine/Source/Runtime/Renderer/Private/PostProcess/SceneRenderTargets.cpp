@@ -60,7 +60,10 @@ static TAutoConsoleVariable<int32> CVarCustomDepth(
 TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("r.MobileMSAA"),
 	0,
-	TEXT("Whether to use MSAA instead of Temporal AA on mobile"),
+	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
+    TEXT("1: Use Temporal AA (MSAA disabled)\n")
+    TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
+    TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -170,7 +173,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-	int32 MobileMSAA = CVarMobileMSAA->GetValueOnRenderThread();
+	int32 MobileMSAA = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA->GetValueOnRenderThread();
 
 	bool bLightPropagationVolume = UseLightPropagationVolumeRT();
 
@@ -318,10 +321,12 @@ void FSceneRenderTargets::AllocSceneColor()
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	    uint16 NumSamples = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
+        if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
 		{
-			Desc.NumSamples = CVarMobileMSAA.GetValueOnRenderThread() ? 4 : 1;
+            NumSamples = 1;
 		}
+		Desc.NumSamples = NumSamples;
 
 		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
 	}

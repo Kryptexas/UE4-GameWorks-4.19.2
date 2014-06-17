@@ -247,12 +247,15 @@ inline void RHICreateTargetableShaderResource2D(
 	// Ensure that the targetable texture is either render or depth-stencil targetable.
 	check(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable | TexCreate_UAV));
 
-	if(NumSamples > 1) 
+	if (NumSamples > 1)
 	{
 		bForceSeparateTargetAndShaderResource = true;
 	}
 
-	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
+	// ES2 doesn't support resolve operations.
+    bForceSeparateTargetAndShaderResource &= (GRHIFeatureLevel > ERHIFeatureLevel::ES2);
+
+	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
 		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
@@ -297,10 +300,7 @@ inline void RHICreateTargetableShaderResourceCube(
 	check(TargetableTextureFlags & (TexCreate_RenderTargetable | TexCreate_DepthStencilTargetable));
 
 	// ES2 doesn't support resolve operations.
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
-	{
-		bForceSeparateTargetAndShaderResource = false;
-	}
+    bForceSeparateTargetAndShaderResource &= (GRHIFeatureLevel > ERHIFeatureLevel::ES2);
 
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{

@@ -351,14 +351,16 @@ struct FVertexElement
 	uint8 Offset;
 	TEnumAsByte<EVertexElementType> Type;
 	uint8 AttributeIndex;
-	bool bUseInstanceIndex;
+	uint16 Stride;
+	uint16 bUseInstanceIndex;
 
 	FVertexElement() {}
-	FVertexElement(uint8 InStreamIndex,uint8 InOffset,EVertexElementType InType,uint8 InAttributeIndex,bool bInUseInstanceIndex = false):
+	FVertexElement(uint8 InStreamIndex,uint8 InOffset,EVertexElementType InType,uint8 InAttributeIndex,uint16 InStride,bool bInUseInstanceIndex = false):
 		StreamIndex(InStreamIndex),
 		Offset(InOffset),
 		Type(InType),
 		AttributeIndex(InAttributeIndex),
+		Stride(InStride),
 		bUseInstanceIndex(bInUseInstanceIndex)
 	{}
 	/**
@@ -380,6 +382,7 @@ struct FVertexElement
 		Ar << Element.Offset;
 		Ar << Element.Type;
 		Ar << Element.AttributeIndex;
+		Ar << Element.Stride;
 		Ar << Element.bUseInstanceIndex;
 		return Ar;
 	}

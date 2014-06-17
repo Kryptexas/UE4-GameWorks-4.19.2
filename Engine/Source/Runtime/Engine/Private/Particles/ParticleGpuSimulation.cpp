@@ -541,7 +541,7 @@ public:
 		FVertexDeclarationElementList Elements;
 
 		/** The stream to read the texture coordinates from. */
-		Elements.Add(FVertexElement(0,0,VET_Float2,0,false));
+		Elements.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(FVector2D), false));
 
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
@@ -1094,7 +1094,7 @@ public:
 	{
 		FVertexDeclarationElementList Elements;
 		// TexCoord.
-		Elements.Add( FVertexElement( 0, 0, VET_Float2, 0, /*bUseInstanceIndex=*/ false ) );
+		Elements.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(FVector2D), /*bUseInstanceIndex=*/ false));
 		VertexDeclarationRHI = RHICreateVertexDeclaration( Elements );
 	}
 
@@ -1465,20 +1465,21 @@ public:
 		// Stream 0.
 		{
 			int32 Offset = 0;
+			uint16 Stride = sizeof(FNewParticle);
 			// InitialPosition.
-			Elements.Add( FVertexElement( 0, Offset, VET_Float4, 0, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Float4, 0, Stride, /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FVector4);
 			// InitialVelocity.
-			Elements.Add( FVertexElement( 0, Offset, VET_Float4, 1, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Float4, 1, Stride, /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FVector4);
 			// RenderAttributes.
-			Elements.Add( FVertexElement( 0, Offset, VET_Float4, 2, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Float4, 2, Stride, /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FVector4);
 			// SimulationAttributes.
-			Elements.Add( FVertexElement( 0, Offset, VET_Float4, 3, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Float4, 3, Stride, /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FVector4);
 			// ParticleIndex.
-			Elements.Add( FVertexElement( 0, Offset, VET_Float2, 4, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Float2, 4, Stride, /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FVector2D);
 		}
 
@@ -1486,7 +1487,7 @@ public:
 		{
 			int32 Offset = 0;
 			// TexCoord.
-			Elements.Add( FVertexElement( 1, Offset, VET_Float2, 5, /*bUseInstanceIndex=*/ false ) );
+			Elements.Add(FVertexElement(1, Offset, VET_Float2, 5, sizeof(FVector2D), /*bUseInstanceIndex=*/ false));
 			Offset += sizeof(FVector2D);
 		}
 
@@ -1713,7 +1714,7 @@ public:
 	virtual void InitRHI()
 	{
 		FVertexDeclarationElementList Elements;
-		Elements.Add( FVertexElement( 0, 0, VET_Float2, 0 ) );
+		Elements.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(FVector2D)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration( Elements );
 	}
 

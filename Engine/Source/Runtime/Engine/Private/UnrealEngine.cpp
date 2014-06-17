@@ -602,8 +602,8 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Add to root.
 	AddToRoot();
 
-    // Initialize the HMD, if any
-    InitializeHMDDevice();
+	// Initialize the HMD, if any
+	InitializeHMDDevice();
 
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
@@ -1552,13 +1552,13 @@ public:
 		const float YS = InWidth / tan(HalfFov) / InHeight;
 
 		const float InNearZ = GNearClippingPlane;
- 		return FMatrix(
- 			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
- 			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
- 			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
- 			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
+		return FMatrix(
+			FPlane(XS,                      0.0f,								    0.0f,							0.0f),
+			FPlane(0.0f,					YS,	                                    0.0f,							0.0f),
+			FPlane(0.0f,	                0.0f,								    0.0f,							1.0f),
+			FPlane(0.0f,					0.0f,								    InNearZ,						0.0f))
  
- 			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
+			* FTranslationMatrix(FVector(PassProjectionOffset,0,0));
 
 	}
 
@@ -1989,10 +1989,10 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-    if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
-    {
-        return true;
-    }
+	if (HMDDevice.IsValid() && HMDDevice->Exec( InWorld, Cmd, Ar ))
+	{
+		return true;
+	}
 
 	// Handle engine command line.
 	if ( FParse::Command(&Cmd,TEXT("FLUSHLOG")) )
@@ -8408,7 +8408,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			UE_LOG(LogNet, Error, TEXT("LoadMap: failed to Listen(%s)"), *URL.ToString());
 		}
- 	}
+	}
 
 	const TCHAR* MutatorString = URL.GetOption(TEXT("Mutator="), TEXT(""));
 	if (MutatorString)

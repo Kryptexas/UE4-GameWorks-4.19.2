@@ -125,9 +125,20 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
 			}
 
+			// needs IOS8 for Metal
+			if (IOSToolChain.IOSSDKVersionFloat >= 8.0)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
+				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
+			}
+
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "GameKit" ) );
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "StoreKit" ) );
-		}
+        }
 
 		/**
 		*	Whether the editor should be built for this platform or not
@@ -245,10 +256,10 @@ namespace UnrealBuildTool
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
 				}
 
-				if (bBuildShaderFormats)
-				{
-                    //InModule.AddPlatformSpecificDynamicallyLoadedModule("ShaderFormatIOS");
-				}
+ 				if (bBuildShaderFormats)
+ 				{
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("MetalShaderFormat");
+ 				}
 			}
 		}
 

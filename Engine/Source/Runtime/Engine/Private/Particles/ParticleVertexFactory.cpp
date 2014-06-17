@@ -70,32 +70,40 @@ public:
 		// Likely need to switch to two decls when enabling runtime ES2 preview.
 		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
 
+		uint32 InitialStride = sizeof(float) * 2;
+		uint32 PerParticleStride = (sizeof(float) * 4) * 4;
+
 		/** The stream to read the texture coordinates from. */
 		check( Offset == 0 );
-		Elements.Add(FVertexElement(0,Offset,VET_Float2,4,false));
+		uint32 Stride = bInstanced ? InitialStride : InitialStride + PerParticleStride;
+		Elements.Add(FVertexElement(0, Offset, VET_Float2, 4, Stride, false));
 		Offset += sizeof(float) * 2;
 
 		/** The per-particle streams follow. */
 		if(bInstanced) 
 		{
 			Offset = 0;
+			// update stride
+			Stride = PerParticleStride;
 		}
+
 		/** The stream to read the vertex position from. */
-		Elements.Add(FVertexElement(bInstanced ? 1 : 0,Offset,VET_Float4,0,bInstanced));
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 0, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex old position from. */
-		Elements.Add(FVertexElement(bInstanced ? 1 : 0,Offset,VET_Float4,1,bInstanced));
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 1, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the vertex size/rot/subimage from. */
-		Elements.Add(FVertexElement(bInstanced ? 1 : 0,Offset,VET_Float4,2,bInstanced));
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 2, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 		/** The stream to read the color from.					*/
-		Elements.Add(FVertexElement(bInstanced ? 1 : 0,Offset,VET_Float4,3,bInstanced));
+		Elements.Add(FVertexElement(bInstanced ? 1 : 0, Offset, VET_Float4, 3, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 
 		/** The per-particle dynamic parameter stream */
 		Offset = 0;
-		Elements.Add(FVertexElement(bInstanced ? 2 : 1,Offset,VET_Float4,5,bInstanced));
+		Stride = sizeof(float) * 4;
+		Elements.Add(FVertexElement(bInstanced ? 2 : 1, Offset, VET_Float4, 5, Stride, bInstanced));
 		Offset += sizeof(float) * 4;
 	}
 

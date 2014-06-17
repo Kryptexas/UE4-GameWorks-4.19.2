@@ -35,7 +35,7 @@ bool FSimpleElementVS::Serialize(FArchive& Ar)
 void FSimpleElementVS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 {
 	FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), 1);
+	OutEnvironment.SetDefine(TEXT("ALLOW_SWITCH_VERTICALAXIS"), (Platform != SP_METAL));
 }
 
 /*------------------------------------------------------------------------------

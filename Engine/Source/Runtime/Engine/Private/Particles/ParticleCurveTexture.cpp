@@ -142,7 +142,7 @@ public:
 		{
 			int32 Offset = 0;
 			// Sample.
-			Elements.Add( FVertexElement( 0, Offset, VET_Color, 0, /*bUseInstanceIndex=*/ true ) );
+			Elements.Add(FVertexElement(0, Offset, VET_Color, 0, sizeof(FColor), /*bUseInstanceIndex=*/ true));
 			Offset += sizeof(FColor);
 		}
 
@@ -150,7 +150,7 @@ public:
 		{
 			int32 Offset = 0;
 			// TexCoord.
-			Elements.Add( FVertexElement( 1, Offset, VET_Float2, 1, /*bUseInstanceIndex=*/ false ) );
+			Elements.Add(FVertexElement(1, Offset, VET_Float2, 1, sizeof(FVector2D), /*bUseInstanceIndex=*/ false));
 			Offset += sizeof(FVector2D);
 		}
 

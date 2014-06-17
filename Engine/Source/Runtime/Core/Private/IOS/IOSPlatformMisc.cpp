@@ -271,7 +271,27 @@ void FIOSPlatformMisc::ReleaseAutoreleasePool(void *Pool)
 void* FIOSPlatformMisc::GetHardwareWindow()
 {
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
-	return AppDelegate.GLView;
+    return AppDelegate.GLView 
+#if HAS_METAL
+		? AppDelegate.GLView : AppDelegate.MetalView
+#endif
+		;
+}
+
+bool FIOSPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
+{
+	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0)
+	{
+#if HAS_METAL
+		// @todo metal: Obviously not the right way to detect Metal support, but waiting for the right way...
+		FIOSPlatformMisc::EIOSDevice DeviceType = GetIOSDeviceType();
+		return DeviceType == IOS_IPhone5S || DeviceType == IOS_IPadMini2 || DeviceType == IOS_IPadAir;
+#else
+		return false;
+#endif
+	}
+
+	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
 }
 
 FIOSPlatformMisc::EIOSDevice FIOSPlatformMisc::GetIOSDeviceType()

@@ -9,6 +9,11 @@
 #include "IOSAppDelegate.h"
 #include <mach-o/dyld.h>
 
+// numbers recommended by Apple
+#define GAME_THREAD_PRIORITY 47
+#define RENDER_THREAD_PRIORITY 45
+
+
 const TCHAR* FIOSPlatformProcess::ComputerName()
 {
 	static TCHAR Result[256]=TEXT("");
@@ -64,4 +69,20 @@ void FIOSPlatformProcess::SetRealTimeMode()
 
 		thread_policy_set(pthread_mach_thread_np(pthread_self()), THREAD_TIME_CONSTRAINT_POLICY, (thread_policy_t)&Policy, THREAD_TIME_CONSTRAINT_POLICY_COUNT);
 	}
+}
+
+void FIOSPlatformProcess::SetupGameOrRenderThread(bool bIsRenderThread)
+{
+	// Set the gamethread priority to very high, slightly above the renderthread
+	struct sched_param Sched;
+	FMemory::Memzero(&Sched, sizeof(struct sched_param));
+
+	// Read the current priority and policy
+	int32 CurrentPolicy = SCHED_RR;
+	pthread_getschedparam(pthread_self(), &CurrentPolicy, &Sched);
+
+	// Set the new priority and policy (apple recommended FIFO for the two main non-working threads)
+	int32 Policy = SCHED_FIFO;
+	Sched.sched_priority = bIsRenderThread ? RENDER_THREAD_PRIORITY : GAME_THREAD_PRIORITY;
+	pthread_setschedparam(pthread_self(), Policy, &Sched);
 }

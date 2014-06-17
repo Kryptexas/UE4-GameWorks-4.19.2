@@ -39,15 +39,13 @@ namespace UnrealBuildTool
 		/** Which version of the iOS SDK to target at build time */
 		[XmlConfig]
 		public static string IOSSDKVersion = "latest";
+		public static float IOSSDKVersionFloat = 0.0f;
 
 		/** The architecture(s) to compile */
 		[XmlConfig]
 		public static string NonShippingArchitectures = "armv7";
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7";
-
-		// In case the SDK checking fails for some reason, use this version
-		private static string BackupVersion = "6.0";
 
 		/** Which version of the iOS to allow at run time */
 		[XmlConfig]
@@ -150,19 +148,25 @@ namespace UnrealBuildTool
 				catch (Exception Ex)
 				{
 					// on any exception, just use the backup version
-					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app. Using Backup version...");
+					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app");
 					Log.TraceInformation("{0}", Ex.ToString());
-					IOSSDKVersion = BackupVersion;
 				}
 
-				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+				if (IOSSDKVersion == "latest")
 				{
-					Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersion, RemoteServerName);
+					throw new BuildException("Unable to determine SDK version from Xcode, we cannot continue");
 				}
-				else
-				{
-					Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersion);
-				}
+			}
+
+			IOSSDKVersionFloat = float.Parse(IOSSDKVersion);
+
+			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
+			}
+			else
+			{
+				Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersionFloat);
 			}
 		}
 
@@ -214,6 +218,10 @@ namespace UnrealBuildTool
 			Result += " -fno-rtti";
 			Result += " -fvisibility=hidden"; // hides the linker warnings with PhysX
 
+// 			if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
+// 			{
+// 				Result += " -flto";
+// 			}
 
 			Result += " -Wall -Werror";
 

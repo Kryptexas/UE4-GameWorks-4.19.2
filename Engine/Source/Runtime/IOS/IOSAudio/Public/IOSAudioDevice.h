@@ -17,6 +17,8 @@
 #include <AudioUnit/AudioUnit.h>
 #include <AVFoundation/AVAudioSession.h>
 
+#define AudioSampleType SInt16
+
 DECLARE_LOG_CATEGORY_EXTERN(LogIOSAudio, Log, All);
 
 /*------------------------------------------------------------------------------------

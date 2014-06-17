@@ -90,7 +90,7 @@ bool FIOSAudioDevice::InitializeHardware()
 
 	// Linear PCM stream format
 	MixerFormat.mFormatID         = kAudioFormatLinearPCM;
-	MixerFormat.mFormatFlags      = kAudioFormatFlagsCanonical;
+	MixerFormat.mFormatFlags	  = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked;
 	MixerFormat.mBytesPerPacket   = SampleSize;
 	MixerFormat.mFramesPerPacket  = 1;
 	MixerFormat.mBytesPerFrame    = SampleSize;

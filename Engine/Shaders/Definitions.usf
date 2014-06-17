@@ -88,6 +88,10 @@
 #define ES2_PROFILE										0
 #endif
 
+#ifndef METAL_PROFILE
+#define METAL_PROFILE									0
+#endif
+
 #ifndef IOS
 #define IOS												0
 #endif
