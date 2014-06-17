@@ -57,6 +57,11 @@ namespace UnrealBuildTool
 			}
 		}
 
+		public static void UnregisterPlatformToolChain(CPPTargetPlatform InPlatform)
+		{
+			CPPToolChainDictionary.Remove(InPlatform);
+		}
+
 		public static IUEToolChain GetPlatformToolChain(CPPTargetPlatform InPlatform)
 		{
 			if (CPPToolChainDictionary.ContainsKey(InPlatform) == true)
