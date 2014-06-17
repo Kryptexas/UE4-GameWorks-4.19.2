@@ -2043,9 +2043,23 @@ static int32 InternalSavePackage( UPackage* PackageToSave, bool& bOutPackageLoca
 				}
 			
 				FText ErrorMessage;
-				if( !FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage ) )
+				bool bValidFilename = FEditorFileUtils::IsFilenameValidForSaving( FinalPackageFilename, ErrorMessage );
+				if ( bValidFilename )
 				{
-					FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+					bValidFilename = bIsMapPackage ? FEditorFileUtils::IsValidMapFilename( FinalPackageFilename, ErrorMessage ) : FPackageName::IsValidLongPackageName( FinalPackageFilename, false, &ErrorMessage );
+				}
+
+				if ( !bValidFilename )
+				{
+					// Start the loop over, prompting for save again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *FinalPackageFilename ) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add( TEXT("Filename"), DisplayFilename );
+					Arguments.Add( TEXT("LineTerminators"), FText::FromString( LINE_TERMINATOR LINE_TERMINATOR ) );
+					Arguments.Add( TEXT("ErrorMessage"), ErrorMessage );
+					const FText DisplayMessage = FText::Format( LOCTEXT( "InvalidSaveFilename", "Failed to save to {Filename}{LineTerminators}{ErrorMessage}" ), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+
 					// Start the loop over, prompting for save again
 					continue;
 				}
