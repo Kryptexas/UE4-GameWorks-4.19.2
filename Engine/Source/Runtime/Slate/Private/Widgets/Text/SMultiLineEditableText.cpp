@@ -426,6 +426,8 @@ void SMultiLineEditableText::FinishChangingText()
 		
 		LastSetText = EditedText;
 
+		TextLayout->UpdateIfNeeded();
+
 		// Let outsiders know that the text content has been changed
 		OnTextChanged.ExecuteIfBound(EditedText);
 	}
@@ -497,8 +499,6 @@ void SMultiLineEditableText::BackspaceChar()
 				FinalCursorLocation = FTextLocation(CursorInteractionPosition, -1);
 			}
 		}
-
-		TextLayout->UpdateIfNeeded();
 
 		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
 
@@ -593,8 +593,6 @@ void SMultiLineEditableText::DeleteChar()
 				//do nothing to the cursor as the FinalCursorLocation is already correct
 			}
 
-			TextLayout->UpdateIfNeeded();
-
 			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
 
 			ClearSelection();
@@ -637,8 +635,6 @@ void SMultiLineEditableText::TypeChar( const int32 Character )
 		// Advance caret position
 		ClearSelection();
 		const FTextLocation FinalCursorLocation = FTextLocation( CursorInteractionPosition.GetLineIndex(), FMath::Min( CursorInteractionPosition.GetOffset() + 1, Line.Text->Len() ) );
-
-		TextLayout->UpdateIfNeeded();
 
 		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
 		UpdateCursorHighlight();
@@ -711,8 +707,6 @@ void SMultiLineEditableText::DeleteSelectedText()
 		const FTextLocation FinalCursorLocation = FTextLocation(SelectionBeginningLineIndex, SelectionBeginningLineOffset);
 		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, FinalCursorLocation);
 		UpdateCursorHighlight();
-
-		TextLayout->UpdateIfNeeded();
 	}
 }
 
