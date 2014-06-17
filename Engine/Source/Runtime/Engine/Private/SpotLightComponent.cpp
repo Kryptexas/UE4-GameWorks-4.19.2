@@ -256,3 +256,20 @@ ELightComponentType USpotLightComponent::GetLightType() const
 {
 	return LightType_Spot;
 }
+
+void USpotLightComponent::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property)
+	{
+		if (PropertyChangedEvent.Property->GetFName() == TEXT("InnerConeAngle"))
+		{
+			OuterConeAngle = FMath::Max(InnerConeAngle, OuterConeAngle);
+		}
+		else if (PropertyChangedEvent.Property->GetFName() == TEXT("OuterConeAngle"))
+		{
+			InnerConeAngle = FMath::Min(InnerConeAngle, OuterConeAngle);
+		}
+	}
+
+	UPointLightComponent::PostEditChangeProperty(PropertyChangedEvent);
+}
