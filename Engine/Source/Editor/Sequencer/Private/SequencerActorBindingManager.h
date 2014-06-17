@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
+
 class FSequencer;
 
 namespace EPuppetObjectType

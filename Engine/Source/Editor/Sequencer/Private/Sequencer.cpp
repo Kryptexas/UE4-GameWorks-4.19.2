@@ -35,7 +35,7 @@
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
-DEFINE_LOG_CATEGORY_STATIC( LogSequencer, Log, All );
+DEFINE_LOG_CATEGORY(LogSequencer);
 
 bool FSequencer::IsSequencerEnabled()
 {

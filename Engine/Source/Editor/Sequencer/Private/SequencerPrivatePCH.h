@@ -21,4 +21,6 @@
 #include "SAnimationOutlinerView.h"
 #include "MovieSceneInstance.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogSequencer, Log, All);
+
 #endif // __SequencerPrivatePCH_h__

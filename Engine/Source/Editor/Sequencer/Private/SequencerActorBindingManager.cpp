@@ -8,6 +8,8 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "K2Node_PlayMovieScene.h"
 #include "MovieSceneInstance.h"
+#include "Engine/LevelScriptBlueprint.h"
+#include "Editor/Kismet/Public/BlueprintEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 

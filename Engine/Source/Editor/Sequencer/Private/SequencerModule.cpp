@@ -6,6 +6,7 @@
 #include "Toolkits/ToolkitManager.h"
 #include "SequencerCommands.h"
 #include "SequencerAssetEditor.h"
+#include "SequencerObjectChangeListener.h"
 
 /**
  * SequencerModule implementation (private)

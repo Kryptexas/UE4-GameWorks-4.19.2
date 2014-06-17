@@ -6,6 +6,7 @@
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
+#include "UMGSequencerObjectBindingManager.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
