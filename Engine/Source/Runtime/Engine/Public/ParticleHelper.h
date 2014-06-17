@@ -976,8 +976,25 @@ struct FParticleEventInstancePayload
 struct FEmitterDynamicParameterPayload
 {
 	/** The float4 value to assign to the dynamic parameter. */
-	FVector4 DynamicParameterValue;
+	float DynamicParameterValue[4];
 };
+
+/**
+ *	Helper function for retrieving the dynamic payload of a particle.
+ *
+ *	@param	InDynamicPayloadOffset		The offset to the payload
+ *	@param	InParticle					The particle being processed
+ *	@param	OutDynamicData				The dynamic data from the particle
+ */
+FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
+{
+	checkSlow(InDynamicPayloadOffset > 0);
+	FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
+	OutDynamicData.X = DynPayload->DynamicParameterValue[0];
+	OutDynamicData.Y = DynPayload->DynamicParameterValue[1];
+	OutDynamicData.Z = DynPayload->DynamicParameterValue[2];
+	OutDynamicData.W = DynPayload->DynamicParameterValue[3];
+}
 
 /** Camera offset particle payload */
 struct FCameraOffsetParticlePayload
@@ -1541,23 +1558,6 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	virtual void RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses);
 
 	/**
-	 *	Helper function for retrieving the dynamic payload of a particle.
-	 *
-	 *	@param	InDynamicPayloadOffset		The offset to the payload
-	 *	@param	InParticle					The particle being processed
-	 *	@param	OutDynamicData				The dynamic data from the particle
-	 */
-	FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
-	{
-		checkSlow(InDynamicPayloadOffset > 0);
-		FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
-		OutDynamicData.X = DynPayload->DynamicParameterValue.X;
-		OutDynamicData.Y = DynPayload->DynamicParameterValue.Y;
-		OutDynamicData.Z = DynPayload->DynamicParameterValue.Z;
-		OutDynamicData.W = DynPayload->DynamicParameterValue.W;
-	}
-
-	/**
 	 *	Fill index and vertex buffers. Often called from a different thread
 	 *
 	 */
@@ -1904,23 +1904,6 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	 *	@param	View                    The scene view being rendered
 	 */
 	void GetInstanceData(void* InstanceData, void* DynamicParameterData, FParticleSystemSceneProxy* Proxy, const FSceneView* View);
-
-	/**
-	 *	Helper function for retrieving the dynamic payload of a particle.
-	 *
-	 *	@param	InDynamicPayloadOffset		The offset to the payload
-	 *	@param	InParticle					The particle being processed
-	 *	@param	OutDynamicData				The dynamic data from the particle
-	 */
-	FORCEINLINE void GetDynamicValueFromPayload(int32 InDynamicPayloadOffset, FBaseParticle& InParticle, FVector4& OutDynamicData)
-	{
-		checkSlow(InDynamicPayloadOffset > 0);
-		FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(&InParticle) + InDynamicPayloadOffset));
-		OutDynamicData.X = DynPayload->DynamicParameterValue.X;
-		OutDynamicData.Y = DynPayload->DynamicParameterValue.Y;
-		OutDynamicData.Z = DynPayload->DynamicParameterValue.Z;
-		OutDynamicData.W = DynPayload->DynamicParameterValue.W;
-	}
 
 	/**
 	 *	Helper function for retrieving the particle transform.
