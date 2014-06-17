@@ -689,8 +689,18 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 
 	VALIDATE_BOUND_SHADER(PixelShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
+
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Pixel>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
+	}
 
 	BoundUniformBuffers[SF_Pixel][BufferIndex] = BufferRHI;
 	DirtyUniformBuffers[SF_Pixel] |= (1 << BufferIndex);

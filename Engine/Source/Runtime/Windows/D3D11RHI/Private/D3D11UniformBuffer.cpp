@@ -112,8 +112,7 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
 			FRingAllocation RingAllocation;
 
-#if 0//PLATFORM_XBOXONE
-			// FIXME: this does not work
+#if PLATFORM_XBOXONE
 			if (Usage == UniformBuffer_SingleDraw)
 			{
 				RingAllocation = DynamicCB.MapAndFill(GetDeviceContext(),NumBytes,Contents);
@@ -188,15 +187,13 @@ FUniformBufferRHIRef FD3D11DynamicRHI::RHICreateUniformBuffer(const void* Conten
 			TRefCountPtr<ID3D11Buffer> UniformBufferResource;
 			VERIFYD3D11RESULT(Direct3DDevice->CreateBuffer(&Desc,&ImmutableData,UniformBufferResource.GetInitReference()));
 
-			FRingAllocation RingAllocation;
-			NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, UniformBufferResource, RingAllocation);
+			NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, UniformBufferResource, FRingAllocation());
 		}
 	}
 	else
 	{
 		// This uniform buffer contains no constants, only a resource table.
-		FRingAllocation RingAllocation;
-		NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, nullptr, RingAllocation);
+		NewUniformBuffer = new FD3D11UniformBuffer(this, Layout, nullptr, FRingAllocation());
 	}
 
 	if (Layout.Resources.Num())
