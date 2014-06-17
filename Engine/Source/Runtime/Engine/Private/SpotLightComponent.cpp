@@ -257,6 +257,8 @@ ELightComponentType USpotLightComponent::GetLightType() const
 	return LightType_Spot;
 }
 
+#if WITH_EDITOR
+
 void USpotLightComponent::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property)
@@ -273,3 +275,5 @@ void USpotLightComponent::PostEditChangeProperty( FPropertyChangedEvent& Propert
 
 	UPointLightComponent::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+#endif	// WITH_EDITOR
