@@ -106,6 +106,7 @@ struct FBXImportOptions
 	bool bImportTextures;
 	bool bImportLOD;
 	bool bUsedAsFullName;
+	bool bConvertScene;
 	bool bRemoveNameSpace;
 	EFBXNormalImportMethod NormalImportMethod;
 	// Static Mesh options

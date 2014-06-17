@@ -35,6 +35,10 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, config, Category=General)
 	uint32 bOverrideFullName:1;
 
+	/** Whether to convert scene from FBX scene. */
+	UPROPERTY(EditAnywhere, config, Category=General)
+	uint32 bConvertScene:1;
+
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */
 	UPROPERTY(EditAnywhere, config, Category=StaticMesh, meta=(ToolTip="If enabled, combines all meshes into a single mesh"))
 	uint32 bCombineMeshes:1;

@@ -98,6 +98,7 @@ private:
 	void SetImportType(EFBXImportType ImportType);
 
 	void SetGeneral_OverrideFullName(ESlateCheckBoxState::Type NewType);
+	void SetGeneral_ConvertScene(ESlateCheckBoxState::Type NewType);
 	void SetMesh_ImportTangents(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_ImportMeshLODs(ESlateCheckBoxState::Type NewType);
 	void SetSkeletalMesh_ImportMorphTargets(ESlateCheckBoxState::Type NewType);

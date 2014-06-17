@@ -545,6 +545,18 @@ TSharedRef<SWidget> SFbxOptionWindow::ConstructMiscOption()
 		]
 	];
 
+	NewBox->AddSlot().AutoHeight() .Padding(2)
+	[
+		SNew(SCheckBox)
+		.IsChecked(ImportUI->bConvertScene? true: false)
+		.OnCheckStateChanged(this, &SFbxOptionWindow::SetGeneral_ConvertScene)
+		.IsEnabled( !bIsObjFormat )
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("FbxOptionWindow_ConvertScene", "Convert Scene"))
+		]
+	];
+
 	return NewBox;
 }
 
@@ -1124,6 +1136,11 @@ void SFbxOptionWindow::SetImportType(EFBXImportType ImportType)
 void SFbxOptionWindow::SetGeneral_OverrideFullName(ESlateCheckBoxState::Type NewType)
 {
 	ImportUI->bOverrideFullName = (NewType == ESlateCheckBoxState::Checked)? 1:0;
+}
+
+void SFbxOptionWindow::SetGeneral_ConvertScene(ESlateCheckBoxState::Type NewType)
+{
+	ImportUI->bConvertScene = (NewType == ESlateCheckBoxState::Checked)? 1:0;
 }
 
 void SFbxOptionWindow::SetSkeletalMesh_ImportMeshLODs(ESlateCheckBoxState::Type NewType)
