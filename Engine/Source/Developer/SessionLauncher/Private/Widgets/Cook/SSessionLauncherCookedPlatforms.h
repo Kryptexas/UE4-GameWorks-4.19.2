@@ -29,15 +29,29 @@ public:
 	{
 		Model = InModel;
 
+		MakePlatformMenu();
+
 		ChildSlot
 		[
 			SNew(SVerticalBox)
 
 			+ SVerticalBox::Slot()
-				.AutoHeight()
+				.FillHeight(1.0f)
 				[
 					// platform menu
-					MakePlatformMenu()
+					SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
+					.HeaderRow(
+					SNew(SHeaderRow)
+					.Visibility(EVisibility::Collapsed)
+
+					+ SHeaderRow::Column("PlatformName")
+					.DefaultLabel(LOCTEXT("PlatformListPlatformNameColumnHeader", "Platform"))
+					.FillWidth(1.0f)
+					)
+					.ItemHeight(16.0f)
+					.ListItemsSource(&PlatformList)
+					.OnGenerateRow(this, &SSessionLauncherCookedPlatforms::HandlePlatformListViewGenerateRow)
+					.SelectionMode(ESelectionMode::None)
 				]
 
 			+ SVerticalBox::Slot()
@@ -94,7 +108,7 @@ protected:
 	 *
 	 * @return Platform menu widget.
 	 */
-	TSharedRef<SWidget> MakePlatformMenu( )
+	void MakePlatformMenu( )
 	{
 		TArray<ITargetPlatform*> Platforms = GetTargetPlatformManager()->GetTargetPlatforms();
 
@@ -107,27 +121,7 @@ protected:
 
 				PlatformList.Add(MakeShareable(new FString(PlatformName)));
 			}
-
-			SAssignNew(PlatformListView, SListView<TSharedPtr<FString> >)
-				.HeaderRow(
-				SNew(SHeaderRow)
-				.Visibility(EVisibility::Collapsed)
-
-				+ SHeaderRow::Column("PlatformName")
-				.DefaultLabel(LOCTEXT("PlatformListPlatformNameColumnHeader", "Platform"))
-				.FillWidth(1.0f)
-				)
-				.ItemHeight(16.0f)
-				.ListItemsSource(&PlatformList)
-				.OnGenerateRow(this, &SSessionLauncherCookedPlatforms::HandlePlatformListViewGenerateRow)
-				.SelectionMode(ESelectionMode::None);
-
-			return PlatformListView.ToSharedRef();
 		}
-
-		return SNew(STextBlock)
-			.ColorAndOpacity(FLinearColor::Red)
-			.Text(LOCTEXT("NoPlatformsFoundErrorText", "Error: No platforms found."));
 	}
 
 private:
