@@ -969,7 +969,7 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
-		public FileItem FixDylibDependencies(LinkEnvironment LinkEnvironment, FileItem Executable)
+		FileItem FixDylibDependencies(LinkEnvironment LinkEnvironment, FileItem Executable)
 		{
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
@@ -1054,7 +1054,7 @@ namespace UnrealBuildTool
 		 * 
 		 * @param Executable FileItem describing the executable to generate app bundle for
 		 */
-		public FileItem CreateAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
+		FileItem CreateAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
 		{
 			// Make a file item for the source and destination files
 			string FullDestPath = Executable.AbsolutePath.Substring(0, Executable.AbsolutePath.IndexOf(".app") + 4);
@@ -1232,6 +1232,27 @@ namespace UnrealBuildTool
 			}
 
 			base.PostBuildSync(Target);
+		}
+
+		public override ICollection<FileItem> PostBuild (FileItem Executable, LinkEnvironment BinaryLinkEnvironment)
+		{
+			var OutputFiles = base.PostBuild (Executable, BinaryLinkEnvironment);
+
+			// if building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
+			if (ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac) {
+				return OutputFiles;
+			}
+
+			if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary) {
+				return OutputFiles;
+			}
+			FileItem FixDylibOutputFile = FixDylibDependencies(BinaryLinkEnvironment, Executable);
+			OutputFiles.Add(FixDylibOutputFile);
+			if (BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
+				return OutputFiles;
+
+			OutputFiles.Add(CreateAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
+			return OutputFiles;
 		}
 	};
 }

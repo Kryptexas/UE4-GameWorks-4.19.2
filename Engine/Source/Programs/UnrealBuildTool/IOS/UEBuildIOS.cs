@@ -302,7 +302,7 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// generate the .stub!
 			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };

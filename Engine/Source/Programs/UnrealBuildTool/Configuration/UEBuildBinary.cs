@@ -185,10 +185,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the binary.
 		/// </summary>
+		/// <param name="ToolChain">The toolchain which to use for building</param>
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public abstract IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment,LinkEnvironment LinkEnvironment);
+		public abstract IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment,LinkEnvironment LinkEnvironment);
 
 		/// <summary>
 		/// Writes an XML summary of the build environment for this binary
@@ -448,8 +449,9 @@ namespace UnrealBuildTool
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain TargetToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
+
 			// Determine the type of binary we're linking.
 			switch (Config.Type)
 			{
@@ -466,7 +468,6 @@ namespace UnrealBuildTool
 					CompileEnvironment.Config.bIsBuildingLibrary = false;
 					break;
 			};
-
 
 			var OutputFiles = new List<FileItem>();
 
@@ -530,7 +531,6 @@ namespace UnrealBuildTool
 			{
 				BinaryDependency.SetupDependentLinkEnvironment(ref BinaryLinkEnvironment);
 			}
-
 
 			// Set the link output file.
 			BinaryLinkEnvironment.Config.OutputFilePath = Config.OutputFilePath;
@@ -606,21 +606,7 @@ namespace UnrealBuildTool
 					OutputFiles.Add(ConsoleAppLinkEvironment.LinkExecutable(false));
 				}
 
-				// if building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
-				if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac &&
-					BinaryLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
-				{
-					if (!BinaryLinkEnvironment.Config.bIsBuildingDLL && !BinaryLinkEnvironment.Config.bIsBuildingLibrary)
-					{
-						MacToolChain Mac = (MacToolChain)UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Mac);
-						FileItem FixDylibOutputFile = Mac.FixDylibDependencies(BinaryLinkEnvironment, Executable);
-						OutputFiles.Add(FixDylibOutputFile);
-						if (!BinaryLinkEnvironment.Config.bIsBuildingConsoleApplication)
-						{
-							OutputFiles.Add(Mac.CreateAppBundle(BinaryLinkEnvironment, Executable, FixDylibOutputFile));
-						}
-					}
-				}
+				OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
 			}
 			
 			return OutputFiles;
@@ -718,10 +704,11 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Builds the binary.
 		/// </summary>
+		/// <param name="ToolChain">The toolchain to use for building</param>
 		/// <param name="CompileEnvironment">The environment to compile the binary in</param>
 		/// <param name="LinkEnvironment">The environment to link the binary in</param>
 		/// <returns></returns>
-		public override IEnumerable<FileItem> Build(CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
+		public override IEnumerable<FileItem> Build(IUEToolChain ToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			var ProjectCSharpEnviroment = new CSharpEnvironment();
 			if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)

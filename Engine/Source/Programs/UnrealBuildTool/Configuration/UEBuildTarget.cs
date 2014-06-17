@@ -1095,7 +1095,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Builds the target, appending list of output files and returns building result. */
-		public ECompilationResult Build(List<FileItem> OutputItems)
+		public ECompilationResult Build(IUEToolChain TargetToolChain, List<FileItem> OutputItems)
 		{
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
 			SetupGlobalEnvironment();
@@ -1428,7 +1428,7 @@ namespace UnrealBuildTool
 			// Build the target's binaries.
 			foreach (var Binary in AppBinaries)
 			{
-				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
+				OutputItems.AddRange(Binary.Build(TargetToolChain, GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
 			if (BuildConfiguration.WriteTargetInfoPath != null)

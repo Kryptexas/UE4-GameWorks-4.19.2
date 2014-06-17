@@ -1040,6 +1040,8 @@ namespace UnrealBuildTool
 			string ExecutorName = "Unknown";
 			ECompilationResult BuildResult = ECompilationResult.Succeeded;
 
+			var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
+
 			try
 			{
 				List<string[]> TargetSettings = ParseCommandLineFlags(Arguments);
@@ -1079,7 +1081,7 @@ namespace UnrealBuildTool
 					}
 
 					var TargetOutputItems = new List<FileItem>();
-					BuildResult = Target.Build(TargetOutputItems);
+					BuildResult = Target.Build(ToolChain, TargetOutputItems);
 
 					if(BuildResult != ECompilationResult.Succeeded)
 					{
@@ -1155,7 +1157,6 @@ namespace UnrealBuildTool
 							ActionsToExecute.Count
 							);
 
-					var ToolChain = UEToolChain.GetPlatformToolChain(BuildPlatform.GetCPPTargetPlatform(ResetPlatform));
 					ToolChain.PreBuildSync();
 
 					// Execute the actions.

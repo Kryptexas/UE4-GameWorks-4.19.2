@@ -32,8 +32,10 @@ namespace UnrealBuildTool
 		
 		void PreBuildSync();
 		
-        void PostBuildSync(UEBuildTarget Target);
-        
+		void PostBuildSync(UEBuildTarget Target);
+
+		ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment);
+
 		void SetUpGlobalEnvironment();
 	}
 
@@ -128,14 +130,18 @@ namespace UnrealBuildTool
 		{
 		}
 
-        public virtual void PostBuildSync(UEBuildTarget Target)
+		public virtual void PostBuildSync(UEBuildTarget Target)
 		{
+		}
+
+		public virtual ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment)
+		{
+			return new List<FileItem> ();
 		}
 
 		public virtual void SetUpGlobalEnvironment()
 		{
 		}
-
 
 		protected void RunUnrealHeaderToolIfNeeded()
 		{
