@@ -32,6 +32,9 @@ public:
 		case EImageFormat::JPEG:
 			ImageWrapper = new FJpegImageWrapper();
 			break;
+		case EImageFormat::GrayscaleJPEG:
+			ImageWrapper = new FJpegImageWrapper(1);
+			break;
 #endif	//WITH_UNREALJPEG
 
 		case EImageFormat::BMP:

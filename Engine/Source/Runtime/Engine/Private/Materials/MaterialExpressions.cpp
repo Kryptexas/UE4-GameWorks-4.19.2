@@ -1688,6 +1688,10 @@ bool UMaterialExpressionTextureSampleParameter2D::TextureIsValid( UTexture* InTe
 		{
 			Result = true;
 		}
+		if ( InTexture->IsA(UTexture2DDynamic::StaticClass()) )
+		{
+			Result = true;
+		}
 	}
 	return Result;
 }

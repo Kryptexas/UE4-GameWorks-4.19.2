@@ -4,7 +4,7 @@
 #pragma once
 #include "Texture2DDynamic.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(hidecategories=Object, MinimalAPI)
 class UTexture2DDynamic : public UTexture
 {
 	GENERATED_UCLASS_BODY()
@@ -28,10 +28,10 @@ class UTexture2DDynamic : public UTexture
 
 public:
 	// Begin UTexture Interface.
-	virtual FTextureResource* CreateResource() override;
+	ENGINE_API virtual FTextureResource* CreateResource() override;
 	virtual EMaterialValueType GetMaterialType() override { return MCT_Texture2D; }
-	virtual float GetSurfaceWidth() const override;
-	virtual float GetSurfaceHeight() const override;
+	ENGINE_API virtual float GetSurfaceWidth() const override;
+	ENGINE_API virtual float GetSurfaceHeight() const override;
 	// End UTexture Interface.
 	
 	/**
@@ -42,7 +42,7 @@ public:
 	 * @param InFormat			- Format of the texture, defaults to PF_B8G8R8A8
 	 * @param InIsResolveTarget	- Whether the texture can be used as a resolve target
 	 */
-	void Init(int32 InSizeX, int32 InSizeY, EPixelFormat InFormat = PF_B8G8R8A8, bool InIsResolveTarget = false);
+	ENGINE_API void Init(int32 InSizeX, int32 InSizeY, EPixelFormat InFormat = PF_B8G8R8A8, bool InIsResolveTarget = false);
 	
 	/** Creates and initializes a new Texture2DDynamic with the requested settings */
 	class UTexture2DDynamic* Create(int32 InSizeX, int32 InSizeY, EPixelFormat InFormat = PF_B8G8R8A8, bool InIsResolveTarget = false);

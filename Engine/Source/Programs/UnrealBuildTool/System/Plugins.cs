@@ -41,6 +41,9 @@ namespace UnrealBuildTool
 			// List of platforms supported by this modules
 			public List<UnrealTargetPlatform> Platforms;
 		}
+		
+		// Whether or not the plugin should be built
+		public bool bShouldBuild;
 
 		// Plugin name
 		public string Name;
@@ -251,9 +254,22 @@ namespace UnrealBuildTool
 								}
 							}
 						}
-				
-						// add to list of modules
-						PluginInfo.Modules.Add( PluginModuleInfo );
+						
+						object ModuleShouldBuild;
+						if( ModuleDict.TryGetValue( "bShouldBuild", out ModuleShouldBuild ) )
+						{
+							PluginInfo.bShouldBuild = (Int64)ModuleShouldBuild == 1 ? true : false;
+						}
+						else
+						{
+							PluginInfo.bShouldBuild = true;
+						}
+
+						if (PluginInfo.bShouldBuild)
+						{
+							// add to list of modules
+							PluginInfo.Modules.Add(PluginModuleInfo);
+						}
 					}
 				}
 				else

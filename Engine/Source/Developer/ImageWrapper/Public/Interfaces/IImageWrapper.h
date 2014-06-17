@@ -16,6 +16,9 @@ namespace EImageFormat
 		/** Joint Photographic Experts Group */
 		JPEG,
 
+		/** Single channel jpeg */
+		GrayscaleJPEG,	
+
 		/** Windows Bitmap */
 		BMP,
 

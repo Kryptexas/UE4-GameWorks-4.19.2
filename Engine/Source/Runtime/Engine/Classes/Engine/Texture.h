@@ -283,10 +283,10 @@ struct FTexturePlatformData
 #endif
 
 	/** Default constructor. */
-	FTexturePlatformData();
+	ENGINE_API FTexturePlatformData();
 
 	/** Destructor. */
-	~FTexturePlatformData();
+	ENGINE_API ~FTexturePlatformData();
 
 	/**
 	 * Try to load mips from the derived data cache.
@@ -524,7 +524,7 @@ public:
 	/**
 	 * Creates a new resource for the texture, and updates any cached references to the resource.
 	 */
-	virtual void UpdateResource();
+	ENGINE_API virtual void UpdateResource();
 
 	/**
 	 * Implemented by subclasses to create a new resource for the texture.
@@ -575,7 +575,7 @@ public:
 	/**
 	 * Serializes cooked platform data.
 	 */
-	void SerializeCookedPlatformData(class FArchive& Ar);
+	ENGINE_API void SerializeCookedPlatformData(class FArchive& Ar);
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -607,7 +607,7 @@ public:
 	/**
 	 * Forces platform data to be rebuilt.
 	 */
-	void ForceRebuildPlatformData();
+	ENGINE_API void ForceRebuildPlatformData();
 
 	ENGINE_API void UpdateCachedLODBias( bool bIncTextureMips = true );
 
@@ -625,14 +625,14 @@ public:
 
 	// Begin UObject interface.
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostLoad() override;
-	virtual void PreSave() override;
-	virtual void BeginDestroy() override;
-	virtual bool IsReadyForFinishDestroy() override;
-	virtual void FinishDestroy() override;
+	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual void PreSave() override;
+	ENGINE_API virtual void BeginDestroy() override;
+	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
+	ENGINE_API virtual void FinishDestroy() override;
 	// End UObject interface.
 
 	/**
@@ -643,7 +643,7 @@ public:
 	 *
 	 *	@return	float					The average brightness of the texture
 	 */
-	virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale);
+	ENGINE_API virtual float GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale);
 	
 	// @todo document
 	ENGINE_API static const TCHAR* GetTextureGroupString(TextureGroup InGroup);

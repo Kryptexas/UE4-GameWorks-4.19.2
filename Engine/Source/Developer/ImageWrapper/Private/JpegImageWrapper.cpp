@@ -29,8 +29,9 @@ FCriticalSection GJPEGSection;
 /* FJpegImageWrapper structors
  *****************************************************************************/
 
-FJpegImageWrapper::FJpegImageWrapper( )
-	: FImageWrapperBase()
+FJpegImageWrapper::FJpegImageWrapper( int32 InNumComponents )
+	: FImageWrapperBase(),
+	  NumComponents(InNumComponents)
 { }
 
 
@@ -71,7 +72,7 @@ bool FJpegImageWrapper::SetCompressed( const void* InCompressedData, int32 InCom
 
 bool FJpegImageWrapper::SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth )
 {
-	check((InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA) && InBitDepth == 8);
+	check((InFormat == ERGBFormat::RGBA || InFormat == ERGBFormat::BGRA || InFormat == ERGBFormat::Gray) && InBitDepth == 8);
 
 	bool bResult = FImageWrapperBase::SetRaw( InRawData, InRawSize, InWidth, InHeight, InFormat, InBitDepth );
 
@@ -114,7 +115,7 @@ void FJpegImageWrapper::Compress( int32 Quality )
 		jpge::params Parameters;
 		Parameters.m_quality = Quality;
 		bool bSuccess = jpge::compress_image_to_jpeg_file_in_memory(
-			CompressedData.GetTypedData(), OutBufferSize, Width, Height, 4, RawData.GetTypedData(), Parameters);
+			CompressedData.GetTypedData(), OutBufferSize, Width, Height, NumComponents, RawData.GetTypedData(), Parameters);
 		
 		check(bSuccess);
 
@@ -156,7 +157,11 @@ void FJpegImageWrapper::Uncompress( const ERGBFormat::Type InFormat, int32 InBit
 
 	RawData.Empty();
 	RawData.AddUninitialized( Width * Height * Channels );
-	FMemory::Memcpy( RawData.GetTypedData(), OutData, RawData.Num() );
+	if (OutData)
+	{
+		FMemory::Memcpy( RawData.GetTypedData(), OutData, RawData.Num() );
+		FMemory::Free(OutData);
+	}
 }
 
 

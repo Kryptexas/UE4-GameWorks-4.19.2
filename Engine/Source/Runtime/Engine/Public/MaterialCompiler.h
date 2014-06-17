@@ -21,7 +21,7 @@ public:
 
 	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency InShaderFrequency) = 0;
 	virtual int32 Error(const TCHAR* Text) = 0;
-	int32 Errorf(const TCHAR* Format,...);
+	ENGINE_API int32 Errorf(const TCHAR* Format,...);
 
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* InCompiler) = 0;
 

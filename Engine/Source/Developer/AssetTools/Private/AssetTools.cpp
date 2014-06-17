@@ -310,8 +310,10 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 		}
 	}
 
+	TMultiMap<uint32, UFactory*> FilterIndexToFactory;
+
 	// Generate the file types and extensions represented by the selected factories
-	ObjectTools::GenerateFactoryFileExtensions( Factories, FileTypes, AllExtensions );
+	ObjectTools::GenerateFactoryFileExtensions( Factories, FileTypes, AllExtensions, FilterIndexToFactory );
 
 	FileTypes = FString::Printf(TEXT("All Files (%s)|%s|%s"),*AllExtensions,*AllExtensions,*FileTypes);
 
@@ -319,6 +321,8 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 	TArray<FString> OpenFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	bool bOpened = false;
+	int32 FilterIndex = -1;
+
 	if ( DesktopPlatform )
 	{
 		void* ParentWindowWindowHandle = NULL;
@@ -337,7 +341,8 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 			TEXT(""),
 			FileTypes,
 			EFileDialogFlags::Multiple,
-			OpenFilenames
+			OpenFilenames,
+			FilterIndex
 			);
 	}
 
@@ -345,8 +350,15 @@ TArray<UObject*> FAssetTools::ImportAssets(const FString& DestinationPath)
 	{
 		if ( OpenFilenames.Num() > 0 )
 		{
+			UFactory* ChosenFactory = NULL;
+			if (FilterIndex > 0)
+			{
+				ChosenFactory = *FilterIndexToFactory.Find(FilterIndex);
+			}
+
+
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, OpenFilenames[0]);
-			ReturnObjects = ImportAssets(OpenFilenames, DestinationPath);
+			ReturnObjects = ImportAssets(OpenFilenames, DestinationPath, ChosenFactory);
 		}
 	}
 
@@ -389,7 +401,7 @@ void FAssetTools::ExpandDirectories(const TArray<FString>& Files, const FString&
 	}
 }
 
-TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath) const
+TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const FString& RootDestinationPath, UFactory* SpecifiedFactory) const
 {
 	TArray<UObject*> ReturnObjects;
 	TMap< FString, TArray<UFactory*> > ExtensionToFactoriesMap;
@@ -403,47 +415,50 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 	TArray<TPair<FString, FString>> FilesAndDestinations;
 	ExpandDirectories(Files, RootDestinationPath, FilesAndDestinations);
 
-	// First instantiate one factory for each file extension encountered that supports the extension
-	for( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
-	{
-		if( (*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) )
+	if (SpecifiedFactory == NULL)
+	{	
+		// First instantiate one factory for each file extension encountered that supports the extension
+		for( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 		{
-			UFactory* Factory = Cast<UFactory>( (*ClassIt)->GetDefaultObject() );
-			if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
+			if( (*ClassIt)->IsChildOf(UFactory::StaticClass()) && !((*ClassIt)->HasAnyClassFlags(CLASS_Abstract)) )
 			{
-				TArray<FString> FactoryExtensions;
-				Factory->GetSupportedFileExtensions(FactoryExtensions);
-				for ( auto& FileDest : FilesAndDestinations )
+				UFactory* Factory = Cast<UFactory>( (*ClassIt)->GetDefaultObject() );
+				if( Factory->bEditorImport && Factory->ValidForCurrentGame() )
 				{
-					const FString FileExtension = FPaths::GetExtension(FileDest.Key);
-
-					// Case insensitive string compare with supported formats of this factory
-					if ( FactoryExtensions.Contains(FileExtension) )
+					TArray<FString> FactoryExtensions;
+					Factory->GetSupportedFileExtensions(FactoryExtensions);
+					for ( auto& FileDest : FilesAndDestinations )
 					{
-						TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
-						
-						// Do not remap extensions, just reuse the existing UFactory.
-						// There may be multiple UFactories, so we will keep track of all of them
-						bool bFactoryAlreadyInMap = false;
-						for ( auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt )
+						const FString FileExtension = FPaths::GetExtension(FileDest.Key);
+	
+						// Case insensitive string compare with supported formats of this factory
+						if ( FactoryExtensions.Contains(FileExtension) )
 						{
-							if ( (*FoundFactoryIt)->GetClass() == Factory->GetClass() )
+							TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
+							
+							// Do not remap extensions, just reuse the existing UFactory.
+							// There may be multiple UFactories, so we will keep track of all of them
+							bool bFactoryAlreadyInMap = false;
+							for ( auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt )
 							{
-								bFactoryAlreadyInMap = true;
-								break;
+								if ( (*FoundFactoryIt)->GetClass() == Factory->GetClass() )
+								{
+									bFactoryAlreadyInMap = true;
+									break;
+								}
 							}
-						}
-
-						if ( !bFactoryAlreadyInMap )
-						{
-							// We found a factory for this file, it can be imported!
-							// Create a new factory of the same class and make sure it doesn't get GCed.
-							// The object will be removed from the root set at the end of this function.
-							UFactory* NewFactory = ConstructObject<UFactory>( Factory->GetClass() );
-							if ( NewFactory->ConfigureProperties() )
+	
+							if ( !bFactoryAlreadyInMap )
 							{
-								NewFactory->AddToRoot();
-								ExistingFactories.Add(NewFactory);
+								// We found a factory for this file, it can be imported!
+								// Create a new factory of the same class and make sure it doesn't get GCed.
+								// The object will be removed from the root set at the end of this function.
+								UFactory* NewFactory = ConstructObject<UFactory>( Factory->GetClass() );
+								if ( NewFactory->ConfigureProperties() )
+								{
+									NewFactory->AddToRoot();
+									ExistingFactories.Add(NewFactory);
+								}
 							}
 						}
 					}
@@ -451,6 +466,50 @@ TArray<UObject*> FAssetTools::ImportAssets(const TArray<FString>& Files, const F
 			}
 		}
 	}
+	else
+	{
+		if( SpecifiedFactory->bEditorImport && SpecifiedFactory->ValidForCurrentGame() )
+		{
+			TArray<FString> FactoryExtensions;
+			SpecifiedFactory->GetSupportedFileExtensions(FactoryExtensions);
+			for ( auto FileIt = Files.CreateConstIterator(); FileIt; ++FileIt )
+			{
+				const FString FileExtension = FPaths::GetExtension(*FileIt);
+
+				// Case insensitive string compare with supported formats of this factory
+				if ( FactoryExtensions.Contains(FileExtension) )
+				{
+					TArray<UFactory*>& ExistingFactories = ExtensionToFactoriesMap.FindOrAdd(FileExtension);
+
+					// Do not remap extensions, just reuse the existing UFactory.
+					// There may be multiple UFactories, so we will keep track of all of them
+					bool bFactoryAlreadyInMap = false;
+					for ( auto FoundFactoryIt = ExistingFactories.CreateConstIterator(); FoundFactoryIt; ++FoundFactoryIt )
+					{
+						if ( (*FoundFactoryIt)->GetClass() == SpecifiedFactory->GetClass() )
+						{
+							bFactoryAlreadyInMap = true;
+							break;
+						}
+					}
+
+					if ( !bFactoryAlreadyInMap )
+					{
+						// We found a factory for this file, it can be imported!
+						// Create a new factory of the same class and make sure it doesnt get GCed.
+						// The object will be removed from the root set at the end of this function.
+						UFactory* NewFactory = ConstructObject<UFactory>( SpecifiedFactory->GetClass() );
+						if ( NewFactory->ConfigureProperties() )
+						{
+							NewFactory->AddToRoot();
+							ExistingFactories.Add(NewFactory);
+						}
+					}
+				}
+			}
+		}
+	}
+
 
 	// Some flags to keep track of what the user decided when asked about overwriting or replacing
 	bool bOverwriteAll = false;

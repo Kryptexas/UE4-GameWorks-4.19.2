@@ -18,7 +18,7 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	FJpegImageWrapper();
+	FJpegImageWrapper(int32 InNumComponents=4);
 
 public:
 
@@ -28,6 +28,9 @@ public:
 	virtual bool SetRaw( const void* InRawData, int32 InRawSize, const int32 InWidth, const int32 InHeight, const ERGBFormat::Type InFormat, const int32 InBitDepth ) override;
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
 	virtual void Compress(int32 Quality) override;
+
+private:
+	int32 NumComponents;
 };
 
 

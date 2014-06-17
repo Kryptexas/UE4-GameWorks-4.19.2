@@ -2565,12 +2565,12 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	void GenerateFactoryFileExtensions( UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions )
+	void GenerateFactoryFileExtensions( UFactory* InFactory, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory )
 	{
 		// Place the factory in an array and call the overloaded version of this function
 		TArray<UFactory*> FactoryArray;
 		FactoryArray.Add( InFactory );
-		GenerateFactoryFileExtensions( FactoryArray, out_Filetypes, out_Extensions );
+		GenerateFactoryFileExtensions( FactoryArray, out_Filetypes, out_Extensions, out_FilterIndexToFactory );
 	}
 
 	/**
@@ -2580,10 +2580,11 @@ namespace ObjectTools
 	 * @param	out_Filetypes	File types supported by the provided factory, concatenated into a string
 	 * @param	out_Extensions	Extensions supported by the provided factory, concatenated into a string
 	 */
-	void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions )
+	void GenerateFactoryFileExtensions( const TArray<UFactory*>& InFactories, FString& out_Filetypes, FString& out_Extensions, TMultiMap<uint32, UFactory*>& out_FilterIndexToFactory )
 	{
 		// Store all the descriptions and their corresponding extensions in a map
-		TMultiMap<FString, FString> DescToExtensionMap;		
+		TMultiMap<FString, FString> DescToExtensionMap;
+		TMultiMap<FString, UFactory*> DescToFactory;
 
 		// Iterate over each factory, retrieving their supported file descriptions and extensions, and storing them into the map
 		for ( TArray<UFactory*>::TConstIterator FactoryIter(InFactories); FactoryIter; ++FactoryIter )
@@ -2600,6 +2601,7 @@ namespace ObjectTools
 			for ( int32 FormatIndex = 0; FormatIndex < Descriptions.Num() && FormatIndex < Extensions.Num(); ++FormatIndex )
 			{
 				DescToExtensionMap.AddUnique( Descriptions[FormatIndex], Extensions[FormatIndex ] );
+				DescToFactory.AddUnique( Descriptions[FormatIndex], *FactoryIter );
 			}
 		}
 		
@@ -2614,6 +2616,8 @@ namespace ObjectTools
 		TArray<FString> DescriptionKeyMap;
 		DescToExtensionMap.GetKeys( DescriptionKeyMap );
 		const TArray<FString>& DescriptionKeys = DescriptionKeyMap;
+
+		uint32 IdxFilter = 1; // the type list will start by an all supported files wildcard value
 
 		// Iterate over each unique map key, retrieving all of each key's associated values in order to populate the strings
 		for ( TArray<FString>::TConstIterator DescIter( DescriptionKeys ); DescIter; ++DescIter )
@@ -2649,7 +2653,18 @@ namespace ObjectTools
 					{
 						out_Filetypes += TEXT("|");
 					}
-					out_Filetypes += CurLine;	
+					out_Filetypes += CurLine;
+
+					// save the order in which descriptions are added to be able to identify 
+					// factories using filter index
+					TArray<UFactory*> Factories;
+					DescToFactory.MultiFind( CurDescription, Factories );
+					TArray<UFactory*>::TIterator FactIt(Factories);
+					for (;FactIt;++FactIt)
+					{
+						out_FilterIndexToFactory.Add( IdxFilter, *FactIt );
+					}
+					++IdxFilter;
 				}
 			}
 		}

@@ -166,7 +166,7 @@ struct FTexture2DMipMap
 	}
 
 	/** Serialization. */
-	void Serialize(FArchive& Ar, UObject* Owner, int32 MipIndex);
+	ENGINE_API void Serialize(FArchive& Ar, UObject* Owner, int32 MipIndex);
 
 #if WITH_EDITORONLY_DATA
 	/** Key if stored in the derived data cache. */
@@ -410,7 +410,7 @@ public:
 	virtual void ReleaseRHI();
 
 	/** Returns the Texture2DRHI, which can be used for locking/unlocking the mips. */
-	FTexture2DRHIRef GetTexture2DRHI();
+	ENGINE_API FTexture2DRHIRef GetTexture2DRHI();
 
 private:
 	/** The owner of this resource. */
