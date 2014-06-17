@@ -3332,9 +3332,6 @@ void UEditorEngine::ConvertSelectedBrushesToVolumes( UClass* VolumeClass )
 				NewVolume->PostEditMove( true );
 				NewVolume->Modify();
 
-				// Send notification about actors that may have changed
-				GEngine->BroadcastLevelActorAdded(NewVolume);		
-
 				// Destroy the old actor.
 				GEditor->Layers->DisassociateActorFromLayers( CurBrushActor );
 				World->EditorDestroyActor( CurBrushActor, true );
