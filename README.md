@@ -112,10 +112,10 @@ git checkout 4.2
 Additional Notes
 ----------------
 
-Visual Studio 2013 and Xcode 5.1 are strongly recommended for building.
+Visual Studio 2013 and Xcode 5.1 are strongly recommended for development.
 
-Visual Studio 2012 compatibility is still possible, but you'll need to make a code change and download the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip). See the Unreal Engine 
-[documentation](http://docs.unrealengine.com) for more details about using older versions of Visual Studio.
+Legacy support for Visual Studio 2012 can be enabled by unzipping the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.2.0-release/Optional.zip) into your UnrealEngine folder
+and changing WindowsPlatform.Compiler to VisualStudio2012 in Engine\Source\Programs\UnrealBuildTool\Windows\UEBuildWindows.cs.
 
 The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
 run as the engine optimizes content for the platform and _fills the derived data cache_.
