@@ -6,8 +6,6 @@ namespace UnrealBuildTool.Rules
     {
         public GameplayDebugger(TargetInfo Target)
         {
-            SharedPCHHeaderFile = "Developer/GameplayDebugger/Private/GameplayDebuggerPrivate.h";
-
             PublicIncludePaths.AddRange(
                 new string[] {
 				    "Developer/GameplayDebugger/Public",

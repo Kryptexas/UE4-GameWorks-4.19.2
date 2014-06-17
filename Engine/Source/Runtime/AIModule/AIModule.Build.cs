@@ -6,8 +6,6 @@ namespace UnrealBuildTool.Rules
 	{
         public AIModule(TargetInfo Target)
 		{
-            SharedPCHHeaderFile = "Runtime/AIModule/Private/AIModulePrivate.h";
-
 			PublicIncludePaths.AddRange(
 				new string[] {
                     "Runtime/AIModule/Public",
