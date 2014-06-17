@@ -200,9 +200,12 @@ bool FPropertyChangeListener::ScanForChanges( bool bRecacheNewValues )
 
 			// Get each object that changed
 			TArray<UObject*> ObjectsThatChanged;
-			for( auto It = ObjectNode->ObjectConstIterator(); It; ++It )
+			if (ObjectNode)
 			{
-				ObjectsThatChanged.Add( It->Get() );
+				for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
+				{
+					ObjectsThatChanged.Add(It->Get());
+				}
 			}
 
 			if( ObjectsThatChanged.Num() > 0 )
@@ -232,9 +235,12 @@ void FPropertyChangeListener::TriggerAllPropertiesChangedDelegate()
 
 		// Get each object that changed
 		TArray<UObject*> ObjectsThatChanged;
-		for( auto It = ObjectNode->ObjectConstIterator(); It; ++It )
+		if (ObjectNode)
 		{
-			ObjectsThatChanged.Add( It->Get() );
+			for (auto It = ObjectNode->ObjectConstIterator(); It; ++It)
+			{
+				ObjectsThatChanged.Add(It->Get());
+			}
 		}
 
 		if( ObjectsThatChanged.Num() > 0 )

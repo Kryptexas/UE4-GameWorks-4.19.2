@@ -109,11 +109,11 @@ bool SPropertyEditorEditInline::Supports( const FPropertyNode* InTreeNode, int32
 
 	bool bCanEditInline = false;
 
-	if( InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline) != 0 )
+	const FObjectPropertyNode* ObjectPropertyNode = InTreeNode->FindObjectItemParent();
+	if (ObjectPropertyNode && (InTreeNode->HasNodeFlags(EPropertyNodeFlags::EditInline) != 0))
 	{
 		// Assume objects with the editinline flag can be editinline.  If any of the parent object is a default subobject then we cannot allow editinline
 		bCanEditInline = true;
-		const FObjectPropertyNode* ObjectPropertyNode = InTreeNode->FindObjectItemParent();
 		for( int32 ObjectIndex = 0; ObjectIndex < ObjectPropertyNode->GetNumObjects(); ++ObjectIndex )
 		{
 			const UObject* Object = ObjectPropertyNode->GetUObject(ObjectIndex);

@@ -11,7 +11,7 @@
 typedef TArray< TWeakObjectPtr<UObject> >::TIterator TPropObjectIterator;
 typedef TArray< TWeakObjectPtr<UObject> >::TConstIterator TPropObjectConstIterator;
 
-class FObjectPropertyNode : public FPropertyNode
+class FObjectPropertyNode : public FComplexPropertyNode
 {
 public:
 	FObjectPropertyNode();
@@ -60,6 +60,26 @@ public:
 	UClass*			GetObjectBaseClass()       { return BaseClass.IsValid() ? BaseClass.Get() : NULL; }
 	/** @return		The base-est baseclass for objects in this list. */
 	const UClass*	GetObjectBaseClass() const { return BaseClass.IsValid() ? BaseClass.Get() : NULL; }
+
+
+	// FComplexPropertyNode implementation
+	virtual UStruct* GetBaseStructure() override { return GetObjectBaseClass(); }
+	virtual const UStruct* GetBaseStructure() const override{ return GetObjectBaseClass(); }
+	virtual int32 GetInstancesNum() const override{ return GetNumObjects(); }
+	virtual uint8* GetMemoryOfInstance(int32 Index)
+	{
+		return (uint8*)GetUObject(Index);
+	}
+	virtual TWeakObjectPtr<UObject> GetInstanceAsUObject(int32 Index) override
+	{
+		check(Objects.IsValidIndex(Index));
+		return Objects[Index];
+	}
+	virtual EPropertyType GetPropertyType() const override{ return EPT_Object; }
+	virtual void Disconnect() override 
+	{
+		RemoveAllObjects();
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	/** @return		The property stored at this node, to be passed to Pre/PostEditChange. */

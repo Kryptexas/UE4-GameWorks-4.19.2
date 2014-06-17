@@ -8,14 +8,17 @@ public:
 	FObjectBaseAddress()
 		:	Object( NULL )
 		,	BaseAddress( NULL )
+		,	bIsStruct(false)
 	{}
-	FObjectBaseAddress(UObject* InObject, uint8* InBaseAddress)
+	FObjectBaseAddress(UObject* InObject, uint8* InBaseAddress, bool InIsStruct)
 		:	Object( InObject )
 		,	BaseAddress( InBaseAddress )
+		,	bIsStruct(InIsStruct)
 	{}
 
 	UObject*	Object;
 	uint8*		BaseAddress;
+	bool		bIsStruct;
 };
 
 

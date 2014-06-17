@@ -505,10 +505,12 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 			}
 		}
 
-		FObjectPropertyNode* ObjectNode = ParentNode->FindObjectItemParent();
-		for ( TPropObjectIterator Itor( ObjectNode->ObjectIterator() ) ; Itor ; ++Itor )
+		auto ComplexParentNode = ParentNode->FindComplexParent();
+		if (ComplexParentNode)
 		{
-			TWeakObjectPtr<UObject> Object = *Itor;
+			for (int32 Index = 0; Index < ComplexParentNode->GetInstancesNum(); ++Index)
+			{
+				TWeakObjectPtr<UObject> Object = ComplexParentNode->GetInstanceAsUObject(Index);
 
 			if( Object.IsValid() )
 			{
@@ -527,6 +529,7 @@ bool FPropertyEditor::GetEditConditionPropertyAddress( UBoolProperty*& Condition
 			}
 		}
 	}
+	}
 
 	if ( bResult )
 	{
@@ -544,12 +547,12 @@ bool FPropertyEditor::SupportsEditConditionToggle( UProperty* InProperty )
 	if (!InProperty->HasMetaData(TEXT("HideEditConditionToggle")))
 	{
 		bool bNegateValue = false;
-		UBoolProperty* ConditionalProperty = GetEditConditionProperty(InProperty, bNegateValue);
-		if (ConditionalProperty != NULL)
+		UBoolProperty* ConditionalProperty = GetEditConditionProperty( InProperty, bNegateValue );
+		if( ConditionalProperty != NULL )
 		{
 			bShowEditConditionToggle = true;
 
-			if (ConditionalProperty->HasAllPropertyFlags(CPF_Edit))
+			if( ConditionalProperty->HasAllPropertyFlags( CPF_Edit ) )
 			{
 				// Conditionally-dependent property is already exposed for editing, so no need to draw another
 				// check box next to this property's label

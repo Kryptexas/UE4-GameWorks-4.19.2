@@ -77,11 +77,15 @@ public:
 			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString );
 		}
 
+		FObjectPropertyNode* ObjectPropertyNode = PropertyNode->FindObjectItemParent();
+		const bool bAllowSpin = (!ObjectPropertyNode || (1 == ObjectPropertyNode->GetNumObjects()))
+			&& !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox");
+
 		ChildSlot
 			[
 				SAssignNew( PrimaryWidget, SNumericEntryBox<NumericType> )
 				// Only allow spinning if we have a single value
-				.AllowSpin( PropertyNode->FindObjectItemParent()->GetNumObjects() == 1 && !PropertyNode->GetProperty()->GetBoolMetaData("NoSpinbox") )
+				.AllowSpin(bAllowSpin)
 				.Value( this, &SPropertyEditorNumeric<NumericType>::OnGetValue )
 				.Font( InArgs._Font )
 				.MinValue(MinValue)

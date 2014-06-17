@@ -14,11 +14,11 @@ class FDetailLayoutBuilderImpl;
 struct FPropertyNodeMap
 {
 	FPropertyNodeMap()
-		: ParentObjectProperty(NULL)
+		: ParentProperty(NULL)
 	{}
 
 	/** Object property node which contains the properties in the node map */
-	FObjectPropertyNode* ParentObjectProperty;
+	FPropertyNode* ParentProperty;
 
 	/** Property name to property node map */
 	TMap<FName, TSharedPtr<FPropertyNode> > PropertyNameToNode;
@@ -101,6 +101,8 @@ public:
 		return OnFinishedChangingPropertiesDelegate; 
 	}
 
+	virtual bool IsConnected() const = 0;
+
 	/**
 	 * Called when the open color picker window associated with this details view is closed
 	 */
@@ -153,6 +155,16 @@ public:
 	 * @param bRecurse			Whether or not to apply the expansion change to any children
 	 */
 	void SetRootExpansionStates(const bool bExpand, const bool bRecurse);
+
+	/**
+	 * Queries a layout for a specific class
+	 */
+	void QueryLayoutForClass(FDetailLayoutBuilderImpl& CustomDetailLayout, UStruct* Class);
+
+	/**
+	 * Calls a delegate for each registered class that has properties visible to get any custom detail layouts
+	 */
+	void QueryCustomDetailLayout(class FDetailLayoutBuilderImpl& CustomDetailLayout);
 
 	/**
 	 * Refreshes the detail's treeview
@@ -218,7 +230,51 @@ public:
 
 	virtual ~SDetailsViewBase();
 
+	// SWidget interface
+	virtual bool SupportsKeyboardFocus() const override;
+	virtual FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	// End of SWidget interface
+
+	/** Saves the expansion state of property nodes for the selected object set */
+	void SaveExpandedItems();
+
+	/**
+	* Restores the expansion state of property nodes for the selected object set
+	*
+	* @param InitialStartNode The starting node if any.  If one is not supplied the expansion state is restored from the root node
+	*/
+	void RestoreExpandedItems(TSharedPtr<FPropertyNode> InitialStartNode = NULL);
+
+	virtual TSharedPtr<FComplexPropertyNode> GetRootNode() = 0;
+
+	/**
+	 * Creates the color picker window for this property view.
+	 *
+	 * @param PropertyEditor				The slate property node to edit.
+	 * @param bUseAlpha			Whether or not alpha is supported
+	 */
+	void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
+
 protected:
+
+	/**
+	 * Called when a color property is changed from a color picker
+	 */
+	void SetColorPropertyFromColorPicker(FLinearColor NewColor);
+
+	/** Updates the property map for access when customizing the details view.  Generates default layout for properties */
+	void UpdatePropertyMap();
+
+	/** 
+	 * Recursively updates children of property nodes. Generates default layout for properties 
+	 * 
+	 * @param InNode	The parent node to get children from
+	 * @param The detail layout builder that will be used for customization of this property map
+	 * @param CurCategory The current category name
+	 */
+	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FComplexPropertyNode* CurObjectNode );
+
 
 	/** Called to get the visibility of the tree view */
 	EVisibility GetTreeVisibility() const;
@@ -270,7 +326,10 @@ protected:
 	/** Called when show all advanced is clicked */
 	void OnShowAllAdvancedClicked();
 
-	virtual void UpdateFilteredDetails() = 0;
+	/**
+	* Updates the details with the passed in filter
+	*/
+	void UpdateFilteredDetails();
 
 	/** Called when the filter text changes.  This filters specific property nodes out of view */
 	void OnFilterTextChanged(const FText& InFilterText);
@@ -281,6 +340,9 @@ protected:
 	 * @param InFilterText	The filter text
 	 */
 	void FilterView( const FString& InFilterText );
+
+	/** Called to get the visibility of the filter box */
+	EVisibility GetFilterBoxVisibility() const;
 
 protected:
 	/** The user defined args for the details view */
@@ -337,4 +399,10 @@ protected:
 	FOnGetDetailCustomizationInstance GenericLayoutDelegate;
 	/** Actions that should be executed next tick */
 	TArray<FSimpleDelegate> DeferredActions;
+
+	/** Root tree node that needs to be destroyed when safe */
+	TSharedPtr<FComplexPropertyNode> RootNodePendingKill;
+
+	/** External property nodes which need to validated each tick */
+	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
 };

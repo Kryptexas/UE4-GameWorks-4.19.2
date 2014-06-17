@@ -52,14 +52,6 @@ public:
 	 */
 	void RemoveInvalidActors( const TSet<AActor*>& ValidActors );
 
-	/**
-	 * Creates the color picker window for this property view.
-	 *
-	 * @param PropertyEditor				The slate property node to edit.
-	 * @param bUseAlpha			Whether or not alpha is supported
-	 */
-	virtual void CreateColorPickerWindow(const TSharedRef< class FPropertyEditor >& PropertyEditor, bool bUseAlpha) override;
-
 	/** Sets the callback for when the property view changes */
 	virtual void SetOnObjectArrayChanged( FOnObjectArrayChanged OnObjectArrayChangedDelegate);
 
@@ -89,12 +81,7 @@ public:
 	/** Gets the base class being viewed */
 	const UClass* GetBaseClass() const override;
 	UClass* GetBaseClass() override;
-
-	// SWidget interface
-	virtual bool SupportsKeyboardFocus() const override;
-	virtual FReply OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
-	// End of SWidget interface
+	UStruct* GetBaseStruct() const override;
 
 	/**
 	 * Adds an external property root node to the list of root nodes that the details new needs to manage
@@ -108,6 +95,12 @@ public:
 	 */
 	bool IsCategoryHiddenByClass(FName CategoryName) const override;
 
+	virtual bool IsConnected() const override;
+
+	virtual TSharedPtr<FComplexPropertyNode> GetRootNode() override
+	{
+		return RootPropertyNode;
+	}
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class );
@@ -124,47 +117,17 @@ private:
 	 */
 	bool ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const;
 
-	/** Updates the property map for access when customizing the details view.  Generates default layout for properties */
-	void UpdatePropertyMap();
-
-	/** 
-	 * Recursively updates children of property nodes. Generates default layout for properties 
-	 * 
-	 * @param InNode	The parent node to get children from
-	 * @param The detail layout builder that will be used for customization of this property map
-	 * @param CurCategory The current category name
-	 */
-	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FObjectPropertyNode* CurObjectNode );
-
 	/** Called before during SetObjectArray before we change the objects being observed */
 	void PreSetObject();
 
 	/** Called at the end of SetObjectArray after we change the objects being observed */
 	void PostSetObject();
 	
-	/**
-	 * Queries a layout for a specific class
-	 */
-	void QueryLayoutForClass( FDetailLayoutBuilderImpl& CustomDetailLayout, UStruct* Class );
-
-	/**
-	 * Calls a delegate for each registered class that has properties visible to get any custom detail layouts 
-	 */
-	void QueryCustomDetailLayout( class FDetailLayoutBuilderImpl& CustomDetailLayout );
-
-	/**
-	 * Updates the details with the passed in filter                                                              
-	 */
-	virtual void UpdateFilteredDetails() override;
-
 	/** Called when the filter button is clicked */
 	void OnFilterButtonClicked();
 
 	/** Called to get the visibility of the actor name area */
 	EVisibility GetActorNameAreaVisibility() const;
-
-	/** Called to get the visibility of the filter box */
-	EVisibility GetFilterBoxVisibility() const;
 
 	/** Returns the name of the image used for the icon on the locked button */
 	const FSlateBrush* OnGetLockButtonImageResource() const;
@@ -173,28 +136,12 @@ private:
 	 */
 	FReply OnOpenRawPropertyEditorClicked();
 
-	/**
-	 * Called when a color property is changed from a color picker
-	 */
-	void SetColorPropertyFromColorPicker(FLinearColor NewColor);
-
-	/** Saves the expansion state of property nodes for the selected object set */
-	void SaveExpandedItems();
-
-	/** 
-	 * Restores the expansion state of property nodes for the selected object set
-	 *
-	 * @param InitialStartNode The starting node if any.  If one is not supplied the expansion state is restored from the root node
-	 */
-	void RestoreExpandedItems( TSharedPtr<FPropertyNode> InitialStartNode = NULL );
-
 private:
 	/** Information about the current set of selected actors */
 	FSelectedActorInfo SelectedActorInfo;
 	/** Selected objects for this detail view.  */
 	TArray< TWeakObjectPtr<UObject> > SelectedObjects;
-	/** Root tree node that needs to be destroyed when safe */
-	TSharedPtr<FObjectPropertyNode> RootNodePendingKill;
+
 	/** 
 	 * Selected actors for this detail view.  Note that this is not necessarily the same editor selected actor set.  If this detail view is locked
 	 * It will only contain actors from when it was locked 
@@ -202,8 +149,6 @@ private:
 	TArray< TWeakObjectPtr<AActor> > SelectedActors;
 	/** The root property node of the property tree for a specific set of UObjects */
 	TSharedPtr<FObjectPropertyNode> RootPropertyNode;
-	/** External property nodes which need to validated each tick */
-	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
 	/** Callback to send when the property view changes */
 	FOnObjectArrayChanged OnObjectArrayChanged;
 	/** True if at least one viewed object is a CDO (blueprint editing) */

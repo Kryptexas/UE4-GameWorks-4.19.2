@@ -21,8 +21,8 @@ IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryNa
 	// Use the base class name if the user did not specify a name
 	if( CategoryName == NAME_None )
 	{
-		const UClass* BaseClass = GetDetailsView().GetBaseClass();
-		CategoryName = BaseClass ? BaseClass->GetFName() : FName("Generic");
+		const UStruct* BaseStruct = GetDetailsView().GetBaseStruct();
+		CategoryName = BaseStruct ? BaseStruct->GetFName() : FName("Generic");
 	}
 
 	TSharedPtr<FDetailCategoryImpl> CategoryImpl;
@@ -443,10 +443,13 @@ void FDetailLayoutBuilderImpl::GetObjectsBeingCustomized( TArray< TWeakObjectPtr
 			if( PropertyNodeMapPtr )
 			{
 				FPropertyNodeMap& PropertyNodeMap = *PropertyNodeMapPtr;
-
-				for( int32 ObjectIndex = 0; ObjectIndex < PropertyNodeMap.ParentObjectProperty->GetNumObjects(); ++ObjectIndex )
+				FObjectPropertyNode* ParentObjectProperty = PropertyNodeMap.ParentProperty ? PropertyNodeMap.ParentProperty->AsObjectNode() : NULL;
+				if (ParentObjectProperty)
 				{
-					OutObjects.Add( PropertyNodeMap.ParentObjectProperty->GetUObject( ObjectIndex ) );
+					for (int32 ObjectIndex = 0; ObjectIndex < ParentObjectProperty->GetNumObjects(); ++ObjectIndex)
+					{
+						OutObjects.Add(ParentObjectProperty->GetUObject(ObjectIndex));
+					}
 				}
 			}
 		}

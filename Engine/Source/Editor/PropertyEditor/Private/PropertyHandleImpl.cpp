@@ -30,16 +30,15 @@ FPropertyValueImpl::~FPropertyValueImpl()
 void FPropertyValueImpl::GetObjectsToModify( TArray<FObjectBaseAddress>& ObjectsToModify, FPropertyNode* InPropertyNode ) const
 {
 	// Find the parent object node which contains offset addresses for reading a property value on an object
-	FObjectPropertyNode* ObjectNode = InPropertyNode->FindObjectItemParent();
-
-	if( ObjectNode )
+	FComplexPropertyNode* ComplexNode = InPropertyNode->FindComplexParent();
+	if (ComplexNode)
 	{
-		// Add each object and address to the list
-		for( TPropObjectIterator Itor( ObjectNode->ObjectIterator() ) ; Itor ; ++Itor )
+		const bool bIsStruct = FComplexPropertyNode::EPT_StandaloneStructure == ComplexNode->GetPropertyType();
+		for (int32 Index = 0; Index < ComplexNode->GetInstancesNum(); ++Index)
 		{
-			UObject*	Object = Itor->Get();
-			uint8*		Addr = InPropertyNode->GetValueBaseAddress( (uint8*) Object );
-			ObjectsToModify.Add( FObjectBaseAddress( Object, Addr ) );
+			UObject*	Object = ComplexNode->GetInstanceAsUObject(Index).Get();
+			uint8*		Addr = InPropertyNode->GetValueBaseAddress(ComplexNode->GetMemoryOfInstance(Index));
+			ObjectsToModify.Add(FObjectBaseAddress(Object, Addr, bIsStruct));
 		}
 	}
 }
@@ -241,11 +240,11 @@ bool FPropertyValueImpl::SendTextToObjectProperty( const FString& Text, EPropert
 	TSharedPtr<FPropertyNode> PropertyNodePin = PropertyNode.Pin();
 	if( PropertyNodePin.IsValid() )
 	{
-		FObjectPropertyNode* ObjectNode = PropertyNodePin->FindObjectItemParent();
+		FComplexPropertyNode* ParentNode = PropertyNodePin->FindComplexParent();
 
 		// If more than one object is selected, an empty field indicates their values for this property differ.
 		// Don't send it to the objects value in this case (if we did, they would all get set to None which isn't good).
-		if( !ObjectNode || ObjectNode->GetNumObjects() > 1 && !Text.Len() )
+		if (!ParentNode || ParentNode->GetInstancesNum() > 1 && !Text.Len())
 		{
 			return false;
 		}
@@ -285,7 +284,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const FString& InValue, 
 	TArray<FString> Values;
 	for( int32 ObjectIndex = 0 ; ObjectIndex < ObjectsToModify.Num() ; ++ObjectIndex )
 	{
-		if( ObjectsToModify[ObjectIndex].Object != NULL )
+		if (ObjectsToModify[ObjectIndex].Object != NULL || ObjectsToModify[ObjectIndex].bIsStruct)
 		{
 			Values.Add( InValue );
 		}
@@ -327,12 +326,14 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 		bool bIsGameWorld = false;
 		// If the object we are modifying is in the PIE world, than make the PIE world the active
 		// GWorld.  Assumes all objects managed by this property window belong to the same world.
-		UPackage* ObjectPackage = InObjects[0].Object->GetOutermost();
-		bool bIsPIEPackage = !!(ObjectPackage->PackageFlags & PKG_PlayInEditor);
-		if ( GUnrealEd && GUnrealEd->PlayWorld && bIsPIEPackage && !GIsPlayInEditorWorld)
+		if (UPackage* ObjectPackage = (InObjects[0].Object ? InObjects[0].Object->GetOutermost() : NULL))
 		{
-			OldGWorld = SetPlayInEditorWorld(GUnrealEd->PlayWorld);
-			bIsGameWorld = true;
+			bool bIsPIEPackage = !!(ObjectPackage->PackageFlags & PKG_PlayInEditor);
+			if (GUnrealEd && GUnrealEd->PlayWorld && bIsPIEPackage && !GIsPlayInEditorWorld)
+			{
+				OldGWorld = SetPlayInEditorWorld(GUnrealEd->PlayWorld);
+				bIsGameWorld = true;
+			}
 		}
 		///////////////
 
@@ -361,16 +362,18 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 
 			// If this property is the inner-property of an array, cache the current value as well
 			FString PreviousArrayValue;
-
-			FPropertyNode* ParentNode = InPropertyNode->GetParentNode();
-			if (ParentNode != NULL && ParentNode->GetProperty() && ParentNode->GetProperty()->IsA(UArrayProperty::StaticClass()))
+			if (Cur.Object)
 			{
-				UArrayProperty* ArrayProp = Cast<UArrayProperty>(ParentNode->GetProperty());
-				if (ArrayProp->Inner == NodeProperty)
+				FPropertyNode* ParentNode = InPropertyNode->GetParentNode();
+				if (ParentNode != NULL && ParentNode->GetProperty() && ParentNode->GetProperty()->IsA(UArrayProperty::StaticClass()))
 				{
-					uint8* Addr = ParentNode->GetValueBaseAddress((uint8*)Cur.Object);
-					
-					ArrayProp->ExportText_Direct(PreviousArrayValue, Addr, Addr, NULL, 0);
+					UArrayProperty* ArrayProp = Cast<UArrayProperty>(ParentNode->GetProperty());
+					if (ArrayProp->Inner == NodeProperty)
+					{
+						uint8* Addr = ParentNode->GetValueBaseAddress((uint8*)Cur.Object);
+
+						ArrayProp->ExportText_Direct(PreviousArrayValue, Addr, Addr, NULL, 0);
+					}
 				}
 			}
 
@@ -399,21 +402,24 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			const TCHAR* NewValue = *InValues[ObjectIndex];
 			NodeProperty->ImportText( NewValue, Cur.BaseAddress, 0, Cur.Object );
 
-			// Cache the value of the property after having modified it.
-			FString ValueAfterImport;
-			NodeProperty->ExportText_Direct(ValueAfterImport, Cur.BaseAddress, Cur.BaseAddress, NULL, 0 );
-
-			if ((Cur.Object->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) ||
-				  (Cur.Object->HasAnyFlags(RF_DefaultSubObject) && Cur.Object->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-					 !bIsGameWorld)
+			if (Cur.Object)
 			{
-				InPropertyNode->PropagatePropertyChange(Cur.Object, NewValue, PreviousArrayValue.IsEmpty() ? PreviousValue : PreviousArrayValue);
-			}
+				// Cache the value of the property after having modified it.
+				FString ValueAfterImport;
+				NodeProperty->ExportText_Direct(ValueAfterImport, Cur.BaseAddress, Cur.BaseAddress, NULL, 0);
 
-			// If the values before and after setting the property differ, mark the object dirty.
-			if ( FCString::Strcmp( *PreviousValue, *ValueAfterImport ) != 0 )
-			{
-				Cur.Object->MarkPackageDirty();
+				if ((Cur.Object->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+					(Cur.Object->HasAnyFlags(RF_DefaultSubObject) && Cur.Object->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+					!bIsGameWorld)
+				{
+					InPropertyNode->PropagatePropertyChange(Cur.Object, NewValue, PreviousArrayValue.IsEmpty() ? PreviousValue : PreviousArrayValue);
+				}
+
+				// If the values before and after setting the property differ, mark the object dirty.
+				if (FCString::Strcmp(*PreviousValue, *ValueAfterImport) != 0)
+				{
+					Cur.Object->MarkPackageDirty();
+				}
 			}
 
 			//add on array index so we can tell which entry just changed
@@ -449,11 +455,11 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			RestoreEditorWorld( OldGWorld );
 		}
 
-
-		if( PropertyUtilities.IsValid() && !bInteractiveChangeInProgress )
+		if (PropertyUtilities.IsValid() && !bInteractiveChangeInProgress)
 		{
 			const bool bTopologyChange = false;
-			FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive );
+			FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, bFinished ? EPropertyChangeType::ValueSet : EPropertyChangeType::Interactive);
+			InPropertyNode->FixPropertiesInEvent(ChangeEvent);
 			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
 
@@ -669,11 +675,11 @@ FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InV
 
 		// If more than one object is selected, an empty field indicates their values for this property differ.
 		// Don't send it to the objects value in this case (if we did, they would all get set to None which isn't good).
-		FObjectPropertyNode* ObjectNode = PropertyNodePin->FindObjectItemParent();
+		FComplexPropertyNode* ParentNode = PropertyNodePin->FindComplexParent();
 
 		FString PreviousValue;
 		GetValueAsString( PreviousValue );
-		if( ObjectNode && ( ObjectNode->GetNumObjects() == 1 || ( Value.Len() && PreviousValue != Value ) ) )
+		if (ParentNode && (ParentNode->GetInstancesNum() == 1 || (Value.Len() && PreviousValue != Value)))
 		{
 			ImportText( Value, PropertyNodePin.Get(), Flags );
 		}
@@ -1055,15 +1061,18 @@ void FPropertyValueImpl::AddChild()
 					ArrayIndicesPerObject.Add(TMap<FString,int32>());
 					FPropertyValueImpl::GenerateArrayIndexMapToObjectNode(ArrayIndicesPerObject[i], PropertyNodePin.Get());
 					
-					UObject* Obj = ObjectNode->GetUObject(i);
-					if ((Obj->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || 
-						  (Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-							!FApp::IsGame())
+					UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : NULL;
+					if (Obj)
 					{
-						FString OrgArrayContent;
-						Array->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
+						if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+							(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+							!FApp::IsGame())
+						{
+							FString OrgArrayContent;
+							Array->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
 
-						PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Add, -1);
+							PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Add, -1);
+						}
 					}
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
@@ -1081,22 +1090,19 @@ void FPropertyValueImpl::AddChild()
 				}
 			}
 
+			const bool bTopologyChange = true;
 			if ( bNotifiedPreChange )
 			{
-				const bool bExpand   = true;
-				const bool bRecurse  = false;
-
 				// send the PostEditChange notification; it will be propagated to all selected objects
-				const bool bTopologyChange = true;
 				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ArrayAdd);
 				ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
 				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
 			}
 
-			if( PropertyUtilities.IsValid() )
+			if (PropertyUtilities.IsValid())
 			{
-				const bool bTopologyChange = true;
 				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ArrayAdd);
+				PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
 				PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 			}
 		}
@@ -1139,15 +1145,18 @@ void FPropertyValueImpl::ClearChildren()
 						PropertyNodePin->NotifyPreChange( NodeProperty, NotifyHook );
 					}
 
-					UObject* Obj = ObjectNode->GetUObject(i);
-					if ((Obj->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || 
-						  (Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-							!FApp::IsGame())
+					UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : NULL;
+					if (Obj)
 					{
-						FString OrgArrayContent;
-						Array->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
+						if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+							(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+							!FApp::IsGame())
+						{
+							FString OrgArrayContent;
+							Array->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
 
-						PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Clear, -1);
+							PropertyNodePin->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Clear, -1);
+						}
 					}
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
@@ -1157,12 +1166,18 @@ void FPropertyValueImpl::ClearChildren()
 
 			if ( bNotifiedPreChange )
 			{
-
-				// send the PostEditChange notification; it will be propagated to all selected objects
 				const bool bTopologyChange = true;
+				// send the PostEditChange notification; it will be propagated to all selected objects
 				FPropertyChangedEvent ChangeEvent(NodeProperty, bTopologyChange, EPropertyChangeType::ValueSet);
 				PropertyNodePin->NotifyPostChange( ChangeEvent, NotifyHook );
 			}
+		}
+
+		if (PropertyUtilities.IsValid())
+		{
+			FPropertyChangedEvent ChangeEvent(NodeProperty, true, EPropertyChangeType::ValueSet);
+			PropertyNodePin->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
 		}
 	}
 }
@@ -1203,16 +1218,18 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		FScriptArrayHelper	ArrayHelper(ArrayProperty,Addr);
 		int32 Index = ChildNodePtr->GetArrayIndex();
 
-		UObject* Obj = ObjectNode->GetUObject(0);
-
-		if ((Obj->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || 
-				(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-				!FApp::IsGame())
+		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : NULL;
+		if (Obj)
 		{
-			FString OrgArrayContent;
-			ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
+			if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+				(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+				!FApp::IsGame())
+			{
+				FString OrgArrayContent;
+				ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
 
-			ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Insert, Index);
+				ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Insert, Index);
+			}
 		}
 
 		ArrayHelper.InsertValues(Index, 1 );	
@@ -1227,9 +1244,18 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 		}
 
 		const bool bTopologyChange = true;
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ArrayAdd);
-		ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
-		ChildNodePtr->NotifyPostChange( ChangeEvent, NotifyHook );
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ArrayAdd);
+			ChangeEvent.SetArrayIndexPerObject(ArrayIndicesPerObject);
+			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+		}
+
+		if (PropertyUtilities.IsValid())
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ArrayAdd);
+			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+		}
 	}
 }
 
@@ -1271,16 +1297,18 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 				FScriptArrayHelper ArrayHelper(ArrayProperty,Address);
 				int32 Index = ChildNodePtr->GetArrayIndex();
 
-				UObject* Obj = ObjectNode->GetUObject(i);
-
-				if ((Obj->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || 
-						(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-						!FApp::IsGame())
+				UObject* Obj = ObjectNode ? ObjectNode->GetUObject(i) : NULL;
+				if (Obj)
 				{
-					FString OrgArrayContent;
-					ArrayProperty->ExportText_Direct(OrgArrayContent, Address, Address, NULL, 0);
+					if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+						(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+						!FApp::IsGame())
+					{
+						FString OrgArrayContent;
+						ArrayProperty->ExportText_Direct(OrgArrayContent, Address, Address, NULL, 0);
 
-					ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Delete, Index);
+						ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Delete, Index);
+					}
 				}
 
 				ArrayHelper.RemoveValues(ChildNodePtr->GetArrayIndex());
@@ -1288,8 +1316,17 @@ void FPropertyValueImpl::DeleteChild( TSharedPtr<FPropertyNode> ChildNodeToDelet
 		}
 
 		const bool bTopologyChange = true;
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange);
-		ChildNodePtr->NotifyPostChange( ChangeEvent, NotifyHook );
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange);
+			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+		}
+
+		if (PropertyUtilities.IsValid())
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange);
+			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+		}
 	}
 }
 
@@ -1328,17 +1365,19 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 		FScriptArrayHelper	ArrayHelper(ArrayProperty,Addr);
 
-		UObject* Obj = ObjectNode->GetUObject(0);
 		int32 Index = ChildNodePtr->GetArrayIndex();
-
-		if ((Obj->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) || 
-				(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))) && 
-				!FApp::IsGame())
+		UObject* Obj = ObjectNode ? ObjectNode->GetUObject(0) : NULL;
+		if (Obj)
 		{
-			FString OrgArrayContent;
-			ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
+			if ((Obj->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) ||
+				(Obj->HasAnyFlags(RF_DefaultSubObject) && Obj->GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))) &&
+				!FApp::IsGame())
+			{
+				FString OrgArrayContent;
+				ArrayProperty->ExportText_Direct(OrgArrayContent, Addr, Addr, NULL, 0);
 
-			ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Duplicate, Index);
+				ChildNodePtr->PropagateArrayPropertyChange(Obj, OrgArrayContent, EPropertyArrayChangeType::Duplicate, Index);
+			}
 		}
 
 		ArrayHelper.InsertValues(Index);
@@ -1348,14 +1387,18 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ChildNodePtr->GetArrayIndex()), ArrayHelper.GetRawPtr(ChildNodePtr->GetArrayIndex() + 1));
 
 		// Find the object that owns the array and instance any subobjects
-		FObjectPropertyNode* ObjectPropertyNode = ChildNodePtr->FindObjectItemParent();
-		UObject* ArrayOwner = NULL;
-		for ( TPropObjectIterator Itor( ObjectPropertyNode->ObjectIterator() ) ; Itor && !ArrayOwner ; ++Itor )
+		if (FObjectPropertyNode* ObjectPropertyNode = ChildNodePtr->FindObjectItemParent())
 		{
-			ArrayOwner = Itor->Get();
+			UObject* ArrayOwner = NULL;
+			for (TPropObjectIterator Itor(ObjectPropertyNode->ObjectIterator()); Itor && !ArrayOwner; ++Itor)
+			{
+				ArrayOwner = Itor->Get();
+			}
+			if (ArrayOwner)
+			{
+				ArrayOwner->InstanceSubobjectTemplates();
+			}
 		}
-
-		ArrayOwner->InstanceSubobjectTemplates();
 
 
 
@@ -1365,8 +1408,16 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 		// 		ParentNode->SetExpanded(bExpand, bRecurse);
 
 		const bool bTopologyChange = true;
-		FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
-		ChildNodePtr->NotifyPostChange( ChangeEvent, NotifyHook );
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+			ChildNodePtr->NotifyPostChange(ChangeEvent, NotifyHook);
+		}
+		if (PropertyUtilities.IsValid())
+		{
+			FPropertyChangedEvent ChangeEvent(ParentNode->GetProperty(), bTopologyChange, EPropertyChangeType::ValueSet);
+			ChildNodePtr->FixPropertiesInEvent(ChangeEvent);
+			PropertyUtilities.Pin()->NotifyFinishedChangingProperties(ChangeEvent);
+		}
 	}
 }
 
@@ -1710,9 +1761,9 @@ FPropertyAccess::Result FPropertyHandleBase::SetPerObjectValues( const TArray<FS
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if( PropertyNode.IsValid() && PropertyNode->GetProperty() )
 	{
-		FObjectPropertyNode* ObjectNode = PropertyNode->FindObjectItemParent();
+		FComplexPropertyNode* ComplexNode = PropertyNode->FindComplexParent();
 
-		if( ObjectNode && InPerObjectValues.Num() == ObjectNode->GetNumObjects() )
+		if (ComplexNode && InPerObjectValues.Num() == ComplexNode->GetInstancesNum())
 		{
 			TArray<FObjectBaseAddress> ObjectsToModify;
 			Implementation->GetObjectsToModify( ObjectsToModify, PropertyNode.Get() );
