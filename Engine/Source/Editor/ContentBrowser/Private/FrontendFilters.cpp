@@ -7,6 +7,48 @@
 
 
 /////////////////////////////////////////
+// FFrontendFilter_Text
+/////////////////////////////////////////
+
+void AssetDataToString(AssetFilterType Asset, OUT TArray< FString >& Array)
+{
+	Array.Add(Asset.GetExportTextName());
+}
+
+FFrontendFilter_Text::FFrontendFilter_Text()
+	: FFrontendFilter(nullptr)
+	, TextFilter( TTextFilter<AssetFilterType>::FItemToStringArray::CreateStatic( &AssetDataToString ) )
+{
+	TextFilter.OnChanged().AddRaw(this, &FFrontendFilter_Text::HandleOnChangedEvent);
+}
+
+FFrontendFilter_Text::~FFrontendFilter_Text()
+{
+	TextFilter.OnChanged().RemoveAll(this);
+}
+
+bool FFrontendFilter_Text::PassesFilter(AssetFilterType InItem) const
+{
+	return TextFilter.PassesFilter(InItem);
+}
+
+FText FFrontendFilter_Text::GetRawFilterText() const
+{
+	return TextFilter.GetRawFilterText();
+}
+
+void FFrontendFilter_Text::SetRawFilterText(const FText& InFilterText)
+{
+	return TextFilter.SetRawFilterText(InFilterText);
+}
+
+void FFrontendFilter_Text::HandleOnChangedEvent()
+{
+	BroadcastChangedEvent();
+}
+
+
+/////////////////////////////////////////
 // FFrontendFilter_CheckedOut
 /////////////////////////////////////////
 
@@ -51,6 +93,23 @@ void FFrontendFilter_CheckedOut::SourceControlOperationComplete(const FSourceCon
 // FFrontendFilter_Modified
 /////////////////////////////////////////
 
+FFrontendFilter_Modified::FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
+	, bIsCurrentlyActive(false)
+{
+	UPackage::PackageDirtyStateUpdatedEvent.AddRaw(this, &FFrontendFilter_Modified::OnPackageDirtyStateUpdated);
+}
+
+FFrontendFilter_Modified::~FFrontendFilter_Modified()
+{
+	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+}
+
+void FFrontendFilter_Modified::ActiveStateChanged(bool bActive)
+{
+	bIsCurrentlyActive = bActive;
+}
+
 bool FFrontendFilter_Modified::PassesFilter( AssetFilterType InItem ) const
 {
 	UPackage* Package = FindPackage(NULL, *InItem.PackageName.ToString());
@@ -61,6 +120,14 @@ bool FFrontendFilter_Modified::PassesFilter( AssetFilterType InItem ) const
 	}
 
 	return false;
+}
+
+void FFrontendFilter_Modified::OnPackageDirtyStateUpdated(UPackage* Package)
+{
+	if (bIsCurrentlyActive)
+	{
+		BroadcastChangedEvent();
+	}
 }
 
 /////////////////////////////////////////
@@ -79,10 +146,11 @@ bool FFrontendFilter_ReplicatedBlueprint::PassesFilter( AssetFilterType InItem )
 
 FFrontendFilter_ShowOtherDevelopers::FFrontendFilter_ShowOtherDevelopers(TSharedPtr<FFrontendFilterCategory> InCategory)
 	: FFrontendFilter(InCategory)
+	, BaseDeveloperPath(FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir()))
+	, UserDeveloperPath(FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir()))
+	, bIsOnlyOneDeveloperPathSelected(false)
+	, bShowOtherDeveloperAssets(false)
 {
-	BaseDeveloperPath = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
-	UserDeveloperPath = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir());
-	bIsOnlyOneDeveloperPathSelected = false;
 }
 
 void FFrontendFilter_ShowOtherDevelopers::SetCurrentFilter(const FARFilter& InFilter)
@@ -103,24 +171,42 @@ void FFrontendFilter_ShowOtherDevelopers::SetCurrentFilter(const FARFilter& InFi
 
 bool FFrontendFilter_ShowOtherDevelopers::PassesFilter( AssetFilterType InItem ) const
 {
-	// Never hide developer assets when a single developer folder is selected.
-	if ( !bIsOnlyOneDeveloperPathSelected )
+	// Pass all assets if other developer assets are allowed
+	if ( !bShowOtherDeveloperAssets )
 	{
-		// If selecting multiple folders, the Developers folder/parent folder, or "All Assets", hide assets which are found in the development folder unless they are in the current user's folder
-		const FString PackagePath = InItem.PackagePath.ToString() + TEXT("/");
-		const bool bPackageInDeveloperFolder = PackagePath.StartsWith(BaseDeveloperPath) && PackagePath.Len() != BaseDeveloperPath.Len();
-
-		if ( bPackageInDeveloperFolder )
+		// Never hide developer assets when a single developer folder is selected.
+		if ( !bIsOnlyOneDeveloperPathSelected )
 		{
-			const bool bPackageInUserDeveloperFolder = PackagePath.StartsWith(UserDeveloperPath);
-			if ( !bPackageInUserDeveloperFolder )
+			// If selecting multiple folders, the Developers folder/parent folder, or "All Assets", hide assets which are found in the development folder unless they are in the current user's folder
+			const FString PackagePath = InItem.PackagePath.ToString() + TEXT("/");
+			const bool bPackageInDeveloperFolder = PackagePath.StartsWith(BaseDeveloperPath) && PackagePath.Len() != BaseDeveloperPath.Len();
+
+			if ( bPackageInDeveloperFolder )
 			{
-				return false;
+				const bool bPackageInUserDeveloperFolder = PackagePath.StartsWith(UserDeveloperPath);
+				if ( !bPackageInUserDeveloperFolder )
+				{
+					return false;
+				}
 			}
 		}
 	}
 
 	return true;
+}
+
+void FFrontendFilter_ShowOtherDevelopers::SetShowOtherDeveloperAssets(bool bValue)
+{
+	if ( bShowOtherDeveloperAssets != bValue )
+	{
+		bShowOtherDeveloperAssets = bValue;
+		BroadcastChangedEvent();
+	}
+}
+
+bool FFrontendFilter_ShowOtherDevelopers::GetShowOtherDeveloperAssets() const
+{
+	return bShowOtherDeveloperAssets;
 }
 
 /////////////////////////////////////////

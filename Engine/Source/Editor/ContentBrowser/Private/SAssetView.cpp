@@ -83,9 +83,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
 	FCoreDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
 
-	// Listen for when packages' dirty states are updated
-	UPackage::PackageDirtyStateUpdatedEvent.AddSP(this, &SAssetView::OnPackageDirtyStateUpdated);
-
 	// Listen for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SAssetView::HandleSettingChanged);
 
@@ -110,7 +107,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	TileViewThumbnailPadding = 5;
 	TileViewNameHeight = 36;
 	ThumbnailScaleSliderValue = InArgs._ThumbnailScale; 
-	ThumbnailScaleChanged = InArgs._OnThumbnailScaleChanged;
 
 	if ( !ThumbnailScaleSliderValue.IsBound() )
 	{
@@ -139,11 +135,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	SourcesData = InArgs._InitialSourcesData;
 	BackendFilter = InArgs._InitialBackendFilter;
-	DynamicFilters = InArgs._DynamicFilters;
-	if ( DynamicFilters.IsValid() )
-	{
-		DynamicFilters->OnChanged().AddSP( this, &SAssetView::OnDynamicFiltersChanged );
-	}
 
 	FrontendFilters = InArgs._FrontendFilters;
 	if ( FrontendFilters.IsValid() )
@@ -152,7 +143,6 @@ void SAssetView::Construct( const FArguments& InArgs )
 	}
 
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
-	OnAssetClicked = InArgs._OnAssetClicked;
 	OnAssetSelected = InArgs._OnAssetSelected;
 	OnAssetsActivated = InArgs._OnAssetsActivated;
 	OnGetAssetContextMenu = InArgs._OnGetAssetContextMenu;
@@ -161,12 +151,9 @@ void SAssetView::Construct( const FArguments& InArgs )
 	OnFindInAssetTreeRequested = InArgs._OnFindInAssetTreeRequested;
 	OnAssetRenameCommitted = InArgs._OnAssetRenameCommitted;
 	OnAssetTagWantsToBeDisplayed = InArgs._OnAssetTagWantsToBeDisplayed;
-	OnAssetDragged = InArgs._OnAssetDragged;
 	HighlightedText = InArgs._HighlightedText;
-	LabelVisibility = InArgs._LabelVisibility;
 	ThumbnailLabel = InArgs._ThumbnailLabel;
 	AllowThumbnailHintLabel = InArgs._AllowThumbnailHintLabel;
-	ConstructToolTipForAsset = InArgs._ConstructToolTipForAsset;
 	AssetShowWarningText = InArgs._AssetShowWarningText;
 	bAllowDragging = InArgs._AllowDragging;
 	bAllowFocusOnSync = InArgs._AllowFocusOnSync;
@@ -391,7 +378,7 @@ void SAssetView::SetSourcesData(const FSourcesData& InSourcesData)
 {
 	// Update the path and collection lists
 	SourcesData = InSourcesData;
-	bRefreshSourceItemsRequested = true;
+	RequestSlowFullListRefresh();
 	ClearSelection();
 }
 
@@ -409,7 +396,7 @@ void SAssetView::SetBackendFilter(const FARFilter& InBackendFilter)
 {
 	// Update the path and collection lists
 	BackendFilter = InBackendFilter;
-	bRefreshSourceItemsRequested = true;
+	RequestSlowFullListRefresh();
 }
 
 void SAssetView::OnCreateNewFolder(const FString& FolderName, const FString& FolderPath)
@@ -634,9 +621,14 @@ TArray<FString> SAssetView::GetSelectedFolders() const
 	return SelectedFolders;
 }
 
-void SAssetView::RequestListRefresh()
+void SAssetView::RequestSlowFullListRefresh()
 {
-	bRefreshSourceItemsRequested = true;
+	bSlowFullListRefreshRequested = true;
+}
+
+void SAssetView::RequestQuickFrontendListRefresh()
+{
+	bQuickFrontendListRefreshRequested = true;
 }
 
 void SAssetView::SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const
@@ -797,15 +789,22 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		bPendingUpdateThumbnails = false;
 	}
 
-	if ( bRefreshSourceItemsRequested )
+	if ( bSlowFullListRefreshRequested || bQuickFrontendListRefreshRequested )
 	{
 		ResetQuickJump();
-		RefreshSourceItems();
+		
+		if ( bSlowFullListRefreshRequested )
+		{
+			RefreshSourceItems();
+		}
+
 		RefreshFilteredItems();
 		RefreshFolders();
 		// Don't sync to selection if we are just going to do it below
 		SortList(!PendingSyncAssets.Num());
-		bRefreshSourceItemsRequested = false;
+
+		bSlowFullListRefreshRequested = false;
+		bQuickFrontendListRefreshRequested = false;
 	}
 
 	if ( QueriedAssetItems.Num() > 0 )
@@ -1360,12 +1359,12 @@ void SAssetView::RefreshSourceItems()
 		if ( Item.AssetClass == UObjectRedirector::StaticClass()->GetFName() && !Item.IsUAsset() )
 		{
 			// Do not show redirectors if they are not the main asset in the uasset file.
-			Items.RemoveAt(AssetIdx);
+			Items.RemoveAtSwap(AssetIdx);
 		}
 		else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString()) )
 		{
 			// If this is an engine folder, and we don't want to show them, remove
-			Items.RemoveAt(AssetIdx);
+			Items.RemoveAtSwap(AssetIdx);
 		}
 	}
 }
@@ -1585,6 +1584,7 @@ void SAssetView::RefreshFolders()
 				if(!Folders.Contains(*SubPathIt))
 				{
 					FilteredAssetItems.Add(MakeShareable(new FAssetViewFolder(*SubPathIt)));
+					RefreshList();
 					Folders.Add(*SubPathIt);
 					bPendingSortFilteredItems = true;
 				}
@@ -1736,7 +1736,6 @@ void SAssetView::ProcessRecentlyAddedAssets()
 						{
 							FilteredAssetItems.Add(MakeShareable(new FAssetViewAsset(AssetItems[AddedAssetIdx])));
 							bPendingSortFilteredItems = true;
-							bRefreshSourceItemsRequested = true;
 
 							RefreshList();
 						}
@@ -1813,6 +1812,7 @@ void SAssetView::OnAssetRegistryPathAdded(const FString& Path)
 						if(!Folders.Contains(NewSubFolder))
 						{
 							FilteredAssetItems.Add(MakeShareable(new FAssetViewFolder(NewSubFolder)));
+							RefreshList();
 							Folders.Add(NewSubFolder);
 							bPendingSortFilteredItems = true;
 						}
@@ -1927,34 +1927,20 @@ void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& 
 	}
 }
 
-void SAssetView::OnPackageDirtyStateUpdated(UPackage* Package)
-{
-	RequestListRefresh();
-}
-
-void SAssetView::OnDynamicFiltersChanged()
-{
-	ResetQuickJump();
-	RefreshFilteredItems();
-	RefreshFolders();
-	SortList();
-}
-
 void SAssetView::OnFrontendFiltersChanged()
 {
-	bRefreshSourceItemsRequested = true;
+	RequestQuickFrontendListRefresh();
 }
 
 bool SAssetView::IsFrontendFilterActive() const
 {
-	return ( FrontendFilters.IsValid() && FrontendFilters->Num() > 0 ) || ( DynamicFilters.IsValid() && DynamicFilters->Num() > 0 );
+	return ( FrontendFilters.IsValid() && FrontendFilters->Num() > 0 );
 }
 
 bool SAssetView::PassesCurrentFrontendFilter(const FAssetData& Item) const
 {
 	// Check the frontend filters list
-	if ( ( FrontendFilters.IsValid() && !FrontendFilters->PassesAllFilters(Item) ) ||
-		 ( DynamicFilters.IsValid() && !DynamicFilters->PassesAllFilters( Item ) ) )
+	if ( FrontendFilters.IsValid() && !FrontendFilters->PassesAllFilters(Item) )
 	{
 		return false;
 	}
@@ -1996,7 +1982,7 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 
 				if ( !CollectionObjectPaths.Contains( AssetData.ObjectPath ) )
 				{
-					InOutAssetDataList.RemoveAt(AssetDataIdx);
+					InOutAssetDataList.RemoveAtSwap(AssetDataIdx);
 				}
 			}
 		}
@@ -2225,7 +2211,7 @@ void SAssetView::ToggleShowOnlyAssetsInSelectedFolders()
 {
 	check( CanShowOnlyAssetsInSelectedFolders() );
 	GetMutableDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders = !GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders;
-	bRefreshSourceItemsRequested = true;
+	RequestSlowFullListRefresh();
 }
 
 bool SAssetView::CanShowOnlyAssetsInSelectedFolders() const
@@ -2242,7 +2228,6 @@ void SAssetView::ToggleRealTimeThumbnails()
 {
 	check( CanShowRealTimeThumbnails() );
 	GetMutableDefault<UContentBrowserSettings>()->RealTimeThumbnails = !GetDefault<UContentBrowserSettings>()->RealTimeThumbnails;
-	bRefreshSourceItemsRequested = true;
 }
 
 bool SAssetView::CanShowRealTimeThumbnails() const
@@ -2495,7 +2480,6 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.OnItemDestroyed(this, &SAssetView::AssetItemWidgetDestroyed)
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText(HighlightedText)
-			.ConstructToolTip( ConstructToolTipForAsset )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) );
 
 		TableRowWidget->SetContent(Item);
@@ -2539,7 +2523,6 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText(HighlightedText)
 			.ThumbnailEditMode(this, &SAssetView::IsThumbnailEditMode)
-			.ConstructToolTip( ConstructToolTipForAsset )
 			.ThumbnailLabel( ThumbnailLabel )
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
@@ -2579,8 +2562,6 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.OnItemDestroyed(this, &SAssetView::AssetItemWidgetDestroyed)
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText( HighlightedText )
-			.LabelVisibility( LabelVisibility )
-			.ConstructToolTip( ConstructToolTipForAsset )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
 			.OnAssetsDragDropped(this, &SAssetView::OnAssetsDragDropped)
 			.OnPathsDragDropped(this, &SAssetView::OnPathsDragDropped)
@@ -2627,10 +2608,8 @@ TSharedRef<ITableRow> SAssetView::MakeTileViewWidget(TSharedPtr<FAssetViewItem> 
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText( HighlightedText )
 			.ThumbnailEditMode(this, &SAssetView::IsThumbnailEditMode)
-			.LabelVisibility( LabelVisibility )
 			.ThumbnailLabel( ThumbnailLabel )
 			.ThumbnailHintColorAndOpacity( this, &SAssetView::GetThumbnailHintColorAndOpacity )
-			.ConstructToolTip( ConstructToolTipForAsset )
 			.AllowThumbnailHintLabel( AllowThumbnailHintLabel )
 			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) );
 
@@ -2660,7 +2639,6 @@ TSharedRef<ITableRow> SAssetView::MakeColumnViewWidget(TSharedPtr<FAssetViewItem
 				.OnVerifyRenameCommit(this, &SAssetView::AssetVerifyRenameCommit)
 				.OnItemDestroyed(this, &SAssetView::AssetItemWidgetDestroyed)
 				.HighlightText( HighlightedText )
-				.ConstructToolTip( ConstructToolTipForAsset )
 				.OnAssetsDragDropped(this, &SAssetView::OnAssetsDragDropped)
 				.OnPathsDragDropped(this, &SAssetView::OnPathsDragDropped)
 				.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped)
@@ -3058,18 +3036,7 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 			
 			if ( InAssetData.Num() > 0 )
 			{
-				FReply Reply = FReply::Unhandled();
-				if ( OnAssetDragged.IsBound() )
-				{
-					Reply = OnAssetDragged.Execute( InAssetData );
-				}
-
-				if ( !Reply.IsEventHandled() )
-				{
-					Reply = FReply::Handled().BeginDragDrop(FAssetDragDropOp::New(InAssetData));
-				}
-
-				return Reply;
+				return FReply::Handled().BeginDragDrop(FAssetDragDropOp::New(InAssetData));
 			}
 		}
 		else
@@ -3254,7 +3221,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 		{
 			// Clearing the rename box on a newly created asset cancels the entire creation process
 			FilteredAssetItems.Remove(Item);
-			bRefreshSourceItemsRequested = true;
+			RefreshList();
 		}
 		else
 		{
@@ -3280,7 +3247,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 
 			// remove this temp item - a new one will have been added by the asset registry callback
 			FilteredAssetItems.Remove(Item);
-			bRefreshSourceItemsRequested = true;
+			RefreshList();
 
 			if(!bSuccess)
 			{
@@ -3320,7 +3287,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 				}
 			}
 
-			bRefreshSourceItemsRequested = true;
+			RequestQuickFrontendListRefresh();
 		}		
 	}
 	else
@@ -3335,7 +3302,7 @@ void SAssetView::AssetRenameCommit(const TSharedPtr<FAssetViewItem>& Item, const
 		{
 			// Sort in the new item
 			bPendingSortFilteredItems = true;
-			bRefreshSourceItemsRequested = true;
+			RequestQuickFrontendListRefresh();
 
 			// Refresh the thumbnail
 			const TSharedPtr<FAssetThumbnail>* AssetThumbnail = RelevantThumbnails.Find(StaticCastSharedPtr<FAssetViewAsset>(Item));
@@ -3480,15 +3447,7 @@ float SAssetView::GetThumbnailScale() const
 
 void SAssetView::SetThumbnailScale( float NewValue )
 {
-	if ( ThumbnailScaleSliderValue.IsBound() )
-	{
-		ThumbnailScaleChanged.ExecuteIfBound( NewValue );
-	}
-	else
-	{
-		ThumbnailScaleSliderValue = NewValue;
-	}
-
+	ThumbnailScaleSliderValue = NewValue;
 	RefreshList();
 }
 
@@ -3504,14 +3463,7 @@ float SAssetView::GetListViewItemHeight() const
 
 float SAssetView::GetTileViewItemHeight() const
 {
-	float Height = GetTileViewItemBaseHeight() * FillScale;
-
-	if ( LabelVisibility.Get() != EVisibility::Collapsed )
-	{
-		Height += TileViewNameHeight;
-	}
-
-	return Height;
+	return TileViewNameHeight + GetTileViewItemBaseHeight() * FillScale;
 }
 
 float SAssetView::GetTileViewItemBaseHeight() const
@@ -3721,7 +3673,7 @@ void SAssetView::SetUserSearching(bool bInSearching)
 {
 	if(bUserSearching != bInSearching)
 	{
-		bRefreshSourceItemsRequested = true;
+		RequestSlowFullListRefresh();
 	}
 	bUserSearching = bInSearching;
 }
@@ -3734,7 +3686,7 @@ void SAssetView::HandleSettingChanged(FName PropertyName)
 		(PropertyName == "DisplayEngineFolder") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
 	{
-		bRefreshSourceItemsRequested = true;
+		RequestSlowFullListRefresh();
 	}
 }
 

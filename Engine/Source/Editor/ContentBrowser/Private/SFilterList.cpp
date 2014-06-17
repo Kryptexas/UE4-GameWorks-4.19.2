@@ -387,7 +387,12 @@ void SFilterList::Construct( const FArguments& InArgs )
 	for(auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
 	{
 		TSharedRef<FFrontendFilter> Filter = (*Iter);
-		AllFrontendFilterCategories.AddUnique( Filter->GetCategory() );
+		TSharedPtr<FFrontendFilterCategory> Category = Filter->GetCategory();
+		if ( Category.IsValid() )
+		{
+			AllFrontendFilterCategories.AddUnique( Category );
+		}
+
 		AllFrontendFilters.Add(Filter);
 	}
 

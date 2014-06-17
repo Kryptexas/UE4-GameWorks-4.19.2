@@ -127,8 +127,6 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	OnItemDestroyed = InArgs._OnItemDestroyed;
 	ShouldAllowToolTip = InArgs._ShouldAllowToolTip;
 	ThumbnailEditMode = InArgs._ThumbnailEditMode;
-	LabelVisibility = InArgs._LabelVisibility;
-	ConstructToolTipForAsset = InArgs._ConstructToolTip;
 	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
 	OnPathsDragDropped = InArgs._OnPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
@@ -400,11 +398,6 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 		{
 			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 			UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
-
-			if ( ConstructToolTipForAsset.IsBound() )
-			{
-				return ConstructToolTipForAsset.Execute( AssetData );
-			}
 
 			// The tooltip contains the name, class, path, and asset registry tags
 			const FText NameText = FText::FromName( AssetData.AssetName );
@@ -891,7 +884,6 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
-		.ConstructToolTip(InArgs._ConstructToolTip)
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
@@ -1102,8 +1094,6 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
-		.LabelVisibility(InArgs._LabelVisibility)
-		.ConstructToolTip(InArgs._ConstructToolTip)
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
@@ -1292,7 +1282,6 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.OnRenameCommit(InArgs._OnRenameCommit)
 		.OnVerifyRenameCommit(InArgs._OnVerifyRenameCommit)
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
-		.ConstructToolTip(InArgs._ConstructToolTip )
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)

@@ -329,8 +329,11 @@ private:
 	/** True if source should not be changed from an outside source */
 	bool bIsLocked;
 
+	/** The list of FrontendFilters currently applied to the asset view */
+	TSharedPtr<AssetFilterCollectionType> FrontendFilters;
+
 	/** The text filter to use on the assets */
-	TSharedPtr< TTextFilter< AssetFilterType > > TextFilter;
+	TSharedPtr< FFrontendFilter_Text > TextFilter;
 
 	/** Commands handled by this widget */
 	TSharedPtr< FUICommandList > Commands;

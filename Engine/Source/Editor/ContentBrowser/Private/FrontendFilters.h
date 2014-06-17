@@ -6,6 +6,36 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
+/** A filter for text search */
+class FFrontendFilter_Text : public FFrontendFilter
+{
+public:
+	FFrontendFilter_Text();
+	~FFrontendFilter_Text();
+
+	// FFrontendFilter implementation
+	virtual FString GetName() const override { return TEXT("TextFilter"); }
+	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_Text", "Text"); }
+	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_TextTooltip", "Show only assets that match the input text"); }
+
+	// IFilter implementation
+	virtual bool PassesFilter(AssetFilterType InItem) const override;
+
+public:
+	/** Returns the unsanitized and unsplit filter terms */
+	FText GetRawFilterText() const;
+
+	/** Set the Text to be used as the Filter's restrictions */
+	void SetRawFilterText(const FText& InFilterText);
+
+private:
+
+	/** Handler for the internal text filter */
+	void HandleOnChangedEvent();
+
+	TTextFilter<AssetFilterType> TextFilter;
+};
+
 /** A filter that displays only checked out assets */
 class FFrontendFilter_CheckedOut : public FFrontendFilter, public TSharedFromThis<FFrontendFilter_CheckedOut>
 {
@@ -34,15 +64,24 @@ private:
 class FFrontendFilter_Modified : public FFrontendFilter
 {
 public:
-	FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory) : FFrontendFilter(InCategory) {}
+	FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCategory> InCategory);
+	~FFrontendFilter_Modified();
 
 	// FFrontendFilter implementation
 	virtual FString GetName() const override { return TEXT("Modified"); }
 	virtual FText GetDisplayName() const override { return LOCTEXT("FrontendFilter_Modified", "Modified"); }
 	virtual FText GetToolTipText() const override { return LOCTEXT("FrontendFilter_ModifiedTooltip", "Show only assets that have been modified and not yet saved."); }
+	virtual void ActiveStateChanged(bool bActive) override;
 
 	// IFilter implementation
 	virtual bool PassesFilter( AssetFilterType InItem ) const override;
+
+private:
+
+	/** Handler for when a package's dirty state has changed */
+	void OnPackageDirtyStateUpdated(UPackage* Package);
+
+	bool bIsCurrentlyActive;
 };
 
 /** A filter that displays blueprints that have replicated properties */
@@ -77,10 +116,18 @@ public:
 	// IFilter implementation
 	virtual bool PassesFilter( AssetFilterType InItem ) const override;
 
+public:
+	/** Sets if we should filter out assets from other developers */
+	void SetShowOtherDeveloperAssets(bool bValue);
+
+	/** Gets if we should filter out assets from other developers */
+	bool GetShowOtherDeveloperAssets() const;
+
 private:
 	FString BaseDeveloperPath;
 	FString UserDeveloperPath;
 	bool bIsOnlyOneDeveloperPathSelected;
+	bool bShowOtherDeveloperAssets;
 };
 
 /** An inverse filter that allows display of object redirectors */

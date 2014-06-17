@@ -4,46 +4,25 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
-void AssetToString( AssetFilterType Asset, OUT TArray< FString >& Array )
-{
-	Array.Add( Asset.GetExportTextName() );
-}
-
 void SAssetPicker::Construct( const FArguments& InArgs )
 {
-	FilterCollection = MakeShareable( new AssetFilterCollectionType() );
-	
-	for (int Index = 0; Index < InArgs._AssetPickerConfig.ExtraFilters->Num(); Index++)
-	{
-		FilterCollection->Add( InArgs._AssetPickerConfig.ExtraFilters->GetFilterAtIndex( Index ) );
-	}
+	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
 
 	BindCommands();
 
 	OnAssetsActivated = InArgs._AssetPickerConfig.OnAssetsActivated;
 	OnAssetSelected = InArgs._AssetPickerConfig.OnAssetSelected;
-	OnAssetClicked = InArgs._AssetPickerConfig.OnAssetClicked;
 	OnAssetDoubleClicked = InArgs._AssetPickerConfig.OnAssetDoubleClicked;
 	OnAssetEnterPressed = InArgs._AssetPickerConfig.OnAssetEnterPressed;
 	bPendingFocusNextFrame = InArgs._AssetPickerConfig.bFocusSearchBoxWhenOpened;
 	DefaultFilterMenuExpansion = InArgs._AssetPickerConfig.DefaultFilterMenuExpansion;
 
-	if ( InArgs._AssetPickerConfig.ClearSelectionDelegate != NULL )
+	for (auto DelegateIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
 	{
-		(*InArgs._AssetPickerConfig.ClearSelectionDelegate) = FClearSelectionDelegate::CreateSP( this, &SAssetPicker::ClearSelection ) ;
-	}
-
-	for ( auto AssetIt = InArgs._AssetPickerConfig.GetCurrentSelectionDelegates.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		if ( (*AssetIt) != NULL )
+		if ((*DelegateIt) != NULL)
 		{
-			(**AssetIt) = FGetCurrentSelectionDelegate::CreateSP( this, &SAssetPicker::GetCurrentSelection );
+			(**DelegateIt) = FGetCurrentSelectionDelegate::CreateSP(this, &SAssetPicker::GetCurrentSelection);
 		}
-	}
-
-	if ( InArgs._AssetPickerConfig.AdjustSelectionDelegate != NULL )
-	{
-		(*InArgs._AssetPickerConfig.AdjustSelectionDelegate) = FAdjustSelectionDelegate::CreateSP( this, &SAssetPicker::AdjustSelection ) ;
 	}
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -53,19 +32,18 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		VerticalBox
 	];
 
-	TAttribute< FText > HighlightText = InArgs._AssetPickerConfig.HighlightedText;
-	TAttribute< EVisibility > LabelVisibility = InArgs._AssetPickerConfig.LabelVisibility;
+	TAttribute< FText > HighlightText;
 	EThumbnailLabel::Type ThumbnailLabel = InArgs._AssetPickerConfig.ThumbnailLabel;
 
 	// Search box
 	if (!InArgs._AssetPickerConfig.bAutohideSearchBar)
 	{
-		TextFilter = MakeShareable( new TTextFilter< AssetFilterType >( TTextFilter< AssetFilterType >::FItemToStringArray::CreateStatic( &AssetToString ) ) );
-		FilterCollection->Add( TextFilter );
+		TextFilter = MakeShareable( new FFrontendFilter_Text() );
+		FrontendFilters->Add( TextFilter );
 		HighlightText = TAttribute< FText >( this, &SAssetPicker::GetHighlightedText );
 
-		OtherDevelopersFilter = MakeShareable(new FOtherDevelopersAssetFilter());
-		FilterCollection->Add( OtherDevelopersFilter );
+		OtherDevelopersFilter = MakeShareable( new FFrontendFilter_ShowOtherDevelopers(nullptr) );
+		FrontendFilters->Add( OtherDevelopersFilter );
 
 		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 
@@ -166,8 +144,6 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	InitialBackendFilter = InArgs._AssetPickerConfig.Filter;
 	InitialBackendFilter.PackagePaths.Empty();
 
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
-
 	if(InArgs._AssetPickerConfig.bAddFilterUI)
 	{
 		// Filters
@@ -199,7 +175,6 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		SAssignNew(AssetViewPtr, SAssetView)
 		.SelectionMode( InArgs._AssetPickerConfig.SelectionMode )
 		.OnShouldFilterAsset(InArgs._AssetPickerConfig.OnShouldFilterAsset)
-		.OnAssetClicked(InArgs._AssetPickerConfig.OnAssetClicked)
 		.OnAssetSelected(InArgs._AssetPickerConfig.OnAssetSelected)
 		.OnAssetsActivated(this, &SAssetPicker::HandleAssetsActivated)
 		.OnGetAssetContextMenu(InArgs._AssetPickerConfig.OnGetAssetContextMenu)
@@ -210,27 +185,22 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.InitialViewType(InArgs._AssetPickerConfig.InitialAssetViewType)
 		.InitialAssetSelection(InArgs._AssetPickerConfig.InitialAssetSelection)
 		.ThumbnailScale(InArgs._AssetPickerConfig.ThumbnailScale)
-		.OnThumbnailScaleChanged(InArgs._AssetPickerConfig.ThumbnailScaleChanged)
 		.ShowBottomToolbar(InArgs._AssetPickerConfig.bShowBottomToolbar)
 		.OnAssetTagWantsToBeDisplayed(InArgs._AssetPickerConfig.OnAssetTagWantsToBeDisplayed)
-		.OnAssetDragged( InArgs._AssetPickerConfig.OnAssetDragged )
 		.AllowDragging( InArgs._AssetPickerConfig.bAllowDragging )
 		.CanShowClasses( InArgs._AssetPickerConfig.bCanShowClasses )
-		.CanShowFolders( InArgs._AssetPickerConfig.bCanShowFolders )
+		.CanShowFolders( false )
 		.CanShowOnlyAssetsInSelectedFolders( InArgs._AssetPickerConfig.bCanShowOnlyAssetsInSelectedFolders )
 		.CanShowRealTimeThumbnails( InArgs._AssetPickerConfig.bCanShowRealTimeThumbnails )
 		.CanShowDevelopersFolder( InArgs._AssetPickerConfig.bCanShowDevelopersFolder )
 		.PreloadAssetsForContextMenu( InArgs._AssetPickerConfig.bPreloadAssetsForContextMenu )
-		.DynamicFilters( FilterCollection )
 		.HighlightedText( HighlightText )
-		.LabelVisibility( LabelVisibility )
 		.ThumbnailLabel( ThumbnailLabel )
-		.ConstructToolTipForAsset( InArgs._AssetPickerConfig.ConstructToolTipForAsset )
 		.AssetShowWarningText( InArgs._AssetPickerConfig.AssetShowWarningText)
 		.AllowFocusOnSync(false)	// Stop the asset view from stealing focus (we're in control of that)
 	];
 
-	AssetViewPtr->RequestListRefresh();
+	AssetViewPtr->RequestSlowFullListRefresh();
 }
 
 void SAssetPicker::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -343,19 +313,9 @@ void SAssetPicker::HandleAssetsActivated(const TArray<FAssetData>& ActivatedAsse
 	OnAssetsActivated.ExecuteIfBound( ActivatedAssets, ActivationMethod );
 }
 
-void SAssetPicker::ClearSelection()
-{
-	AssetViewPtr->ClearSelection();
-}
-
 TArray< FAssetData > SAssetPicker::GetCurrentSelection()
 {
 	return AssetViewPtr->GetSelectedAssets();
-}
-
-void SAssetPicker::AdjustSelection(const int32 direction)
-{
-	AssetViewPtr->AdjustActiveSelection(direction);
 }
 
 FText SAssetPicker::GetShowOtherDevelopersToolTip() const

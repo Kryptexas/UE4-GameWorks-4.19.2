@@ -11,11 +11,6 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
-void AssetDataToString( AssetFilterType Asset, OUT TArray< FString >& Array )
-{
-	Array.Add( Asset.GetExportTextName() );
-}
-
 const FString SContentBrowser::SettingsIniSection = TEXT("ContentBrowser");
 
 SContentBrowser::~SContentBrowser()
@@ -27,8 +22,6 @@ SContentBrowser::~SContentBrowser()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstanceName )
 {
-	TextFilter = MakeShareable( new TTextFilter< AssetFilterType >( TTextFilter< AssetFilterType >::FItemToStringArray::CreateStatic( &AssetDataToString ) ) );
-
 	if ( InArgs._ContainingTab.IsValid() )
 	{
 		// For content browsers that are placed in tabs, save settings when the tab is closing.
@@ -49,9 +42,8 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	PathContextMenu = MakeShareable(new FPathContextMenu( AsShared() ));
 	PathContextMenu->SetOnNewAssetRequested( FNewAssetContextMenu::FOnNewAssetRequested::CreateSP(this, &SContentBrowser::NewAssetRequested) );
 
-	TSharedPtr<AssetFilterCollectionType> FrontendFilters = MakeShareable(new AssetFilterCollectionType());
-	TSharedPtr<AssetFilterCollectionType> ExtraFilters = MakeShareable(new AssetFilterCollectionType());
-	ExtraFilters->Add( TextFilter );
+	FrontendFilters = MakeShareable(new AssetFilterCollectionType());
+	TextFilter = MakeShareable( new FFrontendFilter_Text() );
 
 	FContentBrowserCommands::Register();
 
@@ -544,7 +536,6 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							.OnAssetRenameCommitted(this, &SContentBrowser::OnAssetRenameCommitted)
 							.AreRealTimeThumbnailsAllowed(this, &SContentBrowser::IsHovered)
 							.FrontendFilters(FrontendFilters)
-							.DynamicFilters(ExtraFilters)
 							.HighlightedText(this, &SContentBrowser::GetHighlightedText)
 							.AllowThumbnailEditMode(true)
 							.AllowThumbnailHintLabel(false)
@@ -1064,10 +1055,12 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
 	{
+		FrontendFilters->Remove(TextFilter);
 		AssetViewPtr->SetUserSearching(false);
 	}
 	else
 	{
+		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
 
@@ -1081,10 +1074,12 @@ void SContentBrowser::OnSearchBoxCommitted(const FText& InSearchText, ETextCommi
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
 	{
+		FrontendFilters->Remove(TextFilter);
 		AssetViewPtr->SetUserSearching(false);
 	}
 	else
 	{
+		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
 }
@@ -1725,7 +1720,7 @@ void SContentBrowser::OnDuplicateRequested(const TWeakObjectPtr<UObject>& Origin
 
 void SContentBrowser::OnAssetViewRefreshRequested()
 {
-	AssetViewPtr->RequestListRefresh();
+	AssetViewPtr->RequestSlowFullListRefresh();
 }
 
 void SContentBrowser::HandleSettingChanged(FName PropertyName)

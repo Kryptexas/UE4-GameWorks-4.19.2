@@ -42,14 +42,8 @@ private:
 	/** Handler for when the user double clicks, presses enter, or presses space on an asset */
 	void HandleAssetsActivated(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);
 
-	/** Clears the current asset selection in the view */
-	void ClearSelection();
-
 	/** @return The currently selected asset */
 	TArray< FAssetData > GetCurrentSelection();
-
-	/** Adjust the asset data selection, +1 to increment or -1 to decrement */
-	void AdjustSelection(const int32 direction);
 
 	/** @return The text to highlight on the assets  */
 	FText GetHighlightedText() const;
@@ -85,9 +79,6 @@ private:
 	/** Called to when an asset is selected or the none button is pressed */
 	FOnAssetSelected OnAssetSelected;
 
-	/** Called to when an asset is clicked */
-	FOnAssetClicked OnAssetClicked;
-
 	/** Called to when an asset is double clicked */
 	FOnAssetDoubleClicked OnAssetDoubleClicked;
 
@@ -102,8 +93,8 @@ private:
 
 	/** Filters needed for filtering the assets */
 	TSharedPtr< AssetFilterCollectionType > FilterCollection;
-	TSharedPtr< TTextFilter< AssetFilterType > > TextFilter;
-	TSharedPtr< FOtherDevelopersAssetFilter > OtherDevelopersFilter;
+	TSharedPtr< FFrontendFilter_Text > TextFilter;
+	TSharedPtr< FFrontendFilter_ShowOtherDevelopers > OtherDevelopersFilter;
 
 	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
 

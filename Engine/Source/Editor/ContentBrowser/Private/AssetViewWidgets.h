@@ -47,8 +47,6 @@ public:
 	SLATE_BEGIN_ARGS( SAssetViewItem )
 		: _ShouldAllowToolTip(true)
 		, _ThumbnailEditMode(false)
-		, _LabelVisibility(EVisibility::Visible)
-		, _ConstructToolTip()
 		{}
 
 		/** Data for the asset this item represents */
@@ -71,12 +69,6 @@ public:
 
 		/** If true, display the thumbnail edit mode UI */
 		SLATE_ATTRIBUTE( bool, ThumbnailEditMode )
-
-		/** The visibility state of the labels used in asset view items */
-		SLATE_ATTRIBUTE( EVisibility, LabelVisibility )
-
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
 
 		/** Delegate for when assets are dropped on this item, if it is a folder */
 		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
@@ -212,9 +204,6 @@ protected:
 	/** If true, display the thumbnail edit mode UI */
 	TAttribute<bool> ThumbnailEditMode;
 
-	/** The visibility state of the labels used in asset view items */
-	TAttribute<EVisibility> LabelVisibility;
-
 	/**
 	 * A map of class names to their important asset registry tags and values.
 	 * Important tags will be featured in the tooltip if the value matches.
@@ -227,9 +216,6 @@ protected:
 
 	/** Cached flag describing if the package is dirty */
 	bool bPackageDirty;
-
-	/** The callback for external code to construct the tooltip used for this asset */
-	FConstructToolTipForAsset ConstructToolTipForAsset;
 
 	/** Flag indicating whether we have requested initial source control state */
 	bool bSourceControlStateRequested;
@@ -298,9 +284,6 @@ public:
 		/** Called when any asset item is destroyed. Used in thumbnail management */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
 
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
-
 		/** If false, the tooltip will not be displayed */
 		SLATE_ATTRIBUTE( bool, ShouldAllowToolTip )
 
@@ -360,7 +343,6 @@ public:
 		, _ItemWidth(16)
 		, _ShouldAllowToolTip(true)
 		, _ThumbnailEditMode(false)
-		, _LabelVisibility(EVisibility::Visible)
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _ThumbnailHintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
 		, _AllowThumbnailHintLabel(true)
@@ -399,9 +381,6 @@ public:
 		/** Called when any asset item is destroyed. Used in thumbnail management */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
 
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
-
 		/** If false, the tooltip will not be displayed */
 		SLATE_ATTRIBUTE( bool, ShouldAllowToolTip )
 
@@ -410,9 +389,6 @@ public:
 
 		/** If true, the thumbnail in this item can be edited */
 		SLATE_ATTRIBUTE( bool, ThumbnailEditMode )
-
-		/** The visibility state of the labels used in asset view items */
-		SLATE_ATTRIBUTE( EVisibility, LabelVisibility )
 
 		/** Whether the item is selected in the view */
 		SLATE_ARGUMENT( FIsSelected, IsSelected )
@@ -478,9 +454,6 @@ public:
 
 		/** Called when any asset item is destroyed. Used in thumbnail management, though it may be used for more so It is in column items for consistency. */
 		SLATE_EVENT( FOnItemDestroyed, OnItemDestroyed )
-
-		/** The tooltip to display when the cursor hovers over this widget */
-		SLATE_EVENT( FConstructToolTipForAsset, ConstructToolTip )
 
 		/** The string in the title to highlight (used when searching by string) */
 		SLATE_ATTRIBUTE( FText, HighlightText )
