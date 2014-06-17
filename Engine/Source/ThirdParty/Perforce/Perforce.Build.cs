@@ -51,7 +51,7 @@ public class Perforce : ModuleRules
 			LibPostfixAndExt = ".a";
 		}
 
-		PublicIncludePaths.Add(P4APIPath + "include");
+		PublicSystemIncludePaths.Add(P4APIPath + "include");
 		PublicAdditionalLibraries.Add(LibPrefix + "libclient" + LibPostfixAndExt);
 
 		if (Target.Platform != UnrealTargetPlatform.Win64)
