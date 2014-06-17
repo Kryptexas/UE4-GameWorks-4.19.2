@@ -9,16 +9,8 @@
 AFunctionalAITest::AFunctionalAITest( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 	, CurrentSpawnSetIndex(INDEX_NONE)
+	, bSingleSetRun(false)
 {
-	/*struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
-
-		FConstructorStatics()
-			: Texture(TEXT("/Engine/EditorResources/S_FTest"))
-		{
-		}
-	};*/
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -57,12 +49,22 @@ void AFunctionalAITest::BeginPlay()
 	Super::BeginPlay();
 }
 
-bool AFunctionalAITest::StartTest()
+bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 {
 	KillOffSpawnedPawns();
 	ClearPendingDelayedSpawns();
 
-	if (++CurrentSpawnSetIndex < SpawnSets.Num())
+	bSingleSetRun = Params.Num() > 0;
+	if (bSingleSetRun)
+	{
+		TTypeFromString<int32>::FromString(CurrentSpawnSetIndex, *Params[0]);
+	}
+	else
+	{
+		++CurrentSpawnSetIndex;
+	}
+
+	if (CurrentSpawnSetIndex < SpawnSets.Num())
 	{
 		UWorld* World = GetWorld();
 		check(World);
@@ -132,7 +134,7 @@ void AFunctionalAITest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> Test
 
 bool AFunctionalAITest::WantsToRunAgain() const
 {
-	return CurrentSpawnSetIndex + 1 < SpawnSets.Num();
+	return bSingleSetRun == false && CurrentSpawnSetIndex + 1 < SpawnSets.Num();
 }
 
 
@@ -153,7 +155,7 @@ FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResul
 	{
 		if (CurrentSpawnSetName.Len() > 0 && CurrentSpawnSetName != TEXT("None"))
 		{
-			Result = FString::Printf(TEXT("set %s, pawns: "), *CurrentSpawnSetName);
+			Result = FString::Printf(TEXT("spawn set \'%s\', pawns: "), *CurrentSpawnSetName);
 		}
 		else
 		{
@@ -168,6 +170,13 @@ FString AFunctionalAITest::GetAdditionalTestFinishedMessage(EFunctionalTestResul
 	}
 
 	return Result;
+}
+
+FString AFunctionalAITest::GetReproString() const
+{
+	return FString::Printf(TEXT("%s%s%d"), *(GetFName().ToString())
+		, FFunctionalTesting::ReproStringParamsSeparator
+		, CurrentSpawnSetIndex);
 }
 
 void AFunctionalAITest::KillOffSpawnedPawns()
@@ -197,6 +206,12 @@ void AFunctionalAITest::Tick(float DeltaSeconds)
 	{
 		DelayedSpawn.Tick(DeltaSeconds, this);
 	}
+}
+
+void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
+{
+	SpawnedPawns.Add(&SpawnedPawn);
+	OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn.GetController()), &SpawnedPawn);
 }
 
 //----------------------------------------------------------------------//
@@ -231,9 +246,7 @@ bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
 	}
 	else
 	{
-		AITest->SpawnedPawns.Add(SpawnedPawn);
-		AITest->OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn->GetController()), SpawnedPawn);
-
+		AITest->AddSpawnedPawn(*SpawnedPawn);
 		bSuccessfullySpawned = true;
 	}
 

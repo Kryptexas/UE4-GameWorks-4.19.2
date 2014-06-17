@@ -70,8 +70,7 @@ class AFunctionalTest : public AActor
 
 public:
 
-	UFUNCTION(BlueprintCallable, Category="Development")
-	virtual bool StartTest();
+	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>());
 
 	UFUNCTION(BlueprintCallable, Category="Development")
 	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message);
@@ -98,6 +97,8 @@ public:
 	 *	Note that FinishTest gets called after every "cycle" of a test (where further cycles are enabled by  
 	 *	WantsToRunAgain calls). CleanUp gets called when all cycles are done. */
 	virtual void CleanUp();
+
+	virtual FString GetReproString() const { return GetFName().ToString(); }
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

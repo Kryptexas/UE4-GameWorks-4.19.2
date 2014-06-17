@@ -4,6 +4,13 @@
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
+namespace FFunctionalTesting
+{
+	const TCHAR* ReproStringTestSeparator = TEXT("@");
+	const TCHAR* ReproStringParamsSeparator = TEXT("#");
+}
+
+
 //struct FFuncTestingTickHelper : FTickableGameObject
 //{
 //	class UFunctionalTestingManager* Manager;
@@ -45,6 +52,7 @@ UFunctionalTestingManager::UFunctionalTestingManager( const class FPostConstruct
 	, bInitialDelayApplied(false)
 	, CurrentIteration(INDEX_NONE)
 {
+	TestFinishedObserver = FFunctionalTestDoneSignature::CreateUObject(this, &UFunctionalTestingManager::OnTestDone);
 }
 
 void UFunctionalTestingManager::SetUpTests()
@@ -52,7 +60,7 @@ void UFunctionalTestingManager::SetUpTests()
 	OnSetupTests.Broadcast();
 }
 
-bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, bool bLoopOnlyFailedTests)
+bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, bool bNewLog, bool bRunLooped, bool bInWaitForNavigationBuildFinish, FString ReproString)
 {
 	UFunctionalTestingManager* Manager = GetManager(WorldContext);
 
@@ -72,23 +80,34 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 	Manager->bLooped = bRunLooped;
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
-	Manager->bDiscardSuccessfulTests = bLoopOnlyFailedTests;
+	Manager->TestsLeft.Reset();
+	Manager->SetReproString(ReproString);
 
-	for (TActorIterator<AFunctionalTest> It(GWorld); It; ++It)
+	Manager->SetUpTests();
+
+	if (Manager->TestReproStrings.Num() > 0)
 	{
-		AFunctionalTest* Test = (*It);
-		if (Test != NULL && Test->bIsEnabled == true)
-		{
-			Manager->AllTests.Add(Test);
-		}
-	}
-
-	if (Manager->AllTests.Num() > 0)
-	{
-		Manager->SetUpTests();
-		Manager->TestsLeft = Manager->AllTests;
-
+		static const FText RunningFromReproString = LOCTEXT("RunningFromReproString", "Running tests indicated by Repro String:");
+		AddLogItem(RunningFromReproString);
+		AddLogItem(FText::FromString(ReproString));
 		Manager->TriggerFirstValidTest();
+	}
+	else
+	{
+		for (TActorIterator<AFunctionalTest> It(GWorld); It; ++It)
+		{
+			AFunctionalTest* Test = (*It);
+			if (Test != NULL && Test->bIsEnabled == true)
+			{
+				Manager->AllTests.Add(Test);
+			}
+		}
+
+		if (Manager->AllTests.Num() > 0)
+		{
+			Manager->TestsLeft = Manager->AllTests;
+			Manager->TriggerFirstValidTest();
+		}
 	}
 
 	if (Manager->bIsRunning == false)
@@ -118,6 +137,10 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false))
 	{
 		bIsRunning = RunFirstValidTest();
+		if (bIsRunning == false)
+		{
+			AllTestsDone();
+		}
 	}
 	else
 	{
@@ -154,6 +177,15 @@ void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
 
 void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 {
+	if (FTest->IsSuccessful() == false)
+	{
+		if (GatheredFailedTestsReproString.IsEmpty() == false)
+		{
+			GatheredFailedTestsReproString += FFunctionalTesting::ReproStringTestSeparator;
+		}
+		GatheredFailedTestsReproString += FTest->GetReproString();
+	}
+
 	if (FTest->WantsToRunAgain() == false)
 	{
 		TestsLeft.RemoveSingle(FTest);
@@ -164,7 +196,7 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 		FTest->CleanUp();
 	}
 
-	if (TestsLeft.Num() > 0)
+	if (TestsLeft.Num() > 0 || TestReproStrings.Num() > 0)
 	{
 		bIsRunning = RunFirstValidTest();
 	}
@@ -175,55 +207,127 @@ void UFunctionalTestingManager::NotifyTestDone(AFunctionalTest* FTest)
 
 	if (bIsRunning == false)
 	{
-		if (bLooped == true)
+		AllTestsDone();
+	}
+}
+
+void UFunctionalTestingManager::AllTestsDone()
+{
+	if (GatheredFailedTestsReproString.IsEmpty() == false)
+	{
+		static const FText ReproStringLabel = LOCTEXT("ReproString", "Repro String:");
+		AddLogItem(ReproStringLabel);
+		AddLogItem(FText::FromString(GatheredFailedTestsReproString));
+	}
+
+	if (bLooped == true)
+	{
+		++CurrentIteration;
+
+		// reset
+		ensure(TestReproStrings.Num() == 0);
+		SetReproString(StartingReproString);
+		GatheredFailedTestsReproString = TEXT("");
+		TestsLeft = AllTests;
+
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("IterationIndex"), CurrentIteration);
+		AddLogItem(FText::Format(LOCTEXT("StartingIteration", "----- Starting iteration {IterationIndex} -----"), Arguments));
+		bIsRunning = RunFirstValidTest();
+		if (bIsRunning == false)
 		{
-			++CurrentIteration;
-			TestsLeft = AllTests;
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("IterationIndex"), CurrentIteration);
-			AddLogItem(FText::Format(LOCTEXT("StartingIteration", "----- Starting iteration {IterationIndex} -----"), Arguments));
-			bIsRunning = RunFirstValidTest();
+			static const FText FailedToStartAnotherIterationText = LOCTEXT("FailedToStartAnotherIteration", "Failed to start another iteration.");
+			AddWarning(FailedToStartAnotherIterationText);
 		}
-		else
-		{
-			AddLogItem(LOCTEXT("TestDone", "DONE."));
-			RemoveFromRoot();
-		}
+	}
+	else
+	{
+		AddLogItem(LOCTEXT("TestDone", "DONE."));
+		RemoveFromRoot();
 	}
 }
 
 bool UFunctionalTestingManager::RunFirstValidTest()
 {
-	for (int32 Index = 0; Index < TestsLeft.Num(); ++Index)
+	bool bTestSuccessfullyTriggered = false;
+
+	if (TestReproStrings.Num() > 0)
 	{
-		bool bRemove = TestsLeft[Index] == NULL;
-		if (TestsLeft[Index] != NULL)
+		UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
+		UObject* TestsOuter = World ? (UObject*)(World->PersistentLevel) : (UObject*)(ANY_PACKAGE);
+
+		while (TestReproStrings.Num() > 0)
 		{
-			ensure(TestsLeft[Index]->bIsEnabled);
-			TestsLeft[Index]->TestFinishedObserver = FFunctionalTestDoneSignature::CreateUObject(this, &UFunctionalTestingManager::OnTestDone);
-			if (TestsLeft[Index]->StartTest())
+			TArray<FString> TestParams;
+			const FString SingleTestReproString = TestReproStrings.Pop(/*bAllowShrinking=*/false);
+			SingleTestReproString.ParseIntoArray(&TestParams, TEXT("#"), /*InCullEmpty=*/true);
+			
+			// first param is the test name. Look for it			
+			AFunctionalTest* TestToRun = FindObject<AFunctionalTest>(TestsOuter, *TestParams[0]);
+			TestParams.RemoveAt(0, 1, /*bAllowShrinking=*/false);
+			if (TestToRun)
 			{
-				return true;
+				TestToRun->TestFinishedObserver = TestFinishedObserver;
+				if (TestToRun->StartTest(TestParams))
+				{
+					bTestSuccessfullyTriggered = true;
+					break;
+				}
+				else
+				{
+					AddWarning(FText::FromString(FString::Printf(TEXT("Test \'%s\' failed to start"), *TestToRun->GetName())));
+				}
 			}
 			else
 			{
-				bRemove = true;
+				AddWarning(FText::FromString(FString::Printf(TEXT("Unable to find test \'%s\'"), *TestToRun->GetName())));
 			}
 		}
-		
-		if (bRemove)
+	}
+	else
+	{
+		for (int32 Index = TestsLeft.Num()-1; Index >= 0; --Index)
 		{
-			TestsLeft.RemoveAtSwap(Index, 1, false);
+			bool bRemove = TestsLeft[Index] == NULL;
+			if (TestsLeft[Index] != NULL)
+			{
+				ensure(TestsLeft[Index]->bIsEnabled);
+				TestsLeft[Index]->TestFinishedObserver = TestFinishedObserver;
+				if (TestsLeft[Index]->StartTest())
+				{
+					bTestSuccessfullyTriggered = true;
+					break;
+				}
+				else
+				{
+					AddWarning(FText::FromString(FString::Printf(TEXT("Test: %s failed to start"), *TestsLeft[Index]->GetName())));
+					bRemove = true;
+				}
+			}
+
+			if (bRemove)
+			{
+				TestsLeft.RemoveAtSwap(Index, 1, false);
+			}
 		}
 	}
 
-	return false;
+	return bTestSuccessfullyTriggered;
 }
 
 void UFunctionalTestingManager::TickMe(float DeltaTime)
 {
+		
+}
 
-	
+void UFunctionalTestingManager::SetReproString(FString ReproString)
+{
+	TestReproStrings.Reset();
+	StartingReproString = ReproString;
+	if (ReproString.IsEmpty() == false)
+	{
+		ReproString.ParseIntoArray(&TestReproStrings, FFunctionalTesting::ReproStringTestSeparator, /*InCullEmpty=*/true);
+	}
 }
 
 //----------------------------------------------------------------------//

@@ -70,7 +70,7 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 	}
 }
 
-bool AFunctionalTest::StartTest()
+bool AFunctionalTest::StartTest(const TArray<FString>& Params)
 {
 	FailureMessage = TEXT("");
 
@@ -99,6 +99,8 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 		return;
 	}
 
+	Result = TestResult;
+
 	bIsRunning = false;
 	SetActorTickEnabled(false);
 
@@ -116,55 +118,38 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 	}
 
 	const FText ResultText = FTestResultTypeEnum->GetEnumText( TestResult.GetValue() );
-	const FString OutMessage = FString::Printf(TEXT("%s> Result: %s> %s")
+	const FString OutMessage = FString::Printf(TEXT("%s %s: \"%s\'")
 		, *GetActorLabel()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
 	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult) + FString::Printf(TEXT(", time %.2fs"), TotalTime);
 
 	AutoDestroyActors.Reset();
-
-	EMessageSeverity::Type MessageLogSeverity = EMessageSeverity::Info;
-	
+		
 	switch (TestResult.GetValue())
 	{
 		case EFunctionalTestResult::Invalid:
 		case EFunctionalTestResult::Error:
-			UE_VLOG(this, LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Error;
-			break;
-		case EFunctionalTestResult::Running:
-			UE_VLOG(this, LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Warning;
-			break;
 		case EFunctionalTestResult::Failed:
 			UE_VLOG(this, LogFunctionalTest, Error, TEXT("%s"), *OutMessage);
-			MessageLogSeverity = EMessageSeverity::Error;
+			UFunctionalTestingManager::AddError(FText::FromString(OutMessage));
 			break;
+
+		case EFunctionalTestResult::Running:
+			UE_VLOG(this, LogFunctionalTest, Warning, TEXT("%s"), *OutMessage);
+			UFunctionalTestingManager::AddWarning(FText::FromString(OutMessage));
+			break;
+		
 		default:
 			UE_VLOG(this, LogFunctionalTest, Log, TEXT("%s"), *OutMessage);
+			UFunctionalTestingManager::AddLogItem(FText::FromString(OutMessage));
 			break;
 	}
-
-	TSharedRef<FTokenizedMessage> LogMessage = FTokenizedMessage::Create(MessageLogSeverity, FText::FromString(GetActorLabel()))
-		->AddToken(FTextToken::Create(ResultText))
-		->AddToken(FTextToken::Create(FText::FromString(Message)))
-		->AddToken(FTextToken::Create(FText::FromString(AdditionalDetails)))
-		->AddToken(FTextToken::Create(FText::FromString(FailureMessage)));
-
-	switch (MessageLogSeverity)
+	
+	if (AdditionalDetails.IsEmpty() == false)
 	{
-	case EMessageSeverity::Error:
-		UFunctionalTestingManager::AddError(LogMessage->ToText());
-		break;
-	case EMessageSeverity::Warning:
-		UFunctionalTestingManager::AddWarning(LogMessage->ToText());
-		break;
-	default:
-		UFunctionalTestingManager::AddLogItem(LogMessage->ToText());
-		break;
+		UFunctionalTestingManager::AddLogItem(FText::FromString(AdditionalDetails));
 	}
-
 
 	TestFinishedObserver.ExecuteIfBound(this);
 }

@@ -98,6 +98,7 @@ class AFunctionalAITest : public AFunctionalTest
 {
 	GENERATED_UCLASS_BODY()
 	
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AITest)
 	TArray<FAITestSpawnSet> SpawnSets;
 
@@ -117,7 +118,10 @@ class AFunctionalAITest : public AFunctionalTest
 	/** Called when a all AI finished spawning */
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnAllAISPawned;
-		
+
+	uint32 bSingleSetRun:1;
+
+public:
 	UFUNCTION(BlueprintCallable, Category = "Development")
 	virtual bool IsOneOfSpawnedPawns(AActor* Actor);
 
@@ -126,11 +130,14 @@ class AFunctionalAITest : public AFunctionalTest
 	virtual void Tick(float DeltaSeconds) override;
 	// AActor interface end
 
-	virtual bool StartTest() override;
+	virtual bool StartTest(const TArray<FString>& Params = TArray<FString>()) override;
 	virtual void FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message) override;
 	virtual bool WantsToRunAgain() const override;
 	virtual void CleanUp() override;
 	virtual FString GetAdditionalTestFinishedMessage(EFunctionalTestResult::Type TestResult) const override;
+	virtual FString GetReproString() const override;
+
+	void AddSpawnedPawn(APawn& SpawnedPawn);
 
 protected:
 

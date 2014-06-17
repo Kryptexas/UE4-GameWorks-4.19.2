@@ -5,6 +5,12 @@
 #include "Misc/AutomationTest.h"
 #include "FunctionalTestingManager.generated.h"
 
+namespace FFunctionalTesting
+{
+	extern const TCHAR* ReproStringTestSeparator;
+	extern const TCHAR* ReproStringParamsSeparator;
+}
+
 UCLASS(BlueprintType, MinimalAPI)
 class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 {
@@ -22,7 +28,7 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
 	/** Triggers in sequence all functional tests found on the level.
 	 *	@return true if any tests have been triggered */
-	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog=true, bool bRunLooped=false, bool bWaitForNavigationBuildFinish=true, bool bLoopOnlyFailedTests = true);
+	 static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog = true, bool bRunLooped = false, bool bWaitForNavigationBuildFinish = true, FString FailedTestsReproString = TEXT(""));
 		
 	bool IsRunning() const { return bIsRunning; }
 	bool IsLooped() const { return bLooped; }
@@ -37,7 +43,7 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	static void AddError(const FText& InError);
 	static void AddWarning(const FText& InWarning);
 	static void AddLogItem(const FText& InLogItem);
-	
+
 private:
 	void LogMessage(const FString& MessageString, TSharedPtr<IMessageLogListing> LogListing = NULL);
 	
@@ -53,13 +59,21 @@ protected:
 	bool RunFirstValidTest();
 
 	void NotifyTestDone(class AFunctionalTest* FTest);
+
+	void SetReproString(FString ReproString);
+	void AllTestsDone();
 	
 	bool bIsRunning;
 	bool bLooped;
 	bool bWaitForNavigationBuildFinish;
 	bool bInitialDelayApplied;
-	bool bDiscardSuccessfulTests;
 	uint32 CurrentIteration;
+
+	FFunctionalTestDoneSignature TestFinishedObserver;
+	
+	FString GatheredFailedTestsReproString;
+	FString StartingReproString;
+	TArray<FString> TestReproStrings;
 
 	static FAutomationTestExecutionInfo* ExecutionInfo;
 };
