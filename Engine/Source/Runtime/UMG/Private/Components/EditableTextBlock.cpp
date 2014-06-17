@@ -34,8 +34,7 @@ TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
-	return SNew(SEditableTextBox)
-		.Text(Text)
+	MyEditableTextBlock = SNew(SEditableTextBox)
 		.HintText(HintText)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ForegroundColor(ForegroundColor)
@@ -52,6 +51,40 @@ TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, SlateOnTextChanged))
 		;
+
+	return MyEditableTextBlock.ToSharedRef();
+}
+
+void UEditableTextBlock::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyEditableTextBlock->SetText(Text);
+//	MyEditableTextBlock->SetHintText(HintText);
+//	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
+//	MyEditableTextBlock->SetIsPassword(IsPassword);
+//	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
+
+	// TODO UMG Complete making all properties settable on SEditableTextBox
+}
+
+FText UEditableTextBlock::GetText() const
+{
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		return MyEditableTextBlock->GetText();
+	}
+
+	return Text;
+}
+
+void UEditableTextBlock::SetText(FText InText)
+{
+	Text = InText;
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetText(Text);
+	}
 }
 
 void UEditableTextBlock::SlateOnTextChanged(const FText& Text)

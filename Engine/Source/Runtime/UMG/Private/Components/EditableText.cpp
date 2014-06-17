@@ -61,6 +61,8 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 
 void UEditableText::SyncronizeProperties()
 {
+	Super::SyncronizeProperties();
+
 	MyEditableText->SetText(Text);
 	MyEditableText->SetHintText(HintText);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
@@ -68,6 +70,25 @@ void UEditableText::SyncronizeProperties()
 	MyEditableText->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SEditableText
+}
+
+FText UEditableText::GetText() const
+{
+	if ( MyEditableText.IsValid() )
+	{
+		return MyEditableText->GetText();
+	}
+
+	return Text;
+}
+
+void UEditableText::SetText(FText InText)
+{
+	Text = InText;
+	if ( MyEditableText.IsValid() )
+	{
+		MyEditableText->SetText(Text);
+	}
 }
 
 void UEditableText::HandleOnTextChanged(const FText& Text)

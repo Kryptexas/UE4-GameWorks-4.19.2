@@ -90,9 +90,17 @@ protected:
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
 	UPROPERTY(BlueprintAssignable)
 	FOnEditableTextCommittedEvent OnTextCommitted;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	FText GetText() const;
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetText(FText InText);
 	
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 protected:
