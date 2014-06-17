@@ -347,7 +347,7 @@ public:
 	/**
 	 * Returns a string describing the source
 	 */
-	virtual FString Describe(bool bUseLongName) OVERRIDE;
+	virtual FString Describe(bool bUseLongName) override;
 
 	/**
 	 * Returns a string describing the source. For internal use to avoid recursively calling GetChannelVolumes if invoked from GetChannelVolumes.
