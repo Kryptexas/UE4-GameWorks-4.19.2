@@ -38,6 +38,7 @@ FPlacementMode::~FPlacementMode()
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
+	AssetRegistryModule.Get().OnAssetRenamed().RemoveAll( this );
 }
 
 void FPlacementMode::Initialize()
@@ -60,6 +61,7 @@ void FPlacementMode::Initialize()
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnAssetRemoved().AddSP( this, &FPlacementMode::OnAssetRemoved );
+	AssetRegistryModule.Get().OnAssetRenamed().AddSP( this, &FPlacementMode::OnAssetRenamed );
 }
 
 bool FPlacementMode::UsesToolkits() const
@@ -693,6 +695,20 @@ void FPlacementMode::AddToRecentlyPlaced( const TArray< UObject* >& PlacedObject
 
 void FPlacementMode::OnAssetRemoved( const FAssetData& /*InRemovedAssetData*/ )
 {
+	RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
+}
+
+void FPlacementMode::OnAssetRenamed( const FAssetData& AssetData, const FString& OldObjectPath )
+{
+	for (auto& RecentlyPlacedItem : RecentlyPlaced)
+	{
+		if (RecentlyPlacedItem.ObjectPath == OldObjectPath)
+		{
+			RecentlyPlacedItem.ObjectPath = AssetData.ObjectPath.ToString();
+			break;
+		}
+	}
+
 	RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
 }
 

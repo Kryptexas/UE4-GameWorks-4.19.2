@@ -72,6 +72,7 @@ private:
 	void EditorModeChanged( FEdMode* Mode, bool IsEntering );
 
 	void OnAssetRemoved( const FAssetData& InRemovedAssetData );
+	void OnAssetRenamed( const FAssetData& AssetData, const FString& OldObjectPath );
 
 private:
 
