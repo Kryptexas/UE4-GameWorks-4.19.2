@@ -626,6 +626,15 @@ void UDestructibleComponent::SpawnFractureEffectsFromDamageEvent(const NxApexDam
 
 void UDestructibleComponent::OnDamageEvent(const NxApexDamageEventReportData& InDamageEvent)
 {
+	FVector HitPosition = P2UVector(InDamageEvent.hitPosition);
+	FVector HitDirection = P2UVector(InDamageEvent.hitDirection);
+
+	OnComponentFracture.Broadcast(HitPosition, HitDirection);
+	if (ADestructibleActor * DestructibleActor = Cast<ADestructibleActor>(GetOwner()))
+	{
+		DestructibleActor->OnActorFracture.Broadcast(HitPosition, HitDirection);
+	}
+
 	SpawnFractureEffectsFromDamageEvent(InDamageEvent);
 
 	// After receiving damage, no longer receive decals.

@@ -32,6 +32,9 @@ struct FDestructibleChunkInfo
 };
 #endif // WITH_PHYSX 
 
+/** Delegate for notification when fracture occurs */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FComponentFractureSignature, const FVector &, HitPoint, const FVector &, HitDirection);
+
 /**
  *	This component holds the physics data for a DestructibleActor
  *
@@ -94,6 +97,11 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
 	class UDestructibleMesh * GetDestructibleMesh();
+
+	/** Called when a component is touched */
+	UPROPERTY(BlueprintAssignable, Category = "Components|Destructible")
+	FComponentFractureSignature OnComponentFracture;
+
 public:
 #if WITH_APEX
 	/** The NxDestructibleActor instantated from an NxDestructibleAsset, which contains the runtime physical state. */
