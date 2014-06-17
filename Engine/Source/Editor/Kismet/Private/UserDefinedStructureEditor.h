@@ -58,14 +58,24 @@ public:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( class IDetailLayoutBuilder& DetailLayout ) override;
 
-	UUserDefinedStruct* GetUserDefinedStruct();
+	UUserDefinedStruct* GetUserDefinedStruct()
+	{
+		return UserDefinedStruct.Get();
+	}
+
+	TSharedPtr<FStructOnScope> GetStructInstance()
+	{
+		return StructData;
+	}
 
 	struct FStructVariableDescription* FindStructureFieldByGuid(FGuid Guid);
 
 	/** FStructureEditorUtils::INotifyOnStructChanged */
-	virtual void OnChanged(const class UUserDefinedStruct* Struct) override;
+	virtual void PreChange(const class UUserDefinedStruct* Struct) override;
+	virtual void PostChange(const class UUserDefinedStruct* Struct) override;
 
 private:
 	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
 	TSharedPtr<class FUserDefinedStructureLayout> Layout;
+	TSharedPtr<FStructOnScope> StructData;
 };

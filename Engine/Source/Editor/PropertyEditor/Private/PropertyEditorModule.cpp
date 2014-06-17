@@ -21,6 +21,7 @@
 #include "TextPropertyTableCellPresenter.h"
 
 #include "PropertyTableConstants.h"
+#include "SStructureDetailsView.h"
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
 
@@ -630,4 +631,25 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 	}
 
 	return FPropertyTypeLayoutCallback();
+}
+
+TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDetailView(const FDetailsViewArgs& DetailsViewArgs, TSharedPtr<FStructOnScope> StructData)
+{
+	TSharedRef<SStructureDetailsView> DetailView =
+		SNew(SStructureDetailsView)
+		.DetailsViewArgs(DetailsViewArgs);
+
+	struct FDontShowObjects
+	{
+		static bool CanShow(const UProperty* Property)
+		{
+			return Property && !Property->IsA<UObjectPropertyBase>();
+		}
+	};
+
+	DetailView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&FDontShowObjects::CanShow));
+
+	DetailView->SetStructureData(StructData);
+
+	return DetailView;
 }

@@ -52,7 +52,7 @@ class SWindow;
 class IPropertyTableCellPresenter;
 class IPropertyTypeCustomization;
 
-/** 
+/**
  * Base class for adding an extra data to identify a custom property type
  */
 class IPropertyTypeIdentifier
@@ -60,9 +60,9 @@ class IPropertyTypeIdentifier
 public:
 	virtual ~IPropertyTypeIdentifier() {}
 
-	/**
+/**
 	 * Called to identify if a property type is customized
-	 * 
+	 *
 	 * @param IPropertyHandle	Handle to the property being tested
 	 */
 	virtual bool IsPropertyTypeCustomized( const IPropertyHandle& PropertyHandle ) const = 0;
@@ -118,6 +118,8 @@ class FPropertyEditorModule : public IModuleInterface
 {
 	friend class SPropertyTreeView;
 	friend class SDetailsView;
+	friend class SStructureDetailsView;
+	friend class SDetailsViewBase;
 public:
 	
 	/**
@@ -252,6 +254,8 @@ public:
 	 * @return The new property if valid or null
 	 */
 	virtual TSharedPtr<class ISinglePropertyView> CreateSingleProperty( UObject* InObject, FName InPropertyName, const struct FSinglePropertyParams& InitParams );
+
+	virtual TSharedRef<class IStructureDetailsView> CreateStructureDetailView(const struct FDetailsViewArgs& DetailsViewArgs, TSharedPtr<struct FStructOnScope> StructData);
 
 	/**
 	 * Creates a property change listener that notifies users via a  delegate when a property on an object changes
