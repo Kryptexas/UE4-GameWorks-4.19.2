@@ -1226,7 +1226,7 @@ void FOnlineSessionSteam::UnregisterVoice(const FUniqueNetId& PlayerId)
 bool FOnlineSessionSteam::RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited)
 {
 	TArray< TSharedRef<FUniqueNetId> > Players;
-	Players.Add(MakeShareable(new FUniqueNetIdString(PlayerId)));
+	Players.Add(MakeShareable(new FUniqueNetIdSteam(PlayerId)));
 	return RegisterPlayers(SessionName, Players, bWasInvited);
 }
 
@@ -1303,7 +1303,7 @@ void FOnlineSessionSteam::RegisterLocalPlayers(FNamedOnlineSession* Session)
 bool FOnlineSessionSteam::UnregisterPlayer(FName SessionName, const FUniqueNetId& PlayerId)
 {
 	TArray< TSharedRef<FUniqueNetId> > Players;
-	Players.Add(MakeShareable(new FUniqueNetIdString(PlayerId)));
+	Players.Add(MakeShareable(new FUniqueNetIdSteam(PlayerId)));
 	return UnregisterPlayers(SessionName, Players);
 }
 
