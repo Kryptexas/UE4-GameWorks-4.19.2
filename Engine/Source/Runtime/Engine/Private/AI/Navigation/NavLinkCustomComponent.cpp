@@ -8,6 +8,8 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
+#include "AI/Navigation/NavAreas/NavArea_Default.h"
+#include "AI/Navigation/NavAreas/NavArea_Null.h"
 
 UNavLinkCustomComponent::UNavLinkCustomComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

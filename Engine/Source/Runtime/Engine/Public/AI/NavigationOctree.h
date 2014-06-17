@@ -46,7 +46,12 @@ struct ENGINE_API FNavigationRelevantData
 	FORCEINLINE bool HasModifiers() const { return !Modifiers.IsEmpty(); }
 	FORCEINLINE bool IsEmpty() const { return !HasGeometry() && !HasModifiers(); }
 	FORCEINLINE uint32 GetAllocatedSize() const { return CollisionData.GetAllocatedSize() + VoxelData.GetAllocatedSize() + Modifiers.GetAllocatedSize(); }
-	FORCEINLINE int32 GetDirtyFlag() const { return (HasGeometry() ? ENavigationDirtyFlag::Geometry : 0) | (HasModifiers() ? ENavigationDirtyFlag::DynamicModifier : 0); }
+	FORCEINLINE int32 GetDirtyFlag() const
+	{
+		return (HasGeometry() ? ENavigationDirtyFlag::Geometry : 0) |
+			(HasModifiers() ? ENavigationDirtyFlag::DynamicModifier : 0) |
+			(Modifiers.HasAgentHeightAdjust() ? ENavigationDirtyFlag::UseAgentHeight : 0);
+	}
 
 	bool IsMatchingFilter(const FNavigationOctreeFilter& Filter) const;
 };

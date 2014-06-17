@@ -219,6 +219,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 		CylinderToWorld.SetTranslation(Origin);
 
 		FAreaNavModifier AreaMod(CylinderCollision[i].Radius, CylinderCollision[i].Height, CylinderToWorld, UseAreaClass);
+		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
 	}
 
@@ -229,6 +230,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 		BoxToWorld.SetTranslation(Origin);
 
 		FAreaNavModifier AreaMod(BoxCollision[i].Extent, BoxToWorld, UseAreaClass);
+		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
 	}
 
@@ -243,6 +245,7 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 			LastVertIndex = ConvexShapeIndices.IsValidIndex(i + 1) ? ConvexShapeIndices[i + 1] : ConvexCollision.VertexBuffer.Num();
 
 			FAreaNavModifier AreaMod(Verts, FirstVertIndex, LastVertIndex, ENavigationCoordSystem::Unreal, LocalToWorld, UseAreaClass);
+			AreaMod.SetIncludeAgentHeight(true);
 			Modifier.Add(AreaMod);
 		}
 	}

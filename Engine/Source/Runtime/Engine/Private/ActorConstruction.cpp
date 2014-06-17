@@ -312,6 +312,11 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	check(!IsPendingKill());
 	check(!HasAnyFlags(RF_BeginDestroyed|RF_FinishDestroyed));
 
+	// ensure that any existing native root component gets this new transform
+	if (GetRootComponent())
+	{
+		GetRootComponent()->SetWorldTransform(Transform);
+	}
 
 	// Generate the parent blueprint hierarchy for this actor, so we can run all the construction scripts sequentially
 	TArray<const UBlueprintGeneratedClass*> ParentBPClassStack;

@@ -344,8 +344,6 @@ private:
 	FLinearColor FilterColor;
 };
 
-
-
 void SLogFilterList::Construct(const FArguments& InArgs)
 {
 	OnGetContextMenu = InArgs._OnGetContextMenu;
@@ -355,6 +353,168 @@ void SLogFilterList::Construct(const FArguments& InArgs)
 		[
 			SAssignNew(FilterBox, SWrapBox)
 			.UseAllottedWidth(true)
+		];
+
+	TSharedRef<SComboButton> GraphsFilterCombo =
+		SNew(SComboButton)
+		.ComboButtonStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Style")
+		.ForegroundColor(FLinearColor::White)
+		.ContentPadding(0)
+		.ToolTipText(LOCTEXT("AddFilterToolTip", "Add an asset filter."))
+		.OnGetMenuContent(this, &SLogFilterList::MakeGraphsFilterMenu)
+		.HasDownArrow(true)
+		.ContentPadding(FMargin(1, 0))
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.TextStyle(FEditorStyle::Get(), "ContentBrowser.Filters.Text")
+			.Text(LOCTEXT("GraphFilters", "Graph Filters"))
+		];
+
+	FilterBox->AddSlot()
+		.Padding(3, 3)
+		[
+			GraphsFilterCombo
+		];
+
+}
+
+void SLogFilterList::CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName MenuCategory) const
+{
+	auto FiltersFromGraph = GraphFilters[MenuCategory];
+	for (auto Iter = FiltersFromGraph.CreateIterator(); Iter; ++Iter)
+	{
+		const FText& LabelText = FText::FromString(Iter->Name.ToString());
+		MenuBuilder.AddMenuEntry(
+			LabelText,
+			FText::Format(LOCTEXT("FilterByTooltipPrefix", "Filter by {0}"), LabelText),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SLogFilterList::FilterByTypeClicked, MenuCategory, Iter->Name),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SLogFilterList::IsAssetTypeActionsInUse, MenuCategory, Iter->Name)),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+	}
+}
+
+void SLogFilterList::FilterByTypeClicked(FName InGraphName, FName InDataName)
+{
+	if (GraphFilters.Contains(InGraphName))
+	{
+		bool bChanged = false;
+		auto &Filters = GraphFilters[InGraphName];
+		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		{
+			if (Filters[Index].Name == InDataName)
+			{
+				Filters[Index].bEnabled = !Filters[Index].bEnabled;
+				bChanged = true;
+			}
+		}
+
+		if (bChanged)
+		{
+			SomeFilterGetChanged();
+		}
+	}
+}
+
+bool SLogFilterList::IsAssetTypeActionsInUse(FName InGraphName, FName InDataName) const
+{
+	if (GraphFilters.Contains(InGraphName))
+	{
+		auto &Filters = GraphFilters[InGraphName];
+		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		{
+			if (Filters[Index].Name == InDataName)
+			{
+				return Filters[Index].bEnabled;
+			}
+		}
+	}
+
+	return false;
+}
+
+void SLogFilterList::GraphFilterCategoryClicked(FName MenuCategory)
+{
+	const bool bNewSet =! IsGraphFilterCategoryInUse(MenuCategory);
+
+	if (GraphFilters.Contains(MenuCategory))
+	{
+		bool bChanged = false;
+		auto &Filters = GraphFilters[MenuCategory];
+		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		{
+			Filters[Index].bEnabled = bNewSet;
+			bChanged = true;
+		}
+
+		if (bChanged)
+		{
+			SomeFilterGetChanged();
+		}
+	}
+}
+
+bool SLogFilterList::IsGraphFilterCategoryInUse(FName MenuCategory) const
+{
+	if (GraphFilters.Contains(MenuCategory))
+	{
+		auto &Filters = GraphFilters[MenuCategory];
+		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		{
+			if (Filters[Index].bEnabled)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+TSharedRef<SWidget> SLogFilterList::MakeGraphsFilterMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	MenuBuilder.BeginSection( TEXT("Graphs"));
+	{
+		for (auto Iter = GraphFilters.CreateIterator(); Iter; ++Iter)
+		{
+			const FText& LabelText = FText::FromString(Iter->Key.ToString());
+			MenuBuilder.AddSubMenu(
+				LabelText,
+					FText::Format(LOCTEXT("FilterByTooltipPrefix", "Filter by {0}"), LabelText),
+					FNewMenuDelegate::CreateSP(this, &SLogFilterList::CreateFiltersMenuCategoryForGraph, Iter->Key),
+					FUIAction(
+					FExecuteAction::CreateSP(this, &SLogFilterList::GraphFilterCategoryClicked, Iter->Key),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SLogFilterList::IsGraphFilterCategoryInUse, Iter->Key)),
+					NAME_None,
+					EUserInterfaceActionType::ToggleButton
+					);
+		}
+	}
+	MenuBuilder.EndSection(); //ContentBrowserFilterBasicAsset
+	
+
+	FDisplayMetrics DisplayMetrics;
+	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+
+	const FVector2D DisplaySize(
+		DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left,
+		DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top);
+
+	return
+		SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.MaxHeight(DisplaySize.Y * 0.5)
+		[
+			MenuBuilder.MakeWidget()
 		];
 }
 
@@ -384,6 +544,39 @@ void SLogFilterList::AddFilter(const FString& InFilterName, FLinearColor InColor
 		];
 }
 
+void SLogFilterList::AddGraphFilter(const FString& InGraphName, const FString& InDataName, FLinearColor ColorCategory)
+{
+	if (!GraphFilters.Contains(*InGraphName))
+	{
+		auto Filters = GraphFilters.Add(*InGraphName);
+	}
+	else
+	{
+		auto &Filters = GraphFilters[*InGraphName];
+		FSimpleGraphFilter NewFilter(*InDataName, true);
+		if (!Filters.Contains(NewFilter))
+		{
+			Filters.Add(NewFilter);
+		}
+	}
+
+}
+
+bool SLogFilterList::IsFilterEnabled(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity)
+{
+	if (GraphFilters.Contains(*InGraphName))
+	{
+		auto Filters = GraphFilters[*InGraphName];
+		int32 Index = Filters.Find(FSimpleGraphFilter(*InDataName));
+		if (Index != INDEX_NONE)
+		{
+			return Filters[Index].bEnabled;
+		}
+	}
+
+	return true;
+}
+
 bool SLogFilterList::IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity)
 {
 	const FName FilterName(*InFilterName);
@@ -396,7 +589,7 @@ bool SLogFilterList::IsFilterEnabled(const FString& InFilterName, TEnumAsByte<EL
 		}
 	}
 
-	return false;
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

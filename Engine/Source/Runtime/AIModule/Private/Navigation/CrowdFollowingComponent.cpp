@@ -210,10 +210,9 @@ void UCrowdFollowingComponent::UpdateCachedDirections(const FVector& NewVelocity
 
 void UCrowdFollowingComponent::ApplyCrowdAgentVelocity(const FVector& NewVelocity, const FVector& DestPathCorner, bool bTraversingLink)
 {
-	if (bEnableCrowdSimulation)
+	if (bEnableCrowdSimulation && Status == EPathFollowingStatus::Moving)
 	{
-		if (Status != EPathFollowingStatus::Paused &&
-			(bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling))
+		if (bAffectFallingVelocity || CharacterMovement == NULL || CharacterMovement->MovementMode != MOVE_Falling)
 		{
 			MovementComp->RequestDirectMove(NewVelocity, false);
 

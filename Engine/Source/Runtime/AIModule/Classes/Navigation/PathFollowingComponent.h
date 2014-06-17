@@ -258,7 +258,7 @@ protected:
 	ANavigationData* MyNavData;
 
 	/** current status */
-	TEnumAsByte<EPathFollowingStatus::Type> Status;
+	EPathFollowingStatus::Type Status;
 
 	/** requested path */
 	FNavPathSharedPtr Path;

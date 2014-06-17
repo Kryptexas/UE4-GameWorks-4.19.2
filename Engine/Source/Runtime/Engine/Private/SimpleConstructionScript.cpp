@@ -139,7 +139,7 @@ void USimpleConstructionScript::PostLoad()
 	if (!Blueprint)
 	{
 		// sometimes the PostLoad can be called, after the object was trashed, we dont want this
-		UE_LOG(LogBlueprint, Warning, TEXT("USimpleConstructionScript::PostLoad() '%s' cannot find its owner blueprint"), *GetName());
+		UE_LOG(LogBlueprint, Warning, TEXT("USimpleConstructionScript::PostLoad() '%s' cannot find its owner blueprint"), *GetPathName());
 		return;
 	}
 

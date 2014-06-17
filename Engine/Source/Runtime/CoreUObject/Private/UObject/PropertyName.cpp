@@ -21,7 +21,7 @@ void UNameProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 const TCHAR* UNameProperty::ImportText_Internal( const TCHAR* Buffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
 {
 	FString Temp;
-	Buffer = UPropertyHelpers::ReadToken( Buffer, Temp );
+	Buffer = UPropertyHelpers::ReadToken( Buffer, Temp, true );
 	if( !Buffer )
 		return NULL;
 

@@ -567,12 +567,25 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 		break;
 	};
 
-#if WITH_EDITOR
-	for( int32 i = 0; i < SPEAKER_COUNT; i++ )
+	for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 	{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		if ( !FMath::IsFinite(ChannelVolumes[i]) )
+		{
+			const FString NaNorINF = FMath::IsNaN(ChannelVolumes[i]) ? TEXT("NaN") : TEXT("INF");
+			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains %s in channel %d: %s"), *NaNorINF, i, *Describe_Internal(true, false));
+			ChannelVolumes[i] = 0;
+		}
+		// Detect and warn about unreasonable volumes. These are clamped anyway, but are good to know about.
+		else if ( ChannelVolumes[i] > FLT_MAX / 2.f || ChannelVolumes[i] < -FLT_MAX / 2.f )
+		{
+			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
+		}
+#endif
+
 		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * GVolumeMultiplier, 0.0f, MAX_VOLUME);
 	}
-#endif // WITH_EDITOR
 }
 
 /** 
@@ -837,6 +850,11 @@ void FXAudio2SoundSourceCallback::OnLoopEnd( void* BufferContext )
 
 FString FXAudio2SoundSource::Describe(bool bUseLongName)
 {
+	return Describe_Internal(bUseLongName, true);
+}
+
+FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeChannelVolumes)
+{
 	// look for a component and its owner
 	AActor* SoundOwner = NULL;
 
@@ -847,7 +865,7 @@ FString FXAudio2SoundSource::Describe(bool bUseLongName)
 	}
 
 	FString SpatializedVolumeInfo;
-	if (WaveInstance->bUseSpatialization)
+	if (bIncludeChannelVolumes && WaveInstance->bUseSpatialization)
 	{
 		float ChannelVolumes[CHANNELOUT_COUNT] = { 0.0f };
 		GetChannelVolumes( ChannelVolumes, WaveInstance->GetActualVolume() );
@@ -1238,6 +1256,16 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 	for( int32 SpeakerIndex = 0; SpeakerIndex < SPEAKER_COUNT; SpeakerIndex++ )
 	{
 		OutVolumes[SpeakerIndex] *= DSPSettings.pMatrixCoefficients[SpeakerIndex];
+
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		if (!FMath::IsFinite(OutVolumes[SpeakerIndex]))
+		{
+			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
+			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. Emitter Values - Position.x:%f Position.y:%f Position.z:%f InnerRadius:%f OmniRadius:%f MatrixCoefficient:%f"),
+				*NaNorINF, SpeakerIndex, Emitter.Position.x, Emitter.Position.y, Emitter.Position.z, Emitter.InnerRadius, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
+		}
+#endif
 	}
 
 	OutVolumes[CHANNELOUT_REVERB] *= DSPSettings.ReverbLevel;

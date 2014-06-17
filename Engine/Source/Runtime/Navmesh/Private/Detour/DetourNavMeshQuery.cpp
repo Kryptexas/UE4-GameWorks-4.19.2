@@ -4031,7 +4031,7 @@ dtStatus dtNavMeshQuery::findPolysInPathDistance(dtPolyRef startRef, const float
 			if ((neighbourNode->flags & DT_NODE_OPEN) && total >= neighbourNode->total)
 				continue;
 
-			if (total >= pathDistSqr)
+			if (dtSqr(total) >= pathDistSqr)
 				continue;
 
 			neighbourNode->id = neighbourRef;

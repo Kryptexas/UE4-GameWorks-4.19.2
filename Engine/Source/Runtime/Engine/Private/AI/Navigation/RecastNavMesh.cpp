@@ -833,7 +833,7 @@ void ARecastNavMesh::SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) cons
 	{
 		FORCEINLINE bool operator()(const FAreaNavModifier& A, const FAreaNavModifier& B) const
 		{
-			return A.FixedCost == B.FixedCost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
+			return A.Cost != B.Cost ? A.Cost < B.Cost : A.FixedCost < B.FixedCost;
 		}
 	};
 

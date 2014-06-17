@@ -199,7 +199,7 @@ bool FVoiceEncoderOpus::Init(int32 InSampleRate, int32 InNumChannels)
 	opus_encoder_ctl(Encoder, OPUS_SET_VBR_CONSTRAINT(UseCVbr));
 
 	// Complexity (1-10)
-	int32 Complexity = 10;
+	int32 Complexity = 1;
 	opus_encoder_ctl(Encoder, OPUS_SET_COMPLEXITY(Complexity));
 
 	// Forward error correction
@@ -254,7 +254,7 @@ int32 FVoiceEncoderOpus::Encode(const uint8* RawPCMData, uint32 RawDataSize, uin
 	for (int32 i = 0; i < NumFramesToEncode; i++)
 	{
 		int32 CompressedLength = 0;
-		CompressedLength = opus_encode(Encoder, (const opus_int16*)(RawPCMData + (i * RawDataStride)), FrameSize, CompressedDataStart + CompressedBufferOffset, AvailableBufferSize);
+			CompressedLength = opus_encode(Encoder, (const opus_int16*)(RawPCMData + (i * RawDataStride)), FrameSize, CompressedDataStart + CompressedBufferOffset, AvailableBufferSize);
 
 		if (CompressedLength < 0)
 		{

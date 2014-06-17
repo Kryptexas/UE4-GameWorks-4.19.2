@@ -166,7 +166,7 @@ public:
 
 	FORCEINLINE const FBox& GetUnrealBB() const { return TileBB; }
 	
-	void SetDirty(const FNavigationDirtyArea& DirtyArea);
+	void SetDirty(const FNavigationDirtyArea& DirtyArea, const FBox& AreaBounds);
 	FORCEINLINE void GetDirtyState(FRecastTileDirtyState& Data) const { Data = DirtyState; }
 	FORCEINLINE void SetDirtyState(const FRecastTileDirtyState& Data) { DirtyState.Append(Data); }
 	FORCEINLINE bool HasDirtyGeometry() const { return DirtyState.bRebuildGeometry; }
@@ -435,7 +435,13 @@ public:
 
 	bool HasDirtyAreas() const { return DirtyAreas.Num() > 0; }
 	
-	FORCEINLINE FBox GrowBoundingBox(const FBox& BBox) const { return BBox.ExpandBy(2 * Config.borderSize * Config.cs); }
+	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const
+	{
+		const FVector BBoxGrowOffsetBoth = FVector(2.0f * Config.borderSize * Config.cs);
+		const FVector BBoxGrowOffsetMin = FVector(0, 0, bIncludeAgentHeight ? Config.AgentHeight : 0.0f);
+
+		return FBox(BBox.Min - BBoxGrowOffsetBoth - BBoxGrowOffsetMin, BBox.Max + BBoxGrowOffsetBoth);
+	}
 
 	FORCEINLINE bool HasResultsPending() const { return AsyncGenerationResultContainer.Num() > 0; }
 	void GetAsyncResultsCopy(TNavStatArray<FNavMeshGenerationResult>& Dest, bool bClearSource);

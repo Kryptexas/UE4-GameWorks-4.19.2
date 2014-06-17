@@ -347,7 +347,12 @@ public:
 	/**
 	 * Returns a string describing the source
 	 */
-	virtual FString Describe(bool bUseLongName);
+	virtual FString Describe(bool bUseLongName) OVERRIDE;
+
+	/**
+	 * Returns a string describing the source. For internal use to avoid recursively calling GetChannelVolumes if invoked from GetChannelVolumes.
+	 */
+	FString Describe_Internal(bool bUseLongName, bool bIncludeChannelVolumes);
 
 	/** 
 	 * Maps a sound with a given number of channels to to expected speakers

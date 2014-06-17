@@ -536,13 +536,24 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 		for (int32 i = 0; i < Log->Entries.Num(); ++i)
 		{
 			// if any log line is visible - add this entry
-			for (int32 j = 0; j < Log->Entries[i]->LogLines.Num(); ++j)
+			bool bAddedEntry = false;
+
+			if (!bAddedEntry)
 			{
-				if (FilterListPtr->IsFilterEnabled(Log->Entries[i]->LogLines[j].Category.ToString(), Log->Entries[i]->LogLines[j].Verbosity))
+				for (int32 j = 0; j < Log->Entries[i]->LogLines.Num(); ++j)
 				{
-					OutEntries.AddUnique(Log->Entries[i]);
-					break;
+					if (FilterListPtr->IsFilterEnabled(Log->Entries[i]->LogLines[j].Category.ToString(), Log->Entries[i]->LogLines[j].Verbosity))
+					{
+						OutEntries.AddUnique(Log->Entries[i]);
+						bAddedEntry = true;
+						break;
+					}
 				}
+			}
+
+			if (bAddedEntry)
+			{
+				continue;
 			}
 
 			for (int32 j = 0; j < Log->Entries[i]->ElementsToDraw.Num(); ++j)
@@ -550,16 +561,27 @@ void SLogVisualizer::GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TAr
 				if (Log->Entries[i]->ElementsToDraw[j].Category == NAME_None || FilterListPtr->IsFilterEnabled(Log->Entries[i]->ElementsToDraw[j].Category.ToString(), Log->Entries[i]->ElementsToDraw[j].Verbosity))
 				{
 					OutEntries.AddUnique(Log->Entries[i]);
+					bAddedEntry = true;
 					break;
 				}
+			}
+			if (bAddedEntry)
+			{
+				continue;
 			}
 
 			for (int32 SampleIndex = 0; SampleIndex < Log->Entries[i]->HistogramSamples.Num(); ++SampleIndex)
 			{
 				const FName CurrentCategory = Log->Entries[i]->HistogramSamples[SampleIndex].Category;
-				if (CurrentCategory == NAME_None || FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All))
+				const FName CurrentGraphName = Log->Entries[i]->HistogramSamples[SampleIndex].GraphName;
+				const FName CurrentDataName = Log->Entries[i]->HistogramSamples[SampleIndex].DataName;
+
+				if (CurrentCategory == NAME_None || 
+					(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) &&
+					FilterListPtr->IsFilterEnabled(CurrentGraphName.ToString(), CurrentDataName.ToString(), ELogVerbosity::All)))
 				{
 					OutEntries.AddUnique(Log->Entries[i]);
+					bAddedEntry = true;
 					break;
 				}
 			}
@@ -732,7 +754,10 @@ void SLogVisualizer::IncrementCurrentLogIndex(int32 IncrementBy)
 				for (int32 SampleIndex = 0; SampleIndex < Log->Entries[NewEntryIndex]->HistogramSamples.Num(); ++SampleIndex)
 				{
 					const FName CurrentCategory = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].Category;
-					if (CurrentCategory == NAME_None || FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All))
+					const FName CurrentGraphName = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].GraphName;
+					const FName CurrentDataName = Log->Entries[NewEntryIndex]->HistogramSamples[SampleIndex].DataName;
+					if (CurrentCategory == NAME_None ||
+						(FilterListPtr->IsFilterEnabled(CurrentCategory.ToString(), ELogVerbosity::All) && FilterListPtr->IsFilterEnabled(CurrentGraphName.ToString(), CurrentDataName.ToString(), ELogVerbosity::All)))
 					{
 						bShouldShow = true;
 						break;
@@ -807,6 +832,10 @@ void SLogVisualizer::AddLog(int32 LogIndex, const FActorsVisLog* Log)
 				Index = UsedCategories.Add(CategoryAsString);
 				FilterListPtr->AddFilter(CategoryAsString, GetColorForUsedCategory(Index));
 			}
+
+			const FString GraphNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].GraphName.ToString();
+			const FString DataNameAsString = Log->Entries[EntryIndex]->HistogramSamples[SampleIndex].DataName.ToString();
+			FilterListPtr->AddGraphFilter(GraphNameAsString, DataNameAsString, FColor::White);
 		}
 	}
 
@@ -1373,10 +1402,11 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 				{
 					FVisLogEntry::FHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
-					if (!FilterListPtr.IsValid() || FilterListPtr->IsFilterEnabled(CurrentSample.Category.ToString(), ELogVerbosity::All))
+					if (!FilterListPtr.IsValid() || (FilterListPtr->IsFilterEnabled(CurrentSample.Category.ToString(), ELogVerbosity::All) &&
+						FilterListPtr->IsFilterEnabled(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All)))
 					{
 						FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
-						FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.Category);
+						FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
 						LineData.DataName = CurrentSample.DataName;
 						LineData.Samples.Add( CurrentSample.SampleValue );
 
@@ -1425,7 +1455,7 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					GraphThreshold->Color = FLinearColor::White;
 					GraphThreshold->ThresholdName = TEXT("     0");
 					HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
-					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 30) );
+					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 90) );
 					HistogramGraph->SetLegendPosition(ELegendPosition::Inside);
 
 					HistogramGraph->bVisible = true;

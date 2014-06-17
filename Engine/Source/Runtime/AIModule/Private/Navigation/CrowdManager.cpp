@@ -249,7 +249,10 @@ void UCrowdManager::Tick(float DeltaTime)
 					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
 						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key()->GetUObjectInterfaceCrowdAgentInterface());
-						ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
+						if (CrowdComponent)
+						{
+							ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
+						}
 					}
 				}
 			}

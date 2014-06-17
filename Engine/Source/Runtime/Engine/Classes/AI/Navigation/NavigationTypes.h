@@ -47,8 +47,9 @@ namespace ENavigationDirtyFlag
 	{
 		Geometry		= (1 << 0),
 		DynamicModifier	= (1 << 1),
+		UseAgentHeight  = (1 << 2),
 
-		All				= 0xffff,
+		All				= Geometry | DynamicModifier,		// all rebuild steps here without additional flags
 	};
 }
 

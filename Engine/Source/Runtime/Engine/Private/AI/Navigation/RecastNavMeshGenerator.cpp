@@ -2546,6 +2546,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 			continue;
 		}
 
+		const float OffsetZ = TileConfig.ch + (Modifier->ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
 		switch (Modifier->GetShapeType())
 		{
 		case ENavigationShapeType::Cylinder:
@@ -2553,7 +2554,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 				FCylinderNavAreaData CylinderData;
 				Modifier->GetCylinder(CylinderData);
 
-				CylinderData.Height += TileConfig.ch;
+				CylinderData.Height += OffsetZ;
 				CylinderData.Radius += ExpandBy;
 
 				FVector RecastPos = Unreal2RecastPoint(CylinderData.Origin);
@@ -2567,7 +2568,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 				FBoxNavAreaData BoxData;
 				Modifier->GetBox(BoxData);
 
-				BoxData.Extent += FVector(ExpandBy, ExpandBy, TileConfig.ch);
+				BoxData.Extent += FVector(ExpandBy, ExpandBy, OffsetZ);
 
 				FBox UnrealBox = FBox::BuildAABB(BoxData.Origin, BoxData.Extent);
 				FBox RecastBox = Unreal2RecastBox(UnrealBox);
@@ -2583,7 +2584,7 @@ void FRecastTileGenerator::MarkStaticAreas(class FNavMeshBuildContext* BuildCont
 
 				TArray<FVector> ConvexVerts;
 				GrowConvexHull(ExpandBy, ConvexData.Points, ConvexVerts);
-				ConvexData.MinZ -= TileConfig.ch;
+				ConvexData.MinZ -= OffsetZ;
 				ConvexData.MaxZ += TileConfig.ch;
 
 				if (ConvexVerts.Num())
@@ -2951,12 +2952,18 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 			continue;
 		}
 
-		const FBox& ModifierBounds = Modifier->GetBounds();
+		FBox ModifierBounds = Modifier->GetBounds();
+		if (Modifier->ShouldIncludeAgentHeight())
+		{
+			ModifierBounds.Min.Z -= TileConfig.AgentHeight;
+		}
+
 		if (!LayerUnrealBounds.Intersect(ModifierBounds))
 		{
 			continue;
 		}
 
+		const float OffsetZ = TileConfig.ch + (Modifier->ShouldIncludeAgentHeight() ? TileConfig.AgentHeight : 0.0f);
 		switch (Modifier->GetShapeType())
 		{
 		case ENavigationShapeType::Cylinder:
@@ -2964,7 +2971,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 				FCylinderNavAreaData CylidnerData;
 				Modifier->GetCylinder(CylidnerData);
 				
-				CylidnerData.Height += TileConfig.ch;
+				CylidnerData.Height += OffsetZ;
 				CylidnerData.Radius += ExpandBy;
 
 				FVector RecastPos = Unreal2RecastPoint(CylidnerData.Origin);
@@ -2979,7 +2986,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 				FBoxNavAreaData BoxData;
 				Modifier->GetBox(BoxData);
 
-				BoxData.Extent += FVector(ExpandBy, ExpandBy, TileConfig.ch);
+				BoxData.Extent += FVector(ExpandBy, ExpandBy, OffsetZ);
 
 				FVector RecastPos = Unreal2RecastPoint(BoxData.Origin);
 				FVector RecastExtent = Unreal2RecastPoint(BoxData.Extent).GetAbs();
@@ -2997,7 +3004,7 @@ void FRecastTileGenerator::MarkDynamicAreas(struct dtTileCacheLayer& Layer, cons
 				TArray<FVector> ConvexVerts;
 				GrowConvexHull(ExpandBy, ConvexData.Points, ConvexVerts);
 
-				ConvexData.MinZ -= TileConfig.ch;
+				ConvexData.MinZ -= OffsetZ;
 				ConvexData.MaxZ += TileConfig.ch;
 
 				if (ConvexVerts.Num())
@@ -3056,7 +3063,7 @@ uint32 FRecastTileGenerator::GetUsedMemCount() const
 	return TotalMemory;
 }
 
-void FRecastTileGenerator::SetDirty(const FNavigationDirtyArea& DirtyArea)
+void FRecastTileGenerator::SetDirty(const FNavigationDirtyArea& DirtyArea, const FBox& AreaBounds)
 {
 	DirtyState.bRebuildGeometry |= DirtyArea.HasFlag(ENavigationDirtyFlag::Geometry);
 	if (DirtyState.bRebuildGeometry)
@@ -3068,7 +3075,7 @@ void FRecastTileGenerator::SetDirty(const FNavigationDirtyArea& DirtyArea)
 	{
 		for (int32 i = 0; i < LayerBB.Num(); i++)
 		{
-			if (LayerBB[i].Intersect(DirtyArea.Bounds))
+			if (LayerBB[i].Intersect(AreaBounds))
 			{
 				DirtyState.MarkDirtyLayer(i);
 			}
@@ -4068,7 +4075,8 @@ void FRecastNavMeshGenerator::MarkDirtyGenerators()
 	const FNavigationDirtyArea* DirtyArea = DirtyAreasCopy.GetTypedData();
 	for (int32 i = 0; i < DirtyAreasCopy.Num(); ++i, ++DirtyArea)
 	{
-		const FBox RCBB = Unreal2RecastBox(GrowBoundingBox(DirtyArea->Bounds));
+		const FBox AdjustedBounds = GrowBoundingBox(DirtyArea->Bounds, DirtyArea->HasFlag(ENavigationDirtyFlag::UseAgentHeight));
+		const FBox RCBB = Unreal2RecastBox(AdjustedBounds);
 		const int32 XMin = FMath::Max(FMath::TruncToInt((RCBB.Min.X - RCNavBounds.Min.X) * InvTileCellSize), 0);
 		const int32 YMin = FMath::Max(FMath::TruncToInt((RCBB.Min.Z - RCNavBounds.Min.Z) * InvTileCellSize), 0);
 		const int32 XMax = FMath::Min(FMath::TruncToInt((RCBB.Max.X - RCNavBounds.Min.X) * InvTileCellSize), TilesWidth-1);
@@ -4080,8 +4088,9 @@ void FRecastNavMeshGenerator::MarkDirtyGenerators()
 			{
 				// grab that generator and mark it as dirty
 				// @todo make thread safe
+
 				const int32 GenIdx = x + (y * TilesWidth);
-				TileGenerators[GenIdx].SetDirty(*DirtyArea);
+				TileGenerators[GenIdx].SetDirty(*DirtyArea, AdjustedBounds);
 				DirtyIndices.Add(GenIdx);
 			}
 		}
@@ -4250,7 +4259,7 @@ void FRecastNavMeshGenerator::FillGeneratorData(FRecastTileGenerator* TileGenera
 	const bool bUseVoxelCache = ARecastNavMesh::IsVoxelCacheEnabled();
 	const FNavAgentProperties NavAgentProps = DestNavMesh->NavDataConfig;
 
-	for(FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, GrowBoundingBox(TileGenerator->GetUnrealBB()));
+	for(FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, GrowBoundingBox(TileGenerator->GetUnrealBB(), false));
 		It.HasPendingElements();
 		It.Advance())
 	{

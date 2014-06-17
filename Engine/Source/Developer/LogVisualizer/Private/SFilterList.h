@@ -4,6 +4,21 @@
 
 class SLogFilter;
 
+struct FSimpleGraphFilter
+{
+	FSimpleGraphFilter(FName InName) : Name(InName) {}
+	FSimpleGraphFilter(FName InName, bool InEnabled) : Name(InName), bEnabled(InEnabled) {}
+
+	FName Name;
+	uint32 bEnabled : 1;
+	TEnumAsByte<ELogVerbosity::Type> Verbosity;
+};
+
+FORCEINLINE bool operator==(const FSimpleGraphFilter& Left, const FSimpleGraphFilter& Right)
+{
+	return Left.Name == Right.Name;
+}
+
 /**
 * A list of filters currently applied to an asset view.
 */
@@ -29,12 +44,25 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	void AddFilter(const FString& InFilterName, FLinearColor ColorCategory);
+	
+	void AddGraphFilter(const FString& InGraphName, const FString& InDataName, FLinearColor ColorCategory);
 
 	bool IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
+	bool IsFilterEnabled(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
 
 	void SomeFilterGetChanged();
 
+	void CreateFiltersMenuCategoryForGraph(FMenuBuilder& MenuBuilder, FName MenuCategory) const;
+	void GraphFilterCategoryClicked(FName MenuCategory);
+	bool IsGraphFilterCategoryInUse(FName MenuCategory) const;
+	void FilterByTypeClicked(FName InGraphName, FName InDataName);
+	bool IsAssetTypeActionsInUse(FName InGraphName, FName InDataName) const;
+
+	TSharedRef<SWidget> MakeGraphsFilterMenu();
+
 	TArray<TSharedRef<SLogFilter> > Filters;
+
+	TMap<FName, TArray<FSimpleGraphFilter> > GraphFilters;
 
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
