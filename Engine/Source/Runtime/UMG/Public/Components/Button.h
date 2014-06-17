@@ -30,11 +30,11 @@ public:
 	FMargin ContentPadding;
 
 	/** The scaling factor for the button border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	FVector2D DesiredSizeScale;
 
 	/** The scaling factor for the button content */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	FVector2D ContentScale;
 	
 	/** The color multiplier for the button images */

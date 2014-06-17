@@ -13,17 +13,13 @@ UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API USlider : public UWidget
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Whether the slidable area should be indented to fit the handle. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	bool IndentHandle;
-
-	/** Whether the handle is interactive or fixed. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	bool Locked;
-
+	
 	///** The style used to draw the slider. */
 	//SLATE_STYLE_ARGUMENT(FSliderStyle, Style)
+
+	/** The volume value to display. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	float Value;
 
 	/** The slider's orientation. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -37,9 +33,13 @@ class UMG_API USlider : public UWidget
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FLinearColor SliderHandleColor;
 
-	/** The volume value to display. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	float Value;
+	/** Whether the slidable area should be indented to fit the handle. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	bool IndentHandle;
+
+	/** Whether the handle is interactive or fixed. */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	bool Locked;
 
 	/** Invoked when the mouse is pressed and a capture begins. */
 	UPROPERTY(BlueprintAssignable)

@@ -27,20 +27,20 @@ class UMG_API UBorder : public UContentWidget
 	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FMargin ContentPadding;
 
-	/** The scaling factor for the border content */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	FVector2D ContentScale;
-
 	/** Color and opacity multiplier of content in the border */
 	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
 	FLinearColor ContentColorAndOpacity;
+
+	/** The scaling factor for the border content */
+	UPROPERTY(EditDefaultsOnly, Category="Content Layout", AdvancedDisplay)
+	FVector2D ContentScale;
 
 	/** Image to use for the border */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
 	USlateBrushAsset* BorderBrush;
 
 	/** The scaling factor for the border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	FVector2D DesiredSizeScale;
 
 	/** Color and opacity of the actual border image */
@@ -52,7 +52,7 @@ class UMG_API UBorder : public UContentWidget
 	FLinearColor ForegroundColor;
 
 	/** Whether or not to show the disabled effect when this border is disabled */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool bShowEffectWhenDisabled;
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)

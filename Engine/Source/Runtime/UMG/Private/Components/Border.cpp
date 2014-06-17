@@ -13,17 +13,19 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 
-	SBorder::FArguments BorderDefaults;
+	HorizontalAlignment = HAlign_Fill;
+	VerticalAlignment = VAlign_Fill;
 
-	HorizontalAlignment = BorderDefaults._HAlign;
-	VerticalAlignment = BorderDefaults._VAlign;
-	ContentPadding = BorderDefaults._Padding.Get();
-	ContentScale = BorderDefaults._ContentScale.Get();
+	ContentScale = FVector2D(1.0f, 1.0f);
 	ContentColorAndOpacity = FLinearColor::White;
 
-	DesiredSizeScale = BorderDefaults._DesiredSizeScale.Get();
+	DesiredSizeScale = FVector2D(1.0f, 1.0f);
 	BorderColorAndOpacity = FLinearColor::White;
 	ForegroundColor = FLinearColor::Black;
+
+	SBorder::FArguments BorderDefaults;
+
+	ContentPadding = BorderDefaults._Padding.Get();
 	bShowEffectWhenDisabled = BorderDefaults._ShowEffectWhenDisabled.Get();
 }
 

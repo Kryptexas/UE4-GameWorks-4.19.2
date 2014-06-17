@@ -18,6 +18,14 @@ public:
 	/** A bindable delegate to allow logic to drive the text of the widget */
 	UPROPERTY()
 	FGetText TextDelegate;
+
+	/** The color of the text */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	FLinearColor ColorAndOpacity;
+
+	/** A bindable delegate for the ColorAndOpacity. */
+	UPROPERTY()
+	FGetSlateColor ColorAndOpacityDelegate;
 	
 	/** The font to render the text with */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -35,20 +43,12 @@ public:
 	UPROPERTY()
 	FGetLinearColor ShadowColorAndOpacityDelegate;
 
-	/** The color of the text */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor ColorAndOpacity;
-
-	/** A bindable delegate for the ColorAndOpacity. */
-	UPROPERTY()
-	FGetSlateColor ColorAndOpacityDelegate;
-
 	/** Whether text wraps onto a new line when it's length exceeds this width; if this value is zero or negative, no wrapping occurs. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	float WrapTextAt;
 
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool AutoWrapText;
 
 	/** The style to use to render the text */
