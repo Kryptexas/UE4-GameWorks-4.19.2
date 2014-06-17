@@ -63,6 +63,16 @@ bool UWidget::IsHovered() const
 	return MyWidget->IsHovered();
 }
 
+UWidget* UWidget::GetParent() const
+{
+	if ( Slot )
+	{
+		return Slot->Parent;
+	}
+
+	return NULL;
+}
+
 TSharedRef<SWidget> UWidget::GetWidget() const
 {
 	if ( !MyWidget.IsValid() )

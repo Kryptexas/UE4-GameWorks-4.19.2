@@ -10,9 +10,9 @@ FHorizontalSlotExtension::FHorizontalSlotExtension()
 	ExtensionId = FName(TEXT("HorizontalSlot"));
 }
 
-bool FHorizontalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
+bool FHorizontalSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
 {
-	for ( const FSelectedWidget& Widget : Selection )
+	for ( const FWidgetReference& Widget : Selection )
 	{
 		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UHorizontalBoxSlot::StaticClass()) )
 		{
@@ -23,7 +23,7 @@ bool FHorizontalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selecti
 	return Selection.Num() == 1;
 }
 
-void FHorizontalSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FHorizontalSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
 {
 	SelectionCache = Selection;
 
@@ -50,7 +50,7 @@ FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)
 {
 	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
 
-	for ( FSelectedWidget& Selection : SelectionCache )
+	for ( FWidgetReference& Selection : SelectionCache )
 	{
 		ShiftHorizontal(Selection.GetPreview(), ShiftAmount);
 		ShiftHorizontal(Selection.GetTemplate(), ShiftAmount);

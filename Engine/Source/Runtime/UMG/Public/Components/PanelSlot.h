@@ -5,7 +5,7 @@
 #include "PanelSlot.generated.h"
 
 /** The base class for all Slots in UMG. */
-UCLASS(Abstract)
+UCLASS()
 class UMG_API UPanelSlot : public UObject
 {
 	GENERATED_UCLASS_BODY()

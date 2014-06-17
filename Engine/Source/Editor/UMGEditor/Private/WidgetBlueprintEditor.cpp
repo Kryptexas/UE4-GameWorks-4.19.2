@@ -26,18 +26,32 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	}
 }
 
-void FWidgetBlueprintEditor::SelectWidgets(TArray<UWidget*> Widgets)
+void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
+{
+	SelectedWidgets = Widgets;
+
+	RefreshDetails();
+
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
+const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
+{
+	return SelectedWidgets;
+}
+
+void FWidgetBlueprintEditor::RefreshDetails()
 {
 	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle;
+	FString InspectorTitle = "Widget";// Widget->GetDisplayString();
+
 	TArray<UObject*> InspectorObjects;
-	InspectorObjects.Empty(Widgets.Num());
-	for ( UWidget* Widget : Widgets )
+	for ( FWidgetReference& WidgetRef : SelectedWidgets )
 	{
-		//if ( NodePtr->CanEditDefaults() )
+		UWidget* PreviewWidget = WidgetRef.GetPreview();
+		if ( PreviewWidget )
 		{
-			InspectorTitle = "Widget";// Widget->GetDisplayString();
-			InspectorObjects.Add(Widget);
+			InspectorObjects.Add(PreviewWidget);
 		}
 	}
 
@@ -46,8 +60,6 @@ void FWidgetBlueprintEditor::SelectWidgets(TArray<UWidget*> Widgets)
 	// Update the details panel
 	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
 	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
-
-	SelectedPreviewWidgets = Widgets;
 }
 
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
@@ -55,6 +67,8 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 	if ( InBlueprint )
 	{
 		UpdatePreview(InBlueprint, true);
+
+		RefreshDetails();
 	}
 }
 
@@ -176,15 +190,20 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 	UUserWidget* PreviewActor = GetPreview();
 	if ( PreviewActor != NULL )
 	{
-		for ( UWidget* PreviewWidget : SelectedPreviewWidgets )
+		for ( FWidgetReference& WidgetRef : SelectedWidgets )
 		{
-			FString PreviewWidgetName = PreviewWidget->GetName();
-			UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
+			UWidget* PreviewWidget = WidgetRef.GetPreview();
 
-			if ( TemplateWidget )
+			if ( PreviewWidget )
 			{
-				FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode = PropertyThatChanged->GetHead();
-				MigratePropertyValue(PreviewWidget, TemplateWidget, PropertyChainNode, PropertyChainNode->GetValue(), bIsModify);
+				FString PreviewWidgetName = PreviewWidget->GetName();
+				UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget(PreviewWidgetName);
+
+				if ( TemplateWidget )
+				{
+					FEditPropertyChain::TDoubleLinkedListNode* PropertyChainNode = PropertyThatChanged->GetHead();
+					MigratePropertyValue(PreviewWidget, TemplateWidget, PropertyChainNode, PropertyChainNode->GetValue(), bIsModify);
+				}
 			}
 		}
 	}
@@ -298,6 +317,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 			SubPreviewWidget->IsDesignTime(true);
 		}
 
+		// Store a reference to the preview actor.
 		PreviewWidgetActorPtr = PreviewActor;
 	}
 }

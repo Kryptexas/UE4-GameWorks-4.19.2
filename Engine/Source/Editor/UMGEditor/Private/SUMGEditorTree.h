@@ -6,6 +6,11 @@
 #include "BlueprintEditor.h"
 
 //TODO rename SUMGEditorHierarchy
+
+/**
+ * The tree view presenting the widget hierarchy.  This allows users to edit the hierarchy of widgets easily by dragging and 
+ * dropping them logically, which in some cases may be significantly easier than doing it visually in the widget designer.
+ */
 class SUMGEditorTree : public SCompoundWidget
 {
 public:
@@ -13,13 +18,20 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
+
 	virtual ~SUMGEditorTree();
 
 private:
+	/** @returns the current blueprint being edited */
 	UWidgetBlueprint* GetBlueprint() const;
 
+	/** Called when the blueprint is structurally changed. */
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
+
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
+
+	/** Called when the selected widget has changed.  The treeview then needs to match the new selection. */
+	void OnEditorSelectionChanged();
 
 	void ShowDetailsForObjects(TArray<UWidget*> Widgets);
 

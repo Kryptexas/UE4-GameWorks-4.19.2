@@ -6,26 +6,26 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-// FSelectedWidget
+// FWidgetReference
 
-FSelectedWidget::FSelectedWidget()
+FWidgetReference::FWidgetReference()
 	: WidgetEditor()
 	, TemplateWidget(NULL)
 {
 }
 
-FSelectedWidget::FSelectedWidget(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
+FWidgetReference::FWidgetReference(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
 	: WidgetEditor(WidgetEditor)
 	, TemplateWidget(TemplateWidget)
 {
 }
 
-FSelectedWidget FSelectedWidget::FromTemplate(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
+FWidgetReference FWidgetReference::FromTemplate(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget)
 {
-	return FSelectedWidget(WidgetEditor, TemplateWidget);
+	return FWidgetReference(WidgetEditor, TemplateWidget);
 }
 
-FSelectedWidget FSelectedWidget::FromPreview(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget)
+FWidgetReference FWidgetReference::FromPreview(TSharedPtr<FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget)
 {
 	if ( WidgetEditor.IsValid() )
 	{
@@ -42,20 +42,20 @@ FSelectedWidget FSelectedWidget::FromPreview(TSharedPtr<FWidgetBlueprintEditor> 
 		}
 	}
 
-	return FSelectedWidget();
+	return FWidgetReference();
 }
 
-bool FSelectedWidget::IsValid() const
+bool FWidgetReference::IsValid() const
 {
 	return TemplateWidget != NULL && GetPreview();
 }
 
-UWidget* FSelectedWidget::GetTemplate() const
+UWidget* FWidgetReference::GetTemplate() const
 {
 	return TemplateWidget;
 }
 
-UWidget* FSelectedWidget::GetPreview() const
+UWidget* FWidgetReference::GetPreview() const
 {
 	if ( WidgetEditor.IsValid() )
 	{
@@ -96,7 +96,7 @@ void FDesignerExtension::BeginTransaction(const FText& SessionName)
 		ScopedTransaction = new FScopedTransaction(SessionName);
 	}
 
-	for ( FSelectedWidget& Selection : SelectionCache )
+	for ( FWidgetReference& Selection : SelectionCache )
 	{
 		Selection.GetPreview()->Modify();
 		Selection.GetTemplate()->Modify();

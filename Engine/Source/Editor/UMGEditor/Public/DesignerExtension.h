@@ -2,45 +2,29 @@
 
 #pragma once
 
+#include "WidgetReference.h"
+
 class UWidget;
 class SWidget;
 class UWidgetBlueprint;
 
 /**
- * The Selected widget is a useful way to hold onto the selection in a way that allows for up to date access to the current preview object.
- * Because the designer could end up rebuilding the preview, it's best to hold onto an FSelectedWidget.
+ * The Designer extension allows developers to provide additional widgets and custom painting to the designer surface for
+ * specific widgets.  Allowing for a more customized and specific editors for the different widgets.
  */
-struct FSelectedWidget
-{
-public:
-	static FSelectedWidget FromTemplate(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
-	static FSelectedWidget FromPreview(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* PreviewWidget);
-
-	FSelectedWidget();
-
-	bool IsValid() const;
-
-	UWidget* GetTemplate() const;
-	UWidget* GetPreview() const;
-
-private:
-	FSelectedWidget(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
-
-private:
-
-	TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor;
-	UWidget* TemplateWidget;
-};
-
 class FDesignerExtension : public TSharedFromThis<FDesignerExtension>
 {
 public:
+	/** Constructor */
 	FDesignerExtension();
 
+	/** Initializes the designer extension, this is called the first time a designer extension is registered */
 	virtual void Initialize(UWidgetBlueprint* InBlueprint);
 
-	virtual void BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets) = 0;
+	/** Called every time the selection in the designer changes. */
+	virtual void BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets) = 0;
 
+	/** Gets the ID identifying this extension. */
 	FName GetExtensionId() const;
 
 protected:
@@ -52,7 +36,7 @@ protected:
 	FName ExtensionId;
 	UWidgetBlueprint* Blueprint;
 
-	TArray< FSelectedWidget > SelectionCache;
+	TArray< FWidgetReference > SelectionCache;
 
 private:
 	FScopedTransaction* ScopedTransaction;

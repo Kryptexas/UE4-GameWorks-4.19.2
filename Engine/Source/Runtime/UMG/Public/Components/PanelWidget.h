@@ -24,7 +24,7 @@ public:
 	virtual void InsertChildAt(int32 Index, UWidget* Child)
 	{
 	}
-
+	
 	virtual bool AddChild(UWidget* Child, FVector2D Position)
 	{
 		return false;

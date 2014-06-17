@@ -10,9 +10,9 @@ FCanvasSlotExtension::FCanvasSlotExtension()
 	ExtensionId = FName(TEXT("CanvasSlot"));
 }
 
-bool FCanvasSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
+bool FCanvasSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
 {
-	for ( const FSelectedWidget& Widget : Selection )
+	for ( const FWidgetReference& Widget : Selection )
 	{
 		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UCanvasPanelSlot::StaticClass()) )
 		{
@@ -23,7 +23,7 @@ bool FCanvasSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
 	return Selection.Num() == 1;
 }
 
-void FCanvasSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FCanvasSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
 {
 	SelectionCache = Selection;
 
@@ -72,7 +72,7 @@ FReply FCanvasSlotExtension::HandleDragging(const FGeometry& Geometry, const FPo
 {
 	if ( bDragging )
 	{
-		for ( FSelectedWidget& Selection : SelectionCache )
+		for ( FWidgetReference& Selection : SelectionCache )
 		{
 			MoveByAmount(Selection.GetPreview(), Event.GetCursorDelta());
 			MoveByAmount(Selection.GetTemplate(), Event.GetCursorDelta());

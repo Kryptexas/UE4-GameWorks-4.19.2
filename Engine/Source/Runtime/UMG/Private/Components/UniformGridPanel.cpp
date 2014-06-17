@@ -62,9 +62,7 @@ void UUniformGridPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 	UUniformGridSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 }
 
 TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
@@ -91,9 +89,7 @@ UUniformGridSlot* UUniformGridPanel::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	Slots.Add(Slot);
 

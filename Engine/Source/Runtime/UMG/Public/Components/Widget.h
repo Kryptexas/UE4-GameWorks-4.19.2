@@ -52,13 +52,11 @@ public:
 	UPROPERTY(Transient)
 	bool bCreatedByConstructionScript;
 
-#if WITH_EDITOR
 	/**
 	 * The parent slot of the UWidget.  Allows us to easily inline edit the layout controlling this widget.
 	 */
-	UPROPERTY(Transient, EditInline, EditDefaultsOnly, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
+	UPROPERTY(EditInline, EditDefaultsOnly, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
 	UPanelSlot* Slot;
-#endif
 
 	/** Sets whether this widget can be modified interactively by the user */
 	UPROPERTY(EditDefaultsOnly, Category=Behavior)
@@ -119,6 +117,10 @@ public:
 	/** Gets if the button is currently being hovered by the mouse */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
+
+	/** Gets the parent widget */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	UWidget* GetParent() const;
 
 	/** Gets the underlying Slate SWidget for this UWidget. */
 	TSharedRef<SWidget> GetWidget() const;

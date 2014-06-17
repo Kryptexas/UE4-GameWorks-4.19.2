@@ -163,12 +163,7 @@ void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProper
 	//UpdatePreview(InBlueprint);
 }
 
-void SUMGDesigner::ShowDetailsForObjects(TArray<UWidget*> Widgets)
-{
-	BlueprintEditor.Pin()->SelectWidgets(Widgets);
-}
-
-FSelectedWidget SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
+FWidgetReference SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
@@ -206,11 +201,11 @@ FSelectedWidget SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, con
 
 		if ( Preview )
 		{
-			return FSelectedWidget::FromPreview(BlueprintEditor.Pin(), Preview);
+			return FWidgetReference::FromPreview(BlueprintEditor.Pin(), Preview);
 		}
 	}
 
-	return FSelectedWidget();
+	return FWidgetReference();
 }
 
 FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -228,17 +223,16 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 		{
 			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
 			// Set the template as selected in the details panel
-			TArray<UWidget*> SelectedTemplates;
-			//SelectedTemplates.Add(CurrentSelection.GetTemplate());
-			SelectedTemplates.Add(CurrentSelection.GetPreview());
-			ShowDetailsForObjects(SelectedTemplates);
+			TSet<FWidgetReference> SelectedTemplates;
+			SelectedTemplates.Add(CurrentSelection);
+			BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
 
 			// Remove all the current extension widgets
 			ExtensionWidgetCanvas->ClearChildren();
 
 			ExtensionWidgets.Reset();
 
-			TArray<FSelectedWidget> Selected;
+			TArray<FWidgetReference> Selected;
 			Selected.Add(CurrentSelection);
 
 			// Build extension widgets for new selection
@@ -735,7 +729,7 @@ UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEv
 	if ( DragDropOp.IsValid() )
 	{
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+		FWidgetReference Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
 		
 		UWidgetBlueprint* BP = GetBlueprint();
 		
@@ -779,7 +773,7 @@ bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEve
 	if ( DragDropOp.IsValid() )
 	{
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FSelectedWidget Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+		FWidgetReference Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
 		
 		UWidgetBlueprint* BP = GetBlueprint();
 		
@@ -806,7 +800,7 @@ bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEve
 				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
 				
 				// Update the selected template to be the newly created one.
-				CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
+				CurrentSelection = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
 				
 				return true;
 			}
@@ -824,7 +818,7 @@ bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEve
 			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 			Widget->IsDesignTime(true);
 			
-			CurrentSelection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), Widget);
+			CurrentSelection = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
 			
 			return true;
 		}

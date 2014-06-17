@@ -15,10 +15,6 @@
 UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-//	PrimaryComponentTick.bCanEverTick = true;
-
-//	bAutoActivate = true;
-//	bTickInEditor = true;
 }
 
 /////////////////////////////////////////////////////

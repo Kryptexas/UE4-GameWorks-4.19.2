@@ -9,6 +9,9 @@
 
 class FDesignerExtension;
 
+/**
+ * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
+ */
 class SUMGDesigner : public SDesignSurface
 {
 public:
@@ -38,12 +41,15 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
-	FSelectedWidget GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
+	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
+	FWidgetReference GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
 
+	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
+
+	/** Called whenever the blueprint is structurally changed. */
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
 	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
-	void ShowDetailsForObjects(TArray<UWidget*> Widgets);
 
 	bool GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
 	bool GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const;
@@ -96,7 +102,7 @@ private:
 	TWeakPtr<SWidget> PreviewWidget;
 	UUserWidget* PreviewWidgetObject;
 
-	FSelectedWidget CurrentSelection;
+	FWidgetReference CurrentSelection;
 	TWeakPtr<SWidget> SelectedWidget;
 	
 	UWidget* DropPreviewWidget;

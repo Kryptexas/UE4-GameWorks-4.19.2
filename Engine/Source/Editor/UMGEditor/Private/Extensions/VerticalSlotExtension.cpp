@@ -10,9 +10,9 @@ FVerticalSlotExtension::FVerticalSlotExtension()
 	ExtensionId = FName(TEXT("VerticalSlot"));
 }
 
-bool FVerticalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
+bool FVerticalSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
 {
-	for ( const FSelectedWidget& Widget : Selection )
+	for ( const FWidgetReference& Widget : Selection )
 	{
 		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UVerticalBoxSlot::StaticClass()) )
 		{
@@ -23,7 +23,7 @@ bool FVerticalSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection
 	return Selection.Num() == 1;
 }
 
-void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
 {
 	SelectionCache = Selection;
 
@@ -59,7 +59,7 @@ FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
 {
 	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
 
-	for ( FSelectedWidget& Selection : SelectionCache )
+	for ( FWidgetReference& Selection : SelectionCache )
 	{
 		ShiftVertical(Selection.GetPreview(), ShiftAmount);
 		ShiftVertical(Selection.GetTemplate(), ShiftAmount);

@@ -44,6 +44,8 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 		]
 	];
 
+	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGEditorTree::OnEditorSelectionChanged);
+
 	RefreshTree();
 }
 
@@ -56,6 +58,31 @@ SUMGEditorTree::~SUMGEditorTree()
 	}
 
 	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+
+	if ( BlueprintEditor.IsValid() )
+	{
+		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+	}
+}
+
+void SUMGEditorTree::OnEditorSelectionChanged()
+{
+	WidgetTreeView->ClearSelection();
+
+	// Update the selection and expansion in the tree to match the new selection
+	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		WidgetTreeView->SetItemSelection(WidgetRef.GetTemplate(), true);
+
+		// Expand the path leading to this widget in the tree.
+		UWidget* Parent = WidgetRef.GetTemplate()->GetParent();
+		while ( Parent != NULL )
+		{
+			WidgetTreeView->SetItemExpansion(Parent, true);
+			Parent = Parent->GetParent();
+		}
+	}
 }
 
 UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
@@ -87,15 +114,14 @@ void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProp
 
 void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 {
-	TArray<UWidget*> PreviewWidgets;
+	TSet<FWidgetReference> SelectedWidgets;
 	for ( UWidget* TemplateWidget : TemplateWidgets )
 	{
-		FSelectedWidget Selection = FSelectedWidget::FromTemplate(BlueprintEditor.Pin(), TemplateWidget);
-		PreviewWidgets.Add(Selection.GetPreview());
-		//PreviewWidgets.Add(Selection.GetTemplate());
+		FWidgetReference Selection = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), TemplateWidget);
+		SelectedWidgets.Add(Selection);
 	}
 
-	BlueprintEditor.Pin()->SelectWidgets(PreviewWidgets);
+	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
 }
 
 void SUMGEditorTree::BuildWrapWithMenu(FMenuBuilder& Menu)

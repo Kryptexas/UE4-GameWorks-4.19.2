@@ -62,9 +62,7 @@ void UOverlay::ReplaceChildAt(int32 Index, UWidget* Content)
 	UOverlaySlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 }
 
 TSharedRef<SWidget> UOverlay::RebuildWidget()
@@ -87,9 +85,7 @@ UOverlaySlot* UOverlay::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	Slots.Add(Slot);
 

@@ -26,5 +26,5 @@ class UMG_API UContentWidget : public UPanelWidget
 protected:
 
 	UPROPERTY()
-	UWidget* Content;
+	UPanelSlot* ContentSlot;
 };

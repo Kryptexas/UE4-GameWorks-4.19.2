@@ -14,6 +14,9 @@ class ISequencer;
 class FWidgetBlueprintEditor : public FBlueprintEditor
 {
 public:
+	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanged)
+
+public:
 	FWidgetBlueprintEditor();
 
 	virtual ~FWidgetBlueprintEditor();
@@ -27,21 +30,38 @@ public:
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
+	/** @return The widget blueprint currently being edited in this editor */
 	class UWidgetBlueprint* GetWidgetBlueprintObj() const;
 
+	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
 
 	/** @return The sequencer used to create widget animations */
 	TSharedPtr<ISequencer>& GetSequencer();
 
-	void SelectWidgets(TArray<UWidget*> Widgets);
+	/** Sets the currently selected set of widgets */
+	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
+
+	/** @return The selected set of widgets */
+	const TSet<FWidgetReference>& GetSelectedWidgets() const;
+
+	/** Fires whenever the selected set of widgets changes */
+	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
 
 private:
+	/** Updates the inspector to be viewing the currently selected set of widgets */
+	void RefreshDetails();
+
+	/** Called whenever the blueprint is structurally changed. */
 	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
 
+	/** Destroy the current preview GUI object */
 	void DestroyPreview();
+
+	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
 
+	/** Migrate a property change from the preview GUI to the template GUI. */
 	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
 
 	/**
@@ -51,6 +71,7 @@ private:
 	UMovieScene* GetDefaultMovieScene();
 
 private:
+	/** The preview scene that owns the preview GUI */
 	FPreviewScene PreviewScene;
 
 	/** Sequencer for creating and previewing widget animations */
@@ -62,7 +83,9 @@ private:
 	/** Default movie scene for new animations */
 	UMovieScene* DefaultMovieScene;
 
-	TArray<UWidget*> SelectedPreviewWidgets;
+	/** The currently selected preview widgets in the preview GUI */
+	TSet<FWidgetReference> SelectedWidgets;
 
+	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
 };

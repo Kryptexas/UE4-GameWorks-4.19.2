@@ -66,9 +66,7 @@ void UVerticalBox::ReplaceChildAt(int32 Index, UWidget* Content)
 	UVerticalBoxSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 }
 
 void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
@@ -78,9 +76,7 @@ void UVerticalBox::InsertChildAt(int32 Index, UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 
 	Slots.Insert(Slot, Index);
 }
@@ -105,9 +101,7 @@ UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	Slots.Add(Slot);
 

@@ -15,31 +15,39 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), this);
+	ContentSlot->SetFlags(RF_Transactional);
+	ContentSlot->Parent = this;
 }
 
 UWidget* UContentWidget::GetContent()
 {
-	return Content;
+	return ContentSlot->Content;
 }
 
 void UContentWidget::SetContent(UWidget* InContent)
 {
-	Content = InContent;
+	ContentSlot->Content = InContent;
+
+	if ( InContent )
+	{
+		InContent->Slot = ContentSlot;
+	}
 }
 
 int32 UContentWidget::GetChildrenCount() const
 {
-	return Content != NULL ? 1 : 0;
+	return ContentSlot->Content != NULL ? 1 : 0;
 }
 
 UWidget* UContentWidget::GetChildAt(int32 Index) const
 {
-	return Content;
+	return ContentSlot->Content;
 }
 
 bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 {
-	if ( Content == NULL )
+	if ( ContentSlot->Content == NULL )
 	{
 		SetContent(InContent);
 		return true;
@@ -50,7 +58,7 @@ bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 
 bool UContentWidget::RemoveChild(UWidget* Child)
 {
-	if ( Content == Child )
+	if ( ContentSlot->Content == Child )
 	{
 		SetContent(NULL);
 		return true;

@@ -75,9 +75,7 @@ void UScrollBox::ReplaceChildAt(int32 Index, UWidget* Content)
 	UScrollBoxSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 }
 
 void UScrollBox::InsertChildAt(int32 Index, UWidget* Content)
@@ -87,9 +85,7 @@ void UScrollBox::InsertChildAt(int32 Index, UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 
 	Slots.Insert(Slot, Index);
 }
@@ -114,9 +110,7 @@ UScrollBoxSlot* UScrollBox::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	Slots.Add(Slot);
 

@@ -114,9 +114,7 @@ void UCanvasPanel::ReplaceChildAt(int32 Index, UWidget* Content)
 	UCanvasPanelSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	//TODO UMG How do we handle this swap for live controls?  It doesn't matter for canvas, but matters for flow controls it will matter
 }
@@ -128,9 +126,7 @@ void UCanvasPanel::InsertChildAt(int32 Index, UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 
 	Slots.Insert(Slot, Index);
 }
@@ -162,9 +158,7 @@ UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 	
 	Slots.Add(Slot);
 

@@ -97,9 +97,7 @@ void UWidgetSwitcher::ReplaceChildAt(int32 Index, UWidget* Content)
 	UWidgetSwitcherSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 }
 
 void UWidgetSwitcher::InsertChildAt(int32 Index, UWidget* Content)
@@ -109,9 +107,7 @@ void UWidgetSwitcher::InsertChildAt(int32 Index, UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 
 	Slots.Insert(Slot, Index);
 }
@@ -123,9 +119,7 @@ UWidgetSwitcherSlot* UWidgetSwitcher::AddSlot(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-#if WITH_EDITOR
 	Content->Slot = Slot;
-#endif
 
 	Slots.Add(Slot);
 

@@ -30,7 +30,7 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UBorder::RebuildWidget()
 {
 	MyBorder = SNew(SBorder);
-	MyBorder->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
+	MyBorder->SetContent(ContentSlot->Content ? ContentSlot->Content->GetWidget() : SNullWidget::NullWidget);
 
 	return MyBorder.ToSharedRef();
 }
@@ -60,13 +60,13 @@ void UBorder::SyncronizeProperties()
 	MyBorder->SetOnMouseDoubleClick(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseDoubleClick));
 }
 
-void UBorder::SetContent(UWidget* Content)
+void UBorder::SetContent(UWidget* InContent)
 {
-	Super::SetContent(Content);
+	Super::SetContent(InContent);
 
 	if ( MyBorder.IsValid() )
 	{
-		MyBorder->SetContent(Content ? Content->GetWidget() : SNullWidget::NullWidget);
+		MyBorder->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
 	}
 }
 

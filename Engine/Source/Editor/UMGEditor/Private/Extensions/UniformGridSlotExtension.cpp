@@ -9,9 +9,9 @@ FUniformGridSlotExtension::FUniformGridSlotExtension()
 	ExtensionId = FName(TEXT("UniformGridSlot"));
 }
 
-bool FUniformGridSlotExtension::IsActive(const TArray< FSelectedWidget >& Selection)
+bool FUniformGridSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
 {
-	for ( const FSelectedWidget& Widget : Selection )
+	for ( const FWidgetReference& Widget : Selection )
 	{
 		if ( !Widget.GetTemplate()->Slot || !Widget.GetTemplate()->Slot->IsA(UUniformGridSlot::StaticClass()) )
 		{
@@ -22,7 +22,7 @@ bool FUniformGridSlotExtension::IsActive(const TArray< FSelectedWidget >& Select
 	return Selection.Num() == 1;
 }
 
-void FUniformGridSlotExtension::BuildWidgetsForSelection(const TArray< FSelectedWidget >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FUniformGridSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
 {
 	SelectionCache = Selection;
 
@@ -61,7 +61,7 @@ FReply FUniformGridSlotExtension::HandleShiftRow(int32 ShiftAmount)
 {
 	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
 
-	for ( FSelectedWidget& Selection : SelectionCache )
+	for ( FWidgetReference& Selection : SelectionCache )
 	{
 		ShiftRow(Selection.GetPreview(), ShiftAmount);
 		ShiftRow(Selection.GetTemplate(), ShiftAmount);
@@ -78,7 +78,7 @@ FReply FUniformGridSlotExtension::HandleShiftColumn(int32 ShiftAmount)
 {
 	BeginTransaction(LOCTEXT("MoveWidget", "Move Widget"));
 
-	for ( FSelectedWidget& Selection : SelectionCache )
+	for ( FWidgetReference& Selection : SelectionCache )
 	{
 		ShiftColumn(Selection.GetPreview(), ShiftAmount);
 		ShiftColumn(Selection.GetTemplate(), ShiftAmount);
