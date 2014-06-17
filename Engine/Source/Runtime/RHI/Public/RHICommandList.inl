@@ -13,9 +13,14 @@ struct FRHICommand
 	// This is a union only to force alignment to SIZE_T
 	union
 	{
-		SIZE_T			RawType;
 		ERHICommandType	Type;
+		SIZE_T			RawType;
 	};
+
+	uint32 ExtraSize() const
+	{
+		return 0;
+	}
 };
 
 // No constructors are given for classes derived from FRHICommand as they are not created using
@@ -44,6 +49,11 @@ struct FRHICommandNopBlob : public FRHICommand
 		Size = InSize;
 		Data = List->Alloc(InSize);
 		FMemory::Memcpy(Data, InData, InSize);
+	}
+
+	uint32 ExtraSize() const
+	{
+		return Size;
 	}
 };
 
@@ -370,5 +380,52 @@ FORCEINLINE void FRHICommandList::SetStreamSource(uint32 StreamIndex, FVertexBuf
 	Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
 	VertexBuffer->AddRef();
 }
+
+// Helper class for traversing a FRHICommandList
+class FRHICommandListIterator
+{
+public:
+	FRHICommandListIterator(FRHICommandList& CmdList)
+	{
+		NumCommands = 0;
+		CmdListNumCommands = CmdList.NumCommands;
+		CmdPtr = CmdList.GetHead();
+		CmdTail = CmdList.GetTail();
+	}
+
+	FORCEINLINE bool HasCommandsLeft() const
+	{
+		return (CmdPtr < CmdTail);
+	}
+
+	// Current command
+	FORCEINLINE FRHICommand* operator * ()
+	{
+		return (FRHICommand*)CmdPtr;
+	}
+
+	// Get the next RHICommand and advance the iterator
+	template <typename T>
+	FORCEINLINE T* NextCommand()
+	{
+		T* RHICmd = (T*)CmdPtr;
+		CmdPtr += sizeof(T) + RHICmd->ExtraSize();
+		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
+		++NumCommands;
+		return RHICmd;
+	}
+
+	void CheckNumCommands()
+	{
+		checkf(CmdListNumCommands == NumCommands, TEXT("Missed %d Commands!"), CmdListNumCommands - NumCommands);
+		checkf(CmdPtr == CmdTail, TEXT("Mismatched Tail Pointer!"));
+	}
+
+protected:
+	uint32 NumCommands;
+	const uint8* CmdPtr;
+	const uint8* CmdTail;
+	uint32 CmdListNumCommands;
+};
 
 #endif	// __RHICOMMANDLIST_INL__

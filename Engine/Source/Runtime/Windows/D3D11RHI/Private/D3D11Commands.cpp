@@ -2129,35 +2129,32 @@ uint32 FD3D11DynamicRHI::RHIGetGPUFrameCycles()
 
 void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 {
-	auto* CmdPtr = CmdList->GetHead();
-	auto* CmdTail = CmdList->GetTail();
-
-	while (CmdPtr < CmdTail)
+	FRHICommandListIterator Iter(*CmdList);
+	while (Iter.HasCommandsLeft())
 	{
-		auto* Cmd = (FRHICommand*)CmdPtr;
+		auto* Cmd = *Iter;
 		switch (Cmd->Type)
 		{
 		case ERCT_NopBlob:
 			{
 				// Nop
-				auto* RHICmd = (FRHICommandNopBlob*)Cmd;
-				CmdPtr += sizeof(FRHICommandNopBlob) + RHICmd->Size;
+				auto* RHICmd = Iter.NextCommand<FRHICommandNopBlob>();// (FRHICommandNopBlob*)Cmd;
+				(void)RHICmd;	// Unused
 			}
 			break;
 		case ERCT_SetRasterizerState:
 			{
-				auto* RHICmd = (FRHICommandSetRasterizerState*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetRasterizerState>();
 				{
 					auto* State = (FD3D11RasterizerState*)RHICmd->State;
 					StateCache.SetRasterizerState(State->Resource);
 				}
-				CmdPtr += sizeof(FRHICommandSetRasterizerState);
 				RHICmd->State->Release();
 			}
 			break;
 		case ERCT_SetShaderParameter:
 			{
-				auto* RHICmd = (FRHICommandSetShaderParameter*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderParameter>();
 				{
 					switch (RHICmd->ShaderFrequency)
 					{
@@ -2194,12 +2191,11 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					default: check(0); break;
 					}
 				}
-				CmdPtr += sizeof(FRHICommandSetShaderParameter);
 			}
 			break;
 		case ERCT_SetShaderUniformBuffer:
 			{
-				auto* RHICmd = (FRHICommandSetShaderUniformBuffer*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderUniformBuffer>();
 				{
 					FD3D11UniformBuffer* Buffer = (FD3D11UniformBuffer*)RHICmd->UniformBuffer;
 					ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : nullptr;
@@ -2244,14 +2240,13 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					default: check(0); break;
 					}
 				}
-				CmdPtr += sizeof(FRHICommandSetShaderUniformBuffer);
 				RHICmd->Shader->Release(); 
 				RHICmd->UniformBuffer->Release();
 			}
 			break;
 		case ERCT_SetShaderSampler:
 			{
-				auto* RHICmd = (FRHICommandSetShaderSampler*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderSampler>();
 				{
 					FD3D11SamplerState* SamplerState = (FD3D11SamplerState*)RHICmd->Sampler;
 					ID3D11SamplerState* StateResource = SamplerState->Resource;
@@ -2284,14 +2279,13 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					default: check(0); break;
 					}
 				}
-				CmdPtr += sizeof(FRHICommandSetShaderSampler);
 				RHICmd->Shader->Release(); 
 				RHICmd->Sampler->Release();
 			}
 			break;
 		case ERCT_SetShaderTexture:
 			{
-				auto* RHICmd = (FRHICommandSetShaderTexture*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderTexture>();
 				{
 					uint32 Start = FPlatformTime::Cycles();
 					FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(RHICmd->Texture);
@@ -2328,14 +2322,13 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
 					SetShaderTextureCalls++;
 				}
-				CmdPtr += sizeof(FRHICommandSetShaderTexture);
-				RHICmd->Shader->Release(); 
+				RHICmd->Shader->Release();
 				RHICmd->Texture->Release();
 			}
 			break;
 		case ERCT_DrawPrimitive:
 			{
-				auto* RHICmd = (FRHICommandDrawPrimitive*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandDrawPrimitive>();
 				{
 					RHI_DRAW_CALL_STATS(RHICmd->PrimitiveType, RHICmd->NumInstances * RHICmd->NumPrimitives);
 
@@ -2354,12 +2347,11 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 						Direct3DDeviceIMContext->Draw(VertexCount, RHICmd->BaseVertexIndex);
 					}
 				}
-				CmdPtr += sizeof(FRHICommandDrawPrimitive);
 			}
 			break;
 		case ERCT_DrawIndexedPrimitive:
 			{
-				auto* RHICmd = (FRHICommandDrawIndexedPrimitive*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandDrawIndexedPrimitive>();
 				{
 					auto* IndexBuffer = (FD3D11IndexBuffer*)RHICmd->IndexBuffer;
 
@@ -2395,13 +2387,12 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 						Direct3DDeviceIMContext->DrawIndexed(IndexCount, RHICmd->StartIndex, RHICmd->BaseVertexIndex);
 					}
 				}
-				CmdPtr += sizeof(FRHICommandDrawIndexedPrimitive);
 				RHICmd->IndexBuffer->Release();
 			}
 			break;
 		case ERCT_SetBoundShaderState:
 			{
-				auto* RHICmd = (FRHICommandSetBoundShaderState*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetBoundShaderState>();
 				{
 					auto* BoundShaderState = (FD3D11BoundShaderState*)RHICmd->BoundShaderState;
 
@@ -2436,39 +2427,36 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					DirtyUniformBuffers[SF_Domain] = 0xffff;
 					DirtyUniformBuffers[SF_Geometry] = 0xffff;
 				}
-				CmdPtr += sizeof(FRHICommandSetBoundShaderState);
 				RHICmd->BoundShaderState->Release();
 			}
 			break;
 		case ERCT_SetBlendState:
 			{
-				auto* RHICmd = (FRHICommandSetBlendState*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetBlendState>();
 				{
 					auto* State = (FD3D11BlendState*)RHICmd->State;
 					StateCache.SetBlendState(State->Resource, (const float*)&RHICmd->BlendFactor, 0xffffffff);
 				}
-				CmdPtr += sizeof(FRHICommandSetBlendState);
 				RHICmd->State->Release();
 			}
 			break;
 		case ERCT_SetStreamSource:
 			{
-				auto* RHICmd = (FRHICommandSetStreamSource*)Cmd;
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetStreamSource>();
 				{
 					auto* VertexBuffer = (FD3D11VertexBuffer*)RHICmd->VertexBuffer;
 					ID3D11Buffer* D3DBuffer = VertexBuffer ? VertexBuffer->Resource : nullptr;
 					StateCache.SetStreamSource(D3DBuffer, RHICmd->StreamIndex, RHICmd->Stride, RHICmd->Offset);
 				}
-				CmdPtr += sizeof(FRHICommandSetStreamSource);
 				RHICmd->VertexBuffer->Release();
 			}
 			break;
 		default:
 			checkf(0, TEXT("Unimplemented RHICmd %d!"), Cmd->Type);
 		}
-
-		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
 	}
+
+	Iter.CheckNumCommands();
 }
 
 // NVIDIA Depth Bounds Test interface

@@ -26,12 +26,85 @@ enum ERHICommandType
 
 class RHI_API FRHICommandList
 {
+private:
 	static FRHICommandList NullRHICommandList;
+
+	struct FMemManager
+	{
+		FMemManager(int32 Size = DefaultMemSize)
+		{
+			MemSize = Size;
+			Memory = nullptr;
+			if (Size)
+			{
+				Memory = (uint8*)FMemory::Malloc(MemSize, Alignment);
+			}
+		}
+
+		FORCEINLINE bool IsNull() const
+		{
+			return !Memory;
+		}
+
+		~FMemManager()
+		{
+			if (IsNull())
+			{
+				FMemory::Free(Memory);
+			}
+			MemSize = 0;
+			Memory = (uint8*)0x1; // we want this to not bypass the cmd list; please just crash.
+		}
+
+		uint8* Alloc(SIZE_T InSize)
+		{
+			checkSlow(!IsNull());
+			InSize = (InSize + (Alignment - 1)) & ~(Alignment - 1);
+			check(Tail + InSize + Alignment <= &Memory[MemSize]);
+			uint8* New = Tail;
+			Tail += InSize;
+			return New;
+		}
+
+		const uint8* GetHead() const
+		{
+			checkSlow(!IsNull());
+			return &Memory[0];
+		}
+
+		const uint8* GetTail() const
+		{
+			checkSlow(!IsNull());
+			return Tail;
+		}
+
+		const SIZE_T GetUsedMemory() const
+		{
+			return GetTail() - GetHead();
+		}
+
+		bool CanFitCommand(SIZE_T Size) const
+		{
+			return (Size + (Tail - Memory) <= (SIZE_T)MemSize);
+		}
+
+		void ResetTail()
+		{
+			Tail = Memory;
+		}
+
+		uint8* Memory;
+		uint8* Tail;
+		int32 MemSize;
+	};
+
+	FMemManager MemManager;
+
 public:
 	enum
 	{
 		DefaultMemSize = 256 * 1024,
-		Alignment = MIN_ALIGNMENT,
+		Alignment = sizeof(SIZE_T),
 	};
 
 	static FORCEINLINE FRHICommandList& GetNullRef()
@@ -39,25 +112,14 @@ public:
 		return NullRHICommandList;
 	}
 
-	FRHICommandList(int32 Size = DefaultMemSize)
+	FRHICommandList(int32 Size = DefaultMemSize) :
+		MemManager(Size)
 	{
-		MemSize = Size;
-		Memory = nullptr;
-		if (Size)
-		{
-			Memory = (uint8*)FMemory::Malloc(MemSize, MIN_ALIGNMENT);
-		}
 		Reset();
 	}
 
 	~FRHICommandList()
 	{
-		if (!IsNull())
-		{
-			FMemory::Free(Memory);
-		}
-		MemSize = 0;
-		Memory = (uint8*)0x1; // we want this to not bypass the cmd list; please just crash.
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -182,7 +244,7 @@ public:
 
 	FORCEINLINE bool IsNull() const
 	{
-		return !Memory;
+		return MemManager.IsNull();
 	}
 
 	FORCEINLINE void CheckIsNull() const
@@ -190,37 +252,12 @@ public:
 		check(IsNull());
 	}
 
-	uint8* Alloc(SIZE_T InSize)
+	FORCEINLINE const SIZE_T GetUsedMemory() const
 	{
-		checkSlow(!IsNull());
-		InSize = (InSize + (Alignment - 1)) & ~(Alignment - 1);
-		check(Tail + InSize + Alignment <= &Memory[MemSize]);
-		uint8* New = Tail;
-		Tail += InSize;
-		return New;
-	}
-
-	const uint8* GetHead() const
-	{
-		checkSlow(!IsNull());
-		return &Memory[0];
-	}
-
-	const uint8* GetTail() const
-	{
-		checkSlow(!IsNull());
-		return Tail;
-	}
-
-	const SIZE_T GetUsedMemory() const
-	{
-		return GetTail() - GetHead();
+		return MemManager.GetUsedMemory();
 	}
 
 protected:
-	uint8* Memory;
-	int32 MemSize;
-
 	enum EState
 	{
 		Ready,
@@ -228,17 +265,31 @@ protected:
 		Kicked,
 	};
 	EState State;
-	uint8* Tail;
 	uint32 NumCommands;
+
+	FORCEINLINE uint8* Alloc(SIZE_T InSize)
+	{
+		return MemManager.Alloc(InSize);
+	}
+
+	FORCEINLINE const uint8* GetHead() const
+	{
+		return MemManager.GetHead();
+	}
+
+	FORCEINLINE const uint8* GetTail() const
+	{
+		return MemManager.GetTail();
+	}
 
 	inline bool CanAddCommand() const
 	{
 		return (State == Ready);
 	}
 
-	bool CanFitCommand(SIZE_T Size) const
+	FORCEINLINE bool CanFitCommand(SIZE_T Size) const
 	{
-		return (Size + (Tail - Memory) <= (SIZE_T)MemSize);
+		return MemManager.CanFitCommand(Size);
 	}
 
 	template <typename TCmd>
@@ -256,7 +307,7 @@ protected:
 	{
 		State = Kicked;
 		NumCommands = 0;
-		Tail = Memory;
+		MemManager.ResetTail();
 	}
 
 	FORCEINLINE bool Bypass()
@@ -265,6 +316,10 @@ protected:
 	}
 
 	friend class FRHICommandListExecutor;
+	friend class FRHICommandListIterator;
+
+	// Used here as we really want Alloc() to only work for this class, nobody else should use it
+	friend struct FRHICommandNopBlob;
 };
 
 class RHI_API FRHICommandListExecutor
@@ -279,6 +334,9 @@ public:
 private:
 	FCriticalSection CriticalSection;
 	bool bLock;
+
+	template <bool bOnlyTestMemAccess>
+	void ExecuteList(FRHICommandList& CmdList);
 };
 extern RHI_API FRHICommandListExecutor GRHICommandList;
 
