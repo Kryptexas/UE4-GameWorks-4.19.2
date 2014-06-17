@@ -537,6 +537,17 @@ namespace UnrealBuildTool
 		{
 		}
 
+
+		/// <summary>
+		/// Returns true if this target's output path needs to be the same as for the development configuration.
+		/// Currently only used by the CrashReportClient.
+		/// </summary>
+		/// <returns>true if this target's output path needs to be the same as for the development configuration.</returns>
+		public virtual bool ForceNameAsForDevelopment()
+		{
+			return false;
+		}
+
 		/// <summary>
 		/// Setup the global environment for building this target
 		/// IMPORTANT: Game targets will *not* have this function called unless they are built as monolithic targets.

@@ -22,6 +22,19 @@ public class CrashReportClientTarget : TargetRules
 		return true;
 	}
 
+	public override bool GetSupportedConfigurations(ref List<UnrealTargetConfiguration> OutConfigurations, bool bIncludeTestAndShippingConfigs)
+	{
+		if( base.GetSupportedConfigurations( ref OutConfigurations, bIncludeTestAndShippingConfigs ) )
+		{
+			OutConfigurations.Add( UnrealTargetConfiguration.Shipping );
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	public override void SetupBinaries(
 		TargetInfo Target,
 		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
@@ -37,6 +50,11 @@ public class CrashReportClientTarget : TargetRules
 		{
 			OutExtraModuleNames.Add("EditorStyle");
 		}
+	}
+
+	public override bool ForceNameAsForDevelopment()
+	{
+		return true;
 	}
 
 	public override bool ShouldCompileMonolithic(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
@@ -88,6 +106,6 @@ public class CrashReportClientTarget : TargetRules
 
 	public override List<UnrealTargetConfiguration> GUBP_ToolConfigs( UnrealTargetPlatform InHostPlatform )
 	{
-		return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping };
+		return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Shipping };
 	}
 }

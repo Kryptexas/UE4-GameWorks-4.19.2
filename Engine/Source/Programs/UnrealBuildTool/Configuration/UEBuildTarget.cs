@@ -697,7 +697,7 @@ namespace UnrealBuildTool
 
 			// Construct the output path based on configuration, platform, game if not specified.
 			TargetRules.TargetType? TargetType = (Rules != null) ? Rules.Type : (TargetRules.TargetType?)null;
-			OutputPath = Path.GetFullPath(MakeBinaryPath("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName));
+			OutputPath = Path.GetFullPath(MakeBinaryPath("", AppName, UEBuildBinaryType.Executable, TargetType, bIsRocketGame, null, InAppName,Rules.ForceNameAsForDevelopment()));
 
 			if (bCompileMonolithic && TargetRules.IsGameType(InRulesObject.Type))
 			{
@@ -1838,7 +1838,7 @@ namespace UnrealBuildTool
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../Binaries/Win64/Core-Win64-Debug.lib") */
 		public static string MakeBinaryPath(string ModuleName, string BinaryName, UnrealTargetPlatform Platform, 
-			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName)
+			UnrealTargetConfiguration Configuration, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false)
 		{
 			// Determine the binary extension for the platform and binary type.
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
@@ -1895,7 +1895,7 @@ namespace UnrealBuildTool
 
 			string OutBinaryPath = "";
 			// Append binary file name
-			if (LocalConfig == UnrealTargetConfiguration.Development)
+			if (LocalConfig == UnrealTargetConfiguration.Development || bForceNameAsForDevelopment)
 			{
 				OutBinaryPath = Path.Combine(BaseDirectory, String.Format("{0}{1}{2}", BinaryName, BinarySuffix, BinaryExtension));
 			}
@@ -1908,15 +1908,15 @@ namespace UnrealBuildTool
 		}
 
 		/** Given a UBT-built binary name (e.g. "Core"), returns a relative path to the binary for the current build configuration (e.g. "../../Binaries/Win64/Core-Win64-Debug.lib") */
-		public string MakeBinaryPath(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName )
+		public string MakeBinaryPath(string ModuleName, string BinaryName, UEBuildBinaryType BinaryType, TargetRules.TargetType? TargetType, bool bIsRocketModule, PluginInfo PluginInfo, string AppName, bool bForceNameAsForDevelopment = false)
 		{
 			if (String.IsNullOrEmpty(ModuleName) && Configuration == UnrealTargetConfiguration.DebugGame && !bCompileMonolithic)
 			{
-				return MakeBinaryPath(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName);
+				return MakeBinaryPath(ModuleName, BinaryName, Platform, UnrealTargetConfiguration.Development, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
 			}
 			else
 			{
-				return MakeBinaryPath(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName);
+				return MakeBinaryPath(ModuleName, BinaryName, Platform, Configuration, BinaryType, TargetType, bIsRocketModule, PluginInfo, AppName, bForceNameAsForDevelopment);
 			}
 		}
 
