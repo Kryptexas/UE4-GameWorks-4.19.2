@@ -193,6 +193,11 @@ FORCEINLINE bool operator==(const TUniquePtr<LhsT>& Lhs, const TUniquePtr<RhsT>&
 {
 	return Lhs.Get() == Rhs.Get();
 }
+template <typename T>
+FORCEINLINE bool operator==(const TUniquePtr<T>& Lhs, const TUniquePtr<T>& Rhs)
+{
+	return Lhs.Get() == Rhs.Get();
+}
 
 /**
  * Inequality comparison operator
@@ -204,6 +209,11 @@ FORCEINLINE bool operator==(const TUniquePtr<LhsT>& Lhs, const TUniquePtr<RhsT>&
  */
 template <typename LhsT, typename RhsT>
 FORCEINLINE bool operator!=(const TUniquePtr<LhsT>& Lhs, const TUniquePtr<RhsT>& Rhs)
+{
+	return Lhs.Get() != Rhs.Get();
+}
+template <typename T>
+FORCEINLINE bool operator!=(const TUniquePtr<T>& Lhs, const TUniquePtr<T>& Rhs)
 {
 	return Lhs.Get() != Rhs.Get();
 }
