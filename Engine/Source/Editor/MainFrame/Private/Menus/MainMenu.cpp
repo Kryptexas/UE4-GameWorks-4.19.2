@@ -8,6 +8,7 @@
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "SourceCodeNavigation.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "TranslationEditorMenu.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFileMenu"

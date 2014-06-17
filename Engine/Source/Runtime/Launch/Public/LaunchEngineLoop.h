@@ -6,6 +6,9 @@
 
 #pragma once
 
+#if WITH_ENGINE
+#include "ISessionService.h"
+#endif
 
 /**
  * Implements the main engine loop.	

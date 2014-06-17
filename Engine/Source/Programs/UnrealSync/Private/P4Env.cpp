@@ -4,6 +4,7 @@
 
 #include "P4Env.h"
 #include "ProcessHelper.h"
+#include "Regex.h"
 
 FString FP4Env::GetParam(const TCHAR* CommandLine, const FString& ParamName)
 {
