@@ -115,7 +115,7 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 			if (bPinGood)
 			{
 				//Flag pin as read only for const reference property
-				Pin->bDefaultValueIsIgnored = Param->HasAnyPropertyFlags(CPF_ConstParm | CPF_ReferenceParm) && (!Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm) || Pin->PinType.bIsArray);
+				Pin->bDefaultValueIsIgnored = Param->HasAllPropertyFlags(CPF_ConstParm | CPF_ReferenceParm) && (!Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm) || Pin->PinType.bIsArray);
 
 				const bool bAdvancedPin = Param->HasAllPropertyFlags(CPF_AdvancedDisplay);
 				Pin->bAdvancedView = bAdvancedPin;
