@@ -23,15 +23,7 @@ protected:
 		{
 			// Save the world and set the component's world to NULL to prevent a nested FComponentReregisterContext from reregistering this component.
 			World = InComponent->GetWorld();
-
-#if WITH_EDITOR
-			// Lock navigation system updates
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-			if (NavSys)
-			{
-				NavSys->BeginFakeComponentChanges();
-			}
-#endif
+			FNavigationLockContext NavUpdateLock(World);
 
 			// Will set bRegistered to false
 			InComponent->ExecuteUnregisterEvents();
@@ -62,6 +54,7 @@ protected:
 			}
 
 			InComponent->World = InWorld;
+			FNavigationLockContext NavUpdateLock(InWorld);
 
 			// Will set bRegistered to true
 			InComponent->ExecuteRegisterEvents();
@@ -73,15 +66,6 @@ protected:
 			{
 				IStreamingManager::Get().NotifyPrimitiveUpdated( Primitive );
 			}
-
-#if WITH_EDITOR
-			// Unlock navigation system updates
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(InWorld);
-			if (NavSys)
-			{
-				NavSys->EndFakeComponentChanges();
-			}
-#endif
 		}
 	}
 };
