@@ -274,6 +274,11 @@ const TCHAR* UPropertyHelpers::ReadToken( const TCHAR* Buffer, FString& String, 
 				String += TCHAR('"');
 				Buffer++;
 			}
+			else if (*Buffer == TCHAR('\'')) // escaped single quote "\'"
+			{
+				String += TCHAR('\'');
+				Buffer++;
+			}
 			else if ( *Buffer == TCHAR('n') ) // escaped newline
 			{
 				String += TCHAR('\n');

@@ -953,17 +953,18 @@ FString FString::ReplaceQuotesWithEscapedQuotes() const
 	return *this;
 }
 
-#define MAX_SUPPORTED_ESCAPE_CHARS 6
-
-static const TCHAR* CharToEscapeSeqMap[MAX_SUPPORTED_ESCAPE_CHARS][2] =
+static const TCHAR* CharToEscapeSeqMap[][2] =
 {
+	// Always replace \\ first to avoid double-escaping characters
+	{ TEXT("\\"), TEXT("\\\\") },
 	{ TEXT("\n"), TEXT("\\n")  },
 	{ TEXT("\r"), TEXT("\\r")  },
 	{ TEXT("\t"), TEXT("\\t")  },
 	{ TEXT("\'"), TEXT("\\'")  },
-	{ TEXT("\\"), TEXT("\\\\") },
 	{ TEXT("\""), TEXT("\\\"") }
 };
+
+static const uint32 MaxSupportedEscapeChars = ARRAY_COUNT(CharToEscapeSeqMap);
 
 /**
  * Replaces certain characters with the "escaped" version of that character (i.e. replaces "\n" with "\\n").
@@ -978,7 +979,7 @@ FString FString::ReplaceCharWithEscapedChar( const TArray<TCHAR>* Chars/*=NULL*/
 	if ( Len() > 0 && (Chars == NULL || Chars->Num() > 0) )
 	{
 		FString Result(*this);
-		for ( int32 ChIdx = 0; ChIdx < MAX_SUPPORTED_ESCAPE_CHARS; ChIdx++ )
+		for ( int32 ChIdx = 0; ChIdx < MaxSupportedEscapeChars; ChIdx++ )
 		{
 			if ( Chars == NULL || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
 			{
@@ -1001,7 +1002,7 @@ FString FString::ReplaceEscapedCharWithChar( const TArray<TCHAR>* Chars/*=NULL*/
 	{
 		FString Result(*this);
 		// Spin CharToEscapeSeqMap backwards to ensure we're doing the inverse of ReplaceCharWithEscapedChar
-		for ( int32 ChIdx = MAX_SUPPORTED_ESCAPE_CHARS - 1; ChIdx >= 0; ChIdx-- )
+		for ( int32 ChIdx = MaxSupportedEscapeChars - 1; ChIdx >= 0; ChIdx-- )
 		{
 			if ( Chars == NULL || Chars->Contains(*(CharToEscapeSeqMap[ChIdx][0])) )
 			{
