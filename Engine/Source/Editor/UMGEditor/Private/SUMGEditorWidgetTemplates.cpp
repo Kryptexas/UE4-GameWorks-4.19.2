@@ -130,18 +130,32 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 
 	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorWidgetTemplates::OnObjectPropertyChanged);
 
+	SAssignNew(WidgetTemplatesView, STreeView< TSharedPtr<FWidgetViewModel> >)
+	.SelectionMode(ESelectionMode::Single)
+	.OnGenerateRow(this, &SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem)
+	.OnGetChildren(this, &SUMGEditorWidgetTemplates::OnGetChildren)
+	.TreeItemsSource(&WidgetViewModels);
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
 
 		+ SVerticalBox::Slot()
+		.Padding(4)
+		.AutoHeight()
+		[
+			SNew(SSearchBox)
+			.HintText(LOCTEXT("SearchTemplates", "Search Templates"))
+			.OnTextChanged(this, &SUMGEditorWidgetTemplates::OnSearchChanged)
+		]
+
+		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SAssignNew(WidgetTemplatesView, STreeView< TSharedPtr<FWidgetViewModel> >)
-			.OnGenerateRow(this, &SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem)
-			.OnGetChildren(this, &SUMGEditorWidgetTemplates::OnGetChildren)
-			.TreeItemsSource(&WidgetViewModels)
-			.SelectionMode(ESelectionMode::Single)
+			SNew(SScrollBorder, WidgetTemplatesView.ToSharedRef())
+			[
+				WidgetTemplatesView.ToSharedRef()
+			]
 		]
 	];
 
@@ -152,6 +166,12 @@ SUMGEditorWidgetTemplates::~SUMGEditorWidgetTemplates()
 {
 	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	SaveItemExpansion();
+}
+
+void SUMGEditorWidgetTemplates::OnSearchChanged(const FText& InFilterText)
+{
+	bRefreshRequested = true;
+	SearchText = InFilterText;
 }
 
 void SUMGEditorWidgetTemplates::LoadItemExpanssion()

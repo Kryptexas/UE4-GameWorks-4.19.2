@@ -402,7 +402,7 @@ void FAssetEditorManager::RestorePreviouslyOpenAssets()
 		{
 			// If we crashed, we always ask regardless of what the user previously said
 			SpawnRestorePreviouslyOpenAssetsNotification(bCleanShutdown, OpenAssets);
- 		}
+		}
 	}
 }
 

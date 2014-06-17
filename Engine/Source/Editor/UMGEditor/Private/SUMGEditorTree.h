@@ -48,6 +48,9 @@ private:
 
 	void WrapSelectedWidgets(UClass* WidgetClass);
 	
+	/** Called when the filter text is changed. */
+	void OnSearchChanged(const FText& InFilterText);
+
 private:
 
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
@@ -55,4 +58,7 @@ private:
 	TArray< UWidget* > RootWidgets;
 
 	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
+
+	bool bRefreshRequested;
+	FText SearchText;
 };

@@ -40,6 +40,9 @@ private:
 	void OnGetChildren(TSharedPtr<FWidgetViewModel> Item, TArray< TSharedPtr<FWidgetViewModel> >& Children);
 	TSharedRef<ITableRow> OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
+	/** Called when the filter text is changed. */
+	void OnSearchChanged(const FText& InFilterText);
+
 private:
 	void LoadItemExpanssion();
 	void SaveItemExpansion();
@@ -55,4 +58,7 @@ private:
 	ViewModelsArray WidgetViewModels;
 
 	TSharedPtr< STreeView< TSharedPtr<FWidgetViewModel> > > WidgetTemplatesView;
+
+	bool bRefreshRequested;
+	FText SearchText;
 };

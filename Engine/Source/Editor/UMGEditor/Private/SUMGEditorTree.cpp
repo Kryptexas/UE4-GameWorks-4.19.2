@@ -26,21 +26,39 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorTree::OnObjectPropertyChanged);
 
+	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
+	.ItemHeight(20.0f)
+	.SelectionMode(ESelectionMode::Single)
+	.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
+	.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
+	.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
+	.OnContextMenuOpening(this, &SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening)
+	.TreeItemsSource(&RootWidgets);
+
 	ChildSlot
 	[
-		SNew(SVerticalBox)
-
-		+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		[
-			SAssignNew(WidgetTreeView, STreeView< UWidget* >)
-			.ItemHeight(20.0f)
-			.SelectionMode(ESelectionMode::Single)
-			.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
-			.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
-			.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
-			.OnContextMenuOpening(this, &SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening)
-			.TreeItemsSource(&RootWidgets)
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.Padding(4)
+			.AutoHeight()
+			[
+				SNew(SSearchBox)
+				.HintText(LOCTEXT("SearchWidgets", "Search Widgets"))
+				.OnTextChanged(this, &SUMGEditorTree::OnSearchChanged)
+			]
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SNew(SScrollBorder, WidgetTreeView.ToSharedRef())
+				[
+					WidgetTreeView.ToSharedRef()
+				]
+			]
 		]
 	];
 
@@ -65,15 +83,30 @@ SUMGEditorTree::~SUMGEditorTree()
 	}
 }
 
+void SUMGEditorTree::OnSearchChanged(const FText& InFilterText)
+{
+	bRefreshRequested = true;
+	SearchText = InFilterText;
+}
+
 void SUMGEditorTree::OnEditorSelectionChanged()
 {
 	WidgetTreeView->ClearSelection();
+
+	bool bFirst = true;
 
 	// Update the selection and expansion in the tree to match the new selection
 	const TSet<FWidgetReference>& SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
 	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
 	{
 		WidgetTreeView->SetItemSelection(WidgetRef.GetTemplate(), true);
+
+		// Attempt to scroll the first widget we find into view.
+		if ( bFirst )
+		{
+			bFirst = false;
+			WidgetTreeView->RequestScrollIntoView(WidgetRef.GetTemplate());
+		}
 
 		// Expand the path leading to this widget in the tree.
 		UWidget* Parent = WidgetRef.GetTemplate()->GetParent();
