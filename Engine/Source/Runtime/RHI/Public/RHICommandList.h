@@ -9,7 +9,7 @@
 enum ERHICommandType
 {
 	// Start the enum at non-zero to help debug
-	ERCT_NopBlob = 1000,	// NoOp, maybe has a buffer to be auto alloc/freed
+	ERCT_NopBlob				= 512,	// NoOp, maybe has a buffer to be auto alloc/freed (512=0x200)
 	ERCT_SetRasterizerState,
 	ERCT_SetShaderParameter,
 	ERCT_SetShaderUniformBuffer,
@@ -49,6 +49,7 @@ public:
 		}
 		Reset();
 	}
+
 	~FRHICommandList()
 	{
 		if (!IsNull())
@@ -179,17 +180,15 @@ public:
 		RHIDrawPrimitiveIndirect(PrimitiveType, ArgumentBufferRHI, ArgumentOffset);
 	}
 
-
-
 	FORCEINLINE bool IsNull() const
 	{
 		return !Memory;
 	}
+
 	FORCEINLINE void CheckIsNull() const
 	{
 		check(IsNull());
 	}
-
 
 	uint8* Alloc(SIZE_T InSize)
 	{
@@ -211,6 +210,11 @@ public:
 	{
 		checkSlow(!IsNull());
 		return Tail;
+	}
+
+	const SIZE_T GetUsedMemory() const
+	{
+		return GetTail() - GetHead();
 	}
 
 protected:

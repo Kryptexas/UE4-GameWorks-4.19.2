@@ -10,12 +10,16 @@
 
 struct FRHICommand
 {
+	// This is a union only to force alignment to SIZE_T
 	union
 	{
 		SIZE_T			RawType;
 		ERHICommandType	Type;
 	};
 };
+
+// No constructors are given for classes derived from FRHICommand as they are not created using
+// a classical 'new' for perf reasons.
 
 struct FRHICommandPerShader : public FRHICommand
 {
@@ -217,7 +221,7 @@ FORCEINLINE void FRHICommandList::SetShaderResourceViewParameter(TShaderRHIParam
 		RHISetShaderResourceViewParameter(Shader, SamplerIndex, SRV);
 		return;
 	}
-	check(0);
+	checkf(0, TEXT("TODO: Non-bypass version"));
 }
 
 template <typename TShaderRHIParamRef>
@@ -277,9 +281,9 @@ FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shad
 		RHISetUAVParameter(Shader, UAVIndex, UAV);
 		return;
 	}
-
-	check(0);
+	checkf(0, TEXT("TODO: Non-bypass version"));
 }
+
 FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
 {
 	if (Bypass())
@@ -287,7 +291,7 @@ FORCEINLINE void FRHICommandList::SetUAVParameter(FComputeShaderRHIParamRef Shad
 		RHISetUAVParameter(Shader, UAVIndex, UAV, InitialCount);
 		return;
 	}
-	check(0);
+	checkf(0, TEXT("TODO: Non-bypass version"));
 }
 
 FORCEINLINE void FRHICommandList::SetRasterizerState(FRasterizerStateRHIParamRef State)

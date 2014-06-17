@@ -78,7 +78,7 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList& CmdList)
 
 	auto* CmdPtr = CmdList.Memory;
 	auto* CmdTail = CmdList.GetTail();
-	INC_MEMORY_STAT_BY(STAT_RHICmdListMemory, (CmdTail - CmdPtr));
+	INC_MEMORY_STAT_BY(STAT_RHICmdListMemory, CmdList.GetUsedMemory());
 
 	static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHISkip"));
 	bool bSkipRHICmdList = (RHICmdListCVar && RHICmdListCVar->GetInt() != 0);
