@@ -76,6 +76,14 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 {
 	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
 
+	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+	// If this blueprint is empty, add a canvas panel as the root widget.
+	if ( Blueprint->WidgetTree->WidgetTemplates.Num() == 0 )
+	{
+		Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+	}
+
 	UpdatePreview(GetWidgetBlueprintObj(), true);
 }
 

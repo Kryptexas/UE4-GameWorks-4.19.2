@@ -68,7 +68,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGEditorTree::OnEditorSelectionChanged);
 
-	RefreshTree();
+	bRefreshRequested = true;
 }
 
 SUMGEditorTree::~SUMGEditorTree()
