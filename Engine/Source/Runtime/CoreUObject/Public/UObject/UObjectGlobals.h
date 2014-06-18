@@ -978,7 +978,7 @@ private:
 	/**  List of component classes to intialize after the C++ constructors **/
 	mutable FSubobjectsToInit ComponentInits;
 	/**  Previously constructed object in the callstack */
-	TGuardValue<UObject*> LastConstructedObject;
+	UObject* LastConstructedObject;
 };
 
 /**
