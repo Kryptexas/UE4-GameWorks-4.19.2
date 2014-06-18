@@ -2269,7 +2269,7 @@ void UNavigationSystem::OnNavigationBoundsUpdated(AVolume* NavVolume)
 
 void UNavigationSystem::Build()
 {
-	if (NavDataClasses.Num() == 0 || IsThereAnywhereToBuildNavigation() == false)
+	if (IsThereAnywhereToBuildNavigation() == false)
 	{
 		return;
 	}
@@ -2277,6 +2277,11 @@ void UNavigationSystem::Build()
 	const double BuildStartTime = FPlatformTime::Seconds();
 
 	SpawnMissingNavigationData();
+
+	if (NavDataClasses.Num() == 0)
+	{
+		return;
+	}
 
 	// make sure freshly created navigation instances are registered before we try to build them
 	ProcessRegistrationCandidates();
