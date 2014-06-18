@@ -388,7 +388,7 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 	FQuat OrientationTargetQuat(AngularOrientationTarget);
 
 	PD6Joint->setDrivePosition(PxTransform(U2PVector(LinearPositionTarget), U2PQuat(OrientationTargetQuat)));
-	PD6Joint->setDriveVelocity(U2PVector(LinearVelocityTarget), U2PVector(AngularVelocityTarget));
+	PD6Joint->setDriveVelocity(U2PVector(LinearVelocityTarget), U2PVector(AngularVelocityTarget * 2 * PI));
 	
 	// creation of joints wakes up rigid bodies, so we put them to sleep again if both were initially asleep
 	if(bActor1Asleep && bActor2Asleep)
@@ -994,6 +994,11 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 		LinearLimitDamping		/=  CVarConstraintDamplingScale->GetValueOnGameThread();
 		SwingLimitDamping		/=  CVarConstraintDamplingScale->GetValueOnGameThread();
 		TwistLimitDamping		/=  CVarConstraintDamplingScale->GetValueOnGameThread();
+	}
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_MOTOR_UNITS)
+	{
+		AngularVelocityTarget *= 1.f / (2.f * PI);	//we want to use revolutions per second - old system was using radians directly
 	}
 }
 

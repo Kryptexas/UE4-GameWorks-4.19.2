@@ -558,6 +558,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION,
 	// Foliage on blueprints causes crashes
 	VER_UE4_DISALLOW_FOLIAGE_ON_BLUEPRINTS,
+	// change motors to use revolutions per second instead of rads/second
+	VER_UE4_FIXUP_MOTOR_UNITS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
