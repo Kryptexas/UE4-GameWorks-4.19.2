@@ -427,7 +427,7 @@ bool FTextTest::RunTest (const FString& Parameters)
 			FText AsCurrencyTest1 = FText::AsCurrency(100.25);
 
 			FDateTime DateTimeInfo(2080, 8, 20, 9, 33, 22);
-			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo);
+			FText AsDateTimeTest1 = FText::AsDateTime(DateTimeInfo, EDateTimeStyle::Default, EDateTimeStyle::Default, TEXT("CST"));
 
 			// FormattedTestLayer2 must be updated when adding or removing from this block. Further, below, 
 			// verifying the LEET translated string must be changed to reflect what the new string looks like.
