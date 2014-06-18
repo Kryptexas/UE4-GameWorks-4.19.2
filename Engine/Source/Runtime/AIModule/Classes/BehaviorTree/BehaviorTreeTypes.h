@@ -394,6 +394,7 @@ public:
 	void AddFloatFilter(UObject* Owner);
 	void AddBoolFilter(UObject* Owner);
 	void AddVectorFilter(UObject* Owner);
+	void AddRotatorFilter(UObject* Owner);
 	void AddStringFilter(UObject* Owner);
 	void AddNameFilter(UObject* Owner);
 

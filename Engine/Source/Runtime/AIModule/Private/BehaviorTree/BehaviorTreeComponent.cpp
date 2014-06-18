@@ -1197,7 +1197,7 @@ bool UBehaviorTreeComponent::PushInstance(class UBehaviorTree* TreeAsset)
 	}
 
 	// check if blackboard class match
-	if (TreeAsset->BlackboardAsset && BlackboardComp && !BlackboardComp->IsCompatibileWith(TreeAsset->BlackboardAsset))
+	if (TreeAsset->BlackboardAsset && BlackboardComp && !BlackboardComp->IsCompatibleWith(TreeAsset->BlackboardAsset))
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: blackboard %s is not compatibile with current: %s!"),
 			*GetNameSafe(TreeAsset), *GetNameSafe(TreeAsset->BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));

@@ -7,10 +7,16 @@
 namespace FAISystem
 {
 	static const FVector InvalidLocation(FLT_MAX);
+	static const FRotator InvalidRotation(FLT_MAX);
 
 	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
 	{
 		return TestLocation != InvalidLocation;
+	}
+
+	FORCEINLINE bool IsValidRotation(const FRotator& TestRotation)
+	{
+		return TestRotation != InvalidRotation;
 	}
 }
 

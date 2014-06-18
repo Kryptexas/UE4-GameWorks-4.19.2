@@ -239,6 +239,11 @@ void FBlackboardKeySelector::AddVectorFilter(UObject* Owner)
 	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_Vector>(Owner, TEXT("BlackboardKeyType_Vector")));
 }
 
+void FBlackboardKeySelector::AddRotatorFilter(UObject* Owner)
+{
+	AllowedTypes.Add(NewObject<UBlackboardKeyType_Rotator>(Owner));
+}
+
 void FBlackboardKeySelector::AddStringFilter(UObject* Owner)
 {
 	AllowedTypes.Add(NewNamedObject<UBlackboardKeyType_String>(Owner, TEXT("BlackboardKeyType_String")));

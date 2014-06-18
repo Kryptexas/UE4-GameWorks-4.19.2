@@ -77,7 +77,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	void InitializeBlackboard(class UBlackboardData* NewAsset);
 	
 	/** @return true if component can be used with specified blackboard asset */
-	bool IsCompatibileWith(class UBlackboardData* TestAsset) const;
+	bool IsCompatibleWith(class UBlackboardData* TestAsset) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UObject* GetValueAsObject(const FName& KeyName) const;
@@ -114,6 +114,10 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	FVector GetValueAsVector(const FName& KeyName) const;
 	FVector GetValueAsVector(FBlackboard::FKey KeyID) const;
+
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
+	FRotator GetValueAsRotator(const FName& KeyName) const;
+	FRotator GetValueAsRotator(uint8 KeyID) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	void SetValueAsObject(const FName& KeyName, UObject* ObjectValue);
@@ -154,6 +158,14 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category="Blackboard")
 	void ClearValueAsVector(const FName& KeyName);
 	void ClearValueAsVector(FBlackboard::FKey KeyID);
+
+	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
+	void SetValueAsRotator(const FName& KeyName, FRotator VectorValue);
+	void SetValueAsRotator(uint8 KeyID, const FRotator& VectorValue);
+
+	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	void ClearValueAsRotator(const FName& KeyName);
+	void ClearValueAsRotator(uint8 KeyID);
 
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")

@@ -38,6 +38,13 @@ public:
 	FORCEINLINE FRotator( ) { };
 
 	/**
+	 * Constructor
+	 *
+	 * @param InF Value to set all components to.
+	 */
+	explicit FORCEINLINE FRotator(float InF);
+
+	/**
 	 * Constructor.
 	 *
 	 * @param InPitch Pitch in degrees.
@@ -403,7 +410,12 @@ FORCEINLINE FRotator operator*( float Scale, const FRotator &R )
 #endif
 
 
-	FORCEINLINE FRotator::FRotator( float InPitch, float InYaw, float InRoll )
+FORCEINLINE FRotator::FRotator( float InF ) 
+	:	Pitch(InF), Yaw(InF), Roll(InF) 
+{}
+
+
+FORCEINLINE FRotator::FRotator( float InPitch, float InYaw, float InRoll )
 	:	Pitch(InPitch), Yaw(InYaw), Roll(InRoll) 
 {}
 
