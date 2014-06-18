@@ -753,7 +753,7 @@ void GameProjectUtils::OpenAddCodeToProjectDialog()
 	}
 }
 
-bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason)
+bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, FText& OutFailReason)
 {
 	if ( NewClassName.IsEmpty() )
 	{
@@ -801,12 +801,9 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	}
 
 	// Look for a duplicate class on disk in their project
-	TArray<FString> Filenames;
-	IFileManager::Get().FindFilesRecursive(Filenames, *FPaths::GameSourceDir(), TEXT("*.h"), true, false, false);
-	for ( auto FileIt = Filenames.CreateConstIterator(); FileIt; ++FileIt )
 	{
-		const FString& File = *FileIt;
-		if ( NewClassName == FPaths::GetBaseFilename(File) )
+		FString UnusedFoundPath;
+		if ( FindSourceFileInProject(NewClassName + ".h", UnusedFoundPath, ModuleInfo) )
 		{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("NewClassName"), FText::FromString( NewClassName ) );
@@ -2216,10 +2213,62 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 		PropertyOverridesStr += *PropertyOverrides[OverrideIdx];
 	}
 
+	// Calculate the correct include path for the module header
+	FString ModuleIncludePath;
+	if(FindSourceFileInProject(ModuleName + ".h", ModuleIncludePath, ModuleInfo))
+	{
+		// Work out where the module header is; 
+		// if it's Public then we can include it without any path since all Public and Classes folders are on the include path
+		// if it's located elsewhere, then we'll need to include it relative to the module source root as we can't guarantee 
+		// that other folders are on the include paths
+		FString UnusedModuleName;
+		EClassLocation ModuleLocation;
+		if(GetClassLocation(ModuleIncludePath, UnusedModuleName, ModuleLocation, ModuleInfo))
+		{
+			if(ModuleLocation == EClassLocation::Public || ModuleLocation == EClassLocation::Classes)
+			{
+				ModuleIncludePath = ModuleName + ".h";
+			}
+			else
+			{
+				// If the path to our new class is the same as the path to the module, we can include it directly
+				const FString ModulePath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(ModuleIncludePath));
+				const FString ClassPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(NewCPPFileName));
+				if(ModulePath == ClassPath)
+				{
+					ModuleIncludePath = ModuleName + ".h";
+				}
+				else
+				{
+					// Make the include relative to the source root of the module
+					const FString ModuleSourceRoot = GetSourceRootPath(true/*bIncludeModuleName*/, ModuleInfo);
+					
+					// Updates ModuleIncludePath internally
+					if(!FPaths::MakePathRelativeTo(ModuleIncludePath, *ModuleSourceRoot))
+					{
+						// Failed; just assume we can include it without any relative path
+						ModuleIncludePath = ModuleName + ".h";
+					}
+				}
+			}
+		}
+		else
+		{
+			// Failed; just assume we can include it without any relative path
+			ModuleIncludePath = ModuleName + ".h";
+		}
+	}
+	else
+	{
+		// This could potentially fail when generating new projects if the module file hasn't yet been created; just assume we can include it without any relative path
+		ModuleIncludePath = ModuleName + ".h";
+	}
+
 	// Not all of these will exist in every class template
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_INCLUDE_PATH%"), *ModuleIncludePath, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PROPERTY_OVERRIDES%"), *PropertyOverridesStr, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%ADDITIONAL_MEMBER_DEFINITIONS%"), *AdditionalMemberDefinitions, ESearchCase::CaseSensitive);
@@ -2547,7 +2596,10 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	const FString CleanClassName = ParentClassInfo.GetCleanClassName(NewClassName);
 	const FString FinalClassName = ParentClassInfo.GetFinalClassName(NewClassName);
 
-	if ( !IsValidClassNameForCreation(FinalClassName, OutFailReason) )
+	// Get the context info for the current project
+	const FModuleContextInfo ModuleInfo = GetCurrentModuleContextInfo();
+
+	if ( !IsValidClassNameForCreation(FinalClassName, ModuleInfo, OutFailReason) )
 	{
 		return false;
 	}
@@ -2557,9 +2609,6 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		OutFailReason = LOCTEXT("AddCodeToProject_NoGameName", "You can not add code because you have not loaded a project.");
 		return false;
 	}
-
-	// Get the context info for the current project
-	const FModuleContextInfo ModuleInfo = GetCurrentModuleContextInfo();
 
 	FString ModuleName;
 	FString NewHeaderPath;
@@ -2649,31 +2698,20 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	return true;
 }
 
-int32 GameProjectUtils::CalculateSubfolderCount(const FString& Filepath, const FString& RelativeRoot)
+bool GameProjectUtils::FindSourceFileInProject(const FString& InFilename, FString& OutPath, const FModuleContextInfo& ModuleInfo)
 {
-	int32 ModuleNameIndex = Filepath.Find(RelativeRoot, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-	if (ModuleNameIndex == INDEX_NONE)
+	TArray<FString> Filenames;
+	const FString FilenameWidcard = TEXT("*") + InFilename;
+	IFileManager::Get().FindFilesRecursive(Filenames, *ModuleInfo.ModuleSourcePath, *FilenameWidcard, true, false, false);
+	
+	if(Filenames.Num())
 	{
-		return 0;
+		// Assume it's the first match (we should really only find a single file with a given name within a project anyway)
+		OutPath = Filenames[0];
+		return true;
 	}
 
-	FString WorkingString = Filepath.Mid(ModuleNameIndex + RelativeRoot.Len() + 1);
-
-	int Depth = 0;
-	int32 SlashIndex;
-	while (WorkingString.FindChar(TEXT('/'), SlashIndex))
-	{
-		// because input is not sanitized against multiple sequential slashes (e.g. '////')
-		// only consider slashes that don't appear at beginning of the working string
-		if (SlashIndex > 0)
-		{
-			Depth++;
-		}
-
-		WorkingString = WorkingString.Mid(SlashIndex + 1);
-	}
-
-	return Depth;
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

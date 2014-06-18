@@ -148,7 +148,7 @@ public:
 	static void OpenAddCodeToProjectDialog();
 
 	/** Returns true if the specified class name is properly formed and does not conflict with another class */
-	static bool IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason);
+	static bool IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
 	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
@@ -295,7 +295,6 @@ private:
 	/** Creates the batch file for launching the editor or game */
 	static bool GenerateLaunchBatchFile(const FString& ProjectName, const FString& ProjectFolder, bool bLaunchEditor, TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
-
 	/** Returns the contents of the specified template file */
 	static bool ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason);
 
@@ -375,7 +374,8 @@ private:
 	/** Handler for the user confirming they've read the name legnth warning */
 	static void OnWarningReasonOk();
 
-	static int32 CalculateSubfolderCount(const FString& Filepath, const FString& RelativeRoot);
+	/** Given a source file name, find its location within the project */
+	static bool FindSourceFileInProject(const FString& InFilename, FString& OutPath, const FModuleContextInfo& ModuleInfo);
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;

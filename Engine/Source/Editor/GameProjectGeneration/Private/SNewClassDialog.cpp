@@ -971,7 +971,7 @@ void SNewClassDialog::UpdateInputValidity()
 	// Validate the class name only if the path is valid
 	if ( bLastInputValidityCheckSuccessful )
 	{
-		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, LastInputValidityErrorText);
+		bLastInputValidityCheckSuccessful = GameProjectUtils::IsValidClassNameForCreation(NewClassName, ModuleInfo, LastInputValidityErrorText);
 	}
 
 	LastPeriodicValidityCheckTime = FSlateApplication::Get().GetCurrentTime();
