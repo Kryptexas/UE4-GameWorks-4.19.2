@@ -289,14 +289,9 @@ private:
 	bool RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoadRequests, bool bBlockOnLoad);
 	
 	/** Sets the value of LoadedLevel */
-	void SetLoadedLevel(class ULevel* Level)
-	{ 
-		// Pending level should be unloaded at this point
-		check(PendingUnloadLevel == nullptr);
-		PendingUnloadLevel = LoadedLevel;
-		LoadedLevel = Level;
-	}
-
+	void SetLoadedLevel(class ULevel* Level);
+	
+	/** Hide and queue for unloading previously used level */
 	void DiscardPendingUnloadLevel(UWorld* PersistentWorld);
 
 	/** 
@@ -310,7 +305,7 @@ private:
 	UPROPERTY(transient)
 	class ULevel* LoadedLevel;
 
-	/** Pointer to replaced loaded Level object */
+	/** Pointer to a Level object that was previously active and was replaced with a new LoadedLevel (for LOD switching) */
 	UPROPERTY(transient)
 	class ULevel* PendingUnloadLevel;
 	

@@ -265,6 +265,17 @@ FName ULevelStreaming::GetLODPackageNameToLoad() const
 	}
 }
 
+void ULevelStreaming::SetLoadedLevel(class ULevel* Level)
+{ 
+	// Pending level should be unloaded at this point
+	check(PendingUnloadLevel == nullptr);
+	PendingUnloadLevel = LoadedLevel;
+	LoadedLevel = Level;
+
+	// Cancel unloading for this level, in case it was queued for it
+	FLevelStreamingGCHelper::CancelUnloadRequest(LoadedLevel);
+}
+
 void ULevelStreaming::DiscardPendingUnloadLevel(UWorld* PersistentWorld)
 {
 	if (PendingUnloadLevel)
