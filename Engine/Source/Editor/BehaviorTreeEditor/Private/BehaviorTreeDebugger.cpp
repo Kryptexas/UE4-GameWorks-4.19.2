@@ -36,6 +36,23 @@ FBehaviorTreeDebugger::~FBehaviorTreeDebugger()
 	FBehaviorTreeDelegates::OnDebugSelected.RemoveAll(this);
 }
 
+void FBehaviorTreeDebugger::CacheRootNode()
+{
+	if(RootNode.IsValid() || TreeAsset == nullptr || TreeAsset->BTGraph == nullptr)
+	{
+		return;
+	}
+
+	for (const auto& Node : TreeAsset->BTGraph->Nodes)
+	{
+		RootNode = Cast<UBehaviorTreeGraphNode_Root>(Node);
+		if (RootNode.IsValid())
+		{
+			break;
+		}
+	}
+}
+
 void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView)
 {
 	DebuggerDetails = DebuggerView;
@@ -46,17 +63,7 @@ void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class 
 	ActiveBreakpoints.Reset();
 	KnownInstances.Reset();
 
-	if (TreeAsset)
-	{
-		for (int32 i = 0; i < TreeAsset->BTGraph->Nodes.Num(); i++)
-		{
-			RootNode = Cast<UBehaviorTreeGraphNode_Root>(TreeAsset->BTGraph->Nodes[i]);
-			if (RootNode.IsValid())
-			{
-				break;
-			}
-		}
-	}
+	CacheRootNode();
 
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (IsPIESimulating())
@@ -70,6 +77,8 @@ void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class 
 
 void FBehaviorTreeDebugger::Refresh()
 {
+	CacheRootNode();
+
 	if (IsPIESimulating())
 	{
 		// make sure is grabs data if currently paused

@@ -21,6 +21,9 @@ public:
 
 	void Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView);
 
+	/** Store the root node for easy access if we have not already */
+	void CacheRootNode();
+
 	bool IsDebuggerReady() const;
 	bool IsDebuggerRunning() const;
 	bool IsShowingCurrentState() const;
