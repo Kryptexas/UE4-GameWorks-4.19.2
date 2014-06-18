@@ -1743,6 +1743,12 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
 		return Object;
 	}
 
+	if ( CacheObjectPtr->bIsBroken )
+	{
+		// Don't warn, assume we already have
+		return NULL;
+	}
+
 	if ( IsNetGUIDAuthority() )
 	{
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Guid with no object on server. Path: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString() );
@@ -1799,7 +1805,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
 		// If we can't find an object, and it's not pending, warn
 		if ( !CacheObjectPtr->bIgnoreWhenMissing && !CacheObjectPtr->bIsPending )
 		{
-			CacheObjectPtr->bIgnoreWhenMissing = 1;	// Set this to 1 so that we don't keep spamming
+			CacheObjectPtr->bIsBroken = 1;	// Set this to 1 so that we don't keep spamming
 			UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Failed to resolve path. Path: %s, Outer: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), *NetGUID.ToString() );
 		}
 

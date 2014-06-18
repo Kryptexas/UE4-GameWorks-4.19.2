@@ -42,7 +42,7 @@ public:
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ) {}
+	FNetGuidCacheObject() : bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 ) {}
 
 	TWeakObjectPtr< UObject >	Object;
 
@@ -53,6 +53,7 @@ public:
 	uint8						bNoLoad				: 1;	// Don't load this, only do a find
 	uint8						bIgnoreWhenMissing	: 1;	// Don't warn when this asset can't be found or loaded
 	uint8						bIsPending			: 1;	// This object is waiting to be fully loaded
+	uint8						bIsBroken			: 1;	// If this object failed to load, then we set this to signify that we should stop trying
 };
 
 class ENGINE_API FNetGUIDCache
