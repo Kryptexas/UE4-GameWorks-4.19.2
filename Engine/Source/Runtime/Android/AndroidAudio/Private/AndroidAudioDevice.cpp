@@ -133,9 +133,6 @@ bool FSLESAudioDevice::InitializeHardware( void )
 	// Set up a default (nop) effects manager 
 	Effects = new FAudioEffectsManager( this );
 	
-	// Initialized.
-	NextResourceID = 1;
-
 	return true;
 }
 
@@ -150,79 +147,6 @@ void FSLESAudioDevice::Update( bool Realtime )
 	//Super::Update( Realtime );
 	
 	//@todo android: UDPATE LISTENERS - Android OpenSLES doesn't support 3D, is there anything to do here?
-}
-
-
-/**
- * Frees the bulk resource data associated with this SoundNodeWave.
- *
- * @param	SoundNodeWave	wave object to free associated bulk data
- */
-void FSLESAudioDevice::FreeResource( USoundWave* SoundNodeWave )
-{
-	// Just in case the data was created but never uploaded
-	if( SoundNodeWave->RawPCMData )
-	{
-		FMemory::Free( SoundNodeWave->RawPCMData );
-		SoundNodeWave->RawPCMData = NULL;
-	}
-	
-	// Find buffer for resident wavs
-	if( SoundNodeWave->ResourceID )
-	{
-		// Find buffer associated with resource id.
-		FSLESSoundBuffer* Buffer = WaveBufferMap.FindRef( SoundNodeWave->ResourceID );
-		if( Buffer )
-		{
-			// Remove from buffers array.
-			Buffers.Remove( Buffer );
-			
-			// See if it is being used by a sound source...
-			for( int32 SrcIndex = 0; SrcIndex < Sources.Num(); SrcIndex++ )
-			{
-				FSLESSoundSource* Src = ( FSLESSoundSource* )( Sources[ SrcIndex ] );
-				if( Src && Src->Buffer && ( Src->Buffer == Buffer ) )
-				{
-					Src->Stop();
-					break;
-				}
-			}
-			
-			delete Buffer;
-		}
-		
-		SoundNodeWave->ResourceID = 0;
-	}
-	
-	// .. or reference to compressed data
-	SoundNodeWave->RemoveAudioResource();
-	
-	// Stat housekeeping
-	//DEC_DWORD_STAT_BY( STAT_AudioMemorySize, SoundNodeWave->GetResourceSize() );
-	//DEC_DWORD_STAT_BY( STAT_AudioMemory, SoundNodeWave->GetResourceSize() );
-}
-
-
-
-/** 
- * Displays debug information about the loaded sounds
- */
-void FSLESAudioDevice::ListSounds( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	int	TotalSoundSize = 0;
-
-	Ar.Logf( TEXT( "Sound resources:" ) );
-
-	TArray<FSLESSoundBuffer*> AllSounds = Buffers;
-
-	for( int i = 0; i < AllSounds.Num(); ++i )
-	{
-		FSLESSoundBuffer* Buffer = AllSounds[i];
-		Ar.Logf( TEXT( "RawData: %8.2f Kb (%d channels at %d Hz) in sound %s" ), Buffer->GetSize() / 1024.0f, Buffer->GetNumChannels(), Buffer->SampleRate, *Buffer->ResourceName );
-		TotalSoundSize += Buffer->GetSize();
-	}
-
-	Ar.Logf( TEXT( "%8.2f Kb for %d sounds" ), TotalSoundSize / 1024.0f, AllSounds.Num() );
 }
 
 FSoundSource* FSLESAudioDevice::CreateSoundSource()

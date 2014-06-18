@@ -316,7 +316,7 @@ void FXAudio2SoundBuffer::Seek( const float SeekTime )
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {
@@ -360,7 +360,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateProceduralBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {
@@ -385,7 +385,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateProceduralBuffer( FXAudio2Device
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreatePreviewBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave, FXAudio2SoundBuffer* Buffer )
 {
@@ -418,7 +418,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreatePreviewBuffer( FXAudio2Device* X
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
 {

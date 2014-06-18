@@ -137,7 +137,7 @@ void FCoreAudioSoundBuffer::Seek( const float SeekTime )
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
@@ -181,7 +181,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateProceduralBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
@@ -206,7 +206,7 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateProceduralBuffer( FCoreAudio
  *
  * @param InWave		USoundWave to use as template and wave source
  * @param AudioDevice	audio device to attach created buffer to
- * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+ * @return FCoreAudioSoundBuffer pointer if buffer creation succeeded, NULL otherwise
  */
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreatePreviewBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave, FCoreAudioSoundBuffer* Buffer )
 {

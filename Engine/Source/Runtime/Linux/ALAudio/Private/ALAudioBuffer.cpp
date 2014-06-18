@@ -26,11 +26,6 @@ FALSoundBuffer::FALSoundBuffer( FALAudioDevice* InAudioDevice )
  */
 FALSoundBuffer::~FALSoundBuffer( void )
 {
-	if( ResourceID )
-	{
-		AudioDevice->WaveBufferMap.Remove( ResourceID );
-	}
-
 	// Delete AL buffers.
 	alDeleteBuffers( 1, BufferIds );
 }
@@ -133,7 +128,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 	// Find the existing buffer if any
 	if (Wave->ResourceID)
 	{
-		Buffer = AudioDevice->WaveBufferMap.FindRef( Wave->ResourceID );
+		Buffer = static_cast<FALSoundBuffer*>(AudioDevice->WaveBufferMap.FindRef( Wave->ResourceID ));
 	}
 
 	if (Buffer == nullptr)
@@ -145,16 +140,7 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 
 		AudioDevice->alError(TEXT("RegisterSound"));
 
-		// Allocate new resource ID and assign to USoundNodeWave. A value of 0 (default) means not yet registered.
-		int ResourceID = AudioDevice->NextResourceID++;
-		Buffer->ResourceID = ResourceID;
-		Wave->ResourceID = ResourceID;
-
-		AudioDevice->Buffers.Add(Buffer);
-		AudioDevice->WaveBufferMap.FindOrAdd(ResourceID) =  Buffer;
-
-		// Keep track of associated resource name.
-		Buffer->ResourceName = Wave->GetPathName();
+		AudioDevice->TrackResource(Wave, Buffer);
 
 		Buffer->InternalFormat = AudioDevice->GetInternalFormat(Wave->NumChannels);
 		Buffer->NumChannels = Wave->NumChannels;

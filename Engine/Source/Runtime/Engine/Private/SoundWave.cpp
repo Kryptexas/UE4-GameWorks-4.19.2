@@ -423,6 +423,18 @@ void USoundWave::FreeResources()
 		}
 	}
 
+	// Just in case the data was created but never uploaded
+	FMemory::Free(RawPCMData);
+	RawPCMData = NULL;
+
+	// Remove the compressed copy of the data
+	RemoveAudioResource();
+
+	// Stat housekeeping
+	DEC_DWORD_STAT_BY(STAT_AudioMemorySize, TrackedMemoryUsage);
+	DEC_DWORD_STAT_BY(STAT_AudioMemory, TrackedMemoryUsage);
+	TrackedMemoryUsage = 0;
+
 	SampleRate = 0;
 	Duration = 0.0f;
 	ResourceID = 0;

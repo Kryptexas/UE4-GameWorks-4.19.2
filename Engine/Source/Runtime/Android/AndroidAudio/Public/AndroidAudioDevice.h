@@ -74,7 +74,7 @@ public:
 	 *
 	 * @param	InWave				USoundWave to use as template and wave source
 	 * @param	AudioDevice			Audio device to attach created buffer to
-	 * @return	FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return	FSLESSoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FSLESSoundBuffer* Init(  FSLESAudioDevice* ,USoundWave* );
 
@@ -261,19 +261,6 @@ public:
 	 */
 	virtual void Update( bool bGameTicking );
 
-	/** 
-	 * Lists all the loaded sounds and their memory footprint
-	 */
-	virtual void ListSounds( const TCHAR* Cmd, FOutputDevice& Ar );
-
-	/**
-	 * Frees the bulk resource data associated with this SoundNodeWave.
-	 *
-	 * @param	SoundNodeWave	wave object to free associated bulk data
-	 */
-	virtual void FreeResource( USoundWave* SoundWave );
-
-
 protected:
 
 	virtual FSoundSource* CreateSoundSource() override; 
@@ -289,12 +276,6 @@ protected:
 
 	/** The name of the OpenSL Device to open - defaults to "Generic Software" */
 	FString										DeviceName;
-	/** All loaded resident buffers */
-	TArray<FSLESSoundBuffer*>					Buffers;
-	/** Map from resource ID to sound buffer */
-	TMap<int, FSLESSoundBuffer*>				WaveBufferMap;
-	/** Next resource ID value used for registering USoundWave objects */
-	int											NextResourceID;
 
 	// SL specific
 

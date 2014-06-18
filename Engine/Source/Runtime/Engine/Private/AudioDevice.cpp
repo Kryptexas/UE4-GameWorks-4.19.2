@@ -2377,18 +2377,6 @@ void FAudioDevice::FreeResource(USoundWave* SoundWave)
 
 		SoundWave->ResourceID = 0;
 	}
-
-	// Just in case the data was created but never uploaded
-	FMemory::Free(SoundWave->RawPCMData);
-	SoundWave->RawPCMData = NULL;
-
-	// Remove the compressed copy of the data
-	SoundWave->RemoveAudioResource();
-
-	// Stat housekeeping
-	DEC_DWORD_STAT_BY(STAT_AudioMemorySize, SoundWave->TrackedMemoryUsage);
-	DEC_DWORD_STAT_BY(STAT_AudioMemory, SoundWave->TrackedMemoryUsage);
-	SoundWave->TrackedMemoryUsage = 0;
 }
 
 void FAudioDevice::FreeBufferResource(FSoundBuffer* Buffer)

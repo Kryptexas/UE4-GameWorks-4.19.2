@@ -31,11 +31,6 @@ FSLESSoundBuffer::FSLESSoundBuffer( FSLESAudioDevice* InAudioDevice ) :
  */
 FSLESSoundBuffer::~FSLESSoundBuffer( void )
 {
-	if( ResourceID )
-	{
-		AudioDevice->WaveBufferMap.Remove( ResourceID );
-	}
-	
 	FMemory::Free( AudioData);
 
 	if( DecompressionState )
@@ -125,16 +120,8 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateNativeBuffer( FSLESAudioDevice* AudioD
 	// Create new buffer.
 	Buffer = new FSLESSoundBuffer( AudioDevice );
 		
-	// Allocate new resource ID and assign to USoundNodeWave. A value of 0 (default) means not yet registered.
-	int32 ResourceID = AudioDevice->NextResourceID++;
-	Buffer->ResourceID = ResourceID;
-	InWave->ResourceID = ResourceID;
-		
-	AudioDevice->Buffers.Add( Buffer );
-	AudioDevice->WaveBufferMap.Add( ResourceID, Buffer );
-		
-	// Keep track of associated resource name.
-	Buffer->ResourceName	= InWave->GetPathName();		
+	AudioDevice->TrackResource(InWave, Buffer);
+
 	Buffer->NumChannels		= InWave->NumChannels;
 	Buffer->SampleRate		= InWave->SampleRate;
 
@@ -193,7 +180,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::Init(  FSLESAudioDevice* AudioDevice ,USound
 		// Upload entire wav
 		if( InWave->ResourceID )
 		{
-			Buffer = AudioDevice->WaveBufferMap.FindRef( InWave->ResourceID );
+			Buffer = static_cast<FSLESSoundBuffer*>(AudioDevice->WaveBufferMap.FindRef( InWave->ResourceID ));
 		}
 
 		if( Buffer == NULL )

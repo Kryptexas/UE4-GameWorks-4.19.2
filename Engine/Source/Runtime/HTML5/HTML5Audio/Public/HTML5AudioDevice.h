@@ -220,18 +220,6 @@ public:
 	 */
 	virtual void Update( bool bGameTicking );
 
-	/** 
-	 * Lists all the loaded sounds and their memory footprint
-	 */
-	virtual void ListSounds( const TCHAR* Cmd, FOutputDevice& Ar );
-
-	/**
-	 * Frees the bulk resource data associated with this SoundNodeWave.
-	 *
-	 * @param	SoundNodeWave	wave object to free associated bulk data
-	 */
-	virtual void FreeResource( USoundWave* SoundWave );
-
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
@@ -253,13 +241,6 @@ protected:
 
 
 	// Variables.
-
-	/** All loaded resident buffers */
-	TArray<FALSoundBuffer*>						Buffers;
-	/** Map from resource ID to sound buffer */
-	TMap<int, FALSoundBuffer*>					WaveBufferMap;
-	/** Next resource ID value used for registering USoundWave objects */
-	int											NextResourceID;
 
 	// AL specific
 

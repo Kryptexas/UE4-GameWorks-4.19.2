@@ -138,7 +138,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FXAudio2SoundBuffer* CreateQueuedBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
 
@@ -147,7 +147,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FXAudio2SoundBuffer* CreateProceduralBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
 
@@ -156,7 +156,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FXAudio2SoundBuffer* CreatePreviewBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave, FXAudio2SoundBuffer* Buffer );
 
@@ -165,7 +165,7 @@ public:
 	 *
 	 * @param InWave		USoundWave to use as template and wave source
 	 * @param AudioDevice	audio device to attach created buffer to
-	 * @return FALSoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
 	 */
 	static FXAudio2SoundBuffer* CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
 
