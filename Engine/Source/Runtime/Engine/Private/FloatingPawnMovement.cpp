@@ -89,7 +89,7 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
-	const float MaxPawnSpeed = GetModifiedMaxSpeed() * AnalogInputModifier;
+	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;
 	const bool bExceedingMaxSpeed = IsExceedingMaxSpeed(MaxPawnSpeed);
 
 	if (AnalogInputModifier > 0.f && !bExceedingMaxSpeed)

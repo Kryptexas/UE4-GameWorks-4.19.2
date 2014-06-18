@@ -130,11 +130,13 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	MaxFlySpeed = 600.0f;
 	MaxWalkSpeed = 600.0f;
 	MaxSwimSpeed = 300.0f;
+	MaxCustomMovementSpeed = MaxWalkSpeed;
 	
 	MaxSimulationTimeStep = 0.05f;
 	MaxSimulationIterations = 8;
 
-	CrouchedSpeedMultiplier = 0.5f;
+	CrouchedSpeedMultiplier_DEPRECATED = 0.5f;
+	MaxWalkSpeedCrouched = MaxWalkSpeed * CrouchedSpeedMultiplier_DEPRECATED;
 	MaxOutOfWaterStepHeight = 40.0f;
 	OutofWaterZ = 420.0f;
 	AirControl = 0.05f;
@@ -229,6 +231,12 @@ void UCharacterMovementComponent::PostLoad()
 	{
 		// Compute the walkable floor angle, since we have never done so yet.
 		UCharacterMovementComponent::SetWalkableFloorZ(WalkableFloorZ);
+	}
+
+	if (LinkerUE4Ver < VER_UE4_DEPRECATED_MOVEMENTCOMPONENT_MODIFIED_SPEEDS)
+	{
+		MaxWalkSpeedCrouched = MaxWalkSpeed * CrouchedSpeedMultiplier_DEPRECATED;
+		MaxCustomMovementSpeed = MaxWalkSpeed;
 	}
 }
 
@@ -656,7 +664,7 @@ void UCharacterMovementComponent::PerformAirControl(FVector Direction, float ZDi
 			{
 				float Dist2D = Direction.Size2D();
 				//Direction.Z = 0.f;
-				Acceleration = Direction.SafeNormal() * GetModifiedMaxAcceleration();
+				Acceleration = Direction.SafeNormal() * GetMaxAcceleration();
 
 				if ( (Dist2D < 0.5f * FMath::Abs(Direction.Z)) && ((Velocity | Direction) > 0.5f*FMath::Square(Dist2D)) )
 				{
@@ -1706,16 +1714,22 @@ float UCharacterMovementComponent::GetGravityZ() const
 
 float UCharacterMovementComponent::GetMaxSpeed() const
 {
-	float Result = MaxWalkSpeed;
-	if ( MovementMode == MOVE_Flying )
+	switch(MovementMode)
 	{
-		Result = MaxFlySpeed;
+	case MOVE_Walking:
+		return IsCrouching() ? MaxWalkSpeedCrouched : MaxWalkSpeed;
+	case MOVE_Falling:
+		return MaxWalkSpeed;
+	case MOVE_Swimming:
+		return MaxSwimSpeed;
+	case MOVE_Flying:
+		return MaxFlySpeed;
+	case MOVE_Custom:
+		return MaxCustomMovementSpeed;
+	case MOVE_None:
+	default:
+		return 0.f;
 	}
-	else if ( MovementMode == MOVE_Swimming )
-	{
-		Result = MaxSwimSpeed;
-	}
-	return Result;
 }
 
 
@@ -1974,8 +1988,8 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	}
 
 	Friction = FMath::Max(0.f, Friction);
-	const float MaxAccel = GetModifiedMaxAcceleration();
-	float MaxSpeed = GetModifiedMaxSpeed();
+	const float MaxAccel = GetMaxAcceleration();
+	float MaxSpeed = GetMaxSpeed();
 	
 	// Check if path following requested movement
 	FVector RequestedAcceleration = FVector::ZeroVector;
@@ -2081,7 +2095,7 @@ void UCharacterMovementComponent::RequestDirectMove(const FVector& MoveVelocity,
 
 	if (IsFalling())
 	{
-		const FVector FallVelocity = MoveVelocity.ClampMaxSize(GetModifiedMaxSpeed());
+		const FVector FallVelocity = MoveVelocity.ClampMaxSize(GetMaxSpeed());
 		PerformAirControl(FallVelocity, FallVelocity.Z);
 		return;
 	}
@@ -2261,9 +2275,32 @@ float UCharacterMovementComponent::GetMaxJumpHeight() const
 	}
 }
 
+// TODO: deprecated, remove.
 float UCharacterMovementComponent::GetModifiedMaxAcceleration() const
 {
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#pragma warning(push)
+#pragma warning(disable:4995)
+#pragma warning(disable:4996)
 	return CharacterOwner ? MaxAcceleration * GetMaxSpeedModifier() : 0.f;
+#pragma warning(pop)
+}
+
+// TODO: deprecated, remove.
+float UCharacterMovementComponent::K2_GetModifiedMaxAcceleration() const
+{
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#pragma warning(push)
+#pragma warning(disable:4995)
+#pragma warning(disable:4996)
+	return GetModifiedMaxAcceleration();
+#pragma warning(pop)
+}
+
+
+float UCharacterMovementComponent::GetMaxAcceleration() const
+{
+	return MaxAcceleration;
 }
 
 FVector UCharacterMovementComponent::GetCurrentAcceleration() const
@@ -2552,7 +2589,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 
 	// Bound final 2d portion of velocity
 	const float Speed2d = Velocity.Size2D();
-	const float BoundSpeed = FMath::Max(Speed2d, GetModifiedMaxSpeed() * AnalogInputModifier);
+	const float BoundSpeed = FMath::Max(Speed2d, GetMaxSpeed() * AnalogInputModifier);
 
 	//bound acceleration, falling object has minimal ability to impact acceleration
 	FVector FallAcceleration = Acceleration;
@@ -2566,7 +2603,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		if ( TickAirControl > 0.0f && FallAcceleration.SizeSquared() > 0.f )
 		{
 			const float TestWalkTime = FMath::Max(deltaTime, 0.05f);
-			const FVector TestWalk = ((TickAirControl * GetModifiedMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
+			const FVector TestWalk = ((TickAirControl * GetMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
 			if(!TestWalk.IsZero())
 			{
 				static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
@@ -2600,7 +2637,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			}
 		}
 
-		float MaxAccel = GetModifiedMaxAcceleration() * TickAirControl;
+		float MaxAccel = GetMaxAcceleration() * TickAirControl;
 
 		// Boost maxAccel to increase player's control when falling
 		if( (Speed2d < 10.f) && (TickAirControl > 0.f) && (TickAirControl <= 0.05f) ) //allow initial burst
@@ -3321,19 +3358,6 @@ void UCharacterMovementComponent::AdjustFloorHeight()
 		// Also avoid it if we moved out of penetration
 		bJustTeleported |= !bMaintainHorizontalGroundVelocity || (OldFloorDist < 0.f);
 	}
-}
-
-float UCharacterMovementComponent::GetMaxSpeedModifier() const
-{
-	float Result = 1.0f;
-
-	// Apply crouch modifier
-	if (CharacterOwner && IsCrouching() && IsMovingOnGround())
-	{
-		Result *= CrouchedSpeedMultiplier;
-	}
-
-	return Result;
 }
 
 
@@ -4561,16 +4585,16 @@ FVector UCharacterMovementComponent::ConstrainInputAcceleration(const FVector& I
 
 FVector UCharacterMovementComponent::ScaleInputAcceleration(const FVector& InputAcceleration) const
 {
-	return GetModifiedMaxAcceleration() * ClampMaxSizePrecise(InputAcceleration, 1.0f);
+	return GetMaxAcceleration() * ClampMaxSizePrecise(InputAcceleration, 1.0f);
 }
 
 
 float UCharacterMovementComponent::ComputeAnalogInputModifier() const
 {
-	const float ModifiedMaxAccel = GetModifiedMaxAcceleration();
-	if (Acceleration.SizeSquared() > 0.f && ModifiedMaxAccel > SMALL_NUMBER)
+	const float MaxAccel = GetMaxAcceleration();
+	if (Acceleration.SizeSquared() > 0.f && MaxAccel > SMALL_NUMBER)
 	{
-		return FMath::Clamp(Acceleration.Size() / ModifiedMaxAccel, 0.f, 1.f);
+		return FMath::Clamp(Acceleration.Size() / MaxAccel, 0.f, 1.f);
 	}
 
 	return 0.f;

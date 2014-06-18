@@ -560,6 +560,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DISALLOW_FOLIAGE_ON_BLUEPRINTS,
 	// change motors to use revolutions per second instead of rads/second
 	VER_UE4_FIXUP_MOTOR_UNITS,
+	// deprecated MovementComponent functions including "ModifiedMaxSpeed" et al
+	VER_UE4_DEPRECATED_MOVEMENTCOMPONENT_MODIFIED_SPEEDS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

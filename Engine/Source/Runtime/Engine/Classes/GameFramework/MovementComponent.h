@@ -80,20 +80,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")
 	virtual float GetGravityZ() const;
 
-	/** @return maximum speed of component in current movement mode.  Multiply by MaxSpeedModifier for limitations based on posture, etc. */
+	/** @return Maximum speed of component in current movement mode. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")
 	virtual float GetMaxSpeed() const;
 
 	/** @return a scalar applied to the maximum velocity that the component can currently move. */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement")
+	DEPRECATED(4.3, "GetMaxSpeedModifier() is deprecated, apply your own modifiers to GetMaxSpeed() if desired.")
 	virtual float GetMaxSpeedModifier() const;
+	
+	/** @return a scalar applied to the maximum velocity that the component can currently move. */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DeprecatedFunction, DisplayName="GetMaxSpeedModifier", DeprecationMessage="GetMaxSpeedModifier() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
+	virtual float K2_GetMaxSpeedModifier() const;
 
 	/** @return the result of GetMaxSpeed() * GetMaxSpeedModifier(). */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement")
+	DEPRECATED(4.3, "GetModifiedMaxSpeed() is deprecated, use GetMaxSpeed() instead.")
 	virtual float GetModifiedMaxSpeed() const;
 
+	/** @return the result of GetMaxSpeed() * GetMaxSpeedModifier(). */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DeprecatedFunction, DisplayName="GetModifiedMaxSpeed", DeprecationMessage="GetModifiedMaxSpeed() is deprecated, apply your own modifiers to GetMaxSpeed() if desired."))
+	virtual float K2_GetModifiedMaxSpeed() const;
+
 	/**
-	 * Returns true if the current velocity is exceeding the given max speed (usually the result of GetModifiedMaxSpeed()), within a small error tolerance.
+	 * Returns true if the current velocity is exceeding the given max speed (usually the result of GetMaxSpeed()), within a small error tolerance.
 	 * Note that under normal circumstances updates cause by acceleration will not cause this to be true, however external forces or changes in the max speed limit
 	 * can cause the max speed to be violated.
 	 */
@@ -283,16 +291,6 @@ private:
 inline float UMovementComponent::GetMaxSpeed() const
 {
 	return 0.f;
-}
-
-inline float UMovementComponent::GetMaxSpeedModifier() const
-{
-	return 1.0f;
-}
-
-inline float UMovementComponent::GetModifiedMaxSpeed() const
-{
-	return GetMaxSpeed() * GetMaxSpeedModifier();
 }
 
 inline void UMovementComponent::StopMovementImmediately()

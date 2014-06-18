@@ -204,7 +204,7 @@ FVector UProjectileMovementComponent::LimitVelocity(FVector NewVelocity) const
 {
 	if (GetMaxSpeed() > 0.f)
 	{
-		NewVelocity = NewVelocity.ClampMaxSize(GetModifiedMaxSpeed());
+		NewVelocity = NewVelocity.ClampMaxSize(GetMaxSpeed());
 	}
 
 	return NewVelocity;

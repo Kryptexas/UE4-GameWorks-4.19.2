@@ -349,13 +349,17 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float GroundFriction;
 
-	/** The maximum ground speed. Also determines maximum lateral speed when falling. */
+	/** The maximum ground speed when walking. Also determines maximum lateral speed when falling. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float MaxWalkSpeed;
 
-	/** Multiplier to max ground speed to use when crouched */
+	/** The maximum ground speed when walking and crouched. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float CrouchedSpeedMultiplier;
+	float MaxWalkSpeedCrouched;
+
+	/** The maximum speed when using Custom movement mode. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	float MaxCustomMovementSpeed;
 
 	/** Collision half-height when crouching (component scale is applied separately) */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadOnly)
@@ -510,6 +514,10 @@ public:
 
 	UPROPERTY()
 	uint32 bForceBraking_DEPRECATED:1;
+
+	/** Multiplier to max ground speed to use when crouched */
+	UPROPERTY()
+	float CrouchedSpeedMultiplier_DEPRECATED;
 
 protected:
 
@@ -815,7 +823,6 @@ public:
 
 	//BEGIN UMovementComponent Interface
 	virtual float GetMaxSpeed() const override;
-	virtual float GetMaxSpeedModifier() const override;
 	virtual void StopActiveMovement() override;
 	virtual bool IsCrouching() const override;
 	virtual bool IsFalling() const override;
@@ -967,14 +974,22 @@ public:
 	virtual float GetMaxJumpHeight() const;
 	
 	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	DEPRECATED(4.3, "GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired.")
 	virtual float GetModifiedMaxAcceleration() const;
+	
+	/** @return Maximum acceleration for the current state, based on MaxAcceleration and any additional modifiers. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(DeprecatedFunction, DisplayName="GetModifiedMaxAcceleration()", DeprecationMessage="GetModifiedMaxAcceleration() is deprecated, apply your own modifiers to GetMaxAcceleration() if desired."))
+	virtual float K2_GetModifiedMaxAcceleration() const;
+
+	/** @return Maximum acceleration for the current state. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual float GetMaxAcceleration() const;
 
 	/** @return Current acceleration, computed from input vector each update. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(Keywords="Acceleration GetAcceleration"))
 	FVector GetCurrentAcceleration() const;
 
-	/** @return Modifier [0..1] which affects max speed, based on the magnitude of the input vector. */
+	/** @return Modifier [0..1] based on the magnitude of the last input vector, which is used to modify the acceleration and max speed during movement. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	float GetAnalogInputModifier() const;
 	

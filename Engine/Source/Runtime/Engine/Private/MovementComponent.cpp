@@ -464,4 +464,38 @@ void UMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, f
 	// Default implementation does nothing
 }
 
+// TODO: Deprecated, remove.
+float UMovementComponent::GetMaxSpeedModifier() const
+{
+	return 1.0f;
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::K2_GetMaxSpeedModifier() const
+{
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#pragma warning(push)
+#pragma warning(disable:4995)
+#pragma warning(disable:4996)
+	return GetMaxSpeedModifier();
+#pragma warning(pop)
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::GetModifiedMaxSpeed() const
+{
+	return GetMaxSpeed();
+}
+
+// TODO: Deprecated, remove.
+float UMovementComponent::K2_GetModifiedMaxSpeed() const
+{
+	// Allow calling old deprecated function to maintain old behavior until it is removed.
+#pragma warning(push)
+#pragma warning(disable:4995)
+#pragma warning(disable:4996)
+	return GetModifiedMaxSpeed();
+#pragma warning(pop)
+}
+
 #undef LOCTEXT_NAMESPACE
