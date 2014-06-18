@@ -46,8 +46,9 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 	);
 
 RHI_API FRHICommandListExecutor GRHICommandList;
-RHI_API FRHICommandList FRHICommandList::NullRHICommandList(0);
+RHI_API FRHICommandList FRHICommandList::NullRHICommandList;
 
+static_assert(sizeof(FRHICommand) == sizeof(FRHICommandNopEndOfPage), "These should match for filling in the end of a page when a new allocation won't fit");
 
 //@todo-rco: Temp hack!
 static FRHICommandList GCommandList;
@@ -71,6 +72,14 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 			{
 				// Nop
 				auto* RHICmd = Iter.NextCommand<FRHICommandNopBlob>();
+				(void)RHICmd;	// Unused
+			}
+			break;
+		case ERCT_NopEndOfPage:
+			{
+				// Nop
+				auto* RHICmd = Iter.NextCommand<FRHICommandNopEndOfPage>();
+				(void)RHICmd;	// Unused
 			}
 			break;
 		case ERCT_SetRasterizerState:
@@ -211,7 +220,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 			}
 			break;
 		default:
-			check(0);
+			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
 		}
 	}
 
@@ -282,4 +291,57 @@ FRHICommandList& FRHICommandListExecutor::CreateList()
 void FRHICommandListExecutor::Verify()
 {
 	check(!bLock);
+}
+
+
+FRHICommandList::FMemManager::FMemManager() :
+	FirstPage(nullptr),
+	LastPage(nullptr)
+{
+}
+
+FRHICommandList::FMemManager::~FMemManager()
+{
+	while (FirstPage)
+	{
+		auto* Page = FirstPage->NextPage;
+		delete FirstPage;
+		FirstPage = Page;
+	}
+
+	FirstPage = LastPage = (FPage*)0x1; // we want this to not bypass the cmd list; please just crash.
+}
+
+const SIZE_T FRHICommandList::FMemManager::GetUsedMemory() const
+{
+	SIZE_T TotalUsedMemory = 0;
+	auto* Page = FirstPage;
+	do
+	{
+		SIZE_T UsedPageMemory = Page->MemUsed();
+		if (!UsedPageMemory)
+		{
+			return TotalUsedMemory;
+		}
+		TotalUsedMemory += UsedPageMemory;
+		Page = Page->NextPage;
+	}
+	while (Page);
+	return TotalUsedMemory;
+}
+
+void FRHICommandList::FMemManager::Reset()
+{
+	auto* Page = FirstPage;
+	while (Page)
+	{
+		Page->Reset();
+		Page = Page->NextPage;
+	}
+	LastPage = FirstPage;
+}
+
+const SIZE_T FRHICommandList::GetUsedMemory() const
+{
+	return MemManager.GetUsedMemory();
 }

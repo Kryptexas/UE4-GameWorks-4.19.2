@@ -2142,6 +2142,13 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 				(void)RHICmd;	// Unused
 			}
 			break;
+		case ERCT_NopEndOfPage:
+			{
+				// Nop
+				auto* RHICmd = Iter.NextCommand<FRHICommandNopEndOfPage>();
+				(void)RHICmd;	// Unused
+			}
+			break;
 		case ERCT_SetRasterizerState:
 			{
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetRasterizerState>();

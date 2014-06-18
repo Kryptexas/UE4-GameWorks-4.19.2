@@ -8,21 +8,6 @@
 #define __RHICOMMANDLIST_INL__
 #include "RHICommandList.h"
 
-struct FRHICommand
-{
-	// This is a union only to force alignment to SIZE_T
-	union
-	{
-		ERHICommandType	Type;
-		SIZE_T			RawType;
-	};
-
-	uint32 ExtraSize() const
-	{
-		return 0;
-	}
-};
-
 // No constructors are given for classes derived from FRHICommand as they are not created using
 // a classical 'new' for perf reasons.
 
@@ -39,6 +24,10 @@ struct FRHICommandPerShader : public FRHICommand
 	}
 };
 
+struct FRHICommandNopEndOfPage : public FRHICommand
+{
+};
+
 struct FRHICommandNopBlob : public FRHICommand
 {
 	void* Data;
@@ -47,7 +36,9 @@ struct FRHICommandNopBlob : public FRHICommand
 	{
 		Type = ERCT_NopBlob;
 		Size = InSize;
-		Data = List->Alloc(InSize);
+
+		// Data is stored after 'this'
+		Data = &this[1];
 		FMemory::Memcpy(Data, InData, InSize);
 	}
 
@@ -245,7 +236,7 @@ FORCEINLINE void FRHICommandList::SetShaderParameter(TShaderRHIParamRef Shader, 
 
 	if (bValueInStack)
 	{
-		auto* Blob = AddCommand<FRHICommandNopBlob>();
+		auto* Blob = AddCommand<FRHICommandNopBlob>(NumBytes);
 		Blob->Set(this, NumBytes, NewValue);
 		NewValue = Blob->Data;
 	}
@@ -381,6 +372,7 @@ FORCEINLINE void FRHICommandList::SetStreamSource(uint32 StreamIndex, FVertexBuf
 	VertexBuffer->AddRef();
 }
 
+
 // Helper class for traversing a FRHICommandList
 class FRHICommandListIterator
 {
@@ -389,8 +381,9 @@ public:
 	{
 		NumCommands = 0;
 		CmdListNumCommands = CmdList.NumCommands;
-		CmdPtr = CmdList.GetHead();
-		CmdTail = CmdList.GetTail();
+		Page = CmdList.MemManager.FirstPage;
+		CmdPtr = Page->Head;
+		CmdTail = Page->Current;
 	}
 
 	FORCEINLINE bool HasCommandsLeft() const
@@ -412,6 +405,25 @@ public:
 		CmdPtr += sizeof(T) + RHICmd->ExtraSize();
 		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
 		++NumCommands;
+		if (CmdPtr >= CmdTail)
+		{
+			Page = Page->NextPage;
+			CmdPtr = Page ? Page->Head : nullptr;
+			CmdTail = Page ? Page->Current : nullptr;
+		}
+
+		return RHICmd;
+	}
+
+	// Specialization for EndOfPage
+	template <>
+	FORCEINLINE FRHICommandNopEndOfPage* NextCommand<FRHICommandNopEndOfPage>()
+	{
+		auto* RHICmd = (FRHICommandNopEndOfPage*)CmdPtr;
+		Page = Page->NextPage;
+		CmdPtr = Page ? Page->Head : nullptr;
+		CmdTail = Page ? Page->Current : nullptr;
+
 		return RHICmd;
 	}
 
@@ -422,6 +434,7 @@ public:
 	}
 
 protected:
+	FRHICommandList::FMemManager::FPage* Page;
 	uint32 NumCommands;
 	const uint8* CmdPtr;
 	const uint8* CmdTail;

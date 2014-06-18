@@ -8,8 +8,13 @@
 
 enum ERHICommandType
 {
-	// Start the enum at non-zero to help debug
+	// Start the enum at non-zero to help debugging
+
+	// List control
 	ERCT_NopBlob				= 512,	// NoOp, maybe has a buffer to be auto alloc/freed (512=0x200)
+	ERCT_NopEndOfPage,					// NoOp, stop traversing the current page
+
+	// RHI Commands
 	ERCT_SetRasterizerState,
 	ERCT_SetShaderParameter,
 	ERCT_SetShaderUniformBuffer,
@@ -24,6 +29,21 @@ enum ERHICommandType
 	ERCT_,
 };
 
+struct FRHICommand
+{
+	// This is a union only to force alignment to SIZE_T
+	union
+	{
+		ERHICommandType	Type;
+		SIZE_T			RawType;
+	};
+
+	uint32 ExtraSize() const
+	{
+		return 0;
+	}
+};
+
 class RHI_API FRHICommandList
 {
 private:
@@ -31,71 +51,114 @@ private:
 
 	struct FMemManager
 	{
-		FMemManager(int32 Size = DefaultMemSize)
+		struct FPage
 		{
-			MemSize = Size;
-			Memory = nullptr;
-			if (Size)
+			enum
 			{
-				Memory = (uint8*)FMemory::Malloc(MemSize, Alignment);
+				PageSize = 64 * 1024
+			};
+
+			FPage() :
+				NextPage(nullptr)
+			{
+				Head = (uint8*)FMemory::Malloc(PageSize, Alignment);
+				Current = Head;
+				Tail = Head + PageSize;
 			}
-		}
+
+			~FPage()
+			{
+				FMemory::Free(Head);
+				Head = Current = Tail = nullptr;
+
+				// Caller/owner is responsible for freeing the linked list
+				NextPage = nullptr;
+			}
+
+			void Reset()
+			{
+				Current = Head;
+			}
+
+			FORCEINLINE SIZE_T MemUsed() const
+			{
+				return Current - Head;
+			}
+
+			FORCEINLINE SIZE_T MemAvailable() const
+			{
+				return Tail - Current;
+			}
+
+			FORCEINLINE bool CanFitAllocation(SIZE_T AlignedSize) const
+			{
+				return (AlignedSize + Current <= Tail);
+			}
+
+			FORCEINLINE uint8* Alloc(SIZE_T AlignedSize)
+			{
+				auto* Ptr = Current;
+				Current += AlignedSize;
+				return Ptr;
+			}
+
+			uint8* Current;
+			uint8* Tail;
+			uint8* Head;
+
+			FPage* NextPage;
+		};
+
+		FMemManager();
+		~FMemManager();
 
 		FORCEINLINE bool IsNull() const
 		{
-			return !Memory;
+			return (this == &NullRHICommandList.MemManager);
 		}
 
-		~FMemManager()
-		{
-			if (IsNull())
-			{
-				FMemory::Free(Memory);
-			}
-			MemSize = 0;
-			Memory = (uint8*)0x1; // we want this to not bypass the cmd list; please just crash.
-		}
-
-		uint8* Alloc(SIZE_T InSize)
+		FORCEINLINE uint8* Alloc(SIZE_T InSize)
 		{
 			checkSlow(!IsNull());
 			InSize = (InSize + (Alignment - 1)) & ~(Alignment - 1);
-			check(Tail + InSize + Alignment <= &Memory[MemSize]);
-			uint8* New = Tail;
-			Tail += InSize;
-			return New;
+			bool bTryAgain = false;
+
+			if (LastPage)
+			{
+				if (LastPage->CanFitAllocation(InSize))
+				{
+					return LastPage->Alloc(InSize);
+				}
+
+				// Insert End Of Page if there's trailing space
+				if (LastPage->MemAvailable() >= sizeof(FRHICommand))
+				{
+					auto* EndOfPageCmd = (FRHICommand*)LastPage->Alloc(sizeof(FRHICommand));
+					EndOfPageCmd->Type = ERCT_NopEndOfPage;
+				}
+			}
+
+			checkfSlow(InSize <= FPage::PageSize, TEXT("Can't allocate an FPage bigger than %d!"), FPage::PageSize);
+			if (!FirstPage)
+			{
+				FirstPage = new FPage();
+				check(!LastPage);
+				LastPage = FirstPage;
+			}
+			else
+			{
+				LastPage->NextPage = new FPage();
+				LastPage = LastPage->NextPage;
+			}
+			return LastPage->Alloc(InSize);
 		}
 
-		const uint8* GetHead() const
-		{
-			checkSlow(!IsNull());
-			return &Memory[0];
-		}
+		const SIZE_T GetUsedMemory() const;
 
-		const uint8* GetTail() const
-		{
-			checkSlow(!IsNull());
-			return Tail;
-		}
+		void Reset();
 
-		const SIZE_T GetUsedMemory() const
-		{
-			return GetTail() - GetHead();
-		}
-
-		bool CanFitCommand(SIZE_T Size) const
-		{
-			return (Size + (Tail - Memory) <= (SIZE_T)MemSize);
-		}
-
-		void ResetTail()
-		{
-			Tail = Memory;
-		}
-
-		uint8* Memory;
-		uint8* Tail;
-		int32 MemSize;
+		FPage* FirstPage;
+		FPage* LastPage;
 	};
 
 	FMemManager MemManager;
@@ -103,7 +166,6 @@ private:
 public:
 	enum
 	{
-		DefaultMemSize = 256 * 1024,
 		Alignment = sizeof(SIZE_T),
 	};
 
@@ -112,14 +174,9 @@ public:
 		return NullRHICommandList;
 	}
 
-	FRHICommandList(int32 Size = DefaultMemSize) :
-		MemManager(Size)
+	FRHICommandList()
 	{
 		Reset();
-	}
-
-	~FRHICommandList()
-	{
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -252,10 +309,7 @@ public:
 		check(IsNull());
 	}
 
-	FORCEINLINE const SIZE_T GetUsedMemory() const
-	{
-		return MemManager.GetUsedMemory();
-	}
+	const SIZE_T GetUsedMemory() const;
 
 protected:
 	enum EState
@@ -272,33 +326,17 @@ protected:
 		return MemManager.Alloc(InSize);
 	}
 
-	FORCEINLINE const uint8* GetHead() const
-	{
-		return MemManager.GetHead();
-	}
-
-	FORCEINLINE const uint8* GetTail() const
-	{
-		return MemManager.GetTail();
-	}
-
-	inline bool CanAddCommand() const
+	FORCEINLINE bool CanAddCommand() const
 	{
 		return (State == Ready);
 	}
 
-	FORCEINLINE bool CanFitCommand(SIZE_T Size) const
-	{
-		return MemManager.CanFitCommand(Size);
-	}
-
 	template <typename TCmd>
-	FORCEINLINE TCmd* AddCommand()
+	FORCEINLINE TCmd* AddCommand(uint32 ExtraData = 0)
 	{
 		checkSlow(!IsNull());
 		check(CanAddCommand());
-		check(CanFitCommand(sizeof(TCmd)));
-		TCmd* Cmd = (TCmd*)Alloc(sizeof(TCmd));
+		TCmd* Cmd = (TCmd*)Alloc(sizeof(TCmd) + ExtraData);
 		++NumCommands;
 		return Cmd;
 	}
@@ -307,7 +345,7 @@ protected:
 	{
 		State = Kicked;
 		NumCommands = 0;
-		MemManager.ResetTail();
+		MemManager.Reset();
 	}
 
 	FORCEINLINE bool Bypass()
