@@ -2288,7 +2288,8 @@ bool FEngineLoop::AppInit( )
 	}
 
 	// Only create debug output device if a debugger is attached or we're running on a console or build machine
-	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || GIsBuildMachine)
+	// A shipping build with logging explicitly enabled will fail the IsDebuggerPresent() check, but we still need to add the debug output device for logging purposes
+	if (!FPlatformProperties::SupportsWindowedMode() || FPlatformMisc::IsDebuggerPresent() || (UE_BUILD_SHIPPING && !NO_LOGGING) || GIsBuildMachine)
 	{
 		GLog->AddOutputDevice( new FOutputDeviceDebug() );
 	}
