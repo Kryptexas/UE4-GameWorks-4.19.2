@@ -16,7 +16,7 @@
 class FStructureDefaultValueView : public FStructureEditorUtils::INotifyOnStructChanged, public TSharedFromThis<FStructureDefaultValueView>
 {
 public:
-	FStructureDefaultValueView::FStructureDefaultValueView(UUserDefinedStruct* EditedStruct) 
+	FStructureDefaultValueView(UUserDefinedStruct* EditedStruct) 
 		: UserDefinedStruct(EditedStruct)
 	{
 		FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
