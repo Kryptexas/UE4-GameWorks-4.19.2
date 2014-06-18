@@ -22,8 +22,9 @@ struct FPakInfo
 	{
 		PakFile_Version_Initial = 1,
 		PakFile_Version_NoTimestamps = 2,
+		PakFile_Version_CompressionEncryption = 3,
 
-		PakFile_Version_Latest = PakFile_Version_NoTimestamps
+		PakFile_Version_Latest = PakFile_Version_CompressionEncryption
 	};
 
 	/** Pak file magic value. */
@@ -81,6 +82,34 @@ struct FPakInfo
 };
 
 /**
+ * Struct storing offsets and sizes of a compressed block
+ */
+struct FPakCompressedBlock
+{
+	/** Offset of the start of a compression block. Offset is absolute */
+	int64 CompressedStart;
+	/** Offset of the end of a compression block. This may not align completely with the start of the next block. Offset is absolute */
+	int64 CompressedEnd;
+
+	bool operator == (const FPakCompressedBlock& B) const
+	{
+		return CompressedStart == B.CompressedStart && CompressedEnd == B.CompressedEnd;
+	}
+
+	bool operator != (const FPakCompressedBlock& B) const
+	{
+		return !(*this == B);
+	}
+};
+
+FORCEINLINE FArchive& operator<<(FArchive& Ar, FPakCompressedBlock& Block)
+{
+	Ar << Block.CompressedStart;
+	Ar << Block.CompressedEnd;
+	return Ar;
+}
+
+/**
  * Struct holding info about a single file stored in pak file.
  */
 struct FPakEntry
@@ -95,6 +124,12 @@ struct FPakEntry
 	int32 CompressionMethod;
 	/** File SHA1 value. */
 	uint8 Hash[20];
+	/** Array of compression blocks that describe how to decompress this pak entry */
+	TArray<FPakCompressedBlock> CompressionBlocks;
+	/** Size of a compressed block in the file */
+	uint32 CompressionBlockSize;
+	/** True is file is encrypted */
+	uint8 bEncrypted;
 	/** Flag is set to true when FileHeader has been checked against PakHeader. It is not serialized */
 	mutable bool  Verified;
 
@@ -106,6 +141,8 @@ struct FPakEntry
 		, Size(0)
 		, UncompressedSize(0)
 		, CompressionMethod(0)
+		, CompressionBlockSize(0)
+		, bEncrypted(false)
 		, Verified(false)
 	{
 		FMemory::Memset(Hash, 0, sizeof(Hash));
@@ -119,6 +156,14 @@ struct FPakEntry
 	int64 GetSerializedSize(int32 Version) const
 	{
 		int64 SerializedSize = sizeof(Offset) + sizeof(Size) + sizeof(UncompressedSize) + sizeof(CompressionMethod) + sizeof(Hash);
+		if (Version >= FPakInfo::PakFile_Version_CompressionEncryption)
+		{
+			SerializedSize += sizeof(bEncrypted) + sizeof(CompressionBlockSize);
+			if(CompressionMethod != COMPRESS_None)
+			{
+				SerializedSize += sizeof(FPakCompressedBlock) * CompressionBlocks.Num() + sizeof(int32);
+			}
+		}
 		if (Version < FPakInfo::PakFile_Version_NoTimestamps)
 		{
 			// Timestamp
@@ -137,7 +182,10 @@ struct FPakEntry
 		return Size == B.Size && 
 			UncompressedSize == B.UncompressedSize &&
 			CompressionMethod == B.CompressionMethod &&
-			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) == 0;
+			bEncrypted == B.bEncrypted &&
+			CompressionBlockSize == B.CompressionBlockSize &&
+			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) == 0 &&
+			CompressionBlocks == B.CompressionBlocks;
 	}
 
 	/**
@@ -150,7 +198,10 @@ struct FPakEntry
 		return Size != B.Size || 
 			UncompressedSize != B.UncompressedSize ||
 			CompressionMethod != B.CompressionMethod ||
-			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) != 0;
+			bEncrypted != B.bEncrypted ||
+			CompressionBlockSize != B.CompressionBlockSize ||
+			FMemory::Memcmp(Hash, B.Hash, sizeof(Hash)) != 0 ||
+			CompressionBlocks != B.CompressionBlocks;
 	}
 
 	/**
@@ -171,6 +222,15 @@ struct FPakEntry
 			Ar << Timestamp;
 		}
 		Ar.Serialize(Hash, sizeof(Hash));
+		if (Version >= FPakInfo::PakFile_Version_CompressionEncryption)
+		{
+			if(CompressionMethod != COMPRESS_None)
+			{
+				Ar << CompressionBlocks;
+			}
+			Ar << bEncrypted;
+			Ar << CompressionBlockSize;
+		}
 	}
 
 	/**
@@ -524,22 +584,102 @@ public:
 };
 
 /**
+ * Placeholder Class
+ */
+class PAKFILE_API FPakNoEncryption
+{
+public:
+	enum 
+	{
+		Alignment = 1,
+	};
+
+	static FORCEINLINE int64 AlignReadRequest(int64 Size) 
+	{
+		return Size;
+	}
+
+	static FORCEINLINE void DecryptBlock(void* Data, int64 Size)
+	{
+		// Nothing needs to be done here
+	}
+};
+
+template< typename EncryptionPolicy = FPakNoEncryption >
+class PAKFILE_API FPakReaderPolicy
+{
+public:
+	/** Pak file that own this file data */
+	const FPakFile&		PakFile;
+	/** Pak file entry for this file. */
+	const FPakEntry&	PakEntry;
+	/** Pak file archive to read the data from. */
+	FArchive*			PakReader;
+	/** Offset to the file in pak (including the file header). */
+	int64				OffsetToFile;
+
+	FPakReaderPolicy(const FPakFile& InPakFile,const FPakEntry& InPakEntry,FArchive* InPakReader)
+		: PakFile(InPakFile)
+		, PakEntry(InPakEntry)
+		, PakReader(InPakReader)
+	{
+		OffsetToFile = PakEntry.Offset + PakEntry.GetSerializedSize(PakFile.GetInfo().Version);
+	}
+
+	FORCEINLINE int64 FileSize() const 
+	{
+		return PakEntry.Size;
+	}
+
+	void Serialize(int64 DesiredPosition, void* V, int64 Length)
+	{
+		uint8 TempBuffer[EncryptionPolicy::Alignment];
+		if (EncryptionPolicy::AlignReadRequest(DesiredPosition) != DesiredPosition)
+		{
+			int64 Start = DesiredPosition & ~(EncryptionPolicy::Alignment-1);
+			int64 Offset = DesiredPosition - Start;
+			int32 CopySize = EncryptionPolicy::Alignment-(DesiredPosition-Start);
+			PakReader->Seek(OffsetToFile + Start);
+			PakReader->Serialize(TempBuffer, EncryptionPolicy::Alignment);
+			EncryptionPolicy::DecryptBlock(TempBuffer, EncryptionPolicy::Alignment);
+			FMemory::Memcpy(V, TempBuffer+Offset, CopySize);
+			V = (void*)((uint8*)V + CopySize);
+			DesiredPosition += CopySize;
+			Length -= CopySize;
+			check(DesiredPosition % EncryptionPolicy::Alignment == 0);
+		}
+		else
+		{
+			PakReader->Seek(OffsetToFile + DesiredPosition);
+		}
+		
+		int64 CopySize = Length & ~(EncryptionPolicy::Alignment-1);
+		PakReader->Serialize(V, CopySize);
+		EncryptionPolicy::DecryptBlock(V, CopySize);
+		Length -= CopySize;
+		V = (void*)((uint8*)V + CopySize);
+
+		if (Length > 0)
+		{
+			PakReader->Serialize(TempBuffer, EncryptionPolicy::Alignment);
+			EncryptionPolicy::DecryptBlock(TempBuffer, EncryptionPolicy::Alignment);
+			FMemory::Memcpy(V, TempBuffer, Length);
+		}
+	}
+};
+
+/**
  * File handle to read from pak file.
  */
+template< typename ReaderPolicy = FPakReaderPolicy<> >
 class PAKFILE_API FPakFileHandle : public IFileHandle
 {	
-	/** Pak file that own this file data */
-	const FPakFile& PakFile;
-	/** Pak file entry for this file. */
-	const FPakEntry& PakEntry;
-	/** Pak file archive to read the data from. */
-	FArchive* PakReader;
 	/** True if PakReader is shared and should not be deleted by this handle. */
 	const bool bSharedReader;
-	/** Offset to the file in pak (including the file header). */
-	int64 OffsetToFile;
 	/** Current read position. */
 	int64 ReadPos;
+	/** Class that controls reading from pak file */
+	ReaderPolicy Reader;
 
 public:
 
@@ -551,13 +691,10 @@ public:
 	 * @param InPakFile Pak file.
 	 */
 	FPakFileHandle(const FPakFile& InPakFile, const FPakEntry& InPakEntry, FArchive* InPakReader, bool bIsSharedReader)
-		: PakFile(InPakFile)
-		, PakEntry(InPakEntry)
-		, PakReader(InPakReader)
-		, bSharedReader(bIsSharedReader)
+		: bSharedReader(bIsSharedReader)
 		, ReadPos(0)
+		, Reader(InPakFile, InPakEntry, InPakReader)
 	{
-		OffsetToFile = PakEntry.Offset + PakEntry.GetSerializedSize(PakFile.GetInfo().Version);
 	}
 
 	/**
@@ -567,7 +704,7 @@ public:
 	{
 		if (!bSharedReader)
 		{
-			delete PakReader;
+			delete Reader.PakReader;
 		}
 	}
 
@@ -578,7 +715,7 @@ public:
 	}
 	virtual bool Seek(int64 NewPosition) override
 	{
-		if (NewPosition > PakEntry.Size || NewPosition < 0)
+		if (NewPosition > Reader.FileSize() || NewPosition < 0)
 		{
 			return false;
 		}
@@ -587,19 +724,19 @@ public:
 	}
 	virtual bool SeekFromEnd(int64 NewPositionRelativeToEnd) override
 	{
-		return Seek(PakEntry.Size - NewPositionRelativeToEnd);
+		return Seek(Reader.FileSize() - NewPositionRelativeToEnd);
 	}
 	virtual bool Read(uint8* Destination, int64 BytesToRead) override
 	{
 		// Check that the file header is OK
-		if (!PakEntry.Verified)
+		if (!Reader.PakEntry.Verified)
 		{
 			FPakEntry FileHeader;
-			PakReader->Seek(PakEntry.Offset);
-			FileHeader.Serialize(*PakReader, PakFile.GetInfo().Version);
-			if (FPakEntry::VerifyPakEntriesMatch(PakEntry, FileHeader))
+			Reader.PakReader->Seek(Reader.PakEntry.Offset);
+			FileHeader.Serialize(*Reader.PakReader, Reader.PakFile.GetInfo().Version);
+			if (FPakEntry::VerifyPakEntriesMatch(Reader.PakEntry, FileHeader))
 			{
-				PakEntry.Verified = true;
+				Reader.PakEntry.Verified = true;
 			}
 			else
 			{
@@ -608,11 +745,10 @@ public:
 			}
 		}
 		//
-		PakReader->Seek(OffsetToFile + ReadPos);
-		if (PakEntry.Size >= (ReadPos + BytesToRead))
+		if (Reader.FileSize() >= (ReadPos + BytesToRead))
 		{
 			// Read directly from Pak.
-			PakReader->Serialize(Destination, BytesToRead);
+			Reader.Serialize(ReadPos, Destination, BytesToRead);
 			ReadPos += BytesToRead;
 			return true;
 		}
@@ -628,7 +764,7 @@ public:
 	}
 	virtual int64 Size() override
 	{
-		return PakEntry.Size;
+		return Reader.FileSize();
 	}
 	/// END IFileHandle Interface
 };
@@ -836,7 +972,7 @@ public:
 		const FPakEntry* FileEntry = FindFileInPakFiles(Filename);
 		if (FileEntry != NULL)
 		{
-			return FileEntry->Size;
+			return FileEntry->CompressionMethod != COMPRESS_None ? FileEntry->UncompressedSize : FileEntry->Size;
 		}
 		// First look for the file in the user dir.
 		int64 Result = LowerLevel->FileSize(Filename);

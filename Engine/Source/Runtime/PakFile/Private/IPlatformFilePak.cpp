@@ -10,8 +10,198 @@
 #include "BigInt.h"
 #include "SignedArchiveReader.h"
 #include "PublicKey.inl"
+#include "AES.h"
 
 DEFINE_LOG_CATEGORY(LogPakFile);
+
+
+/**
+ * Class to handle correctly reading from a compressed file within a compressed package
+ */
+class FPakSimpleEncryption
+{
+public:
+	enum
+	{
+		Alignment = FAES::AESBlockSize,
+	};
+
+	static FORCEINLINE int64 AlignReadRequest(int64 Size) 
+	{
+		return Align(Size, Alignment);
+	}
+
+	static FORCEINLINE void DecryptBlock(void* Data, int64 Size)
+	{
+#ifdef AES_KEY
+		FAES::DecryptData((uint8*)Data, Size);
+#endif
+	}
+};
+
+/**
+ * Thread local class to manage working buffers for file compression
+ */
+class FCompressionScratchBuffers : public TThreadSingleton<FCompressionScratchBuffers>
+{
+public:
+	FCompressionScratchBuffers()
+		: TempBufferSize(0)
+		, ScratchBufferSize(0)
+	{}
+
+	int64				TempBufferSize;
+	TAutoPtr<uint8>		TempBuffer;
+	int64				ScratchBufferSize;
+	TAutoPtr<uint8>		ScratchBuffer;
+
+	void EnsureBufferSpace(int64 CompressionBlockSize, int64 ScrachSize)
+	{
+		if(TempBufferSize < CompressionBlockSize)
+		{
+			TempBufferSize = CompressionBlockSize;
+			TempBuffer.Reset((uint8*)FMemory::Malloc(TempBufferSize));
+		}
+		if(ScratchBufferSize < ScrachSize)
+		{
+			ScratchBufferSize = ScrachSize;
+			ScratchBuffer.Reset((uint8*)FMemory::Malloc(ScratchBufferSize));
+		}
+	}
+};
+
+/**
+ * Class to handle correctly reading from a compressed file within a pak
+ */
+template< typename EncryptionPolicy = FPakNoEncryption >
+class FPakCompressedReaderPolicy
+{
+public:
+	class FPakUncompressTask : public FNonAbandonableTask
+	{
+	public:
+		uint8*				UncompressedBuffer;
+		int32				UncompressedSize;
+		uint8*				CompressedBuffer;
+		int32				CompressedSize;
+		ECompressionFlags	Flags;
+		void*				CopyOut;
+		int64				CopyOffset;
+		int64				CopyLength;
+
+		void DoWork()
+		{
+			// Decrypt and Uncompress from memory to memory.
+			int64 EncryptionSize = EncryptionPolicy::AlignReadRequest(CompressedSize);
+			EncryptionPolicy::DecryptBlock(CompressedBuffer, EncryptionSize);
+			FCompression::UncompressMemory(Flags, UncompressedBuffer, UncompressedSize, CompressedBuffer, CompressedSize, false);
+			if (CopyOut)
+			{
+				FMemory::Memcpy(CopyOut, UncompressedBuffer+CopyOffset, CopyLength);
+			}
+		}
+		static const TCHAR *Name()
+		{
+			return TEXT("FPakUncompressTask");
+		}
+	};
+
+	FPakCompressedReaderPolicy(const FPakFile& InPakFile, const FPakEntry& InPakEntry, FArchive* InPakReader)
+		: PakFile(InPakFile)
+		, PakEntry(InPakEntry)
+		, PakReader(InPakReader)
+	{
+	}
+
+	/** Pak file that own this file data */
+	const FPakFile&		PakFile;
+	/** Pak file entry for this file. */
+	const FPakEntry&	PakEntry;
+	/** Pak file archive to read the data from. */
+	FArchive*			PakReader;
+
+	FORCEINLINE int64 FileSize() const
+	{
+		return PakEntry.UncompressedSize;
+	}
+
+	void Serialize(int64 DesiredPosition, void* V, int64 Length)
+	{
+		const int32 CompressionBlockSize = PakEntry.CompressionBlockSize;
+		uint32 CompressionBlockIndex = DesiredPosition / CompressionBlockSize;
+		uint8* WorkingBuffers[2];
+		int64 DirectCopyStart = DesiredPosition % PakEntry.CompressionBlockSize;
+		FAsyncTask<FPakUncompressTask> UncompressTask;
+		FCompressionScratchBuffers& ScratchSpace = FCompressionScratchBuffers::Get();
+		bool bStartedUncompress = false;
+
+		int64 WorkingBufferRequiredSize = FCompression::CompressMemoryBound((ECompressionFlags)PakEntry.CompressionMethod,CompressionBlockSize);
+		WorkingBufferRequiredSize = EncryptionPolicy::AlignReadRequest(WorkingBufferRequiredSize);
+		ScratchSpace.EnsureBufferSpace(CompressionBlockSize, WorkingBufferRequiredSize*2);
+		WorkingBuffers[0] = ScratchSpace.ScratchBuffer;
+		WorkingBuffers[1] = ScratchSpace.ScratchBuffer + WorkingBufferRequiredSize;
+
+		while (Length > 0)
+		{
+			const FPakCompressedBlock& Block = PakEntry.CompressionBlocks[CompressionBlockIndex];
+			int64 Pos = CompressionBlockIndex * CompressionBlockSize;
+			int64 CompressedBlockSize = Block.CompressedEnd-Block.CompressedStart;
+			int64 UncompressedBlockSize = FMath::Min<int64>(PakEntry.UncompressedSize-Pos, PakEntry.CompressionBlockSize);
+			int64 ReadSize = EncryptionPolicy::AlignReadRequest(CompressedBlockSize);
+			int64 WriteSize = FMath::Min<int64>(UncompressedBlockSize - DirectCopyStart, Length);
+			PakReader->Seek(Block.CompressedStart);
+			PakReader->Serialize(WorkingBuffers[CompressionBlockIndex & 1],ReadSize);
+			if (bStartedUncompress)
+			{
+				UncompressTask.EnsureCompletion();
+				bStartedUncompress = false;
+			}
+
+			FPakUncompressTask& TaskDetails = UncompressTask.GetTask();
+			if (DirectCopyStart == 0 && Length >= CompressionBlockSize)
+			{
+				// Block can be decompressed directly into output buffer
+				TaskDetails.Flags = (ECompressionFlags)PakEntry.CompressionMethod;
+				TaskDetails.UncompressedBuffer = (uint8*)V;
+				TaskDetails.UncompressedSize = UncompressedBlockSize;
+				TaskDetails.CompressedBuffer = WorkingBuffers[CompressionBlockIndex & 1];
+				TaskDetails.CompressedSize = CompressedBlockSize;
+				TaskDetails.CopyOut = nullptr;
+			}
+			else
+			{
+				// Block needs to be copied from a working buffer
+				TaskDetails.Flags = (ECompressionFlags)PakEntry.CompressionMethod;
+				TaskDetails.UncompressedBuffer = (uint8*)ScratchSpace.TempBuffer;
+				TaskDetails.UncompressedSize = UncompressedBlockSize;
+				TaskDetails.CompressedBuffer = WorkingBuffers[CompressionBlockIndex & 1];
+				TaskDetails.CompressedSize = CompressedBlockSize;
+				TaskDetails.CopyOut = V;
+				TaskDetails.CopyOffset = DirectCopyStart;
+				TaskDetails.CopyLength = WriteSize;
+			}
+			
+			if (Length == WriteSize)
+			{
+				UncompressTask.StartSynchronousTask();
+			}
+			else
+			{
+				UncompressTask.StartBackgroundTask();
+			}
+			bStartedUncompress = true;
+			V = (void*)((uint8*)V + WriteSize);
+			Length -= WriteSize;
+			DirectCopyStart = 0;
+			++CompressionBlockIndex;
+		}
+
+		if(bStartedUncompress)
+		{
+			UncompressTask.EnsureCompletion();
+		}
+	}
+};
 
 bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEntry& FileEntryB)
 {
@@ -491,7 +681,25 @@ IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFi
 	FArchive* PakReader = PakFile->GetSharedReader(LowerLevel);
 
 	// Create the handle.
-	Result = new FPakFileHandle(*PakFile, *FileEntry, PakReader, true);		
+	if (FileEntry->CompressionMethod != COMPRESS_None && PakFile->GetInfo().Version >= FPakInfo::PakFile_Version_CompressionEncryption)
+	{
+		if (FileEntry->bEncrypted)
+		{
+			Result = new FPakFileHandle< FPakCompressedReaderPolicy<FPakSimpleEncryption> >(*PakFile, *FileEntry, PakReader, true);
+		}
+		else
+		{
+			Result = new FPakFileHandle< FPakCompressedReaderPolicy<> >(*PakFile, *FileEntry, PakReader, true);
+		}
+	}
+	else if (FileEntry->bEncrypted)
+	{
+		Result = new FPakFileHandle< FPakReaderPolicy<FPakSimpleEncryption> >(*PakFile, *FileEntry, PakReader, true);
+	}
+	else
+	{
+		Result = new FPakFileHandle<>(*PakFile, *FileEntry, PakReader, true);
+	}
 
 	return Result;
 }

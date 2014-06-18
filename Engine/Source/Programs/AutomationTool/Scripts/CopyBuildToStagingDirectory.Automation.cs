@@ -25,13 +25,18 @@ public partial class Project : CommandUtils
 	/// </summary>
 	/// <param name="Filename"></param>
 	/// <param name="ResponseFile"></param>
-	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile)
+	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed)
 	{
         using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
         {
             foreach (var Entry in ResponseFile)
             {
-                Writer.WriteLine("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
+                string Line = String.Format("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
+                if (Compressed)
+                {
+                    Line += " -compress";
+                }
+                Writer.WriteLine(Line);
             }
         }
 	}
@@ -48,7 +53,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, bool Compressed)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -56,7 +61,7 @@ public partial class Project : CommandUtils
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile);
+        WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/unrealpak.exe");
 
@@ -399,7 +404,7 @@ public partial class Project : CommandUtils
 			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
 		}
 
-		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation);
+		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, Params.Compressed);
 
 		// add the pak file as needing deployment and convert to lower case again if needed
 		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		

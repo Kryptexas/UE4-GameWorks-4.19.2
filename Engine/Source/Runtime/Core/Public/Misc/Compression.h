@@ -52,6 +52,15 @@ struct FCompression
 	CORE_API static uint64 CompressorDstBytes;
 
 	/**
+	 * Thread-safe abstract compression routine to query memory requirements for a compression operation.
+	 *
+	 * @param	Flags						Flags to control what method to use and optionally control memory vs speed
+	 * @param	UncompressedSize			Size of uncompressed data in bytes
+	 * @return The maximum possible bytes needed for compression of data buffer of size UncompressedSize
+	 */
+	CORE_API static int32 CompressMemoryBound( ECompressionFlags Flags, int32 UncompressedSize );
+
+	/**
 	 * Thread-safe abstract compression routine. Compresses memory from uncompressed buffer and writes it to compressed
 	 * buffer. Updates CompressedSize with size of compressed data. Compression controlled by the passed in flags.
 	 *

@@ -71,10 +71,6 @@ public partial class Project : CommandUtils
 		try
 		{
 			var CommandletParams = "-buildmachine -Unversioned -fileopenlog";
-			if (Params.Compressed)
-			{
-				CommandletParams += " -Compressed";
-			}
             if (Params.UseDebugParamForEditorExe)
             {
                 CommandletParams += " -debug";
