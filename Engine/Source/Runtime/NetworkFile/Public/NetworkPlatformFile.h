@@ -13,8 +13,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNetworkPlatformFile, Log, All);
 class NETWORKFILE_API FNetworkPlatformFile : public IPlatformFile
 {
 	friend class FAsyncFileSync;
-	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, FScopedEvent* InEvent, IPlatformFile& InInnerPlatformFile, 
-		FScopedEvent* InAllDoneEvent, FString& InServerEngineDir, FString& InServerGameDir, bool IsAsync = false);
+	friend void ReadUnsolicitedFile(int32 InNumUnsolictedFiles, FNetworkPlatformFile& InNetworkFile, IPlatformFile& InInnerPlatformFile,  FString& InServerEngineDir, FString& InServerGameDir);
 
 	/**
 	 * Initialize network platform file give the specified host IP
@@ -200,9 +199,7 @@ protected:
 	bool				bIsUsable;
 	int32				FileServerPort;
 private:
-	FScopedEvent* FinishedAsyncReadUnsolicitedFiles;
-	FScopedEvent* FinishedAsyncWriteUnsolicitedFiles;
-
+	
     // Our network Transport. 
 	class ITransport* Transport; 
 };
