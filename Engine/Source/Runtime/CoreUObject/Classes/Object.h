@@ -252,7 +252,7 @@ struct FPlane : public FVector
 
 // An orthogonal rotation in 3d space.
 
-USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="true", HasNativeBreak="true"))
+USTRUCT(immutable, noexport, BlueprintType, meta=(HasNativeMake="Engine.KismetMathLibrary.MakeRot", HasNativeBreak="Engine.KismetMathLibrary.BreakRot"))
 struct FRotator
 {
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rotator, SaveGame)

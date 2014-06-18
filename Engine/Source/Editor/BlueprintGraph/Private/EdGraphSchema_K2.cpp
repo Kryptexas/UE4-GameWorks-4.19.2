@@ -4579,7 +4579,8 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 	if (Pin->Direction == EGPD_Input)
 	{
 		TArray<FString> OriginalDefaults;
-		if (StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector")))
+		if (   StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"))
+			|| StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator")))
 		{
 			Pin->DefaultValue.ParseIntoArray(&OriginalDefaults, TEXT(","), false);
 			for (FString& Default : OriginalDefaults)
@@ -4652,7 +4653,8 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
 
 		TArray<FString> OriginalDefaults;
-		if (StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector")))
+		if (   StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"))
+			|| StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator")))
 		{
 			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
 									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
