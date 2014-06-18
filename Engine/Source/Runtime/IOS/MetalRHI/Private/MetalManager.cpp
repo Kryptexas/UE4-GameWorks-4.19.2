@@ -211,7 +211,7 @@ void FMetalManager::ReleaseObject(id Object)
 MetalFramePacer *FramePacer;
 
 FMetalManager::FMetalManager()
-	: Device([IOSAppDelegate GetDelegate].MetalView->Device)
+	: Device([IOSAppDelegate GetDelegate].IOSView->MetalDevice)
 	, CurrentCommandBuffer(nil)
 	, CurrentDrawable(nil)
 	, CurrentFramebuffer(nil)
@@ -230,7 +230,7 @@ FMetalManager::FMetalManager()
 	CommandQueue = [Device newCommandQueue];
 
 	// get the size of the window
-	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].MetalView frame];
+	CGRect ViewFrame = [[IOSAppDelegate GetDelegate].IOSView frame];
 	FRHIResourceCreateInfo CreateInfo;
 	BackBuffer = (FMetalTexture2D*)(FTexture2DRHIParamRef)RHICreateTexture2D(ViewFrame.size.width, ViewFrame.size.height, PF_B8G8R8A8, 1, 1, TexCreate_RenderTargetable | TexCreate_Presentable, CreateInfo);
 
@@ -311,7 +311,7 @@ void FMetalManager::InitFrame()
 		SCOPE_CYCLE_COUNTER(STAT_MetalMakeDrawableTime);
 
 		// make a drawable object for this frame
-		CurrentDrawable = [[IOSAppDelegate GetDelegate].MetalView MakeDrawable];
+		CurrentDrawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
 		TRACK_OBJECT(CurrentDrawable);
 		BackBuffer->Surface.Texture = CurrentDrawable.texture;
 	}
@@ -535,7 +535,7 @@ void FMetalManager::SetCurrentRenderTarget(FMetalSurface* RenderSurface)
 				uint32 IdleStart = FPlatformTime::Cycles();
 
 				// make a drawable object for this frame
-				CurrentDrawable = [[IOSAppDelegate GetDelegate].MetalView MakeDrawable];
+				CurrentDrawable = [[IOSAppDelegate GetDelegate].IOSView MakeDrawable];
 				TRACK_OBJECT(CurrentDrawable);
 
 				GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;

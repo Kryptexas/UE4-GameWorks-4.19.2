@@ -4,8 +4,7 @@
 
 #include "LaunchPrivatePCH.h"
 #include "IOSAppDelegate.h"
-#include "EAGLView.h"
-#include "BLView.h"
+#include "IOSView.h"
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
 #include "AudioDevice.h"
@@ -79,53 +78,18 @@ static void MainThreadInit()
 // 		Max<float>(MainFrame.size.height, GSystemSettings.SecondaryDisplayMaximumHeight) :
 // 		MainFrame.size.height
 // 		);
+
 	CGRect FullResolutionRect = MainFrame;
 
-#if HAS_METAL
-	if (FPlatformMisc::HasPlatformFeature(TEXT("Metal")) && !FParse::Param(FCommandLine::Get(), TEXT("ES2")))
-	{
-		AppDelegate.MetalView = [[FMetalView alloc] initWithFrame:FullResolutionRect];
-		AppDelegate.MetalView.clearsContextBeforeDrawing = NO;
-		AppDelegate.MetalView.multipleTouchEnabled = YES;
+	AppDelegate.IOSView = [[FIOSView alloc] initWithFrame:FullResolutionRect];
+	AppDelegate.IOSView.clearsContextBeforeDrawing = NO;
+	AppDelegate.IOSView.multipleTouchEnabled = YES;
 
-		// add it to the window
-		[AppDelegate.RootView addSubview:AppDelegate.MetalView];
+	// add it to the window
+	[AppDelegate.RootView addSubview:AppDelegate.IOSView];
 
-		// initialize the backbuffer of the view (so the RHI can use it)
-		[AppDelegate.MetalView CreateFramebuffer:YES];
-	}
-	else
-#endif
-	{
-		// create the fullscreen EAGLView
-		AppDelegate.GLView = [[EAGLView alloc] initWithFrame:FullResolutionRect];
-		AppDelegate.GLView.clearsContextBeforeDrawing = NO;
-		AppDelegate.GLView.multipleTouchEnabled = YES;
-
-		// add it to the window
-		[AppDelegate.RootView addSubview:AppDelegate.GLView];
-
-		// initialize the backbuffer of the view (so the RHI can use it)
-		[AppDelegate.GLView CreateFramebuffer:YES];
-	}
-
-	// Final adjustment to the viewport (this is deferred and won't run until the first engine tick)
-	[FIOSAsyncTask CreateTaskWithBlock:^ bool (void)
-		{
-			// @todo ios: Figure out how to resize the viewport!!!!
-
-// 			if (GEngine->GameViewport &&
-// 				GEngine->GameViewport->Viewport &&
-// 				GEngine->GameViewport->ViewportFrame)
-// 			{
-// 				CGFloat CSF = self.GLView.contentScaleFactor;
-// 				GEngine->GameViewport->ViewportFrame->Resize(
-// 					(INT)(CSF * self.GLView.superview.bounds.size.width),
-// 					(INT)(CSF * self.GLView.superview.bounds.size.height),
-// 					TRUE);
-// 			}
-			return true;
-		}];
+	// initialize the backbuffer of the view (so the RHI can use it)
+	[AppDelegate.IOSView CreateFramebuffer:YES];
 }
 
 
@@ -139,28 +103,13 @@ void FAppEntry::PlatformInit()
 	// wait until the GLView is fully initialized, so the RHI can be initialized
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
 
-#if HAS_METAL
-	if (!FParse::Param(FCommandLine::Get(), TEXT("ES2")))
+	while (!AppDelegate.IOSView || !AppDelegate.IOSView->bIsInitialized)
 	{
-		while (!AppDelegate.MetalView || !AppDelegate.MetalView->bIsInitialized)
-		{
-			FPlatformProcess::Sleep(0.001f);
-		}
-
-		// set the Metal context to this thread
-		//		[AppDelegate.MetalView MakeCurrent];		
+		FPlatformProcess::Sleep(0.001f);
 	}
-	else
-#endif
-	{
-		while (!AppDelegate.GLView || !AppDelegate.GLView->bIsInitialized)
-		{
-			FPlatformProcess::Sleep(0.001f);
-		}
 
-		// set the GL context to this thread
-		[AppDelegate.GLView MakeCurrent];
-	}
+	// set the GL context to this thread
+	[AppDelegate.IOSView MakeCurrent];
 }
 
 void FAppEntry::Init()
@@ -177,7 +126,6 @@ void FAppEntry::Init()
 	NSLog(@"%s", "Initializing ULD Communications in game mode\n");
 	GCommandSystem.Init();
 
-	// at this point, we can let the Controller/EAGLView 
 	GLog->SetCurrentThreadAsMasterThread();
 
 	// start up the engine

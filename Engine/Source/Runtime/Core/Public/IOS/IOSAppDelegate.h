@@ -6,8 +6,7 @@
 #import <AVFoundation/AVAudioSession.h>
 #import <GameKit/GKGameCenterViewController.h>
 
-@class EAGLView;
-@class FMetalView;
+@class FIOSView;
 @class IOSViewController;
 @class SlateOpenGLESViewController;
 @class IOSAppDelegate;
@@ -37,12 +36,7 @@ UITextFieldDelegate>
 @property (strong, retain, nonatomic) UIWindow *Window;
 
 /** Main GL View */
-@property (retain) EAGLView* GLView;
-
-#if HAS_METAL
-/** Main GL View */
-@property (retain) FMetalView* MetalView;
-#endif
+@property (retain) FIOSView* IOSView;
 
 /** The controller to handle rotation of the view */
 @property (retain) IOSViewController* IOSController;

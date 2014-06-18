@@ -6,6 +6,7 @@
 #include "ExceptionHandling.h"
 #include "ModuleBoilerplate.h"
 #include "CallbackDevice.h"
+#include "IOSView.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <AVFoundation/AVAudioSession.h>
@@ -68,10 +69,7 @@ void InstallSignalHandlers()
 @synthesize bResetIdleTimer;
 
 @synthesize Window;
-@synthesize GLView;
-#if HAS_METAL
-@synthesize MetalView;
-#endif
+@synthesize IOSView;
 @synthesize IOSController;
 @synthesize SlateController;
 
@@ -342,11 +340,7 @@ void InstallSignalHandlers()
 	}
     
 	// if you run this on the main thread super early, it will deadlock
-	if ((GLView && GLView->bIsInitialized) 
-#if HAS_METAL
-		|| (MetalView && MetalView->bIsInitialized)
-#endif
-		)
+	if (IOSView && IOSView->bIsInitialized) 
 	{
 		while(!self.bHasSuspended)
 		{

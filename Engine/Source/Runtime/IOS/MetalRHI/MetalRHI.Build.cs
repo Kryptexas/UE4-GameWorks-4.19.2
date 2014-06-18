@@ -17,6 +17,6 @@ public class MetalRHI : ModuleRules
 			}
 			);
 			
-		PublicFrameworks.Add("Metal");
+		PublicWeakFrameworks.Add("Metal");
 	}
 }

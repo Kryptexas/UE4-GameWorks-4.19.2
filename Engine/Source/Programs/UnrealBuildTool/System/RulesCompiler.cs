@@ -177,6 +177,9 @@ namespace UnrealBuildTool
 		// List of frameworks
 		public List<string> PublicFrameworks = new List<string>();
 
+		// List of weak frameworks (for OS version transitions)
+		public List<string> PublicWeakFrameworks = new List<string>();
+
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
 		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
 

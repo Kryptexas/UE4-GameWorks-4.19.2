@@ -3,8 +3,7 @@
 #include "CorePrivate.h"
 #include "IOSWindow.h"
 #include "IOSAppDelegate.h"
-#include "EAGLView.h"
-#include "BLView.h"
+#include "IOSView.h"
 
 FIOSWindow::~FIOSWindow()
 {
@@ -47,11 +46,7 @@ FPlatformRect FIOSWindow::GetScreenRect()
 {
 	// get the main view's frame
 	IOSAppDelegate* AppDelegate = (IOSAppDelegate*)[[UIApplication sharedApplication] delegate];
-	UIView* View = AppDelegate.GLView
-#if HAS_METAL
-		? AppDelegate.GLView : AppDelegate.MetalView
-#endif
-		;
+	UIView* View = AppDelegate.IOSView;
 	CGRect Frame = [View frame];
 	CGFloat Scale = View.contentScaleFactor;
 

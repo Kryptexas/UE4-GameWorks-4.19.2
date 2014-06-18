@@ -34,7 +34,9 @@ public class StandaloneRenderer : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			PublicFrameworks.AddRange(new string[] { "OpenGLES", "QuartzCore", "GLKit" });
+			PublicFrameworks.AddRange(new string[] { "OpenGLES", "GLKit" });
+			// weak for IOS8 support since CAMetalLayer is in QuartzCore
+			PublicWeakFrameworks.AddRange(new string[] { "QuartzCore" });
 		}
 	}
 }
