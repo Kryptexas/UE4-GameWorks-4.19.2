@@ -48,6 +48,7 @@ private:
 		Icon_RenderCross,
 		Icon_RenderPoint,
 		Icon_RenderNone,
+		Icon_RenderLights,
 		Icon_CurveEdit,
 		Icon_3DDrawEnabled,
 		Icon_3DDrawDisabled,

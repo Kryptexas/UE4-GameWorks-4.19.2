@@ -44,7 +44,8 @@ enum EEmitterRenderMode
 	ERM_Normal UMETA(DisplayName="Normal"),
 	ERM_Point UMETA(DisplayName="Point"),
 	ERM_Cross UMETA(DisplayName="Cross"),
-	ERM_None UMETA(DisplayName="None"),
+	ERM_LightsOnly UMETA(DisplayName = "Lights Only"),
+	ERM_None UMETA(DisplayName = "None"),
 	ERM_MAX,
 };
 
