@@ -752,6 +752,11 @@ public:
 		return false;
 	}
 
+	/**
+	 * Returns whether the platform is running on battery power or not.
+	 */
+	static bool IsRunningOnBattery();
+
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */

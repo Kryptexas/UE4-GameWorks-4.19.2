@@ -17,8 +17,11 @@
 #include <IOKit/network/IOEthernetInterface.h>
 #include <IOKit/network/IONetworkInterface.h>
 #include <IOKit/network/IOEthernetController.h>
+#include <IOKit/ps/IOPowerSources.h>
+#include <IOKit/ps/IOPSKeys.h>
 #include <mach-o/dyld.h>
 #include <libproc.h>
+#include <notify.h>
 
 
 /**
@@ -140,8 +143,38 @@ struct MacApplicationInfo
 		AppPath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		
 		LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
+		
+		// Notification handler to check we are running from a battery - this only applies to MacBook's.
+		notify_handler_t PowerSourceNotifyHandler = ^(int32 Token){
+			RunningOnBattery = false;
+			CFTypeRef PowerSourcesInfo = IOPSCopyPowerSourcesInfo();
+			if (PowerSourcesInfo)
+			{
+				CFArrayRef PowerSourcesArray = IOPSCopyPowerSourcesList(PowerSourcesInfo);
+				for (CFIndex Index = 0; Index < CFArrayGetCount(PowerSourcesArray); Index++)
+				{
+					CFTypeRef PowerSource = CFArrayGetValueAtIndex(PowerSourcesArray, Index);
+					NSDictionary* Description = (NSDictionary*)IOPSGetPowerSourceDescription(PowerSourcesInfo, PowerSource);
+					if ([(NSString*)[Description objectForKey: @kIOPSPowerSourceStateKey] isEqualToString: @kIOPSBatteryPowerValue])
+					{
+						RunningOnBattery = true;
+						break;
+					}
+				}
+				CFRelease(PowerSourcesArray);
+				CFRelease(PowerSourcesInfo);
+			}
+		};
+		
+		// Call now to fetch the status
+		PowerSourceNotifyHandler(0);
+		
+		uint32 Status = notify_register_dispatch(kIOPSNotifyPowerSource, &PowerSourceNotification, dispatch_get_main_queue(), PowerSourceNotifyHandler);
+		check(Status == NOTIFY_STATUS_OK);
 	}
 	
+	bool RunningOnBattery;
+	int32 PowerSourceNotification;
 	char AppNameUTF8[PATH_MAX+1];
 	char AppLogPath[PATH_MAX+1];
 	char CrashReportPath[PATH_MAX+1];
@@ -205,8 +238,10 @@ void FMacPlatformMisc::PlatformInit()
 
 	// Timer resolution.
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
-
+	
 	GMacAppInfo.Init();
+	
+	UE_LOG(LogInit, Log, TEXT("Power Source: %s"), GMacAppInfo.RunningOnBattery ? TEXT(kIOPSBatteryPowerValue) : TEXT(kIOPSACPowerValue) );
 }
 
 void FMacPlatformMisc::PlatformPostInit()
@@ -697,6 +732,10 @@ uint32 FMacPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 
 void FMacPlatformMisc::RequestExit( bool Force )
 {
 	UE_LOG(LogMac, Log,  TEXT("FPlatformMisc::RequestExit(%i)"), Force );
+	
+	notify_cancel(GMacAppInfo.PowerSourceNotification);
+	GMacAppInfo.PowerSourceNotification = 0;
+	
 	if( Force )
 	{
 		// Abort allows signal handler to know we aborted.
@@ -1114,6 +1153,11 @@ FString FMacPlatformMisc::GetDefaultLocale()
 FText FMacPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("MacPlatform", "FileManagerName", "Finder");
+}
+
+bool FMacPlatformMisc::IsRunningOnBattery()
+{
+	return GMacAppInfo.RunningOnBattery;
 }
 
 /** Global pointer to crash handler */

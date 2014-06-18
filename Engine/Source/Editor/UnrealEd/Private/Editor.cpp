@@ -1465,6 +1465,14 @@ float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmooth
 		}
 	}
 
+	// TTP 337189 - Laptops should throttle to 60 hz in editor to reduce battery drain
+	static const auto CVarDontLimitOnBattery = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DontLimitOnBattery"));
+	const bool bLimitOnBattery = (FPlatformMisc::IsRunningOnBattery() && CVarDontLimitOnBattery->GetValueOnGameThread() == 0);
+	if( bLimitOnBattery )
+	{
+		MaxTickRate = 60.0f;
+	}
+
 	return MaxTickRate;
 }
 

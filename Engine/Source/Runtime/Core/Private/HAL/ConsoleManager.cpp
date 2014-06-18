@@ -1928,6 +1928,12 @@ void CreateConsoleVariables()
 		TEXT("1: VSync is enabled."),
 		ECVF_Scalability | ECVF_RenderThreadSafe);
 
+	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.DontLimitOnBattery"),
+		0,
+		TEXT("0: Limit performance on devices with a battery.(default)\n")
+		TEXT("1: Do not limit performance due to device having a battery."),
+		ECVF_Scalability | ECVF_RenderThreadSafe);
+
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FinishCurrentFrame"),
 		0,
 		TEXT("If on, the current frame will be forced to finish and render to the screen instead of being buffered.  This will improve latency, but slow down overall performance."),

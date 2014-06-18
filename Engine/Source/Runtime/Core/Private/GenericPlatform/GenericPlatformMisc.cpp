@@ -713,3 +713,8 @@ FText FGenericPlatformMisc::GetFileManagerName()
 {
 	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
 }
+
+bool FGenericPlatformMisc::IsRunningOnBattery()
+{
+	return false;
+}

@@ -123,6 +123,11 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static FText GetFileManagerName();
 
 	static void UpdateWindowMenu();
+
+	/**
+	 * Returns whether the platform is running on battery power or not.
+	 */
+	static bool IsRunningOnBattery();
 };
 
 #ifdef __OBJC__
