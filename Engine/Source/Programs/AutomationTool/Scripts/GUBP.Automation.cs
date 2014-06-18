@@ -140,7 +140,7 @@ public class GUBP : BuildCommand
     {
         if (bBuildRocket)
         {
-            return " -NoSimplygon -NoSpeedTree " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+            return " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
         }
         return "";
     }
