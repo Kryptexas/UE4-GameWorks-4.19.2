@@ -999,7 +999,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				AddTonemapper(Context, BloomOutputCombined, EyeAdaptation, CombinedLUT);
 			}
 
-			if(AntiAliasingMethod == AAM_FXAA || (AntiAliasingMethod == AAM_TemporalAA && View.bCameraCut))
+			if(AntiAliasingMethod == AAM_FXAA)
 			{
 				AddPostProcessAA(Context);
 			}
