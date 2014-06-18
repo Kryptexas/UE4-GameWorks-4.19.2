@@ -461,9 +461,9 @@ void UPhysicsConstraintComponent::SetLinearDriveParams( float InSpring, float In
 	ConstraintInstance.SetLinearDriveParams(InSpring, InDamping, InForceLimit);
 }
 
-void UPhysicsConstraintComponent::SetAngularOrientationTarget( const FQuat& InPosTarget )
+void UPhysicsConstraintComponent::SetAngularOrientationTarget( const FRotator& InPosTarget )
 {
-	ConstraintInstance.SetAngularOrientationTarget(InPosTarget);
+	ConstraintInstance.SetAngularOrientationTarget(InPosTarget.Quaternion());
 }
 
 void UPhysicsConstraintComponent::SetAngularVelocityTarget( const FVector& InVelTarget )

@@ -158,7 +158,7 @@ public:
 	 *	@param InPosTarget		Target orientation
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
-	ENGINE_API void	SetAngularOrientationTarget(const FQuat& InPosTarget);
+	ENGINE_API void	SetAngularOrientationTarget(const FRotator& InPosTarget);
 
 	
 	/** Sets the target velocity for the angular drive. 
