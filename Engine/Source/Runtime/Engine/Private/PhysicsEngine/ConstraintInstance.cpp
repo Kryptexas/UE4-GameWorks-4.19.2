@@ -374,7 +374,15 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		float DriveSpring = bAngularOrientationDrive ? AngularDriveSpring : 0.0f;
 		float DriveDamping = bAngularVelocityDrive  ? AngularDriveDamping : 0.0f;
 
-		PD6Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bAccelerationDrive));
+		if (AngularDriveMode == EAngularDriveMode::SLERP)
+		{
+			PD6Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bAccelerationDrive));
+		}
+		else
+		{
+			PD6Joint->setDrive(PxD6Drive::eTWIST, PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bAccelerationDrive));
+			PD6Joint->setDrive(PxD6Drive::eSWING, PxD6JointDrive(DriveSpring, DriveDamping, AngularForceLimit, bAccelerationDrive));
+		}
 	}
 
 	FQuat OrientationTargetQuat(AngularOrientationTarget);
@@ -784,6 +792,10 @@ void FConstraintInstance::SetAngularDriveParams(float InSpring, float InDamping,
 	AngularDriveDamping = InDamping;
 	AngularDriveForceLimit = InForceLimit;
 }
+
+
+
+
 
 
 /** Scale Angular Limit Constraints (as defined in RB_ConstraintSetup) */
