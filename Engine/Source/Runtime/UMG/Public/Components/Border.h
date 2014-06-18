@@ -37,15 +37,19 @@ class UMG_API UBorder : public UContentWidget
 
 	/** Image to use for the border */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( DisplayThumbnail = "true" ))
-	USlateBrushAsset* BorderBrush;
+	USlateBrushAsset* Brush;
 
-	/** The scaling factor for the border */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
-	FVector2D DesiredSizeScale;
+	/** A bindable delegate for the Brush. */
+	UPROPERTY()
+	FGetSlateBrushAsset BrushDelegate;
 
 	/** Color and opacity of the actual border image */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FLinearColor BorderColorAndOpacity;
+	FLinearColor BrushColor;
+
+	/** A bindable delegate for the BrushColor. */
+	UPROPERTY()
+	FGetLinearColor BrushColorDelegate;
 
 	/** The foreground color of text and some glyphs that appear as the border's content. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -54,6 +58,10 @@ class UMG_API UBorder : public UContentWidget
 	/** Whether or not to show the disabled effect when this border is disabled */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool bShowEffectWhenDisabled;
+
+	/** The scaling factor for the border */
+	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
+	FVector2D DesiredSizeScale;
 
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseButtonDownEvent;

@@ -11,6 +11,10 @@ class UMG_API UTextBlock : public UWidget
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** The style to use to render the text */
+	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	USlateWidgetStyleAsset* Style;
+
 	/** The text to display */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
@@ -50,10 +54,6 @@ public:
 	/** True if we're wrapping text automatically based on the computed horizontal space for this widget */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	bool AutoWrapText;
-
-	/** The style to use to render the text */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
-	USlateWidgetStyleAsset* Style;
 
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)

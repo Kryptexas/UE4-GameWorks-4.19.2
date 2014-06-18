@@ -20,7 +20,7 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 	ContentColorAndOpacity = FLinearColor::White;
 
 	DesiredSizeScale = FVector2D(1.0f, 1.0f);
-	BorderColorAndOpacity = FLinearColor::White;
+	BrushColor = FLinearColor::White;
 	ForegroundColor = FLinearColor::Black;
 
 	SBorder::FArguments BorderDefaults;
@@ -45,7 +45,7 @@ void UBorder::SyncronizeProperties()
 	MyBorder->SetVAlign(VerticalAlignment);
 	MyBorder->SetPadding(ContentPadding);
 	
-	MyBorder->SetBorderBackgroundColor(BorderColorAndOpacity);
+	MyBorder->SetBorderBackgroundColor(BrushColor);
 	MyBorder->SetColorAndOpacity(ContentColorAndOpacity);
 	MyBorder->SetForegroundColor(ForegroundColor);
 	
@@ -74,13 +74,13 @@ void UBorder::SetContent(UWidget* InContent)
 
 const FSlateBrush* UBorder::GetBorderBrush() const
 {
-	if ( BorderBrush == NULL )
+	if ( Brush == NULL )
 	{
 		SBorder::FArguments BorderDefaults;
 		return BorderDefaults._BorderImage.Get();
 	}
 
-	return &BorderBrush->Brush;
+	return &Brush->Brush;
 }
 
 FReply UBorder::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent)

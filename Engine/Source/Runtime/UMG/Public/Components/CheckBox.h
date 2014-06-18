@@ -14,7 +14,7 @@ class UMG_API UCheckBox : public UWidget
 
 protected:
 	/** Style of the check box */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
+	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
 	/** Image to use when the checkbox is unchecked */
@@ -58,23 +58,23 @@ protected:
 	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
 
 	/** Whether the check box is currently in a checked state */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	bool bIsChecked;
 
 	/** How the content of the toggle button should align within the given space */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Spacing between the check box image and its content */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FMargin Padding;
 
 	/** Foreground color for the checkbox's content and parts */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateColor ForegroundColor;
 
 	/** The color of the background border */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateColor BorderBackgroundColor;
 
 	//SLATE_ATTRIBUTE( bool, ReadOnly )

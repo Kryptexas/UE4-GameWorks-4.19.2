@@ -35,13 +35,10 @@ TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
 	MyEditableTextBlock = SNew(SEditableTextBox)
-		.HintText(HintText)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
 		.ForegroundColor(ForegroundColor)
 		.BackgroundColor(BackgroundColor)
 		.ReadOnlyForegroundColor(ReadOnlyForegroundColor)
-		.IsReadOnly(IsReadOnly)
-		.IsPassword(IsPassword)
 		.MinDesiredWidth(MinimumDesiredWidth)
 		.Padding(Padding)
 		.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
@@ -60,9 +57,9 @@ void UEditableTextBlock::SyncronizeProperties()
 	Super::SyncronizeProperties();
 
 	MyEditableTextBlock->SetText(Text);
-//	MyEditableTextBlock->SetHintText(HintText);
-//	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
-//	MyEditableTextBlock->SetIsPassword(IsPassword);
+	MyEditableTextBlock->SetHintText(HintText);
+	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
+	MyEditableTextBlock->SetIsPassword(IsPassword);
 //	MyEditableTextBlock->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SEditableTextBox

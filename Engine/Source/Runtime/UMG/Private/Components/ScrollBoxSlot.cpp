@@ -9,7 +9,7 @@ UScrollBoxSlot::UScrollBoxSlot(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, Slot(NULL)
 {
-	HorizontalAlignment = HAlign_Left;
+	HorizontalAlignment = HAlign_Fill;
 }
 
 void UScrollBoxSlot::BuildSlot(TSharedRef<SScrollBox> ScrollBox)
