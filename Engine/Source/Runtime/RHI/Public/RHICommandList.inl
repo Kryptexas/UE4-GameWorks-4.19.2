@@ -26,6 +26,10 @@ struct FRHICommandPerShader : public FRHICommand
 
 struct FRHICommandNopEndOfPage : public FRHICommand
 {
+	enum
+	{
+		IsEndOfPage = 1
+	};
 };
 
 struct FRHICommandNopBlob : public FRHICommand
@@ -405,24 +409,12 @@ public:
 		CmdPtr += sizeof(T) + RHICmd->ExtraSize();
 		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
 		++NumCommands;
-		if (CmdPtr >= CmdTail)
+		if (T::IsEndOfPage || CmdPtr >= CmdTail)
 		{
 			Page = Page->NextPage;
 			CmdPtr = Page ? Page->Head : nullptr;
 			CmdTail = Page ? Page->Current : nullptr;
 		}
-
-		return RHICmd;
-	}
-
-	// Specialization for EndOfPage
-	template <>
-	FORCEINLINE FRHICommandNopEndOfPage* NextCommand<FRHICommandNopEndOfPage>()
-	{
-		auto* RHICmd = (FRHICommandNopEndOfPage*)CmdPtr;
-		Page = Page->NextPage;
-		CmdPtr = Page ? Page->Head : nullptr;
-		CmdTail = Page ? Page->Current : nullptr;
 
 		return RHICmd;
 	}

@@ -42,6 +42,11 @@ struct FRHICommand
 	{
 		return 0;
 	}
+
+	enum
+	{
+		IsEndOfPage = 0,
+	};
 };
 
 class RHI_API FRHICommandList
