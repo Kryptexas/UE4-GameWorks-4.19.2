@@ -75,8 +75,13 @@ public:
 			+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SNew(SImage)
-						.Image(this, &SSessionLauncherDeviceListRow::HandleDeviceImage)
+					SNew(SBox)
+						.WidthOverride(24)
+						.HeightOverride(24)
+						[
+							SNew(SImage)
+								.Image(this, &SSessionLauncherDeviceListRow::HandleDeviceImage)
+						]
 				]
 
 			+ SHorizontalBox::Slot()
@@ -165,13 +170,7 @@ private:
 	const FSlateBrush* HandleDeviceImage( ) const
 	{
 		const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceProxy->GetPlatformName());
-
-		if (PlatformInfo == nullptr)
-		{
-			return nullptr;
-		}
-
-		return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal));
+		return (PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the friendly name.

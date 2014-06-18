@@ -95,7 +95,6 @@ public:
 		else if (ColumnName == "Platform")
 		{
 			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*InstanceInfo->GetPlatformName());
-			check(PlatformInfo);
 
 			return SNew(SHorizontalBox)
 
@@ -103,8 +102,13 @@ public:
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				[
-					SNew(SImage)
-						.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
+					SNew(SBox)
+						.WidthOverride(24)
+						.HeightOverride(24)
+						[
+							SNew(SImage)
+								.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+						]
 				]
 
 			+ SHorizontalBox::Slot()

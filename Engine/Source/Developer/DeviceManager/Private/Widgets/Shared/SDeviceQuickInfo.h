@@ -242,12 +242,13 @@ private:
 		if (DeviceService.IsValid())
 		{
 			const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(*DeviceService->GetDeviceId().GetPlatformName());
-			check(PlatformInfo);
-
-			return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge));
+			if(PlatformInfo)
+			{
+				return FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::XLarge));
+			}
 		}
 
-		return NULL;
+		return FStyleDefaults::GetNoBrush();
 	}
 
 	// Callback for getting the name of the device's platform.

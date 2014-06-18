@@ -110,7 +110,6 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow( TSharedPtr<FString> PlatformName, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**PlatformName);
-	check(PlatformInfo);
 
 	return SNew(STableRow<TSharedPtr<FString> >, OwnerTable)
 		.Content()
@@ -126,8 +125,13 @@ TSharedRef<ITableRow> SDeviceBrowserFilterBar::HandlePlatformListViewGenerateRow
 					+ SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							SNew(SImage)
-								.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
+							SNew(SBox)
+								.WidthOverride(24)
+								.HeightOverride(24)
+								[
+									SNew(SImage)
+										.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+								]
 						]
 
 					+ SHorizontalBox::Slot()

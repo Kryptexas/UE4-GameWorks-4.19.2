@@ -300,7 +300,6 @@ FString SDeviceBrowserDeviceAdder::HandlePlatformComboBoxContentText( ) const
 TSharedRef<SWidget> SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWidget( TSharedPtr<FString> Item )
 {
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(**Item);
-	check(PlatformInfo);
 
 	return
 		SNew(SHorizontalBox)
@@ -309,8 +308,13 @@ TSharedRef<SWidget> SDeviceBrowserDeviceAdder::HandlePlatformComboBoxGenerateWid
 			.AutoWidth()
 			.HAlign(HAlign_Left)
 			[
-				SNew(SImage)
-					.Image(FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)))
+				SNew(SBox)
+					.WidthOverride(24)
+					.HeightOverride(24)
+					[
+						SNew(SImage)
+							.Image((PlatformInfo) ? FEditorStyle::GetBrush(PlatformInfo->GetIconStyleName(PlatformInfo::EPlatformIconSize::Normal)) : FStyleDefaults::GetNoBrush())
+					]
 			]
 
 		+ SHorizontalBox::Slot()
