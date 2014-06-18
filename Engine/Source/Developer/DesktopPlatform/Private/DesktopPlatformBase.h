@@ -33,6 +33,8 @@ public:
 	virtual bool SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier) override;
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) override;
 
+	virtual bool OpenProject(const FString& ProjectFileName) override;
+
 	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) override;
 	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;
 	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) override;

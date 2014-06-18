@@ -6,6 +6,7 @@
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
+	#include <shellapi.h>
 	#include <shlobj.h>
 	#include <Winver.h>
 #include "HideWindowsPlatformTypes.h"
@@ -473,6 +474,20 @@ bool FDesktopPlatformWindows::UpdateFileAssociations()
 	}
 
 	return true;
+}
+
+bool FDesktopPlatformWindows::OpenProject(const FString &ProjectFileName)
+{
+	// Always treat projects as an Unreal.ProjectFile, don't allow the user overriding the file association to take effect
+	SHELLEXECUTEINFO Info;
+	ZeroMemory(&Info, sizeof(Info));
+	Info.cbSize = sizeof(Info);
+	Info.fMask = SEE_MASK_CLASSNAME;
+	Info.lpVerb = TEXT("open");
+	Info.nShow = SW_SHOWNORMAL;
+	Info.lpFile = *ProjectFileName;
+	Info.lpClass = TEXT("Unreal.ProjectFile");
+	return ::ShellExecuteExW(&Info) != 0;
 }
 
 bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn)

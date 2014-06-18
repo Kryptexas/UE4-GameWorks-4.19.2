@@ -297,6 +297,12 @@ bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString &ProjectF
 	return false;
 }
 
+bool FDesktopPlatformBase::OpenProject(const FString& ProjectFileName)
+{
+	FPlatformProcess::LaunchFileInDefaultExternalApplication(*ProjectFileName);
+	return true;
+}
+
 bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedbackContext* Warn)
 {
 	// Begin a task

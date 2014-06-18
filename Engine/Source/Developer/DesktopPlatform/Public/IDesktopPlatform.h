@@ -287,6 +287,14 @@ public:
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
 
 	/**
+	* Opens the given project with the appropriate editor. Tries to use the shell association.
+	*
+	* @param ProjectFileName	Filename of the project to update
+	* @return true if the project was opened successfully.
+	*/
+	virtual bool OpenProject(const FString& ProjectFileName) = 0;
+
+	/**
 	* Cleans a game project. Removes the intermediate folder and binary build products.
 	*
 	* @param ProjectDirName		Directory for the project
