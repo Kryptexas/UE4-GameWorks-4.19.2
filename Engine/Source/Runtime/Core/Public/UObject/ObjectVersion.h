@@ -556,6 +556,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STORE_BONE_EXPORT_NAMES,
 	// changed mesh emitter initial orientation to distribution
 	VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION,
+	// Foliage on blueprints causes crashes
+	VER_UE4_DISALLOW_FOLIAGE_ON_BLUEPRINTS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
