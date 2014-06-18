@@ -9,8 +9,12 @@
 #include "EnvironmentQuery/EQSTestingPawn.h"
 
 #if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+#include "EngineUtils.h"
+
+extern UNREALED_API class UEditorEngine* GEditor;
+#endif // WITH_EDITOR
 
 DEFINE_LOG_CATEGORY(LogEQS);
 

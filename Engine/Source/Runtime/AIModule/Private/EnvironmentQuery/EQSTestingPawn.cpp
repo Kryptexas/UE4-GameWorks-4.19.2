@@ -8,6 +8,16 @@
 #include "EnvironmentQuery/EnvQueryManager.h"
 #include "EnvironmentQuery/EQSRenderingComponent.h"
 
+#if WITH_EDITORONLY_DATA
+#include "Components/ArrowComponent.h"
+#endif // WITH_EDITORONLY_DATA
+
+#if WITH_EDITOR
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+extern UNREALED_API class UEditorEngine* GEditor;
+#endif // WITH_EDITOR
+
 #include "Engine/Selection.h"
 #include "Components/BillboardComponent.h"
 
