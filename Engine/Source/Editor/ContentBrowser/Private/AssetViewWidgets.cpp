@@ -133,10 +133,8 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 
 	bDraggedOver = false;
 
-	CachePackageName();
-	AssetPackage = FindObjectSafe<UPackage>(NULL, *CachedPackageName);
 	bPackageDirty = false;
-	UpdatePackageDirtyState();
+	OnAssetDataChanged();
 
 	AssetItem->OnAssetDataChanged.AddSP(this, &SAssetViewItem::OnAssetDataChanged);
 
@@ -352,6 +350,17 @@ void SAssetViewItem::OnAssetDataChanged()
 	AssetPackage = FindObjectSafe<UPackage>(NULL, *CachedPackageName);
 	UpdatePackageDirtyState();
 
+	AssetTypeActions.Reset();
+	if ( AssetItem->GetType() != EAssetItemType::Folder )
+	{
+		UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.AssetClass.ToString());
+		if (AssetClass)
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(AssetClass).Pin();
+		}
+	}
+
 	if ( InlineRenameWidget.IsValid() )
 	{
 		InlineRenameWidget->SetText( GetNameText() );
@@ -360,6 +369,30 @@ void SAssetViewItem::OnAssetDataChanged()
 
 void SAssetViewItem::DirtyStateChanged()
 {
+}
+
+FText SAssetViewItem::GetAssetClassText() const
+{
+	if (AssetItem.IsValid())
+	{
+		if (AssetItem->GetType() != EAssetItemType::Folder)
+		{
+			if (AssetTypeActions.IsValid())
+			{
+				return AssetTypeActions.Pin()->GetName();
+			}
+			else
+			{
+				return FText::FromName(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.AssetClass);
+			}
+		}
+		else
+		{
+			return LOCTEXT("FolderName", "Folder");
+		}
+	}
+
+	return FText();
 }
 
 const FSlateBrush* SAssetViewItem::GetSCCStateImage() const
@@ -401,7 +434,7 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 
 			// The tooltip contains the name, class, path, and asset registry tags
 			const FText NameText = FText::FromName( AssetData.AssetName );
-			const FText ClassText = FText::Format( LOCTEXT("ClassName", "({0})"), FText::FromName( AssetData.AssetClass ) );
+			const FText ClassText = FText::Format( LOCTEXT("ClassName", "({0})"), GetAssetClassText() );
 
 
 			// Create a box to hold every line of info in the body of the tooltip
@@ -668,24 +701,12 @@ FString SAssetViewItem::GetCheckedOutByOtherText() const
 
 FText SAssetViewItem::GetAssetUserDescription() const
 {
-	if (AssetItem.IsValid())
+	if (AssetItem.IsValid() && AssetTypeActions.IsValid())
 	{
 		if (AssetItem->GetType() != EAssetItemType::Folder)
 		{
 			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
-			FText AssetClass = FText::FromName(AssetData.AssetClass);
-
-			if (UClass* AssetClassObj = FindObject<UClass>(ANY_PACKAGE, *AssetClass.ToString()))
-			{
-				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-				TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(AssetClassObj);
-
-				if (AssetTypeActions.IsValid())
-				{
-					FText Description = AssetTypeActions.Pin()->GetAssetDescription(AssetData);
-					return Description;
-				}
-			}
+			return AssetTypeActions.Pin()->GetAssetDescription(AssetData);
 		}
 	}
 
@@ -819,6 +840,10 @@ FSlateColor SAssetViewItem::GetAssetColor() const
 				return *Color.Get();
 			}
 		}
+		else if(AssetTypeActions.IsValid())
+		{
+			return AssetTypeActions.Pin()->GetTypeColor().ReinterpretAsLinear();
+		}
 	}
 	return ContentBrowserUtils::GetDefaultColor();
 }
@@ -893,23 +918,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	ItemHeight = InArgs._ItemHeight;
 
 	const float ThumbnailPadding = InArgs._ThumbnailPadding;
-
-	FText AssetClass;
 	bool bIsDeveloperFolder = false;
-
-	if(AssetItem.IsValid())
-	{
-		if(AssetItem->GetType() != EAssetItemType::Folder)
-		{
-			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
-			AssetClass = FText::FromName(AssetData.AssetClass);
-		}
-		else
-		{
-			AssetClass = LOCTEXT("FolderName", "Folder");
-			bIsDeveloperFolder = StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->bDeveloperFolder;
-		}
-	}
 
 	TSharedPtr<SWidget> Thumbnail;
 	if ( AssetItem.IsValid() && AssetThumbnail.IsValid() )
@@ -1034,9 +1043,9 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 				.Padding(0, 1)
 				[
 					// Class
-					SNew(STextBlock)
+					SAssignNew(ClassText, STextBlock)
 					.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetListViewClassFont"))
-					.Text(AssetClass)
+					.Text(GetAssetClassText())
 				]
 			]
 		]
@@ -1059,6 +1068,11 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAssetListItem::OnAssetDataChanged()
 {
 	SAssetViewItem::OnAssetDataChanged();
+
+	if (ClassText.IsValid())
+	{
+		ClassText->SetText(GetAssetClassText());
+	}
 
 	SetToolTip( CreateToolTipWidget() );
 }
@@ -1425,33 +1439,6 @@ void SAssetColumnItem::OnAssetDataChanged()
 	}
 }
 
-FSlateColor SAssetColumnItem::GetAssetColor() const
-{
-	FSlateColor AssetTypeColor = SAssetViewItem::GetAssetColor();
-
-	if(AssetItem.IsValid())
-	{
-		if(AssetItem->GetType() != EAssetItemType::Folder)
-		{
-			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
-			FText AssetClass = FText::FromName(AssetData.AssetClass);
-
-			if (UClass* AssetClassObj = FindObject<UClass>(ANY_PACKAGE, *AssetClass.ToString()))
-			{
-				FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-				TWeakPtr<IAssetTypeActions> AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(AssetClassObj);
-
-				if (AssetTypeActions.IsValid())
-				{
-					AssetTypeColor = AssetTypeActions.Pin()->GetTypeColor().ReinterpretAsLinear();
-				}
-			}
-		}
-	}
-
-	return AssetTypeColor;
-}
-
 FString SAssetColumnItem::GetAssetNameToolTipText() const
 {
 	if ( AssetItem.IsValid() )
@@ -1480,23 +1467,6 @@ FString SAssetColumnItem::GetAssetNameToolTipText() const
 	{
 		return FString();
 	}
-}
-
-FText SAssetColumnItem::GetAssetClassText() const
-{
-	if ( AssetItem.IsValid() )
-	{
-		if(AssetItem->GetType() != EAssetItemType::Folder)
-		{
-			return FText::FromName(StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data.AssetClass);
-		}
-		else
-		{
-			return LOCTEXT("FolderName", "Folder");
-		}
-	}
-
-	return FText();
 }
 
 FText SAssetColumnItem::GetAssetPathText() const

@@ -122,6 +122,9 @@ protected:
 	/** Notification for when the dirty flag changes */
 	virtual void DirtyStateChanged();
 
+	/** Gets the name of the class of this asset */
+	FText GetAssetClassText() const;
+
 	/** Gets the brush for the source control indicator image */
 	const FSlateBrush* GetSCCStateImage() const;
 
@@ -176,6 +179,9 @@ protected:
 
 	/** The package containing the asset that this item represents */
 	TWeakObjectPtr<UPackage> AssetPackage;
+
+	/** The asset type actions associated with the asset that this item represents */
+	TWeakPtr<IAssetTypeActions> AssetTypeActions;
 
 	/** The cached name of the package containing the asset that this item represents */
 	FString CachedPackageName;
@@ -332,6 +338,9 @@ private:
 
 	/** The height allowed for this item */
 	TAttribute<float> ItemHeight;
+
+	/** The text block containing the class name */
+	TSharedPtr<STextBlock> ClassText;
 };
 
 /** An item in the asset tile view */
@@ -478,15 +487,9 @@ public:
 	/** Handles committing a name change */
 	virtual void OnAssetDataChanged() override;
 
-	/** Returns the color this item should be tinted with */
-	virtual FSlateColor GetAssetColor() const override;
-
 private:
 	/** Gets the tool tip text for the name */
 	FString GetAssetNameToolTipText() const;
-
-	/** Gets the name of the class of this asset */
-	FText GetAssetClassText() const;
 
 	/** Gets the path to this asset */
 	FText GetAssetPathText() const;
