@@ -407,30 +407,7 @@ void UTransBuffer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 
 int32 UTransBuffer::Begin( const TCHAR* SessionContext, const FText& Description )
 {
-	CheckState();
-	const int32 Result = ActiveCount;
-	if (ActiveCount++ == 0)
-	{
-		// Cancel redo buffer.
-		if( UndoCount )
-		{
-			UndoBuffer.RemoveAt( UndoBuffer.Num()-UndoCount, UndoCount );
-		}
-		UndoCount = 0;
-
-		// Purge previous transactions if too much data occupied.
-		while( GetUndoSize() > MaxMemory )
-		{
-			UndoBuffer.RemoveAt( 0 );
-		}
-
-		// Begin a new transaction.
-		GUndo = new(UndoBuffer)FTransaction( SessionContext, Description, 1 );
-	}
-	const int32 PriorRecordsCount = (Result > 0 ? ActiveRecordCounts[Result - 1] : 0);
-	ActiveRecordCounts.Add(UndoBuffer.Last().GetRecordCount() - PriorRecordsCount);
-	CheckState();
-	return Result;
+	return BeginInternal<FTransaction>(SessionContext, Description);
 }
 
 
@@ -457,7 +434,7 @@ int32 UTransBuffer::End()
 		ActiveRecordCounts.Pop();
 		CheckState();
 	}
-	return ActiveCount;
+	return Result;
 }
 
 

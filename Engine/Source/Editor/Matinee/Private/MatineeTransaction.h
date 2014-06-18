@@ -9,8 +9,8 @@ class FMatineeTransaction : public FTransaction
 {
 public:
 
-	FMatineeTransaction( const FText& InTitle=FText(), bool InFlip=0 )
-		:	FTransaction(TEXT("Matinee"), InTitle, InFlip)
+	FMatineeTransaction( const TCHAR* InContext = nullptr, const FText& InTitle=FText(), bool InFlip=0 )
+		:	FTransaction(InContext, InTitle, InFlip)
 	{ }
 
 public:
