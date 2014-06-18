@@ -756,6 +756,14 @@ namespace UnrealBuildTool
 						{
 							UEBuildConfiguration.bPrepForDeployment = true;
 						}
+						else if (LowercaseArg == "-generateexternalfilelist")
+						{
+							UEBuildConfiguration.bGenerateExternalFileList = true;
+						}
+						else if (LowercaseArg == "-mergeexternalfilelist")
+						{
+							UEBuildConfiguration.bMergeExternalFileList = true;
+						}
 						else if (LowercaseArg == "-generatemanifest")
 						{
 							// Generate a manifest file containing all the files required to be in Perforce
@@ -1144,7 +1152,7 @@ namespace UnrealBuildTool
 				if (BuildResult == ECompilationResult.Succeeded &&
 					(
 						(BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) ||
-						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject)
+						(!GeneratingActionGraph && !ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !UEBuildConfiguration.bGenerateExternalFileList)
 					))
 				{
 					// Plan the actions to execute for the build.

@@ -125,6 +125,14 @@ namespace UnrealBuildTool
 		}
 	}
 
+	/// <summary>
+	/// A list of extenal files required to build a given target
+	/// </summary>
+	public class ExternalFileList
+	{
+		public readonly List<string> FileNames = new List<string>();
+	}
+
 	public class OnlyModule
 	{
 		public OnlyModule(string InitOnlyModuleName)
@@ -1006,6 +1014,94 @@ namespace UnrealBuildTool
 			}
 		}
 
+		/** Generates a list of external files which are required to build this target */
+		public void GenerateExternalFileList()
+		{
+			string FileListPath = "../Intermediate/Build/ExternalFiles.xml";
+
+			// Find all the external modules
+			HashSet<string> ModuleNames = new HashSet<string>();
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				foreach(UEBuildModule Module in Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false))
+				{
+					UEBuildExternalModule ExternalModule = Module as UEBuildExternalModule;
+					if(ExternalModule != null)
+					{
+						ModuleNames.Add(ExternalModule.Name);
+					}
+				}
+			}
+
+			// Create a set of filenames
+			HashSet<string> FileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+
+			// Add all their include paths
+			foreach(string ModuleName in ModuleNames)
+			{
+				// Create the module rules
+				string ModuleRulesFileName;
+				ModuleRules Rules = RulesCompiler.CreateModuleRules(ModuleName, GetTargetInfo(), out ModuleRulesFileName);
+
+				// Add the rules file itself
+				FileNames.Add(ModuleRulesFileName);
+
+				// Add all the libraries
+				foreach(string LibraryName in Rules.PublicAdditionalLibraries)
+				{
+					foreach(string LibraryPath in Rules.PublicLibraryPaths.Where(x => !x.StartsWith("$(")))
+					{
+						string LibraryFileName = Path.Combine(LibraryPath, LibraryName);
+						if(File.Exists(LibraryFileName))
+						{
+							FileNames.Add(LibraryFileName);
+						}
+					}
+				}
+
+				// Find all the include paths
+				List<string> AllIncludePaths = new List<string>();
+				AllIncludePaths.AddRange(Rules.PublicIncludePaths);
+				AllIncludePaths.AddRange(Rules.PublicSystemIncludePaths);
+
+				// Add all the include paths
+				foreach(string IncludePath in AllIncludePaths.Where(x => !x.StartsWith("$(")))
+				{
+					foreach(string IncludeFileName in Directory.EnumerateFiles(IncludePath, "*", SearchOption.AllDirectories))
+					{
+						string Extension = Path.GetExtension(IncludeFileName).ToLower();
+						if(Extension == ".h" || Extension == ".inl")
+						{
+							FileNames.Add(IncludeFileName);
+						}
+					}
+				}
+			}
+
+			// Normalize all the filenames
+			HashSet<string> NormalizedFileNames = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+			foreach(string FileName in FileNames)
+			{
+				string NormalizedFileName = Path.GetFullPath(FileName).Replace('\\', '/');
+				NormalizedFileNames.Add(NormalizedFileName);
+			}
+
+			// Add the existing filenames
+			if(UEBuildConfiguration.bMergeExternalFileList)
+			{
+				foreach(string FileName in Utils.ReadClass<ExternalFileList>(FileListPath).FileNames)
+				{
+					NormalizedFileNames.Add(FileName);
+				}
+			}
+
+			// Write the output list
+			ExternalFileList FileList = new ExternalFileList();
+			FileList.FileNames.AddRange(NormalizedFileNames);
+			FileList.FileNames.Sort();
+			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
+		}
+
 		/** Generates a public manifest file for writing out */
         public void GenerateManifest(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, List<string> SpecialRocketLibFilesThatAreBuildProducts)
 		{
@@ -1342,6 +1438,13 @@ namespace UnrealBuildTool
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac)
 			{
 				MacToolChain.SetupBundleDependencies(AppBinaries, GameName);
+			}
+
+			// Generate the external file list 
+			if(UEBuildConfiguration.bGenerateExternalFileList)
+			{
+				GenerateExternalFileList();
+				return ECompilationResult.Succeeded;
 			}
 
 			// If we're only generating the manifest, return now

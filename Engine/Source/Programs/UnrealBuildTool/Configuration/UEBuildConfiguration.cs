@@ -67,6 +67,14 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileLeanAndMeanUE;
 
+		/** Whether to generate a list of external files that are required to build a target */
+		[XmlConfig]
+		public static bool bGenerateExternalFileList;
+
+		/** Whether to merge to the existing list of external files */
+		[XmlConfig]
+		public static bool bMergeExternalFileList;
+
 		/** Whether to generate a manifest file that contains the files to add to Perforce */
 		[XmlConfig]
 		public static bool bGenerateManifest;

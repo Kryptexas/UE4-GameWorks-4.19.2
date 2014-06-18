@@ -46,7 +46,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, Project, AdditionalArgs);
+				CmdLine = String.Format("{0} {1} {2} -Project={3} {4}", Target, Platform, Config, CommandUtils.MakePathSafeToUseWithCommandLine(Project), AdditionalArgs);
 			}
 			return CmdLine;
 		}
