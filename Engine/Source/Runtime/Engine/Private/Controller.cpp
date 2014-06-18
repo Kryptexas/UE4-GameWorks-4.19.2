@@ -150,7 +150,7 @@ void AController::GetPlayerViewPoint( FVector& out_Location, FRotator& out_Rotat
 	GetActorEyesViewPoint( out_Location, out_Rotation);
 }
 
-bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks)
+bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks) const
 {
 	if( !Other )
 	{

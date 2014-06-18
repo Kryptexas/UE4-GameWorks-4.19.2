@@ -254,7 +254,7 @@ void AAIController::ClearFocus(uint8 InPriority)
 	}
 }
 
-bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks)
+bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAlternateChecks) const
 {
 	if( !Other )
 	{
