@@ -1370,6 +1370,9 @@ namespace ObjectTools
 
 		GWarn->EndSlowTask();
 
+		// Let the package auto-saver know that it needs to ignore the deleted packages
+		GUnrealEd->GetPackageAutoSaver().OnPackagesDeleted(PackagesToDelete);
+
 		// Unload the packages and collect garbage.
 		if ( PackagesToDelete.Num() > 0 )
 		{

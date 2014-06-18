@@ -97,12 +97,12 @@ FFrontendFilter_Modified::FFrontendFilter_Modified(TSharedPtr<FFrontendFilterCat
 	: FFrontendFilter(InCategory)
 	, bIsCurrentlyActive(false)
 {
-	UPackage::PackageDirtyStateUpdatedEvent.AddRaw(this, &FFrontendFilter_Modified::OnPackageDirtyStateUpdated);
+	UPackage::PackageDirtyStateChangedEvent.AddRaw(this, &FFrontendFilter_Modified::OnPackageDirtyStateUpdated);
 }
 
 FFrontendFilter_Modified::~FFrontendFilter_Modified()
 {
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 }
 
 void FFrontendFilter_Modified::ActiveStateChanged(bool bActive)

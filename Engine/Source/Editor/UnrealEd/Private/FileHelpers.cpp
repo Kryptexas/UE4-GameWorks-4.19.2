@@ -1814,7 +1814,7 @@ void FEditorFileUtils::ResetLevelFilenames()
 	MainFrameModule.SetLevelNameForWindowTitle(EmptyFilename);
 }
 
-bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex)
+bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
 	const FScopedBusyCursor BusyCursor;
 	bool bResult  = false;
@@ -1841,7 +1841,7 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 			check( Package );
 
 			// If this world needs saving . . .
-			if ( Package->IsDirty() )
+			if ( Package->IsDirty() && (bForceIfNotInList || DirtyPackagesForAutoSave.Contains(Package)) )
 			{
 				const FString AutosaveFilename = GetAutoSaveFilename(Package, AbsoluteAutosaveDir, AutosaveIndex, FPackageName::GetMapPackageExtension());
 				//UE_LOG(LogFileHelpers, Log,  TEXT("Autosaving '%s'"), *AutosaveFilename );
@@ -1881,7 +1881,7 @@ bool FEditorFileUtils::AutosaveMap(const FString& AbsoluteAutosaveDir, const int
 	return bResult;
 }
 
-bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex)
+bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave)
 {
 	const FScopedBusyCursor BusyCursor;
 	double SaveStartTime = FPlatformTime::Seconds();
@@ -1895,7 +1895,7 @@ bool FEditorFileUtils::AutosaveContentPackages(const FString& AbsoluteAutosaveDi
 		UPackage* CurPackage = *PackageIter;
 
 		// If the package is dirty and is not the transient package, we'd like to autosave it
-		if ( CurPackage && ( CurPackage != TransientPackage ) && CurPackage->IsDirty() )
+		if ( CurPackage && ( CurPackage != TransientPackage ) && CurPackage->IsDirty() && (bForceIfNotInList || DirtyPackagesForAutoSave.Contains(CurPackage)) )
 		{
 			UWorld* MapWorld = UWorld::FindWorldInPackage(CurPackage);
 			// Also, make sure this is not a map package

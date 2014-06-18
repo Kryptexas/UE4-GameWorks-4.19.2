@@ -39,7 +39,7 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	PackageAutoSaver->LoadRestoreFile();
 
 	// Register for the package dirty state updated callback to catch packages that have been modified and need to be checked out.
-	UPackage::PackageDirtyStateUpdatedEvent.AddUObject(this, &UUnrealEdEngine::OnPackageDirtyStateUpdated);
+	UPackage::PackageDirtyStateChangedEvent.AddUObject(this, &UUnrealEdEngine::OnPackageDirtyStateUpdated);
 	
 	// Register to the PostGarbageCollect delegate, as we want to use this to trigger the RefreshAllBroweser delegate from 
 	// here rather then from Core
@@ -223,7 +223,7 @@ void UUnrealEdEngine::FinishDestroy()
 		PackageAutoSaver.Reset();
 	}
 
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 	FCoreDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreDelegates::ColorPickerChanged.RemoveAll(this);
 	Super::FinishDestroy();

@@ -36,12 +36,12 @@ void FFormatTextDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		InputsCategory.AddCustomBuilder( Layout.ToSharedRef() );
 	}
 
-	UPackage::PackageDirtyStateUpdatedEvent.AddSP(this, &FFormatTextDetails::OnEditorPackageModified);
+	UPackage::PackageDirtyStateChangedEvent.AddSP(this, &FFormatTextDetails::OnEditorPackageModified);
 }
 
 FFormatTextDetails::~FFormatTextDetails()
 {
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 }
 
 void FFormatTextDetails::OnForceRefresh()

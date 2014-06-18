@@ -9,10 +9,17 @@
 /** Delegate to notify subscribers when a package has been saved. This is triggered when the package saving
  *  has completed and was successful. */
 UPackage::FOnPackageSaved UPackage::PackageSavedEvent;
-/** Delegate to notify subscribers about the dirty state of a package being set.
+/** Delegate to notify subscribers when the dirty state of a package is changed.
  *  Allows the editor to register the modified package as one that should be prompted for source control checkout. 
  *  Use Package->IsDirty() to get the updated dirty state of the package */
-UPackage::FOnPackageDirtyStateUpdated UPackage::PackageDirtyStateUpdatedEvent;
+UPackage::FOnPackageDirtyStateChanged UPackage::PackageDirtyStateChangedEvent;
+/** 
+ * Delegate to notify subscribers when a package is marked as dirty via UObjectBaseUtilty::MarkPackageDirty 
+ * Note: Unlike FOnPackageDirtyStateChanged, this is always called, even when the package is already dirty
+ * Use bWasDirty to check the previous dirty state of the package
+ * Use Package->IsDirty() to get the updated dirty state of the package
+ */
+UPackage::FOnPackageMarkedDirty UPackage::PackageMarkedDirtyEvent;
 
 void UPackage::PostInitProperties()
 {
@@ -57,7 +64,7 @@ void UPackage::SetDirtyFlag( bool bIsDirty )
 			&& GetTransientPackage() != this )			// Skip the transient package
 		{
 			// Package is changing dirty state, let the editor know so we may prompt for source control checkout
-			PackageDirtyStateUpdatedEvent.Broadcast(this);
+			PackageDirtyStateChangedEvent.Broadcast(this);
 		}
 	}
 }

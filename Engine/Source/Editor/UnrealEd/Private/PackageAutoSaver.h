@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __PACKAGEAUTOSAVER_H__
-#define __PACKAGEAUTOSAVER_H__
+#pragma once
 
 #include "IPackageAutoSaver.h"
 
@@ -24,6 +23,7 @@ public:
 	virtual void UpdateRestoreFile(const bool bRestoreEnabled) const override;
 	virtual bool HasPackagesToRestore() const override;
 	virtual void OfferToRestorePackages() override;
+	virtual void OnPackagesDeleted(const TArray<UPackage*>& DeletedPackages) override;
 	virtual bool IsAutoSaving() const override
 	{
 		return bIsAutoSaving;
@@ -36,6 +36,14 @@ private:
 	 * @param Pkg The package that was changed
 	 */
 	void OnPackageDirtyStateUpdated(UPackage* Pkg);
+
+	/**
+	 * Called when a package is marked as dirty
+	 *
+	 * @param Pkg The package that was marked as dirty
+	 * @param bWasDirty Whether the package was previously dirty before the call to MarkPackageDirty
+	 */
+	void OnMarkPackageDirty(UPackage* Pkg, bool bWasDirty);
 
 	/**
 	 * Called when a package has been saved
@@ -98,6 +106,12 @@ private:
 	/** Flag for whether auto-save warning notification has been launched */
 	bool bAutoSaveNotificationLaunched;
 
+	/** Were we saving worlds last time an auto-save ran? */
+	bool bWasAutoSavingMaps;
+
+	/** Were we saving worlds last time an auto-save ran? */
+	bool bWasAutoSavingContent;
+
 	/** If we are delaying the time a little bit because we failed to save */
 	bool bDelayingDueToFailedSave;
 
@@ -107,8 +121,9 @@ private:
 	/** Packages that have been dirtied and not saved by the user, mapped to their latest auto-save file */
 	TMap<TWeakObjectPtr<UPackage>, FString> DirtyPackagesForUserSave;
 
+	/** Packages that have been dirtied and not saved by the auto-saver */
+	TSet<TWeakObjectPtr<UPackage>> DirtyPackagesForAutoSave;
+
 	/** Restore information that was loaded following a crash */
 	TMap<FString, FString> PackagesThatCanBeRestored;
 };
-
-#endif // __PACKAGEAUTOSAVER_H__

@@ -105,18 +105,22 @@ public:
 	 *
 	 * @param	AbsoluteAutosaveDir			Autosave directory.
 	 * @param	AutosaveIndex				Integer prepended to autosave filenames..
+	 * @param	bForceIfNotInList			Should the save be forced if the package is dirty, but not in DirtyPackagesForAutoSave?
+	 * @param	DirtyPackagesForAutoSave	A set of packages that are considered by the auto-save system to be dirty, you should check this to see if a package needs saving
 	 */
-	static bool AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex);
+	static bool AutosaveMap(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave);
 
 	/**
 	 * Saves all asset packages to the specified directory.
 	 *
 	 * @param	AbsoluteAutosaveDir			Autosave directory.
 	 * @param	AutosaveIndex				Integer prepended to autosave filenames.
+	 * @param	bForceIfNotInList			Should the save be forced if the package is dirty, but not in DirtyPackagesForAutoSave?
+	 * @param	DirtyPackagesForAutoSave	A set of packages that are considered by the auto-save system to be dirty, you should check this to see if a package needs saving
 	 *
 	 * @return	true if one or more packages were autosaved; false otherwise
 	 */
-	static bool AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex);
+	static bool AutosaveContentPackages(const FString& AbsoluteAutosaveDir, const int32 AutosaveIndex, const bool bForceIfNotInList, const TSet< TWeakObjectPtr<UPackage> >& DirtyPackagesForAutoSave);
 
 	/**
 	 * Looks at all currently loaded packages and saves them if their "bDirty" flag is set, optionally prompting the user to select which packages to save)

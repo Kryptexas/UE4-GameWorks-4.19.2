@@ -42,6 +42,14 @@ namespace PackageAutoSaverJson
 	 * @param DirtyPackages		Packages that may have auto-saves that they could be restored from
 	 */
 	void SaveRestoreFile(const bool bRestoreEnabled, const TMap< TWeakObjectPtr<UPackage>, FString >& DirtyPackages);
+
+	/** @return whether the auto-save restore should be enabled (you can force this to true when testing with a debugger attached) */
+	bool IsRestoreEnabled()
+	{
+		// Note: Restore is disabled when running under the debugger, as programmers
+		// like to just kill applications and we don't want this to count as a crash
+		return !FPlatformMisc::IsDebuggerPresent();
+	}
 }
 
 
@@ -57,8 +65,17 @@ FPackageAutoSaver::FPackageAutoSaver()
 	, bIsAutoSaving(false)
 	, bDelayingDueToFailedSave(false)
 {
-	// Register for the package dirty state updated callback to catch packages that have been modified and need to be saved
-	UPackage::PackageDirtyStateUpdatedEvent.AddRaw(this, &FPackageAutoSaver::OnPackageDirtyStateUpdated);
+	const UEditorLoadingSavingSettings* LoadingSavingSettings = GetDefault<UEditorLoadingSavingSettings>();
+
+	// Set these to the current setting value
+	bWasAutoSavingMaps = LoadingSavingSettings->bAutoSaveMaps;
+	bWasAutoSavingContent = LoadingSavingSettings->bAutoSaveContent;
+
+	// Register for the package dirty state updated callback to catch packages that have been cleaned without being saved
+	UPackage::PackageDirtyStateChangedEvent.AddRaw(this, &FPackageAutoSaver::OnPackageDirtyStateUpdated);
+
+	// Register for the "MarkPackageDirty" callback to catch packages that have been modified and need to be saved
+	UPackage::PackageMarkedDirtyEvent.AddRaw(this, &FPackageAutoSaver::OnMarkPackageDirty);
 
 	// Register for the package modified callback to catch packages that have been saved
 	UPackage::PackageSavedEvent.AddRaw(this, &FPackageAutoSaver::OnPackageSaved);
@@ -66,7 +83,8 @@ FPackageAutoSaver::FPackageAutoSaver()
 
 FPackageAutoSaver::~FPackageAutoSaver()
 {
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
+	UPackage::PackageMarkedDirtyEvent.RemoveAll(this);
 	UPackage::PackageSavedEvent.RemoveAll(this);
 }
 
@@ -151,12 +169,18 @@ void FPackageAutoSaver::AttemptAutoSave()
 
 			if (LoadingSavingSettings->bAutoSaveMaps)
 			{
-				bLevelSaved = FEditorFileUtils::AutosaveMap(AutoSaveDir, NewAutoSaveIndex);
+				// If we weren't saving worlds when we last ran an auto-save, we need to forcibly save any that are dirty
+				// as DirtyPackagesForAutoSave gets cleared each time an auto-save is run, so may not be up-to-date for the new settings
+				const bool bForceSaveWorlds = !bWasAutoSavingMaps && LoadingSavingSettings->bAutoSaveMaps;
+				bLevelSaved = FEditorFileUtils::AutosaveMap(AutoSaveDir, NewAutoSaveIndex, bForceSaveWorlds, DirtyPackagesForAutoSave);
 			}
 
 			if (LoadingSavingSettings->bAutoSaveContent && UnrealEdMisc.GetAutosaveState() != FUnrealEdMisc::EAutosaveState::Cancelled)
 			{
-				bAssetsSaved = FEditorFileUtils::AutosaveContentPackages(AutoSaveDir, NewAutoSaveIndex);
+				// If we weren't saving content packages when we last ran an auto-save, we need to forcibly save any that are dirty
+				// as DirtyPackagesForAutoSave gets cleared each time an auto-save is run, so may not be up-to-date for the new settings
+				const bool bForceSaveContentPackages = !bWasAutoSavingContent && LoadingSavingSettings->bAutoSaveContent;
+				bAssetsSaved = FEditorFileUtils::AutosaveContentPackages(AutoSaveDir, NewAutoSaveIndex, bForceSaveContentPackages, DirtyPackagesForAutoSave);
 			}
 
 			if (bLevelSaved || bAssetsSaved)
@@ -165,10 +189,7 @@ void FPackageAutoSaver::AttemptAutoSave()
 				AutoSaveIndex = NewAutoSaveIndex;
 
 				// Update the restore information
-				// Note: Restore is disabled when running under the debugger, as programmers
-				// like to just kill applications and we don't want this to count as a crash
-				const bool bIsRunningUnderDebugger = FPlatformMisc::IsDebuggerPresent();
-				UpdateRestoreFile(!bIsRunningUnderDebugger);
+				UpdateRestoreFile(PackageAutoSaverJson::IsRestoreEnabled());
 			}
 
 			ResetAutoSaveTimer();
@@ -177,6 +198,13 @@ void FPackageAutoSaver::AttemptAutoSave()
 			if (UnrealEdMisc.GetAutosaveState() == FUnrealEdMisc::EAutosaveState::Cancelled)
 			{
 				UE_LOG(PackageAutoSaver, Warning, TEXT("Autosave was cancelled."));
+			}
+			else
+			{
+				DirtyPackagesForAutoSave.Empty();
+
+				bWasAutoSavingMaps = LoadingSavingSettings->bAutoSaveMaps;
+				bWasAutoSavingContent = LoadingSavingSettings->bAutoSaveContent;
 			}
 
 			bIsAutoSaving = false;
@@ -238,7 +266,25 @@ void FPackageAutoSaver::OfferToRestorePackages()
 	}
 }
 
+void FPackageAutoSaver::OnPackagesDeleted(const TArray<UPackage*>& DeletedPackages)
+{
+	ClearStalePointers();
+
+	for(UPackage* DeletedPackage : DeletedPackages)
+	{
+		DirtyPackagesForAutoSave.Remove(DeletedPackage);
+		DirtyPackagesForUserSave.Remove(DeletedPackage);
+	}
+
+	UpdateRestoreFile(PackageAutoSaverJson::IsRestoreEnabled());
+}
+
 void FPackageAutoSaver::OnPackageDirtyStateUpdated(UPackage* Pkg)
+{
+	UpdateDirtyListsForPackage(Pkg);
+}
+
+void FPackageAutoSaver::OnMarkPackageDirty(UPackage* Pkg, bool bWasDirty)
 {
 	UpdateDirtyListsForPackage(Pkg);
 }
@@ -275,11 +321,20 @@ void FPackageAutoSaver::UpdateDirtyListsForPackage(UPackage* Pkg)
 		if(Pkg->IsDirty())
 		{
 			// Always add the package to the user list
-			// Note: Packages get dirtied again after they're auto-saved
 			DirtyPackagesForUserSave.FindOrAdd(Pkg);
+
+			// Only add the package to the auto-save list if we're not auto-saving
+			// Note: Packages get dirtied again after they're auto-saved, so this would add them back again, which we don't want
+			if(!IsAutoSaving())
+			{
+				DirtyPackagesForAutoSave.Add(Pkg);
+			}
 		}
 		else
 		{
+			// Always remove the package from the auto-save list
+			DirtyPackagesForAutoSave.Remove(Pkg);
+
 			// Only remove the package from the user list if we're not auto-saving
 			// Note: Packages call this even when auto-saving, so this would remove them from the user list, which we don't want as they're still dirty
 			if(!IsAutoSaving())
@@ -287,10 +342,7 @@ void FPackageAutoSaver::UpdateDirtyListsForPackage(UPackage* Pkg)
 				if(DirtyPackagesForUserSave.Remove(Pkg))
 				{
 					// Update the restore information too
-					// Note: Restore is disabled when running under the debugger, as programmers
-					// like to just kill applications and we don't want this to count as a crash
-					const bool bIsRunningUnderDebugger = FPlatformMisc::IsDebuggerPresent();
-					UpdateRestoreFile(!bIsRunningUnderDebugger);
+					UpdateRestoreFile(PackageAutoSaverJson::IsRestoreEnabled());
 				}
 			}
 		}
@@ -318,9 +370,14 @@ bool FPackageAutoSaver::DoPackagesNeedAutoSave() const
 {
 	const UEditorLoadingSavingSettings* LoadingSavingSettings = GetDefault<UEditorLoadingSavingSettings>();
 
-	const bool bHasDirtyPackagesForAutoSave = DirtyPackagesForUserSave.Num() != 0;
-	const bool bWorldsMightBeDirty = LoadingSavingSettings->bAutoSaveMaps && bHasDirtyPackagesForAutoSave;
-	const bool bContentPackagesMightBeDirty = LoadingSavingSettings->bAutoSaveContent && bHasDirtyPackagesForAutoSave;
+	// If we weren't saving worlds or content packages when we last ran an auto-save, we need to forcibly save any that are dirty
+	// as DirtyPackagesForAutoSave gets cleared each time an auto-save is run, so may not be up-to-date for the new settings
+	const bool bForceSaveWorlds = !bWasAutoSavingMaps && LoadingSavingSettings->bAutoSaveMaps;
+	const bool bForceSaveContentPackages = !bWasAutoSavingContent && LoadingSavingSettings->bAutoSaveContent;
+
+	const bool bHasDirtyPackagesForAutoSave = DirtyPackagesForAutoSave.Num() != 0;
+	const bool bWorldsMightBeDirty = LoadingSavingSettings->bAutoSaveMaps && (bForceSaveWorlds || bHasDirtyPackagesForAutoSave);
+	const bool bContentPackagesMightBeDirty = LoadingSavingSettings->bAutoSaveContent && (bForceSaveContentPackages || bHasDirtyPackagesForAutoSave);
 	const bool bPackagesNeedAutoSave = bWorldsMightBeDirty || bContentPackagesMightBeDirty;
 
 	return bPackagesNeedAutoSave;
@@ -334,7 +391,7 @@ FText FPackageAutoSaver::GetAutoSaveNotificationText(const int32 TimeInSecondsUn
 		// Count down the time
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("TimeInSecondsUntilAutosave"), TimeInSecondsUntilAutosave);
-		Args.Add(TEXT("DirtyPackagesCount"), DirtyPackagesForUserSave.Num());
+		Args.Add(TEXT("DirtyPackagesCount"), DirtyPackagesForAutoSave.Num());
 		return (DirtyPackagesForUserSave.Num() == 1)
 			? FText::Format(NSLOCTEXT("AutoSaveNotify", "AutoSaveIn", "Autosave in {TimeInSecondsUntilAutosave} seconds"), Args)
 			: FText::Format(NSLOCTEXT("AutoSaveNotify", "AutoSaveXPackagesIn", "Autosave in {TimeInSecondsUntilAutosave} seconds for {DirtyPackagesCount} items"), Args);
@@ -500,6 +557,16 @@ void FPackageAutoSaver::ClearStalePointers()
 		if(!Package.IsValid())
 		{
 			DirtyPackagesForUserSave.Remove(Package);
+		}
+	}
+
+	auto DirtyPackagesForAutoSaveTmp = DirtyPackagesForAutoSave;
+	for(auto It = DirtyPackagesForAutoSaveTmp.CreateConstIterator(); It; ++It)
+	{
+		const TWeakObjectPtr<UPackage>& Package = *It;
+		if(!Package.IsValid())
+		{
+			DirtyPackagesForAutoSave.Remove(Package);
 		}
 	}
 }

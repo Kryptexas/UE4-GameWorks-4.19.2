@@ -122,7 +122,7 @@ private:
 
 SLevelEditorBuildAndSubmit::~SLevelEditorBuildAndSubmit()
 {
-	UPackage::PackageDirtyStateUpdatedEvent.RemoveAll(this);
+	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 
 	ISourceControlModule::Get().GetProvider().UnregisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
 }
@@ -276,7 +276,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 
 	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
 
-	UPackage::PackageDirtyStateUpdatedEvent.AddRaw(this, &SLevelEditorBuildAndSubmit::OnEditorPackageModified);
+	UPackage::PackageDirtyStateChangedEvent.AddRaw(this, &SLevelEditorBuildAndSubmit::OnEditorPackageModified);
 }
 
 void SLevelEditorBuildAndSubmit::OnEditorPackageModified(UPackage* Package)
