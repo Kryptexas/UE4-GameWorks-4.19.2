@@ -886,22 +886,6 @@ public:
 			SetSelection_GameThread(true);
 		}
 #endif
-		FMatrix LocalToWorld = InComponent->GetComponentToWorld().ToMatrixWithScale();
-
-		// Copy and cache any per-instance data that we need
-		if( InComponent->PerInstanceSMData.Num() > 0 )
-		{
-			PerInstanceSMData.AddUninitialized( InComponent->PerInstanceSMData.Num() );
-			for( int32 CurInstanceIndex = 0; CurInstanceIndex < InComponent->PerInstanceSMData.Num(); ++CurInstanceIndex )
-			{
-				const FInstancedStaticMeshInstanceData& CurInstanceComponentData = InComponent->PerInstanceSMData[ CurInstanceIndex ];
-				FInstancedStaticMeshSceneProxyInstanceData& CurInstanceSceneProxyData = PerInstanceSMData[ CurInstanceIndex ];
-
-				// Cache instance -> world transform
-				CurInstanceSceneProxyData.InstanceToWorld = CurInstanceComponentData.Transform * LocalToWorld;
-			}
-		}
-
 		// Make sure all the materials are okay to be rendered as an instanced mesh.
 		for (int32 LODIndex = 0; LODIndex < LODs.Num(); LODIndex++)
 		{
@@ -987,10 +971,6 @@ public:
 	}
 
 private:
-
-	/** Array of per-instance static mesh rendering data for the scene proxy */
-	TArray< FInstancedStaticMeshSceneProxyInstanceData > PerInstanceSMData;
-
 	/** Per component render data */
 	FInstancedStaticMeshRenderData InstancedRenderData;
 
@@ -1478,14 +1458,8 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 
 void UInstancedStaticMeshComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	// Here we assume that per instance data holds absolute positions
-	// so we need to shift only instances locations but not the component location
-	for (int32 InstanceIdx = 0; InstanceIdx < PerInstanceSMData.Num(); ++InstanceIdx)
-	{
-		FInstancedStaticMeshInstanceData& Data = PerInstanceSMData[InstanceIdx];
-		Data.Transform = Data.Transform.ConcatTranslation(InOffset);
-	}
-
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
+	// We still need to recreate buffers with instance data, as they holds absolute transformations right now
 	MarkRenderStateDirty();
 }
 

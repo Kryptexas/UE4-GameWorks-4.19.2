@@ -60,13 +60,9 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 
 	friend FArchive& operator<<( FArchive& Ar, FFoliageInstance& Instance );
 
-	FMatrix GetInstanceTransform() const
+	FTransform GetInstanceWorldTransform() const
 	{
-		FMatrix InstanceTransform = FScaleMatrix(DrawScale3D);
-		InstanceTransform *= FRotationMatrix(Rotation);
-		InstanceTransform *= FTranslationMatrix(Location);
-		check( !InstanceTransform.ContainsNaN() );
-		return InstanceTransform;
+		return FTransform(Rotation, Location, DrawScale3D);
 	}
 
 	void AlignToNormal( const FVector& InNormal, float AlignMaxAngle=0.f )

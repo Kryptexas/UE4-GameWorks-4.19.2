@@ -378,7 +378,7 @@ void FEdModeFoliage::GetRandomVectorInBrush( FVector& OutStart, FVector& OutEnd 
 
 bool CheckCollisionWithWorld(UInstancedFoliageSettings* MeshSettings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation,UWorld* InWorld)
 {
-	FMatrix InstTransform = Inst.GetInstanceTransform();
+	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
 	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
 
 	if ( MeshSettings->CollisionWithWorld )
@@ -480,7 +480,7 @@ struct FPotentialInstance
 		// Apply the Z offset in local space
 		if( FMath::Abs(Inst.ZOffset) > KINDA_SMALL_NUMBER )
 		{
-			Inst.Location = Inst.GetInstanceTransform().TransformPosition(FVector(0,0,Inst.ZOffset));
+			Inst.Location = Inst.GetInstanceWorldTransform().TransformPosition(FVector(0,0,Inst.ZOffset));
 		}
 
 		Inst.Base = HitComponent;
@@ -808,7 +808,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush( UWorld* InWorld, AInstancedFoliag
 			if( FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER )
 			{
 				MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-				Instance.Location = Instance.GetInstanceTransform().TransformPosition(FVector(0,0,-Instance.ZOffset));
+				Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0,0,-Instance.ZOffset));
 				bReapplyLocation = true;
 			}
 
@@ -1042,7 +1042,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush( UWorld* InWorld, AInstancedFoliag
 			if( bUpdated && FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER )
 			{
 				// Reapply the Z offset in new local space
-				Instance.Location = Instance.GetInstanceTransform().TransformPosition(FVector(0,0,Instance.ZOffset));
+				Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0,0,Instance.ZOffset));
 			}
 
 			// Re-add to the hash

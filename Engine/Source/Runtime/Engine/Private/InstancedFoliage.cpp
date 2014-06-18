@@ -225,12 +225,12 @@ void FFoliageMeshInfo::CheckValid()
 		{
 			int32 InstanceIdx = Indices(InstIdx);
 
-			FMatrix InstanceTransform = Instances(InstanceIdx).GetInstanceTransform();
-			FMatrix& CompTransform = Comp->PerInstanceSMData(InstIdx).Transform;
-			
-			if( InstanceTransform != CompTransform )
+			FTransform InstanceToWorldEd = Instances(InstanceIdx).GetInstanceTransform();
+			FTransform InstanceToWorldCluster = Comp->PerInstanceSMData(InstIdx).Transform * Comp->GetComponentToWorld();
+	
+			if( !InstanceToWorldEd.Equals(InstanceToWorldCluster) )
 			{
-				CompTransform = InstanceTransform;
+				Comp->PerInstanceSMData(InstIdx).Transform = InstanceToWorldEd.ToMatrixWithScale();
 				MismatchCount++;
 			}
 		}
@@ -288,14 +288,14 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 	}
 
 	// Calculate transform for the instance
-	FMatrix InstanceTransform = InNewInstance.GetInstanceTransform();
+	FTransform InstanceToWorld = InNewInstance.GetInstanceWorldTransform();
 
 	if( BestCluster == NULL )
 	{
 		BestClusterIndex = InstanceClusters.Num();
 		BestCluster = new(InstanceClusters) FFoliageInstanceCluster(
 			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),InIFA,NAME_None,RF_Transactional),
-			InMesh->GetBounds().TransformBy(InstanceTransform)
+			InMesh->GetBounds().TransformBy(InstanceToWorld)
 			);
 
 		// Make the instanced static mesh component movable so it doesn't get statically lit; see the comment below about CastShadow for more details
@@ -320,7 +320,7 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 
 		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&Settings->BodyInstance);
 
-		BestCluster->ClusterComponent->SetRelativeTransform(FTransform::Identity);
+		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
 		BestCluster->ClusterComponent->RegisterComponent();
 	}
 	else
@@ -335,7 +335,7 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 	AddedInstance.ClusterIndex = BestClusterIndex;
 	
 	// Add the instance to the component
-	BestCluster->ClusterComponent->AddInstance(FTransform(InstanceTransform));
+	BestCluster->ClusterComponent->AddInstanceWorldSpace(InstanceToWorld);
 
 	if( BestCluster->ClusterComponent->SelectedInstances.Num() > 0 )
 	{
@@ -343,7 +343,7 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 	}
 
 	// Update the bounds for the cluster
-	BestCluster->Bounds = BestCluster->ClusterComponent->CalcBounds(FTransform::Identity);
+	BestCluster->Bounds = BestCluster->ClusterComponent->CalcBounds(BestCluster->ClusterComponent->ComponentToWorld);
 
 	// Update PrimitiveComponent's culling distance taking into account the radius of the bounds, as
 	// it is based on the center of the component's bounds.
@@ -512,10 +512,12 @@ void FFoliageMeshInfo::PostUpdateInstances( class AInstancedFoliageActor* InIFA,
 			Cluster.ClusterComponent->MarkRenderStateDirty();
 
 			// Update bounds
-			FMatrix InstanceTransform = Instance.GetInstanceTransform();
-			Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
-			// Update transform in InstancedStaticMeshComponent
-			Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+			FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+			Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
+			// Update transform in InstancedStaticMeshComponent (in component local space)
+			// Transform from world space to local space
+			FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+			Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 			Cluster.ClusterComponent->InvalidateLightingCache();
 		}
 		
@@ -809,7 +811,7 @@ void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfi
 
 				// Test location should remove any Z offset
 				FVector TestLocation = FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER
-					?	(FVector)Instance.GetInstanceTransform().TransformPosition(FVector(0,0,-Instance.ZOffset))
+					?	(FVector)Instance.GetInstanceWorldTransform().TransformPosition(FVector(0,0,-Instance.ZOffset))
 					:	Instance.Location;
 
 				if( InInstanceBox.IsInside(TestLocation) )
@@ -855,7 +857,7 @@ void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfi
 								// Reapply the Z offset in local space
 								if( FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER )
 								{
-									Instance.Location = Instance.GetInstanceTransform().TransformPosition(FVector(0,0,Instance.ZOffset));
+									Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0,0,Instance.ZOffset));
 								}
 
 								// Todo: add do validation with other parameters such as max/min height etc.
@@ -874,11 +876,12 @@ void AInstancedFoliageActor::SnapInstancesForLandscape( class ULandscapeHeightfi
 									Cluster.ClusterComponent->MarkRenderStateDirty();
 									
 									// Update bounds
-									FMatrix InstanceTransform = Instance.GetInstanceTransform();
-									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
+									FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+									Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
 									
 									// Update transform in InstancedStaticMeshComponent
-									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+									FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+									Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 									Cluster.ClusterComponent->InvalidateLightingCache();
 								}
 
@@ -957,10 +960,11 @@ void AInstancedFoliageActor::MoveInstancesForMovedComponent( class UActorCompone
 					Cluster.ClusterComponent->MarkRenderStateDirty();
 					bUpdatedInstances = true;
 					// Update bounds
-					FMatrix InstanceTransform = Instance.GetInstanceTransform();
-					Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceTransform);
+					FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
+					Cluster.Bounds = Cluster.Bounds + Cluster.ClusterComponent->StaticMesh->GetBounds().TransformBy(InstanceToWorld);
 					// Update transform in InstancedStaticMeshComponent
-					Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceTransform;
+					FTransform InstanceToLocal = InstanceToWorld.GetRelativeTransform(Cluster.ClusterComponent->ComponentToWorld);
+					Cluster.ClusterComponent->PerInstanceSMData[ClusterInstanceDataIndex].Transform = InstanceToLocal.ToMatrixWithScale();
 					Cluster.ClusterComponent->InvalidateLightingCache();
 				}
 
@@ -1422,10 +1426,10 @@ void AInstancedFoliageActor::MapRebuild()
 					FFoliageInstance NewInstance = Instance;
 					NewInstance.ClusterIndex = -1;
 					
-					FMatrix InstanceTransform(Instance.GetInstanceTransform());
+					FTransform InstanceToWorld = Instance.GetInstanceWorldTransform();
 					FVector Down(-FVector::UpVector);
-					FVector Start(InstanceTransform.TransformPosition(FVector::UpVector));
-					FVector End(InstanceTransform.TransformPosition(Down));
+					FVector Start(InstanceToWorld.TransformPosition(FVector::UpVector));
+					FVector End(InstanceToWorld.TransformPosition(Down));
 
 					FHitResult Result;
 					bool bHit = World->LineTraceSingle(Result, Start, End, FCollisionQueryParams(true), FCollisionObjectQueryParams(ECC_WorldStatic));
