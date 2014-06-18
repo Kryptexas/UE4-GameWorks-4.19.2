@@ -657,7 +657,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 			MaterialIndex = 0;
 		}
 	
-		RawMesh.FaceMaterialIndices[DestTriangleIndex] = FMath::Min( MaterialIndex, MAX_MESH_MATERIAL_INDEX );
+		RawMesh.FaceMaterialIndices[DestTriangleIndex] = MaterialIndex;
 	}
 
 
