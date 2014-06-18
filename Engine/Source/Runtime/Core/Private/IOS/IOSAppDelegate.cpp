@@ -17,6 +17,8 @@
 DEFINE_LOG_CATEGORY(LogIOSAudioSession);
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
+extern bool GShowSplashScreen;
+
 static void SignalHandler(int32 Signal, struct __siginfo* Info, void* Context)
 {
 	static int32 bHasEntered = 0;
@@ -72,6 +74,7 @@ void InstallSignalHandlers()
 @synthesize IOSView;
 @synthesize IOSController;
 @synthesize SlateController;
+@synthesize timer;
 
 -(void) ParseCommandLineOverrides
 {
@@ -126,8 +129,9 @@ void InstallSignalHandlers()
 	FAppEntry::Init();
 
 	bEngineInit = true;
+    GShowSplashScreen = false;
 
-	while( !GIsRequestingExit ) 
+	while( !GIsRequestingExit )
 	{
         if (self.bIsSuspended)
         {
@@ -161,6 +165,18 @@ void InstallSignalHandlers()
 	FAppEntry::Shutdown();
     
     self.bHasStarted = false;
+}
+
+-(void)timerForSplashScreen
+{
+    if (!GShowSplashScreen)
+    {
+        if ([self.Window viewWithTag:2] != nil)
+        {
+            [[self.Window viewWithTag:2] removeFromSuperview];
+        }
+        [timer invalidate];
+    }
 }
 
 - (void)NoUrlCommandLine
@@ -374,12 +390,26 @@ void InstallSignalHandlers()
 	CGRect MainFrame = [[UIScreen mainScreen] bounds];
 	self.Window = [[UIWindow alloc] initWithFrame:MainFrame];
 	self.Window.screen = [UIScreen mainScreen];
-
+    
 	//Make this the primary window, and show it.
 	[self.Window makeKeyAndVisible];
 
 	FAppEntry::PreInit(self, application);
-
+    
+    // add the default image as a subview
+    NSMutableString* path = [[NSMutableString alloc]init];
+    [path setString: [[NSBundle mainBundle] resourcePath]];
+    [path setString: [path stringByAppendingPathComponent:@"Default.png"]];
+    UIImage* image = [[UIImage alloc] initWithContentsOfFile: path];
+    [path release];
+    UIImageView* imageView = [[UIImageView alloc] initWithImage: image];
+    imageView.frame = MainFrame;
+    imageView.tag = 2;
+    [self.Window addSubview: imageView];
+    GShowSplashScreen = true;
+    
+    timer = [NSTimer scheduledTimerWithTimeInterval: 0.05f target:self selector:@selector(timerForSplashScreen) userInfo:nil repeats:YES];
+    
 	// create a new thread (the pointer will be retained forever)
 	NSThread* GameThread = [[NSThread alloc] initWithTarget:self selector:@selector(MainAppThread:) object:launchOptions];
 	[GameThread setStackSize:GAME_THREAD_STACK_SIZE];
@@ -396,6 +426,7 @@ void InstallSignalHandlers()
 #endif
 
 	[self InitializeAudioSession];
+    
 	return YES;
 }
 

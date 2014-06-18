@@ -175,7 +175,7 @@ public partial class Project : CommandUtils
 			// Engine ufs (content)
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Config"), "*", true, null, null, false, !Params.Pak);
 
-			if (Params.bUsesSlate && SC.IsCodeBasedProject)
+			if (Params.bUsesSlate)
 			{
 				if (Params.bUsesSlateEditorStyle)
 				{

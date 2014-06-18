@@ -1295,11 +1295,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 		GetMoviePlayer()->Initialize();
 		GetMoviePlayer()->PlayMovie();
-	}
-#endif
 
-	// do any post appInit processing, before the render thread is started.
-	FPlatformMisc::PlatformPostInit();
+        // do any post appInit processing, before the render thread is started.
+        FPlatformMisc::PlatformPostInit(GetMoviePlayer()->IsMovieCurrentlyPlaying());
+    }
+    else
+#endif
+    {
+        // do any post appInit processing, before the render thread is started.
+        FPlatformMisc::PlatformPostInit(false);
+    }
 
 	if (GUseThreadedRendering)
 	{

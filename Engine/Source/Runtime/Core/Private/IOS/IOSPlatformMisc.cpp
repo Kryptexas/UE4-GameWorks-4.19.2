@@ -16,6 +16,9 @@ CORE_API int32 GStartupFreeMemoryMB;
 /** Global pointer to memory warning handler */
 void (* GMemoryWarningHandler)(const FGenericMemoryWarningContext& Context) = NULL;
 
+/** global for showing the splash screen */
+bool GShowSplashScreen = true;
+
 static int32 GetFreeMemoryMB()
 {
 	// get free memory
@@ -52,6 +55,11 @@ void FIOSPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT("High frequency timer resolution =%f MHz"), 0.000001 / FPlatformTime::GetSecondsPerCycle() );
 	GStartupFreeMemoryMB = GetFreeMemoryMB();
 	UE_LOG(LogInit, Log, TEXT("Free Memory at startup: %d MB"), GStartupFreeMemoryMB);
+}
+
+void FIOSPlatformMisc::PlatformPostInit(bool IsMoviePlaying)
+{
+    GShowSplashScreen = !IsMoviePlaying;
 }
 
 GenericApplication* FIOSPlatformMisc::CreateApplication()

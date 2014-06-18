@@ -565,6 +565,11 @@ public class IOSPlatform : Platform
 				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", GlobalCommandLine.Rocket, false, "embedded.mobileprovision");
 			}
 		}
+
+		// copy the movies from the project
+		{
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/IOS/Resources/Movies"), "*", false, null, "", true, false);
+		}
 	}
 
 	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)

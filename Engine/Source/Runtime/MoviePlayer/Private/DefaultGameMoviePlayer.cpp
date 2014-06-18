@@ -261,10 +261,15 @@ void FDefaultGameMoviePlayer::SetupLoadingScreenFromIni()
 	{
 		// look in the settings for a list of loading movies
 		GetMutableDefault<UMoviePlayerSettings>()->LoadConfig();
-		const TArray<FFilePath>& StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
+		TArray<FFilePath> StartupMovies = GetDefault<UMoviePlayerSettings>()->StartupMovies;
 
-		// if we didn't have any, nothing to do here
-		if (StartupMovies.Num() > 0)
+		// if we didn't have any, add default_startup, movie streamers should gracefully handle not finding this movie
+		if (StartupMovies.Num() == 0)
+        {
+            FFilePath defaultMovie;
+            defaultMovie.FilePath = TEXT("Default_Startup");
+            StartupMovies.Add(defaultMovie);
+        }
 		{
 			// fill out the attributes
 			FLoadingScreenAttributes LoadingScreen;

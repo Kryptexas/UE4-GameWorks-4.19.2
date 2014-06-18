@@ -12,6 +12,7 @@
 struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
+    static void PlatformPostInit(bool IsMoviePlaying = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();

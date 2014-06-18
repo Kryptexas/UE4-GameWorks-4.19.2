@@ -12,7 +12,7 @@
 struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformInit();
-	static void PlatformPostInit();
+	static void PlatformPostInit(bool IsMoviePlaying = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static TArray<uint8> GetMacAddress();

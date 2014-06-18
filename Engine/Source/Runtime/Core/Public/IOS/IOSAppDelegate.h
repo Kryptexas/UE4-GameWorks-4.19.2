@@ -55,6 +55,8 @@ UITextFieldDelegate>
 
 @property bool bDeviceInPortraitMode;
 
+@property (retain) NSTimer* timer;
+
 #if !UE_BUILD_SHIPPING
 	/** Properties for managing the console */
 	@property (nonatomic, retain) UIAlertView*		ConsoleAlert;
