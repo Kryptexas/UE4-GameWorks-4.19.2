@@ -9,6 +9,10 @@
 #include "WinHttp.h"
 #endif 
 
+#if PLATFORM_HTML5_BROWSER
+#include "HTML5JavaScriptFx.h"
+#endif 
+
 
 FHTTPTransport::FHTTPTransport()
 	:Guid(FGuid::NewGuid())
@@ -17,7 +21,6 @@ FHTTPTransport::FHTTPTransport()
 
 bool FHTTPTransport::Initialize(const TCHAR* HostIp)
 {
-	TCHAR Url[1048];
 	FCString::Sprintf( Url, TEXT("http://%s:%d"), HostIp, (int)DEFAULT_FILE_SERVING_PORT); 
 
 #if !PLATFORM_HTML5
@@ -119,11 +122,13 @@ bool FHTTPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uin
 #endif 
 
 #if PLATFORM_HTML5_BROWSER
-	UE_SendAndRecievePayLoad("http://127.0.0.1:9000",(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
-	Out.Append(OutData,OutSize); 
-	// don't go through the Unreal Memory system. 
-	::free (OutData); 
-
+	UE_SendAndRecievePayLoad(TCHAR_TO_ANSI(Url),(char*)Ar.GetData(),Ar.Num(),(char**)&OutData,(int*)&OutSize);
+	if (OutSize)
+	{
+		Out.Append(OutData,OutSize); 
+		// don't go through the Unreal Memory system. 
+		::free (OutData); 
+	}
 	return true; 
 #endif 
 #endif

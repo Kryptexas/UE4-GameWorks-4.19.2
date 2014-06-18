@@ -2,7 +2,10 @@
 #pragma once
 #if ENABLE_HTTP_FOR_NFS
 #include "ITransport.h"
+
+#if !PLATFORM_HTML5
 #include "Http.h"
+#endif 
 
 class FHTTPTransport : public ITransport
 {
@@ -22,6 +25,7 @@ private:
 #endif 
 
 	FGuid Guid; 
+	TCHAR Url[1048];
 
 };
 #endif

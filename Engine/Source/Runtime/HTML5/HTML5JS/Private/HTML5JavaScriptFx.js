@@ -8,15 +8,14 @@ var UE_JavaScriptLibary =
 
 		var request = new XMLHttpRequest();
 		if (insize && indata) {
-			var postData = Module.HEAP8.subarray(indata, indata + insize);
-			request.open('POST', _url, false);
+		    var postData = Module.HEAP8.subarray(indata, indata + insize);
+		    request.open('POST', _url, false);
+		    request.overrideMimeType('text\/plain; charset=x-user-defined'); 
 			request.send(postData);
 		} else {
 			request.open('GET', _url, false);
 			request.send();
 		}
-
-		console.log("Fetching " + _url +  request.lenght);
 
 		if (request.status != 200) {
 			console.log("Fetching " + _url + " failed: " + request.responseText);
@@ -28,7 +27,7 @@ var UE_JavaScriptLibary =
 		}
 
 		// we got the XHR result as a string.  We need to write this to Module.HEAP8[outdataptr]
-		var replyString = request.response;
+		var replyString = request.responseText;
 		var replyLength = replyString.length;
 
 		var outdata = Module._malloc(replyLength);
@@ -44,7 +43,7 @@ var UE_JavaScriptLibary =
 		// tears and crying.  Copy from the result-string into the heap.
 		var replyDest = Module.HEAP8.subarray(outdata, outdata + replyLength);
 		for (var i = 0; i < replyLength; ++i) {
-			replyDest[i] = replyString.charCodeAt(i);
+			replyDest[i] = replyString.charCodeAt(i) &  0xff;
 		}
 
 		Module.HEAP32[outsizeptr >> 2] = replyLength;
