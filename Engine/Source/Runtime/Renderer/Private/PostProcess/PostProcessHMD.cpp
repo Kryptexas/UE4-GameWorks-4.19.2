@@ -57,7 +57,7 @@ class FPostProcessHMDVS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return !IsOpenGLPlatform(Platform);
+		return true;
 	}
 
 	/** Default constructor. */
@@ -103,7 +103,7 @@ class FPostProcessHMDPS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return !IsOpenGLPlatform(Platform);
+		return true;
 	}
 
 	/** Default constructor. */
