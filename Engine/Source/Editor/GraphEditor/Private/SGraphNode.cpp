@@ -112,8 +112,8 @@ void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 
 bool SGraphNode::IsNodeEditable() const
 {
-	bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
-	return IsEditable.Get() && !bReadOnly;
+	bool bIsEditable = OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->IsGraphEditable() : true;
+	return IsEditable.Get() && bIsEditable;
 }
 
 /** Set event when node is double clicked */
