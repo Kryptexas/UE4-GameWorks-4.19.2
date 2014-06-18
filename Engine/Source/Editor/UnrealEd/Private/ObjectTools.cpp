@@ -438,9 +438,6 @@ namespace ObjectTools
 		// Replace all references
 		FArchiveReplaceObjectRef<UObject> ReplaceAr( DupObject, ReplacementMap, false, true, true );
 
-		// if possible, we should branch in source control here.
-		SourceControlHelpers::BranchFile(SourceControlHelpers::PackageFilename(ReturnObject->GetOutermost()), SourceControlHelpers::PackageFilename(Object->GetOutermost()));
-
 		return ReturnObject;
 	}
 		
@@ -2420,9 +2417,6 @@ namespace ObjectTools
 			{
 				FAssetRegistryModule::AssetCreated(NewRedirector);
 			}
-
-			// if possible, we should branch in source control here.
-			SourceControlHelpers::BranchFile(SourceControlHelpers::PackageFilename(NewPackage), SourceControlHelpers::PackageFilename(OldPackage));
 
 			// Saw Successful Rename
 			InOutErrorMessage = FText::FromString( ErrorMessage );
