@@ -30,6 +30,11 @@ public:
 
 	virtual bool IsConnected() const override;
 
+	virtual bool DontUpdateValueWhileEditing() const override
+	{
+		return true;
+	}
+
 	/** IStructureDetailsView interface */
 	virtual TSharedPtr<SWidget> GetWidget() override
 	{

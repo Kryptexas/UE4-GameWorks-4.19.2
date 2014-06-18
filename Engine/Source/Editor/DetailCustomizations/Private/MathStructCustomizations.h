@@ -148,6 +148,7 @@ private:
 		: bIgnoreAlpha( false )
 		, bIsInlineColorPickerVisible(false)
 		, bIsInteractive(false)
+		, bDontUpdateWhileEditing(false)
 	{}
 
 	/** FMathStructCustomization interface */
@@ -235,5 +236,7 @@ private:
 	bool bIsInteractive;
 	/** Cached widget for the color picker to use as a parent */
 	TSharedPtr<SWidget> ColorPickerParentWidget;
+	/** The value won;t be updated while editing */
+	bool bDontUpdateWhileEditing;
 };
 

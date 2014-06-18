@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "MathStructCustomizations.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "FMathStructCustomization"
 
@@ -344,6 +345,9 @@ void FColorStructCustomization::CustomizeHeader( TSharedRef<class IPropertyHandl
 	bIsLinearColor = CastChecked<UStructProperty>( StructPropertyHandle->GetProperty() )->Struct->GetFName() == NAME_LinearColor;
 	bIgnoreAlpha = StructPropertyHandle->GetProperty()->HasMetaData(TEXT("HideAlphaChannel"));
 
+	auto PropertyUtils = StructCustomizationUtils.GetPropertyUtilities();
+	bDontUpdateWhileEditing = PropertyUtils.IsValid() ? PropertyUtils->DontUpdateValueWhileEditing() : false;
+
 	FMathStructCustomization::CustomizeHeader( InStructPropertyHandle, InHeaderRow, StructCustomizationUtils );
 }
 
@@ -478,7 +482,7 @@ void FColorStructCustomization::CreateColorPicker( bool bUseAlpha, bool bOnlyRef
 	GetColorAsLinear(InitialColor);
 
 	// This needs to be meta data.  Other colors could benefit from this
-	const bool bRefreshOnlyOnOk = StructPropertyHandle->GetProperty()->GetOwnerClass()->IsChildOf(UMaterialExpressionConstant3Vector::StaticClass());
+	const bool bRefreshOnlyOnOk = bOnlyRefreshOnOk || StructPropertyHandle->GetProperty()->GetOwnerClass()->IsChildOf(UMaterialExpressionConstant3Vector::StaticClass());
 
 	FColorPickerArgs PickerArgs;
 	PickerArgs.bUseAlpha = !bIgnoreAlpha;
@@ -523,7 +527,7 @@ TSharedRef<SColorPicker> FColorStructCustomization::CreateInlineColorPicker()
 	GetColorAsLinear(InitialColor);
 
 	// This needs to be meta data.  Other colors could benefit from this
-	const bool bRefreshOnlyOnOk = StructPropertyHandle->GetProperty()->GetOwnerClass()->IsChildOf(UMaterialExpressionConstant3Vector::StaticClass());
+	const bool bRefreshOnlyOnOk = bDontUpdateWhileEditing || StructPropertyHandle->GetProperty()->GetOwnerClass()->IsChildOf(UMaterialExpressionConstant3Vector::StaticClass());
 	
 	return SNew(SColorPicker)
 		.Visibility(this, &FColorStructCustomization::GetInlineColorPickerVisibility)
@@ -590,10 +594,13 @@ void FColorStructCustomization::OnColorPickerInteractiveEnd()
 {
 	bIsInteractive = false;
 
-	// pushes the last value from the interactive change without the interactive flag
-	FString ColorString;
-	StructPropertyHandle->GetValueAsFormattedString(ColorString);
-	StructPropertyHandle->SetValueFromFormattedString(ColorString);
+	if (!bDontUpdateWhileEditing)
+	{
+		// pushes the last value from the interactive change without the interactive flag
+		FString ColorString;
+		StructPropertyHandle->GetValueAsFormattedString(ColorString);
+		StructPropertyHandle->SetValueFromFormattedString(ColorString);
+	}
 
 	GEditor->EndTransaction();
 }
@@ -663,7 +670,7 @@ FReply FColorStructCustomization::OnMouseButtonDownColorBlock(const FGeometry& M
 		return FReply::Unhandled();
 	}
 	
-	CreateColorPicker( /*bUseAlpha*/ true, /*bRefreshOnlyOnOk*/ false );
+	CreateColorPicker( /*bUseAlpha*/ true, bDontUpdateWhileEditing);
 
 	//bIsInlineColorPickerVisible = !bIsInlineColorPickerVisible;
 
@@ -677,7 +684,7 @@ EVisibility FColorStructCustomization::GetInlineColorPickerVisibility() const
 
 FReply FColorStructCustomization::OnOpenFullColorPickerClicked()
 {
-	CreateColorPicker( /*bUseAlpha*/ true, /*bRefreshOnlyOnOk*/ false );
+	CreateColorPicker( /*bUseAlpha*/ true, bDontUpdateWhileEditing);
 
 	bIsInlineColorPickerVisible = false;
 

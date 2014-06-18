@@ -101,6 +101,11 @@ public:
 	{
 		return RootPropertyNode;
 	}
+
+	virtual bool DontUpdateValueWhileEditing() const override
+	{ 
+		return false; 
+	}
 private:
 	void RegisterInstancedCustomPropertyLayout( UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate );
 	void UnregisterInstancedCustomPropertyLayout( UClass* Class );

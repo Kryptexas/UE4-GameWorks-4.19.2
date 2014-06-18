@@ -69,6 +69,11 @@ public:
 	}
 
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override {}
+
+	virtual bool DontUpdateValueWhileEditing() const override
+	{
+		return false;
+	}
 private:
 
 	SPropertyTreeViewImpl& View;

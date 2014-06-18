@@ -127,6 +127,11 @@ public:
 	virtual FRootPathChanged* OnRootPathChanged() override { return &RootPathChanged; }
 
 	virtual bool IsPropertyEditingEnabled() const override { return true; }
+
+	virtual bool DontUpdateValueWhileEditing() const override
+	{
+		return false;
+	}
 private:
 
 	void UpdateColumns();

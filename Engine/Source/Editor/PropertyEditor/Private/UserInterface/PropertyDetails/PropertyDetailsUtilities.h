@@ -17,6 +17,7 @@ public:
 	virtual void RequestRefresh() override;
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const override;
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool DontUpdateValueWhileEditing() const override;
 private:
 	IDetailsViewPrivate& DetailsView;
 };

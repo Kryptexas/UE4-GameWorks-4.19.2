@@ -53,3 +53,8 @@ void FPropertyDetailsUtilities::NotifyFinishedChangingProperties(const FProperty
 {
 	DetailsView.NotifyFinishedChangingProperties(PropertyChangedEvent);
 }
+
+bool FPropertyDetailsUtilities::DontUpdateValueWhileEditing() const
+{
+	return DetailsView.DontUpdateValueWhileEditing();
+}

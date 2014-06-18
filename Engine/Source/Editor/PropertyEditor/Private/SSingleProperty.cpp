@@ -68,6 +68,11 @@ public:
 	virtual void NotifyFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
 	{}
 
+	virtual bool DontUpdateValueWhileEditing() const override
+	{
+		return false;
+	}
+
 private:
 	TWeakPtr< SSingleProperty > View;
 };
