@@ -26,6 +26,8 @@ public:
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 
@@ -97,13 +99,17 @@ private:
 	bool AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 	
 private:
+	/** A reference to the BP Editor that owns this designer */
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 
-	TWeakPtr<SWidget> PreviewWidget;
-	UUserWidget* PreviewWidgetObject;
+	/** The transaction used to commit undoable actions from resize, move...etc */
+	FScopedTransaction* ScopedTransaction;
 
-	FWidgetReference CurrentSelection;
-	TWeakPtr<SWidget> SelectedWidget;
+	/** The current preview widget */
+	UUserWidget* PreviewWidget;
+
+	/** The current preview widget's slate widget */
+	TWeakPtr<SWidget> PreviewSlateWidget;
 	
 	UWidget* DropPreviewWidget;
 	UPanelWidget* DropPreviewParent;
@@ -115,5 +121,18 @@ private:
 
 	FVector2D CachedDesignerWidgetLocation;
 
-	FScopedTransaction* ScopedTransaction;
+	/** The currently selected widget */
+	FWidgetReference SelectedWidget;
+
+	/** The currently selected slate widget, this is refreshed every frame in case it changes */
+	TWeakPtr<SWidget> SelectedSlateWidget;
+
+	/** The wall clock time the user has been hovering over a single widget */
+	float HoverTime;
+
+	/** The current widget being hovered */
+	FWidgetReference HoveredWidget;
+
+	/** The current slate widget being hovered, this is refreshed every frame in case it changes */
+	TWeakPtr<SWidget> HoveredSlateWidget;
 };
