@@ -27,6 +27,9 @@ public:
 	void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 	// End of SWidget interface
 
+	// Calculate position for multiple nodes to be placed between a start and end point, by providing this nodes index and max expected nodes 
+	void PositionBetweenTwoNodesWithOffset(const FGeometry& StartGeom, const FGeometry& EndGeom, int32 NodeIndex, int32 MaxNodes) const;
+
 	static FLinearColor StaticGetTransitionColor(UAnimStateTransitionNode* TransNode, bool bIsHovered);
 private:
 	TSharedPtr<STextEntryPopup> TextEntryWidget;
