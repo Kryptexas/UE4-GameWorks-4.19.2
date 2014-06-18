@@ -3,6 +3,7 @@
 #include "UnrealSync.h"
 #include "GUI.h"
 #include "P4DataCache.h"
+#include "P4Env.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
