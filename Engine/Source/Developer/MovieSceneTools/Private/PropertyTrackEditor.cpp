@@ -21,51 +21,7 @@
 #include "MovieSceneToolHelpers.h"
 #include "PropertyTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-
-/**
- * A generic implementation for displaying simple property sections
- */
-class FPropertySection : public ISequencerSection
-{
-public:
-	FPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
-		: SectionObject( InSectionObject )
-	{
-		DisplayName = FName::NameToDisplayString( SectionName.ToString(), false );
-	}
-
-	/** ISequencerSection interface */
-	virtual UMovieSceneSection* GetSectionObject() override { return &SectionObject; }
-
-	virtual FString GetDisplayName() const override
-	{
-		return DisplayName;
-	}
-	
-	virtual FString GetSectionTitle() const override { return FString(); }
-
-	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
-
-	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
-	{
-		// Add a box for the section
-		FSlateDrawElement::MakeBox( 
-			OutDrawElements,
-			LayerId,
-			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect
-		);
-
-		return LayerId;
-	}
-	
-protected:
-	/** Display name of the section */
-	FString DisplayName;
-	/** The section we are visualizing */
-	UMovieSceneSection& SectionObject;
-};
+#include "PropertySection.h"
 
 /**
  * A color section implementation
@@ -80,10 +36,10 @@ public:
 	{
 		UMovieSceneColorSection* ColorSection = Cast<UMovieSceneColorSection>(&SectionObject);
 
-		LayoutBuilder.AddKeyArea("R", TEXT("Red"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetRedCurve())));
-		LayoutBuilder.AddKeyArea("G", TEXT("Green"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetGreenCurve())));
-		LayoutBuilder.AddKeyArea("B", TEXT("Blue"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetBlueCurve())));
-		LayoutBuilder.AddKeyArea("A", TEXT("Alpha"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
+		LayoutBuilder.AddKeyArea("R", NSLOCTEXT("FColorPropertySection", "RedArea", "Red"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetRedCurve())));
+		LayoutBuilder.AddKeyArea("G", NSLOCTEXT("FColorPropertySection", "GreenArea", "Green"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetGreenCurve())));
+		LayoutBuilder.AddKeyArea("B", NSLOCTEXT("FColorPropertySection", "BlueArea", "Blue"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetBlueCurve())));
+		LayoutBuilder.AddKeyArea("A", NSLOCTEXT("FColorPropertySection", "OpacityArea", "Opacity"), MakeShareable(new FFloatCurveKeyArea(ColorSection->GetAlphaCurve())));
 	}
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
@@ -220,12 +176,16 @@ public:
 		int32 ChannelsUsed = VectorSection->GetChannelsUsed();
 		check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
 
-		LayoutBuilder.AddKeyArea("Vector.X", TEXT("X"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(0))));
-		LayoutBuilder.AddKeyArea("Vector.Y", TEXT("Y"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(1))));
+		LayoutBuilder.AddKeyArea("Vector.X", NSLOCTEXT("FVectorPropertySection", "XArea", "X"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(0))));
+		LayoutBuilder.AddKeyArea("Vector.Y", NSLOCTEXT("FVectorPropertySection", "YArea", "Y"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(1))));
 		if (ChannelsUsed >= 3)
-		{LayoutBuilder.AddKeyArea("Vector.Z", TEXT("Z"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(2))));}
+		{
+			LayoutBuilder.AddKeyArea("Vector.Z", NSLOCTEXT("FVectorPropertySection", "ZArea", "Z"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(2))));
+		}
 		if (ChannelsUsed >= 4)
-		{LayoutBuilder.AddKeyArea("Vector.W", TEXT("W"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(3))));}
+		{
+			LayoutBuilder.AddKeyArea("Vector.W", NSLOCTEXT("FVectorPropertySection", "WArea", "W"), MakeShareable(new FFloatCurveKeyArea(VectorSection->GetCurve(3))));
+		}
 	}
 };
 

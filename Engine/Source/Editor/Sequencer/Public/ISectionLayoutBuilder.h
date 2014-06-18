@@ -14,7 +14,7 @@ public:
 	 * @param CategoryName	The name of the category
 	 * @param DisplayLabel	The localized display label for the category
 	 */
-	virtual void PushCategory( FName CategoryName, const FString& DisplayLabel ) = 0;
+	virtual void PushCategory( FName CategoryName, const FText& DisplayLabel ) = 0;
 	
 	/**
 	 * Sets the section as a key area itself
@@ -29,7 +29,7 @@ public:
 	 * @param DisplayLabel	The localized display label for the key area
 	 * @param KeyArea		Interface for accessing and drawing keys
 	 */
-	virtual void AddKeyArea( FName KeyAreaName, const FString& DisplayLabel, TSharedRef<class IKeyArea> KeyArea ) = 0;
+	virtual void AddKeyArea( FName KeyAreaName, const FText& DisplayLabel, TSharedRef<class IKeyArea> KeyArea ) = 0;
 
 	/**
 	 * Pops a category off the stack

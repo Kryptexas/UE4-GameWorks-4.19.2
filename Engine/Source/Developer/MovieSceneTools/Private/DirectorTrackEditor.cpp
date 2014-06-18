@@ -198,9 +198,9 @@ UMovieSceneSection* FShotSection::GetSectionObject()
 	return Section;
 }
 
-FString FShotSection::GetSectionTitle() const
+FText FShotSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneShotSection>(Section)->GetTitle().ToString();
+	return Cast<UMovieSceneShotSection>(Section)->GetTitle();
 }
 
 float FShotSection::GetSectionHeight() const

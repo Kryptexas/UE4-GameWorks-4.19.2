@@ -51,8 +51,8 @@ public:
 
 	/** ISequencerSection interface */
 	virtual UMovieSceneSection* GetSectionObject() override;
-	virtual FString GetDisplayName() const override;
-	virtual FString GetSectionTitle() const override;
+	virtual FText GetDisplayName() const override;
+	virtual FText GetSectionTitle() const override;
 	virtual float GetSectionHeight() const override;
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override {}
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override;

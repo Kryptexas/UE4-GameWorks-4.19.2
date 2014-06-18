@@ -21,7 +21,7 @@ public:
 	}
 
 	/** FMovieSceneSpawnable initialization constructor */
-	FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject );
+	FMovieSceneSpawnable( const FText& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject );
 
 	/** @return Returns the guid for this possessable */
 	const FGuid& GetGuid() const
@@ -30,7 +30,7 @@ public:
 	}
 
 	/** @return Returns the name of this spawnable */
-	const FString& GetName() const
+	const FText& GetDisplayName() const
 	{
 		return Name;
 	}
@@ -55,7 +55,7 @@ private:
 	/** Name label */
 	// @todo sequencer: Should be editor-only probably
 	UPROPERTY()
-	FString Name;
+	FText Name;
 
 	/** Data-only blueprint-generated-class for this object */
 	// @todo sequencer: Could be weak object ptr here, IF blueprints that are inners are housekept properly without references
@@ -84,7 +84,7 @@ public:
 	}
 
 	/** FMovieScenePossessable initialization constructor */
-	FMovieScenePossessable( const FString& InitName, UClass* InitPossessedObjectClass );
+	FMovieScenePossessable( const FText& InitName, UClass* InitPossessedObjectClass );
 
 	/** @return Returns the guid for this possessable */
 	const FGuid& GetGuid() const
@@ -93,7 +93,7 @@ public:
 	}
 
 	/** @return Returns the name of this spawnable */
-	const FString& GetName() const
+	const FText& GetDisplayName() const
 	{
 		return Name;
 	}
@@ -115,7 +115,7 @@ private:
 	/** Name label for this slot */
 	// @todo sequencer: Should be editor-only probably
 	UPROPERTY()
-	FString Name;
+	FText Name;
 
 	/** Type of the object we'll be possessing */
 	// @todo sequencer: Might be able to be editor-only.  We'll see.
@@ -151,13 +151,13 @@ struct FMovieSceneObjectBinding
 	FMovieSceneObjectBinding()
 	{}
 
-	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FString& InBindingName, const TArray<class UMovieSceneTrack*>& InTracks )
+	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FText& InBindingName, const TArray<class UMovieSceneTrack*>& InTracks )
 		: ObjectGuid( InObjectGuid )
 		, BindingName( InBindingName )
 		, Tracks( InTracks )
 	{}
 
-	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FString& InBindingName )
+	FMovieSceneObjectBinding( const FGuid& InObjectGuid, const FText& InBindingName )
 		: ObjectGuid( InObjectGuid )
 		, BindingName( InBindingName )
 	{}
@@ -175,7 +175,7 @@ struct FMovieSceneObjectBinding
 	/**
 	 * @return The display name of the binding
 	 */
-	const FString& GetBindingName() const { return BindingName; } 
+	const FText& GetDisplayName() const { return BindingName; } 
 
 	/**
 	 * Adds a new track to this binding
@@ -203,7 +203,7 @@ private:
 	
 	/** Display name */
 	UPROPERTY()
-	FString BindingName;
+	FText BindingName;
 
 	/** All tracks in this binding */
 	UPROPERTY()
@@ -231,7 +231,7 @@ public:
 	 *
 	 * @return	Guid of the newly-added spawnable
 	 */
-	virtual FGuid AddSpawnable( const FString& Name, class UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject );
+	virtual FGuid AddSpawnable( const FText& Name, class UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject );
 
 	/**
 	 * Removes a spawnable from this movie scene.
@@ -282,7 +282,7 @@ public:
 	 *
 	 * @return	Guid of the newly-added possessable
 	 */
-	virtual FGuid AddPossessable( const FString& Name, UClass* Class );
+	virtual FGuid AddPossessable( const FText& Name, UClass* Class );
 
 	/**
 	 * Removes a possessable from this movie scene.

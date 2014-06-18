@@ -329,14 +329,14 @@ UMovieSceneSection* FAudioSection::GetSectionObject()
 	return &Section;
 }
 
-FString FAudioSection::GetDisplayName() const
+FText FAudioSection::GetDisplayName() const
 {
-	return bIsOnAMasterTrack ? TEXT("Master Audio") : TEXT("Audio");
+	return bIsOnAMasterTrack ? NSLOCTEXT("FAudioSection", "MasterAudioDisplayName", "Master Audio") :  NSLOCTEXT("FAudioSection", "AudioDisplayName", "Audio");
 }
 
-FString FAudioSection::GetSectionTitle() const
+FText FAudioSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneAudioSection>(&Section)->GetSound()->GetName();
+	return FText::FromString( Cast<UMovieSceneAudioSection>(&Section)->GetSound()->GetName() );
 }
 
 float FAudioSection::GetSectionHeight() const

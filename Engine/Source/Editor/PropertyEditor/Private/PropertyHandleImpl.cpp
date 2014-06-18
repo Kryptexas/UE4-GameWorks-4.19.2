@@ -473,15 +473,15 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 void FPropertyValueImpl::AccessRawData( TArray<void*>& RawData )
 {
 	TArray<FObjectBaseAddress> ObjectAddresses;
-	GetObjectsToModify( ObjectAddresses, PropertyNode.Pin().Get() );
+	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
 
-	if( ObjectAddresses.Num() > 0 )
+	if (ObjectAddresses.Num() > 0)
 	{
 		RawData.Empty();
-		RawData.AddZeroed( ObjectAddresses.Num() );
-		for ( int32 ObjectIndex = 0 ; ObjectIndex < ObjectAddresses.Num() ; ++ObjectIndex )
-		{	
-			const FObjectBaseAddress& Cur = ObjectAddresses[ ObjectIndex ];
+		RawData.AddZeroed(ObjectAddresses.Num());
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
+		{
+			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
 			if (Cur.BaseAddress != NULL)
 			{
 				RawData[ObjectIndex] = Cur.BaseAddress;
@@ -490,6 +490,25 @@ void FPropertyValueImpl::AccessRawData( TArray<void*>& RawData )
 	}
 }
 
+void FPropertyValueImpl::AccessRawData( TArray<const void*>& RawData ) const
+{
+	TArray<FObjectBaseAddress> ObjectAddresses;
+	GetObjectsToModify(ObjectAddresses, PropertyNode.Pin().Get());
+
+	if (ObjectAddresses.Num() > 0)
+	{
+		RawData.Empty();
+		RawData.AddZeroed(ObjectAddresses.Num());
+		for (int32 ObjectIndex = 0; ObjectIndex < ObjectAddresses.Num(); ++ObjectIndex)
+		{
+			const FObjectBaseAddress& Cur = ObjectAddresses[ObjectIndex];
+			if (Cur.BaseAddress != NULL)
+			{
+				RawData[ObjectIndex] = Cur.BaseAddress;
+			}
+		}
+	}
+}
 
 void FPropertyValueImpl::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
 {
@@ -1633,6 +1652,12 @@ void FPropertyHandleBase::AccessRawData( TArray<void*>& RawData )
 {
 	Implementation->AccessRawData( RawData );
 }
+
+void FPropertyHandleBase::AccessRawData( TArray<const void*>& RawData ) const
+{
+	Implementation->AccessRawData(RawData);
+}
+
 
 void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
 {

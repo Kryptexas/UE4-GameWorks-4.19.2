@@ -123,6 +123,7 @@ public:
 	 * @param RawData	An array of raw data. 
 	 */ 
 	void AccessRawData( TArray<void*>& RawData );
+	void AccessRawData( TArray<const void*>& RawData ) const;
 
 	/**
 	 * Sets a delegate to call when the property value changes
@@ -385,6 +386,7 @@ public:
 	virtual TSharedPtr<IPropertyHandle> GetChildHandle( FName ChildName ) const override;
 	virtual TSharedPtr<IPropertyHandle> GetParentHandle() const override;
 	virtual void AccessRawData( TArray<void*>& RawData ) override;
+	virtual void AccessRawData( TArray<const void*>& RawData ) const override;
 	virtual uint32 GetNumOuterObjects() const override;
 	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) override;
 	virtual FPropertyAccess::Result GetNumChildren( uint32& OutNumChildren ) const override;

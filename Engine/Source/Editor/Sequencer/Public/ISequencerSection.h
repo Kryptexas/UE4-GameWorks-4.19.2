@@ -40,12 +40,12 @@ public:
 	/**
 	 * @return The display name of the section for the animation outliner
 	 */
-	virtual FString GetDisplayName() const = 0;
+	virtual FText GetDisplayName() const = 0;
 	
 	/**
 	 * @return The display name of the section in the section view
 	 */
-	virtual FString GetSectionTitle() const = 0;
+	virtual FText GetSectionTitle() const = 0;
 
 	/**
 	 * Generates the inner layout for this section

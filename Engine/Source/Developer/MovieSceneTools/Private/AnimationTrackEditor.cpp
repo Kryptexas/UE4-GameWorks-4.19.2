@@ -44,14 +44,14 @@ UMovieSceneSection* FAnimationSection::GetSectionObject()
 	return &Section;
 }
 
-FString FAnimationSection::GetDisplayName() const
+FText FAnimationSection::GetDisplayName() const
 {
-	return TEXT("Animation");
+	return NSLOCTEXT("FAnimationSection", "AnimationSection", "Animation");
 }
 
-FString FAnimationSection::GetSectionTitle() const
+FText FAnimationSection::GetSectionTitle() const
 {
-	return Cast<UMovieSceneAnimationSection>(&Section)->GetAnimSequence()->GetName();
+	return FText::FromString( Cast<UMovieSceneAnimationSection>(&Section)->GetAnimSequence()->GetName() );
 }
 
 float FAnimationSection::GetSectionHeight() const

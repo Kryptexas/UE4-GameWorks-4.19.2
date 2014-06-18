@@ -4,6 +4,7 @@
 
 #include "MovieSceneTrack.generated.h"
 
+class UMovieSceneSection;
 
 /*
  * Base class for a track in a Movie Scene

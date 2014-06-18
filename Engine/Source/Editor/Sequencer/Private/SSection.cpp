@@ -230,7 +230,7 @@ int32 SSection::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& My
 	TransparentSelectionColor.A = .5f;
 		
 	// Section name with drop shadow
-	FString SectionTitle = SectionInterface->GetSectionTitle();
+	FText SectionTitle = SectionInterface->GetSectionTitle();
 	if (!SectionTitle.IsEmpty())
 	{
 		FSlateDrawElement::MakeText(

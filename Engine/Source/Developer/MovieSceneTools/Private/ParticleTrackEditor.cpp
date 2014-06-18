@@ -43,16 +43,16 @@ UMovieSceneSection* FParticleSection::GetSectionObject()
 	return &Section;
 }
 
-FString FParticleSection::GetDisplayName() const
+FText FParticleSection::GetDisplayName() const
 {
-	return TEXT("Emitter");
+	return NSLOCTEXT("FParticleSection", "Emitter", "Emitter");
 }
 
-FString FParticleSection::GetSectionTitle() const
+FText FParticleSection::GetSectionTitle() const
 {
 	EParticleKey::Type KeyType = Cast<UMovieSceneParticleSection>(&Section)->GetKeyType();
-	return KeyType == EParticleKey::Toggle ? TEXT("Toggle") :
-		KeyType == EParticleKey::Trigger ? TEXT("Trigger") : TEXT("None");
+	return KeyType == EParticleKey::Toggle ? NSLOCTEXT("FParticleSection", "Toggle", "Toggle") :
+		KeyType == EParticleKey::Trigger ? NSLOCTEXT("FParticleSection", "Trigger", "Trigger") : NSLOCTEXT("FParticleSection", "None", "None");
 }
 
 float FParticleSection::GetSectionHeight() const

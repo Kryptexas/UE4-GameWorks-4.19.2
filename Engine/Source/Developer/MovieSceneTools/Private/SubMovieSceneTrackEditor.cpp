@@ -14,7 +14,7 @@ public:
 	FSubMovieSceneSection( TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSectionObject, FName SectionName )
 		: Sequencer( InSequencer )
 		, SectionObject( *CastChecked<USubMovieSceneSection>( &InSectionObject ) )
-		, DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes").ToString() )
+		, DisplayName( NSLOCTEXT("SubMovieSceneSection", "DisplayName", "Scenes") )
 	{
 		MovieSceneInstance = InSequencer->GetInstanceForSubMovieSceneSection( InSectionObject );
 	}
@@ -22,14 +22,14 @@ public:
 	/** ISequencerSection interface */
 	virtual UMovieSceneSection* GetSectionObject() override { return &SectionObject; }
 
-	virtual FString GetDisplayName() const override
+	virtual FText GetDisplayName() const override
 	{
 		return DisplayName;
 	}
 
-	virtual FString GetSectionTitle() const override
+	virtual FText GetSectionTitle() const override
 	{
-		return SectionObject.GetMovieScene()->GetName();
+		return FText::FromString( SectionObject.GetMovieScene()->GetName() );
 	}
 
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
@@ -65,7 +65,7 @@ public:
 	
 private:
 	/** Display name of the section */
-	FString DisplayName;
+	FText DisplayName;
 	/** The section we are visualizing */
 	USubMovieSceneSection& SectionObject;
 	/** The instance that this section is part of */

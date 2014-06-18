@@ -4,7 +4,7 @@
 #include "MovieScene.h"
 
 
-FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
+FMovieSceneSpawnable::FMovieSceneSpawnable( const FText& InitName, UClass* InitClass, UObject* InitCounterpartGamePreviewObject )
 {
 	Guid = FGuid::NewGuid();
 	Name = InitName;
@@ -14,7 +14,7 @@ FMovieSceneSpawnable::FMovieSceneSpawnable( const FString& InitName, UClass* Ini
 
 
 
-FMovieScenePossessable::FMovieScenePossessable( const FString& InitName, UClass* InitPossessedObjectClass )
+FMovieScenePossessable::FMovieScenePossessable( const FText& InitName, UClass* InitPossessedObjectClass )
 {
 	Guid = FGuid::NewGuid();
 	Name = InitName;
@@ -49,7 +49,7 @@ UMovieScene::UMovieScene( const FPostConstructInitializeProperties& PCIP )
 
 #if WITH_EDITOR
 // @todo sequencer: Some of these methods should only be used by tools, and should probably move out of MovieSceneCore!
-FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
+FGuid UMovieScene::AddSpawnable( const FText& Name, UBlueprint* Blueprint, UObject* CounterpartGamePreviewObject )
 {
 	check( (Blueprint != NULL) && (Blueprint->GeneratedClass) );
 
@@ -59,7 +59,7 @@ FGuid UMovieScene::AddSpawnable( const FString& Name, UBlueprint* Blueprint, UOb
 	Spawnables.Add( NewSpawnable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewSpawnable.GetGuid(), NewSpawnable.GetName() );
+	new (ObjectBindings) FMovieSceneObjectBinding( NewSpawnable.GetGuid(), NewSpawnable.GetDisplayName() );
 
 	return NewSpawnable.GetGuid();
 }
@@ -150,7 +150,7 @@ const FMovieSceneSpawnable* UMovieScene::FindSpawnableForCounterpart( UObject* G
 }
 
 
-FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
+FGuid UMovieScene::AddPossessable( const FText& Name, UClass* Class )
 {
 	Modify();
 
@@ -158,7 +158,7 @@ FGuid UMovieScene::AddPossessable( const FString& Name, UClass* Class )
 	Possessables.Add( NewPossessable );
 
 	// Add a new binding so that tracks can be added to it
-	new (ObjectBindings) FMovieSceneObjectBinding( NewPossessable.GetGuid(), NewPossessable.GetName() );
+	new (ObjectBindings) FMovieSceneObjectBinding( NewPossessable.GetGuid(), NewPossessable.GetDisplayName() );
 
 	return NewPossessable.GetGuid();
 }

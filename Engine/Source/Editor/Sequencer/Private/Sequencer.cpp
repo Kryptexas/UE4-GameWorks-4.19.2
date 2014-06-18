@@ -365,7 +365,7 @@ void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors 
 				// Create a new possessable
 				OwnerMovieScene->Modify();
 				
-				const FString PossessableName = Actor->GetActorLabel();
+				const FText PossessableName = FText::FromString( Actor->GetActorLabel() );
 				const FGuid PossessableGuid = OwnerMovieScene->AddPossessable( PossessableName, Actor->GetClass() );
 				 
 				if ( IsShotFilteringOn() )
@@ -464,7 +464,7 @@ FGuid FSequencer::GetHandleToObject( UObject* Object )
 			// Create a new possessable
 			OwnerMovieScene->Modify();
 			
-			const FString PossessableName = Object->GetName();
+			const FText PossessableName = FText::FromString( Object->GetName() );
 			ObjectGuid = OwnerMovieScene->AddPossessable( PossessableName, Object->GetClass() );
 			
 			if ( IsShotFilteringOn() )
@@ -902,7 +902,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 		const FName BlueprintName = MakeUniqueObjectName( OwnerMovieScene, UBlueprint::StaticClass(), AssetName );
 
 		// Use the asset name as the initial spawnable name
-		const FString& NewSpawnableName = AssetName.ToString();		// @todo sequencer: Need UI to allow user to rename these slots
+		const FText NewSpawnableName = FText::FromName( AssetName );		// @todo sequencer: Need UI to allow user to rename these slots
 
 		// Create our new blueprint!
 		UBlueprint* NewBlueprint = NULL;

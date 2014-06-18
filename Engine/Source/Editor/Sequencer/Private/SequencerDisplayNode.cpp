@@ -138,7 +138,7 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	bExpanded = ParentTree.GetSavedExpansionState( *this );
 }
 
-TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FString& DisplayLabel )
+TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName CategoryName, const FText& DisplayLabel )
 {
 	TSharedPtr<FSectionCategoryNode> CategoryNode;
 
@@ -189,7 +189,7 @@ TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionN
 	return SectionNode.ToSharedRef();
 }
 
-void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FString& DisplayName, TSharedRef<IKeyArea> KeyArea )
+void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea )
 {
 	TSharedPtr<FSectionKeyAreaNode> KeyAreaNode;
 
@@ -362,10 +362,10 @@ float FTrackNode::GetNodeHeight() const
 	return Sections.Num() > 0 ? Sections[0]->GetSectionHeight() * (GetMaxRowIndex()+1) : SequencerLayoutConstants::SectionAreaDefaultHeight;
 }
 
-FString FTrackNode::GetDisplayName() const
+FText FTrackNode::GetDisplayName() const
 {
 	// @todo Sequencer - IS there a better way to get the section interface name for the animation outliner?
-	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : NodeName.ToString();
+	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
 }
 
 void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
@@ -373,7 +373,7 @@ void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
 	if( !TopLevelKeyNode.IsValid() )
 	{
 		bool bTopLevel = true;
-		TopLevelKeyNode = MakeShareable( new FSectionKeyAreaNode( GetNodeName(), TEXT(""), NULL, ParentTree, bTopLevel ) );
+		TopLevelKeyNode = MakeShareable( new FSectionKeyAreaNode( GetNodeName(), FText::GetEmpty(), NULL, ParentTree, bTopLevel ) );
 	}
 
 	TopLevelKeyNode->AddKeyArea( KeyArea );

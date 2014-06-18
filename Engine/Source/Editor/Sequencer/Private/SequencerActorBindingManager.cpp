@@ -164,7 +164,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 	{
 		for( auto SpawnableIndex = 0; SpawnableIndex < MovieScene->GetSpawnableCount(); ++SpawnableIndex )
 		{
-			auto& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
+			FMovieSceneSpawnable& Spawnable = MovieScene->GetSpawnable( SpawnableIndex );
 
 			// Must have a valid world for us to be able to do this
 			if( ActorWorld != NULL )
@@ -213,7 +213,7 @@ void FSequencerActorBindingManager::SpawnOrDestroyObjectsForInstance( TSharedRef
 						if( NewActor )
 						{
 							// @todo sequencer: We're naming the actor based off of the spawnable's name.  Is that really what we want?
-							GEditor->SetActorLabelUnique( NewActor, Spawnable.GetName() );
+							GEditor->SetActorLabelUnique( NewActor, Spawnable.GetDisplayName().ToString() );
 
 							// Actor was spawned OK!
 

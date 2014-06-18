@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.generated.h"
 
 

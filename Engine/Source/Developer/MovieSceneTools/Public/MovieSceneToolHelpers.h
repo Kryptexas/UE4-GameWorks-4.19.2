@@ -2,7 +2,8 @@
 
 #pragma once
 
-
+#include "ISequencerSection.h"
+#include "IKeyArea.h"
 
 /**
  * A key area for float keys
@@ -83,3 +84,5 @@ private:
 	/** Curve with keys in this area */
 	FIntegralCurve& Curve;
 };
+
+

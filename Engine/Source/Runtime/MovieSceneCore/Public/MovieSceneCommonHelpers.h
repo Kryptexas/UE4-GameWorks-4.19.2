@@ -3,12 +3,13 @@
 #pragma once
 
 
-namespace MovieSceneHelpers
+class MOVIESCENECORE_API MovieSceneHelpers
 {
+public:
 	/**
 	 * Gets the sections that were traversed over between the current time and the previous time
 	 */
-	TArray<UMovieSceneSection*> GetTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime );
+	static TArray<UMovieSceneSection*> GetTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime );
 
 	/**
 	* Finds a section that exists at a given time
@@ -16,5 +17,5 @@ namespace MovieSceneHelpers
 	* @param Time	The time to find a section at
 	* @return The found section or null
 	*/
-	UMovieSceneSection* FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
-}
+	static UMovieSceneSection* FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
+};

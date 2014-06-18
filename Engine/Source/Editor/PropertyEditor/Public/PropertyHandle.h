@@ -278,6 +278,7 @@ public:
 	 * @param RawData	An array of raw data.  The elements in this array are the raw data for this property on each of the objects in the  property editor
 	 */ 
 	virtual void AccessRawData( TArray<void*>& RawData ) = 0;
+	virtual void AccessRawData( TArray<const void*>& RawData ) const = 0;
 
 	/**
 	 * Returns this handle as an array if possible

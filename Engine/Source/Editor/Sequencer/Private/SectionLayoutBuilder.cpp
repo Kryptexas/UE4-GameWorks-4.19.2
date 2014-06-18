@@ -9,7 +9,7 @@ FSectionLayoutBuilder::FSectionLayoutBuilder( TSharedRef<FTrackNode> InRootNode 
 	, CurrentNode( InRootNode )
 {}
 
-void FSectionLayoutBuilder::PushCategory( FName CategoryName, const FString& DisplayLabel )
+void FSectionLayoutBuilder::PushCategory( FName CategoryName, const FText& DisplayLabel )
 {
 	CurrentNode = CurrentNode->AddCategoryNode( CategoryName, DisplayLabel );
 }
@@ -28,7 +28,7 @@ void FSectionLayoutBuilder::SetSectionAsKeyArea( TSharedRef<IKeyArea> KeyArea )
 	RootNode->SetSectionAsKeyArea( KeyArea ); 
 }
 
-void FSectionLayoutBuilder::AddKeyArea( FName KeyAreaName, const FString& DisplayName, TSharedRef<IKeyArea> KeyArea )
+void FSectionLayoutBuilder::AddKeyArea( FName KeyAreaName, const FText& DisplayName, TSharedRef<IKeyArea> KeyArea )
 {
 	CurrentNode->AddKeyAreaNode( KeyAreaName, DisplayName, KeyArea );
 }
