@@ -1281,7 +1281,7 @@ bool FSourceCodeNavigation::FindClassModuleName( UClass* InClass, FString& Modul
 				// Because the module loaded into memory may have a slightly mutated file name (for
 				// hot reload, etc), we ask the module manager for the actual file name being used.  This
 				// is important as we need to be sure to get the correct symbols.
-				FModuleManager::FModuleStatus ModuleStatus;
+				FModuleStatus ModuleStatus;
 				if( ensure( FModuleManager::Get().QueryModule( ShortClassPackageName, ModuleStatus ) ) )
 				{
 					// Use the base file name (no path, no extension) as the module name for symbol look up!

@@ -367,7 +367,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 		}
 
 		// Record known modules' compilation methods
-		TArray<FModuleManager::FModuleStatus> Modules;
+		TArray<FModuleStatus> Modules;
 		FModuleManager::Get().QueryModules(Modules);
 		for (auto& Module : Modules)
 		{

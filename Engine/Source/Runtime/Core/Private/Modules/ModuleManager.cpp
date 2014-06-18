@@ -264,16 +264,16 @@ void FModuleManager::AddModule( const FName InModuleName )
  */
 TSharedPtr<IModuleInterface> FModuleManager::LoadModule( const FName InModuleName, bool bWasReloaded /*=false*/ )
 {
-	ELoadModuleFailureReason::Type FailureReason;
+	EModuleLoadResult FailureReason;
 	return LoadModuleWithFailureReason(InModuleName, FailureReason, bWasReloaded );
 }
 
-TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const FName InModuleName, ELoadModuleFailureReason::Type& OutFailureReason, bool bWasReloaded /*=false*/ )
+TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, bool bWasReloaded /*=false*/ )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Module Load"), STAT_ModuleLoad, STATGROUP_LoadTime);
 
 	TSharedPtr<IModuleInterface> LoadedModule;
-	OutFailureReason = ELoadModuleFailureReason::Success;
+	OutFailureReason = EModuleLoadResult::Success;
 
 	// Update our set of known modules, in case we don't already know about this module
 	AddModule( InModuleName );
@@ -319,7 +319,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 			else
 			{
 				UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because InitializeModule function failed (returned NULL pointer.)" ), *InModuleName.ToString() );
-				OutFailureReason = ELoadModuleFailureReason::FailedToInitialize;
+				OutFailureReason = EModuleLoadResult::FailedToInitialize;
 			}
 		}
 #if IS_MONOLITHIC
@@ -328,7 +328,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 			// Monolithic builds that do not have the initializer were *not found* during the build step, so return FileNotFound
 			// (FileNotFound is an acceptable error in some case - ie loading a content only project)
 			UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Module '%s' not found - it's StaticallyLinkedModuleInitializers function is null." ), *InModuleName.ToString() );
-			OutFailureReason = ELoadModuleFailureReason::FileNotFound;
+			OutFailureReason = EModuleLoadResult::FileNotFound;
 		}
 #endif
 #if !IS_MONOLITHIC
@@ -399,7 +399,7 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 
 								FPlatformProcess::FreeDllHandle( ModuleInfo->Handle );
 								ModuleInfo->Handle = NULL;
-								OutFailureReason = ELoadModuleFailureReason::FailedToInitialize;
+								OutFailureReason = EModuleLoadResult::FailedToInitialize;
 							}
 						}
 						else
@@ -408,25 +408,25 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 
 							FPlatformProcess::FreeDllHandle( ModuleInfo->Handle );
 							ModuleInfo->Handle = NULL;
-							OutFailureReason = ELoadModuleFailureReason::FailedToInitialize;
+							OutFailureReason = EModuleLoadResult::FailedToInitialize;
 						}
 					}
 					else
 					{
 						UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file couldn't be loaded by the OS." ), *ModuleFileToLoad );
-						OutFailureReason = ELoadModuleFailureReason::CouldNotBeLoadedByOS;
+						OutFailureReason = EModuleLoadResult::CouldNotBeLoadedByOS;
 					}
 				}
 				else
 				{
 					// The log warning about this failure reason is within CheckModuleCompatibility
-					OutFailureReason = ELoadModuleFailureReason::FileIncompatible;
+					OutFailureReason = EModuleLoadResult::FileIncompatible;
 				}
 			}
 			else
 			{
 				UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file '%s' was not found." ), *InModuleName.ToString(), *ModuleFileToLoad );
-				OutFailureReason = ELoadModuleFailureReason::FileNotFound;
+				OutFailureReason = EModuleLoadResult::FileNotFound;
 			}
 		}
 #endif
@@ -574,53 +574,20 @@ void FModuleManager::UnloadModulesAtShutdown()
 }
 
 
-/**
- * Given a module name, returns a shared reference to that module's interface.  If the module is unknown or not loaded, this will assert!
- *
- * @param	InModuleName	Name of the module to return
- *
- * @return	A shared reference to the module
- */
-TSharedRef< IModuleInterface > FModuleManager::GetModuleInterfaceRef( const FName InModuleName )
+TSharedPtr<IModuleInterface> FModuleManager::GetModule( const FName InModuleName )
 {
 	// Do we even know about this module?
-	TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked( InModuleName );
+	const TSharedRef<FModuleInfo>* ModuleInfo = Modules.Find(InModuleName);
 
-	// Module must be loaded!
-	checkf( ModuleInfo->Module.IsValid(), TEXT("Tried to use invalid module %s!"), *ModuleInfo->Filename );
-	return ModuleInfo->Module.ToSharedRef();
+	if (ModuleInfo == nullptr)
+	{
+		return nullptr;
+	}
+
+	return (*ModuleInfo)->Module;
 }
 
 
-
-/**
- * Given a module name, returns a reference to that module's interface.  If the module is unknown or not loaded, this will assert!
- *
- * @param	InModuleName	Name of the module to return
- *
- * @return	A reference to the module
- */
-IModuleInterface& FModuleManager::GetModuleInterface( const FName InModuleName )
-{
-	// Do we even know about this module?
-	TSharedRef< FModuleInfo > ModuleInfo = Modules.FindChecked( InModuleName );
-
-	// Module must be loaded!
-	checkf( ModuleInfo->Module.IsValid(), TEXT("Tried to use invalid module %s!"), *ModuleInfo->Filename );
-	return *ModuleInfo->Module;
-}
-
-
-
-/**
- * Exec command
- *
- * @param	InWorld		World context
- * @param	Cmd		Command to execute
- * @param	Ar		Output device
- *
- * @return	True if command was handled
- */
 bool FModuleManager::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 #if !UE_BUILD_SHIPPING
@@ -764,15 +731,6 @@ bool FModuleManager::Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar 
 }
 
 
-
-/**
- * Queries information about a specific module name
- *
- * @param	InModuleName	Module to query status for
- * @param	OutModuleStatus	Status of the specified module
- *
- * @return	True if the module was found the OutModuleStatus is valid
- */
 bool FModuleManager::QueryModule( const FName InModuleName, FModuleStatus& OutModuleStatus )
 {
 	// Do we even know about this module?
@@ -814,12 +772,7 @@ bool FModuleManager::QueryModule( const FName InModuleName, FModuleStatus& OutMo
 	return false;
 }
 
-	
-/**
- * Queries information about all of the currently known modules
- *
- * @param	OutModuleStatuses	Status of all modules
- */
+
 void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses )
 {
 	OutModuleStatuses.Reset();
@@ -861,10 +814,12 @@ void FModuleManager::QueryModules( TArray< FModuleStatus >& OutModuleStatuses )
 	}
 }
 
+
 bool FModuleManager::IsSolutionFilePresent()
 {
 	return !GetSolutionFilepath().IsEmpty();
 }
+
 
 FString FModuleManager::GetSolutionFilepath()
 {
@@ -898,6 +853,7 @@ FString FModuleManager::GetSolutionFilepath()
 
 	return SolutionFilepath;
 }
+
 
 bool FModuleManager::RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar )
 {
@@ -982,7 +938,6 @@ bool FModuleManager::RecompileModule( const FName InModuleName, const bool bRelo
 }
 
 
-
 bool FModuleManager::IsCurrentlyCompiling() const
 {
 	return ModuleCompileProcessHandle.IsValid();
@@ -1016,6 +971,7 @@ FString FModuleManager::MakeUBTArgumentsForModuleCompiling()
 	return AdditionalArguments;
 }
 
+
 void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {
 #if !IS_MONOLITHIC && WITH_EDITOR
@@ -1041,6 +997,7 @@ void FModuleManager::OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModu
 	}
 #endif
 }
+
 
 void FModuleManager::UpdateModuleCompileData(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {
@@ -1089,6 +1046,7 @@ void FModuleManager::UpdateModuleCompileData(FName ModuleName, TSharedRef<FModul
 #endif
 }
 
+
 void FModuleManager::ReadModuleCompilationInfoFromConfig(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {
 	FString DateTimeString;
@@ -1116,6 +1074,7 @@ void FModuleManager::ReadModuleCompilationInfoFromConfig(FName ModuleName, TShar
 	}
 }
 
+
 void FModuleManager::WriteModuleCompilationInfoToConfig(FName ModuleName, TSharedRef<FModuleManager::FModuleInfo> ModuleInfo)
 {
 	if (ensure(ModuleInfo->CompileData.bIsValid))
@@ -1142,6 +1101,7 @@ void FModuleManager::WriteModuleCompilationInfoToConfig(FName ModuleName, TShare
 	}
 }
 
+
 bool FModuleManager::GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> ModuleInfo, FDateTime& OutFileTimeStamp)
 {
 	if (IFileManager::Get().FileSize(*ModuleInfo->Filename) > 0)
@@ -1151,6 +1111,7 @@ bool FModuleManager::GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> Module
 	}
 	return false;
 }
+
 
 void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
@@ -1169,6 +1130,7 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 		FindModulePathsInDirectory(GameBinariesDirectories[Idx], true, NamePattern, OutModulePaths);
 	}
 }
+
 
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
@@ -1228,6 +1190,7 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 		}
 	}
 }
+
 
 bool FModuleManager::RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& InRecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar )
 {
@@ -1289,6 +1252,7 @@ bool FModuleManager::RecompileModulesAsync( const TArray< FName > ModuleNames, c
 #endif // !IS_MONOLITHIC
 }
 
+
 bool FModuleManager::CompileGameProject( const FString& ProjectFilename, FOutputDevice &Ar )
 {
 	bool bCompileSucceeded = false;
@@ -1346,6 +1310,7 @@ bool FModuleManager::CompileGameProjectEditor( const FString& GameProjectFilenam
 #endif // !IS_MONOLITHIC
 	return bCompileSucceeded;
 }
+
 
 bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, FOutputDevice &Ar )
 {
@@ -1421,6 +1386,7 @@ bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, F
 	return bCompileSucceeded;
 }
 
+
 bool FModuleManager::IsUnrealBuildToolAvailable()
 {
 	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available
@@ -1466,6 +1432,7 @@ void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName
 	}
 }
 
+
 bool FModuleManager::LoadModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
 {
 	TSharedPtr<IModuleInterface> LoadedModule = LoadModule( InModuleName, true );
@@ -1482,6 +1449,7 @@ bool FModuleManager::LoadModuleWithCallback( const FName InModuleName, FOutputDe
 
 	return bWasSuccessful;
 }
+
 
 void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName )
 {
@@ -1505,6 +1473,7 @@ void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString
 	while (IFileManager::Get().GetFileAgeSeconds(*UniqueModuleFileName) != -1.0);
 }
 
+
 const TCHAR *FModuleManager::GetUBTConfiguration()
 {
 #if UE_BUILD_DEBUG
@@ -1516,6 +1485,7 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 	return bIsDebugGame? TEXT("DebugGame") : TEXT("Development");
 #endif
 }
+
 
 bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
@@ -1593,10 +1563,12 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 #endif
 }
 
+
 FString FModuleManager::GetUnrealBuildToolSourceCodePath()
 {
 	return FPaths::Combine(*FPaths::EngineDir(), TEXT("Source"), TEXT("Programs"), TEXT("UnrealBuildTool"));
 }
+
 
 FString FModuleManager::GetUnrealBuildToolExecutableFilename()
 {
@@ -1607,6 +1579,7 @@ FString FModuleManager::GetUnrealBuildToolExecutableFilename()
 	ExecutableFileName = FPaths::ConvertRelativePathToFull(ExecutableFileName);
 	return ExecutableFileName;
 }
+
 
 bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 {
@@ -1694,6 +1667,7 @@ bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 		return false;
 	}
 }
+
 
 bool FModuleManager::InvokeUnrealBuildTool( const FString& InCmdLineParams, FOutputDevice &Ar )
 {
@@ -1945,6 +1919,7 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 #endif // PLATFORM_DESKTOP && !IS_MONOLITHIC
 }
 
+
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
 	static FBinaryFileVersion ExeVersion = FPlatformProcess::GetBinaryFileVersion(FPlatformProcess::ExecutableName(/*bRemoveExtension=*/false));
@@ -1981,12 +1956,14 @@ bool FModuleManager::RecompileModuleDLLs( const TArray< FModuleToRecompile >& Mo
 	return bCompileSucceeded;
 }
 
+
 void FModuleManager::StartProcessingNewlyLoadedObjects()
 {
 	// Only supposed to be called once
 	ensure( bCanProcessNewlyLoadedObjects == false );	
 	bCanProcessNewlyLoadedObjects = true;
 }
+
 
 void FModuleManager::AddBinariesDirectory(const TCHAR *InDirectory, bool bIsGameDirectory)
 {
@@ -2000,6 +1977,7 @@ void FModuleManager::AddBinariesDirectory(const TCHAR *InDirectory, bool bIsGame
 	}
 }
 
+
 void FModuleManager::SetGameBinariesDirectory(const TCHAR* InDirectory)
 {
 #if !IS_MONOLITHIC
@@ -2012,6 +1990,7 @@ void FModuleManager::SetGameBinariesDirectory(const TCHAR* InDirectory)
 	GameBinariesDirectories.Add(InDirectory);
 #endif
 }
+
 
 bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 {

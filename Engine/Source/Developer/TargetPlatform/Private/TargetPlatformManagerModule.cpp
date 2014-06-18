@@ -517,7 +517,7 @@ protected:
 
 private:
 
-	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason::Type ReasonForChange)
+	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
 	{
 		if (ModuleName.ToString().Contains(TEXT("TargetPlatform")) )
 		{

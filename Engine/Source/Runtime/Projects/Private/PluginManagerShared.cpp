@@ -7,7 +7,7 @@
 #define LOCTEXT_NAMESPACE "PluginManagerShared"
 
 
-void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap<FName, ELoadModuleFailureReason::Type>& ModuleLoadErrors )
+void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap<FName, EModuleLoadResult>& ModuleLoadErrors )
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
@@ -24,7 +24,7 @@ void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap
 
 				// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
 				//       that are part of this project or plugin.  That's totally fine.
-				ELoadModuleFailureReason::Type FailureReason;
+				EModuleLoadResult FailureReason;
 				const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( ModuleInfo.Name, FailureReason );
 				if( ModuleInterface.IsValid() )
 				{

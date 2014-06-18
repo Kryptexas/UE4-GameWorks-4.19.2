@@ -633,7 +633,7 @@ int32 FWindowsPlatformStackWalk::GetProcessModuleSignatures(FStackWalkModuleInfo
 /**
  * Callback from the modules system that the loaded modules have changed and we need to reload symbols.
  */ 
-static void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange )
+static void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange )
 {
 	GNeedToRefreshSymbols = true;
 }

@@ -119,7 +119,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 	if ( CurrentlyLoadedProject.IsValid() )
 	{
-		TMap<FName, ELoadModuleFailureReason::Type> ModuleLoadFailures;
+		TMap<FName, EModuleLoadResult> ModuleLoadFailures;
 		CurrentlyLoadedProject->LoadModules(LoadingPhase, ModuleLoadFailures);
 
 		if ( ModuleLoadFailures.Num() > 0 )
@@ -127,25 +127,25 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 			FText FailureMessage;
 			for ( auto FailureIt = ModuleLoadFailures.CreateConstIterator(); FailureIt; ++FailureIt )
 			{
-				const ELoadModuleFailureReason::Type FailureReason = FailureIt.Value();
+				const EModuleLoadResult FailureReason = FailureIt.Value();
 
-				if( FailureReason != ELoadModuleFailureReason::Success )
+				if( FailureReason != EModuleLoadResult::Success )
 				{
 					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-					if ( FailureReason == ELoadModuleFailureReason::FileNotFound )
+					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleNotFound", "The game module '{0}' could not be found. Please ensure that this module exists and that it is compiled."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FileIncompatible )
+					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleIncompatible", "The game module '{0}' does not appear to be up to date. This may happen after updating the engine. Please recompile this module and try again."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FailedToInitialize )
+					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleFailedToInitialize", "The game module '{0}' could not be successfully initialized after it was loaded."), TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::CouldNotBeLoadedByOS )
+					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PrimaryGameModuleCouldntBeLoaded", "The game module '{0}' could not be loaded. There may be an operating system error or the module may not be properly set up."), TextModuleName );
 					}

@@ -70,7 +70,7 @@ private:
 	 * Called by the engine's module manager when a module is loaded, unloaded, or the list of known
 	 * modules has changed
 	 */
-	void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange );
+	void OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange );
 
 	/**
 	 * Updates our module list items

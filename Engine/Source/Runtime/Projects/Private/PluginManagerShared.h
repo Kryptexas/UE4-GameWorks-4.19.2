@@ -195,7 +195,7 @@ public:
 	 *								loaded at the specified loading phase will be loaded during this call.
 	 * @param	ModuleLoadErrors	If there were load errors, this map has an entry for every failed module.
 	 */
-	void LoadModules( const ELoadingPhase::Type LoadingPhase, TMap<FName, ELoadModuleFailureReason::Type>& ModuleLoadErrors );
+	void LoadModules( const ELoadingPhase::Type LoadingPhase, TMap<FName, EModuleLoadResult>& ModuleLoadErrors );
 
 	/** Populates ProjectInfo from disk */
 	bool LoadFromFile( const FString& FileToLoad, FText& OutFailureReason );

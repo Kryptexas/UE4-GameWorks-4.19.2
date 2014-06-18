@@ -144,7 +144,7 @@ TSharedRef<ITableRow> SModuleUI::OnGenerateWidgetForModuleListView(TSharedPtr< F
 }
 
 
-void SModuleUI::OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange )
+void SModuleUI::OnModulesChanged( FName ModuleThatChanged, EModuleChangeReason ReasonForChange )
 {
 	// @todo: Consider using dirty bit for this instead, refresh on demand
 	UpdateModuleListItems();
@@ -154,12 +154,12 @@ void SModuleUI::UpdateModuleListItems()
 {
 	ModuleListItems.Reset();
 
-	TArray< FModuleManager::FModuleStatus > ModuleStatuses;
+	TArray< FModuleStatus > ModuleStatuses;
 	FModuleManager::Get().QueryModules( ModuleStatuses );
 
-	for( TArray< FModuleManager::FModuleStatus >::TConstIterator ModuleIt( ModuleStatuses ); ModuleIt; ++ModuleIt )
+	for( TArray< FModuleStatus >::TConstIterator ModuleIt( ModuleStatuses ); ModuleIt; ++ModuleIt )
 	{
-		const FModuleManager::FModuleStatus& ModuleStatus = *ModuleIt;
+		const FModuleStatus& ModuleStatus = *ModuleIt;
 
 		FName ModuleName(*ModuleStatus.Name);
 
@@ -218,7 +218,7 @@ FReply SModuleUI::FModuleListItem::OnRecompileClicked()
 	GWarn->BeginSlowTask( FText::Format( NSLOCTEXT("ModuleUI", "Recompile_SlowTaskName", "Compiling {ModuleName}..."), Args ), bShowProgressDialog, bShowCancelButton );
 
 	// Does the module have any UObject classes in it?  If so we'll use HotReload to recompile it.
-	FModuleManager::FModuleStatus ModuleStatus;
+	FModuleStatus ModuleStatus;
 	if( ensure( FModuleManager::Get().QueryModule( ModuleName, ModuleStatus ) ) )
 	{
 		//@todo This is for content-only packages that show up in the
@@ -282,7 +282,7 @@ EVisibility SModuleUI::FModuleListItem::GetVisibilityBasedOnLoadedAndShutdownabl
 	const bool bIsHotReloadable = FModuleManager::Get().DoesLoadedModuleHaveUObjects(ModuleName);
 	const bool bCanShutDown = ( FModuleManager::Get().IsModuleLoaded(ModuleName)
 								&& !bIsHotReloadable 
-								&& FModuleManager::Get().GetModuleInterface(ModuleName).SupportsDynamicReloading() );
+								&& FModuleManager::Get().GetModule(ModuleName)->SupportsDynamicReloading() );
 
 	return bCanShutDown ? EVisibility::Visible : EVisibility::Hidden;
 }
@@ -303,7 +303,7 @@ EVisibility SModuleUI::FModuleListItem::GetVisibilityBasedOnRecompilableState() 
 
 	const bool bIsHotReloadable = FModuleManager::Get().DoesLoadedModuleHaveUObjects(ModuleName);
 	const bool bCanReload = ( !FModuleManager::Get().IsModuleLoaded(ModuleName)
-							|| FModuleManager::Get().GetModuleInterface(ModuleName).SupportsDynamicReloading()
+							|| FModuleManager::Get().GetModule(ModuleName)->SupportsDynamicReloading()
 							|| bIsHotReloadable );
 
 	return bCanReload ? EVisibility::Visible : EVisibility::Hidden;

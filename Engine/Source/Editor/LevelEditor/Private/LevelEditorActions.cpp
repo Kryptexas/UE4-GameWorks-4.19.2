@@ -956,12 +956,12 @@ void FLevelEditorActionCallbacks::MapCheck_Execute()
 bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 {
 	// Ask the module manager for a list of currently-loaded gameplay modules
-	TArray< FModuleManager::FModuleStatus > ModuleStatuses;
+	TArray< FModuleStatus > ModuleStatuses;
 	FModuleManager::Get().QueryModules( ModuleStatuses );
 
 	for( auto ModuleStatusIt = ModuleStatuses.CreateConstIterator(); ModuleStatusIt; ++ModuleStatusIt )
 	{
-		const FModuleManager::FModuleStatus& ModuleStatus = *ModuleStatusIt;
+		const FModuleStatus& ModuleStatus = *ModuleStatusIt;
 
 		// We only care about game modules that are currently loaded
 		if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )
@@ -992,12 +992,12 @@ void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 		TArray< FString > GameModuleNames;
 		{
 			// Ask the module manager for a list of currently-loaded gameplay modules
-			TArray< FModuleManager::FModuleStatus > ModuleStatuses;
+			TArray< FModuleStatus > ModuleStatuses;
 			FModuleManager::Get().QueryModules( ModuleStatuses );
 
-			for( TArray< FModuleManager::FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
+			for( TArray< FModuleStatus >::TConstIterator ModuleStatusIt( ModuleStatuses ); ModuleStatusIt; ++ModuleStatusIt )
 			{
-				const FModuleManager::FModuleStatus& ModuleStatus = *ModuleStatusIt;
+				const FModuleStatus& ModuleStatus = *ModuleStatusIt;
 
 				// We only care about game modules that are currently loaded
 				if( ModuleStatus.bIsLoaded && ModuleStatus.bIsGameModule )

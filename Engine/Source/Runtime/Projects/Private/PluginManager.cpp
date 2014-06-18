@@ -300,7 +300,7 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 	{
 		if ( Plugin->IsEnabled() )
 		{
-			TMap<FName, ELoadModuleFailureReason::Type> ModuleLoadFailures;
+			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
 			Plugin->LoadModules( LoadingPhase, ModuleLoadFailures );
 
 			FText FailureMessage;
@@ -309,24 +309,24 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 				const auto ModuleNameThatFailedToLoad = FailureIt.Key();
 				const auto FailureReason = FailureIt.Value();
 
-				if( FailureReason != ELoadModuleFailureReason::Success )
+				if( FailureReason != EModuleLoadResult::Success )
 				{
 					const FText PluginNameText = FText::FromString(Plugin->GetPluginName());
 					const FText TextModuleName = FText::FromName(FailureIt.Key());
 
-					if ( FailureReason == ELoadModuleFailureReason::FileNotFound )
+					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  This plugin's functionality will not be available.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FileIncompatible )
+					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  This plugin's functionality will not be available.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::CouldNotBeLoadedByOS )
+					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  This plugin's functionality will not be available.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
 					}
-					else if ( FailureReason == ELoadModuleFailureReason::FailedToInitialize )
+					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
 						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded.  This plugin's functionality will not be available."), PluginNameText, TextModuleName );
 					}

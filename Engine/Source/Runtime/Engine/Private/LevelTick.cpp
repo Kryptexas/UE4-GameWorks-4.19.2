@@ -972,8 +972,8 @@ static class FFileProfileWrapperExec: private FSelfRegisteringExec
 		static FName TaskGraphModule(TEXT("TaskGraph"));
 		if (FModuleManager::Get().IsModuleLoaded(TaskGraphModule))
 		{
-			IProfileVisualizerModule* ProfileVisualizer = (IProfileVisualizerModule*)&FModuleManager::Get().GetModuleInterface(TaskGraphModule);
-			ProfileVisualizer->DisplayProfileVisualizer( RootEvent, TEXT("I/O") );
+			IProfileVisualizerModule& ProfileVisualizer = FModuleManager::GetModuleChecked<IProfileVisualizerModule>(TaskGraphModule);
+			ProfileVisualizer.DisplayProfileVisualizer( RootEvent, TEXT("I/O") );
 		}
 	}
 

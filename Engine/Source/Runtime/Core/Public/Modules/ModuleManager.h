@@ -2,32 +2,46 @@
 
 #pragma once
 
-
 #include "ModuleInterface.h"
 #include "Delegate.h"
 #include "Boilerplate/ModuleBoilerplate.h"
 
+
 #if !IS_MONOLITHIC
 	/** If true, we are reloading a class for HotReload */
-	extern CORE_API bool		GIsHotReload;
+	extern CORE_API bool GIsHotReload;
 #endif
 
-namespace ELoadModuleFailureReason
-{
-	enum Type
-	{
-		Success,
-		FileNotFound,
-		FileIncompatible,
-		CouldNotBeLoadedByOS,
-		FailedToInitialize
-	};
-}
 
-// This enum has to be compatible with the one defined in the
-// UE4\Engine\Source\Programs\UnrealBuildTool\System\ExternalExecution.cs
-// to keep communication between UHT, UBT and Editor compiling
-// processes valid.
+/**
+ * Enumerates reasons for failed module loads.
+ */
+enum class EModuleLoadResult
+{
+	/** Module loaded successfully. */
+	Success,
+
+	/** The specified module file could not be found. */
+	FileNotFound,
+
+	/** The specified module file is incompatible with the module system. */
+	FileIncompatible,
+
+	/** The operating system failed to load the module file. */
+	CouldNotBeLoadedByOS,
+
+	/** Module initialization failed. */
+	FailedToInitialize
+};
+
+
+/**
+ * Enumerates possible results of a compilation operation.
+ *
+ * This enum has to be compatible with the one defined in the
+ * UE4\Engine\Source\Programs\UnrealBuildTool\System\ExternalExecution.cs file
+ * to keep communication between UHT, UBT and Editor compiling processes valid.
+ */
 namespace ECompilationResult
 {
 	enum Type
@@ -38,216 +52,243 @@ namespace ECompilationResult
 	};
 }
 
-namespace EModuleCompileMethod
-{
-	enum Type
-	{
-		Runtime,
-		External,
-		Unknown
-	};
-}
-
-namespace EModuleChangeReason
-{
-	/** Reasons that an FModuleManager::OnModuleChanged() delegate will be called */
-	enum Type
-	{
-		/** A module has been loaded and is ready to be used */
-		ModuleLoaded,
-
-		/* A module has been unloaded and should no longer be used */
-		ModuleUnloaded,
-
-		/** The paths controlling which plugins are loaded have been changed and the given module has been found, but not yet loaded */
-		PluginDirectoryChanged
-	};
-}
 
 /**
- * Module Manager is used to load and unload modules, as well as to keep track of all of the
- * modules that are currently loaded.  You can access this singleton using FModuleManager::Get().
+ * Enumerates compilation methods for modules.
  */
-class CORE_API FModuleManager : private FSelfRegisteringExec
+enum class EModuleCompileMethod
 {
+	Runtime,
+	External,
+	Unknown
+};
+
+
+/**
+ * Enumerates reasons for modules to change.
+ *
+ * Values of this type will be passed into OnModuleChanged() delegates.
+ */
+enum class EModuleChangeReason
+{
+	/** A module has been loaded and is ready to be used. */
+	ModuleLoaded,
+
+	/* A module has been unloaded and should no longer be used. */
+	ModuleUnloaded,
+
+	/** The paths controlling which plug-ins are loaded have been changed and the given module has been found, but not yet loaded. */
+	PluginDirectoryChanged
+};
+
+
+/**
+ * Structure for reporting module statuses.
+ */
+struct FModuleStatus
+{
+	/** Default constructor. */
+	FModuleStatus()
+		: bIsLoaded(false)
+		, bIsGameModule(false)
+	{ }
+
+	/** Short name for this module. */
+	FString Name;
+
+	/** Full path to this module file on disk. */
+	FString FilePath;
+
+	/** Whether the module is currently loaded or not. */
+	bool bIsLoaded;
+
+	/** Whether this module contains game play code. */
+	bool bIsGameModule;
+
+	/** The compilation method of this module. */
+	FString CompilationMethod;
+};
+
+
+/**
+ * Implements the module manager.
+ *
+ * The module manager is used to load and unload modules, as well as to keep track of all of the
+ * modules that are currently loaded. You can access this singleton using FModuleManager::Get().
+ */
+class CORE_API FModuleManager
+	: private FSelfRegisteringExec
+{
+public:
+
+	/**
+	 * Destructor.
+	 */
+	~FModuleManager();
+
+	/**
+	 * Gets the singleton instance of the module manager.
+	 *
+	 * @return The module manager instance.
+	 */
+	static FModuleManager& Get( );
 
 public:
 
 	/**
-	 * Status of a module.  Used only for reporting information to external objects.
+	 * Abandons a loaded module, leaving it loaded in memory but no longer tracking it in the module manager.
+	 *
+	 * @param InModuleName The name of the module to abandon.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
+	 * @see IsModuleLoaded, LoadModule, LoadModuleWithFailureReason, UnloadModule
 	 */
-	struct FModuleStatus
-	{
-		/** Default constructor. */
-		FModuleStatus()
-			: bIsLoaded( false )
-			, bIsGameModule( false )
-		{}
-
-		/** Short name for this module */
-		FString Name;
-
-		/** Full path to this module file on disk */
-		FString FilePath;
-
-		/** Whether the module is currently loaded or not */
-		bool bIsLoaded;
-
-		/** Whether this module contains gameplay code */
-		bool bIsGameModule;
-
-		/** The compilation method of this module */
-		FString CompilationMethod;
-	};
-
-	/** Declare delegate that for binding functions to be called when modules are loaded, or unloaded, or
-	    our set of known modules changes. Passes in the name of the module that changed, and the reason. */
-	DECLARE_EVENT_TwoParams( FModuleManager, FModulesChangedEvent, FName, EModuleChangeReason::Type );
-	FModulesChangedEvent& OnModulesChanged() { return ModulesChangedEvent; }
-
-	/** Delegate for binding functions to be called when starting the module compiling */
-	DECLARE_EVENT( FModuleManager, FModuleCompilerStartedEvent );
-	FModuleCompilerStartedEvent& OnModuleCompilerStarted() { return ModuleCompilerStartedEvent; }
-
-	/** Delegate for binding functions to be called when the module compiler finishes,
-		passing in the compiler output and a enumeration with compilation result
-		as well as a second boolean which determines if the log should be shown */
-	DECLARE_EVENT_ThreeParams(FModuleManager, FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
-	FModuleCompilerFinishedEvent& OnModuleCompilerFinished() { return ModuleCompilerFinishedEvent; }
-
-	/** Called after a module recompile finishes.  First argument specifies whether the compilation has finished, 
-		Second argument specifies whether the compilation was successful or not */
-	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, bool );
-
-	/** Called when any loaded objects need to be processed. */
-	FSimpleMulticastDelegate& OnProcessLoadedObjectsCallback() { return ProcessLoadedObjectsCallback; }
-
-	/** When module manager is linked against an application that supports UObjects, this delegate will be primed
-	    at startup to provide information about whether a UObject package is loaded into memory. */
-	DECLARE_DELEGATE_RetVal_OneParam( bool, FIsPackageLoadedCallback, FName );
-	FIsPackageLoadedCallback& IsPackageLoadedCallback() { return IsPackageLoaded; }
-
+	void AbandonModule( const FName InModuleName );
 
 	/**
-	 * Static: Access single instance of module manager
+	 * Adds a module to our list of modules, unless it's already known.
 	 *
-	 * @return	Reference to the module manager singleton object
+	 * This method is used by the plug-in manager to register a plug-in module.
+	 *
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "name" part of the module file name.  Names should be globally unique.
+	 * @param InBinariesDirectory The directory where to find this file, or an empty string to search in the default locations.  This parameter is used by the plugin system to locate plugin binaries.
 	 */
-	static FModuleManager& Get();
-
-
-	/** Destructor */
-	~FModuleManager();
-
+	void AddModule( const FName InModuleName );
 
 	/**
-	 * Module manager ticking is only used to check for asynchronously compiled modules that may need to be reloaded
+	 * Gets the specified module.
+	 *
+	 * @param InModuleName Name of the module to return.
+	 * @return 	The module, or nullptr if the module is not loaded.
 	 */
-	void Tick();
-
+	TSharedPtr<IModuleInterface> GetModule( const FName InModuleName );
 
 	/**
-	 * Looks on the disk for loadable modules matching a wildcard
+	 * Checks whether the specified module is currently loaded.
 	 *
-	 * @param	WildcardWithoutExtension		Filename part (no path, no extension, no build config info) to search for
-	 * @param	OutModules					List of modules found
-	 */
-	void FindModules(const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules);
-
-	/**
-	 * Checks to see if the specified module is currently loaded.  This is an O(1) operation.
+	 * This is an O(1) operation.
 	 *
-	 * @param	InModuleName		The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
-	 *
-	 * @return	True if module is currently loaded, otherwise false
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
+	 * @return true if module is currently loaded, false otherwise.
+	 * @see AbandonModule, LoadModule, LoadModuleWithFailureReason, UnloadModule
 	 */
 	bool IsModuleLoaded( const FName InModuleName ) const;
 
+	/**
+	 * Loads the specified module.
+	 *
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
+	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
+	 * @return The loaded module, or nullptr if the load operation failed.
+	 * @see AbandonModule, IsModuleLoaded, LoadModuleWithFailureReason, UnloadModule
+	 */
+	TSharedPtr<IModuleInterface> LoadModule( const FName InModuleName, const bool bWasReloaded = false );
 
 	/**
-	 * Adds a module to our list of modules and tries to load it immediately
+	 * Loads a module in memory then calls PostLoad.
 	 *
-	 * @param	InModuleName	The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
-	 * @param bWasReloaded	Indicates that the modue has been reloaded.
-	 *
-	 * @return	The loaded module (null if the load operation failed)
+	 * @param InModuleName The name of the module to load.
+	 * @param Ar The archive to receive error messages, if any.
+	 * @return true on success, false otherwise.
+	 * @see UnloadOrAbandonModuleWithCallback
 	 */
-	TSharedPtr<IModuleInterface> LoadModule( const FName InModuleName, const bool bWasReloaded=false );
-	TSharedPtr<IModuleInterface> LoadModuleWithFailureReason( const FName InModuleName, ELoadModuleFailureReason::Type& OutFailureReason, const bool bWasReloaded=false );
+	bool LoadModuleWithCallback( const FName InModuleName, FOutputDevice &Ar );
 
+	/**
+	 * Loads the specified module and returns a result.
+	 *
+	 * @param InModuleName The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.  Names should be globally unique.
+	 * @param OutFailureReason Will contain the result.
+	 * @param bWasReloaded Indicates that the module has been reloaded (default = false).
+	 * @return The loaded module (null if the load operation failed).
+	 * @see AbandonModule, IsModuleLoaded, LoadModule, UnloadModule
+	 */
+	TSharedPtr<IModuleInterface> LoadModuleWithFailureReason( const FName InModuleName, EModuleLoadResult& OutFailureReason, const bool bWasReloaded = false );
+
+	/**
+	 * Queries information about a specific module name.
+	 *
+	 * @param InModuleName Module to query status for.
+	 * @param OutModuleStatus Status of the specified module.
+	 * @return true if the module was found and the OutModuleStatus is valid, false otherwise.
+	 * @see QueryModules
+	 */
+	bool QueryModule( const FName InModuleName, FModuleStatus& OutModuleStatus );
+
+	/**
+	 * Queries information about all of the currently known modules.
+	 *
+	 * @param OutModuleStatuses Status of all modules.
+	 * @see QueryModule
+	 */
+	void QueryModules( TArray<FModuleStatus>& OutModuleStatuses );
 
 	/**
 	 * Unloads a specific module
 	 *
-	 * @param	InModuleName	The name of the module to unload.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
-	 * @param   bIsShutdown		Is this unload module call occurring at shutdown
-	 *
-	 * @return	True if module was unloaded successfully
+	 * @param InModuleName The name of the module to unload.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
+	 * @param bIsShutdown Is this unload module call occurring at shutdown (default = false).
+	 * @return true if module was unloaded successfully, false otherwise.
+	 * @see AbandonModule, IsModuleLoaded, LoadModule, LoadModuleWithFailureReason
 	 */
-	bool UnloadModule( const FName InModuleName, bool bIsShutdown=false );
-
+	bool UnloadModule( const FName InModuleName, bool bIsShutdown = false );
 
 	/**
-	 * Abandons a loaded module, leaving it loaded in memory but no longer tracking it in the module manager
+	 * Calls PreUnload then either unloads or abandons a module in memory, depending on whether the module supports unloading.
 	 *
-	 * @param	InModuleName	The name of the module to abandon.  Should not include path, extension or platform/configuration info.  This is just the "module name" part of the module file name.
+	 * @param InModuleName The name of the module to unload.
+	 * @param Ar The archive to receive error messages, if any.
+	 * @see LoadModuleWithCallback
 	 */
-	void AbandonModule( const FName InModuleName );
+	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar );
 
+public:
 
 	/**
-	 * Unloads modules during the shutdown process.  Usually called at various points while
-	 * while exiting the application.
-	 */
-	void UnloadModulesAtShutdown();
-
-
-	/**
-	 * Given a module name, returns a shared reference to that module's interface.  If the module is unknown or not loaded, this will assert!
-	 *
-	 * @param	InModuleName	Name of the module to return
-	 *
-	 * @return	A shared reference to the module
-	 */
-	TSharedRef< IModuleInterface > GetModuleInterfaceRef( const FName InModuleName );
-
-
-	/**
-	 * Given a module name, returns a reference to that module's interface.  If the module is unknown or not loaded, this will assert!
-	 *
-	 * @param	InModuleName	Name of the module to return
-	 *
-	 * @return	A reference to the module
-	 */
-	IModuleInterface& GetModuleInterface( const FName InModuleName );
-
-
-	/**
-	  * Static: Finds a module by name, checking to ensure it exists.
-	  * The return value is the loaded module, casted to the template parameter type (this is an unchecked cast)
+	  * Gets a module by name, checking to ensure it exists.
 	  *
-	  * @param	ModuleName	The module to find
+	  * This method checks whether the module actually exists. If the module does not exist, an assertion will be triggered.
 	  *
-	  * @return	Returns the module interface, casted to the specified typename
+	  * @param ModuleName The module to get.
+	  * @return The interface to the module.
+	  * @see GetModulePtr, LoadModulePtr, LoadModuleChecked
 	  */
 	template<typename TModuleInterface>
 	static TModuleInterface& GetModuleChecked( const FName ModuleName )
 	{
 		FModuleManager& ModuleManager = FModuleManager::Get();
 
-		// Make sure the module is loaded now.
-		checkf( ModuleManager.IsModuleLoaded(ModuleName), TEXT("Tried to get module interface for unloaded module: '%s'"), *(ModuleName.ToString()));
-		return (TModuleInterface&)(ModuleManager.GetModuleInterface(ModuleName));
+		checkf(ModuleManager.IsModuleLoaded(ModuleName), TEXT("Tried to get module interface for unloaded module: '%s'"), *(ModuleName.ToString()));
+		return (TModuleInterface&)(*ModuleManager.GetModule(ModuleName));
 	}
 
+	/**
+	  * Gets a module by name.
+	  *
+	  * @param ModuleName The module to get.
+	  * @return The interface to the module, or nullptr if the module was not found.
+	  * @see GetModuleChecked, LoadModulePtr, LoadModuleChecked
+	  */
+	template<typename TModuleInterface>
+	static TModuleInterface* GetModulePtr( const FName ModuleName )
+	{
+		FModuleManager& ModuleManager = FModuleManager::Get();
+
+		if (!ModuleManager.IsModuleLoaded(ModuleName))
+		{
+			return nullptr;
+		}
+
+		return (TModuleInterface*)(ModuleManager.GetModule(ModuleName).Get());
+	}
 
 	/**
-	  * Static: Finds a module by name, checking to ensure it exists and loading it if not already loaded.
-	  * The return value is the loaded module, casted to the template parameter type (this is an unchecked cast)
+	  * Loads a module by name, checking to ensure it exists.
 	  *
-	  * @param	ModuleName	The module to find and load
+	  * This method checks whether the module actually exists. If the module does not exist, an assertion will be triggered.
+	  * If the module was already loaded previously, the existing instance will be returned.
 	  *
+	  * @param ModuleName The module to find and load
 	  * @return	Returns the module interface, casted to the specified typename
+	  * @see GetModulePtr, LoadModulePtr, LoadModuleChecked
 	  */
 	template<typename TModuleInterface>
 	static TModuleInterface& LoadModuleChecked( const FName ModuleName )
@@ -256,20 +297,18 @@ public:
 
 		if (!ModuleManager.IsModuleLoaded(ModuleName))
 		{
-			// Ensure the module is loaded.
 			ModuleManager.LoadModule(ModuleName);
 		}
 
-		return (TModuleInterface&)(ModuleManager.GetModuleInterface(ModuleName));
+		return GetModuleChecked<TModuleInterface>(ModuleName);
 	}
 
 	/**
-	  * Static: Finds a module by name, checking to ensure it exists and loading it if not already loaded.
-	  * The return value is the loaded module, casted to the template parameter pointer type (this is an unchecked cast)
+	  * Loads a module by name.
 	  *
-	  * @param	ModuleName	The module to find and load
-	  *
-	  * @return	Returns the module interface, casted to the specified typename, or NULL if the module could not be loaded
+	  * @param ModuleName The module to find and load.
+	  * @return The interface to the module, or nullptr if the module was not found.
+	  * @see GetModulePtr, GetModuleChecked, LoadModuleChecked
 	  */
 	template<typename TModuleInterface>
 	static TModuleInterface* LoadModulePtr( const FName ModuleName )
@@ -279,38 +318,42 @@ public:
 		if (!ModuleManager.IsModuleLoaded(ModuleName))
 		{
 			ModuleManager.LoadModule(ModuleName);
-			if (!ModuleManager.IsModuleLoaded(ModuleName))
-			{
-				return NULL;
-			}
 		}
-		return (TModuleInterface*)(&ModuleManager.GetModuleInterface(ModuleName));
+
+		return GetModulePtr<TModuleInterface>(ModuleName);
+	}
+
+public:
+
+	/**
+	 * Finds module files on the disk for loadable modules matching the specified wildcard.
+	 *
+	 * @param WildcardWithoutExtension Filename part (no path, no extension, no build config info) to search for.
+	 * @param OutModules List of modules found.
+	 */
+	void FindModules( const TCHAR* WildcardWithoutExtension, TArray<FName>& OutModules );
+
+	/**
+	 * Gets the number of loaded modules.
+	 *
+	 * @return The number of modules.
+	 */
+	int32 GetModuleCount( ) const
+	{
+		return Modules.Num();
 	}
 
 	/**
-	 * Queries information about a specific module name
-	 *
-	 * @param	InModuleName	Module to query status for
-	 * @param	OutModuleStatus	Status of the specified module
-	 *
-	 * @return	True if the module was found the OutModuleStatus is valid
+	 * Module manager ticking is only used to check for asynchronously compiled modules that may need to be reloaded
 	 */
-	bool QueryModule( const FName InModuleName, FModuleStatus& OutModuleStatus );
-
+	void Tick( );
 
 	/**
-	 * Queries information about all of the currently known modules
+	 * Unloads modules during the shutdown process.
 	 *
-	 * @param	OutModuleStatuses	Status of all modules
+	 * This method is Usually called at various points while exiting an application.
 	 */
-	void QueryModules( TArray< FModuleStatus >& OutModuleStatuses );
-
-	/**
-	 * Query to determine current module count
-	 *
-	 * @return	the number of modules
-	 */
-	int32 GetModuleCount() const { return Modules.Num(); }
+	void UnloadModulesAtShutdown( );
 
 	/**
 	 * Checks for the solution file using the hard-coded location on disk
@@ -331,11 +374,10 @@ public:
 	 * Tries to recompile the specified module.  If the module is loaded, it will first be unloaded (then reloaded after,
 	 * if the recompile was successful.)
 	 *
-	 * @param	InModuleName			Name of the module to recompile
-	 * @param	bReloadAfterRecompile	If true, the module will automatically be reloaded after a successful compile.  Otherwise, you'll need to load it yourself after.
-	 * @param	Ar						Output device for logging compilation status
-	 *
-	 * @return	Returns true if the module was successfully recompiled (and reloaded, if it was previously loaded.)
+	 * @param InModuleName Name of the module to recompile.
+	 * @param bReloadAfterRecompile If true, the module will automatically be reloaded after a successful compile.  Otherwise, you'll need to load it yourself after.
+	 * @param Ar Output device for logging compilation status.
+	 * @return	Returns true if the module was successfully recompiled (and reloaded, if it was previously loaded).
 	 */
 	bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar );
 
@@ -343,21 +385,28 @@ public:
 	bool IsCurrentlyCompiling() const;
 
 	/**
+	 * Declares a type of delegates that is executed after a module recompile has finished.
+	 *
+	 * The first argument signals whether compilation has finished.
+	 * The second argument shows whether compilation was successful or not.
+	 */
+	DECLARE_DELEGATE_TwoParams( FRecompileModulesCallback, bool, bool );
+
+	/**
 	 * Tries to recompile the specified modules in the background.  When recompiling finishes, the specified callback
 	 * delegate will be triggered, passing along a bool that tells you whether the compile action succeeded.  This
 	 * function never tries to unload modules or to reload the modules after they finish compiling.  You should do
 	 * that yourself in the recompile completion callback!
 	 *
-	 * @param	ModuleNames					Names of the modules to recompile
-	 * @param	RecompileModulesCallback	Callback function to execute after compilation finishes (whether successful or not.)
-	 * @param	bWaitForCompletion			True if the function should not return until recompilation attempt has finished and callbacks have fired
-	 * @param	Ar							Output device for logging compilation status
-	 *
+	 * @param ModuleNames Names of the modules to recompile
+	 * @param RecompileModulesCallback Callback function to execute after compilation finishes (whether successful or not.)
+	 * @param bWaitForCompletion True if the function should not return until recompilation attempt has finished and callbacks have fired
+	 * @param Ar Output device for logging compilation status
 	 * @return	True if the recompile action was kicked off successfully.  If this returns false, then the recompile callback will never fire.  In the case where bWaitForCompletion=false, this will also return false if the compilation failed for any reason.
 	 */
 	bool RecompileModulesAsync( const TArray< FName > ModuleNames, const FRecompileModulesCallback& RecompileModulesCallback, const bool bWaitForCompletion, FOutputDevice &Ar );
 
-	/** Request that any current compilation operation be abandoned */
+	/** Request that any current compilation operation be abandoned. */
 	void RequestStopCompilation()
 	{
 		bRequestCancelCompilation = true;
@@ -366,19 +415,17 @@ public:
 	/**
 	 * Tries to compile the specified game project. Not used for recompiling modules that are already loaded.
 	 *
-	 * @param	GameProjectFilename		The filename (including path) of the game project to compile
-	 * @param	Ar						Output device for logging compilation status
-	 *
-	 * @return	Returns true if the project was successfully compiled
+	 * @param GameProjectFilename The filename (including path) of the game project to compile.
+	 * @param Ar Output device for logging compilation status.
+	 * @return Returns true if the project was successfully compiled.
 	 */
 	bool CompileGameProject( const FString& GameProjectFilename, FOutputDevice &Ar );
 
 	/**
 	 * Tries to compile the specified game projects editor. Not used for recompiling modules that are already loaded.
 	 *
-	 * @param	GameProjectFilename		The filename (including path) of the game project to compile
-	 * @param	Ar						Output device for logging compilation status
-	 *
+	 * @param GameProjectFilename The filename (including path) of the game project to compile.
+	 * @param Ar Output device for logging compilation status.
 	 * @return	Returns true if the project was successfully compiled
 	 */
 	bool CompileGameProjectEditor( const FString& GameProjectFilename, FOutputDevice &Ar );
@@ -386,10 +433,9 @@ public:
 	/**
 	 * Tries to compile the specified game project. Not used for recompiling modules that are already loaded.
 	 *
-	 * @param	GameProjectFilename		The filename (including path) of the game project for which to generate code projects
-	 * @param	Ar						Output device for logging compilation status
-	 *
-	 * @return	Returns true if the project was successfully compiled
+	 * @param GameProjectFilename The filename (including path) of the game project for which to generate code projects.
+	 * @param Ar Output device for logging compilation status.
+	 * @return	Returns true if the project was successfully compiled.
 	 */
 	bool GenerateCodeProjectFiles( const FString& GameProjectFilename, FOutputDevice &Ar );
 
@@ -398,24 +444,24 @@ public:
 	 */
 	bool IsUnrealBuildToolAvailable();
 
-
 	/** Delegate that's used by the module manager to initialize a registered module that we statically linked with (monolithic only) */
 	DECLARE_DELEGATE_RetVal( IModuleInterface*, FInitializeStaticallyLinkedModule )
 
 	/**
-	 * Registers an initializer for a module that is statically linked
+	 * Registers an initializer for a module that is statically linked.
 	 *
-	 * @param	InModuleName	The name of this module
-	 * @param	InInitializerDelegate	The delegate that will be called to initialize an instance of this module
+	 * @param InModuleName The name of this module.
+	 * @param InInitializerDelegate The delegate that will be called to initialize an instance of this module.
 	 */
 	void RegisterStaticallyLinkedModule( const FName InModuleName, const FInitializeStaticallyLinkedModule& InInitializerDelegate )
 	{
 		StaticallyLinkedModuleInitializers.Add( InModuleName, InInitializerDelegate );
 	}
 
-
-	/** Called by the engine at startup to let the Module Manager know that it's now safe to process
-	    new UObjects discovered by loading C++ modules */
+	/**
+	 * Called by the engine at startup to let the Module Manager know that it's now
+	 * safe to process new UObjects discovered by loading C++ modules.
+	 */
 	void StartProcessingNewlyLoadedObjects();
 
 	/** Adds an engine binaries directory. */
@@ -424,34 +470,24 @@ public:
 	/**
 	 *	Set the game binaries directory
 	 *
-	 *	@param	InDirectory		The game binaries directory
+	 *	@param InDirectory The game binaries directory.
 	 */
 	void SetGameBinariesDirectory(const TCHAR* InDirectory);
 
 	/**
 	 * Checks to see if the specified module exists and is compatible with the current engine version. 
 	 *
-	 * @param	InModuleName		The base name of the module file.
-	 *
-	 * @return	True if module exists and is up to date.
+	 * @param InModuleName The base name of the module file.
+	 * @return true if module exists and is up to date, false otherwise.
 	 */
 	bool IsModuleUpToDate( const FName InModuleName ) const;
-
-	/**
-	 * Adds a module to our list of modules, unless it's already known
-	 *
-	 * @param	InModuleName			The base name of the module file.  Should not include path, extension or platform/configuration info.  This is just the "name" part of the module file name.  Names should be globally unique.
-	 * @param	InBinariesDirectory		The directory where to find this file, or an empty string to search in the default locations.  This parameter is used by the plugin system to locate plugin binaries.
-	 */
-	void AddModule( const FName InModuleName );
 
 	/**
 	 * Determines whether the specified module contains UObjects.  The module must already be loaded into
 	 * memory before calling this function.
 	 *
-	 * @param	ModuleName	Name of the loaded module to check
-	 *
-	 * @return	True if the module was found to contain UObjects, or false if it did not (or wasn't loaded.)
+	 * @param ModuleName Name of the loaded module to check.
+	 * @return True if the module was found to contain UObjects, or false if it did not (or wasn't loaded.)
 	 */
 	bool DoesLoadedModuleHaveUObjects( const FName ModuleName );
 
@@ -462,16 +498,96 @@ public:
 	 */
 	static const TCHAR *GetUBTConfiguration( );
 
-private:
+public:
 
-	/** Private constructor.  Singleton instance is always constructed on demand. */
-	FModuleManager()
-		: bCanProcessNewlyLoadedObjects( false )
-//		,  ModuleCompileProcessHandle( NULL )
-		, ModuleCompileReadPipe( NULL )
-		, bRequestCancelCompilation(false)
+	/**
+	 * Gets an event delegate that is executed when the set of known modules changed, i.e. upon module load or unload.
+	 *
+	 * The first parameter is the name of the module that changed.
+	 * The second parameter is the reason for the change.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_EVENT_TwoParams(FModuleManager, FModulesChangedEvent, FName, EModuleChangeReason);
+	FModulesChangedEvent& OnModulesChanged( )
 	{
+		return ModulesChangedEvent;
 	}
+
+	/**
+	 * Gets an event delegate that is executed when compilation of a module has started.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_EVENT(FModuleManager, FModuleCompilerStartedEvent);
+	FModuleCompilerStartedEvent& OnModuleCompilerStarted( )
+	{
+		return ModuleCompilerStartedEvent;
+	}
+
+	/**
+	 * Gets an event delegate that is executed when compilation of a module has finished.
+	 *
+	 * The first parameter is the result of the compilation operation.
+	 * The second parameter determines whether the log should be shown.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_EVENT_ThreeParams(FModuleManager, FModuleCompilerFinishedEvent, const FString&, ECompilationResult::Type, bool);
+	FModuleCompilerFinishedEvent& OnModuleCompilerFinished()
+	{
+		return ModuleCompilerFinishedEvent;
+	}
+
+	/**
+	 * Gets a multicast delegate that is executed when any UObjects need processing after a module was loaded.
+	 *
+	 * @return The delegate.
+	 */
+	FSimpleMulticastDelegate& OnProcessLoadedObjectsCallback()
+	{
+		return ProcessLoadedObjectsCallback;
+	}
+
+	/**
+	 * Gets a delegate that is executed when a module containing UObjects has been loaded.
+	 *
+	 * The first parameter is the name of the loaded module.
+	 *
+	 * @return The event delegate.
+	 */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsPackageLoadedCallback, FName);
+	FIsPackageLoadedCallback& IsPackageLoadedCallback()
+	{
+		return IsPackageLoaded;
+	}
+
+public:
+
+	// FSelfRegisteringExec interface.
+
+	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
+
+public:
+
+	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
+	static FString MakeUBTArgumentsForModuleCompiling();
+
+protected:
+
+	/**
+	 * Hidden constructor.
+	 *
+	 * Use the static Get function to return the singleton instance.
+	 */
+	FModuleManager( )
+		: bCanProcessNewlyLoadedObjects(false)
+//		,  ModuleCompileProcessHandle(nullptr)
+		, ModuleCompileReadPipe(nullptr)
+		, bRequestCancelCompilation(false)
+	{ }
+
+protected:
 
 	/**
 	 * Helper structure to hold on to module state while asynchronously recompiling DLLs
@@ -503,14 +619,13 @@ private:
 		FDateTime FileTimeStamp;
 
 		/** Last known compilation method of the .dll file */
-		EModuleCompileMethod::Type CompileMethod;
+		EModuleCompileMethod CompileMethod;
 
 		FModuleCompilationData()
 			: bIsValid(false)
 			, bHasFileTimeStamp(false)
 			, CompileMethod(EModuleCompileMethod::Unknown)
-		{
-		}
+		{ }
 	};
 
 	/**
@@ -519,6 +634,7 @@ private:
 	class FModuleInfo
 	{
 	public:
+
 		/** The original file name of the module, without any suffixes added */
 		FString OriginalFilename;
 
@@ -528,8 +644,7 @@ private:
 		/** Handle to this module (DLL handle), if it's currently loaded */
 		void* Handle;
 
-		/** The module object for this module.  We actually *own* this module, so it's lifetime is controlled
-		    by the scope of this shared pointer. */
+		/** The module object for this module.  We actually *own* this module, so it's lifetime is controlled by the scope of this shared pointer. */
 		TSharedPtr< IModuleInterface > Module;
 
 		/** True if this module was unloaded at shutdown time, and we never want it to be loaded again */
@@ -548,43 +663,38 @@ private:
 
 		/** Constructor */
 		FModuleInfo()
-			: Handle( NULL ),
+			: Handle( nullptr ),
 			  bWasUnloadedAtShutdown( false ),
 			  LoadOrder(CurrentLoadOrder++)
-		{
-		}
+		{ }
 	};
+
+	/** Type definition for maps of module names to module infos. */
+	typedef TMap<FName, TSharedRef<FModuleInfo>> FModuleMap;
 
 	/**
 	 * Tries to recompile the specified DLL using UBT. Does not interact with modules. This is a low level routine.
 	 *
-	 * @param	ModuleNames			List of modules to recompile, including the module name and optional file suffix
-	 * @param	Ar					Output device for logging compilation status
+	 * @param ModuleNames List of modules to recompile, including the module name and optional file suffix.
+	 * @param Ar Output device for logging compilation status.
 	 */
 	bool RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice &Ar );
 
-public:
-	/** Calls PreUnload then either unloads or abandons a module in memory, depending on whether the module supports unloading */;
-	void UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar );
-
-	/** Loads a module in memory then calls PostLoad */;
-	bool LoadModuleWithCallback( const FName InModuleName, FOutputDevice &Ar );
-
-private:
-	/** Generates a unique file name for the specified module name by adding a random suffix and checking for file collisions */
+	/**
+	 * Generates a unique file name for the specified module name by adding a random suffix and checking for file collisions.
+	 */
 	void MakeUniqueModuleFilename( const FName InModuleName, FString& UniqueSuffix, FString& UniqueModuleFileName );
 
 	/** 
-	 *	Starts compiling DLL files for one or more modules 
+	 *	Starts compiling DLL files for one or more modules.
 	 *
-	 *	@param	GameName							The name of the game
-	 *	@param	ModuleNames							The list of modules to compile
-	 *	@param	InRecompileModulesCallback			Callback function to make when module recompiles
-	 *	@param	Ar									
-	 *	@param	bInFailIfGeneratedCodeChanges		If true, fail the compilation if generated headers change
-	 *	@param	InAdditionalCmdLineArgs				Additional arguments to pass to UBT
-	 *
-	 *	@return	bool								true if successful, false if not
+	 *	@param GameName The name of the game.
+	 *	@param ModuleNames The list of modules to compile.
+	 *	@param InRecompileModulesCallback Callback function to make when module recompiles.
+	 *	@param Ar
+	 *	@param bInFailIfGeneratedCodeChanges If true, fail the compilation if generated headers change.
+	 *	@param InAdditionalCmdLineArgs Additional arguments to pass to UBT.
+	 *	@return true if successful, false otherwise.
 	 */
 	bool StartCompilingModuleDLLs( const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 		const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
@@ -608,15 +718,6 @@ private:
 	/** Compares file versions between the current executing engine version and the specified dll */
 	static bool CheckModuleCompatibility(const TCHAR *Filename);
 
-	// Begin FExec interface.
-	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
-	// End of FExec interface.
-
-public:
-	/** @returns Static: Returns arguments to pass to UnrealBuildTool when compiling modules */
-	static FString MakeUBTArgumentsForModuleCompiling();
-
-private:
 	/** Called during CheckForFinishedModuleDLLCompile() for each successfully recomplied module */
 	void OnModuleCompileSucceeded(FName ModuleName, TSharedRef<FModuleInfo> ModuleInfo);
 
@@ -641,9 +742,7 @@ private:
 private:
 
 	/** Map of all modules.  Maps the case-insensitive module name to information about that module, loaded or not. */
-	typedef TMap< FName, TSharedRef< FModuleInfo > > FModuleMap;
 	FModuleMap Modules;
-
 
 	/** Map of module names to a delegate that can initialize each respective statically linked module */
 	typedef TMap< FName, FInitializeStaticallyLinkedModule > FStaticallyLinkedModuleInitializerMap;
@@ -664,10 +763,6 @@ private:
 
 	/** Multicast delegate called to process any new loaded objects. */
 	FSimpleMulticastDelegate ProcessLoadedObjectsCallback;
-
-	///
-	/// Async module recompile
-	///
 
 	/** When compiling a module using an external application, stores the handle to the process that is running */
 	FProcHandle ModuleCompileProcessHandle;
@@ -701,13 +796,13 @@ private:
 	TArray<FString> GameBinariesDirectories;
 };
 
+
 /**
- * Utility class for registering modules that are statically linked
+ * Utility class for registering modules that are statically linked.
  */
 template< class ModuleClass >
 class FStaticallyLinkedModuleRegistrant
 {
-
 public:
 
 	/**
@@ -724,10 +819,16 @@ public:
 			FName( InModuleName ),	// Module name
 			InitializerDelegate );	// Initializer delegate
 	}
-
 	
-	/** Called by the module manager (via delegate above) to initialize this statically-linked module */
-	IModuleInterface* InitializeModule()
+	/**
+	 * Creates and initializes this statically linked module.
+	 *
+	 * The module manager calls this function through the delegate that was created
+	 * in the @see FStaticallyLinkedModuleRegistrant constructor.
+	 *
+	 * @return A pointer to a new instance of the module.
+	 */
+	IModuleInterface* InitializeModule( )
 	{
 		return new ModuleClass();
 	}
@@ -735,12 +836,12 @@ public:
 
 
 /**
- * Function pointer type for InitializeModule().  All modules must have an InitializeModule() function.
- * Usually this is declared automatically using the IMPLEMENT_MODULE macro below.
+ * Function pointer type for InitializeModule().
  *
- * The function must be declared using as 'extern "C"' so that the name remains undecorated.
- *
- * The object returned will be "owned" by the caller, and will be deleted by the caller before the module is unloaded.
+ * All modules must have an InitializeModule() function. Usually this is declared automatically using
+ * the IMPLEMENT_MODULE macro below. The function must be declared using as 'extern "C"' so that the
+ * name remains undecorated. The object returned will be "owned" by the caller, and will be deleted
+ * by the caller before the module is unloaded.
  */
 typedef IModuleInterface* ( *FInitializeModuleFunctionPtr )( void );
 
@@ -750,8 +851,7 @@ typedef IModuleInterface* ( *FInitializeModuleFunctionPtr )( void );
  */
 class FDefaultModuleImpl
 	: public IModuleInterface
-{
-};
+{ };
 
 
 /**
@@ -763,7 +863,7 @@ class FDefaultGameModuleImpl
 	/**
 	 * Returns true if this module hosts gameplay code
 	 *
-	 * @return True for "gameplay modules", or false for engine code modules, plugins, etc.
+	 * @return True for "gameplay modules", or false for engine code modules, plug-ins, etc.
 	 */
 	virtual bool IsGameModule() const override
 	{
@@ -771,18 +871,25 @@ class FDefaultGameModuleImpl
 	}
 };
 
+
 /**
- * The IMPLEMENT_MODULE macro is used to expose your module's main class to the rest of the engine.
+ * Module implementation boilerplate for regular modules.
+ *
+ * This macro is used to expose a module's main class to the rest of the engine.
  * You must use this macro in one of your modules C++ modules, in order for the 'InitializeModule'
- * function to be declared in such a way that the engine can find it.  Also, this macro will handle
+ * function to be declared in such a way that the engine can find it. Also, this macro will handle
  * the case where a module is statically linked with the engine instead of dynamically loaded.
  *
- * Usage:   IMPLEMENT_MODULE( <My Module Class>, <Module name string> )
+ * This macro is intended for modules that do NOT contain gameplay code.
+ * If your module does contain game classes, use IMPLEMENT_GAME_MODULE instead.
+ *
+ * Usage:   IMPLEMENT_MODULE(<My Module Class>, <Module name string>)
+ *
+ * @see IMPLEMENT_GAME_MODULE
  */
-
-// If we're linking monolithically we assume all modules are linked in with the main binary.
 #if IS_MONOLITHIC
 
+	// If we're linking monolithically we assume all modules are linked in with the main binary.
 	#define IMPLEMENT_MODULE( ModuleImplClass, ModuleName ) \
 		/** Global registrant object for this module when linked statically */ \
 		static FStaticallyLinkedModuleRegistrant< ModuleImplClass > ModuleRegistrant##ModuleName( #ModuleName ); \
@@ -791,7 +898,7 @@ class FDefaultGameModuleImpl
 		void EmptyLinkFunctionForStaticInitialization##ModuleName(){} \
 		PER_MODULE_BOILERPLATE_ANYLINK(ModuleImplClass, ModuleName)
 
-#else	// IS_MONOLITHIC
+#else
 
 	#define IMPLEMENT_MODULE( ModuleImplClass, ModuleName ) \
 		\
@@ -807,27 +914,40 @@ class FDefaultGameModuleImpl
 		PER_MODULE_BOILERPLATE \
 		PER_MODULE_BOILERPLATE_ANYLINK(ModuleImplClass, ModuleName)
 
-#endif	// !IS_MONOLITHIC
+#endif //IS_MONOLITHIC
 
-/** IMPLEMENT_GAME_MODULE is used for modules that contain gameplay code */
+
+/**
+ * Module implementation boilerplate for game play code modules.
+ *
+ * This macro works like IMPLEMENT_MODULE but is specifically used for modules that contain game play code.
+ * If your module does not contain game classes, use IMPLEMENT_MODULE instead.
+ *
+ * Usage:   IMPLEMENT_GAME_MODULE(<My Game Module Class>, <Game Module name string>)
+ *
+ * @see IMPLEMENT_MODULE
+ */
 #define IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 	IMPLEMENT_MODULE( ModuleImplClass, ModuleName )
 
-/** IMPLEMENT_ENGINE_DIR declares the engine directory to check for foreign or nested projects */
+
+/**
+ * Macro for declaring the engine directory to check for foreign or nested projects.
+ */
 #if PLATFORM_DESKTOP
 	#ifdef UE_ENGINE_DIRECTORY
 		#define IMPLEMENT_FOREIGN_ENGINE_DIR() const TCHAR *GForeignEngineDir = TEXT( PREPROCESSOR_TO_STRING(UE_ENGINE_DIRECTORY) );
 	#else
-		#define IMPLEMENT_FOREIGN_ENGINE_DIR() const TCHAR *GForeignEngineDir = NULL;
+		#define IMPLEMENT_FOREIGN_ENGINE_DIR() const TCHAR *GForeignEngineDir = nullptr;
 	#endif
 #else
 	#define IMPLEMENT_FOREIGN_ENGINE_DIR() 
 #endif
 
+
 #if IS_PROGRAM
 
 	#if IS_MONOLITHIC
-
 		#define IMPLEMENT_APPLICATION( ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \

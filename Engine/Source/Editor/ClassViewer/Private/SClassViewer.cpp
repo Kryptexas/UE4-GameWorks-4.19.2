@@ -1511,7 +1511,7 @@ private:
 	FOnClassItemDoubleClickDelegate OnDoubleClicked;
 };
 
-static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason::Type ReasonForChange)
+static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange)
 {
 	ClassViewer::Helpers::RequestPopulateClassHierarchy();
 }
