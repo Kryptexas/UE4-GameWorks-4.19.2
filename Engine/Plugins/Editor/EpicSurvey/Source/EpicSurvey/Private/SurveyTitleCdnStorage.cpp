@@ -74,7 +74,7 @@ bool FSurveyTitleCdnStorage::ClearFile(const FString& FileName)
 	return false;
 }
 
-bool FSurveyTitleCdnStorage::EnumerateFiles()
+bool FSurveyTitleCdnStorage::EnumerateFiles(const FPagedQuery& Page)
 {
 	// Make sure an enumeration request  is not currently pending
 	if(!EnumerateFilesRequests.IsEmpty())
@@ -95,11 +95,6 @@ bool FSurveyTitleCdnStorage::EnumerateFiles()
 	return true;
 	
 }	
-
-bool FSurveyTitleCdnStorage::EnumerateFiles(int32 Start, int32 Count)
-{
-	return EnumerateFiles();
-}
 
 void FSurveyTitleCdnStorage::GetFileList(TArray<FCloudFileHeader>& OutFiles) 
 {

@@ -20,8 +20,7 @@ public:
 	virtual bool GetFileContents(const FString& DLName, TArray<uint8>& FileContents) override;
 	virtual bool ClearFiles() override;
 	virtual bool ClearFile(const FString& DLName) override;
-	virtual bool EnumerateFiles() override;
-	virtual bool EnumerateFiles(int32 Start, int32 Count) override;
+	virtual bool EnumerateFiles(const FPagedQuery& Page = FPagedQuery()) override;
 	virtual void GetFileList(TArray<FCloudFileHeader>& InFileHeaders) override;
 	virtual bool ReadFile(const FString& DLName) override;
 

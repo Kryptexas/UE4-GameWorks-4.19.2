@@ -922,9 +922,32 @@ public:
 	virtual const FUniqueNetId& GetSessionId() const = 0;
 };
 
+/**
+ * Paging info needed for a request that can return paged results
+ */
+class FPagedQuery
+{
+public:
+	FPagedQuery(int32 InStart = 0, int32 InCount = -1)
+		: Start(InStart)
+		, Count(InCount)
+	{}
+
+	/** @return true if valid range */
+	bool IsValidRange() const
+	{
+		return Start >= 0 && Count >= 0;
+	}
+
+	/** first entry to fetch */
+	int32 Start;
+	/** total entries to fetch. -1 means ALL */
+	int32 Count;
+};
+
 /** Holds metadata about a given downloadable file */
 struct FCloudFileHeader
-{
+{	
 	/** Hash value, if applicable, of the given file contents */
     FString Hash;
 	/** Filename as downloaded */
