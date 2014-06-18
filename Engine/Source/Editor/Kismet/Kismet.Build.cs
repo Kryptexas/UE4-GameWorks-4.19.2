@@ -35,7 +35,8 @@ public class Kismet : ModuleRules
 				"SourceControl",
 				"LevelEditor",
                 "InputCore",
-				"EngineSettings"
+				"EngineSettings",
+                "Projects"
 			}
 			);
 

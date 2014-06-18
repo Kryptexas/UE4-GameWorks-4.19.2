@@ -682,12 +682,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeFunctionDefinition,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeFunctionDefinition ),
-				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction)
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
 				);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeVariableDefinition,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeVariableDefinition ),
-				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable)
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable),
+				FIsActionChecked(),
+				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::IsNativeCodeBrowsingAvailable )
 				);
 		}
 	}
@@ -799,6 +803,7 @@ FBlueprintEditor::FBlueprintEditor()
 	, bIsActionMenuContextSensitive(true)
 	, CurrentUISelection(FBlueprintEditor::NoSelection)
 	, bEditorMarkedAsClosed(false)
+	, bCodeBasedProject(false)
 {
 	AnalyticsStats.GraphActionMenusNonCtxtSensitiveExecCount = 0;
 	AnalyticsStats.GraphActionMenusCtxtSensitiveExecCount = 0;
@@ -1172,6 +1177,16 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 			FBlueprintEditorApplicationModes::BlueprintDefaultsMode, 
 			MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
 		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+	}
+
+	// Cache the project type ( Blueprint or Code Based )
+	if( FPaths::IsProjectFilePathSet() )
+	{
+		FProjectStatus ProjectStatus;
+		if( IProjectManager::Get().QueryStatusForProject( FPaths::GetProjectFilePath(), ProjectStatus ) && ProjectStatus.bCodeBasedProject )
+		{
+			bCodeBasedProject = true;
+		}
 	}
 
 	// Post-layout initialization
@@ -6135,6 +6150,11 @@ bool FBlueprintEditor::IsSelectionNativeVariable()
 		}
 	}
 	return false;
+}
+
+bool FBlueprintEditor::IsNativeCodeBrowsingAvailable() const
+{
+	return bCodeBasedProject;
 }
 
 void FBlueprintEditor::OnFindInstancesCustomEvent()

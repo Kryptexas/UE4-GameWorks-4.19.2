@@ -841,6 +841,9 @@ private:
 	/** Returns whether the currently focused graph is editable or not */
 	bool IsFocusedGraphEditable() const;
 
+	/** Called to check if native code browsing is available */
+	bool IsNativeCodeBrowsingAvailable() const;
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 
@@ -928,6 +931,7 @@ protected:
 
 	/** Whether we are already in the process of closing this editor */
 	bool bEditorMarkedAsClosed;
+
 public:
 	// Tries to open the specified graph and bring it's document to the front (note: this can return NULL)
 	TSharedPtr<SGraphEditor> OpenGraphAndBringToFront(UEdGraph* Graph);
@@ -989,6 +993,10 @@ private:
 
 	/** Customizations for the SCS editor */
 	TMap< FName, TSharedPtr<ISCSEditorCustomization> > SCSEditorCustomizations;
+
+	/** Whether the current project is C++ or blueprint based */
+	bool bCodeBasedProject;
+
 };
 
 #undef LOCTEXT_NAMESPACE
