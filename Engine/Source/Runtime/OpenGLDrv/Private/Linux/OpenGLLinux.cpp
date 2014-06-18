@@ -6,6 +6,7 @@
 
 #include "OpenGLDrvPrivate.h"
 #include "ds_extensions.h"
+#include "ComponentReregisterContext.h"
 
 /*------------------------------------------------------------------------------
 	OpenGL function pointers.
