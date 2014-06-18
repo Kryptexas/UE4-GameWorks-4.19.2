@@ -34,10 +34,10 @@ public:
 		SLATE_STYLE_ARGUMENT( FEditableTextBoxStyle, Style )
 
 		/** Sets the text content for this editable text box widget */
- 		SLATE_ATTRIBUTE( FText, Text )
+		SLATE_ATTRIBUTE( FText, Text )
 
 		/** Hint text that appears when there is no text in the text box */
- 		SLATE_ATTRIBUTE( FText, HintText )
+		SLATE_ATTRIBUTE( FText, HintText )
 
 		/** Font color and opacity (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
@@ -112,6 +112,15 @@ public:
 	 * @param  InNewText  The new text string
 	 */
 	void SetText( const TAttribute< FText >& InNewText );
+	
+	/** See the HintText attribute */
+	void SetHintText( const TAttribute< FText >& InHintText );
+	
+	/** See the IsReadOnly attribute */
+	void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
+	
+	/** See the IsPassword attribute */
+	void SetIsPassword( TAttribute< bool > InIsPassword );
 
 	/**
 	 * If InError is a non-empty string the TextBox will the ErrorReporting provided during construction

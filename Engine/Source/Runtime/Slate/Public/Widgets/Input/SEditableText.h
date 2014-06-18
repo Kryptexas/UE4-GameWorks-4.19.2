@@ -131,18 +131,18 @@ public:
 	 * @param  InNewText  The new text
 	 */
 	void SetText( const TAttribute< FText >& InNewText );
-    
-    /** See the HintText attribute */
-    void SetHintText( const TAttribute< FText >& InHintText );
-    
-    /** See the IsReadOnly attribute */
-    void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
-    
-    /** See the IsPassword attribute */
-    void SetIsPassword( TAttribute< bool > InIsPassword );
-    
-    /** See the ColorAndOpacity attribute */
-    void SetColorAndOpacity(TAttribute<FSlateColor> Color);
+	
+	/** See the HintText attribute */
+	void SetHintText( const TAttribute< FText >& InHintText );
+	
+	/** See the IsReadOnly attribute */
+	void SetIsReadOnly( TAttribute< bool > InIsReadOnly );
+	
+	/** See the IsPassword attribute */
+	void SetIsPassword( TAttribute< bool > InIsPassword );
+	
+	/** See the ColorAndOpacity attribute */
+	void SetColorAndOpacity(TAttribute<FSlateColor> Color);
 
 	/**
 	 * Restores the text to the original state
@@ -454,7 +454,7 @@ private:
 	/** The text content for this editable text widget */
 	TAttribute< FText > Text;
 
-    /** The text content fot watermark/hinting what text to type here */
+	/** The text content fot watermark/hinting what text to type here */
 	TAttribute< FText > HintText;
 
 	/** The font used to draw the text */

@@ -1347,7 +1347,7 @@ int32 SEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRec
 			const FVector2D DrawPosition = ScrollHelper.FromScrollerSpace( FVector2D( SelectionLeftX, SelectionTopY ) );
 			const FVector2D DrawSize = ScrollHelper.SizeFromScrollerSpace( FVector2D( SelectionRightX - SelectionLeftX, SelectionBottomY - SelectionTopY ) );
 
- 			// NOTE: We rely on scissor clipping for the selection rectangle
+			// NOTE: We rely on scissor clipping for the selection rectangle
 			FSlateDrawElement::MakeBox(
 				OutDrawElements,
 				LayerId + TextLayer,
@@ -1969,20 +1969,20 @@ void SEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
 
 void SEditableText::SetHintText( const TAttribute< FText >& InHintText )
 {
-    HintText = InHintText;
+	HintText = InHintText;
 }
 
 void SEditableText::SetIsReadOnly( TAttribute< bool > InIsReadOnly )
 {
-    IsReadOnly = InIsReadOnly;
+	IsReadOnly = InIsReadOnly;
 }
 
 void SEditableText::SetIsPassword( TAttribute< bool > InIsPassword )
 {
-    IsPassword = InIsPassword;
+	IsPassword = InIsPassword;
 }
 
 void SEditableText::SetColorAndOpacity(TAttribute<FSlateColor> Color)
 {
-    ColorAndOpacity = Color;
+	ColorAndOpacity = Color;
 }
