@@ -1335,8 +1335,6 @@ void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class USta
 			UStaticMesh*, StaticMesh, StaticMesh,
 			FVertexFactory*,VertexFactory,VertexFactory,
 			{
-				Scene->SpeedTreeVertexFactoryMap.Remove(VertexFactory);
-				
 				FSpeedTreeWindComputation** WindComputationRef = Scene->SpeedTreeWindComputationMap.Find(StaticMesh);
 				if (WindComputationRef != NULL)
 				{
@@ -1345,6 +1343,14 @@ void FScene::RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, class USta
 					WindComputation->ReferenceCount--;
 					if (WindComputation->ReferenceCount < 1)
 					{
+						for (auto Iter = Scene->SpeedTreeVertexFactoryMap.CreateIterator(); Iter; ++Iter )
+						{
+							if (Iter.Value() == StaticMesh)
+							{
+								Iter.RemoveCurrent();
+							}
+						}
+
 						Scene->SpeedTreeWindComputationMap.Remove(StaticMesh);
 						WindComputation->UniformBuffer.ReleaseResource();
 						delete WindComputation;
