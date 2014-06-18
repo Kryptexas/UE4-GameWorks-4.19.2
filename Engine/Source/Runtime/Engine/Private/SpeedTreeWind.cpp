@@ -116,7 +116,7 @@ FSpeedTreeWind::FSpeedTreeWind() :
 	m_fStrength(0.0f),
 	m_fLastTime(-1.0),
 	m_fElapsedTime(0.0),
-	m_bGustingEnabled(false),
+	m_bGustingEnabled(true),
 	m_fGust(0.0f),
 	m_fGustTarget(0.0f),
 	m_fGustRiseTarget(0.0f),

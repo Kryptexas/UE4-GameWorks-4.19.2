@@ -19,9 +19,9 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileBox2D;
 
-		/** Whether to include ICU unicode/i18n support in core */
+        /** Whether to include ICU unicode/i18n support in core */
 		[XmlConfig]
-		public static bool bCompileICU;
+        public static bool bCompileICU;
 
 		/** Whether to build a stripped down version of the game specifically for dedicated server. */
 		[XmlConfig]
@@ -55,7 +55,7 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileSimplygon;
 
-		/** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
+        /** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
 		[XmlConfig]
 		public static bool bCompileSteamOSS;
 
@@ -152,9 +152,9 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bExcludePlugins;
 
-		/** True if we need to package up Android with the OBB in the APK file */
+        /** True if we need to package up Android with the OBB in the APK file */
 		[XmlConfig]
-		public static bool bOBBinAPK;
+        public static bool bOBBinAPK;
 
 		/** True if we need PhysX vehicle support */
 		[XmlConfig]
@@ -197,10 +197,10 @@ namespace UnrealBuildTool
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-			bUseLoggingInShipping = false;
+            bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
-			bOBBinAPK = false;
+            bOBBinAPK = false;
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
@@ -224,11 +224,6 @@ namespace UnrealBuildTool
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true
 				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
-				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
-
-			bCompileSpeedTree = bCompileSpeedTree
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees") == true
-				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SpeedTree") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
 		}
 

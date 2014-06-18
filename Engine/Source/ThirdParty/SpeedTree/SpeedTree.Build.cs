@@ -8,7 +8,6 @@ public class SpeedTree : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		// @todo: SpeedTree does support OSX and Linux
 		var bPlatformAllowed = ((Target.Platform == UnrealTargetPlatform.Win32) ||
 								(Target.Platform == UnrealTargetPlatform.Win64) ||
 								(Target.Platform == UnrealTargetPlatform.Mac));
@@ -19,7 +18,7 @@ public class SpeedTree : ModuleRules
 			Definitions.Add("WITH_SPEEDTREE=1");
 			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
-			string SpeedTreePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/SpeedTree/SpeedTree-v7.0/";
+			string SpeedTreePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "SpeedTree/SpeedTree-v7.0/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
