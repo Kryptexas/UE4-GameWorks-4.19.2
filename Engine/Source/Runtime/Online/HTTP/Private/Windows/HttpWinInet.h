@@ -170,6 +170,8 @@ private:
 	int32 ProgressBytesSent;
 	/** Used to calculate total elapsed time for the request */
 	double StartRequestTime;
+	/** enables verbose logging for any http request that exceeds the total timeout */
+	bool bDebugVerbose;
 };
 
 /**
@@ -202,7 +204,7 @@ public:
 	 *
 	 * @param InRequest - original request that created this response
 	 */
-	FHttpResponseWinInet(const FHttpRequestWinInet& InRequest);
+	FHttpResponseWinInet(FHttpRequestWinInet& InRequest);
 
 	/**
 	 * Destructor
@@ -249,7 +251,7 @@ private:
 private:
 
 	/** Request that owns this response */
-	const FHttpRequestWinInet& Request;
+	FHttpRequestWinInet& Request;
 	/** Original URL used for the request */
 	FURLWinInet RequestURL;
 	/** Last bytes read from async call to InternetReadFile */
