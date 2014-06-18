@@ -21,6 +21,7 @@
 #include "StaticMeshEditorViewportClient.h"
 
 #include "../Private/GeomFitUtils.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"

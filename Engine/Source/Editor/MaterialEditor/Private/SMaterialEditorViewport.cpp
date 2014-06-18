@@ -10,6 +10,7 @@
 #include "AssetToolsModule.h"
 #include "MaterialEditor.h"
 #include "SMaterialEditorViewportToolBar.h"
+#include "ComponentReregisterContext.h"
 
 /** Viewport Client for the preview viewport */
 class FMaterialEditorViewportClient : public FEditorViewportClient

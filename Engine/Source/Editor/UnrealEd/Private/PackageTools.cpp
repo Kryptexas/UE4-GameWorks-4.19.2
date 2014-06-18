@@ -14,6 +14,7 @@
 #include "DesktopPlatformModule.h"
 #include "MainFrame.h"
 #include "MessageLog.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "PackageTools"
 

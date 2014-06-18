@@ -15,7 +15,7 @@
 #include "TargetPlatform.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
-
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY(LogAudio);
 

@@ -10,6 +10,13 @@
 
 #pragma once
 
+#include "InstancedFoliage.h"
+
+//
+// Forward declarations.
+//
+class UStaticMesh;
+
 // Current user settings in Foliage UI
 struct FFoliageUISettings
 {

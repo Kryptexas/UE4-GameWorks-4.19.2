@@ -6,7 +6,7 @@
 #include "ModuleManager.h"
 #include "TargetPlatform.h"   
 #include "ShaderCore.h"
-
+#include "hlslcc.h"
 
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 

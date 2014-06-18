@@ -28,6 +28,8 @@
 #include "DesktopPlatformModule.h"
 #include "LevelUtils.h"
 #include "ConsolidateWindow.h"
+#include "ComponentReregisterContext.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
 namespace ObjectTools

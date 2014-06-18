@@ -19,6 +19,7 @@
 #include "Engine/ActorChannel.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/HUD.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 

@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
+#include "ComponentReregisterContext.h"
 
 /**
  * Class for rendering the material on the preview mesh in the Material Editor

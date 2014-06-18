@@ -17,6 +17,7 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 

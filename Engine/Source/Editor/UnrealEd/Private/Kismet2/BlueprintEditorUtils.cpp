@@ -33,6 +33,7 @@
 #include "ObjectEditorUtils.h"
 #include "ToolkitManager.h"
 #include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "Blueprint"
 

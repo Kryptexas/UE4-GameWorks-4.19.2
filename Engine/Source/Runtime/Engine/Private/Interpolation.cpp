@@ -70,6 +70,7 @@
 #include "Particles/Emitter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
+#include "ContentStreaming.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

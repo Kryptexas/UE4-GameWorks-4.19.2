@@ -6,6 +6,7 @@
 #include "CompilerResultsLog.h"
 #include "EdGraphUtilities.h"
 #include "VectorVM.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNiagaraCompiler,All,All);
 

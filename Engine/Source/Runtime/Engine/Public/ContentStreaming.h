@@ -62,6 +62,7 @@ class FAsyncTextureStreaming;
 class UActorComponent;
 class UPrimitiveComponent;
 class AActor;
+class UTexture2D;
 template<typename T>
 class FAsyncTask;
 struct FStreamingManagerTexture;

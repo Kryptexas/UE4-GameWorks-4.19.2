@@ -9,6 +9,7 @@
 #include "ApexDestructibleAssetImport.h"
 #include "DesktopPlatformModule.h"
 #include "FbxImporter.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 

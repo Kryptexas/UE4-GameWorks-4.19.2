@@ -2,6 +2,9 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
+#include "HAL/OutputDevices.h"
+
+#include "ComponentReregisterContext.h"	
 
 void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
 {

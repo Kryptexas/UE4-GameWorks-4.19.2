@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ContentStreaming.h"
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActorComponent, Log, All);
 
 /**

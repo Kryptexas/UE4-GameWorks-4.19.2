@@ -17,6 +17,8 @@
 	#include "ApexClothingUtils.h"
 #endif // #if WITH_APEX_CLOTHING
 
+#include "ComponentReregisterContext.h"
+
 void FLODUtilities::RemoveLOD(FSkeletalMeshUpdateContext& UpdateContext, int32 DesiredLOD )
 {
 	USkeletalMesh* SkeletalMesh = UpdateContext.SkeletalMesh;

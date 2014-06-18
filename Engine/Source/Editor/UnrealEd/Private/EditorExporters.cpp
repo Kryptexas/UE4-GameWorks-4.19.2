@@ -19,6 +19,8 @@
 #include "ImageUtils.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Landscape/Landscape.h"
+#include "UnrealExporter.h"
+#include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorExporters, Log, All);
 

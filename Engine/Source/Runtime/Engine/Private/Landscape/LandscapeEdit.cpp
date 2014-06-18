@@ -30,6 +30,7 @@ LandscapeEdit.cpp: Landscape editing
 #include "ScopedTransaction.h"
 #include "ImageWrapper.h"
 #endif
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY(LogLandscape);
 

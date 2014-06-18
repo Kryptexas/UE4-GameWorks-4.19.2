@@ -42,6 +42,8 @@
 	#include "PlatformFeatures.h"
 	#include "DeviceProfiles/DeviceProfileManager.h"
 	#include "Commandlets/Commandlet.h"
+	#include "EngineService.h"
+	#include "ContentStreaming.h"
 
 #if !UE_SERVER
 	#include "ISlateRHIRendererModule.h"

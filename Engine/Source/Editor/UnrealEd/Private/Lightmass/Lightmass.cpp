@@ -17,6 +17,7 @@
 #include "Runtime/Engine/Classes/Components/SplineMeshComponent.h"
 #include "Lightmass/PrecomputedVisibilityVolume.h"
 #include "Lightmass/PrecomputedVisibilityOverrideVolume.h"
+#include "ComponentReregisterContext.h"
 
 extern FSwarmDebugOptions GSwarmDebugOptions;
 

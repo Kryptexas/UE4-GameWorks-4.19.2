@@ -11,6 +11,7 @@
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
 #include "BitmapUtils.h"
+#include "ComponentReregisterContext.h"
 
 //////////////////////////////////////////////////////////////////////////
 // maf

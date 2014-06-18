@@ -30,6 +30,7 @@
 #include "Landscape/LandscapeMaterialInstanceConstant.h"
 #include "Landscape/LandscapeSplinesComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 

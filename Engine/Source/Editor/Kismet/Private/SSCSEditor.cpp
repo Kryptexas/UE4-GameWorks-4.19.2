@@ -24,6 +24,7 @@
 
 #include "IDocumentation.h"
 #include "Kismet2NameValidators.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "SSCSEditor"
 

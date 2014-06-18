@@ -51,6 +51,7 @@
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #include "MessageLogModule.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "FBXImpoter"
 

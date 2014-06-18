@@ -9,6 +9,7 @@
 #if WITH_ENGINE
 #include "ISessionService.h"
 #endif
+class FEngineService;
 
 /**
  * Implements the main engine loop.	

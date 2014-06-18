@@ -15,6 +15,7 @@
 #include "HLSLMaterialTranslator.h"
 #include "MaterialUniformExpressions.h"
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
+#include "ComponentReregisterContext.h"
 #include "EngineModule.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);

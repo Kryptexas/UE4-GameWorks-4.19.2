@@ -5,6 +5,7 @@
 #include "EdGraphUtilities.h"
 #include "Factories.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "UnrealExporter.h"
 
 /////////////////////////////////////////////////////
 // FGraphObjectTextFactory

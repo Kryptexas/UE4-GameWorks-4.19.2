@@ -27,6 +27,7 @@
 
 #include "Factories.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 

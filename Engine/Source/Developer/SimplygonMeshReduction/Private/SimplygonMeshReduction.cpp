@@ -6,6 +6,7 @@
 #include "SimplygonSDK.h"
 #include "MeshBoneReduction.h"
 #include "MaterialExportUtils.h"
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SimplygonMeshReduction"
 

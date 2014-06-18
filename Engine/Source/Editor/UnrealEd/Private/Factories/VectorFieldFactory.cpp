@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 
 #include "Particles/ParticleSystemComponent.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorFieldFactory, Log, All);
 

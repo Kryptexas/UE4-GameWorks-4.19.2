@@ -73,6 +73,9 @@
 
 #include "HardwareInfo.h"
 #include "EngineModule.h"
+#include "UnrealExporter.h"
+#include "ComponentReregisterContext.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 

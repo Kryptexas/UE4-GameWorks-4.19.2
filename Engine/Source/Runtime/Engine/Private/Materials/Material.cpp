@@ -29,6 +29,7 @@
 #include "UObjectAnnotation.h"
 #include "MaterialCompiler.h"
 #include "TargetPlatform.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"

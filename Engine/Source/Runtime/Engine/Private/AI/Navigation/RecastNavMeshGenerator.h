@@ -7,6 +7,7 @@
 #include "DetourCommon.h"
 #include "DetourNavMesh.h"
 #include "DetourNavMeshBuilder.h"
+#include "AI/NavDataGenerator.h"
 
 #define MAX_VERTS_PER_POLY	6
 

@@ -8,6 +8,7 @@
 #include "EditorSupportDelegates.h"
 #include "TargetPlatform.h"
 #include "ImageWrapper.h"
+#include "ContentStreaming.h"
 
 #if WITH_EDITORONLY_DATA
 #include "DDSLoader.h"

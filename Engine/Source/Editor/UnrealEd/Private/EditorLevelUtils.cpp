@@ -16,6 +16,7 @@
 #include "ScopedTransaction.h"
 #include "ActorEditorUtils.h"
 #include "Editor/Levels/Public/LevelEdMode.h"
+#include "ContentStreaming.h"
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 

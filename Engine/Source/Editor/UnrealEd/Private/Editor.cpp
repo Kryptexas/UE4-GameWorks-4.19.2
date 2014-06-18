@@ -48,6 +48,9 @@
 
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 
+#include "ComponentReregisterContext.h"
+#include "EngineModule.h"
+
 #if PLATFORM_WINDOWS
 // For WAVEFORMATEXTENSIBLE
 	#include "AllowWindowsPlatformTypes.h"

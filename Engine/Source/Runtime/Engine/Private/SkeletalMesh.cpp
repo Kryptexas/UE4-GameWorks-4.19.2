@@ -24,6 +24,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimBlueprint.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_EDITOR
 #include "MeshUtilities.h"

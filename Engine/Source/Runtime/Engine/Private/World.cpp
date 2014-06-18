@@ -43,6 +43,9 @@
 #include "Landscape/LandscapeInfo.h"
 #include "Particles/ParticleEventManager.h"
 
+#include "EngineModule.h"
+#include "ContentStreaming.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
 

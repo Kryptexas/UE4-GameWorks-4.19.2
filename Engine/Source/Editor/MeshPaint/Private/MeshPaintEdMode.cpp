@@ -27,7 +27,7 @@
 
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
-
+#include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 

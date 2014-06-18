@@ -40,6 +40,7 @@
 #include "PackageTools.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "ComponentReregisterContext.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxMaterialImport, Log, All);
 

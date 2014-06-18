@@ -33,6 +33,7 @@
 #include "StaticMeshLight.h"
 #include "SpeedTreeWind.h"
 #include "ComponentInstanceDataCache.h"
+#include "InstancedFoliage.h"
 
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"

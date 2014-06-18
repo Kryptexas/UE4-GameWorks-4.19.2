@@ -16,6 +16,7 @@
 #endif
 
 #include "TargetPlatform.h"
+#include "ContentStreaming.h"
 
 UTexture2D::UTexture2D(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

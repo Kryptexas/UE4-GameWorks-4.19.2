@@ -14,6 +14,8 @@
 	#include "ApexClothingUtils.h"
 #endif // #if WITH_APEX_CLOTHING
 
+#include "ComponentReregisterContext.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogExportMeshUtils, Log, All);
 
 #define LOCTEXT_NAMESPACE "FbxMeshUtil"

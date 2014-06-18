@@ -27,6 +27,7 @@
 #include "../Private/GeomFitUtils.h"
 #include "SpeedTreeWind.h"
 #include "RawMesh.h"
+#include "ComponentReregisterContext.h"
 
 #if WITH_SPEEDTREE
 

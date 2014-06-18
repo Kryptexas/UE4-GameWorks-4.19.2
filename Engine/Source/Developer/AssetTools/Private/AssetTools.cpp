@@ -13,6 +13,7 @@
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
 #include "MessageLog.h"
+#include "UnrealExporter.h"
 
 #define LOCTEXT_NAMESPACE "AssetTools"
 

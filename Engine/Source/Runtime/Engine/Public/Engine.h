@@ -377,24 +377,8 @@
 #include "SystemSettings.h"					// Scalability options.
 #include "SceneManagement.h"				// Scene management.
 
-#include "NavDataGenerator.h"
-#include "NavLinkRenderingProxy.h"
-#include "NavigationModifier.h"
-#include "NavigationOctree.h"
-#include "ContentStreaming.h"				// Content streaming class definitions.
-#include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"
 #include "UnrealEngine.h"					// Unreal engine helpers.
 #include "Canvas.h"							// Canvas.
 #include "EngineUtils.h"
-#include "InstancedFoliage.h"				// Instanced foliage.
-#include "UnrealExporter.h"					// Exporter definition.
 #include "TimerManager.h"					// Game play timers
-#include "EngineService.h"
-#include "NavigationSystemHelpers.h"
-#include "HardwareInfo.h"
-
-#include "EngineModule.h"
-
-
-

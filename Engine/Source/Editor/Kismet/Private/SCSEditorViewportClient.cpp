@@ -15,6 +15,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ISCSEditorCustomization.h"
 #include "ComponentVisualizer.h"
+#include "InstancedFoliage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 

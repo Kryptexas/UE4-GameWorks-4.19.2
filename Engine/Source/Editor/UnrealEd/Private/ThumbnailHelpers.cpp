@@ -6,6 +6,8 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "ContentStreaming.h"
+
 /*
 ***************************************************************
   FThumbnailPreviewScene

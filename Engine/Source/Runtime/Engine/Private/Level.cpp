@@ -23,6 +23,7 @@ Level.cpp: Level-related functions
 #include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
+#include "ContentStreaming.h"
 
 DEFINE_LOG_CATEGORY(LogLevel);
 
