@@ -152,6 +152,9 @@ public:
 	/** helper to attach graph events to sub node, which won't be placed directly on the graph */
 	void AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode);
 
+	/** Returns if this graph is editable */
+	bool IsGraphEditable() const { return IsEditable.Get(); }
+
 protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);

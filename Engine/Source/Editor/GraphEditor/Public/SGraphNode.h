@@ -90,6 +90,9 @@ public:
 	/** Set attribute for determining if widget is editable */
 	void SetIsEditable(TAttribute<bool> InIsEditable);
 
+	/** Returns if widget is editable, additionally considers if the owning graph is read only */
+	bool IsNodeEditable() const;
+
 	/** Set event when node is double clicked */
 	void SetDoubleClickEvent(FSingleNodeEvent InDoubleClickEvent);
 

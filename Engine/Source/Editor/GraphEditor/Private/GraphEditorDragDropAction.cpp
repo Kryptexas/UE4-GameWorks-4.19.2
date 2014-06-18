@@ -119,7 +119,17 @@ void FGraphEditorDragDropAction::SetSimpleFeedbackMessage(const FSlateBrush* Ico
 		.AutoWidth()
 		.Padding(3.0f)
 		[
+			SNew(SImage)
+			.Visibility( this, &FGraphEditorDragDropAction::GetErrorIconVisible )
+			.Image( FEditorStyle::GetBrush( TEXT("Graph.ConnectorFeedback.Error") ))
+			.ColorAndOpacity( FLinearColor::White )
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(3.0f)
+		[
 			SNew(SImage) 
+			.Visibility( this, &FGraphEditorDragDropAction::GetIconVisible )
 			.Image( Icon )
 			.ColorAndOpacity( IconColor )
 		]
@@ -132,6 +142,16 @@ void FGraphEditorDragDropAction::SetSimpleFeedbackMessage(const FSlateBrush* Ico
 			.Text( Message )
 		]
 	);
+}
+
+EVisibility FGraphEditorDragDropAction::GetIconVisible() const
+{
+	return bDropTargetValid ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FGraphEditorDragDropAction::GetErrorIconVisible() const
+{
+	return bDropTargetValid ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 ////////////////////////////////////////////////////////////

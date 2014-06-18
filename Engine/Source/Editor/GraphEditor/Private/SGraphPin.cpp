@@ -666,8 +666,11 @@ bool SGraphPin::TryHandlePinConnection(SGraphPin& OtherSPin)
 
 FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
+	bool bReadOnly = NodeWidget.IsValid() ? !NodeWidget->IsNodeEditable() : false;
+
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || bReadOnly)
 	{
 		return FReply::Unhandled();
 	}
@@ -707,18 +710,14 @@ FReply SGraphPin::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dra
 		return DragConnectionOp->DroppedOnPin(DragDropEvent.GetScreenSpacePosition(), NodeAddPosition);
 	}
 	// handle dropping an asset on the pin
-	else if (Operation->IsOfType<FAssetDragDropOp>())
+	else if (Operation->IsOfType<FAssetDragDropOp>() && NodeWidget.IsValid())
 	{
-		TSharedPtr<SGraphNode> NodeWidget = OwnerNodePtr.Pin();
-		if (NodeWidget.IsValid())
+		UEdGraphNode* Node = NodeWidget->GetNodeObj();
+		if(Node != NULL && Node->GetSchema() != NULL)
 		{
-			UEdGraphNode* Node = NodeWidget->GetNodeObj();
-			if(Node != NULL && Node->GetSchema() != NULL)
-			{
-				TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 
-				Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
-			}
+			Node->GetSchema()->DroppedAssetsOnPin(AssetOp->AssetData, DragDropEvent.GetScreenSpacePosition(), GraphPinObj);
 		}
 		return FReply::Handled();
 	}

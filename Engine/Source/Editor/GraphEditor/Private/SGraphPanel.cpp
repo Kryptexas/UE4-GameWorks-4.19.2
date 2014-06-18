@@ -702,15 +702,15 @@ void SGraphPanel::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent
 
 void SGraphPanel::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
-	if (DragConnectionOp.IsValid())
+	TSharedPtr<FGraphEditorDragDropAction> Operation = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if( Operation.IsValid() )
 	{
-		DragConnectionOp->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
+		Operation->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
 	}
 	else
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-		if (AssetOp.IsValid())
+		TSharedPtr<FDecoratedDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if( AssetOp.IsValid()  )
 		{
 			AssetOp->ResetToDefaultToolTip();
 		}
@@ -723,6 +723,31 @@ FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEven
 	if (!Operation.IsValid())
 	{
 		return FReply::Unhandled();
+	}
+
+	// Handle Read only graphs
+	if( !IsEditable.Get() )
+	{
+		TSharedPtr<FGraphEditorDragDropAction> GraphDragDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+
+		if( GraphDragDropOp.IsValid() )
+		{
+			GraphDragDropOp->SetDropTargetValid( false );
+		}
+		else
+		{
+			TSharedPtr<FDecoratedDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+			if( AssetOp.IsValid() )
+			{
+				FText Tooltip = AssetOp->GetHoverText();
+				if( Tooltip.IsEmpty() )
+				{
+					Tooltip = NSLOCTEXT( "GraphPanel", "DragDropOperation", "Graph is Read-Only" );
+				}
+				AssetOp->SetToolTip( Tooltip, FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
+			}
+		}
+		return FReply::Handled();
 	}
 
 	if( Operation->IsOfType<FGraphEditorDragDropAction>() )
@@ -760,7 +785,7 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
 
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || !IsEditable.Get())
 	{
 		return FReply::Unhandled();
 	}

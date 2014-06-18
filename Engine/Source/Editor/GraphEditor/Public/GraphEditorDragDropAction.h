@@ -13,6 +13,7 @@ public:
 	void SetHoveredGraph(const TSharedPtr<class SGraphPanel>& InGraph);
 	void SetHoveredCategoryName(const FString& InHoverCategoryName);
 	void SetHoveredAction(TSharedPtr<struct FEdGraphSchemaAction> Action);
+	void SetDropTargetValid( bool bValid ) { bDropTargetValid = bValid; }
 
 	// Interface to override
 	virtual void HoverTargetChanged() {}
@@ -36,6 +37,10 @@ protected:
 	virtual void Construct();
 
 private:
+
+	EVisibility GetIconVisible() const;
+	EVisibility GetErrorIconVisible() const;
+
 	// The pin that the drag action is currently hovering over
 	TWeakObjectPtr<class UEdGraphPin> HoveredPin;
 
@@ -52,6 +57,9 @@ protected:
 
 	// Action we are hovering over
 	TWeakPtr<struct FEdGraphSchemaAction> HoveredAction;
+
+	// drop target status
+	bool bDropTargetValid;
 };
 
 // Drag-drop action where an FEdGraphSchemaAction should be performed when dropped

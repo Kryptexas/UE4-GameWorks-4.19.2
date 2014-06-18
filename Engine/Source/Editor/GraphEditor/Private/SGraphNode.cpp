@@ -110,6 +110,12 @@ void SGraphNode::SetIsEditable(TAttribute<bool> InIsEditable)
 	IsEditable = InIsEditable;
 }
 
+bool SGraphNode::IsNodeEditable() const
+{
+	bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
+	return IsEditable.Get() && !bReadOnly;
+}
+
 /** Set event when node is double clicked */
 void SGraphNode::SetDoubleClickEvent(FSingleNodeEvent InDoubleClickEvent)
 {
@@ -221,6 +227,8 @@ FReply SGraphNode::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			bool bOkIcon = false;
 			FString TooltipText;
 			GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->AssetData, GraphNode, TooltipText, bOkIcon);
+			bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? !OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
+			bOkIcon = bReadOnly ? false : bOkIcon;
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
 			AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 		}
@@ -247,8 +255,9 @@ FVector2D SGraphNode::NodeCoordToGraphCoord( const FVector2D& NodeSpaceCoordinat
 
 FReply SGraphNode::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	bool bReadOnly = OwnerGraphPanelPtr.IsValid() ? !OwnerGraphPanelPtr.Pin()->IsGraphEditable() : false;
 	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
-	if (!Operation.IsValid())
+	if (!Operation.IsValid() || bReadOnly)
 	{
 		return FReply::Unhandled();
 	}
