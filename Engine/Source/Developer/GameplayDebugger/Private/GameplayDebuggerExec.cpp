@@ -5,12 +5,6 @@
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #include "Misc/CoreMisc.h"
 
-#if WITH_EDITOR
-#include "Editor.h"
-#include "EditorViewportClient.h"
-#include "LevelEditorViewport.h"
-#endif //WITH_EDITOR
-
 struct FGameplayDebuggerExec : public FSelfRegisteringExec
 {
 	FGameplayDebuggerExec()

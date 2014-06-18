@@ -7,10 +7,6 @@
 #include "TimerManager.h"
 #include "VisualLog.h"
 
-#if WITH_EDITOR
-#include "UnrealEd.h"
-#endif
-
 DEFINE_LOG_CATEGORY_STATIC(LogGameplayDebugging, Log, All);
 
 #define BUGIT_VIEWS (1<<EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead)

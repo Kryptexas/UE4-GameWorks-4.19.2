@@ -36,4 +36,11 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingComponent.h"
 
+#if WITH_EDITOR
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#include "LevelEditorViewport.h"
+#include "UnrealEd.h"
+#endif //WITH_EDITOR
+
 DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Warning, All);

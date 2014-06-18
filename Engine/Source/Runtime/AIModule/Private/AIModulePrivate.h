@@ -45,6 +45,10 @@
 #include "BehaviorTree/Decorators/BTDecorator_BlackboardBase.h"
 #include "BehaviorTree/Services/BTService_BlackboardBase.h"
 
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
+
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogCrowdFollowing, Warning, All);
