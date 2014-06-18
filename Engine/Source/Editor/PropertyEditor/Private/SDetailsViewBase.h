@@ -265,7 +265,7 @@ protected:
 
 	/** Updates the property map for access when customizing the details view.  Generates default layout for properties */
 	void UpdatePropertyMap();
-
+	virtual void CustomUpdatePropertyMap() {}
 	/** 
 	 * Recursively updates children of property nodes. Generates default layout for properties 
 	 * 

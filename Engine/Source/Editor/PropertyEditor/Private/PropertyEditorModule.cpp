@@ -633,22 +633,25 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 	return FPropertyTypeLayoutCallback();
 }
 
-TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDetailView(const FDetailsViewArgs& DetailsViewArgs, TSharedPtr<FStructOnScope> StructData)
+TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDetailView(const FDetailsViewArgs& DetailsViewArgs, TSharedPtr<FStructOnScope> StructData, bool bShowObjects, const FString& CustomName)
 {
 	TSharedRef<SStructureDetailsView> DetailView =
 		SNew(SStructureDetailsView)
-		.DetailsViewArgs(DetailsViewArgs);
+		.DetailsViewArgs(DetailsViewArgs)
+		.CustomName(CustomName);
 
-	struct FDontShowObjects
+	if (!bShowObjects)
 	{
-		static bool CanShow(const UProperty* Property)
+		struct FDontShowObjects
 		{
-			return Property && !Property->IsA<UObjectPropertyBase>();
-		}
-	};
+			static bool CanShow(const UProperty* Property)
+			{
+				return Property && !Property->IsA<UObjectPropertyBase>() && !Property->IsA<UInterfaceProperty>();
+			}
+		};
 
-	DetailView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&FDontShowObjects::CanShow));
-
+		DetailView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&FDontShowObjects::CanShow));
+	}
 	DetailView->SetStructureData(StructData);
 
 	return DetailView;

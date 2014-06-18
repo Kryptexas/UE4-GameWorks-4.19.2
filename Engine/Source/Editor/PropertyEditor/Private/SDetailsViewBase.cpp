@@ -987,6 +987,8 @@ void SDetailsViewBase::UpdatePropertyMap()
 	// When we encounter object property nodes, add their children instead of adding them to the tree.
 	UpdatePropertyMapRecursive(*RootPropertyNode, *DetailLayout, NAME_None, RootPropertyNode.Get());
 
+	CustomUpdatePropertyMap();
+
 	// Ask for custom detail layouts
 	QueryCustomDetailLayout(*DetailLayout);
 

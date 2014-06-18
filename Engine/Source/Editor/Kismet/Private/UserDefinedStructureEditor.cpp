@@ -9,9 +9,154 @@
 #include "PropertyCustomizationHelpers.h"
 #include "Editor/KismetWidgets/Public/SPinTypeSelector.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 
+class FStructureDefaultValueView : public FStructureEditorUtils::INotifyOnStructChanged, public TSharedFromThis<FStructureDefaultValueView>
+{
+public:
+	FStructureDefaultValueView::FStructureDefaultValueView(UUserDefinedStruct* EditedStruct) 
+		: UserDefinedStruct(EditedStruct)
+	{
+		FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
+	}
+
+	void Initialize()
+	{
+		StructData = MakeShareable(new FStructOnScope(GetUserDefinedStruct()));
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs ViewArgs;
+		ViewArgs.bAllowSearch = false;
+		ViewArgs.bHideSelectionTip = false;
+		ViewArgs.bShowActorLabel = false;
+
+		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructData, false, LOCTEXT("DefaultValues", "Default Values").ToString());
+		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FStructureDefaultValueView::OnFinishedChangingProperties);
+	}
+
+	~FStructureDefaultValueView()
+	{
+		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
+	}
+
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+	{
+		check(PropertyChangedEvent.MemberProperty
+			&& PropertyChangedEvent.MemberProperty->GetOwnerStruct()
+			&& (PropertyChangedEvent.MemberProperty->GetOwnerStruct() == GetUserDefinedStruct())
+			&& PropertyChangedEvent.MemberProperty->GetOwnerStruct()->IsA<UUserDefinedStruct>());
+
+		const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
+		while (!Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
+		{
+			DirectProperty = CastChecked<const UProperty>(DirectProperty->GetOuter());
+		}
+
+		FString DefaultValueString;
+		bool bDefaultValueSet = false;
+		{
+			if (StructData.IsValid() && StructData->IsValid())
+			{
+				bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
+			}
+		}
+
+		const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
+		if (bDefaultValueSet && VarGuid.IsValid())
+		{
+			FStructureEditorUtils::ChangeVariableDefaultValue(GetUserDefinedStruct(), VarGuid, DefaultValueString);
+		}
+	}
+
+	UUserDefinedStruct* GetUserDefinedStruct()
+	{
+		return UserDefinedStruct.Get();
+	}
+
+	TSharedPtr<class SWidget> GetWidget()
+	{
+		return StructureDetailsView.IsValid() ? StructureDetailsView->GetWidget() : NULL;
+	}
+
+	virtual void PreChange(const class UUserDefinedStruct* Struct) override
+	{
+		if (Struct && (GetUserDefinedStruct() == Struct))
+		{
+			if (StructureDetailsView.IsValid())
+			{
+				StructureDetailsView->SetStructureData(NULL);
+			}
+			if (StructData.IsValid())
+			{
+				StructData->Destroy();
+				StructData.Reset();
+			}
+		}
+	}
+
+	virtual void PostChange(const class UUserDefinedStruct* Struct) override
+	{
+		if (Struct && (GetUserDefinedStruct() == Struct))
+		{
+			StructData = MakeShareable(new FStructOnScope(Struct));
+			FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData->GetStructMemory());
+
+			if (StructureDetailsView.IsValid())
+			{
+				StructureDetailsView->SetStructureData(StructData);
+			}
+		}
+	}
+private:
+	TSharedPtr<FStructOnScope> StructData;
+	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
+	const TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////
+// FUserDefinedStructureDetails
+
+class FUserDefinedStructureDetails : public IDetailCustomization, FStructureEditorUtils::INotifyOnStructChanged
+{
+public:
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<IDetailCustomization> MakeInstance()
+	{
+		return MakeShareable(new FUserDefinedStructureDetails);
+	}
+
+	~FUserDefinedStructureDetails()
+	{
+		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
+	}
+
+	UUserDefinedStruct* GetUserDefinedStruct()
+	{
+		return UserDefinedStruct.Get();
+	}
+
+	struct FStructVariableDescription* FindStructureFieldByGuid(FGuid Guid)
+	{
+		if (auto Struct = GetUserDefinedStruct())
+		{
+			return FStructureEditorUtils::GetVarDesc(Struct).FindByPredicate(FStructureEditorUtils::FFindByGuidHelper<FStructVariableDescription>(Guid));
+		}
+		return NULL;
+	}
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) override;
+
+	/** FStructureEditorUtils::INotifyOnStructChanged */
+	virtual void PreChange(const class UUserDefinedStruct* Struct) override {}
+	virtual void PostChange(const class UUserDefinedStruct* Struct) override;
+
+private:
+	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
+	TSharedPtr<class FUserDefinedStructureLayout> Layout;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserDefinedStructureEditor
@@ -110,26 +255,57 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 		EditedStruct = Cast<UUserDefinedStruct>(EditingObjects[ 0 ]);
 	}
 
-	// Create a property view
-	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	auto Box = SNew(SVerticalBox);
 
-	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ false, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true );
-	DetailsViewArgs.bHideActorNameArea = true;
-	DetailsViewArgs.bShowOptions = false;
+	{
+		// Create a property view
+		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ false, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true);
+		DetailsViewArgs.bHideActorNameArea = true;
+		DetailsViewArgs.bShowOptions = false;
+		PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
+		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FUserDefinedStructureDetails::MakeInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
+		PropertyView->SetObject(EditedStruct);
+		Box->AddSlot()
+		.AutoHeight()
+		[
+			PropertyView.ToSharedRef()
+		];
+	}
 
-	PropertyView = EditModule.CreateDetailView( DetailsViewArgs );
-
-	FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FUserDefinedStructureDetails::MakeInstance);
-	PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
-
-	PropertyView->SetObject(EditedStruct);
+	DefaultValueView = NULL;
+	struct FShowDefaultValuePropertyEditor
+	{
+		bool bShowDefaultValuePropertyEditor;
+		FShowDefaultValuePropertyEditor() : bShowDefaultValuePropertyEditor(false)
+		{
+			GConfig->GetBool(TEXT("UserDefinedStructure"), TEXT("bShowDefaultValuePropertyEditor"), bShowDefaultValuePropertyEditor, GEditorIni);
+		}
+	};
+	static FShowDefaultValuePropertyEditor Helper;
+	if (Helper.bShowDefaultValuePropertyEditor)
+	{
+		DefaultValueView = MakeShareable(new FStructureDefaultValueView(EditedStruct));
+		DefaultValueView->Initialize();
+		auto DefaultValueWidget = DefaultValueView->GetWidget();
+		if (DefaultValueWidget.IsValid())
+		{
+			Box->AddSlot()
+			.AutoHeight()
+			.VAlign(EVerticalAlignment::VAlign_Top)
+			[
+				DefaultValueWidget.ToSharedRef()
+			];
+		}
+	}
 
 	return SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("GenericEditor.Tabs.Properties") )
 		.Label( LOCTEXT("UserDefinedStructureEditor", "Structure") )
 		.TabColorScale( GetTabColorScale() )
 		[
-			PropertyView.ToSharedRef()
+			Box
 		];
 }
 
@@ -142,52 +318,9 @@ class FUserDefinedStructureLayout : public IDetailCustomNodeBuilder, public TSha
 public:
 	FUserDefinedStructureLayout(TWeakPtr<class FUserDefinedStructureDetails> InStructureDetails) : StructureDetails(InStructureDetails) {}
 
-	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
-	{
-		auto StructureDetailsSP = StructureDetails.Pin();
-		if (StructureDetailsSP.IsValid())
-		{
-			check(PropertyChangedEvent.MemberProperty
-				&& PropertyChangedEvent.MemberProperty->GetOwnerStruct()
-				&& (PropertyChangedEvent.MemberProperty->GetOwnerStruct() == StructureDetailsSP->GetUserDefinedStruct())
-				&& PropertyChangedEvent.MemberProperty->GetOwnerStruct()->IsA<UUserDefinedStruct>());
-
-			const UProperty* DirectProperty = PropertyChangedEvent.MemberProperty;
-			while (!Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
-			{
-				DirectProperty = CastChecked<const UProperty>(DirectProperty->GetOuter());
-			}
-
-			FString DefaultValueString;
-			bool bDefaultValueSet = false;
-			{
-				auto DefaultStructInstance = StructureDetailsSP->GetStructInstance();
-				if (DefaultStructInstance.IsValid() && DefaultStructInstance->IsValid())
-				{
-					bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, DefaultStructInstance->GetStructMemory(), DefaultValueString);
-				}
-			}
-
-			const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
-			if (bDefaultValueSet && VarGuid.IsValid())
-			{
-				FStructureEditorUtils::ChangeVariableDefaultValue(StructureDetailsSP->GetUserDefinedStruct(), VarGuid, DefaultValueString);
-			}
-		}
-	}
-
 	void OnChanged()
 	{
 		OnRegenerateChildren.ExecuteIfBound();
-	}
-
-	void ResetStructureView()
-	{
-		auto StructureDetailsViewPinned = StructureDetailsView.Pin();
-		if (StructureDetailsView.IsValid())
-		{
-			StructureDetailsViewPinned->SetStructureData(NULL);
-		}
 	}
 
 	FReply OnAddNewField()
@@ -294,7 +427,6 @@ public:
 
 private:
 	TWeakPtr<class FUserDefinedStructureDetails> StructureDetails;
-	TWeakPtr<class IStructureDetailsView> StructureDetailsView;
 	FSimpleDelegate OnRegenerateChildren;
 };
 
@@ -759,50 +891,15 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 				TSharedRef<class FUserDefinedStructureFieldLayout> VarLayout = MakeShareable(new FUserDefinedStructureFieldLayout(StructureDetails,  SharedThis(this), VarDesc.VarGuid));
 				ChildrenBuilder.AddChildCustomBuilder(VarLayout);
 			}
-
-			struct FShowDefaultValuePropertyEditor
-			{
-				bool bShowDefaultValuePropertyEditor;
-				FShowDefaultValuePropertyEditor() : bShowDefaultValuePropertyEditor(false)
-				{
-					GConfig->GetBool(TEXT("UserDefinedStructure"), TEXT("bShowDefaultValuePropertyEditor"), bShowDefaultValuePropertyEditor, GEditorIni);
-				}
-			};
-			static FShowDefaultValuePropertyEditor Helper;
-			if (Helper.bShowDefaultValuePropertyEditor)
-			{
-				FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-				FDetailsViewArgs ViewArgs;
-				ViewArgs.bAllowSearch = false;
-				ViewArgs.bHideSelectionTip = false;
-				ViewArgs.bShowActorLabel = false;
-
-				auto StructureDetailViewRef = PropertyModule.CreateStructureDetailView(ViewArgs, StructureDetailsSP->GetStructInstance());
-				StructureDetailViewRef->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FUserDefinedStructureLayout::OnFinishedChangingProperties);
-				ChildrenBuilder.AddChildContent(FString())
-				[
-					StructureDetailViewRef->GetWidget().ToSharedRef()
-				];
-
-				StructureDetailsView = StructureDetailViewRef;
-			}
 		}
 	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// FUserDefinedStructureDetails
+// FUserDefinedStructureLayout
 
-FStructVariableDescription* FUserDefinedStructureDetails::FindStructureFieldByGuid(FGuid Guid)
-{
-	if (auto Struct = GetUserDefinedStruct())
-	{
-		return FStructureEditorUtils::GetVarDesc(Struct).FindByPredicate(FStructureEditorUtils::FFindByGuidHelper<FStructVariableDescription>(Guid));
-	}
-	return NULL;
-}
-
-void FUserDefinedStructureDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailLayout )
+/** IDetailCustomization interface */
+void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
 {
 	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
 	check(Objects.Num() > 0);
@@ -810,7 +907,6 @@ void FUserDefinedStructureDetails::CustomizeDetails( class IDetailLayoutBuilder&
 	if (Objects.Num() == 1)
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
-		StructData = MakeShareable(new FStructOnScope(UserDefinedStruct.Get()));
 
 		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure").ToString());
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
@@ -820,37 +916,16 @@ void FUserDefinedStructureDetails::CustomizeDetails( class IDetailLayoutBuilder&
 	FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
 }
 
-void FUserDefinedStructureDetails::PreChange(const class UUserDefinedStruct* Struct)
-{
-	if (Struct && (GetUserDefinedStruct() == Struct) && StructData.IsValid())
-	{
-		if (Layout.IsValid())
-		{
-			Layout->ResetStructureView();
-		}
-		StructData->Destroy();
-		StructData.Reset();
-	}
-}
-
+/** FStructureEditorUtils::INotifyOnStructChanged */
 void FUserDefinedStructureDetails::PostChange(const class UUserDefinedStruct* Struct)
 {
 	if (Struct && (GetUserDefinedStruct() == Struct))
 	{
-		StructData = MakeShareable(new FStructOnScope(Struct));
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData->GetStructMemory());
 		if (Layout.IsValid())
 		{
 			Layout->OnChanged();
 		}
 	}
-}
-
-
-
-FUserDefinedStructureDetails::~FUserDefinedStructureDetails()
-{
-	FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 }
 
 #undef LOCTEXT_NAMESPACE

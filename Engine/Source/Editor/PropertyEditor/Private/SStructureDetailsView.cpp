@@ -31,6 +31,8 @@ void SStructureDetailsView::Construct(const FArguments& InArgs)
 	bIsLocked = false;
 	bHasOpenColorPicker = false;
 
+	CustomName = InArgs._CustomName;
+
 	// Create the root property now
 	RootNode = MakeShareable(new FStructurePropertyNode);
 		
@@ -194,6 +196,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	InitParams.bCreateCategoryNodes = false;
 
 	RootNode->InitNode(InitParams);
+	RootNode->SetDisplayNameOverride(CustomName);
 
 	RestoreExpandedItems();
 
@@ -231,6 +234,11 @@ bool SStructureDetailsView::IsConnected() const
 TSharedPtr<class FComplexPropertyNode> SStructureDetailsView::GetRootNode()
 {
 	return RootNode;
+}
+
+void SStructureDetailsView::CustomUpdatePropertyMap()
+{
+	DetailLayout->DefaultCategory(NAME_None).SetDisplayName(NAME_None, CustomName);
 }
 
 #undef LOCTEXT_NAMESPACE

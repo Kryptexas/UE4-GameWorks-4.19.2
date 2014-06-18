@@ -8,7 +8,7 @@ class SStructureDetailsView : public SDetailsViewBase, public IStructureDetailsV
 {
 	TSharedPtr<struct FStructOnScope> StructData;
 	TSharedPtr<class FStructurePropertyNode> RootNode;
-
+	FString CustomName;
 public:
 
 	SLATE_BEGIN_ARGS(SStructureDetailsView)
@@ -16,6 +16,7 @@ public:
 		{}
 		/** The user defined args for the details view */
 		SLATE_ARGUMENT(FDetailsViewArgs, DetailsViewArgs)
+		SLATE_ARGUMENT(FString, CustomName)
 	SLATE_END_ARGS()
 
 	~SStructureDetailsView();
@@ -80,5 +81,7 @@ public:
 	virtual void SetObject(UObject* InObject, bool bForceRefresh = false) override{}
 
 	virtual TSharedPtr<class FComplexPropertyNode> GetRootNode() override;
+protected:
+	virtual void CustomUpdatePropertyMap() override;
 };
 
