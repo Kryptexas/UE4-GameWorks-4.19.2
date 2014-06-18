@@ -111,7 +111,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 FReply FPaperTileMapDetailsCustomization::EnterTileMapEditingMode()
 {
-	GEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
+	GLevelEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
 	return FReply::Handled();
 }
 
@@ -131,7 +131,7 @@ FReply FPaperTileMapDetailsCustomization::AddCollisionLayerClicked()
 
 EVisibility FPaperTileMapDetailsCustomization::GetNonEditModeVisibility() const
 {
-	return GEditorModeTools().IsModeActive(FEdModeTileMap::EM_TileMap) ? EVisibility::Collapsed : EVisibility::Visible;
+	return GLevelEditorModeTools().IsModeActive(FEdModeTileMap::EM_TileMap) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 UPaperTileLayer* FPaperTileMapDetailsCustomization::AddLayer(bool bCollisionLayer)

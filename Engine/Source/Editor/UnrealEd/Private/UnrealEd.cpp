@@ -27,9 +27,9 @@ UUnrealEdEngine* GUnrealEd;
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEd, Log, All);
 
 /**
- * Provides access to the FEditorModeTools singleton.
+ * Provides access to the FEditorModeTools for the level editor
  */
-class FEditorModeTools& GEditorModeTools()
+class FEditorModeTools& GLevelEditorModeTools()
 {
 	static FEditorModeTools* EditorModeToolsSingleton = new FEditorModeTools;
 	return *EditorModeToolsSingleton;
@@ -138,15 +138,15 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 
 void EditorExit()
 {
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
-		GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
+		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	// Save out any config settings for the editor so they don't get lost
 	GEditor->SaveConfig();
-	GEditorModeTools().SaveConfig();
+	GLevelEditorModeTools().SaveConfig();
 
 	// Clean up the actor folders singleton
 	FActorFolders::Cleanup();

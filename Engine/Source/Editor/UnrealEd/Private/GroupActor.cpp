@@ -640,7 +640,7 @@ void AGroupActor::UnlockSelectedGroups()
 void AGroupActor::ToggleGroupMode()
 {
 	// Group mode can only be toggled when not in InterpEdit mode
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
 		GUnrealEd->bGroupingActive = !GUnrealEd->bGroupingActive;
 

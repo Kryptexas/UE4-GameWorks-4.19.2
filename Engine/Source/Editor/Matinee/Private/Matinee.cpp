@@ -308,7 +308,7 @@ void FMatinee::SetAudioRealtimeOverride( bool bAudioIsRealtime ) const
 {
 	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
+		FEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
 		if (LevelVC)
 		{
 			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
@@ -1998,15 +1998,15 @@ void FMatinee::OnClose()
 	Opt->bAdjustingGroupKeyframes = false;
 
 	// When they close the window - change the mode away from InterpEdit.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 		// Only change mode if this window closing wasn't instigated by someone changing mode!
 		if( !InterpEditMode->bLeavingMode )
 		{
 			InterpEditMode->InterpEd = NULL;
-			GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+			GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 		}
 	}
 
@@ -2131,7 +2131,7 @@ static void DrawTransparentLine( FCanvas* Canvas, const FVector2D& Start, const 
 	}
 }
 
-void FMatinee::DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void FMatinee::DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 	if( ViewportClient->AllowMatineePreview() )
 	{

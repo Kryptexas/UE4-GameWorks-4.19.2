@@ -56,7 +56,7 @@ void FDragTool_ActorFrustumSelect::StartDrag(FEditorViewportClient* InViewportCl
 */
 void FDragTool_ActorFrustumSelect::EndDrag()
 {
-	FEditorModeTools& EdModeTools = GEditorModeTools();
+	FEditorModeTools& EdModeTools = GLevelEditorModeTools();
 	const bool bGeometryMode = EdModeTools.IsModeActive( FBuiltinEditorModes::EM_Geometry );
 
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(ViewportClient->Viewport, ViewportClient->GetScene(), ViewportClient->EngineShowFlags ));
@@ -74,7 +74,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 	if( !bShiftDown )
 	{
 		// If the user is selecting, but isn't hold down SHIFT, remove all current selections.
-		GEditorModeTools().SelectNone();
+		GLevelEditorModeTools().SelectNone();
 	}
 
 	// Does an actor have to be fully contained in the box to be selected
@@ -82,7 +82,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 	bool bSelectionChanged = false;
 
 	// Let the editor mode try to handle the selection.
-	const bool bEditorModeHandledSelection = GEditorModeTools().FrustumSelect( Frustum, bLeftMouseButtonDown );
+	const bool bEditorModeHandledSelection = GLevelEditorModeTools().FrustumSelect( Frustum, bLeftMouseButtonDown );
 
 	if( !bEditorModeHandledSelection )
 	{

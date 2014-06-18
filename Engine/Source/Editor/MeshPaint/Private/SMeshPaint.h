@@ -65,6 +65,8 @@ public:
 	SLATE_BEGIN_ARGS( SMeshPaint ){}
 	SLATE_END_ARGS()
 
+	~SMeshPaint();
+
 	/** SCompoundWidget functions */
 	void Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKit> InParentToolkit);
 

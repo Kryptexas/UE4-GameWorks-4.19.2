@@ -57,8 +57,6 @@ private:
 	/** All created asset type actions.  Cached here so that we can unregister them during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
 
-	TSharedPtr<FEdModeTileMap> TileMapEditorModePtr;
-
 	TSharedPtr<IComponentAssetBroker> PaperSpriteBroker;
 	TSharedPtr<IComponentAssetBroker> PaperFlipbookBroker;
 
@@ -114,8 +112,11 @@ public:
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperFlipbook::StaticClass(), UPaperFlipbookThumbnailRenderer::StaticClass());
 
 		// Register the editor modes
-		TileMapEditorModePtr = MakeShareable(new FEdModeTileMap);
-		GEditorModeTools().RegisterMode(TileMapEditorModePtr.ToSharedRef());
+		FEditorModeRegistry::Get().RegisterMode<FEdModeTileMap>(
+			FEdModeTileMap::EM_TileMap,
+			LOCTEXT("TileMapEditMode", "Tile Map Editor"),
+			FSlateIcon(),
+			true);
 
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
@@ -141,7 +142,7 @@ public:
 			FComponentAssetBrokerage::UnregisterBroker(PaperSpriteBroker);
 
 			// Unregister the editor modes
-			GEditorModeTools().UnregisterMode(TileMapEditorModePtr.ToSharedRef());
+			FEditorModeRegistry::Get().UnregisterMode(FEdModeTileMap::EM_TileMap);
 
 			// Unregister the thumbnail renderers
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperSprite::StaticClass());

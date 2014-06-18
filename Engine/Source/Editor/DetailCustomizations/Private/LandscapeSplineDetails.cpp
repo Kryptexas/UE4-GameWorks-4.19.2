@@ -64,7 +64,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 
 class FEdModeLandscape* FLandscapeSplineDetails::GetEditorMode() const
 {
-	return (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
 FReply FLandscapeSplineDetails::OnSelectConnectedControlPointsButtonClicked()

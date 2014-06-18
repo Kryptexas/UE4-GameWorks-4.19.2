@@ -13,7 +13,7 @@ SWorldDetails::SWorldDetails()
 
 SWorldDetails::~SWorldDetails()
 {
-	GEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_StreamingLevel);
+	GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_StreamingLevel);
 	
 	FWorldBrowserModule& WorldBrowserModule = FModuleManager::GetModuleChecked<FWorldBrowserModule>("WorldBrowser");
 	WorldBrowserModule.OnBrowseWorld.RemoveAll(this);

@@ -5,8 +5,6 @@
 
 class FMeshPaintModule : public IMeshPaintModule
 {
-private:
-	TSharedPtr<FEdModeMeshPaint> EdModeMeshPaint;
 public:
 	
 	/**
@@ -14,9 +12,12 @@ public:
 	 */
 	virtual void StartupModule() override
 	{
-		TSharedRef<FEdModeMeshPaint> NewEditorMode = MakeShareable(new FEdModeMeshPaint);
-		GEditorModeTools().RegisterMode(NewEditorMode);
-		EdModeMeshPaint = NewEditorMode;
+		FEditorModeRegistry::Get().RegisterMode<FEdModeMeshPaint>(
+			FBuiltinEditorModes::EM_MeshPaint,
+			NSLOCTEXT("MeshPaint_Mode", "MeshPaint_ModeName", "Paint"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode", "LevelEditor.MeshPaintMode.Small"),
+			true, 200
+			);
 	}
 
 	/**
@@ -24,8 +25,7 @@ public:
 	 */
 	virtual void ShutdownModule() override
 	{
-		GEditorModeTools().UnregisterMode(EdModeMeshPaint.ToSharedRef());
-		EdModeMeshPaint = NULL;
+		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_MeshPaint);
 	}
 };
 

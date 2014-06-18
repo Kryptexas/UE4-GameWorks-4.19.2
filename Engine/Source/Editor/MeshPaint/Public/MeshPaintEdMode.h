@@ -359,12 +359,12 @@ public:
 	virtual bool UsesToolkits() const override;
 	virtual void Enter() override;
 	virtual void Exit() override;
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override;
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) override;
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override;
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override;
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override;
+	virtual bool CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport) override;
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override;
+	virtual bool InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override;
 	virtual void PostUndo() override;
 	virtual void Render( const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI ) override;
 	virtual bool Select( AActor* InActor, bool bInSelected ) override;
@@ -373,7 +373,7 @@ public:
 	virtual bool AllowWidgetMove() override { return false; }
 	virtual bool ShouldDrawWidget() const override { return false; }
 	virtual bool UsesTransformWidget() const override { return false; }
-	virtual void Tick( FLevelEditorViewportClient* ViewportClient, float DeltaTime ) override;
+	virtual void Tick( FEditorViewportClient* ViewportClient, float DeltaTime ) override;
 	// End of FEdMode interface
 
 
@@ -637,7 +637,7 @@ private:
 	void ForceRealTimeViewports( const bool bEnable, const bool bStoreCurrentState );
 
 	/** Sets show flags for perspective viewports */
-	void SetViewportShowFlags( const bool bAllowColorViewModes, FLevelEditorViewportClient& Viewport );
+	void SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport );
 
 	/** Starts painting a texture */
 	void StartPaintingTexture( UStaticMeshComponent* InStaticMeshComponent );

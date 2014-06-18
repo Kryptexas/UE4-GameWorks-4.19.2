@@ -16,7 +16,7 @@ public:
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override { return FName("PlacementMode"); }
 	virtual FText GetBaseToolkitName() const override { return NSLOCTEXT("BuilderModeToolkit", "DisplayName", "Builder"); }
-	virtual class FEdMode* GetEditorMode() const override { return GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Default ); }
+	virtual class FEdMode* GetEditorMode() const override { return GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement ); }
 	virtual TSharedPtr<class SWidget> GetInlineContent() const override { return PlacementModeTools; }
 
 private:

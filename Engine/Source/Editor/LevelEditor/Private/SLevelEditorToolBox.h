@@ -20,7 +20,10 @@ public:
 	void OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit );
 
 	/** Called by SLevelEditor to notify the toolbox about an existing toolkit no longer being hosted */
-	void OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit );
+	void OnToolkitHostingFinished(const TSharedRef< class IToolkit >& Toolkit);
+
+	/** Handles updating the mode toolbar when the registered mode commands change */
+	void OnEditorModeCommandsChanged();
 
 private:
 

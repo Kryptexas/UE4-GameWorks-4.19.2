@@ -21,7 +21,7 @@ class UGeomModifier_Edit : public UGeomModifier
 
 
 	// Begin UGeomModifier Interface
-	virtual bool InputDelta(class FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) override;	
+	virtual bool InputDelta(class FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale) override;	
 	// End UGeomModifier Interface
 };
 

@@ -8,8 +8,6 @@
  */
 class FGeometryModeModule : public IModuleInterface
 {
-private:
-	TSharedPtr<class FEdModeGeometry> EdModeGeometry;
 public:
 	// IModuleInterface
 	virtual void StartupModule() override;
@@ -25,6 +23,9 @@ public:
 class FEdModeGeometry : public FEdMode
 {
 public:
+
+	FEdModeGeometry();
+
 	/**
 	 * Struct for cacheing of selected objects components midpoints for reselection when rebuilding the BSP
 	 */
@@ -55,6 +56,7 @@ public:
 	virtual void MapChangeNotify() override;
 	virtual void SelectionChanged() override;
 	virtual FVector GetWidgetLocation() const;
+	virtual bool IsCompatibleWith(FEditorModeID OtherModeID) const override;
 	// End of FEdMode interface
 
 	// FGCObject interface
@@ -180,11 +182,6 @@ public:
 	const FGeomObject* GetGeomObject(int32 Index) const		{ return GeomObjects[ Index ]; }
 	//@}
 
-
-private:
-	FEdModeGeometry();
-
-
 protected:
 	/** 
 	 * Custom data compiled when this mode is entered, based on currently
@@ -217,7 +214,7 @@ public:
 	/**
 	 * @return		true if the delta was handled by this editor mode tool.
 	 */
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
 
 	virtual bool StartModify();
 	virtual bool EndModify();
@@ -242,13 +239,13 @@ public:
 	const UGeomModifier* GetModifier(int32 Index) const		{ return Modifiers[ Index ]; }
 	//@}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime);
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime);
 
 	/** @return		true if the key was handled by this editor mode tool. */
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
+	virtual bool InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
 	
 	/**
 	 * Store the current geom selections for all geom objects

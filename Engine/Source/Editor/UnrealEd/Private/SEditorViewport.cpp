@@ -305,7 +305,7 @@ void SEditorViewport::BindCommands()
 
 EVisibility SEditorViewport::OnGetViewportContentVisibility() const
 {
-	return GEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::Visible;
+	return GLevelEditorModeTools().IsViewportUIHidden() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 void SEditorViewport::OnToggleRealtime()

@@ -35,7 +35,7 @@ public:
 	virtual void ClearKeySelection() = 0;
 
 	virtual void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI) = 0;
-	virtual void DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) = 0;
+	virtual void DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) = 0;
 
 	virtual void BeginDrag3DHandle(UInterpGroup* Group, int32 TrackIndex) = 0;
 	virtual void Move3DHandle(UInterpGroup* Group, int32 TrackIndex, int32 KeyIndex, bool bArriving, const FVector& Delta) = 0;

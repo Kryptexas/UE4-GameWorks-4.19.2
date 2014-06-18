@@ -41,12 +41,6 @@ FEdModeFoliage::FEdModeFoliage()
 ,	SelectionIFA(NULL)
 ,	bCanAltDrag(false)
 {
-	ID = FBuiltinEditorModes::EM_Foliage;
-	Name = NSLOCTEXT("EditorModes", "FoliageMode", "Foliage");
-	IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.FoliageMode", "LevelEditor.FoliageMode.Small");
-	bVisible = true;
-	PriorityOrder = 400;
-
 	// Load resources and construct brush component
 	UMaterial* BrushMaterial = NULL;
 	UStaticMesh* StaticMesh = NULL;
@@ -71,6 +65,7 @@ FEdModeFoliage::~FEdModeFoliage()
 {
 	// Save UI settings to config file
 	UISettings.Save();
+	FEditorDelegates::MapChange.RemoveAll(this);
 }
 
 
@@ -81,6 +76,12 @@ void FEdModeFoliage::AddReferencedObjects( FReferenceCollector& Collector )
 	FEdMode::AddReferencedObjects( Collector );
 
 	Collector.AddReferencedObject(SphereBrushComponent);
+}
+
+/** FEdMode: Called when the mode is created */
+void FEdModeFoliage::Initialize()
+{
+	FEditorDelegates::MapChange.AddSP( this, &FEdModeFoliage::NotifyMapRebuild );
 }
 
 /** FEdMode: Called when the mode is entered */
@@ -236,7 +237,7 @@ bool FEdModeFoliage::DisallowMouseDeltaTracking() const
 }
 
 /** FEdMode: Called once per frame */
-void FEdModeFoliage::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	if( IsCtrlDown(ViewportClient->Viewport) && bToolActive )
 	{
@@ -249,8 +250,7 @@ void FEdModeFoliage::Tick(FLevelEditorViewportClient* ViewportClient,float Delta
 	{
 		// Update pivot
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-		FEditorModeTools& Tools = GEditorModeTools();
-		Tools.PivotLocation = Tools.SnappedLocation = IFA->GetSelectionLocation();
+		Owner->PivotLocation = Owner->SnappedLocation = IFA->GetSelectionLocation();
 	}
 	
 	// Update the position and size of the brush component
@@ -275,7 +275,7 @@ void FEdModeFoliage::Tick(FLevelEditorViewportClient* ViewportClient,float Delta
 }
 
 /** Trace under the mouse cursor and update brush position */
-void FEdModeFoliage::FoliageBrushTrace( FLevelEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY )
+void FEdModeFoliage::FoliageBrushTrace( FEditorViewportClient* ViewportClient, int32 MouseX, int32 MouseY )
 {
 	bBrushTraceValid = false;
 	if( UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected() )
@@ -328,7 +328,7 @@ void FEdModeFoliage::FoliageBrushTrace( FLevelEditorViewportClient* ViewportClie
  *
  * @return	true if input was handled
  */
-bool FEdModeFoliage::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
+bool FEdModeFoliage::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
 {
 	FoliageBrushTrace(ViewportClient, MouseX, MouseY );
 	return false;
@@ -344,7 +344,7 @@ bool FEdModeFoliage::MouseMove( FLevelEditorViewportClient* ViewportClient, FVie
  *
  * @return	true if input was handled
  */
-bool FEdModeFoliage::CapturedMouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
+bool FEdModeFoliage::CapturedMouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 MouseX, int32 MouseY )
 {
 	FoliageBrushTrace(ViewportClient, MouseX, MouseY );
 	return false;
@@ -1101,7 +1101,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush( UWorld* InWorld, AInstancedFoliag
 	}
 }
 
-void FEdModeFoliage::ApplyBrush( FLevelEditorViewportClient* ViewportClient )
+void FEdModeFoliage::ApplyBrush( FEditorViewportClient* ViewportClient )
 {
 	if( !bBrushTraceValid )
 	{
@@ -1190,8 +1190,7 @@ void FEdModeFoliage::ApplyBrush( FLevelEditorViewportClient* ViewportClient )
 	if( UISettings.GetLassoSelectToolSelected() )
 	{
 		IFA->CheckSelection();
-		FEditorModeTools& Tools = GEditorModeTools();
-		Tools.PivotLocation = Tools.SnappedLocation = IFA->GetSelectionLocation();
+		Owner->PivotLocation = Owner->SnappedLocation = IFA->GetSelectionLocation();
 		IFA->MarkComponentsRenderStateDirty();
 	}
 }
@@ -1748,7 +1747,7 @@ bool FEdModeFoliage::ReplaceStaticMesh(UStaticMesh* OldStaticMesh, UStaticMesh* 
 
 
 /** FEdMode: Called when a key is pressed */
-bool FEdModeFoliage::InputKey( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+bool FEdModeFoliage::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
 	if( UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected() )
 	{
@@ -1875,8 +1874,7 @@ bool FEdModeFoliage::InputKey( FLevelEditorViewportClient* ViewportClient, FView
 
 				if( bMovedInstance )
 				{
-					FEditorModeTools& Tools = GEditorModeTools();
-					Tools.PivotLocation = Tools.SnappedLocation = IFA->GetSelectionLocation();
+					Owner->PivotLocation = Owner->SnappedLocation = IFA->GetSelectionLocation();
 					IFA->MarkComponentsRenderStateDirty();
 				}
 
@@ -1897,7 +1895,7 @@ void FEdModeFoliage::Render( const FSceneView* View, FViewport* Viewport, FPrimi
 
 
 /** FEdMode: Render HUD elements for this tool */
-void FEdModeFoliage::DrawHUD( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas )
+void FEdModeFoliage::DrawHUD( FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas )
 {
 }
 
@@ -1932,7 +1930,7 @@ void FEdModeFoliage::ForceRealTimeViewports( const bool bEnable, const bool bSto
 	TSharedPtr< ILevelViewport > ViewportWindow = LevelEditorModule.GetFirstActiveViewport();
 	if (ViewportWindow.IsValid())
 	{
-		FLevelEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
+		FEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
 		if( Viewport.IsPerspective() )
 		{				
 			if( bEnable )
@@ -1949,7 +1947,7 @@ void FEdModeFoliage::ForceRealTimeViewports( const bool bEnable, const bool bSto
 	}
 }
 
-bool FEdModeFoliage::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click )
+bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click )
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 
@@ -1962,8 +1960,7 @@ bool FEdModeFoliage::HandleClick(FLevelEditorViewportClient* InViewportClient, H
 			IFA->SelectInstance( SMIProxy->Component, SMIProxy->InstanceIndex, Click.IsControlDown() );
 
 			// Update pivot
-			FEditorModeTools& Tools = GEditorModeTools();
-			Tools.PivotLocation = Tools.SnappedLocation = IFA->GetSelectionLocation();
+			Owner->PivotLocation = Owner->SnappedLocation = IFA->GetSelectionLocation();
 		}
 		else
 		{
@@ -1998,14 +1995,13 @@ FVector FEdModeFoliage::GetWidgetLocation() const
 }
 
 /** FEdMode: Called when a mouse button is pressed */
-bool FEdModeFoliage::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeFoliage::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	if( UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected() )
 	{
 		// Update pivot
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-		FEditorModeTools& Tools = GEditorModeTools();
-		Tools.PivotLocation = Tools.SnappedLocation = IFA->GetSelectionLocation();
+		Owner->PivotLocation = Owner->SnappedLocation = IFA->GetSelectionLocation();
 
 		GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing") );
 		
@@ -2017,7 +2013,7 @@ bool FEdModeFoliage::StartTracking(FLevelEditorViewportClient* InViewportClient,
 }
 
 /** FEdMode: Called when the a mouse button is released */
-bool FEdModeFoliage::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeFoliage::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	if( UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected() )
 	{
@@ -2028,7 +2024,7 @@ bool FEdModeFoliage::EndTracking(FLevelEditorViewportClient* InViewportClient, F
 }
 
 /** FEdMode: Called when mouse drag input it applied */
-bool FEdModeFoliage::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FEdModeFoliage::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	bool bFoundSelection = false;
 	

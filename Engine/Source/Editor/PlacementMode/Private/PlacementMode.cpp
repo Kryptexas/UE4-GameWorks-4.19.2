@@ -2,6 +2,7 @@
 
 #include "PlacementModePrivatePCH.h"
 
+#include "IPlacementModeModule.h"
 #include "PlacementMode.h"
 #include "PlacementModeToolkit.h"
 
@@ -12,80 +13,28 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
 
-TSharedRef< FPlacementMode > FPlacementMode::Create()
-{
-	TSharedRef< FPlacementMode > PlacementMode = MakeShareable( new FPlacementMode() );
-	PlacementMode->Initialize();
-	return PlacementMode;
-}
-
 FPlacementMode::FPlacementMode()
 	: PlacementsChanged( false )
 	, CreatedPreviewActors( false )
 	, AssetsToPlace()
 	, ActiveTransactionIndex( INDEX_NONE )
 {
-	ID = TEXT("PLACEMENT");
-	Name = NSLOCTEXT( "PlacementMode", "DisplayName", "Place" );
-	IconBrush = FSlateIcon( FEditorStyle::GetStyleSetName(), "LevelEditor.PlacementMode", "LevelEditor.PlacementMode.Small" );
-	bVisible = true;
-	PriorityOrder = 0;
 }
 
 FPlacementMode::~FPlacementMode()
 {
-	GEditorModeTools().OnEditorModeChanged().RemoveAll( this );
-
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
-	AssetRegistryModule.Get().OnAssetRenamed().RemoveAll( this );
+	
 }
 
 void FPlacementMode::Initialize()
 {
 	//GConfig->GetFloat(TEXT("PlacementMode"), TEXT("AssetThumbnailScale"), AssetThumbnailScale, GEditorUserSettingsIni);
 	//GConfig->GetBool( TEXT( "PlacementMode" ), TEXT( "ShowOtherDeveloperAssets" ), ShowOtherDeveloperAssets, GEditorUserSettingsIni );
-	
-	TArray< FString > RecentlyPlacedAsStrings;
-	GConfig->GetArray(TEXT("PlacementMode"), TEXT("RecentlyPlaced"), RecentlyPlacedAsStrings, GEditorUserSettingsIni);
-
-	//FString ActivePaletteName;
-	//GConfig->GetString( TEXT( "PlacementMode" ), TEXT( "ActivePalette" ), ActivePaletteName, GEditorUserSettingsIni );
-
-	for (int Index = 0; Index < RecentlyPlacedAsStrings.Num(); Index++)
-	{
-		RecentlyPlaced.Add( FActorPlacementInfo( RecentlyPlacedAsStrings[Index] ) );
-	}
-
-	GEditorModeTools().OnEditorModeChanged().AddSP( this, &FPlacementMode::EditorModeChanged );
-
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnAssetRemoved().AddSP( this, &FPlacementMode::OnAssetRemoved );
-	AssetRegistryModule.Get().OnAssetRenamed().AddSP( this, &FPlacementMode::OnAssetRenamed );
 }
 
 bool FPlacementMode::UsesToolkits() const
 {
 	return true;
-}
-
-void FPlacementMode::EditorModeChanged( FEdMode* Mode, bool IsEntering )
-{
-	if ( IsEntering && FModuleManager::Get().IsModuleLoaded( "LevelEditor" ) )
-	{
-		TSharedPtr< ILevelEditor > ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
-
-		if ( ToolkitHost.IsValid() )
-		{
-			TArray< FEdMode* > ActiveModes;
-			GEditorModeTools().GetActiveModes( ActiveModes );
-
-			if ( ActiveModes.Num() == 1 && ActiveModes[0]->GetID() == FBuiltinEditorModes::EM_Default )
-			{
-				FLevelEditorActionCallbacks::ExecuteExecCommand( FString( TEXT( "MODE " ) ) + ID.ToString() );
-			}
-		}
-	}
 }
 
 void FPlacementMode::Enter()
@@ -113,7 +62,7 @@ void FPlacementMode::Exit()
 	FEdMode::Exit();
 }
 
-void FPlacementMode::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void FPlacementMode::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	if ( IsCurrentlyPlacing() )
 	{
@@ -173,7 +122,7 @@ void FPlacementMode::Tick(FLevelEditorViewportClient* ViewportClient,float Delta
 	FEdMode::Tick( ViewportClient, DeltaTime );
 }
 
-bool FPlacementMode::MouseEnter( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+bool FPlacementMode::MouseEnter( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 {
 	if ( IsCurrentlyPlacing() )
 	{
@@ -183,7 +132,7 @@ bool FPlacementMode::MouseEnter( FLevelEditorViewportClient* ViewportClient, FVi
 	return FEdMode::MouseEnter( ViewportClient, Viewport, x, y );
 }
 
-bool FPlacementMode::MouseLeave( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport )
+bool FPlacementMode::MouseLeave( FEditorViewportClient* ViewportClient, FViewport* Viewport )
 {
 	if ( !ViewportClient->IsTracking() )
 	{
@@ -195,18 +144,18 @@ bool FPlacementMode::MouseLeave( FLevelEditorViewportClient* ViewportClient, FVi
 	return FEdMode::MouseLeave( ViewportClient, Viewport );
 }
 
-bool FPlacementMode::AllowPreviewActors( FLevelEditorViewportClient* ViewportClient ) const
+bool FPlacementMode::AllowPreviewActors( FEditorViewportClient* ViewportClient ) const
 {
 	return IsCurrentlyPlacing() && ( ViewportClient->IsTracking() && AllowPreviewActorsWhileTracking ) || !ViewportClient->IsTracking();
 }
 
-bool FPlacementMode::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+bool FPlacementMode::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 {
 	UpdatePreviewActors( ViewportClient, Viewport, x, y );
 	return FEdMode::MouseMove( ViewportClient, Viewport, x, y );
 }
 
-void FPlacementMode::UpdatePreviewActors( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+void FPlacementMode::UpdatePreviewActors( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 {
 	bool AllAssetsValid = false;
 	bool AllAssetsCanBeDropped = false;
@@ -284,7 +233,7 @@ void FPlacementMode::UpdatePreviewActors( FLevelEditorViewportClient* ViewportCl
 	}
 }
 
-bool FPlacementMode::InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
+bool FPlacementMode::InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
 {
 	bool Handled = false;
 	const bool bIsCtrlDown = ( ( InKey == EKeys::LeftControl || InKey == EKeys::RightControl ) && InEvent != IE_Released ) || InViewport->KeyState( EKeys::LeftControl ) || InViewport->KeyState( EKeys::RightControl );
@@ -309,7 +258,7 @@ bool FPlacementMode::InputKey( FLevelEditorViewportClient* InViewportClient, FVi
 				SelectPlacedActors();
 
 				ClearAssetsToPlace();
-				BroadcastStoppedPlacing(true);
+				IPlacementModeModule::Get().BroadcastStoppedPlacing( true );
 			}
 		}
 	}
@@ -322,7 +271,7 @@ bool FPlacementMode::InputKey( FLevelEditorViewportClient* InViewportClient, FVi
 	return FEdMode::InputKey( InViewportClient, InViewport, InKey, InEvent );
 }
 
-bool FPlacementMode::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FPlacementMode::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	PlacedActorsThisTrackingSession = false;
 
@@ -336,7 +285,7 @@ bool FPlacementMode::StartTracking(FLevelEditorViewportClient* InViewportClient,
 	return FEdMode::StartTracking(InViewportClient, InViewport);
 }
 
-bool FPlacementMode::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FPlacementMode::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	if ( IsCurrentlyPlacing() )
 	{
@@ -361,7 +310,7 @@ bool FPlacementMode::EndTracking(FLevelEditorViewportClient* InViewportClient, F
 	return FEdMode::EndTracking(InViewportClient, InViewport);
 }
 
-bool FPlacementMode::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click )
+bool FPlacementMode::HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click )
 {
 	bool Handled = false;
 
@@ -403,7 +352,7 @@ bool FPlacementMode::HandleClick(FLevelEditorViewportClient* InViewportClient, H
 				if ( !Click.IsControlDown() )
 				{
 					ClearAssetsToPlace();
-					BroadcastStoppedPlacing(true);
+					IPlacementModeModule::Get().BroadcastStoppedPlacing( true );
 					InViewportClient->SetRequiredCursorOverride( true, EMouseCursor::GrabHand );
 				}
 
@@ -443,7 +392,7 @@ bool FPlacementMode::HandleClick(FLevelEditorViewportClient* InViewportClient, H
 	return Handled;
 }
 
-bool FPlacementMode::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FPlacementMode::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	if ( IsCurrentlyPlacing() )
 	{
@@ -493,6 +442,20 @@ bool FPlacementMode::UsesPropertyWidgets() const
 	return IsCurrentlyPlacing() ? false : FEdMode::ShouldDrawWidget(); 
 }
 
+bool FPlacementMode::IsCompatibleWith(FEditorModeID OtherModeID) const
+{
+	return
+		OtherModeID == FBuiltinEditorModes::EM_Bsp			||
+		OtherModeID == FBuiltinEditorModes::EM_Geometry		||
+		OtherModeID == FBuiltinEditorModes::EM_InterpEdit	||
+		OtherModeID == FBuiltinEditorModes::EM_MeshPaint	||
+		OtherModeID == FBuiltinEditorModes::EM_Landscape	||
+		OtherModeID == FBuiltinEditorModes::EM_Foliage		||
+		OtherModeID == FBuiltinEditorModes::EM_Level		||
+		OtherModeID == FBuiltinEditorModes::EM_Physics		||
+		OtherModeID == FBuiltinEditorModes::EM_ActorPicker;
+}
+
 void FPlacementMode::StartPlacing( const TArray< UObject* >& Assets, UActorFactory* Factory )
 {
 	const bool bNotifySelectNone = true;
@@ -534,7 +497,7 @@ void FPlacementMode::StartPlacing( const TArray< UObject* >& Assets, UActorFacto
 		}
 	}
 
-	StartedPlacingEvent.Broadcast( Assets );
+	IPlacementModeModule::Get().BroadcastStartedPlacing(Assets);
 }
 
 void FPlacementMode::StopPlacing()
@@ -542,7 +505,7 @@ void FPlacementMode::StopPlacing()
 	if ( IsCurrentlyPlacing() )
 	{
 		ClearAssetsToPlace();
-		BroadcastStoppedPlacing(false);
+		IPlacementModeModule::Get().BroadcastStoppedPlacing( false );
 		PlacementsChanged = true;
 	}
 }
@@ -596,11 +559,6 @@ void FPlacementMode::ClearAssetsToPlace()
 	PlacementsChanged = true;
 }
 
-void FPlacementMode::BroadcastStoppedPlacing( bool WasSuccessfullyPlaced ) const
-{
-	StoppedPlacingEvent.Broadcast( WasSuccessfullyPlaced );
-}
-
 void FPlacementMode::SelectPlacedActors()
 {
 	const FScopedTransaction Transaction( NSLOCTEXT( "BuilderMode", "SelectActors", "Select Actors") );
@@ -625,91 +583,6 @@ void FPlacementMode::SelectPlacedActors()
 
 	GEditor->GetSelectedActors()->EndBatchSelectOperation();
 	GEditor->NoteSelectionChange();
-}
-
-void FPlacementMode::AddToRecentlyPlaced( const TArray< UObject* >& PlacedObjects, UActorFactory* FactoryUsed )
-{
-	FString FactoryPath;
-	if ( FactoryUsed != NULL )
-	{
-		FactoryPath = FactoryUsed->GetPathName();
-	}
-
-	TArray< UObject* > FilteredPlacedObjects;
-	for ( UObject* PlacedObject : PlacedObjects )
-	{
-		// Don't include null placed objects that just have factories.
-		if ( PlacedObject == NULL )
-		{
-			continue;
-		}
-
-		// Don't add brush builders to the recently placed.
-		if ( PlacedObject->IsA(UBrushBuilder::StaticClass()) )
-		{
-			continue;
-		}
-
-		FilteredPlacedObjects.Add(PlacedObject);
-	}
-
-	// Don't change the recently placed if nothing passed the filter.
-	if ( FilteredPlacedObjects.Num() == 0 )
-	{
-		return;
-	}
-
-	bool Changed = false;
-	for ( int Index = 0; Index < FilteredPlacedObjects.Num(); Index++ )
-	{
-		Changed |= RecentlyPlaced.Remove(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath)) > 0;
-	}
-
-	for ( int Index = 0; Index < FilteredPlacedObjects.Num(); Index++ )
-	{
-		if ( FilteredPlacedObjects[Index] != NULL )
-		{
-			RecentlyPlaced.Insert(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath), 0);
-			Changed = true;
-		}
-	}
-
-	for (int Index = RecentlyPlaced.Num() - 1; Index >= 20; Index--)
-	{
-		RecentlyPlaced.RemoveAt( Index );
-		Changed = true;
-	}
-
-	if ( Changed )
-	{
-		TArray< FString > RecentlyPlacedAsStrings;
-		for (int Index = 0; Index < RecentlyPlaced.Num(); Index++)
-		{
-			RecentlyPlacedAsStrings.Add( RecentlyPlaced[Index].ToString() );
-		}
-
-		GConfig->SetArray(TEXT("PlacementMode"), TEXT("RecentlyPlaced"), RecentlyPlacedAsStrings, GEditorUserSettingsIni);
-		RecentlyPlacedChanged.Broadcast( RecentlyPlaced );
-	}
-}
-
-void FPlacementMode::OnAssetRemoved( const FAssetData& /*InRemovedAssetData*/ )
-{
-	RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
-}
-
-void FPlacementMode::OnAssetRenamed( const FAssetData& AssetData, const FString& OldObjectPath )
-{
-	for (auto& RecentlyPlacedItem : RecentlyPlaced)
-	{
-		if (RecentlyPlacedItem.ObjectPath == OldObjectPath)
-		{
-			RecentlyPlacedItem.ObjectPath = AssetData.ObjectPath.ToString();
-			break;
-		}
-	}
-
-	RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
 }
 
 const TArray< TWeakObjectPtr<UObject> >& FPlacementMode::GetCurrentlyPlacingObjects() const

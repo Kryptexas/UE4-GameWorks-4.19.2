@@ -170,7 +170,7 @@ void FLevelEditorActionCallbacks::NewLevel()
 
 bool FLevelEditorActionCallbacks::NewLevel_CanExecute()
 {
-	return FSlateApplication::Get().IsNormalExecution() && !GEditorModeTools().IsTracking();
+	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
 }
 
 void FLevelEditorActionCallbacks::OpenLevel()
@@ -180,7 +180,7 @@ void FLevelEditorActionCallbacks::OpenLevel()
 
 bool FLevelEditorActionCallbacks::OpenLevel_CanExecute()
 {
-	return FSlateApplication::Get().IsNormalExecution() && !GEditorModeTools().IsTracking();
+	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
 }
 
 FAssetPickerConfig FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig()
@@ -1214,9 +1214,14 @@ void FLevelEditorActionCallbacks::AddActor_Clicked( UActorFactory* ActorFactory,
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		LevelEditorModule.FocusViewport();
 
+		// Make sure we're in actor placement mode
+		GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Placement);
+
 		TArray<UObject*> AssetsToPlace;
 		AssetsToPlace.Add(Object);
-		IPlacementModeModule::Get().GetPlacementMode()->StartPlacing(AssetsToPlace, ActorFactory);
+
+		auto* PlacementMode = GLevelEditorModeTools().GetActiveModeTyped<IPlacementMode>(FBuiltinEditorModes::EM_Placement);
+		PlacementMode->StartPlacing(AssetsToPlace, ActorFactory);
 	}
 	else
 	{
@@ -1351,7 +1356,7 @@ void FLevelEditorActionCallbacks::ReplaceActorsFromClass_Clicked( UClass* ActorC
 bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDuplicate();
@@ -1370,7 +1375,7 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 bool FLevelEditorActionCallbacks::Delete_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDelete();
@@ -1403,7 +1408,7 @@ bool FLevelEditorActionCallbacks::Rename_CanExecute()
 bool FLevelEditorActionCallbacks::Cut_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditCut();
@@ -1422,7 +1427,7 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 bool FLevelEditorActionCallbacks::Copy_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditCopy();
@@ -1441,7 +1446,7 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 bool FLevelEditorActionCallbacks::Paste_CanExecute()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditPaste();
@@ -1487,9 +1492,9 @@ void FLevelEditorActionCallbacks::OnSelectMatineeActor( AMatineeActor * ActorToS
 
 void FLevelEditorActionCallbacks::OnSelectMatineeGroup( AActor * Actor )
 {
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+		FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 		if ( InterpEditMode && InterpEditMode->MatineeActor )
 		{
@@ -2002,13 +2007,13 @@ void FLevelEditorActionCallbacks::OnShowOnlySelectedActors()
 
 void FLevelEditorActionCallbacks::OnToggleTransformWidgetVisibility()
 {
-	GEditorModeTools().SetShowWidget( !GEditorModeTools().GetShowWidget() );
+	GLevelEditorModeTools().SetShowWidget( !GLevelEditorModeTools().GetShowWidget() );
 	GUnrealEd->RedrawAllViewports();
 }
 
 bool FLevelEditorActionCallbacks::OnGetTransformWidgetVisibility()
 {
-	return GEditorModeTools().GetShowWidget();
+	return GLevelEditorModeTools().GetShowWidget();
 }
 
 void FLevelEditorActionCallbacks::OnAllowTranslucentSelection()
@@ -2237,17 +2242,17 @@ void FLevelEditorActionCallbacks::SetActorSnapSetting(float Distance)
 
 void FLevelEditorActionCallbacks::OnToggleHideViewportUI()
 {
-	GEditorModeTools().SetHideViewportUI( !GEditorModeTools().IsViewportUIHidden() );
+	GLevelEditorModeTools().SetHideViewportUI( !GLevelEditorModeTools().IsViewportUIHidden() );
 }
 
 bool FLevelEditorActionCallbacks::IsViewportUIHidden()
 {
-	return GEditorModeTools().IsViewportUIHidden();
+	return GLevelEditorModeTools().IsViewportUIHidden();
 }
 
 bool FLevelEditorActionCallbacks::IsEditorModeActive( FEditorModeID EditorMode )
 {
-	return GEditorModeTools().IsModeActive( EditorMode );
+	return GLevelEditorModeTools().IsModeActive( EditorMode );
 }
 
 void FLevelEditorActionCallbacks::OnAddVolume( UClass* VolumeClass )
@@ -2304,21 +2309,21 @@ void FLevelEditorActionCallbacks::SelectActorsInLayers()
 
 void FLevelEditorActionCallbacks::SetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	if( !GEditorModeTools().IsTracking() )
+	if( !GLevelEditorModeTools().IsTracking() )
 	{
-		GEditorModeTools().SetWidgetMode( WidgetMode );
+		GLevelEditorModeTools().SetWidgetMode( WidgetMode );
 		GEditor->RedrawAllViewports();
 	}
 }
 
 bool FLevelEditorActionCallbacks::IsWidgetModeActive( FWidget::EWidgetMode WidgetMode )
 {
-	return GEditorModeTools().GetWidgetMode() == WidgetMode;
+	return GLevelEditorModeTools().GetWidgetMode() == WidgetMode;
 }
 
 bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetMode )
 {
-	return GEditorModeTools().GetShowWidget() == true;
+	return GLevelEditorModeTools().GetShowWidget() == true;
 }
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
@@ -2328,12 +2333,12 @@ bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
 
 void FLevelEditorActionCallbacks::SetCoordinateSystem( ECoordSystem CoordinateSystem )
 {
-	GEditorModeTools().SetCoordSystem( CoordinateSystem );
+	GLevelEditorModeTools().SetCoordSystem( CoordinateSystem );
 }
 
 bool FLevelEditorActionCallbacks::IsCoordinateSystemActive( ECoordSystem CoordinateSystem )
 {
-	return GEditorModeTools().GetCoordSystem() == CoordinateSystem;
+	return GLevelEditorModeTools().GetCoordSystem() == CoordinateSystem;
 }
 
 void FLevelEditorActionCallbacks::MoveActorToGrid_Clicked( bool InAlign, bool bInPerActor )

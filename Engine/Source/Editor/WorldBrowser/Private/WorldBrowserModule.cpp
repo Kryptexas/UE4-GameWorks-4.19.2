@@ -20,9 +20,9 @@ void FWorldBrowserModule::StartupModule()
 	FLevelCollectionCommands::Register();
 
 	// register the editor mode
-	TSharedRef<FStreamingLevelEdMode> NewEditorMode = MakeShareable(new FStreamingLevelEdMode);
-	GEditorModeTools().RegisterMode(NewEditorMode);
-	EdModeStreamingLevel = NewEditorMode;
+	FEditorModeRegistry::Get().RegisterMode<FStreamingLevelEdMode>(
+		FBuiltinEditorModes::EM_StreamingLevel,
+		NSLOCTEXT("WorldBrowser", "StreamingLevelMode", "Level Transform Editing"));
 
 	FWorldDelegates::OnPostWorldInitialization.AddRaw(this, &FWorldBrowserModule::OnWorldCreated);
 	FWorldDelegates::OnWorldCleanup.AddRaw(this, &FWorldBrowserModule::OnWorldCleanup);
@@ -40,8 +40,7 @@ void FWorldBrowserModule::ShutdownModule()
 	FLevelCollectionCommands::Unregister();
 
 	// unregister the editor mode
-	GEditorModeTools().UnregisterMode(EdModeStreamingLevel.ToSharedRef());
-	EdModeStreamingLevel = NULL;
+	FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_StreamingLevel);
 }
 
 TSharedRef<SWidget> FWorldBrowserModule::CreateWorldBrowserHierarchy()

@@ -889,8 +889,7 @@ TSharedPtr<FLevelModel> FWorldTileCollectionModel::CreateNewEmptyLevel()
 		return NewLevelModel;
 	}
 	
-	// Editor modes cannot be active when any level saving occurs.
-	GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+	GLevelEditorModeTools().ActivateDefaultMode();
 
 	// Save new level to the same directory where selected level/folder is
 	FString Directory = FPaths::GetPath(GetWorldRootModel()->GetPackageFileName());

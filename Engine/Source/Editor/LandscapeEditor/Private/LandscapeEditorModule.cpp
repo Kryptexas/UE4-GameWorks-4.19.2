@@ -20,8 +20,6 @@
 
 class FLandscapeEditorModule : public ILandscapeEditorModule
 {
-private:
-	TSharedPtr<FEdModeLandscape> EdModeLandscape;
 public:
 	
 	/**
@@ -32,9 +30,13 @@ public:
 		FLandscapeEditorCommands::Register();
 
 		// register the editor mode
-		TSharedRef<FEdModeLandscape> NewEditorMode = MakeShareable(new FEdModeLandscape);
-		GEditorModeTools().RegisterMode(NewEditorMode);
-		EdModeLandscape = NewEditorMode;
+		FEditorModeRegistry::Get().RegisterMode<FEdModeLandscape>(
+			FBuiltinEditorModes::EM_Landscape,
+			NSLOCTEXT("EditorModes", "LandscapeMode", "Landscape"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.LandscapeMode", "LevelEditor.LandscapeMode.Small"),
+			true,
+			300
+			);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout("LandscapeEditorObject", FOnGetDetailCustomizationInstance::CreateStatic(&FLandscapeEditorDetails::MakeInstance));
@@ -71,8 +73,7 @@ public:
 		FLandscapeEditorCommands::Unregister();
 
 		// unregister the editor mode
-		GEditorModeTools().UnregisterMode(EdModeLandscape.ToSharedRef());
-		EdModeLandscape = NULL;
+		FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Landscape);
 	}
 
 	static void ConstructLandscapeViewportMenu(FMenuBuilder& MenuBuilder)

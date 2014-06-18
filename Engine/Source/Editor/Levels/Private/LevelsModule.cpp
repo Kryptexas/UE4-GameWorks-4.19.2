@@ -10,9 +10,7 @@ void FLevelsModule::StartupModule()
 	FLevelsViewCommands::Register();
 
 	// register the editor mode
-	TSharedRef<FEdModeLevel> NewEditorMode = MakeShareable(new FEdModeLevel);
-	GEditorModeTools().RegisterMode(NewEditorMode);
-	EdModeLevel = NewEditorMode;
+	FEditorModeRegistry::Get().RegisterMode<FEdModeLevel>(FBuiltinEditorModes::EM_Level);
 }
 
 
@@ -21,8 +19,7 @@ void FLevelsModule::ShutdownModule()
 	FLevelsViewCommands::Unregister();
 
 	// unregister the editor mode
-	GEditorModeTools().UnregisterMode(EdModeLevel.ToSharedRef());
-	EdModeLevel = NULL;
+	FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Level);
 }
 
 

@@ -1088,7 +1088,7 @@ FText FMeshPaintToolKit::GetBaseToolkitName() const
 
 class FEdMode* FMeshPaintToolKit::GetEditorMode() const
 {
-	return GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
+	return GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
 }
 
 TSharedPtr<SWidget> FMeshPaintToolKit::GetInlineContent() const
@@ -1096,10 +1096,15 @@ TSharedPtr<SWidget> FMeshPaintToolKit::GetInlineContent() const
 	return MeshPaintWidgets;
 }
 
+SMeshPaint::~SMeshPaint()
+{
+	MeshPaintEditMode = nullptr;
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKit> InParentToolkit)
 {
-	MeshPaintEditMode = (FEdModeMeshPaint*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_MeshPaint );
+	MeshPaintEditMode = (FEdModeMeshPaint*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_MeshPaint );
 
 	PaintColorSet = EMeshPaintColorSet::PaintColor;
 	bShowImportOptions = false;
@@ -2089,7 +2094,7 @@ void SMeshPaint::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 
 class FEdMode* SMeshPaint::GetEditorMode() const
 {
-	return (FEdModeMeshPaint*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
+	return (FEdModeMeshPaint*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
 }
 
 EVisibility SMeshPaint::GetResourceTypeVerticesVisibility() const

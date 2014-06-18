@@ -34,8 +34,8 @@ void FInteractiveTutorials::SetupEditorHooks()
 
 	FAssetEditorManager::Get().OnAssetEditorRequestedOpen().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FAssetEditorRequestedOpenTrigger, FBaseTriggerDelegate::AssetEditorRequestedOpen>);
 
-	GEditorModeTools().OnEditorModeChanged().AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FEditorModeChangedTrigger, FBaseTriggerDelegate::EditorModeChanged> );
-	GEditorModeTools().OnWidgetModeChanged().AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FOnWidgetModeChanged, FBaseTriggerDelegate::OnWidgetModeChanged> );
+	GLevelEditorModeTools().OnEditorModeChanged().AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FEditorModeChangedTrigger, FBaseTriggerDelegate::EditorModeChanged> );
+	GLevelEditorModeTools().OnWidgetModeChanged().AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FOnWidgetModeChanged, FBaseTriggerDelegate::OnWidgetModeChanged> );
 
 	GEditor->OnEndObjectMovement().AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FOnEndTransformObject, FBaseTriggerDelegate::OnEndTransformObject> );
 
@@ -61,9 +61,7 @@ void FInteractiveTutorials::SetupEditorHooks()
 	ContentBrowserModule.GetOnSourcesViewChanged().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnCBSourcesViewChanged, FBaseTriggerDelegate::OnCBSourcesViewChanged>);
 	ContentBrowserModule.GetOnAssetPathChanged().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnCBAssetPathChanged, FBaseTriggerDelegate::OnCBAssetPathChanged>);
 
-
-	TSharedRef<IPlacementMode> PlacementEditMode = IPlacementModeModule::Get().GetPlacementMode();
-	PlacementEditMode->OnStartedPlacing().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnStartedPlacing, FBaseTriggerDelegate::OnStartedPlacing>);
+	IPlacementModeModule::Get().OnStartedPlacing().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnStartedPlacing, FBaseTriggerDelegate::OnStartedPlacing>);
 
 	UK2Node_TutorialExcerptComplete::OnTutorialExcerptComplete.AddSP(this, &FInteractiveTutorials::CompleteExcerpt);
 

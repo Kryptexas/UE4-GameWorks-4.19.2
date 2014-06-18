@@ -37,7 +37,7 @@ public:
 		ViewModel->OnDisplayActorCountChanged().RemoveAll( this );
 		ViewModel->OnDisplayLightmassSizeChanged().RemoveAll( this );
 		ViewModel->OnDisplayFileSizeChanged().RemoveAll( this ); 
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 	}
 
 	/**

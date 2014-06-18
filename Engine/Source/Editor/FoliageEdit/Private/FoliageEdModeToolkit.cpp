@@ -36,7 +36,7 @@ FText FFoliageEdModeToolkit::GetBaseToolkitName() const
 
 class FEdMode* FFoliageEdModeToolkit::GetEditorMode() const
 {
-	return GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
+	return GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
 }
 
 TSharedPtr<SWidget> FFoliageEdModeToolkit::GetInlineContent() const

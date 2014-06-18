@@ -1887,23 +1887,23 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 
 void SLevelViewport::OnSetBookmark( int32 BookmarkIndex )
 {
-	GEditorModeTools().SetBookmark( BookmarkIndex, LevelViewportClient.Get() );
+	GLevelEditorModeTools().SetBookmark( BookmarkIndex, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnJumpToBookmark( int32 BookmarkIndex )
 {
 	const bool bShouldRestoreLevelVisibility = true;
-	GEditorModeTools().JumpToBookmark( BookmarkIndex, bShouldRestoreLevelVisibility, LevelViewportClient.Get() );
+	GLevelEditorModeTools().JumpToBookmark( BookmarkIndex, bShouldRestoreLevelVisibility, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnClearBookMark( int32 BookmarkIndex )
 {
-	GEditorModeTools().ClearBookmark( BookmarkIndex, LevelViewportClient.Get() );
+	GLevelEditorModeTools().ClearBookmark( BookmarkIndex, LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnClearAllBookMarks()
 {
-	GEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
+	GLevelEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
 }
 
 void SLevelViewport::OnToggleAllowMatineePreview()

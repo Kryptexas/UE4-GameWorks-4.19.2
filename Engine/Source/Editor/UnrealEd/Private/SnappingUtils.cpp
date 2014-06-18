@@ -105,7 +105,7 @@ bool FEditorViewportSnapping::IsSnapRotationEnabled()
 	// Ask Current Editor Mode if Rotation Snap is enabled
 	bool bSnapEnabled = false;
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bSnapEnabled |= ActiveModes[ModeIndex]->IsSnapRotationEnabled();
@@ -186,7 +186,7 @@ void FEditorViewportSnapping::SetActorSnapDistance(float Distance)
 
 bool FEditorViewportSnapping::SnapActorsToNearestActor( FVector& Drag, FLevelEditorViewportClient* ViewportClient )
 {
-	FEditorModeTools& Tools = GEditorModeTools();
+	FEditorModeTools& Tools = GLevelEditorModeTools();
 
 	// Does the user have actor snapping enabled?
 	bool bSnapped = false;
@@ -288,7 +288,7 @@ void FEditorViewportSnapping::SnapRotatorToGrid(FRotator& Rotation)
 	if( IsSnapRotationEnabled() )
 	{		
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if( ActiveModes[ModeIndex]->SnapRotatorToGridOverride( Rotation ) == true )

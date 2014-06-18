@@ -36,8 +36,6 @@ private:
 
 	/** All extender delegates for the levels menus */
 	TArray<FLevelsMenuExtender> LevelsMenuExtenders;
-
-	TSharedPtr<FEdModeLevel> EdModeLevel;
 };
 
 

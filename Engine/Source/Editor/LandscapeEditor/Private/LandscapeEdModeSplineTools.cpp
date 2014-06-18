@@ -75,7 +75,7 @@ public:
 
 	void UpdatePropertiesWindows()
 	{
-		if( GEditorModeTools().IsModeActive( EdMode->GetID() ) )
+		if( GLevelEditorModeTools().IsModeActive( EdMode->GetID() ) )
 		{
 			TArray<UObject*> Objects;
 			Objects.Reset(SelectedSplineControlPoints.Num() + SelectedSplineSegments.Num());
@@ -154,7 +154,7 @@ public:
 		Segment->Modify();
 		Segment->SetSplineSelected(true);
 
-		GEditorModeTools().SetWidgetMode(FWidget::WM_Scale);
+		GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Scale);
 	}
 
 	void SelectConnected()
@@ -622,7 +622,7 @@ public:
 		}
 	}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
 		LandscapeInfo = InTarget.LandscapeInfo.Get();
 
@@ -646,12 +646,12 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		LandscapeInfo = NULL;
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override
 	{
 		FVector HitLocation;
 		if (EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation))
@@ -666,7 +666,7 @@ public:
 		return true;
 	}
 
-	virtual void ApplyTool( FLevelEditorViewportClient* ViewportClient )
+	virtual void ApplyTool( FEditorViewportClient* ViewportClient )
 	{
 	}
 
@@ -765,7 +765,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
+	virtual bool InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent ) override
 	{
 		if (InKey == EKeys::F4 && InEvent == IE_Pressed)
 		{
@@ -1026,7 +1026,7 @@ public:
 						SplinesComponent->Modify();
 						DraggingTangent_Segment->Modify();
 
-						return false; // false to let FLevelEditorViewportClient.InputKey start mouse tracking and enable InputDelta() so we can use it
+						return false; // false to let FEditorViewportClient.InputKey start mouse tracking and enable InputDelta() so we can use it
 					}
 				}
 			}
@@ -1053,7 +1053,7 @@ public:
 
 					GEditor->EndTransaction();
 
-					return false; // false to let FLevelEditorViewportClient.InputKey end mouse tracking
+					return false; // false to let FEditorViewportClient.InputKey end mouse tracking
 				}
 			}
 		}
@@ -1061,7 +1061,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override
+	virtual bool InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale ) override
 	{
 		FVector Drag = InDrag;
 
@@ -1267,7 +1267,7 @@ public:
 			FVector HandlePos1 = SplinesComponent->ComponentToWorld.TransformPosition(ControlPoint->Location + ControlPoint->Rotation.Vector() * 20);
 			DrawDashedLine(PDI, HandlePos0, HandlePos1, FColor::White, 20, SDPG_Foreground);
 
-			if (GEditorModeTools().GetWidgetMode() == FWidget::WM_Scale)
+			if (GLevelEditorModeTools().GetWidgetMode() == FWidget::WM_Scale)
 			{
 				for (const FLandscapeSplineConnection& Connection : ControlPoint->ConnectedSegments)
 				{
@@ -1285,7 +1285,7 @@ public:
 			}
 		}
 
-		if (GEditorModeTools().GetWidgetMode() == FWidget::WM_Scale)
+		if (GLevelEditorModeTools().GetWidgetMode() == FWidget::WM_Scale)
 		{
 			for (ULandscapeSplineSegment* Segment : SelectedSplineSegments)
 			{

@@ -69,8 +69,7 @@ void FUnrealEdMisc::OnInit()
 		return;
 	}
 	bInitialized = true;
-
-
+	
 	// Register all callback notifications
 	FEditorDelegates::SelectedProps.AddRaw(this, &FUnrealEdMisc::CB_SelectedProps);
 	FEditorDelegates::DisplayLoadErrors.AddRaw(this, &FUnrealEdMisc::CB_DisplayLoadErrors);
@@ -112,9 +111,8 @@ void FUnrealEdMisc::OnInit()
 	// Register navigation commands for all viewports
 	FViewportNavigationCommands::Register();
 
-	// Init the editor mode tools, and set default editor mode initially
-	GEditorModeTools().Init();
-	GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+	FEditorModeRegistry::Initialize();
+	GLevelEditorModeTools().ActivateDefaultMode();
 
 	// Are we in immersive mode?
 	const TCHAR* ParsedCmdLine = FCommandLine::Get();
@@ -668,7 +666,7 @@ void FUnrealEdMisc::CB_MapChange( uint32 InFlags )
 
 	GEditor->EditorUpdateComponents();
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	/*if ((InFlags&MapChangeEventFlags::MapRebuild) != 0)
 	{
@@ -709,7 +707,7 @@ void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 
 void FUnrealEdMisc::CB_Undo()
 {
-	GEditorModeTools().PostUndo();
+	GLevelEditorModeTools().PostUndo();
 }
 
 void FUnrealEdMisc::CB_PreAutomationTesting()
@@ -729,7 +727,7 @@ void FUnrealEdMisc::CB_PostAutomationTesting()
 
 void FUnrealEdMisc::OnEditorChangeMode(FEditorModeID NewEditorMode)
 {
-	GEditorModeTools().ActivateMode( NewEditorMode, true );
+	GLevelEditorModeTools().ActivateMode( NewEditorMode, true );
 }
 
 void FUnrealEdMisc::OnEditorPreModal()

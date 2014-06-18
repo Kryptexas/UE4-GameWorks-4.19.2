@@ -92,11 +92,6 @@ FEdModeMeshPaint::FEdModeMeshPaint()
 	  SeamMaskRenderTargetTexture( NULL ),
 	  ScopedTransaction( NULL )
 {
-	ID = FBuiltinEditorModes::EM_MeshPaint;
-	Name = LOCTEXT("MeshPaint_ModeName", "Paint");
-	IconBrush = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.MeshPaintMode", "LevelEditor.MeshPaintMode.Small");
-	bVisible = true;
-	PriorityOrder = 200;
 }
 
 /** Destructor */
@@ -171,7 +166,7 @@ void FEdModeMeshPaint::Enter()
 	// Only alter level editor viewports.
 	for( int32 ViewIndex = 0 ; ViewIndex < GEditor->LevelViewportClients.Num() ; ++ViewIndex )
 	{
-		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
+		FEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 	} 
 
@@ -208,7 +203,7 @@ void FEdModeMeshPaint::Exit()
 	// Only alter level editor viewports.
 	for( int32 ViewIndex = 0 ; ViewIndex < GEditor->LevelViewportClients.Num() ; ++ViewIndex )
 	{
-		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
+		FEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewIndex];
 		SetViewportShowFlags( bAllowColorViewModes, *ViewportClient );
 	} 
 
@@ -251,7 +246,7 @@ void FEdModeMeshPaint::Exit()
 
 
 /** FEdMode: Called when the mouse is moved over the viewport */
-bool FEdModeMeshPaint::MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
+bool FEdModeMeshPaint::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )
 {
 	// We only care about perspective viewports
 	if( ViewportClient->IsPerspective() )
@@ -274,7 +269,7 @@ bool FEdModeMeshPaint::MouseMove( FLevelEditorViewportClient* ViewportClient, FV
  *
  * @return	true if input was handled
  */
-bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY )
+bool FEdModeMeshPaint::CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY )
 {
 	// We only care about perspective viewports
 	if( InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets )
@@ -288,7 +283,7 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 				InViewportClient->EngineShowFlags)
 				.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 			FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-			FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InMouseX, InMouseY );
+			FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InMouseX, InMouseY );
 
 			
 			// Paint!
@@ -311,7 +306,7 @@ bool FEdModeMeshPaint::CapturedMouseMove( FLevelEditorViewportClient* InViewport
 
 
 /** FEdMode: Called when a mouse button is pressed */
-bool FEdModeMeshPaint::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeMeshPaint::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	return true;
 }
@@ -319,7 +314,7 @@ bool FEdModeMeshPaint::StartTracking(FLevelEditorViewportClient* InViewportClien
 
 
 /** FEdMode: Called when the a mouse button is released */
-bool FEdModeMeshPaint::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeMeshPaint::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	EndPainting();
 	return true;
@@ -368,7 +363,7 @@ void FEdModeMeshPaint::EndPainting()
 }
 
 /** FEdMode: Called when a key is pressed */
-bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
+bool FEdModeMeshPaint::InputKey( FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent )
 {
 	bool bHandled = false;
 
@@ -477,7 +472,7 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 							.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
 						FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-						FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+						FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
 
 						// Paint!
 						const bool bVisualCueOnly = false;
@@ -2687,7 +2682,7 @@ void FEdModeMeshPaint::FinishPaintingTexture( )
 
 
 /** FEdMode: Called when mouse drag input it applied */
-bool FEdModeMeshPaint::InputDelta( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
+bool FEdModeMeshPaint::InputDelta( FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale )
 {
 	// We only care about perspective viewports
 	if( InViewportClient->IsPerspective() )
@@ -2719,7 +2714,7 @@ void FEdModeMeshPaint::Render( const FSceneView* View, FViewport* Viewport, FPri
 	FEdMode::Render( View, Viewport, PDI );
 
 	// If this viewport does not support Mode widgets we will not draw it here.
-	FLevelEditorViewportClient* ViewportClient = (FLevelEditorViewportClient*)Viewport->GetClient();
+	FEditorViewportClient* ViewportClient = (FEditorViewportClient*)Viewport->GetClient();
 	if( ViewportClient && !ViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		return;
@@ -3042,7 +3037,7 @@ void FEdModeMeshPaint::ForceRealTimeViewports( const bool bEnable, const bool bS
 	TSharedPtr< ILevelViewport > ViewportWindow = LevelEditorModule.GetFirstActiveViewport();
 	if (ViewportWindow.IsValid())
 	{
-		FLevelEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
+		FEditorViewportClient &Viewport = ViewportWindow->GetLevelViewportClient();
 		if( Viewport.IsPerspective() )
 		{				
 			if( bEnable )
@@ -3060,7 +3055,7 @@ void FEdModeMeshPaint::ForceRealTimeViewports( const bool bEnable, const bool bS
 }
 
 /** Sets show flags for perspective viewports */
-void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FLevelEditorViewportClient& Viewport )
+void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport )
 {
 	if( Viewport.IsPerspective() )
 	{	
@@ -4906,7 +4901,7 @@ void FEdModeMeshPaint::BeginTransaction(const FText& Description)
 }
 
 /** FEdModeMeshPaint: Called once per frame */
-void FEdModeMeshPaint::Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime)
+void FEdModeMeshPaint::Tick(FEditorViewportClient* ViewportClient,float DeltaTime)
 {
 	FEdMode::Tick(ViewportClient,DeltaTime);
 

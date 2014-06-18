@@ -17,7 +17,8 @@
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 
 FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadePreviewViewport> InCascadeViewport)
-	: CascadePtr(InCascade)
+	: FEditorViewportClient(GLevelEditorModeTools())
+	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, CascadePreviewScene(FPreviewScene::ConstructionValues()
 						.SetLightRotation(FRotator(-45.f, 180.f, 0.f))

@@ -19,10 +19,12 @@ public:
 	/** Clear active component visualizer */
 	void ClearActiveComponentVis();
 
+	/** Handle a click on the specified level editor viewport client */
+	bool HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
 	/** Pass key input to active visualizer */
-	bool HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const;
+	bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const;
 	/** Pass delta input to active visualizer */
-	bool HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const;
+	bool HandleInputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const;
 	/** Get widget location from active visualizer */
 	bool GetWidgetLocation(FVector& OutLocation) const;
 

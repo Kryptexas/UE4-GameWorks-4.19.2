@@ -57,8 +57,8 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 		SetLevelEditorInstance(LevelEditorTmp);
 		LevelEditorTmp->Initialize( LevelEditorTab, OwnerWindow.ToSharedRef() );
 
-		GEditorModeTools().DeactivateAllModes();
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Placement);
+		GLevelEditorModeTools().SetDefaultMode( FBuiltinEditorModes::EM_Placement );
+		GLevelEditorModeTools().DeactivateAllModes();
 	}
 
 	IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));

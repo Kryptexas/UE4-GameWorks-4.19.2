@@ -86,7 +86,7 @@ FText FLandscapeToolKit::GetBaseToolkitName() const
 
 class FEdModeLandscape* FLandscapeToolKit::GetEditorMode() const
 {
-	return (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
 TSharedPtr<SWidget> FLandscapeToolKit::GetInlineContent() const
@@ -177,7 +177,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 class FEdModeLandscape* SLandscapeEditor::GetEditorMode() const
 {
-	return (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
 void SLandscapeEditor::UpdateErrorText() const

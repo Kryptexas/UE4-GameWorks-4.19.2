@@ -46,15 +46,15 @@ public:
 
 	// User input
 
-	virtual bool MouseEnter( FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y ) { return false; }
+	virtual bool MouseEnter( FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y ) { return false; }
 
-	virtual bool MouseLeave( FLevelEditorViewportClient* ViewportClient,FViewport* Viewport ) { return false; }
+	virtual bool MouseLeave( FEditorViewportClient* ViewportClient,FViewport* Viewport ) { return false; }
 
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y) { return false; }
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y) { return false; }
 
-	virtual bool ReceivedFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
+	virtual bool ReceivedFocus(FEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
 
-	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
+	virtual bool LostFocus(FEditorViewportClient* ViewportClient,FViewport* Viewport) { return false; }
 
 	/**
 	 * Called when the mouse is moved while a window input capture is in effect
@@ -66,13 +66,13 @@ public:
 	 *
 	 * @return	true if input was handled
 	 */
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) { return false; }
+	virtual bool CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY ) { return false; }
 
 
 	/**
 	 * @return		true if the delta was handled by this editor mode tool.
 	 */
-	virtual bool InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
+	virtual bool InputAxis(FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
 	{
 		return false;
 	}
@@ -80,7 +80,7 @@ public:
 	/**
 	 * @return		true if the delta was handled by this editor mode tool.
 	 */
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 	{
 		return false;
 	}
@@ -88,13 +88,13 @@ public:
 	/**
 	 * @return		true if the key was handled by this editor mode tool.
 	 */
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+	virtual bool InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 	{
 		return false;
 	}
 
 	virtual void Render(const FSceneView* View,FViewport* Viewport,FPrimitiveDrawInterface* PDI);
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
 
 	//@{
 	virtual bool StartModify()	{ return 0; }
@@ -107,7 +107,7 @@ public:
 	//@}
 
 	// Tick
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) {}
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) {}
 
 	/** @name Selections */
 	//@{

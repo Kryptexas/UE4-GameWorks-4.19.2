@@ -26,7 +26,7 @@ FText FTextureAlignMode::GetBaseToolkitName() const
 
 class FEdMode* FTextureAlignMode::GetEditorMode() const
 {
-	return (FEdModeTexture*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Texture);
+	return (FEdModeTexture*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Texture);
 }
 
 #undef LOCTEXT_NAMESPACE

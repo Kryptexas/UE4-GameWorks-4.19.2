@@ -1754,7 +1754,7 @@ void FTrackingTransaction::PromotePendingToActive()
 }
 
 FLevelEditorViewportClient::FLevelEditorViewportClient()
-	: FEditorViewportClient(NULL)
+	: FEditorViewportClient(GLevelEditorModeTools(), NULL)
 	, ViewHiddenLayers()
 	, VolumeActorVisibility()
 	, ActorLockedToCamera(NULL)
@@ -1767,7 +1767,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, bEnableFading(false)
 	, bEnableColorScaling(false)
 	, bEditorCameraCut(false)
-	, bDrawVertices(false)
 	, bDrawBaseInfo(false)
 	, bDuplicateActorsOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
@@ -1779,7 +1778,6 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, TrackingTransaction()
 	, DropPreviewMouseX(0)
 	, DropPreviewMouseY(0)
-	, bAllowMatineePreview(false)
 	, bWasControlledByOtherViewport(false)
 {
 	// By default a level editor viewport is pointed to the editor world
@@ -1787,7 +1785,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	GEditor->LevelViewportClients.Add(this);
 
-	Widget->SetUsesEditorModeTools( &GEditorModeTools() );
+	Widget->SetUsesEditorModeTools( ModeTools );
 
 	// Register for editor cleanse events so we can release references to hovered actors
 	FEditorSupportDelegates::CleanseEditor.AddRaw(this, &FLevelEditorViewportClient::OnEditorCleanse);
@@ -1963,7 +1961,7 @@ void FLevelEditorViewportClient::OverridePostProcessSettings( FSceneView& View )
 
 bool FLevelEditorViewportClient::ShouldLockPitch() const 
 {
-	return FEditorViewportClient::ShouldLockPitch() || !GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) ;
+	return FEditorViewportClient::ShouldLockPitch() || !ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) ;
 }
 
 void FLevelEditorViewportClient::PerspectiveCameraMoved()
@@ -1978,7 +1976,7 @@ void FLevelEditorViewportClient::PerspectiveCameraMoved()
 	}
 
 	// Tell the editing mode that the camera moved, in case its interested.
-	FEdMode* Mode = GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 	if( Mode )
 	{
 		((FEdModeInterpEdit*)Mode)->CamMoveNotify(this);
@@ -2011,7 +2009,7 @@ void FLevelEditorViewportClient::ResetCamera()
 	ViewTransform.SetOrthoZoom( DEFAULT_ORTHOZOOM );
 
 	// If interp mode is active, tell it about the camera movement.
-	FEdMode* Mode = GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 	if( Mode )
 	{
 		((FEdModeInterpEdit*)Mode)->CamMoveNotify(this);
@@ -2064,11 +2062,15 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
-	if (!GEditorModeTools().HandleClick(this, HitProxy,Click))
+	if (!ModeTools->HandleClick(this, HitProxy,Click))
 	{
 		if (HitProxy == NULL)
 		{
 			ClickHandlers::ClickBackdrop(this,Click);
+		}
+		else if (GUnrealEd->ComponentVisManager.HandleClick(this, HitProxy, Click))
+		{
+			// Component vis manager handled the click
 		}
 		else if (HitProxy->IsA(HActor::StaticGetType()))
 		{
@@ -2193,7 +2195,7 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 		GUnrealEd->UpdatePivotLocationForSelection();
 	}
 
-	GEditorModeTools().Tick(this,DeltaTime);
+	ModeTools->Tick(this, DeltaTime);
 
 	// Update the preview mesh for the preview mesh mode. 
 	GEditor->UpdatePreviewMesh();
@@ -2278,9 +2280,14 @@ namespace ViewportDeadZoneConstants
 
 bool FLevelEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
 {
+	if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, Viewport, Drag, Rot, Scale))
+	{
+		return true;
+	}
+
 	bool bHandled = false;
 	// Give the current editor mode a chance to use the input first.  If it does, don't apply it to anything else.
-	FEditorModeTools& Tools = GEditorModeTools();
+	FEditorModeTools& Tools = GLevelEditorModeTools();
 	if( Tools.InputDelta( this, Viewport, Drag, Rot, Scale ) )
 	{
 		if( Tools.AllowWidgetMove() )
@@ -2393,14 +2400,14 @@ TSharedPtr<FDragTool> FLevelEditorViewportClient::MakeDragTool( EDragTool::Type 
 void FLevelEditorViewportClient::UpdateMouseDelta()
 {
 	// Do nothing if a drag tool is being used.
-	if( MouseDeltaTracker->UsingDragTool() || GEditorModeTools().DisallowMouseDeltaTracking() )
+	if( MouseDeltaTracker->UsingDragTool() || GLevelEditorModeTools().DisallowMouseDeltaTracking() )
 	{
 		return;
 	}
 
 	// Stop tracking and do nothing else if we're tracking and the widget mode has changed mid-track.
 	// It can confuse the widget code that handles the mouse movements.
-	if (bIsTracking && MouseDeltaTracker->GetTrackingWidgetMode() != GEditorModeTools().GetWidgetMode())
+	if (bIsTracking && MouseDeltaTracker->GetTrackingWidgetMode() != GLevelEditorModeTools().GetWidgetMode())
 	{
 		StopTracking();
 		return;
@@ -2501,8 +2508,13 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 		GEditor->ClickLocation = FVector((View->ViewMatrices.ViewMatrix * View->ViewMatrices.ProjMatrix).Inverse().TransformFVector4(FVector4((HitX - Viewport->GetSizeXY().X / 2.0f) / (Viewport->GetSizeXY().X / 2.0f),(HitY - Viewport->GetSizeXY().Y / 2.0f) / -(Viewport->GetSizeXY().Y / 2.0f),0.5f,1.0f)));
 	}
 
+	if (GUnrealEd->ComponentVisManager.HandleInputKey(this, Viewport, Key, Event))
+	{
+		return true;
+	}
+
 	// Let the current mode have a look at the input before reacting to it.
-	if( GEditorModeTools().InputKey(this, Viewport, Key, Event) )
+	if( GLevelEditorModeTools().InputKey(this, Viewport, Key, Event) )
 	{
 		return true;
 	}
@@ -2556,11 +2568,11 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 		&& InputState.IsButtonPressed(EKeys::RightMouseButton) 
 		&& IsOrtho() )
 	{
-		GEditorModeTools().SetWidgetModeOverride( FWidget::WM_Rotate );
+		GLevelEditorModeTools().SetWidgetModeOverride( FWidget::WM_Rotate );
 	}
 	else
 	{
-		GEditorModeTools().SetWidgetModeOverride( FWidget::WM_None );
+		GLevelEditorModeTools().SetWidgetModeOverride( FWidget::WM_None );
 	}
 
 	bHandled |= FEditorViewportClient::InputKey(Viewport,ControllerId,Key,Event,AmountDepressed,bGamepad);
@@ -2578,7 +2590,7 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge )
 {
 	// Begin transacting.  Give the current editor mode an opportunity to do the transacting.
-	const bool bTrackingHandledExternally = GEditorModeTools().StartTracking(this, Viewport);
+	const bool bTrackingHandledExternally = GLevelEditorModeTools().StartTracking(this, Viewport);
 
 	TrackingTransaction.End();
 
@@ -2718,7 +2730,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	bool bDidAnythingActuallyChange = false;
 
 	// Stop transacting.  Give the current editor mode an opportunity to do the transacting.
-	const bool bTransactingHandledByEditorMode = GEditorModeTools().EndTracking(this, Viewport);
+	const bool bTransactingHandledByEditorMode = GLevelEditorModeTools().EndTracking(this, Viewport);
 	if( !bTransactingHandledByEditorMode )
 	{
 		if( TrackingTransaction.TransCount > 0 )
@@ -2788,7 +2800,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	}
 
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		// Also notify the current editing modes if they are interested.
@@ -2943,7 +2955,7 @@ bool FLevelEditorViewportClient::InputAxis(FViewport* Viewport, int32 Controller
 
 	FScopedSetCurrentViewportClient( this );
 	// Let the current mode have a look at the input before reacting to it.
-	if ( GEditorModeTools().InputAxis(this, Viewport, ControllerId, Key, Delta, DeltaTime) )
+	if ( GLevelEditorModeTools().InputAxis(this, Viewport, ControllerId, Key, Delta, DeltaTime) )
 	{
 		return true;
 	}
@@ -3251,9 +3263,9 @@ bool FLevelEditorViewportClient::IsVolumeVisibleInViewport( const AActor& Volume
 
 void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMode )
 {
-	if( !GEditorModeTools().IsTracking() )
+	if( !GLevelEditorModeTools().IsTracking() )
 	{
-		GEditorModeTools().SetWidgetMode( ActivatedMode );
+		GLevelEditorModeTools().SetWidgetMode( ActivatedMode );
 
 		// force an invalidation (non-deferred) of the hit proxy here, otherwise we will
 		// end up checking against an incorrect hit proxy if the cursor is not moved
@@ -3261,7 +3273,7 @@ void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMo
 		bShouldCheckHitProxy = true;
 
 		// Fire event delegate
-		GEditorModeTools().BroadcastWidgetModeChanged(ActivatedMode);
+		GLevelEditorModeTools().BroadcastWidgetModeChanged(ActivatedMode);
 	}
 	
 	// Invalidate all viewports, so the new gizmo is rendered in each one
@@ -3276,33 +3288,39 @@ void FLevelEditorViewportClient::SetWidgetMode( FWidget::EWidgetMode ActivatedMo
 
 bool FLevelEditorViewportClient::CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const
 {
-	return GEditorModeTools().GetShowWidget() == true;
+	return GLevelEditorModeTools().GetShowWidget() == true;
 }
 
 void FLevelEditorViewportClient::SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem )
 {
-	GEditorModeTools().SetCoordSystem(NewCoordSystem);
+	GLevelEditorModeTools().SetCoordSystem(NewCoordSystem);
 	Invalidate();
 }
 
 FWidget::EWidgetMode FLevelEditorViewportClient::GetWidgetMode() const
 {
-	return GEditorModeTools().GetWidgetMode();
+	return GLevelEditorModeTools().GetWidgetMode();
 }
 
 FVector FLevelEditorViewportClient::GetWidgetLocation() const
 {
-	return GEditorModeTools().GetWidgetLocation();
+	FVector ComponentVisWidgetLocation;
+	if (GUnrealEd->ComponentVisManager.GetWidgetLocation(ComponentVisWidgetLocation))
+	{
+		return ComponentVisWidgetLocation;
+	}
+
+	return GLevelEditorModeTools().GetWidgetLocation();
 }
 
 FMatrix FLevelEditorViewportClient::GetWidgetCoordSystem() const 
 {
-	return GEditorModeTools().GetCustomInputCoordinateSystem();
+	return GLevelEditorModeTools().GetCustomInputCoordinateSystem();
 }
 
 ECoordSystem FLevelEditorViewportClient::GetWidgetCoordSystemSpace() const
 {
-	return GEditorModeTools().GetCoordSystem();
+	return GLevelEditorModeTools().GetCoordSystem();
 }
 
 
@@ -3703,21 +3721,21 @@ void FLevelEditorViewportClient::ApplyDeltaToRotateWidget( const FRotator& InRot
 	//apply rotation to translate rotate widget
 	if (!InRot.IsZero())
 	{
-		FRotator TranslateRotateWidgetRotation(0, GEditorModeTools().TranslateRotateXAxisAngle, 0);
+		FRotator TranslateRotateWidgetRotation(0, GLevelEditorModeTools().TranslateRotateXAxisAngle, 0);
 		TranslateRotateWidgetRotation += InRot;
-		GEditorModeTools().TranslateRotateXAxisAngle = TranslateRotateWidgetRotation.Yaw;
+		GLevelEditorModeTools().TranslateRotateXAxisAngle = TranslateRotateWidgetRotation.Yaw;
 	}
 
 }
 
 void FLevelEditorViewportClient::MouseEnter( FViewport* Viewport,int32 x, int32 y )
 {
-	GEditorModeTools().MouseEnter(this, Viewport, x, y);
+	GLevelEditorModeTools().MouseEnter(this, Viewport, x, y);
 }
 
 void FLevelEditorViewportClient::MouseLeave( FViewport* Viewport ) 
 {
-	GEditorModeTools().MouseLeave(this, Viewport);
+	GLevelEditorModeTools().MouseLeave(this, Viewport);
 
 	FEditorViewportClient::MouseLeave(Viewport);
 }
@@ -3727,7 +3745,7 @@ void FLevelEditorViewportClient::MouseMove(FViewport* Viewport,int32 x, int32 y)
 	FEditorViewportClient::MouseMove(Viewport,x,y);
 
 	// Let the current editor mode know about the mouse movement.
-	if( IsLevelEditorClient() && GEditorModeTools().MouseMove(this, Viewport, x, y) )
+	if( IsLevelEditorClient() && GLevelEditorModeTools().MouseMove(this, Viewport, x, y) )
 	{
 		return;
 	}
@@ -3752,11 +3770,6 @@ EMouseCursor::Type FLevelEditorViewportClient::GetCursor(FViewport* Viewport,int
 
 	return CursorType;
 
-}
-
-void FLevelEditorViewportClient::RenderDragTool( const FSceneView* View,FCanvas* Canvas )
-{
-	MouseDeltaTracker->RenderDragTool(View,Canvas);
 }
 
 FViewportCursorLocation FLevelEditorViewportClient::GetCursorWorldLocationFromMousePos()
@@ -3796,7 +3809,7 @@ void FLevelEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32
 	TrackingTransaction.PromotePendingToActive();
 
 	// Let the current editor mode know about the mouse movement.
-	if( IsLevelEditorClient() && GEditorModeTools().CapturedMouseMove( this, InViewport, InMouseX, InMouseY ) )
+	if( IsLevelEditorClient() && GLevelEditorModeTools().CapturedMouseMove( this, InViewport, InMouseX, InMouseY ) )
 	{
 		return;
 	}
@@ -3954,7 +3967,7 @@ bool FLevelEditorViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
 void FLevelEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type NewAxis )
 {
 	FEditorViewportClient::SetCurrentWidgetAxis( NewAxis );
-	GEditorModeTools().SetCurrentWidgetAxis( NewAxis );
+	GLevelEditorModeTools().SetCurrentWidgetAxis( NewAxis );
 }
 
 /** 
@@ -4036,10 +4049,10 @@ void FLevelEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInter
 	}
 
 
-	GEditorModeTools().DrawActiveModes(View, PDI);
+	GLevelEditorModeTools().DrawActiveModes(View, PDI);
 
 	// Draw the current editor mode.
-	GEditorModeTools().Render( View, Viewport, PDI );
+	GLevelEditorModeTools().Render( View, Viewport, PDI );
 
 	// Determine if a view frustum should be rendered in the viewport.
 	// The frustum should definitely be rendered if the viewport has a view parent.
@@ -4201,7 +4214,7 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		}
 	}
 
-	if(GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowMatineePreview())
+	if(GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowMatineePreview())
 	{
 		// in the editor, disable camera motion blur and other rendering features that rely on the former frame
 		// unless the view port is Matinee controlled
@@ -4228,57 +4241,15 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 void FLevelEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas )
 {
 	// Information string
-	Canvas.DrawShadowedString( 4,4, *GEditorModeTools().InfoString, GEngine->GetSmallFont(), FColor(255,255,255) );
+	Canvas.DrawShadowedString( 4,4, *GLevelEditorModeTools().InfoString, GEngine->GetSmallFont(), FColor(255,255,255) );
 
-	GEditorModeTools().DrawHUD(this,&InViewport,&View,&Canvas);
+	GLevelEditorModeTools().DrawHUD(this,&InViewport,&View,&Canvas);
 
 	// Testbed
 	FCanvasItemTestbed TestBed;
 	TestBed.Draw( Viewport, &Canvas );
 
 	DrawStaticLightingDebugInfo(&View, &Canvas);
-}
-
-
-
-/**
- * Draws a screen space bounding box around the specified actor
- *
- * @param	InCanvas		Canvas to draw on
- * @param	InView			View to render
- * @param	InViewport		Viewport we're rendering into
- * @param	InActor			Actor to draw a bounding box for
- * @param	InColor			Color of bounding box
- * @param	bInDrawBracket	True to draw a bracket, otherwise a box will be rendered
- * @param	bInLabelText	Optional label text to draw
- */
-void FLevelEditorViewportClient::DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText )
-{
-	check( InActor != NULL );
-
-
-	// First check to see if we're dealing with a sprite, otherwise just use the normal bounding box
-	UBillboardComponent* Sprite = InActor->FindComponentByClass<UBillboardComponent>();
-
-	FBox ActorBox;
-	if( Sprite != NULL )
-	{
-		ActorBox = Sprite->Bounds.GetBox();
-	}
-	else
-	{
-		const bool bNonColliding = true;
-		ActorBox = InActor->GetComponentsBoundingBox( bNonColliding );
-	}
-
-
-	// If we didn't get a valid bounding box, just make a little one around the actor location
-	if( !ActorBox.IsValid || ActorBox.GetExtent().GetMin() < KINDA_SMALL_NUMBER )
-	{
-		ActorBox = FBox( InActor->GetActorLocation() - FVector( -20 ), InActor->GetActorLocation() + FVector( 20 ) );
-	}
-
-	DrawBoundingBox(ActorBox, InCanvas, InView, InViewport, InColor, bInDrawBracket, InLabelText);
 }
 
 /**
@@ -4472,13 +4443,13 @@ void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
 void FLevelEditorViewportClient::ReceivedFocus(FViewport* Viewport)
 {
 	FEditorViewportClient::ReceivedFocus(Viewport);
-	GEditorModeTools().ReceivedFocus(this, Viewport);
+	GLevelEditorModeTools().ReceivedFocus(this, Viewport);
 }
 
 void FLevelEditorViewportClient::LostFocus(FViewport* Viewport)
 {
 	FEditorViewportClient::LostFocus(Viewport);
-	GEditorModeTools().LostFocus(this, Viewport);
+	GLevelEditorModeTools().LostFocus(this, Viewport);
 }
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
@@ -4643,14 +4614,14 @@ void FLevelEditorViewportClient::SetIsSimulateInEditorViewport( bool bInIsSimula
 { 
 	bIsSimulateInEditorViewport = bInIsSimulateInEditorViewport; 
 
-	static TSharedPtr<FPhysicsManipulationEdMode> Mode = MakeShareable(new FPhysicsManipulationEdMode());
 	if (bInIsSimulateInEditorViewport)
 	{
-		GEditorModeTools().RegisterMode(Mode.ToSharedRef());
+		TSharedRef<FPhysicsManipulationEdModeFactory> Factory = MakeShareable( new FPhysicsManipulationEdModeFactory );
+		FEditorModeRegistry::Get().RegisterMode( FBuiltinEditorModes::EM_Physics, Factory );
 	}
 	else
 	{
-		GEditorModeTools().UnregisterMode(Mode.ToSharedRef());
+		FEditorModeRegistry::Get().UnregisterMode( FBuiltinEditorModes::EM_Physics );
 	}
 }
 

@@ -19,7 +19,8 @@
 
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
-	: CascadePtr(InCascade)
+	: FEditorViewportClient(GLevelEditorModeTools())
+	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, EmitterWidth(180)
 	, EmitterCollapsedWidth(18)

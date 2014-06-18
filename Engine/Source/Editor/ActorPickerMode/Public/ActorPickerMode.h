@@ -33,8 +33,4 @@ public:
 
 	/** @return Whether or not actor picking mode is currently active */
 	bool IsInActorPickingMode() const;
-
-private:
-	/** The one and only actor picking mode */
-	TSharedPtr<class FEdModeActorPicker> EdModeActorPicker;
 };

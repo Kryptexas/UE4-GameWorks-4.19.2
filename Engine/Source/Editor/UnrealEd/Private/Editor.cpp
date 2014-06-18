@@ -455,7 +455,7 @@ bool UEditorEngine::ShouldDrawBrushWireframe( AActor* InActor )
 {
 	bool bResult = true;
 
-	bResult = GEditorModeTools().ShouldDrawBrushWireframe( InActor );
+	bResult = GLevelEditorModeTools().ShouldDrawBrushWireframe( InActor );
 	
 	return bResult;
 }
@@ -2136,9 +2136,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 			if ( bDelta )
 			{
 				FVector NewActorLocation = InActor->GetActorLocation();
-				NewActorLocation -= GEditorModeTools().PivotLocation;
+				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
 				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
-				NewActorLocation += GEditorModeTools().PivotLocation;
+				NewActorLocation += GLevelEditorModeTools().PivotLocation;
 				NewActorLocation -= InActor->GetActorLocation();
 				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
 			}
@@ -2242,9 +2242,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
 						{
 							FVector Wk = BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
-							Wk -= GEditorModeTools().PivotLocation;
+							Wk -= GLevelEditorModeTools().PivotLocation;
 							Wk += matrix.TransformPosition( Wk );
-							Wk += GEditorModeTools().PivotLocation;
+							Wk += GLevelEditorModeTools().PivotLocation;
 							Poly->Vertices[vertex] = BrushActorToWorld.InverseTransformPosition( Wk );
 						}
 
@@ -2255,9 +2255,9 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 						}
 
 						FVector Wk = BrushActorToWorld.TransformPosition( Poly->Base );
-						Wk -= GEditorModeTools().PivotLocation;
+						Wk -= GLevelEditorModeTools().PivotLocation;
 						Wk += matrix.TransformPosition( Wk );
-						Wk += GEditorModeTools().PivotLocation;
+						Wk += GLevelEditorModeTools().PivotLocation;
 						Poly->Base = BrushActorToWorld.InverseTransformPosition( Wk );
 
 						// Scale the texture vectors
@@ -2308,7 +2308,7 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 
 					InActor->EditorApplyScale( 
 						ModifiedScale,
-												&GEditorModeTools().PivotLocation,
+												&GLevelEditorModeTools().PivotLocation,
 												bAltDown,
 												bShiftDown,
 						bControlDown
@@ -3805,7 +3805,7 @@ bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 	}
 
 	// Make sure we can't open the same action twice in Matinee.
-	if( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
+	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MatineeActionAlreadyOpen", "An UnrealMatinee sequence is currently open in an editor.  Please close it before proceeding.") );
 		return false;
@@ -3839,14 +3839,14 @@ void UEditorEngine::OpenMatinee(AMatineeActor* MatineeActor, bool bWarnUser)
 	}
 
 	// If already in Matinee mode, exit out before going back in with new Interpolation.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
-	GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_InterpEdit );
+	GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_InterpEdit );
 
-	FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* InterpEditMode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 	InterpEditMode->InitInterpMode( MatineeActor );
 

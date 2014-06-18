@@ -25,6 +25,7 @@
 #include "EditorViewportClient.h"
 #include "LevelEditorViewport.h"
 
+#include "EditorModeRegistry.h"
 #include "EditorModes.h"
 
 #include "MRUList.h"

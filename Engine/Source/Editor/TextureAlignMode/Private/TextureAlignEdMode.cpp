@@ -10,25 +10,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogTextureAlignMode, Log, All);
 
 void FTextureAlignModeModule::StartupModule()
 {
-	TSharedRef<FEdModeTexture> NewEditorMode = MakeShareable(new FEdModeTexture);
-	GEditorModeTools().RegisterMode(NewEditorMode);
-	EdModeTexture = NewEditorMode;
-
-	IBspModeModule& BspModule = FModuleManager::LoadModuleChecked<IBspModeModule>("BspMode");
-	GEditorModeTools().RegisterCompatibleModes( NewEditorMode->GetID(), BspModule.GetBspMode()->GetID() );
+	FEditorModeRegistry::Get().RegisterMode<FEdModeTexture>(
+		FBuiltinEditorModes::EM_Texture,
+		NSLOCTEXT("EditorModes", "TextureAlignmentMode", "Texture Alignment")
+		);
 }
 
 void FTextureAlignModeModule::ShutdownModule()
 {
-	GEditorModeTools().UnregisterMode(EdModeTexture.ToSharedRef());
-
-	if ( FModuleManager::Get().IsModuleLoaded( TEXT("BspMode") ) )
-	{
-		IBspModeModule& BspModule = FModuleManager::LoadModuleChecked<IBspModeModule>( TEXT("BspMode") );
-		GEditorModeTools().UnregisterCompatibleModes( EdModeTexture->GetID(), BspModule.GetBspMode()->GetID() );
-	}
-
-	EdModeTexture = NULL;
+	FEditorModeRegistry::Get().UnregisterMode(FBuiltinEditorModes::EM_Texture);
 }
 
 /*------------------------------------------------------------------------------
@@ -39,9 +29,6 @@ FEdModeTexture::FEdModeTexture()
 	:	ScopedTransaction( NULL )
 	, TrackingWorld( NULL )
 {
-	ID = FBuiltinEditorModes::EM_Texture;
-	Name = NSLOCTEXT("EditorModes", "TextureAlignmentMode", "Texture Alignment");
-
 	Tools.Add( new FModeTool_Texture() );
 	SetCurrentTool( MT_Texture );
 }
@@ -57,8 +44,8 @@ void FEdModeTexture::Enter()
 	FEdMode::Enter();
 
 	const bool bGetRawValue = true;
-	SaveCoordSystem = GEditorModeTools().GetCoordSystem(bGetRawValue);
-	GEditorModeTools().SetCoordSystem(COORD_Local);
+	SaveCoordSystem = GLevelEditorModeTools().GetCoordSystem(bGetRawValue);
+	GLevelEditorModeTools().SetCoordSystem(COORD_Local);
 }
 
 void FEdModeTexture::Exit()
@@ -71,7 +58,7 @@ void FEdModeTexture::Exit()
 
 	FEdMode::Exit();
 
-	GEditorModeTools().SetCoordSystem(SaveCoordSystem);
+	GLevelEditorModeTools().SetCoordSystem(SaveCoordSystem);
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 }
 
@@ -99,7 +86,7 @@ bool FEdModeTexture::ShouldDrawWidget() const
 bool FEdModeTexture::GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData )
 {
 	// Texture mode is ALWAYS in local space
-	GEditorModeTools().SetCoordSystem(COORD_Local);
+	GLevelEditorModeTools().SetCoordSystem(COORD_Local);
 
 	FPoly* poly = NULL;
 
@@ -152,7 +139,7 @@ EAxisList::Type FEdModeTexture::GetWidgetAxisToDraw( FWidget::EWidgetMode InWidg
 	return EAxisList::XYZ;
 }
 
-bool FEdModeTexture::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeTexture::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	// call base version because it calls the StartModify() virtual method needed to track drag events
 	bool BaseRtn = FEdMode::StartTracking(InViewportClient, InViewport);
@@ -174,7 +161,7 @@ bool FEdModeTexture::StartTracking(FLevelEditorViewportClient* InViewportClient,
 	return BaseRtn;
 }
 
-bool FEdModeTexture::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeTexture::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	// Clean up the scoped transaction if one is still pending
 	if( ScopedTransaction != NULL )
@@ -194,6 +181,11 @@ bool FEdModeTexture::EndTracking(FLevelEditorViewportClient* InViewportClient, F
 	return FEdMode::EndTracking(InViewportClient, InViewport);
 }
 
+bool FEdModeTexture::IsCompatibleWith(FEditorModeID OtherModeID) const
+{
+	return OtherModeID == FBuiltinEditorModes::EM_Bsp;
+}
+
 
 
 
@@ -211,7 +203,7 @@ FModeTool_Texture::FModeTool_Texture()
 /**
  * @return		true if the delta was handled by this editor mode tool.
  */
-bool FModeTool_Texture::InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
+bool FModeTool_Texture::InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale)
 {
 	if( InViewportClient->GetCurrentWidgetAxis() == EAxisList::None )
 	{
@@ -243,7 +235,7 @@ bool FModeTool_Texture::InputDelta(FLevelEditorViewportClient* InViewportClient,
 					Surf.pBase = Model->Points.Add(Base);
 				}
 			}
-			FMatrix Mat = GEditorModeTools().GetCustomDrawingCoordinateSystem();
+			FMatrix Mat = GLevelEditorModeTools().GetCustomDrawingCoordinateSystem();
 			FVector UVW = Mat.InverseTransformVector( deltaDrag );  // InverseTransformNormal because Mat is the transform from the surface/widget's coords to world coords
 			GEditor->polyTexPan( Model, UVW.X, UVW.Y, 0 );  // 0 is relative mode because UVW is made from deltaDrag - the user input since the last tick
 		}

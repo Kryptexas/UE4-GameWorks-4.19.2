@@ -102,20 +102,6 @@ private:
 };
 
 
-struct FDropQuery
-{
-	FDropQuery()
-		: bCanDrop(false)
-	{}
-
-	/** True if it's valid to drop the object at the location queried */
-	bool bCanDrop;
-
-	/** Optional hint text that may be returned to the user. */
-	FText HintText;
-};
-
-
 /** */
 class UNREALED_API FLevelEditorViewportClient : public FEditorViewportClient
 {
@@ -202,13 +188,6 @@ public:
 	 */
 	void RestoreCameraFromPIE();
 
-
-	/** true to force realtime audio to be true, false to stop forcing it true */
-	void SetForcedAudioRealtime( bool bShouldForceAudioRealtime )
-	{
-		bForceAudioRealtime = bShouldForceAudioRealtime;
-	}
-
 	/**
 	 * Updates the audio listener for this viewport 
 	 *
@@ -269,15 +248,6 @@ public:
 	 */
 	EAxisList::Type GetVertAxis() const;
 
-	/** Returns true if the viewport is allowed to be possessed by Matinee for previewing sequences */
-	bool AllowMatineePreview() const { return bAllowMatineePreview; }
-
-	/** Sets whether or not this viewport is allowed to be possessed by Matinee */
-	void SetAllowMatineePreview( const bool bInAllowMatineePreview )
-	{
-		bAllowMatineePreview = bInAllowMatineePreview;
-	}
-
 	void NudgeSelectedObjects( const struct FInputEventState& InputState );
 
 	/**
@@ -302,19 +272,6 @@ public:
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
 	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) override;
-
-	/**
-	 * Draws a screen space bounding box around the specified actor
-	 *
-	 * @param	InCanvas		Canvas to draw on
-	 * @param	InView			View to render
-	 * @param	InViewport		Viewport we're rendering into
-	 * @param	InActor			Actor to draw a bounding box for
-	 * @param	InColor			Color of bounding box
-	 * @param	bInDrawBracket	True to draw a bracket, otherwise a box will be rendered
-	 * @param	bInLabelText	Optional label text to draw
-	 */
-	void DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText = TEXT( "" ) );
 
 	/**
 	 *	Draw the texture streaming bounds.
@@ -383,7 +340,7 @@ public:
 	void RemoveReferenceToWorldContext(FWorldContext& WorldContext);
 
 	/** Returns true if a placement dragging actor exists */
-	bool HasDropPreviewActors() const;
+	virtual bool HasDropPreviewActors() const override;
 
 	/**
 	 * If dragging an actor for placement, this function updates its position.
@@ -395,12 +352,12 @@ public:
 	 *
 	 * Returns true if preview actors were updated
 	 */
-	bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL);
+	virtual bool UpdateDropPreviewActors(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, bool& out_bDroppedObjectsVisible, class UActorFactory* FactoryToUse = NULL) override;
 
 	/**
 	 * If dragging an actor for placement, this function destroys the actor.
 	 */
-	void DestroyDropPreviewActors();
+	virtual void DestroyDropPreviewActors() override;
 
 	/**
 	 * Checks the viewport to see if the given object can be dropped using the given mouse coordinates local to this viewport
@@ -409,7 +366,7 @@ public:
 	 * @param MouseY			The position of the mouse's Y coordinate
 	 * @param AssetInfo			Asset in question to be dropped
 	 */
-	FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
+	virtual FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo) override;
 
 	/**
 	 * Attempts to intelligently drop the given objects in the viewport, using the given mouse coordinates local to this viewport
@@ -423,7 +380,7 @@ public:
 	 * @param bSelectActors		 If true, select the newly dropped actors (defaults: true)
 	 * @param FactoryToUse		 The preferred actor factory to use (optional)
 	 */
-	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
+	virtual bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL ) override;
 
 	/**
 	 * Sets GWorld to the appropriate world for this client
@@ -469,8 +426,6 @@ public:
 	 * Currently public so it can be re-used in FEdModeBlueprint.
 	 */
 	void ModifyScale( USceneComponent* InComponent, FVector& ScaleDelta ) const;
-
-	void RenderDragTool( const FSceneView* View,FCanvas* Canvas );
 
 	/** Set the global ptr to the current viewport */
 	void SetCurrentViewport();
@@ -798,9 +753,6 @@ public:
 	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
 	bool					bEditorCameraCut;
 
-	/** If true, draw vertices for selected BSP brushes and static meshes if the large vertices show flag is set. */
-	bool					bDrawVertices;
-
 	/** Indicates whether, of not, the base attachment volume should be drawn for this viewport. */
 	bool bDrawBaseInfo;
 
@@ -843,9 +795,6 @@ private:
 	/** Represents the last known drop preview mouse position. */
 	int32 DropPreviewMouseX;
 	int32 DropPreviewMouseY;
-
-	/** true if this window is allowed to be possessed by Matinee for previewing sequences in real-time */
-	bool bAllowMatineePreview;
 
 	/** If this view was controlled by another view this/last frame, don't update itself */
 	bool bWasControlledByOtherViewport;

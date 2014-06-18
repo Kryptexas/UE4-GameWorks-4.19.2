@@ -40,9 +40,10 @@ public:
 	virtual bool GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void* InData );
 	virtual bool GetCustomInputCoordinateSystem( FMatrix& InMatrix, void* InData );
 	virtual EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const;
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 	virtual bool AllowWidgetMove() { return false; }
+	virtual bool IsCompatibleWith(FEditorModeID OtherModeID) const override;
 
 protected:
 	/** The current transaction. */
@@ -59,7 +60,7 @@ class FModeTool_Texture : public FModeTool
 public:
 	FModeTool_Texture();
 
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
 
 	// override these to allow this tool to keep track of the users dragging during a single drag event
 	virtual bool StartModify()	{ PreviousInputDrag = FVector::ZeroVector; return true; }

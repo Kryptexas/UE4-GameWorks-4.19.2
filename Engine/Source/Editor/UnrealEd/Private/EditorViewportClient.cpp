@@ -180,7 +180,7 @@ int32 FEditorViewportClient::GetCameraSpeedSetting() const
 
 float const FEditorViewportClient::SafePadding = 0.075f;
 
-FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
+FEditorViewportClient::FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene)
 	: CameraSpeedSetting(4)
 	, ImmersiveDelegate()
 	, VisibilityDelegate()
@@ -237,6 +237,7 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
 	, PreviewScene(InPreviewScene)
+	, ModeTools(&InModeTools)
 	, PerspViewModeIndex(VMI_Lit)
 	, OrthoViewModeIndex(VMI_BrushWireframe)
 	, NearPlane(-1.0f)
@@ -274,12 +275,12 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 
 	SetViewMode(VMI_Lit);
 
-	GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
+	ModeTools->OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
 {
-	GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	ModeTools->OnEditorModeChanged().RemoveAll(this);
 
 	delete Widget;
 	delete MouseDeltaTracker;
@@ -969,7 +970,7 @@ EMouseCursor::Type FEditorViewportClient::GetCursor(FViewport* InViewport,int32 
 	{
 		// allow editor modes to override cursor
 		EMouseCursor::Type EditorModeCursor = EMouseCursor::Default;
-		if(GEditorModeTools().GetCursor(EditorModeCursor))
+		if(ModeTools->GetCursor(EditorModeCursor))
 		{
 			MouseCursor = EditorModeCursor;
 		}
@@ -2608,6 +2609,11 @@ void FEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDrawInterface*
 	FramesSinceLastDraw = 0;
 }
 
+void FEditorViewportClient::RenderDragTool(const FSceneView* View, FCanvas* Canvas)
+{
+	MouseDeltaTracker->RenderDragTool(View, Canvas);
+}
+
 FLinearColor FEditorViewportClient::GetBackgroundColor() const
 {
 	FLinearColor BackgroundColor = FColor(55, 55, 55);
@@ -3111,7 +3117,7 @@ bool FEditorViewportClient::IsFlightCameraInputModeActive() const
 		if( CameraController != NULL )
 		{
 			// Also check that we're not currently using a ModeWidget (for Vertex Paint etc)
-			const FEdMode* Mode = GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
+			const FEdMode* Mode = ModeTools->GetActiveMode(FBuiltinEditorModes::EM_MeshPaint);
 			const bool bIsPaintingMesh = ( Mode ) ? ((FEdModeMeshPaint*)Mode)->IsPainting() : false;
 			const bool bLeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton) && !bIsPaintingMesh;
 			const bool bMiddleMouseButtonDown = Viewport->KeyState( EKeys::MiddleMouseButton );
@@ -3938,6 +3944,35 @@ void FEditorViewportClient::DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const 
 			InCanvas->DrawItem( TextItem );
 		}		
 	}
+}
+
+void FEditorViewportClient::DrawActorScreenSpaceBoundingBox( FCanvas* InCanvas, const FSceneView* InView, FViewport* InViewport, AActor* InActor, const FLinearColor& InColor, const bool bInDrawBracket, const FString& InLabelText )
+{
+	check( InActor != NULL );
+
+
+	// First check to see if we're dealing with a sprite, otherwise just use the normal bounding box
+	UBillboardComponent* Sprite = InActor->FindComponentByClass<UBillboardComponent>();
+
+	FBox ActorBox;
+	if( Sprite != NULL )
+	{
+		ActorBox = Sprite->Bounds.GetBox();
+	}
+	else
+	{
+		const bool bNonColliding = true;
+		ActorBox = InActor->GetComponentsBoundingBox( bNonColliding );
+	}
+
+
+	// If we didn't get a valid bounding box, just make a little one around the actor location
+	if( !ActorBox.IsValid || ActorBox.GetExtent().GetMin() < KINDA_SMALL_NUMBER )
+	{
+		ActorBox = FBox( InActor->GetActorLocation() - FVector( -20 ), InActor->GetActorLocation() + FVector( 20 ) );
+	}
+
+	DrawBoundingBox(ActorBox, InCanvas, InView, InViewport, InColor, bInDrawBracket, InLabelText);
 }
 
 void FEditorViewportClient::SetGameView(bool bGameViewEnable)

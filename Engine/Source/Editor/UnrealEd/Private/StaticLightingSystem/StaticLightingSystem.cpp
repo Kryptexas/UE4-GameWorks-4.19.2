@@ -2048,7 +2048,7 @@ bool FStaticLightingSystem::CanAutoApplyLighting() const
 {
 	const bool bAutoApplyEnabled = GetDefault<ULevelEditorMiscSettings>()->bAutoApplyLightingEnable;
 	const bool bSlowTask = GIsSlowTask;
-	const bool bInterpEditMode = GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
+	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit );
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
 	const bool bAutomationTesting = GIsAutomationTesting;

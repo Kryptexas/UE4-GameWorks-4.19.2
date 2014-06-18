@@ -233,7 +233,7 @@ bool FStreamingLevelCustomization::LevelEditTextTransformAllowed() const
 	ULevelStreaming* LevelStreaming = LevelModel->GetLevelStreaming().Get();
 	
 	auto* ActiveMode = static_cast<FStreamingLevelEdMode*>(
-		GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_StreamingLevel)
+		GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_StreamingLevel)
 		);		
 	
 	if (ActiveMode && ActiveMode->IsEditing(LevelStreaming) == true)
@@ -260,21 +260,20 @@ FReply FStreamingLevelCustomization::OnEditLevelClicked()
 		return FReply::Handled();
 	}		
 
-	if (!GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_StreamingLevel))
+	if (!GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_StreamingLevel))
 	{
 		// Activate Level Mode if it was not active
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_StreamingLevel);
+		GLevelEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_StreamingLevel);
 	}
 			
-	auto* ActiveMode = static_cast<FStreamingLevelEdMode*>(
-		GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_StreamingLevel)
-		);		
+	auto* ActiveMode = GLevelEditorModeTools().GetActiveModeTyped<FStreamingLevelEdMode>(FBuiltinEditorModes::EM_StreamingLevel);
 	check(ActiveMode != NULL);
 
 	if (ActiveMode->IsEditing(LevelStreaming) == true)
 	{
 		// Toggle this mode off if already editing this level
-		GEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_StreamingLevel);
+		GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_StreamingLevel);
+		// ActiveMode is now invalid
 	}
 	else
 	{

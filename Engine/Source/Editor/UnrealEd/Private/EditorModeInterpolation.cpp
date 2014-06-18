@@ -19,9 +19,6 @@ static const float	CurveHandleScale = 0.5f;
 
 FEdModeInterpEdit::FEdModeInterpEdit()
 {
-	ID = FBuiltinEditorModes::EM_InterpEdit;
-	Name = NSLOCTEXT("EditorModes", "MatineeMode", "Matinee Mode");
-
 	MatineeActor = NULL;
 	InterpEd = NULL;
 
@@ -35,7 +32,7 @@ FEdModeInterpEdit::~FEdModeInterpEdit()
 {
 }
 
-bool FEdModeInterpEdit::InputKey( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
+bool FEdModeInterpEdit::InputKey( FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event )
 {
 	// Enter key drops new key frames
 	if( Key == EKeys::Enter &&
@@ -98,7 +95,7 @@ void FEdModeInterpEdit::ActorMoveNotify()
 }
 
 
-void FEdModeInterpEdit::CamMoveNotify(FLevelEditorViewportClient* ViewportClient)
+void FEdModeInterpEdit::CamMoveNotify(FEditorViewportClient* ViewportClient)
 {
 	if(!InterpEd)
 		return;
@@ -141,7 +138,7 @@ void FEdModeInterpEdit::Render(const FSceneView* View, FViewport* Viewport, FPri
 {
 	FEdMode::Render(View, Viewport, PDI);
 
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
 
 	if(InterpEd  && !InterpEd->Hide3DTrackView() && View->Family->EngineShowFlags.Splines)
 	{
@@ -149,7 +146,7 @@ void FEdModeInterpEdit::Render(const FSceneView* View, FViewport* Viewport, FPri
 	}
 }
 
-void FEdModeInterpEdit::DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
+void FEdModeInterpEdit::DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
 	FEdMode::DrawHUD(ViewportClient,Viewport,View,Canvas);
 
@@ -183,6 +180,14 @@ void FEdModeInterpEdit::ActorSelectionChangeNotify()
 	}
 }
 
+bool FEdModeInterpEdit::IsCompatibleWith(FEditorModeID OtherModeID) const
+{
+	return
+		OtherModeID == FBuiltinEditorModes::EM_MeshPaint	||
+		OtherModeID == FBuiltinEditorModes::EM_Geometry		||
+		OtherModeID == FBuiltinEditorModes::EM_Bsp;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FModeTool_InterpEdit
 //////////////////////////////////////////////////////////////////////////
@@ -202,16 +207,16 @@ FModeTool_InterpEdit::~FModeTool_InterpEdit()
 {
 }
 
-bool FModeTool_InterpEdit::MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y)
+bool FModeTool_InterpEdit::MouseMove(FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y)
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
 
-	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 
 	return 0;
 }
 
-bool FModeTool_InterpEdit::InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
+bool FModeTool_InterpEdit::InputAxis(FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
 {
 	if ( InViewportClient->GetCurrentWidgetAxis() == EAxisList::None )
 	{
@@ -234,11 +239,11 @@ bool FModeTool_InterpEdit::InputAxis(FLevelEditorViewportClient* InViewportClien
 	return false;
 }
 
-bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
+bool FModeTool_InterpEdit::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
 
-	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 	if( !mode->InterpEd )
 	{
 		// Abort cleanly on InerpEd not yet being assigned.  This can occasionally be the case when receiving
@@ -339,11 +344,11 @@ bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, 
 	return FModeTool::InputKey(ViewportClient, Viewport, Key, Event);
 }
 
-bool FModeTool_InterpEdit::InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
+bool FModeTool_InterpEdit::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
 
-	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 	check(mode->InterpEd);
 
 	bool bShiftDown = InViewport->KeyState(EKeys::LeftShift) || InViewport->KeyState(EKeys::RightShift);
@@ -372,7 +377,7 @@ bool FModeTool_InterpEdit::InputDelta(FLevelEditorViewportClient* InViewportClie
 
 void FModeTool_InterpEdit::SelectNone()
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
 
-	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+	FEdModeInterpEdit* mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 }

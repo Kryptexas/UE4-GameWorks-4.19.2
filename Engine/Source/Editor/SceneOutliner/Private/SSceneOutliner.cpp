@@ -3038,7 +3038,7 @@ namespace SceneOutliner
 					// Code from FLevelEditorActionCallbacks::Delete_CanExecute()
 					// Should this be just return FReply::Unhandled()?
 					TArray<FEdMode*> ActiveModes; 
-					GEditorModeTools().GetActiveModes( ActiveModes );
+					GLevelEditorModeTools().GetActiveModes( ActiveModes );
 					for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 					{
 						const EEditAction::Type CanProcess = ActiveModes[ModeIndex]->GetActionEditDelete();

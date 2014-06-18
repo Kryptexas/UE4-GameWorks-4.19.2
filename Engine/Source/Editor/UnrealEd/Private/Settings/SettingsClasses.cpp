@@ -197,11 +197,11 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	{
 		if (bAllowTranslateRotateZWidget)
 		{
-			GEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
 		}
-		else if (GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
+		else if (GLevelEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
 		{
-			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 		}
 	}
 	else if (Name == FName(TEXT("bHighlightWithBrackets")))

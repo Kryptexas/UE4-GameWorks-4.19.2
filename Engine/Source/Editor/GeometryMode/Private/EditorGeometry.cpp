@@ -21,10 +21,10 @@ FGeomBase::FGeomBase()
 
 void FGeomBase::Select( bool InSelect )
 {
-	FEditorModeTools& Tools = GEditorModeTools();
-	check( Tools.IsModeActive( FBuiltinEditorModes::EM_Geometry ) );
+	FEditorModeTools& Tools = GLevelEditorModeTools();
+	check(Tools.IsModeActive(FBuiltinEditorModes::EM_Geometry));
 
-	if( InSelect )
+	if (InSelect)
 	{
 		SelectionIndex = GetParentObject()->GetNewSelectionIndex();
 	}
@@ -44,19 +44,19 @@ void FGeomBase::Select( bool InSelect )
 
 FGeomObject* FGeomBase::GetParentObject()
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) );
 	check( ParentObjectIndex > INDEX_NONE );
 
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->GetGeomObject( ParentObjectIndex );
 }
 
 const FGeomObject* FGeomBase::GetParentObject() const
 {
-	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) );
+	check( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) );
 	check( ParentObjectIndex > INDEX_NONE );
 
-	const FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	const FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 	return mode->GetGeomObject( ParentObjectIndex );
 }
 
@@ -79,7 +79,7 @@ int32 FGeomObject::SetPivotFromSelectionArray( TArray<struct FGeomSelection>& Se
 	if( HighestSelectionIndex != -1 )
 	{
 		FGeomSelection* gs = &SelectionArray[ ArrayIndex ];
-		FEditorModeTools& Tools = GEditorModeTools();
+		FEditorModeTools& Tools = GLevelEditorModeTools();
 		switch( gs->Type )
 		{
 		case GS_Poly:
@@ -341,12 +341,12 @@ void FGeomObject::GetFromSource()
 
 int32 FGeomObject::GetObjectIndex()
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return INDEX_NONE;
 	}
 
-	FEdModeGeometry* mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
@@ -389,7 +389,7 @@ void FGeomObject::SendToSource()
 
 bool FGeomObject::FinalizeSourceData()
 {
-	if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
+	if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry) )
 	{
 		return 0;
 	}

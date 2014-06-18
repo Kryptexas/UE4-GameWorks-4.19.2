@@ -981,7 +981,7 @@ public:
 	void MoveActiveDown();
 
 	void DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	void DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
+	void DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas) override;
 
 	void TickInterp(float DeltaSeconds);
 

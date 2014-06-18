@@ -582,13 +582,13 @@ private:
 	FReply OnToggleLock()
 	{
 		// If were locking a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( LevelMode )
 		{
 			ULevelStreaming* LevelStreaming = ViewModel->GetLevelStreaming().Get();
 			if( LevelMode->IsEditing( LevelStreaming ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 		}
 
@@ -945,19 +945,19 @@ private:
 			return FReply::Handled();
 		}		
 
-		if( !GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Level))
+		if( !GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Level))
 		{
 			// Activate Level Mode if it was not active
-			GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Level );
+			GLevelEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Level );
 		}
 			
-		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		check(ActiveMode != NULL);
 
 		if( ActiveMode->IsEditing(LevelStreaming) == true )
 		{
 			// Toggle this mode off if already editing this level
-			GEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_Level);
+			GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_Level);
 
 			// Cache Transform, as it might of changed by doing a view port edit
 			LevelTransform = LevelStreaming->LevelTransform;
@@ -987,7 +987,7 @@ private:
 	bool LevelEditTextTransformAllowed() const
 	{
 		ULevelStreaming* LevelStreaming = ViewModel->GetLevelStreaming().Get();
-		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* ActiveMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( ActiveMode && ActiveMode->IsEditing(LevelStreaming) == true )
 		{
 			return false;

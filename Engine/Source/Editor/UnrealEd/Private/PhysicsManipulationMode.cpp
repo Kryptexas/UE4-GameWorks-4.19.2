@@ -5,11 +5,41 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorPhysMode, Log, All);
 
+void FPhysicsManipulationEdModeFactory::OnSelectionChanged(FEditorModeTools& Tools, UObject* ItemUndergoingChange) const
+{
+	USelection* Selection = GEditor->GetSelectedActors();
+
+	if (ItemUndergoingChange != NULL && ItemUndergoingChange->IsSelected())
+	{
+		AActor* SelectedActor = Cast<AActor>(ItemUndergoingChange);
+		if (SelectedActor != NULL)
+		{
+			UPrimitiveComponent* PC = SelectedActor->GetRootPrimitiveComponent();
+			if (PC != NULL && PC->BodyInstance.bSimulatePhysics)
+			{
+				Tools.ActivateMode(FBuiltinEditorModes::EM_Physics);
+				return;
+			}
+		}
+	}
+	else if (ItemUndergoingChange != NULL && !ItemUndergoingChange->IsA(USelection::StaticClass()))
+	{
+		Tools.DeactivateMode(FBuiltinEditorModes::EM_Physics);
+	}
+}
+
+FEditorModeInfo FPhysicsManipulationEdModeFactory::GetModeInfo() const
+{
+	return FEditorModeInfo(FBuiltinEditorModes::EM_Physics, NSLOCTEXT("EditorModes", "PhysicsMode", "Physics Mode"));
+}
+
+TSharedRef<FEdMode> FPhysicsManipulationEdModeFactory::CreateMode() const
+{
+	return MakeShareable( new FPhysicsManipulationEdMode );
+}
+
 FPhysicsManipulationEdMode::FPhysicsManipulationEdMode()
 {
-	ID = FBuiltinEditorModes::EM_Physics;
-	Name = NSLOCTEXT("EditorModes", "PhysicsMode", "Physics Mode");
-
 	HandleComp = ConstructObject<UPhysicsHandleComponent>(UPhysicsHandleComponent::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags);
 }
 
@@ -28,30 +58,7 @@ void FPhysicsManipulationEdMode::Exit()
 	HandleComp->UnregisterComponent();
 }
 
-void FPhysicsManipulationEdMode::PeekAtSelectionChangedEvent( UObject* ItemUndergoingChange )
-{
-	USelection* Selection = GEditor->GetSelectedActors();
-
-	if (ItemUndergoingChange != NULL && ItemUndergoingChange->IsSelected())
-	{
-		AActor* SelectedActor = Cast<AActor>(ItemUndergoingChange);
-		if (SelectedActor != NULL)
-		{
-			UPrimitiveComponent* PC = SelectedActor->GetRootPrimitiveComponent();
-			if (PC != NULL && PC->BodyInstance.bSimulatePhysics)
-			{
-				GEditorModeTools().ActivateMode(ID, false);
-				return;
-			}
-		}
-	}
-	else if (ItemUndergoingChange != NULL && !ItemUndergoingChange->IsA(USelection::StaticClass()))
-	{
-		GEditorModeTools().DeactivateMode(ID);
-	}
-}
-
-bool FPhysicsManipulationEdMode::InputDelta( FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale )
+bool FPhysicsManipulationEdMode::InputDelta( FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale )
 {
 	UE_LOG(LogEditorPhysMode, Warning, TEXT("Mouse: %s InDrag: %s  InRot: %s"), *GEditor->MouseMovement.ToString(), *InDrag.ToString(), *InRot.ToString());
 
@@ -74,7 +81,7 @@ bool FPhysicsManipulationEdMode::InputDelta( FLevelEditorViewportClient* InViewp
 	}
 }
 
-bool FPhysicsManipulationEdMode::StartTracking( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport )
+bool FPhysicsManipulationEdMode::StartTracking( FEditorViewportClient* InViewportClient, FViewport* InViewport )
 {
 	UE_LOG(LogEditorPhysMode, Warning, TEXT("Start Tracking"));
 
@@ -112,7 +119,7 @@ bool FPhysicsManipulationEdMode::StartTracking( FLevelEditorViewportClient* InVi
 	return FEdMode::StartTracking(InViewportClient, InViewport);
 }
 
-bool FPhysicsManipulationEdMode::EndTracking( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport )
+bool FPhysicsManipulationEdMode::EndTracking( FEditorViewportClient* InViewportClient, FViewport* InViewport )
 {
 	UE_LOG(LogEditorPhysMode, Warning, TEXT("End Tracking"));
 

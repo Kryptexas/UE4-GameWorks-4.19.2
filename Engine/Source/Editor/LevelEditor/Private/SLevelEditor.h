@@ -21,7 +21,7 @@ class SLevelEditor
 public:
 	// @todo why are these public?
 	TSharedRef<SDockTab> SpawnLevelEditorTab( const FSpawnTabArgs& Args, FName TabIdentifier, FString InitializationPayload );
-	TSharedRef<SDockTab> SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode );
+	//TSharedRef<SDockTab> SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode );
 
 	SLATE_BEGIN_ARGS( SLevelEditor ){}
 

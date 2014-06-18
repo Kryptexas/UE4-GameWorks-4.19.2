@@ -297,7 +297,7 @@ TSharedRef<SWidget> FActorDetails::OnGetConvertContent()
 
 EVisibility FActorDetails::GetConvertMenuVisibility() const
 {
-	return GEditorModeTools().EnsureNotInMode(FBuiltinEditorModes::EM_InterpEdit) ?
+	return GLevelEditorModeTools().EnsureNotInMode(FBuiltinEditorModes::EM_InterpEdit) ?
 		EVisibility::Visible :
 		EVisibility::Collapsed;
 }

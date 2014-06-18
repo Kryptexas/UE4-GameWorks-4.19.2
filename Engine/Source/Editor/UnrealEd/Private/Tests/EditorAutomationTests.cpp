@@ -1150,7 +1150,7 @@ bool FBSPValidation::RunTest(const FString& Parameters)
 	DirectionalLight->SetBrightness(3.142f);
 	DirectionalLight->SetLightColor(FColor::White);
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 	
 	return true;
 }
@@ -1224,7 +1224,7 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 	DirectionalLight->SetBrightness(3.142f);
 	DirectionalLight->SetLightColor(FColor::White);
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	return true;
 }
@@ -1372,7 +1372,7 @@ bool FConvertToValidation::RunTest(const FString& Parameters)
 	//Wait to give the screenshot capture some time to complete.
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
-	GEditorModeTools().MapChangeNotify();
+	GLevelEditorModeTools().MapChangeNotify();
 
 	return true;
 }

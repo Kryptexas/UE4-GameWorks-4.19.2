@@ -227,9 +227,9 @@ const FSlateBrush* SPlacementAssetEntry::GetBorder() const
 
 SPlacementModeTools::~SPlacementModeTools()
 {
-	if ( IPlacementModeModule::IsAvailable() && IPlacementModeModule::Get().IsPlacementModeAvailable() )
+	if ( IPlacementModeModule::IsAvailable() )
 	{
-		IPlacementModeModule::Get().GetPlacementMode()->OnRecentlyPlacedChanged().RemoveAll( this );
+		IPlacementModeModule::Get().OnRecentlyPlacedChanged().RemoveAll( this );
 	}
 }
 
@@ -239,7 +239,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 	bPlaceablesFullRefreshRequested = false;
 	bVolumesRefreshRequested = false;
 
-	FPlacementMode* PlacementEditMode = (FPlacementMode*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
+	FPlacementMode* PlacementEditMode = (FPlacementMode*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
 	PlacementEditMode->AddValidFocusTargetForPlacement( SharedThis( this ) );
 
 	ChildSlot
@@ -289,7 +289,7 @@ void SPlacementModeTools::Construct( const FArguments& InArgs )
 
 	RefreshRecentlyPlaced();
 
-	IPlacementModeModule::Get().GetPlacementMode()->OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
+	IPlacementModeModule::Get().OnRecentlyPlacedChanged().AddSP( this, &SPlacementModeTools::UpdateRecentlyPlacedAssets );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
@@ -913,7 +913,7 @@ FReply SPlacementModeTools::OnKeyDown( const FGeometry& MyGeometry, const FKeybo
 
 	if ( InKeyboardEvent.GetKey() == EKeys::Escape )
 	{
-		FPlacementMode* PlacementEditMode = (FPlacementMode*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
+		FPlacementMode* PlacementEditMode = (FPlacementMode*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Placement );
 		PlacementEditMode->StopPlacing();
 		Reply = FReply::Handled();
 	}

@@ -198,7 +198,7 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 	const bool bHasSelection = (SelectionDimensions.X + SelectionDimensions.Y > 0);
 	if (bIsPreview && bHasSelection)
 	{
-		if (FEdModeTileMap* TileMapEditor = GEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
+		if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
 		{
 			TileMapEditor->SetActivePaint(TileSetBeingEdited, SelectionTopLeft, SelectionDimensions);
 

@@ -37,7 +37,6 @@ public:
 
 	/** IBspModeModule interface */
 	virtual TSharedRef< SWidget > CreateBspModeWidget() const override;
-	virtual TSharedRef< FEdMode > GetBspMode() const override;
 	virtual void RegisterBspBuilderType( class UClass* InBuilderClass, const FText& InBuilderName, const FText& InBuilderTooltip, const FSlateBrush* InBuilderIcon ) override;
 	virtual void UnregisterBspBuilderType( class UClass* InBuilderClass ) override;
 
@@ -45,8 +44,6 @@ public:
 	TSharedPtr<FBspBuilderType> FindBspBuilderType(UClass* InBuilderClass) const;
 
 private:
-
-	TSharedPtr<class FBspMode> BspMode;
 
 	TArray< TSharedPtr<FBspBuilderType> > BspBuilderTypes;
 };

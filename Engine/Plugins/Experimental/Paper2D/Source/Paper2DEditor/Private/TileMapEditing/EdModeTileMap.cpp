@@ -83,10 +83,6 @@ FEdModeTileMap::FEdModeTileMap()
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
 	, EraseBrushSize(1)
 {
-	ID = EM_TileMap;
-	Name = LOCTEXT("TileMapEditMode", "Tile Map Editor");
-	bVisible = true;
-
 	SetActiveTool(ETileMapEditorTool::Paintbrush);
 	SetActiveLayerPaintingMode(ETileMapLayerPaintingMode::VisualLayers);
 }
@@ -127,7 +123,7 @@ void FEdModeTileMap::Exit()
 	FEdMode::Exit();
 }
 
-bool FEdModeTileMap::MouseMove(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 x, int32 y)
+bool FEdModeTileMap::MouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 x, int32 y)
 {
 	if (InViewportClient->EngineShowFlags.ModeWidgets)
 	{
@@ -139,7 +135,7 @@ bool FEdModeTileMap::MouseMove(FLevelEditorViewportClient* InViewportClient, FVi
 	return false;
 }
 
-bool FEdModeTileMap::CapturedMouseMove(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY)
+bool FEdModeTileMap::CapturedMouseMove(FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY)
 {
 	if (InViewportClient->EngineShowFlags.ModeWidgets)
 	{
@@ -161,17 +157,17 @@ bool FEdModeTileMap::CapturedMouseMove(FLevelEditorViewportClient* InViewportCli
 	return false;
 }
 
-bool FEdModeTileMap::StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeTileMap::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	return true;
 }
 
-bool FEdModeTileMap::EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+bool FEdModeTileMap::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	return true;
 }
 
-bool FEdModeTileMap::InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent)
+bool FEdModeTileMap::InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent)
 {
 	bool bHandled = false;
 
@@ -242,7 +238,7 @@ bool FEdModeTileMap::InputKey(FLevelEditorViewportClient* InViewportClient, FVie
 	return bHandled;
 }
 
-bool FEdModeTileMap::InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
+bool FEdModeTileMap::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
 	return false;
 }
@@ -254,7 +250,7 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 	//@TODO: Need the force-realtime hack
 
 	// If this viewport does not support Mode widgets we will not draw it here.
-	FLevelEditorViewportClient* ViewportClient = (FLevelEditorViewportClient*)Viewport->GetClient();
+	FEditorViewportClient* ViewportClient = (FEditorViewportClient*)Viewport->GetClient();
 	if ((ViewportClient != NULL) && !ViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		return;
@@ -280,7 +276,7 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 	}
 }
 
-void FEdModeTileMap::DrawHUD(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
+void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas)
 {
 	FString InkInfo = FString::Printf(TEXT("Ink: (%d, %d)  %dx%d  %s"), PaintSourceTopLeft.X, PaintSourceTopLeft.Y, PaintSourceDimensions.X, PaintSourceDimensions.Y, 
 		(PaintSourceTileSet.Get() != NULL) ? (*PaintSourceTileSet.Get()->GetName()) : TEXT("(null)"));
@@ -733,7 +729,7 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 	}
 }
 
-FViewportCursorLocation FEdModeTileMap::CalculateViewRay(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport)
+FViewportCursorLocation FEdModeTileMap::CalculateViewRay(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
 	FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
 		InViewportClient->Viewport, 
@@ -742,27 +738,9 @@ FViewportCursorLocation FEdModeTileMap::CalculateViewRay(FLevelEditorViewportCli
 		.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
 	FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-	FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+	FViewportCursorLocation MouseViewportRay( View, (FEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
 
 	return MouseViewportRay;
-}
-
-void FEdModeTileMap::PeekAtSelectionChangedEvent(UObject* ItemUndergoingChange)
-{
-	/*
-	// Auto-switch to/from tile map editing mode
-	const bool bModeCurrentlyActive = GEditorModeTools().IsModeActive(EM_TileMap);
-	const AActor* TileMapActor = GetFirstSelectedActorContainingTileMapComponent();
-
-	if ((TileMapActor == NULL) && bModeCurrentlyActive)
-	{
-		GEditorModeTools().DeactivateMode(EM_TileMap);
-	}
-	else if ((TileMapActor != NULL) && !bModeCurrentlyActive)
-	{
-		GEditorModeTools().ActivateMode(EM_TileMap);
-	}
-	*/
 }
 
 AActor* FEdModeTileMap::GetFirstSelectedActorContainingTileMapComponent()

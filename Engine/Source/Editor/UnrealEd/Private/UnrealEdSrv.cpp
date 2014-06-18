@@ -1550,7 +1550,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	if( FParse::Command(&Str,TEXT("CUT")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCut())
@@ -1563,7 +1563,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	else if( FParse::Command(&Str,TEXT("COPY")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCopy())
@@ -1576,7 +1576,7 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 	else if( FParse::Command(&Str,TEXT("PASTE")) )
 	{
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditPaste())
@@ -1674,7 +1674,7 @@ static void MirrorActors(const FVector& MirrorScale)
 		AActor* Actor = static_cast<AActor*>( *It );
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-		const FVector PivotLocation = GEditorModeTools().PivotLocation;
+		const FVector PivotLocation = GLevelEditorModeTools().PivotLocation;
 		ABrush* Brush = Cast< ABrush >( Actor );
 		if( Brush )
 		{
@@ -1725,10 +1725,10 @@ static void MirrorActors(const FVector& MirrorScale)
 		LevelDirtyCallback.Request();
 	}
 
-	if ( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
+	if ( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) )
 	{
 		// If we are in geometry mode, make sure to update the mode with new source data for selected brushes
-		FEdModeGeometry* Mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
+		FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 		Mode->GetFromSource();
 	}
 
@@ -2316,7 +2316,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FVector DeltaMove = FVector::ZeroVector;
 		GetFVECTOR( Str, DeltaMove );
 
-		FEditorModeTools& Tools = GEditorModeTools();
+		FEditorModeTools& Tools = GLevelEditorModeTools();
 		Tools.SetPivotLocation( Tools.PivotLocation + DeltaMove, false );
 
 		if (GCurrentLevelEditingViewportClient)
@@ -2560,7 +2560,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	{
 		bool bHandled = false;
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			bHandled |= ActiveModes[ModeIndex]->ProcessEditDelete();
@@ -2612,7 +2612,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Bakes the current pivot position into all selected brushes as their PrePivot
 
-		FEditorModeTools& EditorModeTools = GEditorModeTools();
+		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
@@ -2642,7 +2642,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 		// Resets the PrePivot of the selected brushes to 0,0,0 while leaving them in the same world location.
 
-		FEditorModeTools& EditorModeTools = GEditorModeTools();
+		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
@@ -2759,7 +2759,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 	{
 		bool bHandled = false;
 		TArray<FEdMode*> ActiveModes; 
-		GEditorModeTools().GetActiveModes( ActiveModes );
+		GLevelEditorModeTools().GetActiveModes( ActiveModes );
 		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 		{
 			bHandled |= ActiveModes[ModeIndex]->ProcessEditDuplicate();
@@ -2913,7 +2913,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	if( FParse::Command(&Str, TEXT("WIDGETCOORDSYSTEMCYCLE")) )
 	{
 		const bool bGetRawValue = true;
-		int32 Wk = GEditorModeTools().GetCoordSystem(bGetRawValue);
+		int32 Wk = GLevelEditorModeTools().GetCoordSystem(bGetRawValue);
 		Wk++;
 
 		if( Wk == COORD_Max )
@@ -2921,14 +2921,14 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 			Wk -= COORD_Max;
 		}
 
-		GEditorModeTools().SetCoordSystem((ECoordSystem)Wk);
+		GLevelEditorModeTools().SetCoordSystem((ECoordSystem)Wk);
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 		FEditorSupportDelegates::UpdateUI.Broadcast();
 	}
 
 	if( FParse::Command(&Str, TEXT("WIDGETMODECYCLE")) )
 	{
-		GEditorModeTools().CycleWidgetMode();
+		GLevelEditorModeTools().CycleWidgetMode();
 	}
 
 	if( FParse::Value(Str, TEXT("GRID="), DWord1) )
@@ -3050,7 +3050,7 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 	if ( EditorMode == FBuiltinEditorModes::EM_None )
 	{
 		FString CommandToken = FParse::Token(Str, false);
-		FEdMode* FoundMode = GEditorModeTools().FindMode( FName( *CommandToken ) );
+		FEdMode* FoundMode = GLevelEditorModeTools().FindMode( FName( *CommandToken ) );
 
 		if ( FoundMode != NULL )
 		{

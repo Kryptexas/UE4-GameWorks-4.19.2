@@ -356,7 +356,7 @@ void FEditorCameraController::UpdateRotation( const FCameraControllerUserImpulse
 			}
 			
 			//allow for unlocked pitch constraints while in matinee
-			if (Config.bLockedPitch || !GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit)) 
+			if (Config.bLockedPitch || !GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit)) 
 			{
 				// Clamp the angle.
 				InOutCameraEuler[ CurRotationAxis ] =

@@ -189,7 +189,7 @@ namespace FileDialogHelpers
 static bool InInterpEditMode()
 {
 	// Must exit Interpolation Editing mode before you can save - so it can reset everything to its initial state.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
 		const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Prompt_21", "You must close Matinee before saving level.\nDo you wish to do this now and continue?") );
 		if(!ExitInterp)
@@ -197,7 +197,7 @@ static bool InInterpEditMode()
 			return true;
 		}
 
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 	return false;
 }
@@ -1680,21 +1680,21 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	}
 
 	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
 	}
 
 	// Change out of mesh paint mode when loading a map
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
 	}
 
 	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );

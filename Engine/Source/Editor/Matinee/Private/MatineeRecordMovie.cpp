@@ -208,7 +208,7 @@ FReply SMatineeRecordMovie::OnOK()
 
 	GConfig->Flush( false, GEditorUserSettingsIni );
 
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	if ( Mode != NULL && Mode->InterpEd != NULL )
 	{
 		// Store the options for the capture of the Matinee
@@ -307,7 +307,7 @@ void SMatineeRecordMovie::Construct(const FArguments& InArgs, TWeakPtr<SWindow> 
 	ParentWindowPtr = InParentWindow;
 	bUsingCustomResolution = false;
 	FString MatineeName = TEXT("SeqAct_Interp");
-	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+	FEdModeInterpEdit* Mode = (FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 	if ( Mode != NULL && Mode->InterpEd != NULL )
 	{
 		MatineeName = Mode->InterpEd->GetMatineeActor()->GetName();

@@ -1719,7 +1719,7 @@ FReply SFoliageEditMeshDisplayItem::OnReplace()
 		UStaticMesh* SelectedStaticMesh = Cast<UStaticMesh>( SelectedSet->GetTop( UStaticMesh::StaticClass() ) );
 		if( SelectedStaticMesh != NULL )
 		{
-			FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+			FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 			
 			bool bMeshMerged = false;
 			if(Mode->ReplaceStaticMesh(AssociatedStaticMesh, SelectedStaticMesh, bMeshMerged))
@@ -1772,7 +1772,7 @@ FReply SFoliageEditMeshDisplayItem::OnSync()
 
 FReply SFoliageEditMeshDisplayItem::OnRemove()
 {
-	FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 	
 	if(Mode->RemoveFoliageMesh(AssociatedStaticMesh))
 	{
@@ -1784,7 +1784,7 @@ FReply SFoliageEditMeshDisplayItem::OnRemove()
 
 FReply SFoliageEditMeshDisplayItem::OnSaveRemoveSettings()
 {
-	FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 
 	if(FoliageSettingsPtr->GetOuter()->IsA(UPackage::StaticClass()))
 	{
@@ -1831,7 +1831,7 @@ FReply SFoliageEditMeshDisplayItem::OnOpenSettings()
 	UInstancedFoliageSettings* SelectedSettings = Cast<UInstancedFoliageSettings>( SelectedSet->GetTop( UInstancedFoliageSettings::StaticClass() ) );
 	if( SelectedSettings != NULL )
 	{
-		FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+		FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 		Mode->ReplaceSettingsObject(AssociatedStaticMesh, SelectedSettings);
 		FoliageSettingsPtr = SelectedSettings;
 	}
@@ -1869,19 +1869,19 @@ FString SFoliageEditMeshDisplayItem::GetInstanceClusterCountString() const
 
 EVisibility SFoliageEditMeshDisplayItem::IsReapplySettingsVisible() const
 {
-	FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 	return Mode->UISettings.GetReapplyToolSelected()? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsReapplySettingsVisible_Dummy() const
 {
-	FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 	return Mode->UISettings.GetReapplyToolSelected()? EVisibility::Hidden : EVisibility::Collapsed;
 }
 
 EVisibility SFoliageEditMeshDisplayItem::IsNotReapplySettingsVisible() const
 {
-	FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
+	FEdModeFoliage* Mode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 	return Mode->UISettings.GetReapplyToolSelected()? EVisibility::Collapsed : EVisibility::Visible;
 }
 

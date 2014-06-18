@@ -17,6 +17,7 @@ public:
 		, _Realtime( false )
 		{}
 
+		SLATE_ARGUMENT( TWeakPtr<class FEditorModeTools>, EditorModeTools )
 		SLATE_ARGUMENT( TSharedPtr<class FLevelViewportLayout>, ParentLayout )
 		SLATE_ARGUMENT( TWeakPtr<class SLevelEditor>, ParentLevelEditor )
 		SLATE_ARGUMENT( ELevelViewportType, ViewportType )

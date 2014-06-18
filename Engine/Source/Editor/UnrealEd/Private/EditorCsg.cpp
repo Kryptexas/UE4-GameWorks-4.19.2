@@ -1276,7 +1276,7 @@ void UEditorEngine::MapBrushGet(UWorld* InWorld)
 void UEditorEngine::mapBrushPut()
 {
 	TArray<FEdMode*> ActiveModes; 
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 
 	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 	{

@@ -111,7 +111,7 @@ void FIntroTutorials::StartupModule()
 		FGameProjectGenerationModule::Get().OnAddCodeToProjectDialogOpened().AddRaw(this, &FIntroTutorials::OnAddCodeToProjectDialogOpened);
 
 		// Add hook for when editor changes modes (e.g. Place/Paint/Landscape/Foliage)
-		GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FIntroTutorials::OnEditorModeChanged);
+		GLevelEditorModeTools().OnEditorModeChanged().AddRaw(this, &FIntroTutorials::OnEditorModeChanged);
 
 		FSourceCodeNavigation::AccessOnCompilerNotFound().AddRaw( this, &FIntroTutorials::HandleCompilerNotFound );
 
@@ -183,7 +183,7 @@ void FIntroTutorials::ShutdownModule()
 {
 	FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
 
-	GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+	GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
 
 	if (BlueprintEditorExtender.IsValid() && FModuleManager::Get().IsModuleLoaded("Kismet"))
 	{

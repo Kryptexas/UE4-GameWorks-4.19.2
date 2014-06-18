@@ -366,7 +366,7 @@ static void OnGenerateSetBookmarkMenu( FMenuBuilder& MenuBuilder )
 static void OnGenerateClearBookmarkMenu( FMenuBuilder& MenuBuilder , TWeakPtr<class SLevelViewport> Viewport )
 {
 	// Add a menu entry for each bookmark
-	FEditorModeTools& Tools = GEditorModeTools();
+	FEditorModeTools& Tools = GLevelEditorModeTools();
 
 	// Get the viewport client to pass down to the CheckBookmark function
 	FLevelEditorViewportClient& ViewportClient = Viewport.Pin()->GetLevelViewportClient();	
@@ -520,7 +520,7 @@ static void OnGenerateActorLockingMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
  */
 static void OnGenerateBookmarkMenu( FMenuBuilder& MenuBuilder , TWeakPtr<class SLevelViewport> Viewport )
 {
-	FEditorModeTools& Tools = GEditorModeTools();
+	FEditorModeTools& Tools = GLevelEditorModeTools();
 
 	// true if a bookmark was found. 
 	bool bFoundBookmark = false;

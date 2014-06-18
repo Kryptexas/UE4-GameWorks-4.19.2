@@ -114,10 +114,10 @@ public:
 	{
 		NumPoints = 0;
 		SelectedPoint = INDEX_NONE;
-		GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+		GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 	}
 
-	virtual bool BeginTool(FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
+	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& Target, const FVector& InHitLocation) override
 	{
 		if (NumPoints < 2)
 		{
@@ -125,7 +125,7 @@ public:
 			SelectedPoint = NumPoints;
 			NumPoints++;
 			bMovingPoint = true;
-			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 		}
 		else
 		{
@@ -133,7 +133,7 @@ public:
 			{
 				Points[SelectedPoint] = InHitLocation;
 				bMovingPoint = true;
-				GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+				GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 			}
 		}
 
@@ -142,12 +142,12 @@ public:
 		return true;
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
 		bMovingPoint = false;
 	}
 
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
 	{
 		if (bMovingPoint)
 		{
@@ -175,7 +175,7 @@ public:
 			{
 				HLandscapeRampToolPointHitProxy* PointHitProxy = (HLandscapeRampToolPointHitProxy*)HitProxy;
 				SelectedPoint = PointHitProxy->Point;
-				GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+				GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 				GUnrealEd->RedrawLevelEditingViewports();
 
 				return true;
@@ -185,7 +185,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputKey(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override
+	virtual bool InputKey(FEditorViewportClient* InViewportClient, FViewport* InViewport, FKey InKey, EInputEvent InEvent) override
 	{
 		if (InKey == EKeys::Enter && InEvent == IE_Pressed)
 		{
@@ -267,7 +267,7 @@ public:
 		return false;
 	}
 
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) override
 	{
 		if (SelectedPoint != INDEX_NONE && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 		{

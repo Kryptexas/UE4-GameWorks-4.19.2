@@ -304,7 +304,7 @@ bool FPackageAutoSaver::CanAutoSave() const
 
 	const bool bAutosaveEnabled	= GetDefault<UEditorLoadingSavingSettings>()->bAutoSaveEnable && bPackagesNeedAutoSave;
 	const bool bSlowTask = GIsSlowTask;
-	const bool bInterpEditMode = GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit);
+	const bool bInterpEditMode = GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit);
 	const bool bPlayWorldValid = GUnrealEd->PlayWorld != nullptr;
 	const bool bAnyMenusVisible	= FSlateApplication::Get().AnyMenusVisible();
 	const bool bAutomationTesting = GIsAutomationTesting;
@@ -368,7 +368,7 @@ void FPackageAutoSaver::UpdateAutoSaveNotification()
 	if (UserAllowsAutosave && // The user has set to allow auto-save in preferences
 		TimeInSecondsUntilAutosave < LoadingSavingSettings->AutoSaveWarningInSeconds && 
 		!InGame && // we want to hide auto-save if we are simulating/playing
-		!GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) // we want to hide auto-save if we are in matinee 
+		!GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) // we want to hide auto-save if we are in matinee 
 		)
 	{		
 		if (!bAutoSaveNotificationLaunched && !bDelayingDueToFailedSave)

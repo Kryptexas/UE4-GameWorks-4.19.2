@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "EditorModeRegistry.h"
 
 /** Outcomes when determining whether it's possible to perform an action on the edit modes*/
 namespace EEditAction
@@ -97,18 +98,23 @@ public:
 class UNREALED_API FEdMode : public TSharedFromThis<FEdMode>, public FGCObject, public FEditorCommonDrawHelper
 {
 public:
+	/** Friends so it can access mode's internals on construction */
+	friend class FEditorModeRegistry;
+
 	FEdMode();
 	virtual ~FEdMode();
 
-	virtual bool MouseEnter( FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y );
+	virtual void Initialize() {}
 
-	virtual bool MouseLeave( FLevelEditorViewportClient* ViewportClient,FViewport* Viewport );
+	virtual bool MouseEnter( FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y );
 
-	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y);
+	virtual bool MouseLeave( FEditorViewportClient* ViewportClient,FViewport* Viewport );
 
-	virtual bool ReceivedFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport);
+	virtual bool MouseMove(FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y);
 
-	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport);
+	virtual bool ReceivedFocus(FEditorViewportClient* ViewportClient,FViewport* Viewport);
+
+	virtual bool LostFocus(FEditorViewportClient* ViewportClient,FViewport* Viewport);
 
 	/**
 	 * Called when the mouse is moved while a window input capture is in effect
@@ -120,13 +126,13 @@ public:
 	 *
 	 * @return	true if input was handled
 	 */
-	virtual bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY );
+	virtual bool CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY );
 
-	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,FKey Key,EInputEvent Event);
-	virtual bool InputAxis(FLevelEditorViewportClient* InViewportClient,FViewport* Viewport,int32 ControllerId,FKey Key,float Delta,float DeltaTime);
-	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
-	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
-	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
+	virtual bool InputKey(FEditorViewportClient* ViewportClient,FViewport* Viewport,FKey Key,EInputEvent Event);
+	virtual bool InputAxis(FEditorViewportClient* InViewportClient,FViewport* Viewport,int32 ControllerId,FKey Key,float Delta,float DeltaTime);
+	virtual bool InputDelta(FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale);
+	virtual bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
+	virtual bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 	// Added for handling EDIT Command...
 	virtual EEditAction::Type GetActionEditDuplicate() { return EEditAction::Skip; }
 	virtual EEditAction::Type GetActionEditDelete() { return EEditAction::Skip; }
@@ -139,8 +145,9 @@ public:
 	virtual bool ProcessEditCopy() { return false; }
 	virtual bool ProcessEditPaste() { return false; }
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime);
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime);
 
+	virtual bool IsCompatibleWith(FEditorModeID OtherModeID) const { return false; }
 	virtual void ActorMoveNotify() {}
 	virtual void ActorsDuplicatedNotify(TArray<AActor*>& PreDuplicateSelection, TArray<AActor*>& PostDuplicateSelection, bool bOffsetLocations) {}
 	virtual void ActorSelectionChangeNotify();
@@ -234,12 +241,7 @@ public:
 	void SelectNone();
 	virtual void SelectionChanged() {}
 
-	// Allows modes to preview selection change events, and potentially make themselves active or inactive
-	// Note: This method is called on *all* modes, not just ones that are currently active, and it is not currently called if matinee is active.
-	// @param ItemUndergoingChange	Either an actor being selected or deselected, or a selection set being modified (typically emptied)
-	virtual void PeekAtSelectionChangedEvent(UObject* ItemUndergoingChange) {}
-
-	virtual bool HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
+	virtual bool HandleClick(FEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click);
 
 	/** Handling SelectActor */
 	virtual bool Select( AActor* InActor, bool bInSelected ) { return 0; }
@@ -247,28 +249,11 @@ public:
 	/** Check to see if an actor can be selected in this mode - no side effects */
 	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const { return true; }
 
-	/** Returns the editor mode. */
-	FEditorModeID GetID() const { return ID; }
+	/** Returns the editor mode identifier. */
+	FEditorModeID GetID() const { return Info.ID; }
 
-	/** Returns the name of this mode (already localized) */
-	const FText& GetName() const
-	{
-		return Name;
-	}
-
-	/** Returns the icon for the mode */
-	FSlateIcon GetIcon() const
-	{
-		return IconBrush.IsSet() ? IconBrush : FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.EditorModes");
-	}
-
-	/** Returns true if the editor mode should be explicit and visible in any menu/toolbar for modes */
-	bool IsVisible() const { return bVisible; }
-
-	/** Returns the priority of this editor mode */
-	int32 GetPriorityOrder() const { return PriorityOrder; }
-
-	friend class FEditorModeTools;
+	/** Returns the editor mode information. */
+	const FEditorModeInfo& GetModeInfo() const { return Info; }
 
 	// Tools
 
@@ -299,7 +284,7 @@ public:
 	//void DrawGridSection(int32 ViewportLocX,int32 ViewportGridY,FVector* A,FVector* B,float* AX,float* BX,int32 Axis,int32 AlphaCase,FSceneView* View,FPrimitiveDrawInterface* PDI);
 
 	/** Overlays the editor hud (brushes, drag tools, static mesh vertices, etc*. */
-	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
+	virtual void DrawHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas);
 	//@}
 
 	/**
@@ -311,7 +296,7 @@ public:
 	/**
 	 * Called when the mode wants to draw brackets around selected objects
 	 */
-	virtual void DrawBrackets( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas );
+	virtual void DrawBrackets( FEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas );
 
 	/** True if this mode uses a toolkit mode (eventually they all should) */
 	virtual bool UsesToolkits() const;
@@ -340,10 +325,22 @@ public:
 	/** See if we should create a widget for the supplied property when selecting an actor instance */
 	static bool ShouldCreateWidgetForProperty(UProperty* InProp);
 
-protected:
-	/** Name for the editor to display. */
-	FText Name;
+public:
 
+	/** Request that this mode be deleted at the next convenient opportunity (FEditorModeTools::Tick) */
+	void RequestDeletion() { bPendingDeletion = true; }
+	
+	/** returns true if this mode is to be deleted at the next convenient opportunity (FEditorModeTools::Tick) */
+	bool IsPendingDeletion() const { return bPendingDeletion; }
+
+private:
+	/** true if this mode is pending removal from its owner */
+	bool bPendingDeletion;
+
+	/** Called whenever a mode type is unregistered */
+	void OnModeUnregistered(FEditorModeID ModeID);
+
+protected:
 	/** The current axis that is being dragged on the widget. */
 	EAxisList::Type CurrentWidgetAxis;
 
@@ -353,20 +350,14 @@ protected:
 	/** The tool that is currently active within this mode. */
 	FModeTool* CurrentTool;
 
-	/** The mode ID. */
-	FEditorModeID ID;
-
-	/** The mode icon. */
-	FSlateIcon IconBrush;
-
-	/** Whether or not the mode should be visible in the mode menu. */
-	bool bVisible;
-
-	/** The priority of this mode which will determine its default order and shift+X command assignment */
-	int32 PriorityOrder;
+	/** Information pertaining to this mode. Assigned by FEditorModeRegistry. */
+	FEditorModeInfo Info;
 
 	/** Editor Mode Toolkit that is associated with this toolkit mode */
 	TSharedPtr<class FModeToolkit> Toolkit;
+
+	/** Pointer back to the mode tools that we are registered with */
+	FEditorModeTools* Owner;
 
 	// Property Widgets
 
@@ -429,38 +420,29 @@ public:
 };
 
 
-
 /**
  * A helper class to store the state of the various editor modes.
  */
-class FEditorModeTools : public FGCObject
+class UNREALED_API FEditorModeTools : public FGCObject
 {
 public:
 	FEditorModeTools();
 	virtual ~FEditorModeTools();
 
-	void Init();
-
-	void Shutdown();
+	/**
+	 * Set the default editor mode for these tools
+	 */
+	void SetDefaultMode ( FEditorModeID DefaultID );
 
 	/**
-	 * Registers an editor mode.  Typically called from a module's StartupModule() routine.
-	 *
-	 * @param ModeToRegister	The editor mode instance to register
+	 * Activates the default mode defined by this class
 	 */
-	UNREALED_API void RegisterMode(TSharedRef<FEdMode> ModeToRegister);
+	void ActivateDefaultMode();
 
-	/**
-	 * Unregisters an editor mode.  Typically called from a module's ShutdownModule() routine.
-	 * Note: will exit the edit mode if it is currently active.
-	 *
-	 * @param ModeToUnregister	The editor mode instance to unregister
+	/** 
+	 * Returns true if the default editor mode is active 
 	 */
-	UNREALED_API void UnregisterMode(TSharedRef<FEdMode> ModeToUnregister);
-
-	UNREALED_API void RegisterCompatibleModes( const FEditorModeID& Mode, const FEditorModeID& CompatibleMode );
-
-	UNREALED_API void UnregisterCompatibleModes( const FEditorModeID& Mode, const FEditorModeID& CompatibleMode );
+	bool IsDefaultModeActive() const;
 
 	/**
 	 * Activates an editor mode. Shuts down all other active modes which cannot run with the passed in mode.
@@ -468,24 +450,36 @@ public:
 	 * @param InID		The ID of the editor mode to activate.
 	 * @param bToggle	true if the passed in editor mode should be toggled off if it is already active.
 	 */
-	UNREALED_API void ActivateMode( FEditorModeID InID, bool bToggle = false );
+	void ActivateMode( FEditorModeID InID, bool bToggle = false );
 
 	/**
 	 * Deactivates an editor mode. 
 	 * 
 	 * @param InID		The ID of the editor mode to deactivate.
 	 */
-	UNREALED_API void DeactivateMode( FEditorModeID InID );
+	void DeactivateMode(FEditorModeID InID);
+
+	/**
+	 * Deactivate the mode and entirely purge it from memory. Used when a mode type is unregistered
+	 */
+	void DestroyMode(FEditorModeID InID);
+
+protected:
+	
+	/** Deactivates the editor mode at the specified index */
+	void DeactivateModeAtIndex( int32 InIndex );
+		
+public:
 
 	/**
 	 * Deactivates all modes, note some modes can never be deactivated.
 	 */
-	UNREALED_API void DeactivateAllModes();
+	void DeactivateAllModes();
 
 	/** 
 	 * Returns the editor mode specified by the passed in ID
 	 */
-	UNREALED_API FEdMode* FindMode( FEditorModeID InID );
+	FEdMode* FindMode( FEditorModeID InID );
 
 	/**
 	 * Returns true if the current mode is not the specified ModeID.  Also optionally warns the user.
@@ -495,22 +489,22 @@ public:
 	 * @param	bNotifyUser		If true, display the error as a notification, instead of a dialog
 	 * @return					true if the current mode is not the specified mode.
 	 */
-	UNREALED_API bool EnsureNotInMode(FEditorModeID ModeID, const FText& ErrorMsg = FText::GetEmpty(), bool bNotifyUser = false) const;
+	bool EnsureNotInMode(FEditorModeID ModeID, const FText& ErrorMsg = FText::GetEmpty(), bool bNotifyUser = false) const;
 
-	UNREALED_API FMatrix GetCustomDrawingCoordinateSystem();
+	FMatrix GetCustomDrawingCoordinateSystem();
 	FMatrix GetCustomInputCoordinateSystem();
 	
 	/** 
 	 * Returns true if the passed in editor mode is active 
 	 */
-	UNREALED_API bool IsModeActive( FEditorModeID InID ) const;
+	bool IsModeActive( FEditorModeID InID ) const;
 
 	/**
 	 * Returns a pointer to an active mode specified by the passed in ID
 	 * If the editor mode is not active, NULL is returned
 	 */
-	UNREALED_API FEdMode* GetActiveMode( FEditorModeID InID );
-	UNREALED_API const FEdMode* GetActiveMode( FEditorModeID InID ) const;
+	FEdMode* GetActiveMode( FEditorModeID InID );
+	const FEdMode* GetActiveMode( FEditorModeID InID ) const;
 
 	template <typename SpecificModeType>
 	SpecificModeType* GetActiveModeTyped( FEditorModeID InID )
@@ -533,12 +527,7 @@ public:
 	/** 
 	 * Returns an array of all active modes
 	 */
-	UNREALED_API void GetActiveModes( TArray<FEdMode*>& OutActiveModes );
-
-	/** 
-	 * Returns an array of all modes.
-	 */
-	UNREALED_API void GetModes( TArray<FEdMode*>& OutModes );
+	void GetActiveModes( TArray<FEdMode*>& OutActiveModes );
 
 	void SetShowWidget( bool InShowWidget )	{ bShowWidget = InShowWidget; }
 	bool GetShowWidget() const				{ return bShowWidget; }
@@ -554,12 +543,12 @@ public:
 	EAxisList::Type GetWidgetAxisToDraw( FWidget::EWidgetMode InWidgetMode ) const;
 
 	/** Mouse tracking interface.  Passes tracking messages to all active modes */
-	bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
-	bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport);
+	bool StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
+	bool EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport);
 	bool IsTracking() const { return bIsTracking; }
 
 	/** Notifies all active modes that a map change has occured */
-	UNREALED_API void MapChangeNotify();
+	void MapChangeNotify();
 
 	/** Notifies all active modes to empty their selections */
 	void SelectNone();
@@ -580,7 +569,7 @@ public:
 	void SetCurrentWidgetAxis( EAxisList::Type NewAxis );
 
 	/** Notifies all active modes of mouse click messages. */
-	bool HandleClick(FLevelEditorViewportClient* InViewportClient,  HHitProxy *HitProxy, const FViewportClick &Click );
+	bool HandleClick(FEditorViewportClient* InViewportClient,  HHitProxy *HitProxy, const FViewportClick &Click );
 
 	/** true if the passed in brush actor should be drawn in wireframe */	
 	bool ShouldDrawBrushWireframe( AActor* InActor ) const;
@@ -589,41 +578,41 @@ public:
 	bool ShouldDrawBrushVertices() const;
 
 	/** Ticks all active modes */
-	void Tick( FLevelEditorViewportClient* ViewportClient, float DeltaTime );
+	void Tick( FEditorViewportClient* ViewportClient, float DeltaTime );
 
 	/** Notifies all active modes of any change in mouse movement */
-	bool InputDelta( FLevelEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale );
+	bool InputDelta( FEditorViewportClient* InViewportClient,FViewport* InViewport,FVector& InDrag,FRotator& InRot,FVector& InScale );
 
 	/** Notifies all active modes of captured mouse movement */	
-	bool CapturedMouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY );
+	bool CapturedMouseMove( FEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY );
 
 	/** Notifies all active modes of keyboard input */
-	bool InputKey( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
+	bool InputKey( FEditorViewportClient* InViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event);
 
 	/** Notifies all active modes of axis movement */
-	bool InputAxis( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime);
+	bool InputAxis( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime);
 
-	bool MouseEnter( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 X, int32 Y );
+	bool MouseEnter( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 X, int32 Y );
 	
-	bool MouseLeave( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport );
+	bool MouseLeave( FEditorViewportClient* InViewportClient, FViewport* Viewport );
 
 	/** Notifies all active modes that the mouse has moved */
-	bool MouseMove( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 X, int32 Y );
+	bool MouseMove( FEditorViewportClient* InViewportClient, FViewport* Viewport, int32 X, int32 Y );
 
 	/** Notifies all active modes that a viewport has received focus */
-	bool ReceivedFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport );
+	bool ReceivedFocus( FEditorViewportClient* InViewportClient, FViewport* Viewport );
 
 	/** Notifies all active modes that a viewport has lost focus */
-	bool LostFocus( FLevelEditorViewportClient* InViewportClient, FViewport* Viewport );
+	bool LostFocus( FEditorViewportClient* InViewportClient, FViewport* Viewport );
 
 	/** Draws all active modes */	
 	void DrawActiveModes( const FSceneView* InView, FPrimitiveDrawInterface* PDI );
 
 	/** Renders all active modes */
-	UNREALED_API void Render( const FSceneView* InView, FViewport* Viewport, FPrimitiveDrawInterface* PDI );
+	void Render( const FSceneView* InView, FViewport* Viewport, FPrimitiveDrawInterface* PDI );
 
 	/** Draws the HUD for all active modes */
-	void DrawHUD( FLevelEditorViewportClient* InViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas );
+	void DrawHUD( FEditorViewportClient* InViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas );
 
 	/** Calls PostUndo on all active components */
 	void PostUndo();
@@ -640,12 +629,12 @@ public:
 	/**
 	 * Returns a good location to draw the widget at.
 	 */
-	UNREALED_API FVector GetWidgetLocation() const;
+	FVector GetWidgetLocation() const;
 
 	/**
 	 * Changes the current widget mode.
 	 */
-	UNREALED_API void SetWidgetMode( FWidget::EWidgetMode InWidgetMode );
+	void SetWidgetMode( FWidget::EWidgetMode InWidgetMode );
 
 	/**
 	 * Allows you to temporarily override the widget mode.  Call this function again
@@ -656,7 +645,7 @@ public:
 	/**
 	 * Retrieves the current widget mode, taking overrides into account.
 	 */
-	UNREALED_API FWidget::EWidgetMode GetWidgetMode() const;
+	FWidget::EWidgetMode GetWidgetMode() const;
 
 	/**
 	 * Gets the current state of script editor usage of show friendly names
@@ -681,7 +670,7 @@ public:
 	 * @param InIndex			Index of the bookmark to set.
 	 * @param InViewportClient	Level editor viewport client used to get pointer the world that the bookmark is for.
 	 */
-	UNREALED_API void SetBookmark( uint32 InIndex, FLevelEditorViewportClient* InViewportClient );
+	void SetBookmark( uint32 InIndex, FEditorViewportClient* InViewportClient );
 
 	/**
 	 * Checks to see if a bookmark exists at a given index
@@ -689,7 +678,7 @@ public:
 	 * @param InIndex			Index of the bookmark to set.
 	 * @param InViewportClient	Level editor viewport client used to get pointer the world to check for the bookmark in.
 	 */
-	UNREALED_API bool CheckBookmark( uint32 InIndex, FLevelEditorViewportClient* InViewportClient );
+	bool CheckBookmark( uint32 InIndex, FEditorViewportClient* InViewportClient );
 
 	/**
 	 * Retrieves a bookmark from the list.
@@ -698,7 +687,7 @@ public:
 	 * @param					Set to true to restore the visibility of any streaming levels.
 	 * @param InViewportClient	Level editor viewport client used to get pointer the world that the bookmark is relevant to.
 	 */
-	UNREALED_API void JumpToBookmark( uint32 InIndex, bool bShouldRestoreLevelVisibility, FLevelEditorViewportClient* InViewportClient );
+	void JumpToBookmark( uint32 InIndex, bool bShouldRestoreLevelVisibility, FEditorViewportClient* InViewportClient );
 
 	/**
 	 * Clears a bookmark from the list.
@@ -706,14 +695,14 @@ public:
 	 * @param InIndex			Index of the bookmark to clear.
 	 * @param InViewportClient	Level editor viewport client used to get pointer the world that the bookmark is relevant to.
 	 */
-	UNREALED_API void ClearBookmark( uint32 InIndex, FLevelEditorViewportClient* InViewportClient );
+	void ClearBookmark( uint32 InIndex, FEditorViewportClient* InViewportClient );
 
 	/**
 	 * Clears all book marks
 	 * 
 	 * @param InViewportClient	Level editor viewport client used to get pointer the world to clear the bookmarks from.
 	 */
-	UNREALED_API void ClearAllBookmarks( FLevelEditorViewportClient* InViewportClient );
+	void ClearAllBookmarks( FEditorViewportClient* InViewportClient );
 
 	// FGCObject interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -727,15 +716,7 @@ public:
 	/**
 	 * Saves the current state to the INI file
 	 */
-	UNREALED_API void SaveConfig(void);
-
-	/** 
-	 * Returns a list of active modes that are incompatible with the passed in mode.
-	 * 
-	 * @param InID 				The mode to check for incompatibilites.
-	 * @param IncompatibleModes	The list of incompatible modes.
-	 */
-	void GetIncompatibleActiveModes( FEditorModeID InID, TArray<FEdMode*>& IncompatibleModes );
+	void SaveConfig(void);
 
 	/** 
 	 * Sets the pivot locations
@@ -743,7 +724,7 @@ public:
 	 * @param Location 		The location to set
 	 * @param bIncGridBase	Whether or not to also set the GridBase
 	 */
-	UNREALED_API void SetPivotLocation( const FVector& Location, const bool bIncGridBase );
+	void SetPivotLocation( const FVector& Location, const bool bIncGridBase );
 
 	/**
 	 * Multicast delegate for OnModeEntered and OnModeExited callbacks.
@@ -759,23 +740,20 @@ public:
 	FWidgetModeChangedEvent& OnWidgetModeChanged() { return WidgetModeChangedEvent; }
 
 	/**	Broadcasts the WidgetModeChanged event */
-	void BroadcastWidgetModeChanged(FWidget::EWidgetMode InWidgetMode) { WidgetModeChangedEvent.Broadcast( InWidgetMode ); }
+	void BroadcastWidgetModeChanged(FWidget::EWidgetMode InWidgetMode) { WidgetModeChangedEvent.Broadcast(InWidgetMode); }
 
-	DECLARE_EVENT( FEditorModeTools, FRegisteredModesChangedEvent );
-	FRegisteredModesChangedEvent& OnRegisteredModesChanged() { return RegisteredModesChanged; }
-
-	/**	Broadcasts the registered modes changed event */
-	void BroadcastRegisteredModesChanged() { RegisteredModesChanged.Broadcast( ); }
+	/**	Broadcasts the EditorModeChanged event */
+	void BroadcastEditorModeChanged(FEdMode* Mode, bool IsEnteringMode) { EditorModeChangedEvent.Broadcast(Mode, IsEnteringMode); }
 
 	/**
 	 * Returns the current CoordSystem
 	 * 
 	 * @param bGetRawValue true when you want the actual value of CoordSystem, not the value modified by the state.
 	 */
-	UNREALED_API ECoordSystem GetCoordSystem(bool bGetRawValue = false);
+	ECoordSystem GetCoordSystem(bool bGetRawValue = false);
 
 	/** Sets the current CoordSystem */
-	UNREALED_API void SetCoordSystem(ECoordSystem NewCoordSystem);
+	void SetCoordSystem(ECoordSystem NewCoordSystem);
 
 	/** Sets the hide viewport UI state */
 	void SetHideViewportUI( bool bInHideViewportUI ) { bHideViewportUI = bInHideViewportUI; }
@@ -789,7 +767,7 @@ public:
 	/** The angle for the translate rotate widget */
 	float TranslateRotateXAxisAngle;
 
-	/** Draws in the top level corner of all FLevelEditorViewportClient windows (can be used to relay info to the user). */
+	/** Draws in the top level corner of all FEditorViewportClient windows (can be used to relay info to the user). */
 	FString InfoString;
 
 protected:
@@ -799,14 +777,14 @@ protected:
 	void OnEditorSelectionChanged(UObject* NewSelection);
 	void OnEditorSelectNone();
 
-	/** A mapping of editor modes that can be active at the same time */
-	TMultiMap<FEditorModeID, FEditorModeID> ModeCompatabilityMap;
+	/** The mode ID to use as a default */
+	FEditorModeID DefaultID;
 
-	/** A list of all available editor modes. */
+	/** A list of active editor modes. */
 	TArray< TSharedPtr<FEdMode> > Modes;
 
-	/** The editor modes currently in use. */
-	TArray<FEdMode*> ActiveModes;
+	/** A list of previously active editor modes that we will potentially recycle */
+	TMap< FEditorModeID, TSharedPtr<FEdMode> > RecycledModes;
 
 	/** The mode that the editor viewport widget is in. */
 	FWidget::EWidgetMode WidgetMode;
@@ -823,11 +801,6 @@ protected:
 	/** if true, the viewports will hide all UI overlays */
 	bool bHideViewportUI;
 
-	/**	Broadcasts the EditorModeChanged event */
-	void BroadcastEditorModeChanged(FEdMode* Mode, bool IsEnteringMode) { EditorModeChangedEvent.Broadcast( Mode, IsEnteringMode ); }
-
-	friend class FEdMode;
-
 private:
 
 	/** The coordinate system the widget is operating within. */
@@ -838,8 +811,6 @@ private:
 
 	/** Multicast delegate that is broadcast when a widget mode is changed */
 	FWidgetModeChangedEvent WidgetModeChangedEvent;
-
-	FRegisteredModesChangedEvent RegisteredModesChanged;
 
 	/** Flag set between calls to StartTracking() and EndTracking() */
 	bool bIsTracking;

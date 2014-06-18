@@ -71,7 +71,7 @@ EVisibility SGeometryModeControls::IsPropertiesVisible() const
 
 FReply SGeometryModeControls::OnApplyClicked()
 {
-	check(GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry));
+	check(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry));
 
 	GetGeometryModeTool()->GetCurrentModifier()->Apply();
 
@@ -80,7 +80,7 @@ FReply SGeometryModeControls::OnApplyClicked()
 
 FReply SGeometryModeControls::OnModifierClicked(UGeomModifier* Modifier)
 {
-	check(GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry));
+	check(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Geometry));
 
 	Modifier->Apply();
 
@@ -261,7 +261,7 @@ TSharedRef<SButton> SGeometryModeControls::CreateSingleModifierButton(UGeomModif
 
 FModeTool_GeometryModify* SGeometryModeControls::GetGeometryModeTool() const
 {
-	FEdModeGeometry* Mode = (FEdModeGeometry*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
+	FEdModeGeometry* Mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Geometry );
 	FModeTool* Tool = Mode? Mode->GetCurrentTool(): NULL;
 
 	check(Tool);
@@ -298,7 +298,7 @@ FText FGeometryMode::GetBaseToolkitName() const
 
 class FEdMode* FGeometryMode::GetEditorMode() const
 {
-	return (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
+	return (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 }
 
 void FGeometryMode::SelectionChanged()

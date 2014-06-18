@@ -362,7 +362,7 @@ void ULandscapeEditorObject::SetbSnapGizmo(bool InbSnapGizmo)
 {
 	bSnapGizmo = InbSnapGizmo;
 
-	FEdModeLandscape* EdMode = (FEdModeLandscape*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
+	FEdModeLandscape* EdMode = (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 	if (EdMode && EdMode->CurrentGizmoActor.IsValid())
 	{
 		EdMode->CurrentGizmoActor->bSnapToLandscapeGrid = bSnapGizmo;

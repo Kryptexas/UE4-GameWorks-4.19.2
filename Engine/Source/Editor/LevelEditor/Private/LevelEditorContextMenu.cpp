@@ -604,9 +604,9 @@ void FLevelEditorContextMenuImpl::FillMatineeSelectActorMenu( FMenuBuilder& Menu
 						MenuBuilder.AddMenuEntry( Text, Text, FSlateIcon(), CurMatineeActorAction );
 
 						// if matinee is opened, and if that is CurMatineeActor, show option to go to group
-						if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+						if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 						{
-							const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
+							const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_InterpEdit );
 
 							if ( InterpEditMode && InterpEditMode->MatineeActor == CurMatineeActor )
 							{

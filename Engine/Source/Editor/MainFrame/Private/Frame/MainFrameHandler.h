@@ -72,7 +72,7 @@ public:
 
 		// Save out any config settings for the editor so they don't get lost
 		GEditor->SaveConfig();
-		GEditorModeTools().SaveConfig();
+		GLevelEditorModeTools().SaveConfig();
 
 		// Delete user settings, if requested
 		if (FUnrealEdMisc::Get().IsDeletePreferences())
@@ -173,10 +173,10 @@ public:
 			bool bOkToExit = true;
 
 			// Check if level Mode is open this does PostEditMove processing on actors when it closes so need to do this first before save dialog
-			if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Level ) || 
-				GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_StreamingLevel) )
+			if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Level ) || 
+				GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_StreamingLevel) )
 			{
-				GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+				GLevelEditorModeTools().ActivateDefaultMode();
 				bOkToExit = false;
 			}
 

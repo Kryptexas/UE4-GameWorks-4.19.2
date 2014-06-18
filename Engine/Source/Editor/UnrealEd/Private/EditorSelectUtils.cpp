@@ -37,7 +37,7 @@ void UUnrealEdEngine::NoteActorMovement()
 		GEditor->ClickFlags |= CF_MOVE_ACTOR;
 
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ActorMovement", "Actor Movement") );
-		GEditorModeTools().Snapping=0;
+		GLevelEditorModeTools().Snapping=0;
 		
 		AActor* SelectedActor = NULL;
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
@@ -62,7 +62,7 @@ void UUnrealEdEngine::NoteActorMovement()
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			GEditorModeTools().Snapping = 1;
+			GLevelEditorModeTools().Snapping = 1;
 			break;
 		}
 
@@ -144,13 +144,13 @@ void UUnrealEdEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Re
 
 FVector UUnrealEdEngine::GetPivotLocation()
 {
-	return GEditorModeTools().PivotLocation;
+	return GLevelEditorModeTools().PivotLocation;
 }
 
 
 void UUnrealEdEngine::SetPivot( FVector NewPivot, bool bSnapPivotToGrid, bool bIgnoreAxis, bool bAssignPivot/*=false*/ )
 {
-	FEditorModeTools& EditorModeTools = GEditorModeTools();
+	FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
 	if( !bIgnoreAxis )
 	{
@@ -225,9 +225,9 @@ void UUnrealEdEngine::SetPivot( FVector NewPivot, bool bSnapPivotToGrid, bool bI
 
 void UUnrealEdEngine::ResetPivot()
 {
-	GEditorModeTools().PivotShown	= 0;
-	GEditorModeTools().Snapping		= 0;
-	GEditorModeTools().SnappedActor	= 0;
+	GLevelEditorModeTools().PivotShown	= 0;
+	GLevelEditorModeTools().Snapping		= 0;
+	GLevelEditorModeTools().SnappedActor	= 0;
 }
 
 /*-----------------------------------------------------------------------------
@@ -292,7 +292,7 @@ void UUnrealEdEngine::UpdatePivotLocationForSelection( bool bOnChange )
 	if( ActorCount > 0 ) 
 	{		
 		// For geometry mode use current pivot location as it's set to selected face, not actor
-		FEditorModeTools& Tools = GEditorModeTools();
+		FEditorModeTools& Tools = GLevelEditorModeTools();
 		if( Tools.IsModeActive(FBuiltinEditorModes::EM_Geometry) == false || bOnChange == true )
 		{
 			// Set pivot point to the actor's location
@@ -323,8 +323,11 @@ void UUnrealEdEngine::NoteSelectionChange()
 	// The selection changed, so make sure the pivot (widget) is located in the right place
 	UpdatePivotLocationForSelection( true );
 
+	// Clear active editing visualizer on selection change
+	GUnrealEd->ComponentVisManager.ClearActiveComponentVis();
+
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		ActiveModes[ModeIndex]->ActorSelectionChangeNotify();
@@ -443,7 +446,7 @@ bool UUnrealEdEngine::CanSelectActor(AActor* Actor, bool bInSelected, bool bSele
 	bool bSelectionAllowed = false;
 
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bSelectionAllowed |= ActiveModes[ModeIndex]->IsSelectionAllowed( Actor, bInSelected );
@@ -463,7 +466,7 @@ void UUnrealEdEngine::SelectActor(AActor* Actor, bool bInSelected, bool bNotify,
 	bool bSelectionHandled = false;
 
 	TArray<FEdMode*> ActiveModes;
-	GEditorModeTools().GetActiveModes( ActiveModes );
+	GLevelEditorModeTools().GetActiveModes( ActiveModes );
 	for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
 	{
 		bSelectionHandled |= ActiveModes[ModeIndex]->Select( Actor, bInSelected );

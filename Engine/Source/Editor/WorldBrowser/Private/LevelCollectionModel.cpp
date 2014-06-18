@@ -524,20 +524,20 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 	}
 
 	// If matinee is opened, and if it belongs to the level being removed, close it
-	if (GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
+	if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
 	{
 		TArray<ULevel*> LevelsToRemove = GetLevelObjectList(InLevelList);
 		
-		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
 
 		if (InterpEditMode && InterpEditMode->MatineeActor && LevelsToRemove.Contains(InterpEditMode->MatineeActor->GetLevel()))
 		{
-			GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+			GLevelEditorModeTools().ActivateDefaultMode();
 		}
 	}
-	else if(GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+	else if(GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
 	{
-		GEditorModeTools().ActivateMode(FBuiltinEditorModes::EM_Default);
+		GLevelEditorModeTools().ActivateDefaultMode();
 	}
 
 	

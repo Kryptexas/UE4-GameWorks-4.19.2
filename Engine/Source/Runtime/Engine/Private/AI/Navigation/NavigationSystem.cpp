@@ -221,7 +221,7 @@ UNavigationSystem::UNavigationSystem(const class FPostConstructInitializePropert
 #if WITH_EDITOR
 	if (GIsEditor && HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		GEditorModeTools().OnEditorModeChanged().AddUObject(this, &UNavigationSystem::OnEditorModeChanged);
+		GLevelEditorModeTools().OnEditorModeChanged().AddUObject(this, &UNavigationSystem::OnEditorModeChanged);
 	}
 #endif // WITH_EDITOR
 }
@@ -232,7 +232,7 @@ UNavigationSystem::~UNavigationSystem()
 #if WITH_EDITOR
 	if (GIsEditor)
 	{
-		GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+		GLevelEditorModeTools().OnEditorModeChanged().RemoveAll(this);
 	}
 #endif // WITH_EDITOR
 }

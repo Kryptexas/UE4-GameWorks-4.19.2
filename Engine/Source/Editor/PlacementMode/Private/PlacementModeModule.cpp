@@ -13,17 +13,28 @@ public:
 	 */
 	virtual void StartupModule() override
 	{
-		PlacementMode = FPlacementMode::Create();
-		GEditorModeTools().RegisterMode( PlacementMode.ToSharedRef() );
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Bsp);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Geometry);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_InterpEdit);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_MeshPaint);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Landscape);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Foliage);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Level);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Physics);
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_ActorPicker);
+
+		TArray< FString > RecentlyPlacedAsStrings;
+		GConfig->GetArray(TEXT("PlacementMode"), TEXT("RecentlyPlaced"), RecentlyPlacedAsStrings, GEditorUserSettingsIni);
+
+		//FString ActivePaletteName;
+		//GConfig->GetString( TEXT( "PlacementMode" ), TEXT( "ActivePalette" ), ActivePaletteName, GEditorUserSettingsIni );
+
+		for (int Index = 0; Index < RecentlyPlacedAsStrings.Num(); Index++)
+		{
+			RecentlyPlaced.Add(FActorPlacementInfo(RecentlyPlacedAsStrings[Index]));
+		}
+
+
+		FEditorModeRegistry::Get().RegisterMode<FPlacementMode>(
+			FBuiltinEditorModes::EM_Placement,
+			NSLOCTEXT("PlacementMode", "DisplayName", "Place"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.PlacementMode", "LevelEditor.PlacementMode.Small"),
+			true, 0);
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FPlacementModeModule::OnAssetRemoved );
+		AssetRegistryModule.Get().OnAssetRenamed().AddRaw( this, &FPlacementModeModule::OnAssetRenamed );
 	}
 
 	/**
@@ -31,52 +42,150 @@ public:
 	 */
 	virtual void ShutdownModule() override
 	{
-		if ( PlacementMode.IsValid() )
+		FEditorModeRegistry::Get().UnregisterMode( FBuiltinEditorModes::EM_Placement );
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
+		AssetRegistryModule.Get().OnAssetRenamed().RemoveAll( this );
+	}
+
+	DECLARE_DERIVED_EVENT( FPlacementModeModule, IPlacementModeModule::FOnRecentlyPlacedChanged, FOnRecentlyPlacedChanged );
+	virtual FOnRecentlyPlacedChanged& OnRecentlyPlacedChanged() override { return RecentlyPlacedChanged; }
+
+	/**
+	 * Add the specified assets to the recently placed items list
+	 */
+	virtual void AddToRecentlyPlaced( const TArray< UObject* >& PlacedObjects, UActorFactory* FactoryUsed = NULL ) override
+	{
+		FString FactoryPath;
+		if (FactoryUsed != NULL)
 		{
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Bsp);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Geometry);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_InterpEdit);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_MeshPaint);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Landscape);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Foliage);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Level);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Physics);
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_ActorPicker);
-			GEditorModeTools().UnregisterMode( PlacementMode.ToSharedRef() );
-			PlacementMode = NULL;
+			FactoryPath = FactoryUsed->GetPathName();
+		}
+
+		TArray< UObject* > FilteredPlacedObjects;
+		for (UObject* PlacedObject : PlacedObjects)
+		{
+			// Don't include null placed objects that just have factories.
+			if (PlacedObject == NULL)
+			{
+				continue;
+			}
+
+			// Don't add brush builders to the recently placed.
+			if (PlacedObject->IsA(UBrushBuilder::StaticClass()))
+			{
+				continue;
+			}
+
+			FilteredPlacedObjects.Add(PlacedObject);
+		}
+
+		// Don't change the recently placed if nothing passed the filter.
+		if (FilteredPlacedObjects.Num() == 0)
+		{
+			return;
+		}
+
+		bool Changed = false;
+		for (int Index = 0; Index < FilteredPlacedObjects.Num(); Index++)
+		{
+			Changed |= RecentlyPlaced.Remove(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath)) > 0;
+		}
+
+		for (int Index = 0; Index < FilteredPlacedObjects.Num(); Index++)
+		{
+			if (FilteredPlacedObjects[Index] != NULL)
+			{
+				RecentlyPlaced.Insert(FActorPlacementInfo(FilteredPlacedObjects[Index]->GetPathName(), FactoryPath), 0);
+				Changed = true;
+			}
+		}
+
+		for (int Index = RecentlyPlaced.Num() - 1; Index >= 20; Index--)
+		{
+			RecentlyPlaced.RemoveAt(Index);
+			Changed = true;
+		}
+
+		if (Changed)
+		{
+			TArray< FString > RecentlyPlacedAsStrings;
+			for (int Index = 0; Index < RecentlyPlaced.Num(); Index++)
+			{
+				RecentlyPlacedAsStrings.Add(RecentlyPlaced[Index].ToString());
+			}
+
+			GConfig->SetArray(TEXT("PlacementMode"), TEXT("RecentlyPlaced"), RecentlyPlacedAsStrings, GEditorUserSettingsIni);
+			RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
 		}
 	}
 
-	virtual void AddToRecentlyPlaced( const TArray< UObject* >& Assets, UActorFactory* FactoryUsed = NULL ) override
+	void OnAssetRemoved(const FAssetData& /*InRemovedAssetData*/)
 	{
-		PlacementMode->AddToRecentlyPlaced( Assets, FactoryUsed );
+		RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
 	}
 
+	void OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath)
+	{
+		for (auto& RecentlyPlacedItem : RecentlyPlaced)
+		{
+			if (RecentlyPlacedItem.ObjectPath == OldObjectPath)
+			{
+				RecentlyPlacedItem.ObjectPath = AssetData.ObjectPath.ToString();
+				break;
+			}
+		}
+
+		RecentlyPlacedChanged.Broadcast(RecentlyPlaced);
+	}
+
+	/**
+	 * Add the specified asset to the recently placed items list
+	 */
 	virtual void AddToRecentlyPlaced( UObject* Asset, UActorFactory* FactoryUsed = NULL ) override
 	{
 		TArray< UObject* > Assets;
 		Assets.Add( Asset );
-		PlacementMode->AddToRecentlyPlaced( Assets, FactoryUsed );
+		AddToRecentlyPlaced( Assets, FactoryUsed );
 	}
 
+	/**
+	 * Get a copy of the recently placed items list
+	 */
 	virtual const TArray< FActorPlacementInfo >& GetRecentlyPlaced() const override
 	{
-		return PlacementMode->GetRecentlyPlaced();
+		return RecentlyPlaced;
 	}
 
-	virtual bool IsPlacementModeAvailable() const override
+	/** @return the event that is broadcast whenever the placement mode enters a placing session */
+	DECLARE_DERIVED_EVENT( FPlacementModeModule, IPlacementModeModule::FOnStartedPlacingEvent, FOnStartedPlacingEvent );
+	virtual FOnStartedPlacingEvent& OnStartedPlacing() override
 	{
-		return PlacementMode.IsValid();
+		return StartedPlacingEvent;
 	}
-
-	virtual TSharedRef< IPlacementMode > GetPlacementMode() const override
+	virtual void BroadcastStartedPlacing( const TArray< UObject* >& Assets ) override
 	{
-		return PlacementMode.ToSharedRef();
+		StartedPlacingEvent.Broadcast( Assets );
 	}
 
+	/** @return the event that is broadcast whenever the placement mode exits a placing session */
+	DECLARE_DERIVED_EVENT( FPlacementModeModule, IPlacementModeModule::FOnStoppedPlacingEvent, FOnStoppedPlacingEvent );
+	virtual FOnStoppedPlacingEvent& OnStoppedPlacing() override
+	{
+		return StoppedPlacingEvent;
+	}
+	virtual void BroadcastStoppedPlacing( bool bWasSuccessfullyPlaced ) override
+	{
+		StoppedPlacingEvent.Broadcast( bWasSuccessfullyPlaced );
+	}
 private:
 
-	TSharedPtr< FPlacementMode > PlacementMode;
+	TArray< FActorPlacementInfo >	RecentlyPlaced;
+	FOnRecentlyPlacedChanged		RecentlyPlacedChanged;
+
+	FOnStartedPlacingEvent			StartedPlacingEvent;
+	FOnStoppedPlacingEvent			StoppedPlacingEvent;
 
 	TArray< TSharedPtr<FExtender> > ContentPaletteFiltersExtenders;
 	TArray< TSharedPtr<FExtender> > PaletteExtenders;

@@ -2,6 +2,33 @@
 
 #include "UnrealEd.h"
 #include "ComponentVisualizerManager.h"
+#include "ILevelEditor.h"
+
+/** Handle a click on the specified level editor viewport client */
+bool FComponentVisualizerManager::HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click)
+{
+	bool bHandled = HandleProxyForComponentVis(HitProxy);
+	if (bHandled && Click.GetKey() == EKeys::RightMouseButton)
+	{
+		TSharedPtr<SWidget> MenuWidget = GenerateContextMenuForComponentVis();
+		if (MenuWidget.IsValid())
+		{
+			auto ParentLevelEditorPinned = InViewportClient->ParentLevelEditor.Pin();
+			if (ParentLevelEditorPinned.IsValid())
+			{
+				FSlateApplication::Get().PushMenu(
+					ParentLevelEditorPinned.ToSharedRef(),
+					MenuWidget.ToSharedRef(),
+					FSlateApplication::Get().GetCursorPos(),
+					FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 bool FComponentVisualizerManager::HandleProxyForComponentVis(HHitProxy *HitProxy)
 {
@@ -46,7 +73,7 @@ void FComponentVisualizerManager::ClearActiveComponentVis()
 	}
 }
 
-bool FComponentVisualizerManager::HandleInputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const
+bool FComponentVisualizerManager::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) const
 {
 	if(EditedVisualizer.IsValid())
 	{
@@ -59,7 +86,7 @@ bool FComponentVisualizerManager::HandleInputKey(FLevelEditorViewportClient* Vie
 	return false;
 }
 
-bool FComponentVisualizerManager::HandleInputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const
+bool FComponentVisualizerManager::HandleInputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) const
 {
 	if (EditedVisualizer.IsValid() && InViewportClient->GetCurrentWidgetAxis() != EAxisList::None)
 	{

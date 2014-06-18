@@ -321,13 +321,13 @@ namespace EditorLevelUtils
 	bool RemoveLevelFromWorld(ULevel* InLevel)
 	{
 		// If we're removing a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
+		FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));		
 		if( LevelMode )
 		{
 			ULevelStreaming* LevelStream = FLevelUtils::FindStreamingLevel( InLevel ); 
 			if( LevelMode->IsEditing( LevelStream ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 		}
 
@@ -492,7 +492,7 @@ namespace EditorLevelUtils
 	ULevel* CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, UClass* LevelStreamingClass, const FString& DefaultFilename )
 	{
 		// Editor modes cannot be active when any level saving occurs.
-		GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
+		GLevelEditorModeTools().ActivateDefaultMode();
 
 		UWorld* NewWorld = nullptr;
 		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
@@ -641,10 +641,10 @@ namespace EditorLevelUtils
 			}
 
 			// If were hiding a level, lets make sure to close the level transform mode if its the same level currently selected for edit
-			FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));
+			FEdModeLevel* LevelMode = static_cast<FEdModeLevel*>(GLevelEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Level ));
 			if( LevelMode && LevelMode->IsEditing( StreamingLevel ) )
 			{
-				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
+				GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 
 			//create a transaction so we can undo the visibilty toggle

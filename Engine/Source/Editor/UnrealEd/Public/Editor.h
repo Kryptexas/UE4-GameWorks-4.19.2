@@ -553,9 +553,9 @@ UNREALED_API bool IsUniqueObjectName( const FName& InName, UObject* Outer, FText
 
 
 /**
- * Provides access to the FEditorModeTools singleton.
+ * Provides access to the FEditorModeTools for the level editor
  */
-UNREALED_API class FEditorModeTools& GEditorModeTools();
+UNREALED_API class FEditorModeTools& GLevelEditorModeTools();
 
 
 namespace EditorUtilities

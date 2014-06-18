@@ -54,5 +54,4 @@ private:
 		
 private:
 	TWeakPtr<class FLevelCollectionModel>	WorldModel;
-	TSharedPtr<class FStreamingLevelEdMode> EdModeStreamingLevel;
 };

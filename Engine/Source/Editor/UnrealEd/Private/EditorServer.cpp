@@ -807,7 +807,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			}
 			WorldBrush->ReregisterAllComponents();
 
-			GEditorModeTools().MapChangeNotify();
+			GLevelEditorModeTools().MapChangeNotify();
 			RedrawLevelEditingViewports();
 			return true;
 		}
@@ -827,7 +827,7 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			}
 			WorldBrush->ReregisterAllComponents();
 
-			GEditorModeTools().MapChangeNotify();
+			GLevelEditorModeTools().MapChangeNotify();
 			RedrawLevelEditingViewports();
 			return true;
 		}
@@ -1590,7 +1590,7 @@ void UEditorEngine::RebuildAlteredBSP()
 
 void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 {
-	FEdModeGeometry* Mode = GEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
+	FEdModeGeometry* Mode = GLevelEditorModeTools().GetActiveModeTyped<FEdModeGeometry>(FBuiltinEditorModes::EM_Geometry);
 	if (Mode)
 	{
 		Mode->GeometrySelectNone(true, true);
@@ -1749,27 +1749,27 @@ void UEditorEngine::CreateNewMapForEditing()
 	const FScopedBusyCursor BusyCursor;
 
 	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
 	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
 	}
 
 	// Also change out of Foliage mode to ensure all references are cleared.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Foliage ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Foliage ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Foliage );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Foliage );
 	}
 
 	// Change out of mesh paint mode when opening a new map.
-	if( GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
+	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
 	{
-		GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
+		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
 	}
 
 	GUnrealEd->NewMap();
@@ -1993,10 +1993,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					FStatsViewerModule& StatsViewerModule = FModuleManager::Get().LoadModuleChecked<FStatsViewerModule>(TEXT("StatsViewer"));
 					StatsViewerModule.GetPage(EStatsPage::LightingBuildInfo)->Clear();
 
-					if( !GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Default ) )
-					{
-						GEditorModeTools().ActivateMode( FBuiltinEditorModes::EM_Default );
-					}
+					GLevelEditorModeTools().ActivateDefaultMode();
 
 					OldOuter = Context.World()->GetOuter();
 
@@ -5509,7 +5506,7 @@ bool UEditorEngine::HandleSelectCommand( const TCHAR* Str, FOutputDevice& Ar, UW
 bool UEditorEngine::HandleDeleteCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
 	// If geometry mode is active, give it a chance to handle this command.  If it does not, use the default handler
-	if( !GEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) || !( (FEdModeGeometry*)GEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) )->ExecDelete() )
+	if( !GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Geometry ) || !( (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry) )->ExecDelete() )
 	{
 		return Exec( InWorld, TEXT("ACTOR DELETE") );
 	}

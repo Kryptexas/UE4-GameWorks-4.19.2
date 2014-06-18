@@ -1138,7 +1138,7 @@ class FLandscapeStrokeBase
 {
 public:
 	FLandscapeStrokeBase(TInputType& InTarget) {}
-	virtual void Apply(FLevelEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
+	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
 };
 
 
@@ -1157,7 +1157,7 @@ public:
 	,	ToolStroke(NULL)
 	{}
 
-	virtual bool BeginTool( FLevelEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
+	virtual bool BeginTool( FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation ) override
 	{
 		if( !ensure(MousePositions.Num()==0) ) 
 		{
@@ -1175,7 +1175,7 @@ public:
 		return true;
 	}
 
-	virtual void Tick(FLevelEditorViewportClient* ViewportClient,float DeltaTime) override 
+	virtual void Tick(FEditorViewportClient* ViewportClient,float DeltaTime) override 
 	{
 		if( bToolActive && MousePositions.Num() )
 		{
@@ -1184,7 +1184,7 @@ public:
 		}
 	}
 
-	virtual void EndTool(FLevelEditorViewportClient* ViewportClient) override 
+	virtual void EndTool(FEditorViewportClient* ViewportClient) override 
 	{
 		if( bToolActive && MousePositions.Num() )
 		{
@@ -1198,7 +1198,7 @@ public:
 		EdMode->CurrentBrush->EndStroke();
 	}
 
-	virtual bool MouseMove( FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override 
+	virtual bool MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y ) override 
 	{
 		FVector HitLocation;
 		if( EdMode->LandscapeMouseTrace(ViewportClient, x, y, HitLocation)  )

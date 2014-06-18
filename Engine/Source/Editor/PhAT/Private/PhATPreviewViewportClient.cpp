@@ -13,7 +13,7 @@
 
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data)
-	: FEditorViewportClient(&Data->PreviewScene)
+	: FEditorViewportClient(GLevelEditorModeTools(), &Data->PreviewScene)
 	, PhATPtr(InPhAT)
 	, SharedData(Data)
 	, MinPrimSize(0.5f)
