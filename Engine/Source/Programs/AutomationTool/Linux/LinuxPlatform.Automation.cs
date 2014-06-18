@@ -30,6 +30,11 @@ public abstract class BaseLinuxPlatform : Platform
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient", false);
         }
 
+        {
+            //SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1", SC.PlatformDir, "x86_64-unknown-linux-gnu"), Params.bDebugBuildsActuallyUseDebugCRT ? "*d." : "*.", false, Params.bDebugBuildsActuallyUseDebugCRT ? "*." : "*d.", CombinePaths("Engine/Binaries", SC.PlatformDir));
+            SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1/", SC.PlatformDir, "x86_64-unknown-linux-gnu"), Params.bDebugBuildsActuallyUseDebugCRT ? "*d." : "*.", false, new[] { Params.bDebugBuildsActuallyUseDebugCRT ? "*." : "*d." }, CombinePaths("Engine/Binaries", SC.PlatformDir));
+        }
+        
         // assume that we always have to deploy Steam (FIXME: should be automatic)
 		{
 			string SteamVersion = "Steamv129a";
@@ -49,7 +54,7 @@ public abstract class BaseLinuxPlatform : Platform
         }
 
         SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
-        SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
+        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
 
         List<string> Exes = GetExecutableNames(SC);
 

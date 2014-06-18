@@ -663,7 +663,7 @@ namespace UnrealBuildTool
 						LinkCommand += string.Format(" -l{0}", AdditionalLibrary);
 					}
 
-					if (AdditionalLibrary.Contains("/Plugins/") && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
+					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
 					{
 						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
 						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
@@ -683,6 +683,16 @@ namespace UnrealBuildTool
 					}
 
 					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
+
+					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
+					{
+						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
+						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
+						{
+							RPaths.Add(RelativePath);
+							LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+						}
+					}
 				}
 			}
 
@@ -721,7 +731,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				LinkCommand += string.Format(" @\"{0}\"", ConvertPath(ResponsePath));
+				LinkCommand += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
 			}
 
 			if (LinkEnvironment.Config.bIsBuildingDLL)

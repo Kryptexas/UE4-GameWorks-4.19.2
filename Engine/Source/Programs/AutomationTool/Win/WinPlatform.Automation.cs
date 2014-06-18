@@ -45,6 +45,8 @@ public abstract class BaseWinPlatform : Platform
             StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient.");
         }
 
+        StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU/icu4c-53_1", SC.PlatformDir, "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName()), Params.bDebugBuildsActuallyUseDebugCRT ? "*d." : "*.", true, new [] {Params.bDebugBuildsActuallyUseDebugCRT ? "*." : "*d."});
+
 		//todo we need to support shipping and test executables
 		//todo this should all be partially based on UBT manifests and not hard coded
 		//monolithic assumption
@@ -98,7 +100,7 @@ public abstract class BaseWinPlatform : Platform
         // Copy the splash screen, windows specific
         SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
 
-		SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
+        SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/ICU"), "*", true, null, null, false, !Params.Pak);
 
 		List<string> Exes = GetExecutableNames(SC);
 
