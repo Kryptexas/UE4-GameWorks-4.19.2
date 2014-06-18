@@ -10,15 +10,6 @@
 class FAmbivalentDirectionDragConnection : public FDragConnection
 {
 public:
-	FAmbivalentDirectionDragConnection(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
-		: FDragConnection(InGraphPanel, InStartingPins, bInShiftOperation)
-		, KnotPtr(InKnot)
-		, StartScreenPos(FVector2D::ZeroVector)
-		, MostRecentScreenPos(FVector2D::ZeroVector)
-		, bLatchedStartScreenPos(false)
-	{
-	}
-		
 	// FDragDropOperation interface
 	virtual void OnDragged(const class FDragDropEvent& DragDropEvent) override;
 	// End of FDragDropOperation interface
@@ -28,6 +19,25 @@ public:
 	// FDragConnection interface
 	virtual void ValidateGraphPinList(TArray<UEdGraphPin*>& OutValidPins) override;
 	// End of FDragConnection interface
+
+
+	static TSharedRef<FAmbivalentDirectionDragConnection> New(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
+	{
+		TSharedRef<FAmbivalentDirectionDragConnection> Operation = MakeShareable(new FAmbivalentDirectionDragConnection(InKnot, InGraphPanel, InStartingPins, bInShiftOperation));
+		Operation->Construct();
+
+		return Operation;
+	}
+
+protected:
+	FAmbivalentDirectionDragConnection(UK2Node_Knot* InKnot, const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
+		: FDragConnection(InGraphPanel, InStartingPins, bInShiftOperation)
+		, KnotPtr(InKnot)
+		, StartScreenPos(FVector2D::ZeroVector)
+		, MostRecentScreenPos(FVector2D::ZeroVector)
+		, bLatchedStartScreenPos(false)
+	{
+	}
 
 protected:
 	TWeakObjectPtr<UK2Node_Knot> KnotPtr;
@@ -200,8 +210,7 @@ TSharedRef<SWidget>	SGraphPinKnot::GetDefaultValueWidget()
 
 TSharedRef<FDragDropOperation> SGraphPinKnot::SpawnPinDragEvent(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
 {
-	TSharedRef<FAmbivalentDirectionDragConnection> Operation = MakeShareable(new FAmbivalentDirectionDragConnection(CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode()), InGraphPanel, InStartingPins, bInShiftOperation));
-
+	TSharedRef<FAmbivalentDirectionDragConnection> Operation = FAmbivalentDirectionDragConnection::New(CastChecked<UK2Node_Knot>(GetPinObj()->GetOwningNode()), InGraphPanel, InStartingPins, bInShiftOperation);
 	return Operation;
 }
 

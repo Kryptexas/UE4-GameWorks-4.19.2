@@ -29,6 +29,7 @@ public:
 protected:
 	typedef FGraphEditorDragDropAction Super;
 
+	// Constructor: Make sure to call Construct() after factorying one of these
 	FDragConnection(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation);
 
 protected:

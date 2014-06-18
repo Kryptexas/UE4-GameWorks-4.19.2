@@ -8,6 +8,7 @@
 TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bInShiftOperation)
 {
 	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection(InGraphPanel, InStartingPins, bInShiftOperation));
+	Operation->Construct();
 
 	return Operation;
 }
@@ -147,8 +148,6 @@ FDragConnection::FDragConnection(const TSharedRef<SGraphPanel>& InGraphPanel, co
 	{
 		InGraphPanel->OnBeginMakingConnection(PinRef->GetPinObj());
 	}
-
-	Construct();
 }
 
 FReply FDragConnection::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition)
