@@ -1129,3 +1129,5 @@ FString FFindInBlueprintSearchManager::ConvertFTextToHexString(FText InValue)
 
 	return BytesToHex(SerializedData.GetData(), SerializedData.Num());
 }
+
+#undef LOCTEXT_NAMESPACE
