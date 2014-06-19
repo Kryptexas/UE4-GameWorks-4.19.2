@@ -405,7 +405,7 @@ public:
 	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
 	/** @Returns true if NewPlayer may only join the server as a spectator. */
-	virtual bool MustSpectate(APlayerController* NewPlayer);
+	virtual bool MustSpectate(APlayerController* NewPlayer) const;
 
 	/** returns default pawn class for given controller */
 	virtual UClass* GetDefaultPawnClassForController(AController* InController);

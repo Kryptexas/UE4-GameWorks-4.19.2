@@ -960,7 +960,7 @@ void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNe
 {
 }
 
-bool AGameMode::MustSpectate(APlayerController* NewPlayer)
+bool AGameMode::MustSpectate(APlayerController* NewPlayer) const
 {
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
