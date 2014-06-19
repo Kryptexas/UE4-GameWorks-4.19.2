@@ -1553,9 +1553,7 @@ void FLevelCollectionViewModel::RemoveSelectedLevels_Executed()
 		
 		EditorLevelUtils::RemoveLevelFromWorld( CurLevel );
 	}
-
-	GEditor->ResetTransaction( LOCTEXT("RemoveLevelTransReset", "Removing Levels from World") );
-
+	
 	// Collect garbage to clear out the destroyed level
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 }
