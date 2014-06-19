@@ -253,7 +253,7 @@ bool FNumberFormattingRulesTest::RunTest (const FString& Parameters)
 
 #if UE_ENABLE_ICU
 	{
-		const TSharedPtr<FCulture>& InvariantCulture = I18N.GetInvariantCulture();
+		const TSharedPtr<FCulture, ESPMode::ThreadSafe>& InvariantCulture = I18N.GetInvariantCulture();
 		Test(this, TEXT("Convert a Double to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(DoubleValue, NULL, InvariantCulture),			FText::FromString(TEXT("12345678.901")));
 		Test(this, TEXT("Convert a Float to a number formatted correct for hi-IN but as invariant"),				FText::AsNumber(FloatValue, NULL, InvariantCulture),			FText::FromString(TEXT("1234.567017")));
 		Test(this, TEXT("Convert a Negative Double to a number formatted correct for hi-IN but as invariant"),	FText::AsNumber(DoubleNegativeValue, NULL, InvariantCulture),	FText::FromString(TEXT("-12345678.901")));

@@ -23,7 +23,7 @@ public:
 		return GetHomeUrl(FInternationalization::Get().GetCurrentCulture());
 	}
 
-	static FString GetHomeUrl(const TSharedRef<FCulture>& Culture)
+	static FString GetHomeUrl(const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture)
 	{
 		FString Url;
 		FUnrealEdMisc::Get().GetURL( TEXT("UDNURL"), Url, true );
@@ -37,7 +37,7 @@ public:
 		return ToUrl(Link, FInternationalization::Get().GetCurrentCulture());
 	}
 
-	static FString ToUrl(const FString& Link, const TSharedRef<FCulture>& Culture)
+	static FString ToUrl(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture)
 	{
 		FString Path;
 		FString Anchor;
@@ -56,7 +56,7 @@ public:
 
 		if (!FPaths::FileExists(FilePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture, ESPMode::ThreadSafe> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
@@ -70,7 +70,7 @@ public:
 		return FilePath;
 	}
 
-	static FString ToFilePath(const FString& Link, const TSharedRef<FCulture>& Culture)
+	static FString ToFilePath(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture)
 	{
 		FString Path;
 		FString Anchor;
@@ -84,12 +84,12 @@ public:
 	{
 		FInternationalization& I18N = FInternationalization::Get();
 
-		TSharedRef<FCulture> Culture = I18N.GetCurrentCulture();
+		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = I18N.GetCurrentCulture();
 		FString FilePath = ToFilePath(Link, Culture);
 
 		if (!FPaths::FileExists(FilePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture, ESPMode::ThreadSafe> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackFilePath = ToFilePath(Link, FallbackCulture.ToSharedRef());
@@ -103,7 +103,7 @@ public:
 		return ToFileUrl(Link, Culture);
 	}
 
-	static FString ToFileUrl(const FString& Link, const TSharedRef<FCulture>& Culture)
+	static FString ToFileUrl(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture)
 	{
 		FString Path;
 		FString Anchor;
@@ -120,7 +120,7 @@ public:
 
 		if (!FPaths::FileExists(SourcePath))
 		{
-			const TSharedPtr<FCulture> FallbackCulture = I18N.GetCulture(TEXT("en"));
+			const TSharedPtr<FCulture, ESPMode::ThreadSafe> FallbackCulture = I18N.GetCulture(TEXT("en"));
 			if (FallbackCulture.IsValid())
 			{
 				const FString FallbackSourcePath = ToSourcePath(Link, FallbackCulture.ToSharedRef());
@@ -134,7 +134,7 @@ public:
 		return SourcePath;
 	}
 
-	static FString ToSourcePath(const FString& Link, const TSharedRef<FCulture>& Culture)
+	static FString ToSourcePath(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture)
 	{
 		FString Path;
 		FString Anchor;

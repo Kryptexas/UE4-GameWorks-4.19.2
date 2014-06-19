@@ -42,19 +42,19 @@ public:
 	CORE_API void SetCurrentCulture(const FString& Name);
 
 	//@return the current culture
-	CORE_API TSharedRef< FCulture > GetCurrentCulture() const;
+	CORE_API TSharedRef<FCulture, ESPMode::ThreadSafe> GetCurrentCulture() const;
 
 	//@return culture object by given name, or NULL if not found
-	CORE_API TSharedPtr< FCulture > GetCulture(const FString& Name) const;
+	CORE_API TSharedPtr<FCulture, ESPMode::ThreadSafe> GetCulture(const FString& Name) const;
 
 	//@return the default culture
-	CORE_API TSharedRef< FCulture > GetDefaultCulture() const
+	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetDefaultCulture() const
 	{
 		return DefaultCulture.ToSharedRef();
 	}
 
 	//@return the invariant culture
-	CORE_API TSharedRef< FCulture > GetInvariantCulture() const
+	CORE_API TSharedRef< FCulture, ESPMode::ThreadSafe > GetInvariantCulture() const
 	{
 		return InvariantCulture.ToSharedRef();
 	}
@@ -69,7 +69,7 @@ public:
 	CORE_API void GetCultureNames(TArray<FString>& CultureNames) const;
 
 	// Given some paths to look at, populate a list of cultures that we have available localization information for
-	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture> >& OutAvailableCultures) const;
+	CORE_API void GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures) const;
 
 private:
 	FInternationalization();
@@ -92,12 +92,16 @@ private:
 	static FInternationalization* Instance;
 	bool bIsInitialized;
 
-	TArray< TSharedRef< FCulture > > AllCultures;
+	/** Must be thread safe, cultures may be accessed from more than one thread */
+	TArray< TSharedRef< FCulture, ESPMode::ThreadSafe > > AllCultures;
 
 	int CurrentCultureIndex;
 
-	TSharedPtr< FCulture > DefaultCulture;
-	TSharedPtr< FCulture > InvariantCulture;
+	/** Must be thread safe, cultures may be accessed from more than one thread */
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > DefaultCulture;
+	/** Must be thread safe, cultures may be accessed from more than one thread */
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > InvariantCulture;
+
 	TArray< void* > DLLHandles;
 };
 

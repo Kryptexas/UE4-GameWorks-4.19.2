@@ -36,7 +36,7 @@ bool FBPVariableDescription::HasMetaData(const FName& Key) const
 }
 
 /** Gets a metadata value on the variable; asserts if the value isn't present.  Check for validiy using FindMetaDataEntryIndexForKey. */
-FString FBPVariableDescription::GetMetaData(const FName& Key)
+FString FBPVariableDescription::GetMetaData(const FName& Key) const
 {
 	int32 EntryIndex = FindMetaDataEntryIndexForKey(Key);
 	check(EntryIndex != INDEX_NONE);
@@ -556,12 +556,14 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 	OutTags.Add( FAssetRegistryTag("ClassFlags", FString::FromInt(ClassFlagsTagged), FAssetRegistryTag::TT_Hidden) );
 
-	FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(this, OutTags);
-
 	OutTags.Add( FAssetRegistryTag( "IsDataOnly",
 		FBlueprintEditorUtils::IsDataOnlyBlueprint(this) ? TEXT("True") : TEXT("False"),
 		FAssetRegistryTag::TT_Alphabetical ) );
 
+	if(SearchGuid.IsValid())
+	{
+		OutTags.Add( FAssetRegistryTag("SearchGuid", SearchGuid.ToString(), FAssetRegistryTag::TT_Hidden) );
+	}
 }
 
 FString UBlueprint::GetFriendlyName() const

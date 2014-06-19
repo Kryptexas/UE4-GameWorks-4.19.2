@@ -163,7 +163,7 @@ struct FBPVariableDescription
 	/** Set a metadata value on the variable */
 	ENGINE_API void SetMetaData(const FName& Key, const FString& Value);
 	/** Gets a metadata value on the variable; asserts if the value isn't present.  Check for validiy using FindMetaDataEntryIndexForKey. */
-	ENGINE_API FString GetMetaData(const FName& Key);
+	ENGINE_API FString GetMetaData(const FName& Key) const;
 	/** Clear metadata value on the variable */
 	ENGINE_API void RemoveMetaData(const FName& Key);
 	/** Find the index in the array of a metadata entry */
@@ -295,6 +295,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
 	bool bDisplayCompilePIEWarning;
+
+	/** Guid key for finding searchable data for Blueprint in the DDC */
+	UPROPERTY()
+	FGuid  SearchGuid;
 
 #endif //WITH_EDITORONLY_DATA
 

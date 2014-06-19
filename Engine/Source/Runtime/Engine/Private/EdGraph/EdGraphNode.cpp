@@ -8,6 +8,7 @@
 #include "Slate.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
@@ -332,6 +333,28 @@ int32 UEdGraphNode::GetPinIndex(UEdGraphPin* Pin) const
 {
 	return Pins.Find(Pin);
 }
+
+void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
+{
+	// Searchable - Primary label for the item in the search results
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Name, GetNodeTitle(ENodeTitleType::ListView)));
+
+	// Searchable - As well as being searchable, this displays in the tooltip for the node
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_ClassName, FText::FromString(GetClass()->GetName())));
+
+	// Non-searchable - Used to lookup the node when attempting to jump to it
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NodeGuid, FText::FromString(NodeGuid.ToString(EGuidFormats::Digits))));
+
+	// Non-searchable - Important for matching pin types with icons and colors, stored here so that each pin does not store it
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_SchemaName, FText::FromString(GetSchema()->GetClass()->GetName())));
+
+	// Non-Searchable - Used to display the icon and color for this node for better visual identification.
+	FLinearColor GlyphColor = FLinearColor::White;
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Glyph, FText::FromString(GetPaletteIcon(GlyphColor).ToString())));
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_GlyphColor, FText::FromString(GlyphColor.ToString())));
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Comment, FText::FromString(NodeComment)));
+}
+
 
 #endif	//#if WITH_EDITOR
 

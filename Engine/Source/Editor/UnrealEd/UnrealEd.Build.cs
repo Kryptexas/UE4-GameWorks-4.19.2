@@ -107,7 +107,8 @@ public class UnrealEd : ModuleRules
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
-                "InternationalizationSettings"
+                "InternationalizationSettings",
+                "JsonUtilities",
 			}
 		);
 

@@ -158,8 +158,20 @@ public class Engine : ModuleRules
 
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
-			PublicDependencyModuleNames.Add("UnrealEd");	// @todo api: Only public because of WITH_EDITOR and UNREALED_API
-			CircularlyReferencedDependentModules.Add("UnrealEd");
+                
+			PublicDependencyModuleNames.AddRange(
+                new string[] {
+                    "UnrealEd", 
+                    "Kismet"
+                }
+            );	// @todo api: Only public because of WITH_EDITOR and UNREALED_API
+
+			CircularlyReferencedDependentModules.AddRange(
+                new string[] {
+                    "UnrealEd",
+                    "Kismet"
+                }
+            );
 
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 			PrivateIncludePaths.Add("Developer/TextureCompressor/Public");

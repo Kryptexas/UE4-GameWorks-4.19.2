@@ -519,8 +519,8 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 		NewEntry.Status = EAssetTextGatherStatus::None;
 
 		// Fix missing key if broken and allowed.
-		TSharedPtr< FString > Namespace;
-		TSharedPtr< FString > Key;
+		TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+		TSharedPtr< FString, ESPMode::ThreadSafe > Key;
 		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Data->DisplayString, Namespace, Key);
 
 		if( !( Key.IsValid() ) || Key->IsEmpty() )
@@ -564,7 +564,7 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 			if( ExistingEntry.IsValid() )
 			{
 				// Fix conflict if present and allowed.
-				if( ExistingEntry->Source.Text != ( Data->GetSourceString().IsValid() ? **(Data->GetSourceString()) : TEXT("") ) )
+				if( ExistingEntry->Source.Text != ( NewEntry.SourceString.IsValid() ? **(NewEntry.SourceString) : TEXT("") ) )
 				{
 					if (bFixBroken)
 					{
@@ -589,7 +589,7 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 			if( !( ExistingEntry.IsValid() ) )
 			{
 				// Check for valid string.
-				if( Data->GetSourceString().IsValid() && !( Data->GetSourceString()->IsEmpty() ) )
+				if( NewEntry.SourceString.IsValid() && !( NewEntry.SourceString->IsEmpty() ) )
 				{
 					FString SrcLocation = Object->GetPathName() + TEXT(".") + InTextProp->GetName();
 
@@ -604,8 +604,8 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 							{
 								UTextProperty* TextProp	=  Cast<UTextProperty>( *(PropIt) );
 								FText* DataCDO = TextProp->ContainerPtrToValuePtr<FText>( CDO );
-								TSharedPtr< FString > NamespaceCDO;
-								TSharedPtr< FString > KeyCDO;
+								TSharedPtr< FString, ESPMode::ThreadSafe > NamespaceCDO;
+								TSharedPtr< FString, ESPMode::ThreadSafe > KeyCDO;
 								FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(DataCDO->DisplayString, NamespaceCDO, KeyCDO);
 
 								if( KeyCDO == Key || ( KeyCDO.Get() && Key.Get() && ( *KeyCDO == *Key ) ) )
@@ -622,7 +622,7 @@ bool UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 					Context.SourceLocation = SrcLocation;
 
 					FString EntryDescription = FString::Printf( TEXT("In %s"), *Object->GetFullName());
-					ManifestInfo->AddEntry(EntryDescription, Namespace.Get() ? *Namespace : TEXT(""), Data->GetSourceString().Get() ? *(Data->GetSourceString()) : TEXT(""), Context );
+					ManifestInfo->AddEntry(EntryDescription, Namespace.Get() ? *Namespace : TEXT(""), NewEntry.SourceString.Get() ? *(NewEntry.SourceString) : TEXT(""), Context );
 				}
 			}
 		}

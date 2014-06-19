@@ -25,6 +25,7 @@
 #include "ScopedTransaction.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 
 #include "BlueprintEditor.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
@@ -1081,6 +1082,13 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			// Flag data only blueprints as being up-to-date
 			Blueprint->Status = BS_UpToDate;
 		}
+
+#if WITH_EDITOR
+		if(GEditor)
+		{
+			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
+		}
+#endif
 
 		if (bReplaceBlueprintWithClass)
 		{
@@ -2621,7 +2629,7 @@ void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue)
+bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue)
 {
 	const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
 	if (VarIndex == INDEX_NONE)
@@ -2673,7 +2681,7 @@ bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 	}
 	else
 	{
-		FBPVariableDescription& Desc = Blueprint->NewVariables[VarIndex];
+		const FBPVariableDescription& Desc = Blueprint->NewVariables[VarIndex];
 
 		int32 EntryIndex = Desc.FindMetaDataEntryIndexForKey(MetaDataKey);
 		if (EntryIndex != INDEX_NONE)
@@ -3350,7 +3358,7 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const F
 	}
 }
 
-FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(UBlueprint* InBlueprint, const FName& InVariableName)
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName)
 {
 	// Search through all function entry nodes for a local variable with the passed name
 	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
@@ -5968,6 +5976,89 @@ bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* In
 	}
 
 	return false;
+}
+
+void FBlueprintEditorUtils::GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode)
+{
+	if (InGraph)
+	{
+		// There are a few different potential configurations for editable graphs (FunctionEntry/Result, Tunnel Pairs, etc).
+		// Step through each case until we find one that matches what appears to be in the graph.  This could be improved if
+		// we want to add more robust typing to the graphs themselves
+
+		// Case 1:  Function Entry / Result Pair ------------------
+		TArray<UK2Node_FunctionEntry*> EntryNodes;
+		InGraph->GetNodesOfClass(EntryNodes);
+
+		if (EntryNodes.Num() > 0)
+		{
+			if (EntryNodes[0]->IsEditable())
+			{
+				OutEntryNode = EntryNodes[0];
+
+				// Find a result node
+				TArray<UK2Node_FunctionResult*> ResultNodes;
+				InGraph->GetNodesOfClass(ResultNodes);
+
+				check(ResultNodes.Num() <= 1);
+				UK2Node_FunctionResult* ResultNode = ResultNodes.Num() ? ResultNodes[0] : NULL;
+				// Note:  we assume that if the entry is editable, the result is too (since the entry node is guaranteed to be there on graph creation, but the result isn't)
+				if( ResultNode )
+				{
+					OutResultNode = ResultNode;
+				}
+			}
+		}
+		else
+		{
+			// Case 2:  Tunnel Pair -----------------------------------
+			TArray<UK2Node_Tunnel*> TunnelNodes;
+			InGraph->GetNodesOfClass(TunnelNodes);
+
+			if (TunnelNodes.Num() > 0)
+			{
+				// Iterate over the tunnel nodes, and try to find an entry and exit
+				for (int32 i = 0; i < TunnelNodes.Num(); i++)
+				{
+					UK2Node_Tunnel* Node = TunnelNodes[i];
+					// Composite nodes should never be considered for function entry / exit, since we're searching for a graph's terminals
+					if (Node->IsEditable() && !Node->IsA(UK2Node_Composite::StaticClass()))
+					{
+						if (Node->bCanHaveOutputs)
+						{
+							ensure(!OutEntryNode.IsValid());
+							OutEntryNode = Node;
+						}
+						else if (Node->bCanHaveInputs)
+						{
+							ensure(!OutResultNode.IsValid());
+							OutResultNode = Node;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+FText FBlueprintEditorUtils::GetGraphDescription(const UEdGraph* InGraph)
+{
+	TWeakObjectPtr<class UK2Node_EditablePinBase> EntryNode;
+	TWeakObjectPtr<class UK2Node_EditablePinBase> ResultNode;
+	GetEntryAndResultNodes(InGraph, EntryNode, ResultNode);
+
+	UK2Node_EditablePinBase * FunctionEntryNode = EntryNode.Get();
+	if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
+	{
+		return FText::FromString(TypedEntryNode->MetaData.ToolTip);
+	}
+	else if (UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(FunctionEntryNode))
+	{
+		// Must be exactly a tunnel, not a macro instance
+		return FText::FromString(TunnelNode->MetaData.ToolTip);
+	}
+
+	return LOCTEXT( "NoGraphTooltip", "(None)" );
 }
 
 #undef LOCTEXT_NAMESPACE

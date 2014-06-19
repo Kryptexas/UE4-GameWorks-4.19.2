@@ -152,7 +152,7 @@ public:
 				FString ArchiveName = FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFileName));
 				FString ManifestName = FPaths::GetBaseFilename(ManifestFileName);
 
-				TSharedPtr<FCulture> Culture = FInternationalization::Get().GetCulture(ArchiveName);
+				TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = FInternationalization::Get().GetCulture(ArchiveName);
 				if (Culture.IsValid())
 				{
 					ArchiveName = Culture->GetDisplayName();

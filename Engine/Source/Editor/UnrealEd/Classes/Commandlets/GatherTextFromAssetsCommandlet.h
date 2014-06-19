@@ -41,7 +41,7 @@ private:
 		struct FEntry
 		{
 			FString ObjectPath;
-			TSharedPtr<FString> SourceString;
+			TSharedPtr<FString, ESPMode::ThreadSafe> SourceString;
 			EAssetTextGatherStatus::Type Status;
 		};
 

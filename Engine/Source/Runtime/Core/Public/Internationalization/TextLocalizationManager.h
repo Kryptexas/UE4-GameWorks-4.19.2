@@ -43,9 +43,9 @@ private:
 		bool bIsLocalized;
 		FString TableName;
 		uint32 SourceStringHash;
-		TSharedRef<FString> String;
+		TSharedRef<FString, ESPMode::ThreadSafe> String;
 
-		FStringEntry(const bool InIsLocalized, const FString& InTableName, const uint32 InSourceStringHash, const TSharedRef<FString>& InString)
+		FStringEntry(const bool InIsLocalized, const FString& InTableName, const uint32 InSourceStringHash, const TSharedRef<FString, ESPMode::ThreadSafe>& InString)
 			:	bIsLocalized(InIsLocalized), TableName(InTableName), SourceStringHash(InSourceStringHash), String(InString)
 		{
 		}
@@ -57,16 +57,16 @@ private:
 		typedef TMap<FString, FKeyTable> FNamespaceTable;
 		FNamespaceTable NamespaceTable;
 
-		const TSharedRef<FString>* GetString(const FString& Namespace, const FString& Key, const uint32 SourceStringHash) const;
+		const TSharedRef<FString, ESPMode::ThreadSafe>* GetString(const FString& Namespace, const FString& Key, const uint32 SourceStringHash) const;
 	};
 
 	/** Stores a Namespace and Key, used in reverse lookups from a DisplayString to find the Namespace and Key */
 	struct FNamespaceKeyEntry
 	{
-		TSharedPtr<FString> Namespace;
-		TSharedPtr<FString> Key;
+		TSharedPtr<FString, ESPMode::ThreadSafe> Namespace;
+		TSharedPtr<FString, ESPMode::ThreadSafe> Key;
 
-		FNamespaceKeyEntry(TSharedPtr<FString> InNamespace, TSharedPtr<FString> InKey)
+		FNamespaceKeyEntry(TSharedPtr<FString, ESPMode::ThreadSafe> InNamespace, TSharedPtr<FString, ESPMode::ThreadSafe> InKey)
 			: Namespace(InNamespace)
 			, Key(InKey)
 		{}
@@ -75,8 +75,8 @@ private:
 public:
 	static CORE_API FTextLocalizationManager& Get();
 
-	TSharedPtr<FString> FindString( const FString& Namespace, const FString& Key, const FString* const SourceString = nullptr );
-	TSharedRef<FString> GetString(const FString& Namespace, const FString& Key, const FString* const SourceString);
+	TSharedPtr<FString, ESPMode::ThreadSafe> FindString( const FString& Namespace, const FString& Key, const FString* const SourceString = nullptr );
+	TSharedRef<FString, ESPMode::ThreadSafe> GetString(const FString& Namespace, const FString& Key, const FString* const SourceString);
 
 	/**
 	 * Using an FText SourceString's, returns the associated Namespace and Key
@@ -85,7 +85,7 @@ public:
 	 * @param OutNamespace			Returns with the associated Namespace
 	 * @param OutKey				Returns with the associated Key
 	 */
-	void CORE_API FindKeyNamespaceFromDisplayString(TSharedRef<FString> InDisplayString, TSharedPtr<FString>& OutNamespace, TSharedPtr<FString>& OutKey);
+	void CORE_API FindKeyNamespaceFromDisplayString(TSharedRef<FString, ESPMode::ThreadSafe> InDisplayString, TSharedPtr<FString, ESPMode::ThreadSafe>& OutNamespace, TSharedPtr<FString, ESPMode::ThreadSafe>& OutKey);
 
 	void CORE_API RegenerateResources(const FString& ConfigFilePath);
 
@@ -108,7 +108,7 @@ private:
 	FTextLookupTable LiveTable;
 	
 	/** Table for looking up namespaces and keys using the DisplayString of an FText */
-	TMap< TSharedPtr< FString >, FNamespaceKeyEntry > ReverseLiveTable;
+	TMap< TSharedPtr< FString, ESPMode::ThreadSafe >, FNamespaceKeyEntry > ReverseLiveTable;
 
 	FCriticalSection SynchronizationObject;
 

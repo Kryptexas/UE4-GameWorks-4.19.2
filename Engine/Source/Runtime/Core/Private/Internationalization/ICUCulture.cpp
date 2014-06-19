@@ -8,10 +8,10 @@
 
 namespace
 {
-	TSharedRef<const icu::Collator> CreateCollator( const icu::Locale& ICULocale )
+	TSharedRef<const icu::Collator, ESPMode::ThreadSafe> CreateCollator( const icu::Locale& ICULocale )
 	{
 		UErrorCode ICUStatus = U_ZERO_ERROR;
-		TSharedPtr<const icu::Collator> Ptr = MakeShareable( icu::Collator::createInstance( ICULocale, ICUStatus ) );
+		TSharedPtr<const icu::Collator, ESPMode::ThreadSafe> Ptr = MakeShareable( icu::Collator::createInstance( ICULocale, ICUStatus ) );
 		checkf(Ptr.IsValid(), TEXT("Creating a collator object failed using locale %s. Perhaps this locale has no data."), StringCast<TCHAR>(ICULocale.getName()).Get());
 		return Ptr.ToSharedRef();
 	}
@@ -196,18 +196,18 @@ FString FCulture::FICUCultureImplementation::GetVariant() const
 	return ICULocale.getVariant();
 }
 
-TSharedRef<const icu::Collator> FCulture::FICUCultureImplementation::GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const
+TSharedRef<const icu::Collator, ESPMode::ThreadSafe> FCulture::FICUCultureImplementation::GetCollator(const ETextComparisonLevel::Type ComparisonLevel) const
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	const bool bIsDefault = (ComparisonLevel == ETextComparisonLevel::Default);
-	const TSharedRef<const icu::Collator> DefaultCollator( ICUCollator );
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> DefaultCollator( ICUCollator );
 	if(bIsDefault)
 	{
 		return DefaultCollator;
 	}
 	else
 	{
-		const TSharedRef<icu::Collator> Collator( DefaultCollator->clone() );
+		const TSharedRef<icu::Collator, ESPMode::ThreadSafe> Collator( DefaultCollator->clone() );
 		Collator->setAttribute(UColAttribute::UCOL_STRENGTH, UEToICU(ComparisonLevel), ICUStatus);
 		return Collator;
 	}

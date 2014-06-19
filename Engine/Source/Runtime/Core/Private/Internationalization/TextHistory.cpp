@@ -13,7 +13,7 @@ bool FTextHistory::IsOutOfDate(int32 InRevision)
 	return InRevision < FTextLocalizationManager::Get().GetHeadCultureRevision();
 }
 
-TSharedPtr< FString > FTextHistory::GetSourceString()
+TSharedPtr< FString, ESPMode::ThreadSafe > FTextHistory::GetSourceString() const
 {
 	return NULL;
 }
@@ -27,21 +27,30 @@ FTextHistory_Base::FTextHistory_Base(FString InSourceString)
 
 }
 
-FTextHistory_Base::FTextHistory_Base(TSharedPtr< FString > InSourceString)
+FTextHistory_Base::FTextHistory_Base(TSharedPtr< FString, ESPMode::ThreadSafe > InSourceString)
 	: SourceString(InSourceString)
 {
 
 }
 
-FText FTextHistory_Base::ToText() const
+FText FTextHistory_Base::ToText(bool bInAsSource) const
 {
-	// This should never be called
+	if(bInAsSource)
+	{
+		if(SourceString.IsValid())
+		{
+			return FText::FromString(*SourceString.Get());
+		}
+		return FText::GetEmpty();
+	}
+
+	// This should never be called except to build as source
 	check(0);
 
 	return FText::GetEmpty();
 }
 
-TSharedPtr< FString > FTextHistory_Base::GetSourceString()
+TSharedPtr< FString, ESPMode::ThreadSafe > FTextHistory_Base::GetSourceString() const
 {
 	return SourceString;
 }
@@ -56,7 +65,7 @@ void FTextHistory_Base::Serialize( FArchive& Ar )
 	}
 }
 
-void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString>& InOutDisplayString)
+void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString)
 {
 	if(Ar.IsLoading())
 	{
@@ -79,8 +88,8 @@ void FTextHistory_Base::SerializeForDisplayString(FArchive& Ar, TSharedRef<FStri
 	}
 	else if(Ar.IsSaving())
 	{
-		TSharedPtr< FString > Namespace;
-		TSharedPtr< FString > Key;
+		TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+		TSharedPtr< FString, ESPMode::ThreadSafe > Key;
 
 		FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(InOutDisplayString, Namespace, Key);
 
@@ -137,9 +146,9 @@ FTextHistory_NamedFormat::FTextHistory_NamedFormat(const FText& InSourceText, co
 
 }
 
-FText FTextHistory_NamedFormat::ToText() const
+FText FTextHistory_NamedFormat::ToText(bool bInAsSource) const
 {
-	return FText::FormatInternal(SourceText, Arguments, true);
+	return FText::FormatInternal(SourceText, Arguments, true, bInAsSource);
 }
 
 void FTextHistory_NamedFormat::Serialize( FArchive& Ar )
@@ -164,9 +173,9 @@ FTextHistory_OrderedFormat::FTextHistory_OrderedFormat(const FText& InSourceText
 
 }
 
-FText FTextHistory_OrderedFormat::ToText() const
+FText FTextHistory_OrderedFormat::ToText(bool bInAsSource) const
 {
-	return FText::FormatInternal(SourceText, Arguments, true);
+	return FText::FormatInternal(SourceText, Arguments, true, bInAsSource);
 }
 
 void FTextHistory_OrderedFormat::Serialize( FArchive& Ar )
@@ -191,9 +200,9 @@ FTextHistory_ArgumentDataFormat::FTextHistory_ArgumentDataFormat(const FText& In
 
 }
 
-FText FTextHistory_ArgumentDataFormat::ToText() const
+FText FTextHistory_ArgumentDataFormat::ToText(bool bInAsSource) const
 {
-	return FText::FormatInternal(SourceText, Arguments, true);
+	return FText::FormatInternal(SourceText, Arguments, true, bInAsSource);
 }
 
 void FTextHistory_ArgumentDataFormat::Serialize( FArchive& Ar )
@@ -216,7 +225,7 @@ FTextHistory_FormatNumber::FTextHistory_FormatNumber()
 {
 }
 
-FTextHistory_FormatNumber::FTextHistory_FormatNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_FormatNumber::FTextHistory_FormatNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: SourceValue(InSourceValue)
 	, FormatOptions(nullptr)
 	, TargetCulture(InTargetCulture)
@@ -270,30 +279,32 @@ void FTextHistory_FormatNumber::Serialize(FArchive& Ar)
 ///////////////////////////////////////
 // FTextHistory_AsNumber
 
-FTextHistory_AsNumber::FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsNumber::FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: FTextHistory_FormatNumber(InSourceValue, InFormatOptions, InTargetCulture)
 {
 }
 
-FText FTextHistory_AsNumber::ToText() const
+FText FTextHistory_AsNumber::ToText(bool bInAsSource) const
 {
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
+
 	switch(SourceValue.Type)
 	{
 	case EFormatArgumentType::UInt:
 		{
-			return FText::AsNumber(SourceValue.UIntValue, FormatOptions, TargetCulture);
+			return FText::AsNumber(SourceValue.UIntValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Int:
 		{
-			return FText::AsNumber(SourceValue.IntValue, FormatOptions, TargetCulture);
+			return FText::AsNumber(SourceValue.IntValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Float:
 		{
-			return FText::AsNumber(SourceValue.FloatValue, FormatOptions, TargetCulture);
+			return FText::AsNumber(SourceValue.FloatValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Double:
 		{
-			return FText::AsNumber(SourceValue.DoubleValue, FormatOptions, TargetCulture);
+			return FText::AsNumber(SourceValue.DoubleValue, FormatOptions, CurrentCulture);
 		}
 	default:
 		{
@@ -318,22 +329,24 @@ void FTextHistory_AsNumber::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsPercent
 
-FTextHistory_AsPercent::FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsPercent::FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: FTextHistory_FormatNumber(InSourceValue, InFormatOptions, InTargetCulture)
 {
 }
 
-FText FTextHistory_AsPercent::ToText() const
+FText FTextHistory_AsPercent::ToText(bool bInAsSource) const
 {
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
+
 	switch(SourceValue.Type)
 	{
 	case EFormatArgumentType::Float:
 		{
-			return FText::AsPercent(SourceValue.FloatValue, FormatOptions, TargetCulture);
+			return FText::AsPercent(SourceValue.FloatValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Double:
 		{
-			return FText::AsPercent(SourceValue.DoubleValue, FormatOptions, TargetCulture);
+			return FText::AsPercent(SourceValue.DoubleValue, FormatOptions, CurrentCulture);
 		}
 	default:
 		{
@@ -358,30 +371,32 @@ void FTextHistory_AsPercent::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsCurrency
 
-FTextHistory_AsCurrency::FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsCurrency::FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: FTextHistory_FormatNumber(InSourceValue, InFormatOptions, InTargetCulture)
 {
 }
 
-FText FTextHistory_AsCurrency::ToText() const
+FText FTextHistory_AsCurrency::ToText(bool bInAsSource) const
 {
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
+
 	switch(SourceValue.Type)
 	{
 	case EFormatArgumentType::UInt:
 		{
-			return FText::AsCurrency(SourceValue.UIntValue, FormatOptions, TargetCulture);
+			return FText::AsCurrency(SourceValue.UIntValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Int:
 		{
-			return FText::AsCurrency(SourceValue.IntValue, FormatOptions, TargetCulture);
+			return FText::AsCurrency(SourceValue.IntValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Float:
 		{
-			return FText::AsCurrency(SourceValue.FloatValue, FormatOptions, TargetCulture);
+			return FText::AsCurrency(SourceValue.FloatValue, FormatOptions, CurrentCulture);
 		}
 	case EFormatArgumentType::Double:
 		{
-			return FText::AsCurrency(SourceValue.DoubleValue, FormatOptions, TargetCulture);
+			return FText::AsCurrency(SourceValue.DoubleValue, FormatOptions, CurrentCulture);
 		}
 	default:
 		{
@@ -406,7 +421,7 @@ void FTextHistory_AsCurrency::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsDate
 
-FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: SourceDateTime(InSourceDateTime)
 	, DateStyle(InDateStyle)
 	, TargetCulture(InTargetCulture)
@@ -444,15 +459,16 @@ void FTextHistory_AsDate::Serialize(FArchive& Ar)
 	}
 }
 
-FText FTextHistory_AsDate::ToText() const
+FText FTextHistory_AsDate::ToText(bool bInAsSource) const
 {
-	return FText::AsDate(SourceDateTime, DateStyle, TargetCulture);
-}
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
 
+	return FText::AsDate(SourceDateTime, DateStyle, CurrentCulture);
+}
 ///////////////////////////////////////
 // FTextHistory_AsTime
 
-FTextHistory_AsTime::FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsTime::FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: SourceDateTime(InSourceDateTime)
 	, TimeStyle(InTimeStyle)
 	, TimeZone(InTimeZone)
@@ -493,15 +509,17 @@ void FTextHistory_AsTime::Serialize(FArchive& Ar)
 	}
 }
 
-FText FTextHistory_AsTime::ToText() const
+FText FTextHistory_AsTime::ToText(bool bInAsSource) const
 {
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
+	
 	return FText::AsTime(SourceDateTime, TimeStyle, TimeZone, TargetCulture);
 }
 
 ///////////////////////////////////////
 // FTextHistory_AsDateTime
 
-FTextHistory_AsDateTime::FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture> InTargetCulture)
+FTextHistory_AsDateTime::FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe> InTargetCulture)
 	: SourceDateTime(InSourceDateTime)
 	, DateStyle(InDateStyle)
 	, TimeStyle(InTimeStyle)
@@ -547,7 +565,9 @@ void FTextHistory_AsDateTime::Serialize(FArchive& Ar)
 	}
 }
 
-FText FTextHistory_AsDateTime::ToText() const
+FText FTextHistory_AsDateTime::ToText(bool bInAsSource) const
 {
+	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
+	
 	return FText::AsDateTime(SourceDateTime, DateStyle, TimeStyle, TimeZone, TargetCulture);
 }

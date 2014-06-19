@@ -13,8 +13,7 @@
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
-#include "Editor/Kismet/Public/FindInBlueprints.h"
-#include "Editor/Kismet/Public/FindInBlueprintUtils.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Kismet2/CompilerResultsLog.h"
@@ -309,6 +308,17 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// compiling the blueprint will inherently dirty the package, but if there 
 	// weren't any changes to save before, there shouldn't be after
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
+#if WITH_EDITOR
+	if(GEditor)
+	{
+		// We do not want to regenerate a search Guid during loads, nothing has changed in the Blueprint and it is cached elsewhere
+		if(!bIsRegeneratingOnLoad)
+		{
+			BlueprintObj->SearchGuid = FGuid::NewGuid();
+			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(BlueprintObj);
+		}
+	}
+#endif
 
 	// The old class is either the GeneratedClass if we had an old successful compile, or the SkeletonGeneratedClass stub if there were previously fatal errors
 	UClass* OldClass = (BlueprintObj->GeneratedClass != NULL && (BlueprintObj->GeneratedClass != BlueprintObj->SkeletonGeneratedClass)) ? BlueprintObj->GeneratedClass : NULL;
@@ -1323,103 +1333,6 @@ void FKismetEditorUtilities::StripExternalComponents(class UBlueprint* Blueprint
 	UObject* GeneratedCDO = GeneratedClass->GetDefaultObject();
 
 	GeneratedCDO->Serialize(InvalidateRefsAr);
-}
-
-
-/* Add search meta information for a given class type*/
-template<class NodeType>
-inline void AddSearchMetaInfo( TArray<UObject::FAssetRegistryTag> &OutTags, const FName& Category, const UBlueprint* Blueprint)
-{
-	TArray<NodeType*> Nodes;
-	FBlueprintEditorUtils::GetAllNodesOfClass(Blueprint, Nodes );
-
-	//To avoid storing duplicate entries in the asset registry, if duplicates are found we indicate how many by appending "::#"
-	TMap<FString,int> AllPaths;
-	for(auto It(Nodes.CreateConstIterator());It;++It)
-	{
-		NodeType* Node = *It;
-
-		// Make sure we don't add MD for nodes that are going away soon
-		if( Node->GetOuter()->IsPendingKill() )
-		{
-			continue;
-		}
-
-		// If the result is empty, the node has no data to offer.
-		FString Result = FindInBlueprintsUtil::GetNodeTypePath(Node);
-		if(Result.IsEmpty())
-		{
-			continue;
-		}
-		Result += FString("::") + Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
-
-		if(int* Count = AllPaths.Find(Result))
-		{
-			(*Count)++;
-		}
-		else
-		{
-			AllPaths.Add(Result,1);
-		}
-	}
-
-	FString FinalString;
-	for(auto It(AllPaths.CreateConstIterator());It;++It)
-	{
-		FString Result = *It.Key();
-		if(It.Value()>1)
-		{
-			Result = FString::Printf(TEXT("%s::%i"), *It.Key(), int(It.Value()));
-		}
-		FinalString += Result + ",";
-
-	}
-	OutTags.Add( UObject::FAssetRegistryTag(Category, FinalString, UObject::FAssetRegistryTag::TT_Hidden) );
-}
-
-void FKismetEditorUtilities::AddInterfaceTags(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
-{
-	if (Blueprint->ImplementedInterfaces.Num() == 0)
-	{
-		return;
-	}
-	for (auto Iter(Blueprint->ImplementedInterfaces.CreateConstIterator()); Iter; Iter++)
-	{
-		const FBPInterfaceDescription& Description = *Iter;
-		if (Description.Interface->GetClass() != NULL)
-		{
-			FString Result = FString::Printf(TEXT("[%s] %s"), *Iter->Interface->GetSuperClass()->GetName(), *Iter->Interface->GetOuter()->GetName());
-			OutTags.Add(UObject::FAssetRegistryTag(TEXT("Interfaces"), Result, UObject::FAssetRegistryTag::TT_Hidden));
-		}
-	}
-}
-
-void FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
-{
-	//Add information about which functions are called
-	AddSearchMetaInfo<UK2Node_CallFunction>(OutTags, TEXT("CallsFunctions"), Blueprint);
-
-	//Add information about which macro instances are used
-	AddSearchMetaInfo<UK2Node_MacroInstance>(OutTags, TEXT("MacroInstances"), Blueprint);
-
-	//Add information about which events are used 
-	AddSearchMetaInfo<UK2Node_Event>(OutTags, TEXT("ImplementsFunction"), Blueprint);
-
-	//Add information about which variable gets are used
-	AddSearchMetaInfo<UK2Node_VariableGet>(OutTags, TEXT("VariableGet"), Blueprint);
-
-	//Add information about which variable sets are used
-	AddSearchMetaInfo<UK2Node_VariableSet>(OutTags, TEXT("VariableSet"), Blueprint);
-
-	//Add information about which delegates
-	AddSearchMetaInfo<UK2Node_BaseMCDelegate>(OutTags, TEXT("MulticastDelegate"), Blueprint);
-	AddSearchMetaInfo<UK2Node_DelegateSet>(OutTags, TEXT("DelegateSet"), Blueprint);
-
-	//Add information for all node comments
-	AddSearchMetaInfo<UEdGraphNode>(OutTags, TEXT("Comments"), Blueprint);
-	
-	//Add information about interfaces (these are not nodes as the other tags are and so require a custom search)
-	AddInterfaceTags(Blueprint, OutTags);
 }
 
 bool FKismetEditorUtilities::IsTrackedBlueprintParent(const UClass* ParentClass)

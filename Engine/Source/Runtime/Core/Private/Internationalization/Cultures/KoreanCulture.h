@@ -8,10 +8,10 @@
 class FKoreanCulture
 {
 public:
-	static TSharedRef< FCulture > Create()
+	static TSharedRef<FCulture, ESPMode::ThreadSafe> Create()
 	{
 #if UE_ENABLE_ICU
-		TSharedRef< FCulture > Culture = MakeShareable( new FCulture( FString("ko-KR") ) );
+		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture( FString("ko-KR") ) );
 #else
 		TArray<FString> NativeDigits;
 
@@ -147,7 +147,7 @@ public:
 			);
 
 
-		TSharedRef< FCulture > Culture = MakeShareable( new FCulture(
+		TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = MakeShareable( new FCulture(
 			  LOCTEXT("KoreanDisplayName", "Korean (Korea)")	//const FText DisplayName
 			, FString(TEXT("Korean (Korea)"))	//const FString EnglishName
 			, 1042	//const int KeyboardLayoutId

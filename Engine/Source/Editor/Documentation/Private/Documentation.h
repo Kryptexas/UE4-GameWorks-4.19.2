@@ -15,13 +15,13 @@ public:
 
 	virtual bool OpenHome() const override;
 
-	virtual bool OpenHome(const TSharedRef<FCulture>& Culture) const override;
+	virtual bool OpenHome(const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const override;
 
 	virtual bool OpenAPIHome() const override;
 
 	virtual bool Open( const FString& Link ) const override;
 
-	virtual bool Open(const FString& Link, const TSharedRef<FCulture>& Culture) const override;
+	virtual bool Open(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const override;
 
 	virtual TSharedRef< SWidget > CreateAnchor( const FString& Link, const FString& PreviewLink = FString(), const FString& PreviewExcerptName = FString() ) const override;
 
@@ -29,7 +29,7 @@ public:
 
 	virtual bool PageExists(const FString& Link) const override;
 
-	virtual bool PageExists(const FString& Link, const TSharedRef<FCulture>& Culture) const override;
+	virtual bool PageExists(const FString& Link, const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) const override;
 
 	virtual TSharedRef< class SToolTip > CreateToolTip( const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName ) const override;
 

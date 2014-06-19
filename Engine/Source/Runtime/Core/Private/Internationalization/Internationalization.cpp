@@ -107,15 +107,15 @@ void FInternationalization::SetCurrentCulture(const FString& Name)
 	}
 }
 
-TSharedRef< FCulture > FInternationalization::GetCurrentCulture() const
+TSharedRef<FCulture, ESPMode::ThreadSafe> FInternationalization::GetCurrentCulture() const
 {
 	return AllCultures[CurrentCultureIndex];
 }
 
-TSharedPtr< FCulture > FInternationalization::GetCulture(const FString& Name) const
+TSharedPtr<FCulture, ESPMode::ThreadSafe> FInternationalization::GetCulture(const FString& Name) const
 {
 	int32 CultureIndex = GetCultureIndex(Name);
-	return CultureIndex != -1 ? AllCultures[CultureIndex] : TSharedPtr<FCulture>();
+	return CultureIndex != -1 ? AllCultures[CultureIndex] : TSharedPtr<FCulture, ESPMode::ThreadSafe>();
 }
 
 int32 FInternationalization::GetCultureIndex(const FString& Name) const
@@ -553,7 +553,7 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 	}
 }
 
-void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture> >& OutAvailableCultures) const
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> >& OutAvailableCultures) const
 {
 	OutAvailableCultures.Reset();
 
@@ -628,11 +628,11 @@ void FInternationalization::PopulateAllCultures(void)
 	const FString DefaultLocaleName = FPlatformMisc::GetDefaultLocale();
 
 	// Find the default locale as a culture, if present..
-	auto FindDefaultPredicate = [DefaultLocaleName](const TSharedRef< FCulture >& Culture) -> bool
+	auto FindDefaultPredicate = [DefaultLocaleName](const TSharedRef<FCulture, ESPMode::ThreadSafe>& Culture) -> bool
 	{
 		return Culture->GetName() == DefaultLocaleName;
 	};
-	TSharedRef< FCulture>* FoundDefaultCulture = AllCultures.FindByPredicate(FindDefaultPredicate);
+	TSharedRef<FCulture, ESPMode::ThreadSafe>* FoundDefaultCulture = AllCultures.FindByPredicate(FindDefaultPredicate);
 	// If present, set default culture variable.
 	if(FoundDefaultCulture)
 	{

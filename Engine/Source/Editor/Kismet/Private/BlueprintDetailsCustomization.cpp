@@ -2896,62 +2896,7 @@ void FBlueprintGraphActionDetails::SetEntryAndResultNodes()
 
 	if (UEdGraph* NewTargetGraph = GetGraph())
 	{
-		// There are a few different potential configurations for editable graphs (FunctionEntry/Result, Tunnel Pairs, etc).
-		// Step through each case until we find one that matches what appears to be in the graph.  This could be improved if
-		// we want to add more robust typing to the graphs themselves
-
-		// Case 1:  Function Entry / Result Pair ------------------
-		TArray<UK2Node_FunctionEntry*> EntryNodes;
-		NewTargetGraph->GetNodesOfClass(EntryNodes);
-
-		if (EntryNodes.Num() > 0)
-		{
-			if (EntryNodes[0]->IsEditable())
-			{
-				FunctionEntryNodePtr = EntryNodes[0];
-
-				// Find a result node
-				TArray<UK2Node_FunctionResult*> ResultNodes;
-				NewTargetGraph->GetNodesOfClass(ResultNodes);
-
-				check(ResultNodes.Num() <= 1);
-				UK2Node_FunctionResult* ResultNode = ResultNodes.Num() ? ResultNodes[0] : NULL;
-				// Note:  we assume that if the entry is editable, the result is too (since the entry node is guaranteed to be there on graph creation, but the result isn't)
-				if( ResultNode )
-				{
-					FunctionResultNodePtr = ResultNode;
-				}
-			}
-		}
-		else
-		{
-			// Case 2:  Tunnel Pair -----------------------------------
-			TArray<UK2Node_Tunnel*> TunnelNodes;
-			NewTargetGraph->GetNodesOfClass(TunnelNodes);
-
-			if (TunnelNodes.Num() > 0)
-			{
-				// Iterate over the tunnel nodes, and try to find an entry and exit
-				for (int32 i = 0; i < TunnelNodes.Num(); i++)
-				{
-					UK2Node_Tunnel* Node = TunnelNodes[i];
-					// Composite nodes should never be considered for function entry / exit, since we're searching for a graph's terminals
-					if (Node->IsEditable() && !Node->IsA(UK2Node_Composite::StaticClass()))
-					{
-						if (Node->bCanHaveOutputs)
-						{
-							ensure(!FunctionEntryNodePtr.IsValid());
-							FunctionEntryNodePtr = Node;
-						}
-						else if (Node->bCanHaveInputs)
-						{
-							ensure(!FunctionResultNodePtr.IsValid());
-							FunctionResultNodePtr = Node;
-						}
-					}
-				}
-			}
-		}
+		FBlueprintEditorUtils::GetEntryAndResultNodes(NewTargetGraph, FunctionEntryNodePtr, FunctionResultNodePtr);
 	}
 	else if (UK2Node_EditablePinBase* Node = GetEditableNode())
 	{

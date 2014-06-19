@@ -132,6 +132,7 @@ public:
 	// FAssetEditorToolkit interface
 	virtual bool OnRequestClose() override;
 	virtual void ToolkitBroughtToFront() override;
+	virtual void SaveAsset_Execute() override;
 	// End of FAssetEditorToolkit 
 
 	// IToolkit interface

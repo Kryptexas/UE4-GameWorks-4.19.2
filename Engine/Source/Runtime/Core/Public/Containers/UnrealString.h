@@ -1420,6 +1420,59 @@ inline FString BytesToHex(const uint8* In, int32 Count)
 	return Result;
 }
 
+/**
+ * Checks if the TChar is a valid hex character
+ * @param Char		The character
+ * @return	True if in 0-9 and A-F ranges
+ */
+inline const bool CheckTCharIsHex( const TCHAR Char )
+{
+	return ( Char >= TEXT('0') && Char <= TEXT('9') ) || ( Char >= TEXT('A') && Char <= TEXT('F') ) || ( Char >= TEXT('a') && Char <= TEXT('f') );
+}
+
+/**
+ * Convert a TChar to equivalent hex value as a uint8
+ * @param Char		The character
+ * @return	The uint8 value of a hex character
+ */
+inline const uint8 TCharToNibble( const TCHAR Char )
+{
+	check( CheckTCharIsHex( Char ) );
+	if( Char >= TEXT('0') && Char <= TEXT('9') )
+	{
+		return Char - TEXT('0');
+	}
+	else if( Char >= TEXT('A') && Char <= TEXT('F') )
+	{
+		return ( Char - TEXT('A') ) + 10;
+	}
+	return ( Char - TEXT('a') ) + 10;
+}
+
+/** 
+ * Convert FString of Hex digits into the byte array.
+ * @param HexString		The FString of Hex values
+ * @param OutBytes		Ptr to memory must be preallocated large enough
+ * @return	The number of bytes copied
+ */
+inline int32 HexToBytes( const FString& HexString, uint8* OutBytes )
+{
+	int32 NumBytes = 0;
+	const bool bPaddNibble = ( HexString.Len() % 2 ) == 1;
+	const TCHAR* CharPos = *HexString;
+	if( bPaddNibble )
+	{
+		OutBytes[ NumBytes++ ] = TCharToNibble( *CharPos++ );
+	}
+	while( *CharPos )
+	{
+		OutBytes[ NumBytes ] = TCharToNibble( *CharPos++ ) << 4;
+		OutBytes[ NumBytes ] += TCharToNibble( *CharPos++ );
+		++NumBytes;
+	}
+	return NumBytes - 1;
+}
+
 /** A little helper to avoid trying to compile a printf with types that are not accepted by printf **/
 
 template<typename T, bool TIsNumeric>

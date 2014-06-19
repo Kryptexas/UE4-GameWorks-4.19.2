@@ -137,6 +137,6 @@ public:
 	 * @param  IconColorOut	A color out, further discerning the variable's type.
 	 * @return A icon representing the specified variable's type.
 	 */
-	BLUEPRINTGRAPH_API static FName GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
+	BLUEPRINTGRAPH_API static FName GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
 };
 

@@ -89,7 +89,7 @@ void FNewsFeedCache::LoadTitleFile( )
 	FString CultureString;
 
 	// get current culture
-	TSharedRef<FCulture> Culture = FInternationalization::Get().GetCurrentCulture();
+	TSharedRef<FCulture, ESPMode::ThreadSafe> Culture = FInternationalization::Get().GetCurrentCulture();
 
 	if (CurrentCultureSpec == ENewsFeedCultureSpec::Full)
 	{

@@ -18,6 +18,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "Kismet/GameplayStatics.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 #include "Editor/BlueprintGraph/Public/K2ActionMenuBuilder.h"
 #include "BlueprintEditorCommands.h"
 #include "BlueprintEditor.h"
@@ -6363,6 +6364,15 @@ bool FBlueprintEditor::IsFocusedGraphEditable() const
 		return IsEditable(FocusedGraph);
 	}
 	return true;
+}
+
+void FBlueprintEditor::SaveAsset_Execute()
+{
+	// Update the Blueprint's search data
+	GetBlueprintObj()->SearchGuid = FGuid::NewGuid();
+	FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(GetBlueprintObj());
+
+	IBlueprintEditor::SaveAsset_Execute();
 }
 
 /////////////////////////////////////////////////////

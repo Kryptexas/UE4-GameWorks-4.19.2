@@ -12,11 +12,11 @@
 #include <unicode/msgfmt.h>
 #include "ICUUtilities.h"
 
-FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
@@ -35,11 +35,11 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	return ResultText;
 }
 
-FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
@@ -58,11 +58,11 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	return ResultText;
 }
 
-FText FText::AsTimespan(const FTimespan& Time, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsTimespan(const FTimespan& Time, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	FText TimespanFormatPattern = NSLOCTEXT("Timespan", "FormatPattern", "{Hours}:{Minutes}:{Seconds}");
 
@@ -82,11 +82,11 @@ FText FText::AsTimespan(const FTimespan& Time, const TSharedPtr<FCulture>& Targe
 	return FText::Format(TimespanFormatPattern, TimeArguments);
 }
 
-FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	FInternationalization& I18N = FInternationalization::Get();
 	checkf(I18N.IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
-	TSharedPtr<FCulture> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
+	TSharedPtr<FCulture, ESPMode::ThreadSafe> Culture = TargetCulture.IsValid() ? TargetCulture : I18N.GetCurrentCulture();
 
 	int32 UNIXTimestamp = DateTime.ToUnixTimestamp();
 	UDate ICUDate = static_cast<double>(UNIXTimestamp) * U_MILLIS_PER_SECOND;
@@ -105,7 +105,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	return ResultText;
 }
 
-FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture)
+FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	FFormatNamedArguments Args;
@@ -135,7 +135,7 @@ int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type Com
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
-	const TSharedRef<const icu::Collator> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
 
 	icu::UnicodeString A;
 	ICUUtilities::Convert(DisplayString.Get(), A);
@@ -155,7 +155,7 @@ bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type Compar
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
-	const TSharedRef<const icu::Collator> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
 
 	icu::UnicodeString A;
 	ICUUtilities::Convert(DisplayString.Get(), A);
@@ -200,7 +200,7 @@ public:
 
 private:
 	const ETextComparisonLevel::Type ComparisonLevel;
-	const TSharedRef<const icu::Collator> ICUCollator;
+	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> ICUCollator;
 };
 
 FText::FSortPredicate::FSortPredicate(const ETextComparisonLevel::Type ComparisonLevel)
@@ -258,7 +258,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 	}
 }
 
-FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText)
+FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -310,7 +310,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 					ArgumentValue.TextValue->Rebuild();
 				}
 
-				FString NativeStringValue = ArgumentValue.TextValue->ToString();
+				FString NativeStringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
 				ArgumentValues.Add( icu::Formattable( ICUStringValue ) );
@@ -319,7 +319,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 		}
 	}
 
-	const FString& NativePatternString = Pattern.ToString();
+	const FString& NativePatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
 	ICUUtilities::Convert(NativePatternString, ICUPatternString);
 
@@ -347,7 +347,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 	return ResultText;
 }
 
-FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText)
+FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -391,7 +391,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 					ArgumentValue.TextValue->Rebuild();
 				}
 
-				FString NativeStringValue = ArgumentValue.TextValue->ToString();
+				FString NativeStringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
 				ArgumentValues.Add( icu::Formattable( ICUStringValue ) );
@@ -400,7 +400,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 		}
 	}
 
-	const FString& NativePatternString = Pattern.ToString();
+	const FString& NativePatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
 	ICUUtilities::Convert(NativePatternString, ICUPatternString);
 
@@ -433,7 +433,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 	return ResultText;
 }
 
-FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentData > InArguments, bool bInRebuildText)
+FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -485,7 +485,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 					ArgumentValue.TextValue->Rebuild();
 				}
 
-				FString StringValue = ArgumentValue.TextValue->ToString();
+				FString StringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
 				ICUUtilities::Convert(StringValue, ICUStringValue, false);
 				ArgumentValues.Add( ICUStringValue );
@@ -494,7 +494,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 		}
 	}
 
-	const FString& PatternString = Pattern.ToString();
+	const FString& PatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
 	ICUUtilities::Convert(PatternString, ICUPatternString, false);
 
@@ -529,17 +529,17 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 
 FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
 {
-	return FormatInternal(Pattern, Arguments, false);
+	return FormatInternal(Pattern, Arguments, false, false);
 }
 
 FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
 {
-	return FormatInternal(Pattern, Arguments, false);
+	return FormatInternal(Pattern, Arguments, false, false);
 }
 
 FText FText::Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments)
 {
-	return FormatInternal(Pattern, InArguments, false);
+	return FormatInternal(Pattern, InArguments, false, false);
 }
 
 #endif

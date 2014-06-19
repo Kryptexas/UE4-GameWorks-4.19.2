@@ -131,9 +131,6 @@ public:
 	/** Run over the components in the blueprint, and then remove any that fall outside this blueprint's scope (e.g. components brought over after reparenting from another class) */
 	static void StripExternalComponents(class UBlueprint* Blueprint);
 
-	/** Generate asset registry tags for this Blueprint */
-	static void GetAssetRegistryTagsForBlueprint(const class UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags);
-
 	/** Whether or not the specified actor is a valid target for bound events */
 	static bool IsActorValidForLevelScript(const AActor* Actor);
 

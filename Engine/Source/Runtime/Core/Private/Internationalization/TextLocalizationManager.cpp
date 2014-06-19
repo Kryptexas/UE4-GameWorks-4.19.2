@@ -87,11 +87,11 @@ void EndInitTextLocalization()
 
 			LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
-			TArray< TSharedPtr<FCulture> > AvailableCultures;
+			TArray< TSharedPtr<FCulture, ESPMode::ThreadSafe> > AvailableCultures;
 			I18N.GetCulturesWithAvailableLocalization(LocalizationPaths, AvailableCultures);
 
 			// If we don't have an available translation for the current culture, fallback to generic English
-			TSharedPtr<FCulture> TargetCulture = I18N.GetCulture(CultureName);
+			TSharedPtr<FCulture, ESPMode::ThreadSafe> TargetCulture = I18N.GetCulture(CultureName);
 			if(!TargetCulture.IsValid() || !AvailableCultures.Contains(TargetCulture))
 			{
 				UE_LOG(LogTextLocalizationManager, Warning, TEXT("The selected culture '%s' is not available; falling back to 'en'"), *CultureName);
@@ -117,7 +117,7 @@ FTextLocalizationManager& FTextLocalizationManager::Get()
 	return *GTextLocalizationManager;
 }
 
-const TSharedRef<FString>* FTextLocalizationManager::FTextLookupTable::GetString(const FString& Namespace, const FString& Key, const uint32 SourceStringHash) const
+const TSharedRef<FString, ESPMode::ThreadSafe>* FTextLocalizationManager::FTextLookupTable::GetString(const FString& Namespace, const FString& Key, const uint32 SourceStringHash) const
 {
 	const FKeyTable* const KeyTable = NamespaceTable.Find(Namespace);
 	if( KeyTable )
@@ -426,7 +426,7 @@ void FTextLocalizationManager::OnCultureChanged()
 	LoadResources(ShouldLoadEditor, ShouldLoadGame);
 }
 
-TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key, const FString* const SourceString )
+TSharedPtr<FString, ESPMode::ThreadSafe> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key, const FString* const SourceString )
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
 
@@ -444,7 +444,7 @@ TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespa
 	return NULL;
 }
 
-TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace, const FString& Key, const FString* const SourceString)
+TSharedRef<FString, ESPMode::ThreadSafe> FTextLocalizationManager::GetString(const FString& Namespace, const FString& Key, const FString* const SourceString)
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
 
@@ -508,7 +508,7 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 			UE_LOG(LogTextLocalizationManager, Verbose, TEXT("An attempt was made to get a localized string (Namespace:%s, Key:%s, Source:%s), but it did not exist."), *Namespace, *Key, SourceString ? **SourceString : TEXT(""));
 		}
 
-		const TSharedRef<FString> UnlocalizedString = MakeShareable( new FString( SourceString ? **SourceString : TEXT("") ) );
+		const TSharedRef<FString, ESPMode::ThreadSafe> UnlocalizedString = MakeShareable( new FString( SourceString ? **SourceString : TEXT("") ) );
 
 		// If live-culture-swap is enabled or the system is uninitialized - make entries so that they can be updated when system is initialized or a culture swap occurs.
 		CA_SUPPRESS(6236)
@@ -560,8 +560,10 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 	}
 }
 
-void FTextLocalizationManager::FindKeyNamespaceFromDisplayString(TSharedRef<FString> InDisplayString, TSharedPtr<FString>& OutNamespace, TSharedPtr<FString>& OutKey)
+void FTextLocalizationManager::FindKeyNamespaceFromDisplayString(TSharedRef<FString, ESPMode::ThreadSafe> InDisplayString, TSharedPtr<FString, ESPMode::ThreadSafe>& OutNamespace, TSharedPtr<FString, ESPMode::ThreadSafe>& OutKey)
 {
+	FScopeLock ScopeLock( &SynchronizationObject );
+
 	FNamespaceKeyEntry* NamespaceKeyEntry = ReverseLiveTable.Find(InDisplayString);
 
 	if(NamespaceKeyEntry)

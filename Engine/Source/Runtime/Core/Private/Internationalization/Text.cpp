@@ -25,16 +25,16 @@ FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
 
 const FString* FTextInspector::GetNamespace(const FText& Text)
 {
-	TSharedPtr< FString > Namespace;
-	TSharedPtr< FString > Key;
+	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
 	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
 	return Namespace.Get();
 }
 
 const FString* FTextInspector::GetKey(const FText& Text)
 {
-	TSharedPtr< FString > Namespace;
-	TSharedPtr< FString > Key;
+	TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+	TSharedPtr< FString, ESPMode::ThreadSafe > Key;
 	FTextLocalizationManager::Get().FindKeyNamespaceFromDisplayString(Text.DisplayString, Namespace, Key);
 	return Key.Get();
 }
@@ -461,7 +461,7 @@ FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText
 // on some platforms (PS4) int64_t is a typedef of long.  However, UE4 typedefs int64 as long long.  Since these are distinct types, and ICU only has a constructor for int64_t, casting to int64 causes a compile error from ambiguous function call, 
 // so cast to int64_t's where appropriate here to avoid problems.
 
-#define DEF_ASNUMBER_CAST(T1, T2) FText FText::AsNumber(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture) { return FText::AsNumberTemplate<T1, T2>(Val, Options, TargetCulture); }
+#define DEF_ASNUMBER_CAST(T1, T2) FText FText::AsNumber(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsNumberTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASNUMBER(T) DEF_ASNUMBER_CAST(T, T)
 DEF_ASNUMBER(float)
 DEF_ASNUMBER(double)
@@ -479,7 +479,7 @@ DEF_ASNUMBER_CAST(uint64, int64_t)
 * Generate an FText that represents the passed number as currency in the current culture
 */
 
-#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, Options, TargetCulture); }
+#define DEF_ASCURRENCY_CAST(T1, T2) FText FText::AsCurrency(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsCurrencyTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASCURRENCY(T) DEF_ASCURRENCY_CAST(T, T)
 DEF_ASCURRENCY(float)
 	DEF_ASCURRENCY(double)
@@ -497,7 +497,7 @@ DEF_ASCURRENCY(float)
 * Generate an FText that represents the passed number as a percentage in the current culture
 */
 
-#define DEF_ASPERCENT_CAST(T1, T2) FText FText::AsPercent(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture>& TargetCulture) { return FText::AsPercentTemplate<T1, T2>(Val, Options, TargetCulture); }
+#define DEF_ASPERCENT_CAST(T1, T2) FText FText::AsPercent(T1 Val, const FNumberFormattingOptions* const Options, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture) { return FText::AsPercentTemplate<T1, T2>(Val, Options, TargetCulture); }
 #define DEF_ASPERCENT(T) DEF_ASPERCENT_CAST(T, T)
 DEF_ASPERCENT(double)
 DEF_ASPERCENT(float)
@@ -505,7 +505,7 @@ DEF_ASPERCENT(float)
 
 bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutText, const FString* const SourceString )
 {
-	TSharedPtr< FString > FoundString = FTextLocalizationManager::Get().FindString( Namespace, Key );
+	TSharedPtr< FString, ESPMode::ThreadSafe > FoundString = FTextLocalizationManager::Get().FindString( Namespace, Key );
 
 	if ( FoundString.IsValid() )
 	{
@@ -534,8 +534,8 @@ CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 		// Namespaces and keys are no longer stored in the FText, we need to read them in and discard
 		if( Ar.UE4Ver() >= VER_UE4_ADDED_NAMESPACE_AND_KEY_DATA_TO_FTEXT )
 		{
-			TSharedPtr< FString > Namespace;
-			TSharedPtr< FString > Key;
+			TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
+			TSharedPtr< FString, ESPMode::ThreadSafe > Key;
 
 			Namespace = MakeShareable( new FString() );
 			Ar << *Namespace;
@@ -715,24 +715,29 @@ const FString& FText::ToString() const
 	return DisplayString.Get();
 }
 
+FString FText::BuildSourceString() const
+{
+	return History->ToText(true).ToString();
+}
+
 void FText::Rebuild() const
 {
 	if(History.IsValid() && History->IsOutOfDate(Revision))
 	{
 		Revision = FTextLocalizationManager::Get().GetHeadCultureRevision();
 		
-		DisplayString.Get() = History->ToText().DisplayString.Get();
+		DisplayString.Get() = History->ToText(false).DisplayString.Get();
 	}
 }
 
-TSharedPtr<FString> FText::GetSourceString() const
+TSharedPtr< FString, ESPMode::ThreadSafe > FText::GetSourceString() const
 {
 	if(History.IsValid())
 	{
-		TSharedPtr<FString> SourceString = History->GetSourceString();
+		TSharedPtr< FString, ESPMode::ThreadSafe > SourceString = History->GetSourceString();
 		if(SourceString.IsValid())
 		{
-			return History->GetSourceString();
+			return SourceString;
 		}
 	}
 

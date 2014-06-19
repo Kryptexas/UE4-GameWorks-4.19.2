@@ -274,7 +274,7 @@ FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
 	return ReturnIconName;
 }
 
-FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
+FName UK2Node_Variable::GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
 {
 	FName IconBrush = TEXT("Kismet.AllClasses.VariableIcon");
 
@@ -287,10 +287,9 @@ FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinea
 	}
 	else if(InPinType.PinSubCategoryObject.IsValid())
 	{
-		UClass* VarClass = FindObject<UClass>(ANY_PACKAGE, *InPinType.PinSubCategoryObject->GetName());
-		if( VarClass )
+		if(UClass* Class = Cast<UClass>(InPinType.PinSubCategoryObject.Get()))
 		{
-			IconBrush = FClassIconFinder::FindIconNameForClass( VarClass );
+			IconBrush = FClassIconFinder::FindIconNameForClass( Class );
 		}
 	}
 

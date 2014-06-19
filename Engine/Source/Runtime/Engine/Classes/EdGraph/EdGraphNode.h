@@ -374,6 +374,12 @@ public:
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 
+	/**
+	 * Add's node data to the search metadata, override to collect more data that may be desirable to search for
+	 *
+	 * @param OutTaggedMetaData		Built array of tagged meta data for the node
+	 */
+	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const;
 #endif // WITH_EDITOR
 
 };
