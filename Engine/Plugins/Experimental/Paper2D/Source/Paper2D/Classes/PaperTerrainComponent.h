@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SpriteDrawCall.h"
 #include "PaperTerrainComponent.generated.h"
 
 /**
@@ -32,12 +33,13 @@ public:
 	int32 RandomSeed;
 
 protected:
-
-	UPROPERTY(Transient)
-	TArray<class UPaperRenderComponent*> SpawnedComponents;
+	/** Number of steps per spline segment to place in the reparameterization table */
+	UPROPERTY(EditAnywhere, Category=Sprite, meta=(ClampMin=4, UIMin=4))
+	int32 ReparamStepsPerSegment;
 
 public:
 	// UObject interface
+	virtual const UObject* AdditionalStatObject() const override;
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
@@ -48,10 +50,18 @@ public:
 	virtual void OnUnregister() override;
 	// End of UActorComponent interface
 
+	// UPrimitiveComponent interface
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	// End of UPrimitiveComponent interface
+
 protected:
 	void SpawnSegment(class UPaperSprite* NewSprite, float Direction, float& RemainingSegStart, float& RemainingSegEnd);
 
 	void OnSplineEdited();
-	void DestroyExistingStuff();
+
+	TArray<FSpriteDrawCallRecord> GeneratedSpriteGeometry;
+
+	FTransform GetTransformAtDistance(float InDistance) const;
 };
 
