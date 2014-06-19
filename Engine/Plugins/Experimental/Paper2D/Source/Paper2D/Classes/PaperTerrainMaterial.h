@@ -15,12 +15,12 @@ class PAPER2D_API UPaperTerrainMaterial : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category = Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
 	UPaperSprite* LeftCap;
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
 	TArray<UPaperSprite*> BodySegments;
 
-	UPROPERTY(Category = Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(DisplayThumbnail = "true"))
 	UPaperSprite* RightCap;
 };
