@@ -1724,6 +1724,34 @@ bool UEditorEngine::ShouldAbortBecauseOfPIEWorld() const
 	return false;
 }
 
+bool UEditorEngine::ShouldAbortBecauseOfUnsavedWorld() const
+{
+	// If an unsaved world exists that would be lost in a map transition, give the user the option to cancel a map load.
+
+	// First check if we have a world and it is dirty
+	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
+	if (EditorWorld && EditorWorld->GetOutermost()->IsDirty())
+	{
+		// Now check if the world is in a path that can be saved (otherwise it is in something like the transient package or temp)
+		const FString PackageName = EditorWorld->GetOutermost()->GetName();
+		const bool bIncludeReadOnlyRoots = false;
+		if ( FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots) )
+		{
+			// Now check if the file exists on disk. If it does, it won't be "lost" when GC'd.
+			if ( !FPackageName::DoesPackageExist(PackageName) )
+			{
+				// This world will be completely lost if a map transition happens. Warn the user that this is happening and ask him/her how to proceed.
+				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(EditorWorld->GetName()))))
+				{
+					// User doesn't want to lose the world -- abort the load.
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 /**
  * Prompts the user to save the current map if necessary, then creates a new (blank) map.
  */
@@ -1743,6 +1771,11 @@ void UEditorEngine::CreateNewMapForEditing()
 	if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
 	{
 		// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+		return;
+	}
+
+	if ( ShouldAbortBecauseOfUnsavedWorld() )
+	{
 		return;
 	}
 	

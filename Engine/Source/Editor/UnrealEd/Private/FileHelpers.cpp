@@ -1679,6 +1679,12 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
+	// If a level is in memory but never saved to disk, warn the user that the level will be lost.
+	if (GEditor->ShouldAbortBecauseOfUnsavedWorld())
+	{
+		return;
+	}
+
 	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
 	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
 	{

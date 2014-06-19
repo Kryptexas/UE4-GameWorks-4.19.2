@@ -2172,6 +2172,13 @@ public:
 	bool ShouldAbortBecauseOfPIEWorld() const;
 
 	/**
+	 * If an unsaved world exists that would be lost in a map transition, give the user the option to cancel a map load.
+	 *
+	 * @return				true if an unsaved world exists and the user refused to continue, false otherwise.
+	 */
+	bool ShouldAbortBecauseOfUnsavedWorld() const;
+
+	/**
 	 * Assigns a new label to an actor. If the name exists it will be appended with a number to make it unique. Actor labels are only available in development builds.
 	 *
 	 * @param	Actor			The actor to change the label of
