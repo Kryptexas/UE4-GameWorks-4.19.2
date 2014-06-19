@@ -90,6 +90,11 @@ void UTextBlock::OnDesignerDoubleClicked()
 	MyEditorTextBlock->EnterEditingMode();
 }
 
+const FSlateBrush* UTextBlock::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.TextBlock");
+}
+
 #endif
 
 /////////////////////////////////////////////////////

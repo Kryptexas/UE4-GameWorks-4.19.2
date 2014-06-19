@@ -3,3 +3,5 @@
 #pragma once
 
 #include "UMG.h"
+
+#include "UMGStyle.h"

@@ -202,4 +202,9 @@ void UCanvasPanel::ConnectEditorData()
 	}
 }
 
+const FSlateBrush* UCanvasPanel::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Canvas");
+}
+
 #endif

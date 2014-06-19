@@ -67,6 +67,16 @@ FReply UImage::HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEv
 	return FReply::Unhandled();
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UImage::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Image");
+}
+
+#endif
+
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

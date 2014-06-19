@@ -56,7 +56,7 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 	;
 	
-	return MyEditableText.ToSharedRef();
+	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
 
 void UEditableText::SyncronizeProperties()

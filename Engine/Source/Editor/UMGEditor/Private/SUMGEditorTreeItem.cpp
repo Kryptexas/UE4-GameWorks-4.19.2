@@ -27,14 +27,30 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< S
 		.Padding(2.0f)
 		.Content()
 		[
-			SNew(SInlineEditableTextBlock)
-			.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
-			.Font(this, &SUMGEditorTreeItem::GetItemFont)
-			.Text(this, &SUMGEditorTreeItem::GetItemText)
-			.HighlightText(InArgs._HighlightText)
-			.OnVerifyTextChanged(this, &SUMGEditorTreeItem::OnVerifyNameTextChanged)
-			.OnTextCommitted(this, &SUMGEditorTreeItem::OnNameTextCommited)
-			.IsSelected(this, &SUMGEditorTreeItem::IsSelectedExclusively)
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SImage)
+				.ColorAndOpacity(FLinearColor(1,1,1,0.5))
+				.Image(Item->GetEditorIcon())
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.Padding(2, 0, 0, 0)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SInlineEditableTextBlock)
+				.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
+				.Font(this, &SUMGEditorTreeItem::GetItemFont)
+				.Text(this, &SUMGEditorTreeItem::GetItemText)
+				.HighlightText(InArgs._HighlightText)
+				.OnVerifyTextChanged(this, &SUMGEditorTreeItem::OnVerifyNameTextChanged)
+				.OnTextCommitted(this, &SUMGEditorTreeItem::OnNameTextCommited)
+				.IsSelected(this, &SUMGEditorTreeItem::IsSelectedExclusively)
+			]
 		],
 		InOwnerTableView);
 }
@@ -72,7 +88,7 @@ FSlateFontInfo SUMGEditorTreeItem::GetItemFont() const
 	if ( !Item->IsGeneratedName() && Item->bIsVariable )
 	{
 		// TODO UMG Hacky move into style area
-		return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9);
+		return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10);
 	}
 	else
 	{

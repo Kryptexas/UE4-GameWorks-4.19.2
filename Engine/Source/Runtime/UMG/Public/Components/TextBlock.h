@@ -63,6 +63,10 @@ public:
 	// End of UWidget interface
 
 #if WITH_EDITOR
+	// UWidget interface
+	virtual const FSlateBrush* GetEditorIcon() override;
+	// End UWidget interface
+
 	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
 
 	virtual void OnDesignerDoubleClicked() override;

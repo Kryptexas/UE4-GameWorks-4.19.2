@@ -115,6 +115,7 @@ UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
+
 void UHorizontalBox::ConnectEditorData()
 {
 	for ( UHorizontalBoxSlot* Slot : Slots )
@@ -123,4 +124,10 @@ void UHorizontalBox::ConnectEditorData()
 		Slot->Parent = this;
 	}
 }
+
+const FSlateBrush* UHorizontalBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.HorizontalBox");
+}
+
 #endif

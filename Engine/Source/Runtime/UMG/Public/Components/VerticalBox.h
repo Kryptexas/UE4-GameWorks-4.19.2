@@ -33,6 +33,7 @@ class UMG_API UVerticalBox : public UPanelWidget
 
 #if WITH_EDITOR
 	// UWidget interface
+	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual void ConnectEditorData() override;
 	// End UWidget interface
 #endif

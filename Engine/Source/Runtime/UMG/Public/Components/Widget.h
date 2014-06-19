@@ -149,6 +149,10 @@ public:
 	/** Gets the label to display to the user for this widget. */
 	FString GetLabel() const;
 
+	/** Gets the editor icon */
+	virtual const FSlateBrush* GetEditorIcon();
+
+	//TODO UMG These are not used yet, and may never be.
 	virtual void OnDesignerSelected() { }
 	virtual void OnDesignerDeselected() { }
 	virtual void OnDesignerClicked() { }

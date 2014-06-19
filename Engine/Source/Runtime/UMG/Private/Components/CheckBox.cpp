@@ -111,6 +111,15 @@ void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewSt
 	}
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UCheckBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.CheckBox");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

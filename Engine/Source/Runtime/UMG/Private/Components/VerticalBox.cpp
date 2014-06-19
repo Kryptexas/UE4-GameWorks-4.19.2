@@ -115,6 +115,7 @@ UVerticalBoxSlot* UVerticalBox::AddSlot(UWidget* Content)
 }
 
 #if WITH_EDITOR
+
 void UVerticalBox::ConnectEditorData()
 {
 	for ( UVerticalBoxSlot* Slot : Slots )
@@ -129,4 +130,10 @@ void UVerticalBox::ConnectEditorData()
 		//TODO UMG Should we auto delete empty slots?
 	}
 }
+
+const FSlateBrush* UVerticalBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.VerticalBox");
+}
+
 #endif

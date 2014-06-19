@@ -136,6 +136,14 @@ bool UButton::IsPressed() const
 	return MyButton->IsPressed();
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UButton::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Button");
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 

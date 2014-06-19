@@ -89,6 +89,15 @@ void UEditableTextBlock::SlateOnTextChanged(const FText& Text)
 	OnTextChanged.Broadcast(Text);
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UEditableTextBlock::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.EditableTextBlock");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

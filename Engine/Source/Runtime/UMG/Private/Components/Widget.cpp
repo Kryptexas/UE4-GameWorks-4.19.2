@@ -145,6 +145,11 @@ FString UWidget::GetLabel() const
 	}
 }
 
+const FSlateBrush* UWidget::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget");
+}
+
 TSharedRef<SWidget> UWidget::GetToolboxPreviewWidget() const
 {
 	return SNew(SImage);
