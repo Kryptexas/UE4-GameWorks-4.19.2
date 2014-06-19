@@ -47,6 +47,15 @@ void UProgressBar::SetPercent(float InPercent)
 	return MyProgressBar->SetPercent(InPercent);
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UProgressBar::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.ProgressBar");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

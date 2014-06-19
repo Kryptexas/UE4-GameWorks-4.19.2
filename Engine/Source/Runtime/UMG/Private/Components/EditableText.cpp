@@ -101,6 +101,15 @@ void UEditableText::HandleOnTextCommitted(const FText& Text, ETextCommit::Type C
 	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UEditableText::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.EditableText");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

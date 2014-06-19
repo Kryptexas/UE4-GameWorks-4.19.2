@@ -246,15 +246,22 @@ class UMG_API UUserWidget : public UWidget
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
-
+	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
+	/** Creates this widget and all children and returns them. */
 	TSharedRef<SWidget> MakeWidget();
+
+	/** Creates a fullscreen host widget, that wraps this widget. */
 	TSharedRef<SWidget> MakeFullScreenWidget();
 
+	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
 
+	/** @returns The slate widget corresponding to a given name */
 	TSharedPtr<SWidget> GetWidgetFromName(const FString& Name) const;
+
+	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetHandleFromName(const FString& Name) const;
 
 protected:
