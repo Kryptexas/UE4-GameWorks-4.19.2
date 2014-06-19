@@ -90,7 +90,8 @@ void FMorphTargetBinaryImport::ImportMorphLODModel( UMorphTarget* MorphTarget, c
 			{
 				// populate the vertex data for the morph target mesh using its base mesh
 				// and the newly imported mesh				
-				MorphTarget->PostProcess( TargetSkelMesh, BaseMeshRawData, TargetMeshRawData, LODIndex );
+				// @todo : bCompareNormal is not used in this function
+				MorphTarget->PostProcess( TargetSkelMesh, BaseMeshRawData, TargetMeshRawData, LODIndex, false );
 			}
 
 			Warn->EndSlowTask();

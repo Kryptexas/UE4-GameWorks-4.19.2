@@ -39,18 +39,18 @@ bool UMorphTarget::HasDataForLOD(int32 LODIndex)
 }
 
 
-void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex )
+void UMorphTarget::PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal )
 {
 	// @todo anim: update BaseSkelMesh with my information
 	NewMesh->RegisterMorphTarget(this);
 
-	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex );
+	CreateMorphMeshStreams( BaseSource, TargetSource, LODIndex, bCompareNormal );
 
 	MarkPackageDirty();
 }
 
 
-void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex )
+void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal )
 {
 	check(BaseSource.IsValidTarget(TargetSource));
 
@@ -119,7 +119,11 @@ void UMorphTarget::CreateMorphMeshStreams( const FMorphMeshRawSource& BaseSource
 					FVector NormalDeltaZ (VTarget.TanZ - VBase.TanZ);
 
 					// check if position actually changed much
-					if( PositionDelta.Size() > THRESH_POINTS_ARE_NEAR || NormalDeltaZ.Size() > 0.1f )
+					if( PositionDelta.Size() > THRESH_POINTS_ARE_NEAR || 
+						// since we can't get imported morphtarget normal from FBX
+						// we can't compare normal unless it's calculated
+						// this is special flag to ignore normal diff
+						( bCompareNormal && NormalDeltaZ.Size() > 0.1f) )
 					{
 						// create a new entry
 						FVertexAnimDelta NewVertex;

@@ -2788,7 +2788,7 @@ void UnFbx::FFbxImporter::ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMesh
 		FMorphMeshRawSource TargetMeshRawData( TmpSkeletalMesh );
 		FMorphMeshRawSource BaseMeshRawData( BaseSkelMesh, LODIndex );
 
-		MorphTarget->PostProcess( BaseSkelMesh, BaseMeshRawData, TargetMeshRawData, LODIndex );
+		MorphTarget->PostProcess( BaseSkelMesh, BaseMeshRawData, TargetMeshRawData, LODIndex, ImportOptions->ShouldImportNormals() == false );
 	}
 
 	GWarn->EndSlowTask();
