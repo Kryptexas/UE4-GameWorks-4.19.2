@@ -13,16 +13,6 @@
 #include <StoreKit/SKPaymentQueue.h>
 
 
-struct FMicrotransactionPurchaseInfo
-{
-	FString Identifier;
-	FString DisplayName;
-	FString DisplayDescription;
-	FString DisplayPrice;
-	FString CurrencyType;
-};
-
-
 @interface FStoreKitHelper : NSObject<SKProductsRequestDelegate, SKPaymentTransactionObserver>
 {
 };
@@ -65,6 +55,38 @@ public:
 	 * Process a response from the StoreKit
 	 */
 	void ProcessProductsResponse( SKProductsResponse* Response );
+
+
+	/**
+	 * Micro-transaction purchase information
+	 */
+	struct FMicrotransactionPurchaseInfo
+	{
+		FMicrotransactionPurchaseInfo(FString InProductIdentifier)
+		{
+			Identifier = InProductIdentifier;
+			bWasUpdatedByServer = false;
+		}
+
+		// The product identifier that matches the one in iTunesConnect
+		FString Identifier;
+
+		// Display name, gathered from querying the Apple Store
+		FString DisplayName;
+
+		// Display description, gathered from querying the Apple Store
+		FString DisplayDescription;
+
+		// Product price, gathered from querying the Apple Store
+		FString DisplayPrice;
+
+		// The currency type for this MT, gathered from querying the Apple Store
+		FString CurrencyType;
+
+		// flag that lets the user know if the data has been completed from the server
+		bool bWasUpdatedByServer;
+	};
+
 
 private:
 	FStoreKitHelper* StoreHelper;

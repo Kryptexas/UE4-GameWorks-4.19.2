@@ -139,9 +139,13 @@ bool FOnlineSubsystemIOS::Init()
 		IdentityInterface = MakeShareable(new FOnlineIdentityIOS());
 		FriendsInterface = MakeShareable(new FOnlineFriendsIOS(this));
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsIOS(this));
-		StoreInterface = MakeShareable(new FOnlineStoreInterfaceIOS());
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsIOS(this));
 		ExternalUIInterface = MakeShareable(new FOnlineExternalUIIOS());
+	}
+
+	if( IsInAppPurchasingEnabled() )
+	{
+		StoreInterface = MakeShareable(new FOnlineStoreInterfaceIOS());
 	}
 
 	return bSuccessfullyStartedUp;
@@ -179,4 +183,11 @@ bool FOnlineSubsystemIOS::IsEnabled()
 	bool bEnableGameCenter = false;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableGameCenterSupport"), bEnableGameCenter, GEngineIni);
 	return bEnableGameCenter;
+}
+
+bool FOnlineSubsystemIOS::IsInAppPurchasingEnabled()
+{
+	bool bEnableIAP = false;
+	GConfig->GetBool(TEXT("OnlineSubsystemIOS.Store"), TEXT("bSupportInAppPurchasing"), bEnableIAP, GEngineIni);
+	return bEnableIAP;
 }

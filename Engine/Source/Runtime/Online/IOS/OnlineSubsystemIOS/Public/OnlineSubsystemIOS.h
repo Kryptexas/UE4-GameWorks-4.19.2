@@ -54,6 +54,12 @@ PACKAGE_SCOPE:
 	 */
 	bool IsEnabled();
 
+	/**
+	* Is IAP available for use
+	* @return true if IAP should be available, false otherwise
+	*/
+	bool IsInAppPurchasingEnabled();
+
 private:
 
 	/** Online async task thread */
