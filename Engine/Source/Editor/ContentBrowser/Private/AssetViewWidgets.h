@@ -70,6 +70,9 @@ public:
 		/** If true, display the thumbnail edit mode UI */
 		SLATE_ATTRIBUTE( bool, ThumbnailEditMode )
 
+		/** The string in the title to highlight (used when searching by string) */
+		SLATE_ATTRIBUTE(FText, HighlightText)
+
 		/** Delegate for when assets are dropped on this item, if it is a folder */
 		SLATE_EVENT( FOnAssetsDragDropped, OnAssetsDragDropped )
 
@@ -209,6 +212,9 @@ protected:
 
 	/** If true, display the thumbnail edit mode UI */
 	TAttribute<bool> ThumbnailEditMode;
+
+	/** The substring to be highlighted in the name and tooltip path */
+	TAttribute<FText> HighlightText;
 
 	/**
 	 * A map of class names to their important asset registry tags and values.

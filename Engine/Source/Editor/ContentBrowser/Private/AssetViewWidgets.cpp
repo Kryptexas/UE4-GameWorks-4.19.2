@@ -127,6 +127,7 @@ void SAssetViewItem::Construct( const FArguments& InArgs )
 	OnItemDestroyed = InArgs._OnItemDestroyed;
 	ShouldAllowToolTip = InArgs._ShouldAllowToolTip;
 	ThumbnailEditMode = InArgs._ThumbnailEditMode;
+	HighlightText = InArgs._HighlightText;
 	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
 	OnPathsDragDropped = InArgs._OnPathsDragDropped;
 	OnFilesDragDropped = InArgs._OnFilesDragDropped;
@@ -536,6 +537,7 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock).Text(ClassText)
+								.HighlightText(HighlightText)
 							]
 						]
 
@@ -738,6 +740,7 @@ void SAssetViewItem::AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox
 		[
 			SNew(STextBlock) .Text( Value )
 			.ColorAndOpacity(bImportant ? ImportantStyle.GetForegroundColor() : FSlateColor::UseForeground())
+			.HighlightText((Key.ToString() == TEXT("Path")) ? HighlightText : FText())
 		]
 	];
 }
@@ -909,6 +912,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
+		.HighlightText(InArgs._HighlightText)
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
@@ -1046,6 +1050,7 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 					SAssignNew(ClassText, STextBlock)
 					.Font(FEditorStyle::GetFontStyle("ContentBrowser.AssetListViewClassFont"))
 					.Text(GetAssetClassText())
+					.HighlightText(InArgs._HighlightText)
 				]
 			]
 		]
@@ -1108,6 +1113,7 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
 		.ShouldAllowToolTip(InArgs._ShouldAllowToolTip)
 		.ThumbnailEditMode(InArgs._ThumbnailEditMode)
+		.HighlightText(InArgs._HighlightText)
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
@@ -1296,6 +1302,7 @@ void SAssetColumnItem::Construct( const FArguments& InArgs )
 		.OnRenameCommit(InArgs._OnRenameCommit)
 		.OnVerifyRenameCommit(InArgs._OnVerifyRenameCommit)
 		.OnItemDestroyed(InArgs._OnItemDestroyed)
+		.HighlightText(InArgs._HighlightText)
 		.OnAssetsDragDropped(InArgs._OnAssetsDragDropped)
 		.OnPathsDragDropped(InArgs._OnPathsDragDropped)
 		.OnFilesDragDropped(InArgs._OnFilesDragDropped)
@@ -1401,13 +1408,15 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 	{
 		Content = SAssignNew(ClassText, STextBlock)
 			.ToolTipText( this, &SAssetColumnItem::GetAssetClassText )
-			.Text( GetAssetClassText() );
+			.Text( GetAssetClassText() )
+			.HighlightText( HighlightText );
 	}
 	else if ( ColumnName == "Path" )
 	{
 		Content = SAssignNew(PathText, STextBlock)
 			.ToolTipText( this, &SAssetColumnItem::GetAssetPathText )
-			.Text( GetAssetPathText() );
+			.Text( GetAssetPathText() )
+			.HighlightText( HighlightText );
 	}
 	else
 	{
