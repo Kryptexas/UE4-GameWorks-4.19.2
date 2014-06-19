@@ -2058,14 +2058,36 @@ UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> Compon
 	return FoundComponent;
 }
 
+TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const
+{
+	if (ComponentClass == UActorComponent::StaticClass())
+	{
+		return OwnedComponents;
+	}
+
+	TArray<UActorComponent*> ValidComponents;
+	if (*ComponentClass)
+	{
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (Component && Component->IsA(ComponentClass))
+			{
+				ValidComponents.Add(Component);
+			}
+		}
+	}
+	
+	return ValidComponents;
+}
+
 void AActor::DisableComponentsSimulatePhysics()
 {
 	TArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
-	for (int32 i = 0; i < Components.Num(); i++)
+	for (UPrimitiveComponent* Component : Components)
 	{
-		Components[i]->SetSimulatePhysics(false);
+		Component->SetSimulatePhysics(false);
 	}
 }
 
