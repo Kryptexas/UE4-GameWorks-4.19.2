@@ -71,4 +71,6 @@ class ENGINE_API UInputSettings
 
 	void GetActionNames(TArray<FName>& ActionNames) const;
 	void GetAxisNames(TArray<FName>& AxisNames) const;
+private:
+	void ForceRebuildKeymaps();
 };
