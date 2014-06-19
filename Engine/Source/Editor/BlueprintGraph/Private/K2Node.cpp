@@ -1213,6 +1213,7 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 	bSelfContext = false;
+	bWasDeprecated = false;
 }
 
 void FMemberReference::SetSelfMember(FName InMemberName)
@@ -1221,6 +1222,7 @@ void FMemberReference::SetSelfMember(FName InMemberName)
 	MemberParentClass = NULL;
 	MemberScope.Empty();
 	bSelfContext = true;
+	bWasDeprecated = false;
 }
 
 void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, bool bIsConsideredSelfContext)
@@ -1228,6 +1230,7 @@ void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberG
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
 	bSelfContext = bIsConsideredSelfContext;
+	bWasDeprecated = false;
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 }
@@ -1239,6 +1242,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 	MemberParentClass = InMemberParentClass;
 	MemberScope.Empty();
 	bSelfContext = (SelfScope->IsChildOf(InMemberParentClass)) || (SelfScope->ClassGeneratedBy == InMemberParentClass->ClassGeneratedBy);
+	bWasDeprecated = false;
 
 	if (bSelfContext)
 	{

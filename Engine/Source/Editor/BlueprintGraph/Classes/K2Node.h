@@ -387,7 +387,10 @@ protected:
 	UPROPERTY()
 	mutable bool bSelfContext;
 
-
+	/** Whether or not this property has been deprecated */
+	UPROPERTY()
+	mutable bool bWasDeprecated;
+	
 public:
 	FMemberReference()
 		: MemberParentClass(NULL)
@@ -403,6 +406,7 @@ public:
 		MemberParentClass = bIsConsideredSelfContext ? NULL : InField->GetOwnerClass();
 		MemberName = InField->GetFName();
 		bSelfContext = bIsConsideredSelfContext;
+		bWasDeprecated = false;
 
 		MemberGuid.Invalidate();
 		if (InField->GetOwnerClass())
@@ -527,6 +531,12 @@ public:
 		return MemberScope;
 	}
 
+	/** Returns whether or not the variable has been deprecated */
+	bool IsDeprecated() const
+	{
+		return bWasDeprecated;
+	}
+
 	/** 
 	 *	Returns the member UProperty/UFunction this reference is pointing to, or NULL if it no longer exists 
 	 *	Derives 'self' scope from supplied Blueprint node if required
@@ -601,6 +611,12 @@ public:
 					}
 				}
 			}
+		}
+
+		// Check to see if the member has been deprecated
+		if (UProperty* Property = Cast<UProperty>(ReturnField))
+		{
+			bWasDeprecated = Property->HasAnyPropertyFlags(CPF_Deprecated);
 		}
 
 		return ReturnField;
