@@ -100,45 +100,6 @@ static MTLStencilOperation TranslateStencilOp(EStencilOp StencilOp)
 	};
 }
 
-static MTLBlendOperation TranslateBlendOp(EBlendOperation BlendOp)
-{
-	switch(BlendOp)
-	{
-		case BO_Subtract:	return MTLBlendOperationSubtract;
-		case BO_Min:		return MTLBlendOperationMin;
-		case BO_Max:		return MTLBlendOperationMax;
-		default:			return MTLBlendOperationAdd;
-	};
-}
-
-
-static MTLBlendFactor TranslateBlendFactor(EBlendFactor BlendFactor)
-{
-	switch(BlendFactor)
-	{
-		case BF_One:					return MTLBlendFactorOne;
-		case BF_SourceColor:			return MTLBlendFactorSourceColor;
-		case BF_InverseSourceColor:		return MTLBlendFactorOneMinusSourceColor;
-		case BF_SourceAlpha:			return MTLBlendFactorSourceAlpha;
-		case BF_InverseSourceAlpha:		return MTLBlendFactorOneMinusSourceAlpha;
-		case BF_DestAlpha:				return MTLBlendFactorDestinationAlpha;
-		case BF_InverseDestAlpha:		return MTLBlendFactorOneMinusDestinationAlpha;
-		case BF_DestColor:				return MTLBlendFactorDestinationColor;
-		case BF_InverseDestColor:		return MTLBlendFactorOneMinusDestinationColor;
-		default:						return MTLBlendFactorZero;
-	};
-}
-
-static MTLColorWriteMask TranslateWriteMask(EColorWriteMask WriteMask)
-{
-	uint32 Result = 0;
-	Result |= (WriteMask & CW_RED) ? (MTLColorWriteMaskRed) : 0;
-	Result |= (WriteMask & CW_GREEN) ? (MTLColorWriteMaskGreen) : 0;
-	Result |= (WriteMask & CW_BLUE) ? (MTLColorWriteMaskBlue) : 0;
-	Result |= (WriteMask & CW_ALPHA) ? (MTLColorWriteMaskAlpha) : 0;
-	
-	return (MTLColorWriteMask)Result;
-}
 
 
 
@@ -199,7 +160,7 @@ FMetalDepthStencilState::FMetalDepthStencilState(const FDepthStencilStateInitial
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.FrontFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		Desc.frontFaceStencilDescriptor = Stencil;
+		Desc.frontFaceStencil = Stencil;
 		
 		[Stencil release];
 	}
@@ -214,7 +175,7 @@ FMetalDepthStencilState::FMetalDepthStencilState(const FDepthStencilStateInitial
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.BackFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		Desc.backFaceStencilDescriptor = Stencil;
+		Desc.backFaceStencil = Stencil;
 		
 		[Stencil release];
 	}
@@ -247,42 +208,17 @@ void FMetalDepthStencilState::Set()
 }
 
 FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)
+	: RenderTargetStates(Initializer)
 {
-	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
-	{
-		// which initializer to use
-		const FBlendStateInitializerRHI::FRenderTarget& Init =
-			Initializer.bUseIndependentRenderTargetBlendStates
-				? Initializer.RenderTargets[RenderTargetIndex]
-				: Initializer.RenderTargets[0];
-
-		// make a new blend state
-		MTLBlendDescriptor* BlendState = [[MTLBlendDescriptor alloc] init];
-		TRACK_OBJECT(BlendState);
-
-		// set values
-		BlendState.blendingEnabled =
-			Init.ColorBlendOp != BO_Add || Init.ColorDestBlend != BF_Zero || Init.ColorSrcBlend != BF_One ||
-			Init.AlphaBlendOp != BO_Add || Init.AlphaDestBlend != BF_Zero || Init.AlphaSrcBlend != BF_One;
-		BlendState.sourceRGBBlendFactor = TranslateBlendFactor(Init.ColorSrcBlend);
-		BlendState.destinationRGBBlendFactor = TranslateBlendFactor(Init.ColorDestBlend);
-		BlendState.rgbBlendOperation = TranslateBlendOp(Init.ColorBlendOp);
-		BlendState.sourceAlphaBlendFactor = TranslateBlendFactor(Init.AlphaSrcBlend);
-		BlendState.destinationAlphaBlendFactor = TranslateBlendFactor(Init.AlphaDestBlend);
-		BlendState.alphaBlendOperation = TranslateBlendOp(Init.AlphaBlendOp);
-		BlendState.writeMask = TranslateWriteMask(Init.ColorWriteMask);
-		
-		RenderTargetStates[RenderTargetIndex] = BlendState;
-	}
 }
 
 FMetalBlendState::~FMetalBlendState()
 {
-	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
-	{
-		UNTRACK_OBJECT(RenderTargetStates[RenderTargetIndex]);
-		[RenderTargetStates[RenderTargetIndex] release];
-	}
+// 	for(uint32 RenderTargetIndex = 0;RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
+// 	{
+// 		UNTRACK_OBJECT(RenderTargetStates[RenderTargetIndex]);
+// 		[RenderTargetStates[RenderTargetIndex] release];
+// 	}
 }
 
 void FMetalBlendState::Set()

@@ -232,9 +232,11 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 		Stride = 0;
 	}
 
+	checkf(SizeZ <= 1, TEXT("3D textures are not supported yet"));
+
 	// upload the texture to the texture slice
-	// @todo urban: The MipSizeZ would be needed for a volume texture - do we care?
-	[Texture copyFromPixels:LockedMemory rowBytes:Stride imageBytes:MipBytes toSlice:ArrayIndex mipmapLevel:MipIndex origin:MTLOriginMake(0, 0, 0) size:MTLSizeMake(FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1), 1)];
+	MTLTextureRegion Region = MTLTextureRegionMake2D(0, 0, FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1));
+	[Texture replaceRegion:Region mipmapLevel:MipIndex withBytes:LockedMemory bytesPerRow:Stride];
 	
 	FMemory::Free(LockedMemory);
 	LockedMemory = NULL;

@@ -14,6 +14,11 @@ struct FPipelineShadow
 	{
 		// zero out our memory
 		FMemory::Memzero(this, sizeof(*this));
+
+		for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
+		{
+			RenderTargets[Index] = [[MTLRenderPipelineAttachmentDescriptor alloc] init];
+		}
 	}
 
 	/**
@@ -36,8 +41,7 @@ struct FPipelineShadow
 
 	bool bIsDepthWriteEnabled;
 	bool bIsStencilWriteEnabled;
-	MTLBlendDescriptor* BlendState[MaxMetalRenderTargets];
-	MTLPixelFormat RenderTargetFormat[MaxMetalRenderTargets];
+	MTLRenderPipelineAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
     uint32 SampleCount;
 
@@ -145,7 +149,7 @@ protected:
 
 	dispatch_semaphore_t CommandBufferSemaphore;
 
-	id<MTLFramebuffer> CurrentFramebuffer;
+	MTLRenderPassDescriptor* CurrentRenderPass;
 	id<MTLRenderCommandEncoder> CurrentContext;
 	
 	id<MTLTexture> CurrentColorRenderTexture, PreviousColorRenderTexture;

@@ -23,8 +23,9 @@ static MTLVertexFormat TranslateElementTypeToMTLType(EVertexElementType Type)
 		case VET_Short2N:		return MTLVertexFormatShort2Normalized;
 		case VET_Half2:			return MTLVertexFormatHalf2;
 		case VET_Half4:			return MTLVertexFormatHalf4;
-		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!"));
+		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!")); return MTLVertexFormatFloat;
 	};
+
 }
 
 static uint32 TranslateElementTypeToSize(EVertexElementType Type)
@@ -44,7 +45,7 @@ static uint32 TranslateElementTypeToSize(EVertexElementType Type)
 		case VET_Short2N:		return 8;
 		case VET_Half2:			return 4;
 		case VET_Half4:			return 8;
-		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!"));
+		default:				UE_LOG(LogMetal, Fatal, TEXT("Unknown vertex element type!")); return 0;
 	};
 }
 
@@ -90,7 +91,8 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		const FVertexElement& Element = Elements[ElementIndex];
 		
 		// @todo urban: for zero stride elements, assume a repeated color
-		uint32 Stride = Element.Stride ? Element.Stride : 4;
+		// @todo urban: Make sure zero stride actually works now!! If so, then we can remove the hack zero stride buffer
+		uint32 Stride = Element.Stride;// ? Element.Stride : 4;
 
 		checkf(Element.Offset + TranslateElementTypeToSize(Element.Type) <= Stride, TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Stride);
 
@@ -119,6 +121,6 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 			NSLog(@"Setting illegal stride - break here if you want to find out why, but this won't break until we try to render with it");
 			Stride = 200;// 16;
 		}
-		[Layout setStride:Stride instanceStepRate:0 atVertexBufferIndex:It.Key()];
+		[Layout setStride:Stride stepFunction:(Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex) stepRate:0 atVertexBufferIndex:It.Key()];
 	}
 }

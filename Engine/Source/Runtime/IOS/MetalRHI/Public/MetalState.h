@@ -75,5 +75,5 @@ public:
 	 */
 	void Set();
 	
-	TStaticArray<MTLBlendDescriptor*, MaxSimultaneousRenderTargets> RenderTargetStates;
+	FBlendStateInitializerRHI RenderTargetStates;
 };
