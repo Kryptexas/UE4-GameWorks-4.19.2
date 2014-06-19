@@ -389,7 +389,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 				// Begin a transaction only if we need to call PreChange
 				if( GEditor && bTransactable )
 				{
-					GEditor->BeginTransaction( TEXT("PropertyEditor"), NSLOCTEXT("UnrealEd", "PropertyWindowEditProperties", "Edit Properties"), NodeProperty );
+					GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString( InPropertyNode->GetDisplayName() ) ), NodeProperty );
 				}
 				
 				InPropertyNode->NotifyPreChange( NodeProperty, NotifyHook );

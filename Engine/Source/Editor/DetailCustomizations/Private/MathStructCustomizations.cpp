@@ -587,7 +587,7 @@ void FColorStructCustomization::OnColorPickerInteractiveBegin()
 {
 	bIsInteractive = true;
 
-	GEditor->BeginTransaction( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Set Color Property") );
+	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
 }
 
 void FColorStructCustomization::OnColorPickerInteractiveEnd()
