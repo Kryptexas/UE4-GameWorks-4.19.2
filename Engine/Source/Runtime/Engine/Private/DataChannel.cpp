@@ -373,8 +373,10 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 	// If its not a partial bunch, of it completes a partial bunch, we can call ReceivedSequencedBunch to actually handle it
 	
 	// Note this bunch's retirement.
-	if( Bunch.bReliable )
+	if ( Bunch.bReliable )
+	{
 		Connection->InReliable[Bunch.ChIndex] = Bunch.ChSequence;
+	}
 
 	FInBunch* HandleBunch = &Bunch;
 	if (Bunch.bPartial)
@@ -405,7 +407,7 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			}
 
 			InPartialBunch = new FInBunch(Bunch, false);
-			if (Bunch.GetBitsLeft() > 0)
+			if ( !Bunch.bHasGUIDs && Bunch.GetBitsLeft() > 0 )
 			{
 				check( Bunch.GetBitsLeft() % 8 == 0); // Starting partial bunches should always be byte aligned.
 
@@ -430,14 +432,14 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 				// Merge.
 				UE_LOG(LogNetPartialBunch, Verbose, TEXT("Merging Partial Bunch: %d Bytes"), Bunch.GetBytesLeft() );
 
-				if (Bunch.GetBitsLeft() > 0)
+				if ( !Bunch.bHasGUIDs && Bunch.GetBitsLeft() > 0 )
 				{
 					InPartialBunch->AppendDataFromChecked( Bunch.GetDataPosChecked(), Bunch.GetBitsLeft() );
 				}
 
 				// Only the final partial bunch should ever be non byte aligned. This is enforced during partial bunch creation
 				// This is to ensure fast copies/appending of partial bunches. The final partial bunch may be non byte aligned.
-				check( Bunch.bPartialFinal || Bunch.GetBitsLeft() % 8 == 0);
+				check( Bunch.bHasGUIDs || Bunch.bPartialFinal || Bunch.GetBitsLeft() % 8 == 0 );
 
 				InPartialBunch->ChSequence++;
 

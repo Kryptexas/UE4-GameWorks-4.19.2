@@ -2832,40 +2832,6 @@ bool UNetDriver::VerifyPackageInfo(FPackageInfo& Info)
 	return true;
 }
 
-void UNetDriver::ResetPackageMaps()
-{
-	if ( GuidCache.IsValid() )
-	{
-		GuidCache->Reset();
-	}
-
-	if (ServerConnection && ServerConnection->PackageMap)
-	{
-		ServerConnection->PackageMap->ResetPackageMap();
-	}
-
-	for (auto It = ClientConnections.CreateIterator(); It; ++It)
-	{
-		UNetConnection *connection = *It;
-		if (connection->PackageMap)
-		{
-			connection->PackageMap->ResetPackageMap();
-		}
-	}
-}
-
-void UNetDriver::LockPackageMaps()
-{
-	for (auto It = ClientConnections.CreateIterator(); It; ++It)
-	{
-		UNetConnection *connection = *It;
-		if (connection->PackageMap)
-		{
-			connection->PackageMap->SetLocked(true);
-		}
-	}
-}
-
 void UNetDriver::SetWorld(class UWorld* InWorld)
 {
 	if (World)
@@ -2906,8 +2872,9 @@ void UNetDriver::ResetGameWorldState()
 
 void UNetDriver::CleanPackageMaps()
 {
-	if ( GuidCache.IsValid() )
-	{
+	if ( IsServer() && GuidCache.IsValid()  )
+	{ 
+		// Only the server makes this call initially, client will call when the GuidSequence increments on their end
 		GuidCache->CleanReferences();
 	}
 }

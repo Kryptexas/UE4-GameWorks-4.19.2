@@ -4072,15 +4072,6 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 			bPauseAtMidpoint = false;
 			bNeedCancelCleanUp = false;
 			
-			if (CurrentWorld->NetDriver)
-			{
-				// Lock the packagemap from acking any new NetGUIDs during server travel.
-				// While locked, packagemap will serialize everything as full name/path pair due to unreliability of 
-				// when exactly GC will be executed. Once clients are fully connected, packagemap is unlocked and returns to
-				// 'optimized' mode.
-				CurrentWorld->NetDriver->LockPackageMaps();
-			}
-
 			FString TransitionMap = GetDefault<UGameMapsSettings>()->TransitionMap;
 			FName DefaultMapFinalName(*TransitionMap);
 

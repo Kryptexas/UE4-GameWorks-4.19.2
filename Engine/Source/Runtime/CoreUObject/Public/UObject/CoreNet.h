@@ -120,10 +120,6 @@ class COREUOBJECT_API UPackageMap : public UObject
 	// @todo document
 	virtual bool		SerializeName( FArchive& Ar, FName& Name );
 
-	virtual void		ResetPackageMap() { }
-
-	virtual void		SetLocked( bool L ) { }
-
 	virtual UObject *	ResolvePathAndAssignNetGUID( const FNetworkGUID & NetGUID, const FString & PathName ) { return NULL; }
 
 	virtual bool		SerializeNewActor(FArchive & Ar, class UActorChannel * Channel, class AActor *& Actor) { return false; }

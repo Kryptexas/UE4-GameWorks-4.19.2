@@ -738,7 +738,8 @@ bool UPackageMapClient::ExportNetGUID( FNetworkGUID NetGUID, const UObject * Obj
 
 			ExportNetGUIDCount = 0;
 			*CurrentExportBunch << ExportNetGUIDCount;
-			NET_CHECKSUM(*CurrentExportBunch);
+			*CurrentExportBunch << GuidCache->GuidSequence;
+			NET_CHECKSUM( *CurrentExportBunch );
 		}
 
 		if ( CurrentExportNetGUIDs.Num() != 0 )
@@ -816,6 +817,7 @@ void UPackageMapClient::ExportNetGUIDHeader()
 	FBitWriterMark Restore(Out);
 	Reset.PopWithoutClear(Out);
 	Out << ExportNetGUIDCount;
+	Out << GuidCache->GuidSequence;
 	Restore.PopWithoutClear(Out);
 
 	// If we've written new NetGUIDs to the 'bunch' set (current+1)
@@ -849,7 +851,25 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 
 	int32 NumGUIDsInBunch = 0;
 	InBunch << NumGUIDsInBunch;
-	
+
+	int32 NewGuidSequence = -1;
+
+	InBunch << NewGuidSequence;
+
+	if ( NewGuidSequence < GuidCache->GuidSequence )
+	{
+		// Older sequence, ignore
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::ReceiveNetGUIDBunch: NewGuidSequence < GuidSequence (%i / %i)" ), GuidCache->GuidSequence, NewGuidSequence );
+		return;
+	}
+	else if ( NewGuidSequence > GuidCache->GuidSequence )
+	{
+		// Newer sequence, this is our signal to clean the package to stay in sync with the server
+		UE_LOG( LogNetPackageMap, Verbose, TEXT( "UPackageMapClient::ReceiveNetGUIDBunch: NewGuidSequence > GuidSequence (%i / %i)" ), GuidCache->GuidSequence, NewGuidSequence );
+		GuidCache->GuidSequence = NewGuidSequence;
+		GuidCache->CleanReferences();
+	}
+
 	static const int32 MAX_GUID_COUNT = 2048;
 
 	if ( NumGUIDsInBunch > MAX_GUID_COUNT )
@@ -876,8 +896,6 @@ void UPackageMapClient::ReceiveNetGUIDBunch( FInBunch &InBunch )
 		}
 		NumGUIDsRead++;
 	}
-
-	InBunch.EatByteAlign();
 
 	UE_LOG(LogNetPackageMap, Log, TEXT("UPackageMapClient::ReceiveNetGUIDBunch end. BitPos: %d"), InBunch.GetPosBits() );
 	IsExportingNetGUIDBunch = false;
@@ -931,16 +949,6 @@ void UPackageMapClient::NotifyBunchCommit( const int32 OutPacketId, const TArray
 {
 	check( OutPacketId > GUID_PACKET_ACKED );	// Assumptions break if this isn't true ( We assume ( OutPacketId > GUID_PACKET_ACKED ) == PENDING )
 	check( ExportNetGUIDs.Num() > 0 );			// We should have never created this bunch if there are not exports
-
-#if 1
-	// Not sure we actually need to do this.  
-	// Assuming we are acking/nacking property, and those systems are working correctly, I don't see the need.
-	// Keeping it for now though, maybe I'm missing something.
-	if ( Locked )
-	{
-		return;
-	}
-#endif
 
 	for ( int32 i = 0; i < ExportNetGUIDs.Num(); i++ )
 	{
@@ -1112,7 +1120,7 @@ bool UPackageMapClient::ShouldSendFullPath( const UObject* Object, const FNetwor
 		return true;
 	}
 
-	return Locked || !NetGUIDHasBeenAckd( NetGUID );
+	return !NetGUIDHasBeenAckd( NetGUID );
 }
 
 /**
@@ -1184,15 +1192,6 @@ bool UPackageMapClient::ObjectLevelHasFinishedLoading(UObject* Object)
 bool UPackageMapClient::IsNetGUIDAuthority()
 {
 	return GuidCache->IsNetGUIDAuthority();
-}
-
-/** Resets packagemap state for server travel */
-void UPackageMapClient::ResetPackageMap()
-{
-	NetGUIDExportCountMap.Empty();
-	CurrentExportNetGUIDs.Empty();
-	NetGUIDAckStatus.Empty();
-	PendingAckGUIDs.Empty();
 }
 
 /**	
@@ -1280,13 +1279,7 @@ UObject * UPackageMapClient::GetObjectFromNetGUID( const FNetworkGUID & NetGUID 
 FNetGUIDCache::FNetGUIDCache( UNetDriver * InDriver ) : Driver( InDriver )
 {
 	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
-}
-
-void FNetGUIDCache::Reset()
-{
-	ObjectLookup.Empty();
-	NetGUIDLookup.Empty();
-	UniqueNetIDs[0] = UniqueNetIDs[1] = 0;
+	GuidSequence = 0;
 }
 
 class FArchiveCountMemGUID : public FArchive
@@ -1299,50 +1292,67 @@ public:
 
 void FNetGUIDCache::CleanReferences()
 {
-	// Cleanup any guids that are dynamic
-	// We keep static guids since the client most likely hasn't GC'd the static objects the exact same way we have
-	// Since we can't rely on the the client clearing static guids in the same we we would, we need to just keep them
-	// The only issue with this, is this list can grow forever
-	// To fix this, we can ultimately re-use static guids, to at least bound the list size by the number of packages on disk
+	if ( IsNetGUIDAuthority() )
+	{
+		// The server increments this to signify to clients to also call CleanReferences when they detect this change
+		GuidSequence++;
+	}
+
+	// Server:
+	//	Clean all static or non valid guids
+	//	This means static objects will have new guids assigned, we're assuming clients are ok with this
+	// Client:
+	//	Clean all guids that are old enough
+	//	This means guids that are older than SEAMLESS_TRAVEL_COUNT_FOR_CLEAN seamless travels
+	//		We use a GuidSequence counter to determine how often the server has seamlessly traveled
+	// 
+	// It's possible for guids that have been cleaned to get lost if they were sent from a level that was 
+	// was older than (SEAMLESS_TRAVEL_COUNT_FOR_CLEAN) seamless travels, but we're assuming the game code 
+	// is resilient to this, and only needs information from the previous level at most
 	for ( auto It = ObjectLookup.CreateIterator(); It; ++It )
 	{
-		check( !It.Key().IsDefault() );
-		check( It.Key().IsStatic() != It.Key().IsDynamic() );
-
-		if ( It.Value().Object.IsValid() || It.Key().IsStatic() )
+		if ( IsNetGUIDAuthority() )
 		{
-			// Either the object is still around, or it's a fully stably named object (which we always keep those registered)
-			continue;
+			// Server cleans references that are NULL and static
+			// (server will assign a new guid to static references after a seamless travel)
+			if ( !It.Value().Object.IsValid() || It.Key().IsStatic() )
+			{
+				It.RemoveCurrent();
+			}
 		}
+		else
+		{
+			static const int32 SEAMLESS_TRAVEL_COUNT_FOR_CLEAN = 2;
 
-		It.RemoveCurrent();
+			// Clients only clean references that are older than SEAMLESS_TRAVEL_COUNT_FOR_CLEAN 
+			//	(this guid has seamless traveled this many times, so we can safely punt it once it's old enough)
+			if ( ( GuidSequence - It.Value().GuidSequence ) > SEAMLESS_TRAVEL_COUNT_FOR_CLEAN )
+			{
+				It.RemoveCurrent();
+			}
+		}
 	}
 
 	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
 	{
-		if ( !It.Key().IsValid() )
+		if ( !It.Key().IsValid() || !ObjectLookup.Contains( It.Value() ) )
 		{
 			It.RemoveCurrent();
 		}
 	}
 
 	// Sanity check
+	// (make sure look-ups are reciprocal)
 	for ( auto It = ObjectLookup.CreateIterator(); It; ++It )
 	{
-		check( It.Value().Object.IsValid() || It.Key().IsStatic() );
+		check( !It.Key().IsDefault() );
+		check( It.Key().IsStatic() != It.Key().IsDynamic() );
 
-		if ( It.Value().Object.IsValid() )
-		{
-			checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-		}
-		else
-		{
-			for ( auto It2 = NetGUIDLookup.CreateIterator(); It2; ++It2 )
-			{
-				checkf( It2.Value() != It.Key(), TEXT("Failed to validate ObjectLookup map in UPackageMap. Object '%s' was in the NetGUIDLookup map with with value '%s'."), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString());
-			}
-		}
+		checkf( !It.Value().Object.IsValid() || NetGUIDLookup.FindRef( It.Value().Object ) == It.Key(), TEXT( "Failed to validate ObjectLookup map in UPackageMap. Object '%s' was not in the NetGUIDLookup map with with value '%s'." ), *It.Value().Object.Get()->GetPathName(), *It.Key().ToString() );
 	}
+
+	// Server lists should be completely in sync
+	check( ObjectLookup.Num() == NetGUIDLookup.Num() || !IsNetGUIDAuthority() );
 
 	for ( auto It = NetGUIDLookup.CreateIterator(); It; ++It )
 	{
@@ -1552,6 +1562,7 @@ void FNetGUIDCache::RegisterNetGUID_Internal( const FNetworkGUID & NetGUID, cons
 {
 	// We're pretty strict in this function, we expect everything to have been handled before we get here
 	check( !ObjectLookup.Contains( NetGUID ) );
+	check( CacheObject.GuidSequence == GuidSequence );
 
 	ObjectLookup.Add( NetGUID, CacheObject );
 
@@ -1588,8 +1599,9 @@ void FNetGUIDCache::RegisterNetGUID_Server( const FNetworkGUID & NetGUID, const 
 
 	FNetGuidCacheObject CacheObject;
 
-	CacheObject.Object = Object;
-
+	CacheObject.Object			= Object;
+	CacheObject.GuidSequence	= GuidSequence;
+	
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }
 
@@ -1658,7 +1670,8 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
 
 	FNetGuidCacheObject CacheObject;
 
-	CacheObject.Object = Object;
+	CacheObject.Object			= Object;
+	CacheObject.GuidSequence	= GuidSequence;
 
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }
@@ -1710,6 +1723,7 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID
 	CacheObject.OuterGUID			= OuterGUID;
 	CacheObject.bNoLoad				= bNoLoad;
 	CacheObject.bIgnoreWhenMissing	= bIgnoreWhenMissing;
+	CacheObject.GuidSequence		= GuidSequence;
 
 	RegisterNetGUID_Internal( NetGUID, CacheObject );
 }
@@ -1815,15 +1829,17 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID )
 	// Assign the resolved object to this guid
 	CacheObjectPtr->Object = Object;		
 
-	if ( NetGUIDLookup.Contains( Object ) )
+	// Assign the guid to the object 
+	// Don't allow the assignment if this guid is from an older sequence
+	if ( CacheObjectPtr->GuidSequence == GuidSequence )
 	{
-		// This can happen to static guids on the client. The server deleted this object, but for some reason the client did not
-		// When this happens, the server will give the object a different guid, and we will just conform
-		ObjectLookup.Remove( NetGUIDLookup.FindRef( Object ) );
+		// We're good, assign the guid
+		NetGUIDLookup.Add( Object, NetGUID );
 	}
-
-	// Make sure the object is in the GUIDToObjectLookup.
-	NetGUIDLookup.Add( Object, NetGUID );
+	else
+	{
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "GetObjectFromNetGUID: Attempt to reassign guid from older sequence (%i / %i). Path: %s, Outer: %s, NetGUID: %s" ), GuidSequence, CacheObjectPtr->GuidSequence, *CacheObjectPtr->PathName.ToString(), ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ), *NetGUID.ToString() );
+	}
 
 	return Object;
 }

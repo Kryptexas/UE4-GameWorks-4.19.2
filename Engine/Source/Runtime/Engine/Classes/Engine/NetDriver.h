@@ -495,11 +495,6 @@ public:
 	 */
 	bool VerifyPackageInfo(FPackageInfo& Info);
 
-	/** Flushes and clears all packagemaps on this driver and driver's connections */
-	ENGINE_API virtual void ResetPackageMaps();
-
-	ENGINE_API virtual void LockPackageMaps();
-
 	ENGINE_API virtual void CleanPackageMaps();
 
 	ENGINE_API void PreSeamlessTravelGarbageCollect();

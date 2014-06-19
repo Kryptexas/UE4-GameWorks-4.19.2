@@ -42,13 +42,16 @@ public:
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 ) {}
+	FNetGuidCacheObject() : GuidSequence( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
+	{
+	}
 
 	TWeakObjectPtr< UObject >	Object;
 
 	// These fields are set when this guid is static
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
+	int32						GuidSequence;				// We remember the guid sequence this net guid was generated on so we can tell how old it is
 
 	uint8						bNoLoad				: 1;	// Don't load this, only do a find
 	uint8						bIgnoreWhenMissing	: 1;	// Don't warn when this asset can't be found or loaded
@@ -61,7 +64,6 @@ class ENGINE_API FNetGUIDCache
 public:
 	FNetGUIDCache( UNetDriver * InDriver );
 
-	void			Reset();
 	void			CleanReferences();
 	bool			SupportsObject( const UObject * Object );
 	bool			IsDynamicObject( const UObject * Object );
@@ -79,6 +81,8 @@ public:
 	TMap< FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;
 	int32											UniqueNetIDs[2];
+
+	int32											GuidSequence;
 
 	UNetDriver *									Driver;
 
@@ -98,7 +102,6 @@ class UPackageMapClient : public UPackageMap
 	,	Connection(InConnection)
 	{
 		GuidCache				= InNetGUIDCache;
-		Locked					= false;
 		ExportNetGUIDCount		= 0;
 		IsExportingNetGUIDBunch = false;
 		IsSerializingNewActor	= false;
@@ -119,10 +122,6 @@ class UPackageMapClient : public UPackageMap
 	virtual bool SerializeNewActor( FArchive& Ar, class UActorChannel *Channel, class AActor*& Actor) override;
 	
 	virtual bool WriteObject( FArchive& Ar, UObject* Outer, FNetworkGUID NetGUID, FString ObjName ) override;
-
-	virtual void ResetPackageMap() override;
-
-	virtual void SetLocked(bool L) { Locked = L; }
 
 	// UPackageMapClient Connection specific methods
 
@@ -163,7 +162,6 @@ protected:
 	
 	bool IsNetGUIDAuthority();
 
-	bool Locked;
 	bool IsExportingNetGUIDBunch;
 
 	class UNetConnection* Connection;

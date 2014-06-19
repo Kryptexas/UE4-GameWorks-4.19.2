@@ -426,7 +426,6 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 		if (Connection != NULL)
 		{
 			Connection->ClientWorldPackageName = WorldPackageName;
-			Connection->PackageMap->SetLocked(false);
 		}
 
 		// if both the server and this client have completed the transition, handle it
