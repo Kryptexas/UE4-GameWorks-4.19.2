@@ -1,10 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
- =============================================================================*/
-
-#ifndef __GEOMTOOLS_H__
-#define __GEOMTOOLS_H__
+#pragma once
 
 /** An edge in 3D space, used by these utility functions. */
 struct FUtilEdge3D
@@ -137,7 +133,7 @@ void Buid2DPolysFromEdges(TArray<FUtilPoly2D>& OutPolys, const TArray<FUtilEdge2
 /** Given a polygon, decompose into triangles and append to OutTris.
   * @return	true if the triangulation was successful.
   */
-UNREALED_API bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly);
+UNREALED_API bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly, bool bKeepColinearVertices = false);
 
 /** Transform triangle from 2D to 3D static-mesh triangle. */
 FClipSMPolygon Transform2DPolygonToSMPolygon(const FUtilPoly2D& InTri, const FMatrix& InMatrix);
@@ -150,5 +146,3 @@ void RemoveRedundantTriangles(TArray<FClipSMTriangle>& Tris);
 
 /** Split 2D polygons with a 3D plane. */
 void Split2DPolysWithPlane(FUtilPoly2DSet& PolySet, const FPlane& Plane, const FColor& ExteriorVertColor, const FColor& InteriorVertColor);
-
-#endif

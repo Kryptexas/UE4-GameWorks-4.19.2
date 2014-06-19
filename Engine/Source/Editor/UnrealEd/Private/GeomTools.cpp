@@ -477,7 +477,7 @@ static bool AreEdgesMergeable(
 }
 
 /** Given a polygon, decompose into triangles and append to OutTris. */
-bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly)
+bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InPoly, bool bKeepColinearVertices)
 {
 	// Can't work if not enough verts for 1 triangle
 	if(InPoly.Vertices.Num() < 3)
@@ -492,16 +492,19 @@ bool TriangulatePoly(TArray<FClipSMTriangle>& OutTris, const FClipSMPolygon& InP
 	// Keep iterating while there are still vertices
 	while(true)
 	{
-		// Cull redundant vertex edges from the polygon.
-		for(int32 VertexIndex = 0;VertexIndex < PolyVerts.Num();VertexIndex++)
+		if (!bKeepColinearVertices)
 		{
-			const int32 I0 = (VertexIndex + 0) % PolyVerts.Num();
-			const int32 I1 = (VertexIndex + 1) % PolyVerts.Num();
-			const int32 I2 = (VertexIndex + 2) % PolyVerts.Num();
-			if(AreEdgesMergeable(PolyVerts[I0],PolyVerts[I1],PolyVerts[I2]))
+			// Cull redundant vertex edges from the polygon.
+			for (int32 VertexIndex = 0; VertexIndex < PolyVerts.Num(); VertexIndex++)
 			{
-				PolyVerts.RemoveAt(I1);
-				VertexIndex--;
+				const int32 I0 = (VertexIndex + 0) % PolyVerts.Num();
+				const int32 I1 = (VertexIndex + 1) % PolyVerts.Num();
+				const int32 I2 = (VertexIndex + 2) % PolyVerts.Num();
+				if (AreEdgesMergeable(PolyVerts[I0], PolyVerts[I1], PolyVerts[I2]))
+				{
+					PolyVerts.RemoveAt(I1);
+					VertexIndex--;
+				}
 			}
 		}
 
