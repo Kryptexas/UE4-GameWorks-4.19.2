@@ -62,13 +62,14 @@ public:
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
 
 		// additional command line arguments
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
-			*Role->GetCommandLine()
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
+			Role->IsVsyncEnabled() ? TEXT(" -vsync") : TEXT(""),
+			*(TEXT(" ") + Role->GetCommandLine())
 			);
 
 		return CommandLine;
@@ -161,12 +162,12 @@ public:
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT("");
 
 		// additional command line arguments
-		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s' %s %s\""),
+		CommandLine += FString::Printf(TEXT(" -addcmdline=\"-InstanceId=%s -SessionId=%s -SessionOwner=%s -SessionName='%s'%s%s\""),
 			*InstanceId.ToString(),
 			*ChainState.SessionId.ToString(),
 			FPlatformProcess::UserName(false),
 			*ChainState.Profile->GetName(),
-			CookCommand.IsValid() ? *CookCommand->GetAdditionalArguments(ChainState) : TEXT(""),
+			CookCommand.IsValid() ? *(TEXT(" ") + CookCommand->GetAdditionalArguments(ChainState)) : TEXT(""),
 			*Role->GetCommandLine()
 			);
 

@@ -705,6 +705,17 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		}
 	}
 
+	// optionally set the vsync console variable
+	if( FParse::Param(FCommandLine::Get(), TEXT("vsync")) )
+	{
+		new(GEngine->DeferredCommands) FString(TEXT("r.vsync 1"));
+	}
+
+	// optionally set the vsync console variable
+	if( FParse::Param(FCommandLine::Get(), TEXT("novsync")) )
+	{
+		new(GEngine->DeferredCommands) FString(TEXT("r.vsync 0"));
+	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	if (GetDerivedDataCache())
