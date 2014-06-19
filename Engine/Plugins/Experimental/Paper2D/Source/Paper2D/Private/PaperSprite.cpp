@@ -234,9 +234,9 @@ void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePo
 //////////////////////////////////////////////////////////////////////////
 // FSpriteDrawCallRecord
 
-void FSpriteDrawCallRecord::BuildFromSprite(class UPaperSprite* Sprite)
+void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 {
-	if (Sprite != NULL)
+	if (Sprite != nullptr)
 	{
 		Destination = FVector::ZeroVector;
 		Texture = Sprite->GetBakedTexture();
