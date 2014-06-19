@@ -1900,11 +1900,10 @@ public:
 	class AWorldSettings* GetWorldSettings() const;
 
 	/**
-	 * Called from the Component's CanBeBaseForCharacter().
-	 * @param APawn - The pawn that wants to be based on this actor
-	 * @return bool - True if we don't want the pawn to bounce off
+	 * Return true if the given Pawn can be "based" on this actor (ie walk on it).
+	 * @param Pawn - The pawn that wants to be based on this actor
 	 */
-	virtual bool CanBeBaseForCharacter(class APawn* APawn) const;
+	virtual bool CanBeBaseForCharacter(class APawn* Pawn) const;
 
 	/** Apply damage to this actor.
 	 * @param DamageAmount		How much damage to apply

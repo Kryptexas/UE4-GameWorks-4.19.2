@@ -53,11 +53,11 @@ enum ERadialImpulseFalloff
 UENUM()
 enum ECanBeCharacterBase
 {
-	// can never be base for character to stand on
+	// Character cannot step up onto this Component.
 	ECB_No,
-	// can always be character base
+	// Character can step up onto this Component.
 	ECB_Yes,
-	// owning acter determines whether can be character base
+	// Owning actor determines whether character can step up onto this Component (default true unless overridden in code).
 	ECB_Owner,
 	ECB_MAX,
 };
@@ -523,8 +523,16 @@ public:
 	UPROPERTY(transient)
 	float LastRenderTime;
 
+private:
+	UPROPERTY()
+	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase_DEPRECATED;
+
+public:
+	/**
+	 * Determine whether a Character can step up onto this component.
+	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Base)
-	TEnumAsByte<enum ECanBeCharacterBase> CanBeCharacterBase;
+	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
 	/** Set of actors to ignore during component sweeps in MoveComponent() */
 	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
@@ -1447,11 +1455,20 @@ public:
 	virtual bool ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot);
 	
 	/**
-	 * Called from the Pawn's BaseChanged() event.
-	 * @param APawn is the pawn that wants to be based on this actor
-	 * @return true if we don't want the pawn to bounce off
+	 * Return true if the given Pawn can step up onto this component.
+	 * @param APawn is the pawn that wants to step onto this component.
 	 */
-	virtual bool CanBeBaseForCharacter(class APawn* APawn) const;
+	DEPRECATED(4.3, "UPrimitiveComponent::CanBeBaseForCharacter() is deprecated, use CanCharacterStepUp() instead.")
+	virtual bool CanBeBaseForCharacter(class APawn* Pawn) const
+	{
+		return CanCharacterStepUp(Pawn);
+	}
+
+	/**
+	 * Return true if the given Pawn can step up onto this component.
+	 * @param Pawn is the Pawn that wants to step onto this component.
+	 */
+	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
 
 	/** 
 	 *	Indicates whether this actor is to be considered by navigation system a valid actor

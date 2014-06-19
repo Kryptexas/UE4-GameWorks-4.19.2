@@ -48,7 +48,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
-	CapsuleComponent->CanBeCharacterBase = ECB_No;
+	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
 	RootComponent = CapsuleComponent;

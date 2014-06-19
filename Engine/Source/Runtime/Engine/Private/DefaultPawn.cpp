@@ -28,7 +28,7 @@ ADefaultPawn::ADefaultPawn(const class FPostConstructInitializeProperties& PCIP)
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
-	CollisionComponent->CanBeCharacterBase = ECB_No;
+	CollisionComponent->CanCharacterStepUpOn = ECB_No;
 	CollisionComponent->bShouldUpdatePhysicsVolume = true;
 
 	RootComponent = CollisionComponent;

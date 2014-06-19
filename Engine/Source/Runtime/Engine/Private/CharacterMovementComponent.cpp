@@ -3100,7 +3100,7 @@ void UCharacterMovementComponent::MoveAlongFloor(const FVector& InVelocity, cons
 					bJustTeleported |= !bMaintainHorizontalGroundVelocity;
 				}
 			}
-			else if ( Hit.Component.IsValid() && !Hit.Component.Get()->CanBeBaseForCharacter(CharacterOwner) )
+			else if ( Hit.Component.IsValid() && !Hit.Component.Get()->CanCharacterStepUp(CharacterOwner) )
 			{
 				HandleImpact(Hit, DeltaSeconds, Delta);
 				SlideAlongSurface(Delta, 1.f - TimeApplied, Hit.Normal, Hit, true);
@@ -3582,19 +3582,6 @@ void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 	if( !NewRotation.Equals(CurrentRotation.GetDenormalized(), 0.01f) )
 	{
 		MoveUpdatedComponent( FVector::ZeroVector, NewRotation, true );
-	}
-}
-
-bool UPrimitiveComponent::CanBeBaseForCharacter(APawn* Pawn) const
-{
-	if ( CanBeCharacterBase != ECB_Owner )
-	{
-		return CanBeCharacterBase == ECB_Yes;
-	}
-	else
-	{	
-		const AActor* Owner = GetOwner();
-		return Owner && Owner->CanBeBaseForCharacter(Pawn);
 	}
 }
 
@@ -4252,7 +4239,7 @@ bool UCharacterMovementComponent::CanStepUp(const FHitResult& Hit) const
 		return true;
 	}
 
-	if (!HitComponent->CanBeBaseForCharacter(CharacterOwner))
+	if (!HitComponent->CanCharacterStepUp(CharacterOwner))
 	{
 		return false;
 	}
@@ -4420,6 +4407,14 @@ bool UCharacterMovementComponent::StepUp(const FVector& GravDir, const FVector& 
 		if (!IsWithinEdgeTolerance(Hit.Location, Hit.ImpactPoint, PawnRadius))
 		{
 			//UE_LOG(LogCharacterMovement, VeryVerbose, TEXT("- Reject StepUp (outside edge tolerance)"));
+			ScopedStepUpMovement.RevertMove();
+			return false;
+		}
+
+		// Don't step up onto invalid surfaces if traveling higher.
+		if (DeltaZ > 0.f && !CanStepUp(Hit))
+		{
+			//UE_LOG(LogCharacterMovement, VeryVerbose, TEXT("- Reject StepUp (up onto surface with !CanStepUp())"));
 			ScopedStepUpMovement.RevertMove();
 			return false;
 		}

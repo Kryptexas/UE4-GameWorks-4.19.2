@@ -85,7 +85,8 @@ UPrimitiveComponent::UPrimitiveComponent(const class FPostConstructInitializePro
 	bAlwaysCreatePhysicsState = false;
 	bRenderInMainPass = true;
 	VisibilityId = -1;
-	CanBeCharacterBase = ECB_Yes;
+	CanBeCharacterBase_DEPRECATED = ECB_Yes;
+	CanCharacterStepUpOn = ECB_Yes;
 	ComponentId.Value = NextComponentId;
 	check(IsInGameThread());
 	NextComponentId++;
@@ -647,6 +648,11 @@ void UPrimitiveComponent::PostLoad()
 			bGenerateOverlapEvents = false;
 		}
 		// else use defaults
+	}
+
+	if (UE4Version < VER_UE4_RENAME_CANBECHARACTERBASE)
+	{
+		CanCharacterStepUpOn = CanBeCharacterBase_DEPRECATED;
 	}
 
 	// Make sure cached cull distance is up-to-date.
@@ -2450,4 +2456,20 @@ const int32 UPrimitiveComponent::GetNumUncachedStaticLightingInteractions() cons
 }
 #endif
 
+
+bool UPrimitiveComponent::CanCharacterStepUp(APawn* Pawn) const
+{
+	if ( CanCharacterStepUpOn != ECB_Owner )
+	{
+		return CanCharacterStepUpOn == ECB_Yes;
+	}
+	else
+	{	
+		const AActor* Owner = GetOwner();
+		return Owner && Owner->CanBeBaseForCharacter(Pawn);
+	}
+}
+
+
 #undef LOCTEXT_NAMESPACE
+

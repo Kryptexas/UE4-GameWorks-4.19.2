@@ -189,7 +189,7 @@ public:
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
 
-	/** Overridden to defer to the RootComponent's CanBeCharacterBase setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
+	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(class APawn* APawn) const override;
 	// End AActor Interface
 

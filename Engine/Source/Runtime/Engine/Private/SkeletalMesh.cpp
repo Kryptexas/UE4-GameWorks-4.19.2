@@ -4505,7 +4505,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const class FPostConstructInitializ
 	StreamingDistanceMultiplier = 1.0f;
 	ProgressiveDrawingFraction = 1.0f;
 	bCanHighlightSelectedSections = false;
-	CanBeCharacterBase = ECB_Owner;
+	CanCharacterStepUpOn = ECB_Owner;
 #if WITH_EDITORONLY_DATA
 	ChunkIndexPreview = -1;
 	SectionIndexPreview = -1;

@@ -137,9 +137,9 @@ AActor* APawn::GetMovementBaseActor(const APawn* Pawn)
 bool APawn::CanBeBaseForCharacter(class APawn* APawn) const
 {
 	UPrimitiveComponent* RootPrimitive = GetRootPrimitiveComponent();
-	if (RootPrimitive && RootPrimitive->CanBeCharacterBase != ECB_Owner)
+	if (RootPrimitive && RootPrimitive->CanCharacterStepUpOn != ECB_Owner)
 	{
-		return RootPrimitive->CanBeCharacterBase == ECB_Yes;
+		return RootPrimitive->CanCharacterStepUpOn == ECB_Yes;
 	}
 
 	return Super::CanBeBaseForCharacter(APawn);
