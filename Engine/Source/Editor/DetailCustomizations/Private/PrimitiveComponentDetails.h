@@ -29,6 +29,7 @@ private:
 
 	FText OnGetBodyMass() const;
 	bool IsBodyMassReadOnly() const { return true; }
+	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
 
 private:
 	/** Objects being customized so we can update the 'Simulate Physics' state if physics geometry is added/removed */

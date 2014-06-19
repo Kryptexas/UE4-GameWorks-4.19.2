@@ -13,6 +13,7 @@ public:
 
 	FText OnGetBodyMass() const;
 	bool IsBodyMassReadOnly() const { return true; }
+	bool IsBodyMassEnabled() const { return !IsBodyMassReadOnly(); }
 
 private:
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
