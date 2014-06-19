@@ -115,14 +115,8 @@ private:
 	/** Called after a world has been saved */
 	void OnWorldSaved(uint32 SaveFlags, UWorld* World, bool bSuccess);
 
-	/** Called when an actor is added to the world */
-	void OnLevelActorAdded(AActor* Actor);
-
 	/** Remove any references to folder arrays for dead worlds */
 	void Housekeeping();
-
-	/** Returns true if calling AddFolderToWorld with the provided details would add a new folder */
-	bool WillAddFolderToWorld(UWorld& InWorld, FName Path) const;
 
 	/** Add a folder to the folder map for the specified world. Does not trigger any events. */
 	bool AddFolderToWorld(UWorld& InWorld, FName Path);

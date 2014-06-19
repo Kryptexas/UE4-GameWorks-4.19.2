@@ -38,7 +38,6 @@ FActorFolders::FActorFolders()
 	check(GEngine);
 	GEngine->OnLevelActorFolderChanged().AddRaw(this, &FActorFolders::OnActorFolderChanged);
 	GEngine->OnLevelActorListChanged().AddRaw(this, &FActorFolders::OnLevelActorListChanged);
-	GEngine->OnLevelActorAdded().AddRaw(this, &FActorFolders::OnLevelActorAdded);
 
 	FEditorDelegates::MapChange.AddRaw(this, &FActorFolders::OnMapChange);
 	FEditorDelegates::PostSaveWorld.AddRaw(this, &FActorFolders::OnWorldSaved);
@@ -137,24 +136,6 @@ void FActorFolders::OnWorldSaved(uint32 SaveFlags, UWorld* World, bool bSuccess)
 				Ar->Close();
 			}
 		}
-	}
-}
-
-void FActorFolders::OnLevelActorAdded(AActor* InActor)
-{
-	check(InActor);
-
-	UWorld* World = InActor->GetWorld();
-	check(World);
-
-	const FName FolderPath = InActor->GetFolderPath();
-
-	if (WillAddFolderToWorld(*World, FolderPath))
-	{
-		FScopedTransaction Transaction(LOCTEXT("UndoAction_ActorAdded", "Actor Folder Added"));
-
-		const bool bAddedFolder = AddFolderToWorld(*World, FolderPath);
-		check(bAddedFolder);
 	}
 }
 
@@ -435,19 +416,6 @@ bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 	}
 
 	return RenamedFolders.Num() != 0;
-}
-
-bool FActorFolders::WillAddFolderToWorld(UWorld& InWorld, FName Path) const
-{
-	bool bWillAddFolders = false;
-
-	if (!Path.IsNone() && FoldersExistForWorld(InWorld))
-	{
-		UEditorActorFolders& Folders = *TemporaryWorldFolders.FindChecked(&InWorld);
-		bWillAddFolders = !Folders.Folders.Contains(Path);
-	}
-
-	return bWillAddFolders;
 }
 
 bool FActorFolders::AddFolderToWorld(UWorld& InWorld, FName Path)
