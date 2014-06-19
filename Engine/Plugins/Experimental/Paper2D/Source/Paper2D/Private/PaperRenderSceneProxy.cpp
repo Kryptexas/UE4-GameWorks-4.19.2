@@ -297,25 +297,32 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 #endif
 }
 
+FVertexFactory* FPaperRenderSceneProxy::GetPaperSpriteVertexFactory() const
+{
+	static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;
+	return &GPaperSpriteVertexFactory;
+}
+
 void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
 {
-	if (Material == nullptr)
+	if (Material != nullptr)
 	{
-		return;
+		DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Material, BatchedSprites);
 	}
+}
 
+void FPaperRenderSceneProxy::DrawBatch(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, class UMaterialInterface* BatchMaterial, const TArray<FSpriteDrawCallRecord>& Batch)
+{
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	
-	static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;
+	FVertexFactory* VertexFactory = GetPaperSpriteVertexFactory();
 
-	for (int32 BatchIndex = 0; BatchIndex < BatchedSprites.Num(); ++BatchIndex)
+	for (const FSpriteDrawCallRecord& Record : Batch)
 	{
-		const FSpriteDrawCallRecord& Record = BatchedSprites[BatchIndex];
-
-		FTexture* TextureResource = (Record.Texture != NULL) ? Record.Texture->Resource : NULL;
-		if ((TextureResource != NULL) && (Record.RenderVerts.Num() > 0))
+		FTexture* TextureResource = (Record.Texture != nullptr) ? Record.Texture->Resource : nullptr;
+		if ((TextureResource != nullptr) && (Record.RenderVerts.Num() > 0))
 		{
-			FLinearColor SpriteColor = bUseOverrideColor ? OverrideColor : Record.Color;
+			const FLinearColor SpriteColor = bUseOverrideColor ? OverrideColor : Record.Color;
 
 			const FVector EffectiveOrigin = Record.Destination;
 
@@ -338,16 +345,9 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 			Mesh.DynamicVertexData = Vertices.GetTypedData();
 			Mesh.DynamicVertexStride = sizeof(FPaperSpriteVertex);
 
-			Mesh.VertexFactory = &GPaperSpriteVertexFactory;
+			Mesh.VertexFactory = VertexFactory;
 
-// 			const FColoredMaterialRenderProxy VertexColorVisualizationMaterialInstance(
-// 				VertexColorVisualizationMaterial->GetRenderProxy( MeshElement.MaterialRenderProxy->IsSelected(),MeshElement.MaterialRenderProxy->IsHovered() ),
-// 				GetSelectionColor( FLinearColor::White, bIsSelected, IsHovered() )
-// 				);
-
-
-
-			FMaterialRenderProxy* ParentMaterialProxy = Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
+			FMaterialRenderProxy* ParentMaterialProxy = BatchMaterial->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
 
 			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
 			FTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FTextureOverrideRenderProxy(ParentMaterialProxy, Record.Texture, TEXT("SpriteTexture"));

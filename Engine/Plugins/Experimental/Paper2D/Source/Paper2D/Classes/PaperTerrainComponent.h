@@ -5,6 +5,12 @@
 #include "SpriteDrawCall.h"
 #include "PaperTerrainComponent.generated.h"
 
+struct FPaperTerrainMaterialPair
+{
+	TArray<FSpriteDrawCallRecord> Records;
+	UMaterialInterface* Material;
+};
+
 /**
  * The terrain visualization component for an associated spline component.
  * This takes a 2D terrain material and instances sprite geometry along the spline path.
@@ -68,8 +74,8 @@ protected:
 
 	void OnSplineEdited();
 
-	TArray<FSpriteDrawCallRecord> GeneratedSpriteGeometry;
-
+	TArray<FPaperTerrainMaterialPair> GeneratedSpriteGeometry;
+	
 	FTransform GetTransformAtDistance(float InDistance) const;
 };
 

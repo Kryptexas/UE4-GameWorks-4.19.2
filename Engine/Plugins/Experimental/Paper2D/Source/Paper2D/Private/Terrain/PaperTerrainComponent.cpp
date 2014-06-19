@@ -6,28 +6,46 @@
 #include "PaperRenderSceneProxy.h"
 
 //////////////////////////////////////////////////////////////////////////
-// UPaperTerrainComponent
+// FPaperTerrainSceneProxy
 
 class FPaperTerrainSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FSpriteDrawCallRecord>& InGeometry, UMaterialInterface* InMaterial);
+	FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FPaperTerrainMaterialPair>& InDrawingData);
 
 	// FPrimitiveSceneProxy interface.
 	//virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	// End of FPrimitiveSceneProxy interface.
+
+protected:
+	TArray<FPaperTerrainMaterialPair> DrawingData;
+protected:
+	// FPaperRenderSceneProxy interface
+	virtual void DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor) override;
+	// End of FPaperRenderSceneProxy interface
 };
 
-FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FSpriteDrawCallRecord>& InGeometry, UMaterialInterface* InMaterial)
+FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* InComponent, const TArray<FPaperTerrainMaterialPair>& InDrawingData)
 	: FPaperRenderSceneProxy(InComponent)
 {
-	BatchedSprites = InGeometry;
+	DrawingData = InDrawingData;
 
-	//@TODO: Should make the input geom + material be a pair, allowing multiple materials for solid/opaque
-	Material = InMaterial;
-	if (Material)
+	// Combine the material relevance for all materials
+	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
 	{
-		MaterialRelevance = Material->GetRelevance();
+		const UMaterialInterface* MaterialInterface = (Batch.Material != nullptr) ? Batch.Material : UMaterial::GetDefaultMaterial(MD_Surface);
+		MaterialRelevance |= MaterialInterface->GetRelevance_Concurrent();
+	}
+}
+
+void FPaperTerrainSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
+{
+	for (const FPaperTerrainMaterialPair& Batch : DrawingData)
+	{
+		if (Batch.Material != nullptr)
+		{
+			DrawBatch(PDI, View, bUseOverrideColor, OverrideColor, Batch.Material, Batch.Records);
+		}
 	}
 }
 
@@ -101,7 +119,7 @@ FPrimitiveSceneProxy* UPaperTerrainComponent::CreateSceneProxy()
 		}
 	}
 
-	FPaperTerrainSceneProxy* NewProxy = new FPaperTerrainSceneProxy(this, GeneratedSpriteGeometry, Material);
+	FPaperTerrainSceneProxy* NewProxy = new FPaperTerrainSceneProxy(this, GeneratedSpriteGeometry);
 	return NewProxy;
 }
 
@@ -112,12 +130,15 @@ FBoxSphereBounds UPaperTerrainComponent::CalcBounds(const FTransform& LocalToWor
 	{
 		FBox BoundingBox(ForceInit);
 
-		for (const FSpriteDrawCallRecord& DrawCall : GeneratedSpriteGeometry)
+		for (const FPaperTerrainMaterialPair& DrawCall : GeneratedSpriteGeometry)
 		{
-			for (const FVector4& VertXYUV : DrawCall.RenderVerts)
+			for (const FSpriteDrawCallRecord& Record : DrawCall.Records)
 			{
-				const FVector Vert((PaperAxisX * VertXYUV.X) + (PaperAxisY * VertXYUV.Y));
-				BoundingBox += Vert;
+				for (const FVector4& VertXYUV : Record.RenderVerts)
+				{
+					const FVector Vert((PaperAxisX * VertXYUV.X) + (PaperAxisY * VertXYUV.Y));
+					BoundingBox += Vert;
+				}
 			}
 		}
 
@@ -277,7 +298,10 @@ void UPaperTerrainComponent::SpawnSegment(class UPaperSprite* NewSprite, float D
 
 		const FTransform LocalTransform(GetTransformAtDistance(Position));
 
-		FSpriteDrawCallRecord& Record = *new (GeneratedSpriteGeometry) FSpriteDrawCallRecord();
+		FPaperTerrainMaterialPair& MaterialBatch = *new (GeneratedSpriteGeometry) FPaperTerrainMaterialPair(); //@TODO: Look up the existing one instead
+		MaterialBatch.Material = NewSprite->GetDefaultMaterial();
+
+		FSpriteDrawCallRecord& Record = *new (MaterialBatch.Records) FSpriteDrawCallRecord();
 		Record.BuildFromSprite(NewSprite);
 		Record.Color = TerrainColor;
 
