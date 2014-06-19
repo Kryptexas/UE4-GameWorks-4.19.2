@@ -36,6 +36,7 @@ FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* I
 
 UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, TerrainColor(FLinearColor::White)
 	, ReparamStepsPerSegment(4)
 {
 	TestScaleFactor = 1.0f;
@@ -278,6 +279,7 @@ void UPaperTerrainComponent::SpawnSegment(class UPaperSprite* NewSprite, float D
 
 		FSpriteDrawCallRecord& Record = *new (GeneratedSpriteGeometry) FSpriteDrawCallRecord();
 		Record.BuildFromSprite(NewSprite);
+		Record.Color = TerrainColor;
 
 		for (FVector4& XYUV : Record.RenderVerts)
 		{
@@ -294,3 +296,14 @@ void UPaperTerrainComponent::SpawnSegment(class UPaperSprite* NewSprite, float D
 	}
 }
 
+void UPaperTerrainComponent::SetTerrainColor(FLinearColor NewColor)
+{
+	// Can't set color on a static component
+	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (TerrainColor != NewColor))
+	{
+		TerrainColor = NewColor;
+
+		//@TODO: Should we send immediately?
+		MarkRenderDynamicDataDirty();
+	}
+}

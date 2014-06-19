@@ -33,6 +33,10 @@ public:
 	int32 RandomSeed;
 
 protected:
+	// The color of the terrain (passed to the sprite material as a vertex color)
+	UPROPERTY(Category=Sprite, BlueprintReadOnly, Interp)
+	FLinearColor TerrainColor;
+
 	/** Number of steps per spline segment to place in the reparameterization table */
 	UPROPERTY(EditAnywhere, Category=Sprite, meta=(ClampMin=4, UIMin=4))
 	int32 ReparamStepsPerSegment;
@@ -54,6 +58,10 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End of UPrimitiveComponent interface
+
+	// Set color of the terrain
+	UFUNCTION(BlueprintCallable, Category = "Sprite")
+	void SetTerrainColor(FLinearColor NewColor);
 
 protected:
 	void SpawnSegment(class UPaperSprite* NewSprite, float Direction, float& RemainingSegStart, float& RemainingSegEnd);
