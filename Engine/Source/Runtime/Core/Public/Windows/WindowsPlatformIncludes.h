@@ -25,6 +25,7 @@ extern "C" CORE_API HINSTANCE hInstance;
 // SIMD intrinsics
 #include <intrin.h>
 
+#include <stdint.h>
 #include <tchar.h>
 
 #if USING_CODE_ANALYSIS
