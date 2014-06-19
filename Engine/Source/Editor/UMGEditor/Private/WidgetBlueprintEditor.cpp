@@ -334,7 +334,8 @@ UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()
 {
 	if( !DefaultMovieScene )
 	{
-		DefaultMovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), GetTransientPackage(), "DefaultAnimationData" );
+		FName ObjectName = MakeUniqueObjectName( GetTransientPackage(), UMovieScene::StaticClass(), "DefaultAnimationData" );
+		DefaultMovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), GetTransientPackage(), ObjectName );
 	}
 
 	return DefaultMovieScene;
