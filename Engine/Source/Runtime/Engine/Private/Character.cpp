@@ -78,6 +78,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 
 		CharacterMovement->GetNavAgentProperties()->bCanJump = true;
 		CharacterMovement->GetNavAgentProperties()->bCanWalk = true;
+		CharacterMovement->GetNavAgentProperties()->bCanSwim = true;
 		CharacterMovement->SetJumpAllowed(true);
 	}
 
