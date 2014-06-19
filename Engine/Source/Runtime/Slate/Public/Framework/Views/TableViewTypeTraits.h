@@ -228,7 +228,7 @@ public:
 		return InPtr != NULL;
 	}
 
-	static void ResetPtr( T* InPtr )
+	static void ResetPtr( T*& InPtr )
 	{
 		InPtr = NULL;
 	}
