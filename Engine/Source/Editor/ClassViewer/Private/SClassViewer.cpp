@@ -589,7 +589,7 @@ namespace ClassViewer
 			bool bPassesPlaceableFilter = false;
 
 			// When in picker mode, brushes are valid "placeable" actors
-			if( bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) )
+			if (bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) && IsPlaceable(InOriginalRootNode->Class.Get()))
 			{
 				bPassesPlaceableFilter = true;
 			}
@@ -685,7 +685,7 @@ namespace ClassViewer
 			bool bPassesPlaceableFilter = false;
 
 			// When in picker mode, brushes are valid "placeable" actors
-			if( bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) )
+			if( bInOnlyPlaceables && InInitOptions.Mode == EClassViewerMode::ClassPicker && IsBrush(InOriginalRootNode->Class.Get()) && IsPlaceable(InOriginalRootNode->Class.Get()))
 			{
 				bPassesPlaceableFilter = true;
 			}

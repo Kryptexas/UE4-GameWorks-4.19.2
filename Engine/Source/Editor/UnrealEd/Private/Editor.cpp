@@ -6069,11 +6069,6 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 		if( Actor )
 		{
 			SelectActor( Actor, 1, 0 );
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush && Brush->BrushComponent )
-			{
-				FBSPOps::csgCopyBrush( Brush, Class->GetDefaultObject<ABrush>(), 0, RF_NoFlags, 1, true );
-			}
 			Actor->InvalidateLightingCache();
 			Actor->PostEditMove( true );
 		}
