@@ -967,6 +967,14 @@ protected:
 	 */
 	bool IsValidAnimationData(TArray<FbxNode*>& SortedLinks, TArray<FbxNode*>& NodeArray, int32 & ValidTakeCount);
 
+	/**
+	 * Retrieve pose array from bind pose
+	 *
+	 * Iterate through Scene:Poses, and find valid bind pose for NodeArray, and return those Pose if valid
+	 *
+	 */
+	bool RetrievePoseFromBindPose(const TArray<FbxNode*>& NodeArray, FbxArray<FbxPose*> & PoseArray) const;
+
 public:
 	/** Import and set up animation related data from mesh **/
 	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject * InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString & Filename);
