@@ -5,6 +5,8 @@
 
 #include "ILevelViewport.h"
 #include "Editor/UnrealEd/Public/SEditorViewport.h"
+
+class SActorPreview;
 	
 /**
  * Encapsulates an SViewport and an SLevelViewportToolBar
@@ -745,7 +747,7 @@ private:
 		TSharedPtr< FSceneViewport > SceneViewport;
 
 		/** Slate widget that represents this preview in the viewport */
-		TSharedPtr< SWidget > PreviewWidget;
+		TSharedPtr< SActorPreview > PreviewWidget;
 
 		/** Whether or not this actor preview will remain on screen if the actor is deselected */
 		bool bIsPinned;		
