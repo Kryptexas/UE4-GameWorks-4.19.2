@@ -83,6 +83,7 @@ namespace UnrealBuildTool
                 {
                     HasSDK = 0;
                 }
+                HasSDK = 1;
             }
             return HasSDK == 1 ? SDKStatus.Valid : SDKStatus.Invalid;
 		}
