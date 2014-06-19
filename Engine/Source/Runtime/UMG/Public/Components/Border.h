@@ -95,6 +95,10 @@ class UMG_API UBorder : public UContentWidget
 	void SyncronizeProperties() override;
 	// End of UWidget interface
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 	TSharedPtr<SBorder> MyBorder;
 

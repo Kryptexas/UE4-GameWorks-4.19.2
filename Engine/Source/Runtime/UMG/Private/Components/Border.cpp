@@ -150,6 +150,15 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* UBorder::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Border");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

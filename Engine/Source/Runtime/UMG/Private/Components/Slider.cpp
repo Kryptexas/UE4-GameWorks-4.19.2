@@ -61,6 +61,15 @@ void USlider::SetValue(float InValue)
 	return MySlider->SetValue(InValue);
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* USlider::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Slider");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

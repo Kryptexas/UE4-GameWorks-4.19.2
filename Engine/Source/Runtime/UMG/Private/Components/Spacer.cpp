@@ -41,6 +41,15 @@ void USpacer::SyncronizeProperties()
 	MySpacer->SetSize(Size);
 }
 
+#if WITH_EDITOR
+
+const FSlateBrush* USpacer::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.Spacer");
+}
+
+#endif
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

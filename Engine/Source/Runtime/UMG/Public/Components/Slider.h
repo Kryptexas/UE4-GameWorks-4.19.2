@@ -65,6 +65,10 @@ class UMG_API USlider : public UWidget
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 	/** Native Slate Widget */
 	TSharedPtr<SSlider> MySlider;

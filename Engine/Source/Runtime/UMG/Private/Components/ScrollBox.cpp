@@ -119,6 +119,11 @@ UScrollBoxSlot* UScrollBox::AddSlot(UWidget* Content)
 
 #if WITH_EDITOR
 
+const FSlateBrush* UScrollBox::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.ScrollBox");
+}
+
 void UScrollBox::ConnectEditorData()
 {
 	for ( UScrollBoxSlot* Slot : Slots )
