@@ -71,6 +71,7 @@ public:
 
 protected:
 	void SpawnSegment(class UPaperSprite* NewSprite, float Direction, float& RemainingSegStart, float& RemainingSegEnd);
+	void SpawnSegment(class UPaperSprite* NewSprite, float Position, float HorizontalScale);
 
 	void OnSplineEdited();
 
