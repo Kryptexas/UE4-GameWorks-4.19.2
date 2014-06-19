@@ -2481,6 +2481,15 @@ void AActor::SetActorScale3D(const FVector& NewScale3D)
 }
 
 
+FVector AActor::GetActorScale3D() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->GetComponentScale();
+	}
+	return FVector(1,1,1);
+}
+
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
@@ -2561,6 +2570,15 @@ void AActor::SetActorRelativeScale3D(FVector NewRelativeScale)
 
 		RootComponent->SetRelativeScale3D(NewRelativeScale);
 	}
+}
+
+FVector AActor::GetActorRelativeScale3D() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->RelativeScale3D;
+	}
+	return FVector(1,1,1);
 }
 
 void AActor::SetActorHiddenInGame( bool bNewHidden )

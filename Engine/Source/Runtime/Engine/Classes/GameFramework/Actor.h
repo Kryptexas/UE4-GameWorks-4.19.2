@@ -704,6 +704,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorScale3D(const FVector& NewScale3D);
 
+	/** Returns the Actor's world-space scale. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	FVector GetActorScale3D() const;
+
 	/** Returns the distance from this Actor to OtherActor. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetDistanceTo(AActor* OtherActor);
@@ -773,6 +777,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeScale3D(FVector NewRelativeScale);
+
+	/**
+	 * Return the actor's relative scale 3d
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	FVector GetActorRelativeScale3D() const;
 
 	/**
 	 *	Sets the actor to be hidden in the game
