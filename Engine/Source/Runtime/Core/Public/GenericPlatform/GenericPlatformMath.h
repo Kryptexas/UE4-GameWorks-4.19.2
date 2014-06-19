@@ -454,6 +454,80 @@ struct FGenericPlatformMath
 		return (A<=B) ? A : B;
 	}
 
+	/**
+	* Min of Array
+	* @param	Array of templated type
+	* @param	Optional pointer for returning the index of the minimum element, if multiple minimum elements the first index is returned
+	* @return	The min value found in the array or default value if the array was empty
+	*/
+	template< class T >
+	static FORCEINLINE T Min(const TArray<T>& Values, int32* MinIndex = NULL)
+	{
+		if (Values.Num() == 0)
+		{
+			if (MinIndex)
+			{
+				*MinIndex = INDEX_NONE;
+			}
+			return T();
+		}
+
+		T CurMin = Values[0];
+		int32 CurMinIndex = 0;
+		for (int32 v = 1; v < Values.Num(); ++v)
+		{
+			const T Value = Values[v];
+			if (Value < CurMin)
+			{
+				CurMin = Value;
+				CurMinIndex = v;
+			}
+		}
+
+		if (MinIndex)
+		{
+			*MinIndex = CurMinIndex;
+		}
+		return CurMin;
+	}
+
+	/**
+	* Max of Array
+	* @param	Array of templated type
+	* @param	Optional pointer for returning the index of the maximum element, if multiple maximum elements the first index is returned
+	* @return	The max value found in the array or default value if the array was empty
+	*/
+	template< class T >
+	static FORCEINLINE T Max(const TArray<T>& Values, int32* MaxIndex = NULL)
+	{
+		if (Values.Num() == 0)
+		{
+			if (MaxIndex)
+			{
+				*MaxIndex = INDEX_NONE;
+			}
+			return T();
+		}
+
+		T CurMax = Values[0];
+		int32 CurMaxIndex = 0;
+		for (int32 v = 1; v < Values.Num(); ++v)
+		{
+			const T Value = Values[v];
+			if (CurMax < Value)
+			{
+				CurMax = Value;
+				CurMaxIndex = v;
+			}
+		}
+
+		if (MaxIndex)
+		{
+			*MaxIndex = CurMaxIndex;
+		}
+		return CurMax;
+	}
+
 	/** Test some of the tricky functions above **/
 	static void AutoTest();
 };

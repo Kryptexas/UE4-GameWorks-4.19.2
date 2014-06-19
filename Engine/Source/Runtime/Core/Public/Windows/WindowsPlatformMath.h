@@ -120,13 +120,6 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 	{
 		return 1 << CeilLogTwo(Arg);
 	}
-
-	/** Here for specialization below */
-	template< class T > 
-	static FORCEINLINE T Min( const T A, const T B )
-	{
-		return (A<=B) ? A : B;
-	}
 #endif
 };
 
