@@ -1611,7 +1611,7 @@ namespace UnrealBuildTool
 
 			if(RedistStaticLibraryPath != null)
 			{
-				LinkEnvironment.Config.AdditionalLibraries.Add(RedistStaticLibraryPath);
+				LinkEnvironment.Config.AdditionalLibraries.Add(Path.GetFullPath(RedistStaticLibraryPath));
 			}
 		}
 
