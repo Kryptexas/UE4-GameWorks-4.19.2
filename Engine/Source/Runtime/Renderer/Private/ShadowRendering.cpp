@@ -850,9 +850,8 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawShared(FRHIC
 {
 	checkSlow(bDirectionalLight == PolicyShadowInfo->bDirectionalLight && bPreShadow == PolicyShadowInfo->bPreShadow);
 
-	RHICmdList.CheckIsNull();
 	// Set the actual shader & vertex declaration state
-	RHISetBoundShaderState(BoundShaderState);
+	RHICmdList.SetBoundShaderState(BoundShaderState);
 
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View,PolicyShadowInfo);
 
@@ -875,7 +874,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawShared(FRHIC
 	// Set the shared mesh resources.
 	if (bUsePositionOnlyVS)
 	{
-		VertexFactory->SetPositionStream();
+		VertexFactory->SetPositionStream(RHICmdList);
 	}
 	else
 	{
@@ -890,7 +889,7 @@ void FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::DrawShared(FRHIC
 	}
 
 	// Set the rasterizer state only once per draw list bucket, instead of once per mesh in SetMeshRenderState as an optimization
-	RHISetRasterizerState(GetStaticRasterizerState<true>(
+	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(
 		FM_Solid,
 		bIsTwoSided ? CM_None :
 			// Have to flip culling when doing one pass point light shadows for some reason
@@ -1370,6 +1369,12 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FDeferredSha
 	{
 		SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
 
+//@todo-rco: Very temp code!!!
+SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
+static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
+bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 2);
+FRHICommandList& RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : FRHICommandList::GetNullRef();
+
 		if (bReflectiveShadowmap)
 		{
 			SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
@@ -1379,6 +1384,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FDeferredSha
 			// Use the scene's shadow depth draw list with this shadow's visibility map
 			SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
 		}
+
+GRHICommandList.ExecuteAndFreeList(RHICmdList);
 	}
 	// Draw the subject's static elements using manual state filtering
 	else if (SubjectMeshElements.Num() > 0)

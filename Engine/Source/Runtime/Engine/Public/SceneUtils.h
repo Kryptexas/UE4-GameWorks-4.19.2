@@ -43,8 +43,8 @@ inline void appSetCounterValue(const TCHAR* CounterName, float Value) {}
 		bool bDrawEventHasBeenEmitted;
 
 		/** Default constructor, initializing all member variables. */
-		FDrawEvent()
-		:	bDrawEventHasBeenEmitted( false )
+		FORCEINLINE FDrawEvent() :
+			bDrawEventHasBeenEmitted( false )
 		{}
 
 		/**

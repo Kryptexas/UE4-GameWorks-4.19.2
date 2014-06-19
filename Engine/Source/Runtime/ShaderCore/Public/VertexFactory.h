@@ -344,7 +344,7 @@ public:
 	/**
 	* Sets the position stream as the current stream source.
 	*/
-	void SetPositionStream() const;
+	void SetPositionStream(FRHICommandList& RHICmdList) const;
 
 	/**
 	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.

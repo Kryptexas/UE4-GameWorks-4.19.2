@@ -172,7 +172,7 @@ FDepthDrawingPolicy::FDepthDrawingPolicy(
 void FDepthDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
 {
 	// Set the actual shader & vertex declaration state
-	RHISetBoundShaderState(BoundShaderState);
+	RHICmdList.SetBoundShaderState(BoundShaderState);
 
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
@@ -262,13 +262,13 @@ void FPositionOnlyDepthDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, co
 	RHICmdList.CheckIsNull();
 
 	// Set the actual shader & vertex declaration state
-	RHISetBoundShaderState( BoundShaderState);
+	RHICmdList.SetBoundShaderState( BoundShaderState);
 
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*MaterialResource,*View);
 
 	// Set the shared mesh resources.
-	VertexFactory->SetPositionStream();
+	VertexFactory->SetPositionStream(RHICmdList);
 }
 
 /** 

@@ -329,7 +329,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FViewInfo& View)
 		//@todo-rco: Very temp code!!!
 		SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
 		static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
-		bool bUseRHICmdList = RHICmdListCVar->GetInt() != 0;
+		bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 1);
 		FRHICommandList& RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : FRHICommandList::GetNullRef();
 		bDirty |= RenderBasePassStaticData(RHICmdList, View);
 		GRHICommandList.ExecuteAndFreeList(RHICmdList);

@@ -178,11 +178,8 @@ void FVertexFactory::Set(FRHICommandList& RHICmdList) const
 	}
 }
 
-void FVertexFactory::SetPositionStream() const
+void FVertexFactory::SetPositionStream(FRHICommandList& RHICmdList) const
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	check(IsInitialized());
 	// Set the predefined vertex streams.
 	for(int32 StreamIndex = 0;StreamIndex < PositionStream.Num();StreamIndex++)
