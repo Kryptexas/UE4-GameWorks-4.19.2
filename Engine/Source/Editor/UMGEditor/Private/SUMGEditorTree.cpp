@@ -28,8 +28,6 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
 
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorTree::OnObjectPropertyChanged);
-
 	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
 	.ItemHeight(20.0f)
 	.SelectionMode(ESelectionMode::Single)
@@ -78,8 +76,6 @@ SUMGEditorTree::~SUMGEditorTree()
 	{
 		Blueprint->OnChanged().RemoveAll(this);
 	}
-
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 
 	if ( BlueprintEditor.IsValid() )
 	{
@@ -168,14 +164,6 @@ void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
 	if ( InBlueprint )
 	{
 		RefreshTree();
-	}
-}
-
-void SUMGEditorTree::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
-{
-	if ( !ensure(ObjectBeingModified) )
-	{
-		return;
 	}
 }
 

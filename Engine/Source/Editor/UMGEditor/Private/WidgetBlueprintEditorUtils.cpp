@@ -7,8 +7,9 @@
 #include "BlueprintEditorUtils.h"
 #include "K2Node_Variable.h"
 
-bool FWidgetBlueprintEditorUtils::RenameWidget(UWidgetBlueprint* Blueprint, const FName& OldName, const FName& NewName)
+bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor> BlueprintEditor, const FName& OldName, const FName& NewName)
 {
+	UWidgetBlueprint* Blueprint = BlueprintEditor->GetWidgetBlueprintObj();
 	check(Blueprint);
 
 	bool bRenamed = false;
@@ -23,7 +24,18 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(UWidgetBlueprint* Blueprint, cons
 
 	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldNameStr);
 	check(Widget);
+
+	// Rename Template
 	Widget->Rename(*NewNameStr);
+
+	// Rename Preview
+	UWidget* WidgetPreview = FWidgetReference::FromTemplate(BlueprintEditor, Widget).GetPreview();
+	if ( WidgetPreview )
+	{
+		WidgetPreview->Rename(*NewNameStr);
+	}
+
+	// TODO UMG RENAME VARIABLES IN THE GRAPH!
 
 	UTimelineTemplate* Template = Blueprint->FindTimelineTemplateByVariableName(NewName);
 	if ((Template == NULL) && bUniqueNameForTemplate)
@@ -79,5 +91,10 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(UWidgetBlueprint* Blueprint, cons
 			bRenamed = true;
 		}
 	}
+
+	// Refresh references and flush editors
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	bRenamed = true;
+
 	return bRenamed;
 }

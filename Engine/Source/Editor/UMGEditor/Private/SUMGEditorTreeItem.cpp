@@ -45,7 +45,6 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			.VAlign(VAlign_Center)
 			[
 				SNew(SInlineEditableTextBlock)
-				.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
 				.Font(this, &SUMGEditorTreeItem::GetItemFont)
 				.Text(this, &SUMGEditorTreeItem::GetItemText)
 				.HighlightText(InArgs._HighlightText)
@@ -64,10 +63,8 @@ bool SUMGEditorTreeItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	UWidget* ExistingWidget = Blueprint->WidgetTree->FindWidget(NewName);
 
-	//TODO UMG check variables in the blueprint also
 	FKismetNameValidator Validator(Blueprint);
 
-	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
 	const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewName) );
 	
 	if ( ( ExistingWidget != NULL && ExistingWidget != Item ) || !bUniqueNameForVariable )
@@ -81,8 +78,7 @@ bool SUMGEditorTreeItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 
 void SUMGEditorTreeItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
-	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-	FWidgetBlueprintEditorUtils::RenameWidget(Blueprint, Item->GetFName(), FName(*InText.ToString()));
+	FWidgetBlueprintEditorUtils::RenameWidget(BlueprintEditor.Pin().ToSharedRef(), Item->GetFName(), FName(*InText.ToString()));
 }
 
 FSlateFontInfo SUMGEditorTreeItem::GetItemFont() const
@@ -104,10 +100,7 @@ FText SUMGEditorTreeItem::GetItemText() const
 	return FText::FromString(Item->GetLabel());
 }
 
-FString SUMGEditorTreeItem::GetItemTooltipText() const
-{
-	return Item->GetDetailedInfo();
-}
+//@TODO UMG Allow items in the tree to be dragged, and reordered, and reparented.
 
 void SUMGEditorTreeItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {

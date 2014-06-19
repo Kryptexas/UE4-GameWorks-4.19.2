@@ -24,7 +24,9 @@ public:
 
 	virtual ~SUMGEditorTree();
 
+	// Begin SWidget
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+	// End SWidget
 
 private:
 	void BuildWrapWithMenu(FMenuBuilder& Menu);
@@ -42,8 +44,6 @@ private:
 
 	/** Called when the blueprint is structurally changed. */
 	void OnBlueprintChanged(UBlueprint* InBlueprint);
-
-	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Called when the selected widget has changed.  The treeview then needs to match the new selection. */
 	void OnEditorSelectionChanged();
@@ -77,19 +77,30 @@ private:
 
 private:
 
+	/** Cached pointer to the blueprint editor that owns this tree. */
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
 
+	/** The tree item source.  We only ever have one root widget, but the tree expects an array. */
 	TArray< UWidget* > RootWidgets;
 
+	/** The widget hierarchy slate treeview widget */
 	TSharedPtr< STreeView< UWidget* > > WidgetTreeView;
 
+	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
 
+	/** The set of widgets currently passing the filter.  Used to quickly filter children when the tree is expanded lazily. */
 	TSet< UWidget* > WidgetsPassingFilter;
 
+	/**
+	  * A cache of the expanded items.  We store this off before a user filters the list so that we can 
+	  * restore the expansion state after the filter is cleared.
+	  */
 	TSet< UWidget* > CachedExpandedWidgets;
 
+	/** Caches a value to know if a filter is currently active. */
 	bool bIsFilterActive;
 
+	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;
 };
