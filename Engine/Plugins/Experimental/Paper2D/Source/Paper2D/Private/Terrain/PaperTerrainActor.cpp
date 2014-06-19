@@ -17,3 +17,14 @@ APaperTerrainActor::APaperTerrainActor(const FPostConstructInitializeProperties&
 	RenderComponent->AssociatedSpline = SplineComponent;
 	RootComponent = DummyRoot;
 }
+
+#if WITH_EDITOR
+bool APaperTerrainActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (RenderComponent->TerrainMaterial != nullptr)
+	{
+		Objects.Add(RenderComponent->TerrainMaterial);
+	}
+	return true;
+}
+#endif
