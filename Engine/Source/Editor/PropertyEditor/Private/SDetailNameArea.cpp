@@ -196,10 +196,10 @@ void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontal
 					.FillWidth( 1.0f )
 					[
 						SNew(SHyperlink)
-							.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+							.Style(FEditorStyle::Get(), "EditBPHyperlink")
 							.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
 							.OnNavigate(this, &SDetailNameArea::OnEditBlueprintClicked, BlueprintPtr, ObjectWeakPtr)
-							.Text(FText::Format(LOCTEXT("EditBlueprint", "(Edit {0})"), FText::FromString( Blueprint->GetName() ) ))
+							.Text(FText::Format(LOCTEXT("EditBlueprint", "Edit {0}"), FText::FromString( Blueprint->GetName() ) ))
 							.ToolTipText(LOCTEXT("EditBlueprint_ToolTip", "Click to edit the blueprint"))
 					];
 			}		
@@ -224,11 +224,11 @@ void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontal
 						.FillWidth( 1.0f )
 						[
 							SNew(SHyperlink)
-								.Style(FEditorStyle::Get(), "HoverOnlyHyperlink")
+								.Style(FCoreStyle::Get(), "Hyperlink")
 								.TextStyle(FEditorStyle::Get(), "DetailsView.GoToCodeHyperlinkStyle")
 								.OnNavigate_Static(&Local::OnEditCodeClicked, ClassHeaderPath)
 //								.Text(LOCTEXT("GoToCode", "(C++)" ))
-								.Text(FText::Format(LOCTEXT("GoToCode", "({0})" ), FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
+								.Text(FText::Format(LOCTEXT("GoToCode", "{0}" ), FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
 								.ToolTipText(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in a text editor"))
 						];
 				}
