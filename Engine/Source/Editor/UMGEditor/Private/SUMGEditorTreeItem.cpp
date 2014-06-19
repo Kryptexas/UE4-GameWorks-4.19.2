@@ -15,6 +15,8 @@
 
 #include "Kismet2NameValidators.h"
 
+#include "WidgetBlueprintEditor.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, UWidget* InItem)
