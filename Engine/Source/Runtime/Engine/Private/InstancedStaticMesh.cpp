@@ -235,31 +235,22 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 #endif
 		RawData.Add( FVector4( Instance.ShadowmapUVBias.X, Instance.ShadowmapUVBias.Y, Z, W ) );
 
-		// Grab the instance -> local matrix.  Every mesh instance has it's own transformation into
+		// Instance -> local matrix.  Every mesh instance has it's own transformation into
 		// the actor's coordinate space.
-		const FMatrix& InstanceToLocal = Instance.Transform;
-
-		// Create an instance -> world transform by combining the instance -> local transform with the
-		// local -> world transform
-		const FMatrix InstanceToWorld = InstanceToLocal * LocalToWorld;
-
-		// Instance to world transform matrix
 		{
-			const FMatrix Transpose = InstanceToWorld.GetTransposed();
+			const FMatrix Transpose = Instance.Transform.GetTransposed();
+						
 			RawData.Add( FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Transpose.M[0][3]) );
 			RawData.Add( FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Transpose.M[1][3]) );
 			RawData.Add( FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], Transpose.M[2][3]) );
 		}
 
-		// World to instance rotation matrix (3x3)
+		// Instance -> local rotation matrix (3x3)
 		{
-			// Invert the instance -> world matrix
-			const FMatrix WorldToInstance = InstanceToWorld.Inverse();
-
 			const float RandomInstanceID = RandomInstanceIDBase + RandomStream.GetFraction() * RandomInstanceIDRange;
-
 			// hide the offset (bias) of the lightmap and the per-instance random id in the matrix's w
-			const FMatrix Transpose = WorldToInstance.GetTransposed();
+			const FMatrix Transpose = Instance.Transform.Inverse().GetTransposed();
+			
 			RawData.Add( FVector4(Transpose.M[0][0], Transpose.M[0][1], Transpose.M[0][2], Instance.LightmapUVBias.X) );
 			RawData.Add( FVector4(Transpose.M[1][0], Transpose.M[1][1], Transpose.M[1][2], Instance.LightmapUVBias.Y) );
 			RawData.Add( FVector4(Transpose.M[2][0], Transpose.M[2][1], Transpose.M[2][2], RandomInstanceID) );
@@ -509,23 +500,11 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 {
 	virtual void Bind(const FShaderParameterMap& ParameterMap) override
 	{
-		InstancedViewTranslationParameter.Bind(ParameterMap,TEXT("InstancedViewTranslation"));
 		InstancingFadeOutParamsParameter.Bind(ParameterMap,TEXT("InstancingFadeOutParams"));
 	}
 
 	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override
 	{
-		if( InstancedViewTranslationParameter.IsBound() )
-		{
-			FVector4 InstancedViewTranslation(View.ViewMatrices.PreViewTranslation, 0.f);
-			SetShaderValue(
-				RHICmdList, 
-				VertexShader->GetVertexShader(),
-				InstancedViewTranslationParameter,
-				InstancedViewTranslation
-				);
-		}
-
 		if( InstancingFadeOutParamsParameter.IsBound() )
 		{
 			FVector4 InstancingFadeOutParams(0.f,0.f,1.f,1.f);
@@ -569,14 +548,12 @@ class FInstancedStaticMeshVertexFactoryShaderParameters : public FVertexFactoryS
 
 	void Serialize(FArchive& Ar)
 	{
-		Ar << InstancedViewTranslationParameter;
 		Ar << InstancingFadeOutParamsParameter;
 	}
 
 	virtual uint32 GetSize() const { return sizeof(*this); }
 
 private:
-	FShaderParameter InstancedViewTranslationParameter;
 	FShaderParameter InstancingFadeOutParamsParameter;
 };
 
@@ -1455,13 +1432,6 @@ void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshIns
 		check(InInstanceIndex == BodyIndex);
 		InitInstanceBody(BodyIndex, NewBodyInstance);
 	}
-}
-
-void UInstancedStaticMeshComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
-{
-	Super::ApplyWorldOffset(InOffset, bWorldShift);
-	// We still need to recreate buffers with instance data, as they holds absolute transformations right now
-	MarkRenderStateDirty();
 }
 
 bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
