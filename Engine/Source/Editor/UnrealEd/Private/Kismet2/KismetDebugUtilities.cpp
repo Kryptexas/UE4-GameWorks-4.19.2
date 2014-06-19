@@ -272,6 +272,14 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 				{
 					GEditor->RequestEndPlayMap();
 					FSlateApplication::Get().LeaveDebuggingMode();
+					
+					// Launch a message box notifying the user why they have been booted
+					{
+						FString BlueprintName;
+						BlueprintObj->GetName(BlueprintName);
+
+						FMessageDialog::Open( EAppMsgType::Ok, FText::Format(LOCTEXT("InfiniteLoopWarning", "Infinite Loop detected in blueprint: {0}"), FText::FromString(BlueprintName)));
+					}
 				}
 			}
 			break;
