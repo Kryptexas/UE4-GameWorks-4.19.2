@@ -210,7 +210,9 @@ namespace
 		}
 #endif
 
-		FileAr->Serialize(*contents, FileSize);
+		FileAr->Serialize(*contents, FileSize); 
+
+		FileAr->Close(); // Close the file archive to free up the handle - it is unneeded since the data is in memory.
 
 		return TRUE;
 	}
@@ -219,8 +221,6 @@ namespace
 	{
 		if(fileContext)
 		{
-			FArchive* FileAr = reinterpret_cast<FArchive*>(fileContext);
-
 			if(contents)
 			{
 #if STATS
@@ -232,10 +232,6 @@ namespace
 				}
 #endif
 				FICUOverrides::Free(nullptr, contents);
-			}
-			if(FileAr)
-			{
-				FileAr->Close();
 			}
 		}
 	}
