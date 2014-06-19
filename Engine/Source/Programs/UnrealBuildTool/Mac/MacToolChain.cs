@@ -731,7 +731,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				LinkCommand += string.Format(" -filelist \"{0}\"", ConvertPath(ResponsePath));
+				LinkCommand += string.Format(" @\"{0}\"", ConvertPath(ResponsePath));
 			}
 
 			if (LinkEnvironment.Config.bIsBuildingDLL)
