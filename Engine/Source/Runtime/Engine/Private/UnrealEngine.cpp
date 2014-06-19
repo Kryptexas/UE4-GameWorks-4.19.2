@@ -807,6 +807,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		const FEngineStatFuncs& EngineStat = EngineStats[StatIdx];
 		NewStatDelegate.Broadcast(EngineStat.CommandName, EngineStat.CategoryName, EngineStat.DescriptionString);
 	}
+
+	// Record the analytics for any attached HMD devices
+	RecordHMDAnalytics();
 }
 
 void UEngine::RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate )
@@ -1624,6 +1627,17 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
+}
+
+void UEngine::RecordHMDAnalytics()
+{
+	if( !GIsEditor )
+	{
+		if(HMDDevice.IsValid() && !FParse::Param(FCommandLine::Get(),TEXT("nohmd")))
+		{
+			HMDDevice->RecordAnalytics();
+		}
+	}
 }
 
 /** @return whether we're currently running in split screen (more than one local player) */

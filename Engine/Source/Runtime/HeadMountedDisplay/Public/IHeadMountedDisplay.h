@@ -231,6 +231,11 @@ public:
 	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
 #endif
 
+	/**
+	 * Record analytics
+	 */
+	virtual void RecordAnalytics() {}
+
 private:
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;

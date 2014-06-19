@@ -2147,6 +2147,11 @@ protected:
 	virtual bool InitializeHMDDevice();
 
 	/**
+	 *	Record EngineAnalytics information for attached HMD devices
+	 */
+	virtual void RecordHMDAnalytics();
+
+	/**
 	 * Loads all Engine object references from their corresponding config entries.
 	 */
 	virtual void InitializeObjectReferences();

@@ -4,6 +4,9 @@
 #include "OculusRiftHMD.h"
 
 #define DEFAULT_PREDICTION_IN_SECONDS 0.035
+#include "EngineAnalytics.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+
 
 
 
@@ -952,6 +955,62 @@ void FOculusRiftHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
 {
 	EnableStereo(WindowMode != EWindowMode::Windowed);
 	UpdateStereoRenderingParams();
+}
+
+void FOculusRiftHMD::RecordAnalytics()
+{
+	if (FEngineAnalytics::IsAvailable())
+	{
+		// prepare and send analytics data
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+
+		IHeadMountedDisplay::MonitorInfo MonitorInfo;
+		GetHMDMonitorInfo(MonitorInfo);
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DeviceName"), MonitorInfo.MonitorName));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DisplayId"), MonitorInfo.MonitorId));
+		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
+			
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), bChromaAbCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), bYawDriftCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), bDevSettingsEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MotionPredictionEnabled"), (MotionPredictionInSeconds > 0)));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TiltCorrectionEnabled"), bTiltCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AccelGain"), AccelGain));
+		const FVector vec = ToFVector_M2U(GetHeadModel());
+		FString formatted(FString::Printf(TEXT("(%f, %f, %f)"), vec[0], vec[1], vec[2]));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HeadModel"), formatted));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), bOverrideIPD));
+		if (bOverrideIPD)
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
+		}
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), bOverrideStereo));
+		if (bOverrideStereo)
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), HFOVInRadians));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), VFOVInRadians));
+		}
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), bOverrideVSync));
+		if (bOverrideVSync)
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), bVSync));
+		}
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), bOverrideScreenPercentage));
+		if (bOverrideScreenPercentage)
+		{
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), ScreenPercentage));
+		}
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AllowFinishCurrentFrame"), bAllowFinishCurrentFrame));
+#ifdef OVR_VISION_ENABLED
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), bHmdPosTracking));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LowPersistenceMode"), bLowPersistenceMode));
+#endif		
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), bUpdateOnRT));
+
+		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
+		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
+	}
 }
 
 bool FOculusRiftHMD::IsPositionalTrackingEnabled() const
