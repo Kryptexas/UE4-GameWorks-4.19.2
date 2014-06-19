@@ -267,14 +267,8 @@ void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UW
 
 TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return
-		SNew(STableRow< UWidget* >, OwnerTable)
-		.Padding(2.0f)
-//		.OnDragDetected(this, &SUMGEditorWidgetTemplates::OnDraggingWidgetTemplateItem)
-		[
-			SNew(SUMGEditorTreeItem, BlueprintEditor.Pin(), InItem)
-			.HighlightText(this, &SUMGEditorTree::GetSearchText)
-		];
+	return SNew(SUMGEditorTreeItem, OwnerTable, BlueprintEditor.Pin(), InItem)
+		.HighlightText(this, &SUMGEditorTree::GetSearchText);
 }
 
 void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)

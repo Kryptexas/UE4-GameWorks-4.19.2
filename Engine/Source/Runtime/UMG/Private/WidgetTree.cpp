@@ -10,15 +10,7 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void UWidgetTree::RenameWidget(UWidget* Widget, FString& NewName)
-{
-	Widget->Modify();
-	Widget->Rename(*NewName);
-
-	// TODO UMG Update nodes in the blueprint!
-}
-
-UWidget* UWidgetTree::FindWidget(FString& Name) const
+UWidget* UWidgetTree::FindWidget(const FString& Name) const
 {
 	FString ExistingName;
 	for ( UWidget* Widget : WidgetTemplates )

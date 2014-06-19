@@ -75,6 +75,18 @@ class UMG_API UBorder : public UContentWidget
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnPointerEvent OnMouseDoubleClickEvent;
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrushColor(FLinearColor InColorAndOpacity);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetForegroundColor(FLinearColor InForegroundColor);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetContentPadding(FMargin InContentPadding);
+
 	// UContentWidget interface
 	virtual void SetContent(UWidget* Content) override;
 	// End UContentWidget interface

@@ -29,3 +29,5 @@
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateDragDropOp.h"
+
+#include "WidgetBlueprintEditorUtils.h"

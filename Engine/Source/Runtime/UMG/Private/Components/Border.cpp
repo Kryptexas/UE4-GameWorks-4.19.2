@@ -72,6 +72,33 @@ void UBorder::SetContent(UWidget* InContent)
 	}
 }
 
+void UBorder::SetBrushColor(FLinearColor Color)
+{
+	BrushColor = Color;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetColorAndOpacity(Color);
+	}
+}
+
+void UBorder::SetForegroundColor(FLinearColor InForegroundColor)
+{
+	ForegroundColor = InForegroundColor;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetForegroundColor(InForegroundColor);
+	}
+}
+
+void UBorder::SetContentPadding(FMargin InContentPadding)
+{
+	ContentPadding = InContentPadding;
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetPadding(InContentPadding);
+	}
+}
+
 const FSlateBrush* UBorder::GetBorderBrush() const
 {
 	if ( Brush == NULL )

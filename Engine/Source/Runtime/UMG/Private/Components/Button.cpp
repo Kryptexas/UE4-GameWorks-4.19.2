@@ -87,22 +87,38 @@ void UButton::SetContent(UWidget* InContent)
 
 void UButton::SetColorAndOpacity(FLinearColor Color)
 {
-	MyButton->SetColorAndOpacity(Color);
+	ColorAndOpacity = Color;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetColorAndOpacity(Color);
+	}
 }
 
 void UButton::SetBackgroundColor(FLinearColor Color)
 {
-	MyButton->SetBorderBackgroundColor(Color);
+	BackgroundColor = Color;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetBorderBackgroundColor(Color);
+	}
 }
 
 void UButton::SetForegroundColor(FLinearColor InForegroundColor)
 {
-	MyButton->SetForegroundColor(InForegroundColor);
+	ForegroundColor = InForegroundColor;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetForegroundColor(InForegroundColor);
+	}
 }
 
 void UButton::SetContentPadding(FMargin InContentPadding)
 {
-	MyButton->SetContentPadding(InContentPadding);
+	ContentPadding = InContentPadding;
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetContentPadding(InContentPadding);
+	}
 }
 
 FReply UButton::HandleOnClicked()

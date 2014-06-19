@@ -15,8 +15,19 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), this);
+}
+
+void UContentWidget::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if ( ContentSlot == NULL )
+	{
+		ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), this);
+	}
+
 	ContentSlot->SetFlags(RF_Transactional);
+	ContentSlot->SetFlags(RF_DefaultSubObject);
 	ContentSlot->Parent = this;
 }
 

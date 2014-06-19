@@ -10,7 +10,19 @@
 UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+}
+
+void UWidgetBlueprintGeneratedClass::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// Create a widget tree if one doesn't already exist.
+	if ( WidgetTree == NULL )
+	{
+		WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	}
+
+	WidgetTree->SetFlags(RF_DefaultSubObject);
 	WidgetTree->SetFlags(RF_Transactional);
 }
 

@@ -62,11 +62,22 @@ public:
 	void SyncronizeProperties() override;
 	// End of UWidget interface
 
+#if WITH_EDITOR
+	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
+
+	virtual void OnDesignerDoubleClicked() override;
+#endif
+
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
 protected:
+
 	TSharedPtr<STextBlock> MyTextBlock;
+
+#if WITH_EDITOR
+	TSharedPtr<SInlineEditableTextBlock> MyEditorTextBlock;
+#endif
 };

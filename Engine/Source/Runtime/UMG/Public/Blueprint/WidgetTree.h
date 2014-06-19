@@ -17,9 +17,7 @@ public:
 
 public:
 
-	void RenameWidget(UWidget* Widget, FString& NewName);
-
-	UWidget* FindWidget(FString& Name) const;
+	UWidget* FindWidget(const FString& Name) const;
 
 	bool RemoveWidget(UWidget* Widget);
 
@@ -29,7 +27,10 @@ public:
 	template< class T >
 	T* ConstructWidget(TSubclassOf<UWidget> WidgetType)
 	{
+		// TODO UMG Editor only?
 		Modify();
+
+		// TODO UMG Don't have the widget tree responsible for construction and adding to the tree.
 
 		UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
 		Widget->SetFlags(RF_Transactional);

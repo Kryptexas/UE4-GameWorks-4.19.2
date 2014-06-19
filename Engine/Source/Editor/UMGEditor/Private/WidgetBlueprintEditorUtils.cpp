@@ -7,16 +7,23 @@
 #include "BlueprintEditorUtils.h"
 #include "K2Node_Variable.h"
 
-bool FWidgetBlueprintEditorUtils::RenameWidget(UBlueprint* Blueprint, const FName& OldName, const FName& NewName)
+bool FWidgetBlueprintEditorUtils::RenameWidget(UWidgetBlueprint* Blueprint, const FName& OldName, const FName& NewName)
 {
 	check(Blueprint);
 
 	bool bRenamed = false;
 
 	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint));
-	const FString NewTemplateName = UTimelineTemplate::TimelineVariableNameToTemplateName(NewName);
+
 	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
-	const bool bUniqueNameForTemplate = (EValidatorResult::Ok == NameValidator->IsValid(NewTemplateName));
+	const bool bUniqueNameForTemplate = ( EValidatorResult::Ok == NameValidator->IsValid(NewName) );
+
+	const FString NewNameStr = NewName.ToString();
+	const FString OldNameStr = OldName.ToString();
+
+	UWidget* Widget = Blueprint->WidgetTree->FindWidget(OldNameStr);
+	check(Widget);
+	Widget->Rename(*NewNameStr);
 
 	UTimelineTemplate* Template = Blueprint->FindTimelineTemplateByVariableName(NewName);
 	if ((Template == NULL) && bUniqueNameForTemplate)
@@ -26,9 +33,6 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(UBlueprint* Blueprint, const FNam
 		{
 			Blueprint->Modify();
 			Template->Modify();
-
-			const FString NewNameStr = NewName.ToString();
-			const FString OldNameStr = OldName.ToString();
 
 			TArray<UK2Node_Variable*> TimelineVarNodes;
 			FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(Blueprint, TimelineVarNodes);
@@ -59,12 +63,12 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(UBlueprint* Blueprint, const FNam
 
 			Blueprint->Timelines.Remove(Template);
 			
-			UObject* ExistingObject = StaticFindObject(NULL, Template->GetOuter(), *NewTemplateName, true);
+			UObject* ExistingObject = StaticFindObject(NULL, Template->GetOuter(), *NewName.ToString(), true);
 			if (ExistingObject != Template && ExistingObject != NULL)
 			{
 				ExistingObject->Rename(*MakeUniqueObjectName(ExistingObject->GetOuter(), ExistingObject->GetClass(), ExistingObject->GetFName()).ToString());
 			}
-			Template->Rename(*NewTemplateName, Template->GetOuter(), (Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None));
+			Template->Rename(*NewName.ToString(), Template->GetOuter(), ( Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None ));
 			Blueprint->Timelines.Add(Template);
 
 			// Validate child blueprints and adjust variable names to avoid a potential name collision

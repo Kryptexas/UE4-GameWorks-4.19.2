@@ -8,5 +8,5 @@
 class FWidgetBlueprintEditorUtils
 {
 public:
-	static bool RenameWidget(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
+	static bool RenameWidget(UWidgetBlueprint* Blueprint, const FName& OldName, const FName& NewName);
 };

@@ -23,6 +23,10 @@ class UMG_API UContentWidget : public UPanelWidget
 	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
 	// End UPanelWidget
 
+	// UObject
+	virtual void PostInitProperties() override;
+	// End UObject
+
 protected:
 
 	UPROPERTY()

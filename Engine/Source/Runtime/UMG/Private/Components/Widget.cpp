@@ -120,6 +120,31 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 
 #if WITH_EDITOR
 
+bool UWidget::IsGeneratedName() const
+{
+	FString Name = GetName();
+	FString BaseName = GetClass()->GetName() + "_";
+
+	if ( Name.StartsWith(BaseName) )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+FString UWidget::GetLabel() const
+{
+	if ( IsGeneratedName() && !bIsVariable )
+	{
+		return "[" + GetClass()->GetName() + "]";
+	}
+	else
+	{
+		return GetName();
+	}
+}
+
 TSharedRef<SWidget> UWidget::GetToolboxPreviewWidget() const
 {
 	return SNew(SImage);

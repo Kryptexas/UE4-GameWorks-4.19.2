@@ -56,7 +56,7 @@ public:
 	/**
 	 * The parent slot of the UWidget.  Allows us to easily inline edit the layout controlling this widget.
 	 */
-	UPROPERTY(EditInline, EditDefaultsOnly, BlueprintReadWrite, Category=Layout, meta=( ShowOnlyInnerProperties ))
+	UPROPERTY(EditInline, EditAnywhere, BlueprintReadOnly, Category=Layout, meta=( ShowOnlyInnerProperties ))
 	UPanelSlot* Slot;
 
 	/** Sets whether this widget can be modified interactively by the user */
@@ -143,6 +143,17 @@ public:
 	virtual bool Modify(bool bAlwaysMarkDirty = true);
 	
 #if WITH_EDITOR
+	/** Is the label generated or provided by the user? */
+	bool IsGeneratedName() const;
+
+	/** Gets the label to display to the user for this widget. */
+	FString GetLabel() const;
+
+	virtual void OnDesignerSelected() { }
+	virtual void OnDesignerDeselected() { }
+	virtual void OnDesignerClicked() { }
+	virtual void OnDesignerDoubleClicked() { }
+
 	/** Gets a widget representing the tiny preview of the toolbox */
 	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
 	

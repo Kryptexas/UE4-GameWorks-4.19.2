@@ -37,6 +37,11 @@ void UWidgetBlueprint::PostLoad()
 #endif
 }
 
+UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
+{
+	return Super::RegenerateClass(ClassToRegenerate, PreviousCDO, ObjLoaded);
+}
+
 #if WITH_EDITOR
 UClass* UWidgetBlueprint::GetBlueprintClass() const
 {

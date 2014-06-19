@@ -13,23 +13,77 @@
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
 
-void SUMGEditorTreeItem::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, UWidget* InItem)
+#include "Kismet2NameValidators.h"
+
+#define LOCTEXT_NAMESPACE "UMG"
+
+void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, UWidget* InItem)
 {
 	BlueprintEditor = InBlueprintEditor;
 	Item = InItem;
 
-	ChildSlot
-	[
-		SNew(STextBlock)
-		.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
-		.Text(this, &SUMGEditorTreeItem::GetItemText)
-		.HighlightText(InArgs._HighlightText)
-	];
+	STableRow< UWidget* >::Construct(
+		STableRow< UWidget* >::FArguments()
+		.Padding(2.0f)
+		.Content()
+		[
+			SNew(SInlineEditableTextBlock)
+			.ToolTipText(this, &SUMGEditorTreeItem::GetItemTooltipText)
+			.Font(this, &SUMGEditorTreeItem::GetItemFont)
+			.Text(this, &SUMGEditorTreeItem::GetItemText)
+			.HighlightText(InArgs._HighlightText)
+			.OnVerifyTextChanged(this, &SUMGEditorTreeItem::OnVerifyNameTextChanged)
+			.OnTextCommitted(this, &SUMGEditorTreeItem::OnNameTextCommited)
+			.IsSelected(this, &SUMGEditorTreeItem::IsSelectedExclusively)
+		],
+		InOwnerTableView);
+}
+
+bool SUMGEditorTreeItem::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
+{
+	FString NewName = InText.ToString();
+
+	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+	UWidget* ExistingWidget = Blueprint->WidgetTree->FindWidget(NewName);
+
+	//TODO UMG check variables in the blueprint also
+	FKismetNameValidator Validator(Blueprint);
+
+	// NewName should be already validated. But one must make sure that NewTemplateName is also unique.
+	const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewName) );
+	
+	if ( ( ExistingWidget != NULL && ExistingWidget != Item ) || !bUniqueNameForVariable )
+	{
+		OutErrorMessage = LOCTEXT("NameConflict", "NameConflict");
+		return false;
+	}
+
+	return true;
+}
+
+void SUMGEditorTreeItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
+{
+	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+	FWidgetBlueprintEditorUtils::RenameWidget(Blueprint, Item->GetFName(), FName(*InText.ToString()));
+}
+
+FSlateFontInfo SUMGEditorTreeItem::GetItemFont() const
+{
+	if ( !Item->IsGeneratedName() && Item->bIsVariable )
+	{
+		// TODO UMG Hacky move into style area
+		return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9);
+	}
+	else
+	{
+		// TODO UMG Hacky move into style area
+		return FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Normal.ttf"), 9);
+	}
 }
 
 FText SUMGEditorTreeItem::GetItemText() const
 {
-	return FText::FromString(Item->GetName());
+	return FText::FromString(Item->GetLabel());
 }
 
 FString SUMGEditorTreeItem::GetItemTooltipText() const
@@ -94,3 +148,5 @@ FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEv
 
 	return FReply::Unhandled();
 }
+
+#undef LOCTEXT_NAMESPACE

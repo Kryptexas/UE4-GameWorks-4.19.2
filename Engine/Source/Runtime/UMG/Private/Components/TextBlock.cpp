@@ -26,6 +26,19 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
 	MyTextBlock = SNew(STextBlock);
+
+#if WITH_EDITOR
+	MyEditorTextBlock = SNew(SInlineEditableTextBlock)
+		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleTextCommitted))
+		//.IsSelected(InArgs._IsSelected)
+		;
+
+	//if ( IsDesignTime() )
+	//{
+	//	return MyEditorTextBlock.ToSharedRef();
+	//}
+#endif
+
 	return MyTextBlock.ToSharedRef();
 }
 
@@ -52,7 +65,32 @@ void UTextBlock::SyncronizeProperties()
 	MyTextBlock->SetTextStyle(StylePtr);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
+
+#if WITH_EDITOR
+	MyEditorTextBlock->SetText(TextBinding);
+	//MyEditorTextBlock->SetFont(FSlateFontInfo(FontPath, Font.Size));
+	//MyEditorTextBlock->SetColorAndOpacity(ColorAndOpacityBinding);
+	//MyEditorTextBlock->SetTextStyle(StylePtr);
+	//MyEditorTextBlock->SetShadowOffset(ShadowOffset);
+	//MyEditorTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
+#endif
 }
+
+#if WITH_EDITOR
+
+void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType)
+{
+	//TODO UMG How will this migrate to the template?  Seems to me we need the previews to have access to their templates!
+	//TODO UMG How will the user click the editable area?  There is an overlay blocking input so that other widgets don't get them.
+	//     Need a way to recognize one particular widget and forward things to them!
+}
+
+void UTextBlock::OnDesignerDoubleClicked()
+{
+	MyEditorTextBlock->EnterEditingMode();
+}
+
+#endif
 
 /////////////////////////////////////////////////////
 
