@@ -618,7 +618,7 @@ bool FDesktopPlatformMac::VerifyFileAssociations()
 		NSBundle* GlobalDefaultAppBundle = [NSBundle bundleWithURL:(__bridge NSURL*)GlobalDefaultAppURL];
 		CFRelease(GlobalDefaultAppURL);
 
-		if ([[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
+		if ([[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
 		{
 			return true;
 		}
