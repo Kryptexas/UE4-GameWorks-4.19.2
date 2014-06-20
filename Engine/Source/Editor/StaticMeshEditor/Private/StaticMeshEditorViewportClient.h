@@ -22,6 +22,9 @@ public:
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge ) override;
 	virtual void TrackingStopped() override;
 	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode) override;
+	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const override;
+	virtual bool CanCycleWidgetMode() const override;
 	virtual FVector GetWidgetLocation() const;
 	virtual FMatrix GetWidgetCoordSystem() const;
 	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return COORD_Local; }
