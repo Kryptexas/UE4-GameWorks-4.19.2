@@ -199,6 +199,8 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	FGameplayTagContainer RequestGameplayTagParents(const FGameplayTag& GameplayTag) const;
 
+	FGameplayTagContainer RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const;
+
 	/**
 	 * Checks if the tag is allowed to be created
 	 *
@@ -237,6 +239,8 @@ private:
 	 * @param GameplayTag The parent we need to check and add to the container
 	 */
 	void AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const;
+
+	void AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll=true) const;
 
 	/**
 	 * Helper function for GameplayTagsMatch to get all parents when doing a parent match,

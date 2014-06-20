@@ -277,6 +277,14 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagParents(const FGam
 	return TagContainer;
 }
 
+FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGameplayTag& GameplayTag) const
+{
+	FGameplayTagContainer TagContainer;
+	// Note this purposefully does not include the passed in GameplayTag in the container.
+	AddChildrenTags(TagContainer, GameplayTag, true);
+	return TagContainer;
+}
+
 bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagContainer, FGameplayTag& Tag)
 {
 	// Check tag is not already in container
@@ -324,6 +332,31 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 				TagContainer.AddTag(*Tag);
 				AddParentTags(TagContainer, *Tag);
 			}
+		}
+	}
+}
+
+void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll) const
+{
+	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
+	if (GameplayTagNode)
+	{
+		TArray< TSharedPtr<FGameplayTagNode> >& ChildrenNodes = (*GameplayTagNode)->GetChildTagNodes();
+		for (TSharedPtr<FGameplayTagNode> ChildNode : ChildrenNodes)
+		{
+			if (ChildNode.IsValid())
+			{
+				const FGameplayTag* Tag = GameplayTagNodeMap.FindKey(ChildNode);
+				if (Tag)
+				{
+					TagContainer.AddTag(*Tag);
+					if (RecurseAll)
+					{
+						AddChildrenTags(TagContainer, *Tag, true);
+					}
+				}
+			}
+
 		}
 	}
 }
