@@ -552,7 +552,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FTEXT_HISTORY,
 	// Shift comments to the left to contain expressions properly
 	VER_UE4_FIX_MATERIAL_COMMENTS,
-	// Bone names stored as FName mean that we cant guarrentee the correct case on export, now we store a separate string for export purposes only
+	// Bone names stored as FName means that we can't guarantee the correct case on export, now we store a separate string for export purposes only
 	VER_UE4_STORE_BONE_EXPORT_NAMES,
 	// changed mesh emitter initial orientation to distribution
 	VER_UE4_MESH_EMITTER_INITIAL_ORIENTATION_DISTRIBUTION,
@@ -564,6 +564,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DEPRECATED_MOVEMENTCOMPONENT_MODIFIED_SPEEDS,
 	// rename CanBeCharacterBase
 	VER_UE4_RENAME_CANBECHARACTERBASE,
+	// Change GameplayTagContainers to have FGameplayTags instead of FNames; Required to fix-up native serialization
+	VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

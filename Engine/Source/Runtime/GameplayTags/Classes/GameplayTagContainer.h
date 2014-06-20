@@ -230,10 +230,9 @@ protected:
 
 private:
 
-	// @todo: Remove this via engine version bump/native serialization soon
 	/** Array of gameplay tags */
 	UPROPERTY()
-	TArray<FName> Tags;
+	TArray<FName> Tags_DEPRECATED;
 
 	/** Array of gameplay tags */
 	UPROPERTY(VisibleAnywhere, Category=GameplayTags)

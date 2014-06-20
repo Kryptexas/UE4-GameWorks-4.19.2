@@ -174,30 +174,34 @@ void FGameplayTagContainer::RemoveAllTags()
 
 bool FGameplayTagContainer::Serialize(FArchive& Ar)
 {
-	if (Ar.IsSaving())
+	const bool bOldTagVer = Ar.UE4Ver() < VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE;
+	
+	if (bOldTagVer)
 	{
-		FGameplayTagContainer ExpandedContainer = GetGameplayTagParents();
-		Tags.Empty(ExpandedContainer.Num());
-
-		for (auto TagIter = ExpandedContainer.CreateConstIterator(); TagIter; ++TagIter)
-		{
-			Tags.Add((*TagIter).GetTagName());
-		}
+		Ar << Tags_DEPRECATED;
 	}
-
-	Ar << Tags;
-
+	else
+	{
+		Ar << GameplayTags;
+	}
+	
 	if (Ar.IsLoading())
 	{
+		// Regardless of version, want loading to have a chance to handle redirects
 		RedirectTags();
-		
-		UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
-		for (auto It = Tags.CreateConstIterator(); It; ++It)
+
+		// If loading old version, add old tags to the new gameplay tags array so they can be saved out with the new version
+		if (bOldTagVer)
 		{
-			FGameplayTag Tag = TagManager.RequestGameplayTag(*It);
-			TagManager.AddLeafTagToContainer(*this, Tag);
+			UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+			for (auto It = Tags_DEPRECATED.CreateConstIterator(); It; ++It)
+			{
+				FGameplayTag Tag = TagManager.RequestGameplayTag(*It);
+				TagManager.AddLeafTagToContainer(*this, Tag);
+			}
 		}
 	}
+
 	return true;
 }
 
@@ -217,10 +221,10 @@ void FGameplayTagContainer::RedirectTags()
 			FParse::Value( *It.Value(), TEXT("NewTagName="), NewTagName );
 
 			int32 TagIndex = 0;
-			if (Tags.Find(OldTagName, TagIndex))
+			if (Tags_DEPRECATED.Find(OldTagName, TagIndex))
 			{
-				Tags.RemoveAt(TagIndex);
-				Tags.AddUnique(NewTagName);
+				Tags_DEPRECATED.RemoveAt(TagIndex);
+				Tags_DEPRECATED.AddUnique(NewTagName);
 			}
 
 			FGameplayTag OldTag = TagManager.RequestGameplayTag(OldTagName);
