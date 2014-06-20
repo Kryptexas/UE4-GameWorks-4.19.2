@@ -94,7 +94,8 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		// @todo urban: Make sure zero stride actually works now!! If so, then we can remove the hack zero stride buffer
 		uint32 Stride = Element.Stride;// ? Element.Stride : 4;
 
-		checkf(Element.Offset + TranslateElementTypeToSize(Element.Type) <= Stride, TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Stride);
+		checkf(Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Stride, 
+			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Stride);
 
 		// we offset 6 buffers to leave space for uniform buffers
 		uint32 ShaderBufferIndex = UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex);
@@ -121,6 +122,11 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 			NSLog(@"Setting illegal stride - break here if you want to find out why, but this won't break until we try to render with it");
 			Stride = 200;// 16;
 		}
-		[Layout setStride:Stride stepFunction:(Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex) stepRate:0 atVertexBufferIndex:It.Key()];
+
+		// handle 0 stride buffers
+		MTLVertexStepFunction Function = (Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex);
+		uint32 StepRate = (Stride == 0 ? 0 : 1);
+		uint32 UsedStride = (Stride == 0 ? 4 : Stride);
+		[Layout setStride:UsedStride stepFunction:Function stepRate:StepRate atVertexBufferIndex:It.Key()];
 	}
 }

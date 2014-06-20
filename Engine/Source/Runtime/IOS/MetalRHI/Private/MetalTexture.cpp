@@ -232,11 +232,11 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 		Stride = 0;
 	}
 
-	checkf(SizeZ <= 1, TEXT("3D textures are not supported yet"));
+	checkf(SizeZ <= 1 || SizeZ == 6, TEXT("3D textures are not supported yet (SizeZ = %d"), SizeZ);
 
 	// upload the texture to the texture slice
 	MTLTextureRegion Region = MTLTextureRegionMake2D(0, 0, FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1));
-	[Texture replaceRegion:Region mipmapLevel:MipIndex withBytes:LockedMemory bytesPerRow:Stride];
+	[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:LockedMemory bytesPerRow:Stride bytesPerImage:MipBytes];
 	
 	FMemory::Free(LockedMemory);
 	LockedMemory = NULL;

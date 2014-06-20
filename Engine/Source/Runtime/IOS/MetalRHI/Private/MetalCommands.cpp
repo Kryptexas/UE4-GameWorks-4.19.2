@@ -85,6 +85,11 @@ void FMetalDynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,ui
 	Scissor.width = MaxX - MinX;
 	Scissor.height = MaxY - MinY;
 
+	// metal doesn't support 0 sized scissor rect
+	if (Scissor.width == 0 || Scissor.height == 0)
+	{
+		return;
+	}
 	[FMetalManager::GetContext() setScissorRect:Scissor];
 }
 
