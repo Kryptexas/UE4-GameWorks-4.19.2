@@ -1080,6 +1080,11 @@ namespace UnrealBuildTool
 					FileItem Item = FileItem.GetItemByFullPath(DefRC);
 					SourceFilesToBuild.RCFiles.Add(Item);
 				}
+
+				// Always compile in the API version resource separately. This is required for the module manager to detect compatible API versions.
+				string ModuleVersionRC = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Runtime/Core/Resources/Windows/ModuleVersionResource.rc.inl"));
+				FileItem ModuleVersionItem = FileItem.GetItemByFullPath(ModuleVersionRC);
+				if(!SourceFilesToBuild.RCFiles.Contains(ModuleVersionItem)) SourceFilesToBuild.RCFiles.Add(ModuleVersionItem);
 			}
 
 			// Check to see if this is an Engine module (including program or plugin modules).  That is, the module is located under the "Engine" folder

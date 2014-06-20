@@ -36,10 +36,10 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 	return dlsym( DllHandle, TCHAR_TO_ANSI(ProcName) );
 }
 
-FBinaryFileVersion FLinuxPlatformProcess::GetBinaryFileVersion( const TCHAR* Filename )
+int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return FBinaryFileVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, FRocketSupport::IsRocket() ? 0 : ENGINE_VERSION);
+	return MODULE_API_VERSION;
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()

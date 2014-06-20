@@ -70,7 +70,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void* GetDllHandle( const TCHAR* Filename );
 	static void FreeDllHandle( void* DllHandle );
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
-	static FBinaryFileVersion GetBinaryFileVersion( const TCHAR* Filename );
+	static int32 GetDllApiVersion( const TCHAR* Filename );
 	static void PushDllDirectory(const TCHAR* Directory);
 	static void PopDllDirectory(const TCHAR* Directory);
 	static void CleanFileCache();

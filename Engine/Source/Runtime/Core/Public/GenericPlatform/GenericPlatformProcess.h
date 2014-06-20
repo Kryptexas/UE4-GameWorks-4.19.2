@@ -33,31 +33,6 @@ namespace ELaunchVerb
 	};
 }
 
-struct FBinaryFileVersion
-{
-	FBinaryFileVersion(int32 InA, int32 InB, int32 InC, int32 InD)
-		: A(InA), B(InB), C(InC), D(InD)
-	{}
-
-	bool operator==(const FBinaryFileVersion& Other)
-	{
-		return A == Other.A && B == Other.B && C == Other.C && D == Other.D;
-	}
-
-	bool IsValid() const
-	{
-		return (A | B | C | D) != 0;
-	}
-
-	/**
-	 * Print as formatted string
-	 */
-	void ToString(class FString& OutString) const;
-
-private:
-	int32 A, B, C, D;
-};
-
 /** Generic implementation for the process handle. */
 template< typename T, T InvalidHandleValue >
 struct TProcHandle
@@ -173,8 +148,8 @@ struct CORE_API FGenericPlatformProcess
 	/** Lookup the address of a DLL function. **/
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 
-	/** Gets a version number from the specified DLL or EXE **/
-	static FBinaryFileVersion GetBinaryFileVersion( const TCHAR* Filename );
+	/** Gets the API version from the specified DLL **/
+	static int32 GetDllApiVersion( const TCHAR* Filename );
 
 	/** Set a directory to look for DLL files. NEEDS to have a Pop call when complete */
 	FORCEINLINE static void PushDllDirectory(const TCHAR* Directory)

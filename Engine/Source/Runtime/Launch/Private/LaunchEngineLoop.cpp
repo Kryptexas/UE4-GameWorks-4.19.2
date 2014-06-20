@@ -11,6 +11,7 @@
 #include "ExceptionHandling.h"
 #include "FileManagerGeneric.h"
 #include "TaskGraphInterfaces.h"
+#include "Runtime/Core/Public/Modules/ModuleVersion.h"
 
 
 #include "Projects.h"
@@ -2393,6 +2394,7 @@ bool FEngineLoop::AppInit( )
 
 	//// Command line.
 	UE_LOG(LogInit, Log, TEXT("Version: %s"), *GEngineVersion.ToString());
+	UE_LOG(LogInit, Log, TEXT("API Version: %u"), MODULE_API_VERSION);
 
 #if PLATFORM_64BITS
 	UE_LOG(LogInit, Log, TEXT("Compiled (64-bit): %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));

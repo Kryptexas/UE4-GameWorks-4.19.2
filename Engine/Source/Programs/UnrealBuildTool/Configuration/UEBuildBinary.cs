@@ -504,7 +504,7 @@ namespace UnrealBuildTool
 				bool bHasResFile = false;
 				foreach (var InputFile in BinaryLinkEnvironment.InputFiles)
 				{
-					if (InputFile.AbsolutePath.EndsWith(".res")) 
+					if (InputFile.AbsolutePath.EndsWith(".res") && !InputFile.AbsolutePath.EndsWith(".inl.res")) 
 					{ 
 						bHasResFile = true;
 						break;
@@ -513,7 +513,7 @@ namespace UnrealBuildTool
 
 				foreach( var LinkInputFile in LinkInputFiles )
 				{
-					bool bIsResourceFile = LinkInputFile.AbsolutePath.EndsWith(".res");
+					bool bIsResourceFile = LinkInputFile.AbsolutePath.EndsWith(".res") && !LinkInputFile.AbsolutePath.EndsWith(".inl.res");
 					if( !BinaryLinkEnvironment.InputFiles.Contains( LinkInputFile ) && (!bHasResFile || !bIsResourceFile))
 					{
 						BinaryLinkEnvironment.InputFiles.Add( LinkInputFile );

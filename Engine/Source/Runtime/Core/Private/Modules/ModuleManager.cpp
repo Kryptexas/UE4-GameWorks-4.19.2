@@ -2,6 +2,7 @@
 
 #include "CorePrivate.h"
 #include "ModuleManager.h"
+#include "ModuleVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
@@ -1922,24 +1923,14 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
-	static FBinaryFileVersion ExeVersion = FPlatformProcess::GetBinaryFileVersion(FPlatformProcess::ExecutableName(/*bRemoveExtension=*/false));
-	FBinaryFileVersion DLLVersion = FPlatformProcess::GetBinaryFileVersion(Filename);
-
-	if (ExeVersion.IsValid() && DLLVersion.IsValid() && ExeVersion == DLLVersion)
+	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
+	if(ModuleApiVersion != MODULE_API_VERSION)
 	{
-		return true;
-	}
-	else
-	{
-		FString ExeVersionString;
-		FString DLLVersionString;
-		ExeVersion.ToString(ExeVersionString);
-		DLLVersion.ToString(DLLVersionString);
-		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (version %s), but it was incompatible with the current engine version (%s). This is likely a stale module that must be recompiled."), Filename, *DLLVersionString, *ExeVersionString);
+		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, MODULE_API_VERSION);
 		return false;
 	}
+	return true;
 }
-
 
 bool FModuleManager::RecompileModuleDLLs( const TArray< FModuleToRecompile >& ModuleNames, FOutputDevice& Ar )
 {

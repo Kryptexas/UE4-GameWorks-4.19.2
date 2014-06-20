@@ -460,27 +460,17 @@ namespace UnrealBuildTool
 			Writer.Write(PreLine + "\n");
 		}
 
-		private string LoadEngineCLVersion()
+		private int LoadEngineCL()
 		{
 			string[] VersionHeader = Utils.ReadAllText("../Source/Runtime/Launch/Resources/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
-			string EngineVersion = "0";
 			foreach (string Line in VersionHeader)
 			{
 				if (Line.StartsWith("#define ENGINE_VERSION "))
 				{
-					EngineVersion = Line.Split(' ')[2];
+					return int.Parse(Line.Split(' ')[2]);
 				}
 			}
-			if (EngineVersion.Length > 6)
-			{
-				EngineVersion = EngineVersion.Insert(EngineVersion.Length - 2, ".");
-				EngineVersion = EngineVersion.Insert(EngineVersion.Length - 5, ".");
-			}
-			else
-			{
-				EngineVersion = LoadEngineDisplayVersion(true);
-			}
-			return EngineVersion;
+			return 0;
 		}
 
 		private string LoadEngineDisplayVersion(bool bIgnorePatchVersion = false)
@@ -531,6 +521,28 @@ namespace UnrealBuildTool
 			return LauncherVersionMajor + "." + LauncherVersionMinor + "." + LauncherVersionPatch;
 		}
 
+		private string LoadEngineAPIVersion()
+		{
+			int CL = 0;
+			foreach (string Line in File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h"))
+			{
+				string[] Tokens = Line.Split(' ', '\t');
+				if (Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
+				{
+					if(Tokens[2] == "BUILT_FROM_CHANGELIST")
+					{
+						CL = LoadEngineCL();
+					}
+					else
+					{
+						CL = int.Parse(Tokens[2]);
+					}
+					break;
+				}
+			}
+			return String.Format("{0}.{1}.{2}", CL / (100 * 100), (CL / 100) % 100, CL % 100);
+		}
+
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
 			bool bIsBuildingLibrary = LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly;
@@ -547,9 +559,9 @@ namespace UnrealBuildTool
 			LinkAction.CommandPath = "/bin/sh";
 			LinkAction.CommandDescription = "Link";
 
-			string EngineCLVersion = LoadEngineCLVersion();
+			string EngineAPIVersion = LoadEngineAPIVersion();
 			string EngineDisplayVersion = LoadEngineDisplayVersion(true);
-			string VersionArg = LinkEnvironment.Config.bIsBuildingDLL ? " -current_version " + EngineCLVersion + " -compatibility_version " + EngineDisplayVersion : "";
+			string VersionArg = LinkEnvironment.Config.bIsBuildingDLL ? " -current_version " + EngineAPIVersion + " -compatibility_version " + EngineDisplayVersion : "";
 
 			string Linker = bIsBuildingLibrary ? MacArchiver : MacLinker;
 			string LinkCommand = "xcrun " + Linker + VersionArg + " " + (bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment));

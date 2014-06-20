@@ -94,92 +94,75 @@ void* FMacPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcName 
 	return dlsym( DllHandle, TCHAR_TO_ANSI(ProcName) );
 }
 
-FBinaryFileVersion FMacPlatformProcess::GetBinaryFileVersion( const TCHAR* Filename )
+int32 FMacPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
 
-	// On Mac the executable itself cannot have a version number. But since we have a compatibility version number set in Core dylib,
-	// OS X makes sure that loaded Core dylib has the same version the executable was linked against. Thanks to this, for the exe
-	// we can simply return FBinaryFileVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, ENGINE_VERSION)
-
-	if( FCString::Strstr( Filename, TEXT( ".dylib" ) ) )
+	uint32 CurrentVersion = 0;
+		
+	CFStringRef CFStr = FPlatformString::TCHARToCFString(Filename);
+		
+	NSString* Path = (NSString*)CFStr;
+		
+	if([Path isAbsolutePath] == NO)
 	{
-		uint32 CurrentVersion = 0;
-		uint32 CompatibilityVersion = 0;
+		NSString* CurDir = [[NSFileManager defaultManager] currentDirectoryPath];
+		NSString* FullPath = [NSString stringWithFormat:@"%@/%@", CurDir, Path];
+		Path = [FullPath stringByResolvingSymlinksInPath];
+	}
 		
-		CFStringRef CFStr = FPlatformString::TCHARToCFString(Filename);
+	if([[NSFileManager defaultManager] fileExistsAtPath:Path] == NO)
+	{
+		Path = [[[[NSBundle mainBundle] executablePath] stringByDeletingLastPathComponent] stringByAppendingPathComponent: [Path lastPathComponent]];
+	}
 		
-		NSString* Path = (NSString*)CFStr;
+	BOOL bIsDirectory = NO;
 		
-		if([Path isAbsolutePath] == NO)
-		{
-			NSString* CurDir = [[NSFileManager defaultManager] currentDirectoryPath];
-			NSString* FullPath = [NSString stringWithFormat:@"%@/%@", CurDir, Path];
-			Path = [FullPath stringByResolvingSymlinksInPath];
-		}
+	int32 File = -1;
 		
-		if([[NSFileManager defaultManager] fileExistsAtPath:Path] == NO)
-		{
-			Path = [[[[NSBundle mainBundle] executablePath] stringByDeletingLastPathComponent] stringByAppendingPathComponent: [Path lastPathComponent]];
-		}
-		
-		BOOL bIsDirectory = NO;
-		
-		int32 File = -1;
-		
-		if([[NSFileManager defaultManager] fileExistsAtPath:Path isDirectory:&bIsDirectory] && bIsDirectory == YES && [[NSWorkspace sharedWorkspace] isFilePackageAtPath:Path])
-		{
-			// Try inside the bundle's MacOS folder
-			NSString *FullPath = [[[[NSBundle mainBundle] executablePath] stringByDeletingLastPathComponent] stringByAppendingPathComponent:[Path lastPathComponent]];
-			File = open([FullPath fileSystemRepresentation], O_RDONLY);
-		}
-		else
-		{
-			File = open([Path fileSystemRepresentation], O_RDONLY);
-		}
-		
-		CFRelease(CFStr);
-		
-		if(File > -1)
-		{
-			struct mach_header_64 Header;
-			ssize_t Bytes = read( File, &Header, sizeof( Header ) );
-			if( Bytes == sizeof( Header ) && Header.filetype == MH_DYLIB )
-			{
-				struct load_command* Commands = ( struct load_command* )FMemory::Malloc( Header.sizeofcmds );
-				Bytes = read( File, Commands, Header.sizeofcmds );
-				
-				if( Bytes == Header.sizeofcmds )
-				{
-					struct load_command* Command = Commands;
-					for( int32 Index = 0; Index < Header.ncmds; Index++ )
-					{
-						if( Command->cmd == LC_ID_DYLIB )
-						{
-							CurrentVersion = ( ( struct dylib_command* )Command )->dylib.current_version;
-							CompatibilityVersion = ( ( struct dylib_command* )Command )->dylib.compatibility_version;
-							break;
-						}
-						
-						Command = ( struct load_command* )( ( uint8* )Command + Command->cmdsize );
-					}
-				}
-				
-				FMemory::Free( Commands );
-			}
-			close(File);
-		}
-
-		const uint32 Major = (CompatibilityVersion >> 16) & 0xffff;
-		const uint32 Minor = (CompatibilityVersion >> 8) & 0xff;
-		const uint32 Patch = CompatibilityVersion & 0xff;
-		const uint32 Build = (FRocketSupport::IsRocket() || CurrentVersion == CompatibilityVersion) ? 0 : ((CurrentVersion & 0xff) + ((CurrentVersion >> 8) & 0xff) * 100 + ((CurrentVersion >> 16) & 0xffff) * 10000);
-		return FBinaryFileVersion(Major, Minor, Patch, Build);
+	if([[NSFileManager defaultManager] fileExistsAtPath:Path isDirectory:&bIsDirectory] && bIsDirectory == YES && [[NSWorkspace sharedWorkspace] isFilePackageAtPath:Path])
+	{
+		// Try inside the bundle's MacOS folder
+		NSString *FullPath = [[[[NSBundle mainBundle] executablePath] stringByDeletingLastPathComponent] stringByAppendingPathComponent:[Path lastPathComponent]];
+		File = open([FullPath fileSystemRepresentation], O_RDONLY);
 	}
 	else
 	{
-		return FBinaryFileVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, 0, FRocketSupport::IsRocket() ? 0 : ENGINE_VERSION);
+		File = open([Path fileSystemRepresentation], O_RDONLY);
 	}
+		
+	CFRelease(CFStr);
+		
+	if(File > -1)
+	{
+		struct mach_header_64 Header;
+		ssize_t Bytes = read( File, &Header, sizeof( Header ) );
+		if( Bytes == sizeof( Header ) && Header.filetype == MH_DYLIB )
+		{
+			struct load_command* Commands = ( struct load_command* )FMemory::Malloc( Header.sizeofcmds );
+			Bytes = read( File, Commands, Header.sizeofcmds );
+				
+			if( Bytes == Header.sizeofcmds )
+			{
+				struct load_command* Command = Commands;
+				for( int32 Index = 0; Index < Header.ncmds; Index++ )
+				{
+					if( Command->cmd == LC_ID_DYLIB )
+					{
+						CurrentVersion = ( ( struct dylib_command* )Command )->dylib.current_version;
+						break;
+					}
+						
+					Command = ( struct load_command* )( ( uint8* )Command + Command->cmdsize );
+				}
+			}
+				
+			FMemory::Free( Commands );
+		}
+		close(File);
+	}
+
+	return ((CurrentVersion & 0xff) + ((CurrentVersion >> 8) & 0xff) * 100 + ((CurrentVersion >> 16) & 0xffff) * 10000);
 }
 
 void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error )

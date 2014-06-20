@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
+#include "../../Public/Modules/ModuleVersion.h"
 
 
 #if PLATFORM_HAS_BSD_TIME 
@@ -26,10 +27,10 @@ void* FGenericPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 	return NULL;
 }
 
-FBinaryFileVersion FGenericPlatformProcess::GetBinaryFileVersion( const TCHAR* Filename )
+int32 FGenericPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FPlatformProcess::GetBinaryFileVersion not implemented on this platform"));
-	return FBinaryFileVersion(0, 0, 0, 0);
+	return MODULE_API_VERSION;
 }
 
 uint32 FGenericPlatformProcess::GetCurrentProcessId()
@@ -399,11 +400,6 @@ bool FGenericPlatformProcess::SupportsMultithreading()
 {
 	static bool bSupportsMultithreading = !FParse::Param(FCommandLine::Get(), TEXT("nothreading"));
 	return bSupportsMultithreading;
-}
-
-void FBinaryFileVersion::ToString(FString& OutString) const
-{
-	OutString = FString::Printf(TEXT("%d %d %d %d"), A, B, C, D);
 }
 
 FGenericPlatformProcess::FSemaphore::FSemaphore(const FString & InName)

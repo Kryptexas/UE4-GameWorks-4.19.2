@@ -129,7 +129,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void* GetDllHandle( const TCHAR* Filename );
 	static void FreeDllHandle( void* DllHandle );
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
-	static FBinaryFileVersion GetBinaryFileVersion( const TCHAR* Filename );
+	static int32 GetDllApiVersion( const TCHAR* Filename );
 	static const TCHAR* ComputerName();
 	static const TCHAR* BaseDir();
 	static FString GetApplicationName( uint32 ProcessId );

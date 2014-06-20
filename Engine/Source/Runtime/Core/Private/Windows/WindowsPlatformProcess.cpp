@@ -6,6 +6,7 @@
 
 #include "CorePrivate.h"
 #include "EngineVersion.h"
+#include "Resources/Windows/ModuleVersionResource.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <shellapi.h>
@@ -70,58 +71,46 @@ void* FWindowsPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 	return (void*)::GetProcAddress( (HMODULE)DllHandle, TCHAR_TO_ANSI(ProcName) );
 }
 
-FBinaryFileVersion FWindowsPlatformProcess::GetBinaryFileVersion( const TCHAR* Filename )
+int32 FWindowsPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
+	int32 Result = -1;
+
+	// Retrieves the embedded API version from a DLL
 	check(Filename);
-
-	::DWORD dwSize = GetFileVersionInfoSize( Filename, NULL );
-	if ( dwSize == 0 )
+	HMODULE hModule = LoadLibraryEx(Filename, NULL, LOAD_LIBRARY_AS_DATAFILE);
+	if(hModule != NULL)
 	{
-		// Failed to get the version info size
-		return FBinaryFileVersion(0, 0, 0, 0);
-	}
-
-	uint8* VersionInfo = new uint8[ dwSize ];
-	if ( !GetFileVersionInfo(Filename, NULL, dwSize, VersionInfo) )
-	{
-		// Failed to get the version info
-		delete[] VersionInfo;
-		return FBinaryFileVersion(0, 0, 0, 0);
-	}
-
-	VS_FIXEDFILEINFO* FileInfo = NULL;
-	::UINT pLenFileInfo = 0;
-	if ( !VerQueryValue( VersionInfo, TEXT("\\"), (LPVOID*) &FileInfo, &pLenFileInfo ) )
-	{
-		// Failed to query the version info for a value
-		delete[] VersionInfo;
-		return FBinaryFileVersion(0, 0, 0, 0);
-	}
-
-	// Get the major/minor/patch fields from the product version
-	int32 Major = (FileInfo->dwProductVersionMS >> 16) & 0xFFFF;
-	int32 Minor = (FileInfo->dwProductVersionMS) & 0xFFFF;
-	int32 Patch = 0;	// We never want to report back the 'patch' version, because the engine has no business using it for determining compatibility.  All hotfix versions are supposed to be binary and API-compatible.
-	int32 Build = (FileInfo->dwProductVersionLS) & 0xFFFF;
-
-	// Try to get the build number from the ProductVersion string. It's too large to fit in a 16-bit ProductVersion field
-	if (Build == 0 && !FRocketSupport::IsRocket())
-	{
-		TCHAR *ProductVersion;
-		::UINT ProductVersionLen;
-		if (VerQueryValue(VersionInfo, TEXT("\\StringFileInfo\\040904b0\\ProductVersion"), (LPVOID*) &ProductVersion, &ProductVersionLen))
+		HRSRC hResInfo = FindResource(hModule, MAKEINTRESOURCE(ID_MODULE_API_VERSION_RESOURCE), RT_RCDATA);
+		if(hResInfo != NULL)
 		{
-			FEngineVersion DllEngineVersion;
-			if (FEngineVersion::Parse(ProductVersion, DllEngineVersion))
+			HGLOBAL hResGlobal = LoadResource(hModule, hResInfo);
+			if(hResGlobal != NULL)
 			{
-				Build = DllEngineVersion.GetChangelist();
+				void *pResData = LockResource(hResGlobal);
+				if(pResData != NULL)
+				{
+					::DWORD Length = SizeofResource(hModule, hResInfo);
+					if(Length > 0)
+					{
+						char *Str = (char*)pResData;
+						if(Str[Length - 1] == 0)
+						{
+							char *End = Str;
+							uint64 Value = FCStringAnsi::Strtoui64(Str, &End, 10);
+							if(*End == 0 && Value <= INT_MAX)
+							{
+								Result = (int32)Value;
+							}
+						}
+					}
+					UnlockResource(pResData);
+				}
 			}
 		}
+		FreeLibrary(hModule);
 	}
 
-	delete[] VersionInfo;
-
-	return FBinaryFileVersion(Major, Minor, Patch, Build);
+	return Result;
 }
 
 void FWindowsPlatformProcess::PushDllDirectory(const TCHAR* Directory)
