@@ -69,6 +69,7 @@ private:
 				Head = (uint8*)FMemory::Malloc(PageSize, Alignment);
 				Current = Head;
 				Tail = Head + PageSize;
+				//::OutputDebugStringW(*FString::Printf(TEXT("PAGE %p, %p - %p\n"), this, Head, Tail));
 			}
 
 			~FPage()
@@ -138,6 +139,8 @@ private:
 				// Insert End Of Page if there's trailing space
 				if (LastPage->MemAvailable() >= sizeof(FRHICommand))
 				{
+					//@todo-rco: Fix me!
+					// This is an allocator command, so it should not be counted during regular execution...
 					auto* EndOfPageCmd = (FRHICommand*)LastPage->Alloc(sizeof(FRHICommand));
 					EndOfPageCmd->Type = ERCT_NopEndOfPage;
 				}
@@ -342,6 +345,7 @@ protected:
 		checkSlow(!IsNull());
 		check(CanAddCommand());
 		TCmd* Cmd = (TCmd*)Alloc(sizeof(TCmd) + ExtraData);
+		//::OutputDebugStringW(*FString::Printf(TEXT("Add %d: @ 0x%p, %d bytes\n"), NumCommands, (void*)Cmd, (sizeof(TCmd) + ExtraData)));
 		++NumCommands;
 		return Cmd;
 	}

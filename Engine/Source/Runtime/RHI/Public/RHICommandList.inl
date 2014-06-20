@@ -402,14 +402,22 @@ public:
 	}
 
 	// Get the next RHICommand and advance the iterator
-	template <typename T>
-	FORCEINLINE T* NextCommand()
+	template <typename TCmd>
+	FORCEINLINE TCmd* NextCommand()
 	{
-		T* RHICmd = (T*)CmdPtr;
-		CmdPtr += sizeof(T) + RHICmd->ExtraSize();
+		TCmd* RHICmd = (TCmd*)CmdPtr;
+		//::OutputDebugStringW(*FString::Printf(TEXT("Exec %d: %d @ 0x%p, %d bytes\n"), NumCommands, (int32)RHICmd->Type, (void*)RHICmd, sizeof(TCmd) + RHICmd->ExtraSize()));
+		CmdPtr += sizeof(TCmd) + RHICmd->ExtraSize();
 		CmdPtr = Align(CmdPtr, FRHICommandList::Alignment);
-		++NumCommands;
-		if (T::IsEndOfPage || CmdPtr >= CmdTail)
+
+		//@todo-rco: Fix me!
+		if (!TCmd::IsEndOfPage)
+		{
+			// Don't count EOP as that is an allocator construct
+			++NumCommands;
+		}
+
+		if (TCmd::IsEndOfPage || CmdPtr >= CmdTail)
 		{
 			Page = Page->NextPage;
 			CmdPtr = Page ? Page->Head : nullptr;
