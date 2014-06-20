@@ -23,6 +23,33 @@ UTextBlock::UTextBlock(const FPostConstructInitializeProperties& PCIP)
 	Font = FSlateFontInfo(TEXT("Slate/Fonts/Roboto-Bold.ttf"), 24);
 }
 
+void UTextBlock::SetColorAndOpacity(FLinearColor InColorAndOpacity)
+{
+	ColorAndOpacity = InColorAndOpacity;
+	if( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetColorAndOpacity( InColorAndOpacity );
+	}
+}
+
+void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
+{
+	ShadowColorAndOpacity = InShadowColorAndOpacity;
+	if(MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetShadowColorAndOpacity(InShadowColorAndOpacity);
+	}
+}
+
+void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
+{
+	ShadowOffset = InShadowOffset;
+	if(MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetShadowOffset(ShadowOffset);
+	}
+}
+
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
 	MyTextBlock = SNew(STextBlock);

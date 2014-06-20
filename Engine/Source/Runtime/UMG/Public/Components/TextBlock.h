@@ -11,6 +11,33 @@ class UMG_API UTextBlock : public UWidget
 	GENERATED_UCLASS_BODY()
 
 public:
+	/**  
+ 	 * Sets the color and opacity of the text in this text block
+	 *
+	 * @param InColorAndOpacity		The new text color and opacity
+ 	 */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
+
+	/**  
+ 	 * Sets the color and opacity of the text drop shadow
+	 * Note: if opacity is zero no shadow will be drawn
+	 *
+	 * @param InShadowColorAndOpacity		The new drop shadow color and opacity
+ 	 */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity);
+
+	/**  
+ 	 * Sets the offset that the text drop shadow should be drawn at
+	 *
+	 * @param InShadowOffset		The new offset
+ 	 */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetShadowOffset(FVector2D InShadowOffset);
+
+
+public:
 	/** The style to use to render the text */
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
