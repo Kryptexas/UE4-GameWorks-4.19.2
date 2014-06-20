@@ -1831,6 +1831,7 @@ UWorld* UEditorEngine::NewMap()
 	// Create a new world
 	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
 	Factory->WorldType = EWorldType::Editor;
+	Factory->bInformEngineOfWorld = true;
 	UPackage* Pkg = CreatePackage( NULL, NULL );
 	EObjectFlags Flags = RF_Public | RF_Standalone;
 	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));

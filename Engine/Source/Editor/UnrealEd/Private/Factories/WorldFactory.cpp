@@ -10,6 +10,7 @@ UWorldFactory::UWorldFactory(const class FPostConstructInitializeProperties& PCI
 	bCreateNew = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
 	SupportedClass = UWorld::StaticClass();
 	WorldType = EWorldType::Inactive;
+	bInformEngineOfWorld = false;
 }
 
 bool UWorldFactory::ConfigureProperties()
@@ -21,7 +22,6 @@ UObject* UWorldFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 {
 	// Create a new world.
 	const bool bAddToRoot = false;
-	const bool bInformEngineOfWorld = true;
 	UWorld* NewWorld = UWorld::CreateWorld(WorldType, bInformEngineOfWorld, Name, Cast<UPackage>(InParent), bAddToRoot);
 	NewWorld->SetFlags(Flags);
 

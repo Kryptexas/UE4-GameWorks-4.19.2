@@ -12,6 +12,7 @@ class UWorldFactory : public UFactory
 	GENERATED_UCLASS_BODY()
 
 	TEnumAsByte<EWorldType::Type> WorldType;
+	bool bInformEngineOfWorld;
 
 	// Begin UFactory Interface
 	virtual bool ConfigureProperties() override;
