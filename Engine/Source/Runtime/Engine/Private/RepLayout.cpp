@@ -302,10 +302,6 @@ bool FRepLayout::CompareProperties(
 
 	for ( const uint16 * RESTRICT pLifeProp = FirstProp; pLifeProp < LastProp; ++pLifeProp )
 	{
-//#if USE_NETWORK_PROFILER 
-		//const uint32 PropertyStartTime = GNetworkProfiler.IsTrackingEnabled() ? FPlatformTime::Cycles() : 0;
-//#endif
-
 		const FRepParentCmd & ParentCmd = Parents[*pLifeProp];
 
 		// We store changed properties on each parent, so we can build a final sorted change list later
@@ -340,8 +336,6 @@ bool FRepLayout::CompareProperties(
 			// Something changed on this parent property
 			PropertyChanged = true;
 		}
-
-		//NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, true, false, FPlatformTime::Cycles() - PropertyStartTime, ParentCmd.Property->ElementSize * 8, 0 ) );
 	}
 
 	return PropertyChanged;
@@ -909,7 +903,7 @@ uint16 FRepLayout::SendProperties_r(
 
 			const FRepParentCmd & ParentCmd = Parents[Cmd.ParentIndex];
 
-			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, false, false, 0, 0, NumEndBits - NumStartBits ) );
+			NETWORK_PROFILER( GNetworkProfiler.TrackReplicateProperty( ParentCmd.Property, NumEndBits - NumStartBits ) );
 
 			// Make the shadow state match the actual state at the time of send
 			StoreProperty( Cmd, (void*)( StoredData + Cmd.Offset ), (const void*)( Data + Cmd.Offset ) );

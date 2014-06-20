@@ -159,7 +159,7 @@ namespace NetworkProfiler
 					if( Token.TokenType == ETokenTypes.ReplicateProperty )
 					{
 						var TokenReplicateProperty = Token as TokenReplicateProperty;
-						NetworkStream.UpdateSummary(ref NetworkStream.PropertyNameToSummary, TokenReplicateProperty.PropertyNameIndex, TokenReplicateProperty.NumBits, TokenReplicateProperty.TimeInMS );
+						NetworkStream.UpdateSummary(ref NetworkStream.PropertyNameToSummary, TokenReplicateProperty.PropertyNameIndex, TokenReplicateProperty.NumBits, 0 );
 						//LastActorToken.Properties.Add(TokenReplicateProperty);
                         LastProperties.Add(TokenReplicateProperty);
 					}					

@@ -278,35 +278,92 @@ namespace NetworkProfiler
 
 			foreach (var UniqueActor in ActorDetailList)
 			{
-				long NumPotentialActorBytes = ( UniqueActor.Value.PotentialSizeBits + 7 ) / 8;
 				long NumActorBytes = ( UniqueActor.Value.SizeBits + 7 ) / 8;
-				string ActorStr = string.Format( "{0,-32} : {1:0.00} ({2:00}/{3:00}) ({4:00})", NetworkStream.GetName( UniqueActor.Key ), UniqueActor.Value.TimeInMS, NumPotentialActorBytes, NumActorBytes, UniqueActor.Value.Count );
+				string ActorStr = string.Format( "{0,-32} : {1:0.00} ({2:000}) ({3:000})", NetworkStream.GetName( UniqueActor.Key ), UniqueActor.Value.TimeInMS, NumActorBytes, UniqueActor.Value.Count );
 				TreeView.Nodes.Add(ActorStr);
 
-				var PropertyDetailList = UniqueActor.Value.Properties.UniqueItems.OrderByDescending(s => s.Value.TimeInMS).ToList();
+				var PropertyDetailList = UniqueActor.Value.Properties.UniqueItems.OrderByDescending(s => s.Value.SizeBits).ToList();
 
 				foreach (var Property in PropertyDetailList)
 				{
-					long NumPotentialPropBytes = ( Property.Value.PotentialSizeBits + 7 ) / 8;
-					long NumPropBytes = ( Property.Value.SizeBits + 7 ) / 8;
+					long NumPropBytes	= ( Property.Value.SizeBits + 7 ) / 8;
+					string PropName		= NetworkStream.GetName( Property.Key );
 
-					string PropName = NetworkStream.GetName( Property.Key );
-					String FlagsStr = Property.Value.FirstItem.GenerateFlagsString();
-
-					string PropStr = string.Format( "{0,-22} {1,-8} : {2:0.00} ({3:00}/{4:00}) ({5:00})", PropName, FlagsStr, Property.Value.TimeInMS, NumPotentialPropBytes, NumPropBytes, Property.Value.Count );
+					string PropStr = string.Format( "{0,-25} : {1:000} ({2:000})", PropName, NumPropBytes, Property.Value.Count );
 					TreeView.Nodes[TreeView.Nodes.Count - 1].Nodes.Add(PropStr);
 				}
 			}
         }
-        
-        /**
-         * Converts the passed in number of bytes to a string formatted as Bytes, KByte, MByte depending
-         * on magnitude.
-         * 
-         * @param	SizeInBytes		Size in bytes to conver to formatted string
-         * 
-         * @return string representation of value, either Bytes, KByte or MByte
-         */ 
+
+		public string[] ToActorPerformanceString( NetworkStream NetworkStream, string ActorFilter, string PropertyFilter, string RPCFilter )
+		{
+			var Details = new List<string>();
+
+ 			UniqueItemTracker<UniqueActor, TokenReplicateActor> UniqueActors = new UniqueItemTracker<UniqueActor, TokenReplicateActor>();
+			foreach ( TokenBase Token in Tokens )
+			{
+				TokenReplicateActor ActorToken = Token as TokenReplicateActor;
+
+				if ( ActorToken == null )
+				{
+					continue;
+				}
+
+				UniqueActors.AddItem( ActorToken, NetworkStream.GetClassNameIndex( ActorToken.ActorNameIndex ) );
+			}
+
+			var ActorDetailList = UniqueActors.UniqueItems.OrderByDescending( s => s.Value.TimeInMS ).ToList();
+
+			Int32 NumActors = 0;
+			long NumSentBytes = 0;
+			float TotalMS = 0.0f;
+
+			foreach ( var UniqueActor in ActorDetailList )
+			{
+				NumActors += UniqueActor.Value.Count;
+				TotalMS += UniqueActor.Value.TimeInMS;
+				var PropertyDetailList = UniqueActor.Value.Properties.UniqueItems.OrderByDescending( s => s.Value.SizeBits ).ToList();
+
+				foreach ( var Property in PropertyDetailList )
+				{
+					NumSentBytes += ( Property.Value.SizeBits + 7 ) / 8;
+				}
+			}
+
+			Details.Add( "Total Actors  : " + NumActors.ToString() );
+			Details.Add( "Total MS      : " + string.Format( "{0:0.00}", TotalMS ) );
+			Details.Add( "Sent Bytes    : " + NumSentBytes.ToString() );
+
+			foreach ( var UniqueActor in ActorDetailList )
+			{
+				long NumActorBytes = ( UniqueActor.Value.SizeBits + 7 ) / 8;
+				string ActorStr = string.Format( "{0,-34} : {1:0.00} ({2,4}) ({3,2})", NetworkStream.GetName( UniqueActor.Key ), UniqueActor.Value.TimeInMS, NumActorBytes, UniqueActor.Value.Count );
+				Details.Add( ActorStr );
+
+				var PropertyDetailList = UniqueActor.Value.Properties.UniqueItems.OrderByDescending( s => s.Value.SizeBits ).ToList();
+
+				foreach ( var Property in PropertyDetailList )
+				{
+					long NumPropBytes	= ( Property.Value.SizeBits + 7 ) / 8;
+					string PropName		= NetworkStream.GetName( Property.Key );
+
+					string PropStr = string.Format( "{0,-22} : {1,4} ({2,2})", PropName, NumPropBytes, Property.Value.Count );
+					Details.Add( "   " + PropStr );
+				}
+				Details.Add( "-----------------------------------" );
+			}
+
+			return Details.ToArray();
+		}
+
+		/**
+		 * Converts the passed in number of bytes to a string formatted as Bytes, KByte, MByte depending
+		 * on magnitude.
+		 * 
+		 * @param	SizeInBytes		Size in bytes to conver to formatted string
+		 * 
+		 * @return string representation of value, either Bytes, KByte or MByte
+		 */ 
 		public string ConvertToSizeString( float SizeInBytes )
 		{
 			// Format as MByte if size > 1 MByte.
@@ -496,15 +553,11 @@ namespace NetworkProfiler
 	*/
 	class UniqueProperty : UniqueItem<TokenReplicateProperty>
 	{
-		public float	TimeInMS = 0;
-		public long		PotentialSizeBits = 0;
 		public long		SizeBits = 0;
 
 		override public void OnItemAdded(TokenReplicateProperty Item)
 		{
 			base.OnItemAdded(Item);
-			TimeInMS += Item.TimeInMS;
-			PotentialSizeBits += Item.NumPotentialBits;
 			SizeBits += Item.NumBits;
 		}
 	}
@@ -515,7 +568,6 @@ namespace NetworkProfiler
 	*/
 	class UniqueActor : UniqueItem<TokenReplicateActor>
     {
-		public long		PotentialSizeBits = 0;
 		public long		SizeBits = 0;
         public float	TimeInMS = 0;
 
@@ -529,7 +581,6 @@ namespace NetworkProfiler
 			foreach (var Property in Item.Properties)
 			{
 				SizeBits += Property.NumBits;
-				PotentialSizeBits += Property.NumPotentialBits;
 				Properties.AddItem(Property, Property.PropertyNameIndex);
 			}
 		}

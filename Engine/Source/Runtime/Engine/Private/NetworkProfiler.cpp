@@ -24,9 +24,9 @@
 FNetworkProfiler GNetworkProfiler;
 
 /** Magic value, determining that file is a network profiler file.				*/
-#define NETWORK_PROFILER_MAGIC						0x1DBF348A
+#define NETWORK_PROFILER_MAGIC						0x1DBF348C
 /** Version of memory profiler. Incremented on serialization changes.			*/
-#define NETWORK_PROFILER_VERSION					4
+#define NETWORK_PROFILER_VERSION					5
 
 enum ENetworkProfilingPayloadType
 {
@@ -308,20 +308,15 @@ void FNetworkProfiler::TrackReplicateActor( const AActor* Actor, FReplicationFla
  * @param	Property	Property being replicated
  * @param	NumBits		Number of bits used to replicate this property
  */
-void FNetworkProfiler::TrackReplicateProperty( const UProperty* Property, bool bIsDynamicProperty, bool bIsComponentProperty, uint32 Cycles, uint16 NumPotentialBits, uint16 NumBits )
+void FNetworkProfiler::TrackReplicateProperty( const UProperty* Property, uint16 NumBits )
 {
 	if( bIsTrackingEnabled )
 	{
 		SCOPE_LOCK_REF(CriticalSection);
 		uint8 Type = NPTYPE_ReplicateProperty;
 		(*FileWriter) << Type;
-		uint8 Flags = (bIsDynamicProperty << 0) | (bIsComponentProperty << 1);
-		(*FileWriter) << Flags;
-		float TimeInMS = FPlatformTime::ToMilliseconds(Cycles);	// FIXME: We may want to just pass in cycles to profiler to we don't lose precision
-		(*FileWriter) << TimeInMS;
 		int32 NameTableIndex = GetNameTableIndex( Property->GetName() );
 		(*FileWriter) << NameTableIndex;
-		(*FileWriter) << NumPotentialBits;
 		(*FileWriter) << NumBits;
 	}
 }

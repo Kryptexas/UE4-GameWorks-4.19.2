@@ -393,62 +393,14 @@ namespace NetworkProfiler
 	{
 		/** Name table index of property name. */
 		public int		PropertyNameIndex;
-		/** Number of bits that could be sent (but may not because they didn't change). */
-		public UInt16	NumPotentialBits;
 		/** Number of bits serialized/ sent. */
 		public UInt16	NumBits;
-		/** True if property is dynamic (struct, TArray, etc) */
-		public bool		bIsDynamic;
-		/** True if property is from a component */
-		public bool		bIsComponent;
-		/** Time in ms for this property to replicate */
-		public float	TimeInMS;
 
 		/** Constructor, serializing members from passed in stream. */
 		public TokenReplicateProperty(BinaryReader BinaryStream)
 		{
-            byte Flags = BinaryStream.ReadByte();
-            bIsDynamic = (Flags & 1) != 0;
-            bIsComponent = (Flags & 2) != 0;
-
-            TimeInMS = BinaryStream.ReadSingle();
-
             PropertyNameIndex = BinaryStream.ReadInt32();
-			NumPotentialBits = BinaryStream.ReadUInt16();
 			NumBits = BinaryStream.ReadUInt16();
-		}
-
-		/** Helper to build property flag string */
-		private void ConcatPropertyType( bool value, string name, ref string CurrentString )
-		{
-			if (!value)
-			{
-				return;
-			}
-			if (CurrentString == "")
-			{
-				CurrentString = " (";
-			}
-			else
-			{
-				CurrentString += ", ";
-			}
-			CurrentString += name;
-		}
-
-		/** Helper to build property flag string */
-		public String GenerateFlagsString()
-		{
-			String FlagsStr = "";
-
-			ConcatPropertyType(bIsDynamic, "D", ref FlagsStr);
-			ConcatPropertyType(bIsComponent, "C", ref FlagsStr);
-			if (FlagsStr != "")
-			{
-				FlagsStr += ")";
-			}
-
-			return FlagsStr;
 		}
 
 		/**
