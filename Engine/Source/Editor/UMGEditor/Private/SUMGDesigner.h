@@ -43,6 +43,8 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
+	void OnEditorSelectionChanged();
+
 	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
 	FWidgetReference GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
 
@@ -122,9 +124,11 @@ private:
 	FVector2D CachedDesignerWidgetLocation;
 
 	/** The currently selected widget */
+	TSet< FWidgetReference > SelectedWidgets;
 	FWidgetReference SelectedWidget;
 
 	/** The currently selected slate widget, this is refreshed every frame in case it changes */
+	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;
 	TWeakPtr<SWidget> SelectedSlateWidget;
 
 	/** The wall clock time the user has been hovering over a single widget */

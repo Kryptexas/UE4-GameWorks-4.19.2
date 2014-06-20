@@ -119,6 +119,8 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 			]
 		]
 	);
+
+	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGDesigner::OnEditorSelectionChanged);
 }
 
 SUMGDesigner::~SUMGDesigner()
@@ -127,6 +129,29 @@ SUMGDesigner::~SUMGDesigner()
 	if ( Blueprint )
 	{
 		Blueprint->OnChanged().RemoveAll(this);
+	}
+
+	if ( BlueprintEditor.IsValid() )
+	{
+		BlueprintEditor.Pin()->OnSelectedWidgetsChanged.RemoveAll(this);
+	}
+}
+
+void SUMGDesigner::OnEditorSelectionChanged()
+{
+	SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+
+	if ( SelectedWidgets.Num() > 0 )
+	{
+		for ( FWidgetReference& Widget : SelectedWidgets )
+		{
+			SelectedWidget = Widget;
+			break;
+		}
+	}
+	else
+	{
+		SelectedWidget = FWidgetReference();
 	}
 }
 
