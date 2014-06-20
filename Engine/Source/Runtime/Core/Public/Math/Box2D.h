@@ -12,6 +12,7 @@
  */
 class FBox2D
 {
+public:
 	/** Holds the box's minimum point. */
 	FVector2D Min;
 
