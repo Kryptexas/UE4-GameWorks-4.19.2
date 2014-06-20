@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "WidgetBlueprintEditorUtils.h"
+#include "WidgetBlueprintEditor.h"
 #include "Kismet2NameValidators.h"
 #include "BlueprintEditorUtils.h"
 #include "K2Node_Variable.h"
