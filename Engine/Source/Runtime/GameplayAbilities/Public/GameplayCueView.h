@@ -6,6 +6,8 @@
 #include "GameplayEffect.h"
 #include "GameplayCueView.generated.h"
 
+class AGameplayCueActor;
+
 /** 
 	This is meant to give a base implementation for handling GameplayCues. It will handle very simple things like
 	creating and destroying ParticleSystemComponents, playing audio, etc.
@@ -26,7 +28,7 @@ struct FGameplayCueViewEffects
 	TWeakObjectPtr<UAudioComponent>	AudioComponent;
 
 	UPROPERTY()
-	TWeakObjectPtr<AActor>	SpawnedActor;
+	TWeakObjectPtr<AGameplayCueActor>	SpawnedActor;
 };
 
 USTRUCT()
@@ -57,15 +59,21 @@ struct FGameplayCueViewInfo
 
 	/** Local/remote sounds to play for weapon attacks against specific surfaces */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
-	class USoundBase* Sound;
+	USoundBase* Sound;
 
 	/** Effects to play for weapon attacks against specific surfaces */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
-	class UParticleSystem* ParticleSystem;
+	UParticleSystem* ParticleSystem;
+
+	/** Whether to attach the ParticleSystem to the owning actor */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
+	bool AttachParticleSystem;
+
+
 
 	/** Effects to play for weapon attacks against specific surfaces */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayCue)
-	class TSubclassOf<AActor> ActorClass;
+	class TSubclassOf<AGameplayCueActor> ActorClass;
 
 	virtual TSharedPtr<FGameplayCueViewEffects> SpawnViewEffects(AActor *Owner, TArray<UObject*> *SpawnedObjects, const FGameplayEffectInstigatorContext InstigatorContext) const;
 };
@@ -79,6 +87,7 @@ class GAMEPLAYABILITIES_API UGameplayCueView : public UDataAsset
 	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
 	TArray<FGameplayCueViewInfo>	Views;
 };
+
 
 USTRUCT()
 struct GAMEPLAYABILITIES_API FGameplayCueHandler
@@ -111,9 +120,9 @@ struct GAMEPLAYABILITIES_API FGameplayCueHandler
 
 private:
 
-	FGameplayCueViewInfo * GetBestMatchingView(EGameplayCueEvent::Type Type, const FGameplayTag BaseTag);
+	FGameplayCueViewInfo * GetBestMatchingView(EGameplayCueEvent::Type Type, const FGameplayTag BaseTag, bool InstigatorLocal, bool TargetLocal);
 
 	void ClearEffects(TArray< TSharedPtr<FGameplayCueViewEffects > > &Effects);
 
-
+	bool OwnerIsLocallyControlled() const;
 };

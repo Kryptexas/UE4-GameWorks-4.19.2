@@ -4,6 +4,16 @@
 
 #include "GameplayEffectTypes.generated.h"
 
+#define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
+
+#if SKILL_SYSTEM_AGGREGATOR_DEBUG
+	#define SKILL_AGG_DEBUG( Format, ... ) *FString::Printf(Format, ##__VA_ARGS__)
+#else
+	#define SKILL_AGG_DEBUG( Format, ... ) NULL
+#endif
+
+class UAbilitySystemComponent;
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
@@ -115,15 +125,104 @@ namespace EGameplayEffectStackingPolicy
 	};
 }
 
+
+/**
+ * FGameplayEffectInstigatorContext
+ *	Data struct for an instigator. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
+ *	We may need to store some positional information as well.
+ *
+ */
+USTRUCT()
+struct FGameplayEffectInstigatorContext
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectInstigatorContext()
+		: Instigator(NULL)
+		, InstigatorAbilitySystemComponent(NULL)
+	{
+	}
+
+	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer)
+	{
+		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
+		if (TagInterface)
+		{
+			TagInterface->GetOwnedGameplayTags(TagContainer);
+		}
+	}
+
+	void AddInstigator(class AActor *InInstigator);
+
+	void AddHitResult(const FHitResult InHitResult);
+
+	FString ToString() const
+	{
+		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
+	}
+
+	/** Should always return the original instigator that started the whole chain */
+	AActor * GetOriginalInstigator()
+	{
+		return Instigator;
+	}
+
+	UAbilitySystemComponent * GetOriginalInstigatorAbilitySystemComponent() const
+	{
+		return InstigatorAbilitySystemComponent;
+	}
+
+	bool IsLocallyControlled() const;
+	
+	/** Instigator controller */
+	UPROPERTY()
+	AActor* Instigator;
+
+	UPROPERTY(NotReplicated)
+	UAbilitySystemComponent *InstigatorAbilitySystemComponent;
+
+	/** Trace information - may be NULL in many cases */
+	TSharedPtr<FHitResult>	HitResult;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template<>
+struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true,
+		WithCopy = true		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+	};
+};
+
+// -----------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FGameplayCueParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	float NormalizedMagnitude;
+
+	UPROPERTY()
+	FGameplayEffectInstigatorContext InstigatorContext;
+
+	UPROPERTY()
+	FName MatchedTagName;
+};
+
 UENUM(BlueprintType)
 namespace EGameplayCueEvent
 {
 	enum Type
 	{
-		OnActive,
-		WhileActive,
-		Executed,
-		Removed
+		OnActive,		// Called when GameplayCue is activated.
+		WhileActive,	// Called when GameplayCue is active, even if it wasn't actually just applied (Join in progress, etc)
+		Executed,		// Called when a GameplayCue is executed: instant effects or periodic tick
+		Removed			// Called when GameplayCue is removed
 	};
 }
 
@@ -136,3 +235,11 @@ FString EGameplayModEffectToString(int32 Type);
 FString EGameplayEffectCopyPolicyToString(int32 Type);
 
 FString EGameplayEffectStackingPolicyToString(int32 Type);
+
+
+DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData &);
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExecuted, const FGameplayAttribute &, const struct FGameplayEffectSpec &, struct FGameplayModifierEvaluatedData &);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32 );
+

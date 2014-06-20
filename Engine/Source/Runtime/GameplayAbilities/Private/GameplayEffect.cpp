@@ -4,6 +4,7 @@
 #include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayEffectStackingExtension.h"
+#include "GameplayTagsModule.h"
 #include "AbilitySystemComponent.h"
 
 const float UGameplayEffect::INFINITE_DURATION = -1.f;
@@ -497,6 +498,17 @@ bool FGameplayEffectInstigatorContext::NetSerialize(FArchive& Ar, class UPackage
 	bOutSuccess = true;
 	return true;
 }
+
+bool FGameplayEffectInstigatorContext::IsLocallyControlled() const
+{
+	APawn* Pawn = Cast<APawn>(Instigator);
+	if (Pawn)
+	{
+		return Pawn->IsLocallyControlled();
+	}
+	return false;
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -1112,14 +1124,18 @@ bool FActiveGameplayEffect::CanBeStacked(const FActiveGameplayEffect& Other) con
 
 void FActiveGameplayEffect::PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray)
 {
-	InArray.Owner->InvokeGameplayCueRemoved(Spec);
+	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectRemoved(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+	
+	InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Removed);
 }
 
 void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray)
 {
+	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
+
 	static const int32 MAX_DELTA_TIME = 3;
 
-	InArray.Owner->InvokeGameplayCueAdded(Spec);
+	InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::WhileActive);
 	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
 	float WorldTimeSeconds = InArray.GetWorldTime();
 	int32 GameStateTime = InArray.GetGameStateTime();
@@ -1128,7 +1144,7 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 
 	if (GameStateTime > 0 && FMath::Abs(DeltaGameStateTime) < MAX_DELTA_TIME)
 	{
-		InArray.Owner->InvokeGameplayCueActivated(Spec);
+		InArray.Owner->InvokeGameplayCueEvent(Spec, EGameplayCueEvent::OnActive);
 	}
 
 	// Set our local start time accordingly
@@ -1526,6 +1542,8 @@ void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
 
 FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CreateNewActiveGameplayEffect);
+
 	LastAssignedHandle = LastAssignedHandle.GetNextHandle();
 	FActiveGameplayEffect & NewEffect = *new (GameplayEffects)FActiveGameplayEffect(LastAssignedHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
 
@@ -1583,8 +1601,36 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 
 		Owner->GetPredictionKeyDelegate(InPredictionKey).AddUObject(Owner, &UAbilitySystemComponent::RemoveActiveGameplayEffect_NoReturn, NewEffect.Handle);
 	}
+
+	InternalOnActiveGameplayEffectAdded(NewEffect);	
+
 	return NewEffect;
 }
+
+void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect)
+{
+	// Update gameplaytag count and broadcast delegate if we just added this tag (count=0, prior to increment)
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	for (auto BaseTagIt = Effect.Spec.Def->OwnedTagsContainer.CreateConstIterator(); BaseTagIt; ++BaseTagIt)
+	{
+		const FGameplayTag& BaseTag = *BaseTagIt;
+		FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
+		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
+		{
+			const FGameplayTag& Tag = *TagIt;
+			int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
+			if (Count++ == 0)
+			{
+				FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
+				if (Delegate)
+				{
+					Delegate->Broadcast(Tag, 1);
+				}
+			}
+		}
+	}
+}
+
 
 bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
@@ -1603,10 +1649,14 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 
 bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 Idx)
 {
+	SCOPE_CYCLE_COUNTER(STAT_RemoveActiveGameplayEffect);
+
 	if (ensure(Idx < GameplayEffects.Num()))
 	{
 		FActiveGameplayEffect& Effect = GameplayEffects[Idx];
-		Owner->InvokeGameplayCueRemoved(GameplayEffects[Idx].Spec);
+		Owner->InvokeGameplayCueEvent(GameplayEffects[Idx].Spec, EGameplayCueEvent::Removed);
+
+		InternalOnActiveGameplayEffectRemoved(Effect);
 
 		if (GameplayEffects[Idx].DurationHandle.IsValid())
 		{
@@ -1632,6 +1682,32 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 
 	ABILITY_LOG(Warning, TEXT("InternalRemoveActiveGameplayEffect called with invalid index: %d"), Idx);
 	return false;
+}
+
+/** This does cleanup that has to happen whether the effect is being removed locally or due to replication */
+void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
+{
+	// Update gameplaytag count and broadcast delegate if we are at 0
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	for (auto BaseTagIt = Effect.Spec.Def->OwnedTagsContainer.CreateConstIterator(); BaseTagIt; ++BaseTagIt)
+	{
+		const FGameplayTag& BaseTag = *BaseTagIt;
+		FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
+		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
+		{
+			const FGameplayTag& Tag = *TagIt;
+			int32& Count = GameplayTagCountMap[Tag];
+			if (--Count == 0)
+			{
+				FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
+				if (Delegate)
+				{
+					Delegate->Broadcast(Tag, 0);
+				}
+			}
+			check(Count >= 0);
+		}
+	}
 }
 
 bool FActiveGameplayEffectsContainer::IsNetAuthority() const
@@ -1823,11 +1899,9 @@ void FActiveGameplayEffectsContainer::RecalculateStacking()
 bool FActiveGameplayEffectsContainer::HasAnyTags(FGameplayTagContainer &Tags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsHasAnyTag);
-
-	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
+	for (auto It = Tags.CreateConstIterator(); It; ++It)
 	{
-		// Fixme: check stacking rules!
-		if (ActiveEffect.Spec.Def->OwnedTagsContainer.MatchesAny(Tags, false))
+		if (HasTag(*It))
 		{
 			return true;
 		}
@@ -1853,20 +1927,29 @@ bool FActiveGameplayEffectsContainer::HasAllTags(FGameplayTagContainer &Tags)
 
 bool FActiveGameplayEffectsContainer::HasTag(const FGameplayTag Tag)
 {
+	/**
+	 *	The desired behavior here is:
+	 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
+	 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
+	 */
+
+	int32* Count = GameplayTagCountMap.Find(Tag);
+	if (Count)
+	{
+		return *Count > 0;
+	}
+	return false;
+
+#if 0
 	for (FActiveGameplayEffect &ActiveEffect : GameplayEffects)
 	{
-		/**
-		 *	The desired behavior here is:
-		 *		"Do we have tag a.b.c and the GameplayEffect has a.b.c.d -> match!"
-		 *		"Do we have tag a.b.c.d. and the GameplayEffect has a.b.c -> no match!"
-		 */
-
 		if (ActiveEffect.Spec.Def->OwnedTagsContainer.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
 		{
 			return true;
 		}
 	}
 	return false;
+#endif
 }
 
 bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
@@ -1921,6 +2004,11 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 
 	// Note: keep one return location to avoid copy operation.
 	return ReturnList;
+}
+
+FOnGameplayEffectTagCountChanged& FActiveGameplayEffectsContainer::RegisterGameplayTagEvent(FGameplayTag Tag)
+{
+	return GameplayTagEventMap.FindOrAdd(Tag);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

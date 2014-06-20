@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Abilities/GameplayAbility.h"
+#include "GameplayCueView.h"
 #include "AbilitySystemBlueprintLibrary.generated.h"
 
 class UAnimMontage;
@@ -19,14 +20,31 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = Ability)
 	static UAbilitySystemComponent* GetAbilitySystemComponent(AActor *Actor);
 
-	UFUNCTION(BlueprintCallable, Category=Ability)
+	// -------------------------------------------------------------------------------
+	//		TargetData
+	// -------------------------------------------------------------------------------
+
+	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
 	static void ApplyGameplayEffectToTargetData(FGameplayAbilityTargetDataHandle Target, UGameplayEffect *GameplayEffect, const FGameplayAbilityActorInfo InstigatorInfo);
 
-	UFUNCTION(BlueprintCallable, Category = Ability)
+	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromHitResult(FHitResult HitResult);
 
-	UFUNCTION(BlueprintCallable, Category = Ability)
+	UFUNCTION(BlueprintCallable, Category="Ability|TargetData")
 	static FHitResult GetHitResultFromTargetData(FGameplayAbilityTargetDataHandle HitResult);
+
+	// -------------------------------------------------------------------------------
+	//		GameplayCue
+	// -------------------------------------------------------------------------------
+	
+	UFUNCTION(BlueprintCallable, Category="Ability|GameplayCue")
+	static bool IsInstigatorLocallyControlled(FGameplayCueParameters Parameters);
+
+	UFUNCTION(BlueprintCallable, Category="Ability|GameplayCue")
+	static FHitResult GetHitResult(FGameplayCueParameters Parameters);
+
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayCue")
+	static bool HasHitResult(FGameplayCueParameters Parameters);
 
 	// -------------------------------------------------------------------------------
 
@@ -35,5 +53,10 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
-	
+
+	// -------------------------------------------------------------------------------
+
+
+
+
 };

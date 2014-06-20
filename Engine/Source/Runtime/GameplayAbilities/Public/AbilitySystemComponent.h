@@ -212,7 +212,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool HasAllTags(FGameplayTagContainer &Tags);
-	
+
+	/** Allow events to be registered for specific gameplay tags being added or removed */
+	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
 
 	// --------------------------------------------
 	// Possibly useful but not primary API functions:
@@ -257,6 +259,18 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 			GlobalCurveDataOverride.Overrides.Push(OverrideTable);
 		}
 	}
+
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	GameplayCues
+	// 
+	// ----------------------------------------------------------------------------------------------------------------
+
+
+	UFUNCTION(BlueprintImplementableEvent, Category = GameplayCue, meta = (BlueprintInternalUseOnly = "true"))
+	void BlueprintCustomHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	static void DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
 	// ----------------------------------------------------------------------------------------------------------------
 
@@ -386,7 +400,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	void SetTargetAbility(UGameplayAbility* NewTargetingAbility);
 
-	void ConsumeAbilityConfirm();
+	void ConsumeAbilityConfirmCancel();
 
 	void ConsumeAbilityTargetData();
 
@@ -395,6 +409,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	UGameplayAbility* TargetingAbility;
 
 	bool ReplicatedConfirmAbility;
+	bool ReplicatedCancelAbility;
 
 	FGameplayAbilityTargetDataHandle ReplicatedTargetData;
 
@@ -448,11 +463,8 @@ private:
 	UFUNCTION(NetMulticast, unreliable)
 	void NetMulticast_InvokeGameplayCueExecuted(const FGameplayEffectSpec Spec);
 
-	void InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec);
-	void InvokeGameplayCueActivated(const FGameplayEffectSpec &Spec);
-	void InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec);
-	void InvokeGameplayCueRemoved(const FGameplayEffectSpec &Spec);
-
+	void InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType);	
+	
 	// ---------------------------------------------
 
 	

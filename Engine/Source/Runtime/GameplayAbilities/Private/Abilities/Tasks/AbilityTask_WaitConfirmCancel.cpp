@@ -15,13 +15,13 @@ UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const class FPost
 void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 {
 	OnConfirm.Broadcast(true);
-	ASC->ConsumeAbilityConfirm();
+	ASC->ConsumeAbilityConfirmCancel();
 }
 
 void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 {
 	OnCancel.Broadcast(false);
-	ASC->ConsumeAbilityConfirm();
+	ASC->ConsumeAbilityConfirmCancel();
 }
 
 UAbilityTask_WaitConfirmCancel* UAbilityTask_WaitConfirmCancel::WaitConfirmCancel(UObject* WorldContextObject)
@@ -54,7 +54,11 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 				// It could have already been confirmed (we may have been behind a client predicting this ability, so it could have got here
 				// before we actually executed this task)
 				OnConfirmCallback();
-				ASC->ConsumeAbilityConfirm();
+				return;
+			}
+			else if(ASC->ReplicatedCancelAbility)
+			{
+				OnCancelCallback();
 				return;
 			}
 		}

@@ -230,6 +230,11 @@ bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
 	return ActiveGameplayEffects.HasAllTags(Tags);
 }
 
+FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
+{
+	return ActiveGameplayEffects.RegisterGameplayTagEvent(Tag);
+}
+
 void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()
 {
 	for (int32 idx=0; idx < ActiveGameplayEffects.GameplayEffects.Num(); ++idx)
@@ -331,8 +336,8 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		// if the Cue was actually added+activated or just added (due to relevancy)
 
 		// Fixme: what if we wanted to scale Cue magnitude based on damage? E.g, scale an cue effect when the GE is buffed?
-		InvokeGameplayCueAdded(*OurCopyOfSpec);
-		InvokeGameplayCueActivated(*OurCopyOfSpec);
+		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::OnActive);
+		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::WhileActive);
 	}
 	
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
@@ -390,11 +395,11 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectH
 	return ActiveGameplayEffects.GetGameplayEffectMagnitude(Handle, Attribute);
 }
 
-void UAbilitySystemComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
+void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpec &Spec, EGameplayCueEvent::Type EventType)
 {
 	if (DebugGameplayCues)
 	{
-		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueExecute: %s"), *Spec.ToSimpleString());
+		ABILITY_LOG(Warning, TEXT("InvokeGameplayCueEvent: %s"), *Spec.ToSimpleString());
 	}
 
 
@@ -404,13 +409,17 @@ void UAbilitySystemComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec
 	{
 		return;
 	}
-	
+
 	// FIXME: Replication of level not finished
 	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
+
+	FGameplayCueParameters CueParameters;
+	CueParameters.InstigatorContext = Spec.InstigatorContext;
+
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
-		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueExecuted(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
+		CueParameters.NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
+		GameplayCueInterface->HandleGameplayCues(ActorOwner, CueInfo.GameplayCueTags, EventType, CueParameters);
 
 		if (DebugGameplayCues)
 		{
@@ -420,63 +429,10 @@ void UAbilitySystemComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec
 	}
 }
 
-void UAbilitySystemComponent::InvokeGameplayCueActivated(const FGameplayEffectSpec &Spec)
-{
-	AActor *ActorOwner = GetOwner();
-	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
-	if (!GameplayCueInterface)
-	{
-		return;
-	}
-
-	// FIXME: Replication of level not finished
-	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f; 
-	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
-	{
-		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueActivated(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
-	}
-}
 
 void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueExecuted_Implementation(const FGameplayEffectSpec Spec)
 {
-	InvokeGameplayCueExecute(Spec);
-}
-
-void UAbilitySystemComponent::InvokeGameplayCueAdded(const FGameplayEffectSpec &Spec)
-{
-	AActor *ActorOwner = GetOwner();
-	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
-	if (!GameplayCueInterface)
-	{
-		return;
-	}
-
-	// FIXME: Replication of level not finished
-	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
-	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
-	{
-		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueAdded(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
-	}
-}
-
-void UAbilitySystemComponent::InvokeGameplayCueRemoved(const FGameplayEffectSpec &Spec)
-{
-	AActor *ActorOwner = GetOwner();
-	IGameplayCueInterface * GameplayCueInterface = InterfaceCast<IGameplayCueInterface>(ActorOwner);
-	if (!GameplayCueInterface)
-	{
-		return;
-	}
-
-	// FIXME: Replication of level not finished
-	float ExecuteLevel = Spec.ModifierLevel.Get()->IsValid() ? Spec.ModifierLevel.Get()->GetLevel() : 1.f;
-	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
-	{
-		float NormalizedMagnitude = CueInfo.NormalizeLevel(ExecuteLevel);
-		GameplayCueInterface->GameplayCueRemoved(CueInfo.GameplayCueTags, NormalizedMagnitude, Spec.InstigatorContext);
-	}
+	InvokeGameplayCueEvent(Spec, EGameplayCueEvent::Executed);
 }
 
 void UAbilitySystemComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
@@ -602,6 +558,15 @@ FAbilitySystemComponentPredictionKeyClear& UAbilitySystemComponent::GetPredictio
 int32 UAbilitySystemComponent::GetNextPredictionKey()
 {
 	return ++LocalPredictionKey;
+}
+
+void UAbilitySystemComponent::DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+{
+	AbilitySystemComponent_eventBlueprintCustomHandler_Parms Parms;
+	Parms.EventType = EventType;
+	Parms.Parameters = Parameters;
+
+	Actor->ProcessEvent(Func, &Parms);
 }
 
 // ---------------------------------------------------------------------------------------

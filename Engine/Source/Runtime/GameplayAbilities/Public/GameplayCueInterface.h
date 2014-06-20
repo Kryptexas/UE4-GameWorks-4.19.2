@@ -7,7 +7,6 @@
 #include "GameplayCueInterface.generated.h"
 
 
-
 /** Interface for actors that wish to handle GameplayCue events from GameplayEffects */
 UINTERFACE(MinimalAPI)
 class UGameplayCueInterface: public UInterface
@@ -19,27 +18,13 @@ class GAMEPLAYABILITIES_API IGameplayCueInterface
 {
 	GENERATED_IINTERFACE_BODY()
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "GameplayCue")
-	void HandleGameplayCue(FGameplayTag Tag, EGameplayCueEvent::Type CueType);
+	virtual void HandleGameplayCue(AActor *Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
-	// EVENT -----------------------
+	virtual void HandleGameplayCues(AActor *Self, const FGameplayTagContainer& GameplayCueTags, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	
+	/** Internal function to map ufunctions directly to gameplaycue tags */
+	UFUNCTION(BlueprintImplementableEvent, Category = GameplayCue, meta = (BlueprintInternalUseOnly = "true"))
+	void BlueprintCustomHandler(EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
 
-	/** EGameplayCueEvent::OnActive - Called when GameplayCue is really activated (not called again in relevancy, Join In Progress situations) */
-	UFUNCTION()
-	virtual void GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) = 0;
-
-	/** EGameplayCueEvent::Executed - Called when GameplayCue is executed (instant effect or periodic effect ticks) */
-	UFUNCTION()
-	virtual void GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) = 0;
-
-	/** EGameplayCueEvent::Removed - Called when GameplayCue is removed */
-	UFUNCTION()
-	virtual void GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) = 0;
-
-
-	// STATE -----------------------
-
-	/** EGameplayCueEvent::WhileActive - Called when GameplayCue is added locally (e.g., casted for the first time or in relevancy / Join in Progress situations) */
-	UFUNCTION()
-	virtual void GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext) = 0;
+	static void DispatchBlueprintCustomHandler(AActor* Actor, UFunction* Func, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);	
 };

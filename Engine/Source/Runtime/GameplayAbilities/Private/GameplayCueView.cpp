@@ -8,8 +8,11 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayCueInterface.h"
 #include "GameplayTagsModule.h"
+#include "GameplayCueActor.h"
+#include "AbilitySystemComponent.h"
 
 UGameplayCueView::UGameplayCueView(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -17,7 +20,7 @@ UGameplayCueView::UGameplayCueView(const class FPostConstructInitializePropertie
 
 }
 
-FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEvent::Type Type, const FGameplayTag BaseTag)
+FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEvent::Type Type, const FGameplayTag BaseTag, bool InstigatorLocal, bool TargetLocal)
 {
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	FGameplayTagContainer TagAndParentsContainer = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagParents(BaseTag);
@@ -30,7 +33,10 @@ FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEven
 		{
 			for (FGameplayCueViewInfo & View : Def->Views)
 			{
-				if (View.CueType == Type && View.Tags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+				if (View.CueType == Type
+					&& (!View.InstigatorLocalOnly || InstigatorLocal)
+					&& (!View.TargetLocalOnly || TargetLocal) 
+					&& View.Tags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 				{
 					return &View;
 				}
@@ -44,11 +50,25 @@ FGameplayCueViewInfo * FGameplayCueHandler::GetBestMatchingView(EGameplayCueEven
 void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
+	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool TargetLocal = OwnerIsLocallyControlled();
+	
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::OnActive, *TagIt))
+		if (FGameplayCueViewInfo* View = GetBestMatchingView(EGameplayCueEvent::OnActive, *TagIt, InstigatorLocal, TargetLocal))
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
+		}
+
+		FName MatchedTag;
+		UFunction *Func = UAbilitySystemGlobals::Get().GetGameplayCueFunction(*TagIt, Owner->GetClass(), MatchedTag);
+		if (Func)
+		{
+			FGameplayCueParameters Params;
+			Params.NormalizedMagnitude = NormalizedMagnitude;
+			Params.InstigatorContext;
+
+			IGameplayCueInterface::DispatchBlueprintCustomHandler(Owner, Func, EGameplayCueEvent::OnActive, Params);
 		}
 	}
 }
@@ -56,24 +76,23 @@ void FGameplayCueHandler::GameplayCueActivated(const FGameplayTagContainer & Gam
 void FGameplayCueHandler::GameplayCueExecuted(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
+	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool TargetLocal = OwnerIsLocallyControlled();
+
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Executed, *TagIt))
+		if (FGameplayCueViewInfo* View = GetBestMatchingView(EGameplayCueEvent::Executed, *TagIt, InstigatorLocal, TargetLocal))
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
-
-		
-		{
-			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::Executed);
-		}
-
 	}
 }
 
 void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
+	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool TargetLocal = OwnerIsLocallyControlled();
 
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
@@ -83,14 +102,10 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 		ClearEffects(Effects);
 		check(Effects.Num() == 0);
 
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::WhileActive, *TagIt))
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::WhileActive, *TagIt, InstigatorLocal, TargetLocal))
 		{
 			TSharedPtr<FGameplayCueViewEffects> SpawnedEffects = View->SpawnViewEffects(Owner, &SpawnedObjects, InstigatorContext);
 			Effects.Add(SpawnedEffects);
-		}
-
-		{
-			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::WhileActive);
 		}
 	}
 }
@@ -98,6 +113,8 @@ void FGameplayCueHandler::GameplayCueAdded(const FGameplayTagContainer & Gamepla
 void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & GameplayCueTags, float NormalizedMagnitude, const FGameplayEffectInstigatorContext InstigatorContext)
 {
 	check(Owner);
+	bool InstigatorLocal = InstigatorContext.IsLocallyControlled();
+	bool TargetLocal = OwnerIsLocallyControlled();
 
 	for (auto TagIt = GameplayCueTags.CreateConstIterator(); TagIt; ++TagIt)
 	{
@@ -110,13 +127,20 @@ void FGameplayCueHandler::GameplayCueRemoved(const FGameplayTagContainer & Gamep
 		
 		// Remove old effects
 		
-		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Removed, *TagIt))
+		if (FGameplayCueViewInfo * View = GetBestMatchingView(EGameplayCueEvent::Removed, *TagIt, InstigatorLocal, TargetLocal))
 		{
 			View->SpawnViewEffects(Owner, NULL, InstigatorContext);
 		}
 
+		FName MatchedTag;
+		UFunction *Func = UAbilitySystemGlobals::Get().GetGameplayCueFunction(*TagIt, Owner->GetClass(), MatchedTag);
+		if (Func)
 		{
-			IGameplayCueInterface::Execute_HandleGameplayCue(Owner, *TagIt, EGameplayCueEvent::Removed);
+			FGameplayCueParameters Params;
+			Params.NormalizedMagnitude = NormalizedMagnitude;
+			Params.InstigatorContext;
+
+			IGameplayCueInterface::DispatchBlueprintCustomHandler(Owner, Func, EGameplayCueEvent::Removed, Params);
 		}
 	}
 }
@@ -189,12 +213,28 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 		{
 			FHitResult &HitResult = *InstigatorContext.HitResult.Get();
 
-			SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent(), NAME_None, HitResult.Location,
-				HitResult.Normal.Rotation(), EAttachLocation::KeepWorldPosition);
+			if (AttachParticleSystem)
+			{
+				SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent(), NAME_None, HitResult.Location,
+					HitResult.Normal.Rotation(), EAttachLocation::KeepWorldPosition);
+			}
+			else
+			{
+				bool AutoDestroy = SpawnedObjects == nullptr;
+				SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAtLocation(Owner->GetWorld(), ParticleSystem, HitResult.Location, HitResult.Normal.Rotation(), AutoDestroy);
+			}
 		}
 		else
 		{
-			SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent());
+			if (AttachParticleSystem)
+			{
+				SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAttached(ParticleSystem, Owner->GetRootComponent());
+			}
+			else
+			{
+				bool AutoDestroy = SpawnedObjects == nullptr;
+				SpawnedEffects->ParticleSystemComponent = UGameplayStatics::SpawnEmitterAtLocation(Owner->GetWorld(), ParticleSystem, Owner->GetActorLocation(), Owner->GetActorRotation(), AutoDestroy);
+			}
 		}		
 
 		if (SpawnedObjects)
@@ -220,7 +260,8 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 	{
 		FVector Location = Owner->GetActorLocation();
 		FRotator Rotation = Owner->GetActorRotation();
-		SpawnedEffects->SpawnedActor = Owner->GetWorld()->SpawnActor(ActorClass, &Location, &Rotation);
+		SpawnedEffects->SpawnedActor = Cast<AGameplayCueActor>(Owner->GetWorld()->SpawnActor(ActorClass, &Location, &Rotation));
+		
 		if (SpawnedObjects)
 		{
 			SpawnedObjects->Add(SpawnedEffects->SpawnedActor.Get());
@@ -229,3 +270,17 @@ TSharedPtr<FGameplayCueViewEffects> FGameplayCueViewInfo::SpawnViewEffects(AActo
 
 	return SpawnedEffects;
 }
+
+bool FGameplayCueHandler::OwnerIsLocallyControlled() const
+{
+	APawn* Pawn = Cast<APawn>(Owner);
+	if (Pawn)
+	{
+		return Pawn->IsLocallyControlled();
+	}
+
+	return false;
+}
+
+// ---------------------------------------------------
+

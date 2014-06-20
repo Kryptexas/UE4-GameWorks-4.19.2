@@ -114,3 +114,26 @@ UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitM
 	return NULL;
 }
 
+// -------------------------------------------------------------------------------------
+
+
+bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
+{
+	return Parameters.InstigatorContext.IsLocallyControlled();
+}
+
+
+FHitResult UAbilitySystemBlueprintLibrary::GetHitResult(FGameplayCueParameters Parameters)
+{
+	if (Parameters.InstigatorContext.HitResult.IsValid())
+	{
+		return *Parameters.InstigatorContext.HitResult.Get();
+	}
+	
+	return FHitResult();
+}
+
+bool UAbilitySystemBlueprintLibrary::HasHitResult(FGameplayCueParameters Parameters)
+{
+	return Parameters.InstigatorContext.HitResult.IsValid();
+}

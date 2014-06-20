@@ -9,19 +9,9 @@
 #include "GameplayEffectTypes.h"
 #include "GameplayEffect.generated.h"
 
-DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData &);
-
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExected, const FGameplayAttribute &, const struct FGameplayEffectSpec &, struct FGameplayModifierEvaluatedData &);
-
 struct FActiveGameplayEffect;
 
-#define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
 
-#if SKILL_SYSTEM_AGGREGATOR_DEBUG
-	#define SKILL_AGG_DEBUG( Format, ... ) *FString::Printf(Format, ##__VA_ARGS__)
-#else
-	#define SKILL_AGG_DEBUG( Format, ... ) NULL
-#endif
 
 class UGameplayEffect;
 class UAbilitySystemComponent;
@@ -474,75 +464,6 @@ struct FGameplayEffectLevelSpec
 	TWeakObjectPtr<class AActor>	Source;
 
 	FGameplayAttribute	Attribute;
-};
-
-/**
- * FGameplayEffectInstigatorContext
- *	Data struct for an instigator. This is still being fleshed out. We will want to track actors but also be able to provide some level of tracking for actors that are destroyed.
- *	We may need to store some positional information as well.
- *
- */
-USTRUCT()
-struct FGameplayEffectInstigatorContext
-{
-	GENERATED_USTRUCT_BODY()
-
-	FGameplayEffectInstigatorContext()
-		: Instigator(NULL)
-		, InstigatorAbilitySystemComponent(NULL)
-	{
-	}
-
-	void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer)
-	{
-		IGameplayTagAssetInterface* TagInterface = InterfaceCast<IGameplayTagAssetInterface>(Instigator);
-		if (TagInterface)
-		{
-			TagInterface->GetOwnedGameplayTags(TagContainer);
-		}
-	}
-
-	void AddInstigator(class AActor *InInstigator);
-
-	void AddHitResult(const FHitResult InHitResult);
-
-	FString ToString() const
-	{
-		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
-	}
-
-	/** Should always return the original instigator that started the whole chain */
-	AActor * GetOriginalInstigator()
-	{
-		return Instigator;
-	}
-
-	UAbilitySystemComponent * GetOriginalInstigatorAbilitySystemComponent() const
-	{
-		return InstigatorAbilitySystemComponent;
-	}
-	
-	/** Instigator controller */
-	UPROPERTY()
-	class AActor* Instigator;
-
-	UPROPERTY(NotReplicated)
-	UAbilitySystemComponent *InstigatorAbilitySystemComponent;
-
-	/** Trace information - may be NULL in many cases */
-	TSharedPtr<FHitResult>	HitResult;
-
-	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
-};
-
-template<>
-struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStructOpsTypeTraitsBase
-{
-	enum
-	{
-		WithNetSerializer = true,
-		WithCopy = true		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
-	};
 };
 
 
@@ -1093,7 +1014,7 @@ struct FGameplayEffectSpec
 	void PrintAll() const;
 
 	// Callbacks
-	FOnAttributeGameplayEffectSpecExected	OnExecute;
+	FOnAttributeGameplayEffectSpecExecuted	OnExecute;
 };
 
 /**
@@ -1212,10 +1133,14 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 {
 	GENERATED_USTRUCT_BODY();
 
+	friend struct FActiveGameplayEffect;
+
 	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
 
 	UPROPERTY()
 	TArray< FActiveGameplayEffect >	GameplayEffects;
+
+	UAbilitySystemComponent *Owner;
 	
 	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey);
 
@@ -1250,9 +1175,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle Handle, const FGameplayTag& InTag) const;
 
+	/** Registered as a callback for when a PropertyAggregator is dirty and we need to update the corresponding GameplayAttribute */
 	void OnPropertyAggregatorDirty(FAggregator* Aggregator, FGameplayAttribute Attribute);
-
-	UAbilitySystemComponent *Owner;
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
 
@@ -1281,15 +1205,16 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
 	int32 GetGameStateTime() const;
+
 	float GetWorldTime() const;
 
 	void OnDurationAggregatorDirty(FAggregator* Aggregator, UAbilitySystemComponent* Owner, FActiveGameplayEffectHandle Handle);
+	
+	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
 
 private:
 
 	FTimerHandle StackHandle;
-
-	bool InternalRemoveActiveGameplayEffect(int32 Idx);
 
 	FAggregatorRef & FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
@@ -1297,7 +1222,17 @@ private:
 
 	TMap<FGameplayAttribute, FAggregatorRef> OngoingPropertyEffects;
 
+	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+	TMap<FGameplayTag, int32> GameplayTagCountMap;
+
 	bool IsNetAuthority() const;
+
+	/** Called internally to actually remove a GameplayEffect */
+	bool InternalRemoveActiveGameplayEffect(int32 Idx);
+
+	/** Called both in server side creation and replication creation/deletion */
+	void InternalOnActiveGameplayEffectAdded(const FActiveGameplayEffect& Effect);
+	void InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect);
 };
 
 template<>

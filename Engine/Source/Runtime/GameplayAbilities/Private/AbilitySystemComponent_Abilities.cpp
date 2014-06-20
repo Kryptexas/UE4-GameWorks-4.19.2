@@ -310,6 +310,12 @@ void UAbilitySystemComponent::InputConfirm()
 
 void UAbilitySystemComponent::InputCancel()
 {
+	if (GetOwnerRole() != ROLE_Authority && CancelCallbacks.IsBound())
+	{
+		// Tell the server we confirmed input.
+		ServerSetReplicatedConfirm(false);
+	}
+
 	CancelCallbacks.Broadcast();
 }
 
@@ -343,8 +349,16 @@ void UAbilitySystemComponent::TargetCancel()
 
 void UAbilitySystemComponent::ServerSetReplicatedConfirm_Implementation(bool Confirmed)
 {
-	ReplicatedConfirmAbility = Confirmed;
-	ConfirmCallbacks.Broadcast();
+	if (Confirmed)
+	{
+		ReplicatedConfirmAbility = true;
+		ConfirmCallbacks.Broadcast();
+	}
+	else
+	{
+		ReplicatedCancelAbility = true;
+		CancelCallbacks.Broadcast();
+	}
 }
 
 bool UAbilitySystemComponent::ServerSetReplicatedConfirm_Validate(bool Confirmed)
@@ -387,9 +401,10 @@ void UAbilitySystemComponent::SetTargetAbility(UGameplayAbility* NewTargetingAbi
 	//ReplicatedTargetData.Clear();
 }
 
-void UAbilitySystemComponent::ConsumeAbilityConfirm()
+void UAbilitySystemComponent::ConsumeAbilityConfirmCancel()
 {
 	ReplicatedConfirmAbility = false;
+	ReplicatedCancelAbility = false;
 }
 
 void UAbilitySystemComponent::ConsumeAbilityTargetData()
