@@ -538,32 +538,6 @@ public class IOSPlatform : Platform
 
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, Path.GetFileName(TargetPListFile), false, null, "", false, false, "Info.plist");
 			}
-
-			// Now do the .mobileprovision
-			//@TODO: Remove this mobileprovision copy, and move to a library approach like Xcode/codesign does
-			if (GetCodeSignDesirability(Params))
-			{
-				string SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "UE4Game.mobileprovision");
-				string GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", SC.ShortProjectName + ".mobileprovision");
-				if (!File.Exists(GameSourceProvision))
-				{
-					GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", "NotForLicensees", SC.ShortProjectName + ".mobileprovision");
-					if (File.Exists(GameSourceProvision))
-					{
-						SourceProvision = GameSourceProvision;
-					}
-					else if (!File.Exists(SourceProvision))
-					{
-						SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game.mobileprovision");
-					}
-				}
-				else
-				{
-					SourceProvision = GameSourceProvision;
-				}
-
-				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", GlobalCommandLine.Rocket, false, "embedded.mobileprovision");
-			}
 		}
 
 		// copy the movies from the project

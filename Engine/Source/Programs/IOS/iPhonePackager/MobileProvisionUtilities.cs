@@ -21,10 +21,199 @@ namespace iPhonePackager
 		public object Tag;
 
 		public string ApplicationIdentifierPrefix = null;
+		public string ApplicationIdentifier = null;
 		public List<X509Certificate2> DeveloperCertificates = new List<X509Certificate2>();
 		public List<string> ProvisionedDeviceIDs;
 		public string ProvisionName;
+		public bool bDebug;
 		public Utilities.PListHelper Data;
+
+		public static string FindCompatibleProvision()
+		{
+			// remap the gamename if necessary
+			string GameName = Program.GameName;
+			if (GameName == "UE4Game")
+			{
+				string[] project = Directory.GetFiles(Config.ProjectRootDirectory, "*.uproject");
+				if (project.Length == 1)
+				{
+					GameName = Path.GetFileNameWithoutExtension(project[0]);
+				}
+			}
+
+			// cache the provision library
+			Dictionary<string, MobileProvision> ProvisionLibrary = new Dictionary<string, MobileProvision>();
+			foreach (string Provision in Directory.EnumerateFiles(Config.ProvisionDirectory, "*.mobileprovision"))
+			{
+				MobileProvision p = MobileProvisionParser.ParseFile(Provision);
+				ProvisionLibrary.Add(Provision, p);
+			}
+
+			// check the cache for a provision matching the app id (com.company.Game)
+			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
+			{
+				if ((Pair.Value.ProvisionName == GameName || Pair.Value.ApplicationIdentifier.Contains(GameName)) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					{
+						return Pair.Key;
+					}
+				}
+			}
+
+			#region remove after we provide an install mechanism
+			// check to see if we can find a provision in the game's build directory
+			string MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.ProjectRootDirectory + "/Build/IOS/", GameName + ".mobileprovision");
+
+			if (!File.Exists(MobileProvisionFilename))
+			{
+				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.ProjectRootDirectory + "/Build/IOS/NotForLicensees/", GameName + ".mobileprovision");
+				if (!File.Exists(MobileProvisionFilename))
+				{
+					MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.ProjectRootDirectory + "/Build/IOS/", ".mobileprovision");
+				}
+			}
+			if (File.Exists(MobileProvisionFilename))
+			{
+				Directory.CreateDirectory(Config.ProvisionDirectory);
+				File.Copy(MobileProvisionFilename, Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename), true);
+				FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename));
+				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+				MobileProvisionFilename = Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename);
+
+				// verify the provision is good
+				MobileProvision p = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+				if ((p.ProvisionName == GameName || p.ApplicationIdentifier.Contains(GameName)) && (!Config.bForDistribution || (p.ProvisionedDeviceIDs.Count == 0 && !p.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(p) != null)
+					{
+						return MobileProvisionFilename;
+					}
+				}
+			}
+
+			// check for a distribution provision in the game's build directory
+			if (Config.bForDistribution)
+			{
+				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.ProjectRootDirectory + "/Build/IOS/", GameName + "_Distro.mobileprovision");
+
+				if (!File.Exists(MobileProvisionFilename))
+				{
+					MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.ProjectRootDirectory + "/Build/IOS/NotForLicensees/", GameName + "_Distro.mobileprovision");
+					if (!File.Exists(MobileProvisionFilename))
+					{
+						MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.ProjectRootDirectory + "/Build/IOS/", "_Distro.mobileprovision");
+					}
+				}
+				if (File.Exists(MobileProvisionFilename))
+				{
+					Directory.CreateDirectory(Config.ProvisionDirectory);
+					File.Copy(MobileProvisionFilename, Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename), true);
+					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename));
+					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					MobileProvisionFilename = Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename);
+
+					// verify the provision is good
+					MobileProvision p = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+					if ((p.ProvisionName == GameName || p.ApplicationIdentifier.Contains(GameName)) && (!Config.bForDistribution || (p.ProvisionedDeviceIDs.Count == 0 && !p.bDebug)))
+					{
+						// check to see if we have a certificate for this provision
+						if (CodeSignatureBuilder.FindCertificate(p) != null)
+						{
+							return MobileProvisionFilename;
+						}
+					}
+				}
+			}
+			#endregion
+
+			// check the cache for a provision matching the wild card
+			foreach (KeyValuePair<string, MobileProvision> Pair in ProvisionLibrary)
+			{
+				if ((Pair.Value.ProvisionName.Contains("Wildcard") || Pair.Value.ApplicationIdentifier.Contains("*")) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					{
+						return Pair.Key;
+					}
+				}
+			}
+
+			#region remove after we provide an install mechanism
+			// check to see if we can find a provision in the engine's build directory
+			MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
+
+			if (!File.Exists(MobileProvisionFilename))
+			{
+				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
+				if (!File.Exists(MobileProvisionFilename))
+				{
+					MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.EngineBuildDirectory, ".mobileprovision");
+				}
+			}
+			if (File.Exists(MobileProvisionFilename))
+			{
+				Directory.CreateDirectory(Config.ProvisionDirectory);
+				File.Copy(MobileProvisionFilename, Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename), true);
+				FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename));
+				DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+				MobileProvisionFilename = Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename);
+
+				// verify the provision is good
+				MobileProvision p = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+				if ((p.ProvisionName.Contains("Wildcard") || p.ApplicationIdentifier.Contains("*")) && (!Config.bForDistribution || (p.ProvisionedDeviceIDs.Count == 0 && !p.bDebug)))
+				{
+					// check to see if we have a certificate for this provision
+					if (CodeSignatureBuilder.FindCertificate(p) != null)
+					{
+						return MobileProvisionFilename;
+					}
+				}
+			}
+
+			// check for a distribution provision in the game's build directory
+			if (Config.bForDistribution)
+			{
+				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game_Distro.mobileprovision");
+
+				if (!File.Exists(MobileProvisionFilename))
+				{
+					MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game_Distro.mobileprovision");
+					if (!File.Exists(MobileProvisionFilename))
+					{
+						MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.EngineBuildDirectory, ".mobileprovision");
+					}
+				}
+				if (File.Exists(MobileProvisionFilename))
+				{
+					Directory.CreateDirectory(Config.ProvisionDirectory);
+					File.Copy(MobileProvisionFilename, Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename), true);
+					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename));
+					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					MobileProvisionFilename = Config.ProvisionDirectory + Path.GetFileName(MobileProvisionFilename);
+
+					// verify the provision is good
+					MobileProvision p = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+					if ((p.ProvisionName == GameName || p.ApplicationIdentifier.Contains(GameName)) && (!Config.bForDistribution || (p.ProvisionedDeviceIDs.Count == 0 && !p.bDebug)))
+					{
+						// check to see if we have a certificate for this provision
+						if (CodeSignatureBuilder.FindCertificate(p) != null)
+						{
+							return MobileProvisionFilename;
+						}
+					}
+				}
+			}
+			#endregion
+
+			// check to see if there is already an embedded provision
+			MobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
+
+			return MobileProvisionFilename;
+		}
 
 		/// <summary>
 		/// Extracts the dict values for the Entitlements key and creates a new full .plist file
@@ -109,6 +298,22 @@ namespace iPhonePackager
 
 			// Key: ProvisionedDevices, Array<String>
 			ProvisionedDeviceIDs = Data.GetArray("ProvisionedDevices", "string");
+
+			// Key: application-identifier, Array<String>
+			Utilities.PListHelper XCentPList = null;
+			Data.ProcessValueForKey("Entitlements", "dict", delegate(XmlNode ValueNode)
+			{
+				XCentPList = Utilities.PListHelper.CloneDictionaryRootedAt(ValueNode);
+			});
+
+			// Modify the application-identifier to be fully qualified if needed
+			if (!XCentPList.GetString("application-identifier", out ApplicationIdentifier))
+			{
+				ApplicationIdentifier = "(unknown)";
+			}
+
+			// check for get-task-allow
+			bDebug = XCentPList.GetBool("get-task-allow");
 		}
 
 		/// <summary>

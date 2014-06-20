@@ -351,6 +351,19 @@ namespace iPhonePackager
 				return true;
 			}
 
+			public bool GetBool(string Key)
+			{
+				string PathToValue = String.Format("/plist/dict/key[.='{0}']/following-sibling::node()", Key);
+
+				XmlNode ValueNode = Doc.DocumentElement.SelectSingleNode(PathToValue);
+				if (ValueNode == null)
+				{
+					return false;
+				}
+
+				return ValueNode.Name == "true";
+			}
+
 			public delegate void ProcessOneNodeEvent(XmlNode ValueNode);
 
 			public void ProcessValueForKey(string Key, string ExpectedValueType, ProcessOneNodeEvent ValueHandler)

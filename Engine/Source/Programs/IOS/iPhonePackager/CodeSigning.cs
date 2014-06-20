@@ -76,7 +76,7 @@ namespace iPhonePackager
 			Provision = null;
 			try
 			{
-				string ExpectedProvisionFile = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
+				string ExpectedProvisionFile = FileOperations.FindPrefixedFile(Config.ProvisionDirectory, Program.GameName + ".mobileprovision");
 				Provision = MobileProvisionParser.ParseFile(ExpectedProvisionFile);
 			}
 			catch (Exception)
@@ -105,30 +105,8 @@ namespace iPhonePackager
 
 		protected virtual byte[] GetMobileProvision()
 		{
-			// Find the mobile provision file to use
-			string MobileProvisionFilename = Path.Combine(Config.RepackageStagingDirectory, "embedded.mobileprovision");
-				
-			if (!File.Exists(MobileProvisionFilename))
-			{
-				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.BuildDirectory, Program.GameName + ".mobileprovision");
-			}
-
-			if (!File.Exists(MobileProvisionFilename))
-			{
-				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.BuildDirectory + "/NotForLicensees/", Program.GameName + ".mobileprovision");
-				if (!File.Exists(MobileProvisionFilename))
-				{
-					MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
-					if (!File.Exists(MobileProvisionFilename))
-					{
-						MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
-						if (!File.Exists(MobileProvisionFilename))
-						{
-							MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.BuildDirectory, ".mobileprovision");
-						}
-					}
-				}
-			}
+			// find the movile provision file in the library
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision();
 
 			byte[] Result = null;
 			try

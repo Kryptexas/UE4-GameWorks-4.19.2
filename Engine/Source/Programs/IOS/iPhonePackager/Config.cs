@@ -65,6 +65,14 @@ namespace iPhonePackager
 		}
 
 		/// <summary>
+		/// The shared provision library directory (on PC)
+		/// </summary>
+		public static string ProvisionDirectory
+		{
+			get { return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "/Apple Computer/MobileDevice/Provisioning Profiles/"; }
+		}
+
+		/// <summary>
 		/// The shared (Engine) build directory (on PC)
 		/// </summary>
 		public static string EngineBuildDirectory
