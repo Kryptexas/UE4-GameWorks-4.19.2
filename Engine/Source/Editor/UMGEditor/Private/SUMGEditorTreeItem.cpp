@@ -31,6 +31,7 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< S
 		[
 			SNew(SHorizontalBox)
 
+			// Widget icon
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
@@ -39,6 +40,7 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< S
 				.Image(Item->GetEditorIcon())
 			]
 
+			// Name of the widget
 			+ SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			.Padding(2, 0, 0, 0)

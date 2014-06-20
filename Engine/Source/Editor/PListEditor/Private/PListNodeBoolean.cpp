@@ -113,7 +113,7 @@ TSharedRef<SWidget> FPListNodeBoolean::GenerateWidgetForColumn(const FName& Colu
 			.FillWidth(1.0f)
 			[
 				SAssignNew(ValueCheckBox, SCheckBox)
-				.IsChecked(bValue)
+				.IsChecked(bValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 				.OnCheckStateChanged(this, &FPListNodeBoolean::OnValueChanged)
 			]
 		];

@@ -155,6 +155,7 @@ void UGameViewportClient::BeginDestroy()
 void UGameViewportClient::DetachViewportClient()
 {
 	ViewportConsole = NULL;
+	RemoveAllViewportWidgets();
 	RemoveFromRoot();
 }
 

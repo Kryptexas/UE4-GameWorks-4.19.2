@@ -151,9 +151,9 @@ void UEditorEngine::EndPlayMap()
 	if (OnlineIdentifiers.Num())
 	{
 		UE_LOG(LogPlayLevel, Display, TEXT("Shutting down PIE online subsystems"));
-        // Cleanup online subsystem shortly as we might be in a failed delegate 
-        // have to do this in batch because timer delegate doesn't recognize bound data 
-        // as a different delegate
+		// Cleanup online subsystem shortly as we might be in a failed delegate 
+		// have to do this in batch because timer delegate doesn't recognize bound data 
+		// as a different delegate
 		FTimerDelegate DestroyTimer;
 		DestroyTimer.BindUObject(this, &UEditorEngine::CleanupPIEOnlineSessions, OnlineIdentifiers);
 		GetTimerManager()->SetTimer(DestroyTimer, 0.1f, false);

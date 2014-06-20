@@ -2119,7 +2119,7 @@ float SFoliageEditMeshDisplayItem::GetScaleXMax() const
 
 ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleXLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleX;
+	return FoliageSettingsPtr->LockScaleX ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleXLocked(ESlateCheckBoxState::Type InState)
@@ -2134,7 +2134,7 @@ void SFoliageEditMeshDisplayItem::OnScaleYReapply(ESlateCheckBoxState::Type InSt
 
 ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleYReapplyChecked() const
 {
-	return FoliageSettingsPtr->ReapplyScaleY? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageSettingsPtr->ReapplyScaleY ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleYMinChanged(float InValue)
@@ -2163,7 +2163,7 @@ float SFoliageEditMeshDisplayItem::GetScaleYMax() const
 
 ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleYLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleY;
+	return FoliageSettingsPtr->LockScaleY ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleYLocked(ESlateCheckBoxState::Type InState)
@@ -2207,7 +2207,7 @@ float SFoliageEditMeshDisplayItem::GetScaleZMax() const
 
 ESlateCheckBoxState::Type SFoliageEditMeshDisplayItem::IsScaleZLockedChecked() const
 {
-	return FoliageSettingsPtr->LockScaleZ;
+	return FoliageSettingsPtr->LockScaleZ ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SFoliageEditMeshDisplayItem::OnScaleZLocked(ESlateCheckBoxState::Type InState)

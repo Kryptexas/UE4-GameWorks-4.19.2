@@ -15,50 +15,54 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	ChildSlot = PCIP.CreateDefaultSubobject<UPanelSlot>(this, TEXT("ChildSlot"));
+	ChildSlot.Get()->SetFlags(RF_Transactional);
+	ChildSlot.Get()->Parent = this;
 }
 
-void UContentWidget::PostInitProperties()
+UPanelSlot* UContentWidget::GetContentSlot() const
 {
-	Super::PostInitProperties();
+	//if ( ContentSlot == NULL )
+	//{
+	//	UContentWidget* MutableThis = const_cast<UContentWidget*>( this );
+	//	MutableThis->ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), MutableThis);
 
-	if ( ContentSlot == NULL )
-	{
-		ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), this);
-	}
+	//	MutableThis->ContentSlot->SetFlags(RF_Transactional);
+	//	//MutableThis->ContentSlot->SetFlags(RF_DefaultSubObject);
+	//	MutableThis->ContentSlot->Parent = MutableThis;
+	//}
 
-	ContentSlot->SetFlags(RF_Transactional);
-	ContentSlot->SetFlags(RF_DefaultSubObject);
-	ContentSlot->Parent = this;
+	return ChildSlot.Get();
 }
 
 UWidget* UContentWidget::GetContent()
 {
-	return ContentSlot->Content;
+	return GetContentSlot()->Content;
 }
 
 void UContentWidget::SetContent(UWidget* InContent)
 {
-	ContentSlot->Content = InContent;
+	GetContentSlot()->Content = InContent;
 
 	if ( InContent )
 	{
-		InContent->Slot = ContentSlot;
+		InContent->Slot = GetContentSlot();
 	}
 }
 
 int32 UContentWidget::GetChildrenCount() const
 {
-	return ContentSlot->Content != NULL ? 1 : 0;
+	return GetContentSlot()->Content != NULL ? 1 : 0;
 }
 
 UWidget* UContentWidget::GetChildAt(int32 Index) const
 {
-	return ContentSlot->Content;
+	return GetContentSlot()->Content;
 }
 
 bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 {
-	if ( ContentSlot->Content == NULL )
+	if ( GetContentSlot()->Content == NULL )
 	{
 		SetContent(InContent);
 		return true;
@@ -69,7 +73,7 @@ bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
 
 bool UContentWidget::RemoveChild(UWidget* Child)
 {
-	if ( ContentSlot->Content == Child )
+	if ( GetContentSlot()->Content == Child )
 	{
 		SetContent(NULL);
 		return true;

@@ -12,8 +12,14 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 	];
 }
 
+SObjectWidget::~SObjectWidget(void)
+{
+	printf("");
+}
+
 void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
 {
+	printf("");
 	Collector.AddReferencedObject(WidgetObject);
 }
 

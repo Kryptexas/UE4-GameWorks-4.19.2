@@ -12,7 +12,7 @@ UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 {
 	SCheckBox::FArguments CheckBoxDefaults;
 
-	bIsChecked = false;
+	CheckedState = ESlateCheckBoxState::Unchecked;
 
 	HorizontalAlignment = CheckBoxDefaults._HAlign;
 	Padding = CheckBoxDefaults._Padding.Get();
@@ -51,7 +51,6 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 	MyCheckbox = SNew(SCheckBox)
 		.Style(StylePtr)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
-		.IsChecked( BIND_UOBJECT_ATTRIBUTE(ESlateCheckBoxState::Type, GetCheckState) )
 		.HAlign( HorizontalAlignment )
 		.Padding( Padding )
 		.ForegroundColor( ForegroundColor )
@@ -67,6 +66,8 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 void UCheckBox::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
+
+	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState) );
 	
 	MyCheckbox->SetUncheckedImage(UncheckedImage ? &UncheckedImage->Brush : nullptr);
 	MyCheckbox->SetUncheckedHoveredImage(UncheckedHoveredImage ? &UncheckedHoveredImage->Brush : nullptr);
@@ -83,17 +84,50 @@ void UCheckBox::SyncronizeProperties()
 
 bool UCheckBox::IsPressed() const
 {
-	return MyCheckbox->IsPressed();
+	if ( MyCheckbox.IsValid() )
+	{
+		return MyCheckbox->IsPressed();
+	}
+
+	return false;
 }
 
 bool UCheckBox::IsChecked() const
 {
-	return MyCheckbox->IsChecked();
+	if ( MyCheckbox.IsValid() )
+	{
+		return MyCheckbox->IsChecked();
+	}
+
+	return ( CheckedState == ESlateCheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type UCheckBox::GetCheckState() const
+ESlateCheckBoxState::Type UCheckBox::GetCheckedState() const
 {
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	if ( MyCheckbox.IsValid() )
+	{
+		return MyCheckbox->GetCheckedState();
+	}
+
+	return CheckedState;
+}
+
+void UCheckBox::SetIsChecked(bool InIsChecked)
+{
+	CheckedState = InIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	if ( MyCheckbox.IsValid() )
+	{
+		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState));
+	}
+}
+
+void UCheckBox::SetCheckedState(ESlateCheckBoxState::Type InCheckedState)
+{
+	CheckedState = InCheckedState;
+	if ( MyCheckbox.IsValid() )
+	{
+		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState));
+	}
 }
 
 void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState)
@@ -107,7 +141,7 @@ void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewSt
 	}
 	else
 	{
-		bIsChecked = bWantsToBeChecked;
+		CheckedState = NewState;
 	}
 }
 

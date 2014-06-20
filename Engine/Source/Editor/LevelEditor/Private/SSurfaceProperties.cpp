@@ -941,10 +941,10 @@ ESlateCheckBoxState::Type SSurfaceProperties::IsUsingNegativePanning( TextureCoo
 {
 	if (Channel == UChannel)
 	{
-		return bUseNegativePanningU;
+		return bUseNegativePanningU ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
-	return bUseNegativePanningV;
+	return bUseNegativePanningV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SSurfaceProperties::OnTogglePanningDirection( ESlateCheckBoxState::Type NewState, TextureCoordChannel Channel )
@@ -960,7 +960,7 @@ const FSlateBrush* SSurfaceProperties::GetToggleRotationDirectionImage() const
 
 ESlateCheckBoxState::Type SSurfaceProperties::IsUsingNegativeRotation() const
 {
-	return bUseNegativeRotation;
+	return bUseNegativeRotation ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SSurfaceProperties::OnToggleRotationDirection( ESlateCheckBoxState::Type NewState )

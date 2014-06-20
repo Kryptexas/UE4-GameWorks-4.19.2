@@ -109,14 +109,14 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 
 FString SPinTypeSelector::GetTypeDescription() const
 {
- 	if( TargetPinType.Get().PinSubCategoryObject != NULL )
- 	{
- 		return TargetPinType.Get().PinSubCategoryObject->GetName();
- 	}
- 	else
- 	{
- 		return TargetPinType.Get().PinCategory;
- 	}
+	if( TargetPinType.Get().PinSubCategoryObject != NULL )
+	{
+		return TargetPinType.Get().PinSubCategoryObject->GetName();
+	}
+	else
+	{
+		return TargetPinType.Get().PinCategory;
+	}
 }
 
 const FSlateBrush* SPinTypeSelector::GetTypeIconImage() const
@@ -131,7 +131,7 @@ FSlateColor SPinTypeSelector::GetTypeIconColor() const
 
 ESlateCheckBoxState::Type SPinTypeSelector::IsArrayChecked() const
 {
-	return TargetPinType.Get().bIsArray;
+	return TargetPinType.Get().bIsArray ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SPinTypeSelector::OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewState)
@@ -190,8 +190,8 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 	}
 
 	// Only handle selection for non-read only items, since STreeViewItem doesn't actually support read-only
- 	if( Selection.IsValid() )
- 	{
+	if( Selection.IsValid() )
+	{
 		if( !Selection->bReadOnly )
 		{
 			const FScopedTransaction Transaction( LOCTEXT("ChangeParam", "Change Paramater Type") );
@@ -230,7 +230,7 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 				}
 			}
 		}
- 	}
+	}
 }
 
 void SPinTypeSelector::GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeTreeItem>& OutChildren)

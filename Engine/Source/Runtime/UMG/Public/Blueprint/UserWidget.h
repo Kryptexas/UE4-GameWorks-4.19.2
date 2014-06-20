@@ -249,9 +249,6 @@ class UMG_API UUserWidget : public UWidget
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
-	/** Creates this widget and all children and returns them. */
-	TSharedRef<SWidget> MakeWidget();
-
 	/** Creates a fullscreen host widget, that wraps this widget. */
 	TSharedRef<SWidget> MakeFullScreenWidget();
 
@@ -268,7 +265,6 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
-	TSharedPtr<SWidget> UserRootWidget;
 	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;
 
 	TWeakPtr<SWidget> FullScreenWidget;

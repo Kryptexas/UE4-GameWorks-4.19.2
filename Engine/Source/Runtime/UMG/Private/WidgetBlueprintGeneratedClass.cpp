@@ -22,7 +22,7 @@ void UWidgetBlueprintGeneratedClass::PostInitProperties()
 		WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
 	}
 
-	WidgetTree->SetFlags(RF_DefaultSubObject);
+	//WidgetTree->SetFlags(RF_DefaultSubObject);
 	WidgetTree->SetFlags(RF_Transactional);
 }
 

@@ -84,7 +84,7 @@ private:
 	/** The check status of the item. */
 	ESlateCheckBoxState::Type IsChecked() const
 	{
-		return SubmitItemData->bIsChecked;
+		return SubmitItemData->bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
 	/** Changes the check status of the item .*/

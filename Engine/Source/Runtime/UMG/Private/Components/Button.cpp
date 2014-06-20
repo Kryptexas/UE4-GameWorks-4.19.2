@@ -29,7 +29,7 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton);
-	MyButton->SetContent(ContentSlot->Content ? ContentSlot->Content->GetWidget() : SNullWidget::NullWidget);
+	MyButton->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
 	
 	return MyButton.ToSharedRef();
 }

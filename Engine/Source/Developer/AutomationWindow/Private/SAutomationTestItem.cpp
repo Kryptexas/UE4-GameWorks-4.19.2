@@ -367,7 +367,7 @@ FText SAutomationTestItem::GetTestToolTip( int32 ClusterIndex ) const
 
 ESlateCheckBoxState::Type SAutomationTestItem::IsTestEnabled() const
 {
-	return TestStatus->IsEnabled();
+	return TestStatus->IsEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 

@@ -204,7 +204,7 @@ public:
 	 */
 	ESlateCheckBoxState::Type IsCheckboxChecked( int32 ButtonId ) const
 	{
-		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed;
+		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
 	/**

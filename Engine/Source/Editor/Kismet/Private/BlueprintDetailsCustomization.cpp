@@ -613,7 +613,7 @@ TSharedRef<ITableRow> FBlueprintVarActionDetails::OnGenerateWidgetForPropertyLis
 				.AutoWidth()
 			[
 				SNew(SCheckBox)
-					.IsChecked(true)
+					.IsChecked(true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.IsEnabled(false)
 			]
 		];
@@ -3325,13 +3325,13 @@ bool FBaseBlueprintGraphActionDetails::IsPinNameUnique(const FString& TestName) 
 	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
 
 	// Check the built in pins
- 	for( TArray<UEdGraphPin*>::TIterator it(FunctionEntryNode->Pins); it; ++it )
- 	{
+	for( TArray<UEdGraphPin*>::TIterator it(FunctionEntryNode->Pins); it; ++it )
+	{
 		if( (*it)->PinName == TestName )
- 		{
- 			return false;
- 		}
- 	}
+		{
+			return false;
+		}
+	}
 
 	// If there is a result node, that isn't the same as the entry node, check it as well
 	if( FunctionResultNode && (FunctionResultNode != FunctionEntryNode) )

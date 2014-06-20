@@ -212,7 +212,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 			.Padding(4, 0)
 			[
 				SNew(SCheckBox)			
-				.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup)
+				.IsChecked(GEditor->GetGameAgnosticSettings().bLoadTheMostRecentlyLoadedProjectAtStartup ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 				.OnCheckStateChanged(this, &SProjectBrowser::OnAutoloadLastProjectChanged)
 				.Content()
 				[

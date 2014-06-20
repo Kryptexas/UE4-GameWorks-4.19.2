@@ -293,6 +293,10 @@ const FSlateBrush* SCheckBox::OnGetCheckImage() const
 }
 
 
+ESlateCheckBoxState::Type SCheckBox::GetCheckedState() const
+{
+	return IsCheckboxChecked.Get();
+}
 
 /**
  * Toggles the checked state for this check box, fire events as needed
@@ -324,6 +328,11 @@ void SCheckBox::ToggleCheckedState()
 		// The state of the check box changed.  Execute the delegate to notify users
 		OnCheckStateChanged.ExecuteIfBound( ESlateCheckBoxState::Checked );
 	}
+}
+
+void SCheckBox::SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked)
+{
+	IsCheckboxChecked = InIsChecked;
 }
 
 void SCheckBox::PlayCheckedSound() const

@@ -92,7 +92,7 @@ public:
 	TSharedRef<SWidget> CreateOption(TSharedPtr<SCheckBox>& CheckBox, const FText& NameText, bool bChecked)
 	{
 		return SAssignNew(CheckBox, SCheckBox)
-		.IsChecked(bChecked)
+		.IsChecked(bChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 		.OnCheckStateChanged(this, &SSpeedTreeImportOptions::OnOptionModified)
 		.Content()
 		[

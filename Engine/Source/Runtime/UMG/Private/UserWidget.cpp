@@ -186,6 +186,8 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
 	WidgetToComponent.Reset();
 	
+	TSharedPtr<SWidget> UserRootWidget;
+
 	// Add the first component to the root of the widget surface.
 	if ( Components.Num() > 0 )
 	{
@@ -205,7 +207,10 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 		WidgetToComponent.Add(Widget, Handle);
 	}
 
-	return MakeWidget();
+	return SNew(SObjectWidget, this)
+		[
+			UserRootWidget.ToSharedRef()
+		];
 }
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
@@ -239,18 +244,8 @@ UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 	return NULL;
 }
 
-TSharedRef<SWidget> UUserWidget::MakeWidget()
-{
-	return SNew(SObjectWidget, this)
-	[
-		UserRootWidget.ToSharedRef()
-	];
-}
-
 TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 {
-	GetWidget();
-	
 	if ( bAbsoluteLayout )
 	{
 		return SNew(SCanvas)
@@ -261,7 +256,7 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 			.VAlign(VerticalAlignment)
 			.HAlign(HorizontalAlignment)
 			[
-				MakeWidget()
+				GetWidget()
 			];
 	}
 	else
@@ -273,7 +268,7 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 			.HAlign(HorizontalAlignment)
 			.VAlign(VerticalAlignment)
 			[
-				MakeWidget()
+				GetWidget()
 			];
 
 		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);

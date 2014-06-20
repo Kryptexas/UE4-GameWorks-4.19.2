@@ -2,21 +2,22 @@
 
 #pragma once
 
+#include "SCheckBox.generated.h"
 
 /** Current state of the check box */
+UENUM()
 namespace ESlateCheckBoxState
 {
-	typedef uint8 Type;
-	
+	enum Type
+	{
 		/** Unchecked */
-	const Type Unchecked = 0;
-
+		Unchecked,
 		/** Checked */
-	const Type Checked = 1;
-
+		Checked,
 		/** Neither checked nor unchecked */
-	const Type Undetermined = 2;
-};
+		Undetermined
+	};
+}
 
 
 /** Delegate that is executed when the check box state changes */
@@ -153,6 +154,9 @@ public:
 		return (IsCheckboxChecked.Get() == ESlateCheckBoxState::Checked);
 	}
 
+	/** @return The current checked state of the checkbox. */
+	ESlateCheckBoxState::Type GetCheckedState() const;
+
 	/**
 	 * Returns true if this button is currently pressed
 	 *
@@ -167,6 +171,9 @@ public:
 	 * Toggles the checked state for this check box, fire events as needed
 	 */
 	void ToggleCheckedState();
+
+	/** See the IsChecked attribute */
+	void SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked);
 	
 	/** See the Style attribute */
 	void SetStyle(const FCheckBoxStyle* InStyle);

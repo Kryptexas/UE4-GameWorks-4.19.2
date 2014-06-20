@@ -32,7 +32,7 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UBorder::RebuildWidget()
 {
 	MyBorder = SNew(SBorder);
-	MyBorder->SetContent(ContentSlot->Content ? ContentSlot->Content->GetWidget() : SNullWidget::NullWidget);
+	MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
 
 	return MyBorder.ToSharedRef();
 }

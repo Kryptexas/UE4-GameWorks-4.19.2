@@ -16,7 +16,7 @@ UWidget::UWidget(const FPostConstructInitializeProperties& PCIP)
 
 bool UWidget::GetIsEnabled() const
 {
-	return MyWidget.IsValid() ? MyWidget->IsEnabled() : bIsEnabled;
+	return MyWidget.IsValid() ? MyWidget.Pin()->IsEnabled() : bIsEnabled;
 }
 
 void UWidget::SetIsEnabled(bool bInIsEnabled)
@@ -24,7 +24,7 @@ void UWidget::SetIsEnabled(bool bInIsEnabled)
 	bIsEnabled = bInIsEnabled;
 	if ( MyWidget.IsValid() )
 	{
-		MyWidget->SetEnabled(bInIsEnabled);
+		MyWidget.Pin()->SetEnabled(bInIsEnabled);
 	}
 }
 
@@ -32,7 +32,7 @@ TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
 {
 	if ( MyWidget.IsValid() )
 	{
-		return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget->GetVisibility());
+		return UWidget::ConvertRuntimeToSerializedVisiblity(MyWidget.Pin()->GetVisibility());
 	}
 
 	return Visiblity;
@@ -44,7 +44,7 @@ void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
 
 	if ( MyWidget.IsValid() )
 	{
-		MyWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+		return MyWidget.Pin()->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
 	}
 }
 
@@ -54,13 +54,18 @@ void UWidget::SetToolTipText(const FText& InToolTipText)
 
 	if ( MyWidget.IsValid() )
 	{
-		MyWidget->SetToolTipText(InToolTipText);
+		return MyWidget.Pin()->SetToolTipText(InToolTipText);
 	}
 }
 
 bool UWidget::IsHovered() const
 {
-	return MyWidget->IsHovered();
+	if ( MyWidget.IsValid() )
+	{
+		return MyWidget.Pin()->IsHovered();
+	}
+
+	return false;
 }
 
 UWidget* UWidget::GetParent() const
@@ -75,6 +80,8 @@ UWidget* UWidget::GetParent() const
 
 TSharedRef<SWidget> UWidget::GetWidget() const
 {
+	TSharedPtr<SWidget> SafeWidget;
+
 	if ( !MyWidget.IsValid() )
 	{
 		// We lie a bit about this being a const function.  If this is the first call it's not really const
@@ -83,11 +90,16 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 		// just blow away the const here.
 		UWidget* MutableThis = const_cast<UWidget*>(this);
 		
-		MyWidget = MutableThis->RebuildWidget();
+		SafeWidget = MutableThis->RebuildWidget();
+		MyWidget = SafeWidget;
 		MutableThis->SyncronizeProperties();
 	}
+	else
+	{
+		SafeWidget = MyWidget.Pin();
+	}
 
-	return MyWidget.ToSharedRef();
+	return SafeWidget.ToSharedRef();
 }
 
 TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)
@@ -186,13 +198,13 @@ TSharedRef<SWidget> UWidget::RebuildWidget()
 
 void UWidget::SyncronizeProperties()
 {
-	MyWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
-	MyWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+	MyWidget.Pin()->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
+	MyWidget.Pin()->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
 	//MyWidget->SetCursor(OPTIONAL_BINDING(EMouseCursor)
 
 	if ( !ToolTipText.IsEmpty() )
 	{
-			MyWidget->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
+		MyWidget.Pin()->SetToolTipText(OPTIONAL_BINDING(FText, ToolTipText));
 	}
 }
 

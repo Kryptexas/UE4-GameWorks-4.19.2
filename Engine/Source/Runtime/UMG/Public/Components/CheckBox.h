@@ -53,13 +53,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ), AdvancedDisplay)
 	USlateBrushAsset* UndeterminedPressedImage;
 
-	/** Called when the checked state has changed */
-	UPROPERTY(BlueprintAssignable)
-	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
-
 	/** Whether the check box is currently in a checked state */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	bool bIsChecked;
+	TEnumAsByte<ESlateCheckBoxState::Type> CheckedState;
+
+	/** A bindable delegate for the IsChecked. */
+	UPROPERTY()
+	FGetCheckBoxState CheckedStateDelegate;
 
 	/** How the content of the toggle button should align within the given space */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -90,7 +90,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Sound")
 	FSlateSound HoveredSound;
-	
+
+	/** Called when the checked state has changed */
+	UPROPERTY(BlueprintAssignable)
+	FOnCheckBoxComponentStateChanged OnCheckStateChanged;
+
 	/** Returns true if this button is currently pressed */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsPressed() const;
@@ -98,6 +102,18 @@ protected:
 	/** Returns true if the checkbox is currently checked */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsChecked() const;
+
+	/** @return the full current checked state. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	ESlateCheckBoxState::Type GetCheckedState() const;
+
+	/** Sets the checked state. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetIsChecked(bool InIsChecked);
+
+	/** Sets the checked state. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetCheckedState(ESlateCheckBoxState::Type InCheckedState);
 	
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
@@ -112,7 +128,6 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
 
-	ESlateCheckBoxState::Type GetCheckState() const;
 	void SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState);
 	
 protected:

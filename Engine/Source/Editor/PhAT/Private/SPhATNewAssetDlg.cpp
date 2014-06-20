@@ -76,7 +76,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 1)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bAlignDownBone)
+					.IsChecked(NewBodyData->bAlignDownBone ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleOrientAlongBone)
 				]
 				+SUniformGridPanel::Slot(0, 2)
@@ -116,7 +116,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 4)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bCreateJoints)
+					.IsChecked(NewBodyData->bCreateJoints ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateJoints)
 				]
 				+SUniformGridPanel::Slot(0, 5)
@@ -142,7 +142,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 6)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bWalkPastSmall)
+					.IsChecked(NewBodyData->bWalkPastSmall ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleWalkPastSmallBones)
 				]
 				+SUniformGridPanel::Slot(0, 7)
@@ -154,7 +154,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1, 7)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bBodyForAll)
+					.IsChecked(NewBodyData->bBodyForAll ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateBodyForAllBones)
 				]
 				// Add in the UI options for the max hulls and the max verts on the hulls

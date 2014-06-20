@@ -35,6 +35,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
 
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetUObject, UObject*, Item);
 
@@ -123,7 +124,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	UWidget* GetParent() const;
 
-	/** Gets the underlying Slate SWidget for this UWidget. */
+	/**
+	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
+	 * virtual however, you should not inherit this function unless you're very aware of what you're
+	 * doing.  Normal derived versions should only ever override RebuildWidget.
+	 */
 	TSharedRef<SWidget> GetWidget() const;
 
 	/**
@@ -189,7 +194,7 @@ protected:
 
 protected:
 	/** The underlying SWidget. */
-	mutable TSharedPtr<SWidget> MyWidget;
+	mutable TWeakPtr<SWidget> MyWidget;
 	
 	/** Is this widget being displayed on a designer surface */
 	bool bDesignTime;

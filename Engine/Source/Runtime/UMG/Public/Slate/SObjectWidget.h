@@ -15,9 +15,13 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	SLATE_END_ARGS()
 
+	virtual ~SObjectWidget(void);
+
 	void Construct(const FArguments& InArgs, class UUserWidget* InWidgetObject);
 
+	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// End of FGCObject interface
 
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
