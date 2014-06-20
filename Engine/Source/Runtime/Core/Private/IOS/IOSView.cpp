@@ -364,8 +364,14 @@ id<MTLDevice> GMetalDevice = nil;
 	if( NumActiveTouches >= 4 )
 #endif
 	{
-		// Route the command to the main iOS thread (all UI must go to the main thread)
-		[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowConsole) withObject:nil waitUntilDone:NO];
+		bool bShowConsole = true;
+		GConfig->GetBool(TEXT("/Script/Engine.InputSettings"), TEXT("bShowConsoleOnFourFingerTap"), bShowConsole, GInputIni);
+
+		if (bShowConsole)
+		{
+			// Route the command to the main iOS thread (all UI must go to the main thread)
+			[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowConsole) withObject:nil waitUntilDone:NO];
+		}
 	}
 #endif
 }

@@ -634,7 +634,13 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 #if !UE_BUILD_SHIPPING
 			if ((pointerCount >= 4) && (type == TouchBegan))
 			{
-				GShowConsoleWindowNextTick = true;
+				bool bShowConsole = true;
+				GConfig->GetBool(TEXT("/Script/Engine.InputSettings"), TEXT("bShowConsoleOnFourFingerTap"), bShowConsole, GInputIni);
+
+				if (bShowConsole)
+				{
+					GShowConsoleWindowNextTick = true;
+				}
 			}
 #endif
 		}
