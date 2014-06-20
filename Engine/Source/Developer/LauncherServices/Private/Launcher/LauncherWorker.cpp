@@ -3,6 +3,8 @@
 #include "LauncherServicesPrivatePCH.h"
 
 
+bool FLauncherUATTask::FirstTimeCompile = true;
+
 /* FLauncherWorker structors
  *****************************************************************************/
 
@@ -196,6 +198,8 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 	TSharedPtr<FLauncherTask> FirstPlatformCookTask = NULL;
 	TSharedPtr<FLauncherTask> FirstPlatformPackageTask = NULL;
 	TSharedPtr<FLauncherTask> FirstPlatformDeviceTask = NULL;
+
+	FLauncherUATTask::FirstTimeCompile = true;
 
 	// determine deployment platforms
 	ILauncherDeviceGroupPtr DeviceGroup = InProfile->GetDeployedDeviceGroup();

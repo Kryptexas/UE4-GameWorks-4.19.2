@@ -27,9 +27,10 @@ public:
 		, TaskCommand(InCommand)
 		, TargetPlatform(InTargetPlatform)
 	{
-		NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+		NoCompile = TEXT(" -nocompile");
 	}
 
+	static bool FirstTimeCompile;
 protected:
 
 	/**
@@ -41,6 +42,12 @@ protected:
 	 */
 	virtual bool PerformTask( FLauncherTaskChainState& ChainState ) override
 	{
+		if (FirstTimeCompile)
+		{
+			NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+			FirstTimeCompile = false;
+		}
+
 		// spawn a UAT process to cook the data
 		// UAT executable
 		FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
