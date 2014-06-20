@@ -44,6 +44,16 @@ public:
 
 	virtual bool IsRunningPlatform( ) const override;
 
+	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
+	{
+		if (Feature == ETargetPlatformFeatures::Packaging)
+		{
+			return true;
+		}
+
+		return TTargetPlatformBase<FHTML5PlatformProperties>::SupportsFeature(Feature);
+	}
+
 #if WITH_ENGINE
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 
