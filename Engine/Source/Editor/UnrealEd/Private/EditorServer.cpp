@@ -1641,6 +1641,17 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		GetAudioDevice()->Flush(NULL);
 	}
 
+	// Reset the editor transform to avoid loading the new world with an offset if loading a sublevel
+	if (NewWorld)
+	{
+		ULevelStreaming* LevelStreaming = FLevelUtils::FindStreamingLevel(NewWorld->PersistentLevel);
+		if (LevelStreaming && NewWorld->PersistentLevel->bAlreadyMovedActors)
+		{
+			FLevelUtils::RemoveEditorTransform(LevelStreaming);
+			NewWorld->PersistentLevel->bAlreadyMovedActors = false;
+		}
+	}
+
 	UWorld* ContextWorld = Context.World();
 	Context.World()->DestroyWorld( true, NewWorld );
 	Context.SetCurrentWorld(NULL);
