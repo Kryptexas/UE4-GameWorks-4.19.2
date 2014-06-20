@@ -18,4 +18,22 @@ public:
 	* @return The found section or null
 	*/
 	static UMovieSceneSection* FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
+
+};
+
+/**
+ * Manages bindings to keyed properties for a track instance. 
+ * Calls UFunctions to set the value on runtime objects
+ */
+class MOVIESCENECORE_API FTrackInstancePropertyBindings
+{
+public:
+	FTrackInstancePropertyBindings( FName PropertyName );
+
+	void CallFunction( const TArray<UObject*>& InRuntimeObjects, void* FunctionParams );
+	void UpdateBindings( const TArray<UObject*>& InRuntimeObjects );
+private:
+	/** Mapping of objects to bound functions that will be called to update data on the track */
+	TMap< TWeakObjectPtr<UObject>, UFunction* > RuntimeObjectToFunctionMap;
+	FName FunctionName;
 };

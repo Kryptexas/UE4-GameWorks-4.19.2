@@ -5,7 +5,7 @@
 #include "IMovieSceneTrackInstance.h"
 
 /**
- * Instance of a UMovieSceneColorTrack
+ * Instance of a UMovieSceneMarginTrack
  */
 class FMovieSceneMarginTrackInstance : public IMovieSceneTrackInstance
 {
@@ -18,6 +18,6 @@ public:
 private:
 	/** The track being instanced */
 	UMovieSceneMarginTrack* MarginTrack;
-	/** Mapping of objects to bound functions that will be called to update data on the track */
-	TMap< TWeakObjectPtr<UObject>, UFunction* > RuntimeObjectToFunctionMap;
+	/** Runtime property bindings */
+	TSharedPtr<class FTrackInstancePropertyBindings> PropertyBindings;
 };

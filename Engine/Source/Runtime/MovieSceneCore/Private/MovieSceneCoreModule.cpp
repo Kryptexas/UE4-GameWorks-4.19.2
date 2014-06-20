@@ -7,6 +7,7 @@
 #include "MovieSceneBindings.h"
 #include "RuntimeMovieScenePlayer.h"
 
+DEFINE_LOG_CATEGORY(LogSequencerRuntime);
 
 
 /**

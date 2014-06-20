@@ -72,3 +72,42 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 	// if that's NULL, then there are no sections
 	return ClosestSection ? ClosestSection : EarliestSection;
 }
+
+
+FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName PropertyName )
+{
+	static const FString Set(TEXT("Set"));
+
+	const FString FunctionString = Set + PropertyName.ToString();
+
+	FunctionName = FName(*FunctionString);
+}
+
+void FTrackInstancePropertyBindings::CallFunction( const TArray<UObject*>& InRuntimeObjects, void* FunctionParams )
+{
+	for( UObject* Object : InRuntimeObjects )
+	{
+		UFunction* Function = RuntimeObjectToFunctionMap.FindRef(Object);
+		if(Function)
+		{
+			Object->ProcessEvent(Function, FunctionParams);
+		}
+	}
+}
+
+void FTrackInstancePropertyBindings::UpdateBindings( const TArray<UObject*>& InRuntimeObjects )
+{
+	for(UObject* Object : InRuntimeObjects)
+	{
+		UFunction* Function = Object->FindFunction(FunctionName);
+		if(Function)
+		{
+			RuntimeObjectToFunctionMap.Add(Object, Function);
+		}
+		else
+		{
+			// Dont call potentially invalid functions
+			RuntimeObjectToFunctionMap.Remove(Object);
+		}
+	}
+}
