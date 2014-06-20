@@ -7,8 +7,9 @@
 class FUMGSequencerObjectBindingManager : public ISequencerObjectBindingManager
 {
 public:
-	FUMGSequencerObjectBindingManager( UWidgetBlueprint& InWidgetBlueprint );
-	
+	FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor );
+	~FUMGSequencerObjectBindingManager();
+
 	/** ISequencerObjectBindingManager interface */
 	virtual bool AllowsSpawnableObjects() const override { return false; }
 	virtual FGuid FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const override;
@@ -20,8 +21,10 @@ public:
 	virtual void GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const override;
 	
 private:
+	void OnWidgetPreviewUpdated();
+private:
 	/** Mapping of preview objects to sequencer guids */
 	TMap< TWeakObjectPtr<UObject>, FGuid> PreviewObjectToGuidMap;
 	
-	TWeakObjectPtr<UWidgetBlueprint> WidgetBlueprint;
+	FWidgetBlueprintEditor& WidgetBlueprintEditor;
 };

@@ -16,6 +16,8 @@ class FWidgetBlueprintEditor : public FBlueprintEditor
 public:
 	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanged)
 
+	/** Called after the widget preview has been updated */
+	DECLARE_MULTICAST_DELEGATE(FOnWidgetPreviewUpdated)
 public:
 	FWidgetBlueprintEditor();
 
@@ -44,6 +46,9 @@ public:
 
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
+
+	/** @return Notification for when the preview widget has been updated */
+	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
@@ -88,4 +93,7 @@ private:
 
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
+	
+	/** Notification for when the preview widget has been updated  */
+	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
 };

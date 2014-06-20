@@ -114,4 +114,6 @@ public:
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
 	virtual void NotifyMovieSceneDataChanged() = 0;
+
+	virtual void UpdateRuntimeInstances() = 0;
 };

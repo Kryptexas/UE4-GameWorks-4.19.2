@@ -48,15 +48,10 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
-	// Duplicate the graph, keeping track of what was duplicated
-	TMap<UObject*, UObject*> DuplicatedObjectList;
+	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
 
-	FObjectDuplicationParameters Parameters(const_cast<UWidgetTree*>( WidgetTree ), UserWidget);
-	Parameters.CreatedObjects = &DuplicatedObjectList;
+	UserWidget->WidgetTree = ClonedTree;
 
-	UWidgetTree* ClonedTree = CastChecked<UWidgetTree>(StaticDuplicateObjectEx(Parameters));
-
-	UUserWidget* WidgetActor = CastChecked<UUserWidget>(UserWidget);
 	UClass* ActorClass = UserWidget->GetClass();
 
 	for ( UWidget* Widget : ClonedTree->WidgetTemplates )
@@ -88,7 +83,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			//TODO UMG Terrible performance, improve with Maps.
 			if ( Binding.ObjectName == VariableName )
 			{
-				UFunction* BoundFunction = WidgetActor->FindFunction(Binding.FunctionName);
+				UFunction* BoundFunction = UserWidget->FindFunction(Binding.FunctionName);
 
 				FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
 
@@ -99,7 +94,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 						if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
 						{
 							FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
-							ScriptDelegate->BindUFunction(WidgetActor, Binding.FunctionName);
+							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
 							break;
 						}
 					}

@@ -14,7 +14,7 @@ public:
 	~FSequencerObjectChangeListener();
 
 	/** ISequencerObjectChangeListener interface */
-	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass ) override;
+	virtual FOnAnimatablePropertyChanged& GetOnAnimatablePropertyChanged( FName PropertyTypeName ) override;
 	virtual FOnPropagateObjectChanges& GetOnPropagateObjectChanges() override;
 	virtual void TriggerAllPropertiesChanged(UObject* Object) override;
 
@@ -45,7 +45,7 @@ private:
 	 *
 	 * @param Object	The object that PostEditChange was called on
 	 */
-	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey );
+	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey );
 
 	/**
 	 * @return True if an object is valid for listening to property changes 
@@ -57,7 +57,7 @@ private:
 	TMap< TWeakObjectPtr<UObject>, TSharedPtr<class IPropertyChangeListener> > ActivePropertyChangeListeners;
 
 	/** A mapping of property classes to multi-cast delegate that is broadcast when properties of that type change */
-	TMap< TSubclassOf<UProperty>, FOnAnimatablePropertyChanged > ClassToPropertyChangedMap;
+	TMap< FName, FOnAnimatablePropertyChanged > ClassToPropertyChangedMap;
 
 	/** Delegate to call when object changes should be propagated */
 	FOnPropagateObjectChanges OnPropagateObjectChanges;

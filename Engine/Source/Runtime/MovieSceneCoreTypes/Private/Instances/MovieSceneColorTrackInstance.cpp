@@ -27,7 +27,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 			else
 			{
 				// @todo Sequencer - remove this legacy method of setting the property directly
-				UObject* PropertyOwner = NULL;
+				/*UObject* PropertyOwner = NULL;
 				UProperty* Property = NULL;
 				//@todo Sequencer - Major performance problems here.  This needs to be initialized and stored (not serialized) somewhere
 				void* Address = FMatineeUtils::GetPropertyAddress<void>( Object, ColorTrack->GetPropertyName(), Property, PropertyOwner );
@@ -54,7 +54,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 						// Let the property owner know that we changed one of its properties
 						PropertyOwner->PostInterpChange( Property );
 					}
-				}
+				}*/
 			}
 		}
 	}

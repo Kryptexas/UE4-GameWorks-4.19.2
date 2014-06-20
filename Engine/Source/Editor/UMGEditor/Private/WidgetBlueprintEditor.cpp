@@ -184,6 +184,9 @@ void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collecto
 	{
 		Collector.AddReferencedObject( DefaultMovieScene );
 	}
+
+	UUserWidget* Preview = GetPreview();
+	Collector.AddReferencedObject( Preview );
 }
 
 void FWidgetBlueprintEditor::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
@@ -261,7 +264,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 
 		UMovieScene* MovieScene = Blueprint->AnimationData.Num() ? Blueprint->AnimationData[0] : GetDefaultMovieScene();
 		
-		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable( new FUMGSequencerObjectBindingManager( *Blueprint ) );
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable( new FUMGSequencerObjectBindingManager( *this ) );
 		
 		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( MovieScene, ObjectBindingManager );
 	}
@@ -276,7 +279,6 @@ void FWidgetBlueprintEditor::DestroyPreview()
 	{
 		check(PreviewScene.GetWorld());
 
-		PreviewActor->ClearFlags(RF_Standalone);
 		PreviewActor->MarkPendingKill();
 	}
 
@@ -316,7 +318,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewBlueprint = InBlueprint;
 
 		PreviewActor = ConstructObject<UUserWidget>(PreviewBlueprint->GeneratedClass, PreviewScene.GetWorld()->GetCurrentLevel());
-		PreviewActor->SetFlags(RF_Standalone | RF_Transactional);
+		PreviewActor->SetFlags(RF_Transactional);
 		
 		// Configure all the widgets to be set to design time.
 		PreviewActor->IsDesignTime(true);
@@ -328,6 +330,9 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		// Store a reference to the preview actor.
 		PreviewWidgetActorPtr = PreviewActor;
 	}
+
+	OnWidgetPreviewUpdated.Broadcast();
+
 }
 
 UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()

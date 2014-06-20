@@ -24,9 +24,25 @@ FSequencerObjectChangeListener::~FSequencerObjectChangeListener()
 	GEditor->OnActorMoved().RemoveAll( this );
 }
 
-void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey )
+void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects,  TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey )
 {
-	ClassToPropertyChangedMap.FindRef( PropertyValue->GetProperty()->GetClass() ).Broadcast( ChangedObjects, *PropertyValue, bRequireAutoKey );
+	TSharedPtr< const IPropertyHandle> HandleToUse = PropertyValue;
+
+	TSharedPtr<const IPropertyHandle> ParentHandle = PropertyValue->GetParentHandle();
+
+	if( ParentHandle.IsValid() && ParentHandle->GetProperty() && ParentHandle->GetProperty()->IsA<UStructProperty>() )
+	{
+		// Handle the case where internal values of a struct are being set.  We want to key the whole struct in this case
+		// @todo Sequencer: Is this always the case?
+		HandleToUse = ParentHandle;
+	}
+
+	UProperty* Property = HandleToUse->GetProperty();
+	UStructProperty* StructProperty = Cast<UStructProperty>( Property );
+
+	FName PropertyName = StructProperty ? StructProperty->Struct->GetFName() : Property->GetFName();
+
+	ClassToPropertyChangedMap.FindRef( PropertyName ).Broadcast( ChangedObjects, *HandleToUse, bRequireAutoKey );
 }
 
 bool FSequencerObjectChangeListener::IsObjectValidForListening( UObject* Object ) const
@@ -36,9 +52,9 @@ bool FSequencerObjectChangeListener::IsObjectValidForListening( UObject* Object 
 	return bListenForActorsOnly ? Object->IsA<AActor>() : true;
 }
 
-FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePropertyChanged( TSubclassOf<UProperty> PropertyClass )
+FOnAnimatablePropertyChanged& FSequencerObjectChangeListener::GetOnAnimatablePropertyChanged( FName PropertyTypeName )
 {
-	return ClassToPropertyChangedMap.FindOrAdd( PropertyClass );
+	return ClassToPropertyChangedMap.FindOrAdd( PropertyTypeName );
 }
 
 FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectChanges()
@@ -84,7 +100,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 
 void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )
 {
-	if( Object )
+	if( Object && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 	{
 		bool bIsObjectValid = IsObjectValidForListening( Object );
 

@@ -74,6 +74,7 @@ public:
 	virtual FGuid GetHandleToObject(UObject* Object) override;
 	virtual ISequencerObjectChangeListener& GetObjectChangeListener() override;
 	virtual void NotifyMovieSceneDataChanged() override;
+	virtual void UpdateRuntimeInstances() override;
 	virtual void AddSubMovieScene(UMovieScene* SubMovieScene) override;
 	virtual void FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds = true) override;
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) override;
@@ -292,8 +293,6 @@ protected:
 	 */
 	void ResetPerMovieSceneData();
 
-	/** Updates runtime instances when a movie scene changes */
-	void UpdateRuntimeInstances();
 
 	/**
 	 * Destroys spawnables for all movie scenes in the stack

@@ -11,6 +11,9 @@
 #include "KismetCompilerModule.h"
 #include "WidgetBlueprintCompiler.h"
 
+#include "Editor/Sequencer/Public/ISequencerModule.h"
+#include "Animation/MarginTrackEditor.h"
+
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
 class FUMGEditorModule : public IUMGEditorModule
@@ -40,6 +43,12 @@ public:
 		KismetCompilerModule.GetCompilers().Add(sd);
 		
 		FUMGBlueprintEditorExtensionHook::InstallHooks();
+
+
+		// Register with the sequencer module that we provide auto-key handlers.
+		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
+		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */

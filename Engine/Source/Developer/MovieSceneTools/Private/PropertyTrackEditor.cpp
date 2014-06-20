@@ -265,10 +265,13 @@ FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	// Get the object change listener for the sequencer and register a delegates for when properties change that we care about
 	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UFloatProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UBoolProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_FloatProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_BoolProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector4 ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector2D ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Color ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_LinearColor ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedColorPropertyChanged );
 }
 
 FPropertyTrackEditor::~FPropertyTrackEditor()
@@ -277,9 +280,13 @@ FPropertyTrackEditor::~FPropertyTrackEditor()
 	if( Sequencer.IsValid() )
 	{
 		ISequencerObjectChangeListener& ObjectChangeListener = Sequencer->GetObjectChangeListener();
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UFloatProperty::StaticClass() ).RemoveAll( this );
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UBoolProperty::StaticClass() ).RemoveAll( this );
-		ObjectChangeListener.GetOnAnimatablePropertyChanged( UStructProperty::StaticClass() ).RemoveAll( this );
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_FloatProperty).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_BoolProperty).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector4).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Vector2D).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_Color).RemoveAll(this);
+		ObjectChangeListener.GetOnAnimatablePropertyChanged(NAME_LinearColor).RemoveAll(this);
 	}
 }
 
