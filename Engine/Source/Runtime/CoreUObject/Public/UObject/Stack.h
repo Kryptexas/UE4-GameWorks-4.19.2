@@ -102,7 +102,14 @@ public:
 	FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFrame* InPreviousFrame = NULL, UField* InPropertyChainForCompiledIn = NULL );
 
 	virtual ~FFrame()
-	{}
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if (GScriptStack.Num())
+		{
+			GScriptStack.Pop();
+		}
+#endif
+	}
 
 	// Functions.
 	COREUOBJECT_API void Step( UObject* Context, RESULT_DECL );
@@ -168,7 +175,12 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, PreviousFrame(InPreviousFrame)
 	, OutParms(NULL)
 	, PropertyChainForCompiledIn(InPropertyChainForCompiledIn)
-{}
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());
+ 	GScriptStack.Push(StackNode);
+#endif
+}
 
 inline int32 FFrame::ReadInt()
 {

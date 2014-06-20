@@ -341,3 +341,26 @@ bool CORE_API StringHasBadDashes(const TCHAR* Str);
 
 /** Helper function to generate a set of windowed resolutions which are convenient for the current primary display size */
 void CORE_API GenerateConvenientWindowedResolutions(const struct FDisplayMetrics& InDisplayMetrics, TArray<FIntPoint>& OutResolutions);
+
+/**
+ * Helper for script stack traces
+ */
+struct FScriptTraceStackNode
+{
+	FName	Scope;
+	FName	FunctionName;
+
+	FScriptTraceStackNode(FName InScope, FName InFunctionName)
+		: Scope(InScope)
+		, FunctionName(InFunctionName)
+	{
+	}
+
+	FString GetStackDescription() const
+	{
+		return Scope.ToString() + TEXT(".") + FunctionName.ToString();
+	}
+
+private:
+	FScriptTraceStackNode() {};
+};

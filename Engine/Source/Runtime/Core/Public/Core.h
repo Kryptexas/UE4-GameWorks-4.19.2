@@ -363,6 +363,9 @@ extern CORE_API bool GPumpingMessagesOutsideOfMainLoop;
 /** Total blueprint compile time. */
 extern CORE_API double GBlueprintCompileTime;
 
+/** Stack names from the VM to be unrolled when we assert */
+extern CORE_API TArray<struct FScriptTraceStackNode> GScriptStack;
+
 /*----------------------------------------------------------------------------
 	Metadata macros.
 ----------------------------------------------------------------------------*/
@@ -406,6 +409,7 @@ extern CORE_API double GBlueprintCompileTime;
 #include "Bitstreams.h"					// Bit stream archiver.
 #include "SparseArray.h"				// Sparse array definitions.
 #include "UnrealString.h"				// Dynamic string definitions.
+#include "NameTypes.h"					// Global name subsystem.
 #include "CoreMisc.h"					// Low level utility code.
 #include "Paths.h"						// Path helper functions
 #include "StaticArray.h"                // Static array definition.
@@ -416,7 +420,6 @@ extern CORE_API double GBlueprintCompileTime;
 #include "List.h"						// Dynamic list definitions.
 #include "ResourceArray.h"				// Resource array definitions.
 #include "RefCounting.h"				// Reference counting definitions.
-#include "NameTypes.h"					// Global name subsystem.
 #include "ScriptDelegates.h"
 #include "Delegate.h"					// C++ delegate system
 #include "ThreadingBase.h"				// Non-platform specific multi-threaded support.

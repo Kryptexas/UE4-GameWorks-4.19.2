@@ -183,6 +183,20 @@ void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, i
 		ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
 		if( StackTrace != NULL )
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			// Walk the script stack, if any
+			if (GScriptStack.Num() > 0)
+			{
+				FString ScriptStack = TEXT("\n\nScript Stack:\n");
+				while (GScriptStack.Num())
+				{
+					ScriptStack += GScriptStack.Pop().GetStackDescription() + TEXT("\n");
+				}
+
+				UE_LOG(LogOutputDevice, Warning, TEXT("%s"), *ScriptStack);
+			}
+#endif
+
 			StackTrace[0] = 0;
 			// Walk the stack and dump it to the allocated memory.
 			FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );

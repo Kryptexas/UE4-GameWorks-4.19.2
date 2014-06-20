@@ -228,6 +228,9 @@ bool					GPumpingMessagesOutsideOfMainLoop = false;
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;
 
+/** Stack names from the VM to be unrolled when we assert */
+TArray<FScriptTraceStackNode> GScriptStack;
+
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
