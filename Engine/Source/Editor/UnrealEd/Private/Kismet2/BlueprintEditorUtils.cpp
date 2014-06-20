@@ -1084,7 +1084,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		}
 
 #if WITH_EDITOR
-		if(GEditor)
+		// Do not want to run this code without the editor present nor when running commandlets.
+		if(GEditor && GIsEditor && !IsRunningCommandlet())
 		{
 			FFindInBlueprintSearchManager::Get().AddOrUpdateBlueprintSearchMetadata(Blueprint);
 		}

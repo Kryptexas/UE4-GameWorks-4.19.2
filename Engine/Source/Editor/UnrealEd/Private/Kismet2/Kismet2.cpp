@@ -309,7 +309,8 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// weren't any changes to save before, there shouldn't be after
 	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
 #if WITH_EDITOR
-	if(GEditor)
+	// Do not want to run this code without the editor present nor when running commandlets.
+	if(GEditor && GIsEditor && !IsRunningCommandlet())
 	{
 		// We do not want to regenerate a search Guid during loads, nothing has changed in the Blueprint and it is cached elsewhere
 		if(!bIsRegeneratingOnLoad)
