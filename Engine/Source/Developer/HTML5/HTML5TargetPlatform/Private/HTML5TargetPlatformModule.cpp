@@ -40,6 +40,12 @@ public:
 		{
 			// finally, make the interface object
 			Singleton = new FHTML5TargetPlatform();
+			FString OutPath;
+			if (!Singleton->IsSdkInstalled(false, OutPath))
+			{
+				delete Singleton;
+				Singleton = NULL;
+			}
 		}
 
 		return Singleton;
