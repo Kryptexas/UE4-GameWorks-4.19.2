@@ -139,3 +139,14 @@ public:
 	/** Map of filenames to perforce state */
 	TMap<FString, EPerforceState::Type> OutResults;
 };
+
+class FPerforceResolveWorker : public IPerforceSourceControlWorker
+{
+public:
+	// IPerforceSourceControlWorker interface
+	virtual FName GetName() const override;
+	virtual bool Execute(class FPerforceSourceControlCommand& InCommand) override;
+	virtual bool UpdateStates() const override;
+private:
+	TArray< FString > UpdatedFiles;
+};

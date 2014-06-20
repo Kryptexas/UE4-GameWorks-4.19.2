@@ -71,8 +71,7 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 
 	for (int32 Index = 0; Index < InFiles.Num(); Index++)
 	{
-		FullCommand += TEXT(" ");
-		FullCommand += InFiles[Index];
+		FullCommand += TEXT(" \"") + InFiles[Index] + TEXT("\"");
 	}
 
 	// always non-interactive
@@ -286,8 +285,6 @@ static FString GetRepoName(const FString& InFilename, const FString& UserName)
 
 	TArray<FString> Files;
 	Files.Add(InFilename);
-
-	QuoteFilenames(Files);
 
 	if(RunCommand(TEXT("info"), Files, TArray<FString>(), ResultsXml, ErrorMessages, UserName))
 	{
@@ -571,6 +568,55 @@ void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString
 									State.bCopied = true;
 								}
 							}
+							else if( State.WorkingCopyState == EWorkingCopyState::Conflicted )
+							{
+								// As far as I can tell this is the "correct" way of finding out what revisions are in conflict.
+								// Bunny ears around correct because we're dirstatting and parsing filenames, which can obviously
+								// result in undesirable behavior:
+								TArray<FString> Filenames;
+								// Looking for two files that end in .r####, # of digits is unbounded:
+								FString WildCard = PathAttrib + ".r*";
+								IFileManager::Get().FindFiles( Filenames, *WildCard, true /*=Files*/, false /*=Directories*/ );
+								if( Filenames.Num() == 2 )
+								{
+									int MergeBaseFileRevNumber;
+									{
+										// This is just a guess, we'll swap filenames if it turns out that Filenames[0] is actually
+										// the conflicting file:
+										FString PendingMergeBaseFile = Filenames[0];
+										FString PendingMergeConflictingFile = Filenames[1];
+
+										// Helper function to find the filename with the lower .r###:
+										const auto EndingToInt = [](const FString& FileName)
+										{
+											int32 Idx = -1;
+											const bool found = FileName.FindLastChar('r', Idx);
+											check(found); // regex failed, Filenames should only contain files that end in .r*
+											int32 RetVal = -1;
+											TTypeFromString<int>::FromString(RetVal, &FileName[Idx + 1]);
+											return RetVal;
+										};
+										int FirstFile = EndingToInt(PendingMergeBaseFile);
+										int SecondFile = EndingToInt(PendingMergeConflictingFile);
+										check(FirstFile != SecondFile);
+										if (FirstFile > SecondFile)
+										{
+											// Guessed wrong, swap our decision!
+											Swap(PendingMergeBaseFile, PendingMergeConflictingFile);
+											Swap(FirstFile, SecondFile);
+										}
+
+										MergeBaseFileRevNumber = FirstFile;
+									}
+
+									// Save the result, this information can be used to perform a merge operation:
+									State.PendingMergeBaseFileRevNumber = MergeBaseFileRevNumber;
+
+									// For the file into a 'locked' state, since it's in conflict, if we don't do
+									// this we can't perform a merge because of logic in the asset tools module:
+									State.LockState = ELockState::Locked;
+								}
+							}
 						}
 						else
 						{
@@ -655,12 +701,10 @@ bool UpdateCachedStates(const TArray<FSubversionSourceControlState>& InStates)
 	{
 		const FSubversionSourceControlState& InState = InStates[StatusIndex];
 		TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> State = Provider.GetStateInternal(InState.LocalFilename);
-		State->bNewerVersionOnServer = InState.bNewerVersionOnServer;
-		State->WorkingCopyState = InState.WorkingCopyState;
-		State->LockState = InState.LockState;
-		State->LockUser = InState.LockUser;
+		auto History = MoveTemp(State->History);
+		*State = InState;
 		State->TimeStamp = FDateTime::Now();
-		State->bCopied = InState.bCopied;
+		State->History = MoveTemp(History);
 	}
 
 	return InStates.Num() > 0;

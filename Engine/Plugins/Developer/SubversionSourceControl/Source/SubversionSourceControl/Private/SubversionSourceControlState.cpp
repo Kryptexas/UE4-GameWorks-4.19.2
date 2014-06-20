@@ -29,6 +29,11 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceC
 	return NULL;
 }
 
+TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceControlState::GetBaseRevForMerge() const
+{
+	return FindHistoryRevision(PendingMergeBaseFileRevNumber);
+}
+
 FName FSubversionSourceControlState::GetIconName() const
 {
 	if(LockState == ELockState::Locked)
@@ -39,8 +44,7 @@ FName FSubversionSourceControlState::GetIconName() const
 	{
 		return FName("Subversion.CheckedOutByOtherUser");
 	}
-
-	if(!IsCurrent())
+	else if (!IsCurrent())
 	{
 		return FName("Subversion.NotAtHeadRevision");
 	}
@@ -73,8 +77,7 @@ FName FSubversionSourceControlState::GetSmallIconName() const
 	{
 		return FName("Subversion.CheckedOutByOtherUser_Small");
 	}
-
-	if(!IsCurrent())
+	else if (!IsCurrent())
 	{
 		return FName("Subversion.NotAtHeadRevision_Small");
 	}
@@ -213,7 +216,7 @@ const FDateTime& FSubversionSourceControlState::GetTimeStamp() const
 
 bool FSubversionSourceControlState::CanCheckIn() const
 {
-	return (LockState == ELockState::Locked) || (WorkingCopyState == EWorkingCopyState::Added);
+	return ( (LockState == ELockState::Locked) || (WorkingCopyState == EWorkingCopyState::Added) ) && !IsConflicted() && IsCurrent();
 }
 
 bool FSubversionSourceControlState::CanCheckout() const
@@ -278,6 +281,11 @@ bool FSubversionSourceControlState::IsModified() const
 bool FSubversionSourceControlState::CanAdd() const
 {
 	return WorkingCopyState == EWorkingCopyState::NotControlled;
+}
+
+bool FSubversionSourceControlState::IsConflicted() const
+{
+	return PendingMergeBaseFileRevNumber != INVALID_REVISION;
 }
 
 #undef LOCTEXT_NAMESPACE

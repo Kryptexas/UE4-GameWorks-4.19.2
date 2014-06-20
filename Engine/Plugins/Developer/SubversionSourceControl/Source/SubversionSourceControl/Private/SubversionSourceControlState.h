@@ -43,6 +43,7 @@ class FSubversionSourceControlState : public ISourceControlState, public TShared
 public:
 	FSubversionSourceControlState( const FString& InLocalFilename )
 		: LocalFilename(InLocalFilename)
+		, PendingMergeBaseFileRevNumber( INVALID_REVISION )
 		, bNewerVersionOnServer(false)
 		, WorkingCopyState(EWorkingCopyState::Unknown)
 		, LockState(ELockState::Unknown)
@@ -55,6 +56,7 @@ public:
 	virtual int32 GetHistorySize() const override;
 	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const override;
 	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetBaseRevForMerge() const override;
 	virtual FName GetIconName() const override;
 	virtual FName GetSmallIconName() const override;
 	virtual FText GetDisplayName() const override;
@@ -74,6 +76,7 @@ public:
 	virtual bool IsUnknown() const override;
 	virtual bool IsModified() const override;
 	virtual bool CanAdd() const override;
+	virtual bool IsConflicted() const override;
 
 public:
 	/** History of the item, if any */
@@ -81,6 +84,9 @@ public:
 
 	/** Filename on disk */
 	FString LocalFilename;
+
+	/** Revision number with which our local revision diverged from the remote revision */
+	int PendingMergeBaseFileRevNumber;
 
 	/** Whether a newer version exists on the server */
 	bool bNewerVersionOnServer;

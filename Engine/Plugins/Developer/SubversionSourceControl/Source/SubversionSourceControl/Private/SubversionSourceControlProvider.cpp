@@ -149,7 +149,6 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		FSubversionSourceControlCommand* Command = new FSubversionSourceControlCommand(InOperation, Worker.ToSharedRef());
 		Command->bAutoDelete = false;
 		Command->Files = AbsoluteFiles;
-		SubversionSourceControlUtils::QuoteFilenames(Command->Files);
 		Command->OperationCompleteDelegate = InOperationCompleteDelegate;
 		return ExecuteSynchronousCommand(*Command, InOperation->GetInProgressString(), true);
 	}
@@ -158,7 +157,6 @@ ECommandResult::Type FSubversionSourceControlProvider::Execute( const TSharedRef
 		FSubversionSourceControlCommand* Command = new FSubversionSourceControlCommand(InOperation, Worker.ToSharedRef());
 		Command->bAutoDelete = true;
 		Command->Files = AbsoluteFiles;
-		SubversionSourceControlUtils::QuoteFilenames(Command->Files);
 		Command->OperationCompleteDelegate = InOperationCompleteDelegate;
 		return IssueCommand(*Command, false);
 	}

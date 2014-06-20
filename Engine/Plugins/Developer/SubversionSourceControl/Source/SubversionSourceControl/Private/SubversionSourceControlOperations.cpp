@@ -30,6 +30,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
 		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 		SubversionSourceControlUtils::QuoteFilename(GameRoot);
 		Parameters.Add(GameRoot);
 	
@@ -45,7 +46,6 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Files;
 		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
-		SubversionSourceControlUtils::QuoteFilename(GameRoot);
 		Files.Add(GameRoot);
 
 		TArray<FString> StatusParameters;
@@ -142,11 +142,8 @@ static bool IsDirectoryAdded(const FSubversionSourceControlCommand& InCommand, c
 	StatusParameters.Add(TEXT("--verbose"));
 	StatusParameters.Add(TEXT("--show-updates"));
 
-	FString QuotedFilename = InDirectory;
-	SubversionSourceControlUtils::QuoteFilename(QuotedFilename);
-
 	TArray<FString> Files;
-	Files.Add(QuotedFilename);
+	Files.Add(InDirectory);
 
 	if(SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, ErrorMessages, InCommand.UserName))
 	{
@@ -178,22 +175,17 @@ static void AddDirectoriesToCommit(const FSubversionSourceControlCommand& InComm
 
 	TArray<FString> Directories;
 
-	for(auto It(InOutFiles.CreateConstIterator()); It; It++)
+	for(const auto& Filename : InOutFiles )
 	{
-		FString Filename = *It;
-		Filename = Filename.TrimQuotes();
 		FString Directory = FPaths::GetPath(Filename);
 
 		bool bDirectoryIsAdded = false;
 		do 
 		{
-			FString QuotedDirectory = Directory;
-			SubversionSourceControlUtils::QuoteFilename(QuotedDirectory);
-
 			bDirectoryIsAdded = false;
-			if(Directories.Find(QuotedDirectory) == INDEX_NONE && IsDirectoryAdded(InCommand, Directory))
+			if(Directories.Find(Directory) == INDEX_NONE && IsDirectoryAdded(InCommand, Directory))
 			{
-				Directories.Add(QuotedDirectory);
+				Directories.Add(Directory);
 				bDirectoryIsAdded = true;
 
 				FString ParentDir = Directory / TEXT("../");
@@ -238,11 +230,8 @@ static bool FindSourceRepoFileForCopy(const FString& InOrigFile, const FString& 
 	// we want all the output!
 	Parameters.Add(TEXT("--verbose"));
 
-	FString Filename = InOrigFile;
-	SubversionSourceControlUtils::QuoteFilename(Filename);
-
 	TArray<FString> Files;
-	Files.Add(Filename);
+	Files.Add(InOrigFile);
 
 	SubversionSourceControlUtils::FHistoryOutput History;
 
@@ -300,7 +289,6 @@ static void ReleaseAnyLocksForCopies(const TArray<FString>& InFilesToCommit, con
 				if(FindSourceRepoFileForCopy(State.GetFilename(), InUserName, SourceRepoFileForCopy))
 				{
 					SourceRepoFileForCopy = InRepoRoot / SourceRepoFileForCopy;
-					SubversionSourceControlUtils::QuoteFilename(SourceRepoFileForCopy);
 					FilesToUnlock.Add(SourceRepoFileForCopy);
 				}
 			}
@@ -329,6 +317,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 		{
 			TArray<FString> Parameters;
 			FString DescriptionFilename = DescriptionFile.GetFilename();
+			// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 			SubversionSourceControlUtils::QuoteFilename(DescriptionFilename);
 			Parameters.Add(FString(TEXT("--file ")) + DescriptionFilename);
 
@@ -345,8 +334,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 			FString Targets;
 			for(auto It(FilesToCommit.CreateConstIterator()); It; It++)
 			{
-				FString Target = It->TrimQuotes();
-				Targets += Target + LINE_TERMINATOR;
+				Targets += *It + LINE_TERMINATOR;
 			}
 
 			FScopedTempFile TargetsFile(Targets);
@@ -356,6 +344,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				ReleaseAnyLocksForCopies(InCommand.Files, InCommand.WorkingCopyRoot, InCommand.RepositoryRoot, InCommand.UserName);
 
 				FString TargetsFilename = TargetsFile.GetFilename();
+				// We need to manually quote the filename because we're not passing the file argument via RunCommand's InFiles parameter
 				SubversionSourceControlUtils::QuoteFilename(TargetsFilename);
 				Parameters.Add(FString(TEXT("--targets ")) + TargetsFilename);
 
@@ -615,7 +604,6 @@ bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
 	TSharedRef<FCopy, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCopy>(InCommand.Operation);
 
 	FString Destination = FPaths::ConvertRelativePathToFull(Operation->GetDestination());
-	SubversionSourceControlUtils::QuoteFilename(Destination);
 
 	// copy from source files to destination parameter
 	{
@@ -650,6 +638,40 @@ bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
 }
 
 bool FSubversionCopyWorker::UpdateStates() const
+{
+	return SubversionSourceControlUtils::UpdateCachedStates(OutStates);
+}
+
+FName FSubversionResolveWorker::GetName() const
+{
+	return "Resolve";
+}
+
+bool FSubversionResolveWorker::Execute( class FSubversionSourceControlCommand& InCommand )
+{
+	// mark the conflicting files as resolved:
+	{
+		TArray<FString> Results;
+		TArray<FString> ResolveParameters;
+		ResolveParameters.Add(TEXT("--accept mine-full"));
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("resolve"), InCommand.Files, ResolveParameters, Results, InCommand.ErrorMessages, InCommand.UserName);
+	}
+
+	// now update the status of our files
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> StatusParameters;
+		StatusParameters.Add(TEXT("--verbose"));
+		StatusParameters.Add(TEXT("--show-updates"));
+
+		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
+	}
+
+	return InCommand.bCommandSuccessful;
+}
+
+bool FSubversionResolveWorker::UpdateStates() const
 {
 	return SubversionSourceControlUtils::UpdateCachedStates(OutStates);
 }

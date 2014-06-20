@@ -127,3 +127,16 @@ public:
 	/** Map of filenames to Subversion state */
 	TArray<FSubversionSourceControlState> OutStates;
 };
+
+class FSubversionResolveWorker : public ISubversionSourceControlWorker
+{
+public:
+	virtual FName GetName() const override;
+	virtual bool Execute( class FSubversionSourceControlCommand& InCommand ) override;
+	virtual bool UpdateStates() const override;
+	
+private:
+	/** Map of filenames to Subversion state */
+	TArray<FSubversionSourceControlState> OutStates;
+};
+

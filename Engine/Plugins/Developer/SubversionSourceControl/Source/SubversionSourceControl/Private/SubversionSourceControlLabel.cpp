@@ -16,14 +16,12 @@ const FString& FSubversionSourceControlLabel::GetName() const
 bool FSubversionSourceControlLabel::GetFileRevisions( const TArray<FString>& InFiles, TArray< TSharedRef<ISourceControlRevision, ESPMode::ThreadSafe> >& OutRevisions ) const
 {
 	SubversionSourceControlUtils::CheckFilenames(InFiles);
-	TArray<FString> QuotedFiles = InFiles;
-	SubversionSourceControlUtils::QuoteFilenames(QuotedFiles);
 
 	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 
 	bool bCommandOK = true;
-	for(auto Iter(QuotedFiles.CreateConstIterator()); Iter; Iter++)
+	for(auto Iter(InFiles.CreateConstIterator()); Iter; Iter++)
 	{
 		TArray<FString> Files;
 		Files.Add(*Iter);
@@ -64,14 +62,12 @@ bool FSubversionSourceControlLabel::GetFileRevisions( const TArray<FString>& InF
 bool FSubversionSourceControlLabel::Sync( const FString& InFilename ) const
 {
 	SubversionSourceControlUtils::CheckFilename(InFilename);
-	FString QuotedFilename = InFilename;
-	SubversionSourceControlUtils::QuoteFilename(QuotedFilename);
 
 	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
 
 	TArray<FString> Files;
-	Files.Add(QuotedFilename);
+	Files.Add(InFilename);
 
 	TArray<FString> Results;
 	TArray<FString> Parameters;

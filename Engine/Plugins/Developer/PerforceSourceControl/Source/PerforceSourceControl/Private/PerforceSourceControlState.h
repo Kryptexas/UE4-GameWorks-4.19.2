@@ -18,9 +18,6 @@ namespace EPerforceState
 		/** File is not checked out (but IS controlled by the source control system). */
 		ReadOnly		= 2,
 
-		/** File is not at the head revision - must sync the file before editing. */
-		NotCurrent		= 3,
-
 		/** File is new and not in the depot - needs to be added. */
 		NotInDepot		= 4,
 
@@ -47,9 +44,12 @@ namespace EPerforceState
 class FPerforceSourceControlState : public ISourceControlState, public TSharedFromThis<FPerforceSourceControlState, ESPMode::ThreadSafe>
 {
 public:
-	FPerforceSourceControlState( const FString& InLocalFilename, EPerforceState::Type InState = EPerforceState::DontCare)
+	FPerforceSourceControlState( const FString& InLocalFilename, EPerforceState::Type InState = EPerforceState::DontCare )
 		: LocalFilename(InLocalFilename)
 		, State(InState)
+		, DepotRevNumber(INVALID_REVISION)
+		, LocalRevNumber(INVALID_REVISION)
+		, PendingResolveRevNumber(INVALID_REVISION)
 		, bModifed(false)
 		, TimeStamp(0)
 	{
@@ -59,6 +59,7 @@ public:
 	virtual int32 GetHistorySize() const override;
 	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetHistoryItem( int32 HistoryIndex ) const override;
 	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const override;
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetBaseRevForMerge() const override;
 	virtual FName GetIconName() const override;
 	virtual FName GetSmallIconName() const override;
 	virtual FText GetDisplayName() const override;
@@ -78,6 +79,7 @@ public:
 	virtual bool IsUnknown() const override;
 	virtual bool IsModified() const override;
 	virtual bool CanAdd() const override;
+	virtual bool IsConflicted() const override;
 
 	/** Get the state of a file */
 	EPerforceState::Type GetState() const
@@ -106,6 +108,15 @@ public:
 
 	/** Status of the file */
 	EPerforceState::Type State;
+
+	/** Latest revision number of the file in the depot */
+	int DepotRevNumber;
+
+	/** Latest rev number at which a file was synced to before being edited */
+	int LocalRevNumber;
+
+	/** Pending rev number with which a file must be resolved, INVALID_REVISION if no resolve pending */
+	int PendingResolveRevNumber;
 
 	/** Modified from depot version */
 	bool bModifed;

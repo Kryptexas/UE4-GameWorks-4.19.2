@@ -11,6 +11,8 @@ typedef TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> FSourceContro
 class ISourceControlState : public TSharedFromThis<ISourceControlState, ESPMode::ThreadSafe>
 {
 public:
+	enum { INVALID_REVISION = -1 };
+
 	/**
 	 * Virtual destructor
 	 */
@@ -37,6 +39,12 @@ public:
 	 * @returns a history item or NULL if the item could not be found
 	 */
 	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FindHistoryRevision( int32 RevisionNumber ) const = 0;
+	
+	/**
+	 * Get the revision that we should use as a base when performing a three wage merge, does not refresh source control state
+	 * @returns a revision identifier or NULL if none exist
+	 */
+	virtual TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> GetBaseRevForMerge() const = 0;
 
 	/**
 	 * Get the name of the icon graphic we should use to display the state in a UI.
@@ -115,5 +123,8 @@ public:
 	 * structure currently under source control) 
 	 */
 	virtual bool CanAdd() const = 0;
+
+	/** Get whether this file is in a conflicted state */
+	virtual bool IsConflicted() const = 0;
 };
 
