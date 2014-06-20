@@ -14,14 +14,14 @@ class USceneThumbnailInfo : public UThumbnailInfo
 	GENERATED_UCLASS_BODY()
 
 	/** The pitch of the orbit camera around the asset */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitPitch;
 
 	/** The yaw of the orbit camera around the asset */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitYaw;
 
 	/** The offset from the bounds sphere distance from the asset */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	float OrbitZoom;
 };

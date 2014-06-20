@@ -14,10 +14,10 @@ class USceneThumbnailInfoWithPrimitive : public USceneThumbnailInfo
 	GENERATED_UCLASS_BODY()
 
 	/** The type of primitive used in this thumbnail */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	TEnumAsByte<EThumbnailPrimType> PrimitiveType;
 
 	/** The custom mesh used when the primitive type is TPT_None */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category=Thumbnail)
 	FStringAssetReference PreviewMesh;
 };
