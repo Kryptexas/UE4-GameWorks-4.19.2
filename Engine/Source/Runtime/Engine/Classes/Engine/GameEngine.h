@@ -22,18 +22,7 @@ class ENGINE_API UGameEngine : public UEngine
 	UPROPERTY(config)
 	float MaxDeltaTime;
 
-	/** String name for any secondary viewport clients created for secondary screens */
-	UPROPERTY(config)
-	FString SecondaryViewportClientClassName;
-
-	/** Secondary viewport clients inside of secondary windows (not for split screen) */
-	UPROPERTY()
-	TArray<class UScriptViewportClient*> SecondaryViewportClients;
-
 public:
-	/** Array parallel to SecondaryViewportClients - these are the frames that render the SecondaryViewport clients */
-	TArray<FViewportFrame*> SecondaryViewportFrames;
-
 	/** The game viewport window */
 	TWeakPtr<class SWindow> GameViewportWindow;
 	/** The primary scene viewport */
@@ -125,21 +114,6 @@ public:
 	 * Turns off the loading movie if it was started by LoadMap().
 	 */
 	virtual void PostLoadMap();
-
-	/**
-	 * @return true, if the GEngine is a game engine and has any secondary screens active
-	 */
-	static bool HasSecondaryScreenActive();
-
-	/**
-	 * Creates a new FViewportFrame with a viewport client of class SecondaryViewportClientClassName
-	 */
-	void CreateSecondaryViewport(uint32 SizeX, uint32 SizeY);
-
-	/**
-	 * Closes all secondary viewports opened with CreateSecondaryViewport
-	 */
-	void CloseSecondaryViewports();
 
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<SViewport> GetGameViewportWidget() const
