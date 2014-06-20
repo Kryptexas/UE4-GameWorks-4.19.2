@@ -1210,6 +1210,12 @@ void UEditorEngine::PlayUsingLauncher()
 			bPlayUsingLauncher = false;
 			return;
 		}
+		if (FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && IPluginManager::Get().HasThirdPartyPlugin())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+			bPlayUsingLauncher = false;
+			return;
+		}
 #endif
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));

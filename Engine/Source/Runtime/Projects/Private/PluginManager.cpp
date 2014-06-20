@@ -389,6 +389,51 @@ void FPluginManager::GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginN
 #endif
 }
 
+bool FPluginManager::HasThirdPartyPlugin() const
+{
+	static bool bInit = false;
+	TArray<FString> StandardPlugins;
+	if (!bInit)
+	{
+		StandardPlugins.Add(TEXT("BlankPlugin"));
+		StandardPlugins.Add(TEXT("UObjectPlugin"));
+		StandardPlugins.Add(TEXT("IntroTutorials"));
+		StandardPlugins.Add(TEXT("PluginsEditor"));
+		StandardPlugins.Add(TEXT("EpicSurvey"));
+		StandardPlugins.Add(TEXT("OculusRift"));
+		StandardPlugins.Add(TEXT("CustomMeshComponent"));
+		StandardPlugins.Add(TEXT("MessagingDebugger"));
+		StandardPlugins.Add(TEXT("PerforceSourceControl"));
+		StandardPlugins.Add(TEXT("SubversionSourceControl"));
+		StandardPlugins.Add(TEXT("UdpMessaging"));
+		StandardPlugins.Add(TEXT("WindowsMoviePlayer"));
+		StandardPlugins.Add(TEXT("CableComponent"));
+		StandardPlugins.Add(TEXT("ExampleDeviceProfileSelector"));
+		StandardPlugins.Add(TEXT("WinDualShock"));
+		StandardPlugins.Add(TEXT("VisualStudioSourceCodeAccess"));
+		StandardPlugins.Add(TEXT("XCodeSourceCodeAccess"));
+		StandardPlugins.Add(TEXT("SlateRemote"));
+		StandardPlugins.Add(TEXT("ScriptPlugin"));
+		StandardPlugins.Add(TEXT("ScriptEditorPlugin"));
+		StandardPlugins.Add(TEXT("SpeedTreeImporter"));
+		StandardPlugins.Add(TEXT("AppleMoviePlayer"));
+		StandardPlugins.Add(TEXT("IOSDeviceProfileSelector"));
+		bInit = true;
+	}
+
+	TArray<FString> EnabledPlugins;
+	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), EnabledPlugins, GEngineIni );
+
+	for (int Index = 0; Index < EnabledPlugins.Num(); ++Index)
+	{
+		if (!StandardPlugins.Contains(EnabledPlugins[Index]))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void FPluginManager::ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled)
 {
 	TArray< FString > EnabledPluginNames;

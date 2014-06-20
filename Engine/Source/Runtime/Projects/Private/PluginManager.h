@@ -129,6 +129,7 @@ public:
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) override;
 	virtual bool IsRestartRequired() const override;
+	virtual bool HasThirdPartyPlugin() const override;
 
 private:
 

@@ -120,4 +120,11 @@ public:
 	 * @return true if plugin changes have been made that will only take effect after a restart
 	 */
 	virtual bool IsRestartRequired() const = 0;
+
+	/**
+	 * Determines if a third-party plugin has been requested in the executable
+	 *
+	 * @return true if a third party plugin is enabled
+	 */
+	virtual bool HasThirdPartyPlugin() const = 0;
 };
