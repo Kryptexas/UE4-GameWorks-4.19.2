@@ -71,6 +71,7 @@ public:
 
 protected:
 	void SpawnSegment(const class UPaperSprite* NewSprite, float Position, float HorizontalScale);
+	void SpawnFromPoly(const class UPaperSprite* NewSprite, FSpriteDrawCallRecord& FillDrawCall, const FVector2D& TextureSize, FPoly& Poly);
 
 	void OnSplineEdited();
 
