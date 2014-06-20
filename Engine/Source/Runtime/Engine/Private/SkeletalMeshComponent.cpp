@@ -24,7 +24,7 @@
 	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
 #endif
 
-TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("ParallelAnimEvaluation"), 0, TEXT("If true, animation evaluation will be run across the task graph system as opposed to purely on the game thread"));
+TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 0, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
 USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -862,6 +862,11 @@ void USkeletalMeshComponent::PerformAnimationEvaluation(TArray<FTransform>& OutS
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
+
+	if (!SkeletalMesh || SpaceBases.Num() == 0)
+	{
+		return;
+	}
 
 	AActor * Owner = GetOwner();
 	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));

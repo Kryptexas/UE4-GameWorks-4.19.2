@@ -1283,6 +1283,7 @@ void CreateConsoleVariables()
 	//
 	// r.      Renderer / 3D Engine / graphical feature
 	// RHI.    Low level RHI (rendering platform) specific
+	// a.	   Animation
 	// s. 	   Sound / Music
 	// n.      Network
 	// ai.     Artificial intelligence
