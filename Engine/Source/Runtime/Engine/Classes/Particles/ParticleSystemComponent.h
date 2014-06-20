@@ -624,12 +624,14 @@ public:
 	/** Get the current number of active particles in this system */
 	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem")
 	int32 GetNumActiveParticles() const;
-	
+
 	/**
-	* Fills the passed array with all trail emitters associated with a particular AnimNotifyState.
+	* Fills the passed array with all trail emitters associated with a particular object.
 	* @param OutTrailEmitters	The array to fill with pointers to the trail emitters.
+	* @param InOwner			The object that triggered this trail. Can be NULL if no assosiation was set by the owner. Not to be confused with the result of GetOwner().
+	* @param bSetOwner			If true, all trail emitters will be set as owned by InOwner.
 	*/
-	virtual void GetTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters);
+	virtual void GetOwnedTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, const void* InOwner, bool bSetOwner = false);
 	
 	/**
 	* Begins all trail emitters in this component.

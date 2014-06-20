@@ -4763,19 +4763,29 @@ int32 UParticleSystemComponent::GetNumActiveParticles() const
 	return NumParticles;
 }
 
-void UParticleSystemComponent::GetTrailEmitters(TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters)
+void UParticleSystemComponent::GetOwnedTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, const void* InOwner, bool bSetOwner)
 {
 	for (FParticleEmitterInstance* Inst : EmitterInstances)
 	{
 		if (Inst && Inst->IsTrailEmitter())
 		{
-			OutTrailEmitters.Add((FParticleAnimTrailEmitterInstance*)(Inst));
+			FParticleAnimTrailEmitterInstance* TrailEmitter = (FParticleAnimTrailEmitterInstance*)Inst;
+			if (bSetOwner)
+			{
+				TrailEmitter->Owner = InOwner;
+				OutTrailEmitters.Add(TrailEmitter);
+			}
+			else if (TrailEmitter->Owner == InOwner)
+			{
+				OutTrailEmitters.Add(TrailEmitter);
+			}
 		}
 	}
 }
 
 void UParticleSystemComponent::BeginTrails(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
 {
+	ActivateSystem(true);
 	for (FParticleEmitterInstance* Inst : EmitterInstances)
 	{
 		if (Inst)
@@ -4795,6 +4805,7 @@ void UParticleSystemComponent::EndTrails()
 			Inst->EndTrail();
 		}
 	}
+	DeactivateSystem();
 }
 
 void UParticleSystemComponent::SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth)
@@ -4831,7 +4842,7 @@ bool UParticleSystemComponent::HasCompleted()
 		{
 			if (Instance->CurrentLODLevel->bEnabled)
 			{
-				if (Instance->CurrentLODLevel->RequiredModule->EmitterLoops > 0)
+				if (Instance->CurrentLODLevel->RequiredModule->EmitterLoops > 0 || Instance->IsTrailEmitter())
 				{
 					if (bWasDeactivated && bSuppressSpawning)
 					{

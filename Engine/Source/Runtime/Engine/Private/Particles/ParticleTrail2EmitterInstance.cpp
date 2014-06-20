@@ -2831,6 +2831,7 @@ FParticleAnimTrailEmitterInstance::FParticleAnimTrailEmitterInstance() :
 	, SecondSocketName(NAME_None)
 	, Width(1.0f)
 	, WidthMode( ETrailWidthMode_FromCentre )
+	, Owner(NULL)
 	, bTagTrailAsDead(false)
 	, bTrailEnabled(false)
 #if WITH_EDITORONLY_DATA
@@ -3876,6 +3877,11 @@ void FParticleAnimTrailEmitterInstance::DetermineVertexAndTriangleCount()
 		IndexCount = 0;
 		TriangleCount = 0;
 	}
+}
+
+bool FParticleAnimTrailEmitterInstance::HasCompleted()
+{
+	return !IsTrailActive() && ActiveParticles == 0;
 }
 
 /**

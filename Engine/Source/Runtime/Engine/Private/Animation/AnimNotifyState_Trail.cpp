@@ -56,13 +56,14 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 	for (USceneComponent* Comp : Children)
 	{
 		UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(Comp);
-		if (ParticleComp && ParticleComp->GetOuter() == this)
+		if (ParticleComp)
 		{
-			bFoundExistingTrail = true;
 			TArray< FParticleAnimTrailEmitterInstance* > TrailEmitters;
-			ParticleComp->GetTrailEmitters(TrailEmitters);
+			ParticleComp->GetOwnedTrailEmitters(TrailEmitters, this, false);
 
-			//If there are any trails, ensure the template hasn't been changed. Also destroy the component if there are erros.
+			bFoundExistingTrail = TrailEmitters.Num() > 0;
+
+			//If there are any trails, ensure the template hasn't been changed. Also destroy the component if there are errors.
 			if (TrailEmitters.Num() > 0 && (bError || PSTemplate != ParticleComp->Template))
 			{
 				//The PSTemplate was changed so we need to destroy this system and create it again with the new template. May be able to just change the template?
@@ -80,13 +81,18 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 #endif
 				}
 			}
+
+			if (bFoundExistingTrail)
+			{
+				break;//Found and re-used the existing trail so can exit now.
+			}
 		}
 	}
 
 	if (!bFoundExistingTrail && !bError)
 	{
 		//Spawn a new component from PSTemplate. This notify is made the outer so that the component can be identified later.
-		UParticleSystemComponent* NewParticleComp = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass(), this);
+		UParticleSystemComponent* NewParticleComp = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass(), MeshComp);
 		NewParticleComp->bAutoDestroy = true;
 		NewParticleComp->SecondsBeforeInactive = 0.0f;
 		NewParticleComp->bAutoActivate = false;
@@ -101,7 +107,7 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 		NewParticleComp->ActivateSystem(true);
 
 		TArray< FParticleAnimTrailEmitterInstance* > TrailEmitters;
-		NewParticleComp->GetTrailEmitters(TrailEmitters);
+		NewParticleComp->GetOwnedTrailEmitters(TrailEmitters, this, true);
 
 		for (FParticleAnimTrailEmitterInstance* Trail : TrailEmitters)
 		{
@@ -131,14 +137,13 @@ void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp,
 		Width = AnimInst->GetCurveValue(WidthScaleCurve);
 	}
 
-	bool bFoundExistingTrail = false;
 	for (USceneComponent* Comp : Children)
 	{
 		UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(Comp);
-		if ( ParticleComp && ParticleComp->GetOuter() == this )
+		if ( ParticleComp )
 		{
 			TArray< FParticleAnimTrailEmitterInstance* > TrailEmitters;
-			ParticleComp->GetTrailEmitters(TrailEmitters);
+			ParticleComp->GetOwnedTrailEmitters(TrailEmitters, this, false);
 			if (bError && TrailEmitters.Num() > 0)
 			{
 				Comp->DestroyComponent();
@@ -165,13 +170,17 @@ void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, 
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
 
-	bool bFoundExistingTrail = false;
 	for (USceneComponent* Comp : Children)
 	{
 		UParticleSystemComponent* ParticleComp = Cast<UParticleSystemComponent>(Comp);
-		if (ParticleComp && ParticleComp->GetOuter() == this)
+		if (ParticleComp)
 		{
-			ParticleComp->EndTrails();
+			TArray< FParticleAnimTrailEmitterInstance* > TrailEmitters;
+			ParticleComp->GetOwnedTrailEmitters(TrailEmitters, this, false);
+			for (FParticleAnimTrailEmitterInstance* Trail : TrailEmitters)
+			{
+				Trail->EndTrail();
+			}
 		}
 	}
 

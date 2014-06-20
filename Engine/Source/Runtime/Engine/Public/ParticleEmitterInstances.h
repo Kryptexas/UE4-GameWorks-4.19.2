@@ -1410,6 +1410,11 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	ETrailWidthMode WidthMode;
 
 	/**
+	*	The owner of this trail. Used only for assosiating trail with it's creator in some cases. E.g. AnimNotifyState_Trail. Do not use.
+	*/
+	const void* Owner;
+	
+	/**
 	*	When set, the current trail will be marked as dead in the next tick.
 	*/
 	bool bTagTrailAsDead;
@@ -1480,6 +1485,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/** Determine the number of vertices and triangles in each trail */
 	void DetermineVertexAndTriangleCount();
 
+	virtual bool HasCompleted() override;
 	/**
 	 *	Retrieves the dynamic data for the emitter
 	 */
