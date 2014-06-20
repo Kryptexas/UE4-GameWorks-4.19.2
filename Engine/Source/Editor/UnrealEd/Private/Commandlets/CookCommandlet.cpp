@@ -25,6 +25,13 @@
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
 
+UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	DefaultPVRTCQuality = 0;
+}
+
+
 /* Static functions
  *****************************************************************************/
 

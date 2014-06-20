@@ -229,8 +229,10 @@ static void UseOriginal(const FImage& InImage, FCompressedImage2D& OutCompressed
 
 static FString GetPVRTCQualityString()
 {
-	// start at default quality
-	uint32 CompressionModeValue = DEFAULT_QUALITY;
+	// start at default quality, then lookup in .ini file
+	int32 CompressionModeValue = DEFAULT_QUALITY;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
+
 	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
 	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
 
@@ -252,7 +254,9 @@ static FString GetPVRTCQualityString()
 static uint16 GetPVRTCQualityForVersion()
 {
 	// start at default quality
-	uint32 CompressionModeValue = DEFAULT_QUALITY;
+	int32 CompressionModeValue = DEFAULT_QUALITY;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
+
 	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
 	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
 

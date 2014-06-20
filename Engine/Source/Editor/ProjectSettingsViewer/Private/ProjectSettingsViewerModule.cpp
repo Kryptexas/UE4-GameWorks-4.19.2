@@ -3,6 +3,7 @@
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
+#include "Settings/CookerSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"
@@ -145,6 +146,13 @@ protected:
 			LOCTEXT("ProjectRenderingSettingsDescription", "Rendering settings."),
 			GetMutableDefault<URendererSettings>()
 		);
+
+		// Rendering settings
+		SettingsModule.RegisterSettings("Project", "Engine", "Cooker",
+			LOCTEXT("CookerSettingsName", "Cooker"),
+			LOCTEXT("CookerSettingsDescription", "Various cooker settings."),
+			GetMutableDefault<UCookerSettings>()
+			);
 	}
 
 	/**
