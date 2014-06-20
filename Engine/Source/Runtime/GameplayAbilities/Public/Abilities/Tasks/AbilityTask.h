@@ -12,5 +12,6 @@ class UAbilityTask : public UObject
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	virtual void Activate();
 	
+	/** GameplayAbility that created us */
 	TWeakObjectPtr<UGameplayAbility> Ability;
 };

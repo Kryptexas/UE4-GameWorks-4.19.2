@@ -3,6 +3,9 @@
 #pragma once
 #include "K2Node_LatentAbilityCall.generated.h"
 
+
+// TODO: Make this only available in GameplayAbility graphs!
+
 UCLASS()
 class UK2Node_LatentAbilityCall : public UK2Node_BaseAsyncTask
 {

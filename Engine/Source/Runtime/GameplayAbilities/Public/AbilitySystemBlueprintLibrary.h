@@ -37,13 +37,13 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	//		GameplayCue
 	// -------------------------------------------------------------------------------
 	
-	UFUNCTION(BlueprintCallable, Category="Ability|GameplayCue")
+	UFUNCTION(BlueprintPure, Category="Ability|GameplayCue")
 	static bool IsInstigatorLocallyControlled(FGameplayCueParameters Parameters);
 
-	UFUNCTION(BlueprintCallable, Category="Ability|GameplayCue")
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static FHitResult GetHitResult(FGameplayCueParameters Parameters);
 
-	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayCue")
+	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static bool HasHitResult(FGameplayCueParameters Parameters);
 
 	// -------------------------------------------------------------------------------

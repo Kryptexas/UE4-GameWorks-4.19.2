@@ -275,6 +275,16 @@ void UAbilitySystemComponent::SetUserAbilityActivationInhibited(bool NewInhibit)
 	}
 }
 
+void UAbilitySystemComponent::NotifyAbilityCommit(UGameplayAbility* Ability)
+{
+	AbilityCommitedCallbacks.Broadcast(Ability);
+}
+
+void UAbilitySystemComponent::NotifyAbilityActivated(UGameplayAbility* Ability)
+{
+	AbilityActivatedCallbacks.Broadcast(Ability);
+}
+
 // --------------------------------------------------------------------------
 
 void UAbilitySystemComponent::BindToInputComponent(UInputComponent *InputComponent)
@@ -396,15 +406,14 @@ bool UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Validate()
 void UAbilitySystemComponent::SetTargetAbility(UGameplayAbility* NewTargetingAbility)
 {
 	TargetingAbility = NewTargetingAbility;
-
-	//ReplicatedConfirmAbility = false;
-	//ReplicatedTargetData.Clear();
 }
 
 void UAbilitySystemComponent::ConsumeAbilityConfirmCancel()
 {
 	ReplicatedConfirmAbility = false;
 	ReplicatedCancelAbility = false;
+	ConfirmCallbacks.Clear();
+	CancelCallbacks.Clear();
 }
 
 void UAbilitySystemComponent::ConsumeAbilityTargetData()

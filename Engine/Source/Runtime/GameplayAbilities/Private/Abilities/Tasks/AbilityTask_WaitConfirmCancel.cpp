@@ -14,13 +14,13 @@ UAbilityTask_WaitConfirmCancel::UAbilityTask_WaitConfirmCancel(const class FPost
 
 void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 {
-	OnConfirm.Broadcast(true);
+	OnConfirm.Broadcast();
 	ASC->ConsumeAbilityConfirmCancel();
 }
 
 void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 {
-	OnCancel.Broadcast(false);
+	OnCancel.Broadcast();
 	ASC->ConsumeAbilityConfirmCancel();
 }
 

@@ -7,11 +7,9 @@
 class UGameplayEffect;
 class UAnimInstance;
 class UAbilitySystemComponent;
+class UGameplayAbility;
+class AGameplayAbilityTargetActor;
 
-/** 
- *
- *
- */
 
 UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
@@ -418,3 +416,9 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOp
 
 /** Generic callback for returning when target data is available */
 DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityTargetData, FGameplayAbilityTargetDataHandle);
+
+/** Used for cleaning up predicted data on network clients */
+DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
+
+/** Generic delegate for ability 'events'/notifies */
+DECLARE_MULTICAST_DELEGATE_OneParam(FGenericAbilityDelegate, UGameplayAbility*);

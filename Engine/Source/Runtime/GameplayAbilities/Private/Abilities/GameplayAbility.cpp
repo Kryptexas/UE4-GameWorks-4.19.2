@@ -116,6 +116,7 @@ bool UGameplayAbility::CanActivateAbility(const FGameplayAbilityActorInfo* Actor
 
 bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
+	// Last chance to fail (maybe we no longer have resources to commit since we after we started this ability activation)
 	if (!CommitCheck(ActorInfo, ActivationInfo))
 	{
 		return false;
@@ -125,6 +126,9 @@ bool UGameplayAbility::CommitAbility(const FGameplayAbilityActorInfo* ActorInfo,
 
 	// Fixme: Should we always call this or only if it is implemented? A noop may not hurt but could be bad for perf (storing a HasBlueprintCommit per instance isn't good either)
 	K2_CommitExecute();
+
+	// Broadcast this commitment
+	ActorInfo->AbilitySystemComponent->NotifyAbilityCommit(this);
 
 	return true;
 }
@@ -275,11 +279,15 @@ void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInf
 
 void UGameplayAbility::PreActivate(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	ActorInfo->AbilitySystemComponent->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
+	UAbilitySystemComponent* Comp = ActorInfo->AbilitySystemComponent.Get();
+
+	Comp->CancelAbilitiesWithTags(CancelAbilitiesWithTag, ActorInfo, ActivationInfo, this);
+
+	Comp->NotifyAbilityActivated(this);
 
 	// Become the 'Targeting Ability'
 	// These may need to be more robust - does every ability that activates become the targeting ability, or only certain ones?
-	ActorInfo->AbilitySystemComponent->SetTargetAbility(this);
+	Comp->SetTargetAbility(this);
 }
 
 void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)

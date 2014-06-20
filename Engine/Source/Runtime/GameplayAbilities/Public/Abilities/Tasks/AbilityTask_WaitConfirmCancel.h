@@ -5,7 +5,7 @@
 #include "GameplayAbility.h"
 #include "AbilityTask_WaitConfirmCancel.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitConfirmCancelDelegate, bool, Test);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitConfirmCancelDelegate);
 
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitConfirmCancel : public UAbilityTask

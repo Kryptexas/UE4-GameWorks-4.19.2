@@ -5,15 +5,13 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "AbilitySystemComponent.generated.h"
 
+
 GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(LogAbilitySystemComponent, Log, All);
 
-/** Used for cleaning up predicted data on network clients */
-DECLARE_MULTICAST_DELEGATE(FAbilitySystemComponentPredictionKeyClear);
 
 /** Used to register callbacks to confirm/cancel input */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
-class AGameplayAbilityTargetActor;
 
 USTRUCT()
 struct GAMEPLAYABILITIES_API FAttributeDefaults
@@ -350,6 +348,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	FAbilityConfirmOrCancel	ConfirmCallbacks;
 	FAbilityConfirmOrCancel	CancelCallbacks;
+
+	FGenericAbilityDelegate AbilityActivatedCallbacks;
+	FGenericAbilityDelegate AbilityCommitedCallbacks;
+
+	void NotifyAbilityCommit(UGameplayAbility* Ability);
+	void NotifyAbilityActivated(UGameplayAbility* Ability);
+
 
 	UPROPERTY()
 	TArray<AGameplayAbilityTargetActor*>	SpawnedTargetActors;

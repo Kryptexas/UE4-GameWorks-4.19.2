@@ -174,6 +174,10 @@ public:
 
 	void PostNetInit();
 
+	/** This ability has these tags */
+	UPROPERTY(EditDefaultsOnly, Category = Tags)
+	FGameplayTagContainer AbilityTags;
+
 protected:
 		
 	// --------------------------------------
@@ -349,10 +353,6 @@ protected:
 	/** Abilities with these tags are canelled when this ability is executed */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer CancelAbilitiesWithTag;
-
-	/** This ability has these tags */
-	UPROPERTY(EditDefaultsOnly, Category = Tags)
-	FGameplayTagContainer AbilityTags;
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//
