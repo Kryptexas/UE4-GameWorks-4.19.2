@@ -20,12 +20,16 @@ class ENGINE_API USplineComponent : public USceneComponent
 	FInterpCurveFloat SplineReparamTable;
 
 	/** Number of steps per spline segment to place in the reparameterization table */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Spline, meta=(ClampMin=4, UIMin=4))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Spline, meta=(ClampMin=4, UIMin=4, ClampMax=100, UIMax=100))
 	int32 ReparamStepsPerSegment;
 
 	/** Specifies the duration of the spline in seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spline)
 	float Duration;
+
+	/** Whether the endpoints of the spline are considered stationary when traversing the spline at non-constant velocity.  Essentially this sets the endpoints' tangents to zero vectors. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = Spline)
+	bool bStationaryEndpoints;
 
 	// Begin UActorComponent interface.
 	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
@@ -33,8 +37,8 @@ class ENGINE_API USplineComponent : public USceneComponent
 	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;
 	// End UActorComponent interface.
 
-	/** Update the SplineReparamTable */
-	void UpdateSplineReparamTable();
+	/** Update the spline tangents and SplineReparamTable */
+	void UpdateSpline();
 
 	/** Clears all the points in the spline */
 	UFUNCTION(BlueprintCallable, Category=Spline)

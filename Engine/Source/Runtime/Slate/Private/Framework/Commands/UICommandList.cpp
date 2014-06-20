@@ -204,6 +204,26 @@ bool FUICommandList::ProcessCommandBindings( const FPointerEvent& InMouseEvent )
 }
 
 
+/**
+ * Processes any UI commands which are activated by the specified key, modifier keys state and input event
+ *
+ * @param Key				The current key that is pressed
+ * @param ModifierKeysState	Pressed state of keys that are commonly used as modifiers
+ * @param bRepeat			True if the input is repeating (held)
+ *
+ * @return true if an action was processed
+ */
+bool FUICommandList::ProcessCommandBindings( const FKey Key, const FModifierKeysState& ModifierKeysState, const bool bRepeat ) const
+{
+	return ConditionalProcessCommandBindings(
+		Key,
+		ModifierKeysState.IsControlDown(),
+		ModifierKeysState.IsAltDown(),
+		ModifierKeysState.IsShiftDown(),
+		bRepeat );
+}
+
+
 /* FUICommandList implementation
  *****************************************************************************/
 

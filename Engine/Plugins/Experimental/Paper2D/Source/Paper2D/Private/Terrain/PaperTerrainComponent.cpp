@@ -91,7 +91,7 @@ void UPaperTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 			if (AssociatedSpline != nullptr)
 			{
 				AssociatedSpline->ReparamStepsPerSegment = ReparamStepsPerSegment;
-				AssociatedSpline->UpdateSplineReparamTable();
+				AssociatedSpline->UpdateSpline();
 			}
 		}
 	}
@@ -226,7 +226,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 		if (AssociatedSpline->ReparamStepsPerSegment != ReparamStepsPerSegment)
 		{
 			AssociatedSpline->ReparamStepsPerSegment = ReparamStepsPerSegment;
-			AssociatedSpline->UpdateSplineReparamTable();
+			AssociatedSpline->UpdateSpline();
 		}
 
 		FRandomStream RandomStream(RandomSeed);

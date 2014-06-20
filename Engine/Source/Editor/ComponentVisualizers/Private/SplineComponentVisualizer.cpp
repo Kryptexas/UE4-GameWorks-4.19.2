@@ -94,8 +94,8 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 		for (const auto& Point : SplineReparamTable.Points)
 		{
 			const float Value = Point.OutVal;
-			FVector KeyPos = SplineComp->ComponentToWorld.TransformPosition(SplineInfo.Eval(Value, FVector::ZeroVector));
-			PDI->DrawPoint(KeyPos, FColor(255, 0, 255), 5.f, SDPG_World);
+			const FVector KeyPos = SplineComp->ComponentToWorld.TransformPosition(SplineInfo.Eval(Value, FVector::ZeroVector));
+			PDI->DrawPoint(KeyPos, FColor(255, 0, 255), 10.f, SDPG_World);
 		}
 		*/
 
@@ -284,23 +284,17 @@ bool FSplineComponentVisualizer::HandleInputDelta(FEditorViewportClient* Viewpor
 
 bool FSplineComponentVisualizer::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	// TODO: find a way to make this work with ProcessCommandBindings(FKeyboardEvent&)
-
 	bool bHandled = false;
 
-	if(Key == EKeys::LeftMouseButton && Event == IE_Released)
+	if (Key == EKeys::LeftMouseButton && Event == IE_Released)
 	{
 		// Reset duplication flag on LMB release
 		bAllowDuplication = true;
 	}
-	else if(Key == EKeys::Delete && Event == IE_Pressed)
+
+	if (Event == IE_Pressed)
 	{
-		// Delete selected key
-		if (IsSelectionValid())
-		{
-			OnDeleteKey();
-			bHandled = true; // consume key input
-		}
+		bHandled = SplineComponentVisualizerActions->ProcessCommandBindings(Key, FSlateApplication::Get().GetModifierKeys(), false);
 	}
 
 	return bHandled;
@@ -391,9 +385,7 @@ void FSplineComponentVisualizer::NotifyComponentModified()
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
 
-	// Update tangents and reparam table
-	SplineComp->SplineInfo.AutoSetTangents();
-	SplineComp->UpdateSplineReparamTable();
+	SplineComp->UpdateSpline();
 
 	// Notify that the spline info has been modified
 	UProperty* SplineInfoProperty = FindField<UProperty>(USplineComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(USplineComponent, SplineInfo));

@@ -11,8 +11,9 @@
 
 USplineComponent::USplineComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, ReparamStepsPerSegment(4)
+	, ReparamStepsPerSegment(10)
 	, Duration(1.0f)
+	, bStationaryEndpoints(false)
 {
 	// Add 2 keys by default
 	int32 PointIndex = SplineInfo.AddPoint(0.f, FVector(0,0,0));
@@ -21,12 +22,14 @@ USplineComponent::USplineComponent(const class FPostConstructInitializePropertie
 	PointIndex = SplineInfo.AddPoint(1.f, FVector(100,0,0));
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
-	SplineInfo.AutoSetTangents();
-	UpdateSplineReparamTable();
+	UpdateSpline();
 }
 
-void USplineComponent::UpdateSplineReparamTable()
+void USplineComponent::UpdateSpline()
 {
+	// Automatically set the tangents on any CurveAuto keys
+	SplineInfo.AutoSetTangents(0.0f, bStationaryEndpoints);
+
 	// Start by clearing it
 	SplineReparamTable.Reset();
 	
@@ -37,43 +40,19 @@ void USplineComponent::UpdateSplineReparamTable()
 	}
 
 	const int32 NumSegments = SplineInfo.Points.Num() - 1;
-	const int32 NumSteps = FMath::Max<int32>(ReparamStepsPerSegment, 4) * NumSegments;
 
-	// Build array of segment lengths
-	TArray<float> SegmentLengths;
-	SegmentLengths.Reset(NumSegments);
-
-	float TotalLength = 0.0f;
+	float AccumulatedLength = 0.0f;
 	for (int32 SegmentIndex = 0; SegmentIndex < NumSegments; ++SegmentIndex)
 	{
-		float SegmentLength = GetSegmentLength(SegmentIndex);
-		SegmentLengths.Add(SegmentLength);
-		TotalLength += SegmentLength;
-	}
-
-	// Now step through the spine at a constant distance interval, adding points to the reparam table
-	int32 CurrentSegment = 0;
-	float AccumulatedLength = 0.0f;
-	const float LengthPerStep = TotalLength / (float)NumSteps;
-	for (int32 Step = 0; Step < NumSteps; ++Step)
-	{
-		const float TargetLength = Step * LengthPerStep;
-
-		while (TargetLength - AccumulatedLength > SegmentLengths[CurrentSegment])
+		for (int32 Step = 0; Step < ReparamStepsPerSegment; ++Step)
 		{
-			AccumulatedLength += SegmentLengths[CurrentSegment];
-			CurrentSegment++;
+			const float Param = static_cast<float>(Step) / ReparamStepsPerSegment;
+			const float SegmentLength = (Step == 0) ? 0.0f : GetSegmentLength(SegmentIndex, Param);
+			SplineReparamTable.AddPoint(SegmentLength + AccumulatedLength, SegmentIndex + Param);
 		}
-
-		const float Param = GetSegmentParamFromLength(CurrentSegment, TargetLength - AccumulatedLength, SegmentLengths[CurrentSegment]);
-		const int32 Index = SplineReparamTable.AddPoint(TargetLength, CurrentSegment + Param);
-		SplineReparamTable.Points[Index].InterpMode = CIM_CurveAuto;
+		AccumulatedLength += GetSegmentLength(SegmentIndex, 1.0f);
 	}
-
-	const int32 Index = SplineReparamTable.AddPoint(TotalLength, NumSegments);
-	SplineReparamTable.Points[Index].InterpMode = CIM_CurveAuto;
-
-	SplineReparamTable.AutoSetTangents();
+	SplineReparamTable.AddPoint(AccumulatedLength, static_cast<float>(NumSegments));
 }
 
 
@@ -191,8 +170,7 @@ void USplineComponent::AddSplineWorldPoint(const FVector& Position)
 	int32 PointIndex = SplineInfo.AddPoint(InputKey, ComponentToWorld.InverseTransformPosition(Position));
 	SplineInfo.Points[PointIndex].InterpMode = CIM_CurveAuto;
 
-	SplineInfo.AutoSetTangents();
-	UpdateSplineReparamTable();
+	UpdateSpline();
 }
 
 
@@ -207,8 +185,7 @@ void USplineComponent::SetSplineWorldPoints(const TArray<FVector>& Points)
 		InputKey += 1.0f;
 	}
 
-	SplineInfo.AutoSetTangents();
-	UpdateSplineReparamTable();
+	UpdateSpline();
 }
 
 void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVector& InLocation)
@@ -216,9 +193,7 @@ void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVe
 	if((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
 	{
 		SplineInfo.Points[PointIndex].OutVal = InLocation;
-
-		SplineInfo.AutoSetTangents();
-		UpdateSplineReparamTable();
+		UpdateSpline();
 	}
 }
 
@@ -362,6 +337,7 @@ void USplineComponent::RefreshSplineInputs()
 	}
 }
 
+
 /** Used to store spline data during RerunConstructionScripts */
 class FSplineInstanceData : public FComponentInstanceDataBase
 {
@@ -372,7 +348,6 @@ public:
 	{
 	}
 
-	/** Lightmaps from LODData */
 	FInterpCurveVector SplineInfo;
 };
 
@@ -390,7 +365,7 @@ TSharedPtr<FComponentInstanceDataBase> USplineComponent::GetComponentInstanceDat
 void USplineComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData)
 {
 	SplineInfo = StaticCastSharedPtr<FSplineInstanceData>(ComponentInstanceData)->SplineInfo;
-	UpdateSplineReparamTable();
+	UpdateSpline();
 }
 
 #if WITH_EDITORONLY_DATA
@@ -399,9 +374,10 @@ void USplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 	if (PropertyChangedEvent.Property != nullptr)
 	{
 		const FName PropertyName(PropertyChangedEvent.Property->GetFName());
-		if (PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, ReparamStepsPerSegment))
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, ReparamStepsPerSegment) ||
+			PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, bStationaryEndpoints))
 		{
-			UpdateSplineReparamTable();
+			UpdateSpline();
 		}
 	}
 

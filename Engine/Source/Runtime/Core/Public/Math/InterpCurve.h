@@ -90,7 +90,7 @@ public:
 	float InaccurateFindNearestOnSegment( const T &PointInSpace, int32 PtIdx, float& OutSquaredDistance ) const;
 
 	/** Automatically set the tangents on the curve based on surrounding points */
-	void AutoSetTangents(float Tension = 0.f);
+	void AutoSetTangents(float Tension = 0.f, bool bStationaryEndpoints = true);
 
 	/** Calculate the min/max out value that can be returned by this InterpCurve. */
 	void CalcBounds(T& OutMin, T& OutMax, const T& Default) const;
@@ -475,20 +475,22 @@ float FInterpCurve<T>::InaccurateFindNearestOnSegment( const T &PointInSpace, in
 
 
 template< class T > 
-void FInterpCurve<T>::AutoSetTangents(float Tension)
+void FInterpCurve<T>::AutoSetTangents(float Tension, bool bStationaryEndpoints)
 {
 	// Iterate over all points in this InterpCurve
 	for(int32 PointIndex=0; PointIndex<Points.Num(); PointIndex++)
 	{
-		T ArriveTangent = Points[PointIndex].ArriveTangent;
-		T LeaveTangent = Points[PointIndex].LeaveTangent;
+		auto& ThisPoint = Points[PointIndex];
 
-		if(PointIndex == 0)
+		T ArriveTangent = ThisPoint.ArriveTangent;
+		T LeaveTangent = ThisPoint.LeaveTangent;
+
+		if(PointIndex == 0 && bStationaryEndpoints)
 		{
 			if(PointIndex < Points.Num()-1) // Start point
 			{
 				// If first section is not a curve, or is a curve and first point has manual tangent setting.
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				if (ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped)
 				{
 					FMemory::Memset( &LeaveTangent, 0, sizeof(T) );
 				}
@@ -500,29 +502,32 @@ void FInterpCurve<T>::AutoSetTangents(float Tension)
 		}
 		else
 		{
-			if(PointIndex < Points.Num()-1) // Inner point
+			if(PointIndex < Points.Num()-1 || !bStationaryEndpoints) // Inner point
 			{
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				const auto& PrevPoint = Points[FMath::Max(0, PointIndex - 1)];
+				const auto& NextPoint = Points[FMath::Min(Points.Num() - 1, PointIndex + 1)];
+
+				if( ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped )
 				{
-					if( Points[PointIndex-1].IsCurveKey() && Points[PointIndex].IsCurveKey() )
+					if( PrevPoint.IsCurveKey() && ThisPoint.IsCurveKey() )
 					{
-						const bool bWantClamping = ( Points[ PointIndex ].InterpMode == CIM_CurveAutoClamped );
+						const bool bWantClamping = ( ThisPoint.InterpMode == CIM_CurveAutoClamped );
 
 						ComputeCurveTangent(
-							Points[ PointIndex - 1 ].InVal,		// Previous time
-							Points[ PointIndex - 1 ].OutVal,	// Previous point
-							Points[ PointIndex ].InVal,			// Current time
-							Points[ PointIndex ].OutVal,		// Current point
-							Points[ PointIndex + 1 ].InVal,		// Next time
-							Points[ PointIndex + 1 ].OutVal,	// Next point
-							Tension,							// Tension
-							bWantClamping,						// Want clamping?
-							ArriveTangent );					// Out
+							PrevPoint.InVal,	// Previous time
+							PrevPoint.OutVal,	// Previous point
+							ThisPoint.InVal,	// Current time
+							ThisPoint.OutVal,	// Current point
+							NextPoint.InVal,	// Next time
+							NextPoint.OutVal,	// Next point
+							Tension,			// Tension
+							bWantClamping,		// Want clamping?
+							ArriveTangent );	// Out
 
 						// In 'auto' mode, arrive and leave tangents are always the same
 						LeaveTangent = ArriveTangent;
 					}
-					else if( Points[PointIndex-1].InterpMode == CIM_Constant || Points[PointIndex].InterpMode == CIM_Constant )
+					else if( PrevPoint.InterpMode == CIM_Constant || ThisPoint.InterpMode == CIM_Constant )
 					{
 						FMemory::Memset( &ArriveTangent, 0, sizeof(T) );
 						FMemory::Memset( &LeaveTangent, 0, sizeof(T) );
@@ -532,15 +537,15 @@ void FInterpCurve<T>::AutoSetTangents(float Tension)
 			else // End point
 			{
 				// If last section is not a curve, or is a curve and final point has manual tangent setting.
-				if( Points[PointIndex].InterpMode == CIM_CurveAuto || Points[PointIndex].InterpMode == CIM_CurveAutoClamped )
+				if (ThisPoint.InterpMode == CIM_CurveAuto || ThisPoint.InterpMode == CIM_CurveAutoClamped)
 				{
 					FMemory::Memset( &ArriveTangent, 0, sizeof(T) );
 				}
 			}
 		}
 
-		Points[PointIndex].ArriveTangent = ArriveTangent;
-		Points[PointIndex].LeaveTangent = LeaveTangent;
+		ThisPoint.ArriveTangent = ArriveTangent;
+		ThisPoint.LeaveTangent = LeaveTangent;
 	}
 }
 
