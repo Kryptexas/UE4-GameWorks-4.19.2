@@ -19,7 +19,7 @@ class PAPER2D_API APaperTerrainActor : public AActor
 	UPROPERTY()
 	TSubobjectPtr<class UPaperTerrainSplineComponent> SplineComponent;
 
-	UPROPERTY(Category = Sprite, VisibleAnywhere)
+	UPROPERTY(Category=Sprite, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Sprite,Rendering,Physics,Components|Sprite"))
 	TSubobjectPtr<class UPaperTerrainComponent> RenderComponent;
 
 	// AActor interface
