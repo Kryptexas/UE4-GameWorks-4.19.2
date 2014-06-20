@@ -786,7 +786,7 @@ void APlayerController::UpdateRotation( float DeltaTime )
 
 	if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
 	{
-		if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
 		{
 			GEngine->HMDDevice->ApplyHmdRotation(this, ViewRotation);
 		}
