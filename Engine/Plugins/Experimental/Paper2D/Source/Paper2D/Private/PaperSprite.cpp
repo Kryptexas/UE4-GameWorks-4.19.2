@@ -260,6 +260,8 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
+
+	PixelsPerUnrealUnit = 2.56f;
 #endif
 
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
@@ -387,11 +389,12 @@ void UPaperSprite::BuildCustomCollisionData()
 	TArray<FVector2D> CollisionData;
 	Triangulate(CollisionGeometry, CollisionData);
 
-	// Adjust the collision data to be relative to the pivot
-	for (int32 PointIndex = 0; PointIndex < CollisionData.Num(); ++PointIndex)
+
+	// Adjust the collision data to be relative to the pivot and scaled from pixels to uu
+	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+	for (FVector2D& Point : CollisionData)
 	{
-		FVector2D& Point = CollisionData[PointIndex];
-		Point = ConvertTextureSpaceToPivotSpace(Point);
+		Point = ConvertTextureSpaceToPivotSpace(Point) * UnitsPerPixel;
 	}
 
 	//@TODO: Observe if the custom data is really a hand-edited bounding box, and generate box geom instead of convex geom!
@@ -463,6 +466,8 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 	CreatePolygonFromBoundingBox(CollisionGeometry, bUseTightBounds);
 
 	// Bake it to the runtime structure
+	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+
 	switch (SpriteCollisionDomain)
 	{
 	case ESpriteCollisionMode::Use3DPhysics:
@@ -472,17 +477,21 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			UBodySetup* BodySetup3D = BodySetup;
 			BodySetup3D->AggGeom.EmptyElements();
 
-			// Determine the box center in pivot space
-			const FVector2D& BoxSize2D = CollisionGeometry.Polygons[0].BoxSize;
+			// Determine the box size and center in pivot space
+			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
 			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2D * 0.5f);
+			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
+
+			// Convert from pixels to uu
+			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
 			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
 			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
-			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
+			Box.Center = (PaperAxisX * CenterInScaledSpace.X) + (PaperAxisY * CenterInScaledSpace.Y);
 
 			BodySetup3D->InvalidatePhysicsData();
 			BodySetup3D->CreatePhysicsMeshes();
@@ -494,17 +503,21 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			BodySetup2D->AggGeom2D.EmptyElements();
 
 			// Determine the box center in pivot space
-			const FVector2D& BoxSize2D = CollisionGeometry.Polygons[0].BoxSize;
+			const FVector2D& BoxSize2DInPixels = CollisionGeometry.Polygons[0].BoxSize;
 			const FVector2D& BoxPos = CollisionGeometry.Polygons[0].BoxPosition;
-			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2D * 0.5f);
+			const FVector2D CenterInTextureSpace = BoxPos + (BoxSize2DInPixels * 0.5f);
 			const FVector2D CenterInPivotSpace = ConvertTextureSpaceToPivotSpace(CenterInTextureSpace);
+
+			// Convert from pixels to uu
+			const FVector2D BoxSize2D = BoxSize2DInPixels * UnitsPerPixel;
+			const FVector2D CenterInScaledSpace = CenterInPivotSpace * UnitsPerPixel;
 
 			// Create a new box primitive
 			FBoxElement2D& Box = *new (BodySetup2D->AggGeom2D.BoxElements) FBoxElement2D();
 			Box.Width = FMath::Abs(BoxSize2D.X);
 			Box.Height = FMath::Abs(BoxSize2D.Y);
-			Box.Center.X = CenterInPivotSpace.X;
-			Box.Center.Y = CenterInPivotSpace.Y;
+			Box.Center.X = CenterInScaledSpace.X;
+			Box.Center.Y = CenterInScaledSpace.Y;
 
 			BodySetup2D->InvalidatePhysicsData();
 			BodySetup2D->CreatePhysicsMeshes();
@@ -551,6 +564,7 @@ void UPaperSprite::RebuildRenderData()
 
 	const FVector2D DeltaUV((BakedSourceTexture != nullptr) ? (BakedSourceUV - SourceUV) : FVector2D::ZeroVector);
 
+	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
 
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
@@ -559,7 +573,7 @@ void UPaperSprite::RebuildRenderData()
 		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(SourcePos);
 		const FVector2D UV(SourcePos + DeltaUV);
 
-		new (BakedRenderData) FVector4(PivotSpacePos.X, PivotSpacePos.Y, UV.X * InverseWidth, UV.Y * InverseHeight);
+		new (BakedRenderData) FVector4(PivotSpacePos.X * UnitsPerPixel, PivotSpacePos.Y * UnitsPerPixel, UV.X * InverseWidth, UV.Y * InverseHeight);
 	}
 	check((BakedRenderData.Num() % 3) == 0);
 }
@@ -883,6 +897,8 @@ void UPaperSprite::InitializeSprite(UTexture2D* Texture)
 	{
 		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D(1.0f, 1.0f));
 	}
+
+	PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 }
 
 void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
@@ -1072,9 +1088,11 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::MarkSpriteBodySetupToUseSimpleAsComplex)
+	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::AddPixelsPerUnrealUnit)
 	{
+		PixelsPerUnrealUnit = 1.0f;
 		RebuildCollisionData();
+		RebuildRenderData();
 	}
 #endif
 }

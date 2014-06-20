@@ -104,6 +104,10 @@ protected:
 	UPROPERTY(Category=Collision, EditAnywhere)
 	float CollisionThickness;
 
+	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
+	UPROPERTY(Category=Sprite, EditAnywhere)
+	float PixelsPerUnrealUnit;
+
 	// Custom render geometry polygons (in texture space)
 	UPROPERTY(Category=Rendering, EditAnywhere)
 	FSpritePolygonCollection RenderGeometry;
@@ -169,6 +173,7 @@ public:
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
+	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
 #endif
 
 	// Returns the texture this should be rendered with

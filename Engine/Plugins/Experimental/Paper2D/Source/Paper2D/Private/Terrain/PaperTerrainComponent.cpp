@@ -70,7 +70,7 @@ void FPaperTerrainSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfa
 UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, TerrainColor(FLinearColor::White)
-	, ReparamStepsPerSegment(4)
+	, ReparamStepsPerSegment(8)
 {
 	TestScaleFactor = 1.0f;
 }
@@ -569,6 +569,8 @@ void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, 
 {
 	//@TODO: Need to split geom tools out of UnrealEd to support this outside of the editor
 #if WITH_EDITOR
+	const FVector2D TextureSizeInUnits = TextureSize / NewSprite->GetPixelsPerUnrealUnit();
+
 	if (Poly.Vertices.Num() >= 3)
 	{
 		FClipSMPolygon Polygon(0);
@@ -594,7 +596,6 @@ void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, 
 				const float V = (-Y / (Size2D.Y));
 
 				return FVector4(X, Y, U, V);
-
 			}
 		};
 
@@ -603,9 +604,9 @@ void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, 
 		{
 			const FClipSMTriangle& Triangle = GeneratedTriangles[TriangleIndex];
 
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[0].Pos, TextureSize));
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[1].Pos, TextureSize));
-			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[2].Pos, TextureSize));
+			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[0].Pos, TextureSizeInUnits));
+			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[1].Pos, TextureSizeInUnits));
+			new (Batch.RenderVerts) FVector4(Local::GenerateVert(Triangle.Vertices[2].Pos, TextureSizeInUnits));
 		}
 	}
 #endif

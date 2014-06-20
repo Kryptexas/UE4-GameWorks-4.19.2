@@ -22,6 +22,9 @@ struct FPaperCustomVersion
 		// Marked sprite UBodySetup to use simple as complex, allowing 3D raycasts to succeed
 		MarkSpriteBodySetupToUseSimpleAsComplex = 4,
 
+		// Added PixelsPerUnrealUnit to move away from a 1:1 relationship between pixels and uu
+		AddPixelsPerUnrealUnit = 5,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
