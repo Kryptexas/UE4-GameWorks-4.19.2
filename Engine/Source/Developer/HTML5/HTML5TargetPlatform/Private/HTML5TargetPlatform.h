@@ -54,6 +54,8 @@ public:
 		return TTargetPlatformBase<FHTML5PlatformProperties>::SupportsFeature(Feature);
 	}
 
+	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override;
+
 #if WITH_ENGINE
 	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const override;
 

@@ -60,6 +60,15 @@ ITargetDevicePtr FHTML5TargetPlatform::GetDevice( const FTargetDeviceId& DeviceI
 	return NULL;
 }
 
+bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const
+{
+	bool bHTML5SDKInstalled = false; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+	TCHAR BaseSDKPath[256];
+	FPlatformMisc::GetEnvironmentVariable(TEXT("EMSCRIPTEN"), BaseSDKPath, ARRAY_COUNT(BaseSDKPath));
+	bHTML5SDKInstalled = FString(BaseSDKPath).Len() > 0;
+	return bHTML5SDKInstalled;
+}
+
 
 bool FHTML5TargetPlatform::IsRunningPlatform( ) const
 {
