@@ -1407,6 +1407,7 @@ void* FD3D11DynamicRHI::RHILockTexture2D(FTexture2DRHIParamRef TextureRHI,uint32
 {
 	check(TextureRHI);
 	DYNAMIC_CAST_D3D11RESOURCE(Texture2D,Texture);
+	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,0,LockMode,DestStride);
 }
 
@@ -1420,6 +1421,7 @@ void FD3D11DynamicRHI::RHIUnlockTexture2D(FTexture2DRHIParamRef TextureRHI,uint3
 void* FD3D11DynamicRHI::RHILockTexture2DArray(FTexture2DArrayRHIParamRef TextureRHI,uint32 TextureIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(Texture2DArray,Texture);
+	ConditionalClearShaderResource(Texture);
 	return Texture->Lock(MipIndex,TextureIndex,LockMode,DestStride);
 }
 
@@ -1477,6 +1479,7 @@ FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint
 void* FD3D11DynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)
 {
 	DYNAMIC_CAST_D3D11RESOURCE(TextureCube,TextureCube);
+	ConditionalClearShaderResource(TextureCube);
 	uint32 D3DFace = GetD3D11CubeFace((ECubeFace)FaceIndex);
 	return TextureCube->Lock(MipIndex,D3DFace + ArrayIndex * 6,LockMode,DestStride);
 }

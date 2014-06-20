@@ -65,6 +65,9 @@ void* FD3D11DynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRH
 {
 	DYNAMIC_CAST_D3D11RESOURCE(IndexBuffer,IndexBuffer);
 	
+	// If this resource is bound to the device, unbind it
+	ConditionalClearShaderResource(IndexBuffer);
+
 	// Determine whether the index buffer is dynamic or not.
 	D3D11_BUFFER_DESC Desc;
 	IndexBuffer->Resource->GetDesc(&Desc);

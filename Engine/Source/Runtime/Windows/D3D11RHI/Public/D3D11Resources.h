@@ -647,7 +647,7 @@ private:
 };
 
 /** Index buffer resource class that stores stride information. */
-class FD3D11IndexBuffer : public FRHIIndexBuffer
+class FD3D11IndexBuffer : public FRHIIndexBuffer, public FD3D11BaseShaderResource
 {
 public:
 
@@ -662,6 +662,20 @@ public:
 	virtual ~FD3D11IndexBuffer()
 	{
 		UpdateBufferStats(Resource, false);
+	}
+
+	// IRefCountedObject interface.
+	virtual uint32 AddRef() const
+	{
+		return FRefCountedObject::AddRef();
+	}
+	virtual uint32 Release() const
+	{
+		return FRefCountedObject::Release();
+	}
+	virtual uint32 GetRefCount() const
+	{
+		return FRefCountedObject::GetRefCount();
 	}
 };
 

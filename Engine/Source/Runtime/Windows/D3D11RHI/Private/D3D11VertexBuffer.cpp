@@ -90,6 +90,9 @@ void* FD3D11DynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuffe
 	check(Size > 0);
 
 	DYNAMIC_CAST_D3D11RESOURCE(VertexBuffer,VertexBuffer);
+	
+	// If this resource is bound to the device, unbind it
+	ConditionalClearShaderResource(VertexBuffer);
 
 	// Determine whether the vertex buffer is dynamic or not.
 	D3D11_BUFFER_DESC Desc;
