@@ -10,7 +10,7 @@
 class FMovieSceneMarginTrackInstance : public IMovieSceneTrackInstance
 {
 public:
-	FMovieSceneMarginTrackInstance( UMovieSceneMarginTrack& InMarginTrack );
+	FMovieSceneMarginTrackInstance( class UMovieSceneMarginTrack& InMarginTrack );
 
 	/** IMovieSceneTrackInstance interface */
 	virtual void Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) override;

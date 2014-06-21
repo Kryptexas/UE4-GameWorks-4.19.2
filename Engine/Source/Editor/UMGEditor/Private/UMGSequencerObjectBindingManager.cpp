@@ -2,6 +2,8 @@
 
 #include "UMGEditorPrivatePCH.h"
 #include "UMGSequencerObjectBindingManager.h"
+#include "WidgetBlueprintEditor.h"
+#include "ISequencer.h"
 
 FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlueprintEditor& InWidgetBlueprintEditor )
 	: WidgetBlueprintEditor( InWidgetBlueprintEditor )

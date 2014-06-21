@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 #include "MovieSceneMarginTrackInstance.h"
+#include "MovieSceneMarginTrack.h"
+#include "MovieSceneCommonHelpers.h"
 
 FMovieSceneMarginTrackInstance::FMovieSceneMarginTrackInstance( UMovieSceneMarginTrack& InMarginTrack )
 {

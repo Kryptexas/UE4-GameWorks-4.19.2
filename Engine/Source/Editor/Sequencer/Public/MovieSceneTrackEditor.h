@@ -4,6 +4,7 @@
 
 //@todo Sequencer - these have to be here for now because this class contains a small amount of implementation inside this header to avoid exporting this class
 #include "ISequencer.h"
+#include "MovieScene.h"
 
 class ISequencerSection;
 

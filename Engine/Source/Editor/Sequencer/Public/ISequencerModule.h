@@ -5,6 +5,9 @@
 #include "ModuleInterface.h"
 #include "ISequencer.h"
 
+#include "Toolkits/AssetEditorToolkit.h"
+#include "Toolkits/IToolkit.h"
+
 class ISequencerObjectBindingManager;
 
 /**
