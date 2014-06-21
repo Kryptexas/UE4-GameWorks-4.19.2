@@ -3,26 +3,50 @@
 
 #pragma once
 
+/** Represents a dynamic texture resource for rendering */
+struct FDynamicTextureResource
+{
+	static TSharedPtr<FDynamicTextureResource> NullResource;
+
+	FDynamicTextureResource(FSlateTexture2DRHIRef* ExistingTexture);
+	~FDynamicTextureResource();
+
+	// @todo Slate This is needed for the deprecated utexture loading path
+	UTexture2D* TextureObject;
+
+	FSlateShaderResourceProxy* Proxy;
+	FSlateTexture2DRHIRef* RHIRefTexture;
+};
+
+
+struct FDynamicResourceMap : public FGCObject
+{
+public:
+	TSharedPtr<FDynamicTextureResource> GetResource( FName ResourceName, UObject* ResourceObject ) const;
+
+	void AddResource( FName ResourceName, UObject* ResourceObject, TSharedRef<FDynamicTextureResource> InResource );
+
+	void RemoveResource( FName ResourceName, UObject* ResourceObject );
+
+	void Empty();
+
+	void ReleaseResources();
+
+	/** FGCObject interface */
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+private:
+	TMap<FName, TSharedPtr<FDynamicTextureResource> > DynamicNativeTextureMap;
+
+	TMap<UObject*, TSharedPtr<FDynamicTextureResource> > DynamicResourceObjectMap;
+};
+
 
 /**
  * Stores a mapping of texture names to their RHI texture resource               
  */
-class FSlateRHIResourceManager : public FSlateShaderResourceManager, public FGCObject
+class FSlateRHIResourceManager : public FSlateShaderResourceManager
 {
-public:
-	/** Represents a dynamic texture resource for rendering */
-	struct FDynamicTextureResource
-	{
-		class UTexture2D* TextureObject;
-		FSlateShaderResourceProxy* Proxy;
-		FSlateTexture2DRHIRef* RHIRefTexture;
-
-		static TSharedPtr<FDynamicTextureResource> NullResource;
-
-		FDynamicTextureResource( FSlateTexture2DRHIRef* ExistingTexture );
-		~FDynamicTextureResource();
-	};
-
 public:
 	FSlateRHIResourceManager();
 	virtual ~FSlateRHIResourceManager();
@@ -72,7 +96,7 @@ public:
 	 * @param Height				The height of the resource
 	 * @param Bytes					The payload containing the resource
 	 */
-	TSharedPtr<FSlateRHIResourceManager::FDynamicTextureResource> MakeDynamicTextureResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes );
+	TSharedPtr<FDynamicTextureResource> MakeDynamicTextureResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes );
 
 	/**
 	 * Returns true if a texture resource with the passed in resource name is available 
@@ -131,7 +155,7 @@ private:
 	/** 
 	 * Prepares a dynamic texture resource for use based on the provided inputs
 	 */
-	TSharedRef< FSlateRHIResourceManager::FDynamicTextureResource > InitializeDynamicTextureResource( const FSlateTextureDataPtr& TextureStorage, UTexture2D* TextureObject );
+	TSharedRef<FDynamicTextureResource> InitializeDynamicTextureResource( const FSlateTextureDataPtr& TextureStorage, UTexture2D* TextureObject );
 
 	/**
 	 * Generates rendering resources for a texture
@@ -148,14 +172,11 @@ private:
 	 */
 	FSlateShaderResourceProxy* GetDynamicTextureResource( const FSlateBrush& InBrush );
 
-	/** FGCObject */
-	void AddReferencedObjects( FReferenceCollector& Collector ) override;
-
 private:
-	/** Map of all active dynamic texture objects being used for brush resources */
-	TMap<FName, TSharedPtr<FDynamicTextureResource> > DynamicTextureMap;
+	/** Map of all active dynamic resources being used by brushes */
+	FDynamicResourceMap DynamicResourceMap;
 	/** Set of dynamic textures that are currently being accessed */
-	TSet< TSharedPtr<FDynamicTextureResource> > AccessedUTextures;
+	TSet< TWeakObjectPtr<UTexture2D> > AccessedUTextures;
 	/** List of old dynamic resources that are free to use as new resources */
 	TArray< TSharedPtr<FDynamicTextureResource> > DynamicTextureFreeList;
 	/** Static Texture atlases which have been created */
