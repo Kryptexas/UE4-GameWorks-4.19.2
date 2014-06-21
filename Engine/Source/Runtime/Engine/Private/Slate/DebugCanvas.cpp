@@ -50,7 +50,7 @@ FProxyCounter FCanvasProxy::Counter;
  * Simple representation of the backbuffer that the debug canvas renders to
  * This class may only be accessed from the render thread
  */
-class FSlateBackBufferTarget : public FRenderTarget
+class FSlateCanvasRenderTarget : public FRenderTarget
 {
 public:
 	/** FRenderTarget interface */
@@ -89,7 +89,7 @@ private:
 FDebugCanvasDrawer::FDebugCanvasDrawer()
 	: GameThreadCanvas( NULL )
 	, RenderThreadCanvas( NULL )
-	, RenderTarget( new FSlateBackBufferTarget )
+	, RenderTarget( new FSlateCanvasRenderTarget )
 {}
 
 FDebugCanvasDrawer::~FDebugCanvasDrawer()

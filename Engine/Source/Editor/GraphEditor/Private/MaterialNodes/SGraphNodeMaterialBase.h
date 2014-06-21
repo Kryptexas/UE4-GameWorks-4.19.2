@@ -48,7 +48,7 @@ private:
 
 private:
 	/** Render target that the canvas renders to */
-	class FSlateBackBufferTarget* RenderTarget;
+	class FSlateMaterialPreviewRenderTarget* RenderTarget;
 	/** Render proxy for the expression preview */
 	FMaterialRenderProxy* ExpressionPreview;
 	/** Whether preview is using realtime values */

@@ -10,7 +10,7 @@
 * Simple representation of the backbuffer that the preview canvas renders to
 * This class may only be accessed from the render thread
 */
-class FSlateBackBufferTarget : public FRenderTarget
+class FSlateMaterialPreviewRenderTarget : public FRenderTarget
 {
 public:
 	/** FRenderTarget interface */
@@ -119,7 +119,7 @@ FIntPoint FPreviewViewport::GetSize() const
 
 FPreviewElement::FPreviewElement()
 	: ExpressionPreview(NULL)
-	, RenderTarget(new FSlateBackBufferTarget)
+	, RenderTarget(new FSlateMaterialPreviewRenderTarget)
 	, bIsRealtime(false)
 {
 }
