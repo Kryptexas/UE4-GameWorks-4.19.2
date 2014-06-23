@@ -94,19 +94,3 @@ enum EForceInit
 	ForceInitToZero
 };
 enum ENoInit {NoInit};
-
-/**
- *	Whether to use experimental code to tick skeletal in parallel.
- *	Also forces shared pointers to be thread-safe.
- */
-#ifndef EXPERIMENTAL_PARALLEL_CODE
-	#define EXPERIMENTAL_PARALLEL_CODE 0
-#endif
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	#define	FORCE_THREADSAFE_SHAREDPTRS 1
-#else
-	#define	FORCE_THREADSAFE_SHAREDPTRS 0
-#endif
-
-

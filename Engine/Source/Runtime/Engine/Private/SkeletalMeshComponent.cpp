@@ -20,10 +20,6 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
-
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 0, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
 USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitializeProperties& PCIP)
@@ -68,11 +64,6 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	bDefaultPlaying_DEPRECATED = true;
 	bEnablePhysicsOnDedicatedServer = false;
 	bEnableUpdateRateOptimizations = false;
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
-	PrimaryComponentTick.bRunOnAnyThread = true;	
-#endif
 
 	bTickInEditor = true;
 
@@ -223,12 +214,6 @@ void USkeletalMeshComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	InitAnim(false);
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
-	PrimaryComponentTick.bRunOnAnyThread = true;	
-#endif
-
 }
 
 #if CHART_DISTANCE_FACTORS
@@ -493,13 +478,6 @@ void USkeletalMeshComponent::TickPose(float DeltaTime)
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-#if EXPERIMENTAL_PARALLEL_CODE
-	if (ThisTickFunction->TickGroup != TG_ParallelAnimWork)
-	{			
-		UE_LOG(LogAnimation, Warning, TEXT("USkeletalMeshComponent %s is not in TickGroup TG_ParallelAnimWork! Group=%d, GoWide=%d"), *(GetOwner()->GetName()), (int32)ThisTickFunction->TickGroup, ThisTickFunction->bRunOnAnyThread);
-	}
-#endif
-
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Update bOldForceRefPose
@@ -973,35 +951,27 @@ void USkeletalMeshComponent::PostAnimEvaluation(bool bDoInterpolation, bool bDup
 		FAnimationRuntime::LerpBoneTransforms(SpaceBases, CachedSpaceBases, Alpha, RequiredBones);
 	}
 
-	{
-		FScopeLockPhysXWriter LockPhysXForWriting;
+	// Transforms updated, cached local bounds are now out of date.
+	InvalidateCachedBounds();
 
-		// Transforms updated, cached local bounds are now out of date.
-		InvalidateCachedBounds();
-
-		// update physics data from animated data
-		UpdateKinematicBonesToPhysics(false, true);
-		UpdateRBJointMotors();
-	}
+	// update physics data from animated data
+	UpdateKinematicBonesToPhysics(false, true);
+	UpdateRBJointMotors();
 
 	// @todo anim : hack TTP 224385	ANIM: Skeletalmesh double buffer
 	// this is problem because intermediate buffer changes physics position as well
 	// this causes issue where a half of frame, physics position is fixed with anim pose, and the other half is real simulated position
 	// if you enable physics in tick, since that's before physics update, you'll get animation pose dominating physics pose, which isn't what you want. (Or what you'll see)
 	// so do not update transform if physics is on. This problem will be solved by double buffer, when we keep one buffer for intermediate, and the other buffer for result query
+	if( !IsSimulatingPhysics() )
 	{
-		FScopeLockPhysXReader LockPhysXForReading;
+		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
 
-		if( !IsSimulatingPhysics() )
-		{
-			SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+		// New bone positions need to be sent to render thread
+		UpdateComponentToWorld();
 
-			// New bone positions need to be sent to render thread
-			UpdateComponentToWorld();
-
-			// animation often change overlap. 
-			UpdateOverlaps();
-		}
+		// animation often change overlap. 
+		UpdateOverlaps();
 	}
 
 	MarkRenderDynamicDataDirty();

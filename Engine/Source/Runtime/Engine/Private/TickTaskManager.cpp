@@ -7,10 +7,6 @@
 #include "EnginePrivate.h"
 #include "TickTaskManagerInterface.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
-
 DEFINE_LOG_CATEGORY_STATIC(LogTick, Log, All);
 
 DECLARE_CYCLE_STAT(TEXT("Queue Ticks"),STAT_QueueTicks,STATGROUP_Game);
@@ -25,7 +21,7 @@ static TAutoConsoleVariable<int32> CVarLogTicks(
 
 static TAutoConsoleVariable<int32> CVarAllowAsyncComponentTicks(
 	TEXT("AllowAsyncComponentTicks"),
-	EXPERIMENTAL_PARALLEL_CODE ? 1  : 0,
+	0,
 	TEXT("Used to control async component ticks."));
 
 struct FTickContext

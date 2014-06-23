@@ -6,9 +6,8 @@
 
 #pragma once
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE
-	#error EXPERIMENTAL_PARALLEL_CODE not defined!
-#endif
+/** Default behavior. */
+#define	FORCE_THREADSAFE_SHAREDPTRS 0
 
 /**
  * ESPMode is used select between either 'fast' or 'thread safe' shared pointer types.  This is
@@ -23,7 +22,7 @@ namespace ESPMode
 
 		/**
 		 *	Fast, doesn't ever use atomic interlocks.
-		 *	Experimental parallel code requires that all shared pointers are thread-safe.
+		 *	Some code requires that all shared pointers are thread-safe.
 		 *	It's better to change it here, instead of replacing ESPMode::Fast to ESPMode::ThreadSafe throughout the code.
 		 */
 		Fast = FORCE_THREADSAFE_SHAREDPTRS ? 1 : 0,

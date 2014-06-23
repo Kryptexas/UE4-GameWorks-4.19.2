@@ -7,10 +7,6 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE  
-	#error EXPERIMENTAL_PARALLEL_CODE must be defined as either zero or one
-#endif
-
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
 DEFINE_LOG_CATEGORY(LogActorComponent);
@@ -969,18 +965,6 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 
 bool UActorComponent::RequiresGameThreadEndOfFrameUpdates() const
 {
-#if	EXPERIMENTAL_PARALLEL_CODE
-	AActor* Owner = GetOwner();
-	if (Owner != NULL)
-	{
-		if(Owner->GetRootComponent() == this)
-		{
-			// Root components end up touching all other components on the same actor when they update their render transforms.  This needs to be done on the game thread.
-			return true;
-		}
-	}
-#endif // EXPERIMENTAL_PARALLEL_CODE
-
 	return false;
 }
 

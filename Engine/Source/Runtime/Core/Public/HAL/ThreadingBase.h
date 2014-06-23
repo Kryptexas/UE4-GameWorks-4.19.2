@@ -6,10 +6,6 @@
 
 #pragma once
 
-#ifndef EXPERIMENTAL_PARALLEL_CODE
-	#error EXPERIMENTAL_PARALLEL_CODE not defined!
-#endif
-
 /**
  * The list of enumerated thread priorities we support
  */

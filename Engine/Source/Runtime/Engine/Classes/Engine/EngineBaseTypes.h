@@ -45,17 +45,7 @@ enum ETickingGroup
 	TG_PrePhysics,
 	/**
 	 * Temp while we transition away from tick groups, this will only have one task, the one that starts physics
-	 */
-#if EXPERIMENTAL_PARALLEL_CODE
-	/**
-	 * Add a specific group for parallel animation work
-	 */
-	TG_ParallelAnimWork,
-	/**
-	 * Add a specific group for parallel post animation work
-	 */
-	TG_ParallelPostAnimWork,
-#endif								
+	 */							
 	TG_StartPhysics,
 	/**
 	 * Any item that can be run in parallel of our async work

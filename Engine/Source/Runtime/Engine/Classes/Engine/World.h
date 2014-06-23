@@ -53,34 +53,26 @@ public:
 	inline UWorld* operator->()
 	{
 		// GWorld is changed often on the game thread when in PIE, accessing on any other thread is going to be a race condition
-		// In general, the rendering thread should not dereference UObjects, unless there is a mechanism in place to make it safe
-#if !EXPERIMENTAL_PARALLEL_CODE		
-		checkSlow(IsInGameThread());
-#endif								
+		// In general, the rendering thread should not dereference UObjects, unless there is a mechanism in place to make it safe	
+		checkSlow(IsInGameThread());							
 		return World;
 	}
 
 	inline const UWorld* operator->() const
 	{
-#if !EXPERIMENTAL_PARALLEL_CODE
 		checkSlow(IsInGameThread());
-#endif
 		return World;
 	}
 
 	inline UWorld& operator*()
 	{
-#if !EXPERIMENTAL_PARALLEL_CODE
 		checkSlow(IsInGameThread());
-#endif
 		return *World;
 	}
 
 	inline const UWorld& operator*() const
 	{
-#if !EXPERIMENTAL_PARALLEL_CODE
 		checkSlow(IsInGameThread());
-#endif
 		return *World;
 	}
 
@@ -103,17 +95,13 @@ public:
 
 	inline operator UWorld*() const
 	{
-#if !EXPERIMENTAL_PARALLEL_CODE
 		checkSlow(IsInGameThread());
-#endif
 		return World;
 	}
 
 	inline UWorld* GetReference() 
 	{
-#if !EXPERIMENTAL_PARALLEL_CODE
 		checkSlow(IsInGameThread());
-#endif
 		return World;
 	}
 
@@ -655,11 +643,6 @@ private:
 
 	/** Set of components that need recreates at the end of the frame */
 	TSet<TWeakObjectPtr<class UActorComponent> > ComponentsThatNeedEndOfFrameUpdate_OnGameThread;
-
-#if EXPERIMENTAL_PARALLEL_CODE
-	/** Sync object for ComponentsThatNeedEndOfFrameUpdate */
-	FCriticalSection	ComponentsThatNeedEndOfFrameUpdateSynchronizationObject;
-#endif
 
 	/** The state of async tracing - abstracted into its own object for easier reference */
 	FWorldAsyncTraceState AsyncTraceState;
