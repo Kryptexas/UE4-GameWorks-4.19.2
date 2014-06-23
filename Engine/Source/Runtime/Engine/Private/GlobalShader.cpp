@@ -499,7 +499,8 @@ void RecompileShadersForRemote(
 	const TArray<FString>& MaterialsToLoad, 
 	const TArray<uint8>& SerializedShaderResources, 
 	TArray<uint8>* MeshMaterialMaps, 
-	TArray<FString>* ModifiedFiles )
+	TArray<FString>* ModifiedFiles,
+	bool bCompileChangedShaders )
 {
 	// figure out what shader platforms to recompile
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
@@ -532,9 +533,11 @@ void RecompileShadersForRemote(
 	// Pick up new changes to shader files
 	FlushShaderFileCache();
 
-	FShaderType::GetOutdatedTypes(OutdatedShaderTypes, OutdatedFactoryTypes);
-	
-	UE_LOG(LogShaders, Display, TEXT("We found %d out of date shader types, and %d out of date VF types!"), OutdatedShaderTypes.Num(), OutdatedFactoryTypes.Num());
+	if( bCompileChangedShaders )
+	{
+		FShaderType::GetOutdatedTypes( OutdatedShaderTypes, OutdatedFactoryTypes );
+		UE_LOG( LogShaders, Display, TEXT( "We found %d out of date shader types, and %d out of date VF types!" ), OutdatedShaderTypes.Num(), OutdatedFactoryTypes.Num() );
+	}
 
 	{
 		for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
@@ -545,14 +548,17 @@ void RecompileShadersForRemote(
 			// Only compile for the desired platform if requested
 			if (ShaderPlatform == ShaderPlatformToCompile || ShaderPlatformToCompile == SP_NumPlatforms)
 			{
-				// Kick off global shader recompiles
-				BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
+				if( bCompileChangedShaders )
+				{
+					// Kick off global shader recompiles
+					BeginRecompileGlobalShaders( OutdatedShaderTypes, ShaderPlatform );
 
-				// Block on global shaders
-				FinishRecompileGlobalShaders();
+					// Block on global shaders
+					FinishRecompileGlobalShaders();
+				}
 
 				// we only want to actually compile mesh shaders if a client directly requested it, and there's actually some work to do
-				if (MeshMaterialMaps != NULL && (OutdatedShaderTypes.Num() || OutdatedFactoryTypes.Num()))
+				if (MeshMaterialMaps != NULL && (OutdatedShaderTypes.Num() || OutdatedFactoryTypes.Num() || bCompileChangedShaders == false))
 				{
 					TMap<FString, TArray<TRefCountPtr<FMaterialShaderMap> > > CompiledShaderMaps;
 					UMaterial::CompileMaterialsForRemoteRecompile(MaterialsToCompile, ShaderPlatform, CompiledShaderMaps);

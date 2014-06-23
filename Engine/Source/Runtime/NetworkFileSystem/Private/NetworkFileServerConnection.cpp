@@ -858,6 +858,7 @@ void FNetworkFileServerClientConnection::ProcessRecompileShaders( FArchive& In, 
 	In << RecompileData.MaterialsToLoad;
 	In << RecompileData.ShaderPlatform;
 	In << RecompileData.SerializedShaderResources;
+	In << RecompileData.bCompileChangedShaders;
 
 	RecompileShadersDelegate.ExecuteIfBound(RecompileData);
 

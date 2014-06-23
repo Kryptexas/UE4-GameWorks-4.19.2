@@ -20,9 +20,11 @@ struct FShaderRecompileData
 	TArray<uint8>* MeshMaterialMaps;
 	TArray<FString> MaterialsToLoad;
 	TArray<uint8> SerializedShaderResources;
+	bool bCompileChangedShaders;
 
 	FShaderRecompileData() :
-		ShaderPlatform(-1)
+		ShaderPlatform(-1),
+		bCompileChangedShaders(true)
 	{}
 
 	FShaderRecompileData& operator=(const FShaderRecompileData& Other)
@@ -33,6 +35,7 @@ struct FShaderRecompileData
 		MeshMaterialMaps = Other.MeshMaterialMaps;
 		MaterialsToLoad = Other.MaterialsToLoad;
 		SerializedShaderResources = Other.SerializedShaderResources;
+		bCompileChangedShaders = Other.bCompileChangedShaders;
 
 		return *this;
 	}

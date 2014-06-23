@@ -2074,26 +2074,60 @@ protected:
 
 class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageHandler
 {
+public:
+	FRecompileShaderMessageHandler( const TCHAR* InCmd ) :
+		Cmd( InCmd )
+	{
+	}
+
 	/** Subclass fills out an archive to send to the server */
 	virtual void FillPayload(FArchive& Payload) override
 	{
-		// tell other side all the materials to load, by pathname
-		for (TObjectIterator<UMaterialInterface> It; It; ++It)
+		bool bCompileChangedShaders = true;
+
+		const TCHAR* CmdString = *Cmd;
+		FString CmdName = FParse::Token(CmdString, 0);
+
+		if( !CmdName.IsEmpty() && FCString::Stricmp(*CmdName,TEXT("Material"))==0 )
 		{
-			MaterialsToLoad.Add(It->GetPathName());
+			bCompileChangedShaders = false;
+
+			// tell other side the material to load, by pathname
+			FString RequestedMaterialName( FParse::Token( CmdString, 0 ) );
+
+			for( TObjectIterator<UMaterialInterface> It; It; ++It )
+			{
+				UMaterial* Material = It->GetMaterial();
+
+				if( Material && Material->GetName() == RequestedMaterialName)
+				{
+					MaterialsToLoad.Add( It->GetPathName() );
+					break;
+				}
+			}
 		}
+		else
+		{
+			// tell other side all the materials to load, by pathname
+			for( TObjectIterator<UMaterialInterface> It; It; ++It )
+			{
+				MaterialsToLoad.Add( It->GetPathName() );
+			}
+		}
+
 		Payload << MaterialsToLoad;
-		uint32 ShaderPlatform = (uint32)GRHIShaderPlatform;
+		uint32 ShaderPlatform = ( uint32 )GRHIShaderPlatform;
 		Payload << ShaderPlatform;
 		// tell the other side the Ids we have so it doesn't send back duplicates
 		// (need to serialize this into a TArray since FShaderResourceId isn't known in the file server)
 		TArray<FShaderResourceId> AllIds;
-		FShaderResource::GetAllShaderResourceId(AllIds);
+		FShaderResource::GetAllShaderResourceId( AllIds );
 
 		TArray<uint8> SerializedBytes;
-		FMemoryWriter Ar(SerializedBytes);
+		FMemoryWriter Ar( SerializedBytes );
 		Ar << AllIds;
 		Payload << SerializedBytes;
+		Payload << bCompileChangedShaders;
 	}
 
 	/** Subclass pulls data response from the server */
@@ -2137,8 +2171,12 @@ class FRecompileShaderMessageHandler : public IPlatformFile::IFileServerMessageH
 		}
 	}
 
+private:
 	/** The materials we send over the network and expect maps for on the return */
 	TArray<FString> MaterialsToLoad;
+
+	/** The recompileshader console command to parse */
+	FString Cmd;
 };
 
 bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
@@ -2146,7 +2184,7 @@ bool RecompileShaders(const TCHAR* Cmd, FOutputDevice& Ar)
 	// if this platform can't compile shaders, then we try to send a message to a file/cooker server
 	if (FPlatformProperties::RequiresCookedData())
 	{
-		FRecompileShaderMessageHandler Handler;
+		FRecompileShaderMessageHandler Handler( Cmd );
 
 		// send the info, the handler will process the response (and update shaders, etc)
 		IFileManager::Get().SendMessageToServer(TEXT("RecompileShaders"), &Handler);

@@ -989,5 +989,6 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 		RecompileData.MaterialsToLoad, 
 		RecompileData.SerializedShaderResources, 
 		RecompileData.MeshMaterialMaps, 
-		RecompileData.ModifiedFiles);
+		RecompileData.ModifiedFiles,
+		RecompileData.bCompileChangedShaders);
 }
