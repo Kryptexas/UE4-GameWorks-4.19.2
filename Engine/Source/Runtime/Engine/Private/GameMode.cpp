@@ -987,7 +987,7 @@ APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, c
 	InitNewPlayer(NewPlayerController, UniqueId, Options);
 
 	// Find a start spot.
-	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
+	AActor* const StartSpot = FindPlayerStart( NewPlayerController, Portal );
 	if( StartSpot == NULL )
 	{
 		ErrorMessage = FString::Printf(TEXT("Failed to find PlayerStart"));
