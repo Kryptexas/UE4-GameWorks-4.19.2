@@ -52,19 +52,6 @@ FText UAnimGraphNode_BlendListByEnum::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	}
 }
 
-FString UAnimGraphNode_BlendListByEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (BoundEnum != NULL)
-	{
-		return FString::Printf(TEXT("Blend Poses (%s)"), *BoundEnum->GetName());
-	}
-	else
-	{
-		return FString::Printf(TEXT("ERROR: Blend Poses (by missing enum)"));
-	}
-}
-
 void UAnimGraphNode_BlendListByEnum::PostPlacedNewNode()
 {
 	// Make sure we start out with a pin
@@ -88,7 +75,6 @@ void UAnimGraphNode_BlendListByEnum::GetMenuEntries(FGraphContextMenuBuilder& Co
 
 			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EnumTemplate->GetNodeCategory(), EnumTemplate->GetNodeTitle(ENodeTitleType::ListView), EnumTemplate->GetTooltip(), 0, EnumTemplate->GetKeywords());
 			Action->NodeTemplate = EnumTemplate;
-			Action->SearchTitle = EnumTemplate->GetNodeSearchTitle();
 		}
 	}
 }

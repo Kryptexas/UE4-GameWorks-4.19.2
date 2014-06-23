@@ -122,24 +122,6 @@ FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_CustomEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return CustomFunctionName.ToString();
-	}
-	else if(TitleType == ENodeTitleType::ListView)
-	{
-		return TEXT("Custom Event");
-	}
-	else
-	{
-		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
-		return FString::Printf(TEXT("%s\nCustom Event"), *CustomFunctionName.ToString()) + RPCString;
-	}
-}
-
 UEdGraphPin* UK2Node_CustomEvent::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
 {
 	UEdGraphPin* NewPin = CreatePin(

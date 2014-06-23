@@ -56,13 +56,6 @@ FText UK2Node_StructMemberSet::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(LOCTEXT("SetMembersInVariable", "Set members in {VariableName}"), Args);
 }
 
-FString UK2Node_StructMemberSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	return FString::Printf(TEXT("Set members in %s"), *VariableReference.GetMemberName().ToString());
-}
-
 UK2Node::ERedirectType UK2Node_StructMemberSet::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	return UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);

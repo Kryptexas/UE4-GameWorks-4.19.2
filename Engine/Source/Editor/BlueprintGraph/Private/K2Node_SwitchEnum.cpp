@@ -56,15 +56,6 @@ FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(NSLOCTEXT("K2Node", "Switch_Enum", "Switch on {EnumName}"), Args);
 }
 
-FString UK2Node_SwitchEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const 
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
-
-	return FString::Printf(TEXT("Switch on %s"), *EnumName);
-}
-
 FString UK2Node_SwitchEnum::GetTooltip() const
 {
 	return NSLOCTEXT("K2Node", "SwitchEnum_ToolTip", "Selects an output that matches the input value").ToString();

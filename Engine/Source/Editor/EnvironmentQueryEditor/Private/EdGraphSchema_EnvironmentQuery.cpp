@@ -229,7 +229,6 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphContextActions(FGraphContextMenuBu
 		UEnvironmentQueryGraphNode_Option* OpNode = NewObject<UEnvironmentQueryGraphNode_Option>(ContextMenuBuilder.OwnerOfTemporaries);
 		OpNode->EnvQueryNodeClass = AllowedClasses[i];
 		AddOpAction->NodeTemplate = OpNode;		
-		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 
@@ -249,7 +248,6 @@ void UEdGraphSchema_EnvironmentQuery::GetGraphNodeContextActions(FGraphContextMe
 		TSharedPtr<FEnvironmentQuerySchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), FText::FromString(GetNodeDescriptionHelper(AllowedClasses[i])), "");
 		AddOpAction->ParentNode = SelectedOption;
 		AddOpAction->NodeTemplate = OpNode;
-		AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 	}
 }
 

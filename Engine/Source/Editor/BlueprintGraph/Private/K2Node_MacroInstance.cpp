@@ -134,20 +134,6 @@ FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return Result;
 }
 
-FString UK2Node_MacroInstance::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	FString Result = TEXT("Macro instance");
-	if (MacroGraph)
-	{
-		Result = MacroGraph->GetName();
-	}
-
-	return Result;
-}
-
 FLinearColor UK2Node_MacroInstance::GetNodeTitleColor() const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();

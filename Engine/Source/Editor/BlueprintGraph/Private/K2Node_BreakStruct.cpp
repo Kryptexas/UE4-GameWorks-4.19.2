@@ -180,12 +180,6 @@ FText UK2Node_BreakStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(LOCTEXT("BreakNodeTitle", "Break {StructName}"), Args);
 }
 
-FString UK2Node_BreakStruct::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString(TEXT("Break ")) + (StructType ? StructType->GetName() : FString());
-}
-
 FString UK2Node_BreakStruct::GetTooltip() const
 {
 	return FString::Printf(

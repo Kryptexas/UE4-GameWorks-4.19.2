@@ -30,10 +30,4 @@ FText UAnimGraphNode_HandIKRetargeting::GetNodeTitle(ENodeTitleType::Type TitleT
 	return FText::Format(LOCTEXT("AnimGraphNode_CopyBone_Title", "{ControllerDescription}"), Args);
 }
 
-FString UAnimGraphNode_HandIKRetargeting::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("%s"), *GetControllerDescription().ToString());
-}
-
 #undef LOCTEXT_NAMESPACE

@@ -2278,7 +2278,6 @@ void UK2Node_MathExpression::GetMenuEntries(FGraphContextMenuBuilder& ContextMen
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
-	NodeAction->SearchTitle  = TemplateNode->GetNodeSearchTitle();
 }
 
 //------------------------------------------------------------------------------
@@ -2422,24 +2421,6 @@ FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		Result = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), FText::FromString(Result)).ToString();
 	}
 	return FText::FromString(Result);
-}
-
-//------------------------------------------------------------------------------
-FString UK2Node_MathExpression::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	FString Result = Expression;
-	if (Expression.IsEmpty())
-	{
-		//Result = TEXT("[Empty]");
-	}
-
-	if (TitleType == ENodeTitleType::FullTitle)
-	{
-		Result += TEXT("\n");
-		Result += TEXT("Math Expression");
-	}
-
-	return Result;
 }
 
 //------------------------------------------------------------------------------

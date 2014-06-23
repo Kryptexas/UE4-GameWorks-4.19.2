@@ -90,41 +90,6 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_Event::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (bOverrideFunction || (CustomFunctionName == NAME_None))
-	{
-		FString FunctionName = EventSignatureName.ToString(); // If we fail to find the function, still want to write something on the node.
-
-		if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
-		{
-			FunctionName = UEdGraphSchema_K2::GetFriendlySignitureName(Function);
-		}
-
-		FString TitleString = FString(TEXT("Event ")) + FunctionName;
-
-		if(TitleType == ENodeTitleType::FullTitle && EventSignatureClass != NULL && EventSignatureClass->IsChildOf(UInterface::StaticClass()))
-		{
-			FString SourceString = EventSignatureClass->GetName();
-
-			// @todo: This action won't be necessary once the new name convention is used.
-			if(SourceString.EndsWith(TEXT("_C")))
-			{
-				SourceString = SourceString.LeftChop(2);
-			}
-
-			TitleString += FString(TEXT("\n")) + FString::Printf(TEXT("From %s"), *SourceString);
-		}
-
-		return TitleString;
-	}
-	else
-	{
-		return CustomFunctionName.ToString();
-	}
-}
-
 FString UK2Node_Event::GetTooltip() const
 {
 	FString Tooltip;

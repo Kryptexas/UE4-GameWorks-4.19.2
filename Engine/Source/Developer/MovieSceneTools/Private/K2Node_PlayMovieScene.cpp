@@ -87,15 +87,6 @@ FText UK2Node_PlayMovieScene::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		NSLOCTEXT("PlayMovieSceneNode", "NodeTitleWithNoMovieScene", "Play Movie Scene (No Asset)");
 }
 
-FString UK2Node_PlayMovieScene::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	UMovieScene* MovieScene = MovieSceneBindings != NULL ? MovieSceneBindings->GetRootMovieScene() : NULL;
-	return MovieScene != NULL ?
-		( FString(TEXT("Play Movie Scene: ")) + MovieScene->GetName() ) 
-		: TEXT("Play Movie Scene (No Asset)");
-}
-
-
 UEdGraphPin* UK2Node_PlayMovieScene::GetPlayPin() const
 {
 	UEdGraphPin* Pin = FindPinChecked( PlayMovieScenePinNames::Play );

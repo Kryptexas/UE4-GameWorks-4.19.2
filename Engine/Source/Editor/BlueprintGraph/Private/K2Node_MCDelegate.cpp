@@ -219,13 +219,6 @@ FText UK2Node_AddDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(NSLOCTEXT("K2Node", "AddDelegate", "Bind Event to {PropertyName}"), Args);
 }
 
-FString UK2Node_AddDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Bind Event to %s"), *GetPropertyName().ToString());
-}
-
 FNodeHandlingFunctor* UK2Node_AddDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_AddRemoveDelegate(CompilerContext, KCST_AddMulticastDelegate);
@@ -250,13 +243,6 @@ FText UK2Node_ClearDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "ClearDelegate", "Unbind all Events from {PropertyName}"), Args);
-}
-
-FString UK2Node_ClearDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Unbind all Events from %s"), *GetPropertyName().ToString());
 }
 
 FNodeHandlingFunctor* UK2Node_ClearDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -289,13 +275,6 @@ FText UK2Node_RemoveDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "RemoveDelegate", "Unbind Event from {PropertyName}"), Args);
-}
-
-FString UK2Node_RemoveDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Unbind Event from %s"), *GetPropertyName().ToString());
 }
 
 FNodeHandlingFunctor* UK2Node_RemoveDelegate::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -344,13 +323,6 @@ FText UK2Node_CallDelegate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("PropertyName"), FText::FromName(GetPropertyName()));
 	return FText::Format(NSLOCTEXT("K2Node", "CallDelegate", "Call {PropertyName}"), Args);
-}
-
-FString UK2Node_CallDelegate::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Call %s"), *GetPropertyName().ToString());
 }
 
 void UK2Node_CallDelegate::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const

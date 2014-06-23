@@ -125,7 +125,6 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		UNiagaraNodeGetAttr* GetAttrNode = NewObject<UNiagaraNodeGetAttr>(ContextMenuBuilder.OwnerOfTemporaries);
 		GetAttrNode->AttrName = AttrName;
 		GetAttrAction->NodeTemplate = GetAttrNode;
-		GetAttrAction->SearchTitle = GetAttrAction->NodeTemplate->GetNodeSearchTitle();
 	}
 
 	// Then get ops.
@@ -140,7 +139,6 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries);
 			OpNode->OpIndex = OpIdx;
 			AddOpAction->NodeTemplate = OpNode;
-			AddOpAction->SearchTitle = AddOpAction->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }

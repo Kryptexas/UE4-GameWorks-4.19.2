@@ -43,21 +43,6 @@ FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UAnimGraphNode_Slot::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	const FString SlotName = (Node.SlotName != NAME_None) ? Node.SlotName.ToString() : TEXT("(No slot name)");
-
-	if (TitleType == ENodeTitleType::ListView)
-	{
-		return FString::Printf(TEXT("Slot '%s'"), *SlotName);
-	}
-	else
-	{
-		return FString::Printf(TEXT("%s\nSlot"), *SlotName);
-	}
-}
-
 FString UAnimGraphNode_Slot::GetNodeCategory() const
 {
 	return TEXT("Blends");

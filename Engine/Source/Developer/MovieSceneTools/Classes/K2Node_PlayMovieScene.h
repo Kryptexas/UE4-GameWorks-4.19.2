@@ -42,7 +42,6 @@ class UK2Node_PlayMovieScene : public UK2Node
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 
 	// UK2Node interface
 	virtual bool NodeCausesStructuralBlueprintChange() const override

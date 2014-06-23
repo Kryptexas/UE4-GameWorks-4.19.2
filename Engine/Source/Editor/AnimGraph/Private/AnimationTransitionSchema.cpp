@@ -96,7 +96,6 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 								TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_AssetPlayer, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 								Action->NodeTemplate = NodeTemplate;
-								Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 							}
 						}
 					}
@@ -120,7 +119,6 @@ void UAnimationTransitionSchema::GetSourceStateActions(FGraphContextMenuBuilder&
 
 						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category_Transition, Title, NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 						Action->NodeTemplate = NodeTemplate;
-						Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 					}
 				}
 			}

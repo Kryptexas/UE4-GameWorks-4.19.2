@@ -184,8 +184,8 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 
 	if( ValuePin )
 	{
-		ValuePin->PinName = GetNodeNativeTitle(ENodeTitleType::ListView);
 		ValuePin->PinFriendlyName = GetNodeTitle(ENodeTitleType::ListView);
+		ValuePin->PinName = ValuePin->PinFriendlyName.BuildSourceString();
 	}
 }
 

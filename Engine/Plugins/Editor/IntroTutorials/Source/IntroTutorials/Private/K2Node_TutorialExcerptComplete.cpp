@@ -46,7 +46,6 @@ void UK2Node_TutorialExcerptComplete::GetMenuEntries(FGraphContextMenuBuilder& C
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category + TEXT("|") + SubCategory, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
-	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 }
 
 void UK2Node_TutorialExcerptComplete::PinDefaultValueChanged(UEdGraphPin* Pin)
@@ -103,18 +102,6 @@ FText UK2Node_TutorialExcerptComplete::GetNodeTitle(ENodeTitleType::Type TitleTy
 	else
 	{
 		return LOCTEXT("TutorialExcerptComplete_Title", "Tutorial Excerpt Complete");
-	}
-}
-
-FString UK2Node_TutorialExcerptComplete::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	if(CachedExcerpt.Len() > 0)
-	{
-		return FString::Printf(TEXT("Tutorial Excerpt '%s' Complete"), *CachedExcerpt);
-	}
-	else
-	{
-		return TEXT("Tutorial Excerpt Complete");
 	}
 }
 

@@ -92,18 +92,6 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} ({TargetName})"), Args);
 }
 
-FString UK2Node_ActorBoundEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString TargetName = TEXT("None");
-	if( EventOwner )
-	{
-		TargetName = EventOwner->GetActorLabel();		
-	}
-
-	return FString::Printf(TEXT("%s (%s)"), *DelegatePropertyName.ToString(), *TargetName);
-}
-
 FString UK2Node_ActorBoundEvent::GetTooltip() const
 {
 	UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegatePropertyConst();

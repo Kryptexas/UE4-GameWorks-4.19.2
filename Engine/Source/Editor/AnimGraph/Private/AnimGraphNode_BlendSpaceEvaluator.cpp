@@ -48,29 +48,6 @@ FText UAnimGraphNode_BlendSpaceEvaluator::GetNodeTitle(ENodeTitleType::Type Titl
 	}
 }
 
-FString UAnimGraphNode_BlendSpaceEvaluator::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
-
-	if (TitleType == ENodeTitleType::ListView)
-	{
-		return FString::Printf(TEXT("Blendspace Evaluator '%s'"), *BlendSpaceName);
-	}
-	else
-	{
-		FString Title = FString::Printf(TEXT("%s\nBlendspace Evaluator"), *BlendSpaceName);
-
-		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
-		{
-			Title += TEXT("\n");
-			Title += FString::Printf(TEXT("Sync group %s"), *SyncGroup.GroupName.ToString());
-		}
-
-		return Title;
-	}
-}
-
 void UAnimGraphNode_BlendSpaceEvaluator::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	// Intentionally empty so that we don't get duplicate blend space entries.

@@ -59,7 +59,6 @@ void UK2Node_Knot::GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBu
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, EmptyCategory, MenuDesc, Tooltip, 0, Keywords);
 		NodeAction->NodeTemplate = TemplateNode;
-		NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 	}
 }
 

@@ -13,7 +13,6 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 	// Begin UEdGraphNode interface
 	virtual FString GetTooltip() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
 	virtual FString GetCategoryName();

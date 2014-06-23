@@ -482,7 +482,7 @@ FText SGraphNode::GetNodeTooltip() const
 		// Display the native title of the node when alt is held
 		if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
 		{
-			return FText::FromString(GraphNode->GetNodeNativeTitle(ENodeTitleType::ListView));
+			return FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::ListView).BuildSourceString());
 		}
 
 		FText TooltipText = FText::FromString(GraphNode->GetTooltip());

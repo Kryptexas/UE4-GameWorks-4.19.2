@@ -273,29 +273,6 @@ FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
 }
 
-FString UK2Node_SpawnActorFromClass::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	UEdGraphPin* ClassPin = GetClassPin();
-
-	FString SpawnString = TEXT("NONE");
-	if(ClassPin != NULL)
-	{
-		if(ClassPin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = TEXT("");
-		}
-		else if(ClassPin->DefaultObject != NULL)
-		{
-			SpawnString = ClassPin->DefaultObject->GetName();
-		}
-	}
-
-	return FString::Printf(TEXT("SpawnActor %s"), *SpawnString);
-}
-
 bool UK2Node_SpawnActorFromClass::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
 {
 	UBlueprint* Blueprint = Cast<UBlueprint>(TargetGraph->GetOuter());

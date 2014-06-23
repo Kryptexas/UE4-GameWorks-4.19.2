@@ -65,19 +65,6 @@ FText UAnimGraphNode_SequenceEvaluator::GetNodeTitle(ENodeTitleType::Type TitleT
 	}
 }
 
-FString UAnimGraphNode_SequenceEvaluator::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (Node.Sequence && Node.Sequence->IsValidAdditive())
-	{
-		return FString::Printf(TEXT("Evaluate %s (additive)"), (Node.Sequence != NULL) ? *(Node.Sequence->GetName()) : TEXT("(None)"));
-	}
-	else
-	{
-		return FString::Printf(TEXT("Evaluate %s"), (Node.Sequence != NULL) ? *(Node.Sequence->GetName()) : TEXT("(None)"));
-	}
-}
-
 void UAnimGraphNode_SequenceEvaluator::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	// Intentionally empty; you can drop down a regular sequence player and convert into a sequence evaluator in the right-click menu.

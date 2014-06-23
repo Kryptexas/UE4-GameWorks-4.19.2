@@ -21,7 +21,6 @@ class UK2Node_StructMemberGet : public UK2Node_StructOperation
 	virtual void AllocateDefaultPins() override;
 	virtual FString GetTooltip() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

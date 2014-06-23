@@ -61,15 +61,6 @@ FText UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	return Result;
 }
 
-FString UK2Node_TemporaryVariable::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	FString Result = !bIsPersistent ? TEXT("Local ") : TEXT("Persistent Local ");
-	Result += UEdGraphSchema_K2::TypeToString(VariableType);
-	return Result;
-}
-
 bool UK2Node_TemporaryVariable::IsNodePure() const
 {
 	return true;

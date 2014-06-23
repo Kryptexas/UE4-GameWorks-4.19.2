@@ -174,32 +174,6 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_CallFunction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString FunctionName;
-	FString ContextString;
-	FString RPCString;
-
-	if (UFunction* Function = GetTargetFunction())
-	{
-		RPCString = UK2Node_Event::GetLocalizedNetString(Function->FunctionFlags, true);
-		FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
-		ContextString = GetFunctionContextString();
-	}
-	else
-	{
-		FunctionName = FunctionReference.GetMemberName().ToString();
-		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
-		{
-			FunctionName = FName::NameToDisplayString(FunctionName, false);
-		}
-	}
-
-	const FString Result = (TitleType == ENodeTitleType::ListView) ? FunctionName : FunctionName + ContextString + RPCString;
-	return Result;
-}
-
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
 	UBlueprint* MyBlueprint = GetBlueprint();

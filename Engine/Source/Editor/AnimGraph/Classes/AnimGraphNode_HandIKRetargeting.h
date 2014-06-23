@@ -16,7 +16,6 @@ class UAnimGraphNode_HandIKRetargeting : public UAnimGraphNode_SkeletalControlBa
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetTooltip() const override;
 	// End of UEdGraphNode interface
 

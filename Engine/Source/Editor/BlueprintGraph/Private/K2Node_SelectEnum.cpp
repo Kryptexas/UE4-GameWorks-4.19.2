@@ -53,14 +53,6 @@ FText  UDEPRECATED_K2Node_SelectEnum::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	return FText::Format(NSLOCTEXT("K2Node", "SelectByEnum", "Select by {EnumName}"), Args);
 }
 
-FString UDEPRECATED_K2Node_SelectEnum::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	FString EnumName = (Enum != NULL) ? Enum->GetName() : TEXT("(bad enum)");
-	return FString::Printf(TEXT("Select by %s"), *EnumName);
-}
-
 /** Determine if any pins are connected, if so make all the other pins the same type, if not, make sure pins are switched back to wildcards */
 void UDEPRECATED_K2Node_SelectEnum::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {

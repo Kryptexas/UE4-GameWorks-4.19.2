@@ -21,13 +21,6 @@ FText UNiagaraNodeGetAttr::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(NSLOCTEXT("Niagara", "GetAttribute", "Get {Attribute}"), Args);
 }
 
-FString UNiagaraNodeGetAttr::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	return FString::Printf(TEXT("Get %s"), *AttrName.ToString());
-}
-
 FLinearColor UNiagaraNodeGetAttr::GetNodeTitleColor() const
 {
 	const UEdGraphSchema_Niagara* Schema = GetDefault<UEdGraphSchema_Niagara>();

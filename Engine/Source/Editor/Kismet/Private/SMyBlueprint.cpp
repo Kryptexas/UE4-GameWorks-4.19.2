@@ -539,7 +539,6 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 
 		TSharedPtr<FEdGraphSchemaAction_K2Event> EventNodeAction = MakeShareable(new FEdGraphSchemaAction_K2Event(ActionCategory, Description, Tooltip, 0));
 		EventNodeAction->NodeTemplate = EventNode;
-		EventNodeAction->SearchTitle = EventNodeAction->NodeTemplate->GetNodeSearchTitle();
 		EventNodeAction->SectionID = SectionId;
 		OutAllActions.AddAction(EventNodeAction);
 	}

@@ -158,33 +158,6 @@ FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return Result;
 }
 
-FString UK2Node_VariableGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString Result = TEXT("Get");
-
-	// If there is only one variable being read, the title can be made the variable name
-	FString OutputPinName;
-	int32 NumOutputsFound = 0;
-
-	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
-	{
-		UEdGraphPin* Pin = Pins[PinIndex];
-		if (Pin->Direction == EGPD_Output)
-		{
-			++NumOutputsFound;
-			OutputPinName = Pin->PinName;
-		}
-	}
-
-	if (NumOutputsFound == 1)
-	{
-		Result = Result + TEXT(" ") + OutputPinName;
-	}
-
-	return Result;
-}
-
 FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_VariableGet(CompilerContext);

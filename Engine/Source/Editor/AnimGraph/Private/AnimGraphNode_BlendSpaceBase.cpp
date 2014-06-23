@@ -38,8 +38,6 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 
 		// Grab extra keywords
 		Keywords = BlendSpace->GetPathName();
-
-		SearchTitle = NodeTemplate->GetNodeSearchTitle();
 	}
 };
 

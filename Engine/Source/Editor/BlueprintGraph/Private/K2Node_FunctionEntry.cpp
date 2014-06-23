@@ -122,16 +122,6 @@ FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return DisplayInfo.DisplayName;
 }
 
-FString UK2Node_FunctionEntry::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UEdGraph* Graph = GetGraph();
-	FGraphDisplayInfo DisplayInfo;
-	Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
-
-	return DisplayInfo.DisplayName.ToString();
-}
-
 void UK2Node_FunctionEntry::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

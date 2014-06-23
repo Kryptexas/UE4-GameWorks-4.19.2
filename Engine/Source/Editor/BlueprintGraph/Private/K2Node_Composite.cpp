@@ -176,19 +176,6 @@ FText UK2Node_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_Composite::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if(TitleType == ENodeTitleType::FullTitle)
-	{
-		return FString::Printf(TEXT("%s\nCollapsed Graph"), (BoundGraph)?*BoundGraph->GetName() : TEXT("Invalid Graph"));
-	}
-	else
-	{
-		return (BoundGraph)?*BoundGraph->GetName() : TEXT("Invalid Graph");
-	}
-}
-
 bool UK2Node_Composite::CanUserDeleteNode() const
 {
 	return true;

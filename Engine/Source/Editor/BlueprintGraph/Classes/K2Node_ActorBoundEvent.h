@@ -23,7 +23,6 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	virtual void ReconstructNode() override;
 	virtual void DestroyNode() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FString GetTooltip() const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;

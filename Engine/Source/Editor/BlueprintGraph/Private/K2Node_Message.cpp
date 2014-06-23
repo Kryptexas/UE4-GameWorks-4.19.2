@@ -31,24 +31,6 @@ FText UK2Node_Message::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return NodeName;
 }
 
-FString UK2Node_Message::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString NodeName;
-	if (UFunction* Function = GetTargetFunction())
-	{
-		NodeName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
-		NodeName += FString(TEXT("\n"));
-		NodeName += FString::Printf(TEXT("Using Interface %s"), *(Function->GetOuterUClass()->GetName()));
-	}
-	else
-	{
-		NodeName = TEXT("Invalid Message Node");
-	}
-
-	return NodeName;
-}
-
 UEdGraphPin* UK2Node_Message::CreateSelfPin(const UFunction* Function)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

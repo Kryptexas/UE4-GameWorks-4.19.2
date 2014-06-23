@@ -83,13 +83,6 @@ FText UK2Node_StructMemberGet::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(LOCTEXT("GetMembersInVariable", "Get members in {VariableName}"), Args);
 }
 
-FString UK2Node_StructMemberGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-
-	return FString::Printf(TEXT("Get members in %s"), *GetVarNameString());
-}
-
 FNodeHandlingFunctor* UK2Node_StructMemberGet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_StructMemberVariableGet(CompilerContext);

@@ -199,19 +199,6 @@ FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
 }
 
-FString UK2Node_LiveEditObject::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	UEdGraphPin* BaseClassPin = GetBaseClassPin();
-
-	FString SpawnString = TEXT("NONE");
-	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
-	{
-		SpawnString = BaseClassPin->DefaultObject->GetName();
-	}
-
-	return FString::Printf(TEXT("LiveEditObject %s_%d"), *SpawnString, GetUniqueID());
-}
-
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 
 {
 	if(Pin->PinName == UK2Node_LiveEditObjectStatics::BaseClassPinName)

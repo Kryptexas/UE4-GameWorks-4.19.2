@@ -233,29 +233,6 @@ FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	return FText::Format(NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}"), Args);
 }
 
-FString UK2Node_GetDataTableRow::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	UEdGraphPin* DataTablePin = GetDataTablePin();
-
-	FString DataTableString = TEXT("NONE");
-	if(DataTablePin != NULL)
-	{
-		if(DataTablePin->LinkedTo.Num() > 0)
-		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			DataTableString = TEXT("");
-		}
-		else if(DataTablePin->DefaultObject != NULL)
-		{
-			DataTableString = DataTablePin->DefaultObject->GetName();
-		}
-	}
-
-	return FString::Printf(TEXT("GetDataTableRow %s"), *DataTableString);
-}
-
 void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
     Super::ExpandNode(CompilerContext, SourceGraph);

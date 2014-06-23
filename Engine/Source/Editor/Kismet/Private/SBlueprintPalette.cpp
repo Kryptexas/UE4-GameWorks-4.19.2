@@ -1270,7 +1270,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			// Display the native title of the node when alt is held
 			if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
 			{
-				return FText::FromString(NodeTemplate->GetNodeNativeTitle(ENodeTitleType::ListView));
+				return FText::FromString(NodeTemplate->GetNodeTitle(ENodeTitleType::ListView).BuildSourceString());
 			}
 
 			// If the node wants to create tooltip text, use that instead, because its probably more detailed

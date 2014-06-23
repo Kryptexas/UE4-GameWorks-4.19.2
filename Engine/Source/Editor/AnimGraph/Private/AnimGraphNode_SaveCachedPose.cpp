@@ -58,19 +58,6 @@ FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType
 	}
 }
 
-FString UAnimGraphNode_SaveCachedPose::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return CacheName;
-	}
-	else
-	{
-		return FString::Printf(TEXT("Save cached pose '%s'"), *CacheName);
-	}
-}
-
 FString UAnimGraphNode_SaveCachedPose::GetNodeCategory() const
 {
 	return TEXT("Cached Poses");
@@ -92,7 +79,6 @@ void UAnimGraphNode_SaveCachedPose::GetMenuEntries(FGraphContextMenuBuilder& Con
 
 			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SaveCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), LOCTEXT("NewSaveCachedPose", "New Save cached pose..."), SaveCachedPose->GetTooltip(), 0, SaveCachedPose->GetKeywords());
 			SaveCachedPoseAction->NodeTemplate = SaveCachedPose;
-			SaveCachedPoseAction->SearchTitle = SaveCachedPoseAction->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }

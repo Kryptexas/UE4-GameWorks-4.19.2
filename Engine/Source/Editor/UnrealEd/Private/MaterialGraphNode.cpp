@@ -186,49 +186,6 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UMaterialGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	
-	TArray<FString> Captions;
-	MaterialExpression->GetCaption(Captions);
-
-	if (TitleType == ENodeTitleType::EditableTitle)
-	{
-		return GetParameterName();
-	}
-	else if (TitleType == ENodeTitleType::ListView)
-	{
-		return MaterialExpression->GetDescription();
-	}
-	else
-	{
-		// More useful to display multi line parameter captions in reverse order
-		// TODO: May have to choose order based on expression type if others need correct order
-		int32 CaptionIndex = Captions.Num() -1;
-
-		FString NodeTitle = Captions[CaptionIndex];
-		for (; CaptionIndex > 0; )
-		{
-			CaptionIndex--;
-			NodeTitle += TEXT("\n");
-			NodeTitle += Captions[CaptionIndex];
-		}
-
-		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
-		{
-			NodeTitle += TEXT("\nInput Data");
-		}
-
-		if (bIsPreviewExpression)
-		{
-			NodeTitle += TEXT("\nPreviewing");
-		}
-
-		return NodeTitle;
-	}
-}
-
 FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 {
 	UMaterial* Material = CastChecked<UMaterialGraph>(GetGraph())->Material;

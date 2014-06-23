@@ -291,34 +291,6 @@ FText UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(GetClass()->GetName());
 }
 
-FString UEdGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	FText NodeTitle = GetNodeTitle(TitleType);
-	if(const FString* SourceString = FTextInspector::GetSourceString(NodeTitle))
-	{
-		return *SourceString;
-	}
-	return NodeTitle.ToString();
-}
-
-FText UEdGraphNode::GetNodeSearchTitle() const
-{
-	TArray< FText > SearchMetadata;
-
-	FText LocalizedTitle = GetNodeTitle(ENodeTitleType::ListView);
-	FText NativeTitle = FText::FromString(GetNodeNativeTitle(ENodeTitleType::ListView));
-
-	if(FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("en_US"))
-	{
-		ensure( LocalizedTitle.CompareTo(NativeTitle) == 0 );
-	}
-
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("LocalizedTitle"), LocalizedTitle);
-	Args.Add(TEXT("NativeTitle"), NativeTitle);
-	return FText::Format(LOCTEXT("NodeSearchTitle", "{LocalizedTitle} {NativeTitle}"), Args);
-}
-
 UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 {
 	return NULL;

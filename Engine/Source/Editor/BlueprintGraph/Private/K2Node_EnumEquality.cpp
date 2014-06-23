@@ -193,7 +193,6 @@ void UK2Node_EnumEquality::GetMenuEntries(FGraphContextMenuBuilder& Context) con
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
 		NodeAction->NodeTemplate = EnumNodeTemplate;
-		NodeAction->SearchTitle = EnumNodeTemplate->GetNodeSearchTitle();
 	}
 }
 

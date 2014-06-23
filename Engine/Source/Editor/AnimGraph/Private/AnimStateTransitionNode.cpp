@@ -154,26 +154,6 @@ FText UAnimStateTransitionNode::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	}
 }
 
-FString UAnimStateTransitionNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	UAnimStateNodeBase* PrevState = GetPreviousState();
-	UAnimStateNodeBase* NextState = GetNextState();
-
-	if (!SharedRulesName.IsEmpty())
-	{
-		return SharedRulesName;
-	}
-	else if ((PrevState != NULL) && (NextState != NULL))
-	{
-		return FString::Printf(TEXT("%s to %s"), *(PrevState->GetStateName()), *(NextState->GetStateName()));
-	}
-	else
-	{
-		return FString::Printf(TEXT("Trans %s"), (BoundGraph != NULL) ? *(BoundGraph->GetName()) : TEXT("(null)"));
-	}
-}
-
 FString UAnimStateTransitionNode::GetTooltip() const
 {
 	return TEXT("This is a state transition");

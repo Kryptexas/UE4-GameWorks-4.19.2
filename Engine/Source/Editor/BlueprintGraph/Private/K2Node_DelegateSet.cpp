@@ -169,12 +169,6 @@ FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
 }
 
-FString UK2Node_DelegateSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	return FString::Printf(TEXT("Assign %s"), *DelegatePropertyName.ToString());
-}
-
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

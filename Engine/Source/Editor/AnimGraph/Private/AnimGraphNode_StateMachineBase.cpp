@@ -71,18 +71,6 @@ FText UAnimGraphNode_StateMachineBase::GetNodeTitle(ENodeTitleType::Type TitleTy
 	return FirstLine;
 }
 
-FString UAnimGraphNode_StateMachineBase::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	FString FirstLine = (EditorStateMachineGraph != NULL) ? EditorStateMachineGraph->GetName() : TEXT("Error: No Graph");
-	if(TitleType == ENodeTitleType::FullTitle)
-	{
-		return FirstLine + TEXT("\nState Machine");
-	}
-
-	return FirstLine;
-}
-
 FString UAnimGraphNode_StateMachineBase::GetNodeCategory() const
 {
 	return TEXT("State Machines");

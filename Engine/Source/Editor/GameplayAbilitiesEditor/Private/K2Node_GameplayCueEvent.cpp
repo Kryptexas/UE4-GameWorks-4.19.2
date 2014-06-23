@@ -33,12 +33,6 @@ FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	//return LOCTEXT("HandleGameplayCueEvent", "HandleGameplaCueEvent");
 }
 
-FString UK2Node_GameplayCueEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	return CustomFunctionName.ToString();
-	//return LOCTEXT("HandleGameplayCueEvent", "HandleGameplaCueEvent").ToString();
-}
-
 void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context) const
 {
 	Super::GetMenuEntries(Context);
@@ -65,7 +59,6 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
 		NodeAction->NodeTemplate = NodeTemplate;
-		NodeAction->SearchTitle = NodeAction->NodeTemplate->GetNodeSearchTitle();
 	}	
 }
 

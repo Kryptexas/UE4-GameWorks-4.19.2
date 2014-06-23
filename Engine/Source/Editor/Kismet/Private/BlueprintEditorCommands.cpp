@@ -174,7 +174,6 @@ public:
 
 		// the NodeTemplate UPROPERTY takes ownership of GraphNode's lifetime (hence it being a weak-pointer here)
 		NewActionNode->NodeTemplate = GraphNode.Get();
-		NewActionNode->SearchTitle = NewActionNode->NodeTemplate->GetNodeSearchTitle();
 
 		return NewActionNode;
 	}

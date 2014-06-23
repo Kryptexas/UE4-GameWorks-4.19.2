@@ -143,19 +143,6 @@ FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_InputKey::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if (bControl || bAlt || bShift)
-	{
-		return FString::Printf(TEXT("%s %s"), *GetModifierName().ToString(), *InputKey.ToString());
-	}
-	else
-	{
-		return GetKeyText().ToString();
-	}
-}
-
 FString UK2Node_InputKey::GetTooltip() const
 {
 	FText ModifierText = GetModifierText();

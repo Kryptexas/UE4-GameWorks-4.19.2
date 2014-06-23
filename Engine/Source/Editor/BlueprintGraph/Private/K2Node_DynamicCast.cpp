@@ -76,32 +76,6 @@ FText UK2Node_DynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
-FString UK2Node_DynamicCast::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
-{
-	// Do not setup this function for localization, intentionally left unlocalized!
-	if(TargetType != NULL)
-	{
-		// If casting to BP class, use BP name not class name (ie. remove the _C)
-		FString TargetName;
-		UBlueprint* CastToBP = UBlueprint::GetBlueprintFromClass(TargetType);
-		if(CastToBP != NULL)
-		{
-			TargetName = CastToBP->GetName();
-		}
-		else
-		{
-			TargetName = TargetType->GetName();
-		}
-
-		return FString(TEXT("Cast To ")) + TargetName;
-	}
-	// No target type, bad node
-	else
-	{
-		return TEXT("Bad cast node");
-	}
-}
-
 UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

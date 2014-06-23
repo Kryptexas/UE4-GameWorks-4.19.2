@@ -266,14 +266,12 @@ void UAnimationStateMachineSchema::GetGraphContextActions(FGraphContextMenuBuild
 	{
 		TSharedPtr<FEdGraphSchemaAction_NewStateNode> Action = AddNewStateNodeAction(ContextMenuBuilder, TEXT(""), LOCTEXT("AddState", "Add State..."), TEXT("A new state"));
 		Action->NodeTemplate = NewObject<UAnimStateNode>(ContextMenuBuilder.OwnerOfTemporaries);
-		Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 	}
 
 	// Add conduit node
 	{
 		TSharedPtr<FEdGraphSchemaAction_NewStateNode> Action = AddNewStateNodeAction(ContextMenuBuilder, TEXT(""), LOCTEXT("AddConduit", "Add Conduit..."), TEXT("A new conduit state"));
 		Action->NodeTemplate = NewObject<UAnimStateConduitNode>(ContextMenuBuilder.OwnerOfTemporaries);
-		Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 	}
 
 	// Entry point (only if doesn't already exist)
@@ -293,7 +291,6 @@ void UAnimationStateMachineSchema::GetGraphContextActions(FGraphContextMenuBuild
 		{
 			TSharedPtr<FEdGraphSchemaAction_NewStateNode> Action = AddNewStateNodeAction(ContextMenuBuilder, TEXT(""), LOCTEXT("AddEntryPoint", "Add Entry Point..."), TEXT("Define State Machine's Entry Point"));
 			Action->NodeTemplate = NewObject<UAnimStateEntryNode>(ContextMenuBuilder.OwnerOfTemporaries);
-			Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 

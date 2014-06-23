@@ -102,7 +102,6 @@ void FLiveEditorNodeInjector::AddContextMenuNodes(FBlueprintGraphActionListBuild
 	FString FunctionCategory( TEXT("LiveEditor") );
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FunctionCategory, NSLOCTEXT("LiveEditorPlugin", "LiveEditObject", "LiveEdit Object"), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 	Action->NodeTemplate = NodeTemplate;
-	Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 }
 
 void FLiveEditorNodeInjector::OnBeginPIE(const bool bIsSimulating)
