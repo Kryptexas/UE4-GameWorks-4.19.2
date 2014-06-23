@@ -10,4 +10,11 @@ UAbilityTask::UAbilityTask(const class FPostConstructInitializeProperties& PCIP)
 
 void UAbilityTask::Activate()
 {
+
+}
+
+void UAbilityTask::InitTask(UGameplayAbility* InAbility)
+{
+	Ability = InAbility;
+	AbilitySystemComponent = InAbility->GetCurrentActorInfo()->AbilitySystemComponent;
 }

@@ -19,10 +19,9 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 	{
 		UAbilityTask_WaitAbilityCommit * MyObj = NULL;
 		MyObj = NewObject<UAbilityTask_WaitAbilityCommit>();
-		MyObj->Ability = ThisAbility;
+		MyObj->InitTask(ThisAbility);
 		MyObj->WithTag = InWithTag;
 		MyObj->WithoutTag = InWithoutTag;
-		
 
 		return MyObj;
 	}
@@ -31,12 +30,9 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 
 void UAbilityTask_WaitAbilityCommit::Activate()
 {
-	if (Ability.IsValid())
-	{
-		const FGameplayAbilityActorInfo* Info = Ability.Get()->GetCurrentActorInfo();
-
-		UAbilitySystemComponent* ASC = Info->AbilitySystemComponent.Get();
-		ASC->AbilityCommitedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
+	if (AbilitySystemComponent.IsValid())	
+	{		
+		AbilitySystemComponent->AbilityCommitedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
 	}
 }
 
@@ -49,10 +45,9 @@ void UAbilityTask_WaitAbilityCommit::OnAbilityCommit(UGameplayAbility *Activated
 		return;
 	}
 
-	UAbilitySystemComponent* ASC = Ability.Get()->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-	if (ASC)
+	if (AbilitySystemComponent.IsValid())
 	{
-		ASC->AbilityCommitedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
+		AbilitySystemComponent->AbilityCommitedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityCommit::OnAbilityCommit);
 	}
 
 	OnCommit.Broadcast(ActivatedAbility);

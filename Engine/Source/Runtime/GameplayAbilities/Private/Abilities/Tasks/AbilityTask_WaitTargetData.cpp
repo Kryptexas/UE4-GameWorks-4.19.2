@@ -7,44 +7,37 @@
 UAbilityTask_WaitTargetData::UAbilityTask_WaitTargetData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	ASC = NULL;
+	
 }
 
 UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
 {
 	UAbilityTask_WaitTargetData * MyObj = NewObject<UAbilityTask_WaitTargetData>();
 	UGameplayAbility * ThisAbility = CastChecked<UGameplayAbility>(WorldContextObject);
-	MyObj->Ability = ThisAbility;
-	MyObj->ASC = ThisAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
+	MyObj->InitTask(ThisAbility);
 	MyObj->TargetClass = InTargetClass;
 	return MyObj;	
-}
-
-UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::CreateWaitTargetData(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass)
-{
-	return WaitTargetData(WorldContextObject, InTargetClass);
 }
 
 void UAbilityTask_WaitTargetData::Activate()
 {
 	if (Ability.IsValid())
 	{
-		
 		if (!Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled())
 		{
 			// If not locally controlled (server for remote client), see if TargetData was already sent
 			// else register callback for when it does get here
 
-			if (ASC->ReplicatedTargetData.IsValid())
+			if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
 			{
-				ValidData.Broadcast(ASC->ReplicatedTargetData);
-				ASC->ConsumeAbilityTargetData();
+				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
+				Cleanup();
 				return;
 			}
 			else
 			{
-				ASC->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-				ASC->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+				AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
 				return;
 			}
 		}
@@ -65,41 +58,72 @@ void UAbilityTask_WaitTargetData::Activate()
 				SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
 				SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
 								
-				ASC->SetUserAbilityActivationInhibited(true);
-				ASC->SpawnedTargetActors.Push(SpawnedActor);
+				// User ability activation is inhibited while this is active
+				AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
+				AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
 
 				SpawnedActor->StartTargeting(Ability.Get());
+
+				MySpawnedTargetActor = SpawnedActor;
 			}
 		}
 	}
 }
 
+/** Valid TargetData was replicated to use (we are server, was sent from client) */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data)
 {
-	check(ASC);
+	check(AbilitySystemComponent.IsValid());
+
 	ValidData.Broadcast(Data);
-	ASC->ConsumeAbilityTargetData();
+
+	Cleanup();
 }
 
+/** Client cancelled this Targeting Task (we are the server */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 {
-	check(ASC);
+	check(AbilitySystemComponent.IsValid());
+
 	Cancelled.Broadcast(FGameplayAbilityTargetDataHandle());
+	
+	Cleanup();
 }
 
+/** The TargetActor we spawned locally has called back with valid target data */
 void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
 {
-	check(ASC);
-	ASC->ServerSetReplicatedTargetData(Data);
+	check(AbilitySystemComponent.IsValid());
+
+	AbilitySystemComponent->ServerSetReplicatedTargetData(Data);
 	ValidData.Broadcast(Data);
-	ASC->ConsumeAbilityTargetData();
-	ASC->SetUserAbilityActivationInhibited(false);
+	
+	Cleanup();
 }
 
+/** The TargetActor we spawned locally has called back with a cancel event (they still include the 'last/best' targetdata but the consumer of this may want to discard it) */
 void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbilityTargetDataHandle Data)
 {
-	check(ASC);
-	ASC->ServerSetReplicatedTargetDataCancelled();
+	check(AbilitySystemComponent.IsValid());
+
+	AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled();
 	Cancelled.Broadcast(Data);
-	ASC->SetUserAbilityActivationInhibited(false);
+
+	Cleanup();
+}
+
+void UAbilityTask_WaitTargetData::Cleanup()
+{
+	AbilitySystemComponent->ConsumeAbilityTargetData();
+	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
+
+	AbilitySystemComponent->ReplicatedTargetDataDelegate.RemoveUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+	AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.RemoveDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+
+	if (MySpawnedTargetActor.IsValid())
+	{
+		MySpawnedTargetActor->Destroy();
+	}
+
+	MarkPendingKill();
 }

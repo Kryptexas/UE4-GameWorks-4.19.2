@@ -11,7 +11,11 @@ class UAbilityTask : public UObject
 	// Called to trigger the actual task once the delegates have been set up
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	virtual void Activate();
+
+	virtual void InitTask(UGameplayAbility* InAbility);
 	
 	/** GameplayAbility that created us */
 	TWeakObjectPtr<UGameplayAbility> Ability;
+
+	TWeakObjectPtr<UAbilitySystemComponent>	AbilitySystemComponent;
 };

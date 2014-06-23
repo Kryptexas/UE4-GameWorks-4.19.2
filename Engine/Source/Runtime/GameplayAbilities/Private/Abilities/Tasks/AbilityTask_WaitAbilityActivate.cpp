@@ -19,7 +19,7 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 	{
 		UAbilityTask_WaitAbilityActivate * MyObj = NULL;
 		MyObj = NewObject<UAbilityTask_WaitAbilityActivate>();
-		MyObj->Ability = ThisAbility;
+		MyObj->InitTask(ThisAbility);
 		MyObj->WithTag = InWithTag;
 		MyObj->WithoutTag = InWithoutTag;
 
@@ -30,12 +30,9 @@ UAbilityTask_WaitAbilityActivate* UAbilityTask_WaitAbilityActivate::WaitForAbili
 
 void UAbilityTask_WaitAbilityActivate::Activate()
 {
-	if (Ability.IsValid())
+	if (AbilitySystemComponent.IsValid())
 	{
-		const FGameplayAbilityActorInfo* Info = Ability.Get()->GetCurrentActorInfo();
-
-		UAbilitySystemComponent* ASC = Info->AbilitySystemComponent.Get();
-		ASC->AbilityActivatedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
+		AbilitySystemComponent->AbilityActivatedCallbacks.AddUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
 	}
 }
 
@@ -47,11 +44,10 @@ void UAbilityTask_WaitAbilityActivate::OnAbilityActivate(UGameplayAbility *Activ
 		// Failed tag check
 		return;
 	}
-
-	UAbilitySystemComponent* ASC = Ability.Get()->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-	if (ASC)
+	
+	if (AbilitySystemComponent.IsValid())
 	{
-		ASC->AbilityActivatedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
+		AbilitySystemComponent->AbilityActivatedCallbacks.RemoveUObject(this, &UAbilityTask_WaitAbilityActivate::OnAbilityActivate);
 	}
 
 	OnActivate.Broadcast(ActivatedAbility);

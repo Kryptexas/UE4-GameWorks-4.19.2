@@ -9,6 +9,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWaitOverlapDelegate, FGameplayAbili
 class AActor;
 class UPrimitiveComponent;
 
+/**
+ *	Fixme: this is still incomplete and probablyh not what most games want for melee systems.
+ *		-Only actually activates on Blocking hits
+ *		-Uses first PrimitiveComponent instead of being able to specify arbitrary component.
+ */
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitOverlap : public UAbilityTask
 {
