@@ -22,7 +22,7 @@
  *
  * A sample implementation of OnGenerateWidgetForList would simply return a TextBlock with the corresponding text:
  *
- * TSharedRef<ITableRow> OnGenerateWidgetForList( FString* InItem )
+ * TSharedRef<ITableRow> OnGenerateWidgetForList( FString* InItem, const TSharedRef<STableViewBase>& OwnerTable )
  * {
  *     return SNew(STextBlock).Text( (*InItem) )
  * }
