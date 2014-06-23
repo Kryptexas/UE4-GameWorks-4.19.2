@@ -90,6 +90,15 @@ struct FClassBrowseHelper
 	static bool IsClassKnown(const FClassData& ClassData);
 	static FOnPackageListUpdated OnPackageListUpdated;
 
+	/** Whether we have more than one task class available */
+	static bool IsMoreThanOneTaskClassAvailable();
+
+	/** Whether we have more than one decorator class available */
+	static bool IsMoreThanOneDecoratorClassAvailable();
+
+	/** Whether we have more than one service class available */
+	static bool IsMoreThanOneServiceClassAvailable();
+
 private:
 
 	TSharedPtr<FClassDataNode> RootNode;
@@ -105,6 +114,18 @@ private:
 
 	bool IsHidingParentClass(UClass* Class);
 	bool IsPackageSaved(FName PackageName);
+
+	/** Update the flags that determine whether to allow creation of new nodes from multiple base classes */
+	void UpdateAvailableNodeClasses();
+
+	/** Cached flag to determine whether we have more than one task class available */
+	static bool bMoreThanOneTaskClassAvailable;
+
+	/** Cached flag to determine whether we have more than one decorator class available */
+	static bool bMoreThanOneDecoratorClassAvailable;
+
+	/** Cached flag to determine whether we have more than one service class available */
+	static bool bMoreThanOneServiceClassAvailable;
 };
 
 struct FCompareNodeXLocation

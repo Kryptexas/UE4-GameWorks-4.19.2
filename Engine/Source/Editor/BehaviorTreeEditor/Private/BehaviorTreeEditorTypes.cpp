@@ -90,6 +90,9 @@ UClass* FClassData::GetClass(bool bSilent)
 //////////////////////////////////////////////////////////////////////////
 FClassBrowseHelper::FOnPackageListUpdated FClassBrowseHelper::OnPackageListUpdated;
 TArray<FName> FClassBrowseHelper::UnknownPackages;
+bool FClassBrowseHelper::bMoreThanOneTaskClassAvailable = false;
+bool FClassBrowseHelper::bMoreThanOneDecoratorClassAvailable = false;
+bool FClassBrowseHelper::bMoreThanOneServiceClassAvailable = false;
 
 void FClassDataNode::AddUniqueSubNode(TSharedPtr<FClassDataNode> SubNode)
 {
@@ -116,6 +119,8 @@ FClassBrowseHelper::FClassBrowseHelper()
 	GEditor->OnHotReload().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 	GEditor->OnBlueprintCompiled().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
 	GEditor->OnClassPackageLoadedOrUnloaded().AddRaw( this, &FClassBrowseHelper::InvalidateCache );
+
+	UpdateAvailableNodeClasses();
 }
 
 FClassBrowseHelper::~FClassBrowseHelper()
@@ -226,6 +231,12 @@ void FClassBrowseHelper::OnAssetAdded(const class FAssetData& AssetData)
 		ParentNode->AddUniqueSubNode(Node);
 		Node->ParentNode = ParentNode;
 	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if(!AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		UpdateAvailableNodeClasses();
+	}
 }
 
 void FClassBrowseHelper::OnAssetRemoved(const class FAssetData& AssetData)
@@ -243,11 +254,19 @@ void FClassBrowseHelper::OnAssetRemoved(const class FAssetData& AssetData)
 			Node->ParentNode->SubNodes.RemoveSingleSwap(Node);
 		}
 	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if(!AssetRegistryModule.Get().IsLoadingAssets())
+	{
+		UpdateAvailableNodeClasses();
+	}
 }
 
 void FClassBrowseHelper::InvalidateCache()
 {
 	RootNode.Reset();
+
+	UpdateAvailableNodeClasses();
 }
 
 TSharedPtr<FClassDataNode> FClassBrowseHelper::CreateClassDataNode(const class FAssetData& AssetData)
@@ -419,6 +438,54 @@ void FClassBrowseHelper::AddClassGraphChildren(TSharedPtr<FClassDataNode> Node, 
 			Node->SubNodes.Add(MatchingNode);
 
 			AddClassGraphChildren(MatchingNode, NodeList);
+		}
+	}
+}
+
+bool FClassBrowseHelper::IsMoreThanOneTaskClassAvailable()
+{
+	return bMoreThanOneTaskClassAvailable;
+}
+
+bool FClassBrowseHelper::IsMoreThanOneDecoratorClassAvailable()
+{
+	return bMoreThanOneDecoratorClassAvailable;
+}
+
+bool FClassBrowseHelper::IsMoreThanOneServiceClassAvailable()
+{
+	return bMoreThanOneServiceClassAvailable;
+}
+
+void FClassBrowseHelper::UpdateAvailableNodeClasses()
+{
+	if(FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")))
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+		const bool bSearchSubClasses = true;
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTTask_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneTaskClassAvailable = DerivedClassNames.Num() > 1;
+		}
+
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTDecorator_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneDecoratorClassAvailable = DerivedClassNames.Num() > 1;
+		}
+
+		{
+			TArray<FName> ClassNames;
+			ClassNames.Add(UBTService_BlueprintBase::StaticClass()->GetFName());
+			TSet<FName> DerivedClassNames;
+			AssetRegistryModule.Get().GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+			bMoreThanOneServiceClassAvailable = DerivedClassNames.Num() > 1;
 		}
 	}
 }
