@@ -290,9 +290,3 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 	}
 }
-
-
-FSlateShaderResourceProxy* FSlateD3D11RenderingPolicy::GetTextureResource( const FSlateBrush& Brush )
-{
-	return TextureManager->GetTexture( Brush );
-}

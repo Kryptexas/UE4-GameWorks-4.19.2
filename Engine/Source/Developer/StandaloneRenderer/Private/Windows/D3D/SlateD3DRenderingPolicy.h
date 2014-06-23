@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#ifndef __SLATE_D3D_RENDERING_POLICY_H__
-#define __SLATE_D3D_RENDERING_POLICY_H__
+#pragma once
 
 class FSlateD3D11RenderingPolicy : public FSlateRenderingPolicy
 {
@@ -13,9 +12,8 @@ public:
 	void UpdateBuffers( const FSlateWindowElementList& InElementList );
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	FSlateShaderResource* GetViewportResource( const ISlateViewport* InViewportInterface ) { return NULL; }
-	FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush );
-	TSharedPtr<FSlateFontCache>& GetFontCache() { return FontCache; }
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return TextureManager; }
+	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 
 private:
 	void InitResources();
@@ -39,5 +37,3 @@ private:
 	TSharedPtr<FSlateFontCache> FontCache;
 	TSharedRef<FSlateD3DTextureManager> TextureManager;
 };
-
-#endif // __SLATE_D3D_RENDERING_POLICY_H__

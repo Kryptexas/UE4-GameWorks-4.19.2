@@ -35,7 +35,7 @@ public:
 
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) = 0;
 
-	virtual TSharedPtr<class FSlateFontCache> GetFontCache( ) = 0;
+	virtual TSharedRef<class FSlateFontCache> GetFontCache( ) = 0;
 
 	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() = 0;
 

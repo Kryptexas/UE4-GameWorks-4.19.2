@@ -134,7 +134,7 @@ void FSlateD3DTextureManager::CreateTextures( const TArray< const FSlateBrush* >
 void FSlateD3DTextureManager::CreateTextureNoAtlas( const FSlateBrush& InBrush )
 {
 	const FName TextureName = InBrush.GetResourceName();
-	if( TextureName != NAME_None && GetTexture( InBrush ) == NULL )
+	if( TextureName != NAME_None && GetShaderResource( InBrush ) == NULL )
 	{
 		FNewTextureInfo Info;
 		Info.bShouldAtlas = false;
@@ -159,7 +159,7 @@ void FSlateD3DTextureManager::CreateTextureNoAtlas( const FSlateBrush& InBrush )
 /**
  * Returns a texture with the passed in name or NULL if it cannot be found.
  */
-FSlateShaderResourceProxy* FSlateD3DTextureManager::GetTexture( const FSlateBrush& InBrush )
+FSlateShaderResourceProxy* FSlateD3DTextureManager::GetShaderResource( const FSlateBrush& InBrush )
 {
 	FSlateShaderResourceProxy* Texture = NULL;
 	if( InBrush.IsDynamicallyLoaded() )

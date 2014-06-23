@@ -179,8 +179,8 @@ public:
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
 	virtual void DrawElements( const FIntPoint& InViewportSize, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	TSharedPtr<FSlateFontCache> GetFontCache() { return FontCache; }
-	TSharedRef<FSlateShaderResourceManager> GetResourceManager() { return ResourceManager; }
+	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return ResourceManager; }
 
 	void InitResources();
 	void ReleaseResources();

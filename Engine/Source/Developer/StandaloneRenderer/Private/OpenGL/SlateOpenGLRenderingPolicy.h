@@ -27,23 +27,12 @@ public:
 	 */
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	
-	/**
-	 * Returns a slate texture that represents a viewport                   
-	 */
-	FSlateShaderResource* GetViewportResource( const ISlateViewport* InViewportInterface ) { return NULL; }
-	
-	/**
-	 * Returns a slate texture resource
-	 *
-	 * @param	The name of the texture to return
- 	 */
-	FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush );
 
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return TextureManager.ToSharedRef(); }
 	/**
 	 * Returns the font cache used when the OpenGL rendering policy is active
  	 */
-	TSharedPtr<FSlateFontCache>& GetFontCache() { return FontCache; }
+	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 
 	/** 
 	 * Initializes resources if needed

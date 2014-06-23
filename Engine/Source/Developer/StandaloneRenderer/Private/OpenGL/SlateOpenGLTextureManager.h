@@ -20,7 +20,7 @@ public:
 	/**
 	 * Returns a texture with the passed in name or NULL if it cannot be found.
 	 */
-	virtual FSlateShaderResourceProxy* GetTexture( const FSlateBrush& InBrush );
+	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
 
 	/**
 	 * Creates a 1x1 texture of the specified color

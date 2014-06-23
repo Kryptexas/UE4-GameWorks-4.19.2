@@ -24,7 +24,7 @@ public:
 	/**
 	 * Returns a texture with the passed in name or NULL if it cannot be found.
 	 */
-	virtual FSlateShaderResourceProxy* GetTexture( const FSlateBrush& InBrush );
+	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
 
 	void CreateTextureNoAtlas( const FSlateBrush& InBrush );
 
