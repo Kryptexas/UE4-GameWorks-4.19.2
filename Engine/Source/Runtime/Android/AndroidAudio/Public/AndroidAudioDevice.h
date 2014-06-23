@@ -110,8 +110,6 @@ public:
 	FSLESAudioDevice*			AudioDevice;
 	/** Data */
 	uint8*					AudioData;
-	/** Resource ID of associated USoundeWave */
-	int						ResourceID;
 	/** Human readable name of resource, most likely name of UObject associated during caching. */
 	FString					ResourceName;
 

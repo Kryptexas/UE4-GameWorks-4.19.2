@@ -424,8 +424,11 @@ void USoundWave::FreeResources()
 	}
 
 	// Just in case the data was created but never uploaded
-	FMemory::Free(RawPCMData);
-	RawPCMData = NULL;
+	if (RawPCMData != NULL)
+	{
+		FMemory::Free(RawPCMData);
+		RawPCMData = NULL;
+	}
 
 	// Remove the compressed copy of the data
 	RemoveAudioResource();
