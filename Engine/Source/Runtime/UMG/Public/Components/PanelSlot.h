@@ -6,7 +6,7 @@
 
 /** The base class for all Slots in UMG. */
 UCLASS()
-class UMG_API UPanelSlot : public UObject
+class UMG_API UPanelSlot : public UVisual
 {
 	GENERATED_UCLASS_BODY()
 

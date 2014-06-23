@@ -53,6 +53,7 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 	
 	//TODO UMG Make the Widget Tree actually a tree, instead of a list, it makes things like removal difficult.
 	
+	// If the widget being removed is a panel (has children) we need to delete all of its children first.
 	if ( UPanelWidget* InNonLeafRemovedWidget = Cast<UPanelWidget>(InRemovedWidget) )
 	{
 		while ( InNonLeafRemovedWidget->GetChildrenCount() > 0 )
@@ -60,16 +61,26 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 			RemoveWidget(InNonLeafRemovedWidget->GetChildAt(0));
 		}
 	}
-	
+
+	//TODO UMG This is slow, don't do this.  Need simpler way to manage finding parents
+
+	// Get the parent widget for this widget.
 	for ( UWidget* Template : WidgetTemplates )
 	{
 		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
 		if ( NonLeafTemplate )
 		{
-			if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )
+			for ( int32 ChildIndex = 0; ChildIndex < NonLeafTemplate->GetChildrenCount(); ChildIndex++ )
 			{
-				NonLeafTemplate->Modify();
-				return true;
+				if ( NonLeafTemplate->GetChildAt(ChildIndex) == InRemovedWidget )
+				{
+					NonLeafTemplate->Modify();
+
+					if ( NonLeafTemplate->RemoveChild(InRemovedWidget) )
+					{
+						return true;
+					}
+				}
 			}
 		}
 	}
@@ -79,6 +90,8 @@ bool UWidgetTree::RemoveWidgetRecursive(UWidget* InRemovedWidget)
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
+	InRemovedWidget->Modify();
+
 	bool bRemoved = RemoveWidgetRecursive(InRemovedWidget);
 	int32 IndexRemoved = WidgetTemplates.Remove(InRemovedWidget);
 	

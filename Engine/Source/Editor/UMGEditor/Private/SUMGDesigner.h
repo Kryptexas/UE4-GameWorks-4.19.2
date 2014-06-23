@@ -29,6 +29,8 @@ public:
 	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override;
+
 	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
 
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
@@ -43,6 +45,9 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
+	/** Displays the context menu when you right click */
+	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+
 	void OnEditorSelectionChanged();
 
 	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
@@ -123,9 +128,14 @@ private:
 
 	FVector2D CachedDesignerWidgetLocation;
 
-	/** The currently selected widget */
+	/** The currently selected set of widgets */
 	TSet< FWidgetReference > SelectedWidgets;
+
+	/** TODO UMG Remove, after getting multiselection working. */
 	FWidgetReference SelectedWidget;
+
+	/** The location in selected widget local space where the context menu was summoned. */
+	FVector2D SelectedWidgetContextMenuLocation;
 
 	/** The currently selected slate widget, this is refreshed every frame in case it changes */
 	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;

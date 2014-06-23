@@ -239,71 +239,78 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 {
 	CurrentHandle = HitTestDragHandles(MyGeometry, MouseEvent);
 
-	if ( CurrentHandle == DH_NONE )
-	{
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		SelectedWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
-
-		//TODO UMG Undoable Selection
-
-		if ( SelectedWidget.IsValid() )
-		{
-			//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
-			// Set the template as selected in the details panel
-			TSet<FWidgetReference> SelectedTemplates;
-			SelectedTemplates.Add(SelectedWidget);
-			BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
-
-			// Remove all the current extension widgets
-			ExtensionWidgetCanvas->ClearChildren();
-
-			ExtensionWidgets.Reset();
-
-			TArray<FWidgetReference> Selected;
-			Selected.Add(SelectedWidget);
-
-			// Build extension widgets for new selection
-			for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
-			{
-				Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
-			}
-
-			TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
-
-			// Add Widgets to designer surface
-			for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
-			{
-				ExtensionBox->AddSlot()
-					.AutoWidth()
-					[
-						ExWidget
-					];
-			}
-
-			ExtensionWidgetCanvas->AddSlot()
-				.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
-				.Size(FVector2D(100, 25))
-				[
-					ExtensionBox
-				];
-		}
-	}
-	else
+	if ( CurrentHandle != DH_NONE )
 	{
 		BeginTransaction(LOCTEXT("ResizeWidget", "Resize Widget"));
-
-		// Capture mouse for the drag handle
 		return FReply::Handled().PreventThrottling().CaptureMouse(AsShared());
 	}
 
-	return FReply::Handled();
+	//TODO UMG Undoable Selection
+	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+	SelectedWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
+	SelectedWidgetContextMenuLocation = ArrangedWidget.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+
+	if ( SelectedWidget.IsValid() )
+	{
+		//@TODO UMG primary FBlueprintEditor needs to be inherited and selection control needs to be centralized.
+		// Set the template as selected in the details panel
+		TSet<FWidgetReference> SelectedTemplates;
+		SelectedTemplates.Add(SelectedWidget);
+		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
+
+		// Remove all the current extension widgets
+		ExtensionWidgetCanvas->ClearChildren();
+
+		ExtensionWidgets.Reset();
+
+		TArray<FWidgetReference> Selected;
+		Selected.Add(SelectedWidget);
+
+		// Build extension widgets for new selection
+		for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
+		{
+			Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
+		}
+
+		TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
+
+		// Add Widgets to designer surface
+		for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
+		{
+			ExtensionBox->AddSlot()
+				.AutoWidth()
+				[
+					ExWidget
+				];
+		}
+
+		ExtensionWidgetCanvas->AddSlot()
+			.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
+			.Size(FVector2D(100, 25))
+			[
+				ExtensionBox
+			];
+	}
+
+	// Capture mouse for the drag handle and general mouse actions
+	return FReply::Handled().PreventThrottling().CaptureMouse(AsShared());
 }
 
 FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	EndTransaction();
+	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+	{
+		if ( CurrentHandle != DH_NONE )
+		{
+			EndTransaction();
+			CurrentHandle = DH_NONE;
+		}
+	}
+	else if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	{
+		ShowContextMenu(MyGeometry, MouseEvent);
+	}
 
-	CurrentHandle = DH_NONE;
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
@@ -366,6 +373,33 @@ void SUMGDesigner::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	HoveredWidget = FWidgetReference();
 	HoverTime = 0;
+}
+
+FReply SUMGDesigner::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+{
+	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
+
+	if ( BlueprintEditor.Pin()->WidgetCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	{
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void SUMGDesigner::ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), SelectedWidgetContextMenuLocation);
+
+	TSharedPtr<SWidget> MenuContent = MenuBuilder.MakeWidget();
+
+	if ( MenuContent.IsValid() )
+	{
+		FVector2D SummonLocation = MouseEvent.GetScreenSpacePosition();
+		FSlateApplication::Get().PushMenu(AsShared(), MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+	}
 }
 
 bool SUMGDesigner::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const

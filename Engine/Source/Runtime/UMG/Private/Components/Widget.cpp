@@ -278,3 +278,31 @@ FSizeParam UWidget::ConvertSerializedSizeParamToRuntime(const FSlateChildSize& I
 		return FStretch(Input.Value);
 	}
 }
+
+void UWidget::GatherChildren(UWidget* Root, TSet<UWidget*>& Children)
+{
+	UPanelWidget* PanelRoot = Cast<UPanelWidget>(Root);
+	if ( PanelRoot )
+	{
+		for ( int32 ChildIndex = 0; ChildIndex < PanelRoot->GetChildrenCount(); ChildIndex++ )
+		{
+			UWidget* ChildWidget = PanelRoot->GetChildAt(ChildIndex);
+			Children.Add(ChildWidget);
+		}
+	}
+}
+
+void UWidget::GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children)
+{
+	UPanelWidget* PanelRoot = Cast<UPanelWidget>(Root);
+	if ( PanelRoot )
+	{
+		for ( int32 ChildIndex = 0; ChildIndex < PanelRoot->GetChildrenCount(); ChildIndex++ )
+		{
+			UWidget* ChildWidget = PanelRoot->GetChildAt(ChildIndex);
+			Children.Add(ChildWidget);
+
+			GatherAllChildren(ChildWidget, Children);
+		}
+	}
+}

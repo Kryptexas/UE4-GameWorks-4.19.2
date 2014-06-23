@@ -50,8 +50,25 @@ public:
 	/** @return Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
+public:
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
+
+	/** Command list for handling widget actions in the WidgetBlueprintEditor */
+	TSharedPtr< FUICommandList > WidgetCommandList;
+
+	/** Paste Metadata */
+	FVector2D PasteDropLocation;
+
+private:
+	bool CanDeleteSelectedWidgets();
+	void DeleteSelectedWidgets();
+
+	bool CanCopySelectedWidgets();
+	void CopySelectedWidgets();
+
+	bool CanPasteWidgets();
+	void PasteWidgets();
 
 private:
 	/** Updates the inspector to be viewing the currently selected set of widgets */

@@ -24,6 +24,8 @@
 // Components
 #include "SlateWrapperTypes.h"
 
+#include "Visual.h"
+
 #include "PanelSlot.h"
 
 #include "Widget.h"

@@ -48,6 +48,7 @@ private:
 
 	TWeakPtr<class FWidgetBlueprintEditor> WidgetEditor;
 
+	//TODO UMG We probably want to make this a weak object reference.
 	UWidget* TemplateWidget;
 };
 

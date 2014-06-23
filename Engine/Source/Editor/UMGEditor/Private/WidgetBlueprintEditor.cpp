@@ -85,6 +85,73 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	}
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	WidgetCommandList = MakeShareable(new FUICommandList);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Delete,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::DeleteSelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanDeleteSelectedWidgets)
+		);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Copy,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CopySelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
+		);
+
+	//WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+	//	FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedNodes),
+	//	FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutNodes)
+	//	);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
+		);
+}
+
+bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	return Widgets.Num() > 0;
+}
+
+void FWidgetBlueprintEditor::DeleteSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	FWidgetBlueprintEditorUtils::DeleteWidgets(GetWidgetBlueprintObj(), Widgets);
+}
+
+bool FWidgetBlueprintEditor::CanCopySelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	return Widgets.Num() > 0;
+}
+
+void FWidgetBlueprintEditor::CopySelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	FWidgetBlueprintEditorUtils::CopyWidgets(GetWidgetBlueprintObj(), Widgets);
+}
+
+bool FWidgetBlueprintEditor::CanPasteWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	if ( Widgets.Num() == 1 )
+	{
+		FWidgetReference Target = *Widgets.CreateIterator();
+		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != NULL;
+		return bIsPanel;
+	}
+
+	return false;
+}
+
+void FWidgetBlueprintEditor::PasteWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	FWidgetReference Target = *Widgets.CreateIterator();
+
+	FWidgetBlueprintEditorUtils::PasteWidgets(GetWidgetBlueprintObj(), Target, PasteDropLocation);
 }
 
 void FWidgetBlueprintEditor::Tick(float DeltaTime)

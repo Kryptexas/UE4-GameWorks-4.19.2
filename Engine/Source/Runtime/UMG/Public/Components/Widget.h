@@ -21,7 +21,7 @@
  * This is the base class for all wrapped Slate controls that are exposed to UMG.
  */
 UCLASS(Abstract)
-class UMG_API UWidget : public UObject
+class UMG_API UWidget : public UVisual
 {
 	GENERATED_UCLASS_BODY()
 
@@ -180,6 +180,9 @@ public:
 	static TEnumAsByte<ESlateVisibility::Type> ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
+
+	static void GatherChildren(UWidget* Root, TSet<UWidget*>& Children);
+	static void GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children);
 
 protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */

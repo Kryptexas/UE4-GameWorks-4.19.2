@@ -93,6 +93,18 @@ void SUMGEditorTree::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 }
 
+FReply SUMGEditorTree::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+{
+	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
+
+	if ( BlueprintEditor.Pin()->WidgetCommandList->ProcessCommandBindings(InKeyboardEvent) )
+	{
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
 void SUMGEditorTree::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
 {
 	Array.Add(Widget->GetName());
@@ -179,55 +191,11 @@ void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
 }
 
-void SUMGEditorTree::BuildWrapWithMenu(FMenuBuilder& Menu)
-{
-	Menu.BeginSection("WrapWith", LOCTEXT("WidgetTree_WrapWith", "Wrap With..."));
-	{
-		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
-		{
-			UClass* WidgetClass = *ClassIt;
-			if ( WidgetClass->IsChildOf(UPanelWidget::StaticClass()) && WidgetClass->HasAnyClassFlags(CLASS_Abstract) == false )
-			{
-				Menu.AddMenuEntry(
-					WidgetClass->GetDisplayNameText(),
-					FText::GetEmpty(),
-					FSlateIcon(),
-					FUIAction(
-						FExecuteAction::CreateSP(this, &SUMGEditorTree::WrapSelectedWidgets, WidgetClass),
-						FCanExecuteAction()
-					)
-				);
-			}
-		}
-	}
-	Menu.EndSection();
-}
-
 TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
-	MenuBuilder.BeginSection("Actions");
-	{
-		const TArray<UWidget*> SelectionList = WidgetTreeView->GetSelectedItems();
-
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("WidgetTree_Delete", "Delete"),
-			LOCTEXT("WidgetTree_DeleteToolTip", "Deletes the current widget"),
-			FSlateIcon(),
-			FUIAction(
-			FExecuteAction::CreateSP(this, &SUMGEditorTree::DeleteSelected),
-			FCanExecuteAction()
-			)
-		);
-
-		MenuBuilder.AddSubMenu(
-			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
-			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
-			FNewMenuDelegate::CreateSP(this, &SUMGEditorTree::BuildWrapWithMenu)
-		);
-	}
-	MenuBuilder.EndSection();
+	FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(MenuBuilder, BlueprintEditor.Pin().ToSharedRef(), FVector2D(0, 0));
 
 	return MenuBuilder.MakeWidget();
 }
@@ -269,60 +237,20 @@ void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, E
 	}
 }
 
-void SUMGEditorTree::WrapSelectedWidgets(UClass* WidgetClass)
-{
-	const TArray<UWidget*> SelectionList = WidgetTreeView->GetSelectedItems();
-
-	TSharedPtr<FWidgetTemplateClass> Template = MakeShareable(new FWidgetTemplateClass(WidgetClass));
-
-	UWidgetBlueprint* BP = GetBlueprint();
-	UPanelWidget* NewWrapperWidget = CastChecked<UPanelWidget>( Template->Create(BP->WidgetTree) );
-
-	int32 OutIndex;
-	UPanelWidget* CurrentParent = BP->WidgetTree->FindWidgetParent(SelectionList[0], OutIndex);
-	if ( CurrentParent )
-	{
-		CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
-
-		NewWrapperWidget->AddChild(SelectionList[0], FVector2D());
-	}
-
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
-}
-
 FReply SUMGEditorTree::HandleDeleteSelected()
 {
-	DeleteSelected();
+	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	//TArray<UWidget*> SelectedWidgets = WidgetTreeView->GetSelectedItems();
+
+	// Remove the selected items from the widget cache
+	for ( FWidgetReference& Item : SelectedWidgets )
+	{
+		CachedExpandedWidgets.Remove(Item.GetTemplate());
+	}
+
+	FWidgetBlueprintEditorUtils::DeleteWidgets(GetBlueprint(), SelectedWidgets);
 
 	return FReply::Handled();
-}
-
-void SUMGEditorTree::DeleteSelected()
-{
-	TArray<UWidget*> SelectedItems = WidgetTreeView->GetSelectedItems();
-	if ( SelectedItems.Num() > 0 )
-	{
-		UWidgetBlueprint* BP = GetBlueprint();
-
-		const FScopedTransaction Transaction(LOCTEXT("RemoveWidget", "Remove Widget"));
-		BP->WidgetTree->SetFlags(RF_Transactional);
-		BP->WidgetTree->Modify();
-
-		bool bRemoved = false;
-		for ( UWidget* Item : SelectedItems )
-		{
-			bRemoved = BP->WidgetTree->RemoveWidget(Item);
-
-			CachedExpandedWidgets.Remove(Item);
-		}
-
-		//TODO UMG There needs to be an event for widget removal so that caches can be updated, and selection
-
-		if ( bRemoved )
-		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
-		}
-	}
 }
 
 bool SUMGEditorTree::FilterWidgetHierarchy(UWidget* CurrentWidget)
