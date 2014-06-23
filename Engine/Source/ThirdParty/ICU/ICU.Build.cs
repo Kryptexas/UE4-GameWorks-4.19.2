@@ -133,7 +133,9 @@ public class ICU : ModuleRules
                     foreach (string Stem in LibraryNameStems)
                     {
                         string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + ".53.1" + "." + DynamicLibraryExtension;
-                        PublicDelayLoadDLLs.Add(UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName);
+                        string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName;
+                        PublicDelayLoadDLLs.Add(LibraryPath);
+                        PublicAdditionalShadowFiles.Add(LibraryPath);
                     }
                     break;
             }
