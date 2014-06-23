@@ -176,7 +176,7 @@ FBodyInstance* FRigidBodyCollisionInfo::GetBodyInstance() const
 
 bool FCollisionNotifyInfo::IsValidForNotify() const
 {
-	return (Info0.Actor.IsValid() && Info1.Actor.IsValid());
+	return (Info0.Component.IsValid() && Info1.Component.IsValid());
 }
 
 /** Iterate over ContactInfos array and swap order of information */

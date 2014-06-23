@@ -712,13 +712,13 @@ void FPhysScene::DispatchPhysNotifications()
 			FCollisionNotifyInfo& NotifyInfo = PendingCollisionNotifies[i];
 			if (NotifyInfo.RigidCollisionData.ContactInfos.Num() > 0)
 			{
-				if (NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify())
+				if (NotifyInfo.bCallEvent0 && NotifyInfo.IsValidForNotify() && NotifyInfo.Info0.Actor.IsValid())
 				{
 					NotifyInfo.Info0.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info0, NotifyInfo.Info1, NotifyInfo.RigidCollisionData);
 				}
 
 				// Need to check IsValidForNotify again in case first call broke something.
-				if (NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify())
+				if (NotifyInfo.bCallEvent1 && NotifyInfo.IsValidForNotify() && NotifyInfo.Info1.Actor.IsValid())
 				{
 					NotifyInfo.RigidCollisionData.SwapContactOrders();
 					NotifyInfo.Info1.Actor->DispatchPhysicsCollisionHit(NotifyInfo.Info1, NotifyInfo.Info0, NotifyInfo.RigidCollisionData);
