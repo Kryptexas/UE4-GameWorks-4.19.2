@@ -280,25 +280,17 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 {
 	if (Struct)
 	{
-		const FName NewNameBase(*NewDisplayNameStr);
-		if (NewNameBase.IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
+		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+		if (VarDesc &&
+			FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
 			IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
-			const FName NewName = FMemberVariableNameHelper::Generate(Struct, NewDisplayNameStr);
-			if (NULL == GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(NewName)))
-			{
-				auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-				if (VarDesc)
-				{
-					const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));
-					ModifyStructData(Struct);
+			const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));
+			ModifyStructData(Struct);
 
-					VarDesc->FriendlyName = NewDisplayNameStr;
-					VarDesc->VarName = NewName;
-					OnStructureChanged(Struct);
-					return true;
-				}
-			}
+			VarDesc->FriendlyName = NewDisplayNameStr;
+			OnStructureChanged(Struct);
+			return true;
 		}
 	}
 	return false;
