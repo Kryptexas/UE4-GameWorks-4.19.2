@@ -166,6 +166,22 @@ private:
 	* @return True if the two nodes are connected in the graph, otherwise false.
 	*/
 	bool AreNodesGraphicallySequential(UEdGraphNode* InputNode, UEdGraphNode* OutputNode) const;
+
+	/**
+	 * With the introduction of "reroute" (UK2Node_Knot) nodes, we have to 
+	 * backtrace to find a node that was actually executed before the one in 
+	 * question (knot nodes are removed at compile time, and therefore never
+	 * executed).
+	 *
+	 * This function recursively searches for any pins feeding the OutputPin (or 
+	 * the OutputPin itself); it looks for a pin on a non-reroute node (one that
+	 * is listed in NodeExecutionList).
+	 * 
+	 * @param  OutputPin			An exec pin, leading into the node in question (an output pin on some other node).
+	 * @param  NodeExecutionList	A list of pins that feed the execution of a specific node.
+	 * @return Null if OutputPin did not cause the invocation of the node in question, otherwise a valid time pair denoting when the node was executed.
+	 */
+	FTimePair const* BackTraceExecPath(UEdGraphPin const* const OutputPin, FExecPairingMap const* const NodeExecutionList);
 };
 
 /////////////////////////////////////////////////////
