@@ -2,6 +2,7 @@
 
 #pragma once
 #include "GameFramework/HUD.h"
+#include "ShowFlags.h"
 #include "GameplayDebuggingHUDComponent.generated.h"
 
 class AGameplayDebuggingReplicator;

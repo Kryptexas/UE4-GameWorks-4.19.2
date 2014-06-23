@@ -6,6 +6,8 @@
 
 #include "EnginePrivate.h"
 #include "Model.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),
@@ -17,6 +19,21 @@ FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* In
 	MaxVertexIndex(0),
 	BoundingBox(ForceInitToZero)
 {}
+
+FModelElement::FModelElement():
+	Component(NULL), 
+	Material(NULL), 
+	IndexBuffer(NULL), 
+	FirstIndex(0), 
+	NumTriangles(0), 
+	MinVertexIndex(0), 
+	MaxVertexIndex(0), 
+	BoundingBox(ForceInitToZero)
+{}
+
+FModelElement::~FModelElement()
+{}
+
 
 /**
  * Serializer.

@@ -11,6 +11,7 @@
 class FAssetData;
 class UAnimSequence;
 class USkeleton;
+class FPoly;
 
 //
 // Things to set in mapSetBrush.

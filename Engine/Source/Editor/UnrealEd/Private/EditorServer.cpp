@@ -12,6 +12,7 @@
 #include "Layers/ILayers.h"
 #include "ScopedTransaction.h"
 #include "SurfaceIterators.h"
+#include "LightMap.h"
 #include "BSPOps.h"
 #include "EditorLevelUtils.h"
 #include "Editor/MainFrame/Public/MainFrame.h"

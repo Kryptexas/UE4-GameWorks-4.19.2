@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Components/PrimitiveComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "ParticleHelper.h"
 #include "Particles/Emitter.h"
 #include "Particles/ParticleEmitter.h"
@@ -395,7 +396,7 @@ public:
 
 	/** The view relevance flags for each LODLevel. */
 	UPROPERTY(transient)
-	TArray<struct FMaterialRelevance> CachedViewRelevanceFlags;
+	TArray<FMaterialRelevance> CachedViewRelevanceFlags;
 
 	/** If true, the ViewRelevanceFlags are dirty and should be recached */
 	uint32 bIsViewRelevanceDirty:1;

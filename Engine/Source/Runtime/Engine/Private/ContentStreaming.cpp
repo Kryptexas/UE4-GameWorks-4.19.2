@@ -92,7 +92,7 @@ TArray<IStreamingManager::FSlaveLocation> IStreamingManager::SlaveLocations;
 bool IStreamingManager::bPendingRemoveViews = false;
 
 /** The lightmap used by the currently selected component (toggledebugcamera), if it's a static mesh component. */
-extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
+extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 
 /** Whether the texture pool size has been artificially lowered for testing. */
 bool GIsOperatingWithReducedTexturePool = false;

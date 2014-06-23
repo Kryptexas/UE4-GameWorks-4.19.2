@@ -8,7 +8,7 @@
 #define __LIGHTMAPRENDERING_H__
 
 extern ENGINE_API bool GShowDebugSelectedLightmap;
-extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
+extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 extern bool GVisualizeMipLevels;
 
 /**

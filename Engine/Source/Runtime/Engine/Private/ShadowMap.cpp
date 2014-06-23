@@ -4,6 +4,8 @@
 
 #include "TextureLayout.h"
 #include "TargetPlatform.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 #if WITH_EDITOR
 	// NOTE: We're only counting the top-level mip-map for the following variables.

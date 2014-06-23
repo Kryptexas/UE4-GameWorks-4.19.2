@@ -17,6 +17,8 @@ Landscape.cpp: Terrain rendering
 #include "Landscape/Landscape.h"
 #include "Landscape/LandscapeMeshCollisionComponent.h"
 #include "Landscape/LandscapeSplinesComponent.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 // Set this to 0 to disable landscape cooking and thus disable it on device.
 #define ENABLE_LANDSCAPE_COOKING 1
@@ -88,6 +90,12 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 
 	LpvBiasMultiplier = 0.0f; // Bias is 0 for landscape, since it's single sided
 }
+
+ULandscapeComponent::~ULandscapeComponent()
+{
+
+}
+
 
 void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {

@@ -8,6 +8,8 @@
 
 #include "BatchedElements.h"
 
+class FMaterialRenderProxy;
+
 class FCanvasItem
 {
 public:

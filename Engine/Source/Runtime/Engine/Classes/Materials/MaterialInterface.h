@@ -10,6 +10,7 @@
 class UMaterial;
 class FMaterialResource;
 class FMaterialCompiler;
+struct FPrimitiveViewRelevance;
 
 UENUM()
 enum EMaterialUsage
@@ -25,6 +26,68 @@ enum EMaterialUsage
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
 	MATUSAGE_MAX,
+};
+
+USTRUCT()
+struct ENGINE_API FMaterialRelevance
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	uint32 bOpaque : 1;
+
+	UPROPERTY()
+		uint32 bMasked : 1;
+
+	UPROPERTY()
+		uint32 bDistortion : 1;
+
+	UPROPERTY()
+		uint32 bUsesSceneColor : 1;
+
+	UPROPERTY()
+		uint32 bSeparateTranslucency : 1;
+
+	UPROPERTY()
+		uint32 bNormalTranslucency : 1;
+
+	UPROPERTY()
+		uint32 bDisableDepthTest : 1;
+
+	/** Default constructor. */
+	FMaterialRelevance()
+		: bOpaque(false)
+		, bMasked(false)
+		, bDistortion(false)
+		, bUsesSceneColor(false)
+		, bSeparateTranslucency(false)
+		, bNormalTranslucency(false)
+		, bDisableDepthTest(false)
+	{}
+
+	/** Bitwise OR operator.  Sets any relevance bits which are present in either FMaterialRelevance. */
+	FMaterialRelevance& operator|=(const FMaterialRelevance& B)
+	{
+		bOpaque |= B.bOpaque;
+		bMasked |= B.bMasked;
+		bDistortion |= B.bDistortion;
+		bUsesSceneColor |= B.bUsesSceneColor;
+		bSeparateTranslucency |= B.bSeparateTranslucency;
+		bNormalTranslucency |= B.bNormalTranslucency;
+		bDisableDepthTest |= B.bDisableDepthTest;
+		return *this;
+	}
+
+	/** Binary bitwise OR operator. */
+	friend FMaterialRelevance operator|(const FMaterialRelevance& A, const FMaterialRelevance& B)
+	{
+		FMaterialRelevance Result(A);
+		Result |= B;
+		return Result;
+	}
+
+	/** Copies the material's relevance flags to a primitive's view relevance flags. */
+	void SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const;
 };
 
 /** 

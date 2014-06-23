@@ -8,6 +8,8 @@
 #include "StaticMeshResources.h"
 #include "LevelUtils.h"
 #include "TessellationRendering.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -1077,6 +1079,16 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 
 	// Use dynamic lighting if the light doesn't have static lighting.
 	return FLightInteraction::Dynamic();
+}
+
+FLightMapInteraction FStaticMeshSceneProxy::FLODInfo::GetLightMapInteraction() const
+{
+	return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
+}
+
+FShadowMapInteraction FStaticMeshSceneProxy::FLODInfo::GetShadowMapInteraction() const
+{
+	return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
 }
 
 float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const

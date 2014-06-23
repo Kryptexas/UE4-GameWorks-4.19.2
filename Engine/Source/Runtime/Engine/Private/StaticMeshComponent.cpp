@@ -8,6 +8,8 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "ComponentInstanceDataCache.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
@@ -137,6 +139,11 @@ UStaticMeshComponent::UStaticMeshComponent(const class FPostConstructInitializeP
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
 #endif
+}
+
+UStaticMeshComponent::~UStaticMeshComponent()
+{
+	// Empty, but required because we don't want to have to include LightMap.h and ShadowMap.h in StaticMeshComponent.h, and they are required to compile FLightMapRef and FShadowMapRef
 }
 
 void UStaticMeshComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

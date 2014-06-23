@@ -2,10 +2,9 @@
 
 
 #pragma once
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "SceneTypes.h"
 #include "Components/MeshComponent.h"
-#include "Runtime/RenderCore/Public/RenderUtils.h"
+#include "Runtime/RenderCore/Public/PackedNormal.h"
 #include "StaticMeshComponent.generated.h"
 
 class FColorVertexBuffer;
@@ -178,6 +177,8 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	/** The Lightmass settings for this object. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lighting)
 	struct FLightmassPrimitiveSettings LightmassSettings;
+
+	virtual ~UStaticMeshComponent();
 
 	/** Change the StaticMesh used by this instance. */
 	UFUNCTION(BlueprintCallable, Category="Components|StaticMesh")

@@ -3,6 +3,66 @@
 
 #pragma once
 
+/** A normal vector, quantized and packed into 32-bits. */
+struct FPackedNormal
+{
+	union
+	{
+		struct
+		{
+#if PLATFORM_LITTLE_ENDIAN
+			uint8	X,
+			Y,
+			Z,
+			W;
+#else
+			uint8	W,
+			Z,
+			Y,
+			X;
+#endif
+		};
+		uint32		Packed;
+	}				Vector;
+
+	// Constructors.
+
+	FPackedNormal() { Vector.Packed = 0; }
+	FPackedNormal(uint32 InPacked) { Vector.Packed = InPacked; }
+	FPackedNormal(const FVector& InVector) { *this = InVector; }
+	FPackedNormal(uint8 InX, uint8 InY, uint8 InZ, uint8 InW) { Vector.X = InX; Vector.Y = InY; Vector.Z = InZ; Vector.W = InW; }
+
+	// Conversion operators.
+
+	void operator=(const FVector& InVector);
+	void operator=(const FVector4& InVector);
+	operator FVector() const;
+	VectorRegister GetVectorRegister() const;
+
+	// Set functions.
+	void Set(const FVector& InVector) { *this = InVector; }
+
+	// Equality operator.
+
+	bool operator==(const FPackedNormal& B) const;
+	bool operator!=(const FPackedNormal& B) const;
+
+	// Serializer.
+
+	friend RENDERCORE_API FArchive& operator<<(FArchive& Ar, FPackedNormal& N);
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("X=%d Y=%d Z=%d W=%d"), Vector.X, Vector.Y, Vector.Z, Vector.W);
+	}
+
+	// Zero Normal
+	static RENDERCORE_API FPackedNormal ZeroNormal;
+};
+
+/** X=127.5, Y=127.5, Z=1/127.5f, W=-1.0 */
+extern RENDERCORE_API const VectorRegister GVectorPackingConstants;
+
 FORCEINLINE void FPackedNormal::operator=(const FVector& InVector)
 {
 	Vector.X = FMath::Clamp(FMath::TruncToInt(InVector.X * 127.5f + 127.5f),0,255);

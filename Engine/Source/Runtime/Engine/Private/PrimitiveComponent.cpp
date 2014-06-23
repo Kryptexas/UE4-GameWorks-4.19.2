@@ -33,20 +33,6 @@ static FAutoConsoleVariable CVarAllowCachedOverlaps(
 	TEXT("0: disable cached overlaps, 1: enable\n"));
 
 
-//////////////////////////////////////////////////////////////////////////
-// FMaterialRelevance
-
-/** Copies the material's relevance flags to a primitive's view relevance flags. */
-void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const
-{
-	OutViewRelevance.bOpaqueRelevance = bOpaque;
-	OutViewRelevance.bMaskedRelevance = bMasked;
-	OutViewRelevance.bDistortionRelevance = bDistortion;
-	OutViewRelevance.bSceneColorRelevance = bUsesSceneColor;
-	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
-	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // PRIMITIVE COMPONENT
 ///////////////////////////////////////////////////////////////////////////////

@@ -8,7 +8,8 @@
 #include "LevelUtils.h"
 #include "Model.h"
 #include "HModel.h"
-
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 namespace
 {

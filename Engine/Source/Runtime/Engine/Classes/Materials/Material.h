@@ -3,7 +3,7 @@
 #pragma once
 #include "../Engine/BlendableInterface.h"
 #include "../Materials/MaterialInterface.h"
-#include "MaterialShared.h"
+#include "MaterialExpressionIO.h"
 #include "Material.generated.h"
 
 #if WITH_EDITOR
@@ -256,7 +256,7 @@ struct FMaterialParameterCollectionInfo
  * when light from the scene hits the surface, the shading model of the material is used to calculate how
  * that light interacts with the surface. 
  */
-UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType, DependsOn=UMaterialExpression)
 class UMaterial : public UMaterialInterface
 {
 	GENERATED_UCLASS_BODY()

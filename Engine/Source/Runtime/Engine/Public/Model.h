@@ -9,8 +9,7 @@
 #include "RawIndexBuffer.h"
 #include "LocalVertexFactory.h"
 #include "RenderUtils.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "SceneTypes.h"
 
 struct FStaticLightingVertex;
 class ABrush;
@@ -614,17 +613,9 @@ public:
 	/**
 	 * Minimal initialization constructor.
 	 */
-	FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial);
-	FModelElement() 
-		: Component(NULL)
-		, Material(NULL)
-		, IndexBuffer(NULL)
-		, FirstIndex(0)
-		, NumTriangles(0)
-		, MinVertexIndex(0)
-		, MaxVertexIndex(0)
-		, BoundingBox(ForceInitToZero)
-	{}
+	ENGINE_API FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial);
+	ENGINE_API FModelElement();
+	ENGINE_API virtual ~FModelElement();
 
 	/**
 	 * Serializer.

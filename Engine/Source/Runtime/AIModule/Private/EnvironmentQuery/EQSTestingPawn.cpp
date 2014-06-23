@@ -19,6 +19,7 @@ extern UNREALED_API class UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
 #include "Engine/Selection.h"
+#include "Engine/Texture2D.h"
 #include "Components/BillboardComponent.h"
 
 //----------------------------------------------------------------------//

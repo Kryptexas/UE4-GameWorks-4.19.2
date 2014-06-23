@@ -118,8 +118,7 @@ private:
 	virtual void FinishCleanup();
 };
 
-/** A reference to a light-map. */
-typedef TRefCountPtr<FLightMap> FLightMapRef;
+
 
 /** Lightmap reference serializer */
 extern FArchive& operator<<(FArchive& Ar,FLightMap*& R);

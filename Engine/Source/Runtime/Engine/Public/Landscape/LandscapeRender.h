@@ -10,6 +10,9 @@ LandscapeRender.h: New terrain rendering
 #include "UniformBuffer.h"
 #include "Landscape/LandscapeComponent.h"
 #include "Landscape/LandscapeProxy.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
+
 
 class FLandscapeVertexFactory;
 class FLandscapeVertexBuffer;

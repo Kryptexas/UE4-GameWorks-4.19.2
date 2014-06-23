@@ -949,15 +949,10 @@ protected:
 		// FLightCacheInterface.
 		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
 
-		virtual FLightMapInteraction GetLightMapInteraction() const
-		{
-			return LightMap ? LightMap->GetInteraction() : FLightMapInteraction();
-		}
+		virtual FLightMapInteraction GetLightMapInteraction() const;
 
-		virtual FShadowMapInteraction GetShadowMapInteraction() const
-		{
-			return ShadowMap ? ShadowMap->GetInteraction() : FShadowMapInteraction();
-		}
+		virtual FShadowMapInteraction GetShadowMapInteraction() const;
+
 
 	private:
 

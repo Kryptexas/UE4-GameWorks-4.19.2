@@ -6,6 +6,9 @@
 
 #pragma once
 
+class FPrimitiveDrawInterface;
+class FMaterialRenderProxy;
+
 /** The vertex type used for dynamic meshes. */
 struct FDynamicMeshVertex
 {

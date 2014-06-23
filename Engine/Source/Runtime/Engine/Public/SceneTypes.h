@@ -5,6 +5,14 @@
 class FLightMap;
 class FShadowMap;
 class FSceneViewStateInterface;
+class FLightMap;
+class FShadowMap;
+
+/** A reference to a light-map. */
+typedef TRefCountPtr<FLightMap> FLightMapRef;
+
+/** A reference to a shadow-map. */
+typedef TRefCountPtr<FShadowMap> FShadowMapRef;
 
 /** 
  * Class used to identify UPrimitiveComponents on the rendering thread without having to pass the pointer around, 

@@ -10,6 +10,7 @@
 #include "GameplayDebuggingControllerComponent.h"
 #include "CanvasItem.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "Engine/Texture2D.h"
 #include "Regex.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"					// Game play timers

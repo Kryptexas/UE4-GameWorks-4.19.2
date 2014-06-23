@@ -2,8 +2,7 @@
 
 #pragma once
 #include "LandscapeLayerInfoObject.h"
-#include "LightMap.h"
-#include "ShadowMap.h"
+#include "SceneTypes.h"
 #include "LandscapeComponent.generated.h"
 
 class FLandscapeComponentDerivedData
@@ -236,6 +235,8 @@ public:
 	struct FLandscapeEditToolRenderData* EditToolRenderData;
 	/** Platform Data where don't support texture sampling in vertex buffer */
 	FLandscapeComponentDerivedData PlatformData;
+
+	virtual ~ULandscapeComponent();
 
 	// Begin UObject interface.	
 	virtual void PostInitProperties() override;	

@@ -6,6 +6,8 @@
 #include "PrimitiveStats.h"
 #include "Landscape/LandscapeProxy.h"
 #include "Landscape/LandscapeComponent.h"
+#include "LightMap.h"
+#include "ShadowMap.h"
 
 #define LOCTEXT_NAMESPACE "Editor.StatsViewer.PrimitiveStats"
 

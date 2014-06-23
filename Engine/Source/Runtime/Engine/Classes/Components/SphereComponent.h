@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/ShapeComponent.h"
 #include "SphereComponent.generated.h"
 
 /** 

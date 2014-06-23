@@ -9,6 +9,8 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/DebugCameraHUD.h"
+#include "LightMap.h"
+
 
 /** The currently selected actor. */
 AActor* GDebugSelectedActor = NULL;

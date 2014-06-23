@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/PrimitiveComponent.h"
 #include "TextRenderComponent.generated.h"
 
 UENUM()
