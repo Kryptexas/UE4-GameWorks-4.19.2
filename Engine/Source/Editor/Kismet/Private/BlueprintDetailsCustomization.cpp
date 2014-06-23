@@ -637,7 +637,7 @@ bool FBlueprintVarActionDetails::IsABlueprintVariable(UProperty* VariablePropert
 
 bool FBlueprintVarActionDetails::IsALocalVariable(UProperty* VariableProperty) const
 {
-	return Cast<UFunction>(VariableProperty->GetOuter()) != NULL;
+	return VariableProperty && (Cast<UFunction>(VariableProperty->GetOuter()) != NULL);
 }
 
 bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
