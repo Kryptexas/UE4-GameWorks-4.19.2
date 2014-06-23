@@ -544,35 +544,7 @@ void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
 	{
 		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
 		{
-			if(ActorToViewThrough)
-			{
-				LevelVC->SetViewLocation(ActorToViewThrough->GetActorLocation());
-				LevelVC->SetViewRotation(ActorToViewThrough->GetActorRotation());
-			}
-			else
-			{
-				LevelVC->ViewFOV = LevelVC->FOVAngle;
-			}
-
-			ACameraActor* Camera = Cast<ACameraActor>(ActorToViewThrough);
-
-			// If viewing through a camera - PP settings of camera.
-			LevelVC->SetPostprocessCameraActor(Camera);
-
-			if(Camera)
-			{
-				LevelVC->ViewFOV = LevelVC->FOVAngle = Camera->CameraComponent->FieldOfView;
-				// If the Camera's aspect ratio is zero, put a more reasonable default here - this at least stops it from crashing
-				// nb. the AspectRatio will be reported as a Map Check Warning
-				if(Camera->CameraComponent->AspectRatio == 0)
-				{
-					LevelVC->AspectRatio = 1.7f;
-				}
-				else
-				{
-					LevelVC->AspectRatio = Camera->CameraComponent->AspectRatio;
-				}
-			}
+			LevelVC->SetMatineeActorLock(ActorToViewThrough);
 		}
 	}
 }

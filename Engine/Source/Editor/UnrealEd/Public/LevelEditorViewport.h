@@ -158,7 +158,6 @@ public:
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	virtual FSceneInterface* GetScene() const override;
 	virtual FLinearColor GetBackgroundColor() const override;
-	virtual bool IsAspectRatioConstrained() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
@@ -218,25 +217,9 @@ public:
 	bool IsVolumeVisibleInViewport( const AActor& VolumeActor ) const;
 
 	/**
-	 * Sets the actor that should "drive" this view's location and other settings
-	 *
-	 * @param	Actor	The actor that will push view settings to this view
+	 * Updates or resets view properties such as aspect ratio, FOV, location etc to match that of any actor we are locked to
 	 */
-	void SetControllingActor( const AActor* Actor )
-	{
-		ControllingActor = Actor;
-	}
-
-	/** Called every time the viewport is ticked to update the view based on an actor that is
-		driving the location, FOV and other settings for this view.  This is used for live camera PIP
-		preview within editor viewports */
-	void PushControllingActorDataToViewportClient();
-
-
-	/**
-	 * Allows to set the postprocess camera actor to unset it (0)
-	 */
-	void SetPostprocessCameraActor(ACameraActor* InPostprocessCameraActor);
+	void UpdateViewForLockedActor();
 
 	/**
 	 * Returns the horizontal axis for this viewport.
@@ -454,6 +437,25 @@ public:
 			return TWeakObjectPtr<AActor>();
 		}
 		return ActorLockedToCamera;
+	}
+	
+	/** 
+	 * Find the camera component that is driving this viewport, in the following order of preference:
+	 *		1. Matinee locked actor
+	 *		2. User actor lock (if (bLockedCameraView is true)
+	 * 
+	 * @return  Pointer to a camera component to use for this viewport's view
+	 */
+	UCameraComponent* GetCameraComponentForView() const
+	{
+		const AActor* LockedActor = ActorLockedByMatinee.Get();
+
+		if (!LockedActor && bLockedCameraView)
+		{
+			LockedActor = ActorLockedToCamera.Get();
+		}
+
+		return LockedActor ? LockedActor->FindComponentByClass<UCameraComponent>() : nullptr;
 	}
 
 	/** 
@@ -773,20 +775,15 @@ public:
 	 */
 	bool					bIsTrackingBrushModification;
 
+	/** True if this viewport is to change its view (aspect ratio, post processing, FOV etc) to match that of the currently locked camera, if applicable */
+	bool					bLockedCameraView;
+
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
 
-	/** Optional actor that is 'controlling' this view.  That is, the view's location, rotation, FOV and other settings
-		should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
-	TWeakObjectPtr< AActor > ControllingActor;
-
 	/** Bit array representing the visibility of every sprite category in the current viewport */
 	TBitArray<>	SpriteCategoryVisibility;
-
-
-	/** Valid if there is a camera available that can override the post process setting */
-	TWeakObjectPtr<class ACameraActor> PostprocessCameraActor;
 
 	UWorld* World;
 
@@ -799,11 +796,13 @@ private:
 	/** If this view was controlled by another view this/last frame, don't update itself */
 	bool bWasControlledByOtherViewport;
 
-	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
-	TWeakObjectPtr<AActor>	ActorLockedToCamera;
-
-	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
+	/**
+	 * When locked to an actor this view will be positioned in the same location and rotation as the actor.
+	 * If the actor has a camera component the view will also inherit camera settings such as aspect ratio, FOV, post processing settings, and the like.
+	 * A viewport locked to an actor by Matinee will always take precedent over any other.
+	 */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
+	TWeakObjectPtr<AActor>	ActorLockedToCamera;
 
 	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
 	FStatUnitData*			StatUnitData;

@@ -68,6 +68,9 @@ public:
 	/** Toggles immersive mode in the viewport */
 	TSharedPtr< FUICommandInfo > ToggleImmersive;
 
+	/** Toggles showing the exact camera view when locking a viewport to a camera */
+	TSharedPtr< FUICommandInfo > ToggleLockedCameraView;
+
 	/** Toggles maximize mode in the viewport */
 	TSharedPtr< FUICommandInfo > ToggleMaximize;
 

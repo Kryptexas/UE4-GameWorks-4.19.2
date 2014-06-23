@@ -1771,13 +1771,12 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 	, bDuplicateActorsOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
-	, ControllingActor(NULL)
 	, SpriteCategoryVisibility()
-	, PostprocessCameraActor(NULL)
 	, World(NULL)
 	, TrackingTransaction()
 	, DropPreviewMouseX(0)
 	, DropPreviewMouseY(0)
+	, bLockedCameraView(true)
 	, bWasControlledByOtherViewport(false)
 {
 	// By default a level editor viewport is pointed to the editor world
@@ -1922,24 +1921,9 @@ FSceneView* FLevelEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFami
 
 }
 
-void FLevelEditorViewportClient::SetPostprocessCameraActor(ACameraActor* InPostprocessCameraActor)
-{
-	PostprocessCameraActor = InPostprocessCameraActor;
-}
-
 ELevelViewportType FLevelEditorViewportClient::GetViewportType() const
 {
-	UCameraComponent* ActiveCameraComponent = NULL;
-
-	if (AActor* TestActor = GetActiveActorLock().Get())
-	{
-		ActiveCameraComponent = TestActor->FindComponentByClass<UCameraComponent>();
-	}
-
-	if (ControllingActor.Get() != NULL)
-	{
-		ActiveCameraComponent = ControllingActor.Get()->FindComponentByClass<UCameraComponent>();
-	}
+	const UCameraComponent* ActiveCameraComponent = GetCameraComponentForView();
 	
 	if (ActiveCameraComponent != NULL)
 	{
@@ -1953,9 +1937,10 @@ ELevelViewportType FLevelEditorViewportClient::GetViewportType() const
 
 void FLevelEditorViewportClient::OverridePostProcessSettings( FSceneView& View )
 {
-	if(PostprocessCameraActor.IsValid() && PostprocessCameraActor.Get()->CameraComponent.IsValid())
+	const UCameraComponent* CameraComponent = GetCameraComponentForView();
+	if (CameraComponent)
 	{
-		View.OverridePostProcessSettings(PostprocessCameraActor.Get()->CameraComponent->PostProcessSettings, PostprocessCameraActor.Get()->CameraComponent->PostProcessBlendWeight);
+		View.OverridePostProcessSettings(CameraComponent->PostProcessSettings, CameraComponent->PostProcessBlendWeight);
 	}
 }
 
@@ -2218,18 +2203,22 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 		GPerspViewMatrix = View->ViewMatrices.ViewMatrix;
 	}
 
-
-	// If we have a controlling actor, then go ahead and push location and other data from that actor to
-	// this view
-	PushControllingActorDataToViewportClient();
+	UpdateViewForLockedActor();
 }
 
 
-void FLevelEditorViewportClient::PushControllingActorDataToViewportClient()
+void FLevelEditorViewportClient::UpdateViewForLockedActor()
 {
-	bUseControllingActorViewInfo = false;
+	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
+	if ( !bAllowMatineePreview && ActorLockedByMatinee.IsValid() )
+	{
+		ActorLockedByMatinee = nullptr;
+	}
 
-	AActor* Actor = ControllingActor.Get();
+	bUseControllingActorViewInfo = false;
+	ControllingActorViewInfo = FMinimalViewInfo();
+
+	const AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
 	{
 		// Update transform
@@ -2247,21 +2236,21 @@ void FLevelEditorViewportClient::PushControllingActorDataToViewportClient()
 			SetViewRotation( Actor->GetRootComponent()->RelativeRotation );
 		}
 
-		// If this is a camera actor, then inherit some other settings!
-		UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
-		if( CameraComponent != NULL )
+		if( bLockedCameraView )
 		{
-			bUseControllingActorViewInfo = true;
-			CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+			// If this is a camera actor, then inherit some other settings
+			UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
+			if( CameraComponent != NULL )
+			{
+				bUseControllingActorViewInfo = true;
+				CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
 
-			//@TODO: CAMERA: Not copying nearly enough information here!
-			ViewFOV = ControllingActorViewInfo.FOV;
-			AspectRatio = ControllingActorViewInfo.AspectRatio;
-			SetViewLocation(ControllingActorViewInfo.Location);
-			SetViewRotation(ControllingActorViewInfo.Rotation);
-
-			// Tell the viewport to use post-process settings from the camera
-			SetPostprocessCameraActor( Cast<ACameraActor>(Actor) );
+				// Post processing is handled by OverridePostProcessingSettings
+				ViewFOV = ControllingActorViewInfo.FOV;
+				AspectRatio = ControllingActorViewInfo.AspectRatio;
+				SetViewLocation(ControllingActorViewInfo.Location);
+				SetViewRotation(ControllingActorViewInfo.Rotation);
+			}
 		}
 	}
 }
@@ -3939,29 +3928,17 @@ void FLevelEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProx
 
 bool FLevelEditorViewportClient::GetActiveSafeFrame(float& OutAspectRatio) const
 {
-	ACameraActor* LockedCamera = NULL;
-
 	if (!IsOrtho())
 	{
-		ACameraActor* Camera = NULL;
-
-		if (ActorLockedByMatinee.IsValid())
+		const UCameraComponent* CameraComponent = GetCameraComponentForView();
+		if (CameraComponent && CameraComponent->bConstrainAspectRatio)
 		{
-			Camera = Cast<ACameraActor>(ActorLockedByMatinee.Get());
-		}
-		else if (ActorLockedToCamera.IsValid())
-		{
-			Camera = Cast<ACameraActor>(ActorLockedToCamera.Get());
-		}
-
-		if (Camera != NULL && Camera->CameraComponent->bConstrainAspectRatio)
-		{
-			LockedCamera = Camera;
-			OutAspectRatio = Camera->CameraComponent->AspectRatio;
+			OutAspectRatio = CameraComponent->AspectRatio;
+			return true;
 		}
 	}
 
-	return LockedCamera != NULL;
+	return false;
 }
 
 void FLevelEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type NewAxis )
@@ -4416,18 +4393,6 @@ FSceneInterface* FLevelEditorViewportClient::GetScene() const
 FLinearColor FLevelEditorViewportClient::GetBackgroundColor() const
 {
 	return IsPerspective() ? GEditor->C_WireBackground : GEditor->C_OrthoBackground;
-}
-
-bool FLevelEditorViewportClient::IsAspectRatioConstrained() const
-{
-	if (PostprocessCameraActor.IsValid())
-	{
-		return PostprocessCameraActor.Get()->CameraComponent->bConstrainAspectRatio;
-	}
-	else
-	{
-		return FEditorViewportClient::IsAspectRatioConstrained();
-	}
 }
 
 int32 FLevelEditorViewportClient::GetCameraSpeedSetting() const

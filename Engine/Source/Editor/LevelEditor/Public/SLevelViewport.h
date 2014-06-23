@@ -191,6 +191,16 @@ public:
 	bool IsSelectedActorLocked() const;
 
 	/**
+	 * Toggles enabling the exact camera view when locking a viewport to a camera
+	 */
+	void ToggleLockedCameraView();
+
+	/**
+	 * Check whether locked camera view is enabled
+	 */
+	bool IsLockedCameraViewEnabled() const;
+
+	/**
 	 * @return the fixed width that a column returned by CreateActorLockSceneOutlinerColumn expects to be
 	 */
 	static float GetActorLockSceneOutlinerColumnWidth();

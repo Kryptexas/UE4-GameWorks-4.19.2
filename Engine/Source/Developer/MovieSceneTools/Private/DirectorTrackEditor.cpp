@@ -174,7 +174,7 @@ FShotSection::FShotSection( TSharedPtr<ISequencer> InSequencer, TSharedPtr<FShot
 		InternalViewportClient->bDrawAxes = false;
 		InternalViewportClient->EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 		InternalViewportClient->EngineShowFlags.DisableAdvancedFeatures();
-		InternalViewportClient->SetControllingActor(Camera.Get());
+		InternalViewportClient->SetActorLock(Camera.Get());
 
 		InternalViewportScene = MakeShareable(new FSceneViewport(InternalViewportClient.Get(), NULL));
 		InternalViewportClient->Viewport = InternalViewportScene.Get();
@@ -345,7 +345,7 @@ void FShotSection::RegenerateViewportThumbnails(const FIntPoint& Size)
 void FShotSection::DrawViewportThumbnail(TSharedPtr<FShotThumbnail> ShotThumbnail)
 {
 	Sequencer.Pin()->SetGlobalTime(ShotThumbnail->GetTime());
-	InternalViewportClient->PushControllingActorDataToViewportClient();
+	InternalViewportClient->UpdateViewForLockedActor();
 			
 	GWorld->SendAllEndOfFrameUpdates();
 	InternalViewportScene->Draw(false);

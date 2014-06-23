@@ -3883,11 +3883,8 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 
 		InViewportClient->bEditorCameraCut = false;
 	}
-	//@TODO: CAMERA: Unify this code path with the code in EditorViewportClient when viewing thru an actor that contains a camera component (e.g., SActorPreview)
 
-	// If viewing through a camera - PP settings of camera.
-	InViewportClient->SetPostprocessCameraActor(Cam);
-
+	// Set the actor lock.
 	InViewportClient->SetMatineeActorLock(InActor);
 
 	// If viewing through a camera - enforce aspect ratio.
@@ -3948,7 +3945,7 @@ void FMatinee::RestoreLevelViewports()
 			FLevelEditorViewportClient* LevelVC = GEditor->LevelViewportClients[ SavedData.ViewIndex ];
 			if ( LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
 			{
-				LevelVC->SetPostprocessCameraActor(0);
+				LevelVC->SetMatineeActorLock( nullptr );
 				LevelVC->SetViewRotation( SavedData.ViewRotation );
 				LevelVC->SetViewLocation( SavedData.ViewLocation );				
 			}

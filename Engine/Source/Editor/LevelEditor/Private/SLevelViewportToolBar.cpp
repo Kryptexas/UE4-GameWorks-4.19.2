@@ -442,6 +442,8 @@ static void OnGenerateActorLockingMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 	const FLevelViewportCommands& Actions = FLevelViewportCommands::Get();
 	FLevelEditorViewportClient& ViewportClient = Viewport.Pin()->GetLevelViewportClient();
 
+	MenuBuilder.AddMenuEntry(Actions.ToggleLockedCameraView);
+
 	bool IsLocked = false;
 	if (ViewportClient.GetActiveActorLock().IsValid())
 	{

@@ -766,17 +766,6 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 		PIEOverlayAnim.Play();
 	}
 
-	// Check to see if the locked actor wants to override the camera settings
-	if( LevelViewportClient->GetActiveActorLock().IsValid() )
-	{
-		AActor* LockedActor = LevelViewportClient->GetActiveActorLock().Get();
-		FMinimalViewInfo CameraInfo;
-		if( GetCameraInformationFromActor(LockedActor, /*out*/ CameraInfo) )
-		{
-			LevelViewportClient->ViewFOV = CameraInfo.FOV;
-		}
-	}
-
 	// Update actor preview viewports, if we have any
 	UpdateActorPreviewViewports();
 
@@ -1028,6 +1017,13 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 		ViewportActions.HighResScreenshot,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnTakeHighResScreenshot ),
 		FCanExecuteAction()
+		);
+
+	CommandList.MapAction(
+		ViewportActions.ToggleLockedCameraView,
+		FExecuteAction::CreateSP(this, &SLevelViewport::ToggleLockedCameraView),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( this, &SLevelViewport::IsLockedCameraViewEnabled )
 		);
 
 	// Map each bookmark action
@@ -1974,6 +1970,16 @@ bool SLevelViewport::IsAnyActorLocked() const
 	return LevelViewportClient->IsAnyActorLocked();
 }
 
+void SLevelViewport::ToggleLockedCameraView()
+{
+	LevelViewportClient->bLockedCameraView = !LevelViewportClient->bLockedCameraView;
+}
+
+bool SLevelViewport::IsLockedCameraViewEnabled() const
+{
+	return LevelViewportClient->bLockedCameraView;
+}
+
 void SLevelViewport::FindSelectedInLevelScript()
 {
 	GUnrealEd->FindSelectedActorsInLevelScript();
@@ -2825,8 +2831,8 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 
 				// Push actor transform to view.  From here on out, this will happen automatically in FLevelEditorViewportClient::Tick.
 				// The reason we allow the viewport client to update this is to avoid off-by-one-frame issues when dragging actors around.
-				ActorPreviewLevelViewportClient->SetControllingActor( CurActor );
-				ActorPreviewLevelViewportClient->PushControllingActorDataToViewportClient();
+				ActorPreviewLevelViewportClient->SetActorLock( CurActor );
+				ActorPreviewLevelViewportClient->UpdateViewForLockedActor();
 			}
 
 			TSharedPtr< SActorPreview > ActorPreviewWidget = SNew(SActorPreview)
