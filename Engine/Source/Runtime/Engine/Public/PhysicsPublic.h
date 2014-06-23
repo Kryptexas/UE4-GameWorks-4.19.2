@@ -347,7 +347,7 @@ public:
 	static bool SupportsOriginShifting() { return true; }
 
 	/** @return Whether physics scene is using substepping */
-	bool IsSubstepping()
+	bool IsSubstepping() const
 	{
 #if WITH_SUBSTEPPING
 		return bSubstepping;
@@ -376,6 +376,10 @@ public:
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
 	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM, bool bAllowSubstepping);
+
+	/** Gets a Kinematic actor's target position - We need to do this here to support substepping
+	  * Returns true if kinematic target has been set. If false the OutTM is invalid */
+	bool GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const;
 
 	/** Gets the collision disable table */
 	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()

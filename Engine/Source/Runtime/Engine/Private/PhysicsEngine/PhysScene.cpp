@@ -161,6 +161,36 @@ bool UseSyncTime(uint32 SceneType)
 
 }
 
+bool FPhysScene::GetKinematicTarget(const FBodyInstance * BodyInstance, FTransform & OutTM) const
+{
+#if WITH_PHYSX
+	if (PxRigidDynamic * PRigidDynamic = BodyInstance->GetPxRigidDynamic())
+	{
+#if WITH_SUBSTEPPING
+		if (IsSubstepping())
+		{
+			FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+			return PhysSubStepper->GetKinematicTarget(BodyInstance, OutTM);
+		}
+		else
+#endif
+		{
+
+			SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+			PxTransform POutTM;
+			bool validTM = PRigidDynamic->getKinematicTarget(POutTM);
+			if (validTM)
+			{
+				OutTM = P2UTransform(POutTM);
+				return true;
+			}
+		}
+	}
+#endif
+
+	return false;
+}
+
 void FPhysScene::SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTransform, bool bAllowSubstepping)
 {
 	TargetTransform.DiagnosticCheckNaN_All();

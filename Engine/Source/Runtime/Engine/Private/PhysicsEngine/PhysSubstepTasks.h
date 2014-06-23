@@ -105,6 +105,7 @@ public:
 #endif
 
 	void SetKinematicTarget(FBodyInstance * Body, const FTransform & TM);
+	bool GetKinematicTarget(const FBodyInstance * Body, FTransform & OutTM) const;
 	void AddForce(FBodyInstance * Body, const FVector & Force);
 	void AddForceAtPosition(FBodyInstance * Body, const FVector & Force, const FVector & Position);
 	void AddTorque(FBodyInstance * Body, const FVector & Torque);

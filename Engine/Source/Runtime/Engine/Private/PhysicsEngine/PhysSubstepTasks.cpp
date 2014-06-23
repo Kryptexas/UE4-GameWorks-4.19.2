@@ -66,6 +66,24 @@ void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform
 #endif
 }
 
+bool FPhysSubstepTask::GetKinematicTarget(const FBodyInstance * Body, FTransform & OutTM) const
+{
+#if WITH_PHYSX
+	const PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
+	SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
+	if (const FPhysTarget * TargetState = PhysTargetBuffers[External].Find(Body))
+	{
+		if (TargetState->bKinematicTarget)
+		{
+			OutTM = TargetState->KinematicTarget.TargetTM;
+			return true;
+		}
+	}
+#endif
+
+	return false;
+}
+
 void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
 {
 #if WITH_PHYSX
