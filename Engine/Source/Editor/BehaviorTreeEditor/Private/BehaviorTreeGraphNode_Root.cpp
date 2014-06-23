@@ -40,6 +40,11 @@ FName UBehaviorTreeGraphNode_Root::GetNameIcon() const
 	return FName("BTEditor.Graph.BTNode.Root.Icon");
 }
 
+FString UBehaviorTreeGraphNode_Root::GetTooltip() const
+{
+	return NSLOCTEXT("BehaviorTreeGraphNode", "RootTooltip", "Root node of this behavior tree, holds Blackboard data").ToString();
+}
+
 void UBehaviorTreeGraphNode_Root::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
