@@ -87,9 +87,12 @@ private:
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
-		if (SelectedProfile->IsValidForLaunch() && SelectedProfile->GetCookedPlatforms().Contains(*PlatformName))
+		if (SelectedProfile.IsValid())
 		{
-			return ESlateCheckBoxState::Checked;
+			if (SelectedProfile->IsValidForLaunch() && SelectedProfile->GetCookedPlatforms().Contains(*PlatformName))
+			{
+				return ESlateCheckBoxState::Checked;
+			}
 		}
 
 		return ESlateCheckBoxState::Unchecked;
