@@ -29,7 +29,11 @@ UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UButton::RebuildWidget()
 {
 	MyButton = SNew(SButton);
-	MyButton->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+
+	if ( GetChildrenCount() > 0 )
+	{
+		MyButton->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+	}
 	
 	return MyButton.ToSharedRef();
 }
@@ -75,13 +79,21 @@ void UButton::SyncronizeProperties()
 	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
 }
 
-void UButton::SetContent(UWidget* InContent)
+void UButton::OnSlotAdded(UPanelSlot* Slot)
 {
-	Super::SetContent(InContent);
-
+	// Add the child to the live canvas if it already exists
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
+		MyButton->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+	}
+}
+
+void UButton::OnSlotRemoved(UPanelSlot* Slot)
+{
+	// Remove the widget from the live slot if it exists.
+	if ( MyButton.IsValid() )
+	{
+		MyButton->SetContent(SNullWidget::NullWidget);
 	}
 }
 

@@ -12,26 +12,133 @@ class UMG_API UPanelWidget : public UWidget
 
 public:
 
-	virtual int32 GetChildrenCount() const { return 0; }
-	virtual UWidget* GetChildAt(int32 Index) const { return NULL; }
+	/** The items placed in the panel */
+	UPROPERTY()
+	TArray<UPanelSlot*> Slots;
 
-	virtual int32 GetChildIndex(UWidget* Content) const { return -1; }
+public:
 
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child)
+	//TODO UMG Add ways to make adding slots callable by blueprints.
+
+	int32 GetChildrenCount() const
 	{
+		return Slots.Num();
 	}
 
-	virtual void InsertChildAt(int32 Index, UWidget* Child)
+	UWidget* GetChildAt(int32 Index) const
 	{
+		return Slots[Index]->Content;
 	}
-	
-	virtual bool AddChild(UWidget* Child, FVector2D Position)
+
+	int32 GetChildIndex(UWidget* Content) const
 	{
+		const int32 ChildCount = GetChildrenCount();
+		for ( int32 ChildIndex = 0; ChildIndex < ChildCount; ChildIndex++ )
+		{
+			if ( GetChildAt(ChildIndex) == Content )
+			{
+				return ChildIndex;
+			}
+		}
+
+		return -1;
+	}
+
+	bool RemoveChildAt(int32 Index)
+	{
+		UPanelSlot* Slot = Slots[Index];
+		Slots.RemoveAt(Index);
+		
+		OnSlotRemoved(Slot);
+
+		return true;
+	}
+
+	UPanelSlot* AddChild(UWidget* Content, FVector2D Position)
+	{
+		if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
+		{
+			return false;
+		}
+
+		UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
+		Slot->SetFlags(RF_Transactional);
+		Slot->Content = Content;
+		Slot->Parent = this;
+
+		Content->Slot = Slot;
+
+		Slots.Add(Slot);
+
+		OnSlotAdded(Slot);
+
+		return Slot;
+	}
+
+	void ReplaceChildAt(int32 Index, UWidget* Content)
+	{
+		UPanelSlot* Slot = Slots[Index];
+		Slot->Content = Content;
+
+		Content->Slot = Slot;
+
+		Slot->Refresh();
+	}
+
+	void InsertChildAt(int32 Index, UWidget* Content)
+	{
+		UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
+		Slot->SetFlags(RF_Transactional);
+		Slot->Content = Content;
+		Slot->Parent = this;
+
+		Content->Slot = Slot;
+
+		Slots.Insert(Slot, Index);
+
+		OnSlotAdded(Slot);
+	}
+
+	bool RemoveChild(UWidget* Content)
+	{
+		int32 ChildIndex = GetChildIndex(Content);
+		if ( ChildIndex != -1 )
+		{
+			return RemoveChildAt(ChildIndex);
+		}
+
 		return false;
 	}
 
-	virtual bool RemoveChild(UWidget* Child)
+#if WITH_EDITOR
+	virtual void ConnectEditorData() override
 	{
-		return false;
+		for ( UPanelSlot* Slot : Slots )
+		{
+			Slot->Parent = this;
+			Slot->Content->Slot = Slot;
+		}
 	}
+#endif
+
+protected:
+
+	virtual UClass* GetSlotClass() const
+	{
+		return UPanelSlot::StaticClass();
+	}
+
+	virtual void OnSlotAdded(UPanelSlot* Slot)
+	{
+
+	}
+
+	virtual void OnSlotRemoved(UPanelSlot* Slot)
+	{
+
+	}
+
+protected:
+	/** Can this panel allow for multiple children? */
+	bool bCanHaveMultipleChildren;
 };

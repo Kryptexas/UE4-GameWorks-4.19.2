@@ -32,7 +32,11 @@ UBorder::UBorder(const FPostConstructInitializeProperties& PCIP)
 TSharedRef<SWidget> UBorder::RebuildWidget()
 {
 	MyBorder = SNew(SBorder);
-	MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+	
+	if ( GetChildrenCount() > 0 )
+	{
+		MyBorder->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+	}
 
 	return MyBorder.ToSharedRef();
 }
@@ -62,13 +66,21 @@ void UBorder::SyncronizeProperties()
 	MyBorder->SetOnMouseDoubleClick(BIND_UOBJECT_DELEGATE(FPointerEventHandler, HandleMouseDoubleClick));
 }
 
-void UBorder::SetContent(UWidget* InContent)
+void UBorder::OnSlotAdded(UPanelSlot* Slot)
 {
-	Super::SetContent(InContent);
-
+	// Add the child to the live canvas if it already exists
 	if ( MyBorder.IsValid() )
 	{
-		MyBorder->SetContent(InContent ? InContent->GetWidget() : SNullWidget::NullWidget);
+		MyBorder->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+	}
+}
+
+void UBorder::OnSlotRemoved(UPanelSlot* Slot)
+{
+	// Remove the widget from the live slot if it exists.
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetContent(SNullWidget::NullWidget);
 	}
 }
 

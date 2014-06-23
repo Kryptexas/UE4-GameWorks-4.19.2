@@ -15,77 +15,17 @@
 UContentWidget::UContentWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	ChildSlot = PCIP.CreateDefaultSubobject<UPanelSlot>(this, TEXT("ChildSlot"));
-	ChildSlot.Get()->SetFlags(RF_Transactional);
-	ChildSlot.Get()->Parent = this;
+	bCanHaveMultipleChildren = false;
 }
 
 UPanelSlot* UContentWidget::GetContentSlot() const
 {
-	//if ( ContentSlot == NULL )
-	//{
-	//	UContentWidget* MutableThis = const_cast<UContentWidget*>( this );
-	//	MutableThis->ContentSlot = ConstructObject<UPanelSlot>(UPanelSlot::StaticClass(), MutableThis);
-
-	//	MutableThis->ContentSlot->SetFlags(RF_Transactional);
-	//	//MutableThis->ContentSlot->SetFlags(RF_DefaultSubObject);
-	//	MutableThis->ContentSlot->Parent = MutableThis;
-	//}
-
-	return ChildSlot.Get();
+	return Slots.Num() > 0 ? Slots[0] : NULL;
 }
 
-UWidget* UContentWidget::GetContent()
+UClass* UContentWidget::GetSlotClass() const
 {
-	return GetContentSlot()->Content;
-}
-
-void UContentWidget::SetContent(UWidget* InContent)
-{
-	GetContentSlot()->Content = InContent;
-
-	if ( InContent )
-	{
-		InContent->Slot = GetContentSlot();
-	}
-}
-
-int32 UContentWidget::GetChildrenCount() const
-{
-	return GetContentSlot()->Content != NULL ? 1 : 0;
-}
-
-UWidget* UContentWidget::GetChildAt(int32 Index) const
-{
-	return GetContentSlot()->Content;
-}
-
-bool UContentWidget::AddChild(UWidget* InContent, FVector2D Position)
-{
-	if ( GetContentSlot()->Content == NULL )
-	{
-		SetContent(InContent);
-		return true;
-	}
-
-	return false;
-}
-
-bool UContentWidget::RemoveChild(UWidget* Child)
-{
-	if ( GetContentSlot()->Content == Child )
-	{
-		SetContent(NULL);
-		return true;
-	}
-
-	return false;
-}
-
-void UContentWidget::ReplaceChildAt(int32 Index, UWidget* Child)
-{
-	check(Index == 0);
-	SetContent(Child);
+	return UPanelSlot::StaticClass();
 }
 
 /////////////////////////////////////////////////////

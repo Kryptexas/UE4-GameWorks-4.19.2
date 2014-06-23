@@ -46,99 +46,40 @@ UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
 }
 
-int32 UCanvasPanel::GetChildrenCount() const
+UClass* UCanvasPanel::GetSlotClass() const
 {
-	return Slots.Num();
+	return UCanvasPanelSlot::StaticClass();
 }
 
-UWidget* UCanvasPanel::GetChildAt(int32 Index) const
+void UCanvasPanel::OnSlotAdded(UPanelSlot* Slot)
 {
-	return Slots[Index]->Content;
-}
-
-TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
-{
-	return MyCanvas;
-}
-
-int32 UCanvasPanel::GetChildIndex(UWidget* Content) const
-{
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
-	{
-		UCanvasPanelSlot* Slot = Slots[SlotIndex];
-
-		if ( Slot->Content == Content )
-		{
-			return SlotIndex;
-		}
-	}
-
-	return -1;
-}
-
-bool UCanvasPanel::AddChild(UWidget* Child, FVector2D Position)
-{
-	UCanvasPanelSlot* Slot = AddSlot(Child);
-	Slot->LayoutData.Offsets = FMargin(Position.X, Position.Y, 100, 25);
-	
 	// Add the child to the live canvas if it already exists
-	if (MyCanvas.IsValid())
+	if ( MyCanvas.IsValid() )
 	{
-		Slot->BuildSlot(MyCanvas.ToSharedRef());
+		Cast<UCanvasPanelSlot>(Slot)->BuildSlot(MyCanvas.ToSharedRef());
 	}
-	
-	return true;
 }
 
-bool UCanvasPanel::RemoveChild(UWidget* Child)
+void UCanvasPanel::OnSlotRemoved(UPanelSlot* Slot)
 {
-	int32 SlotIndex = GetChildIndex(Child);
-	if ( SlotIndex != -1 )
+	// Remove the widget from the live slot if it exists.
+	if ( MyCanvas.IsValid() )
 	{
-		Slots.RemoveAt(SlotIndex);
-		
-		// Remove the widget from the live slot if it exists.
-		if (MyCanvas.IsValid())
-		{
-			MyCanvas->RemoveSlot(Child->GetWidget());
-		}
-		
-		return true;
+		MyCanvas->RemoveSlot(Slot->Content->GetWidget());
 	}
-
-	return false;
-}
-
-void UCanvasPanel::ReplaceChildAt(int32 Index, UWidget* Content)
-{
-	UCanvasPanelSlot* Slot = Slots[Index];
-	Slot->Content = Content;
-
-	Content->Slot = Slot;
-	
-	//TODO UMG How do we handle this swap for live controls?  It doesn't matter for canvas, but matters for flow controls it will matter
-}
-
-void UCanvasPanel::InsertChildAt(int32 Index, UWidget* Content)
-{
-	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-
-	Slots.Insert(Slot, Index);
 }
 
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
 	MyCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
 
-	for ( auto Slot : Slots )
+	for ( UPanelSlot* Slot : Slots )
 	{
-		Slot->Parent = this;
-		Slot->BuildSlot(MyCanvas.ToSharedRef());
+		if ( UCanvasPanelSlot* TypedSlot = Cast<UCanvasPanelSlot>(Slot) )
+		{
+			TypedSlot->Parent = this;
+			TypedSlot->BuildSlot(MyCanvas.ToSharedRef());
+		}
 	}
 
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
@@ -151,18 +92,9 @@ void UCanvasPanel::SyncronizeProperties()
 	MyCanvas->SetDesiredSize(DesiredCanvasSize);
 }
 
-UCanvasPanelSlot* UCanvasPanel::AddSlot(UWidget* Content)
+TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
-	UCanvasPanelSlot* Slot = ConstructObject<UCanvasPanelSlot>(UCanvasPanelSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-	
-	Slots.Add(Slot);
-
-	return Slot;
+	return MyCanvas;
 }
 
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
@@ -192,15 +124,6 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 }
 
 #if WITH_EDITOR
-
-void UCanvasPanel::ConnectEditorData()
-{
-	for ( UCanvasPanelSlot* Slot : Slots )
-	{
-		Slot->Parent = this;
-		Slot->Content->Slot = Slot;
-	}
-}
 
 const FSlateBrush* UCanvasPanel::GetEditorIcon()
 {

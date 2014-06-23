@@ -13,30 +13,23 @@ class UMG_API UVerticalBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The slots containing the widgets that are flowed vertically. */
-	UPROPERTY()
-	TArray<UVerticalBoxSlot*> Slots;
-
-	//TODO UMG Add ways to make adding slots callable by blueprints.
-
-	UVerticalBoxSlot* AddSlot(UWidget* Content);
-
-	// UPanelWidget
-	virtual int32 GetChildrenCount() const override;
-	virtual UWidget* GetChildAt(int32 Index) const override;
-	virtual int32 GetChildIndex(UWidget* Content) const override;
-	virtual bool AddChild(UWidget* Child, FVector2D Position) override;
-	virtual bool RemoveChild(UWidget* Child) override;
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
-	virtual void InsertChildAt(int32 Index, UWidget* Child) override;
-	// End UPanelWidget
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	UVerticalBoxSlot* AddChild(UWidget* Content);
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
-	virtual void ConnectEditorData() override;
 	// End UWidget interface
 #endif
+
+protected:
+
+	// UPanelWidget
+	virtual UClass* GetSlotClass() const override;
+	virtual void OnSlotAdded(UPanelSlot* Slot) override;
+	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
+	// End UPanelWidget
 
 protected:
 

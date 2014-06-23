@@ -9,25 +9,13 @@ class UMG_API UOverlay : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The items placed on the canvas */
-	UPROPERTY()
-	TArray<UOverlaySlot*> Slots;
-
-	UOverlaySlot* AddSlot(UWidget* Content);
+protected:
 
 	// UPanelWidget
-	virtual int32 GetChildrenCount() const override;
-	virtual UWidget* GetChildAt(int32 Index) const override;
-	virtual bool AddChild(UWidget* Child, FVector2D Position) override;
-	virtual bool RemoveChild(UWidget* Child) override;
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
+	virtual UClass* GetSlotClass() const override;
+	virtual void OnSlotAdded(UPanelSlot* Slot) override;
+	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
-
-#if WITH_EDITOR
-	// UWidget interface
-	virtual void ConnectEditorData() override;
-	// End UWidget interface
-#endif
 
 protected:
 

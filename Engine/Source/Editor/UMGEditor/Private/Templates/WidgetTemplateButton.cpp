@@ -25,7 +25,7 @@ UWidget* FWidgetTemplateButton::Create(UWidgetTree* Tree)
 
 	Text->Text = FText::FromString(TEXT("Button Text"));
 	Text->Font.Size = 10;
-	Button->SetContent(Text);
+	Button->AddChild(Text, FVector2D(0, 0));
 
 	return Button;
 }

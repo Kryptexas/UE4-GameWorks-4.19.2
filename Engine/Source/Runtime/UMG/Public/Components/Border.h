@@ -87,10 +87,6 @@ class UMG_API UBorder : public UContentWidget
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetContentPadding(FMargin InContentPadding);
 
-	// UContentWidget interface
-	virtual void SetContent(UWidget* Content) override;
-	// End UContentWidget interface
-
 	// UWidget interface
 	void SyncronizeProperties() override;
 	// End of UWidget interface
@@ -98,6 +94,13 @@ class UMG_API UBorder : public UContentWidget
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 #endif
+
+protected:
+
+	// UPanelWidget
+	virtual void OnSlotAdded(UPanelSlot* Slot) override;
+	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
+	// End UPanelWidget
 
 protected:
 	TSharedPtr<SBorder> MyBorder;

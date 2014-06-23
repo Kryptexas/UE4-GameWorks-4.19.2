@@ -11,119 +11,51 @@ UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	bIsVariable = false;
 }
 
-int32 UHorizontalBox::GetChildrenCount() const
+UClass* UHorizontalBox::GetSlotClass() const
 {
-	return Slots.Num();
+	return UHorizontalBoxSlot::StaticClass();
 }
 
-UWidget* UHorizontalBox::GetChildAt(int32 Index) const
+void UHorizontalBox::OnSlotAdded(UPanelSlot* Slot)
 {
-	return Slots[Index]->Content;
-}
-
-int32 UHorizontalBox::GetChildIndex(UWidget* Content) const
-{
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
+	// Add the child to the live canvas if it already exists
+	if ( MyHorizontalBox.IsValid() )
 	{
-		UHorizontalBoxSlot* Slot = Slots[SlotIndex];
-
-		if ( Slot->Content == Content )
-		{
-			return SlotIndex;
-		}
+		Cast<UHorizontalBoxSlot>(Slot)->BuildSlot(MyHorizontalBox.ToSharedRef());
 	}
-
-	return -1;
 }
 
-bool UHorizontalBox::AddChild(UWidget* Child, FVector2D Position)
+void UHorizontalBox::OnSlotRemoved(UPanelSlot* Slot)
 {
-	UHorizontalBoxSlot* Slot = AddSlot(Child);
-	return true;
-}
-
-bool UHorizontalBox::RemoveChild(UWidget* Child)
-{
-	int32 SlotIndex = GetChildIndex(Child);
-	if ( SlotIndex != -1 )
+	// Remove the widget from the live slot if it exists.
+	if ( MyHorizontalBox.IsValid() )
 	{
-		Slots.RemoveAt(SlotIndex);
-		
-		// Remove the widget from the live slot if it exists.
-		if (MyHorizontalBox.IsValid())
-		{
-			MyHorizontalBox->RemoveSlot(Child->GetWidget());
-		}
-		
-		return true;
+		MyHorizontalBox->RemoveSlot(Slot->Content->GetWidget());
 	}
-
-	return false;
 }
 
-void UHorizontalBox::ReplaceChildAt(int32 Index, UWidget* Content)
+UHorizontalBoxSlot* UHorizontalBox::AddChild(UWidget* Content)
 {
-	UHorizontalBoxSlot* Slot = Slots[Index];
-	Slot->Content = Content;
-
-	Content->Slot = Slot;
-}
-
-void UHorizontalBox::InsertChildAt(int32 Index, UWidget* Content)
-{
-	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-
-	Slots.Insert(Slot, Index);
+	return Cast<UHorizontalBoxSlot>( Super::AddChild(Content, FVector2D(0, 0)) );
 }
 
 TSharedRef<SWidget> UHorizontalBox::RebuildWidget()
 {
 	MyHorizontalBox = SNew(SHorizontalBox);
 
-	for ( auto Slot : Slots )
+	for ( UPanelSlot* Slot : Slots )
 	{
-		Slot->Parent = this;
-		Slot->BuildSlot( MyHorizontalBox.ToSharedRef() );
+		if ( UHorizontalBoxSlot* TypedSlot = Cast<UHorizontalBoxSlot>(Slot) )
+		{
+			TypedSlot->Parent = this;
+			TypedSlot->BuildSlot(MyHorizontalBox.ToSharedRef());
+		}
 	}
 
 	return BuildDesignTimeWidget( MyHorizontalBox.ToSharedRef() );
 }
 
-UHorizontalBoxSlot* UHorizontalBox::AddSlot(UWidget* Content)
-{
-	UHorizontalBoxSlot* Slot = ConstructObject<UHorizontalBoxSlot>(UHorizontalBoxSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-	
-	Slots.Add(Slot);
-
-	// Add the child to the live canvas if it already exists
-	if ( MyHorizontalBox.IsValid() )
-	{
-		Slot->BuildSlot(MyHorizontalBox.ToSharedRef());
-	}
-
-	return Slot;
-}
-
 #if WITH_EDITOR
-
-void UHorizontalBox::ConnectEditorData()
-{
-	for ( UHorizontalBoxSlot* Slot : Slots )
-	{
-		Slot->Content->Slot = Slot;
-		Slot->Parent = this;
-	}
-}
 
 const FSlateBrush* UHorizontalBox::GetEditorIcon()
 {

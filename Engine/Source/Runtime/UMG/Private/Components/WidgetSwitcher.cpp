@@ -42,104 +42,40 @@ void UWidgetSwitcher::SetActiveWidgetIndex(int32 Index)
 	}
 }
 
-int32 UWidgetSwitcher::GetChildrenCount() const
+UClass* UWidgetSwitcher::GetSlotClass() const
 {
-	return Slots.Num();
+	return UWidgetSwitcherSlot::StaticClass();
 }
 
-UWidget* UWidgetSwitcher::GetChildAt(int32 Index) const
+void UWidgetSwitcher::OnSlotAdded(UPanelSlot* Slot)
 {
-	return Slots[Index]->Content;
-}
-
-int32 UWidgetSwitcher::GetChildIndex(UWidget* Content) const
-{
-	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex )
-	{
-		UWidgetSwitcherSlot* Slot = Slots[SlotIndex];
-
-		if ( Slot->Content == Content )
-		{
-			return SlotIndex;
-		}
-	}
-
-	return -1;
-}
-
-bool UWidgetSwitcher::AddChild(UWidget* Child, FVector2D Position)
-{
-	UWidgetSwitcherSlot* Slot = AddSlot(Child);
-	return true;
-}
-
-bool UWidgetSwitcher::RemoveChild(UWidget* Child)
-{
-	int32 SlotIndex = GetChildIndex(Child);
-	if ( SlotIndex != -1 )
-	{
-		Slots.RemoveAt(SlotIndex);
-		
-		// Remove the widget from the live slot if it exists.
-		if (MyWidgetSwitcher.IsValid())
-		{
-			MyWidgetSwitcher->RemoveSlot(Child->GetWidget());
-		}
-		
-		return true;
-	}
-
-	return false;
-}
-
-void UWidgetSwitcher::ReplaceChildAt(int32 Index, UWidget* Content)
-{
-	UWidgetSwitcherSlot* Slot = Slots[Index];
-	Slot->Content = Content;
-
-	Content->Slot = Slot;
-}
-
-void UWidgetSwitcher::InsertChildAt(int32 Index, UWidget* Content)
-{
-	UWidgetSwitcherSlot* Slot = ConstructObject<UWidgetSwitcherSlot>(UWidgetSwitcherSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-
-	Slots.Insert(Slot, Index);
-}
-
-UWidgetSwitcherSlot* UWidgetSwitcher::AddSlot(UWidget* Content)
-{
-	UWidgetSwitcherSlot* Slot = ConstructObject<UWidgetSwitcherSlot>(UWidgetSwitcherSlot::StaticClass(), this);
-	Slot->SetFlags(RF_Transactional);
-	Slot->Content = Content;
-	Slot->Parent = this;
-
-	Content->Slot = Slot;
-
-	Slots.Add(Slot);
-
 	// Add the child to the live canvas if it already exists
 	if ( MyWidgetSwitcher.IsValid() )
 	{
-		Slot->BuildSlot(MyWidgetSwitcher.ToSharedRef());
+		Cast<UWidgetSwitcherSlot>(Slot)->BuildSlot(MyWidgetSwitcher.ToSharedRef());
 	}
+}
 
-	return Slot;
+void UWidgetSwitcher::OnSlotRemoved(UPanelSlot* Slot)
+{
+	// Remove the widget from the live slot if it exists.
+	if ( MyWidgetSwitcher.IsValid() )
+	{
+		MyWidgetSwitcher->RemoveSlot(Slot->Content->GetWidget());
+	}
 }
 
 TSharedRef<SWidget> UWidgetSwitcher::RebuildWidget()
 {
 	MyWidgetSwitcher = SNew(SWidgetSwitcher);
 
-	for ( auto Slot : Slots )
+	for ( UPanelSlot* Slot : Slots )
 	{
-		Slot->Parent = this;
-		Slot->BuildSlot(MyWidgetSwitcher.ToSharedRef());
+		if ( UWidgetSwitcherSlot* TypedSlot = Cast<UWidgetSwitcherSlot>(Slot) )
+		{
+			TypedSlot->Parent = this;
+			TypedSlot->BuildSlot(MyWidgetSwitcher.ToSharedRef());
+		}
 	}
 
 	return BuildDesignTimeWidget( MyWidgetSwitcher.ToSharedRef() );
@@ -151,22 +87,3 @@ void UWidgetSwitcher::SyncronizeProperties()
 
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }
-
-#if WITH_EDITOR
-
-void UWidgetSwitcher::ConnectEditorData()
-{
-	for ( UWidgetSwitcherSlot* Slot : Slots )
-	{
-		// TODO UMG Find a better way to assign the parent pointers for slots.
-		Slot->Parent = this;
-
-		if ( Slot->Content )
-		{
-			Slot->Content->Slot = Slot;
-		}
-		//TODO UMG Should we auto delete empty slots?
-	}
-}
-
-#endif

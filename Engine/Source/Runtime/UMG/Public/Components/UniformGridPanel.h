@@ -10,10 +10,6 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The items placed on the grid */
-	UPROPERTY()
-	TArray<UUniformGridSlot*> Slots;
-
 	/** Padding given to each slot */
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	FMargin SlotPadding;
@@ -26,24 +22,13 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	float MinDesiredSlotHeight;
 
-	//TODO UMG Add ways to make adding slots callable by blueprints.
-
-	/** Adds content to the panel, and constructs a new slot to hold it. */
-	UUniformGridSlot* AddSlot(UWidget* Content);
+protected:
 
 	// UPanelWidget
-	virtual int32 GetChildrenCount() const override;
-	virtual UWidget* GetChildAt(int32 Index) const override;
-	virtual bool AddChild(UWidget* Child, FVector2D Position) override;
-	virtual bool RemoveChild(UWidget* Child) override;
-	virtual void ReplaceChildAt(int32 Index, UWidget* Child) override;
+	virtual UClass* GetSlotClass() const override;
+	virtual void OnSlotAdded(UPanelSlot* Slot) override;
+	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
-
-#if WITH_EDITOR
-	// UWidget interface
-	virtual void ConnectEditorData() override;
-	// End UWidget interface
-#endif
 
 protected:
 

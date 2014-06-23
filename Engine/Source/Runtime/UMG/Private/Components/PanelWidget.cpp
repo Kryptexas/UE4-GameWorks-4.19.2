@@ -14,6 +14,7 @@
 
 UPanelWidget::UPanelWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bCanHaveMultipleChildren(true)
 {
 }
 
