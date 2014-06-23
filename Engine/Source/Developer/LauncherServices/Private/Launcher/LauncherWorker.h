@@ -105,6 +105,9 @@ private:
 	void* ReadPipe;
 	void* WritePipe;
 
+	double StageStartTime;
+	double LaunchStartTime;
+
 	// message delegate
 	FOutputMessageReceivedDelegate OutputMessageReceived;
 	FOnStageStartedDelegate StageStarted;

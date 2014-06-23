@@ -27,6 +27,8 @@
 #include "GameProjectGenerationModule.h"
 #include "SourceCodeNavigation.h"
 #include "PhysicsPublic.h"
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 #include "Online.h"
 
@@ -1133,14 +1135,14 @@ private:
 };
 
 
-static void HandleStageStarted(const FString& InStage, FString DeviceName, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("StageName"), FText::FromString(InStage));
-	Arguments.Add(TEXT("DeviceName"), FText::FromString(DeviceName));
+	Arguments.Add(TEXT("DeviceName"), FText::FromString(PlayUsingLauncherDeviceName));
 
 	FText NotificationText;
-	if(DeviceName.Len() == 0)
+	if(PlayUsingLauncherDeviceName.Len() == 0)
 	{
 		NotificationText = FText::Format(LOCTEXT("LauncherTaskStageNotificationNoDevice", "{StageName} for launch..."), Arguments);
 	}
@@ -1151,7 +1153,24 @@ static void HandleStageStarted(const FString& InStage, FString DeviceName, TWeak
 	NotificationItemPtr.Pin()->SetText(NotificationText);
 }
 
-static void HandleLaunchCanceled(bool* bPlayUsingLauncher, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
+{
+	// analytics for launch on
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), StageTime));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("StageName"), InStage));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.StageComplete" ), ParamArray );
+	}
+}
+
+void UEditorEngine::HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 		NotificationItemPtr,
@@ -1159,10 +1178,23 @@ static void HandleLaunchCanceled(bool* bPlayUsingLauncher, TWeakPtr<SNotificatio
 		LOCTEXT("LaunchtaskFailedNotification", "Launch canceled!")
 	);
 
-	*bPlayUsingLauncher = false;	
+	// analytics for launch on
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+		FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Canceled" ), ParamArray );
+	}
+
+	bPlayUsingLauncher = false;	
 }
 
-static void HandleLaunchCompleted(bool Succeeded, bool* bPlayUsingLauncher, TWeakPtr<SNotificationItem> NotificationItemPtr)
+void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr)
 {
 	if (Succeeded)
 	{
@@ -1171,6 +1203,19 @@ static void HandleLaunchCompleted(bool Succeeded, bool* bPlayUsingLauncher, TWea
 			SNotificationItem::CS_Success,
 			LOCTEXT("LauncherTaskCompleted", "Launch complete!!")
 		);
+
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Completed" ), ParamArray );
+		}
 	}
 	else
 	{
@@ -1179,8 +1224,21 @@ static void HandleLaunchCompleted(bool Succeeded, bool* bPlayUsingLauncher, TWea
 			SNotificationItem::CS_Fail,
 			LOCTEXT("LauncherTaskFailed", "Launch failed!!")
 			);
+
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), TotalTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Failed" ), ParamArray );
+		}
 	}
-	*bPlayUsingLauncher = false;
+	bPlayUsingLauncher = false;
 }
 
 static void HandleHyperlinkNavigate()
@@ -1303,6 +1361,18 @@ void UEditorEngine::PlayUsingLauncher()
 			return;
 		}
 
+		// analytics for launch on
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+
+			FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Started" ), ParamArray );
+		}
+
 		NotificationItem->SetCompletionState(SNotificationItem::CS_Pending);
 
 		TWeakPtr<SNotificationItem> NotificationItemPtr(NotificationItem);
@@ -1310,9 +1380,10 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			GEditor->PlayEditorSound(TEXT("/Engine/EditorSounds/Notifications/CompileStart_Cue.CompileStart_Cue"));
 			LauncherWorker->OnOutputReceived().AddStatic(HandleOutputReceived);
-			LauncherWorker->OnStageStarted().AddStatic(HandleStageStarted, PlayUsingLauncherDeviceName, NotificationItemPtr);
-			LauncherWorker->OnCompleted().AddStatic(HandleLaunchCompleted, &bPlayUsingLauncher, NotificationItemPtr);
-			LauncherWorker->OnCanceled().AddStatic(HandleLaunchCanceled, &bPlayUsingLauncher, NotificationItemPtr);
+			LauncherWorker->OnStageStarted().AddUObject(this, &UEditorEngine::HandleStageStarted, NotificationItemPtr);
+			LauncherWorker->OnStageCompleted().AddUObject(this, &UEditorEngine::HandleStageCompleted, bHasCode, NotificationItemPtr);
+			LauncherWorker->OnCompleted().AddUObject(this, &UEditorEngine::HandleLaunchCompleted, bHasCode, NotificationItemPtr);
+			LauncherWorker->OnCanceled().AddUObject(this, &UEditorEngine::HandleLaunchCanceled, bHasCode, NotificationItemPtr);
 		}
 		else
 		{
@@ -1323,6 +1394,19 @@ void UEditorEngine::PlayUsingLauncher()
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->ExpireAndFadeout();
 			bPlayUsingLauncher = false;
+
+			// analytics for launch on
+			if( FEngineAnalytics::IsAvailable() )
+			{
+				const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+				TArray<FAnalyticsEventAttribute> ParamArray;
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+				ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0f));
+
+				FEngineAnalytics::GetProvider().RecordEvent( TEXT( "Editor.LaunchOn.Failed" ), ParamArray );
+			}
 		}
 	}
 }

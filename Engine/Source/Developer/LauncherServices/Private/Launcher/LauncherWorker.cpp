@@ -30,6 +30,8 @@ uint32 FLauncherWorker::Run( )
 {
 	FString Line;
 
+	LaunchStartTime = FPlatformTime::Seconds();
+
 	// wait for tasks to be completed
 	while (Status == ELauncherWorkerStatus::Busy)
 	{
@@ -101,11 +103,11 @@ uint32 FLauncherWorker::Run( )
 	if (Status == ELauncherWorkerStatus::Canceling)
 	{
 		Status = ELauncherWorkerStatus::Canceled;
-		LaunchCanceled.Broadcast();
+		LaunchCanceled.Broadcast(FPlatformTime::Seconds() - LaunchStartTime);
 	}
 	else
 	{
-		LaunchCompleted.Broadcast(TaskChain->Succeeded());
+		LaunchCompleted.Broadcast(TaskChain->Succeeded(), FPlatformTime::Seconds() - LaunchStartTime);
 	}
 
 	FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
@@ -165,13 +167,14 @@ int32 FLauncherWorker::GetTasks( TArray<ILauncherTaskPtr>& OutTasks ) const
 
 void FLauncherWorker::OnTaskStarted(const FString& TaskName)
 {
+	StageStartTime = FPlatformTime::Seconds();
 	StageStarted.Broadcast(TaskName);
 }
 
 
 void FLauncherWorker::OnTaskCompleted(const FString& TaskName)
 {
-	StageCompleted.Broadcast(TaskName);
+	StageCompleted.Broadcast(TaskName, FPlatformTime::Seconds() - StageStartTime);
 }
 
 

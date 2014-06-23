@@ -247,6 +247,13 @@ protected:
 
 private:
 
+	struct EventData
+	{
+		FString EventName;
+		bool bProjectHasCode;
+		double StartTime;
+	};
+
 	// Handles clicking the packager notification item's Cancel button.
 	static void HandleUatCancelButtonClicked( TSharedPtr<FMonitoredProcess> PackagerProcess );
 
@@ -254,10 +261,10 @@ private:
 	static void HandleUatHyperlinkNavigate( );
 
 	// Handles canceled packager processes.
-	static void HandleUatProcessCanceled( TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName );
+	static void HandleUatProcessCanceled( TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event );
 
 	// Handles the completion of a packager process.
-	static void HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName );
+	static void HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event );
 
 	// Handles packager process output.
 	static void HandleUatProcessOutput( FString Output, TWeakPtr<class SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName );

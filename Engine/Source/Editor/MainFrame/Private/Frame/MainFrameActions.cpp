@@ -993,13 +993,32 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 		return;
 	}
 
+	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
+	bool bProjectHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
+
+	FString EventName = (CommandLine.Contains(TEXT("-package")) ? TEXT("Editor.Package") : TEXT("Editor.Cook"));
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+
+		FEngineAnalytics::GetProvider().RecordEvent( EventName + TEXT(".Start"), ParamArray );
+	}
+
 	NotificationItem->SetCompletionState(SNotificationItem::CS_Pending);
 
 	// launch the packager
 	TWeakPtr<SNotificationItem> NotificationItemPtr(NotificationItem);
 
-	UatProcess->OnCanceled().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCanceled, NotificationItemPtr, PlatformDisplayName, TaskShortName);
-	UatProcess->OnCompleted().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCompleted, NotificationItemPtr, PlatformDisplayName, TaskShortName);
+	EventData Data;
+	Data.StartTime = FPlatformTime::Seconds();
+	Data.EventName = EventName;
+	Data.bProjectHasCode = bProjectHasCode;
+	UatProcess->OnCanceled().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCanceled, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
+	UatProcess->OnCompleted().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCompleted, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 	UatProcess->OnOutput().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessOutput, NotificationItemPtr, PlatformDisplayName, TaskShortName);
 
 	if (UatProcess->Launch())
@@ -1080,7 +1099,7 @@ void FMainFrameActionCallbacks::HandleUatCancelButtonClicked( TSharedPtr<FMonito
 }
 
 
-void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName )
+void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event )
 {
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("Platform"), PlatformDisplayName);
@@ -1092,11 +1111,22 @@ void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotification
 		FText::Format(LOCTEXT("UatProcessFailedNotification", "{TaskName} canceled!"), Arguments)
 	);
 
+	if( FEngineAnalytics::IsAvailable() )
+	{
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+
+		FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Canceled"), ParamArray );
+	}
 //	FMessageLog("PackagingResults").Warning(FText::Format(LOCTEXT("UatProcessCanceledMessageLog", "{TaskName} for {Platform} canceled by user"), Arguments));
 }
 
 
-void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName )
+void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event )
 {
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("Platform"), PlatformDisplayName);
@@ -1110,6 +1140,18 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 			FText::Format(LOCTEXT("UatProcessSucceededNotification", "{TaskName} complete!"), Arguments)
 		);
 
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Completed"), ParamArray );
+		}
+
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessSuccessMessageLog", "{TaskName} for {Platform} completed successfully"), Arguments));
 	}
 	else
@@ -1119,6 +1161,18 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 			SNotificationItem::CS_Fail,
 			FText::Format(LOCTEXT("PackagerFailedNotification", "{TaskName} failed!"), Arguments)
 		);
+
+		if( FEngineAnalytics::IsAvailable() )
+		{
+			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+			TArray<FAnalyticsEventAttribute> ParamArray;
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
+			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+
+			FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Completed"), ParamArray );
+		}
 
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 	}

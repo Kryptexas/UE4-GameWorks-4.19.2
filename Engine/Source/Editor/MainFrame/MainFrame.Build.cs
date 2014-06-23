@@ -20,6 +20,7 @@ public class MainFrame : ModuleRules
 				"CoreUObject",
 				"CrashTracker",
 				"Engine",
+				"EngineSettings",
                 "InputCore",
 				"RHI",
 				"ShaderCore",

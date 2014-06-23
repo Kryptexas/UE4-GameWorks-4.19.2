@@ -297,8 +297,8 @@ private:
 	FRunnableThread* Thread;
 
 	// message delegates
-	FOnStageStartedDelegate TaskStarted;
-	FOnStageCompletedDelegate TaskCompleted;
+	FOnTaskStartedDelegate TaskStarted;
+	FOnTaskCompletedDelegate TaskCompleted;
 
 protected:
 

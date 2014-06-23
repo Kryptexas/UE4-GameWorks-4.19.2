@@ -32,13 +32,13 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOutputMessageReceivedDelegate, const FStrin
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageStartedDelegate, const FString&);
 
 /** Delegate used to notify when a stage ends */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageCompletedDelegate, const FString&);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStageCompletedDelegate, const FString&, double);
 
 /** Delegate used to notify when the launch is complete */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnLaunchCompletedDelegate, bool);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLaunchCompletedDelegate, bool, double);
 
 /** Delegate used to notify when the launch was canceled */
-DECLARE_MULTICAST_DELEGATE(FOnLaunchCanceledDelegate);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLaunchCanceledDelegate, double);
 
 
 /**
