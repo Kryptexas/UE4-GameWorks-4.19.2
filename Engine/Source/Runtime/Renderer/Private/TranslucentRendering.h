@@ -66,6 +66,7 @@ private:
 	* @return true if the mesh rendered
 	*/
 	static bool DrawMesh(
+		FRHICommandList& RHICmdList,
 		const FViewInfo& View,
 		ContextType DrawingContext,
 		const FMeshBatch& Mesh,
