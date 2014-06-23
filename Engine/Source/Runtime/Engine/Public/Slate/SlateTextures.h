@@ -117,6 +117,28 @@ private:
 	uint32 Height;
 };
 
+
+class FSlateMaterial : public FSlateShaderResource
+{
+public:
+	FSlateMaterial( FMaterialRenderProxy* InProxy,  const FVector2D& InImageSize )
+		: RenderProxy( InProxy )
+		, Width( FMath::RoundToInt( InImageSize.X ) )
+		, Height( FMath::RoundToInt( InImageSize.Y ) )
+	{}
+
+	virtual uint32 GetWidth() const { return Width; } 
+	virtual uint32 GetHeight() const { return Height; } 
+
+	virtual void SetResource( FMaterialRenderProxy* Proxy ) { RenderProxy = Proxy; }
+	virtual FMaterialRenderProxy* GetRenderProxy() const { return RenderProxy; }
+	virtual ESlateShaderResource::Type GetType() const override { return ESlateShaderResource::Material; }
+private:
+	FMaterialRenderProxy* RenderProxy;
+	uint32 Width;
+	uint32 Height;
+};
+
 class FSlateTextureRenderTarget2DResource : public FTextureRenderTargetResource
 {
 public:

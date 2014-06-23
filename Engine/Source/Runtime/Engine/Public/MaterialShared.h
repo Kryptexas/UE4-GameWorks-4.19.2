@@ -900,6 +900,7 @@ public:
 	virtual bool IsUsedWithSplineMeshes() const { return false; }
 	virtual bool IsUsedWithInstancedStaticMeshes() const { return false; }
 	virtual bool IsUsedWithAPEXCloth() const { return false; }
+	virtual bool IsUsedWithUI() const { return false; }
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const;
 	virtual bool IsCrackFreeDisplacementEnabled() const { return false; }
 	virtual bool IsAdaptiveTessellationEnabled() const { return false; }
@@ -1437,6 +1438,7 @@ public:
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const;
 	ENGINE_API virtual bool IsUsedWithAPEXCloth() const;
+	ENGINE_API virtual bool IsUsedWithUI() const;
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const;
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const;
 	ENGINE_API virtual bool IsAdaptiveTessellationEnabled() const;

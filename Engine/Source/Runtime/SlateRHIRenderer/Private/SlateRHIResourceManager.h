@@ -18,15 +18,33 @@ struct FDynamicTextureResource
 	FSlateTexture2DRHIRef* RHIRefTexture;
 };
 
+struct FSlateMaterialResource
+{
+	/** UObject material being used */
+	class UMaterialInterface* MaterialObject;
+	/** Slate proxy used for batching the material */
+	FSlateShaderResourceProxy* Proxy;
+	/** Slate material shader resource.  Resource used to render the object*/
+	FSlateMaterial* SlateMaterial;
+
+	FSlateMaterialResource(UMaterialInterface& InMaterial, const FVector2D& InImageSize);
+	~FSlateMaterialResource();
+};
 
 struct FDynamicResourceMap : public FGCObject
 {
 public:
-	TSharedPtr<FDynamicTextureResource> GetResource( FName ResourceName, UObject* ResourceObject ) const;
+	TSharedPtr<FDynamicTextureResource> GetTextureResource( FName ResourceName, UTexture2D* TextureObject ) const;
 
-	void AddResource( FName ResourceName, UObject* ResourceObject, TSharedRef<FDynamicTextureResource> InResource );
+	TSharedPtr<FSlateMaterialResource> GetMaterialResource( UMaterialInterface* Material ) const;
 
-	void RemoveResource( FName ResourceName, UObject* ResourceObject );
+	void AddTextureResource( FName ResourceName, UTexture2D* TextureObject, TSharedRef<FDynamicTextureResource> InResource );
+
+	void RemoveTextureResource( FName ResourceName, UTexture2D* TextureObject );
+
+	void AddMaterialResource( UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InMaterialResource );
+
+	void RemoveMaterialResource( UMaterialInterface* Material );
 
 	void Empty();
 
@@ -39,6 +57,9 @@ private:
 	TMap<FName, TSharedPtr<FDynamicTextureResource> > DynamicNativeTextureMap;
 
 	TMap<UObject*, TSharedPtr<FDynamicTextureResource> > DynamicResourceObjectMap;
+
+	/** Map of all material resources */
+	TMap<UMaterialInterface*, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
 };
 
 
@@ -71,10 +92,8 @@ public:
 	 */
 	void UpdateTextureAtlases();
 
-	/**
-	 * Returns a texture associated with the passed in name. 
-	 */
-	virtual FSlateShaderResourceProxy* GetTexture( const FSlateBrush& InBrush );
+	/** FSlateShaderResourceManager interface */
+	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
 	
 	/**
 	 * Makes a dynamic texture resource and begins use of it
@@ -171,6 +190,13 @@ private:
 	 * @param InBrush	Slate brush for the dynamic resource
 	 */
 	FSlateShaderResourceProxy* GetDynamicTextureResource( const FSlateBrush& InBrush );
+
+	/**
+	 * Returns a rendering resource for a material
+	 *
+	 * @param InBrush	Slate brush for the material
+	 */
+	FSlateShaderResourceProxy* GetMaterialResource( const FSlateBrush& InBrush );
 
 private:
 	/** Map of all active dynamic resources being used by brushes */

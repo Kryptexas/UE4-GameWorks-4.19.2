@@ -33,15 +33,11 @@ public:
 	 */
 	virtual ~FSlateRenderingPolicy( ) { }
 
-public:
-
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) = 0;
 
-	virtual FSlateShaderResource* GetViewportResource( const ISlateViewport* InViewportInterface ) = 0;
+	virtual TSharedPtr<class FSlateFontCache> GetFontCache( ) = 0;
 
-	virtual FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush ) = 0;
-
-	virtual TSharedPtr<class FSlateFontCache>& GetFontCache( ) = 0;
+	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() = 0;
 
 	float GetPixelCenterOffset( ) const
 	{
@@ -49,6 +45,8 @@ public:
 	}
 
 private:
-
+	FSlateRenderingPolicy(const FSlateRenderingPolicy&);
+	FSlateRenderingPolicy& operator=(const FSlateRenderingPolicy&);
+private:
 	float PixelCenterOffset;
 };

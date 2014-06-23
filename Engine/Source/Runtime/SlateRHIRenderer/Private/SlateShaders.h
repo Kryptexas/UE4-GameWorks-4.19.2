@@ -87,9 +87,7 @@ public:
 	{
 		TextureParameter.Bind( Initializer.ParameterMap, TEXT("ElementTexture"));
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("ElementTextureSampler"));
-		DrawEffectsParameter.Bind( Initializer.ParameterMap, TEXT("DrawEffects"));
 		ShaderParams.Bind( Initializer.ParameterMap, TEXT("ShaderParams"));
-		ViewportSize.Bind(Initializer.ParameterMap, TEXT("ViewportSize"));
 		DisplayGamma.Bind( Initializer.ParameterMap,TEXT("DisplayGamma"));
 	}
 
@@ -106,16 +104,6 @@ public:
 	}
 
 	/**
-	 * Sets any draw effect flags used by the shader
-	 *
-	 * @param InDrawEffects		A mask of draw effects that the pixel shader should use.
-	 */
-	void SetDrawEffects(FRHICommandList& RHICmdList, ESlateDrawEffect::Type InDrawEffects )
-	{
-		SetShaderValue(RHICmdList, GetPixelShader(), DrawEffectsParameter, InDrawEffects );
-	}
-
-	/**
 	 * Sets shader params used by the shader
 	 * 
 	 * @param InShaderParams Shader params to use
@@ -123,14 +111,6 @@ public:
 	void SetShaderParams(FRHICommandList& RHICmdList, const FVector4& InShaderParams )
 	{
 		SetShaderValue(RHICmdList, GetPixelShader(), ShaderParams, InShaderParams );
-	}
-
-	/**
-	 * Set the viewport size.
-	 */
-	void SetViewportSize(FRHICommandList& RHICmdList, const FVector2D& InViewportSize)
-	{
-		SetShaderValue(RHICmdList, GetPixelShader(), ViewportSize, InViewportSize);
 	}
 
 	/**
@@ -150,8 +130,6 @@ public:
 		Ar << TextureParameter;
 		Ar << TextureParameterSampler;
 		Ar << ShaderParams;
-		Ar << ViewportSize;
-		Ar << DrawEffectsParameter;
 		Ar << DisplayGamma;
 
 		return bShaderHasOutdatedParameters;
@@ -161,8 +139,6 @@ private:
 	FShaderResourceParameter TextureParameter;
 	FShaderResourceParameter TextureParameterSampler;
 	FShaderParameter ShaderParams;
-	FShaderParameter ViewportSize;
-	FShaderParameter DrawEffectsParameter;
 	FShaderParameter DisplayGamma;
 };
 
@@ -196,6 +172,7 @@ public:
 		OutEnvironment.SetDefine( TEXT("DRAW_DISABLED_EFFECT"), (uint32)(bDrawDisabledEffect ? 1 : 0) );
 		OutEnvironment.SetDefine( TEXT("USE_TEXTURE_ALPHA"), (uint32)(bUseTextureAlpha ? 1 : 0) );
 		OutEnvironment.SetDefine( TEXT("COLOR_VISION_DEFICIENCY_TYPE"), GSlateShaderColorVisionDeficiencyType );
+		OutEnvironment.SetDefine( TEXT("USE_MATERIALS"), (uint32)0 );
 
 		FSlateElementPS::ModifyCompilationEnvironment( Platform, OutEnvironment );
 	}

@@ -974,7 +974,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 		SNew( SObjectPropertyEntryBox )
 		.PropertyHandle( ResourceObjectProperty )
 		.ThumbnailPool( StructCustomizationUtils.GetThumbnailPool() )
-		.AllowedClass( UTexture2D::StaticClass() )
+		.OnShouldFilterAsset( this, &FSlateBrushStructCustomization::OnFilterAssetPicker )
 	];
 
 	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
@@ -1026,6 +1026,12 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 				Preview
 			];
 	}
+}
+
+bool FSlateBrushStructCustomization::OnFilterAssetPicker( const FAssetData& InAssetData ) const
+{
+	UClass* Class = InAssetData.GetClass();
+	return !Class->IsChildOf( UTexture2D::StaticClass() );//&& !Class->IsChildOf( UMaterialInterface::StaticClass() );
 }
 
 EVisibility FSlateBrushStructCustomization::GetTilingPropertyVisibility() const

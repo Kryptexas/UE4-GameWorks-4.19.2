@@ -16,7 +16,7 @@ class SWindow;
 class FSlateRenderer
 {
 public:
-
+	FSlateRenderer(){}
 	/**
 	 * Virtual destructor.
 	 */
@@ -174,6 +174,10 @@ public:
 	 */
 	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) {}
 
+private:
+	// Non-copyable
+	FSlateRenderer(const FSlateRenderer&);
+	FSlateRenderer& operator=(const FSlateRenderer&);
 protected:
 
 	TSharedPtr<class FSlateFontCache> FontCache;

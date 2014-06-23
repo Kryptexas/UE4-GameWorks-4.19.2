@@ -14,6 +14,19 @@ namespace CrashTrackerConstants
 }
 
 
+class FSlateBackBuffer : public FRenderTarget
+{
+public:
+	FSlateBackBuffer(FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY)
+		: SizeXY(InSizeXY)
+	{
+		RenderTargetTextureRHI = InRenderTargetTexture;
+	}
+	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
+private:
+	FIntPoint SizeXY;
+};
+
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
@@ -446,7 +459,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 
 		if( WindowElementList.GetRenderBatches().Num() > 0 )
 		{
-			FSlateRenderTarget BackBufferTarget( BackBuffer, FIntPoint( ViewportInfo.Width, ViewportInfo.Height ) );
+			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportInfo.Width, ViewportInfo.Height ) );
 
 			RenderingPolicy->DrawElements
 			(
@@ -826,7 +839,7 @@ void FSlateRHIRenderer::CopyWindowsToDrawBuffer(const TArray<FString>& KeypressB
 		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
 		{
 			FTexture2DRHIRef UnusedTargetTexture;
-			FSlateRenderTarget UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
+			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
 			Context.RenderPolicy->DrawElements(Context.ViewportSize, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
 		}

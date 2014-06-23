@@ -11,17 +11,46 @@ class FSlateRHIResourceManager;
  * Vertex buffer containing all Slate vertices
  * All vertices are added through RHILockVertexBuffer
  */
-class FSlateElementVertexBuffer : public FVertexBuffer
+template <typename VertexType>
+class TSlateElementVertexBuffer : public FVertexBuffer
 {
 public:
-	FSlateElementVertexBuffer();
-	~FSlateElementVertexBuffer();
+	TSlateElementVertexBuffer()
+		: BufferSize(0)
+		, BufferUsageSize(0)
+	{}
+
+	TSlateElementVertexBuffer( uint32 BufferSize )
+		: BufferSize(BufferSize)
+		, BufferUsageSize(0)
+	{}
+
+	~TSlateElementVertexBuffer() {};
 
 	/** Initializes the vertex buffers RHI resource. */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI()
+	{
+		if( !IsValidRef(VertexBufferRHI) )
+		{
+			if( BufferSize == 0 )
+			{
+				BufferSize = 200 * sizeof(VertexType);
+			}
+
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer( BufferSize, BUF_Dynamic, CreateInfo );
+
+			// Ensure the vertex buffer could be created
+			check(IsValidRef(VertexBufferRHI));
+		}
+	}
 
 	/** Releases the vertex buffers RHI resource. */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI()
+	{
+		VertexBufferRHI.SafeRelease();
+		BufferSize = 0;
+	}
 
 	/** Returns a friendly name for this buffer. */
 	virtual FString GetFriendlyName() const { return TEXT("SlateElementVertices"); }
@@ -36,10 +65,56 @@ public:
 	void ResetBufferUsage() { BufferUsageSize = 0; }
 
 	/** Fills the buffer with slate vertices */
-	void FillBuffer( const TArray<FSlateVertex>& InVertices, bool bShrinkToFit );
+	void FillBuffer( const TArray<VertexType>& InVertices, bool bShrinkToFit )
+	{
+		check( IsInRenderingThread() );
+
+		if( InVertices.Num() )
+		{
+			uint32 NumVertices = InVertices.Num();
+
+	#if !SLATE_USE_32BIT_INDICES
+			// make sure our index buffer can handle this
+			checkf(NumVertices < 0xFFFF, TEXT("Slate vertex buffer is too large (%d) to work with uint16 indices"), NumVertices);
+	#endif
+
+			uint32 RequiredBufferSize = NumVertices*sizeof(VertexType);
+
+			// resize if needed
+			if( RequiredBufferSize > GetBufferSize() || bShrinkToFit )
+			{
+				// Use array resize techniques for the vertex buffer
+				ResizeBuffer( InVertices.GetAllocatedSize() );
+			}
+
+			BufferUsageSize += RequiredBufferSize;
+
+			void* VerticesPtr = RHILockVertexBuffer( VertexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
+
+			FMemory::Memcpy( VerticesPtr, InVertices.GetData(), RequiredBufferSize );
+
+			RHIUnlockVertexBuffer( VertexBufferRHI );
+		}
+	}
+
 private:
 	/** Resizes the buffer to the passed in size.  Preserves internal data*/
-	void ResizeBuffer( uint32 NewSizeBytes );
+	void ResizeBuffer( uint32 NewSizeBytes )
+	{
+		check( IsInRenderingThread() );
+
+		if( NewSizeBytes != 0 && NewSizeBytes != BufferSize)
+		{
+			VertexBufferRHI.SafeRelease();
+
+			FRHIResourceCreateInfo CreateInfo;
+			VertexBufferRHI = RHICreateVertexBuffer(NewSizeBytes, BUF_Dynamic, CreateInfo);
+
+			check(IsValidRef(VertexBufferRHI));
+
+			BufferSize = NewSizeBytes;
+		}
+	}
 
 private:
 	/** The size of the buffer in bytes. */
@@ -49,8 +124,8 @@ private:
 	uint32 BufferUsageSize;
 
 	/** Hidden copy methods. */
-	FSlateElementVertexBuffer( const FSlateElementVertexBuffer& );
-	void operator=(const FSlateElementVertexBuffer& );
+	TSlateElementVertexBuffer( const TSlateElementVertexBuffer& );
+	void operator=(const TSlateElementVertexBuffer& );
 };
 
 class FSlateElementIndexBuffer : public FIndexBuffer
@@ -95,32 +170,18 @@ private:
 
 };
 
-class FSlateRenderTarget : public FRenderTarget
-{
-public:
-	FSlateRenderTarget( FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY )
-		: SizeXY( InSizeXY )
-	{
-		RenderTargetTextureRHI = InRenderTargetTexture;
-	}
-	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
-private:
-	FIntPoint SizeXY;
-};
-
 class FSlateRHIRenderingPolicy : public FSlateRenderingPolicy
 {
 public:
-	FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InTextureManager );
+	FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateRHIResourceManager> InResourceManager );
 	~FSlateRHIRenderingPolicy();
 	
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
-	virtual void DrawElements( const FIntPoint& InViewportSize, FSlateRenderTarget& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
+	virtual void DrawElements( const FIntPoint& InViewportSize, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	class FSlateShaderResource* GetViewportResource( const ISlateViewport* InViewportInterface );
-	virtual class FSlateShaderResourceProxy* GetTextureResource( const FSlateBrush& Brush ) override;
-	TSharedPtr<FSlateFontCache>& GetFontCache() { return FontCache; }
-	
+	TSharedPtr<FSlateFontCache> GetFontCache() { return FontCache; }
+	TSharedRef<FSlateShaderResourceManager> GetResourceManager() { return ResourceManager; }
+
 	void InitResources();
 	void ReleaseResources();
 
@@ -139,13 +200,15 @@ private:
 	/** Global shader states */
 	static FGlobalBoundShaderState NormalShaderStates[4][2 /* UseTextureAlpha */];
 	static FGlobalBoundShaderState DisabledShaderStates[4][2 /* UseTextureAlpha */];
+	static FGlobalBoundShaderState MaterialShaderState;
 
 	/** Buffers used for rendering */
-	FSlateElementVertexBuffer VertexBuffers[2];
+	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers[2];
 	FSlateElementIndexBuffer IndexBuffers[2];
 
-	TSharedRef<FSlateRHIResourceManager> TextureManager;
+	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 	TSharedPtr<FSlateFontCache> FontCache;
+
 	uint8 CurrentBufferIndex;
 	
 	/** If we should shrink resources that are no longer used (do not set this from the game thread)*/
