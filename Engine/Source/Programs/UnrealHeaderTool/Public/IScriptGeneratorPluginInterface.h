@@ -80,11 +80,10 @@ public:
 	/** Returns true if this plugin supports exporting scripts for the specified module */
 	virtual bool ShouldExportClassesForModule(const FString& ModuleName, EBuildModuleType::Type ModuleType) const = 0;
 	/** Initializes this plugin with build information */
-	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory) = 0;
+	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& IncludeBase) = 0;
 	/** Exports a single class. May be called multiple times for the same class (as UHT processes the entire hierarchy inside modules. */
 	virtual void ExportClass(class UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) = 0;
 	/** Called once all classes have been exported */
 	virtual void FinishExport() = 0;
-
 };
 

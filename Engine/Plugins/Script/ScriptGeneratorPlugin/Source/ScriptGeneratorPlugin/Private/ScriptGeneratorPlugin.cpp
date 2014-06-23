@@ -20,7 +20,7 @@ class FScriptGeneratorPlugin : public IScriptGeneratorPlugin
 	virtual FString GetGeneratedCodeModuleName() const override { return TEXT("ScriptPlugin"); }
 	virtual bool ShouldExportClassesForModule(const FString& ModuleName, EBuildModuleType::Type ModuleType) const;
 	virtual bool SupportsTarget(const FString& TargetName) const override { return true; }
-	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory) override;
+	virtual void Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& IncludeBase) override;
 	virtual void ExportClass(UClass* Class, const FString& SourceHeaderFilename, const FString& GeneratedHeaderFilename, bool bHasChanged) override;
 	virtual void FinishExport() override;
 };
@@ -37,14 +37,14 @@ void FScriptGeneratorPlugin::ShutdownModule()
 	CodeGenerator.Reset();
 }
 
-void FScriptGeneratorPlugin::Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory)
+void FScriptGeneratorPlugin::Initialize(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& IncludeBase)
 {
 #if WITH_LUA
 	UE_LOG(LogScriptGenerator, Log, TEXT("Using Lua Script Generator."));
-	CodeGenerator = new FLuaScriptCodeGenerator(RootLocalPath, RootBuildPath, OutputDirectory);
+	CodeGenerator = new FLuaScriptCodeGenerator(RootLocalPath, RootBuildPath, OutputDirectory, IncludeBase);
 #else
 	UE_LOG(LogScriptGenerator, Log, TEXT("Using Generic Script Generator."));
-	CodeGenerator = new FGenericScriptCodeGenerator(RootLocalPath, RootBuildPath, OutputDirectory);
+	CodeGenerator = new FGenericScriptCodeGenerator(RootLocalPath, RootBuildPath, OutputDirectory, IncludeBase);
 #endif
 	UE_LOG(LogScriptGenerator, Log, TEXT("Output directory: %s"), *OutputDirectory);
 }

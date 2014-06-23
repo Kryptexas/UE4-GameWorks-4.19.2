@@ -4387,23 +4387,25 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 		if (bSupportedPlugin)
 		{
 			// Find the right output direcotry for this plugin base on its target (Engine-side) plugin name.
-			FString GeneratedCodeModule = ScriptGenerator->GetGeneratedCodeModuleName();
+			FString GeneratedCodeModuleName = ScriptGenerator->GetGeneratedCodeModuleName();
+			const FManifestModule* GeneratedCodeModule = NULL;
 			FString OutputDirectory;
+			FString IncludeBase;
 			for (const auto& Module : GManifest.Modules)
 			{
-				if (Module.Name == GeneratedCodeModule)
+				if (Module.Name == GeneratedCodeModuleName)
 				{
-					OutputDirectory = Module.GeneratedIncludeDirectory;
+					GeneratedCodeModule = &Module;
 				}
 			}
-			if (!OutputDirectory.IsEmpty())
+			if (GeneratedCodeModule)
 			{
-				ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, OutputDirectory);
+				ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, GeneratedCodeModule->GeneratedIncludeDirectory, GeneratedCodeModule->IncludeBase);
 			}
 			else
 			{
 				// Can't use this plugin
-				UE_LOG(LogCompile, Log, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModule);
+				UE_LOG(LogCompile, Log, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModuleName);
 				bSupportedPlugin = false;				
 			}
 		}

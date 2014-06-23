@@ -2,11 +2,12 @@
 #include "ScriptGeneratorPluginPrivatePCH.h"
 #include "ScriptCodeGeneratorBase.h"
 
-FScriptCodeGeneratorBase::FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& InOutputDirectory)
+FScriptCodeGeneratorBase::FScriptCodeGeneratorBase(const FString& InRootLocalPath, const FString& InRootBuildPath, const FString& InOutputDirectory, const FString& InIncludeBase)
 {
 	GeneratedCodePath = InOutputDirectory;
 	RootLocalPath = InRootLocalPath;
 	RootBuildPath = InRootBuildPath;
+	IncludeBase = InIncludeBase;
 }
 
 bool FScriptCodeGeneratorBase::SaveHeaderIfChanged(const FString& HeaderPath, const FString& NewHeaderContents)
@@ -55,13 +56,7 @@ void FScriptCodeGeneratorBase::RenameTempFiles()
 FString FScriptCodeGeneratorBase::RebaseToBuildPath(const FString& FileName) const
 {
 	FString NewFilename(FileName);
-	if (RootLocalPath != RootBuildPath)
-	{
-		if (FPaths::MakePathRelativeTo(NewFilename, *RootLocalPath))
-		{
-			NewFilename = RootBuildPath / NewFilename;
-		}
-	}
+	FPaths::MakePathRelativeTo(NewFilename, *IncludeBase);
 	return NewFilename;
 }
 
