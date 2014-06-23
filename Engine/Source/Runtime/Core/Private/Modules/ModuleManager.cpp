@@ -3,6 +3,7 @@
 #include "CorePrivate.h"
 #include "ModuleManager.h"
 #include "ModuleVersion.h"
+#include "EngineBuildSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
@@ -1327,43 +1328,26 @@ bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, F
 #endif
 	if ( !ProjectFilename.IsEmpty() )
 	{
-		bool bIsInRootFolder = false;
-		if ( !FRocketSupport::IsRocket() )
+		// Normalize the project filename
+		FString NormalizedProjectFilename = ProjectFilename;
+		FPaths::NormalizeFilename(NormalizedProjectFilename);
+
+		// Figure out if this is a foreign project, and specify the project filename on the command line if it is. Don't use the cached project dictionary; the project may have been newly added.
+		FUProjectDictionary Dictionary(FPaths::RootDir());
+		if(Dictionary.IsForeignProject(NormalizedProjectFilename))
 		{
-			// This is a non-rocket GenerateCodeProjectFiles call. If we are in the UE4 root, just generate all project files.
-			FString AbsoluteProjectParentFolder = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::GetPath(FPaths::GetPath(ProjectFilename)));
-			FString AbsoluteRootPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::RootDir());
-			
-			if ( AbsoluteProjectParentFolder.Right(1) != TEXT("/") )
+			CmdLineParams += FString::Printf(TEXT(" \"%s\" -game"), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*NormalizedProjectFilename));
+
+			// Determine whether we want engine source in the generated project files
+			if(FEngineBuildSettings::IsSourceDistribution())
 			{
-				AbsoluteProjectParentFolder += TEXT("/");
-			}
-
-			if ( AbsoluteRootPath.Right(1) != TEXT("/") )
-			{
-				AbsoluteRootPath += TEXT("/");
-			}
-
-			bIsInRootFolder = (AbsoluteProjectParentFolder == AbsoluteRootPath);
-		}
-
-		// @todo Rocket: New projects created under the root don't need a full path to the .uproject name (but eventually, they probably should always have this for consistency.)
-		const bool bNeedsUProjectFilePath = FRocketSupport::IsRocket() || !bIsInRootFolder;
-		if( bNeedsUProjectFilePath )
-		{
-			CmdLineParams += FString::Printf(TEXT(" \"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFilename));
-		}
-
-		if ( !FRocketSupport::IsRocket() )
-		{
-			// This is a non-rocket GenerateCodeProjectFiles call. If we are in the UE4 root, just generate all project files.
-			if ( !bIsInRootFolder )
-			{
-				CmdLineParams += TEXT(" -game -engine");
+				CmdLineParams += TEXT(" -engine");
 			}
 		}
-        else
-        {
+
+		// Add the Rocket parameter
+		if ( FRocketSupport::IsRocket() )
+		{
             CmdLineParams += TEXT(" -rocket");
         }
 	}

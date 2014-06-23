@@ -896,13 +896,6 @@ namespace UnrealBuildTool
 
 			string UProjectPath = "";
 			bool bIsProjectTarget = UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath());
-
-			// @todo Rocket: HACK: Only use long project names on the UBT command-line for out-of-root projects for now.  We need to revisit all uses of HasUProjectFile and short names in general to fix this.
-			if (bIsProjectTarget && !UnrealBuildTool.RunningRocket() && Utils.IsFileUnderDirectory(UnrealBuildTool.GetUProjectFile(), ProjectFileGenerator.RootRelativePath))
-			{
-				bIsProjectTarget = false;
-			}
-
 			if (bIsProjectTarget)
 			{
 				UProjectPath = "\"$(SolutionDir)$(SolutionName).uproject\"";
