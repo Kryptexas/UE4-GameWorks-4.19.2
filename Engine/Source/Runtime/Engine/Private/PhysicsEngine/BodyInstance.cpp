@@ -1552,6 +1552,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 
 	for(int32 ShapeIdx=0; ShapeIdx<PShapes.Num(); ShapeIdx++)
 	{
+		bool bInvalid = false;	//we only mark invalid if actually found geom and it's invalid scale
 		PxGeometry* UpdatedGeometry = NULL;
 		PxShape* PShape = PShapes[ShapeIdx];
 		PxScene* PScene = PShape->getActor()->getScene();
@@ -1578,6 +1579,10 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 					UpdatedGeometry = &PSphereGeom;
 					bSuccess = true;
 				}
+				else
+				{
+					bInvalid = true;
+				}
 				break;
 			}
 			case PxGeometryType::eBOX:
@@ -1596,6 +1601,10 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 				{
 					UpdatedGeometry = &PBoxGeom;
 					bSuccess = true;
+				}
+				else
+				{
+					bInvalid = true;
 				}
 				break;
 			}
@@ -1617,6 +1626,10 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 				{
 					UpdatedGeometry = &PCapsuleGeom;
 					bSuccess = true;
+				}
+				else
+				{
+					bInvalid = true;
 				}
 
 				break;
@@ -1656,6 +1669,10 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 							{
 								UpdatedGeometry = &PConvexGeom;
 								bSuccess = true;
+							}
+							else
+							{
+								bInvalid = true;
 							}
 							break;
 						}
@@ -1697,6 +1714,10 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 							bSuccess = true;
 
 						}
+						else
+						{
+							bInvalid = true;
+						}
 					}
 				}
 				break;
@@ -1714,7 +1735,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 			PShape->setLocalPose(PLocalPose);
 			PShape->setGeometry(*UpdatedGeometry);
 		}
-		else
+		else if (bInvalid)
 		{
 			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 		}
