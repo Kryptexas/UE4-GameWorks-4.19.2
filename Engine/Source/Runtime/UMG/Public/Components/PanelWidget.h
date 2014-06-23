@@ -20,95 +20,21 @@ public:
 
 	//TODO UMG Add ways to make adding slots callable by blueprints.
 
-	int32 GetChildrenCount() const
-	{
-		return Slots.Num();
-	}
+	int32 GetChildrenCount() const;
 
-	UWidget* GetChildAt(int32 Index) const
-	{
-		return Slots[Index]->Content;
-	}
+	UWidget* GetChildAt(int32 Index) const;
 
-	int32 GetChildIndex(UWidget* Content) const
-	{
-		const int32 ChildCount = GetChildrenCount();
-		for ( int32 ChildIndex = 0; ChildIndex < ChildCount; ChildIndex++ )
-		{
-			if ( GetChildAt(ChildIndex) == Content )
-			{
-				return ChildIndex;
-			}
-		}
+	int32 GetChildIndex(UWidget* Content) const;
 
-		return -1;
-	}
+	bool RemoveChildAt(int32 Index);
 
-	bool RemoveChildAt(int32 Index)
-	{
-		UPanelSlot* Slot = Slots[Index];
-		Slots.RemoveAt(Index);
-		
-		OnSlotRemoved(Slot);
+	UPanelSlot* AddChild(UWidget* Content, FVector2D Position);
 
-		return true;
-	}
+	void ReplaceChildAt(int32 Index, UWidget* Content);
 
-	UPanelSlot* AddChild(UWidget* Content, FVector2D Position)
-	{
-		if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
-		{
-			return false;
-		}
+	void InsertChildAt(int32 Index, UWidget* Content);
 
-		UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
-		Slot->SetFlags(RF_Transactional);
-		Slot->Content = Content;
-		Slot->Parent = this;
-
-		Content->Slot = Slot;
-
-		Slots.Add(Slot);
-
-		OnSlotAdded(Slot);
-
-		return Slot;
-	}
-
-	void ReplaceChildAt(int32 Index, UWidget* Content)
-	{
-		UPanelSlot* Slot = Slots[Index];
-		Slot->Content = Content;
-
-		Content->Slot = Slot;
-
-		Slot->Refresh();
-	}
-
-	void InsertChildAt(int32 Index, UWidget* Content)
-	{
-		UPanelSlot* Slot = ConstructObject<UPanelSlot>(GetSlotClass(), this);
-		Slot->SetFlags(RF_Transactional);
-		Slot->Content = Content;
-		Slot->Parent = this;
-
-		Content->Slot = Slot;
-
-		Slots.Insert(Slot, Index);
-
-		OnSlotAdded(Slot);
-	}
-
-	bool RemoveChild(UWidget* Content)
-	{
-		int32 ChildIndex = GetChildIndex(Content);
-		if ( ChildIndex != -1 )
-		{
-			return RemoveChildAt(ChildIndex);
-		}
-
-		return false;
-	}
+	bool RemoveChild(UWidget* Content);
 
 #if WITH_EDITOR
 	virtual void ConnectEditorData() override
