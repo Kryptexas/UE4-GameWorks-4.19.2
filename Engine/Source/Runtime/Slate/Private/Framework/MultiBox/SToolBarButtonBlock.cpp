@@ -378,9 +378,14 @@ bool SToolBarButtonBlock::IsEnabled() const
 EVisibility SToolBarButtonBlock::GetBlockVisibility() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
+	const FUIAction& DirectActions = MultiBlock->GetDirectActions();
 	if( ActionList.IsValid() )
 	{
 		return ActionList->GetVisibility( MultiBlock->GetAction().ToSharedRef() );
+	}
+	else if(DirectActions.IsActionVisibleDelegate.IsBound())
+	{
+		return DirectActions.IsActionVisibleDelegate.Execute() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	return EVisibility::Visible;

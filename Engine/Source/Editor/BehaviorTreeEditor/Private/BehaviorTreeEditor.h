@@ -184,6 +184,54 @@ public:
 	/** Get the currently selected blackboard entry */
 	void GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const;
 
+	/** Check to see if we can create a new task node */
+	bool CanCreateNewTask() const;
+
+	/** Check to see if we can create a new decorator node */
+	bool CanCreateNewDecorator() const;
+
+	/** Check to see if we can create a new service node */
+	bool CanCreateNewService() const;
+
+	/** Create the menu used to make a new task node */
+	TSharedRef<SWidget> HandleCreateNewTaskMenu() const;
+
+	/** Create the menu used to make a new decorator */
+	TSharedRef<SWidget> HandleCreateNewDecoratorMenu() const;
+
+	/** Create the menu used to make a new service */
+	TSharedRef<SWidget> HandleCreateNewServiceMenu() const;
+
+	/** Handler for when a node class is picked */
+	void HandleNewNodeClassPicked(UClass* InClass) const;
+
+	/** Create a new task from UBTTask_BlueprintBase */
+	void CreateNewTask() const;
+
+	/** Whether the single button to create a new Blueprint-based task is visible */
+	bool IsNewTaskButtonVisible() const;
+
+	/** Whether the combo button to create a new Blueprint-based task from all available base classes is visible */
+	bool IsNewTaskComboVisible() const;
+
+	/** Create a new decorator from UBTDecorator_BlueprintBase */
+	void CreateNewDecorator() const;
+
+	/** Whether the single button to create a new Blueprint-based decorator is visible */
+	bool IsNewDecoratorButtonVisible() const;
+
+	/** Whether the combo button to create a new Blueprint-based decorator from all available base classes is visible */
+	bool IsNewDecoratorComboVisible() const;
+
+	/** Create a new service from UBTService_BlueprintBase */
+	void CreateNewService() const;
+
+	/** Whether the single button to create a new Blueprint-based service is visible */
+	bool IsNewServiceButtonVisible() const;
+
+	/** Whether the combo button to create a new Blueprint-based service from all available base classes is visible */
+	bool IsNewServiceComboVisible() const;
+
 protected:
 	/** Called when "Save" is clicked for this asset */
 	virtual void SaveAsset_Execute() override;

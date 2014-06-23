@@ -8,6 +8,9 @@
 
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTree/Tasks/BTTask_BlueprintBase.h"
+#include "BehaviorTree/Decorators/BTDecorator_BlueprintBase.h"
+#include "BehaviorTree/Services/BTService_BlueprintBase.h"
 #include "BehaviorTree/BTDecorator.h"
 
 #include "Toolkits/IToolkitHost.h"
@@ -25,6 +28,10 @@
 #include "DetailCustomizations/BlackboardDataDetails.h"
 #include "SBehaviorTreeBlackboardView.h"
 #include "SBehaviorTreeBlackboardEditor.h"
+#include "ClassViewerFilter.h"
+#include "ClassViewerModule.h"
+#include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
@@ -64,6 +71,7 @@ FBehaviorTreeEditor::~FBehaviorTreeEditor()
 
 	UPackage::PackageSavedEvent.RemoveRaw(this, &FBehaviorTreeEditor::OnPackageSaved);
 	FClassBrowseHelper::OnPackageListUpdated.RemoveRaw(this, &FBehaviorTreeEditor::OnClassListUpdated);
+
 	Debugger.Reset();
 }
 
@@ -1962,6 +1970,153 @@ UBlackboardData* FBehaviorTreeEditor::GetBlackboardData() const
 void FBehaviorTreeEditor::RefreshDebugger()
 {
 	Debugger->Refresh();
+}
+
+bool FBehaviorTreeEditor::CanCreateNewTask() const
+{
+	return !IsDebuggerReady();
+}
+
+bool FBehaviorTreeEditor::CanCreateNewDecorator() const
+{
+	return !IsDebuggerReady();
+}
+
+bool FBehaviorTreeEditor::CanCreateNewService() const
+{
+	return !IsDebuggerReady();
+}
+
+template <typename Type>
+class FNewNodeClassFilter : public IClassViewerFilter
+{
+public:
+	virtual bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs ) override
+	{
+		if(InClass != nullptr)
+		{
+			return InClass->IsChildOf(Type::StaticClass());
+		}
+		return false;
+	}
+
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		return InUnloadedClassData->IsChildOf(Type::StaticClass());
+	}
+};
+
+
+TSharedRef<SWidget> FBehaviorTreeEditor::HandleCreateNewTaskMenu() const
+{
+	FClassViewerInitializationOptions Options;
+	Options.bShowUnloadedBlueprints = true;
+	Options.ClassFilter = MakeShareable( new FNewNodeClassFilter<UBTTask_BlueprintBase> );
+
+	FOnClassPicked OnPicked( FOnClassPicked::CreateSP( this, &FBehaviorTreeEditor::HandleNewNodeClassPicked ) );
+
+	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
+}
+
+TSharedRef<SWidget> FBehaviorTreeEditor::HandleCreateNewDecoratorMenu() const
+{
+	FClassViewerInitializationOptions Options;
+	Options.bShowUnloadedBlueprints = true;
+	Options.ClassFilter = MakeShareable( new FNewNodeClassFilter<UBTDecorator_BlueprintBase> );
+
+	FOnClassPicked OnPicked( FOnClassPicked::CreateSP( this, &FBehaviorTreeEditor::HandleNewNodeClassPicked ) );
+
+	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
+}
+
+TSharedRef<SWidget> FBehaviorTreeEditor::HandleCreateNewServiceMenu() const
+{
+	FClassViewerInitializationOptions Options;
+	Options.bShowUnloadedBlueprints = true;
+	Options.ClassFilter = MakeShareable( new FNewNodeClassFilter<UBTService_BlueprintBase> );
+
+	FOnClassPicked OnPicked( FOnClassPicked::CreateSP( this, &FBehaviorTreeEditor::HandleNewNodeClassPicked ) );
+
+	return FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(Options, OnPicked);
+}
+
+void FBehaviorTreeEditor::HandleNewNodeClassPicked(UClass* InClass) const
+{
+	if(BehaviorTree != nullptr)
+	{
+		FString ClassName = InClass->GetName();
+		ClassName.RemoveFromEnd(TEXT("_C"));
+
+		FString PathName = BehaviorTree->GetOutermost()->GetPathName();
+		PathName = FPaths::GetPath(PathName);
+		PathName /= ClassName;
+
+		FString Name;
+		FString PackageName;
+		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().CreateUniqueAssetName(PathName, TEXT("_New"), PackageName, Name);
+
+		UPackage* Package = CreatePackage(NULL, *PackageName);
+		if (ensure(Package))
+		{
+			// Create and init a new Blueprint
+			if (UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(InClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass()))
+			{
+				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
+
+				// Notify the asset registry
+				FAssetRegistryModule::AssetCreated(NewBP);
+
+				// Mark the package dirty...
+				Package->MarkPackageDirty();
+			}
+		}
+	}
+}
+
+void FBehaviorTreeEditor::CreateNewTask() const
+{
+	HandleNewNodeClassPicked(UBTTask_BlueprintBase::StaticClass());
+}
+
+bool FBehaviorTreeEditor::IsNewTaskButtonVisible() const
+{
+	return !FClassBrowseHelper::IsMoreThanOneTaskClassAvailable();
+}
+
+bool FBehaviorTreeEditor::IsNewTaskComboVisible() const
+{
+	return FClassBrowseHelper::IsMoreThanOneTaskClassAvailable();
+}
+
+void FBehaviorTreeEditor::CreateNewDecorator() const
+{
+	HandleNewNodeClassPicked(UBTDecorator_BlueprintBase::StaticClass());
+}
+
+bool FBehaviorTreeEditor::IsNewDecoratorButtonVisible() const
+{
+	return !FClassBrowseHelper::IsMoreThanOneDecoratorClassAvailable();
+}
+
+bool FBehaviorTreeEditor::IsNewDecoratorComboVisible() const
+{
+	return FClassBrowseHelper::IsMoreThanOneDecoratorClassAvailable();
+}
+
+void FBehaviorTreeEditor::CreateNewService() const
+{
+	HandleNewNodeClassPicked(UBTService_BlueprintBase::StaticClass());
+}
+
+bool FBehaviorTreeEditor::IsNewServiceButtonVisible() const
+{
+	return !FClassBrowseHelper::IsMoreThanOneServiceClassAvailable();
+}
+
+bool FBehaviorTreeEditor::IsNewServiceComboVisible() const
+{
+	return FClassBrowseHelper::IsMoreThanOneServiceClassAvailable();
 }
 
 #undef LOCTEXT_NAMESPACE

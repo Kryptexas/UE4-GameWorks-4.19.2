@@ -52,6 +52,7 @@ public class BehaviorTreeEditor : ModuleRules
                 "WorkspaceMenuStructure",
                 "PropertyEditor",
 				"AssetTools",
+				"AssetRegistry"
             }
 		);
 	}

@@ -2870,6 +2870,13 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 			Set( "ClassIcon.BlackboardKeyType_Rotator", new IMAGE_BRUSH( "Icons/pill_16x", Icon16x16, FLinearColor(0.353393f, 0.454175f, 1.0f, 1.0f) ) );
 			Set( "ClassIcon.BlackboardKeyType_String", new IMAGE_BRUSH( "Icons/pill_16x", Icon16x16, FLinearColor(1.0f, 0.0f, 0.660537f, 1.0f) ) );
 			Set( "ClassIcon.BlackboardKeyType_Vector", new IMAGE_BRUSH( "Icons/pill_16x", Icon16x16, FLinearColor(1.0f, 0.591255f, 0.016512f, 1.0f) ) );
+
+			Set( "BTEditor.Graph.NewTask", new IMAGE_BRUSH( "BehaviorTree/NewTask_40x", FVector2D(40,40)));
+			Set( "BTEditor.Graph.NewTask.Small", new IMAGE_BRUSH( "BehaviorTree/NewTask_40x", FVector2D(16,16)));
+			Set( "BTEditor.Graph.NewDecorator", new IMAGE_BRUSH( "BehaviorTree/NewDecorator_40x", FVector2D(40,40)));
+			Set( "BTEditor.Graph.NewDecorator.Small", new IMAGE_BRUSH( "BehaviorTree/NewDecorator_40x", FVector2D(16,16)));
+			Set( "BTEditor.Graph.NewService", new IMAGE_BRUSH( "BehaviorTree/NewService_40x", FVector2D(40,40)));
+			Set( "BTEditor.Graph.NewService.Small", new IMAGE_BRUSH( "BehaviorTree/NewService_40x", FVector2D(16,16)));
 		}
 
 		// Visible on hover button for transition node

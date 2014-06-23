@@ -58,6 +58,7 @@ FBehaviorTreeEditorApplicationMode::FBehaviorTreeEditorApplicationMode(TSharedPt
 	
 	InBehaviorTreeEditor->GetToolbarBuilder()->AddModesToolbar(ToolbarExtender);
 	InBehaviorTreeEditor->GetToolbarBuilder()->AddDebuggerToolbar(ToolbarExtender);
+	InBehaviorTreeEditor->GetToolbarBuilder()->AddBehaviorTreeToolbar(ToolbarExtender);
 }
 
 void FBehaviorTreeEditorApplicationMode::RegisterTabFactories(TSharedPtr<FTabManager> InTabManager)
