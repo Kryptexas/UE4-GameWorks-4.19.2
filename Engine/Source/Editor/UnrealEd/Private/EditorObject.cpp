@@ -282,11 +282,7 @@ static const TCHAR* ImportProperties(
 							Instance.Base = ActorComponent;
 
 							// Add the instance
-							FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
-							if( MeshInfo == NULL ) 
-							{
-								MeshInfo = IFA->AddMesh(StaticMesh);
-							}
+							FFoliageMeshInfo* MeshInfo = IFA->FindOrAddMesh(StaticMesh);
 							MeshInfo->AddInstance(IFA, StaticMesh, Instance);
 						}
 					}

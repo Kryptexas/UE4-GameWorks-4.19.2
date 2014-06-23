@@ -125,14 +125,14 @@ void FEdModeFoliage::Enter()
 
 	// Fixup any broken clusters
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : IFA->FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		for( int32 ClusterIdx=0;ClusterIdx<MeshInfo.InstanceClusters.Num();ClusterIdx++ )
 		{
 			if( MeshInfo.InstanceClusters[ClusterIdx].ClusterComponent == NULL )
 			{
-				MeshInfo.ReallocateClusters(IFA, MeshIt.Key());
+				MeshInfo.ReallocateClusters(IFA, MeshPair.Key);
 				break;
 			}
 		}
@@ -1122,9 +1122,9 @@ void FEdModeFoliage::ApplyBrush( FEditorViewportClient* ViewportClient )
 	// Cache a copy of the world pointer
 	UWorld* World = ViewportClient->GetWorld();
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : IFA->FoliageMeshes)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 		UInstancedFoliageSettings* MeshSettings = MeshInfo.Settings;
 
 		if( MeshSettings->IsSelected )
@@ -1145,14 +1145,14 @@ void FEdModeFoliage::ApplyBrush( FEditorViewportClient* ViewportClient )
 				if( MeshSettings->ReapplyDensity )
 				{
 					// Adjust instance density
-					FMeshInfoSnapshot* SnapShot = InstanceSnapshot.Find(MeshIt.Key());
+					FMeshInfoSnapshot* SnapShot = InstanceSnapshot.Find(MeshPair.Key);
 					if( SnapShot ) 
 					{
 						// Use snapshot to determine number of instances at the start of the brush stroke
 						int32 NewInstanceCount = FMath::RoundToInt( (float)SnapShot->CountInstancesInsideSphere(BrushSphere) * MeshSettings->ReapplyDensityAmount );
 						if( MeshSettings->ReapplyDensityAmount > 1.f && NewInstanceCount > Instances.Num() )
 						{
-							AddInstancesForBrush( World , IFA, MeshIt.Key(), MeshInfo, NewInstanceCount, Instances, Pressure );
+							AddInstancesForBrush( World , IFA, MeshPair.Key, MeshInfo, NewInstanceCount, Instances, Pressure );
 						}
 						else
 						if( MeshSettings->ReapplyDensityAmount < 1.f && NewInstanceCount < Instances.Num() )			
@@ -1186,7 +1186,7 @@ void FEdModeFoliage::ApplyBrush( FEditorViewportClient* ViewportClient )
 					// Allow a single instance with a random chance, if the brush is smaller than the density
 					int32 DesiredInstanceCount = DesiredInstanceCountFloat > 1.f ? FMath::RoundToInt(DesiredInstanceCountFloat) : FMath::FRand() < DesiredInstanceCountFloat ? 1 : 0;
 
-					AddInstancesForBrush( World, IFA, MeshIt.Key(), MeshInfo, DesiredInstanceCount, Instances, Pressure );
+					AddInstancesForBrush( World, IFA, MeshPair.Key, MeshInfo, DesiredInstanceCount, Instances, Pressure );
 				}
 			}
 		}
@@ -1263,9 +1263,9 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 
 		for( int32 ComponentIdx=0;ComponentIdx<Components.Num();ComponentIdx++ )
 		{
-			for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+			for (auto& MeshPair : IFA->FoliageMeshes)
 			{
-				FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+				FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 				UInstancedFoliageSettings* MeshSettings = MeshInfo.Settings;
 
 				if( MeshSettings->IsSelected )
@@ -1336,9 +1336,9 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 		// Place foliage
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 
-		for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+		for (auto& MeshPair : IFA->FoliageMeshes)
 		{
-			FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			UInstancedFoliageSettings* MeshSettings = MeshInfo.Settings;
 
 			if( MeshSettings->IsSelected )
@@ -1400,7 +1400,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 					FFoliageInstance Inst;
 					if (InstancesToPlace[Idx].PlaceInstance(MeshSettings, Inst, World ))
 					{
-						MeshInfo.AddInstance( IFA, MeshIt.Key(), Inst );
+						MeshInfo.AddInstance( IFA, MeshPair.Key, Inst );
 					}
 				}
 			}
@@ -1512,9 +1512,9 @@ void FEdModeFoliage::UpdateFoliageMeshList()
 
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+	for (auto& MeshPair : IFA->FoliageMeshes)
 	{
-		new(FoliageMeshList) FFoliageMeshUIInfo(MeshIt.Key(), &MeshIt.Value());
+		new(FoliageMeshList) FFoliageMeshUIInfo(MeshPair.Key, &*MeshPair.Value);
 	}
 
 	struct FCompareFFoliageMeshUIInfo
@@ -1531,7 +1531,7 @@ void FEdModeFoliage::UpdateFoliageMeshList()
 void FEdModeFoliage::AddFoliageMesh(UStaticMesh* StaticMesh)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	if( IFA->FoliageMeshes.Find(StaticMesh) == NULL )
+	if( IFA->FindMesh(StaticMesh) == NULL )
 	{
 		IFA->AddMesh(StaticMesh);
 
@@ -1546,7 +1546,7 @@ bool FEdModeFoliage::RemoveFoliageMesh(UStaticMesh* StaticMesh)
 	bool bMeshRemoved = false;
 
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 	if( MeshInfo != NULL )
 	{
 		int32 InstancesNum = MeshInfo->Instances.Num() - MeshInfo->FreeInstanceIndices.Num();
@@ -1559,7 +1559,7 @@ bool FEdModeFoliage::RemoveFoliageMesh(UStaticMesh* StaticMesh)
 			GEditor->EndTransaction();
 
 			bMeshRemoved = true;
-		}		
+		}
 
 		// Update mesh list.
 		UpdateFoliageMeshList();
@@ -1572,7 +1572,7 @@ bool FEdModeFoliage::RemoveFoliageMesh(UStaticMesh* StaticMesh)
 void FEdModeFoliage::BakeFoliage(UStaticMesh* StaticMesh, bool bSelectedOnly)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 	if( MeshInfo != NULL )
 	{
 		TArray<int32> InstancesToConvert;
@@ -1610,7 +1610,7 @@ void FEdModeFoliage::BakeFoliage(UStaticMesh* StaticMesh, bool bSelectedOnly)
 UInstancedFoliageSettings* FEdModeFoliage::CopySettingsObject(UStaticMesh* StaticMesh)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 	if( MeshInfo )
 	{
 		GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "FoliageMode_SettingsObjectTransaction", "Foliage Editing: Settings Object") );
@@ -1629,7 +1629,7 @@ UInstancedFoliageSettings* FEdModeFoliage::CopySettingsObject(UStaticMesh* Stati
 void FEdModeFoliage::ReplaceSettingsObject(UStaticMesh* StaticMesh, UInstancedFoliageSettings* NewSettings)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 
 	if( MeshInfo )
 	{
@@ -1644,7 +1644,7 @@ void FEdModeFoliage::ReplaceSettingsObject(UStaticMesh* StaticMesh, UInstancedFo
 UInstancedFoliageSettings* FEdModeFoliage::SaveSettingsObject(const FText& InSettingsPackageName, UStaticMesh* StaticMesh)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 
 	if( MeshInfo )
 	{
@@ -1672,7 +1672,7 @@ UInstancedFoliageSettings* FEdModeFoliage::SaveSettingsObject(const FText& InSet
 void FEdModeFoliage::ReallocateClusters(UStaticMesh* StaticMesh)
 {
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* MeshInfo = IFA->FoliageMeshes.Find(StaticMesh);
+	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(StaticMesh);
 	if( MeshInfo != NULL )
 	{
 		MeshInfo->ReallocateClusters(IFA, StaticMesh);
@@ -1685,14 +1685,14 @@ bool FEdModeFoliage::ReplaceStaticMesh(UStaticMesh* OldStaticMesh, UStaticMesh* 
 	bOutMeshMerged = false;
 
 	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-	FFoliageMeshInfo* OldMeshInfo = IFA->FoliageMeshes.Find(OldStaticMesh);
+	FFoliageMeshInfo* OldMeshInfo = IFA->FindMesh(OldStaticMesh);
 
 	if( OldMeshInfo != NULL && OldStaticMesh != NewStaticMesh )
 	{
 		int32 InstancesNum = OldMeshInfo->Instances.Num() - OldMeshInfo->FreeInstanceIndices.Num();
 
 		// Look for the new mesh in the mesh list, and either create a new mesh or merge the instances.
-		FFoliageMeshInfo* NewMeshInfo = IFA->FoliageMeshes.Find(NewStaticMesh);
+		FFoliageMeshInfo* NewMeshInfo = IFA->FindMesh(NewStaticMesh);
 		if( NewMeshInfo == NULL )
 		{
 			FText Message = FText::Format( NSLOCTEXT("UnrealEd", "FoliageMode_ReplaceMesh", "Are you sure you want to replace all {0} instances of {1} with {2}?"), FText::AsNumber( InstancesNum ), FText::FromString( OldStaticMesh->GetName() ), FText::FromString( NewStaticMesh->GetName() ) );
@@ -1767,13 +1767,13 @@ bool FEdModeFoliage::InputKey( FEditorViewportClient* ViewportClient, FViewport*
 				if( UISettings.GetReapplyToolSelected() )
 				{
 					AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
-					for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+					for (auto& MeshPair : IFA->FoliageMeshes)
 					{
-						FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+						FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 						if( MeshInfo.Settings->IsSelected )
 						{
 							// Take a snapshot of all the locations
-							InstanceSnapshot.Add( MeshIt.Key(), FMeshInfoSnapshot(&MeshInfo) ) ;
+							InstanceSnapshot.Add( MeshPair.Key, FMeshInfoSnapshot(&MeshInfo) ) ;
 
 							// Clear the "FOLIAGE_Readjusted" flag
 							for( int32 Idx=0;Idx<MeshInfo.Instances.Num();Idx++ )
@@ -1810,9 +1810,9 @@ bool FEdModeFoliage::InputKey( FEditorViewportClient* ViewportClient, FViewport*
 				GEditor->BeginTransaction( NSLOCTEXT("UnrealEd", "FoliageMode_EditTransaction", "Foliage Editing") );
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 				IFA->Modify();
-				for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+				for (auto& MeshPair : IFA->FoliageMeshes)
 				{
-					FFoliageMeshInfo& Mesh = MeshIt.Value();
+					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 					if( Mesh.SelectedIndices.Num() > 0 )
 					{
 						TArray<int32> InstancesToDelete = Mesh.SelectedIndices;
@@ -1830,9 +1830,9 @@ bool FEdModeFoliage::InputKey( FEditorViewportClient* ViewportClient, FViewport*
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 				IFA->Modify();
 				bool bMovedInstance = false;
-				for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+				for (auto& MeshPair : IFA->FoliageMeshes)
 				{
-					FFoliageMeshInfo& Mesh = MeshIt.Value();
+					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 					
 					Mesh.PreMoveInstances(IFA, Mesh.SelectedIndices);
 
@@ -2038,14 +2038,14 @@ bool FEdModeFoliage::InputDelta( FEditorViewportClient* InViewportClient, FViewp
 	{
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(GetWorld());
 		IFA->Modify();
-		for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(IFA->FoliageMeshes); MeshIt; ++MeshIt )
+		for (auto& MeshPair : IFA->FoliageMeshes)
 		{
-			FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 			bFoundSelection |= MeshInfo.SelectedIndices.Num() > 0;
 
 			if( bAltDown && bCanAltDrag && (InViewportClient->GetCurrentWidgetAxis() & EAxisList::XYZ)  )
 			{
-				MeshInfo.DuplicateInstances(IFA, MeshIt.Key(), MeshInfo.SelectedIndices);
+				MeshInfo.DuplicateInstances(IFA, MeshPair.Key, MeshInfo.SelectedIndices);
 			}
 			
 			MeshInfo.PreMoveInstances(IFA, MeshInfo.SelectedIndices);

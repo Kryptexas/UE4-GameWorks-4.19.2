@@ -105,7 +105,7 @@ struct FFoliageMeshUIInfo
 {
 	UStaticMesh* StaticMesh;
 	FFoliageMeshInfo* MeshInfo;
-	
+
 	FFoliageMeshUIInfo(UStaticMesh* InStaticMesh, FFoliageMeshInfo* InMeshInfo)
 	:	StaticMesh(InStaticMesh)
 	,	MeshInfo(InMeshInfo)

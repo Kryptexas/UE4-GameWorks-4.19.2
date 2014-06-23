@@ -2,8 +2,11 @@
 
 
 #pragma once
+
+#include "UniqueObj.h"
 #include "InstancedFoliage.h"
 #include "InstancedFoliageActor.generated.h"
+
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -12,13 +15,13 @@ class AInstancedFoliageActor : public AActor
 
 	/** The static mesh type that will be used to show the widget */
 	UPROPERTY(transient)
-	class UStaticMesh* SelectedMesh;
-
+	UStaticMesh* SelectedMesh;
 
 public:
-	TMap<class UStaticMesh*, struct FFoliageMeshInfo> FoliageMeshes;
+	TMap<UStaticMesh*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
 
-	// Begin UObject interface. 	
+public:
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
@@ -55,8 +58,14 @@ public:
 	// Deletes the instances attached to a component
 	ENGINE_API void DeleteInstancesForComponent( class UActorComponent* InComponent );
 
+	// Finds a mesh entry
+	ENGINE_API FFoliageMeshInfo* FindMesh(UStaticMesh* InMesh);
+
+	// Finds a mesh entry or adds it if it doesn't already exist
+	ENGINE_API FFoliageMeshInfo* FindOrAddMesh(UStaticMesh* InMesh);
+
 	// Add a new static mesh.
-	ENGINE_API struct FFoliageMeshInfo* AddMesh( class UStaticMesh* InMesh );
+	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh);
 
 	// Remove the static mesh from the mesh list, and all its instances.
 	ENGINE_API void RemoveMesh( class UStaticMesh* InMesh );
