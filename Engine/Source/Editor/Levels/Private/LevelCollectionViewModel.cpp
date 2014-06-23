@@ -25,6 +25,7 @@ FLevelCollectionViewModel::FLevelCollectionViewModel( const TWeakObjectPtr< UEdi
 	, Editor( InEditor )
 	, CurrentWorld( NULL )
 	, AddedLevelStreamingClass( ULevelStreamingKismet::StaticClass() )
+	, bSelectionHasChanged( true )
 {
 	OnResetLevels();
 }
@@ -68,6 +69,9 @@ void FLevelCollectionViewModel::Initialize()
 			SetCurrentWorld( GEditor->GetEditorWorldContext().World() );
 		}
 	}
+	
+	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionViewModel::OnActorSelectionChanged);
+	SelectionChanged.AddSP(this, &FLevelCollectionViewModel::OnActorOrLevelSelectionChanged);
 }
 
 void FLevelCollectionViewModel::Tick( float DeltaTime )
@@ -95,7 +99,7 @@ void FLevelCollectionViewModel::BindCommands()
 	
 	ActionList.MapAction( Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP( this, &FLevelCollectionViewModel::MoveActorsToSelected_Executed  ),
-		FCanExecuteAction::CreateSP( this, &FLevelCollectionViewModel::IsSelectedLevelUnlocked ) );
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionViewModel::IsValidMoveActorsToLevel));
 
 	//invalid selected levels
 	ActionList.MapAction( Commands.FixUpInvalidReference,
@@ -992,6 +996,20 @@ bool FLevelCollectionViewModel::AreSelectedLevelsUnlockedAndNotPersistent() cons
 	}
 
 	return true;
+}
+
+bool FLevelCollectionViewModel::AreAllSelectedLevelsUnlockedAndVisible() const
+{
+	for (const auto& Level : SelectedLevels)
+	{
+		if (Level->IsLocked() == true ||
+			Level->IsVisible() == false) 
+		{
+			return false;
+		}
+	}
+
+	return SelectedLevels.Num() > 0;
 }
 
 bool FLevelCollectionViewModel::AreActorsSelected() const
@@ -2105,6 +2123,55 @@ void FLevelCollectionViewModel::AddExistingLevelFromAssetPicker(const TArray<FAs
 			GUnrealEd->UpdateVolumeActorVisibility(NULL);
 		}
 	}
+}
+
+bool FLevelCollectionViewModel::IsValidMoveActorsToLevel()
+{
+	static bool bCachedIsValidActorMoveResult = false;
+	if (bSelectionHasChanged)
+	{
+		bSelectionHasChanged = false;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+
+		// you cant move no selected actors to a level
+		if (SelectedActors->Num() == 0)
+		{
+			bCachedIsValidActorMoveResult = false;
+			return false;
+		}
+
+		// are any of the selected actors in the selected levels
+		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		{
+			AActor* Actor = CastChecked<AActor>(*Iter);
+			if (Actor != nullptr)
+			{
+				const ULevel* ActorsLevel = Actor->GetLevel();
+				for (TSharedPtr<FLevelViewModel> SelectedLevel : SelectedLevels)
+				{
+					if (SelectedLevel->GetLevel().Get() == ActorsLevel)
+					{
+						bCachedIsValidActorMoveResult = false;
+						return false;
+					}
+				}
+			}
+		}
+		bCachedIsValidActorMoveResult = true;
+	}
+
+	// if non of the selected actors are in the level, just check the level is unlocked
+	return bCachedIsValidActorMoveResult && AreAllSelectedLevelsUnlockedAndVisible();
+}
+
+void FLevelCollectionViewModel::OnActorSelectionChanged(UObject* obj)
+{
+	OnActorOrLevelSelectionChanged();
+}
+
+void FLevelCollectionViewModel::OnActorOrLevelSelectionChanged()
+{
+	bSelectionHasChanged = true;
 }
 
 #undef LOCTEXT_NAMESPACE

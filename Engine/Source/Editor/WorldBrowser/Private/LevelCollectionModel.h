@@ -205,6 +205,15 @@ public:
 	/** @return	whether at least one actor is selected */
 	bool AreActorsSelected() const;
 
+	/** @return whether moving the selected actors to the selected level is a valid action */
+	bool IsValidMoveActorsToLevel();
+
+	/** delegate used to pickup when the selection has changed */
+	void OnActorSelectionChanged(UObject* obj);
+
+	/** Sets a flag to re-cache whether the selected actors move to the selected level is valid */
+	void OnActorOrLevelSelectionChanged();
+
 	/** @return	whether 'display paths' is enabled */
 	bool GetDisplayPathsState() const;
 
@@ -291,7 +300,6 @@ protected:
 
 	/** Moves the selected actors to this level */
 	void MoveActorsToSelected_Executed();
-	bool CanMoveSelectedActorsToLevel() const;
 
 	/** Saves selected levels */
 	void SaveSelectedLevels_Executed();
@@ -504,6 +512,9 @@ protected:
 
 	/** true if Source Control options are generally available. */
 	mutable bool						bCanExecuteSCC;
+
+	/** Flag for whether the selection of levels or actors has changed */
+	bool								bSelectionHasChanged;
 };
 
 //

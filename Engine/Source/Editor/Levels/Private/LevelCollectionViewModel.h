@@ -309,6 +309,9 @@ private:
 	/** @return whether the currently selected levels are unlocked and do not contain the persistent level */
 	bool AreSelectedLevelsUnlockedAndNotPersistent() const;
 
+	/** @return true if we have selected levels and they are all editable and visible, */
+	bool AreAllSelectedLevelsUnlockedAndVisible() const;
+
 	/** @return	whether -at least- one actor is selected */
 	bool AreActorsSelected() const;
 	
@@ -458,7 +461,15 @@ private:
 
 	/** Toggle all read-only levels */
 	void ToggleReadOnlyLevels_Executed();
+	
+	/** @return whether moving the selected actors to the selected level is a valid action */
+	bool IsValidMoveActorsToLevel();
 
+	/** delegate used to pickup when the selection has changed */
+	void OnActorSelectionChanged(UObject* obj);
+
+	/** Sets a flag to re-cache whether the selected actors move to the selected level is valid */
+	void OnActorOrLevelSelectionChanged();
 private:
 
 	/** true if the LevelsView is in the middle of refreshing */
@@ -527,6 +538,8 @@ private:
 	/** true if Source Control options are generally available. */
 	bool bCanExecuteSCC;
 	
+	/** Flag for whether the selection of levels or actors has changed */
+	bool bSelectionHasChanged;
 };
 
 

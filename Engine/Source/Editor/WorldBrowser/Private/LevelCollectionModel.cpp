@@ -23,6 +23,7 @@ FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>
 	, bCanExecuteSCCOpenForAdd(false)
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCC(false)
+	, bSelectionHasChanged(true)
 {
 }
 
@@ -50,7 +51,9 @@ void FLevelCollectionModel::Initialize()
 	FEditorSupportDelegates::RedrawAllViewports.AddSP(this, &FLevelCollectionModel::OnRedrawAllViewports);
 	Editor->OnLevelActorAdded().AddSP( this, &FLevelCollectionModel::OnLevelActorAdded);
 	Editor->OnLevelActorDeleted().AddSP( this, &FLevelCollectionModel::OnLevelActorDeleted);
-	
+	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionModel::OnActorSelectionChanged);
+	SelectionChanged.AddSP(this, &FLevelCollectionModel::OnActorOrLevelSelectionChanged);
+
 	PopulateLevelsList();
 }
 
@@ -72,7 +75,7 @@ void FLevelCollectionModel::BindCommands()
 	
 	ActionList.MapAction(Commands.MoveActorsToSelected,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::MoveActorsToSelected_Executed),
-		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::CanMoveSelectedActorsToLevel));
+		FCanExecuteAction::CreateSP(this, &FLevelCollectionModel::IsValidMoveActorsToLevel));
 		
 	ActionList.MapAction(Commands.World_SaveSelectedLevels,
 		FExecuteAction::CreateSP(this, &FLevelCollectionModel::SaveSelectedLevels_Executed),
@@ -1483,11 +1486,6 @@ void FLevelCollectionModel::MoveActorsToSelected_Executed()
 	RequestUpdateAllLevels();
 }
 
-bool FLevelCollectionModel::CanMoveSelectedActorsToLevel() const
-{
-	return (IsOneLevelSelected() && AreAllSelectedLevelsEditableAndVisible() && Editor->GetSelectedActorCount() > 0);
-}
-
 void FLevelCollectionModel::SelectActors_Executed()
 {
 	//first clear any existing actor selection
@@ -1726,6 +1724,55 @@ void FLevelCollectionModel::CacheCanExecuteSourceControlVars() const
 			break;
 		}
 	}
+}
+
+bool FLevelCollectionModel::IsValidMoveActorsToLevel() 
+{
+	static bool bCachedIsValidActorMoveResult = false;
+	if (bSelectionHasChanged)
+	{
+		bSelectionHasChanged = false;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		// you cant move no selected actors to a level
+		if (SelectedActors->Num() == 0)
+		{
+			bCachedIsValidActorMoveResult = false;
+			return false;
+		}
+
+		// are any of the selected actors in the selected levels
+		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		{
+			AActor* Actor = CastChecked<AActor>(*Iter);
+			if (Actor != nullptr)
+			{
+				const ULevel* ActorsLevel = Actor->GetLevel();
+				for (TSharedPtr<FLevelModel> SelectedLevel : SelectedLevelsList)
+				{
+					if (SelectedLevel->GetLevelObject() == ActorsLevel)
+					{
+						bCachedIsValidActorMoveResult = false;
+						return false;
+					}
+				}
+			}
+		}
+
+		bCachedIsValidActorMoveResult = true;
+	}
+			
+	// if non of the selected actors are in the level, just check the level is unlocked
+	return bCachedIsValidActorMoveResult && AreAllSelectedLevelsEditableAndVisible();
+}
+
+void FLevelCollectionModel::OnActorSelectionChanged(UObject* obj)
+{
+	OnActorOrLevelSelectionChanged();
+}
+
+void FLevelCollectionModel::OnActorOrLevelSelectionChanged()
+{
+	bSelectionHasChanged = true;
 }
 
 
