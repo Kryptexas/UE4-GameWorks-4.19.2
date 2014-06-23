@@ -1199,6 +1199,12 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 		return;
 	}
 
+	// Don't run if we've not yet loaded a project
+	if( !FApp::HasGameName() )
+	{
+		return;
+	}
+
 	// Before beginning the survey wait for the asset registry to load and make sure Slate is ready
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	if (AssetRegistryModule.Get().IsLoadingAssets() || !FSlateApplication::IsInitialized())
