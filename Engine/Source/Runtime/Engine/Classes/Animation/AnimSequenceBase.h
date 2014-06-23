@@ -109,7 +109,11 @@ struct FAnimNotifyEvent
 
 	bool operator ==(const FAnimNotifyEvent& Other)
 	{
-		return((Notify && Notify == Other.Notify) || (NotifyStateClass && NotifyStateClass == Other.NotifyStateClass));
+		return(
+			(Notify && Notify == Other.Notify) || 
+			(NotifyStateClass && NotifyStateClass == Other.NotifyStateClass) ||
+			(!IsBlueprintNotify() && NotifyName == Other.NotifyName)
+			);
 	}
 };
 
