@@ -316,7 +316,10 @@ public:
 	 */
 	void FlushCache() const;
 
-
+private:
+	// Non-copyable
+	FSlateFontCache(const FSlateFontCache&);
+	FSlateFontCache& operator=(const FSlateFontCache&);
 private:
 
 	/** Mapping Font keys to cached data */
