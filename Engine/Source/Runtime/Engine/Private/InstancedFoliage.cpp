@@ -126,12 +126,9 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
-	// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
-	// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
-	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 	CastShadow = true;
-	//bCastDynamicShadow = true;
-	//bCastStaticShadow = true;
+	bCastDynamicShadow = true;
+	bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
@@ -308,12 +305,9 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 		BestCluster->ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
 		BestCluster->ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
 
-		// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
-		// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
-		// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 		BestCluster->ClusterComponent->CastShadow = Settings->CastShadow;
-		BestCluster->ClusterComponent->bCastDynamicShadow = true; //Settings->bCastDynamicShadow;
-		BestCluster->ClusterComponent->bCastStaticShadow = false; //Settings->bCastStaticShadow;
+		BestCluster->ClusterComponent->bCastDynamicShadow = Settings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastStaticShadow = Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = Settings->bAffectDynamicIndirectLighting;
 		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
 		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;

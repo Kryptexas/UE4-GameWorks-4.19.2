@@ -1052,41 +1052,6 @@ bool FInstancedStaticMeshSceneProxy::GetWireframeMeshElement(int32 LODIndex, con
 	return false;
 }
 
-/*-----------------------------------------------------------------------------
-	FInstancedStaticMeshStaticLightingTextureMapping
------------------------------------------------------------------------------*/
-
-
-/** Represents a static mesh primitive with texture mapped static lighting. */
-class FInstancedStaticMeshStaticLightingTextureMapping : public FStaticMeshStaticLightingTextureMapping
-{
-public:
-
-	/** Initialization constructor. */
-	FInstancedStaticMeshStaticLightingTextureMapping(UInstancedStaticMeshComponent* InPrimitive,int32 InInstanceIndex,FStaticLightingMesh* InMesh,int32 InSizeX,int32 InSizeY,int32 InTextureCoordinateIndex,bool bPerformFullQualityRebuild)
-		: FStaticMeshStaticLightingTextureMapping(InPrimitive, 0, InMesh, InSizeX, InSizeY, InTextureCoordinateIndex, bPerformFullQualityRebuild)
-		, InstanceIndex(InInstanceIndex), LightMapData(NULL), QuantizedData(NULL)
-		, bComplete(false)
-	{
-	}
-
-private:
-
-	friend class UInstancedStaticMeshComponent;
-
-	/** The instance of the primitive this mapping represents. */
-	const int32 InstanceIndex;
-
-	/** Static lighting data */
-	FLightMapData2D* LightMapData;
-
-	/** Quantized light map data */
-	FQuantizedLightmapData* QuantizedData;
-
-	/** Has this mapping already been completed? */
-	bool bComplete;
-};
-
 
 /*-----------------------------------------------------------------------------
 	UInstancedStaticMeshComponent
@@ -1097,10 +1062,6 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostCo
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
-
-	// Static lighting is not currently supported by instanced static meshes, so disable it
-	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
-	bCastStaticShadow = false;
 }
 
 #if WITH_EDITOR
@@ -1294,9 +1255,78 @@ FBoxSphereBounds UInstancedStaticMeshComponent::CalcBounds(const FTransform& Bou
 }
 
 #if WITH_EDITOR
+/*-----------------------------------------------------------------------------
+	FInstancedStaticMeshStaticLightingMesh
+-----------------------------------------------------------------------------*/
+
+/**
+ * A static lighting mesh class that transforms the points by the per-instance transform of an 
+ * InstancedStaticMeshComponent
+ */
+class FStaticLightingMesh_InstancedStaticMesh : public FStaticMeshStaticLightingMesh
+{
+public:
+
+	/** Initialization constructor. */
+	FStaticLightingMesh_InstancedStaticMesh(const UInstancedStaticMeshComponent* InPrimitive, int32 InstanceIndex, const TArray<ULightComponent*>& InRelevantLights)
+		: FStaticMeshStaticLightingMesh(InPrimitive, 0, InRelevantLights)
+	{
+		// override the local to world to combine the per instance transform with the component's standard transform
+		SetLocalToWorld(InPrimitive->PerInstanceSMData[InstanceIndex].Transform * InPrimitive->ComponentToWorld.ToMatrixWithScale());
+	}
+};
+
+/*-----------------------------------------------------------------------------
+	FInstancedStaticMeshStaticLightingTextureMapping
+-----------------------------------------------------------------------------*/
+
+
+/** Represents a static mesh primitive with texture mapped static lighting. */
+class FStaticLightingTextureMapping_InstancedStaticMesh : public FStaticMeshStaticLightingTextureMapping
+{
+public:
+	/** Initialization constructor. */
+	FStaticLightingTextureMapping_InstancedStaticMesh(UInstancedStaticMeshComponent* InPrimitive, FStaticLightingMesh* InMesh)
+		: FStaticMeshStaticLightingTextureMapping(InPrimitive, 0, InMesh, 0, 0, 0, false)
+	{
+		// We don't actually support light/shadow mapping on instanced meshes, only *casting* shadows
+		bProcessMapping = false;
+	}
+
+	virtual void Apply(FQuantizedLightmapData* QuantizedData, const TMap<ULightComponent*, FShadowMapData2D*>& ShadowMapData) override
+	{
+		// Not supported
+	}
+
+#if WITH_EDITOR
+	virtual bool DebugThisMapping() const override
+	{
+		return false;
+	}
+#endif	//WITH_EDITOR
+
+	virtual FString GetDescription() const override
+	{
+		return FString(TEXT("InstancedSMLightingMapping"));
+	}
+};
+
 void UInstancedStaticMeshComponent::GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options)
 {
+	// We don't support light/shadow mapping for instanced meshes, only *casting* shadows
+	// we intentionally ignore the mobility setting here, as foliage is marked "Movable" to force
+	// dynamic lighting due to static lighting not being supported, but is actually static
+	if (StaticMesh && bCastStaticShadow)
+	{
+		for (int32 InstanceIndex = 0; InstanceIndex < PerInstanceSMData.Num(); InstanceIndex++)
+		{
+			FStaticLightingMesh_InstancedStaticMesh* StaticLightingMesh = new FStaticLightingMesh_InstancedStaticMesh(this, InstanceIndex, InRelevantLights);
+			OutPrimitiveInfo.Meshes.Add(StaticLightingMesh);
 
+			FStaticLightingTextureMapping_InstancedStaticMesh* InstancedMapping = new FStaticLightingTextureMapping_InstancedStaticMesh(this, StaticLightingMesh);
+			OutPrimitiveInfo.Mappings.Add(InstancedMapping);
+		}
+	}
 }
 #endif
 

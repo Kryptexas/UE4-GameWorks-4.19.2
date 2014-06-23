@@ -66,22 +66,6 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY(EditAnywhere, Transient, DuplicateTransient, DisplayName="Instances", Category=Instances, meta=(MakeEditWidget=true))
 	TArray<struct FInstancedStaticMeshInstanceData> PerInstanceSMData;
 
-	/** Number of pending lightmaps still to be calculated (Apply()'d) */
-	UPROPERTY(transient)
-	int32 NumPendingLightmaps;
-
-	/**
-	 * A key for deciding which components are compatible when joining components together after a lighting build. 
-	 * Will default to the staticmesh pointer when SetStaticMesh is called, so this must be set after calling
-	 * SetStaticMesh on the component
-	 */
-	UPROPERTY()
-	int32 ComponentJoinKey;
-
-	/** The mappings for all the instances of this component */
-	UPROPERTY(transient)
-	TArray<struct FInstancedStaticMeshMappingInfo> CachedMappings;
-
 	/** Value used to seed the random number stream that generates random numbers for each of this mesh's instances.
 		The random number is stored in a buffer accessible to materials through the PerInstanceRandom expression.  If
 		this is set to zero (default), it will be populated automatically by the editor */
