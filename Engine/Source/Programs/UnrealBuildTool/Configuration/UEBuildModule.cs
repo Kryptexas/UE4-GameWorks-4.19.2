@@ -571,7 +571,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the module's directory to the include path, so we can root #includes to it
-				IncludePaths.Add(ModuleDirectory);
+				IncludePaths.Add(Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ModuleDirectory, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/'));
 			}
 		}
 		
