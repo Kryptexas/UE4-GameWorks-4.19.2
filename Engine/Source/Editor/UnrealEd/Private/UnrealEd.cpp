@@ -17,6 +17,7 @@
 #include "EngineAnalytics.h"
 #include "IAnalyticsProvider.h"
 
+#include "DesktopPlatformModule.h"
 #include "GameProjectGenerationModule.h"
 #include "AssetEditorManager.h"
 
@@ -59,6 +60,20 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	{
 		FPlatformSplash::Hide();
 		return 0;
+	}
+
+	// Let the analytics know that the editor has started
+	if ( FEngineAnalytics::IsAvailable() )
+	{
+		IDesktopPlatform* const DesktopPlatform = FDesktopPlatformModule::Get();
+		if ( DesktopPlatform )
+		{
+			TArray<FAnalyticsEventAttribute> EventAttributes;
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MachineID"), DesktopPlatform->GetMachineId().ToString(EGuidFormats::Digits).ToLower()));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AccountID"), DesktopPlatform->GetEpicAccountId()));
+
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.ProgramStarted"), EventAttributes);
+		}
 	}
 
 	// Initialize the misc editor

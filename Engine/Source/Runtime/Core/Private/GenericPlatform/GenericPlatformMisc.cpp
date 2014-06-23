@@ -238,9 +238,52 @@ void FGenericPlatformMisc::HandleIOFailure( const TCHAR* Filename )
 	UE_LOG(LogGenericPlatformMisc, Fatal,TEXT("I/O failure operating on '%s'"), Filename ? Filename : TEXT("Unknown file"));
 }
 
-bool FGenericPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
+bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
 {
-	// By default, fail.
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	// This assumes that FPlatformProcess::ApplicationSettingsDir() returns a user-specific directory; it doesn't on Windows, but Windows overrides this behavior to use the registry
+	const FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / FString(TEXT("KeyValueStore.ini"));
+		
+	FConfigFile ConfigFile;
+	ConfigFile.Read(ConfigPath);
+
+	FConfigSection& Section = ConfigFile.FindOrAdd(InSectionName);
+
+	FString& KeyValue = Section.FindOrAdd(*InKeyName);
+	KeyValue = InValue;
+
+	ConfigFile.Dirty = true;
+	ConfigFile.Write(ConfigPath);
+
+	return true;
+}
+
+bool FGenericPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	// This assumes that FPlatformProcess::ApplicationSettingsDir() returns a user-specific directory; it doesn't on Windows, but Windows overrides this behavior to use the registry
+	const FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / InStoreId / FString(TEXT("KeyValueStore.ini"));
+		
+	FConfigFile ConfigFile;
+	ConfigFile.Read(ConfigPath);
+
+	const FConfigSection* const Section = ConfigFile.Find(InSectionName);
+	if(Section)
+	{
+		const FString* const KeyValue = Section->Find(*InKeyName);
+		if(KeyValue)
+		{
+			OutValue = *KeyValue;
+			return true;
+		}
+	}
+
 	return false;
 }
 

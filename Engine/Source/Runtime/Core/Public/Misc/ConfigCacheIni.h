@@ -66,18 +66,17 @@ public:
 
 	CORE_API bool Combine( const FString& Filename);
 	CORE_API void CombineFromBuffer(const FString& Filename,const FString& Buffer);
-	void Read( const FString& Filename );
-	bool Write( const FString& Filename, bool bDoRemoteWrite=true, const FString& InitialText=FString() );
+	CORE_API void Read( const FString& Filename );
+	CORE_API bool Write( const FString& Filename, bool bDoRemoteWrite=true, const FString& InitialText=FString() );
 	CORE_API void Dump(FOutputDevice& Ar);
 
 	CORE_API bool GetString( const TCHAR* Section, const TCHAR* Key, FString& Value ) const;
 	CORE_API bool GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const;
-	bool GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const;
+	CORE_API bool GetInt64( const TCHAR* Section, const TCHAR* Key, int64& Value ) const;
 
-	void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value );
-	void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value );
-
-	void SetInt64( const TCHAR* Section, const TCHAR* Key, const int64 Value );
+	CORE_API void SetString( const TCHAR* Section, const TCHAR* Key, const TCHAR* Value );
+	CORE_API void SetText( const TCHAR* Section, const TCHAR* Key, const FText& Value );
+	CORE_API void SetInt64( const TCHAR* Section, const TCHAR* Key, const int64 Value );
 	
 	/**
 	 * Process the contents of an .ini file that has been read into an FString

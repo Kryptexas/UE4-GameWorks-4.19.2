@@ -42,6 +42,10 @@ public:
 	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) override;
 	virtual FString GetDefaultProjectCreationPath() override;
 
+	virtual FGuid GetMachineId() override;
+	virtual FString GetEpicAccountId() override;
+	virtual void SetEpicAccountId(const FString& AccountId) override;
+
 private:
 	FString CurrentEngineIdentifier;
 	FDateTime LauncherInstallationTimestamp;

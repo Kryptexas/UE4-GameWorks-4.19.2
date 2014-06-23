@@ -1810,6 +1810,46 @@ void FWindowsPlatformMisc::RaiseException( uint32 ExceptionCode )
 	::RaiseException( ExceptionCode, 0, 0, NULL );
 }
 
+bool FWindowsPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
+{
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	FString FullRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName;
+	FullRegistryKey = FullRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	HKEY hKey;
+	HRESULT Result = ::RegCreateKeyEx(HKEY_CURRENT_USER, *FullRegistryKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
+	if(Result == ERROR_SUCCESS)
+	{
+		Result = ::RegSetValueEx(hKey, *InKeyName, 0, REG_SZ, (const BYTE*)*InValue, (InValue.Len() + 1) * sizeof(TCHAR));
+		::RegCloseKey(hKey);
+	}
+	
+	if(Result != ERROR_SUCCESS)
+	{
+		TCHAR ErrorBuffer[1024];
+		::FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, Result, 0, ErrorBuffer, 1024, nullptr);
+		GWarn->Logf(TEXT("FWindowsPlatformMisc::SetStoredValue: ERROR: Could not store value for '%s'. Error Code %u: %s"), *InKeyName, Result, ErrorBuffer);
+		return false;
+	}
+
+	return true;
+}
+
+bool FWindowsPlatformMisc::GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue)
+{
+	check(!InStoreId.IsEmpty());
+	check(!InSectionName.IsEmpty());
+	check(!InKeyName.IsEmpty());
+
+	FString FullRegistryKey = FString(TEXT("Software")) / InStoreId / InSectionName;
+	FullRegistryKey = FullRegistryKey.Replace(TEXT("/"), TEXT("\\")); // we use forward slashes, but the registry needs back slashes
+
+	return QueryRegKey(HKEY_CURRENT_USER, *FullRegistryKey, *InKeyName, OutValue);
+}
+
 uint32 FWindowsPlatformMisc::GetLastError()
 {
 	return (uint32)::GetLastError();
@@ -2159,20 +2199,6 @@ uint32 FWindowsPlatformMisc::GetCPUInfo()
 int32 FWindowsPlatformMisc::GetCacheLineSize()
 {
 	return FCPUIDQueriedData::GetCacheLineSize();
-}
-
-bool FWindowsPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
-{
-	FString RegistryValue;
-	FString FullRegistryKey = FString(TEXT("Software")) / InRegistryKey;
-	FullRegistryKey = FullRegistryKey.Replace(TEXT("/"), TEXT("\\"));
-	if (QueryRegKey(bPerUserSetting? HKEY_CURRENT_USER : HKEY_LOCAL_MACHINE, *FullRegistryKey, *InValueName, RegistryValue) == true)
-	{
-		OutValue = RegistryValue;
-		return true;
-	}
-
-	return false;
 }
 
 bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData )

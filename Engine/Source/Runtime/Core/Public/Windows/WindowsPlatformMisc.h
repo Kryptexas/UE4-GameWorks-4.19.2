@@ -72,6 +72,9 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 
 	static void RaiseException( uint32 ExceptionCode );
 
+	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
+	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
+
 	static bool CoInitialize();
 	static void CoUninitialize();
 
@@ -171,8 +174,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 *			Bits 28-31	Reserved
 	 */
 	static uint32 GetCPUInfo();
-
-	static bool GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue);
 
 	/** 
 	 * Provides a simpler interface for fetching and cleanup of registry value queries

@@ -430,17 +430,30 @@ public:
 	}
 
 	/** 
-	 *	Retrieve the entry for the given string from the platforms equivalent to the Windows Registry
+	 *	Set the value for the given section and key in the platform specific key->value store
+	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user
 	 *
-	 *	@param	InRegistryKey		The registry key to query
-	 *	@param	InValueName			The name of the value from that key
-	 *  @param	bPerUserSetting		Whether to get the per-user registry key rather than the local machine's registry key
+	 *  @param	InStoreId			The name used to identify the store you want to use (eg, MyGame)
+	 *	@param	InSectionName		The section that this key->value pair is placed within (can contain / separators, eg UserDetails/AccountInfo)
+	 *	@param	InKeyName			The name of the key to set the value for
+	 *	@param	InValue				The value to set
+	 *
+	 *	@return	bool				true if the value was set correctly, false if not
+	 */
+	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
+
+	/** 
+	 *	Get the value for the given section and key from the platform specific key->value store
+	 *  Note: The key->value store is user-specific, but may be used to share data between different applications for the same user
+	 *
+	 *  @param	InStoreId			The name used to identify the store you want to use (eg, MyGame)
+	 *	@param	InSectionName		The section that this key->value pair is placed within (can contain / separators, eg UserDetails/AccountInfo)
+	 *	@param	InKeyName			The name of the key to get the value for
 	 *	@param	OutValue			The value found
 	 *
 	 *	@return	bool				true if the entry was found (and OutValue contains the result), false if not
 	 */
-	static bool GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue);
-
+	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
 
 	 /** Sends a message to a remote tool, and debugger consoles */
 	static void LowLevelOutputDebugString(const TCHAR *Message);

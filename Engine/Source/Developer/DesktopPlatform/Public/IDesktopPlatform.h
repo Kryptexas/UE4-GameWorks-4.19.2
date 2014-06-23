@@ -355,4 +355,19 @@ public:
 	* @return Path to the folder
 	*/
 	virtual FString GetDefaultProjectCreationPath() = 0;
+
+	/** 
+	 * Get (or create) the unique ID used to identify this computer
+	 */
+	virtual FGuid GetMachineId() = 0;
+
+	/**
+	 * Get the Epic account ID for the user who last used the Launcher
+	 */
+	virtual FString GetEpicAccountId() = 0;
+
+	/**
+	 * Set the Epic account ID for the user who last used the Launcher
+	 */
+	virtual void SetEpicAccountId(const FString& AccountId) = 0;
 };

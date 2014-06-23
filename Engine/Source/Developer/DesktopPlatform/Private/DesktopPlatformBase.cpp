@@ -421,6 +421,40 @@ FString FDesktopPlatformBase::GetDefaultProjectCreationPath()
 	return FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder;
 }
 
+FGuid FDesktopPlatformBase::GetMachineId()
+{
+	FGuid MachineId;
+	FString MachineIdStr;
+
+	// Check to see if we already have a valid machine ID to use
+	if(!FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Identifiers"), TEXT("MachineId"), MachineIdStr) || !FGuid::Parse(MachineIdStr, MachineId))
+	{
+		// No valid machine ID, generate and save a new one
+		MachineId = FGuid::NewGuid();
+		MachineIdStr = MachineId.ToString(EGuidFormats::Digits);
+
+		if(!FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Identifiers"), TEXT("MachineId"), MachineIdStr))
+		{
+			// Failed to persist the machine ID - reset it to zero to avoid returning a transient value
+			MachineId = FGuid();
+		}
+	}
+
+	return MachineId;
+}
+
+FString FDesktopPlatformBase::GetEpicAccountId()
+{
+	FString AccountId;
+	FPlatformMisc::GetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Identifiers"), TEXT("AccountId"), AccountId);
+	return AccountId;
+}
+
+void FDesktopPlatformBase::SetEpicAccountId(const FString& AccountId)
+{
+	FPlatformMisc::SetStoredValue(TEXT("Epic Games"), TEXT("Unreal Engine/Identifiers"), TEXT("AccountId"), AccountId);
+}
+
 void FDesktopPlatformBase::ReadLauncherInstallationList()
 {
 	FString InstalledListFile = FString(FPlatformProcess::ApplicationSettingsDir()) / TEXT("UnrealEngineLauncher/LauncherInstalled.dat");
