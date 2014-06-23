@@ -716,16 +716,15 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		Term->AssociatedVarProperty = BoundProperty;
 		Context.NetMap.Add(Net, Term);
 
-		// Read-only variables and variables in const classes are both const
-		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
-		{
-			Term->bIsConst = true;
-		}
-
 		// Check if the property is a local variable and mark it so
 		if( SearchScope == Context.Function && BoundProperty->GetOuter() == Context.Function)
 		{
 			Term->bIsLocal = true;
+		}
+		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		{
+			// Read-only variables and variables in const classes are both const
+			Term->bIsConst = true;
 		}
 
 		// Resolve the context term
