@@ -1553,14 +1553,12 @@ FClassHierarchy::~FClassHierarchy()
 
 static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TMultiMap<FName, FAssetData>& BlueprintPackageToAssetDataMap)
 {
-	FString ClassName = Class->GetName();
-
 	const bool bIsPlaceable = ClassViewer::Helpers::IsPlaceable(Class);
 	const bool bIsAbstract = ClassViewer::Helpers::IsAbstract(Class);
 	const bool bIsBrush = ClassViewer::Helpers::IsBrush(Class);
 
 	// Create the new node so it can be passed to AddChildren, fill it in with if it is placeable, abstract, and/or a brush.
-	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(ClassName, bIsPlaceable && !bIsAbstract && !bIsBrush));
+	TSharedPtr< FClassViewerNode > NewNode = MakeShareable(new FClassViewerNode(Class->GetName(), Class->GetDisplayNameText().ToString(), bIsPlaceable && !bIsAbstract && !bIsBrush));
 	NewNode->Blueprint = ClassViewer::Helpers::GetBlueprint(Class);
 	NewNode->Class = Class;
 
@@ -1587,7 +1585,7 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 {
 	UClass* RootClass = UObject::StaticClass();
 
-	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), false));
+	ObjectClassRoot = MakeShareable(new FClassViewerNode(RootClass->GetName(), RootClass->GetDisplayNameText().ToString(), false));
 	ObjectClassRoot->Class = RootClass;
 
 	TMap< UClass*, TSharedPtr< FClassViewerNode > > Nodes;
@@ -1840,7 +1838,7 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 	const FString AssetName = InAssetData.AssetName.ToString();
 
 	// Create the viewer node.
-	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, true));
+	InOutClassViewerNode = MakeShareable(new FClassViewerNode(AssetName, AssetName, true));
 			
 	// It is an unloaded blueprint, so we need to create the structure that will hold the data.
 	TSharedPtr<FUnloadedBlueprintData> UnloadedBlueprintData = MakeShareable( new FUnloadedBlueprintData(InOutClassViewerNode) );
@@ -2320,7 +2318,7 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 	// If the item was accepted by the filter, leave it bright, otherwise dim it.
 	float AlphaValue = Item->bPassesFilter? 1.0f : 0.5f;
 	TSharedRef< SClassItem > ReturnRow = SNew(SClassItem, OwnerTable)
-		.ClassName(Item->GetClassName())
+		.ClassName(Item->GetClassName(InitOptions.bShowDisplayNames))
 		.bIsPlaceable(Item->IsClassPlaceable())
 		.HighlightText(&SearchBox->GetText())
 		.TextColor(Item->IsClassPlaceable()? FLinearColor(0.2f, 0.4f, 0.6f, AlphaValue) : FLinearColor(1.0f, 1.0f, 1.0f, AlphaValue))
@@ -2803,7 +2801,7 @@ FReply SClassViewer::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const
 
 TSharedPtr<FClassViewerNode> SClassViewer::CreateNoneOption()
 {
-	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", false) );
+	TSharedPtr<FClassViewerNode> NoneItem = MakeShareable( new FClassViewerNode("None", "None", false) );
 
 	// The item "passes" the filter so it does not appear grayed out.
 	NoneItem->bPassesFilter = true;

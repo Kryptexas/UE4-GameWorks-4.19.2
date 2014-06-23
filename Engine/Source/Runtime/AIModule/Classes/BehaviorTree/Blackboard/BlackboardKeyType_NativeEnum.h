@@ -4,15 +4,15 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_NativeEnum.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Native Enum"))
 class UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
+	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly)
 	FString EnumName;
 
-	UPROPERTY(Category=Blackboard, VisibleDefaultsOnly)
+	UPROPERTY(Category=Blackboard, EditInline, VisibleDefaultsOnly)
 	bool bIsEnumNameValid;
 
 	UPROPERTY()

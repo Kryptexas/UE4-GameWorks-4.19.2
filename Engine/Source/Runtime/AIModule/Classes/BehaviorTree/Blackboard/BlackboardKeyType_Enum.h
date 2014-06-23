@@ -3,12 +3,12 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Enum.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Enum"))
 class UBlackboardKeyType_Enum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
+	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly)
 	UEnum* EnumType;
 
 	static uint8 GetValue(const uint8* RawData);

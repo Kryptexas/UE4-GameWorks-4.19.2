@@ -175,6 +175,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 	this->OnCanRenameSelectedAction = InArgs._OnCanRenameSelectedAction;
 	this->OnGetSectionTitle = InArgs._OnGetSectionTitle;
 	this->FilteredRootAction = FGraphActionNode::NewCategory(TEXT("FILTEREDROOT"));
+	this->OnActionMatchesName = InArgs._OnActionMatchesName;
 	
 	// If a delegate for filtering text is passed in, assign it so that it will be used instead of the built-in filter box
 	if(InArgs._OnGetFilterText.IsBound())
@@ -372,8 +373,7 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 			FEdGraphSchemaAction* GraphAction = CurrentGraphNode->Actions[0].Get();
 			if (GraphAction)
 			{
-
-				if (GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
+				if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(GraphAction, ItemName))
 				{
 					SelectionNode = GraphNodes[i];
 
@@ -392,7 +392,7 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 
 					if(ChildGraphAction)
 					{
-						if (GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
+						if ((OnActionMatchesName.IsBound() && OnActionMatchesName.Execute(GraphAction, ItemName)) || GraphActionMenuHelpers::ActionMatchesName(ChildGraphAction, ItemName))
 						{
 							SelectionNode = GraphNodes[i]->Children[ChildIdx];
 

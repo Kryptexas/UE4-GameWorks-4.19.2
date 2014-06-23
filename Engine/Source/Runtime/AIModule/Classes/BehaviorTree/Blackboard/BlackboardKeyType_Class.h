@@ -3,12 +3,12 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Class.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Class"))
 class UBlackboardKeyType_Class : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditDefaultsOnly, meta=(AllowAbstract="1"))
+	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly, meta=(AllowAbstract="1"))
 	UClass* BaseClass;
 	
 	static UClass* GetValue(const uint8* RawData);

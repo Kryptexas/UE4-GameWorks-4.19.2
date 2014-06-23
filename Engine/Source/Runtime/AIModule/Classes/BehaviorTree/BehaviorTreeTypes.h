@@ -3,6 +3,8 @@
 #pragma once
 #include "BehaviorTreeTypes.generated.h"
 
+class UBlackboardData;
+
 // Visual logging helper
 #define BT_VLOG(Context, Verbosity, Format, ...) UE_VLOG(Context->OwnerComp.IsValid() ? Context->OwnerComp->GetOwner() : NULL, LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
 #define BT_SEARCHLOG(SearchData, Verbosity, Format, ...) UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
@@ -189,7 +191,7 @@ struct FBehaviorTreeExecutionStep
 	TArray<FBehaviorTreeDebuggerInstance> InstanceStack;
 
 	/** blackboard snapshot: value descriptions */
-	TArray<FString> BlackboardValues;
+	TMap<FName, FString> BlackboardValues;
 
 	/** Game world's time stamp of this step */
 	float TimeStamp;
@@ -376,10 +378,10 @@ protected:
 
 public:
 	/** cache ID and class of selected key */
-	void CacheSelectedKey(class UBlackboardData* BlackboardAsset);
+	void CacheSelectedKey(UBlackboardData* BlackboardAsset);
 
 	/** find initial selection */
-	void InitSelectedKey(class UBlackboardData* BlackboardAsset);
+	void InitSelectedKey(UBlackboardData* BlackboardAsset);
 
 	void AllowNoneAsValue(bool bNewVal ) { bNoneIsAllowedValue = bNewVal; }
 

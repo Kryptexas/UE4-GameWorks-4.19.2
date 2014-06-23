@@ -4,6 +4,8 @@
 #include "Engine/DataAsset.h"
 #include "BlackboardData.generated.h"
 
+class UBlackboardData;
+
 /** blackboard entry definition */
 USTRUCT()
 struct FBlackboardEntry
@@ -14,11 +16,11 @@ struct FBlackboardEntry
 	FName EntryName;
 
 	/** key type and additional properties */
-	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard)
+	UPROPERTY(EditAnywhere, EditInline, Category=Blackboard, meta=(UseDisplayNames="true"))
 	UBlackboardKeyType* KeyType;
 };
 
-UCLASS()
+UCLASS(AutoExpandCategories=(Blackboard))
 class AIMODULE_API UBlackboardData : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
@@ -26,7 +28,7 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 
 	/** parent blackboard (keys can be overridden) */
 	UPROPERTY(EditAnywhere, Category=Parent)
-	class UBlackboardData* Parent;
+	UBlackboardData* Parent;
 
 #if WITH_EDITORONLY_DATA
 	/** all keys inherited from parent chain */

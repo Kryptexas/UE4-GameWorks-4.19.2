@@ -17,6 +17,9 @@
 #include "BlackboardData.h"
 #include "BlackboardComponent.generated.h"
 
+class UBlackboardData;
+class UBrainComponent;
+
 namespace EBlackboardDescription
 {
 	enum Type
@@ -68,16 +71,16 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	class UBrainComponent* GetBrainComponent() const;
 
 	/** @return blackboard data asset */
-	class UBlackboardData* GetBlackboardAsset() const;
+	UBlackboardData* GetBlackboardAsset() const;
 
 	/** caches UBrainComponent pointer to be used in communication */
-	void CacheBrainComponent(class UBrainComponent* BrainComponent);
+	void CacheBrainComponent(UBrainComponent* BrainComponent);
 
 	/** setup component for using given blackboard asset */
-	void InitializeBlackboard(class UBlackboardData* NewAsset);
+	void InitializeBlackboard(UBlackboardData* NewAsset);
 	
 	/** @return true if component can be used with specified blackboard asset */
-	bool IsCompatibleWith(class UBlackboardData* TestAsset) const;
+	bool IsCompatibleWith(UBlackboardData* TestAsset) const;
 
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	UObject* GetValueAsObject(const FName& KeyName) const;
@@ -192,6 +195,7 @@ class AIMODULE_API UBlackboardComponent : public UActorComponent
 	FString GetDebugInfoString(EBlackboardDescription::Type Mode) const;
 
 	/** get description of value under given key */
+	FString DescribeKeyValue(const FName& KeyName, EBlackboardDescription::Type Mode) const;
 	FString DescribeKeyValue(FBlackboard::FKey KeyID, EBlackboardDescription::Type Mode) const;
 
 #if ENABLE_VISUAL_LOG
@@ -203,11 +207,11 @@ protected:
 
 	/** cached behavior tree component */
 	UPROPERTY(transient)
-	class UBrainComponent* BrainComp;
+	UBrainComponent* BrainComp;
 
 	/** data asset defining entries */
 	UPROPERTY(transient)
-	class UBlackboardData* BlackboardAsset;
+	UBlackboardData* BlackboardAsset;
 
 	/** memory block holding all values */
 	TArray<uint8> ValueMemory;

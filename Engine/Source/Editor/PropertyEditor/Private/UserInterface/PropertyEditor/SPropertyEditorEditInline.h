@@ -28,6 +28,11 @@ private:
 	FString GetDisplayValueAsString() const;
 
 	/**
+	 * @return The current display value's icon, if any. Returns nullptr if we have no valid value.
+	 */
+	const FSlateBrush* GetDisplayValueIcon() const;
+
+	/**
 	 * Wrapper method for determining whether a class is valid for use by this property item input proxy.
 	 *
 	 * @param	InItem			the property window item that contains this proxy.
@@ -58,4 +63,7 @@ private:
 	TSharedPtr<class FPropertyEditor > PropertyEditor;
 
 	TSharedPtr<class SComboButton> ComboButton;
+
+	/** Whether to use display names or literal class names */
+	bool bUseDisplayNames;
 };

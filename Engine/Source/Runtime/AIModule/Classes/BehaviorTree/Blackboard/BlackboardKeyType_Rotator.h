@@ -2,7 +2,7 @@
 #pragma once
 #include "BlackboardKeyType_Rotator.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Rotator"))
 class UBlackboardKeyType_Rotator : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()

@@ -162,7 +162,7 @@ protected:
 	/** search flow for debugger */
 	mutable TArray<TArray<FBehaviorTreeDebuggerInstance::FNodeFlowData> > CurrentSearchFlow;
 	mutable TArray<TArray<FBehaviorTreeDebuggerInstance::FNodeFlowData> > CurrentRestarts;
-	mutable TArray<FString> SearchStartBlackboard;
+	mutable TMap<FName, FString> SearchStartBlackboard;
 	mutable TArray<FBehaviorTreeDebuggerInstance> RemovedInstances;
 
 	/** debugger's recorded data */
@@ -233,7 +233,7 @@ protected:
 	void StoreDebuggerRestart(const class UBTNode* Node, uint16 InstanceIdx, bool bAllowed);
 
 	/** describe blackboard's key values */
-	void StoreDebuggerBlackboard(TArray<FString>& BlackboardValueDesc) const;
+	void StoreDebuggerBlackboard(TMap<FName, FString>& BlackboardValueDesc) const;
 
 	/** gather nodes runtime descriptions */
 	void StoreDebuggerRuntimeValues(TArray<FString>& RuntimeDescriptions, class UBTNode* RootNode, uint16 InstanceIdx) const;

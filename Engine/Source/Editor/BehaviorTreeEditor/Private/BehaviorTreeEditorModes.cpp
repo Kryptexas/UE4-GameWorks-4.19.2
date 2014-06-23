@@ -13,8 +13,9 @@ FBehaviorTreeEditorApplicationMode::FBehaviorTreeEditorApplicationMode(TSharedPt
 
 	BehaviorTreeEditorTabFactories.RegisterFactory(MakeShareable(new FBehaviorTreeDetailsSummoner(InBehaviorTreeEditor)));
 	BehaviorTreeEditorTabFactories.RegisterFactory(MakeShareable(new FBehaviorTreeSearchSummoner(InBehaviorTreeEditor)));
+	BehaviorTreeEditorTabFactories.RegisterFactory(MakeShareable(new FBlackboardSummoner(InBehaviorTreeEditor)));
 
-	TabLayout = FTabManager::NewLayout( "Standalone_BehaviorTree_Layout" )
+	TabLayout = FTabManager::NewLayout( "Standalone_BehaviorTree_Layout_v1" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -36,10 +37,21 @@ FBehaviorTreeEditorApplicationMode::FBehaviorTreeEditorApplicationMode(TSharedPt
 			)
 			->Split
 			(
-				FTabManager::NewStack()
+				FTabManager::NewSplitter() ->SetOrientation(Orient_Vertical)
 				->SetSizeCoefficient(0.3f)
-				->AddTab(FBehaviorTreeEditorTabs::GraphDetailsID, ETabState::OpenedTab)
-				->AddTab(FBehaviorTreeEditorTabs::SearchID, ETabState::ClosedTab)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.6f)
+					->AddTab(FBehaviorTreeEditorTabs::GraphDetailsID, ETabState::OpenedTab)
+					->AddTab(FBehaviorTreeEditorTabs::SearchID, ETabState::ClosedTab)
+				)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.4f)
+					->AddTab(FBehaviorTreeEditorTabs::BlackboardID, ETabState::OpenedTab)
+				)
 			)
 		)
 	);
@@ -86,9 +98,10 @@ FBlackboardEditorApplicationMode::FBlackboardEditorApplicationMode(TSharedPtr<cl
 {
 	BehaviorTreeEditor = InBehaviorTreeEditor;
 	
+	BlackboardTabFactories.RegisterFactory(MakeShareable(new FBlackboardEditorSummoner(InBehaviorTreeEditor)));
 	BlackboardTabFactories.RegisterFactory(MakeShareable(new FBlackboardDetailsSummoner(InBehaviorTreeEditor)));
 
-	TabLayout = FTabManager::NewLayout( "Standalone_BlackboardEditor_Layout" )
+	TabLayout = FTabManager::NewLayout( "Standalone_BlackboardEditor_Layout_v1" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -101,7 +114,12 @@ FBlackboardEditorApplicationMode::FBlackboardEditorApplicationMode(TSharedPtr<cl
 		)
 		->Split
 		(
-			FTabManager::NewSplitter()
+			FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
+			->Split
+			(
+				FTabManager::NewStack()
+				->AddTab(FBehaviorTreeEditorTabs::BlackboardEditorID, ETabState::OpenedTab)
+			)
 			->Split
 			(
 				FTabManager::NewStack()

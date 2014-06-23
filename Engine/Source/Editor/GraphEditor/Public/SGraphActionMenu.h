@@ -89,6 +89,8 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam( FText, FGetSectionTitle, int32 );
 	/** Delegate to get the filter text */
 	DECLARE_DELEGATE_RetVal( FText, FGetFilterText);
+	/** Delegate to check if an action matches a specified name (used for renaming items etc.) */
+	DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnActionMatchesName, FEdGraphSchemaAction*, const FName& );
 
 	SLATE_BEGIN_ARGS( SGraphActionMenu ) 
 		{
@@ -108,6 +110,7 @@ public:
 		SLATE_EVENT( FCanRenameSelectedAction, OnCanRenameSelectedAction )
 		SLATE_EVENT( FGetSectionTitle, OnGetSectionTitle )		
 		SLATE_EVENT( FGetFilterText, OnGetFilterText )
+		SLATE_EVENT( FOnActionMatchesName, OnActionMatchesName )
 		SLATE_ARGUMENT( bool, AutoExpandActionMenu )
 		SLATE_ARGUMENT( bool, AlphaSortItems )
 		SLATE_ARGUMENT( bool, ShowFilterTextBox )
@@ -173,6 +176,9 @@ protected:
 	FGetSectionTitle OnGetSectionTitle;
 	/** Delegate to get the filter text if supplied from an external source */
 	FGetFilterText OnGetFilterText;
+	/** Delegate to check if an action matches a specified name (used for renaming items etc.) */
+	FOnActionMatchesName OnActionMatchesName;
+
 public:
 	// SWidget interface
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& KeyboardEvent) override;

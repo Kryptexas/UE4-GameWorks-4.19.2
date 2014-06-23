@@ -13,11 +13,7 @@ public:
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 
 private:
-
-	FString GetHeaderDesc() const;
-	FString GetShortTypeName(const UObject* Ob) const;
 	
-	TSharedPtr<IPropertyHandle> MyStructProperty;
 	TSharedPtr<IPropertyHandle> MyNameProperty;
 	TSharedPtr<IPropertyHandle> MyValueProperty;
 };

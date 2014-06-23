@@ -5,7 +5,11 @@
 #include "IBehaviorTreeEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
 
-class FBehaviorTreeEditor : public IBehaviorTreeEditor, public FEditorUndoClient
+class UBehaviorTree;
+class UBlackboardData;
+struct FBlackboardEntry;
+
+class FBehaviorTreeEditor : public IBehaviorTreeEditor, public FEditorUndoClient, public FNotifyHook
 {
 public:
 	FBehaviorTreeEditor();
@@ -36,6 +40,10 @@ public:
 	virtual void	PostUndo(bool bSuccess) override;
 	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
+
+	// Begin FNotifyHook Interface
+	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
+	// End of FNotifyHook
 
 	// Delegates
 	void OnNodeDoubleClicked(class UEdGraphNode* Node);
@@ -87,6 +95,12 @@ public:
 	void UpdateToolbar();
 	bool IsDebuggerReady() const;
 
+	/** Get whether the debugger is currently running and the PIE session is paused */
+	bool IsDebuggerPaused() const;
+
+	/** Get whether we can edit the tree/blackboard with the debugger active */
+	bool CanEditWithDebuggerActive() const;
+
 	TSharedRef<class SWidget> OnGetDebuggerActorsMenu();
 	void OnDebuggerActorSelected(TWeakObjectPtr<UBehaviorTreeComponent> InstanceToDebug);
 	FString GetDebuggerActorDesc() const;
@@ -120,16 +134,25 @@ public:
 	TSharedPtr<class FBehaviorTreeEditorToolbar> GetToolbarBuilder() { return ToolbarBuilder; }
 
 	/** Get the behavior tree we are editing (if any) */
-	class UBehaviorTree* GetBehaviorTree() const;
+	UBehaviorTree* GetBehaviorTree() const;
 
 	/** Get the blackboard we are editing (if any) */
-	class UBlackboardData* GetBlackboardData() const;
+	UBlackboardData* GetBlackboardData() const;
 
 	/** Spawns the tab with the update graph inside */
 	TSharedRef<SWidget> SpawnProperties();
 
 	/** Spawns the search tab */
 	TSharedRef<SWidget> SpawnSearch();
+
+	/** Spawn blackboard details tab */
+	TSharedRef<SWidget> SpawnBlackboardDetails();
+
+	/** Spawn blackboard view tab */
+	TSharedRef<SWidget> SpawnBlackboardView();
+
+	/** Spawn blackboard editor tab */
+	TSharedRef<SWidget> SpawnBlackboardEditor();
 
 	// @todo This is a hack for now until we reconcile the default toolbar with application modes [duplicated from counterpart in Blueprint Editor]
 	void RegisterToolbarTab(const TSharedRef<class FTabManager>& TabManager);
@@ -139,6 +162,27 @@ public:
 
 	/** Save the graph state for later editing */
 	void SaveEditedObjectState();
+
+	/** Delegate handler for selection in the blackboard entry list */
+	void HandleBlackboardEntrySelected(const FBlackboardEntry* BlackboardEntry, bool bIsInherited);
+
+	/** Delegate handler used to retrieve current blackboard selection */
+	int32 HandleGetSelectedBlackboardItemIndex(bool& bOutIsInherited);
+
+	/** Delegate handler for displaying debugger values */
+	FText HandleGetDebugKeyValue(const FName& InKeyName, bool bUseCurrentState) const;
+
+	/** Delegate handler for retrieving timestamp to display */
+	float HandleGetDebugTimeStamp(bool bUseCurrentState) const;
+
+	/** Delegate handler for when the debugged blackboard changes */
+	void HandleDebuggedBlackboardChanged(UBlackboardData* InObject);
+
+	/** Delegate handler for determining whether to display the current state */
+	bool HandleGetDisplayCurrentState() const;
+
+	/** Get the currently selected blackboard entry */
+	void GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const;
 
 protected:
 	/** Called when "Save" is clicked for this asset */
@@ -186,7 +230,6 @@ private:
 
 	/** Property View */
 	TSharedPtr<class IDetailsView> DetailsView;
-	TSharedPtr<class SBehaviorTreeDebuggerView> DebuggerView;
 
 	/** The command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
@@ -203,6 +246,21 @@ private:
 	uint32 SelectedNodesCount;
 
 	TSharedPtr<class FBehaviorTreeEditorToolbar> ToolbarBuilder;
+
+	/** The details view we use to display the blackboard */
+	TSharedPtr<IDetailsView> BlackboardDetailsView;
+
+	/** The blackboard view widget */
+	TSharedPtr<class SBehaviorTreeBlackboardView> BlackboardView;
+
+	/** The blackboard editor widget */
+	TSharedPtr<class SBehaviorTreeBlackboardEditor> BlackboardEditor;
+
+	/** The current blackboard selection index, stored here so it can be accessed by our details customization */
+	int32 CurrentBlackboardEntryIndex;
+
+	/** Whether the current selection is inherited, stored here so it can be accessed by our details customization */
+	bool bIsCurrentBlackboardEntryInherited;
 
 public:
 	/** Modes in mode switcher */

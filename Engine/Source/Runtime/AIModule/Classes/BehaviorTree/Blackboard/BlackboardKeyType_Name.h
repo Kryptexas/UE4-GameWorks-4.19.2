@@ -3,7 +3,7 @@
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BlackboardKeyType_Name.generated.h"
 
-UCLASS(EditInlineNew, MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI, meta=(DisplayName="Name"))
 class UBlackboardKeyType_Name : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()

@@ -7,11 +7,12 @@
 #include "PropertyEditorModule.h"
 #include "PropertyHandle.h"
 
-FClassViewerNode::FClassViewerNode( FString _ClassName, bool _bIsPlaceable)
+FClassViewerNode::FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName, bool bInIsPlaceable )
 {
-	ClassName = MakeShareable(new FString(_ClassName));
+	ClassName = MakeShareable(new FString(InClassName));
+	ClassDisplayName = MakeShareable(new FString(InClassDisplayName));
 	bPassesFilter = false;
-	bIsClassPlaceable = _bIsPlaceable;
+	bIsClassPlaceable = bInIsPlaceable;
 	bIsBPNormalType = false;
 
 	Class = NULL;
@@ -21,6 +22,7 @@ FClassViewerNode::FClassViewerNode( FString _ClassName, bool _bIsPlaceable)
 FClassViewerNode::FClassViewerNode( const FClassViewerNode& InCopyObject)
 {
 	ClassName = InCopyObject.ClassName;
+	ClassDisplayName = InCopyObject.ClassDisplayName;
 	bPassesFilter = InCopyObject.bPassesFilter;
 	bIsClassPlaceable = InCopyObject.bIsClassPlaceable;
 

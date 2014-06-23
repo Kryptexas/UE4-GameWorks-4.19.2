@@ -30,6 +30,20 @@ public:
 	TSharedPtr<FUICommandInfo> ResumePlaySession;
 	TSharedPtr<FUICommandInfo> StopPlaySession;
 
+	TSharedPtr<FUICommandInfo> CurrentValues;
+	TSharedPtr<FUICommandInfo> SavedValues;
+
+	/** Initialize commands */
+	virtual void RegisterCommands() override;
+};
+
+class FBTBlackboardCommands : public TCommands<FBTBlackboardCommands>
+{
+public:
+	FBTBlackboardCommands();
+
+	TSharedPtr<FUICommandInfo> DeleteEntry;
+
 	/** Initialize commands */
 	virtual void RegisterCommands() override;
 };

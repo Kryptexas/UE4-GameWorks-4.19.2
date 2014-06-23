@@ -8,10 +8,11 @@ public:
 	/**
 	 * Creates a node for the widget's tree.
 	 *
-	 * @param	_ClassName						The name of the class this node represents.
-	 * @param	_bIsPlaceable					true if the class is a placeable class.
+	 * @param	InClassName						The name of the class this node represents.
+	 * @param	InClassDisplayName				The display name of the class this node represents
+	 * @param	bInIsPlaceable					true if the class is a placeable class.
 	 */
-	FClassViewerNode( FString Item, bool bIsPlaceable);
+	FClassViewerNode( const FString& InClassName, const FString& InClassDisplayName, bool bInIsPlaceable );
 
 	FClassViewerNode( const FClassViewerNode& InCopyObject);
 
@@ -30,10 +31,13 @@ public:
 	 */
 	void AddUniqueChild(TSharedPtr<FClassViewerNode> NewChild);
 
-	/** Retrieves the class name this node is associated with. */
-	TSharedPtr<FString> GetClassName() const
+	/** 
+	 * Retrieves the class name this node is associated with. 
+	 * @param	bUseDisplayName	Whether to use the display name or class name
+	 */
+	TSharedPtr<FString> GetClassName(bool bUseDisplayName = false) const
 	{
-		return ClassName;	
+		return bUseDisplayName ? ClassDisplayName : ClassName;
 	}
 
 	/** Retrieves the children list. */
@@ -58,6 +62,9 @@ public:
 private:
 	/** The class name for this tree node. */
 	TSharedPtr<FString> ClassName;
+
+	/** The class display name for this tree node. */
+	TSharedPtr<FString> ClassDisplayName;
 
 	/** List of children. */
 	TArray<TSharedPtr<FClassViewerNode>> ChildrenList;

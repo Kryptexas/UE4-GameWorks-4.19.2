@@ -31,6 +31,19 @@ void FBTDebuggerCommands::RegisterCommands()
 	UI_COMMAND(PausePlaySession, "Pause", "Pause simulation", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(ResumePlaySession, "Resume", "Resume simulation", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND(StopPlaySession, "Stop", "Stop simulation", EUserInterfaceActionType::Button, FInputGesture());
+
+	UI_COMMAND(CurrentValues, "Current", "View current values", EUserInterfaceActionType::RadioButton, FInputGesture());
+	UI_COMMAND(SavedValues, "Saved", "View saved values", EUserInterfaceActionType::RadioButton, FInputGesture());
+}
+
+FBTBlackboardCommands::FBTBlackboardCommands() 
+	: TCommands<FBTBlackboardCommands>("BTEditor.Blackboard", LOCTEXT("Blackboard", "Blackboard"), NAME_None, FEditorStyle::GetStyleSetName())
+{
+}
+
+void FBTBlackboardCommands::RegisterCommands()
+{
+	UI_COMMAND(DeleteEntry, "Delete", "Delete this blackboard entry", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
 }
 
 #undef LOCTEXT_NAMESPACE

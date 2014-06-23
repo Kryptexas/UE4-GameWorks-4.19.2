@@ -6,8 +6,55 @@
 #include "BehaviorTreeEditorTabs.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
+#include "SBehaviorTreeBlackboardView.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditorFactories"
+
+FBlackboardSummoner::FBlackboardSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr)
+	: FWorkflowTabFactory(FBehaviorTreeEditorTabs::BlackboardID, InBehaviorTreeEditorPtr)
+	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
+{
+	TabLabel = LOCTEXT("BlackboardLabel", "Blackboard");
+	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+
+	bIsSingleton = true;
+
+	ViewMenuDescription = LOCTEXT("BlackboardView", "Blackboard");
+	ViewMenuTooltip = LOCTEXT("BlackboardView_ToolTip", "Show the blackboard view");
+}
+
+TSharedRef<SWidget> FBlackboardSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	return BehaviorTreeEditorPtr.Pin()->SpawnBlackboardView();
+}
+
+FText FBlackboardSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+{
+	return LOCTEXT("BlackboardTabTooltip", "The Blackboard view is for viewing and debugging blackboard key/value pairs.");
+}
+
+FBlackboardEditorSummoner::FBlackboardEditorSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr)
+	: FWorkflowTabFactory(FBehaviorTreeEditorTabs::BlackboardEditorID, InBehaviorTreeEditorPtr)
+	, BehaviorTreeEditorPtr(InBehaviorTreeEditorPtr)
+{
+	TabLabel = LOCTEXT("BlackboardLabel", "Blackboard");
+	TabIcon = FEditorStyle::GetBrush("Kismet.Tabs.Components");
+
+	bIsSingleton = true;
+
+	ViewMenuDescription = LOCTEXT("BlackboardEditor", "Blackboard");
+	ViewMenuTooltip = LOCTEXT("BlackboardEditor_ToolTip", "Show the blackboard editor");
+}
+
+TSharedRef<SWidget> FBlackboardEditorSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
+{
+	return BehaviorTreeEditorPtr.Pin()->SpawnBlackboardEditor();
+}
+
+FText FBlackboardEditorSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
+{
+	return LOCTEXT("BlackboardEditorTabTooltip", "The Blackboard editor is for editing and debugging blackboard key/value pairs.");
+}
 
 FBlackboardDetailsSummoner::FBlackboardDetailsSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr)
 	: FWorkflowTabFactory(FBehaviorTreeEditorTabs::BlackboardDetailsID, InBehaviorTreeEditorPtr)
@@ -18,31 +65,19 @@ FBlackboardDetailsSummoner::FBlackboardDetailsSummoner(TSharedPtr<class FBehavio
 
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("BlackboardDetailsView", "Blackboard Details");
-	ViewMenuTooltip = LOCTEXT("BlackboardDetailsView_ToolTip", "Show the blackboard details view");
+	ViewMenuDescription = LOCTEXT("BlackboardDetailsView", "Details");
+	ViewMenuTooltip = LOCTEXT("BlackboardDetailsView_ToolTip", "Show the details view");
 }
 
 TSharedRef<SWidget> FBlackboardDetailsSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const
 {
-	const bool bIsUpdatable = false;
-	const bool bAllowFavorites = true;
-	const bool bIsLockable = false;
-	const bool bAllowSearch = true;
-	const bool bObjectsUseNameArea = false;
-	const bool bHideSelectionTip = true;
-
-	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
-	const FDetailsViewArgs DetailsViewArgs( bIsUpdatable, bIsLockable, bAllowSearch, bObjectsUseNameArea, bHideSelectionTip );
-	TSharedRef<IDetailsView> DetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
-
-	DetailsView->SetObject(BehaviorTreeEditorPtr.Pin()->GetBlackboardData());
-
-	return DetailsView;
+	check(BehaviorTreeEditorPtr.IsValid());
+	return BehaviorTreeEditorPtr.Pin()->SpawnBlackboardDetails();
 }
 
 FText FBlackboardDetailsSummoner::GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const
 {
-	return LOCTEXT("BlackboardTabTooltip", "The Blackboard tab is for editing blackboard key/value pairs.");
+	return LOCTEXT("BlackboardDetailsTabTooltip", "The details tab is for editing blackboard entries.");
 }
 
 FBehaviorTreeDetailsSummoner::FBehaviorTreeDetailsSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr)
@@ -54,8 +89,8 @@ FBehaviorTreeDetailsSummoner::FBehaviorTreeDetailsSummoner(TSharedPtr<class FBeh
 
 	bIsSingleton = true;
 
-	ViewMenuDescription = LOCTEXT("BehaviorTreeDetailsView", "Behavior Tree Details");
-	ViewMenuTooltip = LOCTEXT("BehaviorTreeDetailsView_ToolTip", "Show the behavior tree details view");
+	ViewMenuDescription = LOCTEXT("BehaviorTreeDetailsView", "Details");
+	ViewMenuTooltip = LOCTEXT("BehaviorTreeDetailsView_ToolTip", "Show the details view");
 }
 
 TSharedRef<SWidget> FBehaviorTreeDetailsSummoner::CreateTabBody(const FWorkflowTabSpawnInfo& Info) const

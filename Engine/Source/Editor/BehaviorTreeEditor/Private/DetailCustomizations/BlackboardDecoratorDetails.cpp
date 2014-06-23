@@ -124,8 +124,16 @@ void FBlackboardDecoratorDetails::OnKeyIDChanged()
 	if (Result == FPropertyAccess::Success)
 	{
 		const FBlackboardEntry* KeyEntry = Blackboard->GetKey(KeyID);
-		CachedKeyType = KeyEntry && KeyEntry->KeyType ? KeyEntry->KeyType->GetClass() : NULL;
-		CachedOperationType = KeyEntry->KeyType->GetTestOperation();
+		if(KeyEntry && KeyEntry->KeyType)
+		{
+			CachedKeyType = KeyEntry->KeyType->GetClass();
+			CachedOperationType = KeyEntry->KeyType->GetTestOperation();
+		}
+		else
+		{
+			CachedKeyType = nullptr;
+			CachedOperationType = 0;
+		}
 	}
 
 	// special handling of enum type: cache all names for combo box (display names)

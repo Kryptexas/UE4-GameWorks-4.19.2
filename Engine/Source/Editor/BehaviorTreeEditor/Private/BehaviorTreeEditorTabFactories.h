@@ -5,6 +5,30 @@
 #include "WorkflowOrientedApp/WorkflowTabFactory.h"
 #include "WorkflowOrientedApp/WorkflowUObjectDocuments.h"
 
+struct FBlackboardSummoner : public FWorkflowTabFactory
+{
+public:
+	FBlackboardSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr);
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
+
+protected:
+	TWeakPtr<class FBehaviorTreeEditor> BehaviorTreeEditorPtr;
+};
+
+struct FBlackboardEditorSummoner : public FWorkflowTabFactory
+{
+public:
+	FBlackboardEditorSummoner(TSharedPtr<class FBehaviorTreeEditor> InBehaviorTreeEditorPtr);
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override;
+
+protected:
+	TWeakPtr<class FBehaviorTreeEditor> BehaviorTreeEditorPtr;
+};
+
 struct FBlackboardDetailsSummoner : public FWorkflowTabFactory
 {
 public:

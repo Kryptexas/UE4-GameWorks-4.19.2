@@ -1739,23 +1739,23 @@ void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const class UBTTaskNod
 #endif
 }
 
-void UBehaviorTreeComponent::StoreDebuggerBlackboard(TArray<FString>& BlackboardValueDesc) const
+void UBehaviorTreeComponent::StoreDebuggerBlackboard(TMap<FName, FString>& BlackboardValueDesc) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (BlackboardComp && BlackboardComp->HasValidAsset())
 	{
 		const int32 NumKeys = BlackboardComp->GetNumKeys();
-		BlackboardValueDesc.Reset();
-		BlackboardValueDesc.AddZeroed(NumKeys);
+		BlackboardValueDesc.Empty(NumKeys);
 
 		for (int32 KeyIndex = 0; KeyIndex < NumKeys; KeyIndex++)
 		{
-			BlackboardValueDesc[KeyIndex] = BlackboardComp->DescribeKeyValue(KeyIndex, EBlackboardDescription::OnlyValue);
-			
-			if (BlackboardValueDesc[KeyIndex].Len() == 0)
+			FString Value = BlackboardComp->DescribeKeyValue(KeyIndex, EBlackboardDescription::OnlyValue);
+			if (Value.Len() == 0)
 			{
-				BlackboardValueDesc[KeyIndex] = TEXT("n/a");
+				Value = TEXT("n/a");
 			}
+
+			BlackboardValueDesc.Add(BlackboardComp->GetKeyName(KeyIndex), Value);
 		}
 	}
 #endif

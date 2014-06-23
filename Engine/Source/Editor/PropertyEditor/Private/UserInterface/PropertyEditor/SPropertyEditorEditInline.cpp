@@ -10,6 +10,7 @@
 #include "SPropertyComboBox.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "ClassIconFinder.h"
 
 class FPropertyEditorInlineClassFilter : public IClassViewerFilter
 {
@@ -65,6 +66,7 @@ public:
 void SPropertyEditorEditInline::Construct( const FArguments& InArgs, const TSharedRef< class FPropertyEditor >& InPropertyEditor )
 {
 	PropertyEditor = InPropertyEditor;
+	bUseDisplayNames = PropertyEditor->GetProperty()->GetBoolMetaData(TEXT("UseDisplayNames"));
 
 	ChildSlot
 	[
@@ -74,8 +76,23 @@ void SPropertyEditorEditInline::Construct( const FArguments& InArgs, const TShar
 		.ToolTipText(InPropertyEditor, &FPropertyEditor::GetValueAsString )
 		.ButtonContent()
 		[
-			SNew( STextBlock )
-			.Text( this, &SPropertyEditorEditInline::GetDisplayValueAsString )
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
+			[
+				SNew( SImage )
+				.Image( this, &SPropertyEditorEditInline::GetDisplayValueIcon )
+			]
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew( STextBlock )
+				.Text( this, &SPropertyEditorEditInline::GetDisplayValueAsString )
+				.Font( InArgs._Font )
+			]
 		]
 	];
 }
@@ -86,12 +103,31 @@ FString SPropertyEditorEditInline::GetDisplayValueAsString() const
 	FPropertyAccess::Result Result = PropertyEditor->GetPropertyHandle()->GetValue( CurrentValue );
 	if( Result == FPropertyAccess::Success && CurrentValue != NULL )
 	{
-		return CurrentValue->GetName();
+		if(bUseDisplayNames)
+		{
+			return CurrentValue->GetClass()->GetDisplayNameText().ToString();
+		}
+		else
+		{
+			return CurrentValue->GetName();
+		}
 	}
 	else
 	{
 		return PropertyEditor->GetValueAsString();
 	}
+}
+
+const FSlateBrush* SPropertyEditorEditInline::GetDisplayValueIcon() const
+{
+	UObject* CurrentValue = nullptr;
+	FPropertyAccess::Result Result = PropertyEditor->GetPropertyHandle()->GetValue( CurrentValue );
+	if( Result == FPropertyAccess::Success && CurrentValue != nullptr )
+	{
+		return FClassIconFinder::FindIconForClass(CurrentValue->GetClass());
+	}
+
+	return nullptr;
 }
 
 void SPropertyEditorEditInline::GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth )
@@ -146,6 +182,7 @@ TSharedRef<SWidget> SPropertyEditorEditInline::GenerateClassPicker()
 {
 	FClassViewerInitializationOptions Options;
 	Options.bShowUnloadedBlueprints = true;
+	Options.bShowDisplayNames = bUseDisplayNames;
 
 	TSharedPtr<FPropertyEditorInlineClassFilter> ClassFilter = MakeShareable( new FPropertyEditorInlineClassFilter );
 	Options.ClassFilter = ClassFilter;

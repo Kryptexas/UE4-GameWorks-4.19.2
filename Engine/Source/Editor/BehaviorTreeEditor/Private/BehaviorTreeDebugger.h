@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "SBehaviorTreeDebuggerView.h"
-
 class FBehaviorTreeDebugger : public FTickableGameObject
 {
 public:
@@ -19,7 +17,7 @@ public:
 	/** Refresh the debugging information we are displaying (only when paused, as Tick() updates when running) */
 	void Refresh();
 
-	void Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView);
+	void Setup(class UBehaviorTree* InTreeAsset, TSharedRef<class FBehaviorTreeEditor> InEditorOwner);
 
 	/** Store the root node for easy access if we have not already */
 	void CacheRootNode();
@@ -66,10 +64,25 @@ public:
 	bool HasContinuousNextStep() const;
 	bool HasContinuousPrevStep() const;
 
+	/**
+	 * Find a (display) value for a given key.
+	 * @param	InKeyName			Key to find a value for
+	 * @param	bUseCurrentState	Whether to use the current (present) state or the state at the active step index
+	 * @return the value to display to the user.
+	 */
+	FText FindValueForKey(const FName& InKeyName, bool bUseCurrentState) const;
+
+	/** Gets the timestamp to be displayed, either current or saved */
+	float GetTimeStamp(bool bUseCurrentState) const;
+
+	/** Delegate fired when the debugged blackboard is changed */
+	DECLARE_EVENT_OneParam(FBehaviorTreeDebugger, FOnDebuggedBlackboardChanged, UBlackboardData*);
+	FOnDebuggedBlackboardChanged& OnDebuggedBlackboardChanged() { return OnDebuggedBlackboardChangedEvent; }
+
 private:
 
 	/** owning editor */
-	class FBehaviorTreeEditor* EditorOwner;
+	TWeakPtr<FBehaviorTreeEditor> EditorOwner;
 
 	/** asset for debugging */
 	class UBehaviorTree* TreeAsset;
@@ -79,9 +92,6 @@ private:
 
 	/** instance for debugging */
 	TWeakObjectPtr<class UBehaviorTreeComponent> TreeInstance;
-
-	/** widget with details to show in editor */
-	TSharedPtr<SBehaviorTreeDebuggerView> DebuggerDetails;
 
 	/** matching debugger instance index from component's stack */
 	int32 DebuggerInstanceIndex;
@@ -113,6 +123,14 @@ private:
 
 	/** execution index of node that caused activated the breakpoint */
 	uint16 StoppedOnBreakpointExecutionIndex;
+
+	/** Lookup of currently debugged blackboard values */
+	TMap<FName, FString> SavedValues;
+	TMap<FName, FString> CurrentValues;
+
+	/** Debugger timestamps */
+	float SavedTimestamp;
+	float CurrentTimestamp;
 
 	/** set value of DebuggerInstanceIndex variable */
 	void UpdateDebuggerInstance();
@@ -173,4 +191,7 @@ private:
 
 	/** updates button states */
 	void UpdateAvailableActions();
+
+	/** Delegate fired when the debugged blackboard is changed */
+	FOnDebuggedBlackboardChanged OnDebuggedBlackboardChangedEvent;
 };

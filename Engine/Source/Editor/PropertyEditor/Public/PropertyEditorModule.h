@@ -203,7 +203,7 @@ public:
 	 * @param Class	The class the custom detail layout is for
 	 * @param StructLayoutDelegate	The delegate to call when querying for custom detail layouts for the struct properties
 	 */
-	DEPRECATED(4.3, "RegisterCustomPropertyTypeLayout is deprecated.  Use RegisterCustomPropertyTypeLayout instead.")
+	DEPRECATED(4.3, "RegisterStructPropertyLayout is deprecated.  Use RegisterCustomPropertyTypeLayout instead.")
 	virtual void RegisterStructPropertyLayout( FName StructTypeName, FOnGetStructCustomizationInstance StructLayoutDelegate );
 
 	/**

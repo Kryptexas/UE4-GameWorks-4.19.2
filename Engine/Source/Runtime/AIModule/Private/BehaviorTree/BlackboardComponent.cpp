@@ -54,7 +54,7 @@ struct FBlackboardInitializationData
 	};
 };
 
-void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
+void UBlackboardComponent::InitializeBlackboard(UBlackboardData* NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
 	// in reseting, since we'd loose all the accumulated knowledge
@@ -116,12 +116,12 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 	}
 }
 
-class UBrainComponent* UBlackboardComponent::GetBrainComponent() const
+UBrainComponent* UBlackboardComponent::GetBrainComponent() const
 {
 	return BrainComp;
 }
 
-class UBlackboardData* UBlackboardComponent::GetBlackboardAsset() const
+UBlackboardData* UBlackboardComponent::GetBlackboardAsset() const
 {
 	return BlackboardAsset;
 }
@@ -254,6 +254,11 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 	}
 
 	return DebugString;
+}
+
+FString UBlackboardComponent::DescribeKeyValue(const FName& KeyName, EBlackboardDescription::Type Mode) const
+{
+	return DescribeKeyValue(GetKeyID(KeyName), Mode);
 }
 
 FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackboardDescription::Type Mode) const

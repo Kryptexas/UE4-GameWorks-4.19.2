@@ -22,6 +22,9 @@
 #include "BehaviorTreeEditorTabs.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
+#include "DetailCustomizations/BlackboardDataDetails.h"
+#include "SBehaviorTreeBlackboardView.h"
+#include "SBehaviorTreeBlackboardEditor.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
@@ -75,6 +78,14 @@ void FBehaviorTreeEditor::PostUndo(bool bSuccess)
 			CurrentGraphEditor->ClearSelectionSet();
 			CurrentGraphEditor->NotifyGraphChanged();
 		}
+		if(BlackboardView.IsValid())
+		{
+			BlackboardView->SetObject(GetBlackboardData());
+		}
+		if(BlackboardEditor.IsValid())
+		{
+			BlackboardEditor->SetObject(GetBlackboardData());
+		}
 		FSlateApplication::Get().DismissAllMenus();
 	}
 }
@@ -90,7 +101,30 @@ void FBehaviorTreeEditor::PostRedo(bool bSuccess)
 			CurrentGraphEditor->ClearSelectionSet();
 			CurrentGraphEditor->NotifyGraphChanged();
 		}
+		if(BlackboardView.IsValid())
+		{
+			BlackboardView->SetObject(GetBlackboardData());
+		}
+		if(BlackboardEditor.IsValid())
+		{
+			BlackboardEditor->SetObject(GetBlackboardData());
+		}
 		FSlateApplication::Get().DismissAllMenus();
+	}
+}
+
+void FBehaviorTreeEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged )
+{
+	if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		if(BlackboardView.IsValid())
+		{
+			BlackboardView->SetObject(GetBlackboardData());
+		}
+		if(BlackboardEditor.IsValid())
+		{
+			BlackboardEditor->SetObject(GetBlackboardData());
+		}
 	}
 }
 
@@ -164,6 +198,7 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		FGraphEditorCommands::Register();
 		FBTCommonCommands::Register();
 		FBTDebuggerCommands::Register();
+		FBTBlackboardCommands::Register();
 
 		const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
 		const bool bCreateDefaultStandaloneMenu = true;
@@ -175,19 +210,35 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		CreateInternalWidgets();
 
 		Debugger = MakeShareable(new FBehaviorTreeDebugger);
-		Debugger->Setup(BehaviorTree, this, DebuggerView);
+		Debugger->Setup(BehaviorTree, SharedThis(this));
+		Debugger->OnDebuggedBlackboardChanged().AddSP(this, &FBehaviorTreeEditor::HandleDebuggedBlackboardChanged);
 		BindDebuggerToolbarCommands();
 
-		FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::GetModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
+		FBehaviorTreeEditorModule& BehaviorTreeEditorModule = FModuleManager::LoadModuleChecked<FBehaviorTreeEditorModule>( "BehaviorTreeEditor" );
 		AddMenuExtender(BehaviorTreeEditorModule.GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
 		AddApplicationMode(BehaviorTreeMode, MakeShareable(new FBehaviorTreeEditorApplicationMode(SharedThis(this))));
 		AddApplicationMode(BlackboardMode, MakeShareable(new FBlackboardEditorApplicationMode(SharedThis(this))));
+
+		BlackboardView = SNew(SBehaviorTreeBlackboardView, GetBlackboardData())
+			.OnGetDebugKeyValue(this, &FBehaviorTreeEditor::HandleGetDebugKeyValue)
+			.OnIsDebuggerReady(this, &FBehaviorTreeEditor::IsDebuggerReady)
+			.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)
+			.OnGetDebugTimeStamp(this, &FBehaviorTreeEditor::HandleGetDebugTimeStamp)
+			.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState);
+
+		BlackboardEditor = SNew(SBehaviorTreeBlackboardEditor, GetToolkitCommands(), GetBlackboardData())
+				.OnEntrySelected(this, &FBehaviorTreeEditor::HandleBlackboardEntrySelected)
+				.OnGetDebugKeyValue(this, &FBehaviorTreeEditor::HandleGetDebugKeyValue)
+				.OnIsDebuggerReady(this, &FBehaviorTreeEditor::IsDebuggerReady)
+				.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)
+				.OnGetDebugTimeStamp(this, &FBehaviorTreeEditor::HandleGetDebugTimeStamp)
+				.OnGetDisplayCurrentState(this, &FBehaviorTreeEditor::HandleGetDisplayCurrentState);
 	}
 	else
 	{
 		check(Debugger.IsValid());
-		Debugger->Setup(BehaviorTree, this, DebuggerView);
+		Debugger->Setup(BehaviorTree, SharedThis(this));
 	}
 
 	if(BehaviorTreeToEdit != nullptr)
@@ -236,13 +287,14 @@ void FBehaviorTreeEditor::RestoreBehaviorTree()
 		GraphEditor->SetViewLocation(BehaviorTree->LastEditedDocuments[0].SavedViewOffset, BehaviorTree->LastEditedDocuments[0].SavedZoomAmount);
 	}
 
+	const bool bIncreaseVersionNum = false;
 	if(bNewGraph)
 	{
-		const bool bIncreaseVersionNum = false;
 		MyGraph->UpdateAsset(UBehaviorTreeGraph::ClearDebuggerFlags, bIncreaseVersionNum);
 	}
 	else
 	{
+		MyGraph->UpdateAsset(UBehaviorTreeGraph::SkipDebuggerFlags, bIncreaseVersionNum);
 		RefreshDebugger();
 	}
 
@@ -262,9 +314,89 @@ void FBehaviorTreeEditor::SaveEditedObjectState()
 	DocumentManager->SaveAllState();
 }
 
+void FBehaviorTreeEditor::HandleBlackboardEntrySelected(const FBlackboardEntry* BlackboardEntry, bool bIsInherited)
+{
+	// refresh details view
+	const bool bForceRefresh = true;
+	BlackboardDetailsView->SetObject(GetBlackboardData(), bForceRefresh);
+}
+
+int32 FBehaviorTreeEditor::HandleGetSelectedBlackboardItemIndex(bool& bIsInherited)
+{
+	if(BlackboardEditor.IsValid())
+	{
+		return BlackboardEditor->GetSelectedEntryIndex(bIsInherited);
+	}
+
+	return INDEX_NONE;
+}
+
+FText FBehaviorTreeEditor::HandleGetDebugKeyValue(const FName& InKeyName, bool bUseCurrentState) const
+{
+	if(IsDebuggerReady())
+	{
+		return Debugger->FindValueForKey(InKeyName, bUseCurrentState);
+	}
+
+	return FText();
+}
+
+float FBehaviorTreeEditor::HandleGetDebugTimeStamp(bool bUseCurrentState) const
+{
+	if(IsDebuggerReady())
+	{
+		return Debugger->GetTimeStamp(bUseCurrentState);
+	}
+
+	return 0.0f;
+}
+
+void FBehaviorTreeEditor::HandleDebuggedBlackboardChanged(UBlackboardData* InBlackboardData)
+{
+	if(BlackboardView.IsValid())
+	{
+		BlackboardView->SetObject(InBlackboardData);
+	}
+	if(BlackboardEditor.IsValid())
+	{
+		BlackboardEditor->SetObject(InBlackboardData);
+	}
+}
+
+bool FBehaviorTreeEditor::HandleGetDisplayCurrentState() const
+{
+	if(IsDebuggerReady())
+	{
+		return Debugger->IsShowingCurrentState();
+	}
+
+	return false;
+}
+
+void FBehaviorTreeEditor::GetBlackboardSelectionInfo(int32& OutSelectionIndex, bool& bOutIsInherited) const
+{
+	OutSelectionIndex = CurrentBlackboardEntryIndex;
+	bOutIsInherited = bIsCurrentBlackboardEntryInherited;
+}
+
 bool FBehaviorTreeEditor::IsDebuggerReady() const
 {
 	return Debugger.IsValid() && Debugger->IsDebuggerReady();
+}
+
+bool FBehaviorTreeEditor::IsDebuggerPaused() const
+{
+	return IsDebuggerReady() && GUnrealEd->PlayWorld && GUnrealEd->PlayWorld->bDebugPauseExecution;
+}
+
+bool FBehaviorTreeEditor::CanEditWithDebuggerActive() const
+{
+	if(Debugger.IsValid())
+	{
+		return !Debugger->IsDebuggerReady();
+	}
+
+	return true;
 }
 
 EVisibility FBehaviorTreeEditor::GetDebuggerDetailsVisibility() const
@@ -520,24 +652,40 @@ TSharedRef<SWidget> FBehaviorTreeEditor::SpawnProperties()
 					.Text(FText::Format(LOCTEXT("AbortModeHighlight", "Nodes aborted by mode: {0}"), LOCTEXT("AbortPrioritySelf", "Self")))
 				]
 			]
-		]
-		+SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Bottom)
-		.Padding(5.0f)
-		[
-			SNew(SSeparator)
-			.Orientation( Orient_Horizontal )
-			.Visibility(this, &FBehaviorTreeEditor::GetDebuggerDetailsVisibility)
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Top)
-		[
-			DebuggerView.ToSharedRef()
 		];
+}
+
+TSharedRef<SWidget> FBehaviorTreeEditor::SpawnBlackboardView()
+{
+	return BlackboardView.ToSharedRef();
+}
+
+TSharedRef<SWidget> FBehaviorTreeEditor::SpawnBlackboardEditor()
+{
+	return BlackboardEditor.ToSharedRef();
+}
+
+TSharedRef<SWidget> FBehaviorTreeEditor::SpawnBlackboardDetails()
+{
+	const bool bIsUpdatable = false;
+	const bool bAllowFavorites = true;
+	const bool bIsLockable = false;
+	const bool bAllowSearch = true;
+	const bool bObjectsUseNameArea = false;
+	const bool bHideSelectionTip = true;
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
+	FDetailsViewArgs DetailsViewArgs( bIsUpdatable, bIsLockable, bAllowSearch, bObjectsUseNameArea, bHideSelectionTip );
+	DetailsViewArgs.NotifyHook = this;
+	BlackboardDetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
+
+	FOnGetSelectedBlackboardItemIndex OnGetSelectedBlackboardItemIndex = FOnGetSelectedBlackboardItemIndex::CreateSP(this, &FBehaviorTreeEditor::HandleGetSelectedBlackboardItemIndex);
+	FOnGetDetailCustomizationInstance LayoutVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlackboardDataDetails::MakeInstance, OnGetSelectedBlackboardItemIndex);
+	BlackboardDetailsView->RegisterInstancedCustomPropertyLayout(UBlackboardData::StaticClass(), LayoutVariableDetails);
+
+	BlackboardDetailsView->SetObject(GetBlackboardData());
+	BlackboardDetailsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBehaviorTreeEditor::CanEditWithDebuggerActive)));
+
+	return BlackboardDetailsView.ToSharedRef();
 }
 
 void FBehaviorTreeEditor::OnSelectedNodesChanged(const TSet<class UObject*>& NewSelection)
@@ -757,8 +905,6 @@ void FBehaviorTreeEditor::CreateInternalWidgets()
 	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateSP(this, &FBehaviorTreeEditor::IsPropertyVisible));
 	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &FBehaviorTreeEditor::IsPropertyEditable));
 	DetailsView->OnFinishedChangingProperties().AddSP(this, &FBehaviorTreeEditor::OnFinishedChangingProperties);
-
-	DebuggerView = SNew(SBehaviorTreeDebuggerView);
 }
 
 void FBehaviorTreeEditor::ExtendMenu()
@@ -925,26 +1071,36 @@ void FBehaviorTreeEditor::OnFinishedChangingProperties(const FPropertyChangedEve
 	}
 
 	// update abort range highlight when changing decorator's flow abort mode
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == TEXT("FlowAbortMode"))
+	if (PropertyChangedEvent.Property)
 	{
-		bShowDecoratorRangeLower = false;
-		bShowDecoratorRangeSelf = false;
-
-		FGraphPanelSelectionSet CurrentSelection = GetSelectedNodes();
-		if (CurrentSelection.Num() == 1)
+		if(PropertyChangedEvent.Property->GetFName() == TEXT("FlowAbortMode"))
 		{
-			for (FGraphPanelSelectionSet::TConstIterator It(CurrentSelection); It; ++It)
-			{
-				UBehaviorTreeGraphNode_Decorator* DecoratorNode = Cast<UBehaviorTreeGraphNode_Decorator>(*It);
-				if (DecoratorNode)
-				{
-					FAbortDrawHelper Mode0, Mode1;
-					GetAbortModePreview(Cast<UBTDecorator>(DecoratorNode->NodeInstance), Mode0, Mode1);
+			bShowDecoratorRangeLower = false;
+			bShowDecoratorRangeSelf = false;
 
-					UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
-					MyGraph->UpdateAbortHighlight(Mode0, Mode1);
-				}
-			}			
+			FGraphPanelSelectionSet CurrentSelection = GetSelectedNodes();
+			if (CurrentSelection.Num() == 1)
+			{
+				for (FGraphPanelSelectionSet::TConstIterator It(CurrentSelection); It; ++It)
+				{
+					UBehaviorTreeGraphNode_Decorator* DecoratorNode = Cast<UBehaviorTreeGraphNode_Decorator>(*It);
+					if (DecoratorNode)
+					{
+						FAbortDrawHelper Mode0, Mode1;
+						GetAbortModePreview(Cast<UBTDecorator>(DecoratorNode->NodeInstance), Mode0, Mode1);
+
+						UBehaviorTreeGraph* MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
+						MyGraph->UpdateAbortHighlight(Mode0, Mode1);
+					}
+				}			
+			}
+		}
+		else if(PropertyChangedEvent.Property->GetFName() == TEXT("BlackboardAsset"))
+		{
+			if(BlackboardView.IsValid())
+			{
+				BlackboardView->SetObject(GetBlackboardData());
+			}
 		}
 	}
 

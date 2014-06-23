@@ -6,13 +6,11 @@
 #include "BehaviorTree/BTTaskNode.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
 #include "BehaviorTreeDelegates.h"
-#include "SBehaviorTreeDebuggerView.h"
 #include "GameplayDebuggingReplicator.h"
 #include "GameplayDebuggingComponent.h"
 
 FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 {
-	EditorOwner = NULL;
 	TreeAsset = NULL;
 	bIsPIEActive = false;
 	bIsCurrentSubtree = false;
@@ -21,6 +19,8 @@ FBehaviorTreeDebugger::FBehaviorTreeDebugger()
 	StepBackIntoIdx = INDEX_NONE;
 	StepBackOverIdx = INDEX_NONE;
 	StepOutIdx = INDEX_NONE;
+	SavedTimestamp = 0.0f;
+	CurrentTimestamp = 0.0f;
 
 	FEditorDelegates::BeginPIE.AddRaw(this, &FBehaviorTreeDebugger::OnBeginPIE);
 	FEditorDelegates::EndPIE.AddRaw(this, &FBehaviorTreeDebugger::OnEndPIE);
@@ -53,10 +53,9 @@ void FBehaviorTreeDebugger::CacheRootNode()
 	}
 }
 
-void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, const class FBehaviorTreeEditor* InEditorOwner, TSharedPtr<SBehaviorTreeDebuggerView> DebuggerView)
+void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, TSharedRef<FBehaviorTreeEditor> InEditorOwner)
 {
-	DebuggerDetails = DebuggerView;
-	EditorOwner = (class FBehaviorTreeEditor*)InEditorOwner;
+	EditorOwner = InEditorOwner;
 	TreeAsset = InTreeAsset;
 	DebuggerInstanceIndex = INDEX_NONE;
 	ActiveStepIndex = 0;
@@ -79,7 +78,7 @@ void FBehaviorTreeDebugger::Refresh()
 {
 	CacheRootNode();
 
-	if (IsPIESimulating())
+	if (IsPIESimulating() && IsDebuggerReady())
 	{
 		// make sure is grabs data if currently paused
 		if (IsPlaySessionPaused() && TreeInstance.IsValid())
@@ -183,10 +182,11 @@ bool FBehaviorTreeDebugger::IsTickable() const
 void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = true;
-	if(EditorOwner != nullptr)
+	if(EditorOwner.IsValid())
 	{
-		EditorOwner->RegenerateMenusAndToolbars();
-		EditorOwner->DebuggerUpdateGraph();
+		TSharedPtr<FBehaviorTreeEditor> EditorOwnerPtr = EditorOwner.Pin();
+		EditorOwnerPtr->RegenerateMenusAndToolbars();
+		EditorOwnerPtr->DebuggerUpdateGraph();
 	}
 
 	ActiveBreakpoints.Reset();
@@ -207,9 +207,9 @@ void FBehaviorTreeDebugger::OnBeginPIE(const bool bIsSimulating)
 void FBehaviorTreeDebugger::OnEndPIE(const bool bIsSimulating)
 {
 	bIsPIEActive = false;
-	if(EditorOwner != nullptr)
+	if(EditorOwner.IsValid())
 	{
-		EditorOwner->RegenerateMenusAndToolbars();
+		EditorOwner.Pin()->RegenerateMenusAndToolbars();
 	}
 
 	USelection::SelectObjectEvent.RemoveAll(this);
@@ -330,7 +330,10 @@ void FBehaviorTreeDebugger::SetNodeFlags(const struct FBehaviorTreeDebuggerInsta
 	Node->bDebuggerMarkBreakpointTrigger = NodeInstance->GetExecutionIndex() == StoppedOnBreakpointExecutionIndex;
 	if (Node->bDebuggerMarkBreakpointTrigger)
 	{
-		EditorOwner->JumpToNode(Node);
+		if(EditorOwner.IsValid())
+		{
+			EditorOwner.Pin()->JumpToNode(Node);
+		}
 	}
 
 	int32 SearchPathIdx = INDEX_NONE;
@@ -828,7 +831,10 @@ void FBehaviorTreeDebugger::UpdateCurrentStep(int32 PrevStepIdx, int32 NewStepId
 			if (CurInstaceIdx != NewInstanceIdx || 
 				CurStepInfo.InstanceStack[CurInstaceIdx].TreeAsset != NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset)
 			{
-				EditorOwner->DebuggerSwitchAsset(NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset);
+				if(EditorOwner.IsValid())
+				{
+					EditorOwner.Pin()->DebuggerSwitchAsset(NewStepInfo.InstanceStack[NewInstanceIdx].TreeAsset);
+				}
 				UpdateCurrentSubtree();
 			}
 		}
@@ -990,24 +996,21 @@ void FBehaviorTreeDebugger::OnBreakpointRemoved(class UBehaviorTreeGraphNode* No
 void FBehaviorTreeDebugger::UpdateDebuggerViewOnInstanceChange()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
-	if (DebuggerDetails.IsValid())
+	UBlackboardData* BBAsset = EditorOwner.IsValid() ? EditorOwner.Pin()->GetBlackboardData() : nullptr;
+	if (TreeInstance.IsValid() &&
+		TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex) &&
+		TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack.IsValidIndex(DebuggerInstanceIndex))
 	{
-		UBlackboardData* BBAsset = NULL;
-		if (TreeInstance.IsValid() &&
-			TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex) &&
-			TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack.IsValidIndex(DebuggerInstanceIndex))
+		const FBehaviorTreeDebuggerInstance& ShowInstance = TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack[DebuggerInstanceIndex];
+		if (ShowInstance.TreeAsset)
 		{
-			const FBehaviorTreeDebuggerInstance& ShowInstance = TreeInstance->DebuggerSteps[ActiveStepIndex].InstanceStack[DebuggerInstanceIndex];
-			if (ShowInstance.TreeAsset)
-			{
-				BBAsset = ShowInstance.TreeAsset->BlackboardAsset;
-			}
+			BBAsset = ShowInstance.TreeAsset->BlackboardAsset;
 		}
-
-		DebuggerDetails->UpdateBlackboard(BBAsset);
-
-		Refresh();
 	}
+
+	OnDebuggedBlackboardChangedEvent.Broadcast(BBAsset);
+
+	Refresh();
 #endif
 }
 
@@ -1015,14 +1018,13 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnStepChange()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
 	if (IsDebuggerRunning() &&
-		DebuggerDetails.IsValid() && TreeInstance.IsValid() &&
+		TreeInstance.IsValid() &&
 		TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex))
 	{
 		const FBehaviorTreeExecutionStep& ShowStep = TreeInstance->DebuggerSteps[ActiveStepIndex];
 
-		DebuggerDetails->SavedTimestamp = ShowStep.TimeStamp;
-		DebuggerDetails->SavedValues = ShowStep.BlackboardValues;
-		DebuggerDetails->bCanShowCurrentState = IsShowingCurrentState();
+		SavedTimestamp = ShowStep.TimeStamp;
+		SavedValues = ShowStep.BlackboardValues;
 	}
 #endif
 }
@@ -1030,16 +1032,49 @@ void FBehaviorTreeDebugger::UpdateDebuggerViewOnStepChange()
 void FBehaviorTreeDebugger::UpdateDebuggerViewOnTick()
 {
 #if USE_BEHAVIORTREE_DEBUGGER
-	if (IsDebuggerRunning() && 
-		DebuggerDetails.IsValid() && TreeInstance.IsValid() &&
-		DebuggerDetails->IsShowingCurrentState())
+	if (IsDebuggerRunning() && TreeInstance.IsValid())
 	{
 		const float GameTime = GEditor && GEditor->PlayWorld ? GEditor->PlayWorld->GetTimeSeconds() : 0.0f;
-		DebuggerDetails->CurrentTimestamp = GameTime;
+		CurrentTimestamp = GameTime;
 
-		TreeInstance->StoreDebuggerBlackboard(DebuggerDetails->CurrentValues);
+		TreeInstance->StoreDebuggerBlackboard(CurrentValues);
 	}
 #endif
+}
+
+FText FBehaviorTreeDebugger::FindValueForKey(const FName& InKeyName, bool bUseCurrentState) const
+{
+#if USE_BEHAVIORTREE_DEBUGGER
+	if (IsDebuggerRunning() &&
+		TreeInstance.IsValid())
+	{
+		FBehaviorTreeExecutionStep* ShowStep = nullptr;
+		if(bUseCurrentState && TreeInstance->DebuggerSteps.Num() > 0)
+		{
+			ShowStep = &TreeInstance->DebuggerSteps[TreeInstance->DebuggerSteps.Num() - 1];
+		}
+		else if(TreeInstance->DebuggerSteps.IsValidIndex(ActiveStepIndex))
+		{
+			ShowStep = &TreeInstance->DebuggerSteps[ActiveStepIndex];
+		}
+
+		if(ShowStep != nullptr)
+		{
+			const FString* FindValue = ShowStep->BlackboardValues.Find(InKeyName);
+			if(FindValue != nullptr)
+			{
+				return FText::FromString(*FindValue);
+			}	
+		}
+	}
+
+	return FText();
+#endif
+}
+
+float FBehaviorTreeDebugger::GetTimeStamp(bool bUseCurrentState) const
+{
+	return bUseCurrentState ? CurrentTimestamp : SavedTimestamp;
 }
 
 FString FBehaviorTreeDebugger::GetDebuggedInstanceDesc() const

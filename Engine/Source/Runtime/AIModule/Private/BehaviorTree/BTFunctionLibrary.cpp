@@ -18,151 +18,151 @@ UBlackboardComponent* UBTFunctionLibrary::GetBlackboard(UBTNode* NodeOwner)
 
 UObject* UBTFunctionLibrary::GetBlackboardValueAsObject(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsObject(Key.SelectedKeyName) : NULL;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsObject(Key.SelectedKeyName) : NULL;
 }
 
 AActor* UBTFunctionLibrary::GetBlackboardValueAsActor(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? Cast<AActor>(BTComp->GetBlackboardComponent()->GetValueAsObject(Key.SelectedKeyName)) : NULL;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? Cast<AActor>(BlackboardComp->GetValueAsObject(Key.SelectedKeyName)) : NULL;
 }
 
 UClass* UBTFunctionLibrary::GetBlackboardValueAsClass(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsClass(Key.SelectedKeyName) : NULL;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsClass(Key.SelectedKeyName) : NULL;
 }
 
 uint8 UBTFunctionLibrary::GetBlackboardValueAsEnum(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsEnum(Key.SelectedKeyName) : 0;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsEnum(Key.SelectedKeyName) : 0;
 }
 
 int32 UBTFunctionLibrary::GetBlackboardValueAsInt(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsInt(Key.SelectedKeyName) : 0;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsInt(Key.SelectedKeyName) : 0;
 }
 
 float UBTFunctionLibrary::GetBlackboardValueAsFloat(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsFloat(Key.SelectedKeyName) : 0.0f;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsFloat(Key.SelectedKeyName) : 0.0f;
 }
 
 bool UBTFunctionLibrary::GetBlackboardValueAsBool(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsBool(Key.SelectedKeyName) : false;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsBool(Key.SelectedKeyName) : false;
 }
 
 FString UBTFunctionLibrary::GetBlackboardValueAsString(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsString(Key.SelectedKeyName) : FString();
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsString(Key.SelectedKeyName) : FString();
 }
 
 FName UBTFunctionLibrary::GetBlackboardValueAsName(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsName(Key.SelectedKeyName) : NAME_None;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsName(Key.SelectedKeyName) : NAME_None;
 }
 
 FVector UBTFunctionLibrary::GetBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	const UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	return BTComp ? BTComp->GetBlackboardComponent()->GetValueAsVector(Key.SelectedKeyName) : FVector::ZeroVector;
+	const UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	return BlackboardComp ? BlackboardComp->GetValueAsVector(Key.SelectedKeyName) : FVector::ZeroVector;
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsObject(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, UObject* Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsObject(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsObject(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsClass(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, UClass* Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsClass(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsClass(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsEnum(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, uint8 Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsEnum(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsEnum(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsInt(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, int32 Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsInt(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsInt(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsFloat(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, float Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsFloat(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsFloat(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsBool(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, bool Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsBool(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsBool(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsString(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, FString Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsString(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsString(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsName(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, FName Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsName(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsName(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::SetBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key, FVector Value)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->SetValueAsVector(Key.SelectedKeyName, Value);
+		BlackboardComp->SetValueAsVector(Key.SelectedKeyName, Value);
 	}
 }
 
 void UBTFunctionLibrary::ClearBlackboardValueAsVector(UBTNode* NodeOwner, const struct FBlackboardKeySelector& Key)
 {
-	UBehaviorTreeComponent* BTComp = NodeOwner ? Cast<UBehaviorTreeComponent>(NodeOwner->GetOuter()) : NULL;
-	if (BTComp != NULL)
+	UBlackboardComponent* BlackboardComp = GetBlackboard(NodeOwner);
+	if (BlackboardComp != NULL)
 	{
-		BTComp->GetBlackboardComponent()->ClearValueAsVector(Key.SelectedKeyName);
+		BlackboardComp->ClearValueAsVector(Key.SelectedKeyName);
 	}
 }
 
