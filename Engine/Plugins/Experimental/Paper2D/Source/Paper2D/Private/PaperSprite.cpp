@@ -421,7 +421,7 @@ void UPaperSprite::BuildCustomCollisionData()
 				{
 					const FVector2D& Pos2D = CollisionData[RunningIndex++];
 					
-					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.X);
+					const FVector Pos3D = (PaperAxisX * Pos2D.X) + (PaperAxisY * Pos2D.Y);
 
 					new (ConvexTri.VertexData) FVector(Pos3D - HalfThicknessVector);
 					new (ConvexTri.VertexData) FVector(Pos3D + HalfThicknessVector);
@@ -1088,10 +1088,29 @@ void UPaperSprite::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::AddPixelsPerUnrealUnit)
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	bool bRebuildCollision = false;
+	bool bRebuildRenderData = false;
+
+	if (PaperVer < FPaperCustomVersion::AddPixelsPerUnrealUnit)
 	{
 		PixelsPerUnrealUnit = 1.0f;
+		bRebuildCollision = true;
+		bRebuildRenderData = true;
+	}
+	else if (PaperVer < FPaperCustomVersion::FixTypoIn3DConvexHullCollisionGeneration)
+	{
+		bRebuildCollision = true;
+	}
+
+	if (bRebuildCollision)
+	{
 		RebuildCollisionData();
+	}
+
+	if (bRebuildRenderData)
+	{
 		RebuildRenderData();
 	}
 #endif

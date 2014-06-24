@@ -25,6 +25,9 @@ struct FPaperCustomVersion
 		// Added PixelsPerUnrealUnit to move away from a 1:1 relationship between pixels and uu
 		AddPixelsPerUnrealUnit = 5,
 
+		// Fixed typo in convex hull generation code for 3D custom collision
+		FixTypoIn3DConvexHullCollisionGeneration = 6,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
