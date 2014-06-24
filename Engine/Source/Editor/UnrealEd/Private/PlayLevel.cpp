@@ -1277,7 +1277,7 @@ void UEditorEngine::PlayUsingLauncher()
 #endif
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame((bHasCode && FSourceCodeNavigation::IsCompilerAvailable()) || !FRocketSupport::IsRocket());
+		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
 		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetForceClose(true);
