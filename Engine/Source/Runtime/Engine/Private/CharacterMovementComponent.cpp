@@ -4105,15 +4105,15 @@ bool UCharacterMovementComponent::IsValidLandingSpot(const FVector& CapsuleLocat
 		return false;
 	}
 
-	// Reject unwalkable floor normals.
-	if (!IsWalkable(Hit))
-	{
-		return false;
-	}
-
 	// Skip some checks if penetrating. Penetration will be handled by the FindFloor call (using a smaller capsule)
 	if (!Hit.bStartPenetrating)
 	{
+		// Reject unwalkable floor normals.
+		if (!IsWalkable(Hit))
+		{
+			return false;
+		}
+
 		float PawnRadius, PawnHalfHeight;
 		CharacterOwner->CapsuleComponent->GetScaledCapsuleSize(PawnRadius, PawnHalfHeight);
 
