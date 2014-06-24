@@ -23,4 +23,8 @@ public:
 	/** Quality of 0 means fastest, 4 means best */
 	UPROPERTY(config, EditAnywhere, Category=Textures)
 	int32 DefaultPVRTCQuality;
+
+	/** Whether or not to compile shaders for Metal on IOS (in beta 8). */
+	UPROPERTY(config, EditAnywhere, Category=IOS)
+	bool bGenerateMetalShaders;
 };
