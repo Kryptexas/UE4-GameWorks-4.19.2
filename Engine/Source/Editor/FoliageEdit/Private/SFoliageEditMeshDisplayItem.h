@@ -120,7 +120,7 @@ private:
 	FString GetSaveRemoveSettingsTooltip() const;
 
 	/** Determines what properties to display in the details panel. */
-	bool IsPropertyVisible(UProperty const * const InProperty) const;
+	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const;
 
 	/** Cluster Accessors */
 	FString GetInstanceCountString() const;

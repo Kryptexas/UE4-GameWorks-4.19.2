@@ -409,12 +409,19 @@ TSharedPtr<FAssetThumbnailPool> FDetailLayoutBuilderImpl::GetThumbnailPool() con
 
 bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const
 {
-	return PropertyHandle->IsValidHandle() ? IsPropertyVisible( PropertyHandle->GetProperty() ) : false;
+	if( PropertyHandle->IsValidHandle() )
+	{
+		FPropertyAndParent PropertyAndParent(*PropertyHandle->GetProperty(), PropertyHandle->GetParentHandle().IsValid() ? PropertyHandle->GetParentHandle()->GetProperty() : nullptr );
+
+		return IsPropertyVisible(PropertyAndParent);
+	}
+	
+	return false;
 }
 
-bool FDetailLayoutBuilderImpl::IsPropertyVisible( UProperty* Property ) const
+bool FDetailLayoutBuilderImpl::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
 {
-	return DetailsView.IsPropertyVisible( Property );
+	return DetailsView.IsPropertyVisible( PropertyAndParent );
 }
 
 const IDetailsView& FDetailLayoutBuilderImpl::GetDetailsView() const

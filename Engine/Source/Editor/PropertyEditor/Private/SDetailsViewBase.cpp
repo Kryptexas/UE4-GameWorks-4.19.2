@@ -270,9 +270,9 @@ bool SDetailsViewBase::GetCustomSavedExpansionState(const FString& NodePath) con
 	return ExpandedDetailNodes.Contains(NodePath);
 }
 
-bool SDetailsViewBase::IsPropertyVisible(const UProperty* Property) const
+bool SDetailsViewBase::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
 {
-	return IsPropertyVisibleDelegate.IsBound() ? IsPropertyVisibleDelegate.Execute(Property) : true;
+	return IsPropertyVisibleDelegate.IsBound() ? IsPropertyVisibleDelegate.Execute(PropertyAndParent) : true;
 }
 
 TSharedPtr<IPropertyUtilities> SDetailsViewBase::GetPropertyUtilities()
@@ -910,8 +910,8 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 				// Children of arrays are not visible directly,
 				bVisibleByDefault &= !bIsChildOfArray;
 
-				// See if the user requested specific property visibility 
-				const bool bIsUserVisible = IsPropertyVisible(Property);
+				FPropertyAndParent PropertyAndParent(*Property, ParentProperty);
+				const bool bIsUserVisible = IsPropertyVisible(PropertyAndParent);
 
 				// Inners of customized in structs should not be taken into consideration for customizing.  They are not designed to be individually customized when their parent is already customized
 				if (!bIsChildOfCustomizedStruct)

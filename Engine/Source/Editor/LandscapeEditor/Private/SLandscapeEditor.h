@@ -74,7 +74,7 @@ protected:
 
 	bool GetLandscapeEditorIsEnabled() const;
 
-	bool GetIsPropertyVisible(const UProperty* const Property) const;
+	bool GetIsPropertyVisible(const struct FPropertyAndParent& PropertyAndParent) const;
 
 	void OnChangeMode(FName ModeName);
 	bool IsModeEnabled(FName ModeName) const;

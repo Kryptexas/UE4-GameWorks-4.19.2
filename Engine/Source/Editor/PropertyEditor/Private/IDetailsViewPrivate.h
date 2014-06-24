@@ -75,7 +75,7 @@ public:
 	/**
 	 * @return True if the property is visible
 	 */
-	virtual bool IsPropertyVisible(const UProperty* Property) const = 0;
+	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const = 0;
 
 	/**
 	 * @return The thumbnail pool that should be used for thumbnails being rendered in this view

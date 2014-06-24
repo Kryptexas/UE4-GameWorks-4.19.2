@@ -128,10 +128,10 @@ void FGlobalBlutilityDialog::CreateInternalWidgets()
 	// Helper for hiding private blueprint variables
 	struct Local
 	{
-		static bool IsPropertyVisible(const UProperty* InProperty)
+		static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent)
 		{
 			// For details views in the level editor all properties are the instanced versions
-			if ((InProperty != NULL) && InProperty->HasAllPropertyFlags(CPF_DisableEditOnInstance))
+			if (PropertyAndParent.Property.HasAllPropertyFlags(CPF_DisableEditOnInstance))
 			{
 				return false;
 			}

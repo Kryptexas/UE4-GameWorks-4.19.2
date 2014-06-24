@@ -657,7 +657,9 @@ void SPropertyTreeViewImpl::OnGetChildrenForPropertyNode( TSharedPtr<FPropertyNo
 		UProperty* Property = ChildNode->GetProperty();
 		if(Property != NULL && IsPropertyVisible.IsBound())
 		{
-			bPropertyVisible = IsPropertyVisible.Execute(Property);
+			FPropertyAndParent PropertyAndParent(*Property, InPropertyNode->GetProperty());
+
+			bPropertyVisible = IsPropertyVisible.Execute( PropertyAndParent );
 		}
 
 		if(bPropertyVisible)

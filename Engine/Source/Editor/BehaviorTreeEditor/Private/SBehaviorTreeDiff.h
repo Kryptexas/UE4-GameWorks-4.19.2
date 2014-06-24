@@ -56,7 +56,7 @@ private:
 		/**
 		 * Delegate to say if a node property should be visible
 		 */
-		bool IsPropertyVisible(UProperty const * const InProperty) const;
+		bool IsPropertyVisible(const struct FPropertyAndParent& PropertyAndParen) const;
 
 		/**
 		 * Delegate to say if a node property should be editable

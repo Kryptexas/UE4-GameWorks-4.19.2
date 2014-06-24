@@ -23,7 +23,7 @@ void FDebugToolExec::EditObject(UObject* Object, bool bShouldShowNonEditable)
 	struct Local
 	{
 		/** Delegate to show all properties */
-		static bool IsPropertyVisible( const UProperty* const Property, bool bInShouldShowNonEditable )
+		static bool IsPropertyVisible(  const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable )
 		{
 			return bInShouldShowNonEditable;
 		}

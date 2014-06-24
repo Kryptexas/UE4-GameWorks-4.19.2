@@ -86,7 +86,7 @@ public:
 
 	void JumpToNode(const UEdGraphNode* Node);
 
-	bool IsPropertyVisible(UProperty const * const InProperty) const;
+	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const;
 	bool IsPropertyEditable() const;
 	void OnPackageSaved(const FString& PackageFileName, UObject* Outer);
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);

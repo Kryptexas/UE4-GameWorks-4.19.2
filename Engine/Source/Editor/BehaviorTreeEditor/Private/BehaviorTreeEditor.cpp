@@ -1055,9 +1055,9 @@ void FBehaviorTreeEditor::BindDebuggerToolbarCommands()
 		FExecuteAction::CreateStatic(&FBehaviorTreeDebugger::StopPlaySession));
 }
 
-bool FBehaviorTreeEditor::IsPropertyVisible(UProperty const * const InProperty) const
+bool FBehaviorTreeEditor::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent) const
 {
-	return !InProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
+	return !PropertyAndParent.Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance);
 }
 
 bool FBehaviorTreeEditor::IsPropertyEditable() const

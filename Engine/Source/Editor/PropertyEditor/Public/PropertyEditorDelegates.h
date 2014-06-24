@@ -3,8 +3,23 @@
 #pragma once
 
 
-/** Delegate called to see if a property should be drawn */
-DECLARE_DELEGATE_RetVal_OneParam( bool, FIsPropertyVisible, const UProperty* const );
+
+struct FPropertyAndParent
+{
+	FPropertyAndParent( const UProperty& InProperty, const UProperty* const InParentProperty )
+		: Property( InProperty )
+		, ParentProperty( InParentProperty )
+	{}
+
+	/** The property always exists */
+	const UProperty& Property;
+
+	/** The parent property may not exist */
+	const UProperty* const ParentProperty;
+};
+
+/** Delegate called to see if a property should be visible */
+DECLARE_DELEGATE_RetVal_OneParam( bool, FIsPropertyVisible, const FPropertyAndParent& );
 
 /** Delegate called to get a detail layout for a specific object class */
 DECLARE_DELEGATE_RetVal( TSharedRef<class IDetailCustomization>, FOnGetDetailCustomizationInstance );

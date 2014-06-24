@@ -18,7 +18,7 @@ public:
 	virtual void ForceRefreshDetails() override;
 	virtual TSharedPtr<FAssetThumbnailPool> GetThumbnailPool() const override;
 	virtual bool IsPropertyVisible( TSharedRef<IPropertyHandle> PropertyHandle ) const override;
-	virtual bool IsPropertyVisible( UProperty* PropertyHandle ) const override;
+	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
 
 	virtual const TSharedRef< IPropertyUtilities >& GetPropertyUtilities() const override; 
 

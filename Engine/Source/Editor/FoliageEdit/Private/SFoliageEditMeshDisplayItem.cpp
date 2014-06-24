@@ -1851,9 +1851,9 @@ FString SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip() const
 	return NSLOCTEXT("FoliageEdMode", "SaveSettings_Tooltip", "Save these settings as an InstancedFoliageSettings object stored in a package.").ToString();
 }
 
-bool SFoliageEditMeshDisplayItem::IsPropertyVisible(UProperty const * const InProperty) const
+bool SFoliageEditMeshDisplayItem::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
 {
-	const FString Category = FObjectEditorUtils::GetCategory(InProperty);
+	const FString Category = FObjectEditorUtils::GetCategory(&PropertyAndParent.Property);
 	return Category == TEXT("Clustering") || Category == TEXT("Culling") || Category == TEXT("Lighting") || Category == TEXT("Collision") || Category == TEXT("Rendering");
 }
 

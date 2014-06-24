@@ -242,9 +242,9 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 	{
 		TSharedRef<FDetailCategoryImpl> ParentCategoryRef = ParentCategory.Pin().ToSharedRef();
 		IDetailLayoutBuilder& LayoutBuilder = ParentCategoryRef->GetParentLayout();
-		UProperty* Property = RootPropertyNode->GetProperty();
+		UProperty* ParentProperty = RootPropertyNode->GetProperty();
 
-		const bool bStructProperty = Property && Property->IsA<UStructProperty>();
+		const bool bStructProperty = ParentProperty && ParentProperty->IsA<UStructProperty>();
 
 		for( int32 ChildIndex = 0; ChildIndex < RootPropertyNode->GetNumChildNodes(); ++ChildIndex )
 		{
@@ -258,7 +258,7 @@ void FDetailPropertyRow::GenerateChildrenForPropertyNode( TSharedPtr<FPropertyNo
 					GenerateChildrenForPropertyNode( ChildNode, OutChildren );
 				}
 				// Only struct children can have custom visibility that is different from their parent.
-				else if ( !bStructProperty || LayoutBuilder.IsPropertyVisible( ChildNode->GetProperty() ) )
+				else if ( !bStructProperty || LayoutBuilder.IsPropertyVisible( FPropertyAndParent(*ChildNode->GetProperty(), ParentProperty ) ) )
 				{			
 					FDetailLayoutCustomization Customization;
 					Customization.PropertyRow = MakeShareable( new FDetailPropertyRow( ChildNode, ParentCategoryRef ) );

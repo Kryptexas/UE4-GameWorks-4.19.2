@@ -55,7 +55,7 @@ public:
 	void ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options = FShowDetailsOptions());
 
 	/** Used to control visibility of a property in the property window */
-	bool IsPropertyVisible(UProperty const * const InProperty) const;
+	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const;
 
 	/** Turns on or off details customization for components */
 	void EnableComponentDetailsCustomization(bool bEnable);
@@ -96,8 +96,8 @@ protected:
 	/** If true show the kismet inspector title widget */
 	bool bShowTitleArea;
 
-	/** Array of object properties that should be visible */
-	TArray<TWeakObjectPtr<UProperty> > SelectedObjectProperties;
+	/** Set of object properties that should be visible */
+	TSet<TWeakObjectPtr<UProperty> > SelectedObjectProperties;
 	
 protected:
 	/** Show properties of the selected object */

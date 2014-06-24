@@ -200,7 +200,7 @@ public:
 	/**
 	 * @return True if the property is visible
 	 */
-	bool IsPropertyVisible(const UProperty* Property) const override;
+	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
 
 	/**
 	* Sets a delegate which is regardless of the objects being viewed to lay out generic details not specific to any object

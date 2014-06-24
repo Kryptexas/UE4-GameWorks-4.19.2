@@ -401,8 +401,9 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 				UProperty* Property = *PropIt;
 				check(Property != NULL);
 
-				SelectedObjectProperties.AddUnique(Property);
+				SelectedObjectProperties.Add(Property);
 
+				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
 				// If 'showing inners' on a struct, add them to the list as well
 				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
 				static FName ShowOnlyInners("ShowOnlyInnerProperties");
@@ -414,9 +415,16 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 					{
 						UProperty* InsideStructProperty = *StructPropIt;
 						check(InsideStructProperty != NULL);
-						SelectedObjectProperties.AddUnique(InsideStructProperty);
+						SelectedObjectProperties.Add(InsideStructProperty);
 					}
 				}
+				else if( ArrayProperty && ArrayProperty->Inner->IsA<UStructProperty>() )
+				{
+					// Array property inners with complex children should be tested for visibility since the children of the inner could have different visibility requirements
+					SelectedObjectProperties.Add(ArrayProperty->Inner);
+				}
+
+
 			}
 
 			// Attempt to locate a matching property for the current component template
@@ -435,7 +443,7 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 						// If the property value matches the current component template, add it as a selected property for filtering
 						if(EditableComponentTemplate == ObjectProperty->GetObjectPropertyValue_InContainer(Object))
 						{
-							SelectedObjectProperties.AddUnique(ObjectProperty);
+							SelectedObjectProperties.Add(ObjectProperty);
 						}
 					}
 				}
@@ -449,19 +457,20 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 	ContextualEditingBorderWidget->SetContent( MakeContextualEditingWidget(SelectionInfo, Options) );
 }
 
-bool SKismetInspector::IsPropertyVisible(UProperty const * const InProperty) const
+bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
 {
-	check(InProperty);
+	const UProperty& Property = PropertyAndParent.Property;
+
 
 	// If we are in 'instance preview' - hide anything marked 'disabled edit on instance'
-	if ((ESlateCheckBoxState::Checked == PublicViewState) && InProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+	if ((ESlateCheckBoxState::Checked == PublicViewState) && Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 	{
 		return false;
 	}
 
-	bool bEditOnTemplateDisabled = InProperty->HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
+	bool bEditOnTemplateDisabled = Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
 
-	if(const UClass* OwningClass = Cast<UClass>(InProperty->GetOuter()))
+	if(const UClass* OwningClass = Cast<UClass>(Property.GetOuter()))
 	{
 		const UBlueprint* BP = Kismet2Ptr.IsValid() ? Kismet2Ptr.Pin()->GetBlueprintObj() : NULL;
 		const bool VariableAddedInCurentBlueprint = (OwningClass->ClassGeneratedBy == BP);
@@ -469,7 +478,7 @@ bool SKismetInspector::IsPropertyVisible(UProperty const * const InProperty) con
 		// If we did not add this var, hide it!
 		if(!VariableAddedInCurentBlueprint)
 		{
-			if (bEditOnTemplateDisabled || InProperty->GetBoolMetaData(FBlueprintMetadata::MD_Private))
+			if (bEditOnTemplateDisabled || Property.GetBoolMetaData(FBlueprintMetadata::MD_Private))
 			{
 				return false;
 			}
@@ -477,8 +486,8 @@ bool SKismetInspector::IsPropertyVisible(UProperty const * const InProperty) con
 	}
 
 	// figure out if this Blueprint variable is an Actor variable
-	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(InProperty);
-	const UProperty* TestProperty = ArrayProperty ? ArrayProperty->Inner : InProperty;
+	const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(&Property);
+	const UProperty* TestProperty = ArrayProperty ? ArrayProperty->Inner : &Property;
 	const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(TestProperty);
 	bool bIsActorProperty = (ObjectProperty != NULL && ObjectProperty->PropertyClass->IsChildOf(AActor::StaticClass()));
 
@@ -489,14 +498,13 @@ bool SKismetInspector::IsPropertyVisible(UProperty const * const InProperty) con
 		return false;
 	}
 
-	// Filter down to selected properties only if set
-	for(auto PropIt = SelectedObjectProperties.CreateConstIterator(); PropIt; ++PropIt)
+	// Filter down to selected properties only if set.
+	// If the current property is selected then it is visible or if its parent is selected and the current property did not fail any of the above tests it should be visible.
+	if( SelectedObjectProperties.Find( &Property ) || ( PropertyAndParent.ParentProperty && SelectedObjectProperties.Find( PropertyAndParent.ParentProperty ) ) )
 	{
-		if(PropIt->IsValid() && PropIt->Get() == InProperty)
-		{
-			return true;
-		}
+		return true;
 	}
+
 
 	return !SelectedObjectProperties.Num();
 }

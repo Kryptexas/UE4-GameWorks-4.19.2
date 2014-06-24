@@ -559,9 +559,9 @@ void SBehaviorTreeDiff::FBehaviorTreeDiffPanel::OnSelectionChanged( const FGraph
 	}
 }
 
-bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyVisible(UProperty const * const InProperty) const
+bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const
 {
-	return !InProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
+	return !PropertyAndParent.Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance);
 }
 
 bool SBehaviorTreeDiff::FBehaviorTreeDiffPanel::IsPropertyEditable()

@@ -106,14 +106,16 @@ void FPropertyEditorModule::NotifyCustomizationModuleChanged()
 	}
 }
 
-static bool ShouldShowProperty(UProperty const * const Property, bool bHaveTemplate)
+static bool ShouldShowProperty(const FPropertyAndParent& PropertyAndParent, bool bHaveTemplate)
 {
-	if ((Property != NULL) && bHaveTemplate)
+	const UProperty& Property = PropertyAndParent.Property;
+
+	if ( bHaveTemplate )
 	{
-		const UClass* PropertyOwnerClass = Cast<const UClass>(Property->GetOuter());
+		const UClass* PropertyOwnerClass = Cast<const UClass>(Property.GetOuter());
 		const bool bDisableEditOnTemplate = PropertyOwnerClass 
 			&& PropertyOwnerClass->HasAllFlags(RF_Native) 
-			&& Property->HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
+			&& Property.HasAnyPropertyFlags(CPF_DisableEditOnTemplate);
 		if(bDisableEditOnTemplate)
 		{
 			return false;
@@ -644,9 +646,9 @@ TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDe
 	{
 		struct FDontShowObjects
 		{
-			static bool CanShow(const UProperty* Property)
+			static bool CanShow( const FPropertyAndParent& PropertyAndParent )
 			{
-				return Property && !Property->IsA<UObjectPropertyBase>() && !Property->IsA<UInterfaceProperty>();
+				return !PropertyAndParent.Property.IsA<UObjectPropertyBase>() && !PropertyAndParent.Property.IsA<UInterfaceProperty>();
 			}
 		};
 
