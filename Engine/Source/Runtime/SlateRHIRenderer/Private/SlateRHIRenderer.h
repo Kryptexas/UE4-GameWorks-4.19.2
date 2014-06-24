@@ -16,6 +16,19 @@ const uint32 NumDrawBuffers = 3;
 // Enable to visualize overdraw in Slate
 #define DEBUG_OVERDRAW 0
 
+class FSlateBackBuffer : public FRenderTarget
+{
+public:
+	FSlateBackBuffer(FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY)
+		: SizeXY(InSizeXY)
+	{
+		RenderTargetTextureRHI = InRenderTargetTexture;
+	}
+	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
+private:
+	FIntPoint SizeXY;
+};
+
 /** Resource for crash buffer editor capturing */
 class FSlateCrashReportResource : public FRenderResource
 {

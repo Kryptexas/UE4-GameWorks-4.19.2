@@ -2,6 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateBrushCustomization.h"
+#include "AssetData.h"
 
 /**
  * Slate Brush Preview widget

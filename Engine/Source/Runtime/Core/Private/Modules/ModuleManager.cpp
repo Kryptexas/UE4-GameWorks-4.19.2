@@ -4,6 +4,7 @@
 #include "ModuleManager.h"
 #include "ModuleVersion.h"
 #include "EngineBuildSettings.h"
+#include "UProjectInfo.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 

@@ -14,19 +14,6 @@ namespace CrashTrackerConstants
 }
 
 
-class FSlateBackBuffer : public FRenderTarget
-{
-public:
-	FSlateBackBuffer(FTexture2DRHIRef& InRenderTargetTexture, FIntPoint InSizeXY)
-		: SizeXY(InSizeXY)
-	{
-		RenderTargetTextureRHI = InRenderTargetTexture;
-	}
-	virtual FIntPoint GetSizeXY() const override { return SizeXY; }
-private:
-	FIntPoint SizeXY;
-};
-
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
 
