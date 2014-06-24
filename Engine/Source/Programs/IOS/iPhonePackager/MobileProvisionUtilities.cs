@@ -41,6 +41,12 @@ namespace iPhonePackager
 				}
 			}
 
+			// ensure the provision directory exists
+			if (!Directory.Exists(Config.ProvisionDirectory))
+			{
+				Directory.CreateDirectory(Config.ProvisionDirectory);
+			}
+
 			// cache the provision library
 			Dictionary<string, MobileProvision> ProvisionLibrary = new Dictionary<string, MobileProvision>();
 			foreach (string Provision in Directory.EnumerateFiles(Config.ProvisionDirectory, "*.mobileprovision"))
