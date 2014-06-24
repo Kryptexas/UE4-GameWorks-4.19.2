@@ -3237,7 +3237,7 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 				}
 			}
 		}
-		else
+		else if (Blueprint && Blueprint->SimpleConstructionScript)
 		{
 			// Wasn't in the introduced variable list; try to find the associated SCS node
 			//@TODO: The SCS-generated variables should be in the variable list and have a link back;

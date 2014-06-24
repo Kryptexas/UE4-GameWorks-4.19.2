@@ -369,6 +369,12 @@ void FKismetCompilerContext::ValidateNode(const UEdGraphNode* Node) const
 /** Creates a class variable */
 UProperty* FKismetCompilerContext::CreateVariable(const FName VarName, const FEdGraphPinType& VarType)
 {
+	if (BPTYPE_FunctionLibrary == Blueprint->BlueprintType)
+	{
+		MessageLog.Error(*FString::Printf(*LOCTEXT("VariableInFunctionLibrary_Error", "The variable %s cannot be declared in FunctionLibrary @@").ToString(),
+			*VarName.ToString()), Blueprint);
+	}
+
 	UProperty* NewProperty = FKismetCompilerUtilities::CreatePropertyOnScope(NewClass, VarName, VarType, NewClass, 0, Schema, MessageLog);
 	if (NewProperty != NULL)
 	{
