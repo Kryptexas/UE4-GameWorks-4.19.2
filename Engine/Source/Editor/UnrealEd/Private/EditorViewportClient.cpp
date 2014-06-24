@@ -2537,7 +2537,7 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	}
 
 	// Axes indicators
-	if( bDrawAxes && !ViewFamily.EngineShowFlags.Game )
+	if (bDrawAxes && !ViewFamily.EngineShowFlags.Game && !GLevelEditorModeTools().IsViewportUIHidden())
 	{
 		switch (GetViewportType())
 		{

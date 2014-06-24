@@ -1359,7 +1359,7 @@ EVisibility SLevelViewport::OnGetViewportContentVisibility() const
 EVisibility SLevelViewport::GetToolBarVisibility() const
 {
 	// Do not show the toolbar if this viewport has a play in editor session
-	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : EVisibility::Visible;
+	return IsPlayInEditorViewportActive() ? EVisibility::Collapsed : OnGetViewportContentVisibility();
 }
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
@@ -2994,7 +2994,12 @@ FText SLevelViewport::GetCurrentLevelText( bool bDrawOnlyLabel ) const
 
 EVisibility SLevelViewport::GetCurrentLevelTextVisibility() const
 {
-	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	EVisibility ContentVisibility = OnGetViewportContentVisibility();
+	if (ContentVisibility == EVisibility::Visible)
+	{
+		ContentVisibility = EVisibility::SelfHitTestInvisible;
+	}
+	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) ? ContentVisibility : EVisibility::Collapsed;
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
