@@ -93,7 +93,10 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(struct FBehaviorTreeSea
 	}
 
 	// remove main task
-	SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Children[EBTParallelChild::MainTask].ChildTask, ActiveInstanceIdx, EBTNodeUpdateMode::Remove));
+	if (Children.IsValidIndex(EBTParallelChild::MainTask))
+	{
+		SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Children[EBTParallelChild::MainTask].ChildTask, ActiveInstanceIdx, EBTNodeUpdateMode::Remove));
+	}
 
 	// remove all active nodes from background tree
 	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::BackgroundTree, EBTChildIndex::FirstNode));
