@@ -353,7 +353,7 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 
 	AActor* BestStart = ChoosePlayerStart(Player);
 
-	if ( (BestStart == NULL) && (Player == NULL) )
+	if (BestStart == NULL)
 	{
 		// no playerstart found
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
