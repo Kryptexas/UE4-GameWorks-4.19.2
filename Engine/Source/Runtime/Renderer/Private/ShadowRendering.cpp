@@ -1364,44 +1364,46 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FDeferredSha
 	FShadowDepthDrawingPolicy<false>::PolicyShadowInfo = this;
 	FShadowDepthDrawingPolicy<true>::PolicyShadowInfo = this;
 
-	// Draw the subject's static elements using static draw lists
-	if (IsWholeSceneDirectionalShadow())
 	{
-		SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
+		//@todo-rco: Very temp code!!!
+		SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
+		static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
+		bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 2);
+		FRHICommandList& RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : FRHICommandList::GetNullRef();
 
-//@todo-rco: Very temp code!!!
-SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
-static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
-bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 2);
-FRHICommandList& RHICmdList = bUseRHICmdList ? GRHICommandList.CreateList() : FRHICommandList::GetNullRef();
+		// Draw the subject's static elements using static draw lists
+		if (IsWholeSceneDirectionalShadow())
+		{
+			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
 
-		if (bReflectiveShadowmap)
-		{
-			SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			if (bReflectiveShadowmap)
+			{
+				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			}
+			else
+			{
+				// Use the scene's shadow depth draw list with this shadow's visibility map
+				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			}
 		}
-		else
+		// Draw the subject's static elements using manual state filtering
+		else if (SubjectMeshElements.Num() > 0)
 		{
-			// Use the scene's shadow depth draw list with this shadow's visibility map
-			SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
+
+			if(bReflectiveShadowmap && !bOnePassPointLightShadow)
+			{
+				// reflective shadow map
+				DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
+			}
+			else
+			{
+				// normal shadow map
+				DrawShadowMeshElements<false>(RHICmdList, *FoundView, *this);
+			}
 		}
 
-GRHICommandList.ExecuteAndFreeList(RHICmdList);
-	}
-	// Draw the subject's static elements using manual state filtering
-	else if (SubjectMeshElements.Num() > 0)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
-
-		if(bReflectiveShadowmap && !bOnePassPointLightShadow)
-		{
-			// reflective shadow map
-			DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
-		}
-		else
-		{
-			// normal shadow map
-			DrawShadowMeshElements<false>(RHICmdList, *FoundView, *this);
-		}
+		GRHICommandList.ExecuteAndFreeList(RHICmdList);
 	}
 
 	// Draw the subject's dynamic elements.

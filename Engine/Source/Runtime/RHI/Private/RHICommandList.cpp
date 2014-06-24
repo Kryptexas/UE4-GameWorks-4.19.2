@@ -219,6 +219,16 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				RHICmd->VertexBuffer->Release();
 			}
 			break;
+		case ERCT_SetDepthStencilState:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetDepthStencilState>();
+				if (!bOnlyTestMemAccess)
+				{
+					RHISetDepthStencilState(RHICmd->State, RHICmd->StencilRef);
+				}
+				RHICmd->State->Release();
+			}
+			break;
 		default:
 			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
 		}

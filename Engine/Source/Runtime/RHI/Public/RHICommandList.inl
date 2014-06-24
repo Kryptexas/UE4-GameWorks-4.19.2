@@ -62,6 +62,18 @@ struct FRHICommandSetRasterizerState : public FRHICommand
 	}
 };
 
+struct FRHICommandSetDepthStencilState : public FRHICommand
+{
+	FDepthStencilStateRHIParamRef State;
+	uint32 StencilRef;
+	FORCEINLINE void Set(FDepthStencilStateRHIParamRef InState, uint32 InStencilRef)
+	{
+		Type = ERCT_SetDepthStencilState;
+		State = InState;
+		StencilRef = InStencilRef;
+	}
+};
+
 struct FRHICommandSetShaderParameter : public FRHICommandPerShader
 {
 	const void* NewValue;
@@ -309,6 +321,19 @@ FORCEINLINE void FRHICommandList::SetRasterizerState(FRasterizerStateRHIParamRef
 
 	auto* Cmd = AddCommand<FRHICommandSetRasterizerState>();
 	Cmd->Set(State);
+	State->AddRef();
+}
+
+FORCEINLINE void FRHICommandList::SetDepthStencilState(FDepthStencilStateRHIParamRef State, uint32 StencilRef)
+{
+	if (Bypass())
+	{
+		RHISetDepthStencilState(State, StencilRef);
+		return;
+	}
+
+	auto* Cmd = AddCommand<FRHICommandSetDepthStencilState>();
+	Cmd->Set(State, StencilRef);
 	State->AddRef();
 }
 

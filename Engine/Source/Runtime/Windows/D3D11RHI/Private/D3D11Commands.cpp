@@ -2458,6 +2458,28 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 				RHICmd->VertexBuffer->Release();
 			}
 			break;
+		case ERCT_SetDepthStencilState:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetDepthStencilState>();
+				{
+					auto* State = (FD3D11DepthStencilState*)RHICmd->State;
+
+					if (CurrentDepthTexture && State->AccessType != CurrentDSVAccessType)
+					{
+						CurrentDSVAccessType = State->AccessType;
+						CurrentDepthStencilTarget = CurrentDepthTexture->GetDepthStencilView(CurrentDSVAccessType);
+
+						// Unbind any shader views of the depth stencil target that are bound.
+						ConditionalClearShaderResource(CurrentDepthTexture);
+
+						CommitRenderTargetsAndUAVs();
+					}
+
+					StateCache.SetDepthStencilState(State->Resource, RHICmd->StencilRef);
+				}
+				RHICmd->State->Release();
+			}
+			break;
 		default:
 			checkf(0, TEXT("Unimplemented RHICmd %d!"), Cmd->Type);
 		}

@@ -25,6 +25,7 @@ enum ERHICommandType
 	ERCT_SetBoundShaderState,
 	ERCT_SetBlendState,
 	ERCT_SetStreamSource,
+	ERCT_SetDepthStencilState,
 
 	ERCT_,
 };
@@ -223,11 +224,7 @@ public:
 		RHISetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
 	}
 
-	FORCEINLINE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
-	{
-		CheckIsNull();
-		RHISetDepthStencilState(NewStateRHI, StencilRef);
-	}
+	inline void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0);
 
 	FORCEINLINE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
 	{
