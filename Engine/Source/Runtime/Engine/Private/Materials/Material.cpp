@@ -24,7 +24,7 @@
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "EditorSupportDelegates.h"
-#include "MaterialShader.h"
+#include "MaterialShaderType.h"
 #include "MaterialInstanceSupport.h"
 #include "UObjectAnnotation.h"
 #include "MaterialCompiler.h"

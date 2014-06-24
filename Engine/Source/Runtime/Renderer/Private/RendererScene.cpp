@@ -8,6 +8,7 @@
 #include "ScenePrivate.h"
 #include "ShaderCompiler.h"
 #include "StaticMeshResources.h"
+#include "ParameterCollection.h"
 #include "DistanceFieldSurfaceCacheLighting.h"
 #include "EngineModule.h"
 

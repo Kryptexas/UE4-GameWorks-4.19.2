@@ -65,6 +65,7 @@ bool IsMobileHDR32bpp();
 #include "ScopedPointer.h"
 #include "ClearQuad.h"
 #include "SpeedTreeWind.h"
+#include "AtmosphereRendering.h"
 
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)

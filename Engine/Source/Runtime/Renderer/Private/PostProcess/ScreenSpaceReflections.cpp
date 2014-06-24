@@ -74,7 +74,6 @@ class FPostProcessScreenSpaceReflectionsPS : public FGlobalShader
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
-		FDeferredPixelShaderParameters::ModifyCompilationEnvironment(Platform,OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("PREV_FRAME_COLOR"), PrevFrame );
 		OutEnvironment.SetDefine( TEXT("SSR_QUALITY"), SSRQuality );
 	}

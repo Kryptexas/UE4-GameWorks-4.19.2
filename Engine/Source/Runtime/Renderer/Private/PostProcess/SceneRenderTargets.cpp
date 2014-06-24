@@ -1489,6 +1489,151 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
 	SceneDepthSurfaceParameter.Bind(ParameterMap,TEXT("SceneDepthSurface"));
 }
 
+template< typename ShaderRHIParamRef >
+void FSceneTextureShaderParameters::Set(
+	FRHICommandList& RHICmdList,
+	const ShaderRHIParamRef& ShaderRHI,
+	const FSceneView& View,
+	ESceneRenderTargetsMode::Type TextureMode,
+	ESamplerFilter ColorFilter ) const
+{
+	if (TextureMode == ESceneRenderTargetsMode::SetTextures)
+	{
+		// optimization possible: TShaderRHIParamRef is no param Ref
+		if (SceneColorTextureParameter.IsBound())
+		{
+			FSamplerStateRHIRef Filter;
+			switch ( ColorFilter )
+			{
+			case SF_Bilinear:
+				Filter = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_Trilinear:
+				Filter = TStaticSamplerState<SF_Trilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_AnisotropicPoint:
+				Filter = TStaticSamplerState<SF_AnisotropicPoint,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_AnisotropicLinear:
+				Filter = TStaticSamplerState<SF_AnisotropicLinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			case SF_Point:
+			default:
+				Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+				break;
+			}
+
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneColorTextureParameter,
+				SceneColorTextureParameterSampler,
+				Filter,
+				GSceneRenderTargets.GetSceneColorTexture()
+				);
+		}
+
+		if (SceneAlphaCopyTextureParameter.IsBound() && GSceneRenderTargets.HasSceneAlphaCopyTexture())
+		{
+			FSamplerStateRHIRef Filter;
+			Filter = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneAlphaCopyTextureParameter,
+				SceneAlphaCopyTextureParameterSampler,
+				Filter,
+				GSceneRenderTargets.GetSceneAlphaCopyTexture()
+				);
+		}
+
+		if(SceneDepthTextureParameter.IsBound() || SceneDepthTextureParameterSampler.IsBound())
+		{
+			const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
+			SetTextureParameter(
+				RHICmdList, 
+				ShaderRHI,
+				SceneDepthTextureParameter,
+				SceneDepthTextureParameterSampler,
+				TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+				*DepthTexture
+				);
+		}
+
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		{
+			SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, GSceneRenderTargets.GetSceneColorSurface());
+		}
+		if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			if(GSupportsDepthFetchDuringDepthTest)
+			{
+				if(SceneDepthSurfaceParameter.IsBound())
+				{
+					SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetSceneDepthSurface());
+				}
+				if(SceneDepthTextureNonMS.IsBound())
+				{
+					SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetSceneDepthTexture());
+				}
+			}
+			else
+			{
+				if(SceneDepthSurfaceParameter.IsBound())
+				{
+					SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
+				}
+				if(SceneDepthTextureNonMS.IsBound())
+				{
+					SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureNonMS, GSceneRenderTargets.GetAuxiliarySceneDepthSurface());
+				}
+			}
+		}
+	}
+	else if (TextureMode == ESceneRenderTargetsMode::DontSet)
+	{
+		// Verify that none of these were bound if we were told not to set them
+		checkSlow(!SceneColorTextureParameter.IsBound()
+			&& !SceneDepthTextureParameter.IsBound()
+			&& !SceneColorSurfaceParameter.IsBound()
+			&& !SceneDepthSurfaceParameter.IsBound()
+			&& !SceneDepthTextureNonMS.IsBound());
+	}
+	else if (TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
+	{
+		// Verify that none of these were bound if we were told not to set them
+		// ignore SceneDepthTextureNonMS
+		checkSlow(!SceneColorTextureParameter.IsBound()
+			&& !SceneDepthTextureParameter.IsBound()
+			&& !SceneColorSurfaceParameter.IsBound()
+			&& !SceneDepthSurfaceParameter.IsBound());
+	}
+	else if( TextureMode == ESceneRenderTargetsMode::NonSceneAlignedPass )
+	{
+		FSamplerStateRHIParamRef DefaultSampler = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorTextureParameter, SceneColorTextureParameterSampler, DefaultSampler, GBlackTexture->TextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureParameter, SceneDepthTextureParameterSampler, DefaultSampler, GBlackTexture->TextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, GBlackTexture->TextureRHI);
+		SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, GBlackTexture->TextureRHI);
+	}
+}
+
+#define IMPLEMENT_SCENE_TEXTURE_PARAM_SET( ShaderRHIParamRef ) \
+	template void FSceneTextureShaderParameters::Set< ShaderRHIParamRef >( \
+		FRHICommandList& RHICmdList,				\
+		const ShaderRHIParamRef& ShaderRHI,			\
+		const FSceneView& View,						\
+		ESceneRenderTargetsMode::Type TextureMode,	\
+		ESamplerFilter ColorFilter					\
+	) const;
+
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FVertexShaderRHIParamRef );
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FHullShaderRHIParamRef );
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FDomainShaderRHIParamRef );
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FGeometryShaderRHIParamRef );
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FPixelShaderRHIParamRef );
+IMPLEMENT_SCENE_TEXTURE_PARAM_SET( FComputeShaderRHIParamRef );
+
 FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 {
 	Ar << Parameters.SceneColorTextureParameter;
@@ -1529,6 +1674,88 @@ void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 	CustomDepthTexture.Bind(ParameterMap,TEXT("CustomDepthTexture"));
 	CustomDepthTextureSampler.Bind(ParameterMap,TEXT("CustomDepthTextureSampler"));
 }
+
+bool IsDBufferEnabled();
+
+template< typename ShaderRHIParamRef >
+void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View, ESceneRenderTargetsMode::Type TextureMode) const
+{
+	// This is needed on PC ES2 for SceneAlphaCopy, probably should be refactored for performance.
+	SceneTextureParameters.Set(RHICmdList, ShaderRHI, View, TextureMode, SF_Point);
+
+	// if() is purely an optimization and could be removed
+	if(IsDBufferEnabled())
+	{
+		IPooledRenderTarget* DBufferA = GSceneRenderTargets.DBufferA ? GSceneRenderTargets.DBufferA : GSystemTextures.BlackDummy;
+		IPooledRenderTarget* DBufferB = GSceneRenderTargets.DBufferB ? GSceneRenderTargets.DBufferB : GSystemTextures.BlackDummy;
+		IPooledRenderTarget* DBufferC = GSceneRenderTargets.DBufferC ? GSceneRenderTargets.DBufferC : GSystemTextures.BlackDummy;
+
+		// todo: optimize out when not needed
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferATexture, DBufferATextureSampler, TStaticSamplerState<>::GetRHI(), DBufferA->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferBTexture, DBufferBTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferB->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferCTexture, DBufferCTextureSampler, TStaticSamplerState<>::GetRHI(), DBufferC->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferATextureMS, DBufferA->GetRenderTargetItem().TargetableTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferBTextureMS, DBufferB->GetRenderTargetItem().TargetableTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferCTextureMS, DBufferC->GetRenderTargetItem().TargetableTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferATextureNonMS, DBufferA->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferBTextureNonMS, DBufferB->GetRenderTargetItem().ShaderResourceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, DBufferCTextureNonMS, DBufferC->GetRenderTargetItem().ShaderResourceTexture);
+	}
+
+	if (TextureMode == ESceneRenderTargetsMode::SetTextures && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	{
+		// if there is no ambient occlusion it's better to have white there
+		IPooledRenderTarget* ScreenSpaceAO = GSceneRenderTargets.ScreenSpaceAO;
+		if(!GSceneRenderTargets.bScreenSpaceAOIsValid)
+		{
+			ScreenSpaceAO = GSystemTextures.WhiteDummy;
+		}
+
+		// if there is no custom depth it's better to have the far distance there
+		IPooledRenderTarget* CustomDepth = GSceneRenderTargets.bCustomDepthIsValid ? GSceneRenderTargets.CustomDepth : 0;
+		if(!CustomDepth)
+		{
+			CustomDepth = GSystemTextures.BlackDummy;
+		}
+
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		{
+			//gilmerge
+			if (GBufferResources.IsBound())
+			{
+				SetUniformBufferParameter(RHICmdList, ShaderRHI, GBufferResources, GSceneRenderTargets.GetGBufferResourcesUniformBuffer());
+			}
+
+			SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTexture, ScreenSpaceAOTextureSampler, TStaticSamplerState<>::GetRHI(), ScreenSpaceAO->GetRenderTargetItem().ShaderResourceTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTextureMS, ScreenSpaceAO->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceAOTextureNonMS, ScreenSpaceAO->GetRenderTargetItem().ShaderResourceTexture);
+
+			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
+			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTextureNonMS, CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
+		}
+	}
+	else if (TextureMode == ESceneRenderTargetsMode::DontSet ||
+		TextureMode == ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing)
+	{
+		// Verify that none of these are actually bound
+		checkSlow(!GBufferResources.IsBound());
+	}
+}
+
+#define IMPLEMENT_DEFERRED_PARAMETERS_SET( ShaderRHIParamRef ) \
+	template void FDeferredPixelShaderParameters::Set< ShaderRHIParamRef >( \
+		FRHICommandList& RHICmdList,				\
+		const ShaderRHIParamRef ShaderRHI,			\
+		const FSceneView& View,						\
+		ESceneRenderTargetsMode::Type TextureMode	\
+	) const;
+
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FVertexShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FHullShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FDomainShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FGeometryShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FPixelShaderRHIParamRef );
+IMPLEMENT_DEFERRED_PARAMETERS_SET( FComputeShaderRHIParamRef );
 
 FArchive& operator<<(FArchive& Ar,FDeferredPixelShaderParameters& Parameters)
 {

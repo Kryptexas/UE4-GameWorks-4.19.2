@@ -1,15 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	MaterialShader.h: Material shader definitions.
-=============================================================================*/
-
 #include "EnginePrivate.h"
 #include "DiagnosticTable.h"
-#include "MaterialShader.h"
+#include "MaterialShaderType.h"
+#include "MeshMaterialShaderType.h"
 #include "ShaderCompiler.h"
 #include "DerivedDataCacheInterface.h"
-#include "MeshMaterialShader.h"
 #include "TargetPlatform.h"
 #include "../ShaderDerivedDataVersion.h"
 

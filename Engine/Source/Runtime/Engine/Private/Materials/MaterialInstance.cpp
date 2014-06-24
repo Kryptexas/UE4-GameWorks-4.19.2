@@ -10,7 +10,7 @@
 #include "Materials/MaterialExpressionLandscapeLayerWeight.h"
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "MaterialInstanceSupport.h"
-#include "MaterialShader.h"
+#include "MaterialShaderType.h"
 #include "TargetPlatform.h"
 #include "Engine/Font.h"
 

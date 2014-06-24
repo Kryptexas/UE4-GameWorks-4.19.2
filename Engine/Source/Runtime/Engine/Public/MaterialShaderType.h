@@ -144,4 +144,3 @@ private:
 	ShouldCacheType ShouldCacheRef;
 	ModifyCompilationEnvironmentType ModifyCompilationEnvironmentRef;
 };
-

@@ -65,6 +65,41 @@ void FAtmosphereTextures::ReleaseDynamicRHI()
 	GRenderTargetPool.FreeUnusedResources();
 }
 
+
+void FAtmosphereShaderTextureParameters::Bind(const FShaderParameterMap& ParameterMap)
+{
+	TransmittanceTexture.Bind(ParameterMap,TEXT("AtmosphereTransmittanceTexture"));
+	TransmittanceTextureSampler.Bind(ParameterMap,TEXT("AtmosphereTransmittanceTextureSampler"));
+	IrradianceTexture.Bind(ParameterMap,TEXT("AtmosphereIrradianceTexture"));
+	IrradianceTextureSampler.Bind(ParameterMap,TEXT("AtmosphereIrradianceTextureSampler"));
+	InscatterTexture.Bind(ParameterMap,TEXT("AtmosphereInscatterTexture"));
+	InscatterTextureSampler.Bind(ParameterMap,TEXT("AtmosphereInscatterTextureSampler"));
+}
+
+template< typename ShaderRHIParamRef >
+void FAtmosphereShaderTextureParameters::Set( FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View ) const
+{
+	if (TransmittanceTexture.IsBound() || IrradianceTexture.IsBound() || InscatterTexture.IsBound())
+	{
+		SetTextureParameter(RHICmdList, ShaderRHI, TransmittanceTexture, TransmittanceTextureSampler, 
+			TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereTransmittanceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, IrradianceTexture, IrradianceTextureSampler, 
+			TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereIrradianceTexture);
+		SetTextureParameter(RHICmdList, ShaderRHI, InscatterTexture, InscatterTextureSampler, 
+			TStaticSamplerState<SF_Bilinear>::GetRHI(), View.AtmosphereInscatterTexture);
+	}
+}
+
+#define IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( ShaderRHIParamRef ) \
+	template void FAtmosphereShaderTextureParameters::Set< ShaderRHIParamRef >( FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FSceneView& View ) const;
+
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FVertexShaderRHIParamRef );
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FHullShaderRHIParamRef );
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FDomainShaderRHIParamRef );
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FGeometryShaderRHIParamRef );
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FPixelShaderRHIParamRef );
+IMPLEMENT_ATMOSPHERE_TEXTURE_PARAM_SET( FComputeShaderRHIParamRef );
+
 FArchive& operator<<(FArchive& Ar,FAtmosphereShaderTextureParameters& Parameters)
 {
 	Ar << Parameters.TransmittanceTexture;
