@@ -476,4 +476,34 @@ void UPhysicsConstraintComponent::SetAngularDriveParams( float InSpring, float I
 	ConstraintInstance.SetAngularDriveParams(InSpring, InDamping, InForceLimit);
 }
 
+void UPhysicsConstraintComponent::SetLinearXLimit(ELinearConstraintMotion Motion, float LinearLimit)
+{
+	ConstraintInstance.SetLinearXLimit(Motion, LinearLimit);
+}
+
+void UPhysicsConstraintComponent::SetLinearYLimit(ELinearConstraintMotion Motion, float LinearLimit)
+{
+	ConstraintInstance.SetLinearYLimit(Motion, LinearLimit);
+}
+
+void UPhysicsConstraintComponent::SetLinearZLimit(ELinearConstraintMotion Motion, float LinearLimit)
+{
+	ConstraintInstance.SetLinearZLimit(Motion, LinearLimit);
+}
+
+void UPhysicsConstraintComponent::SetAngularSwing1Limit(EAngularConstraintMotion Motion, float Swing1LimitAngle)
+{
+	ConstraintInstance.SetAngularSwing1Limit(Motion, Swing1LimitAngle);
+}
+
+void UPhysicsConstraintComponent::SetAngularSwing2Limit(EAngularConstraintMotion Motion, float Swing2LimitAngle)
+{
+	ConstraintInstance.SetAngularSwing2Limit(Motion, Swing2LimitAngle);
+}
+
+void UPhysicsConstraintComponent::SetAngularTwistLimit(EAngularConstraintMotion Motion, float TwistLimitAngle)
+{
+	ConstraintInstance.SetAngularTwistLimit(Motion, TwistLimitAngle);
+}
+
 #undef LOCTEXT_NAMESPACE

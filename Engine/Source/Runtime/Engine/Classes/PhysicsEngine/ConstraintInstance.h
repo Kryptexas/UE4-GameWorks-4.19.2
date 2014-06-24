@@ -348,6 +348,39 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
 	float AngularDriveForceLimit;    //	Due to the way the ConstraintInstance pooling works, this MUST BE LAST PROPERTY OF THE CLASS.
 
+	float AverageMass;
+
+
+	/** Sets the LinearX Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearXLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the LinearY Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearYLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the LinearZ Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetLinearZLimit(ELinearConstraintMotion ConstraintType, float LinearLimitSize);
+
+	/** Sets the Angular Swing1 Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float Swing1LimitAngle);
+
+	/** Sets the Angular Swing2 Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float Swing2LimitAngle);
+
+	/** Sets the Angular Twist Motion Type
+	*	@param MotionType	New Motion Type
+	*/
+	void SetAngularTwistLimit(EAngularConstraintMotion MotionType, float TwistLimitAngle);
+
 #if WITH_PHYSX
 	FPhysxUserData PhysxUserData;
 #endif
@@ -397,6 +430,9 @@ public:
 	void SetAngularOrientationTarget(const FQuat& InPosTarget);
 	void SetAngularVelocityTarget(const FVector& InVelTarget);
 	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+
+	void UpdateLinearLimit();
+	void UpdateAngularLimit();
 
 
 	/** Scale Angular Limit Constraints (as defined in RB_ConstraintSetup) */

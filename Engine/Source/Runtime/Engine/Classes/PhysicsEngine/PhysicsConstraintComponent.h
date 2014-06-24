@@ -175,6 +175,49 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|PhysicsConstraint")
 	ENGINE_API void	SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
 
+
+	/** Sets the LinearX Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearXLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the LinearY Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearYLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the LinearZ Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param LimitSize		Size of limit
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetLinearZLimit(ELinearConstraintMotion ConstraintType, float LimitSize);
+
+	/** Sets the Angular Swing1 Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param Swing1LimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularSwing1Limit(EAngularConstraintMotion MotionType, float Swing1LimitAngle);
+
+	/** Sets the Angular Swing2 Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param Swing2LimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularSwing2Limit(EAngularConstraintMotion MotionType, float Swing2LimitAngle);
+
+	/** Sets the Angular Twist Motion Type
+	*	@param ConstraintType	New Constraint Type
+	*	@param TwistLimitAngle	Size of limit in degrees
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API void	SetAngularTwistLimit(EAngularConstraintMotion ConstraintType, float TwistLimitAngle);
+
 	/** 
 	 *	Update the reference frames held inside the constraint that indicate the joint location in the reference frame 
 	 *	of the two connected bodies. You should call this whenever the constraint or either Component moves, or if you change
