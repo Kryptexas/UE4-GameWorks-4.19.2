@@ -18,6 +18,8 @@
 #include "AnimationGraph.h"
 #include "AnimationGraphSchema.h"
 #include "AnimationStateMachineGraph.h"
+#include "AnimStateConduitNode.h"
+#include "AnimGraphNode_StateMachine.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -1796,6 +1798,34 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 		if (CompNode->BoundGraph && Local::IsASubGraph(CompNode->BoundGraph))
 		{
 			FBlueprintEditorUtils::RemoveGraph(Blueprint, CompNode->BoundGraph, EGraphRemoveFlags::None);
+		}
+	}
+
+	// Animation nodes can contain subgraphs but are not composite nodes, handle their graphs
+	TArray<UAnimStateNodeBase*> AllAnimCompositeNodes;
+	GraphToRemove->GetNodesOfClassEx<UAnimStateNode>(AllAnimCompositeNodes);
+	GraphToRemove->GetNodesOfClassEx<UAnimStateConduitNode>(AllAnimCompositeNodes);
+	GraphToRemove->GetNodesOfClassEx<UAnimStateTransitionNode>(AllAnimCompositeNodes);
+
+	for(UAnimStateNodeBase* Node : AllAnimCompositeNodes)
+	{
+		UEdGraph* BoundGraph = Node->GetBoundGraph();
+		if(BoundGraph && BoundGraph->GetOuter()->IsA(UAnimStateNodeBase::StaticClass()))
+		{
+			FBlueprintEditorUtils::RemoveGraph(Blueprint, BoundGraph, EGraphRemoveFlags::None);
+		}
+	}
+
+	// Handle sub anim state machines
+	TArray<UAnimGraphNode_StateMachineBase*> AllStateMachines;
+	GraphToRemove->GetNodesOfClassEx<UAnimGraphNode_StateMachine>(AllStateMachines);
+
+	for(UAnimGraphNode_StateMachineBase* Node : AllStateMachines)
+	{
+		UEdGraph* BoundGraph = Node->EditorStateMachineGraph;
+		if(BoundGraph && BoundGraph->GetOuter()->IsA(UAnimGraphNode_StateMachineBase::StaticClass()))
+		{
+			FBlueprintEditorUtils::RemoveGraph(Blueprint, BoundGraph, EGraphRemoveFlags::None);
 		}
 	}
 
