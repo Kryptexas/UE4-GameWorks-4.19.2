@@ -92,7 +92,8 @@ public:
 	/** Loads the user .ini settings into GConfig */
 	static void LoadConfigIni( bool bForceReload=false );
 
-
+	/** Apply any runtime overrides to the settings */
+	static void RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode);
 
 	/** Whether to use VSync or not. (public to allow UI to connect to it) */
 	UPROPERTY(config)
