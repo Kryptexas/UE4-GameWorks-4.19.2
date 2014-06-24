@@ -1561,10 +1561,7 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
 		{
 			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
-			if ( Device.IsValid() )
-			{
-				ExternalInputDevices.Add(Device);
-			}
+			AddExternalInputDevice(Device);			
 		}
 
 		bHasLoadedInputPlugins = true;
@@ -1596,6 +1593,14 @@ void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeed
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
 		(*DeviceIt)->SetChannelValues(ControllerId, Values);
+	}
+}
+
+void FWindowsApplication::AddExternalInputDevice(TSharedPtr<IInputDevice> InputDevice)
+{
+	if (InputDevice.IsValid())
+	{
+		ExternalInputDevices.Add(InputDevice);
 	}
 }
 

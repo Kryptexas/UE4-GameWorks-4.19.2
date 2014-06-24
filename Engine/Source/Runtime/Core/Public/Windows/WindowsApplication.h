@@ -207,6 +207,8 @@ public:
 		return TextInputMethodSystem.Get();
 	}
 
+	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
+
 protected:
 
 	static LRESULT CALLBACK AppWndProc(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);

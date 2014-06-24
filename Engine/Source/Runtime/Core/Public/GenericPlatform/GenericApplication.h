@@ -249,6 +249,8 @@ public:
 
 	virtual void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler ) { MessageHandler = InMessageHandler; }
 
+	TSharedRef< FGenericApplicationMessageHandler > GetMessageHandler() { return MessageHandler; }
+
 	virtual void PollGameDeviceState( const float TimeDelta ) { }
 
 	virtual void PumpMessages( const float TimeDelta ) { }
