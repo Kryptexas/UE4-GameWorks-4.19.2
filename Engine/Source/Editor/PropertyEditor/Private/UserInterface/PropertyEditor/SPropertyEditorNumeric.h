@@ -121,8 +121,8 @@ public:
 
 		if( bIsNonEnumByte )
 		{
-			OutMinDesiredWidth = 60.0f;
-			OutMaxDesiredWidth = 60.0f;
+			OutMinDesiredWidth = 75.0f;
+			OutMaxDesiredWidth = 75.0f;
 		}
 		else
 		{
