@@ -676,6 +676,8 @@ public:
 
 		TSharedPtr<SImage> ErrorIcon;
 
+		const float ValueContentWidth = 250.0f;
+
 		NodeRow
 		.NameContent()
 		[
@@ -701,10 +703,11 @@ public:
 			]
 		]
 		.ValueContent()
+		.MaxDesiredWidth(ValueContentWidth)
+		.MinDesiredWidth(ValueContentWidth)
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
-			.FillWidth(1)
 			.VAlign(VAlign_Center)
 			.Padding(0.0f, 0.0f, 4.0f, 0.0f)
 			[
