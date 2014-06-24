@@ -46,6 +46,7 @@ public:
 	SLATE_BEGIN_ARGS( SMontageBranchingPointNode )
 		: _Montage()
 		, _BranchingPoint()
+		, _AllowDrag(true)
 		{}
 		SLATE_ARGUMENT( class UAnimMontage*, Montage )
 		SLATE_ARGUMENT( FBranchingPoint*, BranchingPoint )
