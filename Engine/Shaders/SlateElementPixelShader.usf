@@ -298,3 +298,12 @@ float4 Main( VertexOut VIn ) : SV_Target0
 	return OutColor;
 }
 
+float4 DebugOverdrawMain( VertexOut VIn ) : SV_Target0
+{
+#if !DEBUG_CLIPPING
+	// Clip pixels which are outside of the clipping rect
+	clip( float4( VIn.WorldPosition.x - VIn.ClipCoords.x, VIn.ClipCoords.z - VIn.WorldPosition.x, VIn.WorldPosition.y - VIn.ClipCoords.y, VIn.ClipCoords.w - VIn.WorldPosition.y ) );
+#endif
+
+	return .1;
+}

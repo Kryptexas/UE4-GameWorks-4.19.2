@@ -457,6 +457,9 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 			RHIClear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
 		}
 
+#if DEBUG_OVERDRAW
+		RHIClear(true, FLinearColor::Black, false, 0.0f, true, 0x00, FIntRect());
+#endif
 		if( WindowElementList.GetRenderBatches().Num() > 0 )
 		{
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportInfo.Width, ViewportInfo.Height ) );

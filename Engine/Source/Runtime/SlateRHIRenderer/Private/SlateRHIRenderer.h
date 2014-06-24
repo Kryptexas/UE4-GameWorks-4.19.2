@@ -13,6 +13,8 @@ class FSlateRHIRenderingPolicy;
 const uint32 NumDrawBuffers = 3;
 #endif
 
+// Enable to visualize overdraw in Slate
+#define DEBUG_OVERDRAW 0
 
 /** Resource for crash buffer editor capturing */
 class FSlateCrashReportResource : public FRenderResource

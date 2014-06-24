@@ -186,5 +186,36 @@ private:
 
 };
 
+/** 
+ * Pixel shader for debugging Slate overdraw
+ */
+class FSlateDebugOverdrawPS : public FSlateElementPS
+{	
+	DECLARE_SHADER_TYPE( FSlateDebugOverdrawPS, Global );
+public:
+	/** Indicates that this shader should be cached */
+	static bool ShouldCache( EShaderPlatform Platform ) 
+	{ 
+		return true; 
+	}
+
+	FSlateDebugOverdrawPS()
+	{
+	}
+
+	/** Constructor.  Binds all parameters used by the shader */
+	FSlateDebugOverdrawPS( const ShaderMetaType::CompiledShaderInitializerType& Initializer )
+		: FSlateElementPS( Initializer )
+	{
+	}
+
+
+	virtual bool Serialize( FArchive& Ar )
+	{
+		return FSlateElementPS::Serialize( Ar );
+	}
+private:
+};
+
 /** The simple element vertex declaration. */
 extern TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;

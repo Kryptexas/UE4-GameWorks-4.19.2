@@ -295,11 +295,15 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 			VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix );
 			VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams );
 
+#if !DEBUG_OVERDRAW
 			RHICmdList.SetBlendState(
 				(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
 				? TStaticBlendState<>::GetRHI()
 				: TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI()
 				);
+#else
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_Zero, BF_InverseSourceAlpha>::GetRHI());
+#endif
 
 			// Disable stencil testing by default
 			RHICmdList.SetDepthStencilState(DSOff);
@@ -413,6 +417,7 @@ FSlateElementPS* FSlateRHIRenderingPolicy::GetPixelShader( ESlateShader::Type Sh
 {
 	FSlateElementPS* PixelShader = NULL;
 
+#if !DEBUG_OVERDRAW
 	const bool bDrawDisabled = (DrawEffects & ESlateDrawEffect::DisabledEffect) != 0;
 	const bool bUseTextureAlpha = (DrawEffects & ESlateDrawEffect::IgnoreTextureAlpha) == 0;
 	if( bDrawDisabled )
@@ -481,6 +486,9 @@ FSlateElementPS* FSlateRHIRenderingPolicy::GetPixelShader( ESlateShader::Type Sh
 			break;
 		}
 	}
+#else
+	PixelShader = *TShaderMapRef<FSlateDebugOverdrawPS>( GetGlobalShaderMap() );
+#endif
 
 	return PixelShader;
 }
