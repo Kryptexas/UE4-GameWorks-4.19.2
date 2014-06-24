@@ -684,7 +684,12 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 					const physx::PxTransform Transform(ChunkPoseRT);
 					if (UDestructibleComponent * DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(DestructibleActor->userData)))
 					{
-						DestructibleComponent->SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
+						// if this component was already unregistered, transform data were deallocated
+						// transform data become empty when a piece of destructible actor goes out from a streaming volume
+						if (DestructibleComponent->IsRegistered())
+						{
+							DestructibleComponent->SetChunkWorldRT(ChunkIndex, P2UQuat(Transform.q), P2UVector(Transform.p));
+						}
 					}
 				}
 			}
