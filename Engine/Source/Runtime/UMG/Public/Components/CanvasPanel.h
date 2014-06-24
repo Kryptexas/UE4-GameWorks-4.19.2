@@ -17,6 +17,9 @@ class UMG_API UCanvasPanel : public UPanelWidget
 	TSharedPtr<class SConstraintCanvas> GetCanvasWidget() const;
 
 	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
+	bool GetGeometryForSlot(int32 SlotIndex, FGeometry& ArrangedGeometry) const;
+
+	/** Computes the geometry for a particular slot based on the current geometry of the canvas. */
 	bool GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const;
 
 	// UWidget interface

@@ -66,8 +66,8 @@ FReply FHorizontalSlotExtension::HandleShift(int32 ShiftAmount)
 
 void FHorizontalSlotExtension::ShiftHorizontal(UWidget* Widget, int32 ShiftAmount)
 {
-	UHorizontalBoxSlot* Slot = Cast<UHorizontalBoxSlot>(Widget->Slot);
-	UHorizontalBox* Parent = Cast<UHorizontalBox>(Slot->Parent);
+	UHorizontalBoxSlot* Slot = CastChecked<UHorizontalBoxSlot>(Widget->Slot);
+	UHorizontalBox* Parent = CastChecked<UHorizontalBox>(Slot->Parent);
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
 	Parent->Slots.RemoveAt(CurrentIndex);

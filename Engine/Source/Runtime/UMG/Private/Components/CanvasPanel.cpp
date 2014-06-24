@@ -97,6 +97,12 @@ TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 	return MyCanvas;
 }
 
+bool UCanvasPanel::GetGeometryForSlot(int32 SlotIndex, FGeometry& ArrangedGeometry) const
+{
+	UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Slots[SlotIndex]);
+	return GetGeometryForSlot(Slot, ArrangedGeometry);
+}
+
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
 {
 	if ( Slot->Content == NULL )

@@ -12,6 +12,7 @@ public:
 	bool IsActive(const TArray< FWidgetReference >& Selection);
 	
 	virtual void BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets) override;
+	virtual void Paint(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 private:
 
@@ -19,7 +20,9 @@ private:
 	FReply HandleEndDrag(const FGeometry& Geometry, const FPointerEvent& Event);
 	FReply HandleDragging(const FGeometry& Geometry, const FPointerEvent& Event);
 
-	void MoveByAmount(UWidget* Widget, FVector2D Delta);
+	void MoveByAmount(FWidgetReference& WidgetRef, FVector2D Delta);
+
+	static bool GetCollisionPlanesForSlot(UCanvasPanel* Canvas, int32 SlotIndex, TArray<FVector2D>& Segments);
 
 	bool bDragging;
 

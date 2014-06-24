@@ -173,6 +173,9 @@ void SUMGDesigner::CreateExtensionWidgetsForSelection()
 		Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
 	}
 
+	//TODO UMG We need to have a better layout system for extensions.
+	//         currently everything is just laid out across the top.
+
 	TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
 
 	// Add Widgets to designer surface

@@ -73,8 +73,8 @@ FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
 
 void FVerticalSlotExtension::ShiftVertical(UWidget* Widget, int32 ShiftAmount)
 {
-	UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot);
-	UVerticalBox* Parent = Cast<UVerticalBox>(Slot->Parent);
+	UVerticalBoxSlot* Slot = CastChecked<UVerticalBoxSlot>(Widget->Slot);
+	UVerticalBox* Parent = CastChecked<UVerticalBox>(Slot->Parent);
 
 	int32 CurrentIndex = Parent->GetChildIndex(Widget);
 	Parent->Slots.RemoveAt(CurrentIndex);
