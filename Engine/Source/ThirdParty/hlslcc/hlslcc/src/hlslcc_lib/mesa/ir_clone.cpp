@@ -28,8 +28,6 @@
 */
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
-#include <string.h>
 #include "compiler.h"
 #include "ir.h"
 #include "glsl_types.h"

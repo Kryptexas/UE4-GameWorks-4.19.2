@@ -28,9 +28,6 @@
 */
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
-#include <stdio.h>
-#include <stdlib.h>
 #include "glsl_symbol_table.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"

@@ -30,7 +30,6 @@
 */
 
 #include "../ShaderCompilerCommon.h"
-#include <math.h>
 #include "../hlslcc.h"
 #include "../hlslcc_private.h"
 #include "ir_gen_glsl.h"

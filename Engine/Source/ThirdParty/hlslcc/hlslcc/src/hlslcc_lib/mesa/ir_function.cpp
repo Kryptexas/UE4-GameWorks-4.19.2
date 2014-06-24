@@ -28,10 +28,8 @@
 */
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
 #include "glsl_types.h"
 #include "ir.h"
-#include <stdint.h>
 
 enum { INVALID_PARAMETER_LIST = -1 };
 

@@ -32,8 +32,6 @@
 #ifndef GLSL_SYMBOL_TABLE
 #define GLSL_SYMBOL_TABLE
 
-#include <new>
-
 extern "C" {
 #include "symbol_table.h"
 }

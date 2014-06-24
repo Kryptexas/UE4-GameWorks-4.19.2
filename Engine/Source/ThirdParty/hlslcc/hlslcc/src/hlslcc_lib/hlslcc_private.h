@@ -29,7 +29,6 @@ void dprintf(const char* Format, ...);
 // Make sure we include stdio.h before defined dprintf away, otherwise
 // the dprintf() declaration in glibc's stdio.h ends up declaring a
 // conflicting version of printf.
-#include <stdio.h>
 #define dprintf printf
 #endif
 #endif

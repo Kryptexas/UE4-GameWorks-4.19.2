@@ -28,10 +28,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
+#include "../ShaderCompilerCommon.h"
 #include "glcpp.h"
 #include "glcpp-parse.h"
 

@@ -260,7 +260,7 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 64 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 61 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
 
    int n;
    float real;

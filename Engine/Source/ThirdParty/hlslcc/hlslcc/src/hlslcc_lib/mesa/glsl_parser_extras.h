@@ -37,9 +37,7 @@
 #ifdef __cplusplus
 
 
-#include <stdlib.h>
 #include "glsl_symbol_table.h"
-#include <string>
 #include <map>
 #include <list>
 #include <set>

@@ -33,8 +33,8 @@
  *
  * Each doubly-linked list has a sentinel head and tail node.  These nodes
  * contain no data.  The head sentinel can be identified by its \c prev
- * pointer being \c NULL.  The tail sentinel can be identified by its
- * \c next pointer being \c NULL.
+ * pointer being \c nullptr.  The tail sentinel can be identified by its
+ * \c next pointer being \c nullptr.
  *
  * A list is empty if either the head sentinel's \c next pointer points to the
  * tail sentinel or the tail sentinel's \c prev poiner points to the head
@@ -42,7 +42,7 @@
  *
  * Instead of tracking two separate \c node structures and a \c list structure
  * that points to them, the sentinel nodes are in a single structure.  Noting
- * that each sentinel node always has one \c NULL pointer, the \c NULL
+ * that each sentinel node always has one \c nullptr pointer, the \c nullptr
  * pointers occupy the same memory location.  In the \c list structure
  * contains a the following:
  *
@@ -50,11 +50,11 @@
  *     head sentinel node.
  *   - A \c tail pointer that represents the \c prev pointer of the head
  *     sentinel node and the \c next pointer of the tail sentinel node.  This
- *     pointer is \b always \c NULL.
+ *     pointer is \b always \c nullptr.
  *   - A \c tail_prev pointer that represents the \c prev pointer of the
  *     tail sentinel node.
  *
- * Therefore, if \c head->next is \c NULL or \c tail_prev->prev is \c NULL,
+ * Therefore, if \c head->next is \c nullptr or \c tail_prev->prev is \c nullptr,
  * the list is empty.
  *
  * To anyone familiar with "exec lists" on the Amiga, this structure should
@@ -91,7 +91,7 @@ struct exec_node {
       void *node;
 
       node = ralloc_size(ctx, size);
-      check(node != NULL);
+      check(node != nullptr);
 
       return node;
    }
@@ -103,7 +103,7 @@ struct exec_node {
       ralloc_free(node);
    }
 
-   exec_node() : next(NULL), prev(NULL)
+   exec_node() : next(nullptr), prev(nullptr)
    {
       /* empty */
    }
@@ -132,8 +132,8 @@ struct exec_node {
    {
       next->prev = prev;
       prev->next = next;
-      next = NULL;
-      prev = NULL;
+      next = nullptr;
+      prev = nullptr;
    }
 
    /**
@@ -192,7 +192,7 @@ struct exec_node {
     */
    bool is_tail_sentinel() const
    {
-      return this->next == NULL;
+      return this->next == nullptr;
    }
 
    /**
@@ -200,7 +200,7 @@ struct exec_node {
     */
    bool is_head_sentinel() const
    {
-      return this->prev == NULL;
+      return this->prev == nullptr;
    }
 
    bool check_invariants() const
@@ -253,7 +253,7 @@ public:
 
    void *get()
    {
-      return NULL;
+      return nullptr;
    }
 
    bool has_next() const
@@ -287,7 +287,7 @@ public:
 
    bool has_next() const
    {
-      return _next != NULL;
+      return _next != nullptr;
    }
 
 private:
@@ -313,7 +313,7 @@ struct exec_list {
       void *node;
 
       node = ralloc_size(ctx, size);
-      check(node != NULL);
+      check(node != nullptr);
 
       return node;
    }
@@ -333,7 +333,7 @@ struct exec_list {
    void make_empty()
    {
       head = (exec_node *) & tail;
-      tail = NULL;
+      tail = nullptr;
       tail_pred = (exec_node *) & head;
    }
 
@@ -344,7 +344,7 @@ struct exec_list {
        * - Check to see if the \c head points to the \c tail.
        * - Check to see if the \c tail_pred points to the \c head.
        * - Check to see if the \c head is the sentinel node by test whether its
-       *   \c next pointer is \c NULL.
+       *   \c next pointer is \c nullptr.
        *
        * The first two methods tend to generate better code on modern systems
        * because they save a pointer dereference.
@@ -354,22 +354,22 @@ struct exec_list {
 
    const exec_node *get_head() const
    {
-      return !is_empty() ? head : NULL;
+      return !is_empty() ? head : nullptr;
    }
 
    exec_node *get_head()
    {
-      return !is_empty() ? head : NULL;
+      return !is_empty() ? head : nullptr;
    }
 
    const exec_node *get_tail() const
    {
-      return !is_empty() ? tail_pred : NULL;
+      return !is_empty() ? tail_pred : nullptr;
    }
 
    exec_node *get_tail()
    {
-      return !is_empty() ? tail_pred : NULL;
+      return !is_empty() ? tail_pred : nullptr;
    }
 
    void push_head(exec_node *n)
@@ -404,14 +404,14 @@ struct exec_list {
     * Remove the first node from a list and return it
     *
     * \return
-    * The first node in the list or \c NULL if the list is empty.
+    * The first node in the list or \c nullptr if the list is empty.
     *
     * \sa exec_list::get_head
     */
    exec_node *pop_head()
    {
       exec_node *const n = this->get_head();
-      if (n != NULL)
+      if (n != nullptr)
 	 n->remove();
 
       return n;
@@ -426,7 +426,7 @@ struct exec_list {
 	 target->make_empty();
       } else {
 	 target->head = head;
-	 target->tail = NULL;
+	 target->tail = nullptr;
 	 target->tail_pred = tail_pred;
 
 	 target->head->prev = (exec_node *) &target->head;
@@ -494,29 +494,29 @@ inline void exec_node::insert_before(exec_list *before)
  */ 
 #define foreach_list_safe(__node, __list)			     \
    for (exec_node * __node = (__list)->head, * __next = __node->next \
-	; __next != NULL					     \
+	; __next != nullptr					     \
 	; __node = __next, __next = __next->next)
 
 #define foreach_list(__node, __list)			\
    for (exec_node * __node = (__list)->head		\
-	; (__node)->next != NULL 			\
+	; (__node)->next != nullptr 			\
 	; (__node) = (__node)->next)
 
 #define foreach_list_const(__node, __list)		\
    for (const exec_node * __node = (__list)->head	\
-	; (__node)->next != NULL 			\
+	; (__node)->next != nullptr 			\
 	; (__node) = (__node)->next)
 
 #define foreach_list_typed(__type, __node, __field, __list)		\
    for (__type * __node =						\
 	   exec_node_data(__type, (__list)->head, __field);		\
-	(__node)->__field.next != NULL; 				\
+	(__node)->__field.next != nullptr; 				\
 	(__node) = exec_node_data(__type, (__node)->__field.next, __field))
 
 #define foreach_list_typed_const(__type, __node, __field, __list)	\
    for (const __type * __node =						\
 	   exec_node_data(__type, (__list)->head, __field);		\
-	(__node)->__field.next != NULL; 				\
+	(__node)->__field.next != nullptr; 				\
 	(__node) = exec_node_data(__type, (__node)->__field.next, __field))
 
 inline bool check_list_integrity(exec_list* list)

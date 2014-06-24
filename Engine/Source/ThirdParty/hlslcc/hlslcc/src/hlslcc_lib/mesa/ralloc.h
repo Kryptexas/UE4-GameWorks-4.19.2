@@ -57,9 +57,6 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include <stdarg.h>
-
 // Standard boolean types.
 #ifndef __cplusplus
 typedef unsigned char bool;

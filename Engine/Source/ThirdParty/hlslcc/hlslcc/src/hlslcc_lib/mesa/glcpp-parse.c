@@ -40,8 +40,6 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
-#include "../ShaderCompilerCommon.h"
-
 /* Identify Bison output.  */
 #define YYBISON 1
 
@@ -99,11 +97,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-//#include <inttypes.h>
-
+#include "../ShaderCompilerCommon.h"
 #ifdef _MSC_VER
 #define strtoll(p, e, b) _strtoi64(p, e, b)
 #endif
@@ -219,7 +213,7 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 
 
 /* Line 268 of yacc.c  */
-#line 222 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 217 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -307,7 +301,7 @@ typedef struct YYLTYPE
 
 
 /* Line 343 of yacc.c  */
-#line 310 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 305 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
 
 #ifdef short
 # undef short
@@ -636,17 +630,17 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   188,   188,   190,   194,   197,   202,   203,   207,   210,
-     216,   219,   222,   225,   233,   252,   262,   267,   272,   291,
-     306,   309,   312,   333,   337,   346,   351,   352,   355,   358,
-     361,   364,   367,   370,   373,   376,   379,   382,   385,   388,
-     391,   394,   397,   405,   413,   416,   419,   422,   425,   428,
-     434,   439,   447,   448,   452,   458,   459,   462,   464,   471,
-     475,   479,   484,   488,   495,   500,   507,   511,   515,   519,
-     523,   530,   531,   532,   533,   534,   535,   536,   537,   538,
-     539,   540,   541,   542,   543,   544,   545,   546,   547,   548,
-     549,   550,   551,   552,   553,   554,   555,   556,   557,   558,
-     559,   560
+       0,   183,   183,   185,   189,   192,   197,   198,   202,   205,
+     211,   214,   217,   220,   228,   247,   257,   262,   267,   286,
+     301,   304,   307,   328,   332,   341,   346,   347,   350,   353,
+     356,   359,   362,   365,   368,   371,   374,   377,   380,   383,
+     386,   389,   392,   400,   408,   411,   414,   417,   420,   423,
+     429,   434,   442,   443,   447,   453,   454,   457,   459,   466,
+     470,   474,   479,   483,   490,   495,   502,   506,   510,   514,
+     518,   525,   526,   527,   528,   529,   530,   531,   532,   533,
+     534,   535,   536,   537,   538,   539,   540,   541,   542,   543,
+     544,   545,   546,   547,   548,   549,   550,   551,   552,   553,
+     554,   555
 };
 #endif
 
@@ -1643,7 +1637,7 @@ YYLTYPE yylloc;
 /* User initialization code.  */
 
 /* Line 1590 of yacc.c  */
-#line 155 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 150 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
 {
 	yylloc.first_line = 1;
 	yylloc.first_column = 1;
@@ -1653,7 +1647,7 @@ YYLTYPE yylloc;
 }
 
 /* Line 1590 of yacc.c  */
-#line 1656 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 1651 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
   yylsp[0] = yylloc;
 
   goto yysetstate;
@@ -1841,7 +1835,7 @@ yyreduce:
         case 4:
 
 /* Line 1806 of yacc.c  */
-#line 194 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 189 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "\n");
 	}
@@ -1850,7 +1844,7 @@ yyreduce:
   case 5:
 
 /* Line 1806 of yacc.c  */
-#line 197 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 192 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_glcpp_parser_print_expanded_token_list (parser, (yyvsp[(1) - (1)].token_list));
 		ralloc_asprintf_rewrite_tail (&parser->output, &parser->output_length, "\n");
@@ -1861,7 +1855,7 @@ yyreduce:
   case 8:
 
 /* Line 1806 of yacc.c  */
-#line 207 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 202 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_glcpp_parser_skip_stack_push_if (parser, & (yylsp[(1) - (3)]), (yyvsp[(2) - (3)].ival));
 	}
@@ -1870,7 +1864,7 @@ yyreduce:
   case 9:
 
 /* Line 1806 of yacc.c  */
-#line 210 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 205 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_glcpp_parser_skip_stack_change_if (parser, & (yylsp[(1) - (3)]), "elif", (yyvsp[(2) - (3)].ival));
 	}
@@ -1879,7 +1873,7 @@ yyreduce:
   case 10:
 
 /* Line 1806 of yacc.c  */
-#line 216 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 211 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_define_object_macro (parser, & (yylsp[(2) - (4)]), (yyvsp[(2) - (4)].str), (yyvsp[(3) - (4)].token_list));
 	}
@@ -1888,7 +1882,7 @@ yyreduce:
   case 11:
 
 /* Line 1806 of yacc.c  */
-#line 219 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 214 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_define_function_macro (parser, & (yylsp[(2) - (6)]), (yyvsp[(2) - (6)].str), NULL, (yyvsp[(5) - (6)].token_list));
 	}
@@ -1897,7 +1891,7 @@ yyreduce:
   case 12:
 
 /* Line 1806 of yacc.c  */
-#line 222 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 217 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_define_function_macro (parser, & (yylsp[(2) - (7)]), (yyvsp[(2) - (7)].str), (yyvsp[(4) - (7)].string_list), (yyvsp[(6) - (7)].token_list));
 	}
@@ -1906,7 +1900,7 @@ yyreduce:
   case 13:
 
 /* Line 1806 of yacc.c  */
-#line 225 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 220 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		macro_t *macro = hash_table_find (parser->defines, (yyvsp[(2) - (3)].str));
 		if (macro) {
@@ -1920,7 +1914,7 @@ yyreduce:
   case 14:
 
 /* Line 1806 of yacc.c  */
-#line 233 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 228 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		/* Be careful to only evaluate the 'if' expression if
 		 * we are not skipping. When we are skipping, we
@@ -1945,7 +1939,7 @@ yyreduce:
   case 15:
 
 /* Line 1806 of yacc.c  */
-#line 252 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 247 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		/* #if without an expression is only an error if we
 		 *  are not skipping */
@@ -1961,7 +1955,7 @@ yyreduce:
   case 16:
 
 /* Line 1806 of yacc.c  */
-#line 262 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 257 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		macro_t *macro = hash_table_find (parser->defines, (yyvsp[(2) - (4)].str));
 		ralloc_free ((yyvsp[(2) - (4)].str));
@@ -1972,7 +1966,7 @@ yyreduce:
   case 17:
 
 /* Line 1806 of yacc.c  */
-#line 267 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 262 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		macro_t *macro = hash_table_find (parser->defines, (yyvsp[(2) - (4)].str));
 		ralloc_free ((yyvsp[(2) - (4)].str));
@@ -1983,7 +1977,7 @@ yyreduce:
   case 18:
 
 /* Line 1806 of yacc.c  */
-#line 272 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 267 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		/* Be careful to only evaluate the 'elif' expression
 		 * if we are not skipping. When we are skipping, we
@@ -2008,7 +2002,7 @@ yyreduce:
   case 19:
 
 /* Line 1806 of yacc.c  */
-#line 291 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 286 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		/* #elif without an expression is an error unless we
 		 * are skipping. */
@@ -2029,7 +2023,7 @@ yyreduce:
   case 20:
 
 /* Line 1806 of yacc.c  */
-#line 306 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 301 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_glcpp_parser_skip_stack_change_if (parser, & (yylsp[(1) - (2)]), "else", 1);
 	}
@@ -2038,7 +2032,7 @@ yyreduce:
   case 21:
 
 /* Line 1806 of yacc.c  */
-#line 309 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 304 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		_glcpp_parser_skip_stack_pop (parser, & (yylsp[(1) - (2)]));
 	}
@@ -2047,7 +2041,7 @@ yyreduce:
   case 22:
 
 /* Line 1806 of yacc.c  */
-#line 312 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 307 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		macro_t *macro = hash_table_find (parser->defines, "__VERSION__");
 		if (macro) {
@@ -2074,7 +2068,7 @@ yyreduce:
   case 24:
 
 /* Line 1806 of yacc.c  */
-#line 337 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 332 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		if (strlen ((yyvsp[(1) - (1)].str)) >= 3 && strncmp ((yyvsp[(1) - (1)].str), "0x", 2) == 0) {
 			(yyval.ival) = strtoll ((yyvsp[(1) - (1)].str) + 2, NULL, 16);
@@ -2089,7 +2083,7 @@ yyreduce:
   case 25:
 
 /* Line 1806 of yacc.c  */
-#line 346 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 341 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (1)].ival);
 	}
@@ -2098,7 +2092,7 @@ yyreduce:
   case 27:
 
 /* Line 1806 of yacc.c  */
-#line 352 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 347 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) || (yyvsp[(3) - (3)].ival);
 	}
@@ -2107,7 +2101,7 @@ yyreduce:
   case 28:
 
 /* Line 1806 of yacc.c  */
-#line 355 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 350 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) && (yyvsp[(3) - (3)].ival);
 	}
@@ -2116,7 +2110,7 @@ yyreduce:
   case 29:
 
 /* Line 1806 of yacc.c  */
-#line 358 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 353 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) | (yyvsp[(3) - (3)].ival);
 	}
@@ -2125,7 +2119,7 @@ yyreduce:
   case 30:
 
 /* Line 1806 of yacc.c  */
-#line 361 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 356 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) ^ (yyvsp[(3) - (3)].ival);
 	}
@@ -2134,7 +2128,7 @@ yyreduce:
   case 31:
 
 /* Line 1806 of yacc.c  */
-#line 364 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 359 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) & (yyvsp[(3) - (3)].ival);
 	}
@@ -2143,7 +2137,7 @@ yyreduce:
   case 32:
 
 /* Line 1806 of yacc.c  */
-#line 367 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 362 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) != (yyvsp[(3) - (3)].ival);
 	}
@@ -2152,7 +2146,7 @@ yyreduce:
   case 33:
 
 /* Line 1806 of yacc.c  */
-#line 370 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 365 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) == (yyvsp[(3) - (3)].ival);
 	}
@@ -2161,7 +2155,7 @@ yyreduce:
   case 34:
 
 /* Line 1806 of yacc.c  */
-#line 373 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 368 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) >= (yyvsp[(3) - (3)].ival);
 	}
@@ -2170,7 +2164,7 @@ yyreduce:
   case 35:
 
 /* Line 1806 of yacc.c  */
-#line 376 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 371 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) <= (yyvsp[(3) - (3)].ival);
 	}
@@ -2179,7 +2173,7 @@ yyreduce:
   case 36:
 
 /* Line 1806 of yacc.c  */
-#line 379 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 374 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) > (yyvsp[(3) - (3)].ival);
 	}
@@ -2188,7 +2182,7 @@ yyreduce:
   case 37:
 
 /* Line 1806 of yacc.c  */
-#line 382 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 377 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) < (yyvsp[(3) - (3)].ival);
 	}
@@ -2197,7 +2191,7 @@ yyreduce:
   case 38:
 
 /* Line 1806 of yacc.c  */
-#line 385 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 380 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) >> (yyvsp[(3) - (3)].ival);
 	}
@@ -2206,7 +2200,7 @@ yyreduce:
   case 39:
 
 /* Line 1806 of yacc.c  */
-#line 388 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 383 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) << (yyvsp[(3) - (3)].ival);
 	}
@@ -2215,7 +2209,7 @@ yyreduce:
   case 40:
 
 /* Line 1806 of yacc.c  */
-#line 391 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 386 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) - (yyvsp[(3) - (3)].ival);
 	}
@@ -2224,7 +2218,7 @@ yyreduce:
   case 41:
 
 /* Line 1806 of yacc.c  */
-#line 394 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 389 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) + (yyvsp[(3) - (3)].ival);
 	}
@@ -2233,7 +2227,7 @@ yyreduce:
   case 42:
 
 /* Line 1806 of yacc.c  */
-#line 397 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 392 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		if ((yyvsp[(3) - (3)].ival) == 0) {
 			yyerror (& (yylsp[(1) - (3)]), parser,
@@ -2247,7 +2241,7 @@ yyreduce:
   case 43:
 
 /* Line 1806 of yacc.c  */
-#line 405 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 400 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		if ((yyvsp[(3) - (3)].ival) == 0) {
 			yyerror (& (yylsp[(1) - (3)]), parser,
@@ -2261,7 +2255,7 @@ yyreduce:
   case 44:
 
 /* Line 1806 of yacc.c  */
-#line 413 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 408 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(1) - (3)].ival) * (yyvsp[(3) - (3)].ival);
 	}
@@ -2270,7 +2264,7 @@ yyreduce:
   case 45:
 
 /* Line 1806 of yacc.c  */
-#line 416 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 411 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = ! (yyvsp[(2) - (2)].ival);
 	}
@@ -2279,7 +2273,7 @@ yyreduce:
   case 46:
 
 /* Line 1806 of yacc.c  */
-#line 419 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 414 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = ~ (yyvsp[(2) - (2)].ival);
 	}
@@ -2288,7 +2282,7 @@ yyreduce:
   case 47:
 
 /* Line 1806 of yacc.c  */
-#line 422 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 417 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = - (yyvsp[(2) - (2)].ival);
 	}
@@ -2297,7 +2291,7 @@ yyreduce:
   case 48:
 
 /* Line 1806 of yacc.c  */
-#line 425 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 420 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = + (yyvsp[(2) - (2)].ival);
 	}
@@ -2306,7 +2300,7 @@ yyreduce:
   case 49:
 
 /* Line 1806 of yacc.c  */
-#line 428 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 423 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.ival) = (yyvsp[(2) - (3)].ival);
 	}
@@ -2315,7 +2309,7 @@ yyreduce:
   case 50:
 
 /* Line 1806 of yacc.c  */
-#line 434 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 429 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.string_list) = _string_list_create (parser);
 		_string_list_append_item ((yyval.string_list), (yyvsp[(1) - (1)].str));
@@ -2326,7 +2320,7 @@ yyreduce:
   case 51:
 
 /* Line 1806 of yacc.c  */
-#line 439 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 434 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.string_list) = (yyvsp[(1) - (3)].string_list);	
 		_string_list_append_item ((yyval.string_list), (yyvsp[(3) - (3)].str));
@@ -2337,14 +2331,14 @@ yyreduce:
   case 52:
 
 /* Line 1806 of yacc.c  */
-#line 447 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 442 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.token_list) = NULL; }
     break;
 
   case 54:
 
 /* Line 1806 of yacc.c  */
-#line 452 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 447 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		yyerror (& (yylsp[(1) - (2)]), parser, "Invalid tokens after #");
 	}
@@ -2353,14 +2347,14 @@ yyreduce:
   case 55:
 
 /* Line 1806 of yacc.c  */
-#line 458 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 453 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.token_list) = NULL; }
     break;
 
   case 58:
 
 /* Line 1806 of yacc.c  */
-#line 464 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 459 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		glcpp_warning(&(yylsp[(1) - (1)]), parser, "extra tokens at end of directive");
 	}
@@ -2369,7 +2363,7 @@ yyreduce:
   case 59:
 
 /* Line 1806 of yacc.c  */
-#line 471 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 466 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		int v = hash_table_find (parser->defines, (yyvsp[(2) - (2)].str)) ? 1 : 0;
 		(yyval.token) = _token_create_ival (parser, INTEGER, v);
@@ -2379,7 +2373,7 @@ yyreduce:
   case 60:
 
 /* Line 1806 of yacc.c  */
-#line 475 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 470 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		int v = hash_table_find (parser->defines, (yyvsp[(3) - (4)].str)) ? 1 : 0;
 		(yyval.token) = _token_create_ival (parser, INTEGER, v);
@@ -2389,7 +2383,7 @@ yyreduce:
   case 62:
 
 /* Line 1806 of yacc.c  */
-#line 484 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 479 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token_list) = _token_list_create (parser);
 		_token_list_append ((yyval.token_list), (yyvsp[(1) - (1)].token));
@@ -2399,7 +2393,7 @@ yyreduce:
   case 63:
 
 /* Line 1806 of yacc.c  */
-#line 488 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 483 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token_list) = (yyvsp[(1) - (2)].token_list);
 		_token_list_append ((yyval.token_list), (yyvsp[(2) - (2)].token));
@@ -2409,7 +2403,7 @@ yyreduce:
   case 64:
 
 /* Line 1806 of yacc.c  */
-#line 495 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 490 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		parser->space_tokens = 1;
 		(yyval.token_list) = _token_list_create (parser);
@@ -2420,7 +2414,7 @@ yyreduce:
   case 65:
 
 /* Line 1806 of yacc.c  */
-#line 500 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 495 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token_list) = (yyvsp[(1) - (2)].token_list);
 		_token_list_append ((yyval.token_list), (yyvsp[(2) - (2)].token));
@@ -2430,7 +2424,7 @@ yyreduce:
   case 66:
 
 /* Line 1806 of yacc.c  */
-#line 507 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 502 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token) = _token_create_str (parser, IDENTIFIER, (yyvsp[(1) - (1)].str));
 		(yyval.token)->location = yylloc;
@@ -2440,7 +2434,7 @@ yyreduce:
   case 67:
 
 /* Line 1806 of yacc.c  */
-#line 511 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 506 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token) = _token_create_str (parser, INTEGER_STRING, (yyvsp[(1) - (1)].str));
 		(yyval.token)->location = yylloc;
@@ -2450,7 +2444,7 @@ yyreduce:
   case 68:
 
 /* Line 1806 of yacc.c  */
-#line 515 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 510 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token) = _token_create_ival (parser, (yyvsp[(1) - (1)].ival), (yyvsp[(1) - (1)].ival));
 		(yyval.token)->location = yylloc;
@@ -2460,7 +2454,7 @@ yyreduce:
   case 69:
 
 /* Line 1806 of yacc.c  */
-#line 519 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 514 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token) = _token_create_str (parser, OTHER, (yyvsp[(1) - (1)].str));
 		(yyval.token)->location = yylloc;
@@ -2470,7 +2464,7 @@ yyreduce:
   case 70:
 
 /* Line 1806 of yacc.c  */
-#line 523 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 518 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     {
 		(yyval.token) = _token_create_ival (parser, SPACE, SPACE);
 		(yyval.token)->location = yylloc;
@@ -2480,224 +2474,224 @@ yyreduce:
   case 71:
 
 /* Line 1806 of yacc.c  */
-#line 530 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 525 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '['; }
     break;
 
   case 72:
 
 /* Line 1806 of yacc.c  */
-#line 531 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 526 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = ']'; }
     break;
 
   case 73:
 
 /* Line 1806 of yacc.c  */
-#line 532 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 527 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '('; }
     break;
 
   case 74:
 
 /* Line 1806 of yacc.c  */
-#line 533 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 528 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = ')'; }
     break;
 
   case 75:
 
 /* Line 1806 of yacc.c  */
-#line 534 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 529 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '{'; }
     break;
 
   case 76:
 
 /* Line 1806 of yacc.c  */
-#line 535 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 530 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '}'; }
     break;
 
   case 77:
 
 /* Line 1806 of yacc.c  */
-#line 536 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 531 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '.'; }
     break;
 
   case 78:
 
 /* Line 1806 of yacc.c  */
-#line 537 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 532 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '&'; }
     break;
 
   case 79:
 
 /* Line 1806 of yacc.c  */
-#line 538 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 533 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '*'; }
     break;
 
   case 80:
 
 /* Line 1806 of yacc.c  */
-#line 539 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 534 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '+'; }
     break;
 
   case 81:
 
 /* Line 1806 of yacc.c  */
-#line 540 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 535 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '-'; }
     break;
 
   case 82:
 
 /* Line 1806 of yacc.c  */
-#line 541 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 536 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '~'; }
     break;
 
   case 83:
 
 /* Line 1806 of yacc.c  */
-#line 542 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 537 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '!'; }
     break;
 
   case 84:
 
 /* Line 1806 of yacc.c  */
-#line 543 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 538 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '/'; }
     break;
 
   case 85:
 
 /* Line 1806 of yacc.c  */
-#line 544 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 539 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '%'; }
     break;
 
   case 86:
 
 /* Line 1806 of yacc.c  */
-#line 545 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 540 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = LEFT_SHIFT; }
     break;
 
   case 87:
 
 /* Line 1806 of yacc.c  */
-#line 546 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 541 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = RIGHT_SHIFT; }
     break;
 
   case 88:
 
 /* Line 1806 of yacc.c  */
-#line 547 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 542 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '<'; }
     break;
 
   case 89:
 
 /* Line 1806 of yacc.c  */
-#line 548 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 543 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '>'; }
     break;
 
   case 90:
 
 /* Line 1806 of yacc.c  */
-#line 549 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 544 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = LESS_OR_EQUAL; }
     break;
 
   case 91:
 
 /* Line 1806 of yacc.c  */
-#line 550 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 545 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = GREATER_OR_EQUAL; }
     break;
 
   case 92:
 
 /* Line 1806 of yacc.c  */
-#line 551 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 546 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = EQUAL; }
     break;
 
   case 93:
 
 /* Line 1806 of yacc.c  */
-#line 552 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 547 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = NOT_EQUAL; }
     break;
 
   case 94:
 
 /* Line 1806 of yacc.c  */
-#line 553 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 548 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '^'; }
     break;
 
   case 95:
 
 /* Line 1806 of yacc.c  */
-#line 554 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 549 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '|'; }
     break;
 
   case 96:
 
 /* Line 1806 of yacc.c  */
-#line 555 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 550 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = AND; }
     break;
 
   case 97:
 
 /* Line 1806 of yacc.c  */
-#line 556 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 551 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = OR; }
     break;
 
   case 98:
 
 /* Line 1806 of yacc.c  */
-#line 557 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 552 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = ';'; }
     break;
 
   case 99:
 
 /* Line 1806 of yacc.c  */
-#line 558 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 553 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = ','; }
     break;
 
   case 100:
 
 /* Line 1806 of yacc.c  */
-#line 559 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 554 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = '='; }
     break;
 
   case 101:
 
 /* Line 1806 of yacc.c  */
-#line 560 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 555 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
     { (yyval.ival) = PASTE; }
     break;
 
 
 
 /* Line 1806 of yacc.c  */
-#line 2700 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 2695 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2935,7 +2929,7 @@ yyreturn:
 
 
 /* Line 2067 of yacc.c  */
-#line 563 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
+#line 558 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.y"
 
 
 string_list_t *

@@ -44,16 +44,6 @@
 #include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include <ctype.h>
-#if defined(__alpha__) && defined(CCPML)
-#include <cpml.h> /* use Compaq's Fast Math Library on Alpha */
-#else
-#include <math.h>
-#endif
-#include <limits.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <float.h>
 #include <stdarg.h>
 
 

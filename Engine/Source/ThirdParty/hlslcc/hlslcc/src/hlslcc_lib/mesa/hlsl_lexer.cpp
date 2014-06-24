@@ -14,8 +14,6 @@
 #define FLEX_BETA
 #endif
 
-#include "../ShaderCompilerCommon.h"
-
 /* First, we deal with  platform-specific or compiler-specific issues. */
 
 /* begin standard C headers. */
@@ -1055,8 +1053,8 @@ static yyconst flex_int16_t yy_chk[1326] =
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
-#include <ctype.h>
-#include <limits.h>
+
+#include "../ShaderCompilerCommon.h"
 #include "strtod.h"
 #include "ast.h"
 #include "glsl_parser_extras.h"

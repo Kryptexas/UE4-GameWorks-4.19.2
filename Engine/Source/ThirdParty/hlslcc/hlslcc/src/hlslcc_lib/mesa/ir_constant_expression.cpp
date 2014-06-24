@@ -40,8 +40,6 @@
 */
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
-#include <math.h>
 #include "ir.h"
 #include "ir_visitor.h"
 #include "glsl_types.h"

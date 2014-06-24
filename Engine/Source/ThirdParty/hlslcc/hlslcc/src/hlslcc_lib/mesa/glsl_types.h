@@ -33,7 +33,6 @@
 #define GLSL_TYPES_H
 
 #include "../ShaderCompilerCommon.h"
-#include <string.h>
 #include <string>
 
 #ifdef __cplusplus

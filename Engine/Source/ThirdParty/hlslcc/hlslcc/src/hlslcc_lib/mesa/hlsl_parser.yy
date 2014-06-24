@@ -27,11 +27,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
 #include "../ShaderCompilerCommon.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-	
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"

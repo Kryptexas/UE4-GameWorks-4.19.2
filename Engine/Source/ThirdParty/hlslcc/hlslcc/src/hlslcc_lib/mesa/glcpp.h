@@ -30,8 +30,6 @@
 #ifndef GLCPP_H
 #define GLCPP_H
 
-#include <stdint.h>
-
 #include "ralloc.h"
 
 #include "hash_table.h"

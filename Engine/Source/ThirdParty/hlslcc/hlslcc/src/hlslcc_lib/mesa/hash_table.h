@@ -42,7 +42,6 @@
 #include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include <string.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <limits.h>
 

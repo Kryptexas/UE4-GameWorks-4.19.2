@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "../ShaderCompilerCommon.h"
-//@todo-rco: Remove STL!
-#include <math.h>
 #include "../hlslcc.h"
 #include "../hlslcc_private.h"
 #include "../Metal/MetalBackend.h"

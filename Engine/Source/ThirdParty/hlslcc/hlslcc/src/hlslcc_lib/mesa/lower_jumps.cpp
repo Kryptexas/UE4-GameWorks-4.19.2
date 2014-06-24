@@ -65,7 +65,6 @@
 #include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
 #include "glsl_types.h"
-#include <string.h>
 #include "ir.h"
 
 /**

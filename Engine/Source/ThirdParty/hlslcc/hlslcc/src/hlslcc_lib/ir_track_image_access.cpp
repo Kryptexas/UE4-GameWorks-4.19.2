@@ -3,7 +3,6 @@
 // ir_track_image_access.cpp: Utility functions
 
 #include "ShaderCompilerCommon.h"
-#include <math.h>
 #include "hlslcc.h"
 #include "mesa/compiler.h"
 #include "mesa/glsl_parser_extras.h"

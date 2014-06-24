@@ -32,9 +32,6 @@
 #ifndef IR_H
 #define IR_H
 
-//@todo-rco: Remove STL!
-#include <stdio.h>
-#include <stdlib.h>
 #include "ralloc.h"
 #include "glsl_types.h"
 #include "list.h"

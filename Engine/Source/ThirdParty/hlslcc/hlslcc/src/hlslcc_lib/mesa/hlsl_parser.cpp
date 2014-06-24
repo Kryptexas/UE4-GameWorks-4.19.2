@@ -104,11 +104,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  */
+
 #include "../ShaderCompilerCommon.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-	
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
@@ -124,7 +121,7 @@ static void yyerror(YYLTYPE *loc, _mesa_glsl_parse_state *st, const char *msg)
 
 
 /* Line 268 of yacc.c  */
-#line 128 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
+#line 125 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -374,7 +371,7 @@ typedef union YYSTYPE
 {
 
 /* Line 293 of yacc.c  */
-#line 64 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 61 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
 
    int n;
    float real;
@@ -416,7 +413,7 @@ typedef union YYSTYPE
 
 
 /* Line 293 of yacc.c  */
-#line 420 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
+#line 417 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -441,7 +438,7 @@ typedef struct YYLTYPE
 
 
 /* Line 343 of yacc.c  */
-#line 445 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
+#line 442 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
 
 #ifdef short
 # undef short
@@ -894,43 +891,43 @@ static const yytype_int16 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   284,   284,   284,   296,   297,   298,   299,   300,   313,
-     314,   315,   319,   327,   338,   339,   343,   350,   357,   371,
-     378,   385,   392,   393,   399,   403,   410,   416,   425,   429,
-     433,   434,   443,   444,   448,   449,   453,   459,   471,   475,
-     481,   488,   498,   499,   503,   504,   508,   514,   526,   537,
-     538,   544,   550,   556,   567,   568,   569,   570,   574,   575,
-     581,   587,   596,   597,   603,   612,   613,   619,   628,   629,
-     635,   641,   647,   656,   657,   663,   672,   673,   682,   683,
-     692,   693,   702,   703,   712,   713,   722,   723,   732,   733,
-     742,   743,   744,   745,   746,   747,   748,   749,   750,   751,
-     752,   756,   760,   776,   780,   788,   792,   799,   802,   810,
-     811,   815,   820,   828,   839,   853,   863,   874,   885,   897,
-     913,   920,   927,   935,   940,   945,   946,   957,   969,   974,
-     979,   985,   991,   997,  1002,  1007,  1012,  1017,  1025,  1029,
-    1030,  1040,  1050,  1059,  1069,  1079,  1093,  1100,  1109,  1118,
-    1127,  1136,  1146,  1155,  1169,  1176,  1187,  1194,  1195,  1214,
-    1273,  1314,  1319,  1324,  1332,  1333,  1338,  1343,  1348,  1356,
-    1357,  1358,  1363,  1364,  1369,  1374,  1380,  1388,  1393,  1398,
-    1404,  1409,  1414,  1419,  1424,  1429,  1434,  1439,  1444,  1450,
-    1456,  1461,  1469,  1476,  1477,  1481,  1487,  1492,  1498,  1507,
-    1513,  1519,  1526,  1532,  1538,  1545,  1552,  1558,  1567,  1568,
-    1569,  1570,  1571,  1572,  1573,  1574,  1575,  1576,  1577,  1578,
-    1579,  1580,  1581,  1582,  1583,  1584,  1585,  1586,  1587,  1588,
-    1589,  1590,  1591,  1592,  1593,  1594,  1595,  1596,  1597,  1598,
-    1599,  1600,  1601,  1602,  1603,  1604,  1605,  1606,  1607,  1642,
-    1643,  1644,  1645,  1646,  1647,  1648,  1649,  1650,  1651,  1652,
-    1653,  1654,  1655,  1656,  1657,  1661,  1662,  1663,  1667,  1671,
-    1675,  1682,  1689,  1695,  1702,  1709,  1718,  1724,  1732,  1737,
-    1745,  1755,  1762,  1773,  1774,  1779,  1784,  1792,  1797,  1805,
-    1812,  1817,  1825,  1835,  1841,  1850,  1851,  1860,  1865,  1870,
-    1877,  1883,  1884,  1885,  1890,  1898,  1899,  1900,  1901,  1902,
-    1903,  1907,  1914,  1913,  1927,  1928,  1932,  1938,  1947,  1957,
-    1969,  1975,  1984,  1993,  1998,  2006,  2010,  2028,  2036,  2041,
-    2049,  2054,  2062,  2070,  2078,  2086,  2094,  2102,  2110,  2117,
-    2124,  2134,  2135,  2139,  2141,  2147,  2152,  2161,  2167,  2173,
-    2179,  2185,  2194,  2195,  2196,  2200,  2206,  2215,  2219,  2227,
-    2233,  2239,  2246,  2256,  2261,  2268,  2278,  2292,  2296,  2304
+       0,   281,   281,   281,   293,   294,   295,   296,   297,   310,
+     311,   312,   316,   324,   335,   336,   340,   347,   354,   368,
+     375,   382,   389,   390,   396,   400,   407,   413,   422,   426,
+     430,   431,   440,   441,   445,   446,   450,   456,   468,   472,
+     478,   485,   495,   496,   500,   501,   505,   511,   523,   534,
+     535,   541,   547,   553,   564,   565,   566,   567,   571,   572,
+     578,   584,   593,   594,   600,   609,   610,   616,   625,   626,
+     632,   638,   644,   653,   654,   660,   669,   670,   679,   680,
+     689,   690,   699,   700,   709,   710,   719,   720,   729,   730,
+     739,   740,   741,   742,   743,   744,   745,   746,   747,   748,
+     749,   753,   757,   773,   777,   785,   789,   796,   799,   807,
+     808,   812,   817,   825,   836,   850,   860,   871,   882,   894,
+     910,   917,   924,   932,   937,   942,   943,   954,   966,   971,
+     976,   982,   988,   994,   999,  1004,  1009,  1014,  1022,  1026,
+    1027,  1037,  1047,  1056,  1066,  1076,  1090,  1097,  1106,  1115,
+    1124,  1133,  1143,  1152,  1166,  1173,  1184,  1191,  1192,  1211,
+    1270,  1311,  1316,  1321,  1329,  1330,  1335,  1340,  1345,  1353,
+    1354,  1355,  1360,  1361,  1366,  1371,  1377,  1385,  1390,  1395,
+    1401,  1406,  1411,  1416,  1421,  1426,  1431,  1436,  1441,  1447,
+    1453,  1458,  1466,  1473,  1474,  1478,  1484,  1489,  1495,  1504,
+    1510,  1516,  1523,  1529,  1535,  1542,  1549,  1555,  1564,  1565,
+    1566,  1567,  1568,  1569,  1570,  1571,  1572,  1573,  1574,  1575,
+    1576,  1577,  1578,  1579,  1580,  1581,  1582,  1583,  1584,  1585,
+    1586,  1587,  1588,  1589,  1590,  1591,  1592,  1593,  1594,  1595,
+    1596,  1597,  1598,  1599,  1600,  1601,  1602,  1603,  1604,  1639,
+    1640,  1641,  1642,  1643,  1644,  1645,  1646,  1647,  1648,  1649,
+    1650,  1651,  1652,  1653,  1654,  1658,  1659,  1660,  1664,  1668,
+    1672,  1679,  1686,  1692,  1699,  1706,  1715,  1721,  1729,  1734,
+    1742,  1752,  1759,  1770,  1771,  1776,  1781,  1789,  1794,  1802,
+    1809,  1814,  1822,  1832,  1838,  1847,  1848,  1857,  1862,  1867,
+    1874,  1880,  1881,  1882,  1887,  1895,  1896,  1897,  1898,  1899,
+    1900,  1904,  1911,  1910,  1924,  1925,  1929,  1935,  1944,  1954,
+    1966,  1972,  1981,  1990,  1995,  2003,  2007,  2025,  2033,  2038,
+    2046,  2051,  2059,  2067,  2075,  2083,  2091,  2099,  2107,  2114,
+    2121,  2131,  2132,  2136,  2138,  2144,  2149,  2158,  2164,  2170,
+    2176,  2182,  2191,  2192,  2193,  2197,  2203,  2212,  2216,  2224,
+    2230,  2236,  2243,  2253,  2258,  2265,  2275,  2289,  2293,  2301
 };
 #endif
 
@@ -3272,7 +3269,7 @@ YYLTYPE yylloc;
 /* User initialization code.  */
 
 /* Line 1590 of yacc.c  */
-#line 53 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 50 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
 {
    yylloc.first_line = 1;
    yylloc.first_column = 1;
@@ -3282,7 +3279,7 @@ YYLTYPE yylloc;
 }
 
 /* Line 1590 of yacc.c  */
-#line 3286 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
+#line 3283 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
   yylsp[0] = yylloc;
 
   goto yysetstate;
@@ -3470,7 +3467,7 @@ yyreduce:
         case 2:
 
 /* Line 1806 of yacc.c  */
-#line 284 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 281 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   _mesa_glsl_initialize_types(state);
 	}
@@ -3479,7 +3476,7 @@ yyreduce:
   case 3:
 
 /* Line 1806 of yacc.c  */
-#line 288 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 285 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   delete state->symbols;
 	   state->symbols = new(ralloc_parent(state)) glsl_symbol_table;
@@ -3490,7 +3487,7 @@ yyreduce:
   case 8:
 
 /* Line 1806 of yacc.c  */
-#line 301 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 298 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   if (state->language_version < 120) {
 		  _mesa_glsl_warning(& (yylsp[(1) - (2)]), state,
@@ -3505,7 +3502,7 @@ yyreduce:
   case 12:
 
 /* Line 1806 of yacc.c  */
-#line 320 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 317 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   /* FINISHME: The NULL test is required because pragmas are set to
 		* FINISHME: NULL. (See production rule for external_declaration.)
@@ -3518,7 +3515,7 @@ yyreduce:
   case 13:
 
 /* Line 1806 of yacc.c  */
-#line 328 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 325 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   /* FINISHME: The NULL test is required because pragmas are set to
 		* FINISHME: NULL. (See production rule for external_declaration.)
@@ -3531,7 +3528,7 @@ yyreduce:
   case 16:
 
 /* Line 1806 of yacc.c  */
-#line 344 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 341 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_identifier, NULL, NULL, NULL);
@@ -3543,7 +3540,7 @@ yyreduce:
   case 17:
 
 /* Line 1806 of yacc.c  */
-#line 351 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 348 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_int_constant, NULL, NULL, NULL);
@@ -3555,7 +3552,7 @@ yyreduce:
   case 18:
 
 /* Line 1806 of yacc.c  */
-#line 358 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 355 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(state->bGenerateES ? ast_int_constant : ast_uint_constant, NULL, NULL, NULL);
@@ -3574,7 +3571,7 @@ yyreduce:
   case 19:
 
 /* Line 1806 of yacc.c  */
-#line 372 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 369 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_float_constant, NULL, NULL, NULL);
@@ -3586,7 +3583,7 @@ yyreduce:
   case 20:
 
 /* Line 1806 of yacc.c  */
-#line 379 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 376 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_bool_constant, NULL, NULL, NULL);
@@ -3598,7 +3595,7 @@ yyreduce:
   case 21:
 
 /* Line 1806 of yacc.c  */
-#line 386 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 383 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(2) - (3)].expression);
 	}
@@ -3607,7 +3604,7 @@ yyreduce:
   case 23:
 
 /* Line 1806 of yacc.c  */
-#line 394 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 391 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_array_index, (yyvsp[(1) - (4)].expression), (yyvsp[(3) - (4)].expression), NULL);
@@ -3618,7 +3615,7 @@ yyreduce:
   case 24:
 
 /* Line 1806 of yacc.c  */
-#line 400 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 397 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (1)].expression);
 	}
@@ -3627,7 +3624,7 @@ yyreduce:
   case 25:
 
 /* Line 1806 of yacc.c  */
-#line 404 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 401 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_field_selection, (yyvsp[(1) - (3)].expression), NULL, NULL);
@@ -3639,7 +3636,7 @@ yyreduce:
   case 26:
 
 /* Line 1806 of yacc.c  */
-#line 411 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 408 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_post_inc, (yyvsp[(1) - (2)].expression), NULL, NULL);
@@ -3650,7 +3647,7 @@ yyreduce:
   case 27:
 
 /* Line 1806 of yacc.c  */
-#line 417 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 414 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_post_dec, (yyvsp[(1) - (2)].expression), NULL, NULL);
@@ -3661,7 +3658,7 @@ yyreduce:
   case 31:
 
 /* Line 1806 of yacc.c  */
-#line 435 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 432 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_field_selection, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression), NULL);
@@ -3672,7 +3669,7 @@ yyreduce:
   case 36:
 
 /* Line 1806 of yacc.c  */
-#line 454 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 451 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (2)].expression);
 	   (yyval.expression)->set_location(yylloc);
@@ -3683,7 +3680,7 @@ yyreduce:
   case 37:
 
 /* Line 1806 of yacc.c  */
-#line 460 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 457 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (3)].expression);
 	   (yyval.expression)->set_location(yylloc);
@@ -3694,7 +3691,7 @@ yyreduce:
   case 39:
 
 /* Line 1806 of yacc.c  */
-#line 476 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 473 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_function_expression((yyvsp[(1) - (1)].type_specifier));
@@ -3705,7 +3702,7 @@ yyreduce:
   case 40:
 
 /* Line 1806 of yacc.c  */
-#line 482 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 479 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_expression *callee = new(ctx) ast_expression((yyvsp[(1) - (1)].identifier));
@@ -3717,7 +3714,7 @@ yyreduce:
   case 41:
 
 /* Line 1806 of yacc.c  */
-#line 489 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 486 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_expression *callee = new(ctx) ast_expression((yyvsp[(1) - (1)].identifier));
@@ -3729,7 +3726,7 @@ yyreduce:
   case 46:
 
 /* Line 1806 of yacc.c  */
-#line 509 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 506 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (2)].expression);
 	   (yyval.expression)->set_location(yylloc);
@@ -3740,7 +3737,7 @@ yyreduce:
   case 47:
 
 /* Line 1806 of yacc.c  */
-#line 515 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 512 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (3)].expression);
 	   (yyval.expression)->set_location(yylloc);
@@ -3751,7 +3748,7 @@ yyreduce:
   case 48:
 
 /* Line 1806 of yacc.c  */
-#line 527 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 524 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_expression *callee = new(ctx) ast_expression((yyvsp[(1) - (2)].identifier));
@@ -3763,7 +3760,7 @@ yyreduce:
   case 50:
 
 /* Line 1806 of yacc.c  */
-#line 539 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 536 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_pre_inc, (yyvsp[(2) - (2)].expression), NULL, NULL);
@@ -3774,7 +3771,7 @@ yyreduce:
   case 51:
 
 /* Line 1806 of yacc.c  */
-#line 545 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 542 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_pre_dec, (yyvsp[(2) - (2)].expression), NULL, NULL);
@@ -3785,7 +3782,7 @@ yyreduce:
   case 52:
 
 /* Line 1806 of yacc.c  */
-#line 551 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 548 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression((yyvsp[(1) - (2)].n), (yyvsp[(2) - (2)].expression), NULL, NULL);
@@ -3796,7 +3793,7 @@ yyreduce:
   case 53:
 
 /* Line 1806 of yacc.c  */
-#line 557 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 554 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.expression) = new(ctx) ast_expression(ast_type_cast, (yyvsp[(4) - (4)].expression), NULL, NULL);
@@ -3808,35 +3805,35 @@ yyreduce:
   case 54:
 
 /* Line 1806 of yacc.c  */
-#line 567 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 564 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_plus; }
     break;
 
   case 55:
 
 /* Line 1806 of yacc.c  */
-#line 568 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 565 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_neg; }
     break;
 
   case 56:
 
 /* Line 1806 of yacc.c  */
-#line 569 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 566 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_logic_not; }
     break;
 
   case 57:
 
 /* Line 1806 of yacc.c  */
-#line 570 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 567 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_bit_not; }
     break;
 
   case 59:
 
 /* Line 1806 of yacc.c  */
-#line 576 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 573 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_mul, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3847,7 +3844,7 @@ yyreduce:
   case 60:
 
 /* Line 1806 of yacc.c  */
-#line 582 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 579 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_div, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3858,7 +3855,7 @@ yyreduce:
   case 61:
 
 /* Line 1806 of yacc.c  */
-#line 588 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 585 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_mod, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3869,7 +3866,7 @@ yyreduce:
   case 63:
 
 /* Line 1806 of yacc.c  */
-#line 598 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 595 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_add, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3880,7 +3877,7 @@ yyreduce:
   case 64:
 
 /* Line 1806 of yacc.c  */
-#line 604 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 601 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_sub, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3891,7 +3888,7 @@ yyreduce:
   case 66:
 
 /* Line 1806 of yacc.c  */
-#line 614 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 611 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_lshift, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3902,7 +3899,7 @@ yyreduce:
   case 67:
 
 /* Line 1806 of yacc.c  */
-#line 620 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 617 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_rshift, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3913,7 +3910,7 @@ yyreduce:
   case 69:
 
 /* Line 1806 of yacc.c  */
-#line 630 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 627 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_less, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3924,7 +3921,7 @@ yyreduce:
   case 70:
 
 /* Line 1806 of yacc.c  */
-#line 636 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 633 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_greater, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3935,7 +3932,7 @@ yyreduce:
   case 71:
 
 /* Line 1806 of yacc.c  */
-#line 642 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 639 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_lequal, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3946,7 +3943,7 @@ yyreduce:
   case 72:
 
 /* Line 1806 of yacc.c  */
-#line 648 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 645 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_gequal, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3957,7 +3954,7 @@ yyreduce:
   case 74:
 
 /* Line 1806 of yacc.c  */
-#line 658 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 655 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_equal, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3968,7 +3965,7 @@ yyreduce:
   case 75:
 
 /* Line 1806 of yacc.c  */
-#line 664 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 661 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_nequal, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3979,7 +3976,7 @@ yyreduce:
   case 77:
 
 /* Line 1806 of yacc.c  */
-#line 674 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 671 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_bit_and, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -3990,7 +3987,7 @@ yyreduce:
   case 79:
 
 /* Line 1806 of yacc.c  */
-#line 684 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 681 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_bit_xor, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -4001,7 +3998,7 @@ yyreduce:
   case 81:
 
 /* Line 1806 of yacc.c  */
-#line 694 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 691 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_bit_or, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -4012,7 +4009,7 @@ yyreduce:
   case 83:
 
 /* Line 1806 of yacc.c  */
-#line 704 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 701 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_logic_and, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -4023,7 +4020,7 @@ yyreduce:
   case 85:
 
 /* Line 1806 of yacc.c  */
-#line 714 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 711 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression_bin(ast_logic_or, (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression));
@@ -4034,7 +4031,7 @@ yyreduce:
   case 87:
 
 /* Line 1806 of yacc.c  */
-#line 724 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 721 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression(ast_conditional, (yyvsp[(1) - (5)].expression), (yyvsp[(3) - (5)].expression), (yyvsp[(5) - (5)].expression));
@@ -4045,7 +4042,7 @@ yyreduce:
   case 89:
 
 /* Line 1806 of yacc.c  */
-#line 734 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 731 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.expression) = new(ctx) ast_expression((yyvsp[(2) - (3)].n), (yyvsp[(1) - (3)].expression), (yyvsp[(3) - (3)].expression), NULL);
@@ -4056,84 +4053,84 @@ yyreduce:
   case 90:
 
 /* Line 1806 of yacc.c  */
-#line 742 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 739 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_assign; }
     break;
 
   case 91:
 
 /* Line 1806 of yacc.c  */
-#line 743 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 740 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_mul_assign; }
     break;
 
   case 92:
 
 /* Line 1806 of yacc.c  */
-#line 744 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 741 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_div_assign; }
     break;
 
   case 93:
 
 /* Line 1806 of yacc.c  */
-#line 745 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 742 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_mod_assign; }
     break;
 
   case 94:
 
 /* Line 1806 of yacc.c  */
-#line 746 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 743 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_add_assign; }
     break;
 
   case 95:
 
 /* Line 1806 of yacc.c  */
-#line 747 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 744 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_sub_assign; }
     break;
 
   case 96:
 
 /* Line 1806 of yacc.c  */
-#line 748 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 745 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_ls_assign; }
     break;
 
   case 97:
 
 /* Line 1806 of yacc.c  */
-#line 749 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 746 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_rs_assign; }
     break;
 
   case 98:
 
 /* Line 1806 of yacc.c  */
-#line 750 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 747 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_and_assign; }
     break;
 
   case 99:
 
 /* Line 1806 of yacc.c  */
-#line 751 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 748 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_xor_assign; }
     break;
 
   case 100:
 
 /* Line 1806 of yacc.c  */
-#line 752 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 749 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.n) = ast_or_assign; }
     break;
 
   case 101:
 
 /* Line 1806 of yacc.c  */
-#line 757 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 754 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.expression) = (yyvsp[(1) - (1)].expression);
 	}
@@ -4142,7 +4139,7 @@ yyreduce:
   case 102:
 
 /* Line 1806 of yacc.c  */
-#line 761 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 758 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   if ((yyvsp[(1) - (3)].expression)->oper != ast_sequence) {
@@ -4160,7 +4157,7 @@ yyreduce:
   case 104:
 
 /* Line 1806 of yacc.c  */
-#line 781 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 778 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   state->symbols->pop_scope();
 	   (yyval.function) = (yyvsp[(1) - (2)].function);
@@ -4170,7 +4167,7 @@ yyreduce:
   case 105:
 
 /* Line 1806 of yacc.c  */
-#line 789 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 786 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.node) = (yyvsp[(1) - (1)].function);
 	}
@@ -4179,7 +4176,7 @@ yyreduce:
   case 106:
 
 /* Line 1806 of yacc.c  */
-#line 793 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 790 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = (yyvsp[(1) - (2)].declarator_list);
 	}
@@ -4188,7 +4185,7 @@ yyreduce:
   case 107:
 
 /* Line 1806 of yacc.c  */
-#line 800 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 797 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	}
     break;
@@ -4196,7 +4193,7 @@ yyreduce:
   case 108:
 
 /* Line 1806 of yacc.c  */
-#line 803 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 800 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.function) = (yyvsp[(1) - (4)].function);
 		(yyval.function)->return_semantic = (yyvsp[(4) - (4)].identifier);
@@ -4206,7 +4203,7 @@ yyreduce:
   case 111:
 
 /* Line 1806 of yacc.c  */
-#line 816 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 813 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.function) = (yyvsp[(1) - (2)].function);
 	   (yyval.function)->parameters.push_tail(& (yyvsp[(2) - (2)].parameter_declarator)->link);
@@ -4216,7 +4213,7 @@ yyreduce:
   case 112:
 
 /* Line 1806 of yacc.c  */
-#line 821 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 818 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.function) = (yyvsp[(1) - (3)].function);
 	   (yyval.function)->parameters.push_tail(& (yyvsp[(3) - (3)].parameter_declarator)->link);
@@ -4226,7 +4223,7 @@ yyreduce:
   case 113:
 
 /* Line 1806 of yacc.c  */
-#line 829 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 826 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.function) = new(ctx) ast_function();
@@ -4242,7 +4239,7 @@ yyreduce:
   case 114:
 
 /* Line 1806 of yacc.c  */
-#line 840 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 837 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.function) = new(ctx) ast_function();
@@ -4258,7 +4255,7 @@ yyreduce:
   case 115:
 
 /* Line 1806 of yacc.c  */
-#line 854 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 851 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4273,7 +4270,7 @@ yyreduce:
   case 116:
 
 /* Line 1806 of yacc.c  */
-#line 864 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 861 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4289,7 +4286,7 @@ yyreduce:
   case 117:
 
 /* Line 1806 of yacc.c  */
-#line 875 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 872 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4305,7 +4302,7 @@ yyreduce:
   case 118:
 
 /* Line 1806 of yacc.c  */
-#line 886 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 883 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4322,7 +4319,7 @@ yyreduce:
   case 119:
 
 /* Line 1806 of yacc.c  */
-#line 898 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 895 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4340,7 +4337,7 @@ yyreduce:
   case 120:
 
 /* Line 1806 of yacc.c  */
-#line 914 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 911 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyvsp[(1) - (3)].type_qualifier).flags.i |= (yyvsp[(2) - (3)].type_qualifier).flags.i;
 
@@ -4352,7 +4349,7 @@ yyreduce:
   case 121:
 
 /* Line 1806 of yacc.c  */
-#line 921 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 918 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyvsp[(1) - (3)].type_qualifier).flags.i |= (yyvsp[(2) - (3)].type_qualifier).flags.i;
 
@@ -4364,7 +4361,7 @@ yyreduce:
   case 122:
 
 /* Line 1806 of yacc.c  */
-#line 928 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 925 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyvsp[(1) - (4)].type_qualifier).flags.i |= (yyvsp[(2) - (4)].type_qualifier).flags.i;
 	   (yyvsp[(1) - (4)].type_qualifier).flags.i |= (yyvsp[(3) - (4)].type_qualifier).flags.i;
@@ -4377,7 +4374,7 @@ yyreduce:
   case 123:
 
 /* Line 1806 of yacc.c  */
-#line 936 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 933 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.parameter_declarator) = (yyvsp[(2) - (2)].parameter_declarator);
 	   (yyval.parameter_declarator)->type->qualifier = (yyvsp[(1) - (2)].type_qualifier);
@@ -4387,7 +4384,7 @@ yyreduce:
   case 124:
 
 /* Line 1806 of yacc.c  */
-#line 941 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 938 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.parameter_declarator) = (yyvsp[(2) - (2)].parameter_declarator);
 	   (yyval.parameter_declarator)->type->qualifier = (yyvsp[(1) - (2)].type_qualifier);
@@ -4397,7 +4394,7 @@ yyreduce:
   case 126:
 
 /* Line 1806 of yacc.c  */
-#line 947 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 944 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyvsp[(1) - (3)].type_qualifier).flags.i |= (yyvsp[(2) - (3)].type_qualifier).flags.i;
@@ -4413,7 +4410,7 @@ yyreduce:
   case 127:
 
 /* Line 1806 of yacc.c  */
-#line 958 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 955 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.parameter_declarator) = new(ctx) ast_parameter_declarator();
@@ -4427,7 +4424,7 @@ yyreduce:
   case 128:
 
 /* Line 1806 of yacc.c  */
-#line 970 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 967 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.in = 1;
@@ -4437,7 +4434,7 @@ yyreduce:
   case 129:
 
 /* Line 1806 of yacc.c  */
-#line 975 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 972 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.out = 1;
@@ -4447,7 +4444,7 @@ yyreduce:
   case 130:
 
 /* Line 1806 of yacc.c  */
-#line 980 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 977 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.in = 1;
@@ -4458,7 +4455,7 @@ yyreduce:
   case 131:
 
 /* Line 1806 of yacc.c  */
-#line 986 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 983 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.in = 1;
@@ -4469,7 +4466,7 @@ yyreduce:
   case 132:
 
 /* Line 1806 of yacc.c  */
-#line 992 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 989 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.in = 1;
@@ -4480,7 +4477,7 @@ yyreduce:
   case 133:
 
 /* Line 1806 of yacc.c  */
-#line 998 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 995 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.gs_point = 1;
@@ -4490,7 +4487,7 @@ yyreduce:
   case 134:
 
 /* Line 1806 of yacc.c  */
-#line 1003 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1000 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.gs_line = 1;
@@ -4500,7 +4497,7 @@ yyreduce:
   case 135:
 
 /* Line 1806 of yacc.c  */
-#line 1008 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1005 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.gs_triangle = 1;
@@ -4510,7 +4507,7 @@ yyreduce:
   case 136:
 
 /* Line 1806 of yacc.c  */
-#line 1013 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1010 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.gs_lineadj = 1;
@@ -4520,7 +4517,7 @@ yyreduce:
   case 137:
 
 /* Line 1806 of yacc.c  */
-#line 1018 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1015 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.gs_triangleadj = 1;
@@ -4530,7 +4527,7 @@ yyreduce:
   case 140:
 
 /* Line 1806 of yacc.c  */
-#line 1031 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1028 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(3) - (3)].identifier), false, NULL, NULL);
@@ -4545,7 +4542,7 @@ yyreduce:
   case 141:
 
 /* Line 1806 of yacc.c  */
-#line 1041 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1038 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(3) - (5)].identifier), true, NULL, NULL);
@@ -4560,7 +4557,7 @@ yyreduce:
   case 142:
 
 /* Line 1806 of yacc.c  */
-#line 1051 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1048 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = (yyvsp[(3) - (3)].declaration);
@@ -4574,7 +4571,7 @@ yyreduce:
   case 143:
 
 /* Line 1806 of yacc.c  */
-#line 1060 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1057 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(3) - (7)].identifier), true, NULL, (yyvsp[(7) - (7)].expression));
@@ -4589,7 +4586,7 @@ yyreduce:
   case 144:
 
 /* Line 1806 of yacc.c  */
-#line 1070 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1067 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = (yyvsp[(3) - (5)].declaration);
@@ -4604,7 +4601,7 @@ yyreduce:
   case 145:
 
 /* Line 1806 of yacc.c  */
-#line 1080 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1077 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(3) - (5)].identifier), false, NULL, (yyvsp[(5) - (5)].expression));
@@ -4619,7 +4616,7 @@ yyreduce:
   case 146:
 
 /* Line 1806 of yacc.c  */
-#line 1094 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1091 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   /* Empty declaration list is valid. */
@@ -4631,7 +4628,7 @@ yyreduce:
   case 147:
 
 /* Line 1806 of yacc.c  */
-#line 1101 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1098 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (2)].identifier), false, NULL, NULL);
@@ -4645,7 +4642,7 @@ yyreduce:
   case 148:
 
 /* Line 1806 of yacc.c  */
-#line 1110 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1107 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (4)].identifier), true, NULL, NULL);
@@ -4659,7 +4656,7 @@ yyreduce:
   case 149:
 
 /* Line 1806 of yacc.c  */
-#line 1119 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1116 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = (yyvsp[(2) - (2)].declaration);
@@ -4673,7 +4670,7 @@ yyreduce:
   case 150:
 
 /* Line 1806 of yacc.c  */
-#line 1128 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1125 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (6)].identifier), true, NULL, (yyvsp[(6) - (6)].expression));
@@ -4687,7 +4684,7 @@ yyreduce:
   case 151:
 
 /* Line 1806 of yacc.c  */
-#line 1137 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1134 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = (yyvsp[(2) - (4)].declaration);
@@ -4702,7 +4699,7 @@ yyreduce:
   case 152:
 
 /* Line 1806 of yacc.c  */
-#line 1147 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1144 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (4)].identifier), false, NULL, (yyvsp[(4) - (4)].expression));
@@ -4716,7 +4713,7 @@ yyreduce:
   case 153:
 
 /* Line 1806 of yacc.c  */
-#line 1156 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1153 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (2)].identifier), false, NULL, NULL);
@@ -4732,7 +4729,7 @@ yyreduce:
   case 154:
 
 /* Line 1806 of yacc.c  */
-#line 1170 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1167 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.fully_specified_type) = new(ctx) ast_fully_specified_type();
@@ -4744,7 +4741,7 @@ yyreduce:
   case 155:
 
 /* Line 1806 of yacc.c  */
-#line 1177 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1174 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.fully_specified_type) = new(ctx) ast_fully_specified_type();
@@ -4757,7 +4754,7 @@ yyreduce:
   case 156:
 
 /* Line 1806 of yacc.c  */
-#line 1188 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1185 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	  (yyval.type_qualifier) = (yyvsp[(3) - (4)].type_qualifier);
 	}
@@ -4766,7 +4763,7 @@ yyreduce:
   case 158:
 
 /* Line 1806 of yacc.c  */
-#line 1196 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1193 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   if (((yyvsp[(1) - (3)].type_qualifier).flags.i & (yyvsp[(3) - (3)].type_qualifier).flags.i) != 0) {
 		  _mesa_glsl_error(& (yylsp[(3) - (3)]), state,
@@ -4787,7 +4784,7 @@ yyreduce:
   case 159:
 
 /* Line 1806 of yacc.c  */
-#line 1215 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1212 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   bool got_one = false;
 
@@ -4851,7 +4848,7 @@ yyreduce:
   case 160:
 
 /* Line 1806 of yacc.c  */
-#line 1274 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1271 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   bool got_one = false;
 
@@ -4894,7 +4891,7 @@ yyreduce:
   case 161:
 
 /* Line 1806 of yacc.c  */
-#line 1315 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1312 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.smooth = 1;
@@ -4904,7 +4901,7 @@ yyreduce:
   case 162:
 
 /* Line 1806 of yacc.c  */
-#line 1320 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1317 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.flat = 1;
@@ -4914,7 +4911,7 @@ yyreduce:
   case 163:
 
 /* Line 1806 of yacc.c  */
-#line 1325 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1322 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.noperspective = 1;
@@ -4924,7 +4921,7 @@ yyreduce:
   case 165:
 
 /* Line 1806 of yacc.c  */
-#line 1334 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1331 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.type_qualifier) = (yyvsp[(2) - (2)].type_qualifier);
 		(yyval.type_qualifier).flags.q.centroid = 1;
@@ -4934,7 +4931,7 @@ yyreduce:
   case 166:
 
 /* Line 1806 of yacc.c  */
-#line 1339 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1336 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.type_qualifier) = (yyvsp[(1) - (2)].type_qualifier);
 		(yyval.type_qualifier).flags.q.centroid = 1;
@@ -4944,7 +4941,7 @@ yyreduce:
   case 167:
 
 /* Line 1806 of yacc.c  */
-#line 1344 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1341 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.centroid = 1;
@@ -4954,7 +4951,7 @@ yyreduce:
   case 168:
 
 /* Line 1806 of yacc.c  */
-#line 1349 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1346 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.constant = 1;
@@ -4964,7 +4961,7 @@ yyreduce:
   case 171:
 
 /* Line 1806 of yacc.c  */
-#line 1359 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1356 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_qualifier) = (yyvsp[(1) - (2)].type_qualifier);
 	   (yyval.type_qualifier).flags.i |= (yyvsp[(2) - (2)].type_qualifier).flags.i;
@@ -4974,7 +4971,7 @@ yyreduce:
   case 173:
 
 /* Line 1806 of yacc.c  */
-#line 1365 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1362 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_qualifier) = (yyvsp[(1) - (2)].type_qualifier);
 	   (yyval.type_qualifier).flags.i |= (yyvsp[(2) - (2)].type_qualifier).flags.i;
@@ -4984,7 +4981,7 @@ yyreduce:
   case 174:
 
 /* Line 1806 of yacc.c  */
-#line 1370 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1367 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_qualifier) = (yyvsp[(2) - (2)].type_qualifier);
 	   (yyval.type_qualifier).flags.q.invariant = 1;
@@ -4994,7 +4991,7 @@ yyreduce:
   case 175:
 
 /* Line 1806 of yacc.c  */
-#line 1375 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1372 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_qualifier) = (yyvsp[(2) - (3)].type_qualifier);
 	   (yyval.type_qualifier).flags.i |= (yyvsp[(3) - (3)].type_qualifier).flags.i;
@@ -5005,7 +5002,7 @@ yyreduce:
   case 176:
 
 /* Line 1806 of yacc.c  */
-#line 1381 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1378 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.invariant = 1;
@@ -5015,7 +5012,7 @@ yyreduce:
   case 177:
 
 /* Line 1806 of yacc.c  */
-#line 1389 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1386 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.constant = 1;
@@ -5025,7 +5022,7 @@ yyreduce:
   case 178:
 
 /* Line 1806 of yacc.c  */
-#line 1394 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1391 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.varying = 1;
@@ -5035,7 +5032,7 @@ yyreduce:
   case 179:
 
 /* Line 1806 of yacc.c  */
-#line 1399 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1396 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.centroid = 1;
@@ -5046,7 +5043,7 @@ yyreduce:
   case 180:
 
 /* Line 1806 of yacc.c  */
-#line 1405 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1402 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.in = 1;
@@ -5056,7 +5053,7 @@ yyreduce:
   case 181:
 
 /* Line 1806 of yacc.c  */
-#line 1410 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1407 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.out = 1;
@@ -5066,7 +5063,7 @@ yyreduce:
   case 182:
 
 /* Line 1806 of yacc.c  */
-#line 1415 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1412 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.centroid = 1; (yyval.type_qualifier).flags.q.in = 1;
@@ -5076,7 +5073,7 @@ yyreduce:
   case 183:
 
 /* Line 1806 of yacc.c  */
-#line 1420 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1417 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.centroid = 1; (yyval.type_qualifier).flags.q.out = 1;
@@ -5086,7 +5083,7 @@ yyreduce:
   case 184:
 
 /* Line 1806 of yacc.c  */
-#line 1425 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1422 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 	   (yyval.type_qualifier).flags.q.uniform = 1;
@@ -5096,7 +5093,7 @@ yyreduce:
   case 185:
 
 /* Line 1806 of yacc.c  */
-#line 1430 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1427 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.row_major = 1;
@@ -5106,7 +5103,7 @@ yyreduce:
   case 186:
 
 /* Line 1806 of yacc.c  */
-#line 1435 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1432 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.column_major = 1;
@@ -5116,7 +5113,7 @@ yyreduce:
   case 187:
 
 /* Line 1806 of yacc.c  */
-#line 1440 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1437 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.is_static = 1;
@@ -5126,7 +5123,7 @@ yyreduce:
   case 188:
 
 /* Line 1806 of yacc.c  */
-#line 1445 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1442 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.constant = 1;
@@ -5137,7 +5134,7 @@ yyreduce:
   case 189:
 
 /* Line 1806 of yacc.c  */
-#line 1451 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1448 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.constant = 1;
@@ -5148,7 +5145,7 @@ yyreduce:
   case 190:
 
 /* Line 1806 of yacc.c  */
-#line 1457 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1454 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.coherent = 1;
@@ -5158,7 +5155,7 @@ yyreduce:
   case 191:
 
 /* Line 1806 of yacc.c  */
-#line 1462 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1459 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.shared = 1;
@@ -5168,7 +5165,7 @@ yyreduce:
   case 192:
 
 /* Line 1806 of yacc.c  */
-#line 1470 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1467 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_specifier) = (yyvsp[(1) - (1)].type_specifier);
 	}
@@ -5177,7 +5174,7 @@ yyreduce:
   case 195:
 
 /* Line 1806 of yacc.c  */
-#line 1482 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1479 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_specifier) = (yyvsp[(1) - (3)].type_specifier);
 	   (yyval.type_specifier)->is_array = true;
@@ -5188,7 +5185,7 @@ yyreduce:
   case 196:
 
 /* Line 1806 of yacc.c  */
-#line 1488 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1485 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_specifier) = (yyvsp[(1) - (3)].type_specifier);
 	   (yyval.type_specifier)->is_unsized_array++;
@@ -5198,7 +5195,7 @@ yyreduce:
   case 197:
 
 /* Line 1806 of yacc.c  */
-#line 1493 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1490 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_specifier) = (yyvsp[(1) - (4)].type_specifier);
 	   (yyval.type_specifier)->is_array = true;
@@ -5209,7 +5206,7 @@ yyreduce:
   case 198:
 
 /* Line 1806 of yacc.c  */
-#line 1499 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1496 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.type_specifier) = (yyvsp[(1) - (4)].type_specifier);
 	   (yyvsp[(3) - (4)].expression)->link.next = &((yyval.type_specifier)->array_size->link);
@@ -5220,7 +5217,7 @@ yyreduce:
   case 199:
 
 /* Line 1806 of yacc.c  */
-#line 1508 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1505 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (1)].identifier));
@@ -5231,7 +5228,7 @@ yyreduce:
   case 200:
 
 /* Line 1806 of yacc.c  */
-#line 1514 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1511 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (1)].identifier),"vec4");
@@ -5242,7 +5239,7 @@ yyreduce:
   case 201:
 
 /* Line 1806 of yacc.c  */
-#line 1520 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1517 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (6)].identifier),(yyvsp[(3) - (6)].identifier));
@@ -5254,7 +5251,7 @@ yyreduce:
   case 202:
 
 /* Line 1806 of yacc.c  */
-#line 1527 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1524 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (4)].identifier),(yyvsp[(3) - (4)].identifier));
@@ -5265,7 +5262,7 @@ yyreduce:
   case 203:
 
 /* Line 1806 of yacc.c  */
-#line 1533 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1530 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (4)].identifier),(yyvsp[(3) - (4)].identifier));
@@ -5276,7 +5273,7 @@ yyreduce:
   case 204:
 
 /* Line 1806 of yacc.c  */
-#line 1539 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1536 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (6)].identifier),(yyvsp[(3) - (6)].identifier));
@@ -5288,7 +5285,7 @@ yyreduce:
   case 205:
 
 /* Line 1806 of yacc.c  */
-#line 1546 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1543 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (6)].identifier),(yyvsp[(3) - (6)].identifier));
@@ -5300,7 +5297,7 @@ yyreduce:
   case 206:
 
 /* Line 1806 of yacc.c  */
-#line 1553 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1550 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (1)].struct_specifier));
@@ -5311,7 +5308,7 @@ yyreduce:
   case 207:
 
 /* Line 1806 of yacc.c  */
-#line 1559 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1556 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.type_specifier) = new(ctx) ast_type_specifier((yyvsp[(1) - (1)].identifier));
@@ -5322,441 +5319,441 @@ yyreduce:
   case 208:
 
 /* Line 1806 of yacc.c  */
-#line 1567 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1564 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "void"; }
     break;
 
   case 209:
 
 /* Line 1806 of yacc.c  */
-#line 1568 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1565 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "float"; }
     break;
 
   case 210:
 
 /* Line 1806 of yacc.c  */
-#line 1569 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1566 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half"; }
     break;
 
   case 211:
 
 /* Line 1806 of yacc.c  */
-#line 1570 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1567 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "int"; }
     break;
 
   case 212:
 
 /* Line 1806 of yacc.c  */
-#line 1571 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1568 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "uint"; }
     break;
 
   case 213:
 
 /* Line 1806 of yacc.c  */
-#line 1572 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1569 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "bool"; }
     break;
 
   case 214:
 
 /* Line 1806 of yacc.c  */
-#line 1573 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1570 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "vec2"; }
     break;
 
   case 215:
 
 /* Line 1806 of yacc.c  */
-#line 1574 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1571 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "vec3"; }
     break;
 
   case 216:
 
 /* Line 1806 of yacc.c  */
-#line 1575 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1572 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "vec4"; }
     break;
 
   case 217:
 
 /* Line 1806 of yacc.c  */
-#line 1576 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1573 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half2"; }
     break;
 
   case 218:
 
 /* Line 1806 of yacc.c  */
-#line 1577 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1574 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half3"; }
     break;
 
   case 219:
 
 /* Line 1806 of yacc.c  */
-#line 1578 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1575 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half4"; }
     break;
 
   case 220:
 
 /* Line 1806 of yacc.c  */
-#line 1579 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1576 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "bvec2"; }
     break;
 
   case 221:
 
 /* Line 1806 of yacc.c  */
-#line 1580 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1577 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "bvec3"; }
     break;
 
   case 222:
 
 /* Line 1806 of yacc.c  */
-#line 1581 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1578 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "bvec4"; }
     break;
 
   case 223:
 
 /* Line 1806 of yacc.c  */
-#line 1582 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1579 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "ivec2"; }
     break;
 
   case 224:
 
 /* Line 1806 of yacc.c  */
-#line 1583 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1580 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "ivec3"; }
     break;
 
   case 225:
 
 /* Line 1806 of yacc.c  */
-#line 1584 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1581 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "ivec4"; }
     break;
 
   case 226:
 
 /* Line 1806 of yacc.c  */
-#line 1585 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1582 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "uvec2"; }
     break;
 
   case 227:
 
 /* Line 1806 of yacc.c  */
-#line 1586 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1583 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "uvec3"; }
     break;
 
   case 228:
 
 /* Line 1806 of yacc.c  */
-#line 1587 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1584 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "uvec4"; }
     break;
 
   case 229:
 
 /* Line 1806 of yacc.c  */
-#line 1588 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1585 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat2"; }
     break;
 
   case 230:
 
 /* Line 1806 of yacc.c  */
-#line 1589 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1586 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat2x3"; }
     break;
 
   case 231:
 
 /* Line 1806 of yacc.c  */
-#line 1590 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1587 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat2x4"; }
     break;
 
   case 232:
 
 /* Line 1806 of yacc.c  */
-#line 1591 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1588 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat3x2"; }
     break;
 
   case 233:
 
 /* Line 1806 of yacc.c  */
-#line 1592 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1589 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat3"; }
     break;
 
   case 234:
 
 /* Line 1806 of yacc.c  */
-#line 1593 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1590 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat3x4"; }
     break;
 
   case 235:
 
 /* Line 1806 of yacc.c  */
-#line 1594 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1591 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat4x2"; }
     break;
 
   case 236:
 
 /* Line 1806 of yacc.c  */
-#line 1595 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1592 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat4x3"; }
     break;
 
   case 237:
 
 /* Line 1806 of yacc.c  */
-#line 1596 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1593 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "mat4"; }
     break;
 
   case 238:
 
 /* Line 1806 of yacc.c  */
-#line 1597 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1594 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half2x2"; }
     break;
 
   case 239:
 
 /* Line 1806 of yacc.c  */
-#line 1598 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1595 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half2x3"; }
     break;
 
   case 240:
 
 /* Line 1806 of yacc.c  */
-#line 1599 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1596 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half2x4"; }
     break;
 
   case 241:
 
 /* Line 1806 of yacc.c  */
-#line 1600 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1597 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half3x2"; }
     break;
 
   case 242:
 
 /* Line 1806 of yacc.c  */
-#line 1601 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1598 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half3x3"; }
     break;
 
   case 243:
 
 /* Line 1806 of yacc.c  */
-#line 1602 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1599 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half3x4"; }
     break;
 
   case 244:
 
 /* Line 1806 of yacc.c  */
-#line 1603 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1600 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half4x2"; }
     break;
 
   case 245:
 
 /* Line 1806 of yacc.c  */
-#line 1604 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1601 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half4x3"; }
     break;
 
   case 246:
 
 /* Line 1806 of yacc.c  */
-#line 1605 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1602 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "half4x4"; }
     break;
 
   case 247:
 
 /* Line 1806 of yacc.c  */
-#line 1606 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1603 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "samplerState"; }
     break;
 
   case 248:
 
 /* Line 1806 of yacc.c  */
-#line 1607 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1604 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "samplerComparisonState"; }
     break;
 
   case 249:
 
 /* Line 1806 of yacc.c  */
-#line 1642 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1639 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Buffer"; }
     break;
 
   case 250:
 
 /* Line 1806 of yacc.c  */
-#line 1643 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1640 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture1D"; }
     break;
 
   case 251:
 
 /* Line 1806 of yacc.c  */
-#line 1644 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1641 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture1DArray"; }
     break;
 
   case 252:
 
 /* Line 1806 of yacc.c  */
-#line 1645 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1642 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture2D"; }
     break;
 
   case 253:
 
 /* Line 1806 of yacc.c  */
-#line 1646 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1643 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture2DArray"; }
     break;
 
   case 254:
 
 /* Line 1806 of yacc.c  */
-#line 1647 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1644 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture2DMS"; }
     break;
 
   case 255:
 
 /* Line 1806 of yacc.c  */
-#line 1648 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1645 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture2DMSArray"; }
     break;
 
   case 256:
 
 /* Line 1806 of yacc.c  */
-#line 1649 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1646 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "Texture3D"; }
     break;
 
   case 257:
 
 /* Line 1806 of yacc.c  */
-#line 1650 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1647 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "TextureCube"; }
     break;
 
   case 258:
 
 /* Line 1806 of yacc.c  */
-#line 1651 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1648 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "TextureCubeArray"; }
     break;
 
   case 259:
 
 /* Line 1806 of yacc.c  */
-#line 1652 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1649 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWBuffer"; }
     break;
 
   case 260:
 
 /* Line 1806 of yacc.c  */
-#line 1653 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1650 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWTexture1D"; }
     break;
 
   case 261:
 
 /* Line 1806 of yacc.c  */
-#line 1654 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1651 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWTexture1DArray"; }
     break;
 
   case 262:
 
 /* Line 1806 of yacc.c  */
-#line 1655 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1652 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWTexture2D"; }
     break;
 
   case 263:
 
 /* Line 1806 of yacc.c  */
-#line 1656 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1653 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWTexture2DArray"; }
     break;
 
   case 264:
 
 /* Line 1806 of yacc.c  */
-#line 1657 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1654 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "RWTexture3D"; }
     break;
 
   case 265:
 
 /* Line 1806 of yacc.c  */
-#line 1661 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1658 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "PointStream"; }
     break;
 
   case 266:
 
 /* Line 1806 of yacc.c  */
-#line 1662 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1659 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "LineStream"; }
     break;
 
   case 267:
 
 /* Line 1806 of yacc.c  */
-#line 1663 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1660 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "TriangleStream"; }
     break;
 
   case 268:
 
 /* Line 1806 of yacc.c  */
-#line 1667 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1664 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "InputPatch"; }
     break;
 
   case 269:
 
 /* Line 1806 of yacc.c  */
-#line 1671 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1668 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.identifier) = "OutputPatch"; }
     break;
 
   case 270:
 
 /* Line 1806 of yacc.c  */
-#line 1676 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1673 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.struct_specifier) = new(ctx) ast_struct_specifier((yyvsp[(2) - (5)].identifier), (yyvsp[(4) - (5)].node));
@@ -5768,7 +5765,7 @@ yyreduce:
   case 271:
 
 /* Line 1806 of yacc.c  */
-#line 1683 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1680 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.struct_specifier) = new(ctx) ast_struct_specifier((yyvsp[(2) - (7)].identifier), (yyvsp[(4) - (7)].identifier), (yyvsp[(6) - (7)].node));
@@ -5780,7 +5777,7 @@ yyreduce:
   case 272:
 
 /* Line 1806 of yacc.c  */
-#line 1690 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1687 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.struct_specifier) = new(ctx) ast_struct_specifier(NULL, (yyvsp[(3) - (4)].node));
@@ -5791,7 +5788,7 @@ yyreduce:
   case 273:
 
 /* Line 1806 of yacc.c  */
-#line 1696 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1693 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.struct_specifier) = new(ctx) ast_struct_specifier((yyvsp[(2) - (4)].identifier),NULL);
@@ -5803,7 +5800,7 @@ yyreduce:
   case 274:
 
 /* Line 1806 of yacc.c  */
-#line 1703 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1700 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.struct_specifier) = new(ctx) ast_struct_specifier((yyvsp[(2) - (6)].identifier), (yyvsp[(4) - (6)].identifier), NULL);
@@ -5815,7 +5812,7 @@ yyreduce:
   case 275:
 
 /* Line 1806 of yacc.c  */
-#line 1710 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1707 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.struct_specifier) = new(ctx) ast_struct_specifier(NULL,NULL);
@@ -5826,7 +5823,7 @@ yyreduce:
   case 276:
 
 /* Line 1806 of yacc.c  */
-#line 1719 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1716 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_cbuffer_declaration((yyvsp[(2) - (5)].identifier), (yyvsp[(4) - (5)].node));
@@ -5837,7 +5834,7 @@ yyreduce:
   case 277:
 
 /* Line 1806 of yacc.c  */
-#line 1725 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1722 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		/* Do nothing! */
 		(yyval.node) = NULL;
@@ -5847,7 +5844,7 @@ yyreduce:
   case 278:
 
 /* Line 1806 of yacc.c  */
-#line 1733 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1730 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = (ast_node *) (yyvsp[(1) - (1)].declarator_list);
 	   (yyvsp[(1) - (1)].declarator_list)->link.self_link();
@@ -5857,7 +5854,7 @@ yyreduce:
   case 279:
 
 /* Line 1806 of yacc.c  */
-#line 1738 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1735 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = (ast_node *) (yyvsp[(1) - (2)].node);
 	   (yyval.node)->link.insert_before(& (yyvsp[(2) - (2)].declarator_list)->link);
@@ -5867,7 +5864,7 @@ yyreduce:
   case 280:
 
 /* Line 1806 of yacc.c  */
-#line 1746 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1743 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declarator_list) = new(ctx) ast_declarator_list((yyvsp[(1) - (3)].fully_specified_type));
@@ -5879,7 +5876,7 @@ yyreduce:
   case 281:
 
 /* Line 1806 of yacc.c  */
-#line 1756 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1753 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.fully_specified_type) = new(ctx) ast_fully_specified_type();
@@ -5891,7 +5888,7 @@ yyreduce:
   case 282:
 
 /* Line 1806 of yacc.c  */
-#line 1763 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1760 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.fully_specified_type) = new(ctx) ast_fully_specified_type();
@@ -5904,7 +5901,7 @@ yyreduce:
   case 284:
 
 /* Line 1806 of yacc.c  */
-#line 1775 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1772 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.type_qualifier) = (yyvsp[(2) - (2)].type_qualifier);
 		(yyval.type_qualifier).flags.q.centroid = 1;
@@ -5914,7 +5911,7 @@ yyreduce:
   case 285:
 
 /* Line 1806 of yacc.c  */
-#line 1780 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1777 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.type_qualifier) = (yyvsp[(1) - (2)].type_qualifier);
 		(yyval.type_qualifier).flags.q.centroid = 1;
@@ -5924,7 +5921,7 @@ yyreduce:
   case 286:
 
 /* Line 1806 of yacc.c  */
-#line 1785 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1782 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		memset(& (yyval.type_qualifier), 0, sizeof((yyval.type_qualifier)));
 		(yyval.type_qualifier).flags.q.centroid = 1;
@@ -5934,7 +5931,7 @@ yyreduce:
   case 287:
 
 /* Line 1806 of yacc.c  */
-#line 1793 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1790 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.declaration) = (yyvsp[(1) - (1)].declaration);
 	   (yyvsp[(1) - (1)].declaration)->link.self_link();
@@ -5944,7 +5941,7 @@ yyreduce:
   case 288:
 
 /* Line 1806 of yacc.c  */
-#line 1798 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1795 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.declaration) = (yyvsp[(1) - (3)].declaration);
 	   (yyval.declaration)->link.insert_before(& (yyvsp[(3) - (3)].declaration)->link);
@@ -5954,7 +5951,7 @@ yyreduce:
   case 289:
 
 /* Line 1806 of yacc.c  */
-#line 1806 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1803 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declaration) = new(ctx) ast_declaration((yyvsp[(1) - (1)].identifier), false, NULL, NULL);
@@ -5966,7 +5963,7 @@ yyreduce:
   case 290:
 
 /* Line 1806 of yacc.c  */
-#line 1813 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1810 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declaration) = (yyvsp[(1) - (1)].declaration);
@@ -5976,7 +5973,7 @@ yyreduce:
   case 291:
 
 /* Line 1806 of yacc.c  */
-#line 1818 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1815 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.declaration) = new(ctx) ast_declaration((yyvsp[(1) - (3)].identifier), false, NULL, NULL);
@@ -5989,7 +5986,7 @@ yyreduce:
   case 292:
 
 /* Line 1806 of yacc.c  */
-#line 1826 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1823 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declaration) = new(ctx) ast_declaration((yyvsp[(1) - (6)].identifier), true, (yyvsp[(3) - (6)].expression), NULL);
@@ -6001,7 +5998,7 @@ yyreduce:
   case 293:
 
 /* Line 1806 of yacc.c  */
-#line 1836 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1833 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declaration) = new(ctx) ast_declaration((yyvsp[(1) - (4)].identifier), true, (yyvsp[(3) - (4)].expression), NULL);
@@ -6012,7 +6009,7 @@ yyreduce:
   case 294:
 
 /* Line 1806 of yacc.c  */
-#line 1842 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1839 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.declaration) = (yyvsp[(1) - (4)].declaration);
@@ -6024,7 +6021,7 @@ yyreduce:
   case 296:
 
 /* Line 1806 of yacc.c  */
-#line 1852 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1849 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.expression) = new(ctx) ast_initializer_list_expression();
@@ -6035,7 +6032,7 @@ yyreduce:
   case 297:
 
 /* Line 1806 of yacc.c  */
-#line 1861 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1858 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.expression) = (yyvsp[(1) - (1)].expression);
 		(yyval.expression)->link.self_link();
@@ -6045,7 +6042,7 @@ yyreduce:
   case 298:
 
 /* Line 1806 of yacc.c  */
-#line 1866 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1863 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.expression) = (yyvsp[(1) - (3)].expression);
 		(yyval.expression)->link.insert_before(& (yyvsp[(3) - (3)].expression)->link);
@@ -6055,7 +6052,7 @@ yyreduce:
   case 299:
 
 /* Line 1806 of yacc.c  */
-#line 1871 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1868 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.expression) = (yyvsp[(1) - (2)].expression);
 	}
@@ -6064,14 +6061,14 @@ yyreduce:
   case 301:
 
 /* Line 1806 of yacc.c  */
-#line 1883 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1880 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.node) = (ast_node *) (yyvsp[(1) - (1)].compound_statement); }
     break;
 
   case 303:
 
 /* Line 1806 of yacc.c  */
-#line 1886 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1883 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.node) = (ast_node *) (yyvsp[(2) - (2)].compound_statement);
 		(yyval.node)->attributes.push_degenerate_list_at_head( & (yyvsp[(1) - (2)].attribute)->link);
@@ -6081,7 +6078,7 @@ yyreduce:
   case 304:
 
 /* Line 1806 of yacc.c  */
-#line 1891 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1888 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.node) = (yyvsp[(2) - (2)].node);
 		(yyval.node)->attributes.push_degenerate_list_at_head( & (yyvsp[(1) - (2)].attribute)->link);
@@ -6091,7 +6088,7 @@ yyreduce:
   case 311:
 
 /* Line 1806 of yacc.c  */
-#line 1908 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1905 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.compound_statement) = new(ctx) ast_compound_statement(true, NULL);
@@ -6102,7 +6099,7 @@ yyreduce:
   case 312:
 
 /* Line 1806 of yacc.c  */
-#line 1914 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1911 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   state->symbols->push_scope();
 	}
@@ -6111,7 +6108,7 @@ yyreduce:
   case 313:
 
 /* Line 1806 of yacc.c  */
-#line 1918 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1915 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.compound_statement) = new(ctx) ast_compound_statement(true, (yyvsp[(3) - (4)].node));
@@ -6123,14 +6120,14 @@ yyreduce:
   case 314:
 
 /* Line 1806 of yacc.c  */
-#line 1927 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1924 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.node) = (ast_node *) (yyvsp[(1) - (1)].compound_statement); }
     break;
 
   case 316:
 
 /* Line 1806 of yacc.c  */
-#line 1933 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1930 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.compound_statement) = new(ctx) ast_compound_statement(false, NULL);
@@ -6141,7 +6138,7 @@ yyreduce:
   case 317:
 
 /* Line 1806 of yacc.c  */
-#line 1939 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1936 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.compound_statement) = new(ctx) ast_compound_statement(false, (yyvsp[(2) - (3)].node));
@@ -6152,7 +6149,7 @@ yyreduce:
   case 318:
 
 /* Line 1806 of yacc.c  */
-#line 1948 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1945 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   if ((yyvsp[(1) - (1)].node) == NULL) {
 		  _mesa_glsl_error(& (yylsp[(1) - (1)]), state, "<nil> statement\n");
@@ -6167,7 +6164,7 @@ yyreduce:
   case 319:
 
 /* Line 1806 of yacc.c  */
-#line 1958 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1955 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   if ((yyvsp[(2) - (2)].node) == NULL) {
 		  _mesa_glsl_error(& (yylsp[(2) - (2)]), state, "<nil> statement\n");
@@ -6181,7 +6178,7 @@ yyreduce:
   case 320:
 
 /* Line 1806 of yacc.c  */
-#line 1970 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1967 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_expression_statement(NULL);
@@ -6192,7 +6189,7 @@ yyreduce:
   case 321:
 
 /* Line 1806 of yacc.c  */
-#line 1976 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1973 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_expression_statement((yyvsp[(1) - (2)].expression));
@@ -6203,7 +6200,7 @@ yyreduce:
   case 322:
 
 /* Line 1806 of yacc.c  */
-#line 1985 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1982 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = new(state) ast_selection_statement((yyvsp[(3) - (5)].expression), (yyvsp[(5) - (5)].selection_rest_statement).then_statement,
 						   (yyvsp[(5) - (5)].selection_rest_statement).else_statement);
@@ -6214,7 +6211,7 @@ yyreduce:
   case 323:
 
 /* Line 1806 of yacc.c  */
-#line 1994 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1991 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.selection_rest_statement).then_statement = (yyvsp[(1) - (3)].node);
 	   (yyval.selection_rest_statement).else_statement = (yyvsp[(3) - (3)].node);
@@ -6224,7 +6221,7 @@ yyreduce:
   case 324:
 
 /* Line 1806 of yacc.c  */
-#line 1999 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 1996 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.selection_rest_statement).then_statement = (yyvsp[(1) - (1)].node);
 	   (yyval.selection_rest_statement).else_statement = NULL;
@@ -6234,7 +6231,7 @@ yyreduce:
   case 325:
 
 /* Line 1806 of yacc.c  */
-#line 2007 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2004 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = (ast_node *) (yyvsp[(1) - (1)].expression);
 	}
@@ -6243,7 +6240,7 @@ yyreduce:
   case 326:
 
 /* Line 1806 of yacc.c  */
-#line 2011 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2008 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   ast_declaration *decl = new(ctx) ast_declaration((yyvsp[(2) - (4)].identifier), false, NULL, (yyvsp[(4) - (4)].expression));
@@ -6259,7 +6256,7 @@ yyreduce:
   case 327:
 
 /* Line 1806 of yacc.c  */
-#line 2029 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2026 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = new(state) ast_switch_statement((yyvsp[(3) - (5)].expression), (yyvsp[(5) - (5)].switch_body));
 	   (yyval.node)->set_location(yylloc);
@@ -6269,7 +6266,7 @@ yyreduce:
   case 328:
 
 /* Line 1806 of yacc.c  */
-#line 2037 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2034 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.switch_body) = new(state) ast_switch_body(NULL);
 	   (yyval.switch_body)->set_location(yylloc);
@@ -6279,7 +6276,7 @@ yyreduce:
   case 329:
 
 /* Line 1806 of yacc.c  */
-#line 2042 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2039 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.switch_body) = new(state) ast_switch_body((yyvsp[(2) - (3)].case_statement_list));
 	   (yyval.switch_body)->set_location(yylloc);
@@ -6289,7 +6286,7 @@ yyreduce:
   case 330:
 
 /* Line 1806 of yacc.c  */
-#line 2050 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2047 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.case_label) = new(state) ast_case_label((yyvsp[(2) - (3)].expression));
 	   (yyval.case_label)->set_location(yylloc);
@@ -6299,7 +6296,7 @@ yyreduce:
   case 331:
 
 /* Line 1806 of yacc.c  */
-#line 2055 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2052 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.case_label) = new(state) ast_case_label(NULL);
 	   (yyval.case_label)->set_location(yylloc);
@@ -6309,7 +6306,7 @@ yyreduce:
   case 332:
 
 /* Line 1806 of yacc.c  */
-#line 2063 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2060 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   ast_case_label_list *labels = new(state) ast_case_label_list();
 
@@ -6322,7 +6319,7 @@ yyreduce:
   case 333:
 
 /* Line 1806 of yacc.c  */
-#line 2071 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2068 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.case_label_list) = (yyvsp[(1) - (2)].case_label_list);
 	   (yyval.case_label_list)->labels.push_tail(& (yyvsp[(2) - (2)].case_label)->link);
@@ -6332,7 +6329,7 @@ yyreduce:
   case 334:
 
 /* Line 1806 of yacc.c  */
-#line 2079 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2076 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   ast_case_statement *stmts = new(state) ast_case_statement((yyvsp[(1) - (2)].case_label_list));
 	   stmts->set_location(yylloc);
@@ -6345,7 +6342,7 @@ yyreduce:
   case 335:
 
 /* Line 1806 of yacc.c  */
-#line 2087 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2084 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.case_statement) = (yyvsp[(1) - (2)].case_statement);
 	   (yyval.case_statement)->stmts.push_tail(& (yyvsp[(2) - (2)].node)->link);
@@ -6355,7 +6352,7 @@ yyreduce:
   case 336:
 
 /* Line 1806 of yacc.c  */
-#line 2095 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2092 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   ast_case_statement_list *cases= new(state) ast_case_statement_list();
 	   cases->set_location(yylloc);
@@ -6368,7 +6365,7 @@ yyreduce:
   case 337:
 
 /* Line 1806 of yacc.c  */
-#line 2103 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2100 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.case_statement_list) = (yyvsp[(1) - (2)].case_statement_list);
 	   (yyval.case_statement_list)->cases.push_tail(& (yyvsp[(2) - (2)].case_statement)->link);
@@ -6378,7 +6375,7 @@ yyreduce:
   case 338:
 
 /* Line 1806 of yacc.c  */
-#line 2111 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2108 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_iteration_statement(ast_iteration_statement::ast_while,
@@ -6390,7 +6387,7 @@ yyreduce:
   case 339:
 
 /* Line 1806 of yacc.c  */
-#line 2118 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2115 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_iteration_statement(ast_iteration_statement::ast_do_while,
@@ -6402,7 +6399,7 @@ yyreduce:
   case 340:
 
 /* Line 1806 of yacc.c  */
-#line 2125 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2122 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_iteration_statement(ast_iteration_statement::ast_for,
@@ -6414,7 +6411,7 @@ yyreduce:
   case 344:
 
 /* Line 1806 of yacc.c  */
-#line 2141 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2138 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = NULL;
 	}
@@ -6423,7 +6420,7 @@ yyreduce:
   case 345:
 
 /* Line 1806 of yacc.c  */
-#line 2148 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2145 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.for_rest_statement).cond = (yyvsp[(1) - (2)].node);
 	   (yyval.for_rest_statement).rest = NULL;
@@ -6433,7 +6430,7 @@ yyreduce:
   case 346:
 
 /* Line 1806 of yacc.c  */
-#line 2153 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2150 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.for_rest_statement).cond = (yyvsp[(1) - (3)].node);
 	   (yyval.for_rest_statement).rest = (yyvsp[(3) - (3)].expression);
@@ -6443,7 +6440,7 @@ yyreduce:
   case 347:
 
 /* Line 1806 of yacc.c  */
-#line 2162 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2159 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_jump_statement(ast_jump_statement::ast_continue, NULL);
@@ -6454,7 +6451,7 @@ yyreduce:
   case 348:
 
 /* Line 1806 of yacc.c  */
-#line 2168 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2165 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_jump_statement(ast_jump_statement::ast_break, NULL);
@@ -6465,7 +6462,7 @@ yyreduce:
   case 349:
 
 /* Line 1806 of yacc.c  */
-#line 2174 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2171 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_jump_statement(ast_jump_statement::ast_return, NULL);
@@ -6476,7 +6473,7 @@ yyreduce:
   case 350:
 
 /* Line 1806 of yacc.c  */
-#line 2180 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2177 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_jump_statement(ast_jump_statement::ast_return, (yyvsp[(2) - (3)].expression));
@@ -6487,7 +6484,7 @@ yyreduce:
   case 351:
 
 /* Line 1806 of yacc.c  */
-#line 2186 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2183 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.node) = new(ctx) ast_jump_statement(ast_jump_statement::ast_discard, NULL);
@@ -6498,28 +6495,28 @@ yyreduce:
   case 352:
 
 /* Line 1806 of yacc.c  */
-#line 2194 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2191 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.node) = (yyvsp[(1) - (1)].function_definition); }
     break;
 
   case 353:
 
 /* Line 1806 of yacc.c  */
-#line 2195 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2192 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.node) = (yyvsp[(1) - (1)].node); }
     break;
 
   case 354:
 
 /* Line 1806 of yacc.c  */
-#line 2196 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2193 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     { (yyval.node) = NULL; }
     break;
 
   case 355:
 
 /* Line 1806 of yacc.c  */
-#line 2201 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2198 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute_arg) = new(ctx) ast_attribute_arg( (yyvsp[(1) - (1)].expression) );
@@ -6530,7 +6527,7 @@ yyreduce:
   case 356:
 
 /* Line 1806 of yacc.c  */
-#line 2207 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2204 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute_arg) = new(ctx) ast_attribute_arg( (yyvsp[(1) - (1)].string_literal) );
@@ -6541,7 +6538,7 @@ yyreduce:
   case 357:
 
 /* Line 1806 of yacc.c  */
-#line 2216 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2213 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.attribute_arg) = (yyvsp[(1) - (1)].attribute_arg);
 	}
@@ -6550,7 +6547,7 @@ yyreduce:
   case 358:
 
 /* Line 1806 of yacc.c  */
-#line 2220 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2217 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.attribute_arg) = (yyvsp[(1) - (3)].attribute_arg);
 		(yyval.attribute_arg)->link.insert_before( & (yyvsp[(3) - (3)].attribute_arg)->link);
@@ -6560,7 +6557,7 @@ yyreduce:
   case 359:
 
 /* Line 1806 of yacc.c  */
-#line 2228 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2225 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute) = new(ctx) ast_attribute( (yyvsp[(2) - (3)].identifier) );
@@ -6571,7 +6568,7 @@ yyreduce:
   case 360:
 
 /* Line 1806 of yacc.c  */
-#line 2234 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2231 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute) = new(ctx) ast_attribute( (yyvsp[(2) - (3)].identifier) );
@@ -6582,7 +6579,7 @@ yyreduce:
   case 361:
 
 /* Line 1806 of yacc.c  */
-#line 2240 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2237 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute) = new(ctx) ast_attribute( (yyvsp[(2) - (6)].identifier) );
@@ -6594,7 +6591,7 @@ yyreduce:
   case 362:
 
 /* Line 1806 of yacc.c  */
-#line 2247 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2244 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		void *ctx = state;
 		(yyval.attribute) = new(ctx) ast_attribute( (yyvsp[(2) - (6)].identifier) );
@@ -6606,7 +6603,7 @@ yyreduce:
   case 363:
 
 /* Line 1806 of yacc.c  */
-#line 2257 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2254 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.attribute) = (yyvsp[(1) - (2)].attribute);
 		(yyval.attribute)->link.insert_before( & (yyvsp[(2) - (2)].attribute)->link);
@@ -6616,7 +6613,7 @@ yyreduce:
   case 364:
 
 /* Line 1806 of yacc.c  */
-#line 2262 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2259 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.attribute) = (yyvsp[(1) - (1)].attribute);
 	}
@@ -6625,7 +6622,7 @@ yyreduce:
   case 365:
 
 /* Line 1806 of yacc.c  */
-#line 2269 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2266 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.function_definition) = new(ctx) ast_function_definition();
@@ -6640,7 +6637,7 @@ yyreduce:
   case 366:
 
 /* Line 1806 of yacc.c  */
-#line 2279 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2276 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   void *ctx = state;
 	   (yyval.function_definition) = new(ctx) ast_function_definition();
@@ -6656,7 +6653,7 @@ yyreduce:
   case 367:
 
 /* Line 1806 of yacc.c  */
-#line 2293 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2290 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		(yyval.node) = (yyvsp[(1) - (1)].function);
 	}
@@ -6665,7 +6662,7 @@ yyreduce:
   case 368:
 
 /* Line 1806 of yacc.c  */
-#line 2297 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2294 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 		if ((yyvsp[(1) - (2)].declarator_list)->type->qualifier.flags.q.is_static == 0 && (yyvsp[(1) - (2)].declarator_list)->type->qualifier.flags.q.shared == 0)
 		{
@@ -6678,7 +6675,7 @@ yyreduce:
   case 369:
 
 /* Line 1806 of yacc.c  */
-#line 2305 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
+#line 2302 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.yy"
     {
 	   (yyval.node) = (yyvsp[(1) - (1)].node);
 	}
@@ -6687,7 +6684,7 @@ yyreduce:
 
 
 /* Line 1806 of yacc.c  */
-#line 6691 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
+#line 6688 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/hlsl_parser.cpp"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

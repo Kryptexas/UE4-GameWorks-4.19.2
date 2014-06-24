@@ -28,9 +28,7 @@
 */
 #include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
-#include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 
 #include "ralloc.h"
 #include "ast.h"

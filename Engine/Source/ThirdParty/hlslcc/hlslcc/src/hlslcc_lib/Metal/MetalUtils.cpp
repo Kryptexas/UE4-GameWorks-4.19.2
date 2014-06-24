@@ -2,7 +2,6 @@
 
 #include "../ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
-#include <math.h>
 #include "../hlslcc.h"
 #include "../hlslcc_private.h"
 #include "../Metal/MetalBackend.h"

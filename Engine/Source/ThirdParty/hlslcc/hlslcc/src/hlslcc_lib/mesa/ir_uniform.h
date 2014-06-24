@@ -34,8 +34,6 @@
 
 /* stdbool.h is necessary because this file is included in both C and C++ code.
  */
-#include <stdbool.h>
-
 #include "program/prog_parameter.h"  /* For union gl_constant_value. */
 
 
