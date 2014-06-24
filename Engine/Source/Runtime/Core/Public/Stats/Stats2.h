@@ -23,14 +23,24 @@ public:
 
 	struct FScopeIdle
 	{
-		uint32 Start;
-		FScopeIdle()
+		/** Starting cycle counter. */
+		const uint32 Start;
+
+		/** If true, we ignore this thread idle stats. */
+		const bool bIgnore;
+
+		FScopeIdle( bool bInIgnore = false )
 			: Start(FPlatformTime::Cycles())
+			, bIgnore( bInIgnore )
 		{
 		}
+
 		~FScopeIdle()
 		{
-			FThreadIdleStats::Get().Waits += FPlatformTime::Cycles() - Start;
+			if( !bIgnore )
+			{
+				FThreadIdleStats::Get().Waits += FPlatformTime::Cycles() - Start;
+			}
 		}
 	};
 };

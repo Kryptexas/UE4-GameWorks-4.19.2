@@ -908,12 +908,12 @@ FEvent* FWindowsPlatformProcess::CreateSynchEvent(bool bIsManualReset)
 
 DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_CPUStalls);
 
-bool FEventWin::Wait (uint32 WaitTime)
+bool FEventWin::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EventWait);
-	FThreadIdleStats::FScopeIdle Scope;
 	check(Event);
 
+	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 	return (WaitForSingleObject(Event, WaitTime) == WAIT_OBJECT_0);
 }
 

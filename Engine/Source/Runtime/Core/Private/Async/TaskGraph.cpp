@@ -193,20 +193,29 @@ public:
 	 **/
 	void ProcessTasks(int32 QueueIndex, bool bAllowStall)
 	{
+		TStatId StallStatId;
+		bool bCountAsStall = false;
 #if STATS
 		TStatId StatName;
 		FCycleCounter ProcessingTasks;
 		if (ThreadId == ENamedThreads::GameThread)
 		{
 			StatName = GET_STATID(STAT_TaskGraph_GameTasks);
+			StallStatId = GET_STATID(STAT_TaskGraph_GameStalls);
+			bCountAsStall = true;
 		}
 		else if (ThreadId == ENamedThreads::RenderThread)
 		{
 			//StatName = none, we need to let the scope empty so that the render thread submits tasks in a timely manner
+			// The render thread has a custom method to calculate the idle time, so leave it as it is for now.
+			//StallStatId = GET_STATID(STAT_TaskGraph_RenderStalls);
+			//bCountAsStall = true;
 		}
 		else if (ThreadId != ENamedThreads::StatsThread)
 		{
 			StatName = GET_STATID(STAT_TaskGraph_OtherTasks);
+			StallStatId = GET_STATID(STAT_TaskGraph_OtherStalls);
+			bCountAsStall = true;
 		}
 		bool bTasksOpen = false;
 #endif
@@ -244,7 +253,7 @@ public:
 								bTasksOpen = false;
 							}
 #endif
-							if (Stall(QueueIndex))
+							if (Stall(QueueIndex, StallStatId, bCountAsStall))
 							{
 								Queue(QueueIndex).IncomingQueue.PopAll(NewTasks);
 							}
@@ -294,7 +303,7 @@ public:
 								bTasksOpen = false;
 							}
 #endif
-							if (Stall(QueueIndex))
+							if (Stall(QueueIndex, StallStatId, bCountAsStall))
 							{
 								Task = Queue(QueueIndex).IncomingQueue.PopIfNotClosed();
 							}
@@ -512,10 +521,12 @@ private:
 
 	/**
 	 *	Internal function to block on the stall wait event.
-	 *  @param QueueIndex, Queue to stall
+	 *  @param QueueIndex		- Queue to stall
+	 *  @param StallStatId		- Stall stat id
+	 *  @param bCountAsStall	- true if StallStatId is a valid stat id
 	 *	@return true if the thread actually stalled; false in the case of a stop request or a task arrived while we were trying to stall.
 	 */
-	bool Stall(int32 QueueIndex)
+	bool Stall(int32 QueueIndex, TStatId StallStatId, bool bCountAsStall)
 	{
 		checkThreadGraph(Queue(QueueIndex).StallRestartEvent); // make sure we are started up
 		if (Queue(QueueIndex).QuitWhenIdle.GetValue() == 0)
@@ -527,10 +538,12 @@ private:
 				FPlatformMisc::MemoryBarrier();
 				if (Queue(QueueIndex).IncomingQueue.CloseIfEmpty())
 				{
+					FScopeCycleCounter Scope( StallStatId );
+
 					int32 NewValue = IsStalled.Increment();
 					NotifyStalling();
 					checkThreadGraph(NewValue == 1); // there should be no concurrent calls to Stall!
-					Queue(QueueIndex).StallRestartEvent->Wait();
+					Queue(QueueIndex).StallRestartEvent->Wait(MAX_uint32, bCountAsStall);
 					NewValue = IsStalled.Decrement();
 					checkThreadGraph(NewValue == 0); // there should be no concurrent calls to Stall!
 					return true;

@@ -146,7 +146,7 @@ public:
 		UnlockEventMutex();
 	}
 
-	virtual bool Wait(uint32 WaitTime = (uint32)-1) override;
+	virtual bool Wait(uint32 WaitTime = (uint32)-1, const bool bIgnoreThreadIdleStats = false) override;
 
 };
 

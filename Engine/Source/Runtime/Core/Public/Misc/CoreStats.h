@@ -58,9 +58,13 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Game thread tick wait time"),STAT_GameTickWaitTi
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Game thread requested wait time"),STAT_GameTickWantedWaitTime,STATGROUP_Threading, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Game thread additional wait time"),STAT_GameTickAdditionalWaitTime,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Game TaskGraph Tasks"),STAT_TaskGraph_GameTasks,STATGROUP_Threading, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Game TaskGraph Idles"),STAT_TaskGraph_GameIdles,STATGROUP_Threading, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Render TaskGraph Idles"),STAT_TaskGraph_RenderIdles,STATGROUP_Threading, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Game TaskGraph Stalls"),STAT_TaskGraph_GameStalls,STATGROUP_Threading, CORE_API);
+
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Render TaskGraph Stalls"),STAT_TaskGraph_RenderStalls,STATGROUP_Threading, CORE_API);
+
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Other TaskGraph Tasks"),STAT_TaskGraph_OtherTasks,STATGROUP_Threading, CORE_API);
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Other TaskGraph Stalls"),STAT_TaskGraph_OtherStalls,STATGROUP_Threading, CORE_API);
+
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Flush Threaded Logs"),STAT_FlushThreadedLogs,STATGROUP_Threading, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Pump Messages"),STAT_PumpMessages,STATGROUP_Threading, CORE_API);
 DECLARE_FLOAT_COUNTER_STAT_EXTERN(TEXT("Percentage CPU utilization"),STAT_CPUTimePct,STATGROUP_Threading, CORE_API);

@@ -260,10 +260,10 @@ void FGenericPlatformProcess::SleepInfinite()
 
 DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_CPUStalls);
 
-bool FPThreadEvent::Wait(uint32 WaitTime)
+bool FPThreadEvent::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EventWait);
-	FThreadIdleStats::FScopeIdle Scope;
+	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 
 	check(bInitialized);
 

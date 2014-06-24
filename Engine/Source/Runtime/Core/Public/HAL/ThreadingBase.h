@@ -55,14 +55,12 @@ public:
 	 *
 	 * A wait time of MAX_uint32 is treated as infinite wait.
 	 *
-	 * @param WaitTime - The time to wait (in milliseconds).
+	 * @param WaitTime					- The time to wait (in milliseconds).
+	 * @param bIgnoreThreadIdleStats	- If true, ignores ThreadIdleStats
 	 *
 	 * @return true if the event was triggered, false if the wait timed out.
 	 */
-	virtual bool Wait (uint32 WaitTime) = 0;
-
-
-public:
+	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) = 0;
 
 	/**
 	 * Waits an infinite amount of time for the event to be triggered.
@@ -77,13 +75,14 @@ public:
 	/**
 	 * Waits the specified amount of time for the event to be triggered.
 	 *
-	 * @param WaitTime - The time to wait.
+	 * @param WaitTime					- The time to wait.
+	 * @param bIgnoreThreadIdleStats	- If true, ignores ThreadIdleStats
 	 *
 	 * @return true if the event was triggered, false if the wait timed out.
 	 */
-	bool Wait (const FTimespan& WaitTime)
+	bool Wait (const FTimespan& WaitTime, const bool bIgnoreThreadIdleStats = false)
 	{
-		return Wait(WaitTime.GetTotalMilliseconds());
+		return Wait(WaitTime.GetTotalMilliseconds(), bIgnoreThreadIdleStats);
 	}
 
 
@@ -461,7 +460,7 @@ public:
 	}
 	virtual void Trigger() { bTriggered = true; }
 	virtual void Reset() { bTriggered = false; }
-	virtual bool Wait(uint32 WaitTime) 
+	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) 
 	{ 
 		// With only one thread it's assumed the event has been triggered
 		// before Wait is called, otherwise it would end up waiting forever or always fail.

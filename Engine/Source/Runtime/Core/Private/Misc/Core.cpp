@@ -272,10 +272,13 @@ DEFINE_STAT(STAT_GameTickWantedWaitTime);
 DEFINE_STAT(STAT_GameTickAdditionalWaitTime);
 
 DEFINE_STAT(STAT_TaskGraph_OtherTasks);
-DEFINE_STAT(STAT_TaskGraph_RenderIdles);
+DEFINE_STAT(STAT_TaskGraph_OtherStalls);
+
+DEFINE_STAT(STAT_TaskGraph_RenderStalls);
 
 DEFINE_STAT(STAT_TaskGraph_GameTasks);
-DEFINE_STAT(STAT_TaskGraph_GameIdles);
+DEFINE_STAT(STAT_TaskGraph_GameStalls);
+
 DEFINE_STAT(STAT_FlushThreadedLogs);
 DEFINE_STAT(STAT_PumpMessages);
 

@@ -60,7 +60,7 @@ public:
 		ResetEvent(Event);
 	}
 
-	virtual bool Wait (uint32 WaitTime) override;
+	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) override;
 
 
 private:
