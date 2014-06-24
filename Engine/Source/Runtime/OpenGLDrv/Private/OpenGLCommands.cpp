@@ -529,19 +529,21 @@ inline void FOpenGLDynamicRHI::ApplyTextureStage(FOpenGLContextState& ContextSta
 			ContextState.ActiveTexture = TextureIndex;
 		}
 
-		if (FOpenGL::HasSamplerRestrictions() && bHasTexture)
+		GLint WrapS = SamplerState->Data.WrapS;
+		GLint WrapT = SamplerState->Data.WrapT;
+		if (!FOpenGL::SupportsTextureNPOT() && bHasTexture)
 		{
 			if (!TextureStage.Texture->IsPowerOfTwo())
 			{
 				bool bChanged = false;
-				if (SamplerState->Data.WrapS != GL_CLAMP_TO_EDGE)
+				if (WrapS != GL_CLAMP_TO_EDGE)
 				{
-					SamplerState->Data.WrapS = GL_CLAMP_TO_EDGE;
+					WrapS = GL_CLAMP_TO_EDGE;
 					bChanged = true;
 				}
-				if (SamplerState->Data.WrapT != GL_CLAMP_TO_EDGE)
+				if (WrapT != GL_CLAMP_TO_EDGE)
 				{
-					SamplerState->Data.WrapT = GL_CLAMP_TO_EDGE;
+					WrapT = GL_CLAMP_TO_EDGE;
 					bChanged = true;
 				}
 				if (bChanged)
@@ -560,8 +562,8 @@ inline void FOpenGLDynamicRHI::ApplyTextureStage(FOpenGLContextState& ContextSta
 		}
 
 		// Sets parameters of currently bound texture
-		FOpenGL::TexParameter(Target, GL_TEXTURE_WRAP_S, SamplerState->Data.WrapS);
-		FOpenGL::TexParameter(Target, GL_TEXTURE_WRAP_T, SamplerState->Data.WrapT);
+		FOpenGL::TexParameter(Target, GL_TEXTURE_WRAP_S, WrapS);
+		FOpenGL::TexParameter(Target, GL_TEXTURE_WRAP_T, WrapT);
 		if( FOpenGL::SupportsTexture3D() )
 		{
 			FOpenGL::TexParameter(Target, GL_TEXTURE_WRAP_R, SamplerState->Data.WrapR);
@@ -2761,26 +2763,26 @@ static inline void ClearCurrentDepthStencilWithCurrentScissor( int8 ClearType, f
 #if PLATFORM_MAC
 	switch (ClearType)
 	{
-        case CT_DepthStencil:	// Clear depth and stencil separately to avoid an AMD Dx00 bug which causes depth to clear, but not stencil.
-                                // Especially irritatingly this bug will not manifest when stepping though the program with GL Profiler.
-                                // This was a bug found by me during dev. on Tropico 3 circa. Q4 2011 in the ATi Mac 2xx0 & 4xx0 drivers.
-                                // It was never fixed & has re-emerged in the AMD Mac FirePro Dx00 drivers.
+		case CT_DepthStencil:	// Clear depth and stencil separately to avoid an AMD Dx00 bug which causes depth to clear, but not stencil.
+								// Especially irritatingly this bug will not manifest when stepping though the program with GL Profiler.
+								// This was a bug found by me during dev. on Tropico 3 circa. Q4 2011 in the ATi Mac 2xx0 & 4xx0 drivers.
+								// It was never fixed & has re-emerged in the AMD Mac FirePro Dx00 drivers.
 								// Also, on NVIDIA depth must be cleared first.
-        case CT_Depth:	// Clear depth only
-            FOpenGL::ClearBufferfv(GL_DEPTH, 0, &Depth);
+		case CT_Depth:	// Clear depth only
+			FOpenGL::ClearBufferfv(GL_DEPTH, 0, &Depth);
 
-            // If not also clearing depth break
-            if(!(ClearType & CT_Stencil))
-            {
-                break;
-            }
-            // Otherwise fall through to perform a separate stencil clear.
-        case CT_Stencil:	// Clear stencil only
-            FOpenGL::ClearBufferiv(GL_STENCIL, 0, (const GLint*)&Stencil);
-            break;
+			// If not also clearing depth break
+			if(!(ClearType & CT_Stencil))
+			{
+				break;
+			}
+			// Otherwise fall through to perform a separate stencil clear.
+		case CT_Stencil:	// Clear stencil only
+			FOpenGL::ClearBufferiv(GL_STENCIL, 0, (const GLint*)&Stencil);
+			break;
 
-        default:
-            break;	// impossible anyway
+		default:
+			break;	// impossible anyway
 	}
 #else
 	switch (ClearType)

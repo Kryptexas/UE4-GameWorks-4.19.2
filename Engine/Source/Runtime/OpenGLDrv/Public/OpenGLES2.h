@@ -117,7 +117,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsFastBufferData()					{ return false; }
 
 	// ES 2 will not work with non-power of two textures with non-clamp mode
-	static FORCEINLINE bool HasSamplerRestrictions()					{ return true; }
+	static FORCEINLINE bool SupportsTextureNPOT()						{ return bSupportsTextureNPOT; }
 
 	// Optional
 	static FORCEINLINE void BeginQuery(GLenum QueryType, GLuint QueryId)
@@ -418,6 +418,9 @@ protected:
 
 	/** GL_APPLE_copy_texture_levels */
 	static bool bSupportsCopyTextureLevels;
+
+	/** GL_OES_texture_npot */
+	static bool bSupportsTextureNPOT;
 
 	/** GL_EXT_texture_storage */
 	static bool bSupportsTextureStorageEXT;

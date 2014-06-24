@@ -101,6 +101,9 @@ bool FOpenGLES2::bSupportsShaderTextureCubeLod = true;
 /** GL_APPLE_copy_texture_levels */
 bool FOpenGLES2::bSupportsCopyTextureLevels = false;
 
+/** GL_OES_texture_npot */
+bool FOpenGLES2::bSupportsTextureNPOT = true;
+
 /** GL_EXT_texture_storage */
 bool FOpenGLES2::bSupportsTextureStorageEXT = false;
 
@@ -174,6 +177,7 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsShaderTextureLod = ExtensionsString.Contains(TEXT("GL_EXT_shader_texture_lod"));
 	bSupportsTextureStorageEXT = ExtensionsString.Contains(TEXT("GL_EXT_texture_storage"));
 	bSupportsCopyTextureLevels = bSupportsTextureStorageEXT && ExtensionsString.Contains(TEXT("GL_APPLE_copy_texture_levels"));
+	bSupportsTextureNPOT = ExtensionsString.Contains(TEXT("GL_OES_texture_npot")) || ExtensionsString.Contains(TEXT("GL_ARB_texture_non_power_of_two"));
 
 	// Report shader precision
 	int Range[2];
