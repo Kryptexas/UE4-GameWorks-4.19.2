@@ -410,6 +410,14 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	}
 #endif
 
+	// Load game modules
+	{
+		if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+		{
+			FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
+		}
+	}
+
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
 	GetGameUserSettings()->ApplySettings();

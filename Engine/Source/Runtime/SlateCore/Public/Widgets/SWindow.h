@@ -606,24 +606,6 @@ public:
 	void SetOnWorldSwitchHack( FOnSwitchWorldHack& InOnWorldSwitchHack );
 
 	/**
-	 * Static: Marks the specified window as drawn
-	 *
-	 * @param	Window	The window to mark as drawn
-	 */
-	static void MarkWindowAsDrawn( SWindow* Window )
-	{
-		Window->MarkAsDrawn();
-	}
-
-	/**
-	 * @return Returns a delegate that can be used to mark window as drawn. The delegate is safe to call from a different thread.
-	 */
-	FSimpleDelegate MakeMarkWindowAsDrawnDelegate()
-	{
-		return FSimpleDelegate::CreateStatic( &MarkWindowAsDrawn, this );
-	}
-
-	/**
 	 * Hack to switch worlds
 	 *
 	 * @param WorldId: User ID for a world that should be restored or -1 if no restore

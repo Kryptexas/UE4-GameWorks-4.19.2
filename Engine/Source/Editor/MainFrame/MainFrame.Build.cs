@@ -72,6 +72,7 @@ public class MainFrame : ModuleRules
 				"OutputLog",
                 "TranslationEditor",
 				"SourceCodeAccess",
+				"EditorLiveStreaming"
 			}
 		);
 	}

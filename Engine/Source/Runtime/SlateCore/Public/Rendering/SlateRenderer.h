@@ -70,15 +70,31 @@ public:
 	virtual void DrawWindows() {}
 	
 	/**
+	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
+	 * 
+	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
+	 * @param	ScreenScaling	How much to downscale the desktop size
+	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
+	 *
+	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
+	 */
+	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
+
+
+	/**
 	 * Copies all slate windows out to a buffer at half resolution with debug information
 	 * like the mouse cursor and any keypresses.
 	 */
-	virtual void CopyWindowsToDrawBuffer(const TArray<FString>& KeypressBuffer) {}
+	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) {}
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapCrashTrackerBuffer(void** OutImageData, int32* OutWidth, int32* OutHeight) {}
-	virtual void UnmapCrashTrackerBuffer() {}
+	virtual void MapVirtualScreenBuffer(void** OutImageData) {}
+	virtual void UnmapVirtualScreenBuffer() {}
 	
+	/** Callback that fires after Slate has rendered each window, each frame */
+	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnSlateWindowRendered, SWindow&, void* );
+	FOnSlateWindowRendered& OnSlateWindowRendered() { return SlateWindowRendered; }
+
 	/** 
 	 * Sets which color vision filter to use
 	 */
@@ -182,6 +198,9 @@ protected:
 
 	TSharedPtr<class FSlateFontCache> FontCache;
 	TSharedPtr<class FSlateFontMeasure> FontMeasure;
+
+	/** Callback that fires after Slate has rendered each window, each frame */
+	FOnSlateWindowRendered SlateWindowRendered;
 };
 
 

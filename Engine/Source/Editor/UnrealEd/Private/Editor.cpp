@@ -541,6 +541,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
+		FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 
 		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
 		{

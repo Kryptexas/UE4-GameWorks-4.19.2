@@ -33,10 +33,11 @@ private:
 class FSlateCrashReportResource : public FRenderResource
 {
 public:
-	FSlateCrashReportResource(FIntRect InVirtualScreen)
+	FSlateCrashReportResource(FIntRect InVirtualScreen, FIntRect InUnscaledVirtualScreen)
 		: ReadbackBufferIndex(0)
 		, ElementListIndex(0)
-		, VirtualScreen(InVirtualScreen) {}
+		, VirtualScreen(InVirtualScreen)
+		, UnscaledVirtualScreen(InUnscaledVirtualScreen) {}
 
 	/** FRenderResource Interface.  Called when render resources need to be initialized */
 	virtual void InitDynamicRHI();
@@ -52,6 +53,7 @@ public:
 
 	/** Accessors */
 	FIntRect GetVirtualScreen() const {return VirtualScreen;}
+	FIntRect GetUnscaledVirtualScreen() const {return UnscaledVirtualScreen;}
 	FTexture2DRHIRef GetBuffer() const {return CrashReportBuffer;}
 	FTexture2DRHIRef GetReadbackBuffer() const {return ReadbackBuffer[ReadbackBufferIndex];}
 
@@ -71,6 +73,9 @@ private:
 
 	/** The size of the virtual screen, used to calculate the buffer size */
 	FIntRect VirtualScreen;
+
+	/** Size of the virtual screen before we applied any scaling */
+	FIntRect UnscaledVirtualScreen;
 };
 
 
@@ -159,14 +164,25 @@ public:
 
 
 	/**
+	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
+	 * 
+	 * @param	ScreenScaling	How much to downscale the desktop size
+	 * @param	LiveStreamingService	Optional pointer to a live streaming service this buffer needs to work with
+	 * @param	bPrimaryWorkAreaOnly	True if we should capture only the primary monitor's work area, or false to capture the entire desktop spanning all monitors
+	 *
+	 * @return	The virtual screen rectangle.  The size of this rectangle will be the size of the render target buffer.
+	 */
+	virtual FIntRect SetupVirtualScreenBuffer(const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) override;
+
+	/**
 	 * Copies all slate windows out to a buffer at half resolution with debug information
 	 * like the mouse cursor and any keypresses.
 	 */
-	virtual void CopyWindowsToDrawBuffer(const TArray<FString>& KeypressBuffer);
+	virtual void CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer) override;
 	
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
-	virtual void MapCrashTrackerBuffer(void** OutImageData, int32* OutWidth, int32* OutHeight) override;
-	virtual void UnmapCrashTrackerBuffer() override;
+	virtual void MapVirtualScreenBuffer(void** OutImageData) override;
+	virtual void UnmapVirtualScreenBuffer() override;
 
 	/**
 	 * Reloads texture resources from disk                   

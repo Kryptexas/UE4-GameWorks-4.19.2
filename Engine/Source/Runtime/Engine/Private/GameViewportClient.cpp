@@ -17,10 +17,9 @@
 #include "EngineModule.h"
 #include "AudioDevice.h"
 #include "Sound/SoundWave.h"
-
 #include "HighResScreenshot.h"
-
 #include "Particles/ParticleSystemComponent.h"
+#include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
@@ -1180,6 +1179,10 @@ void UGameViewportClient::PostRender(UCanvas* Canvas)
 
 	// Draw the transition screen.
 	DrawTransition(Canvas);
+
+	// Draw default web cam.  This only will draw something if a web camera is currently enabled in the live streaming settings
+	// and the user has activated it.  Also, the game may override this functionality entirely, and draw the web cam video itself.
+	IGameLiveStreaming::Get().DrawSimpleWebCamVideo( Canvas );
 }
 
 void UGameViewportClient::PeekTravelFailureMessages(UWorld* InWorld, ETravelFailure::Type FailureType, const FString& ErrorString)

@@ -11,46 +11,6 @@
 
 #include "SceneRenderTargets.h"
 
-/** The vertex data used to filter a texture. */
-struct FFilterVertex
-{
-	FVector4 Position;
-	FVector2D UV;
-};
-
-/** The filter vertex declaration resource type. */
-class FFilterVertexDeclaration : public FRenderResource
-{
-public:
-	FVertexDeclarationRHIRef VertexDeclarationRHI;
-
-	/** Destructor. */
-	virtual ~FFilterVertexDeclaration() {}
-
-	virtual void InitRHI()
-	{
-		FVertexDeclarationElementList Elements;
-		uint32 Stride = sizeof(FFilterVertex);
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FFilterVertex,Position),VET_Float4,0,Stride));
-		Elements.Add(FVertexElement(0,STRUCT_OFFSET(FFilterVertex,UV),VET_Float2,1,Stride));
-		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
-	}
-
-	virtual void ReleaseRHI()
-	{
-		VertexDeclarationRHI.SafeRelease();
-	}
-};
-
-// use r.DrawDenormalizedQuadMode to override the function call setting (quick way to see if an artifact is caused why this optimization)
-enum EDrawRectangleFlags
-{
-	// Rectangle is created by 2 triangles (diagonal can cause some slightly less efficient shader execution), this is the default as it has no artifacts
-	EDRF_Default,
-	//
-	EDRF_UseTriangleOptimization
-};
-
 /**
  * Draws a quad with the given vertex positions and UVs in denormalized pixel/texel coordinates.
  * The platform-dependent mapping from pixels to texels is done automatically.
@@ -78,7 +38,7 @@ extern void DrawRectangle(
 	float SizeV,
 	FIntPoint TargetSize,
 	FIntPoint TextureSize,
-	FShader* VertexShader,
+	class FShader* VertexShader,
 	EDrawRectangleFlags Flags = EDRF_Default
 	);
 

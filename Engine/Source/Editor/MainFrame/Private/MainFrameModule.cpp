@@ -2,7 +2,7 @@
 
 #include "MainFramePrivatePCH.h"
 #include "CompilerResultsLog.h"
-
+#include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 
 DEFINE_LOG_CATEGORY(LogMainFrame);
 #define LOCTEXT_NAMESPACE "FMainFrameModule"
@@ -498,7 +498,46 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 					ISourceControlModule::Get().CreateStatusWidget().ToSharedRef()
 				]
 
-			//save video button
+			// Editor live streaming toggle button
+			+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign( VAlign_Bottom )
+				[
+					SNew(SButton)
+					.Visibility_Static( []() -> EVisibility { return IEditorLiveStreaming::Get().IsLiveStreamingAvailable() ? EVisibility::Visible : EVisibility::Collapsed; } )
+					.ToolTipText( LOCTEXT( "BroadcastTooltip", "Starts or stops broadcasting of this editor session to a live internet streaming service." ) )
+					.OnClicked_Static( []
+						{ 
+							// Toggle broadcasting on or off
+							if( IEditorLiveStreaming::Get().IsBroadcastingEditor() ) 
+							{
+								IEditorLiveStreaming::Get().StopBroadcastingEditor();
+							}
+							else
+							{
+								IEditorLiveStreaming::Get().StartBroadcastingEditor();
+							}
+							return FReply::Handled();
+						} )
+					.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+					.ContentPadding(FMargin(1,0))
+					[
+						SNew(SImage)
+						.Image( FEditorStyle::GetBrush("EditorLiveStreaming.BroadcastButton") )
+						.ColorAndOpacity_Static( [] 
+							{ 
+								// Pulsate the button graphics while we're broadcasting
+								FSlateColor Color( FLinearColor::White );
+								if( IEditorLiveStreaming::Get().IsBroadcastingEditor() )
+								{
+									Color = FLinearColor( 1.0f, 1.0f, 1.0f, FMath::MakePulsatingValue( FSlateApplication::Get().GetCurrentTime(), 2.0f ) );
+								}
+								return Color;
+							} )
+					]
+				]
+
+			// Crash report "save video" button
 			+SHorizontalBox::Slot()
 				.AutoWidth()
 				.VAlign( VAlign_Bottom )

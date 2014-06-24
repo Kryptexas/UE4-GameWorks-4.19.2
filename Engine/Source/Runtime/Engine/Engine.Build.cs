@@ -142,6 +142,7 @@ public class Engine : ModuleRules
 			    new string[] {
 				    "CrashTracker",
 				    "ImageWrapper",
+					"GameLiveStreaming"
 			    }
 		    );
         }

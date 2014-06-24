@@ -173,7 +173,8 @@ public class UnrealEd : ModuleRules
                 "GameplayAbilitiesEditor",
 				"UndoHistory",
 				"SourceCodeAccess",
-				"ReferenceViewer"
+				"ReferenceViewer",
+				"EditorLiveStreaming"
 			}
 		);
 

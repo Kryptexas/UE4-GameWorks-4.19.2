@@ -26,7 +26,7 @@
 #include "PackageAutoSaver.h"
 #include "BSPOps.h"
 #include "ComponentVisualizer.h"
-
+#include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
 
@@ -283,9 +283,22 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 	}
 	
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
+	bool bCrashTrackerEnabled = false;
 	if (CrashTracker)
 	{
 		CrashTracker->Update(DeltaSeconds);
+		bCrashTrackerEnabled = CrashTracker->IsCurrentlyCapturing();
+	}
+
+	// Only allow live streaming if crash tracker is disabled. This is because the SlateRHIRenderer shares the same render targets
+	// for both crash tracker and live editor streaming, and we don't want them to be thrashed every frame.
+	if( !bCrashTrackerEnabled )
+	{
+		// If the editor is configured to broadcast frames, do that now
+		if( IEditorLiveStreaming::Get().IsBroadcastingEditor() )
+		{
+			IEditorLiveStreaming::Get().BroadcastEditorVideoFrame();
+		}
 	}
 }
 

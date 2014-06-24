@@ -12,6 +12,7 @@
 #include "RHI.h"
 #include "RHIStaticStates.h"
 #include "ScenePrivate.h"
+#include "RendererInterface.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRenderer, Log, All);
 
@@ -37,6 +38,22 @@ public:
 	virtual void QueryVisualizeTexture(FQueryVisualizeTexureInfo& Out) override;
 	virtual void ExecVisualizeTextureCmd(const FString& Cmd) override;
 	virtual void UpdateMapNeedsLightingFullyRebuiltState(UWorld* World) override;
+	virtual void DrawRectangle(
+		FRHICommandList& RHICmdList,
+		float X,
+		float Y,
+		float SizeX,
+		float SizeY,
+		float U,
+		float V,
+		float SizeU,
+		float SizeV,
+		FIntPoint TargetSize,
+		FIntPoint TextureSize,
+		class FShader* VertexShader,
+		EDrawRectangleFlags Flags = EDRF_Default
+		) override;
+	virtual TGlobalResource<FFilterVertexDeclaration>& GetFilterVertexDeclaration() override;
 
 	virtual const TSet<FSceneInterface*>& GetAllocatedScenes() override
 	{

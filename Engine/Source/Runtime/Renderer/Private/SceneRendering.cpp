@@ -1023,6 +1023,32 @@ void FRendererModule::UpdateMapNeedsLightingFullyRebuiltState(UWorld* World)
 	World->SetMapNeedsLightingFullyRebuilt(World->Scene->GetRenderScene()->NumUncachedStaticLightingInteractions);
 }
 
+void FRendererModule::DrawRectangle(
+		FRHICommandList& RHICmdList,
+		float X,
+		float Y,
+		float SizeX,
+		float SizeY,
+		float U,
+		float V,
+		float SizeU,
+		float SizeV,
+		FIntPoint TargetSize,
+		FIntPoint TextureSize,
+		class FShader* VertexShader,
+		EDrawRectangleFlags Flags
+		)
+{
+	::DrawRectangle( RHICmdList, X, Y, SizeX, SizeY, U, V, SizeU, SizeV, TargetSize, TextureSize, VertexShader, Flags );
+}
+
+
+TGlobalResource<FFilterVertexDeclaration>& FRendererModule::GetFilterVertexDeclaration()
+{
+	return GFilterVertexDeclaration;
+}
+
+
 bool IsMobileHDR()
 {
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));

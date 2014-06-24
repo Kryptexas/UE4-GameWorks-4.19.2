@@ -1365,6 +1365,11 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 
 #if WITH_EDITOR || IS_PROGRAM
+	// Editor live streaming
+	{
+		Set( "EditorLiveStreaming.BroadcastButton", new IMAGE_BRUSH( "Animation/Record", Icon20x20 ) );
+	}
+
 	// Collision Analyzer
 	{
 		Set( "CollisionAnalyzer.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_CollisionAnalyser_16x", Icon16x16 ) );
