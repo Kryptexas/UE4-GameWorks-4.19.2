@@ -20,6 +20,10 @@ public:
 	
 	bool IsDesignTime() const;
 
+	virtual void SetDesiredPosition(FVector2D InPosition);
+
+	virtual void SetDesiredSize(FVector2D InSize);
+
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
 
 	virtual bool CanResize(const FVector2D& Direction) const;

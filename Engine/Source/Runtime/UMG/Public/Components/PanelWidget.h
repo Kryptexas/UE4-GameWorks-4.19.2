@@ -28,7 +28,7 @@ public:
 
 	bool RemoveChildAt(int32 Index);
 
-	UPanelSlot* AddChild(UWidget* Content, FVector2D Position);
+	UPanelSlot* AddChild(UWidget* Content);
 
 	void ReplaceChildAt(int32 Index, UWidget* Content);
 

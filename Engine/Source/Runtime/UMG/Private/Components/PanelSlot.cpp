@@ -10,6 +10,16 @@ UPanelSlot::UPanelSlot(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
+void UPanelSlot::SetDesiredPosition(FVector2D InPosition)
+{
+
+}
+
+void UPanelSlot::SetDesiredSize(FVector2D InSize)
+{
+
+}
+
 void UPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amount)
 {
 

@@ -98,8 +98,11 @@ void FDesignerExtension::BeginTransaction(const FText& SessionName)
 
 	for ( FWidgetReference& Selection : SelectionCache )
 	{
-		Selection.GetPreview()->Modify();
-		Selection.GetTemplate()->Modify();
+		if ( Selection.IsValid() )
+		{
+			Selection.GetPreview()->Modify();
+			Selection.GetTemplate()->Modify();
+		}
 	}
 }
 

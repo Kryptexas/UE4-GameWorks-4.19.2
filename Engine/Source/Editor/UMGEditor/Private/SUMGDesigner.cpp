@@ -897,13 +897,21 @@ UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEv
 				Widget->IsDesignTime(true);
 			
 				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-				Parent->AddChild(Widget, LocalPosition);
-				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-			
-				DropPreviewParent = Parent;
-			
-				return Widget;
+				if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
+				{
+					Slot->SetDesiredPosition(LocalPosition);
+					Slot->SetDesiredSize(FVector2D(150, 30));
+					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+
+					DropPreviewParent = Parent;
+
+					return Widget;
+				}
+				else
+				{
+					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+				}
 			}
 			else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
 			{
@@ -948,14 +956,18 @@ bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEve
 				Widget->IsDesignTime(true);
 				
 				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-				Parent->AddChild(Widget, LocalPosition);
-				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-				
-				// Update the selected template to be the newly created one.
-				SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
-				
-				return true;
+				if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
+				{
+					Slot->SetDesiredPosition(LocalPosition);
+					Slot->SetDesiredSize(FVector2D(150, 30));
+					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
+
+					// Update the selected template to be the newly created one.
+					SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+
+					return true;
+				}
 			}
 		}
 		

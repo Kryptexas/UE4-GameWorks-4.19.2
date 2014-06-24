@@ -9,7 +9,7 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 	, Slot(NULL)
 {
-	LayoutData.Offsets = FMargin(0, 0, 1, 1);
+	LayoutData.Offsets = FMargin(0, 0, 100, 30);
 	LayoutData.Anchors = FAnchors(0.0f, 0.0f);
 	LayoutData.Alignment = FVector2D(0.0f, 0.0f);
 }
@@ -23,6 +23,16 @@ void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
 		];
+}
+
+void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
+{
+	SetOffset(FMargin(InPosition.X, InPosition.Y, LayoutData.Offsets.Right, LayoutData.Offsets.Bottom));
+}
+
+void UCanvasPanelSlot::SetDesiredSize(FVector2D InSize)
+{
+	SetOffset(FMargin(LayoutData.Offsets.Left, LayoutData.Offsets.Top, InSize.X, InSize.Y));
 }
 
 void UCanvasPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amount)

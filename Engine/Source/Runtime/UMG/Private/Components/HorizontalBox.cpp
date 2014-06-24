@@ -34,9 +34,9 @@ void UHorizontalBox::OnSlotRemoved(UPanelSlot* Slot)
 	}
 }
 
-UHorizontalBoxSlot* UHorizontalBox::AddChild(UWidget* Content)
+UHorizontalBoxSlot* UHorizontalBox::Add(UWidget* Content)
 {
-	return Cast<UHorizontalBoxSlot>( Super::AddChild(Content, FVector2D(0, 0)) );
+	return Cast<UHorizontalBoxSlot>( Super::AddChild(Content) );
 }
 
 TSharedRef<SWidget> UHorizontalBox::RebuildWidget()

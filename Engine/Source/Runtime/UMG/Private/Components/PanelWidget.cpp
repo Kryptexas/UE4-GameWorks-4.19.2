@@ -52,7 +52,7 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 	return true;
 }
 
-UPanelSlot* UPanelWidget::AddChild(UWidget* Content, FVector2D Position)
+UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 {
 	if ( !bCanHaveMultipleChildren && GetChildrenCount() > 0 )
 	{

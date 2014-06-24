@@ -36,6 +36,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
+	virtual void SetDesiredPosition(FVector2D InPosition) override;
+
+	virtual void SetDesiredSize(FVector2D InSize) override;
+
 	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) override;
 
 	virtual bool CanResize(const FVector2D& Direction) const override;

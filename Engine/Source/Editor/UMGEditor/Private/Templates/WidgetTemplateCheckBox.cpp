@@ -26,9 +26,9 @@ UWidget* FWidgetTemplateCheckBox::Create(UWidgetTree* Tree)
 	Text->Text = LOCTEXT("CheckboxText", "Checkbox Text");
 	Text->Font.Size = 10;
 
-	Horizontal->AddChild(Checkbox)
+	Horizontal->Add(Checkbox)
 		->Size = FSlateChildSize(ESlateSizeRule::Automatic);
-	Horizontal->AddChild(Text);
+	Horizontal->Add(Text);
 
 	return Horizontal;
 }

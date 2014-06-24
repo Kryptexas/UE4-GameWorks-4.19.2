@@ -241,7 +241,7 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 		{
 			CurrentParent->ReplaceChildAt(OutIndex, NewWrapperWidget);
 
-			NewWrapperWidget->AddChild(Item.GetTemplate(), FVector2D());
+			NewWrapperWidget->AddChild(Item.GetTemplate());
 		}
 	}
 
@@ -313,7 +313,8 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 		// automatically.
 		if ( NewWidget->GetParent() == NULL )
 		{
-			ParentWidget->AddChild(NewWidget, PasteLocation);
+			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
+			Slot->SetDesiredPosition(PasteLocation);
 		}
 
 		//TODO UMG HACK Because the WidgetTree isn't a real tree, add every widget.
