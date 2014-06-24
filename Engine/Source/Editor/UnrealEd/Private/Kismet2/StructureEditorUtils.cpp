@@ -460,10 +460,8 @@ void FStructureEditorUtils::OnStructureChanged(UUserDefinedStruct* Struct)
 {
 	if (Struct)
 	{
-		FStructEditorManager::Get().PreChange(Struct);
 		Struct->Status = EUserDefinedStructureStatus::UDSS_Dirty;
 		CompileStructure(Struct);
-		FStructEditorManager::Get().PostChange(Struct);
 		Struct->MarkPackageDirty();
 	}
 }
