@@ -371,6 +371,15 @@ namespace EpicGames.MCP.Automation
 		abstract public string GetBuildVersionWithPlatform(BuildPatchToolStagingInfo StagingInfo);
 
 		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="AppName">Application name to check the label in</param>
+		/// <param name="LabelName">Label name to get the build for</param>
+		/// <param name="McpConfigName">Which BuildInfo backend to label the build in.</param>
+		/// <returns></returns>
+		abstract public string GetLabeledBuildVersion(string AppName, string LabelName, string McpConfigName);
+
+		/// <summary>
 		/// Apply the requested label to the requested build in the BuildInfo backend for the requested MCP environment
 		/// </summary>
 		/// <param name="StagingInfo">Staging info for the build to label.</param>
@@ -402,6 +411,12 @@ namespace EpicGames.MCP.Automation
         /// <param name="command"></param>
         /// <returns>Path to the share (allows for override)</returns>
         abstract public string MountInternalCDNShare();
+
+		/// <summary>
+		/// Checks for a stagingInfo's manifest on the production CDN.
+		/// </summary>
+		/// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
+		abstract public bool IsManifestOnProductionCDN(BuildPatchToolStagingInfo stagingInfo);
 
         /// <summary>
         /// Copies chunks from a staged location to the production CDN.
