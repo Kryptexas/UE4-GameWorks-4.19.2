@@ -423,6 +423,10 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 			// Clear the stencil buffer
 			RHIClear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
 		}
+		else
+		{
+			RHISetRenderTarget(BackBuffer, FTextureRHIRef());
+		}
 
 #if DEBUG_OVERDRAW
 		RHIClear(true, FLinearColor::Black, false, 0.0f, true, 0x00, FIntRect());

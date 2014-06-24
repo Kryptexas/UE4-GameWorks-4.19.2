@@ -73,8 +73,13 @@ public:
 	static id<MTLRenderCommandEncoder> GetContext();
 	static void ReleaseObject(id Object);
 	
+	/** RHIBeginScene helper */
+	void BeginScene();
+	/** RHIEndScene helper */
+	void EndScene();
+
 	void BeginFrame();
-	void EndFrame(bool bPreset);
+	void EndFrame(bool bPresent);
 	
 	/**
 	 * Return a texture object that wraps the backbuffer
@@ -134,6 +139,11 @@ public:
 
 	void SetRasterizerState(const FRasterizerStateInitializerRHI& State);
 
+	FMetalShaderParameterCache& GetShaderParameters(uint32 Stage)
+	{
+		return ShaderParameters[Stage];
+	}
+
 protected:
 	FMetalManager();
 	void InitFrame();
@@ -159,6 +169,8 @@ protected:
 	TRefCountPtr<FMetalTexture2D> BackBuffer;
 	TRefCountPtr<FMetalBoundShaderState> CurrentBoundShaderState;
 	
+	class FMetalShaderParameterCache*	ShaderParameters;
+
 	// the running pipeline state descriptor object
 	FPipelineShadow Pipeline;
 
@@ -180,6 +192,15 @@ protected:
 	uint64 CommandBufferIndex;
 	uint64 CompletedCommandBufferIndex;
 
+	/** Internal frame counter, incremented on each call to RHIBeginScene. */
+	uint32 SceneFrameCounter;
+
+	/**
+	 * Internal counter used for resource table caching.
+	 * INDEX_NONE means caching is not allowed.
+	 */
+	uint32 ResourceTableFrameCounter;
+
 	// shadow the rasterizer state to reduce some render encoder pressure
 	FRasterizerStateInitializerRHI ShadowRasterizerState;
 	bool bFirstRasterizerState;
@@ -193,10 +214,11 @@ protected:
 	uint8 LastIndexToDump;
 #endif
 
-public:
+	/** Apply the SRT before drawing */
+	void CommitGraphicsResourceTables();
+
 	void CommitNonComputeShaderConstants();
-	
-	class FMetalShaderParameterCache*	ShaderParameters;
+
 };
 
 // Stats

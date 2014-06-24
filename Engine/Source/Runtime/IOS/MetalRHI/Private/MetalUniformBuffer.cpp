@@ -293,7 +293,7 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 				break;
 
 			case UBMT_SAMPLER:
-				RawResources[i] = &((FMetalSamplerState*)Resources[i].GetReference())->State;
+				RawResources[i] = (FMetalSamplerState*)Resources[i].GetReference();
 				break;
 
 			default:

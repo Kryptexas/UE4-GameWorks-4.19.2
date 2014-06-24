@@ -67,6 +67,10 @@ public:
  	/** External bindings for this shader. */
 	FMetalShaderBindings Bindings;
 	TArray< TRefCountPtr<FRHIUniformBuffer> > BoundUniformBuffers;
+
+	/** Bitfield for which uniform buffers are dirty */
+	uint64 DirtyUniformBuffers;
+
 	// List of memory copies from RHIUniformBuffer to packed uniforms
 	TArray<FMetalUniformBufferCopyInfo> UniformBuffersCopyInfo;
     

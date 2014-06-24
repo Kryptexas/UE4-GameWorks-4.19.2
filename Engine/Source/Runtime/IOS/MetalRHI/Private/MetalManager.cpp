@@ -250,7 +250,6 @@ FMetalManager::FMetalManager()
 	: Device([IOSAppDelegate GetDelegate].IOSView->MetalDevice)
 	, CurrentCommandBuffer(nil)
 	, CurrentDrawable(nil)
-/// 	, CurrentFramebuffer(nil)
 	, CurrentRenderPass(nil)
 	, CurrentContext(nil)
 	, CurrentColorRenderTexture(nil)
@@ -262,7 +261,8 @@ FMetalManager::FMetalManager()
 	, WhichFreeList(0)
 	, CommandBufferIndex(0)
 	, CompletedCommandBufferIndex(0)
-
+	, SceneFrameCounter(0)
+	, ResourceTableFrameCounter(INDEX_NONE)
 {
 	CommandQueue = [Device newCommandQueue];
 
@@ -294,6 +294,28 @@ FMetalManager::FMetalManager()
 	[NSThread detachNewThreadSelector:@selector(run:) toTarget:FramePacer withObject:nil];
 	
 	InitFrame();
+}
+
+void FMetalManager::BeginScene()
+{
+	// Increment the frame counter. INDEX_NONE is a special value meaning "uninitialized", so if
+	// we hit it just wrap around to zero.
+	SceneFrameCounter++;
+	if (SceneFrameCounter == INDEX_NONE)
+	{
+		SceneFrameCounter++;
+	}
+
+	static auto* ResourceTableCachingCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("rhi.ResourceTableCaching"));
+	if (ResourceTableCachingCvar == NULL || ResourceTableCachingCvar->GetValueOnAnyThread() == 1)
+	{
+		ResourceTableFrameCounter = SceneFrameCounter;
+	}
+}
+
+void FMetalManager::EndScene()
+{
+	ResourceTableFrameCounter = INDEX_NONE;
 }
 
 void FMetalManager::BeginFrame()
@@ -410,8 +432,6 @@ void FMetalManager::EndFrame(bool bPresent)
 	}
 
 
-/// 	ReleaseObject(CurrentFramebuffer);
-/// 	CurrentFramebuffer = nil;
 	ReleaseObject(CurrentRenderPass);
 	CurrentRenderPass = nil;
 
@@ -488,6 +508,7 @@ void FMetalManager::PrepareToDraw(uint32 NumVertices)
 	// make sure the BSS has a valid pipeline state object
 	CurrentBoundShaderState->PrepareToDraw(Pipeline);
 	
+	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
 
 	// grow buffers as needed
@@ -641,15 +662,12 @@ void FMetalManager::UpdateContext()
 		return;
 	}
 
-
 	// toss previous render pass object
-	if (CurrentRenderPass != nil)
-	{
-		ReleaseObject(CurrentRenderPass);
-	}
+	ReleaseObject(CurrentRenderPass);
 
 	// make a new one
 	CurrentRenderPass = [MTLRenderPassDescriptor renderPassDescriptor];
+	[CurrentRenderPass retain];
 	TRACK_OBJECT(CurrentRenderPass);
 	// if we need to do queries, write to the ring buffer (we set the offset into the ring buffer per query)
 	CurrentRenderPass.visibilityResultBuffer = QueryBuffer.Buffer;
@@ -737,7 +755,6 @@ void FMetalManager::UpdateContext()
 		}
 
 		ReleaseObject(CurrentContext);
-///		ReleaseObject(CurrentFramebuffer);
 
 		// if we are doing occlusion queries, we could use this method, along with a completion callback
 		// to set a "render target complete" flag that the OQ code next frame would wait on
@@ -767,14 +784,6 @@ void FMetalManager::UpdateContext()
 		}];
 	}
 		
-	// make a new framebuffer object to render to
-///	MTLFramebufferDescriptor* FramebufferDescriptor = [MTLFramebufferDescriptor framebufferDescriptorWithColorAttachment:ColorAttachment depthAttachment:DepthAttachment stencilAttachment:nil];
-	// if we need to do queries, write to the ring buffer (we set the offset into the ring buffer per query)
-///	FramebufferDescriptor.visibilityResultBuffer = QueryBuffer.Buffer;
-
-///	CurrentFramebuffer = [Device newFramebufferWithDescriptor:FramebufferDescriptor];
-///	TRACK_OBJECT(CurrentFramebuffer);
-
 	// make a new render context to use to render to the framebuffer
 	CurrentContext = [CurrentCommandBuffer renderCommandEncoderWithDescriptor:CurrentRenderPass];
 	[CurrentContext retain];
@@ -819,7 +828,117 @@ uint32 FMetalManager::AllocateFromRingBuffer(uint32 Size, uint32 Alignment)
 
 uint32 FMetalManager::AllocateFromQueryBuffer()
 {
-	return QueryBuffer.Allocate(8, 0);
+ 	return QueryBuffer.Allocate(8, 0);
+}
+
+
+
+
+FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface* RESTRICT Surface)
+{
+	check(Surface->Texture != nil);
+	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	{
+		[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
+	}
+	else
+	{
+		[FMetalManager::GetContext() setVertexTexture:Surface->Texture atIndex : BindIndex];
+	}
+}
+
+FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState)
+{
+	check(SamplerState->State != nil);
+	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	{
+		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
+	}
+	else
+	{
+		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
+	}
+}
+
+template <typename MetalResourceType>
+inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffer* RESTRICT Buffer, const uint32 * RESTRICT ResourceMap, int32 BufferIndex)
+{
+	int32 NumSetCalls = 0;
+	uint32 BufferOffset = ResourceMap[BufferIndex];
+	if (BufferOffset > 0)
+	{
+		const uint32* RESTRICT ResourceInfos = &ResourceMap[BufferOffset];
+		uint32 ResourceInfo = *ResourceInfos++;
+		do
+		{
+			checkSlow(FRHIResourceTableEntry::GetUniformBufferIndex(ResourceInfo) == BufferIndex);
+			const uint16 ResourceIndex = FRHIResourceTableEntry::GetResourceIndex(ResourceInfo);
+			const uint8 BindIndex = FRHIResourceTableEntry::GetBindIndex(ResourceInfo);
+
+			// @todo metal log: remove
+			NSLog(@"Binding a resource at BindIndex %d, Resource Index %d", BindIndex, ResourceIndex);
+
+			// todo: could coalesce adjacent bound resources.
+			MetalResourceType* ResourcePtr = (MetalResourceType*)Buffer->RawResourceTable[ResourceIndex];
+			SetResource(ShaderStage, BindIndex, ResourcePtr);
+
+			NumSetCalls++;
+			ResourceInfo = *ResourceInfos++;
+		} while (FRHIResourceTableEntry::GetUniformBufferIndex(ResourceInfo) == BufferIndex);
+	}
+
+	return NumSetCalls;
+}
+
+template <class ShaderType>
+void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage, uint32 ResourceTableFrameCounter)
+{
+	checkSlow(Shader);
+
+	// @todo metal log: remove
+	NSLog(@"Resource Bits %x, DirtyBits: %llx", Shader->Bindings.ShaderResourceTable.ResourceTableBits, Shader->DirtyUniformBuffers);
+
+	// Mask the dirty bits by those buffers from which the shader has bound resources.
+	uint32 DirtyBits = Shader->Bindings.ShaderResourceTable.ResourceTableBits & Shader->DirtyUniformBuffers;
+	uint32 NumSetCalls = 0;
+	while (DirtyBits)
+	{
+		// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
+		const uint32 LowestBitMask = (DirtyBits)& (-(int32)DirtyBits);
+		const int32 BufferIndex = FMath::FloorLog2(LowestBitMask); // todo: This has a branch on zero, we know it could never be zero...
+		DirtyBits ^= LowestBitMask;
+		FMetalUniformBuffer* Buffer = (FMetalUniformBuffer*)Shader->BoundUniformBuffers[BufferIndex].GetReference();
+		check(Buffer);
+		check(BufferIndex < Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes.Num());
+		check(Buffer->GetLayout().GetHash() == Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
+		Buffer->CacheResources(ResourceTableFrameCounter);
+
+		// @todo metal log: remove
+		NSLog(@"Setting BufferIndex %d", BufferIndex);
+
+		// todo: could make this two pass: gather then set
+		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSurface>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSamplerState>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
+	}
+	Shader->DirtyUniformBuffers = 0;
+//	SetTextureInTableCalls += NumSetCalls;
+}
+
+void FMetalManager::CommitGraphicsResourceTables()
+{
+	uint32 Start = FPlatformTime::Cycles();
+
+// 	GRHICommandList.Verify();
+
+	check(CurrentBoundShaderState);
+
+	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, METAL_SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
+	if (IsValidRef(CurrentBoundShaderState->PixelShader))
+	{
+		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, METAL_SHADER_STAGE_PIXEL, ResourceTableFrameCounter);
+	}
+
+//	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
 }
 
 void FMetalManager::CommitNonComputeShaderConstants()
@@ -908,122 +1027,3 @@ void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& Sta
 
 	bFirstRasterizerState = false;
 }
-
-
-
-// @todo metal srt
-#if 0 
-template <class ShaderType>
-void FMetalManager::SetResourcesFromTables(const ShaderType* RESTRICT Shader, Gnm::ShaderStage ShaderStage)
-{
-	checkSlow(Shader);
-
-	// Mask the dirty bits by those buffers from which the shader has bound resources.
-	uint32 DirtyBits = Shader->ShaderResourceTable.ResourceTableBits & DirtyUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency];
-	uint32 NumSetCalls = 0;
-	while (DirtyBits)
-	{
-		// Scan for the lowest set bit, compute its index, clear it in the set of dirty bits.
-		const uint32 LowestBitMask = (DirtyBits) & (-(int32)DirtyBits);
-		const int32 BufferIndex = FMath::FloorLog2(LowestBitMask); // todo: This has a branch on zero, we know it could never be zero...
-		DirtyBits ^= LowestBitMask;
-		auto* Buffer = (FGnmUniformBuffer*)BoundUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency][BufferIndex].GetReference();
-		check(Buffer);
-		check(BufferIndex < Shader->ShaderResourceTable.ResourceTableLayoutHashes.Num());
-		check(Buffer->GetLayout().GetHash() == Shader->ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
-		Buffer->CacheResources(ResourceTableFrameCounter);
-
-		// todo: could make this two pass: gather then set
-		NumSetCalls +=
-		SetShaderResourcesFromBuffer<FGnmSurface>(ShaderStage, Buffer, Shader->ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
-		SetShaderResourcesFromBuffer<Gnm::Sampler>(ShaderStage, Buffer, Shader->ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
-	}
-	DirtyUniformBuffers[TRHIShaderToEnum<ShaderType>::ShaderFrequency] = 0;
-	SetTextureInTableCalls += NumSetCalls;
-}
-
-void FMetalManager::CommitGraphicsResourceTables()
-{
-	uint32 Start = FPlatformTime::Cycles();
-
-	GRHICommandList.Verify();
-
-	auto* RESTRICT CurrentBoundShaderState = (FGnmBoundShaderState*)GGnmManager.BoundShaderStateHistory.GetLast();
-	check(CurrentBoundShaderState);
-
-	if (auto* Shader = CurrentBoundShaderState->VertexShader.GetReference())
-	{
-		SetResourcesFromTables(Shader, Shader->ShaderStage);
-	}
-	if (auto* Shader = CurrentBoundShaderState->PixelShader.GetReference())
-	{
-		SetResourcesFromTables(Shader, Gnm::kShaderStagePs);
-	}
-	if (auto* Shader = CurrentBoundShaderState->HullShader.GetReference())
-	{
-		SetResourcesFromTables(Shader, Gnm::kShaderStageHs);
-		auto* DomainShader = CurrentBoundShaderState->DomainShader.GetReference();
-		check(DomainShader);
-		check(0);
-/*
-		SetResourcesFromTables(DomainShader, Gnm::kShaderStageDs);
-*/
-	}
-	if (auto* Shader = CurrentBoundShaderState->GeometryShader.GetReference())
-	{
-		SetResourcesFromTables(Shader, Gnm::kShaderStageGs);
-	}
-
-	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
-}
-
-void FMetalManager::CommitNonComputeShaderConstants()
-{
-	GRHICommandList.Verify();
-	auto* CurrentBoundShaderState = (FGnmBoundShaderState*)BoundShaderStateHistory.GetLast();
-	check(CurrentBoundShaderState);
-
-	// update constant buffers from local shadow memory, and send to GPU
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Vertex ] )
-	{
-		VSConstantBuffer->CommitConstantsToDevice(CurrentVertexShaderStage, 0, bDiscardSharedConstants);
-	}
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Pixel ] )
-	{
-		PSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStagePs, 0, bDiscardSharedConstants);
-	}
-	if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Geometry ] )
-	{
-		GSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageGs, 0, bDiscardSharedConstants);
-	}
-/*
-	// Skip HS/DS CB updates in cases where tessellation isn't being used
-	// Note that this is *potentially* unsafe because bDiscardSharedConstants is cleared at the
-	// end of the function, however we're OK for now because bDiscardSharedConstants
-	// is always reset whenever bUsingTessellation changes in SetBoundShaderState()
-	if (bUsingTessellation)
-	{
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Hull ] )
-		{
-			HSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageHs, 0, bDiscardSharedConstants);
-		}
-		if (CurrentBoundShaderState->bShaderNeedsGlobalConstantBuffer[ SF_Domain ] )
-		{
-			check(0);
-			//DSConstantBuffer->CommitConstantsToDevice(Gnm::kShaderStageDs, 0, bDiscardSharedConstants);
-		}
-	}
-*/
-
-	// don't need to discard again until next shader is set
-	bDiscardSharedConstants = false;
-}
-
-void FGnmManager::CommitComputeResourceTables( FGnmComputeShader* ComputeShader )
-{
-	GRHICommandList.Verify();
-
-	check(ComputeShader);
-	SetResourcesFromTables(ComputeShader, Gnm::kShaderStageCs);
-}
-#endif

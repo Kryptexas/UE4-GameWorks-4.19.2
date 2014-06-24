@@ -58,6 +58,7 @@ static FMetalCompiledShaderCache& GetMetalCompiledShaderCache()
 /** Initialization constructor. */
 template<typename BaseResourceType>
 TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode)
+	: DirtyUniformBuffers(0)
 {
 	FMemoryReader Ar(InCode, true);
 

@@ -163,12 +163,12 @@ void FMetalDynamicRHI::RHIEndFrame()
 
 void FMetalDynamicRHI::RHIBeginScene()
 {
-
+	FMetalManager::Get()->BeginScene();
 }
 
 void FMetalDynamicRHI::RHIEndScene()
 {
-
+	FMetalManager::Get()->EndScene();
 }
 
 void FMetalDynamicRHI::PushEvent(const TCHAR* Name)
