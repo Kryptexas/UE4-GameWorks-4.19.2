@@ -153,6 +153,44 @@ void SUMGDesigner::OnEditorSelectionChanged()
 	{
 		SelectedWidget = FWidgetReference();
 	}
+
+	CreateExtensionWidgetsForSelection();
+}
+
+void SUMGDesigner::CreateExtensionWidgetsForSelection()
+{
+	// Remove all the current extension widgets
+	ExtensionWidgetCanvas->ClearChildren();
+
+	ExtensionWidgets.Reset();
+
+	TArray<FWidgetReference> Selected;
+	Selected.Add(SelectedWidget);
+
+	// Build extension widgets for new selection
+	for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
+	{
+		Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
+	}
+
+	TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
+
+	// Add Widgets to designer surface
+	for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
+	{
+		ExtensionBox->AddSlot()
+			.AutoWidth()
+			[
+				ExWidget
+			];
+	}
+
+	ExtensionWidgetCanvas->AddSlot()
+		.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
+		.Size(FVector2D(100, 25))
+		[
+			ExtensionBox
+		];
 }
 
 UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
@@ -257,39 +295,6 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 		TSet<FWidgetReference> SelectedTemplates;
 		SelectedTemplates.Add(SelectedWidget);
 		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
-
-		// Remove all the current extension widgets
-		ExtensionWidgetCanvas->ClearChildren();
-
-		ExtensionWidgets.Reset();
-
-		TArray<FWidgetReference> Selected;
-		Selected.Add(SelectedWidget);
-
-		// Build extension widgets for new selection
-		for ( TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
-		{
-			Ext->BuildWidgetsForSelection(Selected, ExtensionWidgets);
-		}
-
-		TSharedRef<SHorizontalBox> ExtensionBox = SNew(SHorizontalBox);
-
-		// Add Widgets to designer surface
-		for ( TSharedRef<SWidget>& ExWidget : ExtensionWidgets )
-		{
-			ExtensionBox->AddSlot()
-				.AutoWidth()
-				[
-					ExWidget
-				];
-		}
-
-		ExtensionWidgetCanvas->AddSlot()
-			.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
-			.Size(FVector2D(100, 25))
-			[
-				ExtensionBox
-			];
 	}
 
 	// Capture mouse for the drag handle and general mouse actions
@@ -485,6 +490,15 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 	SDesignSurface::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	LayerId += 1000;
+
+	TSet<FWidgetReference> Selected;
+	Selected.Add(SelectedWidget);
+
+	// Allow the extensions to paint anything they want.
+	for ( const TSharedRef<FDesignerExtension>& Ext : DesignerExtensions )
+	{
+		Ext->Paint(Selected, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	}
 
 	// Don't draw the hovered effect if it's also the selected widget
 	if ( HoveredSlateWidget.IsValid() && HoveredSlateWidget != SelectedSlateWidget )

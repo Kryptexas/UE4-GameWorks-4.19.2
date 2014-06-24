@@ -6,13 +6,14 @@
 #include "SNodePanel.h"
 #include "SDesignSurface.h"
 #include "DesignerExtension.h"
+#include "IUMGDesigner.h"
 
 class FDesignerExtension;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
  */
-class SUMGDesigner : public SDesignSurface
+class SUMGDesigner : public SDesignSurface, public IUMGDesigner
 {
 public:
 
@@ -45,6 +46,8 @@ public:
 	void Register(TSharedRef<FDesignerExtension> Extension);
 
 private:
+	void CreateExtensionWidgetsForSelection();
+
 	/** Displays the context menu when you right click */
 	void ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
