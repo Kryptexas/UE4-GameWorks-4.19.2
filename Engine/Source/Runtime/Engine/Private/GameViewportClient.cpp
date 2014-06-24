@@ -763,9 +763,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
 								ListenerTransform.SetTranslation(Location);
-								ListenerTransform.NormalizeRotation();
-
-								bReverbSettingsFound = true;
+								ListenerTransform.NormalizeRotation();								
 
 								FReverbSettings PlayerReverbSettings;
 								FInteriorSettings PlayerInteriorSettings;
@@ -776,6 +774,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 									ReverbVolume = PlayerReverbVolume;
 									ReverbSettings = PlayerReverbSettings;
 								}
+
+								bReverbSettingsFound = ReverbVolume != nullptr;
 
 								uint32 ViewportIndex = PlayerViewMap.Num()-1;
 								AudioDevice->SetListener(ViewportIndex, ListenerTransform, (View->bCameraCut ? 0.f : GetWorld()->GetDeltaSeconds()), PlayerReverbVolume, PlayerInteriorSettings);
