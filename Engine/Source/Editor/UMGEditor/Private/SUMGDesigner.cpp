@@ -911,6 +911,7 @@ UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEv
 				else
 				{
 					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
 				}
 			}
 			else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
