@@ -3177,6 +3177,7 @@ bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, c
 		return false;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
 	bool bHaveBlockingHit = false;
 
 	// Determine how to convert the local space of this body instance to the test space
