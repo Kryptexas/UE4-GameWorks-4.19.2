@@ -412,7 +412,7 @@ namespace BTGraphHelpers
 
 	void CreateChildren(UBehaviorTree* BTAsset, UBTCompositeNode* RootNode, const UBehaviorTreeGraphNode* RootEdNode, uint16* ExecutionIndex, uint8 TreeDepth)
 	{
-		if (RootEdNode == NULL || RootEdNode == NULL)
+		if (RootEdNode == NULL)
 		{
 			return;
 		}

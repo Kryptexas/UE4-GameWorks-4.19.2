@@ -296,12 +296,12 @@ void FPropertyTable::SetOrientation( EPropertyTableOrientation::Type InOrientati
 
 bool FPropertyTable::CanSelectCells() const
 {
-	return ( SelectionUnit | EPropertyTableSelectionUnit::Cell ) != 0;
+	return ( SelectionUnit & EPropertyTableSelectionUnit::Cell ) != 0;
 }
 
 bool FPropertyTable::CanSelectRows() const
 {
-	return ( SelectionUnit | EPropertyTableSelectionUnit::Row ) != 0;
+	return ( SelectionUnit & EPropertyTableSelectionUnit::Row ) != 0;
 }
 
 void FPropertyTable::SetSelectionMode( const ESelectionMode::Type Mode )
