@@ -132,6 +132,7 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	bAffectDynamicIndirectLighting = false;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
+	bReceivesDecals = false;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
@@ -311,6 +312,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UStaticMesh* I
 		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = Settings->bAffectDynamicIndirectLighting;
 		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
 		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;
+		BestCluster->ClusterComponent->bReceivesDecals = Settings->bReceivesDecals;
 
 		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&Settings->BodyInstance);
 
