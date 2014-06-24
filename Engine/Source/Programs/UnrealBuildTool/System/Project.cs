@@ -163,6 +163,15 @@ namespace UnrealBuildTool
 			set;
 		}
 
+		/// Returns true if this is a foreign project, and requires UBT to be passed the path to the .uproject file 
+		/// on the command line.
+		public bool IsForeignProject
+		{
+			get;
+			set;
+		}
+
+
 
 		/// All of the targets in this project.  All non-stub projects must have at least one target.
 		public readonly List<ProjectTarget> ProjectTargets = new List<ProjectTarget>();

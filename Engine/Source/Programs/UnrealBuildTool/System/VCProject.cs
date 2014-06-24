@@ -893,10 +893,9 @@ namespace UnrealBuildTool
 			{
 				return;
 			}
-
+	
 			string UProjectPath = "";
-			bool bIsProjectTarget = UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath());
-			if (bIsProjectTarget)
+			if (IsForeignProject)
 			{
 				UProjectPath = "\"$(SolutionDir)$(SolutionName).uproject\"";
 			}
@@ -1015,7 +1014,7 @@ namespace UnrealBuildTool
 					// NMake Build command line
 					VCProjectFileContent.Append("		<NMakeBuildCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Build.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}
@@ -1024,7 +1023,7 @@ namespace UnrealBuildTool
 					// NMake ReBuild command line
 					VCProjectFileContent.Append("		<NMakeReBuildCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Rebuild.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}
@@ -1033,7 +1032,7 @@ namespace UnrealBuildTool
 					// NMake Clean command line
 					VCProjectFileContent.Append("		<NMakeCleanCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Clean.bat"))) + ProjectPlatformConfiguration.ToString());
-					if (bIsProjectTarget)
+					if (IsForeignProject)
 					{
 						VCProjectFileContent.Append(" " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : ""));
 					}
