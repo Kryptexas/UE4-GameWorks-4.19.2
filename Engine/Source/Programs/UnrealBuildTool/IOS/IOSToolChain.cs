@@ -158,7 +158,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			IOSSDKVersionFloat = float.Parse(IOSSDKVersion);
+			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
 
 			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
 			{
