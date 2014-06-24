@@ -517,16 +517,16 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 	InMenuBuilder.EndSection();
 }
 
-FVector FWorldTileCollectionModel::GetObserverPosition() const
+FMatrix FWorldTileCollectionModel::GetObserverViewMatrix() const
 {
 	UWorld*	SimulationWorld = GetSimulationWorld();
 	if (SimulationWorld && SimulationWorld->WorldComposition)
 	{
-		return SimulationWorld->WorldComposition->LastViewLocation;
+		return SimulationWorld->WorldComposition->LastWorldToViewMatrix;
 	}
 	else
 	{
-		return FVector::ZeroVector;
+		return FMatrix::Identity;
 	}
 }
 

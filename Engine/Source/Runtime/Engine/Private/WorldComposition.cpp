@@ -526,10 +526,6 @@ void UWorldComposition::UpdateStreamingState(const FVector& InLocation)
 	{
 		CommitTileStreamingState(OwningWorld, Level.TileIdx, true, true, Level.LODIndex);
 	}
-
-#if WITH_EDITOR
-	LastViewLocation = InLocation;
-#endif //WITH_EDITOR
 }
 
 void UWorldComposition::UpdateStreamingState(FSceneViewFamily* ViewFamily)
@@ -546,6 +542,10 @@ void UWorldComposition::UpdateStreamingState(FSceneViewFamily* ViewFamily)
 		}
 
 		ViewLocation/= ViewFamily->Views.Num();
+
+#if WITH_EDITOR
+	LastWorldToViewMatrix = ViewFamily->Views[0]->ViewMatrices.ViewMatrix;
+#endif //WITH_EDITOR
 	}
 	
 	UpdateStreamingState(ViewLocation);

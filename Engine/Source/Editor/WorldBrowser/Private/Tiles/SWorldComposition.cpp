@@ -318,7 +318,7 @@ public:
 			FVector2D PaintPosition = GraphCoordToPanelCoord(FVector2D::ZeroVector) - (PaintSize*0.5f);
 			FPaintGeometry EditableArea = AllottedGeometry.ToPaintGeometry(PaintPosition, PaintSize);
 			EditableArea.DrawScale = 0.2f;
-			FLinearColor PaintColor = FLinearColor::Red;
+			FLinearColor PaintColor = FLinearColor::Yellow;
 			PaintColor.A = 0.4f;
 
 			FSlateDrawElement::MakeBox(
@@ -352,21 +352,28 @@ public:
 			// Draw a current camera position
 			{
 				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
-				FVector ObserverPosition = WorldModel->GetObserverPosition();
+				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().Inverse();
+				FVector ObserverPosition	= ObserverViewToWorld.GetOrigin();
+				FRotator ObserverRotation	= ObserverViewToWorld.Rotator();
+								
 				FVector2D ObserverPositionScreen = GraphCoordToPanelCoord(FVector2D(ObserverPosition.X, ObserverPosition.Y));
 
 				FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry(
 					ObserverPositionScreen - CameraImage->ImageSize*0.5f, 
 					CameraImage->ImageSize
 					);
-						
-				FSlateDrawElement::MakeBox(
+
+				FSlateDrawElement::MakeRotatedBox(
 					OutDrawElements,
 					++LayerId,
 					PaintGeometry,
 					CameraImage,
-					MyClippingRect
-				);
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					FMath::DegreesToRadians(ObserverRotation.Yaw - 90.f), // 0 degrees pointing along +Y axis, arrow on the image pointing along +X axis
+					CameraImage->ImageSize*0.5f,
+					FSlateDrawElement::RelativeToElement
+					);
 			}
 		}
 

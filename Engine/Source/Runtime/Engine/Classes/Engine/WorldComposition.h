@@ -168,8 +168,8 @@ private:
 
 public:
 #if WITH_EDITOR
-	// Last location from where streaming state was updated
-	mutable FVector				LastViewLocation;
+	// Last view from where streaming state was updated
+	mutable FMatrix				LastWorldToViewMatrix;
 
 	// Hack for a World Browser to be able to temporally show hidden levels 
 	// regardless of current world origin and without offsetting them temporally 
