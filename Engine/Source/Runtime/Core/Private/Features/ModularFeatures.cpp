@@ -20,7 +20,8 @@ int32 FModularFeatures::GetModularFeatureImplementationCount( const FName Type )
 
 IModularFeature* FModularFeatures::GetModularFeatureImplementation( const FName Type, const int32 Index )
 {
-	TArray< IModularFeature* > FeatureImplementations;
+	static TArray< IModularFeature* > FeatureImplementations;	// Static, so that we don't have to reallocate entries every time that MultiFind is called
+	FeatureImplementations.Reset();
 	ModularFeaturesMap.MultiFind( Type, FeatureImplementations );
 	return FeatureImplementations[ Index ];
 }
