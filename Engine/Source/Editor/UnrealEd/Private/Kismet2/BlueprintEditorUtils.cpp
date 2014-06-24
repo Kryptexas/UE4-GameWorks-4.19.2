@@ -3331,13 +3331,46 @@ void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const F
 	}
 }
 
+FFunctionFromNodeHelper::FFunctionFromNodeHelper(UObject* Obj) : Function(FunctionFromNode(Cast<UK2Node>(Obj))), Node(Cast<UK2Node>(Obj))
+{
+
+}
+
+UFunction* FFunctionFromNodeHelper::FunctionFromNode(UK2Node* Node)
+{
+	UFunction* Function = NULL;
+	UBlueprint* Blueprint = Node ? Node->GetBlueprint() : NULL;
+	const UClass* SearchScope = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
+	if (SearchScope)
+	{
+		if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
+		{
+			Function = SearchScope->FindFunctionByName(EventNode->EventSignatureName);
+		}
+		else if (UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
+		{
+			const FName FunctionName = (FunctionNode->CustomGeneratedFunctionName != NAME_None) ? FunctionNode->CustomGeneratedFunctionName : FunctionNode->GetGraph()->GetFName();
+			Function = SearchScope->FindFunctionByName(FunctionName);
+		}
+	}
+
+	return Function;
+}
+
 void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName)
 {
 	if ((InOldName != InNewName) && (InNewName != NAME_None))
 	{
-		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InOldName);
-		
-		if(LocalVariable)
+		UK2Node_FunctionEntry* FoundFunctionEntry = NULL;
+		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InOldName, &FoundFunctionEntry);
+		const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(FoundFunctionEntry);
+		const auto ExistingProperty = FindField<const UProperty>(FoundFunction, InNewName);
+		if (ExistingProperty)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Cannot name local variable '%s'. The name is already used."), *InNewName.ToString());
+		}
+
+		if (LocalVariable && !ExistingProperty)
 		{
 			const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Local Variable") );
 			InBlueprint->Modify();
@@ -3359,7 +3392,7 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const F
 	}
 }
 
-FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName)
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
 {
 	// Search through all function entry nodes for a local variable with the passed name
 	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
@@ -3373,6 +3406,10 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprin
 		{
 			if(InVariableName == Variable.VarName)
 			{
+				if (OutFunctionEntry)
+				{
+					*OutFunctionEntry = FunctionEntry;
+				}
 				ReturnVariable = &Variable;
 				break;
 			}

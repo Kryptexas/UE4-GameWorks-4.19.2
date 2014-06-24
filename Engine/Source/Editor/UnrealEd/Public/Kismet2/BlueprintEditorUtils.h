@@ -27,6 +27,16 @@ namespace EGraphRemoveFlags
 	};
 };
 
+struct UNREALED_API FFunctionFromNodeHelper
+{
+	UFunction* const Function;
+	UK2Node* const Node;
+
+	static UFunction* FunctionFromNode(UK2Node* Node);
+
+	FFunctionFromNodeHelper(UObject* Obj);
+};
+
 class UNREALED_API FBlueprintEditorUtils
 {
 public:
@@ -508,9 +518,10 @@ public:
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
 	 * @param InVariableName	Name of the variable to search for
+	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName);
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Finds a local variable name using the variable's Guid

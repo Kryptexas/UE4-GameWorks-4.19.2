@@ -3072,30 +3072,6 @@ bool FBlueprintEditor::CanChangePinType() const
 	return false;
 }
 
-struct FFunctionFromNodeHelper
-{
-	UFunction* Function;
-	UK2Node* Node;
-	FFunctionFromNodeHelper(UObject* SelectedObj) : Function(NULL), Node(NULL)
-	{
-		Node = Cast<UK2Node>(SelectedObj);
-		UBlueprint* Blueprint = Node ? Node->GetBlueprint() : NULL;
-		const UClass* SearchScope = Blueprint ? Blueprint->SkeletonGeneratedClass : NULL;
-		if(SearchScope)
-		{
-			if (UK2Node_Event* EventNode = Cast<UK2Node_Event>(Node))
-			{
-				Function = SearchScope->FindFunctionByName(EventNode->EventSignatureName);
-			}
-			else if(UK2Node_FunctionEntry* FunctionNode = Cast<UK2Node_FunctionEntry>(Node))
-			{
-				const FName FunctionName = (FunctionNode->CustomGeneratedFunctionName != NAME_None) ? FunctionNode->CustomGeneratedFunctionName : FunctionNode->GetGraph()->GetFName();
-				Function = SearchScope->FindFunctionByName(FunctionName);
-			}
-		}
-	}
-};
-
 void FBlueprintEditor::OnAddParentNode()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
