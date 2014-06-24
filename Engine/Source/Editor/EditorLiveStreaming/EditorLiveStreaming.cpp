@@ -9,7 +9,7 @@
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 
-IMPLEMENT_MODULE( FEditorLiveStreaming, "EditorLiveStreaming" );
+IMPLEMENT_MODULE( FEditorLiveStreaming, EditorLiveStreaming );
 
 #define LOCTEXT_NAMESPACE "EditorLiveStreaming"
 

@@ -8,7 +8,7 @@
 #include "RenderCore.h"
 #include "RHIStaticStates.h"
 
-IMPLEMENT_MODULE( FGameLiveStreaming, "GameLiveStreaming" );
+IMPLEMENT_MODULE( FGameLiveStreaming, GameLiveStreaming );
 
 #define LOCTEXT_NAMESPACE "GameLiveStreaming"
 
