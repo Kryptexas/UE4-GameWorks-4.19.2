@@ -123,6 +123,12 @@ private:
 	/** Handle linking between tutorials */
 	FString HandleGotoNextTutorial(const FString& InCurrentPage) const;
 
+public:
+
+	// IIntroTutorials interface
+	virtual void RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString) override;
+	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass) override;
+	// End of IIntroTutorials interface
 private:
 	/** The tab id of the tutorial tab */
 	static const FName IntroTutorialTabName;
@@ -156,4 +162,7 @@ private:
 
 	/** Map of what tutorial to go to at the end of another */
 	TMap<FString, FString> TutorialChainMap;
+
+	/** should we be clearing the 'have seen this tutorial' flag? (controlled by -tutorials on the command line) */
+	bool bDesireResettingTutorialSeenFlagOnLoad;
 };

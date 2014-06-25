@@ -34,5 +34,20 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "IntroTutorials" );
 	}
+
+	/**
+	 * Adds a tutorial association for a type of asset (will be summoned the first time an asset editor is opened for the specified asset class)
+	 * @param AssetClass		Asset type to register a tutorial for
+	 * @param TutorialDocPath	The path to the tutorial doc (must be rooted in the Shared directory, e.g., "Shared/Tutorials/InPersonaAnimEditorTutorial")
+	 * @param TutorialHasBeenSeenSettingName	The setting name to store whether this editor has been seen or not yet (stored in GEditorGameAgnosticIni in the [IntroTutorials] section)
+	 * @param SurveyGUIDString	Text representation of a GUID, used to uniquely identify this tutorial if required for a survey.
+	 */
+	virtual void RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString)=0;
+
+	/**
+	 * Removes the tutorial association for the specified class
+	 * @param AssetClass		Asset type to unregister the tutorial from
+	 */
+	virtual void UnregisterTutorialForAssetEditor(UClass* AssetClass)=0;
 };
 

@@ -42,6 +42,8 @@ FIntroTutorials::FIntroTutorials()
 	: CurrentObjectClass(nullptr)
 {
 	bEnablePostTutorialSurveys = false;
+
+	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("tutorials"));
 }
 
 /** Generates an analytics name for the given tutorial path string */
@@ -172,7 +174,7 @@ void FIntroTutorials::StartupModule()
 		}
 
 		// maybe reset all the "have I seen this once" flags
-		if (FParse::Param(FCommandLine::Get(), TEXT("tutorials")))
+		if (bDesireResettingTutorialSeenFlagOnLoad)
 		{
 			ResetWelcomeTutorials();
 		}
@@ -272,7 +274,7 @@ void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWel
 	check(Tutorial);
 	SummonTutorialWindowForPage(Tutorial->TutorialPath);
 
-	// make sure weve seen this tutorial
+	// make sure we've seen this tutorial
 	GConfig->SetBool(*IntroTutorialConfigSection, *Tutorial->SeenOnceSettingName, true, GEditorGameAgnosticIni);
 }
 
@@ -595,6 +597,27 @@ FString FIntroTutorials::HandleGotoNextTutorial(const FString& InCurrentPage) co
 	}
 
 	return FString();
+}
+
+void FIntroTutorials::RegisterTutorialForAssetEditor(UClass* AssetClass, const FString& TutorialDocPath, const FString& TutorialHasBeenSeenSettingName, const FString& SurveyGUIDString)
+{
+	FWelcomeTutorialProperties TutorialData(TutorialDocPath, TutorialHasBeenSeenSettingName, SurveyGUIDString);
+
+	if (bDesireResettingTutorialSeenFlagOnLoad)
+	{
+		ResetTutorial(TutorialData);
+	}
+
+	TutorialSurveyMap.Add(TutorialDocPath, TutorialData.SurveyGuid);
+
+	AssetEditorTutorialPropertyMap.Add(AssetClass, TutorialData);
+}
+
+void FIntroTutorials::UnregisterTutorialForAssetEditor(UClass* AssetClass)
+{
+	const FWelcomeTutorialProperties& TutorialData = AssetEditorTutorialPropertyMap.FindChecked(AssetClass);
+	TutorialSurveyMap.Remove(TutorialData.TutorialPath);
+	AssetEditorTutorialPropertyMap.Remove(AssetClass);
 }
 
 #undef LOCTEXT_NAMESPACE
