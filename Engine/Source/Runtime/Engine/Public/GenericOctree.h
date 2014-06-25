@@ -721,11 +721,8 @@ public:
 		RootNode.ShrinkElements();
 	}
 
-	void ApplyOffset(const FVector& InOffset)
-	{
-		RootNodeContext.Bounds.Center+= FVector4(InOffset, 0.f);
-		RootNode.ApplyOffset(InOffset);
-	}
+	/** Apply an arbitrary offset to all elements in the tree */
+	void ApplyOffset(const FVector& InOffset);
 
 	/** Initialization constructor. */
 	TOctree(const FVector& InOrigin,float InExtent);

@@ -1879,6 +1879,8 @@ static void StaticMeshDrawListApplyWorldOffset(T(&InList)[N], FVector InOffset)
 
 void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneApplyWorldOffset);
+	
 	// Primitives
 	for (auto It = Primitives.CreateIterator(); It; ++It)
 	{
@@ -1904,7 +1906,7 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	}
 
 	// Lights
-	VectorRegister OffsetReg = VectorLoadFloat3(&InOffset);
+	VectorRegister OffsetReg = VectorLoadFloat3_W0(&InOffset);
 	for (auto It = Lights.CreateIterator(); It; ++It)
 	{
 		(*It).BoundingSphereVector = VectorAdd((*It).BoundingSphereVector, OffsetReg);
