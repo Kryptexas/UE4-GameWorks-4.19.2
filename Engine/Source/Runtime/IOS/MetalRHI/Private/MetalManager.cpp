@@ -510,39 +510,6 @@ void FMetalManager::PrepareToDraw(uint32 NumVertices)
 	
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
-
-	// grow buffers as needed
-	extern TRefCountPtr<FMetalVertexBuffer> HACK_ZeroStrideBuffers[16];
-	for (int32 Index = 0; Index < 16; Index++)
-	{
-		if (HACK_ZeroStrideBuffers[Index] != NULL)
-		{
-			TRefCountPtr<FMetalVertexBuffer> Buffer = HACK_ZeroStrideBuffers[Index];
-			
-			// how big do we need?
-			uint32 NeededSize = Align(NumVertices * Buffer->ZeroStrideElementSize, 128*1024);
-			// if too small, then grow and fill in
-			if (NeededSize > [Buffer->Buffer length])
-			{
-				id<MTLBuffer> Orig = Buffer->Buffer;
-				Buffer->Buffer = [Device newBufferWithLength:NeededSize options:BUFFER_CACHE_MODE];
-				TRACK_OBJECT(Buffer->Buffer);
-
-				uint8* SrcMem = (uint8*)[Orig contents];
-				uint8* DestMem = (uint8*)[Buffer->Buffer contents];
-				for (int32 CopyIndex = 1; CopyIndex < NumVertices; CopyIndex++)
-				{
-					FMemory::Memcpy(DestMem + Buffer->ZeroStrideElementSize * CopyIndex, SrcMem, Buffer->ZeroStrideElementSize);
-				}
-
-				NSLog(@"Expaning buffer from %d to %d", (int32)[Orig length], NeededSize);
-				// set the new buffer object
-				[FMetalManager::GetContext() setVertexBuffer:Buffer->Buffer offset:0 atIndex:UNREAL_TO_METAL_BUFFER_INDEX(Index)];
-
-				ReleaseObject(Orig);
-			}
-		}
-	}
 }
 
 void FMetalManager::SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled)

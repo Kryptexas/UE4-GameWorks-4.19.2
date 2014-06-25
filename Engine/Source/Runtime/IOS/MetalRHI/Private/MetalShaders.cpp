@@ -11,14 +11,6 @@
 /** Set to 1 to enable shader debugging (makes the driver save the shader source) */
 #define DEBUG_METAL_SHADERS (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 
-uint64 HitchyHashes[] = 
-{
- 	0x09f873f002005ULL,
- 	0x040050e020150ULL,
- 	0x09f873e0a0150ULL,
-	0x11f873f002005ULL
-};
-
 
 class FMetalCompiledShaderKey
 {
@@ -269,19 +261,6 @@ FMetalBoundShaderState::FMetalBoundShaderState(
 	}
 #endif
 	
-	if (GFrameCounter < 2000)
-	{
-		for (int32 Index = 0; Index < ARRAY_COUNT(HitchyHashes); Index++)
-		{
-			FPipelineShadow Shadow;
-			Shadow.SetHash(HitchyHashes[Index]);
-			check(Shadow.GetHash() == HitchyHashes[Index]);
-	 
-			id<MTLRenderPipelineState> PipelineState = Shadow.CreatePipelineStateForBoundShaderState(this);
-			PipelineStates.Add(HitchyHashes[Index], PipelineState);
-		}
-	}
-	
 	AddRef();
 }
 
@@ -297,10 +276,6 @@ FMetalBoundShaderState::~FMetalBoundShaderState()
 
 void FMetalBoundShaderState::PrepareToDraw(const FPipelineShadow& PipelineShadow)
 {
-#if NO_DRAW
-	return;
-#endif
-	
 	// generate a key for the current state
 	uint64 Hash = PipelineShadow.GetHash();
 	

@@ -19,14 +19,9 @@ static MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 	}
 }
 
-TRefCountPtr<FMetalVertexBuffer> HACK_ZeroStrideBuffers[16] = { 0 };
-
 void FMetalDynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
 {
 	DYNAMIC_CAST_METGALRESOURCE(VertexBuffer,VertexBuffer);
-
-	// queue this zero stride buffer to be grown later if needed
-	HACK_ZeroStrideBuffers[StreamIndex] = VertexBuffer->ZeroStrideElementSize ? VertexBuffer : NULL;
 
 	[FMetalManager::GetContext() setVertexBuffer:VertexBuffer->Buffer offset:VertexBuffer->Offset + Offset atIndex:UNREAL_TO_METAL_BUFFER_INDEX(StreamIndex)];
 }
@@ -479,7 +474,6 @@ void FMetalDynamicRHI::RHIEndDrawPrimitiveUP()
 	uint32 NumVertices = RHIGetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
 
 	// last minute draw setup
-	HACK_ZeroStrideBuffers[0] = NULL;
 	FMetalManager::Get()->PrepareToDraw(0);
 	
 #if !NO_DRAW
@@ -525,7 +519,6 @@ void FMetalDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	uint32 NumIndices = RHIGetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
 
 	// last minute draw setup
-	HACK_ZeroStrideBuffers[0] = NULL;
 	FMetalManager::Get()->PrepareToDraw(0);
 	
 #if !NO_DRAW
