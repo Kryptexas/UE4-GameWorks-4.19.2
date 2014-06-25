@@ -603,9 +603,15 @@ namespace UnrealBuildTool
 				{
 					FieldInfo Field = ClassType.GetField(XmlField.Name);
 
-					if (Field == null || !IsConfigurableField(Field))
+					// allow settings in the .xml that don't exist, as another branch may have it, and can share this file from Documents
+					if (Field == null)
 					{
-						throw new BuildException("BuildConfiguration Loading: field '{0}' doesn't exist or is either non-public, non-static or not-xml-configurable.", XmlField.Name);
+						continue;
+					}
+					
+					if (!IsConfigurableField(Field))
+					{
+						throw new BuildException("BuildConfiguration Loading: field '{0}' is either non-public, non-static or not-xml-configurable.", XmlField.Name);
 					}
 
 					if(Field.FieldType.IsArray)
