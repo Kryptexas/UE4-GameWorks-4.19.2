@@ -723,17 +723,32 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE,				GL_LUMINANCE	,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
 		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA,					GL_ALPHA,									GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
 	#endif
+
+#if PLATFORM_ANDROID
+	bool bNeedFloatRGBAtoRGBA8 = true;
+#endif
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
 		if (FOpenGL::SupportsTextureHalfFloat())
 		{
 #if PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4
 			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA16F_EXT,				GL_RGBA16F_EXT,								GL_RGBA,				GL_HALF_FLOAT_OES,					false));
+			bNeedFloatRGBAtoRGBA8 = false;
 #else
 			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,							GL_RGBA,									GL_RGBA,				GL_HALF_FLOAT_OES,					false));
 #endif
+#if PLATFORM_ANDROID
+			bNeedFloatRGBAtoRGBA8 = false;
+#endif
 		}
 	}
+#if PLATFORM_ANDROID
+	if (bNeedFloatRGBAtoRGBA8)
+	{
+		SetupTextureFormat( PF_FloatRGBA,			FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA,					GL_UNSIGNED_BYTE,					false));
+	}
+#endif
+
 	if (FOpenGL::SupportsPackedDepthStencil())
 	{
 		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES,				GL_NONE,									GL_DEPTH_STENCIL_OES,	GL_UNSIGNED_INT_24_8_OES,			false));
