@@ -332,6 +332,10 @@ namespace AutomationTool
 					if (Proc != null)
 					{
 						bHasExited = Proc.HasExited;
+						if (bHasExited)
+						{
+							ExitCode = Proc.ExitCode;
+						}
 					}
 				}
 				return bHasExited; 
