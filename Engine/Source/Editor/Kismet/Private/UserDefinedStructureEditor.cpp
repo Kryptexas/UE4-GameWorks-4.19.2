@@ -514,19 +514,6 @@ public:
 		return false;
 	}
 
-	FText OnGetArgDefaultValueText() const
-	{
-		auto StructureDetailsSP = StructureDetails.Pin();
-		if(StructureDetailsSP.IsValid())
-		{
-			if(const FStructVariableDescription* FieldDesc = StructureDetailsSP->FindStructureFieldByGuid(FieldGuid))
-			{
-				return FText::FromString(FieldDesc->DefaultValue);
-			}
-		}
-		return FText();
-	}
-
 	FText OnGetTooltipText() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
@@ -598,15 +585,6 @@ public:
 		if (StructureDetailsSP.IsValid() && (ESlateCheckBoxState::Undetermined != InNewState))
 		{
 			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Checked == InNewState);
-		}
-	}
-
-	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
-	{
-		auto StructureDetailsSP = StructureDetails.Pin();
-		if(StructureDetailsSP.IsValid())
-		{
-			FStructureEditorUtils::ChangeVariableDefaultValue(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, NewText.ToString());
 		}
 	}
 
@@ -743,21 +721,6 @@ public:
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override 
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "UDSVarDefaultValue", "Default Value" ).ToString() )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text( LOCTEXT( "DefaultValue", "Default Value" ) )
-			.Font( IDetailLayoutBuilder::GetDetailFont() )
-		]
-		.ValueContent()
-		[
-			SNew(SEditableTextBox)
-			.Text( this, &FUserDefinedStructureFieldLayout::OnGetArgDefaultValueText )
-			.OnTextCommitted( this, &FUserDefinedStructureFieldLayout::OnArgDefaultValueCommitted )
-			.Font( IDetailLayoutBuilder::GetDetailFont() )
-		];
-
 		ChildrenBuilder.AddChildContent(*LOCTEXT("Tooltip", "Tooltip").ToString())
 		.NameContent()
 		[
