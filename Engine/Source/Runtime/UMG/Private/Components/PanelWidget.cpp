@@ -80,7 +80,7 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 
 	Content->Slot = Slot;
 
-	Slot->Refresh();
+	Slot->SyncronizeProperties();
 }
 
 void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)

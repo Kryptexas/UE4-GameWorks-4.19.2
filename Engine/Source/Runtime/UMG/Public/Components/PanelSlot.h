@@ -33,7 +33,7 @@ public:
 	virtual bool CanMove() const;
 
 	/** Applies all properties to the live slot if possible. */
-	virtual void Refresh()
+	virtual void SyncronizeProperties()
 	{
 	}
 
@@ -43,7 +43,7 @@ public:
 	{
 		Super::PostEditChangeProperty(PropertyChangedEvent);
 
-		Refresh();
+		SyncronizeProperties();
 	}
 
 #endif

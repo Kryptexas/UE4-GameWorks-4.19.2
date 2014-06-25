@@ -57,7 +57,7 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	void SetAlignment(FVector2D InAlignment);
 
 	// UPanelSlot interface
-	virtual void Refresh() override;
+	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
 #if WITH_EDITOR

@@ -123,7 +123,7 @@ void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 	}
 }
 
-void UCanvasPanelSlot::Refresh()
+void UCanvasPanelSlot::SyncronizeProperties()
 {
 	SetOffset(LayoutData.Offsets);
 	SetAnchors(LayoutData.Anchors);
@@ -150,7 +150,7 @@ void UCanvasPanelSlot::PreEditChange(UProperty* PropertyAboutToChange)
 
 void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	Refresh();
+	SyncronizeProperties();
 
 	static FName AnchorsProperty(TEXT("Anchors"));
 	
@@ -231,7 +231,7 @@ void UCanvasPanelSlot::PostEditChangeChainProperty(struct FPropertyChangedChainE
 			}
 
 			// Apply the changes to the properties.
-			Refresh();
+			SyncronizeProperties();
 		}
 	}
 

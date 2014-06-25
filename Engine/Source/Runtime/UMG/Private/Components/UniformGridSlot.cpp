@@ -41,7 +41,7 @@ void UUniformGridSlot::SetColumn(int32 InColumn)
 	}
 }
 
-void UUniformGridSlot::Refresh()
+void UUniformGridSlot::SyncronizeProperties()
 {
 	SetRow(Row);
 	SetColumn(Column);

@@ -41,7 +41,7 @@ class UMG_API UVerticalBoxSlot : public UPanelSlot
 	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
 
 	// UPanelSlot interface
-	virtual void Refresh() override;
+	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */

@@ -61,7 +61,7 @@ void UHorizontalBoxSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlign
 	}
 }
 
-void UHorizontalBoxSlot::Refresh()
+void UHorizontalBoxSlot::SyncronizeProperties()
 {
 	SetPadding(Padding);
 	SetSize(Size);

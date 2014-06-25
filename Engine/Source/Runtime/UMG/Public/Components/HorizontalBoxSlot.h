@@ -40,7 +40,7 @@ class UMG_API UHorizontalBoxSlot : public UPanelSlot
 	void BuildSlot(TSharedRef<SHorizontalBox> HorizontalBox);
 
 	// UPanelSlot interface
-	virtual void Refresh() override;
+	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
 private:

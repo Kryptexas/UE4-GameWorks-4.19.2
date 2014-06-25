@@ -62,7 +62,7 @@ void UVerticalBoxSlot::SetVerticalAlignment(EVerticalAlignment InVerticalAlignme
 	}
 }
 
-void UVerticalBoxSlot::Refresh()
+void UVerticalBoxSlot::SyncronizeProperties()
 {
 	SetPadding(Padding);
 	SetSize(Size);
