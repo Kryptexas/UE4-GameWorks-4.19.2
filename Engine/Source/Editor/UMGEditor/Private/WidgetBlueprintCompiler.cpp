@@ -596,6 +596,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 	ValidateWidgetNames();
 
+	// Build the set of variables based on the variable widgets in the widget tree.
 	for ( UWidget* Widget : Blueprint->WidgetTree->WidgetTemplates )
 	{
 		// Skip non-variable widgets
