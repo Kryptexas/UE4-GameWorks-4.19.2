@@ -138,7 +138,7 @@ static TAutoConsoleVariable<int32> CVarSetTextureStreamingEnabled(
 	ECVF_Default | ECVF_RenderThreadSafe);
 #endif
 
-static TAutoConsoleVariable<int32> CvarStreamingUseFixedPoolSize(
+static TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize(
 	TEXT("r.Streaming.UseFixedPoolSize"),
 	0,
 	TEXT("If non-zero, do not allow the pool size to change at run time."),
@@ -3657,7 +3657,7 @@ void FStreamingManagerTexture::StreamTexturesUnlimited( FStreamingContext& Conte
 void FStreamingManagerTexture::CheckUserSettings()
 {	
 	int32 PoolSizeSetting = CVarStreamingPoolSize.GetValueOnGameThread();
-	int32 FixedPoolSizeSetting = CvarStreamingUseFixedPoolSize.GetValueOnGameThread();
+	int32 FixedPoolSizeSetting = CVarStreamingUseFixedPoolSize.GetValueOnGameThread();
 
 	if (FixedPoolSizeSetting == 0)
 	{

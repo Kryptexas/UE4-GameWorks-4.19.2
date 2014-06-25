@@ -51,7 +51,7 @@ static TAutoConsoleVariable<float> CVarNetProxyShrinkHalfHeight(
 	ECVF_Default);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CvarNetShowCorrections(
+static TAutoConsoleVariable<int32> CVarNetShowCorrections(
 	TEXT("p.NetShowCorrections"),
 	0,
 	TEXT("Whether to draw client position corrections (red is incorrect, green is corrected).\n")
@@ -5366,7 +5366,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		ServerData->PendingAdjustment.NewRot = CharacterOwner->GetActorRotation();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		if (CvarNetShowCorrections.GetValueOnGameThread() != 0)
+		if (CVarNetShowCorrections.GetValueOnGameThread() != 0)
 		{
 			UE_LOG(LogNetPlayerMovement, Warning, TEXT("******** Client Error at %f is %f Accel %s LocDiff %s ClientLoc %s, ServerLoc: %s, Base: %s"), TimeStamp, LocDiff.Size(), *Accel.ToString(), *LocDiff.ToString(), *ClientLoc.ToString(), *CharacterOwner->GetActorLocation().ToString(), *GetNameSafe(MovementBase));
 			const float DebugLifetime = CVarNetCorrectionLifetime.GetValueOnGameThread();
