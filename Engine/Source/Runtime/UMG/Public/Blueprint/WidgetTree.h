@@ -19,7 +19,7 @@ public:
 
 	UWidget* FindWidget(const FString& Name) const;
 
-	bool RemoveWidget(UWidget* Widget);
+	bool RemoveWidget(UWidget* Widget, bool bIsRecursive = true);
 
 	class UPanelWidget* FindWidgetParent(UWidget* Widget, int32& OutChildIndex);
 
@@ -38,7 +38,4 @@ public:
 
 		return (T*)Widget;
 	}
-	
-private:
-	bool RemoveWidgetRecursive(UWidget* InRemovedWidget);
 };

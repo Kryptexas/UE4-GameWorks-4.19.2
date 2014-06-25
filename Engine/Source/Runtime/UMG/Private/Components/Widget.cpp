@@ -68,7 +68,7 @@ bool UWidget::IsHovered() const
 	return false;
 }
 
-UWidget* UWidget::GetParent() const
+UPanelWidget* UWidget::GetParent() const
 {
 	if ( Slot )
 	{

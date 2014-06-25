@@ -37,6 +37,7 @@ public:
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
@@ -103,10 +104,8 @@ private:
 private:
 	void DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const;
 	DragHandle HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const;
-	
-	UWidget* AddPreview(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-	
-	bool AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+
+	UWidget* ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview);
 	
 private:
 	/** A reference to the BP Editor that owns this designer */
@@ -143,6 +142,12 @@ private:
 	/** The currently selected slate widget, this is refreshed every frame in case it changes */
 	TArray< TWeakPtr<SWidget> > SelectedSlateWidgets;
 	TWeakPtr<SWidget> SelectedSlateWidget;
+
+	/**  */
+	bool bMouseDown;
+
+	/** An existing widget is being moved in its current container, or in to a new container. */
+	bool bMovingExistingWidget;
 
 	/** The wall clock time the user has been hovering over a single widget */
 	float HoverTime;

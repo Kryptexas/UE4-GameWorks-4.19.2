@@ -13,6 +13,31 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+const float HoveredAnimationTime = 0.150f;
+
+class FSelectedWidgetDragDropOp : public FDecoratedDragDropOp
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FSelectedWidgetDragDropOp, FDecoratedDragDropOp)
+
+	FWidgetReference Widget;
+
+	static TSharedRef<FSelectedWidgetDragDropOp> New(FWidgetReference InWidget);
+
+	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
+};
+
+TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(FWidgetReference InWidget)
+{
+	TSharedRef<FSelectedWidgetDragDropOp> Operation = MakeShareable(new FSelectedWidgetDragDropOp());
+	Operation->Widget = InWidget;
+	Operation->DefaultHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
+	Operation->CurrentHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
+	Operation->Construct();
+
+	return Operation;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2D InAbsoluteCursorLocation, FArrangedChildren& OutWidgetsUnderCursor, bool bIgnoreEnabledStatus)
@@ -76,6 +101,9 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 	CurrentHandle = DH_NONE;
 
 	HoverTime = 0;
+
+	bMouseDown = false;
+	bMovingExistingWidget = false;
 
 	DragDirections.Init((int32)DH_MAX);
 	DragDirections[DH_TOP_LEFT] = FVector2D(-1, -1);
@@ -298,6 +326,8 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 		TSet<FWidgetReference> SelectedTemplates;
 		SelectedTemplates.Add(SelectedWidget);
 		BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates);
+
+		bMouseDown = true;
 	}
 
 	// Capture mouse for the drag handle and general mouse actions
@@ -308,6 +338,9 @@ FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointer
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
+		bMouseDown = false;
+		bMovingExistingWidget = false;
+
 		if ( CurrentHandle != DH_NONE )
 		{
 			EndTransaction();
@@ -356,9 +389,19 @@ FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEven
 		}
 	}
 
-	// Update the hovered widget under the mouse
+	if ( bMouseDown )
+	{
+		if ( SelectedWidget.IsValid() && !bMovingExistingWidget )
+		{
+			bMovingExistingWidget = true;
+			//Drag selected widgets
+			return FReply::Handled().DetectDrag(AsShared(), EKeys::LeftMouseButton);
+		}
+	}
+	
 	if ( CurrentHandle == DH_NONE )
 	{
+		// Update the hovered widget under the mouse
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 		FWidgetReference NewHoveredWidget = GetWidgetAtCursor(MyGeometry, MouseEvent, ArrangedWidget);
 		if ( !( NewHoveredWidget == HoveredWidget ) )
@@ -510,8 +553,6 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 
 		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 		GetArrangedWidgetRelativeToWindow(Widget, ArrangedWidget);
-
-		const float HoveredAnimationTime = 0.25f;
 
 		// Draw hovered effect
 		// Azure = 0x007FFF
@@ -825,6 +866,16 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
+FReply SUMGDesigner::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( SelectedWidget.IsValid() )
+	{
+		return FReply::Handled().BeginDragDrop(FSelectedWidgetDragDropOp::New(SelectedWidget));
+	}
+
+	return FReply::Unhandled();
+}
+
 void SUMGDesigner::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	//@TODO UMG Drop Feedback
@@ -846,7 +897,8 @@ void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
 		}
 
 		UWidgetBlueprint* BP = GetBlueprint();
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		const bool bIsRecursive = false;
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
 		DropPreviewWidget = NULL;
 	}
 }
@@ -862,11 +914,13 @@ FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEven
 			DropPreviewParent->RemoveChild(DropPreviewWidget);
 		}
 		
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		const bool bIsRecursive = false;
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
 		DropPreviewWidget = NULL;
 	}
 	
-	DropPreviewWidget = AddPreview(MyGeometry, DragDropEvent);
+	const bool bIsPreview = true;
+	DropPreviewWidget = ProcessDropAndAddWidget(MyGeometry, DragDropEvent, bIsPreview);
 	if ( DropPreviewWidget )
 	{
 		//@TODO UMG Drop Feedback
@@ -876,22 +930,46 @@ FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEven
 	return FReply::Unhandled();
 }
 
-UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview)
 {
+	// In order to prevent the GetWidgetAtCursor code from picking the widget we're about to move, we need to mark it
+	// as the drop preview widget before any other code can run.
+	TSharedPtr<FSelectedWidgetDragDropOp> SelectedDragDropOp = DragDropEvent.GetOperationAs<FSelectedWidgetDragDropOp>();
+	if ( SelectedDragDropOp.IsValid() )
+	{
+		DropPreviewWidget = SelectedDragDropOp->Widget.GetPreview();
+	}
+
+	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
+	FWidgetReference WidgetUnderCursor = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
+
+	UWidgetBlueprint* BP = GetBlueprint();
+
+	UWidget* Target = NULL;
+	if ( WidgetUnderCursor.IsValid() )
+	{
+		Target = bIsPreview ? WidgetUnderCursor.GetPreview() : WidgetUnderCursor.GetTemplate();
+	}
+
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
-	{
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FWidgetReference Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-		
-		UWidgetBlueprint* BP = GetBlueprint();
-		
-		if ( Selection.IsValid() )
+	{		
+		if ( Target )
 		{
-			UWidget* Target = Selection.GetPreview();
 			if ( Target->IsA(UPanelWidget::StaticClass()) )
 			{
 				UPanelWidget* Parent = Cast<UPanelWidget>(Target);
+
+				FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
+
+				if ( !bIsPreview )
+				{
+					Parent->SetFlags(RF_Transactional);
+					Parent->Modify();
+
+					BP->WidgetTree->SetFlags(RF_Transactional);
+					BP->WidgetTree->Modify();
+				}
 				
 				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 				Widget->IsDesignTime(true);
@@ -906,12 +984,22 @@ UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEv
 
 					DropPreviewParent = Parent;
 
+					if ( !bIsPreview )
+					{
+						Transaction.Cancel();
+					}
+
 					return Widget;
 				}
 				else
 				{
 					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
 					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
+				}
+
+				if ( !bIsPreview )
+				{
+					Transaction.Cancel();
 				}
 			}
 			else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
@@ -924,73 +1012,103 @@ UWidget* SUMGDesigner::AddPreview(const FGeometry& MyGeometry, const FDragDropEv
 				return Widget;
 			}
 		}
-	}
-	
-	return NULL;
-}
-
-bool SUMGDesigner::AddToTemplate(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
-{
-	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
-	if ( DragDropOp.IsValid() )
-	{
-		FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
-		FWidgetReference Selection = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-		
-		UWidgetBlueprint* BP = GetBlueprint();
-		
-		if ( Selection.IsValid() )
+		else
 		{
-			UWidget* Target = Selection.GetTemplate();
-			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
 			{
-				UPanelWidget* Parent = Cast<UPanelWidget>(Target);
+				FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
 
-				const FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
-				Parent->SetFlags(RF_Transactional);
-				Parent->Modify();
+				if ( !bIsPreview )
+				{
+					BP->WidgetTree->SetFlags(RF_Transactional);
+					BP->WidgetTree->Modify();
+				}
 
-				BP->WidgetTree->SetFlags(RF_Transactional);
-				BP->WidgetTree->Modify();
-				
+				// TODO UMG This method isn't great, maybe the user widget should just be a canvas.
+
+				// Add it to the root if there are no other widgets to add it to.
 				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 				Widget->IsDesignTime(true);
-				
-				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-				if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
+
+				SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+
+				DropPreviewParent = NULL;
+
+				if ( !bIsPreview )
 				{
+					Transaction.Cancel();
+				}
+
+				return Widget;
+			}
+		}
+	}
+
+	// Attempt to deal with moving widgets from a drag operation.
+	if ( SelectedDragDropOp.IsValid() )
+	{
+		if ( Target )
+		{
+			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			{
+				UPanelWidget* NewParent = Cast<UPanelWidget>(Target);
+
+				FScopedTransaction Transaction(LOCTEXT("Designer_MoveWidget", "Move Widget"));
+
+				if ( !bIsPreview )
+				{
+					NewParent->SetFlags(RF_Transactional);
+					NewParent->Modify();
+
+					BP->WidgetTree->SetFlags(RF_Transactional);
+					BP->WidgetTree->Modify();
+				}
+
+				UWidget* Widget = bIsPreview ? SelectedDragDropOp->Widget.GetPreview() : SelectedDragDropOp->Widget.GetTemplate();
+
+				if ( Widget->GetParent() )
+				{
+					if ( !bIsPreview )
+					{
+						Widget->GetParent()->Modify();
+					}
+
+					Widget->GetParent()->RemoveChild(Widget);
+				}
+
+				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
+				{
+					//TODO UMG Migrate existing slot info
 					Slot->SetDesiredPosition(LocalPosition);
 					Slot->SetDesiredSize(FVector2D(150, 30));
 					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
 					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
 
-					// Update the selected template to be the newly created one.
-					SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+					DropPreviewParent = NewParent;
 
-					return true;
+					if ( !bIsPreview )
+					{
+						Transaction.Cancel();
+					}
+
+					return Widget;
+				}
+				else
+				{
+					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
+				}
+
+				if ( !bIsPreview )
+				{
+					Transaction.Cancel();
 				}
 			}
 		}
-		
-		if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
-		{
-			const FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
-			BP->WidgetTree->SetFlags(RF_Transactional);
-			BP->WidgetTree->Modify();
-
-			// TODO UMG This method isn't great, maybe the user widget should just be a canvas.
-			
-			// Add it to the root if there are no other widgets to add it to.
-			UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-			Widget->IsDesignTime(true);
-			
-			SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
-			
-			return true;
-		}
 	}
 	
-	return false;
+	return NULL;
 }
 
 FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -1004,11 +1122,14 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 			DropPreviewParent->RemoveChild(DropPreviewWidget);
 		}
 		
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
+		const bool bIsRecursive = false;
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
 		DropPreviewWidget = NULL;
 	}
 	
-	if ( AddToTemplate(MyGeometry, DragDropEvent) )
+	const bool bIsPreview = false;
+	UWidget* Widget = ProcessDropAndAddWidget(MyGeometry, DragDropEvent, bIsPreview);
+	if ( Widget )
 	{
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 

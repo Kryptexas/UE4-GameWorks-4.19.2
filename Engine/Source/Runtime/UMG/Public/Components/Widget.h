@@ -122,7 +122,7 @@ public:
 
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	UWidget* GetParent() const;
+	class UPanelWidget* GetParent() const;
 
 	/**
 	 * Gets the underlying slate widget or constructs it if it doesn't exist.  This function is
