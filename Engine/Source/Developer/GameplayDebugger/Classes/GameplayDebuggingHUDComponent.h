@@ -68,7 +68,6 @@ protected:
 private:
 	// local player related draw from PostRender
 	void DrawDebugComponentData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
-	AGameplayDebuggingReplicator* GetDebuggingReplicator();
 
 protected:
 	UPROPERTY(Transient)
@@ -91,4 +90,6 @@ protected:
 	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString, float X, float Y );
 
 	void DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent);
+
+	AGameplayDebuggingReplicator* GetDebuggingReplicator();
 };
