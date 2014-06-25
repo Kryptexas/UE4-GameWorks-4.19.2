@@ -12,27 +12,27 @@ class UMG_API UTextBlock : public UWidget
 
 public:
 	/**  
- 	 * Sets the color and opacity of the text in this text block
+	 * Sets the color and opacity of the text in this text block
 	 *
 	 * @param InColorAndOpacity		The new text color and opacity
- 	 */
+	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetColorAndOpacity(FLinearColor InColorAndOpacity);
 
 	/**  
- 	 * Sets the color and opacity of the text drop shadow
+	 * Sets the color and opacity of the text drop shadow
 	 * Note: if opacity is zero no shadow will be drawn
 	 *
 	 * @param InShadowColorAndOpacity		The new drop shadow color and opacity
- 	 */
+	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity);
 
 	/**  
- 	 * Sets the offset that the text drop shadow should be drawn at
+	 * Sets the offset that the text drop shadow should be drawn at
 	 *
 	 * @param InShadowOffset		The new offset
- 	 */
+	 */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetShadowOffset(FVector2D InShadowOffset);
 
@@ -93,6 +93,8 @@ public:
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	// End UWidget interface
+
+	virtual FString GetLabelMetadata() const override;
 
 	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
 

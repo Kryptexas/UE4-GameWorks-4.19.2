@@ -151,6 +151,9 @@ public:
 	/** Is the label generated or provided by the user? */
 	bool IsGeneratedName() const;
 
+	/** Get Label Metadata, which may be as simple as a bit of string data to help identify an anonymous text block. */
+	virtual FString GetLabelMetadata() const;
+
 	/** Gets the label to display to the user for this widget. */
 	FString GetLabel() const;
 

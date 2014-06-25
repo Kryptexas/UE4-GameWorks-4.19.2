@@ -145,11 +145,16 @@ bool UWidget::IsGeneratedName() const
 	return false;
 }
 
+FString UWidget::GetLabelMetadata() const
+{
+	return "";
+}
+
 FString UWidget::GetLabel() const
 {
 	if ( IsGeneratedName() && !bIsVariable )
 	{
-		return "[" + GetClass()->GetName() + "]";
+		return "[" + GetClass()->GetName() + "]" + GetLabelMetadata();
 	}
 	else
 	{

@@ -105,6 +105,15 @@ void UTextBlock::SyncronizeProperties()
 
 #if WITH_EDITOR
 
+FString UTextBlock::GetLabelMetadata() const
+{
+	const int32 MaxSampleLength = 15;
+
+	FString TextStr = Text.ToString();
+	TextStr = TextStr.Len() <= MaxSampleLength ? TextStr : TextStr.Left(MaxSampleLength - 2) + TEXT("..");
+	return TEXT(" \"") + TextStr + TEXT("\"");
+}
+
 void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType)
 {
 	//TODO UMG How will this migrate to the template?  Seems to me we need the previews to have access to their templates!
