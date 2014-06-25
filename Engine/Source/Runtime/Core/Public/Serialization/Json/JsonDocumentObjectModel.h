@@ -168,7 +168,7 @@ public:
 		return TSharedPtr<FJsonValue>(new FJsonValueNull());
 	}
 
-	TSharedPtr<FJsonValue> TryGetField( const FString& FieldName )
+	TSharedPtr<FJsonValue> TryGetField( const FString& FieldName ) const
 	{
 		const TSharedPtr<FJsonValue>* Field = Values.Find(FieldName);
 		return (Field != NULL && Field->IsValid()) ? *Field : TSharedPtr<FJsonValue>();
