@@ -154,6 +154,13 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 	TestFinishedObserver.ExecuteIfBound(this);
 }
 
+void AFunctionalTest::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	TestFinishedObserver.Unbind();
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void AFunctionalTest::CleanUp()
 {
 	FailureMessage = TEXT("");

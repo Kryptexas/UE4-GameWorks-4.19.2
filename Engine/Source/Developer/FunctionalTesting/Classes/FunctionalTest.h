@@ -1,8 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GameFramework/Actor.h"
 #include "FunctionalTest.generated.h"
+
+class UBillboardComponent;
 
 UENUM()
 namespace EFunctionalTestResult
@@ -106,6 +108,7 @@ public:
 
 	// AActor interface begin
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	// AActor interface end
 
 	bool IsSuccessful() const { return Result == EFunctionalTestResult::Succeeded; }

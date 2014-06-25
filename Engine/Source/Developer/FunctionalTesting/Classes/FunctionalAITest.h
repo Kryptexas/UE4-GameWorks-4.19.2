@@ -3,9 +3,9 @@
 #pragma once
 
 #include "AITypes.h"
+#include "GameFramework/Pawn.h"
 #include "FunctionalAITest.generated.h"
 
-class UWorld;
 class AFunctionalAITest;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFunctionalTestAISpawned, AAIController*, Controller, APawn*, Pawn);

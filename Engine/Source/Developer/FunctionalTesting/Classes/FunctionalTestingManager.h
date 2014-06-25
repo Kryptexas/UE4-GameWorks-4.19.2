@@ -3,7 +3,10 @@
 #pragma once
 
 #include "Misc/AutomationTest.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "FunctionalTestingManager.generated.h"
+
+class UWorld;
 
 namespace FFunctionalTesting
 {
@@ -62,6 +65,9 @@ protected:
 
 	void SetReproString(FString ReproString);
 	void AllTestsDone();
+
+	void OnWorldCleanedUp(UWorld* World, bool bSessionEnded, bool bCleanupResources);
+	virtual UWorld* GetWorld() const;
 	
 	bool bIsRunning;
 	bool bLooped;

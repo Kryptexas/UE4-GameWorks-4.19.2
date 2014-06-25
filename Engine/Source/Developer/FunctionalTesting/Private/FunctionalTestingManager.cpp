@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingPrivatePCH.h"
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 
@@ -52,7 +55,10 @@ UFunctionalTestingManager::UFunctionalTestingManager( const class FPostConstruct
 	, bInitialDelayApplied(false)
 	, CurrentIteration(INDEX_NONE)
 {
-	TestFinishedObserver = FFunctionalTestDoneSignature::CreateUObject(this, &UFunctionalTestingManager::OnTestDone);
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		TestFinishedObserver = FFunctionalTestDoneSignature::CreateUObject(this, &UFunctionalTestingManager::OnTestDone);
+	}
 }
 
 void UFunctionalTestingManager::SetUpTests()
@@ -119,8 +125,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 #if WITH_EDITOR
 	FEditorDelegates::EndPIE.AddUObject(Manager, &UFunctionalTestingManager::OnEndPIE);
 #endif // WITH_EDITOR
-	Manager->AddToRoot();
-
+	
 	return true;
 }
 
@@ -131,7 +136,7 @@ void UFunctionalTestingManager::OnEndPIE(const bool bIsSimulating)
 
 void UFunctionalTestingManager::TriggerFirstValidTest()
 {
-	UWorld* World = GEngine->GetWorldFromContextObject(GetOuter()); 
+	UWorld* World = GetWorld();
 	bIsRunning = World != NULL && World->GetNavigationSystem() != NULL;
 
 	if (bInitialDelayApplied == true && (bWaitForNavigationBuildFinish == false || UNavigationSystem::IsNavigationBeingBuilt(World) == false))
@@ -159,9 +164,27 @@ UFunctionalTestingManager* UFunctionalTestingManager::GetManager(UObject* WorldC
 		UObject* Outer = WorldContext ? WorldContext : (UObject*)GetTransientPackage();
 		Manager = NewObject<UFunctionalTestingManager>(Outer);
 		FFunctionalTestingModule::Get()->SetScript(Manager);
+
+		// add to root and get notified on world cleanup to remove from root on map cleanup
+		Manager->AddToRoot();
+		FWorldDelegates::OnWorldCleanup.AddUObject(Manager, &UFunctionalTestingManager::OnWorldCleanedUp);
 	}
 
 	return Manager;
+}
+
+UWorld* UFunctionalTestingManager::GetWorld() const
+{
+	return GEngine->GetWorldFromContextObject(GetOuter());
+}
+
+void UFunctionalTestingManager::OnWorldCleanedUp(UWorld* World, bool bSessionEnded, bool bCleanupResources)
+{
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld == World)
+	{
+		RemoveFromRoot();
+	}
 }
 
 void UFunctionalTestingManager::OnTestDone(AFunctionalTest* FTest)
@@ -253,7 +276,7 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 
 	if (TestReproStrings.Num() > 0)
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
+		UWorld* World = GetWorld();
 		UObject* TestsOuter = World ? (UObject*)(World->PersistentLevel) : (UObject*)(ANY_PACKAGE);
 
 		while (TestReproStrings.Num() > 0)

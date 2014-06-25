@@ -2,8 +2,13 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #if WITH_EDITOR
+#include "Engine/Brush.h"
+#include "Editor/EditorEngine.h"
+#include "EngineUtils.h"
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"
+
+extern UNREALED_API class UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
