@@ -205,6 +205,14 @@ protected:
 		check(ResourceIndex < ARRAYSIZE(CurrentShaderResourceViews[ShaderFrequency]));
 		if ((CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] != SRV) || GD3D11SkipStateCaching)
 		{
+			if(SRV)
+			{
+				SRV->AddRef();
+			}
+			if(CurrentShaderResourceViews[ShaderFrequency][ResourceIndex])
+			{
+				CurrentShaderResourceViews[ShaderFrequency][ResourceIndex]->Release();
+			}
 			CurrentShaderResourceViews[ShaderFrequency][ResourceIndex] = SRV;
 			if (AlternatePathFunction != nullptr)
 			{
