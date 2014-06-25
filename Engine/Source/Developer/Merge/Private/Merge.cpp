@@ -243,3 +243,4 @@ void FMerge::Merge( const UBlueprint& Object )
 	}
 }
 
+#undef LOCTEXT_NAMESPACE
