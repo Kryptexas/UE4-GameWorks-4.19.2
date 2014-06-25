@@ -8,7 +8,7 @@
 
 namespace ICUUtilities
 {
-	void Convert(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
+	void ConvertString(const FString& Source, icu::UnicodeString& Destination, const bool ShouldNullTerminate)
 	{
 		if( Source.Len() )
 		{
@@ -47,14 +47,14 @@ namespace ICUUtilities
 		}
 	}
 
-	icu::UnicodeString Convert(const FString& Source, const bool ShouldNullTerminate)
+	icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate)
 	{
 		icu::UnicodeString Destination;
-		Convert(Source, Destination, ShouldNullTerminate);
+		ConvertString(Source, Destination, ShouldNullTerminate);
 		return Destination;
 	}
 
-	void Convert(const icu::UnicodeString& Source, FString& Destination)
+	void ConvertString(const icu::UnicodeString& Source, FString& Destination)
 	{
 		if( Source.length() )
 		{
@@ -90,14 +90,14 @@ namespace ICUUtilities
 		}
 	}
 
-	FString Convert(const icu::UnicodeString& Source)
+	FString ConvertString(const icu::UnicodeString& Source)
 	{
 		FString Destination;
-		Convert(Source, Destination);
+		ConvertString(Source, Destination);
 		return Destination;
 	}
 
-	void Convert(const TCHAR Source, UChar32& Destination)
+	void ConvertChar32(const TCHAR Source, UChar32& Destination)
 	{
 		const char* const SourceEncoding = FPlatformString::GetEncodingName();
 	
@@ -117,28 +117,10 @@ namespace ICUUtilities
 		ucnv_close(ICUConverter);
 	}
 
-	UChar32 Convert(const TCHAR Source)
+	UChar32 ConvertChar32(const TCHAR Source)
 	{
 		UChar32 Destination = 0;
-		Convert(Source, Destination);
-		return Destination;
-	}
-
-	void Convert(const UChar32 Source, TCHAR& Destination)
-	{
-		// ICU has ucnv_getNextUChar as an optimization for converting a single character, but it doesn't seem to have an inverse of this
-		// Because of this we're using the string variants instead (which will be slower)
-		icu::UnicodeString SourceString;
-		SourceString.setTo(Source);
-		FString DestinationString;
-		Convert(SourceString, DestinationString);
-		Destination = DestinationString.Len() ? DestinationString[0] : 0;
-	}
-
-	TCHAR Convert(const UChar32 Source)
-	{
-		TCHAR Destination = 0;
-		Convert(Source, Destination);
+		ConvertChar32(Source, Destination);
 		return Destination;
 	}
 }

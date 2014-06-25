@@ -83,7 +83,7 @@ void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs) const
 		if(ICUString)
 		{
 			FString NativeString;
-			ICUUtilities::Convert(*ICUString, NativeString);
+			ICUUtilities::ConvertString(*ICUString, NativeString);
 			TimeZonesIDs.Add( NativeString );
 		}
 	} while( ICUString );

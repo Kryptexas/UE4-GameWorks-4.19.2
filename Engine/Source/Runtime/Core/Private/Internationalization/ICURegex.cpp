@@ -12,7 +12,7 @@ namespace
 	TSharedRef<icu::RegexPattern> CreateRegexPattern(const FString& SourceString)
 	{
 		icu::UnicodeString ICUSourceString;
-		ICUUtilities::Convert(SourceString, ICUSourceString);
+		ICUUtilities::ConvertString(SourceString, ICUSourceString);
 
 		UErrorCode ICUStatus = U_ZERO_ERROR;
 		return MakeShareable( icu::RegexPattern::compile(ICUSourceString, 0, ICUStatus) );
@@ -46,7 +46,7 @@ namespace
 class FRegexMatcherImplementation
 {
 public:
-	FRegexMatcherImplementation(const FRegexPatternImplementation& Pattern, const FString& InputString) : ICUInputString( ICUUtilities::Convert(InputString) ), ICURegexMatcher( CreateRegexMatcher(Pattern, ICUInputString) )
+	FRegexMatcherImplementation(const FRegexPatternImplementation& Pattern, const FString& InputString) : ICUInputString( ICUUtilities::ConvertString(InputString) ), ICURegexMatcher( CreateRegexMatcher(Pattern, ICUInputString) )
 	{
 	}
 

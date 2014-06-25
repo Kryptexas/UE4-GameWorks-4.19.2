@@ -49,6 +49,11 @@ struct FGenericPlatformString
 	template <typename Encoding>
 	static const TCHAR* GetEncodingTypeName();
 
+	/**
+	 * True if the encoding type of the string is some form of unicode
+	 */
+	static const bool IsUnicodeEncoded = false;
+
 
 	/**
 	 * Metafunction which tests whether a given character type represents a fixed-width encoding.

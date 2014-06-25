@@ -632,13 +632,13 @@ bool FICUTextTest::RunTest (const FString& Parameters)
 
 	// ---------------------------------------------------------------------
 
-	ICUUtilities::Convert(SourceString, ICUString);
+	ICUUtilities::ConvertString(SourceString, ICUString);
 	if (SourceString.Len() != ICUString.length())
 	{
 		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
 	}
 
-	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
 	if (ICUString.length() != ConversionBackStr.Len())
 	{
 		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
@@ -650,13 +650,13 @@ bool FICUTextTest::RunTest (const FString& Parameters)
 
 	// ---------------------------------------------------------------------
 
-	ICUUtilities::Convert(SourceString2, ICUString);
+	ICUUtilities::ConvertString(SourceString2, ICUString);
 	if (SourceString2.Len() != ICUString.length())
 	{
 		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString2.Len()));
 	}
 
-	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
 	if (ICUString.length() != ConversionBackStr.Len())
 	{
 		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));
@@ -668,13 +668,13 @@ bool FICUTextTest::RunTest (const FString& Parameters)
 
 	// ---------------------------------------------------------------------
 
-	ICUUtilities::Convert(SourceString, ICUString);
+	ICUUtilities::ConvertString(SourceString, ICUString);
 	if (SourceString.Len() != ICUString.length())
 	{
 		AddError(FString::Printf(TEXT("icu::UnicodeString is the incorrect length (%d; expected %d)."), ICUString.length(), SourceString.Len()));
 	}
 
-	ICUUtilities::Convert(ICUString, ConversionBackStr);
+	ICUUtilities::ConvertString(ICUString, ConversionBackStr);
 	if (ICUString.length() != ConversionBackStr.Len())
 	{
 		AddError(FString::Printf(TEXT("FString is the incorrect length (%d; expected %d)."), ConversionBackStr.Len(), ICUString.length()));

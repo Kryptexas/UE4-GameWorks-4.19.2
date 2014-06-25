@@ -28,6 +28,8 @@ struct FLinuxPlatformString : public FStandardPlatformString
 	{
 		return "UTF-32LE";
 	}
+
+	static const bool IsUnicodeEncoded = true;
 };
 
 typedef FLinuxPlatformString FPlatformString;

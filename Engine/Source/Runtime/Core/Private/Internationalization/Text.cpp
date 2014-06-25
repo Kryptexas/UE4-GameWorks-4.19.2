@@ -410,16 +410,6 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 	return NewText;
 }
 
-bool FText::IsWhitespace( const TCHAR Char )
-{
-#if UE_ENABLE_ICU
-	const UChar32 ICUChar = ICUUtilities::Convert(Char);
-	return u_isWhitespace(ICUChar) != 0;
-#else
-	return FChar::IsWhitespace(Char);
-#endif
-}
-
 FText FText::Format(const FText& Fmt,const FText& v1)
 {
 	FFormatOrderedArguments Arguments;

@@ -4,7 +4,7 @@
 #include "CharacterBoundaryIterator.h"
 
 #if UE_ENABLE_ICU
-#include "ICUUtilities.h"
+#include "ICUTextCharacterIterator.h"
 #include <unicode/brkiter.h>
 
 namespace
@@ -22,8 +22,7 @@ public:
 	FImplementation(const TCHAR* const String, const int32 StringLength)
 		: ICUBreakIterator( CreateGraphemeBreakIterator() )
 	{
-		ICUUtilities::Convert(FString(String, StringLength), ICUString);
-		ICUBreakIterator->setText(ICUString);
+		ICUBreakIterator->adoptText(new FICUTextCharacterIterator(String, StringLength)); // ICUBreakIterator takes ownership of this instance
 	}
 
 	int32 GetCurrentPosition() const
@@ -63,7 +62,6 @@ public:
 
 private:
 	TSharedRef<icu::BreakIterator> ICUBreakIterator;
-	icu::UnicodeString ICUString;
 };
 
 FCharacterBoundaryIterator::FCharacterBoundaryIterator(const FText& Text)

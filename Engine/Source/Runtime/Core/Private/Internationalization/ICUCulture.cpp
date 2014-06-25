@@ -82,18 +82,14 @@ FString FCulture::FICUCultureImplementation::GetDisplayName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 FString FCulture::FICUCultureImplementation::GetEnglishName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(icu::Locale("en"), ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 int FCulture::FICUCultureImplementation::GetKeyboardLayoutId() const
@@ -115,9 +111,7 @@ FString FCulture::FICUCultureImplementation::GetNativeName() const
 {
 	icu::UnicodeString ICUResult;
 	ICULocale.getDisplayName(ICULocale, ICUResult);
-	FString Result;
-	ICUUtilities::Convert(ICUResult, Result);
-	return Result;
+	return ICUUtilities::ConvertString(ICUResult);
 }
 
 FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
@@ -125,12 +119,12 @@ FString FCulture::FICUCultureImplementation::GetNativeLanguage() const
 	icu::UnicodeString ICUNativeLanguage;
 	ICULocale.getDisplayLanguage(ICULocale, ICUNativeLanguage);
 	FString NativeLanguage;
-	ICUUtilities::Convert(ICUNativeLanguage, NativeLanguage);
+	ICUUtilities::ConvertString(ICUNativeLanguage, NativeLanguage);
 
 	icu::UnicodeString ICUNativeScript;
 	ICULocale.getDisplayScript(ICULocale, ICUNativeScript);
 	FString NativeScript;
-	ICUUtilities::Convert(ICUNativeScript, NativeScript);
+	ICUUtilities::ConvertString(ICUNativeScript, NativeScript);
 
 	if ( !NativeScript.IsEmpty() )
 	{
@@ -144,12 +138,12 @@ FString FCulture::FICUCultureImplementation::GetNativeRegion() const
 	icu::UnicodeString ICUNativeCountry;
 	ICULocale.getDisplayCountry(ICULocale, ICUNativeCountry);
 	FString NativeCountry;
-	ICUUtilities::Convert(ICUNativeCountry, NativeCountry);
+	ICUUtilities::ConvertString(ICUNativeCountry, NativeCountry);
 
 	icu::UnicodeString ICUNativeVariant;
 	ICULocale.getDisplayVariant(ICULocale, ICUNativeVariant);
 	FString NativeVariant;
-	ICUUtilities::Convert(ICUNativeVariant, NativeVariant);
+	ICUUtilities::ConvertString(ICUNativeVariant, NativeVariant);
 
 	if ( !NativeVariant.IsEmpty() )
 	{
@@ -306,7 +300,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateFo
 TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFormatter(const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const
 {
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUTimeFormat );
 
@@ -346,7 +340,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetDateTimeFormatter(const EDateTimeStyle::Type DateStyle, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone) const
 {
 	icu::UnicodeString InputTimeZoneID;
-	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
+	ICUUtilities::ConvertString(TimeZone, InputTimeZoneID, false);
 
 	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateTimeFormat );
 

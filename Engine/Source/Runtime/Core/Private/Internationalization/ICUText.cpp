@@ -11,6 +11,13 @@
 #include <unicode/numfmt.h>
 #include <unicode/msgfmt.h>
 #include "ICUUtilities.h"
+#include "ICUTextCharacterIterator.h"
+
+bool FText::IsWhitespace( const TCHAR Char )
+{
+	const UChar32 ICUChar = ICUUtilities::ConvertChar32(Char);
+	return u_isWhitespace(ICUChar) != 0;
+}
 
 FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture)
 {
@@ -27,7 +34,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	ICUDateFormat->format(ICUDate, FormattedString);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
 	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TargetCulture));
@@ -50,7 +57,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	ICUDateFormat->format(ICUDate, FormattedString);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
 	ResultText.History = MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture));
@@ -97,7 +104,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	ICUDateFormat->format(ICUDate, FormattedString);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ResultText = FText::CreateChronologicalText(NativeString);
 	ResultText.History = MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture));
@@ -133,15 +140,20 @@ FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Opt
 
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-
 	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
 
-	icu::UnicodeString A;
-	ICUUtilities::Convert(DisplayString.Get(), A);
-	icu::UnicodeString B;
-	ICUUtilities::Convert(Other.DisplayString.Get(), B);
-	UCollationResult Result = Collator->compare(A, B, ICUStatus);
+	// Create an iterator for 'this' so that we can interface with ICU
+	UCharIterator DisplayStringICUIterator;
+	FICUTextCharacterIterator DisplayStringIterator(&DisplayString.Get());
+	uiter_setCharacterIterator(&DisplayStringICUIterator, &DisplayStringIterator);
+
+	// Create an iterator for 'Other' so that we can interface with ICU
+	UCharIterator OtherDisplayStringICUIterator;
+	FICUTextCharacterIterator OtherDisplayStringIterator(&Other.DisplayString.Get());
+	uiter_setCharacterIterator(&OtherDisplayStringICUIterator, &OtherDisplayStringIterator);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	const UCollationResult Result = Collator->compare(DisplayStringICUIterator, OtherDisplayStringICUIterator, ICUStatus);
 
 	return Result;
 }
@@ -153,17 +165,7 @@ int32 FText::CompareToCaseIgnored( const FText& Other ) const
 
 bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-
-	const TSharedRef<const icu::Collator, ESPMode::ThreadSafe> Collator( FInternationalization::Get().GetCurrentCulture()->Implementation->GetCollator(ComparisonLevel) );
-
-	icu::UnicodeString A;
-	ICUUtilities::Convert(DisplayString.Get(), A);
-	icu::UnicodeString B;
-	ICUUtilities::Convert(Other.DisplayString.Get(), B);
-	UCollationResult Result = Collator->compare(A, B, ICUStatus);
-
-	return Result == 0;
+	return CompareTo(Other, ComparisonLevel) == 0;
 }
 
 bool FText::EqualToCaseIgnored( const FText& Other ) const
@@ -173,17 +175,6 @@ bool FText::EqualToCaseIgnored( const FText& Other ) const
 
 class FText::FSortPredicate::FSortPredicateImplementation
 {
-private:
-	icu::CollationKey GetCollationKeyFromText(const FText& Text)
-	{
-		UErrorCode ICUStatus = U_ZERO_ERROR;
-		icu::CollationKey CollationKey;
-		const FString& String = Text.ToString();
-		const UChar* const Characters = reinterpret_cast<const UChar* const>(*String);
-		int32_t Length = String.Len();
-		return ICUCollator->getCollationKey(Characters, Length, CollationKey, ICUStatus);
-	}
-
 public:
 	FSortPredicateImplementation(const ETextComparisonLevel::Type InComparisonLevel)
 		: ComparisonLevel(InComparisonLevel)
@@ -193,9 +184,20 @@ public:
 
 	bool Compare(const FText& A, const FText& B)
 	{
-		const icu::CollationKey ACollationKey = GetCollationKeyFromText(A);
-		const icu::CollationKey BCollationKey = GetCollationKeyFromText(B);
-		return (ACollationKey.compareTo(BCollationKey) == icu::Collator::EComparisonResult::GREATER ? false : true);
+		// Create an iterator for 'A' so that we can interface with ICU
+		UCharIterator ADisplayStringICUIterator;
+		FICUTextCharacterIterator ADisplayStringIterator(&A.DisplayString.Get());
+		uiter_setCharacterIterator(&ADisplayStringICUIterator, &ADisplayStringIterator);
+
+		// Create an iterator for 'B' so that we can interface with ICU
+		UCharIterator BDisplayStringICUIterator;
+		FICUTextCharacterIterator BDisplayStringIterator(&B.DisplayString.Get());
+		uiter_setCharacterIterator(&BDisplayStringICUIterator, &BDisplayStringIterator);
+
+		UErrorCode ICUStatus = U_ZERO_ERROR;
+		const UCollationResult Result = ICUCollator->compare(ADisplayStringICUIterator, BDisplayStringICUIterator, ICUStatus);
+
+		return Result != UCOL_GREATER;
 	}
 
 private:
@@ -221,7 +223,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 	const FString& NativePatternString = Pattern.ToString();
 
 	icu::UnicodeString ICUPatternString;
-	ICUUtilities::Convert(NativePatternString, ICUPatternString);
+	ICUUtilities::ConvertString(NativePatternString, ICUPatternString);
 
 	UParseError ICUParseError;
 	icu::MessagePattern ICUMessagePattern(ICUPatternString, &(ICUParseError), ICUStatus);
@@ -240,7 +242,7 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 
 			bool bIsCaseSensitiveUnique = true;
 			FString CurrentArgument;
-			ICUUtilities::Convert(ICUMessagePattern.getSubstring(Part), CurrentArgument);
+			ICUUtilities::ConvertString(ICUMessagePattern.getSubstring(Part), CurrentArgument);
 
 			for(auto It = ParameterNames.CreateConstIterator(); It; ++It)
 			{
@@ -276,7 +278,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 	{
 		const FString& NativeArgumentName = It.Key();
 		icu::UnicodeString ICUArgumentName;
-		ICUUtilities::Convert(NativeArgumentName, ICUArgumentName, false);
+		ICUUtilities::ConvertString(NativeArgumentName, ICUArgumentName, false);
 		ArgumentNames.Add( ICUArgumentName );
 
 		const FFormatArgumentValue& ArgumentValue = It.Value();
@@ -312,7 +314,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 
 				FString NativeStringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
-				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
+				ICUUtilities::ConvertString(NativeStringValue, ICUStringValue, false);
 				ArgumentValues.Add( icu::Formattable( ICUStringValue ) );
 			}
 			break;
@@ -321,7 +323,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 
 	const FString& NativePatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
-	ICUUtilities::Convert(NativePatternString, ICUPatternString);
+	ICUUtilities::ConvertString(NativePatternString, ICUPatternString);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	UParseError ICUParseError;
@@ -339,7 +341,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 	}
 
 	FString NativeResultString;
-	ICUUtilities::Convert(ICUResultString, NativeResultString);
+	ICUUtilities::ConvertString(ICUResultString, NativeResultString);
 
 	FText ResultText(NativeResultString);
 	ResultText.History = MakeShareable(new FTextHistory_NamedFormat(Pattern, Arguments));
@@ -393,7 +395,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 
 				FString NativeStringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
-				ICUUtilities::Convert(NativeStringValue, ICUStringValue, false);
+				ICUUtilities::ConvertString(NativeStringValue, ICUStringValue, false);
 				ArgumentValues.Add( icu::Formattable( ICUStringValue ) );
 			}
 			break;
@@ -402,7 +404,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 
 	const FString& NativePatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
-	ICUUtilities::Convert(NativePatternString, ICUPatternString);
+	ICUUtilities::ConvertString(NativePatternString, ICUPatternString);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	UParseError ICUParseError;
@@ -420,7 +422,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 	}
 
 	FString NativeResultString;
-	ICUUtilities::Convert(ICUResultString, NativeResultString);
+	ICUUtilities::ConvertString(ICUResultString, NativeResultString);
 
 	FText ResultText = FText(NativeResultString);
 
@@ -451,7 +453,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 	{
 		const FString& ArgumentName = InArguments[x].ArgumentName.ToString();
 		icu::UnicodeString ICUArgumentName;
-		ICUUtilities::Convert(ArgumentName, ICUArgumentName, false);
+		ICUUtilities::ConvertString(ArgumentName, ICUArgumentName, false);
 		ArgumentNames.Add( ICUArgumentName );
 
 		const FFormatArgumentValue& ArgumentValue = InArguments[x].ArgumentValue;
@@ -487,7 +489,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 
 				FString StringValue = bInRebuildAsSource? ArgumentValue.TextValue->BuildSourceString() : ArgumentValue.TextValue->ToString();
 				icu::UnicodeString ICUStringValue;
-				ICUUtilities::Convert(StringValue, ICUStringValue, false);
+				ICUUtilities::ConvertString(StringValue, ICUStringValue, false);
 				ArgumentValues.Add( ICUStringValue );
 			}
 			break;
@@ -496,7 +498,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 
 	const FString& PatternString = bInRebuildAsSource? Pattern.BuildSourceString() : Pattern.ToString();
 	icu::UnicodeString ICUPatternString;
-	ICUUtilities::Convert(PatternString, ICUPatternString, false);
+	ICUUtilities::ConvertString(PatternString, ICUPatternString, false);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	UParseError ICUParseError;
@@ -514,7 +516,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< FFormatArgumentD
 	}
 
 	FString NativeResultString;
-	ICUUtilities::Convert(Result, NativeResultString);
+	ICUUtilities::ConvertString(Result, NativeResultString);
 
 	FText ResultText = FText(NativeResultString);
 

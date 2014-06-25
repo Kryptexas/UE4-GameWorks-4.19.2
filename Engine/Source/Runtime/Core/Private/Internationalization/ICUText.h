@@ -23,7 +23,7 @@ FText FText::AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Opti
 	ICUDecimalFormat->format(FormattableVal, FormattedString, ICUStatus);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ReturnText = FText::CreateNumericalText(NativeString);
 	ReturnText.History = MakeShareable(new FTextHistory_AsNumber(Val, Options, TargetCulture));
@@ -43,7 +43,7 @@ FText FText::AsCurrencyTemplate(T1 Val, const FNumberFormattingOptions* const Op
 	ICUDecimalFormat->format(FormattableVal, FormattedString, ICUStatus);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ReturnText = FText::CreateNumericalText(NativeString);
 	ReturnText.History = MakeShareable(new FTextHistory_AsCurrency(Val, Options, TargetCulture));
@@ -63,7 +63,7 @@ FText FText::AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Opt
 	ICUDecimalFormat->format(FormattableVal, FormattedString, ICUStatus);
 
 	FString NativeString;
-	ICUUtilities::Convert(FormattedString, NativeString);
+	ICUUtilities::ConvertString(FormattedString, NativeString);
 
 	FText ReturnText = FText::CreateNumericalText(NativeString);
 	ReturnText.History = MakeShareable(new FTextHistory_AsPercent(Val, Options, TargetCulture));
