@@ -518,16 +518,6 @@ public:
 		bHasMinimizeButton = false;
 	}
 
-	bool HasMaximizeButton( )
-	{
-		return bHasMaximizeButton;
-	}
-
-	bool HasMinimizeButton( )
-	{
-		return bHasMinimizeButton;
-	}
-
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
 		TitleBar = InTitleBar;

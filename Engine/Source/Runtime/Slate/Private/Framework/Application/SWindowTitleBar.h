@@ -173,7 +173,7 @@ protected:
 
 		MaximizeRestoreButton = SNew(SButton)
 				.IsFocusable(false)
-				.IsEnabled(OwnerWindow->HasMinimizeBox())
+				.IsEnabled(OwnerWindow->HasMaximizeBox())
 				.ContentPadding(0.0f)
 				.OnClicked(this, &SWindowTitleBar::MaximizeRestoreButton_OnClicked)
 				.Cursor(EMouseCursor::Default)
@@ -474,7 +474,7 @@ private:
 
 		if (NativeWindow.IsValid() && NativeWindow->IsMaximized())
 		{
-			if (!OwnerWindow->HasMaximizeButton())
+			if (!OwnerWindow->HasMaximizeBox())
 			{
 				return &Style->MaximizeButtonStyle.Disabled;
 			}
@@ -503,7 +503,7 @@ private:
 		}
 		else
 		{
-			if (!OwnerWindow->HasMaximizeButton())
+			if (!OwnerWindow->HasMaximizeBox())
 			{
 				return &Style->MaximizeButtonStyle.Disabled;
 			}
@@ -562,7 +562,7 @@ private:
 
 		TSharedPtr<FGenericWindow> NativeWindow = OwnerWindow->GetNativeWindow();
 
-		if (!OwnerWindow->HasMinimizeButton())
+		if (!OwnerWindow->HasMinimizeBox())
 		{
 			return &Style->MinimizeButtonStyle.Disabled;
 		}
