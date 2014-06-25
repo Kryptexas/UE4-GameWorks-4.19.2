@@ -320,4 +320,39 @@ void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, co
 	}
 }
 
+void FWidgetBlueprintEditorUtils::ExportPropertiesToText(UObject* Object, TMap<FName, FString>& ExportedProperties)
+{
+	if ( Object )
+	{
+		for ( TFieldIterator<UProperty> PropertyIt(Object->GetClass(), EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt )
+		{
+			UProperty* Property = *PropertyIt;
+
+			// Don't serialize out object properties, we just want value data.
+			if ( !Property->IsA<UObjectProperty>() )
+			{
+				FString ValueText;
+				if ( Property->ExportText_InContainer(0, ValueText, Object, Object, Object, PPF_IncludeTransient) )
+				{
+					ExportedProperties.Add(Property->GetFName(), ValueText);
+				}
+			}
+		}
+	}
+}
+
+void FWidgetBlueprintEditorUtils::ImportPropertiesFromText(UObject* Object, const TMap<FName, FString>& ExportedProperties)
+{
+	if ( Object )
+	{
+		for ( const auto& Entry : ExportedProperties )
+		{
+			if ( UProperty* Property = FindField<UProperty>(Object->GetClass(), Entry.Key) )
+			{
+				Property->ImportText(*Entry.Value, Property->ContainerPtrToValuePtr<uint8>(Object), 0, Object);
+			}
+		}
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

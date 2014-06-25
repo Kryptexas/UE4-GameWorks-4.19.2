@@ -20,6 +20,8 @@ class FSelectedWidgetDragDropOp : public FDecoratedDragDropOp
 public:
 	DRAG_DROP_OPERATOR_TYPE(FSelectedWidgetDragDropOp, FDecoratedDragDropOp)
 
+	TMap<FName, FString> ExportedSlotProperties;
+
 	FWidgetReference Widget;
 
 	static TSharedRef<FSelectedWidgetDragDropOp> New(FWidgetReference InWidget);
@@ -34,6 +36,8 @@ TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(FWidgetRefe
 	Operation->DefaultHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->CurrentHoverText = FText::FromString( InWidget.GetTemplate()->GetLabel() );
 	Operation->Construct();
+
+	FWidgetBlueprintEditorUtils::ExportPropertiesToText(InWidget.GetTemplate()->Slot, Operation->ExportedSlotProperties);
 
 	return Operation;
 }
@@ -940,10 +944,22 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 		DropPreviewWidget = SelectedDragDropOp->Widget.GetPreview();
 	}
 
+	UWidgetBlueprint* BP = GetBlueprint();
+
+	if ( DropPreviewWidget )
+	{
+		if ( DropPreviewParent )
+		{
+			DropPreviewParent->RemoveChild(DropPreviewWidget);
+		}
+
+		const bool bIsRecursive = false;
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
+		DropPreviewWidget = NULL;
+	}
+
 	FArrangedWidget ArrangedWidget(SNullWidget::NullWidget, FGeometry());
 	FWidgetReference WidgetUnderCursor = GetWidgetAtCursor(MyGeometry, DragDropEvent, ArrangedWidget);
-
-	UWidgetBlueprint* BP = GetBlueprint();
 
 	UWidget* Target = NULL;
 	if ( WidgetUnderCursor.IsValid() )
@@ -1079,9 +1095,11 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
 				if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
 				{
+					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
+
 					//TODO UMG Migrate existing slot info
 					Slot->SetDesiredPosition(LocalPosition);
-					Slot->SetDesiredSize(FVector2D(150, 30));
+					//Slot->SetDesiredSize(FVector2D(150, 30));
 					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
 					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
 

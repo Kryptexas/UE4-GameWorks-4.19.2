@@ -23,6 +23,12 @@ public:
 
 	static void ImportWidgetsFromText(UWidgetBlueprint* BP, const FString& TextToImport, /*out*/ TSet<UWidget*>& ImportedWidgetSet);
 
+	/** Exports the individual properties of an object to text and stores them in a map. */
+	static void ExportPropertiesToText(UObject* Object, TMap<FName, FString>& ExportedProperties);
+
+	/** Attempts to import any property in the map and apply it to a property with the same name on the object. */
+	static void ImportPropertiesFromText(UObject* Object, const TMap<FName, FString>& ExportedProperties);
+
 private:
 	static void BuildWrapWithMenu(FMenuBuilder& Menu, UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets);
 

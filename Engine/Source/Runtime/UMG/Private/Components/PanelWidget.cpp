@@ -45,6 +45,12 @@ int32 UPanelWidget::GetChildIndex(UWidget* Content) const
 bool UPanelWidget::RemoveChildAt(int32 Index)
 {
 	UPanelSlot* Slot = Slots[Index];
+	if ( Slot->Content )
+	{
+		Slot->Content->Slot = NULL;
+	}
+
+	Slot->Parent = NULL;
 	Slots.RemoveAt(Index);
 
 	OnSlotRemoved(Slot);
@@ -64,7 +70,10 @@ UPanelSlot* UPanelWidget::AddChild(UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-	Content->Slot = Slot;
+	if ( Content )
+	{
+		Content->Slot = Slot;
+	}
 
 	Slots.Add(Slot);
 
@@ -78,7 +87,10 @@ void UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 	UPanelSlot* Slot = Slots[Index];
 	Slot->Content = Content;
 
-	Content->Slot = Slot;
+	if ( Content )
+	{
+		Content->Slot = Slot;
+	}
 
 	Slot->SyncronizeProperties();
 }
@@ -90,7 +102,10 @@ void UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 	Slot->Content = Content;
 	Slot->Parent = this;
 
-	Content->Slot = Slot;
+	if ( Content )
+	{
+		Content->Slot = Slot;
+	}
 
 	Slots.Insert(Slot, Index);
 

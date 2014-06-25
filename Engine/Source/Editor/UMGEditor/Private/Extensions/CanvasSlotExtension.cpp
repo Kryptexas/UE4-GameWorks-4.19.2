@@ -115,75 +115,76 @@ void FCanvasSlotExtension::Paint(const TSet< FWidgetReference >& Selection, cons
 
 		if ( UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Widget->Slot) )
 		{
-			UCanvasPanel* Canvas = CastChecked<UCanvasPanel>(CanvasSlot->Parent);
-
-			//TODO UMG Only show guide lines when near them and dragging
-			if ( bDragging )
+			if ( UCanvasPanel* Canvas = CastChecked<UCanvasPanel>(CanvasSlot->Parent) )
 			{
-				FGeometry MyArrangedGeometry;
-				if ( !Canvas->GetGeometryForSlot(CanvasSlot, MyArrangedGeometry) )
+				//TODO UMG Only show guide lines when near them and dragging
+				if ( bDragging )
 				{
-					continue;
-				}
-
-				TArray<FVector2D> LinePoints;
-				LinePoints.AddUninitialized(2);
-
-				// Get the collision segments that we could potentially be docking against.
-				TArray<FVector2D> MySegments;
-				if ( GetCollisionSegmentsForSlot(Canvas, CanvasSlot, MySegments) )
-				{
-					for ( int32 MySegmentIndex = 0; MySegmentIndex < MySegments.Num(); MySegmentIndex += 2 )
+					FGeometry MyArrangedGeometry;
+					if ( !Canvas->GetGeometryForSlot(CanvasSlot, MyArrangedGeometry) )
 					{
-						FVector2D MySegmentBase = MySegments[MySegmentIndex];
+						continue;
+					}
 
-						for ( int32 SlotIndex = 0; SlotIndex < Canvas->GetChildrenCount(); SlotIndex++ )
+					TArray<FVector2D> LinePoints;
+					LinePoints.AddUninitialized(2);
+
+					// Get the collision segments that we could potentially be docking against.
+					TArray<FVector2D> MySegments;
+					if ( GetCollisionSegmentsForSlot(Canvas, CanvasSlot, MySegments) )
+					{
+						for ( int32 MySegmentIndex = 0; MySegmentIndex < MySegments.Num(); MySegmentIndex += 2 )
 						{
-							// Ignore the slot being dragged.
-							if ( Canvas->Slots[SlotIndex] == CanvasSlot )
-							{
-								continue;
-							}
+							FVector2D MySegmentBase = MySegments[MySegmentIndex];
 
-							// Get the collision segments that we could potentially be docking against.
-							TArray<FVector2D> Segments;
-							if ( GetCollisionSegmentsForSlot(Canvas, SlotIndex, Segments) )
+							for ( int32 SlotIndex = 0; SlotIndex < Canvas->GetChildrenCount(); SlotIndex++ )
 							{
-								for ( int32 SegmentBase = 0; SegmentBase < Segments.Num(); SegmentBase += 2 )
+								// Ignore the slot being dragged.
+								if ( Canvas->Slots[SlotIndex] == CanvasSlot )
 								{
-									FVector2D PointA = Segments[SegmentBase];
-									FVector2D PointB = Segments[SegmentBase + 1];
+									continue;
+								}
 
-									FVector2D CollisionPoint = MySegmentBase;
-
-									//TODO Collide against all sides of the arranged geometry.
-									float Distance = DistancePointToLine2D(PointA, PointB, CollisionPoint);
-									if ( Distance <= SnapDistance )
+								// Get the collision segments that we could potentially be docking against.
+								TArray<FVector2D> Segments;
+								if ( GetCollisionSegmentsForSlot(Canvas, SlotIndex, Segments) )
+								{
+									for ( int32 SegmentBase = 0; SegmentBase < Segments.Num(); SegmentBase += 2 )
 									{
-										FVector2D FarthestPoint = FVector2D::Distance(PointA, CollisionPoint) > FVector2D::Distance(PointB, CollisionPoint) ? PointA : PointB;
-										FVector2D NearestPoint = FVector2D::Distance(PointA, CollisionPoint) > FVector2D::Distance(PointB, CollisionPoint) ? PointB : PointA;
+										FVector2D PointA = Segments[SegmentBase];
+										FVector2D PointB = Segments[SegmentBase + 1];
 
-										LinePoints[0] = FarthestPoint;
-										LinePoints[1] = FarthestPoint + ( NearestPoint - FarthestPoint ) * 100000;
+										FVector2D CollisionPoint = MySegmentBase;
 
-										LinePoints[0].X = FMath::Clamp(LinePoints[0].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
-										LinePoints[0].Y = FMath::Clamp(LinePoints[0].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
+										//TODO Collide against all sides of the arranged geometry.
+										float Distance = DistancePointToLine2D(PointA, PointB, CollisionPoint);
+										if ( Distance <= SnapDistance )
+										{
+											FVector2D FarthestPoint = FVector2D::Distance(PointA, CollisionPoint) > FVector2D::Distance(PointB, CollisionPoint) ? PointA : PointB;
+											FVector2D NearestPoint = FVector2D::Distance(PointA, CollisionPoint) > FVector2D::Distance(PointB, CollisionPoint) ? PointB : PointA;
 
-										LinePoints[1].X = FMath::Clamp(LinePoints[1].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
-										LinePoints[1].Y = FMath::Clamp(LinePoints[1].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
+											LinePoints[0] = FarthestPoint;
+											LinePoints[1] = FarthestPoint + ( NearestPoint - FarthestPoint ) * 100000;
 
-										FLinearColor Color(0.5f, 0.75, 1);
-										const bool bAntialias = true;
+											LinePoints[0].X = FMath::Clamp(LinePoints[0].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
+											LinePoints[0].Y = FMath::Clamp(LinePoints[0].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
 
-										FSlateDrawElement::MakeLines(
-											OutDrawElements,
-											LayerId,
-											AllottedGeometry.ToPaintGeometry(),
-											LinePoints,
-											MyClippingRect,
-											ESlateDrawEffect::None,
-											Color,
-											bAntialias);
+											LinePoints[1].X = FMath::Clamp(LinePoints[1].X, 0.0f, MyClippingRect.Right - MyClippingRect.Left);
+											LinePoints[1].Y = FMath::Clamp(LinePoints[1].Y, 0.0f, MyClippingRect.Bottom - MyClippingRect.Top);
+
+											FLinearColor Color(0.5f, 0.75, 1);
+											const bool bAntialias = true;
+
+											FSlateDrawElement::MakeLines(
+												OutDrawElements,
+												LayerId,
+												AllottedGeometry.ToPaintGeometry(),
+												LinePoints,
+												MyClippingRect,
+												ESlateDrawEffect::None,
+												Color,
+												bAntialias);
+										}
 									}
 								}
 							}
