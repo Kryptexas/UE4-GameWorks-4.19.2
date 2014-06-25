@@ -70,7 +70,7 @@ id<MTLDevice> GMetalDevice = nil;
 
 			// set the device on the rendering layer and provide a pixel format
 			MetalLayer.device = MetalDevice;
-			MetalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+			MetalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
 			MetalLayer.framebufferOnly = NO;
 		
 		}
