@@ -261,7 +261,7 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 	VertexShader->DirtyUniformBuffers |= 1 << BufferIndex;
 
 	// @todo metal log: remove
-	NSLog(@"Setting Vertex UB at index %d", BufferIndex);
+//	NSLog(@"Setting Vertex UB at index %d", BufferIndex);
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -286,7 +286,7 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 	PixelShader->DirtyUniformBuffers |= 1 << BufferIndex;
 
 	// @todo metal log: remove
-	NSLog(@"Setting Pixel UB at index %d", BufferIndex);
+//	NSLog(@"Setting Pixel UB at index %d", BufferIndex);
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)

@@ -876,7 +876,7 @@ inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffe
 			const uint8 BindIndex = FRHIResourceTableEntry::GetBindIndex(ResourceInfo);
 
 			// @todo metal log: remove
-			NSLog(@"Binding a resource at BindIndex %d, Resource Index %d", BindIndex, ResourceIndex);
+//			NSLog(@"Binding a resource at BindIndex %d, Resource Index %d", BindIndex, ResourceIndex);
 
 			// todo: could coalesce adjacent bound resources.
 			MetalResourceType* ResourcePtr = (MetalResourceType*)Buffer->RawResourceTable[ResourceIndex];
@@ -896,7 +896,7 @@ void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage, uint32 Resour
 	checkSlow(Shader);
 
 	// @todo metal log: remove
-	NSLog(@"Resource Bits %x, DirtyBits: %llx", Shader->Bindings.ShaderResourceTable.ResourceTableBits, Shader->DirtyUniformBuffers);
+//	NSLog(@"Resource Bits %x, DirtyBits: %llx", Shader->Bindings.ShaderResourceTable.ResourceTableBits, Shader->DirtyUniformBuffers);
 
 	// Mask the dirty bits by those buffers from which the shader has bound resources.
 	uint32 DirtyBits = Shader->Bindings.ShaderResourceTable.ResourceTableBits & Shader->DirtyUniformBuffers;
@@ -914,10 +914,11 @@ void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage, uint32 Resour
 		Buffer->CacheResources(ResourceTableFrameCounter);
 
 		// @todo metal log: remove
-		NSLog(@"Setting BufferIndex %d", BufferIndex);
+//		NSLog(@"Setting BufferIndex %d", BufferIndex);
 
 		// todo: could make this two pass: gather then set
-		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSurface>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+//		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSurface>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
+		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSurface>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.TextureMap.GetData(), BufferIndex);
 		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSamplerState>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.SamplerMap.GetData(), BufferIndex);
 	}
 	Shader->DirtyUniformBuffers = 0;

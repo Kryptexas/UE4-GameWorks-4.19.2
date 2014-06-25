@@ -181,6 +181,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 	: FRHIUniformBuffer(Layout)
 	, Buffer(nil)
 	, Offset(0)
+	, LastCachedFrame(INDEX_NONE)
 {
 	if (Layout.ConstantBufferSize > 0)
 	{
@@ -263,11 +264,12 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 		{
 			case UBMT_SRV:
 				{
+					check(0);
 					FMetalShaderResourceView* SRV = (FMetalShaderResourceView*)Resources[i].GetReference();
 					if (IsValidRef(SRV->SourceTexture))
 					{
 						FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(SRV->SourceTexture);
-						RawResources[i] = Surface.Texture;
+						RawResources[i] = &Surface;
 					}
 					else
 					{
