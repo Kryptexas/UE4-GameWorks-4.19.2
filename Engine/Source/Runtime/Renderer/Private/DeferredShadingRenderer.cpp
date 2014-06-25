@@ -743,12 +743,15 @@ void FDeferredShadingSceneRenderer::Render()
 	{
 		SCOPE_CYCLE_COUNTER(STAT_TranslucencyDrawTime);
 
-		if(ViewFamily.EngineShowFlags.Refraction)
+		RenderTranslucency();
+
+		if (ViewFamily.EngineShowFlags.Refraction)
 		{
-			// to apply refraction effect by distorting the scene color
+			// To apply refraction effect by distorting the scene color.
+			// After non separate translucency as that is considered at scene depth anyway
+			// It allows skybox translucency (set to non separate translucency) to be refracted.
 			RenderDistortion(RHICmdList);
 		}
-		RenderTranslucency();
 	}
 
 	if (ViewFamily.EngineShowFlags.LightShafts)
