@@ -292,4 +292,22 @@ protected:
 	FString Destination;
 };
 
+/**
+ * Operation used to resolve a file that is in a conflicted state.
+ */
+class FResolve : public ISourceControlOperation
+{
+public:
+	// ISourceControlOperation interface
+	virtual FName GetName() const override
+	{
+		  return "Resolve";
+	}
+
+	virtual FText GetInProgressString() const override
+	{
+		return LOCTEXT("SourceControl_Resolve", "Resolving file(s) in Source Control...");
+	}
+};
+
 #undef LOCTEXT_NAMESPACE

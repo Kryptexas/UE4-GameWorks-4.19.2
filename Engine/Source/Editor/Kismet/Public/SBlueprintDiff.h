@@ -4,6 +4,21 @@
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
 #include "GraphEditor.h"
 
+struct FMatchName
+{
+	FMatchName(const FString& InName)
+	: Name(InName)
+	{
+	}
+
+	bool operator() (const UObject* Object)
+	{
+		return Object->GetName() == Name;
+	}
+
+	FString const& Name;
+};
+
 /*List item that entry for a graph*/
 struct FListItemGraphToDiff: public TSharedFromThis<FListItemGraphToDiff>
 {
@@ -87,6 +102,46 @@ private:
 	TSharedPtr< FUICommandList > KeyCommands;
 };
 
+/*panel used to display the blueprint*/
+struct KISMET_API FDiffPanel
+{
+	FDiffPanel();
+
+	/*Generate this panel based on the specified graph*/
+	void	GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+
+	/*Get the title to show at the top of the panel*/
+	FString GetTitle() const;
+
+	/* Called when user hits keyboard shortcut to copy nodes*/
+	void CopySelectedNodes();
+
+	/*Gets whatever nodes are selected in the Graph Editor*/
+	FGraphPanelSelectionSet GetSelectedNodes() const;
+
+	/*Can user copy any of the selected nodes?*/
+	bool CanCopyNodes() const;
+
+	/*The blueprint that owns the graph we are showing*/
+	class UBlueprint*				Blueprint;
+
+	/*The border around the graph editor, used to change the content when new graphs are set */
+	TSharedPtr<SBorder>				GraphEditorBorder;
+
+	/*The graph editor which does the work of displaying the graph*/
+	TWeakPtr<class SGraphEditor>	GraphEditor;
+
+	/*Revision information for this blueprint */
+	FRevisionInfo					RevisionInfo;
+
+	/*A name identifying which asset this panel is displaying */
+	bool							bShowAssetName;
+
+private:
+	/*Command list for this diff panel*/
+	TSharedPtr<FUICommandList> GraphEditorCommands;
+};
+
 /* Visual Diff between two Blueprints*/
 class  KISMET_API SBlueprintDiff: public SCompoundWidget
 {
@@ -108,7 +163,7 @@ public:
 	/** Called when a new Graph is clicked on by user */
 	void OnGraphChanged(FListItemGraphToDiff* Diff);
 
-private:
+protected:
 	/* Need to process keys for shortcuts to buttons */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
@@ -126,7 +181,7 @@ private:
 	TSharedRef<ITableRow> OnGenerateRow(FGraphToDiff ParamItem, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/*Called when user clicks on a new graph list item */
-	void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
+	virtual void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
 	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer);
 
@@ -143,7 +198,7 @@ private:
 	FReply  OnOpenInDefaults();
 
 	/*Reset the graph editor, called when user switches graphs to display*/
-	void    ResetGraphEditors();
+	virtual void ResetGraphEditors();
 
 	/*Get the image to show for the toggle lock option*/
 	const FSlateBrush* GetLockViewImage() const;
@@ -152,47 +207,19 @@ private:
 	TArray< FGraphToDiff> Graphs;
 
 	/** Get Graph editor associated with this Graph */
-	SGraphEditor* GetGraphEditorForGraph(UEdGraph* Graph) const ;
+	virtual SGraphEditor* GetGraphEditorForGraph(UEdGraph* Graph) const ;
 
-	/*panel used to display the blueprint*/
-	struct FDiffPanel
-	{
-		FDiffPanel();
+	/** Helper function for generating an empty widget */
+	static TSharedRef<SWidget> DefaultEmptyPanel();
 
-		/*Generate this panel based on the specified graph*/
-		void	GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+	/** Generates the widgets used to display the graphs that are being diff'd */
+	virtual TSharedRef<SWidget> GenerateDiffWindow();
 
-		/*Get the title to show at the top of the panel*/
-		FString GetTitle() const;
+	/** Generates the toolbar of buttons (for example, the button that lets you diff the CDO) */
+	virtual TSharedRef<SWidget> GenerateToolbar();
 
-		/* Called when user hits keyboard shortcut to copy nodes*/
-		void CopySelectedNodes();
-
-		/*Gets whatever nodes are selected in the Graph Editor*/
-		FGraphPanelSelectionSet GetSelectedNodes() const;
-
-		/*Can user copy any of the selected nodes?*/
-		bool CanCopyNodes() const;
-
-		/*The blueprint that owns the graph we are showing*/
-		class UBlueprint*				Blueprint;
-
-		/*The border around the graph editor, used to change the content when new graphs are set */
-		TSharedPtr<SBorder>				GraphEditorBorder;
-
-		/*The graph editor which does the work of displaying the graph*/
-		TWeakPtr<class SGraphEditor>	GraphEditor;
-
-		/*Revision information for this blueprint */
-		FRevisionInfo					RevisionInfo;
-
-		/*A name identifying which asset this panel is displaying */
-		bool							bShowAssetName;
-
-	private:
-		/*Command list for this diff panel*/
-		TSharedPtr<FUICommandList> GraphEditorCommands;
-	};
+	/** Event handler that updates the graph view when user selects a new graph */
+	virtual void HandleGraphChanged( const FString& GraphName );
 
 	/*The two panels used to show the old & new revision*/ 
 	FDiffPanel				PanelOld, PanelNew;

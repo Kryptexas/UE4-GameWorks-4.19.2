@@ -36,6 +36,14 @@ struct FRevisionInfo
 	int32		Revision;
 	int32		Changelist;
 	FDateTime	Date;	
+
+	static FRevisionInfo InvalidRevision()
+	{
+		static const FRevisionInfo InvalidRevision{
+			-1, -1, FDateTime()
+		};
+		return InvalidRevision;
+	}
 };
 
 /** AssetTypeActions provide actions and other information about asset types */
