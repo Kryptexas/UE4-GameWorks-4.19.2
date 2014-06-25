@@ -5,8 +5,13 @@
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingReplicator.h"
 
-uint32 FGameplayDebuggerSettings::DebuggerShowFlags = (1 << EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead);
 uint32 FGameplayDebuggerSettings::ShowFlagIndex = 0;
+
+FGameplayDebuggerSettings GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator)
+{
+	static uint32 Settings = (1 << EAIDebugDrawDataView::Basic) | (1 << EAIDebugDrawDataView::OverHead);
+	return FGameplayDebuggerSettings(Replicator == NULL ? Settings : Replicator->DebuggerShowFlags);
+}
 
 class FGameplayDebugger : public IGameplayDebugger
 {
@@ -55,15 +60,7 @@ void FGameplayDebugger::ShutdownModule()
 
 void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (InWorld->GetNetMode() < ENetMode::NM_Client)
-	{
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
-		SpawnInfo.Name = TEXT("GameplayDebuggingReplicator");
-		AGameplayDebuggingReplicator *DestActor = InWorld->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
-	}
-#endif
+
 }
 
 void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
@@ -73,7 +70,19 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 
 void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 {
-
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	APlayerController* PC = Cast<APlayerController>(InActor);
+	if (PC && PC->GetNetMode() < ENetMode::NM_Client)
+	{
+		UWorld* World = PC->GetWorld();
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.Name = *FString::Printf(TEXT("GameplayDebuggingReplicator_%s"), *PC->GetName());
+		AGameplayDebuggingReplicator *DestActor = World->SpawnActor<AGameplayDebuggingReplicator>(SpawnInfo);
+		DestActor->SetLocalPlayerOwner(PC);
+		DestActor->SetReplicates(true);
+	}
+#endif
 }
 
 void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)

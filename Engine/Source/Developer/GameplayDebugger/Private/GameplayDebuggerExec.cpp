@@ -1,9 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
-#include "GameplayDebuggingControllerComponent.h"
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#include "GameplayDebuggingControllerComponent.h"
 #include "Misc/CoreMisc.h"
+
+#if WITH_EDITOR
+#	include "Editor.h"
+#	include "LevelEditorViewport.h"
+#endif //WITH_EDITOR
+
 
 struct FGameplayDebuggerExec : public FSelfRegisteringExec
 {
@@ -55,10 +61,28 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 
 	if (FParse::Command(&Cmd, TEXT("cheat EnableGDT")))
 	{
-		if (Inworld->GetNetMode() != NM_DedicatedServer && GetDebuggingReplicator(Inworld).IsValid() && !CachedDebuggingReplicator->IsToolCreated())
+		if (Inworld->GetNetMode() != NM_DedicatedServer)
 		{
-			CachedDebuggingReplicator->CreateTool(PC);
-			CachedDebuggingReplicator->EnableTool();
+			AGameplayDebuggingReplicator* Replicator = NULL;
+			for (FActorIterator It(Inworld); It; ++It)
+			{
+				AActor* A = *It;
+				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+				{
+					Replicator = Cast<AGameplayDebuggingReplicator>(A);
+					if (Replicator && Replicator->GetLocalPlayerOwner() == PC)
+					{
+						break;
+					}
+				}
+			}
+
+			if (Replicator && !Replicator->IsToolCreated())
+			{
+				Replicator->CreateTool();
+				Replicator->EnableTool();
+				bHandled = true;
+			}
 		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("ToggleGameplayDebugView")))
@@ -74,21 +98,45 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 			}
 		}
 
+		const bool bActivePIE = Inworld && Inworld->IsGameWorld();
+		AGameplayDebuggingReplicator* DebuggingReplicator = NULL;
+		if (bActivePIE)
+		{
+			for (FActorIterator It(Inworld); It; ++It)
+			{
+				AActor* A = *It;
+				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+				{
+					AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(A);
+					if (Replicator->GetLocalPlayerOwner() == PC)
+					{
+						DebuggingReplicator = Replicator;
+						break;
+					}
+				}
+			}
+		}
+
+		FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(DebuggingReplicator);
 		FString InViewName = FParse::Token(Cmd, 0);
 		int32 ViewIndex = ViewNames.Find(InViewName);
 		FGameplayDebuggerSettings::ShowFlagIndex = FEngineShowFlags::FindIndexByName(TEXT("GameplayDebug"));
 		if (ViewIndex != INDEX_NONE)
 		{
-			FGameplayDebuggerSettings::CheckFlag(ViewIndex) ? FGameplayDebuggerSettings::ClearFlag(ViewIndex) : FGameplayDebuggerSettings::SetFlag(ViewIndex);
+			DebuggerSettings.CheckFlag(ViewIndex) ? DebuggerSettings.ClearFlag(ViewIndex) : DebuggerSettings.SetFlag(ViewIndex);
+			if (bActivePIE)
+			{
+				GameplayDebuggerSettings().CheckFlag(ViewIndex) ? GameplayDebuggerSettings().ClearFlag(ViewIndex) : GameplayDebuggerSettings().SetFlag(ViewIndex);
+			}
 #if WITH_EDITOR
 			if (ViewIndex == EAIDebugDrawDataView::EQS && GCurrentLevelEditingViewportClient)
 			{
-				GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, FGameplayDebuggerSettings::CheckFlag(ViewIndex));
+				GCurrentLevelEditingViewportClient->EngineShowFlags.SetSingleFlag(FGameplayDebuggerSettings::ShowFlagIndex, DebuggerSettings.CheckFlag(ViewIndex));
 			}
 #endif
 			PC->ClientMessage(FString::Printf(TEXT("View %s %s")
 				, *InViewName
-				, FGameplayDebuggerSettings::CheckFlag(ViewIndex) ? TEXT("enabled") : TEXT("disabled")));
+				, DebuggerSettings.CheckFlag(ViewIndex) ? TEXT("enabled") : TEXT("disabled")));
 		}
 		else
 		{

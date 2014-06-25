@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
+#include "GameFramework/HUD.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
 #include "GameplayDebuggingReplicator.h"
@@ -16,6 +17,7 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 {
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
+
 #if WITH_EDITORONLY_DATA
 	SetTickableWhenPaused(true);
 	SetIsTemporarilyHiddenInEditor(true);
@@ -25,6 +27,17 @@ AGameplayDebuggingReplicator::AGameplayDebuggingReplicator(const class FPostCons
 	bHiddenEd = true;
 	bEditable = false;
 #endif
+
+	DebuggerShowFlags =  GameplayDebuggerSettings().DebuggerShowFlags;
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		SetActorTickEnabled(true);
+
+		bReplicates = false;
+		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+		SetReplicates(true);
+	}
 }
 
 void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -32,25 +45,21 @@ void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	DOREPLIFETIME(AGameplayDebuggingReplicator, DebugComponent);
+		DOREPLIFETIME_CONDITION(AGameplayDebuggingReplicator, DebugComponent, COND_OwnerOnly);
+		DOREPLIFETIME_CONDITION(AGameplayDebuggingReplicator, LocalPlayerOwner, COND_OwnerOnly);
 #endif
 }
 
 bool AGameplayDebuggingReplicator::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
 {
-	if (Clients.Num() == 0)
-	{
-		return true;// relevant to everyone for now
-	}
-
-	return Clients.Contains(FDebugContext(RealViewer));
+	return LocalPlayerOwner == RealViewer;
 }
 
 void AGameplayDebuggingReplicator::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (!HasAnyFlags(RF_ClassDefaultObject) && GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
+	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
 		if (GIsEditor)
 		{
@@ -66,44 +75,41 @@ void AGameplayDebuggingReplicator::PostInitializeComponents()
 				DebugComponentHUDClass = AGameplayDebuggingHUDComponent::StaticClass();
 			}
 		}
-
-		if (!DebugComponentClass.IsValid())
-		{
-			DebugComponentClass = StaticLoadClass(UGameplayDebuggingComponent::StaticClass(), NULL, *DebugComponentClassName, NULL, LOAD_None, NULL);
-			if (!DebugComponentClass.IsValid())
-			{
-				DebugComponentClass = UGameplayDebuggingComponent::StaticClass();
-			}
-		}
 	}
 
-	SetActorTickEnabled(true);
+	if (!DebugComponentClass.IsValid() && GetWorld() && GetNetMode() < ENetMode::NM_Client)
+	{
+		DebugComponentClass = StaticLoadClass(UGameplayDebuggingComponent::StaticClass(), NULL, *DebugComponentClassName, NULL, LOAD_None, NULL);
+		if (!DebugComponentClass.IsValid())
+		{
+			DebugComponentClass = UGameplayDebuggingComponent::StaticClass();
+		}
+	}
+}
+
+UGameplayDebuggingComponent* AGameplayDebuggingReplicator::GetDebugComponent()
+{
+	if (!DebugComponent && DebugComponentClass.IsValid() && GetNetMode() < ENetMode::NM_Client)
+	{
+		DebugComponent = ConstructObject<UGameplayDebuggingComponent>(DebugComponentClass.Get(), this);
+		DebugComponent->SetIsReplicated(true);
+		DebugComponent->RegisterComponent();
+		DebugComponent->Activate();
+	}
+
+	return DebugComponent;
 }
 
 void AGameplayDebuggingReplicator::BeginPlay()
 {
 	Super::BeginPlay();
-	if (Role == ROLE_Authority)
-	{
-		bReplicates = false;
-		SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
-		SetReplicates(true);
-
-		if (DebugComponent == NULL)
-		{
-			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(DebugComponentClass.Get(), this);
-			DebugComponent->SetIsReplicated(true);
-			DebugComponent->RegisterComponent();
-			DebugComponent->Activate();
-		}
-	}
 }
 
 class UNetConnection* AGameplayDebuggingReplicator::GetNetConnection()
 {
-	if (GetWorld() && GetWorld()->GetFirstPlayerController())
+	if (LocalPlayerOwner)
 	{
-		return GetWorld()->GetFirstPlayerController()->GetNetConnection();
+		return LocalPlayerOwner->GetNetConnection();
 	}
 
 	return NULL;
@@ -116,15 +122,9 @@ bool AGameplayDebuggingReplicator::ServerEnableTargetSelection_Validate(bool, AP
 
 void AGameplayDebuggingReplicator::ServerEnableTargetSelection_Implementation(bool bEnable, APlayerController* Context)
 {
-	if (DebugComponent)
+	if (GetDebugComponent())
 	{
-		uint32 Index = Clients.Find(FDebugContext(Context));
-		if (Index != INDEX_NONE)
-		{
-			Clients[Index].bEnabledTargetSelection = bEnable;
-		}
-
-		DebugComponent->ServerEnableTargetSelection(true);
+		GetDebugComponent()->ServerEnableTargetSelection(true);
 	}
 }
 
@@ -146,37 +146,11 @@ bool AGameplayDebuggingReplicator::ServerReplicateMessage_Validate(class AActor*
 void AGameplayDebuggingReplicator::ServerReplicateMessage_Implementation(class  AActor* Actor, uint32 InMessage, uint32 DataView)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent)
+	if (GetDebugComponent())
 	{
-		DebugComponent->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
+		GetDebugComponent()->ServerReplicateData((EDebugComponentMessage::Type)InMessage, (EAIDebugDrawDataView::Type)DataView);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-}
-
-bool AGameplayDebuggingReplicator::ServerRegisterClient_Validate(APlayerController*)
-{
-	return true;
-}
-
-void AGameplayDebuggingReplicator::ServerRegisterClient_Implementation(APlayerController* NewClient)
-{
-	if (!Clients.Contains(FDebugContext(NewClient)))
-	{
-		Clients.AddUnique(FDebugContext(NewClient));
-	}
-}
-
-bool AGameplayDebuggingReplicator::ServerUnregisterClient_Validate(APlayerController*)
-{
-	return true;
-}
-
-void AGameplayDebuggingReplicator::ServerUnregisterClient_Implementation(APlayerController* OldClient)
-{
-	if (Clients.Contains(FDebugContext(OldClient)))
-	{
-		Clients.Remove(FDebugContext(OldClient));
-	}
 }
 
 bool AGameplayDebuggingReplicator::IsDrawEnabled()
@@ -188,7 +162,7 @@ void AGameplayDebuggingReplicator::EnableDraw(bool bEnable)
 {
 	bEnabledDraw = bEnable;
 
-	if (AHUD* const GameHUD = LocalPlayerOwner.IsValid() ? LocalPlayerOwner->GetHUD() : NULL)
+	if (AHUD* const GameHUD = LocalPlayerOwner ? LocalPlayerOwner->GetHUD() : NULL)
 	{
 		GameHUD->bShowHUD = bEnable ? false : true;
 	}
@@ -198,20 +172,18 @@ void AGameplayDebuggingReplicator::EnableDraw(bool bEnable)
 bool AGameplayDebuggingReplicator::IsToolCreated()
 {
 	UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
-	return LocalPlayerOwner.IsValid() && GDC;
+	return LocalPlayerOwner && GDC;
 }
 
-void AGameplayDebuggingReplicator::CreateTool(APlayerController *PlayerController)
+void AGameplayDebuggingReplicator::CreateTool()
 {
 	if (GetWorld() && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		LocalPlayerOwner = PlayerController;
-		ServerRegisterClient( PlayerController );
 		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		if (!GDC)
 		{
 			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-			GDC->SetPlayerOwner(PlayerController);
+			GDC->SetPlayerOwner(LocalPlayerOwner);
 			GDC->RegisterComponent();
 		}
 	}
@@ -252,7 +224,7 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 	}
 
 	UWorld* World = GetWorld();
-	if (World && DebugComponent && DebugComponent->GetOwnerRole() == ROLE_Authority)
+	if (World && GetDebugComponent() && GetDebugComponent()->GetOwnerRole() == ROLE_Authority)
 	{
 		bool bBroadcastedNewSelection = false;
 
@@ -262,11 +234,9 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 			AActor* NewTarget = Cast<AActor>(*Iterator);
 
 			//We needs to collect data manually in Simulate
-			FDebugContext Context(LocalPlayerOwner.Get());
-			Context.DebugTarget = NewTarget;
-			DebugComponent->SetActorToDebug(NewTarget);
-			DebugComponent->SelectForDebugging(NewTarget->IsSelected());
-			DebugComponent->CollectDataToReplicate(NewTarget->IsSelected());
+			GetDebugComponent()->SetActorToDebug(NewTarget);
+			GetDebugComponent()->SelectForDebugging(NewTarget->IsSelected());
+			GetDebugComponent()->CollectDataToReplicate(NewTarget->IsSelected());
 
 			if (NewTarget->IsSelected() && LastSelectedActorInSimulation.Get() != NewTarget)
 			{
@@ -310,7 +280,8 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 	}
 	LastDrawAtFrame = GFrameNumber;
 
-	if (!IsDrawEnabled())
+	const UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
+	if (!IsDrawEnabled() || !GDC)
 	{
 		return;
 	}
@@ -320,10 +291,8 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 		for (FConstPawnIterator Iterator = GetWorld()->GetPawnIterator(); Iterator; ++Iterator)
 		{
 			AActor* NewTarget = Cast<AActor>(*Iterator);
-			FDebugContext Context(LocalPlayerOwner.Get());
-			Context.DebugTarget = NewTarget;
-			DebugComponent->SetActorToDebug(NewTarget);
-			DebugComponent->CollectDataToReplicate(true);
+			GetDebugComponent()->SetActorToDebug(NewTarget);
+			GetDebugComponent()->CollectDataToReplicate(true);
 		}
 	}
 
@@ -332,6 +301,12 @@ void AGameplayDebuggingReplicator::DrawDebugDataDelegate(class UCanvas* Canvas, 
 
 void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class APlayerController* PC)
 {
+	const bool bAllowToDraw = Canvas && Canvas->SceneView && (Canvas->SceneView->ViewActor == LocalPlayerOwner->AcknowledgedPawn || Canvas->SceneView->ViewActor == LocalPlayerOwner->GetPawnOrSpectator());
+	if (!bAllowToDraw)
+	{
+		return;
+	}
+
 	if (!DebugRenderer.IsValid() && DebugComponentHUDClass.IsValid())
 	{
 		FActorSpawnParameters SpawnInfo;
@@ -341,6 +316,7 @@ void AGameplayDebuggingReplicator::DrawDebugData(class UCanvas* Canvas, class AP
 
 		DebugRenderer = GetWorld()->SpawnActor<AGameplayDebuggingHUDComponent>(DebugComponentHUDClass.Get(), SpawnInfo);
 		DebugRenderer->SetCanvas(Canvas);
+		DebugRenderer->SetPlayerOwner(LocalPlayerOwner);
 		DebugRenderer->SetWorld(GetWorld());
 	}
 

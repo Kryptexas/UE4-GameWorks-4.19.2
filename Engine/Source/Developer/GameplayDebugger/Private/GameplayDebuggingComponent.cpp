@@ -16,10 +16,6 @@
 
 #include "GameplayDebuggingComponent.h"
 
-#if WITH_EDITOR
-//#include "UnrealEd.h"
-#endif
-
 DEFINE_LOG_CATEGORY(LogGDT);
 
 //----------------------------------------------------------------------//
@@ -250,32 +246,23 @@ void UGameplayDebuggingComponent::TickComponent(float DeltaTime, enum ELevelTick
 			AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 			if (Replicator)
 			{
-				TArray<FDebugContext>& Clients = Replicator->GetClients();
-				for (int32 Index = 0; Index < Clients.Num(); ++Index)
+				if (Replicator->GetLocalPlayerOwner())
 				{
-					if (Clients[Index].bEnabledTargetSelection && Clients[Index].PlayerOwner.IsValid())
-					{
-						SelectTargetToDebug(Clients[Index]);
-
-						if (Clients[Index].DebugTarget.IsValid())
-						{
-							SetActorToDebug(Clients[Index].DebugTarget.Get());
-							CollectDataToReplicate(true);
-						}
-					}
-					break;
+					SelectTargetToDebug();
 				}
 			}
 		}
+		CollectDataToReplicate(true);
 	}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-void UGameplayDebuggingComponent::SelectTargetToDebug(FDebugContext& Context)
+void UGameplayDebuggingComponent::SelectTargetToDebug()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	APlayerController* MyPC = Context.PlayerOwner.Get();
+	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
+	APlayerController* MyPC = Replicator->GetLocalPlayerOwner();
 
 	if (MyPC )
 	{
@@ -329,11 +316,10 @@ void UGameplayDebuggingComponent::SelectTargetToDebug(FDebugContext& Context)
 		}
 
 		BestTarget = BestTarget == NULL ? PossibleTarget : BestTarget;
-		if (BestTarget != NULL)
+		if (BestTarget != NULL && BestTarget != GetSelectedActor())
 		{
 			//always update component for best target
-			Context.DebugTarget = Cast<AActor>(BestTarget);
-			SetActorToDebug(Context.DebugTarget.Get());
+			SetActorToDebug(Cast<AActor>(BestTarget));
 			SelectForDebugging(true);
 			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
 		}

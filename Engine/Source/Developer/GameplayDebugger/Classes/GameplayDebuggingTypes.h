@@ -28,22 +28,29 @@ namespace EAIDebugDrawDataView
 
 struct GAMEPLAYDEBUGGER_API FGameplayDebuggerSettings
 {
-	static void SetFlag(uint8 Flag)
+	explicit FGameplayDebuggerSettings(uint32& Flags)
+		: DebuggerShowFlags(Flags)
+	{
+
+	}
+	void SetFlag(uint8 Flag)
 	{
 		DebuggerShowFlags |= (1 << Flag);
 	}
 
-	static void ClearFlag(uint8 Flag)
+	void ClearFlag(uint8 Flag)
 	{
 		DebuggerShowFlags &= ~(1 << Flag);
 	}
 
-	static bool CheckFlag(uint8 Flag)
+	bool CheckFlag(uint8 Flag)
 	{
 		return (DebuggerShowFlags & (1 << Flag)) != 0;
 	}
 
-	static uint32 DebuggerShowFlags;
+	uint32 &DebuggerShowFlags;
 	static uint32 ShowFlagIndex;
 };
 
+GAMEPLAYDEBUGGER_API
+FGameplayDebuggerSettings  GameplayDebuggerSettings(class AGameplayDebuggingReplicator* Replicator = NULL);

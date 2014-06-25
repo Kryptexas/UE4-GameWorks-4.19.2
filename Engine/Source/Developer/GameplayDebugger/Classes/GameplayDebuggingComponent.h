@@ -209,7 +209,7 @@ public:
 	virtual void DestroyRenderState_Concurrent() override;
 
 protected:
-	void SelectTargetToDebug(FDebugContext& Context);
+	void SelectTargetToDebug();
 
 	//APlayerController* PlayerOwner;
 

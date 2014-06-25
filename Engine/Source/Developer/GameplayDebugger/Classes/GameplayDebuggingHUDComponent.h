@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "GameFramework/HUD.h"
 #include "ShowFlags.h"
 #include "GameplayDebuggingHUDComponent.generated.h"
 
@@ -69,7 +68,7 @@ protected:
 private:
 	// local player related draw from PostRender
 	void DrawDebugComponentData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
-	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;
+	AGameplayDebuggingReplicator* GetDebuggingReplicator();
 
 protected:
 	UPROPERTY(Transient)

@@ -35,7 +35,7 @@ void UGameplayDebuggingControllerComponent::OnRegister()
 	BindActivationKeys();
 }
 
-AGameplayDebuggingReplicator* UGameplayDebuggingControllerComponent::GetDebuggingReplicator()
+AGameplayDebuggingReplicator* UGameplayDebuggingControllerComponent::GetDebuggingReplicator() const
 {
 	return Cast<AGameplayDebuggingReplicator>(GetOuter());
 }
@@ -83,17 +83,17 @@ void UGameplayDebuggingControllerComponent::BeginDestroy()
 
 bool UGameplayDebuggingControllerComponent::IsViewActive(EAIDebugDrawDataView::Type View) const
 {
-	return FGameplayDebuggerSettings::CheckFlag(View);
+	return GameplayDebuggerSettings(GetDebuggingReplicator()).CheckFlag(View);
 }
 
 uint32 UGameplayDebuggingControllerComponent::GetActiveViews()
 {
-	return FGameplayDebuggerSettings::DebuggerShowFlags;
+	return GameplayDebuggerSettings(GetDebuggingReplicator()).DebuggerShowFlags;
 }
 
 void UGameplayDebuggingControllerComponent::SetActiveViews(uint32 InActiveViews)
 {
-	FGameplayDebuggerSettings::DebuggerShowFlags = InActiveViews;
+	GameplayDebuggerSettings(GetDebuggingReplicator()).DebuggerShowFlags = InActiveViews;
 
 	if (DebugAITargetActor && GetDebuggingReplicator())
 	{
@@ -107,7 +107,7 @@ void UGameplayDebuggingControllerComponent::SetActiveViews(uint32 InActiveViews)
 
 void UGameplayDebuggingControllerComponent::EnableActiveView(EAIDebugDrawDataView::Type View, bool bEnable)
 {
-	bEnable ? FGameplayDebuggerSettings::SetFlag(View) : FGameplayDebuggerSettings::ClearFlag(View);
+	bEnable ? GameplayDebuggerSettings(GetDebuggingReplicator()).SetFlag(View) : GameplayDebuggerSettings(GetDebuggingReplicator()).ClearFlag(View);
 
 	if (DebugAITargetActor && GetDebuggingReplicator())
 	{
@@ -254,7 +254,7 @@ void UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView0()
 	{
 		if (UGameplayDebuggingComponent* OwnerComp = GetDebuggingReplicator() ? GetDebuggingReplicator()->GetDebugComponent() : NULL)
 		{
-			FGameplayDebuggerSettings::DebuggerShowFlags ^= 1 << EAIDebugDrawDataView::NavMesh;
+			GameplayDebuggerSettings(GetDebuggingReplicator()).DebuggerShowFlags ^= 1 << EAIDebugDrawDataView::NavMesh;
 
 			if (IsViewActive(EAIDebugDrawDataView::NavMesh))
 			{

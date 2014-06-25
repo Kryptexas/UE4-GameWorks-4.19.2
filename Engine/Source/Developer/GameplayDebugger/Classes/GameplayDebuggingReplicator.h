@@ -10,22 +10,6 @@
 class UGameplayDebuggingComponent;
 class AGameplayDebuggingHUDComponent;
 
-struct FDebugContext
-{
-	explicit FDebugContext(APlayerController* PC) : bEnabledTargetSelection(false), PlayerOwner(PC) {}
-	FDebugContext(const FDebugContext& DC) : bEnabledTargetSelection(DC.bEnabledTargetSelection), PlayerOwner(DC.PlayerOwner), DebugTarget(DC.DebugTarget) {}
-
-	uint32 bEnabledTargetSelection : 1;
-	TWeakObjectPtr<APlayerController> PlayerOwner;
-	TWeakObjectPtr<AActor>	DebugTarget;
-};
-
-FORCEINLINE bool operator==(const FDebugContext& Left, const FDebugContext& Right)
-{
-	return Left.PlayerOwner.Get() == Right.PlayerOwner.Get();
-}
-
-
 UCLASS(config=Engine, NotBlueprintable, Transient)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 {
@@ -40,6 +24,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UPROPERTY(Replicated, Transient)
 	UGameplayDebuggingComponent* DebugComponent;
 
+	UPROPERTY(Replicated, Transient)
+	APlayerController* LocalPlayerOwner;
+
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessage(class AActor* Actor, uint32 InMessage, uint32 DataView = 0);
 
@@ -49,12 +36,6 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerEnableTargetSelection(bool bEnable, APlayerController* Context);
 
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerRegisterClient(APlayerController *PlayerController);
-
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerUnregisterClient(APlayerController* PlayerController);
-
 	virtual class UNetConnection* GetNetConnection() override;
 
 	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
@@ -63,17 +44,18 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual void BeginPlay() override;
 
-	FORCEINLINE UGameplayDebuggingComponent* GetDebugComponent()
-	{
-		return DebugComponent;
-	}
+	UGameplayDebuggingComponent* GetDebugComponent();
 
 	bool IsToolCreated();
-	void CreateTool(APlayerController *PlayerController);
+	void CreateTool();
 	void EnableTool();
 	bool IsDrawEnabled();
 	void EnableDraw(bool bEnable);
-	TArray<FDebugContext>& GetClients() { return Clients;  }
+
+	void SetLocalPlayerOwner(APlayerController* PC) { LocalPlayerOwner = PC; }
+	APlayerController* GetLocalPlayerOwner() { return LocalPlayerOwner; }
+
+	uint32 DebuggerShowFlags;
 
 protected:
 	void OnDebugAIDelegate(class UCanvas* Canvas, class APlayerController* PC);
@@ -88,7 +70,5 @@ private:
 	TWeakObjectPtr<UClass> DebugComponentHUDClass;
 
 	TWeakObjectPtr<AGameplayDebuggingHUDComponent>	DebugRenderer;
-	TArray<FDebugContext> Clients;
-	TWeakObjectPtr<APlayerController> LocalPlayerOwner;
 	TWeakObjectPtr<AActor>	LastSelectedActorInSimulation;
 };

@@ -39,9 +39,9 @@ void AGameplayDebuggingHUDComponent::Render()
 	PrintAllData();
 }
 
-AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplicator() const
+AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplicator()
 {
-	if (CachedDebuggingReplicator.IsValid())
+	if (CachedDebuggingReplicator.IsValid() && CachedDebuggingReplicator->GetLocalPlayerOwner() == PlayerOwner)
 	{
 		return CachedDebuggingReplicator.Get();
 	}
@@ -51,7 +51,12 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 		AActor* A = *It;
 		if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
 		{
-			return Cast<AGameplayDebuggingReplicator>(A);
+			AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(A);
+			if (Replicator->GetLocalPlayerOwner() == PlayerOwner)
+			{
+				CachedDebuggingReplicator = Replicator;
+				return Replicator;
+			}
 		}
 	}
 
@@ -146,10 +151,10 @@ void AGameplayDebuggingHUDComponent::DrawMenu(const float X, const float Y, clas
 			float XPos = 20.0f;
 			for (int32 i = 0; i < Categories.Num(); i++)
 			{
-			const bool bIsActive = FGameplayDebuggerSettings::CheckFlag(Categories[i].View) ? true : false;
-			const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
+				const bool bIsActive = GameplayDebuggerSettings(GetDebuggingReplicator()).CheckFlag(Categories[i].View) ? true : false;
+				const bool bIsDisabled = Categories[i].View == EAIDebugDrawDataView::NavMesh ? false : (DebugComponent && DebugComponent->GetSelectedActor() ? false: true);
 
-			PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, 20);
+				PrintString(DefaultContext, bIsDisabled ? (bIsActive ? FColorList::DarkGreen  : FColorList::LightGrey) : (bIsActive ? FColorList::Green : FColorList::White), Categories[i].Desc, XPos, 20);
 				XPos += CategoriesWidth[i];
 			}
 		DefaultContext.Font = OldFont;
@@ -172,34 +177,35 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 
 	OverHeadContext = FPrintContext(GEngine->GetSmallFont(), Canvas, ScreenLoc.X, ScreenLoc.Y);
 
-	if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
+	FGameplayDebuggerSettings DebuggerSettings = GameplayDebuggerSettings(GetDebuggingReplicator());
+	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::OverHead) || EngineShowFlags.DebugAI)
 	{
 		DrawOverHeadInformation(MyPC, DebugComponent);
 	}
 
-	if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::NavMesh))
+	if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::NavMesh))
 	{
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
 	if (DebugComponent->GetSelectedActor() && DebugComponent->IsSelected())
 	{
-		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::Basic) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) || EngineShowFlags.DebugAI)
 		{
 			DrawBasicData(MyPC, DebugComponent);
 		}
 
-		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::BehaviorTree))
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::BehaviorTree))
 		{
 			DrawBehaviorTreeData(MyPC, DebugComponent);
 		}
 
-		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::EQS))
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::EQS))
 		{
 			DrawEQSData(MyPC, DebugComponent);
 		}
 
-		if (FGameplayDebuggerSettings::CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)
+		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Perception) || EngineShowFlags.DebugAI)
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}

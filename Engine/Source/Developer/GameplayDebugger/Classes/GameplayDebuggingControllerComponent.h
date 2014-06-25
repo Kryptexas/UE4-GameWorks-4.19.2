@@ -69,7 +69,7 @@ protected:
 	virtual void ToggleAIDebugView_SetView9();
 
 	virtual void BindAIDebugViewKeys();
-	AGameplayDebuggingReplicator* GetDebuggingReplicator();
+	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
 
