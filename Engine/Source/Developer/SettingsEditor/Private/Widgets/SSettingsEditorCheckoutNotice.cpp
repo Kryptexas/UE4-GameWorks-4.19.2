@@ -13,6 +13,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 {
 	CheckOutClickedDelegate = InArgs._OnCheckOutClicked;
 	bIsUnlocked = InArgs._Unlocked;
+	bLookingForSourceControlState = InArgs._LookingForSourceControlState;
 
 	// default configuration notice
 	ChildSlot
@@ -46,7 +47,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently not writable."))
+									.Text(this, &SSettingsEditorCheckoutNotice::HandleLockedStatusText)
 							]
 
 						// Check out button
@@ -57,6 +58,16 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 									.OnClicked(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonClicked)
 									.Text(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonText)
 									.ToolTipText(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonToolTip)
+									.Visibility(this, &SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility)
+							]
+
+						// Source control status throbber
+						+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.Padding(0.0f, 1.0f)
+							[
+								SNew(SThrobber)
+									.Visibility(this, &SSettingsEditorCheckoutNotice::HandleThrobberVisibility)
 							]
 					]
 
@@ -81,7 +92,7 @@ void SSettingsEditorCheckoutNotice::Construct( const FArguments& InArgs )
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DefaultSettingsNotice_Writable", "These settings are always saved in the default configuration file, which is currently writable."))
+									.Text(this, &SSettingsEditorCheckoutNotice::HandleUnlockedStatusText)
 							]
 					]
 			]
@@ -129,11 +140,33 @@ EVisibility SSettingsEditorCheckoutNotice::HandleCheckOutButtonVisibility( ) con
 {
 	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
 	{
-		return EVisibility::Visible;
+		return !bLookingForSourceControlState.Get() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	return EVisibility::Collapsed;
 }
 
+FText SSettingsEditorCheckoutNotice::HandleLockedStatusText() const
+{
+	return ISourceControlModule::Get().IsEnabled() ? 
+		LOCTEXT("DefaultSettingsNotice_WithSourceControl", "These settings are always saved in the default configuration file, which is currently not checked out.") :
+		LOCTEXT("DefaultSettingsNotice_Source", "These settings are always saved in the default configuration file, which is currently not writable.");
+}
+
+FText SSettingsEditorCheckoutNotice::HandleUnlockedStatusText() const
+{
+	return ISourceControlModule::Get().IsEnabled() ? 
+		LOCTEXT("DefaultSettingsNotice_CheckedOut", "These settings are always saved in the default configuration file, which is currently checked out.") :
+		LOCTEXT("DefaultSettingsNotice_Writable", "These settings are always saved in the default configuration file, which is currently writable.");
+}
+
+EVisibility SSettingsEditorCheckoutNotice::HandleThrobberVisibility() const
+{
+	if(ISourceControlModule::Get().IsEnabled())
+	{
+		return bLookingForSourceControlState.Get() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+	return EVisibility::Collapsed;
+}
 
 #undef LOCTEXT_NAMESPACE

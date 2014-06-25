@@ -22,6 +22,9 @@ public:
 		/** Called when the 'Check Out' button is clicked */
 		SLATE_EVENT(FOnClicked, OnCheckOutClicked)
 
+		/** Called to determine if we are currently looking for the source control state of the file */
+		SLATE_ATTRIBUTE(bool, LookingForSourceControlState)
+
 	SLATE_END_ARGS()
 
 	/**
@@ -51,10 +54,21 @@ private:
 		return bIsUnlocked.Get() ? 1 : 0;
 	}
 
+	// Callback for getting the status text when the config is locked
+	FText HandleLockedStatusText() const;
+
+	// Callback for getting the status text when the config is unlocked
+	FText HandleUnlockedStatusText() const;
+
+	// Callback for getting the visibility of the source control throbber
+	EVisibility HandleThrobberVisibility() const;
+
 private:
 
 	// Holds a delegate that is executed when the 'Check Out' button has been clicked.
 	FOnClicked CheckOutClickedDelegate;
 
 	TAttribute<bool> bIsUnlocked;
+
+	TAttribute<bool> bLookingForSourceControlState;
 };

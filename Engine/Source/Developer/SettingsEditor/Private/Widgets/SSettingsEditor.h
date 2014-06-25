@@ -164,6 +164,9 @@ private:
 	// Callback for determining the visibility of the settings view.
 	EVisibility HandleSettingsViewVisibility( ) const;
 
+	// Callback for determining whether we are currently looking for the source control state of the config file
+	bool HandleLookingForSourceControlState( ) const;
+
 private:
 
 	// Holds the vertical box for settings categories.
@@ -171,6 +174,9 @@ private:
 
 	// Holds a flag indicating whether the section's configuration file needs to be checked out.
 	bool DefaultConfigCheckOutNeeded;
+
+	// Holds a flag indicating whether the section's configuration file has a source control status request in progress.
+	bool DefaultConfigQueryInProgress;
 
 	// Holds a timer for checking whether the section's configuration file needs to be checked out.
 	float DefaultConfigCheckOutTimer;
@@ -189,4 +195,7 @@ private:
 
 	// Holds the details view.
 	TSharedPtr<IDetailsView> SettingsView;
+
+	// Cached filename for the config file we are displaying
+	FString CachedConfigFileName;
 };

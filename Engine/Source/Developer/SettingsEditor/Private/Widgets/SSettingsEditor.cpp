@@ -25,6 +25,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	Model = InModel;
 	DefaultConfigCheckOutTimer = 0.0f;
 	DefaultConfigCheckOutNeeded = false;
+	DefaultConfigQueryInProgress = false;
 	SettingsContainer = InModel->GetSettingsContainer();
 
 	// initialize settings view
@@ -191,6 +192,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									.OnCheckOutClicked(this, &SSettingsEditor::HandleCheckOutButtonClicked)
 									.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
 									.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
+									.LookingForSourceControlState(this, &SSettingsEditor::HandleLookingForSourceControlState)
 							]
 
 						+ SVerticalBox::Slot()
@@ -235,8 +237,22 @@ void SSettingsEditor::Tick( const FGeometry& AllottedGeometry, const double InCu
 
 		if (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
 		{
-			FString ConfigFileName = GetDefaultConfigFilePath(SettingsObject);
-			bool NewCheckOutNeeded = (FPaths::FileExists(ConfigFileName) && IFileManager::Get().IsReadOnly(*ConfigFileName));
+			CachedConfigFileName = GetDefaultConfigFilePath(SettingsObject);
+			bool NewCheckOutNeeded = false;
+			if(ISourceControlModule::Get().IsEnabled())
+			{
+				// note: calling QueueStatusUpdate often does not spam status updates as an internal timer prevents this
+				ISourceControlModule::Get().QueueStatusUpdate(CachedConfigFileName);
+
+				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+				FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(CachedConfigFileName, EStateCacheUsage::Use);
+				NewCheckOutNeeded = SourceControlState.IsValid() && SourceControlState->CanCheckout();
+				DefaultConfigQueryInProgress = SourceControlState.IsValid() && SourceControlState->IsUnknown();
+			}
+			else
+			{
+				NewCheckOutNeeded = (FPaths::FileExists(CachedConfigFileName) && IFileManager::Get().IsReadOnly(*CachedConfigFileName));
+			}
 
 			// file has been checked in or reverted
 			if ((NewCheckOutNeeded == true) && (DefaultConfigCheckOutNeeded == false))
@@ -536,9 +552,13 @@ void SSettingsEditor::HandleCultureChanged( )
 
 bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
 {
-	return !DefaultConfigCheckOutNeeded;
+	return !DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress;
 }
 
+bool SSettingsEditor::HandleLookingForSourceControlState() const
+{
+	return DefaultConfigQueryInProgress;
+}
 
 EVisibility SSettingsEditor::HandleDefaultConfigNoticeVisibility( ) const
 {
@@ -743,7 +763,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 		{
 			if (ISourceControlModule::Get().IsEnabled())
 			{
-				if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultNeedsCheckoutMessage", "The default configuration file for these settings is currently not writeable. Would you like to check it out from source control?")) != EAppReturnType::Yes)
+				if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultNeedsCheckoutMessage", "The default configuration file for these settings is currently not checked out. Would you like to check it out from source control?")) != EAppReturnType::Yes)
 				{
 					return FReply::Handled();
 				}
@@ -832,7 +852,7 @@ bool SSettingsEditor::HandleSettingsViewEnabled( ) const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
-	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || !DefaultConfigCheckOutNeeded));
+	return (SelectedSection.IsValid() && SelectedSection->CanEdit() && (!SelectedSection->HasDefaultSettingsObject() || (!DefaultConfigCheckOutNeeded && !DefaultConfigQueryInProgress)));
 }
 
 
