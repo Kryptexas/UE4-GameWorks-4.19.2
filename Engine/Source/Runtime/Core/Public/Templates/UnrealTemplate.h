@@ -85,16 +85,6 @@ template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 {
 	return (T) ( ( ((UPTRINT)Ptr + Alignment - 1) / Alignment ) * Alignment );
 }
-template< class T > inline void Swap( T& A, T& B )
-{
-	T Temp = MoveTemp(A);
-	A = MoveTemp(B);
-	B = MoveTemp(Temp);
-}
-template< class T > inline void Exchange( T& A, T& B )
-{
-	Swap(A, B);
-}
 
 /**
  * Chooses between the two parameters based on whether the first is NULL or not.
@@ -415,6 +405,20 @@ template <typename T>
 FORCEINLINE T&& Forward(typename TRemoveReference<T>::Type&& Obj)
 {
 	return (T&&)Obj;
+}
+
+/**
+ * Swap two values, using moves if possible
+ */
+template< class T > inline void Swap(T& A, T& B)
+{
+	T Temp = MoveTemp(A);
+	A = MoveTemp(B);
+	B = MoveTemp(Temp);
+}
+template< class T > inline void Exchange(T& A, T& B)
+{
+	Swap(A, B);
 }
 
 /**
