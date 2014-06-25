@@ -2,24 +2,26 @@
 
 /*=============================================================================
 	InstancedFoliage.h: Instanced foliage type definitions.
-=============================================================================*/
+  =============================================================================*/
 
 #pragma once
 
-#include "Components/SceneComponent.h"
 //
 // Forward declarations.
 //
 class UInstancedStaticMeshComponent;
+class AInstancedFoliageActor;
+class UFoliageType;
+struct FFoliageInstanceHash;
 
 /**
  * Flags stored with each instance
  */
 enum EFoliageInstanceFlags
 {
-	FOLIAGE_AlignToNormal				= 0x00000001,
-	FOLIAGE_NoRandomYaw					= 0x00000002,
-	FOLIAGE_Readjusted					= 0x00000004,
+	FOLIAGE_AlignToNormal = 0x00000001,
+	FOLIAGE_NoRandomYaw   = 0x00000002,
+	FOLIAGE_Readjusted    = 0x00000004,
 };
 
 /**
@@ -35,12 +37,12 @@ struct FFoliageInstancePlacementInfo
 	uint32 Flags;
 
 	FFoliageInstancePlacementInfo()
-	:	Location(0.f,0.f,0.f)
-	,	Rotation(0,0,0)
-	,	PreAlignRotation(0,0,0)
-	,	DrawScale3D(1.f,1.f,1.f)
-	,	ZOffset(0.f)
-	,	Flags(0)
+		: Location(0.f, 0.f, 0.f)
+		, Rotation(0, 0, 0)
+		, PreAlignRotation(0, 0, 0)
+		, DrawScale3D(1.f, 1.f, 1.f)
+		, ZOffset(0.f)
+		, Flags(0)
 	{}
 };
 
@@ -49,23 +51,23 @@ struct FFoliageInstancePlacementInfo
  */
 struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
-	class UActorComponent* Base;
-	int32 ClusterIndex;	// -1 if this instance is invalid and its array slot can be reused.
+	UActorComponent* Base;
+	int32 ClusterIndex;	// -1/INDEX_NONE if this instance is invalid and its array slot can be reused.
 
 	FFoliageInstance()
-	:	Base(NULL)
-	,	ClusterIndex(-1)
+		: Base(NULL)
+		, ClusterIndex(INDEX_NONE)
 	{}
 
 
-	friend FArchive& operator<<( FArchive& Ar, FFoliageInstance& Instance );
+	friend FArchive& operator<<(FArchive& Ar, FFoliageInstance& Instance);
 
 	FTransform GetInstanceWorldTransform() const
 	{
 		return FTransform(Rotation, Location, DrawScale3D);
 	}
 
-	void AlignToNormal( const FVector& InNormal, float AlignMaxAngle=0.f )
+	void AlignToNormal(const FVector& InNormal, float AlignMaxAngle = 0.f)
 	{
 		Flags |= FOLIAGE_AlignToNormal;
 
@@ -76,22 +78,22 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 		AlignRotation.Pitch = FRotator::NormalizeAxis(AlignRotation.Pitch);
 
 		// limit the maximum pitch angle if it's > 0.
-		if( AlignMaxAngle > 0.f )
+		if (AlignMaxAngle > 0.f)
 		{
 			int32 MaxPitch = AlignMaxAngle;
-			if( AlignRotation.Pitch > MaxPitch )
+			if (AlignRotation.Pitch > MaxPitch)
 			{
 				AlignRotation.Pitch = MaxPitch;
 			}
 			else
-			if( AlignRotation.Pitch < -MaxPitch )
-			{
+				if (AlignRotation.Pitch < -MaxPitch)
+				{
 				AlignRotation.Pitch = -MaxPitch;
-			}								
+				}
 		}
 
 		PreAlignRotation = Rotation;
-		Rotation = FRotator( FQuat(AlignRotation) * FQuat(Rotation) );
+		Rotation = FRotator(FQuat(AlignRotation) * FQuat(Rotation));
 	}
 };
 
@@ -101,20 +103,22 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 struct FFoliageInstanceCluster
 {
 	UInstancedStaticMeshComponent* ClusterComponent;
-
 	FBoxSphereBounds Bounds;
+
+#if WITH_EDITORONLY_DATA
 	TArray<int32> InstanceIndices;	// index into editor editor Instances array
+#endif
 
 	FFoliageInstanceCluster()
 	{}
 	FFoliageInstanceCluster(UInstancedStaticMeshComponent* InClusterComponent, const FBoxSphereBounds& InBounds)
-	:	ClusterComponent(InClusterComponent)
-	,	Bounds(InBounds)
+		: ClusterComponent(InClusterComponent)
+		, Bounds(InBounds)
 	{}
-	friend FArchive& operator<<( FArchive& Ar, FFoliageInstanceCluster& Cluster );
+	friend FArchive& operator<<(FArchive& Ar, FFoliageInstanceCluster& Cluster);
 };
 
-/** 
+/**
  * FFoliageComponentHashInfo
  * Cached instance list and component location info stored in the ComponentHash.
  * Used for moving quick updates after operations on components with foliage painted on them.
@@ -123,29 +127,29 @@ struct FFoliageComponentHashInfo
 {
 	// tors
 	FFoliageComponentHashInfo()
-	:	CachedLocation(0,0,0)
-	,	CachedRotation(0,0,0)
-	,	CachedDrawScale(1,1,1)
+		: CachedLocation(0, 0, 0)
+		, CachedRotation(0, 0, 0)
+		, CachedDrawScale(1, 1, 1)
 	{}
 
-	FFoliageComponentHashInfo( UActorComponent* InComponent )
-	:	CachedLocation(0,0,0)
-	,	CachedRotation(0,0,0)
-	,	CachedDrawScale(1,1,1)
+	FFoliageComponentHashInfo(UActorComponent* InComponent)
+		: CachedLocation(0, 0, 0)
+		, CachedRotation(0, 0, 0)
+		, CachedDrawScale(1, 1, 1)
 	{
 		UpdateLocationFromActor(InComponent);
 	}
 
 	// Cache the location and rotation from the actor
-	void UpdateLocationFromActor( UActorComponent* InComponent )
+	void UpdateLocationFromActor(UActorComponent* InComponent)
 	{
-		if( InComponent )
+		if (InComponent)
 		{
 			AActor* Owner = Cast<AActor>(InComponent->GetOuter());
-			if( Owner )
+			if (Owner)
 			{
 				const USceneComponent* RootComponent = Owner->GetRootComponent();
-				if( RootComponent )
+				if (RootComponent)
 				{
 					CachedLocation = RootComponent->RelativeLocation;
 					CachedRotation = RootComponent->RelativeRotation;
@@ -156,7 +160,7 @@ struct FFoliageComponentHashInfo
 	}
 
 	// serializer
-	friend FArchive& operator<<( FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo );
+	friend FArchive& operator<<(FArchive& Ar, FFoliageComponentHashInfo& ComponentHashInfo);
 
 	FVector CachedLocation;
 	FRotator CachedRotation;
@@ -172,45 +176,71 @@ struct FFoliageMeshInfo
 	// Cluster allocation data and pointers to components
 	TArray<FFoliageInstanceCluster> InstanceClusters;
 
+#if WITH_EDITORONLY_DATA
 	// Editor-only placed instances
 	TArray<FFoliageInstance> Instances;
-	
+
 	// Transient, editor-only locality hash of instances
-	struct FFoliageInstanceHash* InstanceHash;
+	TUniquePtr<FFoliageInstanceHash> InstanceHash;
 
 	// Transient, editor-only set of instances per component
-	TMap<class UActorComponent*, FFoliageComponentHashInfo > ComponentHash;
+	TMap<UActorComponent*, FFoliageComponentHashInfo> ComponentHash;
 
 	// Transient, editor-only list of free instance slots.
 	TArray<int32> FreeInstanceIndices;
 
 	// Transient, editor-only list of selected instances.
 	TArray<int32> SelectedIndices;
+#endif
 
-	// UI settings
-	class UInstancedFoliageSettings* Settings;
+	ENGINE_API FFoliageMeshInfo();
 
-	FFoliageMeshInfo();
-	FFoliageMeshInfo( const FFoliageMeshInfo& Other );
+	~FFoliageMeshInfo() // =default
+	{ }
 
-	~FFoliageMeshInfo();
+	FFoliageMeshInfo(FFoliageMeshInfo&& Other)
+		// even VC++2013 doesn't support "=default" on move constructors
+		: InstanceClusters(MoveTemp(Other.InstanceClusters))
+#if WITH_EDITORONLY_DATA
+		, Instances(MoveTemp(Other.Instances))
+		, InstanceHash(MoveTemp(Other.InstanceHash))
+		, ComponentHash(MoveTemp(Other.ComponentHash))
+		, FreeInstanceIndices(MoveTemp(Other.FreeInstanceIndices))
+		, SelectedIndices(MoveTemp(Other.SelectedIndices))
+#endif
+	{ }
+
+	FFoliageMeshInfo& operator=(FFoliageMeshInfo&& Other)
+		// even VC++2013 doesn't support "=default" on move assignment
+	{
+		InstanceClusters = MoveTemp(Other.InstanceClusters);
+#if WITH_EDITORONLY_DATA
+		Instances = MoveTemp(Other.Instances);
+		InstanceHash = MoveTemp(Other.InstanceHash);
+		ComponentHash = MoveTemp(Other.ComponentHash);
+		FreeInstanceIndices = MoveTemp(Other.FreeInstanceIndices);
+		SelectedIndices = MoveTemp(Other.SelectedIndices);
+#endif
+
+		return *this;
+	}
 
 #if WITH_EDITOR
-	ENGINE_API void AddInstance( class AInstancedFoliageActor* InIFA, class UStaticMesh* InMesh, const FFoliageInstance& InNewInstance );
-	ENGINE_API void RemoveInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove );
-	ENGINE_API void PreMoveInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove );
-	ENGINE_API void PostMoveInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved );
-	ENGINE_API void PostUpdateInstances( class AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash=false );
-	ENGINE_API void DuplicateInstances( class AInstancedFoliageActor* InIFA, class UStaticMesh* InMesh, const TArray<int32>& InInstancesToDuplicate );
-	ENGINE_API void GetInstancesInsideSphere( const FSphere& Sphere, TArray<int32>& OutInstances );
-	ENGINE_API bool CheckForOverlappingSphere( const FSphere& Sphere );
-	ENGINE_API bool CheckForOverlappingInstanceExcluding( int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances );
+	ENGINE_API void AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const FFoliageInstance& InNewInstance);
+	ENGINE_API void RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove);
+	ENGINE_API void PreMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToMove);
+	ENGINE_API void PostMoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesMoved);
+	ENGINE_API void PostUpdateInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesUpdated, bool bReAddToHash = false);
+	ENGINE_API void DuplicateInstances(AInstancedFoliageActor* InIFA, UFoliageType* InSettings, const TArray<int32>& InInstancesToDuplicate);
+	ENGINE_API void GetInstancesInsideSphere(const FSphere& Sphere, TArray<int32>& OutInstances);
+	ENGINE_API bool CheckForOverlappingSphere(const FSphere& Sphere);
+	ENGINE_API bool CheckForOverlappingInstanceExcluding(int32 TestInstanceIdx, float Radius, TSet<int32>& ExcludeInstances);
 
 	// Destroy existing clusters and reassign all instances to new clusters
-	ENGINE_API void ReallocateClusters( class AInstancedFoliageActor* InIFA, class UStaticMesh* InMesh );
+	ENGINE_API void ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings);
 	// Update settings in the clusters based on the current settings (eg culling distance, collision, ...)
-	ENGINE_API void UpdateClusterSettings( class AInstancedFoliageActor* InIFA );
-	ENGINE_API void SelectInstances( class AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances );
+	//ENGINE_API void UpdateClusterSettings(AInstancedFoliageActor* InIFA);
+	ENGINE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances);
 
 	// Get the number of placed instances
 	ENGINE_API int32 GetInstanceCount() const;
@@ -219,7 +249,11 @@ struct FFoliageMeshInfo
 	void CheckValid();
 #endif
 
-	friend FArchive& operator<<( FArchive& Ar, FFoliageMeshInfo& MeshInfo );
+	friend FArchive& operator<<(FArchive& Ar, FFoliageMeshInfo& MeshInfo);
+
+//private:
+	const FFoliageMeshInfo(const FFoliageMeshInfo& Other) = delete;
+	const FFoliageMeshInfo& operator=(const FFoliageMeshInfo& Other) = delete;
 };
 
 //
@@ -230,23 +264,24 @@ struct FFoliageMeshInfo
 
 struct FFoliageInstanceHash
 {
-	int32 HashCellBits;
 private:
+	const int32 HashCellBits;
+	TMultiMap<uint64, int32> CellMap;
 
-	uint64 MakeKey( int32 CellX, int32 CellY )
+	uint64 MakeKey(int32 CellX, int32 CellY)
 	{
 		return ((uint64)(*(uint32*)(&CellX)) << 32) | (*(uint32*)(&CellY) & 0xffffffff);
 	}
 
-	uint64 MakeKey( const FVector& Location )
+	uint64 MakeKey(const FVector& Location)
 	{
-		return  MakeKey( FMath::FloorToInt(Location.X) >> HashCellBits, FMath::FloorToInt(Location.Y) >> HashCellBits );
+		return  MakeKey(FMath::FloorToInt(Location.X) >> HashCellBits, FMath::FloorToInt(Location.Y) >> HashCellBits);
 	}
 
 	// Locality map
-	TMap<uint64, TSet<int32> > CellMap;
+	//TMap<uint64, TSet<int32>> CellMap;
 public:
-	FFoliageInstanceHash( int32 InHashCellBits = FOLIAGE_HASH_CELL_BITS )
+	FFoliageInstanceHash(int32 InHashCellBits = FOLIAGE_HASH_CELL_BITS)
 	:	HashCellBits(InHashCellBits)
 	{}
 
@@ -254,50 +289,45 @@ public:
 	{
 		uint64 Key = MakeKey(InstanceLocation);
 
-		TSet<int32>& NewSet = CellMap.FindOrAdd(Key);
-		NewSet.Add(InstanceIndex);
+		CellMap.AddUnique(Key, InstanceIndex);
 	}
 
 	void RemoveInstance(const FVector& InstanceLocation, int32 InstanceIndex)
 	{
 		uint64 Key = MakeKey(InstanceLocation);
-
-		TSet<int32>* Set = CellMap.Find(Key);
-		check( Set != NULL );
-		int32 RemoveCount = Set->Remove(InstanceIndex);
-		check( RemoveCount == 1 );
+		
+		int32 RemoveCount = CellMap.RemoveSingle(Key, InstanceIndex);
+		check(RemoveCount == 1);
 	}
 
-	void GetInstancesOverlappingBox( const FBox& InBox, TSet<int32>& OutInstanceIndices )
+	void GetInstancesOverlappingBox(const FBox& InBox, TArray<int32>& OutInstanceIndices)
 	{
 		int32 MinX = FMath::FloorToInt(InBox.Min.X) >> HashCellBits;
 		int32 MinY = FMath::FloorToInt(InBox.Min.Y) >> HashCellBits;
 		int32 MaxX = FMath::FloorToInt(InBox.Max.X) >> HashCellBits;
 		int32 MaxY = FMath::FloorToInt(InBox.Max.Y) >> HashCellBits;
 
-		for( int32 y=MinY;y<=MaxY;y++ )
+		for (int32 y = MinY; y <= MaxY; y++)
 		{
-			for( int32 x=MinX;x<=MaxX;x++ )
+			for (int32 x = MinX; x <= MaxX; x++)
 			{
-				uint64 Key = MakeKey(x,y);
-				TSet<int32>* Set = CellMap.Find(Key);
-				if( Set != NULL )
-				{
-					OutInstanceIndices.Append( *Set );
-				}
+				uint64 Key = MakeKey(x, y);
+				CellMap.MultiFind(Key, OutInstanceIndices);
 			}
 		}
+	}
+
+	TArray<int32> GetInstancesOverlappingBox(const FBox& InBox)
+	{
+		TArray<int32> Result;
+		GetInstancesOverlappingBox(InBox, Result);
+		return Result;
 	}
 
 #if UE_BUILD_DEBUG
 	void CheckInstanceCount(int32 InCount)
 	{
-		int32 HashCount = 0;
-		for( TMap<uint64, TSet<int32> >::TConstIterator It(CellMap); It; ++It )
-		{
-			HashCount += It.Value().Num();
-		}	
-		check( HashCount == InCount );
+		check(CellMap.Num() == InCount);
 	}
 #endif
 
@@ -306,9 +336,27 @@ public:
 		CellMap.Empty();
 	}
 
-	friend FArchive& operator<<( FArchive& Ar, FFoliageInstanceHash& Hash )
+	friend FArchive& operator<<(FArchive& Ar, FFoliageInstanceHash& Hash)
 	{
-		Ar << Hash.CellMap;
+		if (Ar.UE4Ver() < VER_UE4_FOLIAGE_SETTINGS_TYPE)
+		{
+			Hash.CellMap.Reset();
+
+			TMap<uint64, TSet<int32>> OldCellMap;
+			Ar << OldCellMap;
+			for (auto& CellPair : OldCellMap)
+			{
+				for (int32 Idx : CellPair.Value)
+				{
+					Hash.CellMap.AddUnique(CellPair.Key, Idx);
+				}
+			}
+		}
+		else
+		{
+			Ar << Hash.CellMap;
+		}
+
 		return Ar;
 	}
 };
@@ -320,10 +368,10 @@ struct HInstancedStaticMeshInstance : public HHitProxy
 	UInstancedStaticMeshComponent* Component;
 	int32 InstanceIndex;
 
-	DECLARE_HIT_PROXY( ENGINE_API );
-	HInstancedStaticMeshInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex): HHitProxy(HPP_World), Component(InComponent), InstanceIndex(InInstanceIndex) {}
+	DECLARE_HIT_PROXY(ENGINE_API);
+	HInstancedStaticMeshInstance(UInstancedStaticMeshComponent* InComponent, int32 InInstanceIndex) : HHitProxy(HPP_World), Component(InComponent), InstanceIndex(InInstanceIndex) {}
 
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	virtual EMouseCursor::Type GetMouseCursor()
 	{

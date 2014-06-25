@@ -566,6 +566,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_RENAME_CANBECHARACTERBASE,
 	// Change GameplayTagContainers to have FGameplayTags instead of FNames; Required to fix-up native serialization
 	VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE,
+	// Change from UInstancedFoliageSettings to UFoliageType, and change the api from being keyed on UStaticMesh* to UFoliageType*
+	VER_UE4_FOLIAGE_SETTINGS_TYPE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

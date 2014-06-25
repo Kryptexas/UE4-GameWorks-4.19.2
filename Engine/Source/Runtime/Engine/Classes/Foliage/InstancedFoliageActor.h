@@ -7,6 +7,10 @@
 #include "InstancedFoliage.h"
 #include "InstancedFoliageActor.generated.h"
 
+// Forward declarations
+class UFoliageType;
+class ULandscapeHeightfieldCollisionComponent;
+struct FFoliageInstancePlacementInfo;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -15,10 +19,10 @@ class AInstancedFoliageActor : public AActor
 
 	/** The static mesh type that will be used to show the widget */
 	UPROPERTY(transient)
-	UStaticMesh* SelectedMesh;
+	UFoliageType* SelectedMesh;
 
 public:
-	TMap<UStaticMesh*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
+	TMap<UFoliageType*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
 
 public:
 	// Begin UObject interface.
@@ -40,41 +44,45 @@ public:
 	ENGINE_API void MapRebuild();
 
 	// Called from editor code to manage instances for components
-	ENGINE_API void SnapInstancesForLandscape( class ULandscapeHeightfieldCollisionComponent* InComponent, const FBox& InInstanceBox );
+	ENGINE_API void SnapInstancesForLandscape(ULandscapeHeightfieldCollisionComponent* InComponent, const FBox& InInstanceBox);
 
 	// Moves instances based on the specified component to the current streaming level
-	ENGINE_API void MoveInstancesForComponentToCurrentLevel( class UActorComponent* InComponent );
+	ENGINE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);
 
 	// Change all instances based on one component to a new component (possible in another level).
 	// The instances keep the same world locations
-	ENGINE_API void MoveInstancesToNewComponent(class UActorComponent* InOldComponent, class UActorComponent* InNewComponent);
+	ENGINE_API void MoveInstancesToNewComponent(UActorComponent* InOldComponent, UActorComponent* InNewComponent);
 
 	// Move instances based on a component that has just been moved.
-	void MoveInstancesForMovedComponent( class UActorComponent* InComponent );
+	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
 
 	// Returns a map of Static Meshes and their placed instances attached to a component.
-	ENGINE_API TMap<class UStaticMesh*,TArray<const struct FFoliageInstancePlacementInfo*> > GetInstancesForComponent( class UActorComponent* InComponent );
+	ENGINE_API TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> GetInstancesForComponent(UActorComponent* InComponent);
 
 	// Deletes the instances attached to a component
-	ENGINE_API void DeleteInstancesForComponent( class UActorComponent* InComponent );
+	ENGINE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 
 	// Finds a mesh entry
-	ENGINE_API FFoliageMeshInfo* FindMesh(UStaticMesh* InMesh);
+	ENGINE_API FFoliageMeshInfo* FindMesh(UFoliageType* InType);
 
 	// Finds a mesh entry or adds it if it doesn't already exist
-	ENGINE_API FFoliageMeshInfo* FindOrAddMesh(UStaticMesh* InMesh);
+	ENGINE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
 
 	// Add a new static mesh.
-	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh);
+	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr);
+	ENGINE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
 
 	// Remove the static mesh from the mesh list, and all its instances.
-	ENGINE_API void RemoveMesh( class UStaticMesh* InMesh );
+	ENGINE_API void RemoveMesh(UFoliageType* InFoliageType);
+
+	// Performs a reverse lookup from a mesh to its settings
+	ENGINE_API UFoliageType* GetSettingsForMesh(UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo = nullptr);
 
 	// Select an individual instance.
-	ENGINE_API void SelectInstance( class UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle );
+	ENGINE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
 
 	// Propagate the selected instances to the actual render components
-	ENGINE_API void ApplySelectionToComponents( bool bApply );
+	ENGINE_API void ApplySelectionToComponents(bool bApply);
 
 	// Updates the SelectedMesh property of the actor based on the actual selected instances
 	ENGINE_API void CheckSelection();
@@ -83,14 +91,14 @@ public:
 	ENGINE_API FVector GetSelectionLocation();
 
 	/*
- 	* Get the instanced foliage actor for the current streaming level.
- 	*
- 	* @param InCreationWorldIfNone			World to create the foliage instance in
+	* Get the instanced foliage actor for the current streaming level.
+	*
+	* @param InCreationWorldIfNone			World to create the foliage instance in
 	* @param bCreateIfNone					Create if doesnt already exist
- 	* returns								pointer to foliage object instance
- 	*/
- 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActor(UWorld* InWorld,bool bCreateIfNone=true);
-	
+	* returns								pointer to foliage object instance
+	*/
+	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForCurrentLevel(UWorld* InWorld, bool bCreateIfNone = true);
+
 
 	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);

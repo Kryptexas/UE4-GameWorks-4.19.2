@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Forward declarations
+class IDetailsView;
+struct FPropertyAndParent;
+
 namespace ECurrentViewSettings
 {
 	enum Type 
@@ -15,20 +19,14 @@ namespace ECurrentViewSettings
 class SFoliageEditMeshDisplayItem : public SBorder, public FNotifyHook
 {
 public:
-	SLATE_BEGIN_ARGS( SFoliageEditMeshDisplayItem )
+	SLATE_BEGIN_ARGS(SFoliageEditMeshDisplayItem)
 		: _FoliageSettingsPtr(NULL)
-		, _AssociatedStaticMesh(NULL)
 		{}
 
-		SLATE_ARGUMENT( UInstancedFoliageSettings*, FoliageSettingsPtr )
-
-		SLATE_ARGUMENT( UStaticMesh*, AssociatedStaticMesh )
-
-		SLATE_ARGUMENT( TSharedPtr<FAssetThumbnail>, AssetThumbnail )
-
-		SLATE_ARGUMENT( TSharedPtr< SFoliageEdit >, FoliageEditPtr )
-
-		SLATE_ARGUMENT( TSharedPtr<FFoliageMeshUIInfo>, FoliageMeshUIInfo )
+		SLATE_ARGUMENT(UFoliageType*, FoliageSettingsPtr)
+		SLATE_ARGUMENT(TSharedPtr<FAssetThumbnail>, AssetThumbnail)
+		SLATE_ARGUMENT(TWeakPtr<SFoliageEdit>, FoliageEditPtr)
+		SLATE_ARGUMENT(TSharedPtr<FFoliageMeshUIInfo>, FoliageMeshUIInfo)
 	SLATE_END_ARGS()
 
 	/**
@@ -36,22 +34,21 @@ public:
 	 *
 	 * @param InArgs   A declaration from which to construct the widget
 	 */
-	void Construct( const FArguments& InArgs );
+	void Construct(const FArguments& InArgs);
 
 	/**
 	 * Called when the replace button is pressed, simply updates it's current data with the passed in data.
 	 *
 	 * @param InFoliageSettingsPtr			Pointer to the settings for this item.
-	 * @param InAssociatedStaticMesh		The static mesh this item is associated with.
 	 * @param InAssetThumbnail				The thumbnail to display.
 	 * @param InFoliageMeshUIInfo			The UI info for this item.
 	 */
-	void Replace(UInstancedFoliageSettings* InFoliageSettingsPtr, UStaticMesh* InAssociatedStaticMesh, TSharedPtr<FAssetThumbnail> InAssetThumbnail, TSharedPtr<FFoliageMeshUIInfo> InFoliageMeshUIInfo);
+	void Replace(UFoliageType* InFoliageSettingsPtr, TSharedPtr<FAssetThumbnail> InAssetThumbnail, TSharedPtr<FFoliageMeshUIInfo> InFoliageMeshUIInfo);
 
 	/** Used to cache and return the display status of items when undoing. */
 	ECurrentViewSettings::Type GetCurrentDisplayStatus() const;
 
-	/** 
+	/**
 	 * Sets the display status of the item.
 	 *
 	 * @param InDisplayStatus		The status to set the item's display to.
@@ -59,14 +56,14 @@ public:
 	void SetCurrentDisplayStatus(ECurrentViewSettings::Type InDisplayStatus);
 
 	/** Handles clicking on the selection area for the item. */
-	FReply OnMouseDownSelection( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	FReply OnMouseDownSelection(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/** Returns the current brush for the Save/Remove settings button. */
 	const FSlateBrush* GetSaveSettingsBrush() const;
 
 private:
 	/** Notification when the cluster details are changed */
-	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
+	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	/** Callback to get the border color for the item. */
 	FSlateColor GetBorderColor() const;
@@ -93,9 +90,9 @@ private:
 	bool IsClusterSettingsEnabled() const;
 
 	/** General UI delegate functions. */
-	FString GetStaticMeshname() const;
+	FText GetStaticMeshname() const;
 
-	FString GetSettingsLabelText() const;
+	FText GetSettingsLabelText() const;
 
 	EVisibility  IsNoSettingsVisible() const;
 
@@ -117,15 +114,15 @@ private:
 	FReply OnOpenSettings();
 
 	/** Returns the tool-tip to use for the save settings button. */
-	FString GetSaveRemoveSettingsTooltip() const;
+	FText GetSaveRemoveSettingsTooltip() const;
 
 	/** Determines what properties to display in the details panel. */
-	bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const;
+	bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent) const;
 
 	/** Cluster Accessors */
-	FString GetInstanceCountString() const;
+	FText GetInstanceCountString() const;
 
-	FString GetInstanceClusterCountString() const;
+	FText GetInstanceClusterCountString() const;
 
 	/** General functions for delegates. */
 	EVisibility IsReapplySettingsVisible() const;
@@ -141,7 +138,7 @@ private:
 	void OnDensityReapply(ESlateCheckBoxState::Type InState);
 
 	ESlateCheckBoxState::Type IsDensityReapplyChecked() const;
-	
+
 	void OnDensityChanged(float InValue);
 
 	float GetDensity() const;
@@ -338,7 +335,7 @@ private:
 	void OnVertexColorMaskThresholdChanged(float InValue);
 
 	float GetVertexColorMaskThreshold() const;
-	
+
 	EVisibility IsVertexColorMaskThresholdVisible() const;
 
 	void OnVertexColorMaskInvert(ESlateCheckBoxState::Type InState);
@@ -347,13 +344,10 @@ private:
 
 private:
 	/** Pointer back to the foliage edit mode containing this. */
-	TWeakPtr< SFoliageEdit > FoliageEditPtr;
+	TWeakPtr<SFoliageEdit> FoliageEditPtr;
 
 	/** The settings for placing foliage. */
-	UInstancedFoliageSettings* FoliageSettingsPtr;
-
-	/** The static mesh this item is associated with. */
-	UStaticMesh* AssociatedStaticMesh;
+	UFoliageType* FoliageSettingsPtr;
 
 	/** Contains the thumbnail widget, needed to recreate the thumbnail when replacing. */
 	TSharedPtr<SBorder> ThumbnailWidgetBorder;
@@ -373,9 +367,9 @@ private:
 	ECurrentViewSettings::Type CurrentViewSettings;
 
 	/** Details panel for cluster settings. */
-	TSharedPtr<class IDetailsView> ClusterSettingsDetails;
+	TSharedPtr<IDetailsView> ClusterSettingsDetails;
 
-	/** Holds the UInstancedFoliageSettings object for the details panel. */
+	/** Holds the UFoliageType object for the details panel. */
 	TArray<UObject*> DetailsObjectList;
 
 	/** Command list for binding functions to for the toolbar. */

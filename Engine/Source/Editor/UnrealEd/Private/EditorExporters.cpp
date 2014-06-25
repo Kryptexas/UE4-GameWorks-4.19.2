@@ -19,6 +19,7 @@
 #include "ImageUtils.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "Landscape/Landscape.h"
+#include "Foliage/FoliageType.h"
 #include "UnrealExporter.h"
 #include "EngineModule.h"
 
@@ -503,8 +504,8 @@ void ULevelExporterT3D::ExportComponentExtra(const FExportObjectInnerContext* Co
 				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(ComponentLevel);
 				if (IFA)
 				{
-					TMap<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>> FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
-					for (const TPair<class UStaticMesh*, TArray<const FFoliageInstancePlacementInfo*>>& MapEntry : FoliageInstanceMap)
+					auto FoliageInstanceMap = IFA->GetInstancesForComponent(ActorComponent);
+					for (const auto& MapEntry : FoliageInstanceMap)
 					{
 						Ar.Logf(TEXT("%sBegin Foliage StaticMesh=%s Component=%s%s"), FCString::Spc(TextIndent), *MapEntry.Key->GetPathName(), *ActorComponent->GetName(), LINE_TERMINATOR);
 						for (const FFoliageInstancePlacementInfo* Inst : MapEntry.Value)

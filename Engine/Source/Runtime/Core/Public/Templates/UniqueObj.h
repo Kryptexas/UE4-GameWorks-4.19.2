@@ -21,6 +21,13 @@ public:
 	{
 	}
 
+	// As TUniqueObj's internal pointer can never be null, we can't move that
+	// On the other hand we can call the move constructor of "T"
+	TUniqueObj(TUniqueObj&& other)
+		: Obj(MakeUnique<T>(MoveTemp(*other)))
+	{
+	}
+
 	template <typename Arg>
 	explicit TUniqueObj(Arg&& arg)
 		: Obj(MakeUnique<T>(Forward<Arg>(arg)))
@@ -35,6 +42,7 @@ public:
 	}
 #endif
 
+	// Disallow copy-assignment
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 	TUniqueObj& operator=(const TUniqueObj&) = delete;
 #else
@@ -42,6 +50,13 @@ private:
 	TUniqueObj& operator=(const TUniqueObj&);
 public:
 #endif
+
+	// Move-assignment is implemented as swapping the internal pointer
+	TUniqueObj& operator=(TUniqueObj&& other)
+	{
+		Swap(Obj, other.Obj);
+		return *this;
+	}
 
 	template <typename Arg>
 	TUniqueObj& operator=(Arg&& other)

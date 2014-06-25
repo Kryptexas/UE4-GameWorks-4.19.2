@@ -706,7 +706,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		// Move any foliage instances if we created a new collision component.
 		if( OldCollisionComponent && OldCollisionComponent != CollisionComp )
 		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(OldCollisionComponent->GetWorld());
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(OldCollisionComponent->GetWorld());
 			IFA->MoveInstancesToNewComponent(OldCollisionComponent, CollisionComp);
 		}
 	}
@@ -1265,24 +1265,7 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 	int32 WeightmapSizeV = Texture->Source.GetSizeY();
 
 	// Find the maximum mip where each texel's data comes from just one subsection.
-	int32 MaxWholeSubsectionMip = 1;
-	for(int32 Mip=1;;++Mip)
-	{
-		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads+1)>>Mip)-1;
-
-		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip,1);
-		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip,1);
-
-		// Mip must represent at least one quad to store valid weight data
-		if( MipSubsectionSizeQuads > 0 )
-		{
-			MaxWholeSubsectionMip = Mip;
-		}
-		else
-		{
-			break;
-		}
-	}
+	int32 MaxWholeSubsectionMip = FMath::FloorLog2(InSubsectionSizeQuads + 1) - 1;
 
 	// Update the mip where each texel's data comes from just one subsection.
 	for( int32 SubsectionY = 0;SubsectionY < InNumSubsections;SubsectionY++ )
@@ -1401,43 +1384,40 @@ void ULandscapeComponent::UpdateMipsTempl(int32 InNumSubsections, int32 InSubsec
 	}
 
 	// Handle mips that have texels from multiple subsections
-	for(int32 Mip=1;;++Mip)
+	// not valid weight data, so just average the texels of the previous mip.
+	for (int32 Mip = MaxWholeSubsectionMip + 1;; ++Mip)
 	{
-		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads+1)>>Mip)-1;
+		int32 MipSubsectionSizeQuads = ((InSubsectionSizeQuads + 1) >> Mip) - 1;
+		checkSlow(MipSubsectionSizeQuads <= 0);
 
-		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip,1);
-		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip,1);
+		int32 MipSizeU = FMath::Max<int32>(WeightmapSizeU >> Mip, 1);
+		int32 MipSizeV = FMath::Max<int32>(WeightmapSizeV >> Mip, 1);
 
-		// Mip must represent at least one quad to store valid weight data
-		if( MipSubsectionSizeQuads <= 0 )
+		int32 PrevMipSizeU = FMath::Max<int32>(WeightmapSizeU >> (Mip - 1), 1);
+		int32 PrevMipSizeV = FMath::Max<int32>(WeightmapSizeV >> (Mip - 1), 1);
+
+		for (int32 Y = 0; Y < MipSizeV; Y++)
 		{
-			int32 PrevMipSizeU = WeightmapSizeU >> (Mip-1);
-			int32 PrevMipSizeV = WeightmapSizeV >> (Mip-1);
-
-			// not valid weight data, so just average the texels of the previous mip.
-			for( int32 Y = 0;Y < MipSizeV;Y++ )
+			for (int32 X = 0; X < MipSizeU; X++)
 			{
-				for( int32 X = 0;X < MipSizeU;X++ )
-				{
-					DataType* TexData = &(TextureMipData[Mip])[ X + Y * MipSizeU ];
+				DataType* TexData = &(TextureMipData[Mip])[X + Y * MipSizeU];
 
-					DataType *PreMipTexData00 = &(TextureMipData[Mip-1])[ (X*2+0) + (Y*2+0)  * PrevMipSizeU ];
-					DataType *PreMipTexData01 = &(TextureMipData[Mip-1])[ (X*2+0) + (Y*2+1)  * PrevMipSizeU ];
-					DataType *PreMipTexData10 = &(TextureMipData[Mip-1])[ (X*2+1) + (Y*2+0)  * PrevMipSizeU ];
-					DataType *PreMipTexData11 = &(TextureMipData[Mip-1])[ (X*2+1) + (Y*2+1)  * PrevMipSizeU ];
+				DataType *PreMipTexData00 = &(TextureMipData[Mip - 1])[(X * 2 + 0) + (Y * 2 + 0)  * PrevMipSizeU];
+				DataType *PreMipTexData01 = &(TextureMipData[Mip - 1])[(X * 2 + 0) + (Y * 2 + 1)  * PrevMipSizeU];
+				DataType *PreMipTexData10 = &(TextureMipData[Mip - 1])[(X * 2 + 1) + (Y * 2 + 0)  * PrevMipSizeU];
+				DataType *PreMipTexData11 = &(TextureMipData[Mip - 1])[(X * 2 + 1) + (Y * 2 + 1)  * PrevMipSizeU];
 
-					AverageTexData<DataType>(TexData, PreMipTexData00, PreMipTexData10, PreMipTexData01, PreMipTexData11);
-				}
-			}
-
-			if( TextureDataInfo )
-			{
-				// These mip sizes are small enough that we may as well just update the whole mip.
-				TextureDataInfo->AddMipUpdateRegion(Mip,0,0,MipSizeU-1,MipSizeV-1);
+				AverageTexData<DataType>(TexData, PreMipTexData00, PreMipTexData10, PreMipTexData01, PreMipTexData11);
 			}
 		}
 
-		if( MipSizeU == 1 && MipSizeV == 1 )
+		if (TextureDataInfo)
+		{
+			// These mip sizes are small enough that we may as well just update the whole mip.
+			TextureDataInfo->AddMipUpdateRegion(Mip, 0, 0, MipSizeU - 1, MipSizeV - 1);
+		}
+
+		if (MipSizeU == 1 && MipSizeV == 1)
 		{
 			break;
 		}

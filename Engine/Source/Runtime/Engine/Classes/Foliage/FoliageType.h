@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "InstancedFoliageSettings.generated.h"
+#include "FoliageType.generated.h"
 
 UENUM()
 enum FoliageVertexColorMask
@@ -16,7 +16,7 @@ enum FoliageVertexColorMask
 
 
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI)
-class UInstancedFoliageSettings : public UObject
+class UFoliageType : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -215,6 +215,9 @@ class UInstancedFoliageSettings : public UObject
 	/** Custom collision for foliage */
 	UPROPERTY(EditAnywhere, Category=Collision, meta=(HideObjectType=true))
 	struct FBodyInstance BodyInstance;
+
+	// Gets the mesh associated with this FoliageType
+	virtual UStaticMesh* GetStaticMesh() PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
 };
 
 

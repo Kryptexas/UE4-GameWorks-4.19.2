@@ -8,6 +8,9 @@
 /** The maximum number of static mesh LODs allowed. */
 #define MAX_STATIC_MESH_LODS 4
 
+// Forward declarations
+class UFoliageType_InstancedStaticMesh;
+
 /*-----------------------------------------------------------------------------
 	Legacy mesh optimization settings.
 -----------------------------------------------------------------------------*/
@@ -90,70 +93,70 @@ struct FStaticMeshOptimizationSettings
 	uint8 ShadingImportance;
 
 
-		FStaticMeshOptimizationSettings()
-		: ReductionMethod( OT_MaxDeviation )
-		, NumOfTrianglesPercentage( 1.0f )
-		, MaxDeviationPercentage( 0.0f )
-		, WeldingThreshold( 0.1f )
-		, bRecalcNormals( true )
-		, NormalsThreshold( 60.0f )
-		, SilhouetteImportance( IL_Normal )
-		, TextureImportance( IL_Normal )
-		, ShadingImportance( IL_Normal )
-		{
-		}
+	FStaticMeshOptimizationSettings()
+	: ReductionMethod( OT_MaxDeviation )
+	, NumOfTrianglesPercentage( 1.0f )
+	, MaxDeviationPercentage( 0.0f )
+	, WeldingThreshold( 0.1f )
+	, bRecalcNormals( true )
+	, NormalsThreshold( 60.0f )
+	, SilhouetteImportance( IL_Normal )
+	, TextureImportance( IL_Normal )
+	, ShadingImportance( IL_Normal )
+	{
+	}
 
-		/** Serialization for FStaticMeshOptimizationSettings. */
-		inline friend FArchive& operator<<( FArchive& Ar, FStaticMeshOptimizationSettings& Settings )
+	/** Serialization for FStaticMeshOptimizationSettings. */
+	inline friend FArchive& operator<<( FArchive& Ar, FStaticMeshOptimizationSettings& Settings )
+	{
+		if( Ar.UE4Ver() < VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS )
 		{
-			if( Ar.UE4Ver() < VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS )
+			Ar << Settings.MaxDeviationPercentage;
+
+			//Remap Importance Settings
+			Ar << Settings.SilhouetteImportance;
+			Ar << Settings.TextureImportance;
+
+			//IL_Normal was previously the first enum value. We add the new index of IL_Normal to correctly offset the old values.
+			Settings.SilhouetteImportance += IL_Normal;
+			Settings.TextureImportance += IL_Normal;
+
+			//Remap NormalMode enum value to new threshold variable.
+			uint8 NormalMode;
+			Ar << NormalMode;
+
+			const float NormalThresholdTable[] =
 			{
-				Ar << Settings.MaxDeviationPercentage;
+				60.0f, // Recompute
+				80.0f, // Recompute (Smooth)
+				45.0f  // Recompute (Hard)
+			};
 
-				//Remap Importance Settings
-				Ar << Settings.SilhouetteImportance;
-				Ar << Settings.TextureImportance;
-
-				//IL_Normal was previously the first enum value. We add the new index of IL_Normal to correctly offset the old values.
-				Settings.SilhouetteImportance += IL_Normal;
-				Settings.TextureImportance += IL_Normal;
-
-				//Remap NormalMode enum value to new threshold variable.
-				uint8 NormalMode;
-				Ar << NormalMode;
-
-				const float NormalThresholdTable[] =
-				{
-					60.0f, // Recompute
-					80.0f, // Recompute (Smooth)
-					45.0f  // Recompute (Hard)
-				};
-
-				if( NormalMode == NM_PreserveSmoothingGroups)
-				{
-					Settings.bRecalcNormals = false;
-				}
-				else
-				{
-					Settings.bRecalcNormals = true;
-					Settings.NormalsThreshold = NormalThresholdTable[NormalMode];
-				}
+			if( NormalMode == NM_PreserveSmoothingGroups)
+			{
+				Settings.bRecalcNormals = false;
 			}
 			else
 			{
-				Ar << Settings.ReductionMethod;
+				Settings.bRecalcNormals = true;
+				Settings.NormalsThreshold = NormalThresholdTable[NormalMode];
+			}
+		}
+		else
+		{
+			Ar << Settings.ReductionMethod;
 			Ar << Settings.MaxDeviationPercentage;
-				Ar << Settings.NumOfTrianglesPercentage;
+			Ar << Settings.NumOfTrianglesPercentage;
 			Ar << Settings.SilhouetteImportance;
 			Ar << Settings.TextureImportance;
-				Ar << Settings.ShadingImportance;
-				Ar << Settings.bRecalcNormals;
-				Ar << Settings.NormalsThreshold;
-				Ar << Settings.WeldingThreshold;
-			}
-
-			return Ar;
+			Ar << Settings.ShadingImportance;
+			Ar << Settings.bRecalcNormals;
+			Ar << Settings.NormalsThreshold;
+			Ar << Settings.WeldingThreshold;
 		}
+
+		return Ar;
+	}
 
 };
 
@@ -400,7 +403,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 #if WITH_EDITORONLY_DATA
 	/** Default settings when using this mesh for instanced foliage */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, editinline, Category=StaticMesh)
-	class UInstancedFoliageSettings* FoliageDefaultSettings;
+	UFoliageType_InstancedStaticMesh* FoliageDefaultSettings;
 
 	/** Importing data and options used for this mesh */
 	UPROPERTY(VisibleAnywhere, editinline, Category=ImportSettings)

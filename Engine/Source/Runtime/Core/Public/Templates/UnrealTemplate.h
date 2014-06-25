@@ -87,9 +87,9 @@ template< class T > inline T AlignArbitrary( const T Ptr, uint32 Alignment )
 }
 template< class T > inline void Swap( T& A, T& B )
 {
-	const T Temp = A;
-	A = B;
-	B = Temp;
+	T Temp = MoveTemp(A);
+	A = MoveTemp(B);
+	B = MoveTemp(Temp);
 }
 template< class T > inline void Exchange( T& A, T& B )
 {

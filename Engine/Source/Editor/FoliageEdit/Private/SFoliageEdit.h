@@ -2,6 +2,12 @@
 
 #pragma once
 
+// Forwards declarations
+class FAssetThumbnail;
+class SFoliageEditMeshDisplayItem;
+struct FFoliageMeshUIInfo;
+class FAssetThumbnailPool;
+
 class SFoliageEdit : public SCompoundWidget
 {
 public:
@@ -15,34 +21,34 @@ public:
 	~SFoliageEdit();
 
 	// SWidget interface
-	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	// End of SWidget interface
 
 	/** Creates the thumbnail for the passed in Static Mesh. Used by the MeshListView items. */
-	TSharedPtr< class FAssetThumbnail > CreateThumbnail(UStaticMesh* InStaticMesh);
-	
+	TSharedPtr<FAssetThumbnail> CreateThumbnail(UStaticMesh* InStaticMesh);
+
 	/** Does a full refresh on the list. */
 	void RefreshFullList();
 
 	/** Adds a static mesh to the list of available meshes for foliage. May be called on by the MeshListView items. */
-	void AddItemToScrollbox(struct FFoliageMeshUIInfo& InFoliageInfoToAdd);
+	void AddItemToScrollbox(FFoliageMeshUIInfo& InFoliageInfoToAdd);
 
 	/** Removes a static mesh from the list of available meshes for foliage. May be called on by the MeshListView items. */
-	void RemoveItemFromScrollbox(const TSharedPtr<class SFoliageEditMeshDisplayItem> InWidgetToRemove);
+	void RemoveItemFromScrollbox(const TSharedPtr<SFoliageEditMeshDisplayItem> InWidgetToRemove);
 
-	void ReplaceItem(const TSharedPtr<class SFoliageEditMeshDisplayItem> InDisplayItemToReplaceIn, UStaticMesh* InNewStaticMesh);
+	void ReplaceItem(const TSharedPtr<SFoliageEditMeshDisplayItem> InDisplayItemToReplaceIn, UStaticMesh* InNewStaticMesh);
 
 	/** Handles adding a new item to the list and refreshing the list in it's entirety. */
-	FReply OnDrop_ListView( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	FReply OnDrop_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
 
 	/** Sets the overlay that appears over all items in the list to be visible. */
-	void DisableDragDropOverlay(void);
-	
+	void DisableDragDropOverlay();
+
 	/** Sets the overlay that appears over all items in the list to be invisible. */
-	void EnableDragDropOverlay(void);
+	void EnableDragDropOverlay();
 
 private:
 
@@ -106,16 +112,16 @@ private:
 	float GetEraseDensity() const;
 
 	/** Creates the list item widget that displays the instance settings. */
-	TSharedRef< ITableRow > MakeWidgetFromOption( TSharedPtr<struct FFoliageMeshUIInfo> InItem, const TSharedRef< STableViewBase >& OwnerTable );
+	TSharedRef<ITableRow> MakeWidgetFromOption(TSharedPtr<FFoliageMeshUIInfo> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Handles nothing? */
-	void OnDragEnter_ListView( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	void OnDragEnter_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
 	/** Handles nothing? */
-	void OnDragLeave_ListView( const FDragDropEvent& DragDropEvent );
-	
+	void OnDragLeave_ListView(const FDragDropEvent& DragDropEvent);
+
 	/** @todo - Have something occur to help the user out in knowing something is actually going to occur (besides the mouse changing) */
-	FReply OnDragOver_ListView( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	FReply OnDragOver_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 
 	/** Sets the filter settings for if painting will occur on Landscapes. */
 	void OnCheckStateChanged_Landscape(ESlateCheckBoxState::Type InState);
@@ -131,7 +137,7 @@ private:
 
 	/** Sets the filter settings for if painting will occur on BSPs. */
 	void OnCheckStateChanged_BSP(ESlateCheckBoxState::Type InState);
-	
+
 	/** Retrieves the filter settings for painting on BSPs. */
 	ESlateCheckBoxState::Type GetCheckState_BSP() const;
 
@@ -149,8 +155,8 @@ private:
 
 	/** Checks if the paint density spinbox should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_PaintDensity() const;
-	
-	/** Checks if the erase density spinbox should appear. Dependant on the current tool being used. */	
+
+	/** Checks if the erase density spinbox should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_EraseDensity() const;
 
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
@@ -170,26 +176,26 @@ private:
 
 private:
 	/** The list view object for displaying Static Meshes to use for foliage. */
-	TSharedPtr< SListView< TSharedPtr< struct FFoliageMeshUIInfo > > > MeshListView;
+	TSharedPtr<SListView<TSharedPtr<FFoliageMeshUIInfo>>> MeshListView;
 
 	/** List of Static Meshes being used for foliage, adapted from a list retrieved from Foliage Mode and items should only be added to it in NotifyChanged to keep information
 		accurate between it and the Foliage Mode. */
-	TArray< TSharedPtr< struct FFoliageMeshUIInfo > > MeshList;
+	TArray<TSharedPtr<FFoliageMeshUIInfo>> MeshList;
 
 	/** Pool for maintaining and rendering thumbnails */
-	TSharedPtr<class FAssetThumbnailPool> AssetThumbnailPool;
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool;
 
 	/** Command list for binding functions for the toolbar. */
 	TSharedPtr<FUICommandList> UICommandList;
 
 	/** Pointer to the foliage edit mode. */
-	class FEdModeFoliage* FoliageEditMode;
+	FEdModeFoliage* FoliageEditMode;
 
 	/** Scrollbox for slotting foliage items. */
 	TSharedPtr<SScrollBox> ItemScrollBox;
 
 	/** List of items currently being displayed. */
-	TArray< TSharedRef<class SFoliageEditMeshDisplayItem> > DisplayItemList;
+	TArray<TSharedRef<SFoliageEditMeshDisplayItem>> DisplayItemList;
 
 	/** Used to override the empty list overlay to be visible, not including the text. */
 	bool bOverlayOverride;
