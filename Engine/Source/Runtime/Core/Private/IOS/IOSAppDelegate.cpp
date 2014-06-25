@@ -435,10 +435,14 @@ void InstallSignalHandlers()
 
 	self.CommandLineParseTimer = [NSTimer scheduledTimerWithTimeInterval:0.01f target:self selector:@selector(NoUrlCommandLine) userInfo:nil repeats:NO];
 #if !UE_BUILD_SHIPPING
-	self.ConsoleHistoryValues = [[NSUserDefaults standardUserDefaults] objectForKey:@"ConsoleHistory"];
-	if (self.ConsoleHistoryValues == nil)
+	// make a history buffer
+	self.ConsoleHistoryValues = [[NSMutableArray alloc] init];
+
+	// load saved history from disk
+	NSArray* SavedHistory = [[NSUserDefaults standardUserDefaults] objectForKey:@"ConsoleHistory"];
+	if (SavedHistory != nil)
 	{
-		self.ConsoleHistoryValues = [[NSMutableArray alloc] init];
+		[self.ConsoleHistoryValues addObjectsFromArray:SavedHistory];
 	}
 	self.ConsoleHistoryValuesIndex = -1;
 #endif

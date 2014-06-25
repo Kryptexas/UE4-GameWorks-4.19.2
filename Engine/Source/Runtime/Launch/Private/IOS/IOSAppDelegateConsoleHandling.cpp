@@ -70,14 +70,17 @@
 			}
 		];
 
-		// add the command to the command history if it's unique
-		if (ExistingCommand == NSNotFound)
+		// remove the existing one, so we can move it to the end
+		if (ExistingCommand != NSNotFound)
 		{
-			[self.ConsoleHistoryValues addObject:ConsoleCommand];
-			// save to local storage
-			[[NSUserDefaults standardUserDefaults] setObject:self.ConsoleHistoryValues forKey:@"ConsoleHistory"];
-			[[NSUserDefaults standardUserDefaults] synchronize];
+			[self.ConsoleHistoryValues removeObjectAtIndex:ExistingCommand];
 		}
+
+		// add the command to the end
+		[self.ConsoleHistoryValues addObject:ConsoleCommand];
+		// save to local storage
+		[[NSUserDefaults standardUserDefaults] setObject:self.ConsoleHistoryValues forKey:@"ConsoleHistory"];
+		[[NSUserDefaults standardUserDefaults] synchronize];
 	}
 }
 
