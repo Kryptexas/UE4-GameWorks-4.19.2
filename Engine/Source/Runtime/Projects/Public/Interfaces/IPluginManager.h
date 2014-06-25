@@ -3,7 +3,7 @@
 #pragma once
 
 
-#include "IPluginManagerShared.h"
+#include "ModuleDescriptor.h"
 
 
 /**

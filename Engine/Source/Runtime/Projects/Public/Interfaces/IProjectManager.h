@@ -3,8 +3,8 @@
 #pragma once
 
 
-#include "IPluginManagerShared.h"
 #include "EngineVersion.h"
+#include "ModuleDescriptor.h"
 
 /**
  * Simple data structure that is filled when querying information about projects

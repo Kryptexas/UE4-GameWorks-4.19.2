@@ -24,85 +24,8 @@ enum EProjectFileVersion
 class FProjectOrPluginInfo
 {
 public:
-	struct EModuleType
-	{
-		enum Type
-		{
-			Runtime,
-			RuntimeNoCommandlet,
-			Developer,
-			Editor,
-			EditorNoCommandlet,
-			/** Program-only plugin type */
-			Program,
-			// NOTE: If you add a new value, make sure to update the ToString() method below!
-
-			Max
-		};
 
 
-		/**
-		 * Converts an EModuleType::Type value to a string literal
-		 *
-		 * @param	The value to convert to a string
-		 *
-		 * @return	The string representation of this enum value
-		 */
-		inline static const TCHAR* ToString( const EModuleType::Type Value )
-		{
-			switch( Value )
-			{
-				case Runtime:
-					return TEXT( "Runtime" );
-
-				case RuntimeNoCommandlet:
-					return TEXT( "RuntimeNoCommandlet" );
-
-				case Developer:
-					return TEXT( "Developer" );
-
-				case Editor:
-					return TEXT( "Editor" );
-
-				case EditorNoCommandlet:
-					return TEXT( "EditorNoCommandlet" );
-
-				case Program:
-					return TEXT("Program");
-
-				default:
-					ensureMsgf( false, TEXT( "Unrecognized EModuleType value: %i" ), Value );
-					return NULL;
-			}
-		}
-	};
-
-
-	struct FModuleInfo
-	{
-		/** Name of this module */
-		FName Name;
-
-		/** Type of module */
-		EModuleType::Type Type;
-
-		/** When should the module be loaded during the startup sequence?  This is sort of an advanced setting. */
-		ELoadingPhase::Type LoadingPhase;
-
-		/** List of allowed platforms */
-		TArray<FString> WhitelistPlatforms;
-
-		/** List of disallowed platforms */
-		TArray<FString> BlacklistPlatforms;
-
-		/** Module info constructor */
-		FModuleInfo()
-			: Name( NAME_None ),
-			  Type( EModuleType::Runtime ),
-			  LoadingPhase( ELoadingPhase::Default )
-		{
-		}
-	};
 
 	/** Name of the project or plugin, which is actually just the base name of the .uproject or .uplugin file.  Note that this is not guaranteed to
 	    be globally unique!  Projects or plugins with the same name could exist in different directories. */
@@ -162,7 +85,7 @@ public:
 	FString CreatedByURL;
 
 	/** List of all modules associated with this project or plugin */
-	TArray<FModuleInfo> Modules;
+	TArray<FModuleDescriptor> Modules;
 
 
 	/** ProjectOrPlugin info constructor */
@@ -248,12 +171,6 @@ public:
 	void ReplaceModulesInProject(const TArray<FString>* StartupModuleNames);
 
 protected:
-	/** Checks whether a given module should be built for this build configuration */
-	bool ShouldBuildModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
-
-	/** Checks whether a given module should be loaded for this build configuration */
-	bool ShouldLoadModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
-
 	/** @return Exposes access to the project or plugin's descriptor */
 	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() = 0;
 	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const = 0;
@@ -271,7 +188,7 @@ protected:
 private:
 	/** Helper functions to read specific special values from the JsonObject */
 	bool ReadFileVersionFromJSON(const TSharedRef< FJsonObject >& FileObject, int32& OutVersion ) const;
-	bool ReadModulesFromJSON(const TSharedRef< FJsonObject >& FileObject, TArray<FProjectOrPluginInfo::FModuleInfo>& OutModules, FText& OutFailReason ) const;
+	bool ReadModulesFromJSON(const TSharedRef< FJsonObject >& FileObject, TArray<FModuleDescriptor>& OutModules, FText& OutFailReason ) const;
 };
 
 /**
@@ -281,7 +198,7 @@ class FProjectAndPluginManager
 {
 public:
 	/** Returns the earliest phase in the specified list of modules */
-	static ELoadingPhase::Type GetEarliestPhaseFromModules(const TArray<FProjectOrPluginInfo::FModuleInfo>& Modules);
+	static ELoadingPhase::Type GetEarliestPhaseFromModules(const TArray<FModuleDescriptor>& Modules);
 };
 
 

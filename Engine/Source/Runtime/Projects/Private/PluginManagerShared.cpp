@@ -11,14 +11,14 @@ void FProjectOrPlugin::LoadModules( const ELoadingPhase::Type LoadingPhase, TMap
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
-	for( TArray< FProjectOrPluginInfo::FModuleInfo >::TConstIterator ModuleInfoIt( ProjectOrPluginInfo.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
+	for( TArray< FModuleDescriptor >::TConstIterator ModuleInfoIt( ProjectOrPluginInfo.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
 	{
-		const FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleInfoIt;
+		const FModuleDescriptor& ModuleInfo = *ModuleInfoIt;
 
 		// Don't need to do anything if this module is already loaded
 		if( !FModuleManager::Get().IsModuleLoaded( ModuleInfo.Name ) )
 		{
-			if( LoadingPhase == ModuleInfo.LoadingPhase && ShouldLoadModule(ModuleInfo) )
+			if( LoadingPhase == ModuleInfo.LoadingPhase && ModuleInfo.IsLoadedInCurrentConfiguration() )
 			{
 				// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
 
@@ -186,38 +186,7 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	Writer->WriteValue(TEXT("CreatedBy"), ProjectOrPluginInfo.CreatedBy);
 	Writer->WriteValue(TEXT("CreatedByURL"), ProjectOrPluginInfo.CreatedByURL);
 	
-	if ( ProjectOrPluginInfo.Modules.Num() > 0 )
-	{
-		Writer->WriteArrayStart(TEXT("Modules"));
-		for ( auto ModuleIt = ProjectOrPluginInfo.Modules.CreateConstIterator(); ModuleIt; ++ModuleIt )
-		{
-			const FProjectOrPluginInfo::FModuleInfo& Module = *ModuleIt;
-			Writer->WriteObjectStart();
-			Writer->WriteValue(TEXT("Name"), Module.Name.ToString());
-			Writer->WriteValue(TEXT("Type"), FString(FProjectOrPluginInfo::EModuleType::ToString(Module.Type)));
-			Writer->WriteValue(TEXT("LoadingPhase"), FString(ELoadingPhase::ToString(Module.LoadingPhase)));
-			if (Module.WhitelistPlatforms.Num() > 0)
-			{
-				Writer->WriteArrayStart(TEXT("WhitelistPlatforms"));
-				for ( auto PlatformIt = Module.WhitelistPlatforms.CreateConstIterator(); PlatformIt; ++PlatformIt )
-				{
-					Writer->WriteValue(*PlatformIt);
-				}
-				Writer->WriteArrayEnd();
-			}
-			if (Module.BlacklistPlatforms.Num() > 0)
-			{
-				Writer->WriteArrayStart(TEXT("BlacklistPlatforms"));
-				for ( auto PlatformIt = Module.BlacklistPlatforms.CreateConstIterator(); PlatformIt; ++PlatformIt )
-				{
-					Writer->WriteValue(*PlatformIt);
-				}
-				Writer->WriteArrayEnd();
-			}
-			Writer->WriteObjectEnd();
-		}
-		Writer->WriteArrayEnd();
-	}
+	FModuleDescriptor::WriteArray(Writer.Get(), TEXT("Modules"), ProjectOrPluginInfo.Modules);
 	
 	PerformAdditionalSerialization(Writer);
 	
@@ -236,10 +205,10 @@ bool FProjectOrPlugin::RequiresUpdate( ) const
 bool FProjectOrPlugin::AreModulesUpToDate( ) const
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
-	for (TArray< FProjectOrPluginInfo::FModuleInfo >::TConstIterator Iter(ProjectOrPluginInfo.Modules); Iter; ++Iter)
+	for (TArray< FModuleDescriptor >::TConstIterator Iter(ProjectOrPluginInfo.Modules); Iter; ++Iter)
 	{
-		const FProjectOrPluginInfo::FModuleInfo &ModuleInfo = *Iter;
-		if (ShouldBuildModule(ModuleInfo) && !FModuleManager::Get().IsModuleUpToDate(ModuleInfo.Name))
+		const FModuleDescriptor &ModuleInfo = *Iter;
+		if (ModuleInfo.IsCompiledInCurrentConfiguration() && !FModuleManager::Get().IsModuleUpToDate(ModuleInfo.Name))
 		{
 			return false;
 		}
@@ -267,109 +236,11 @@ void FProjectOrPlugin::ReplaceModulesInProject(const TArray<FString>* StartupMod
 		ProjectOrPluginInfo.Modules.Empty();
 		for ( auto ModuleIt = StartupModuleNames->CreateConstIterator(); ModuleIt; ++ModuleIt )
 		{
-			FProjectOrPluginInfo::FModuleInfo ModuleInfo;
+			FModuleDescriptor ModuleInfo;
 			ModuleInfo.Name = FName(**ModuleIt);
 			ProjectOrPluginInfo.Modules.Add(ModuleInfo);
 		}
 	}
-}
-
-bool FProjectOrPlugin::ShouldBuildModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const
-{
-	// Cache the string for the current platform
-	static FString UBTPlatform(FPlatformMisc::GetUBTPlatform());
-
-	// Check the platform is whitelisted
-	if(ModuleInfo.WhitelistPlatforms.Num() > 0 && !ModuleInfo.WhitelistPlatforms.Contains(UBTPlatform))
-	{
-		return false;
-	}
-
-	// Check the platform is not blacklisted
-	if(ModuleInfo.BlacklistPlatforms.Num() > 0 && ModuleInfo.BlacklistPlatforms.Contains(UBTPlatform))
-	{
-		return false;
-	}
-
-	// Check the module is compatible with this target. This should match UEBuildTarget.ShouldIncludePluginModule in UBT
-	switch (ModuleInfo.Type)
-	{
-	case FProjectOrPluginInfo::EModuleType::Runtime:
-	case FProjectOrPluginInfo::EModuleType::RuntimeNoCommandlet:
-		return true;
-
-	case FProjectOrPluginInfo::EModuleType::Developer:
-		#if WITH_UNREAL_DEVELOPER_TOOLS
-			return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::Editor:
-	case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
-		#if WITH_EDITOR
-			return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::Program:
-		#if IS_PROGRAM
-			return true;
-		#endif
-		break;
-	}
-
-	return false;
-}
-
-bool FProjectOrPlugin::ShouldLoadModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const
-{
-	// Check that the module is built for this configuration
-	if(!ShouldBuildModule(ModuleInfo))
-	{
-		return false;
-	}
-
-	// Check that the runtime environment allows it to be loaded
-	switch (ModuleInfo.Type)
-	{
-	case FProjectOrPluginInfo::EModuleType::Runtime:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-			return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::RuntimeNoCommandlet:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-			if(!IsRunningCommandlet()) return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::Developer:
-		#if WITH_UNREAL_DEVELOPER_TOOLS
-			return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::Editor:
-		#if WITH_EDITOR
-			if(GIsEditor) return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::EditorNoCommandlet:
-		#if WITH_EDITOR
-			if(GIsEditor && !IsRunningCommandlet()) return true;
-		#endif
-		break;
-
-	case FProjectOrPluginInfo::EModuleType::Program:
-		#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
-			return true;
-		#endif
-		break;
-	}
-
-	return false;
 }
 
 bool FProjectOrPlugin::ReadNumberFromJSON(const TSharedRef< FJsonObject >& FileObject, const FString& PropertyName, int32& OutNumber ) const
@@ -472,158 +343,20 @@ bool FProjectOrPlugin::ReadFileVersionFromJSON(const TSharedRef< FJsonObject >& 
 	return false;
 }
 
-bool FProjectOrPlugin::ReadModulesFromJSON(const TSharedRef< FJsonObject >& FileObject, TArray<FProjectOrPluginInfo::FModuleInfo>& OutModules, FText& OutFailReason ) const
+bool FProjectOrPlugin::ReadModulesFromJSON(const TSharedRef< FJsonObject >& FileObject, TArray<FModuleDescriptor>& OutModules, FText& OutFailReason ) const
 {
-	bool bLoadedSuccessfully = true;
-
-	// This project or plugin might have some modules that we need to know about.  Let's take a look.
-	if( FileObject->HasField( TEXT( "Modules" ) ) )
-	{
-		const TSharedPtr< FJsonValue >& ModulesValue = FileObject->GetField< EJson::Array >( TEXT( "Modules" ) );
-		const TArray< TSharedPtr< FJsonValue > >& ModulesArray = ModulesValue->AsArray();
-		for( auto ModuleValueIt( ModulesArray.CreateConstIterator() ); ModuleValueIt; ++ModuleValueIt )
-		{
-			const TSharedPtr< FJsonObject >& ModuleObjectPtr = ( *ModuleValueIt )->AsObject();
-			if( ModuleObjectPtr.IsValid() )
-			{
-				const TSharedRef< FJsonObject >& ModuleObject = ModuleObjectPtr.ToSharedRef();
-				FProjectOrPluginInfo::FModuleInfo ModuleInfo;
-
-				// Module name
-				{
-					// All modules require a name to be set
-					FString ModuleName;
-					if ( ReadStringFromJSON(ModuleObject, TEXT("Name"), ModuleName) )
-					{
-						ModuleInfo.Name = FName(*ModuleName);
-					}
-					else
-					{
-						OutFailReason = LOCTEXT("ModuleWithoutAName", "Found a 'Module' entry with a missing 'Name' field");
-						bLoadedSuccessfully = false;
-						continue;
-					}
-				}
-
-
-				// Module type
-				{
-					FString ModuleType;
-					if ( ReadStringFromJSON(ModuleObject, TEXT("Type"), ModuleType) )
-					{
-						// Check to see if this is a valid type
-						bool bFoundValidType = false;
-						for( int32 PossibleTypeIndex = 0; PossibleTypeIndex < FProjectOrPluginInfo::EModuleType::Max; ++PossibleTypeIndex )
-						{
-							const FProjectOrPluginInfo::EModuleType::Type PossibleType = (FProjectOrPluginInfo::EModuleType::Type)PossibleTypeIndex;
-							const TCHAR* PossibleTypeName = FProjectOrPluginInfo::EModuleType::ToString( PossibleType );
-
-							if( FCString::Stricmp( PossibleTypeName, *ModuleType ) == 0 )
-							{
-								bFoundValidType = true;
-								ModuleInfo.Type = PossibleType;
-								break;
-							}
-						}
-
-						if( !bFoundValidType )
-						{
-							OutFailReason = FText::Format( LOCTEXT( "ModuleWithInvalidType", "Module entry '{0}' specified an unrecognized module Type '{1}'" ), FText::FromName(ModuleInfo.Name), FText::FromString(ModuleType) );
-							bLoadedSuccessfully = false;
-							continue;
-						}
-					}
-					else
-					{
-						OutFailReason = FText::Format( LOCTEXT( "ModuleWithoutAType", "Found Module entry '{0}' with a missing 'Type' field" ), FText::FromName(ModuleInfo.Name) );
-						bLoadedSuccessfully = false;
-						break;
-					}
-				}
-
-				// Loading phase
-				{
-					FString ModuleLoadingPhase;
-					if ( ReadStringFromJSON(ModuleObject, TEXT("LoadingPhase"), ModuleLoadingPhase) )
-					{
-						// Check to see if this is a valid Phase
-						bool bFoundValidPhase = false;
-						for( int32 PossiblePhaseIndex = 0; PossiblePhaseIndex < ELoadingPhase::Max; ++PossiblePhaseIndex )
-						{
-							const ELoadingPhase::Type PossiblePhase = (ELoadingPhase::Type)PossiblePhaseIndex;
-							const TCHAR* PossiblePhaseName = ELoadingPhase::ToString( PossiblePhase );
-
-							if( FCString::Stricmp( PossiblePhaseName, *ModuleLoadingPhase ) == 0 )
-							{
-								bFoundValidPhase = true;
-								ModuleInfo.LoadingPhase = PossiblePhase;
-								break;
-							}
-						}
-
-						if( !bFoundValidPhase )
-						{
-							OutFailReason = FText::Format( LOCTEXT( "ModuleWithInvalidLoadingPhase", "Module entry '{0}' specified an unrecognized module LoadingPhase '{1}'" ), FText::FromName(ModuleInfo.Name), FText::FromString(ModuleLoadingPhase) );
-							bLoadedSuccessfully = false;
-							continue;
-						}
-					}
-					else
-					{
-						// No 'LoadingPhase' was specified in the file.  That's totally fine, we'll use the default.
-					}
-				}
-
-				// Whitelist platforms
-				{
-					if( ModuleObject->HasField( TEXT( "WhitelistPlatforms" ) ) )
-					{
-						// walk over the array values
-						const TSharedPtr< FJsonValue >& PlatformsValue = ModuleObject->GetField< EJson::Array >( TEXT( "WhitelistPlatforms" ) );
-						const TArray< TSharedPtr< FJsonValue > >& PlatformsArray = PlatformsValue->AsArray();
-						for( auto PlatformValueIt( PlatformsArray.CreateConstIterator() ); PlatformValueIt; ++PlatformValueIt )
-						{
-							ModuleInfo.WhitelistPlatforms.Add((*PlatformValueIt)->AsString());
-						}
-					}
-				}
-
-				// Blacklist platforms
-				{
-					if( ModuleObject->HasField( TEXT( "BlacklistPlatforms" ) ) )
-					{
-						// walk over the array values
-						const TSharedPtr< FJsonValue >& PlatformsValue = ModuleObject->GetField< EJson::Array >( TEXT( "BlacklistPlatforms" ) );
-						const TArray< TSharedPtr< FJsonValue > >& PlatformsArray = PlatformsValue->AsArray();
-						for( auto PlatformValueIt( PlatformsArray.CreateConstIterator() ); PlatformValueIt; ++PlatformValueIt )
-						{
-							ModuleInfo.BlacklistPlatforms.Add((*PlatformValueIt)->AsString());
-						}
-					}
-				}
-
-				OutModules.Add(ModuleInfo);
-			}
-			else
-			{
-				OutFailReason = LOCTEXT( "ModuleWithInvalidModulesArray", "The 'Modules' array has invalid contents and was not able to be loaded." );
-				bLoadedSuccessfully = false;
-			}
-		}
-	}
-	
-	return bLoadedSuccessfully;
+	return FModuleDescriptor::ReadArray(FileObject.Get(), TEXT("Modules"), OutModules, OutFailReason);
 }
 
 
 
-ELoadingPhase::Type FProjectAndPluginManager::GetEarliestPhaseFromModules(const TArray<FProjectOrPluginInfo::FModuleInfo>& Modules)
+ELoadingPhase::Type FProjectAndPluginManager::GetEarliestPhaseFromModules(const TArray<FModuleDescriptor>& Modules)
 {
 	ELoadingPhase::Type EarliestPhase = ELoadingPhase::Default;
 
 	for ( auto ModuleIt = Modules.CreateConstIterator(); ModuleIt; ++ModuleIt )
 	{
-		EarliestPhase = ELoadingPhase::GetEarlierPhase(EarliestPhase, (*ModuleIt).LoadingPhase);
+		EarliestPhase = ELoadingPhase::Earliest(EarliestPhase, (*ModuleIt).LoadingPhase);
 	}
 
 	return EarliestPhase;

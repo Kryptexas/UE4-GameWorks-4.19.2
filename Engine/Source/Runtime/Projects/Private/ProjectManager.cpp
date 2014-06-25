@@ -223,7 +223,7 @@ bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename,
 	const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFilename);
 	for ( auto ModuleIt = ProjectInfo.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
 	{
-		FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleIt;
+		FModuleDescriptor& ModuleInfo = *ModuleIt;
 		ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
 	}
 

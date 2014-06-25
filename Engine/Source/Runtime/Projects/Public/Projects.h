@@ -12,6 +12,6 @@
 /* Public Includes
  *****************************************************************************/
 
-#include "IPluginManagerShared.h"
+#include "ModuleDescriptor.h"
 #include "IPluginManager.h"
 #include "IProjectManager.h"

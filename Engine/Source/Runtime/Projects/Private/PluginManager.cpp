@@ -246,7 +246,7 @@ void FPluginManager::DiscoverAllPlugins()
 			// Make sure to tell the module manager about any of our plugin's modules, so it will know where on disk to find them.
 			for( auto ModuleInfoIt( PluginInfo.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
 			{
-				const FProjectOrPluginInfo::FModuleInfo& ModuleInfo = *ModuleInfoIt;
+				const FModuleDescriptor& ModuleInfo = *ModuleInfoIt;
 
 				// @todo plugin: We're adding all modules always here, even editor modules which might not exist at runtime. Hope that's OK.
 				FModuleManager::Get().AddModule(ModuleInfo.Name);
