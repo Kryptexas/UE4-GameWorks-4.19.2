@@ -103,10 +103,10 @@ namespace iPhonePackager
 			return bOverridesExists && (Provision != null) && (Cert != null);
 		}
 
-		protected virtual byte[] GetMobileProvision()
+		protected virtual byte[] GetMobileProvision(string CFBundleIdentifier)
 		{
 			// find the movile provision file in the library
-			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision();
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
 
 			byte[] Result = null;
 			try
@@ -122,9 +122,9 @@ namespace iPhonePackager
 			return Result;
 		}
 
-		public void LoadMobileProvision()
+		public void LoadMobileProvision(string CFBundleIdentifier)
 		{
-			byte[] MobileProvisionFile = GetMobileProvision();
+			byte[] MobileProvisionFile = GetMobileProvision(CFBundleIdentifier);
 
 			if (MobileProvisionFile != null)
 			{
@@ -290,8 +290,15 @@ namespace iPhonePackager
 			// Load Info.plist, which guides nearly everything else
 			Info = LoadInfoPList();
 
+			// Get the name of the bundle
+			string CFBundleIdentifier;
+			if (!Info.GetString("CFBundleIdentifier", out CFBundleIdentifier))
+			{
+				throw new InvalidDataException("Info.plist must contain the key CFBundleIdentifier");
+			}
+
 			// Load the mobile provision, which provides entitlements and a partial cert which can be used to find an installed certificate
-			LoadMobileProvision();
+			LoadMobileProvision(CFBundleIdentifier);
 			if (Provision == null)
 			{
 				return;
