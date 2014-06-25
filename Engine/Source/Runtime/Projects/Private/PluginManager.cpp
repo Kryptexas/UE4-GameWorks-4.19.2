@@ -397,7 +397,6 @@ bool FPluginManager::HasThirdPartyPlugin() const
 	{
 		StandardPlugins.Add(TEXT("BlankPlugin"));
 		StandardPlugins.Add(TEXT("UObjectPlugin"));
-		StandardPlugins.Add(TEXT("IntroTutorials"));
 		StandardPlugins.Add(TEXT("PluginsEditor"));
 		StandardPlugins.Add(TEXT("EpicSurvey"));
 		StandardPlugins.Add(TEXT("OculusRift"));

@@ -154,6 +154,7 @@ public class UnrealEd : ModuleRules
 				"PackageDependencyInfo",
 				"ImageWrapper",
 				"Blutility",
+				"IntroTutorials",
 				"DesktopPlatform",
 				"WorkspaceMenuStructure",
 				"BspMode",

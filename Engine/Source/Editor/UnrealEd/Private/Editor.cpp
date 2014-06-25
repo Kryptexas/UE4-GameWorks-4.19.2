@@ -543,6 +543,11 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 		FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 
+		if (!IsRunningCommandlet())
+		{
+			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
+		}
+
 		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("UMGEditor"));
