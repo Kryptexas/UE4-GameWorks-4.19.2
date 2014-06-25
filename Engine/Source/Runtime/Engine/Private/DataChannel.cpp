@@ -20,6 +20,15 @@ DEFINE_LOG_CATEGORY_STATIC(LogNetPartialBunch, Warning, All);
 
 extern FAutoConsoleVariable CVarDoReplicationContextString;
 
+static TAutoConsoleVariable<int32> CVarNetReliableDebug(
+	TEXT("net.Reliable.Debug"),
+	0,
+	TEXT("Print all reliable bunches sent over the network\n")
+	TEXT(" 0: no print.\n")
+	TEXT(" 1: Print bunches as they are sent.\n")
+	TEXT(" 2: Print reliable bunch buffer each net update"),
+	ECVF_Default);
+
 /*-----------------------------------------------------------------------------
 	UChannel implementation.
 -----------------------------------------------------------------------------*/
@@ -747,19 +756,15 @@ FOutBunch* UChannel::PrepBunch(FOutBunch* Bunch, FOutBunch* OutBunch, bool Merge
 		Connection->LastOutBunch = OutBunch;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.Reliable.Debug"));
-		if (CVar)
+		if (CVarNetReliableDebug.GetValueOnGameThread() == 1)
 		{
-			if (CVar->GetValueOnGameThread() == 1)
-			{
-				UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
-			}
-			if (CVar->GetValueOnGameThread() == 2)
-			{
-				UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
-				PrintReliableBunchBuffer();
-				UE_LOG(LogNetTraffic, Warning, TEXT(""));
-			}
+			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
+		}
+		if (CVarNetReliableDebug.GetValueOnGameThread() == 2)
+		{
+			UE_LOG(LogNetTraffic, Warning, TEXT("%s. Reliable: %s"), *Describe(), *Bunch->DebugString);
+			PrintReliableBunchBuffer();
+			UE_LOG(LogNetTraffic, Warning, TEXT(""));
 		}
 #endif
 
@@ -1563,8 +1568,7 @@ bool UActorChannel::ReplicateActor()
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.Reliable.Debug"));
-	if ( CVar && CVar->GetValueOnGameThread() > 0 )
+	if (CVarNetReliableDebug.GetValueOnGameThread() > 0)
 	{
 		Bunch.DebugString = FString::Printf(TEXT("%.2f ActorBunch: %s"), Connection->Driver->Time, *Actor->GetName() );
 	}

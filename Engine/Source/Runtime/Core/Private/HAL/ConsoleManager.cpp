@@ -214,6 +214,7 @@ public:
 	virtual FString GetString() const;
 	virtual class TConsoleVariableData<int32>* AsVariableInt() { return 0; }
 	virtual class TConsoleVariableData<float>* AsVariableFloat() { return 0; }
+	virtual class TConsoleVariableData<FString>* AsVariableString() { return 0; }
 
 private: // ----------------------------------------------------
 
@@ -291,6 +292,11 @@ template<> float FConsoleVariable<FString>::GetFloat() const
 template<> FString FConsoleVariable<FString>::GetString() const
 {
 	return Value();
+}
+
+template<> TConsoleVariableData<FString>* FConsoleVariable<FString>::AsVariableString()
+{
+	return &Data;
 }
 
 // ----
@@ -624,7 +630,7 @@ IConsoleVariable* FConsoleManager::RegisterConsoleVariable(const TCHAR* Name, fl
 	return AddConsoleObject(Name, new FConsoleVariable<float>(DefaultValue, Help, (EConsoleVariableFlags)Flags))->AsVariable();
 }
 
-IConsoleVariable* FConsoleManager::RegisterConsoleVariable(const TCHAR* Name, const TCHAR *DefaultValue, const TCHAR* Help, uint32 Flags)
+IConsoleVariable* FConsoleManager::RegisterConsoleVariable(const TCHAR* Name, const FString& DefaultValue, const TCHAR* Help, uint32 Flags)
 {
 	// not supported
 	check((Flags & (uint32)ECVF_RenderThreadSafe) == 0);
@@ -1277,171 +1283,8 @@ void FConsoleManager::Test()
 // These don't belong here, but they belong here more than they belong in launch engine loop.
 void CreateConsoleVariables()
 {
-	// Naming conventions:
-	//
-	// Console variable should start with (suggestion):
-	//
-	// r.      Renderer / 3D Engine / graphical feature
-	// RHI.    Low level RHI (rendering platform) specific
-	// a.	   Animation
-	// s. 	   Sound / Music
-	// n.      Network
-	// ai.     Artificial intelligence
-	// i.      Input e.g. mouse/keyboard
-	// p.      Physics
-	// t.      Timer
-	// g.      Game
-	// Compat.
-	// FX.     Particle effects
-	// sg.     scalability group (used by scalability system, ini load/save or using SCALABILITY console command)
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PreViewTranslation"),
-		1,
-		TEXT("To limit issues with float world space positions we offset the world by the\n")
-		TEXT("PreViewTranslation vector. This command allows to disable updating this vector.\n")
-		TEXT(" 0: disable update\n")
-		TEXT(" 1: update the offset is each frame (default)"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FogDensity"),
-		-1.0f,
-		TEXT("Allows to override the FogDensity setting (needs ExponentialFog in the level).\n")
-		TEXT("Using a strong value allows to quickly see which pixel are affected by fog.\n")
-		TEXT("Using a start distance allows to cull pixels are can speed up rendering.\n")
-		TEXT(" <0: use default settings (default: -1)\n")
-		TEXT(">=0: override settings by the given value (0:off, 1=very dense fog)"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FogStartDistance"),
-		-1.0f,
-		TEXT("Allows to override the FogStartDistance setting (needs ExponentialFog in the level).\n")
-		TEXT(" <0: use default settings (default: -1)\n")
-		TEXT(">=0: override settings by the given value (in world units)"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.RenderTimeFrozen"),
-		0,
-		TEXT("Allows to freeze time based effects in order to provide more deterministic render profiling.\n")
-		TEXT(" 0: off\n")
-		TEXT(" 1: on (Note: this also disables occlusion queries)"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.VisualizeTexturePool"),
-		0,
-		TEXT("Allows to enable the visualize the texture pool (currently only on console).\n")
-		TEXT(" 0: off\n")
-		TEXT(" 1: on"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.D3DCompilerPath"),
-		TEXT(""),	// default
-		TEXT("Allows to specify a HLSL compiler version that is different from the one the code was compiled.\n")
-		TEXT("No path (\"\") means the default one is used.\n")
-		TEXT("If the compiler cannot be found an error is reported and it will compile further with the default one.\n")
-		TEXT("This console variable works with ShaderCompileWorker (with multi threading) and without multi threading.\n")
-		TEXT("This variable can be set in ConsoleVariables.ini to be defined at startup.\n")
-		TEXT("e.g. c:/temp/d3dcompiler_44.dll or \"\""),
-		ECVF_Cheat);
-	
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.RenderTargetPoolTest"),
-		0,
-		TEXT("Clears the texture returned by the rendertarget pool with a special color\n")
-		TEXT("so we can see better which passes would need to clear. Doesn't work on volume textures and non rendertargets yet.\n")
-		TEXT(" 0:off (default), 1:on"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ReflectionEnvironment"),
-		1,	
-		TEXT("0:off, 1:on and blend with scene, 2:on and overwrite scene.\n")
-		TEXT("Whether to render the reflection environment feature, which implements local reflections through Reflection Capture actors."),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.GPUBusyWait"),
-		0.0f,	
-		TEXT("<=0:off, >0: keep the GPU busy with n units of some fixed amount of work, independent on the resolution\n")
-		TEXT("This can be useful to make GPU timing experiments. The value should roughly represent milliseconds.\n")
-		TEXT("Clamped at 500."),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("t.OverrideFPS"),
-		0.0f,
-		TEXT("This allows to override the frame time measurement with a fixed fps number (game can run faster or slower).\n")
-		TEXT("<=0:off, in frames per second, e.g. 60"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.LimitRenderingFeatures"),
-		0,
-		TEXT("Allows to quickly reduce render feature to increase render performance.\n")
-		TEXT("This is just a quick way to alter multiple show flags and console variables in the game\n")
-		TEXT("Disabled more feature the higher the number\n")
-		TEXT(" <=0:off, order is defined in code (can be documented here when we settled on an order)"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariableRef(TEXT("r.DumpingMovie"),
-		GIsDumpingMovie,
-		TEXT("Allows to dump each rendered frame to disk (slow fps, names MovieFrame..).\n")
-		TEXT("<=0:off (default), <0:remains on, >0:remains on for n frames (n is the number specified)"),
-		ECVF_Cheat);
-
-	// ---------------------------------------
-	// physics related
-	// ---------------------------------------
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ShowInitialOverlaps"),
-		0,
-		TEXT("Show initial overlaps when moving a component, including estimated 'exit' direction.\n")
-		TEXT(" 0:off, otherwise on"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.NetShowCorrections"),
-		0,
-		TEXT("Whether to draw client position corrections (red is incorrect, green is corrected).\n")
-		TEXT("0: Disable, 1: Enable"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.NetCorrectionLifetime"),
-		4.f,
-		TEXT("How long a visualized network correction persists.\n")
-		TEXT("Time in seconds each visualized network correction persists."),
-		ECVF_Cheat);
-
-	// ---------------------------------------
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("g.DebugCameraTraceComplex"),
-		1,
-		TEXT("Whether DebugCamera should use complex or simple collision for the line trace.\n")
-		TEXT("1: complex collision, 0: simple collision "),
-		ECVF_Cheat);
-
-	// ---------------------------------------
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ExposureOffset"),
-		0.0f,
-		TEXT("For adjusting the exposure on top of post process settings and eye adaptation. For developers only. 0:default"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Shadow.FreezeCamera"),
-		0,
-		TEXT("Debug the shadow methods by allowing to observe the system from outside.\n")
-		TEXT("0: default\n")
-		TEXT("1: freeze camera at current location"),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ForceLOD"),
-		-1,
-		TEXT("LOD level to force, -1 is off."),
-		ECVF_Cheat | ECVF_RenderThreadSafe
-		);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MotionBlurFiltering"),
-		0,
-		TEXT("Useful developer variable\n")
-		TEXT("0: off (default, expected by the shader for better quality)\n")
-		TEXT("1: on"),
-		ECVF_Cheat | ECVF_RenderThreadSafe);
-
-	// ---------------------------------------
 
 	// the following commands are common exec commands that should be added to auto completion (todo: read UnConsole list in ini, discover all exec commands)
 	IConsoleManager::Get().RegisterConsoleCommand(TEXT("VisualizeTexture"),	TEXT("To visualize internal textures"), ECVF_Cheat);
@@ -1453,627 +1296,6 @@ void CreateConsoleVariables()
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.UniformBufferPooling"),
-		1,
-		TEXT("If we pool object in RHICreateUniformBuffer to have less real API calls to creat buffers\n")
-		TEXT(" 0: off (for debugging)\n")
-		TEXT(" 1: on (optimization)"),
-		ECVF_RenderThreadSafe);
-
-	// The following console variable should never be compiled out ------------------
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ClearWithExcludeRects"),
-		2,
-		TEXT("Control the use of exclude rects when using RHIClear\n")
-		TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
-		TEXT(" 1: Use exclude rect if supplied\n")
-		TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.SimpleDynamicLighting"),
-		0,	
-		TEXT("Whether to use simple dynamic lighting, which just renders an unshadowed dynamic directional light and a skylight.\n")
-		TEXT("All other lighting features are disabled when true.  This is useful for supporting very low end hardware.\n")
-		TEXT("0:off, 1:on"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MobileHDR"),
-		1,	
-		TEXT("0: Mobile renders in LDR gamma space. (suggested for unlit games targeting low-end phones)\n")
-		TEXT("1: Mobile renders in HDR linear space. (default)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MobileHDR32bpp"),
-		0,	
-		TEXT("0: Mobile HDR renders to an FP16 render target.\n")
-		TEXT("1: Mobile HDR renders to an RGBA8 target."),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ClearSceneMethod"),
-		1,
-		TEXT("Select how scene rendertarget clears are handled\n")
-		TEXT(" 0: No clear\n")
-		TEXT(" 1: RHIClear (default)\n")
-		TEXT(" 2: Quad at max z"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.SeparateTranslucency"),
-		1,
-		TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
-		TEXT("after DOF, if not specified otherwise in the material).\n")
-		TEXT(" 0: off (translucency is affected by depth of field)\n")
-		TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Fieled. (default)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.LensFlareQuality"),
-		2,
-		TEXT(" 0: off but best for performance\n")
-		TEXT(" 1: low quality with good performance\n")
-		TEXT(" 2: good quality (default)\n")
-		TEXT(" 3: very good quality but bad performance"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BloomQuality"),
-		5,
-		TEXT(" 0: off, no performance impact.\n")
-		TEXT(" 1: average quality, least performance impact.\n")
-		TEXT(" 2: average quality, least performance impact.\n")
-		TEXT(" 3: good quality.\n")
-		TEXT(" 4: good quality.\n")
-		TEXT(" 5: Best quality, most significant performance impact. (default)\n")
-		TEXT(">5: force experimental higher quality on mobile (can be quite slow on some hardware)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.SceneColorFringeQuality"),
-		1,
-		TEXT(" 0: off but best for performance\n")
-		TEXT(" 1: 3 texture samples (default)n"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.UpsampleQuality"),
-		3,
-		TEXT(" 0: Nearest filtering\n")
-		TEXT(" 1: Simple Bilinear\n")
-		TEXT(" 2: 4 tap bilinear\n")
-		TEXT(" 3: Directional blur with unsharp mask upsample. (default)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	// ---------------------------------------
-	// physics related
-	// ---------------------------------------
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.InitialOverlapTolerance"),
-		0.0f,
-		TEXT("Tolerance for initial overlapping test in PrimitiveComponent movement.\n")
-		TEXT("Normals within this tolerance are ignored if moving out of the object.\n")
-		TEXT("Dot product of movement direction and surface normal."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.PenetrationPullbackDistance"),
-		0.125f,
-		TEXT("Pull out from penetration of an object by this extra distance.\n")
-		TEXT("Distance added to penetration fix-ups."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.EncroachEpsilon"),
-		0.15f,
-		TEXT("Epsilon value encroach checking for capsules\n")
-		TEXT("0: use full sized capsule. > 0: shrink capsule size by this amount (world units)"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.NetEnableMoveCombining"),
-		1,
-		TEXT("Whether to enable move combining on the client to reduce bandwidth by combining similar moves.\n")
-		TEXT("0: Disable, 1: Enable"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.NetProxyShrinkRadius"),
-		0.01f,
-		TEXT("Shrink simulated proxy capsule radius by this amount, to account for network rounding that may cause encroachment.\n")
-		TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
-		TEXT("<= 0: disabled, > 0: shrink by this amount."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.NetProxyShrinkHalfHeight"),
-		0.01f,
-		TEXT("Shrink simulated proxy capsule half height by this amount, to account for network rounding that may cause encroachment.\n")
-		TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
-		TEXT("<= 0: disabled, > 0: shrink by this amount."),
-		ECVF_Default);
-
-
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ToleranceScale_Length"),
-		100.f,
-		TEXT("The approximate size of objects in the simulation. Default: 100"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ToleranceScale_Mass"),
-		100.f,
-		TEXT("The approximate mass of a length * length * length block. Default: 100"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ToleranceScale_Speed"),
-		1000.f,
-		TEXT("The typical magnitude of velocities of objects in simulation. Default: 1000"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ConstraintDampingScale"),
-		100000.f,
-		TEXT("The multiplier of constraint damping in simulation. Default: 100000"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ConstraintStiffnessScale"),
-		100000.f,
-		TEXT("The multiplier of constraint stiffness in simulation. Default: 100000"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.ContactOffsetFactor"),
-		0.01f,
-		TEXT("Multiplied by min dimension of object to calculate how close objects get before generating contacts. Default: 0.01"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.MaxContactOffset"),
-		1.f,
-		TEXT("Max value of contact offset, which controls how close objects get before generating contacts. Default: 1.0"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.BounceThresholdVelocity"),
-		200.f,
-		TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
-		ECVF_Default);
-
-	// ---------------------------------------
-	// APEX
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.APEXMaxDestructibleDynamicChunkIslandCount"),
-		2000,
-		TEXT("APEX Max Destructilbe Dynamic Chunk Island Count."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.APEXMaxDestructibleDynamicChunkCount"),
-		2000,
-		TEXT("APEX Max Destructible dynamic Chunk Count."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("p.bAPEXSortDynamicChunksByBenefit"),
-		1,
-		TEXT("True if APEX should sort dynamic chunks by benefit."),
-		ECVF_Default);
-
-	// ---------------------------------------
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AmbientOcclusionLevels"),
-		3,
-		TEXT("Defines how many mip levels are using during the ambient occlusion calculation. This is useful when tweaking the algorithm.\n")
-		TEXT(" 0:none, 1:one, 2:two, 3:three(default), 4:four(larger at little cost but can flicker)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AmbientOcclusionRadiusScale"),
-		1.0f,
-		TEXT("Allows to scale the ambient occlusion radius (SSAO).\n")
-		TEXT(" 0:off, 1.0:normal, <1:smaller, >1:larger"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AtmosphereRender"),
-		1,
-		TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command\n")
-		TEXT(" 0: off\n")
-		TEXT(" 1: on"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ShadowQuality"),
-		5,
-		TEXT("Defines the shadow method which allows to adjust for quality or performance.\n")
-		TEXT(" 0:off, 1:low(unfiltered), 2:low .. 5:max (default)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MotionBlurQuality"),
-		4,
-		TEXT("Defines the motion blur method which allows to adjust for quality or performance.\n")
-		TEXT(" 0:off, 1:low, 2:medium, 3:high (default), 4: very high"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PostProcessAAQuality"),
-		4,
-		TEXT("Defines the postprocess anti aliasing method which allows to adjust for quality or performance.\n")
-		TEXT(" 0:off, 1:very low (faster FXAA), 2:low (FXAA), 3:medium (faster TemporalAA), 4:high (default TemporalAA), 5:very high, 6:max"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MotionBlurSoftEdgeSize"),
-		1.0f,
-		TEXT("Defines how lange object motion blur is blurred (percent of screen width) to allow soft edge motion blur.\n")
-		TEXT("This scales linearly with the size (up to a maximum of 32 samples, 2.5 is about 18 samples) and with screen resolution\n")
-		TEXT("Smaller values are better for performance and provide more accurate motion vectors but the blurring outside the object is reduced.\n")
-		TEXT("If needed this can be exposed like the other motionblur settings.\n")
-		TEXT(" 0:off (not free and does never completely disable), >0, 1.0 (default)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Color.Min"),
-		0.0f,
-		TEXT("Allows to define where the value 0 in the color channels is mapped to after color grading.\n")
-		TEXT("The value should be around 0, positive: a gray scale is added to the darks, negative: more dark values become black, Default: 0"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Color.Mid"),
-		0.5f,
-		TEXT("Allows to define where the value 0.5 in the color channels is mapped to after color grading (This is similar to a gamma correction).\n")
-		TEXT("Value should be around 0.5, smaller values darken the mid tones, larger values brighten the mid tones, Default: 0.5"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Color.Max"),
-		1.0f,
-		TEXT("Allows to define where the value 1.0 in the color channels is mapped to after color grading.\n")
-		TEXT("Value should be around 1, smaller values darken the highlights, larger values move more colors towards white, Default: 1"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FullScreenMode"),
-		2,
-		TEXT("Defines how we do full screen when requested (e.g. command line option -fullscreen or in ini [SystemSettings] fullscreen=true)\n")
-		TEXT(" 0: normal full screen (renders faster, more control over vsync, less GPU memory, 10bit color if possible)\n")
-		TEXT(" 1: windowed full screen, desktop resolution (quick switch between applications and window mode, full quality)\n")
-		TEXT(" 2: windowed full screen, specified resolution (like 1 but no unintuitive performance cliff, can be blurry, default)\n")
-		TEXT(" any other number behaves like 0"),
-		ECVF_Scalability);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.GBufferFormat"),
-		1,
-		TEXT("Defines the memory layout used for the GBuffer.\n")
-		TEXT("(affects performance, mostly through bandwidth, quality of normals and material attributes).\n")
-		TEXT(" 0: lower precision (8bit per component, for profiling)\n")
-		TEXT(" 1: low precision (default)\n")
-		TEXT(" 5: high precision"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.SceneColorFormat"),
-		4,
-		TEXT("Defines the memory layout (RGBA) used for the scene color\n")
-		TEXT("(affects performance, mostly through bandwidth, quality especially with translucency).\n")
-		TEXT(" 0: PF_B8G8R8A8 32Bit (mostly for testing, likely to unusable with HDR)\n")
-		TEXT(" 1: PF_A2B10G10R10 32Bit\n")
-		TEXT(" 2: PF_FloatR11G11B10 32Bit\n")
-		TEXT(" 3: PF_FloatRGB 32Bit\n")
-		TEXT(" 4: PF_FloatRGBA 64Bit (default, might be overkill, especially if translucency is mostly using SeparateTranslucency)\n")
-		TEXT(" 5: PF_A32B32G32R32F 128Bit (unreasonable but good for testing)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AmbientOcclusionStaticFraction"),
-		-1.0f,
-		TEXT("Allows to override the Ambient Occlusion Static Fraction (see post process volume). Fractions are between 0 and 1.\n")
-		TEXT("<0: use default setting (default -1)\n")
-		TEXT(" 0: no effect on static lighting, 0 is free meaning no extra rendering pass\n")
-		TEXT(" 1: AO affects the stat lighting"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.DepthOfFieldQuality"),
-		2,
-		TEXT("Allows to adjust the depth of field quality. Currently only fully affects BokehDOF. GaussianDOF is either 0 for off, otherwise on.\n")
-		TEXT(" 0: Off\n")
-		TEXT(" 1: Low\n")
-		TEXT(" 2: high quality (default, adaptive, can be 4x slower)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.DepthOfFieldNearBlurSizeThreshold"),
-		0.01f,
-		TEXT("Sets the minimum near blur size before the effect is forcably disabled. Currently only affects Gaussian DOF.\n")
-		TEXT(" (default = 0.01f)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ScreenPercentage"),
-		-1.0f,
-		TEXT("To render in lower resolution and upscale for better performance.\n")
-		TEXT("70 is a good value for low aliasing and performance, can be verified with 'show TestImage'\n")
-		TEXT("in percent, >0 and <=100, <0 means the post process volume settings are used"),
-		ECVF_Scalability | ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ScreenPercentageSoftness"),
-		0.3f,
-		TEXT("To scale up with higher quality loosing some sharpness\n")
-		TEXT(" 0..1 (0.3 is good for ScreenPercentage 90"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BlackBorders"),
-		1,	
-		TEXT("To draw black borders around the rendered image\n")
-		TEXT("(prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)\n")
-		TEXT("in pixels, 0:off"),
-		ECVF_Default);
-
-	// Changing this causes a full shader recompile
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.UseDiffuseSpecularMaterialInputs"),
-		0,	
-		TEXT("Whether to use DiffuseColor, SpecularColor material inputs, otherwise BaseColor, Metallic, Specular will be used. Cannot be changed at runtime."),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MaterialQualityLevel"),
-		1,	
-		TEXT("0 corresponds to low quality materials, as defined by quality switches in materials, 1 corresponds to high."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("Compat.UseDXT5NormalMaps"),
-		0,	
-		TEXT("Whether to use DXT5 for normal maps, otherwise BC5 will be used, which is not supported on all hardware.\n")
-		TEXT("Both formats require the same amount of memory (if driver doesn't emulate the format).\n")
-		TEXT("Changing this will cause normal maps to be recompressed on next load (or when using recompile shaders)\n")
-		TEXT(" 0: Use BC5 texture format (default)\n")
-		TEXT(" 1: Use DXT5 texture format (lower quality)"),
-		// 
-		// Changing this causes a full shader recompile
-
-		ECVF_ReadOnly);
-
-	// Changing this is currently unsupported after content has been chunked with the previous setting
-	// Changing this causes a full shader recompile
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("Compat.MAX_GPUSKIN_BONES"),
-		256,	
-		TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
-		ECVF_ReadOnly);
-
-	// Changing this causes a full shader recompile
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AllowStaticLighting"),
-		1,	
-		TEXT("Whether to allow any static lighting to be generated and used, like lightmaps and shadowmaps.\n")
-		TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
-		ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.AllowMeshDistanceFieldRepresentations"),
-		0,	
-		TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
-		TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("con.MinLogVerbosity"),
-		0,
-		TEXT("Allows to see the log in the in game console (by default deactivated to avoid spam and minor performance loss).\n")
-		TEXT(" 0: no logging other than console response (default)\n")
-		TEXT(" 1: Only fatal errors (no that useful)\n")
-		TEXT(" 2: additionally errors\n")
-		TEXT(" 3: additionally warnings\n")
-		TEXT(" 4: additionally display\n")
-		TEXT(" 5: additionally log\n")
-		TEXT("..\n")
-		TEXT(">=7: all"),
-		ECVF_Default);
-	
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MSAA.CompositingSampleCount"),
-		4,
-		TEXT("Affects the render quality of the editor 3d objects.\n")
-		TEXT(" 1: no MSAA, lowest quality\n")
-		TEXT(" 2: 2x MSAA, medium quality (medium GPU memory consumption)\n")
-		TEXT(" 4: 4x MSAA, high quality (high GPU memory consumption)\n")
-		TEXT(" 8: 8x MSAA, very high quality (insane GPU memory consumption)"),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.DormancyEnable"),
-		1,	
-		TEXT("Enables Network Dormancy System for reducing CPU and bandwidth overhead of infrequently updated actors\n")
-		TEXT("1 Enables network dormancy. 0 disables network dormancy."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.DormancyDraw"),
-		0,
-		TEXT("Draws debug information for network dormancy\n")
-		TEXT("1 Enables network dormancy debugging. 0 disables."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.DormancyDrawCullDistance"),
-		5000.f,
-		TEXT("Cull distance for net.DormancyDraw. World Units")
-		TEXT("Max world units an actor can be away from the local view to draw its dormancy status"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.DormancyValidate"),
-		0,
-		TEXT("Validates that dormant actors do not change state while in a dormant state (on server only)")
-		TEXT("0: Dont validate. 1: Validate on wake up. 2: Validate on each net update"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.PackageMap.DebugObject"),
-		TEXT(""),
-		TEXT("Debugs PackageMap serialization of object")
-		TEXT("Partial name of object to debug"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.Replication.DebugProperty"),
-		TEXT(""),
-		TEXT("Debugs Replication of property by name")
-		TEXT("Partial name of property to debug"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.Reliable.Debug"),
-		0,
-		TEXT("Print all reliable bunches sent over the network\n")
-		TEXT(" 0: no print.\n")
-		TEXT(" 1: Print bunches as they are sent.\n")
-		TEXT(" 2: Print reliable bunch buffer each net update"),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.RPC.Debug"),
-		0,
-		TEXT("Print all RPC bunches sent over the network\n")
-		TEXT(" 0: no print.\n")
-		TEXT(" 1: Print bunches as they are sent."),
-		ECVF_Default);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("net.Montage.Debug"),
-		0,
-		TEXT("Prints Replication information about AnimMontages\n")
-		TEXT(" 0: no print.\n")
-		TEXT(" 1: Print AnimMontage info on client side as they are played."),
-		ECVF_Cheat);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.RenderTargetPoolMin"),
-		400,
-		TEXT("If the render target pool size (in MB) is below this number there is no deallocation of rendertargets")
-		TEXT("Default is 200 MB."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Shadow.DistanceFieldPenumbraSize"),
-		0.05f,
-		TEXT("Controls the size of the uniform penumbra produced by static shadowing.\n")
-		TEXT("This is a fraction of MaxTransitionDistanceWorldSpace in BaseLightmass.ini."),
-		ECVF_RenderThreadSafe);
-
-	static TAutoConsoleVariable<int32> CVarIdleWhenNotForeground(
-		TEXT("t.IdleWhenNotForeground"),0,
-		TEXT("Prevents the engine from taking any CPU or GPU time while not the foreground app."),
-		ECVF_Cheat);
-	
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.TemporalAASamples"),
-		8,
-		TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
-		ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.VSync"),
-		0,
-		TEXT("0: VSync is disabled.(default)\n")
-		TEXT("1: VSync is enabled."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.DontLimitOnBattery"),
-		0,
-		TEXT("0: Limit performance on devices with a battery.(default)\n")
-		TEXT("1: Do not limit performance due to device having a battery."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FinishCurrentFrame"),
-		0,
-		TEXT("If on, the current frame will be forced to finish and render to the screen instead of being buffered.  This will improve latency, but slow down overall performance."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MaxAnisotropy"),
-		4,
-		TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Shadow.MaxResolution"),
-		1024,
-		TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Shadow.CSM.TransitionScale"),
-		1.0f,
-		TEXT("Allows to scale the cascaded shadow map transition region. Clamped within 0..2.\n")
-		TEXT("0: no transition (fastest)\n")
-		TEXT("1: as specific in the light settings (default)\n")
-		TEXT("2: 2x larger than what was specified in the light"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.MobileContentScaleFactor"),
-		1.0f,
-		TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
-		ECVF_Default);
-
-#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.TextureStreaming"),
-		1,
-		TEXT("Allows to define if texture streaming is enabled, can be changed at run time.\n")
-		TEXT("0: off\n")
-		TEXT("1: on (default)"),
-		ECVF_Default | ECVF_RenderThreadSafe);
-#endif
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Streaming.PoolSize"),
-		-1,
-		TEXT("-1: Default texture pool size, otherwise the size in MB\n"),
-		ECVF_Scalability );
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Streaming.UseFixedPoolSize"),
-		0,
-		TEXT("If non-zero, do not allow the pool size to change at run time."),
-		ECVF_ReadOnly );
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ShaderDevelopmentMode"),
-		0,
-		TEXT("0: Default, 1: Enable various shader development utilities, such as the ability to retry on failed shader compile, and extra logging as shaders are compiled."),
-		ECVF_Default);
-
-	// this cvar can be removed in shipping to not compile shaders for development (faster)
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.CompileShadersForDevelopment"),
-		1,
-		TEXT("Setting this to 0 allows to ship a game with more optimized shaders as some\n")
-		TEXT("editor and development features are not longer compiled into the shaders.\n")
-		TEXT(" Note: This should be done when shipping but it's not done automatically yet (feature need to mature\n")
-		TEXT("       and shaders will compile slower as shader caching from development isn't shared).\n")
-		TEXT("Cannot be changed at runtime - can be put into BaseEngine.ini\n")
-		TEXT(" 0: off, shader can run a bit faster\n")
-		TEXT(" 1: on (Default)"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PS4MixedModeShaderDebugInfo"),
-		0,
-		TEXT("Whether to compile shaders to allow mixed mode shader debugging. This will currently generate slower code.\n")
-		TEXT(" 0: Normal mode\n")
-		TEXT(" 1: Mixed mode)"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PS4DumpShaderSDB"),
-		0,
-		TEXT("Whether to dump shader sdb files used for shader association.\n")
-		TEXT(" 0: Disabled\n")
-		TEXT(" 1: Enabled)"),
-		ECVF_ReadOnly);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.ViewDistanceScale"),
-		1.0f,
-		TEXT("Controls the view distance scale. A primitive's MaxDrawDistance is scaled by this value.\n")
-		TEXT("Higher values will increase view distance but at a performance cost.\n")
-		TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.LightFunctionQuality"),
-		2,
-		TEXT("Defines the light function quality which allows to adjust for quality or performance.\n")
-		TEXT("<=0: off (fastest)\n")
-		TEXT("  1: low quality (e.g. half res with blurring, not yet implemented)\n")
-		TEXT("  2: normal quality (default)\n")
-		TEXT("  3: high quality (e.g. super-sampled or colored, not yet implemented)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.EyeAdaptationQuality"),
-		2,
-		TEXT("Defines the eye adaptation quality which allows to adjust for quality or performance.\n")
-		TEXT("<=0: off (fastest)\n")
-		TEXT("  1: low quality (e.g. non histogram based, not yet implemented)\n")
-		TEXT("  2: normal quality (default)\n")
-		TEXT("  3: high quality (e.g. screen position localized, not yet implemented)"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.Shadow.DistanceScale"),
-		1.0f,
-		TEXT("Scalability option to trade shadow distance versus performance for directional lights (clamped within a reasonable range).\n")
-		TEXT("<1: shorter distance\n")
-		TEXT(" 1: normal (default)\n")
-		TEXT(">1: larger distance"),
-		ECVF_Scalability | ECVF_RenderThreadSafe);
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.BokehDOFIndexStyle"),
-#if PLATFORM_MAC // Avoid a driver bug on OSX/NV cards that causes driver to generate an unwound index buffer
-		1,
-#else
-		0,
-#endif
-		TEXT("Controls whether to use a packed or unwound index buffer for Bokeh DOF.\n")
-		TEXT("0: Use packed index buffer (faster) (default)\n")
-		TEXT("1: Use unwound index buffer (slower)"),
-		ECVF_ReadOnly | ECVF_RenderThreadSafe);
-
-
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FreeSkeletalMeshBuffers"),
-		0,
-		TEXT("Controls whether skeletal mesh buffers are kept in CPU memory to support merging of skeletal meshes.\n")
-		TEXT("0: Keep buffers(default)\n")
-		TEXT("1: Free buffers"),
-		ECVF_RenderThreadSafe );
-
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.PreventInvalidMaterialConnections"),
-		1,
-		TEXT("Controls whether users can make connections in the material editor if the system\n")
-		TEXT("determines that they may cause compile errors\n")
-		TEXT("0: Allow all connections\n")
-		TEXT("1: Prevent invalid connections"),
-		ECVF_Cheat );
-
 	// testing code
 	{
 		FConsoleManager& ConsoleManager = (FConsoleManager&)IConsoleManager::Get();
@@ -2082,6 +1304,470 @@ void CreateConsoleVariables()
 	}
 }
 
+// Naming conventions:
+//
+// Console variable should start with (suggestion):
+//
+// r.      Renderer / 3D Engine / graphical feature
+// RHI.    Low level RHI (rendering platform) specific
+// a.	   Animation
+// s. 	   Sound / Music
+// n.      Network
+// ai.     Artificial intelligence
+// i.      Input e.g. mouse/keyboard
+// p.      Physics
+// t.      Timer
+// g.      Game
+// Compat.
+// FX.     Particle effects
+// sg.     scalability group (used by scalability system, ini load/save or using SCALABILITY console command)
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarPreViewTranslation(
+	TEXT("r.PreViewTranslation"),
+	1,
+	TEXT("To limit issues with float world space positions we offset the world by the\n")
+	TEXT("PreViewTranslation vector. This command allows to disable updating this vector.\n")
+	TEXT(" 0: disable update\n")
+	TEXT(" 1: update the offset is each frame (default)"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<FString> CVarFreezeAtPosition(
+	TEXT("FreezeAtPosition"),
+	TEXT(""),	// default value is empty
+	TEXT("This console variable stores the position and rotation for the FreezeAt command which allows\n")
+	TEXT("to lock the camera in order to provide more deterministic render profiling.\n")
+	TEXT("The FreezeAtPosition can be set in the ConsoleVariables.ini (start the map with MAPNAME?bTourist=1).\n")
+	TEXT("Also see the FreezeAt command console command.\n")
+	TEXT("The number syntax if the same as the one used by the BugIt command:\n")
+	TEXT(" The first three values define the position, the next three define the rotation.\n")
+	TEXT("Example:\n")
+	TEXT(" FreezeAtPosition 2819.5520 416.2633 75.1500 65378 -25879 0"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarLimitRenderingFeatures(
+	TEXT("r.LimitRenderingFeatures"),
+	0,
+	TEXT("Allows to quickly reduce render feature to increase render performance.\n")
+	TEXT("This is just a quick way to alter multiple show flags and console variables in the game\n")
+	TEXT("Disabled more feature the higher the number\n")
+	TEXT(" <=0:off, order is defined in code (can be documented here when we settled on an order)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarDumpingMovie(
+	TEXT("r.DumpingMovie"),
+	GIsDumpingMovie,
+	TEXT("Allows to dump each rendered frame to disk (slow fps, names MovieFrame..).\n")
+	TEXT("<=0:off (default), <0:remains on, >0:remains on for n frames (n is the number specified)"),
+	ECVF_Cheat);
+
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+static TAutoConsoleVariable<int32> CVarUniformBufferPooling(
+	TEXT("r.UniformBufferPooling"),
+	1,
+	TEXT("If we pool object in RHICreateUniformBuffer to have less real API calls to creat buffers\n")
+	TEXT(" 0: off (for debugging)\n")
+	TEXT(" 1: on (optimization)"),
+	ECVF_RenderThreadSafe);
+
+// The following console variable should never be compiled out ------------------
+static TAutoConsoleVariable<int32> CVarClearWithExcludeRects(
+	TEXT("r.ClearWithExcludeRects"),
+	2,
+	TEXT("Control the use of exclude rects when using RHIClear\n")
+	TEXT(" 0: Force off (can be faster on hardware that has fast clears)\n")
+	TEXT(" 1: Use exclude rect if supplied\n")
+	TEXT(" 2: Auto (default is 2, pick what is considered best on this hardware)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSimpleDynamicLighting(
+	TEXT("r.SimpleDynamicLighting"),
+	0,
+	TEXT("Whether to use simple dynamic lighting, which just renders an unshadowed dynamic directional light and a skylight.\n")
+	TEXT("All other lighting features are disabled when true.  This is useful for supporting very low end hardware.\n")
+	TEXT("0:off, 1:on"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileHDR(
+	TEXT("r.MobileHDR"),
+	1,
+	TEXT("0: Mobile renders in LDR gamma space. (suggested for unlit games targeting low-end phones)\n")
+	TEXT("1: Mobile renders in HDR linear space. (default)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMobileHDR32bpp(
+	TEXT("r.MobileHDR32bpp"),
+	0,
+	TEXT("0: Mobile HDR renders to an FP16 render target.\n")
+	TEXT("1: Mobile HDR renders to an RGBA8 target."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSetClearSceneMethod(
+	TEXT("r.ClearSceneMethod"),
+	1,
+	TEXT("Select how scene rendertarget clears are handled\n")
+	TEXT(" 0: No clear\n")
+	TEXT(" 1: RHIClear (default)\n")
+	TEXT(" 2: Quad at max z"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarLensFlareQuality(
+	TEXT("r.LensFlareQuality"),
+	2,
+	TEXT(" 0: off but best for performance\n")
+	TEXT(" 1: low quality with good performance\n")
+	TEXT(" 2: good quality (default)\n")
+	TEXT(" 3: very good quality but bad performance"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarBloomQuality(
+	TEXT("r.BloomQuality"),
+	5,
+	TEXT(" 0: off, no performance impact.\n")
+	TEXT(" 1: average quality, least performance impact.\n")
+	TEXT(" 2: average quality, least performance impact.\n")
+	TEXT(" 3: good quality.\n")
+	TEXT(" 4: good quality.\n")
+	TEXT(" 5: Best quality, most significant performance impact. (default)\n")
+	TEXT(">5: force experimental higher quality on mobile (can be quite slow on some hardware)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarSceneColorFringeQuality(
+	TEXT("r.SceneColorFringeQuality"),
+	1,
+	TEXT(" 0: off but best for performance\n")
+	TEXT(" 1: 3 texture samples (default)n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+
+// ---------------------------------------
+
+static TAutoConsoleVariable<int32> CVarAmbientOcclusionLevels(
+	TEXT("r.AmbientOcclusionLevels"),
+	3,
+	TEXT("Defines how many mip levels are using during the ambient occlusion calculation. This is useful when tweaking the algorithm.\n")
+	TEXT(" 0:none, 1:one, 2:two, 3:three(default), 4:four(larger at little cost but can flicker)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarAmbientOcclusionRadiusScale(
+	TEXT("r.AmbientOcclusionRadiusScale"),
+	1.0f,
+	TEXT("Allows to scale the ambient occlusion radius (SSAO).\n")
+	TEXT(" 0:off, 1.0:normal, <1:smaller, >1:larger"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarAmbientOcclusionStaticFraction(TEXT("r.AmbientOcclusionStaticFraction"),
+	-1.0f,
+	TEXT("Allows to override the Ambient Occlusion Static Fraction (see post process volume). Fractions are between 0 and 1.\n")
+	TEXT("<0: use default setting (default -1)\n")
+	TEXT(" 0: no effect on static lighting, 0 is free meaning no extra rendering pass\n")
+	TEXT(" 1: AO affects the stat lighting"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarAtmosphereRender(
+	TEXT("r.AtmosphereRender"),
+	1,
+	TEXT("Defines atmosphere will render or not. Only changed by r.Atmosphere console command\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarShadowQuality(
+	TEXT("r.ShadowQuality"),
+	5,
+	TEXT("Defines the shadow method which allows to adjust for quality or performance.\n")
+	TEXT(" 0:off, 1:low(unfiltered), 2:low .. 5:max (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMotionBlurQuality(
+	TEXT("r.MotionBlurQuality"),
+	4,
+	TEXT("Defines the motion blur method which allows to adjust for quality or performance.\n")
+	TEXT(" 0:off, 1:low, 2:medium, 3:high (default), 4: very high"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarPostProcessAAQuality(
+	TEXT("r.PostProcessAAQuality"),
+	4,
+	TEXT("Defines the postprocess anti aliasing method which allows to adjust for quality or performance.\n")
+	TEXT(" 0:off, 1:very low (faster FXAA), 2:low (FXAA), 3:medium (faster TemporalAA), 4:high (default TemporalAA), 5:very high, 6:max"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarFullscreenMode(
+	TEXT("r.FullScreenMode"),
+	2,
+	TEXT("Defines how we do full screen when requested (e.g. command line option -fullscreen or in ini [SystemSettings] fullscreen=true)\n")
+	TEXT(" 0: normal full screen (renders faster, more control over vsync, less GPU memory, 10bit color if possible)\n")
+	TEXT(" 1: windowed full screen, desktop resolution (quick switch between applications and window mode, full quality)\n")
+	TEXT(" 2: windowed full screen, specified resolution (like 1 but no unintuitive performance cliff, can be blurry, default)\n")
+	TEXT(" any other number behaves like 0"),
+	ECVF_Scalability);
+
+static TAutoConsoleVariable<int32> CVarSceneColorFormat(
+	TEXT("r.SceneColorFormat"),
+	4,
+	TEXT("Defines the memory layout (RGBA) used for the scene color\n")
+	TEXT("(affects performance, mostly through bandwidth, quality especially with translucency).\n")
+	TEXT(" 0: PF_B8G8R8A8 32Bit (mostly for testing, likely to unusable with HDR)\n")
+	TEXT(" 1: PF_A2B10G10R10 32Bit\n")
+	TEXT(" 2: PF_FloatR11G11B10 32Bit\n")
+	TEXT(" 3: PF_FloatRGB 32Bit\n")
+	TEXT(" 4: PF_FloatRGBA 64Bit (default, might be overkill, especially if translucency is mostly using SeparateTranslucency)\n")
+	TEXT(" 5: PF_A32B32G32R32F 128Bit (unreasonable but good for testing)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarDepthOfFieldQuality(
+	TEXT("r.DepthOfFieldQuality"),
+	2,
+	TEXT("Allows to adjust the depth of field quality. Currently only fully affects BokehDOF. GaussianDOF is either 0 for off, otherwise on.\n")
+	TEXT(" 0: Off\n")
+	TEXT(" 1: Low\n")
+	TEXT(" 2: high quality (default, adaptive, can be 4x slower)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarScreenPercentage(
+	TEXT("r.ScreenPercentage"),
+	-1.0f,
+	TEXT("To render in lower resolution and upscale for better performance.\n")
+	TEXT("70 is a good value for low aliasing and performance, can be verified with 'show TestImage'\n")
+	TEXT("in percent, >0 and <=100, <0 means the post process volume settings are used"),
+	ECVF_Scalability | ECVF_Default);
+
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarUseDiffuseSpecularMaterialInputs(
+	TEXT("r.UseDiffuseSpecularMaterialInputs"),
+	0,
+	TEXT("Whether to use DiffuseColor, SpecularColor material inputs, otherwise BaseColor, Metallic, Specular will be used. Cannot be changed at runtime."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarMaterialQualityLevel(
+	TEXT("r.MaterialQualityLevel"),
+	1,
+	TEXT("0 corresponds to low quality materials, as defined by quality switches in materials, 1 corresponds to high."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarUseDXT5NormalMaps(
+	TEXT("Compat.UseDXT5NormalMaps"),
+	0,
+	TEXT("Whether to use DXT5 for normal maps, otherwise BC5 will be used, which is not supported on all hardware.\n")
+	TEXT("Both formats require the same amount of memory (if driver doesn't emulate the format).\n")
+	TEXT("Changing this will cause normal maps to be recompressed on next load (or when using recompile shaders)\n")
+	TEXT(" 0: Use BC5 texture format (default)\n")
+	TEXT(" 1: Use DXT5 texture format (lower quality)"),
+	// 
+	// Changing this causes a full shader recompile
+	ECVF_ReadOnly);
+
+// Changing this is currently unsupported after content has been chunked with the previous setting
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarMaxGPUSkinBones(
+	TEXT("Compat.MAX_GPUSKIN_BONES"),
+	256,
+	TEXT("Max number of bones that can be skinned on the GPU in a single draw call. Cannot be changed at runtime."),
+	ECVF_ReadOnly);
+
+// Changing this causes a full shader recompile
+static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
+	TEXT("r.AllowStaticLighting"),
+	1,
+	TEXT("Whether to allow any static lighting to be generated and used, like lightmaps and shadowmaps.\n")
+	TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMinLogVerbosity(
+	TEXT("con.MinLogVerbosity"),
+	0,
+	TEXT("Allows to see the log in the in game console (by default deactivated to avoid spam and minor performance loss).\n")
+	TEXT(" 0: no logging other than console response (default)\n")
+	TEXT(" 1: Only fatal errors (no that useful)\n")
+	TEXT(" 2: additionally errors\n")
+	TEXT(" 3: additionally warnings\n")
+	TEXT(" 4: additionally display\n")
+	TEXT(" 5: additionally log\n")
+	TEXT("..\n")
+	TEXT(">=7: all"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarMSAACompositingSampleCount(
+	TEXT("r.MSAA.CompositingSampleCount"),
+	4,
+	TEXT("Affects the render quality of the editor 3d objects.\n")
+	TEXT(" 1: no MSAA, lowest quality\n")
+	TEXT(" 2: 2x MSAA, medium quality (medium GPU memory consumption)\n")
+	TEXT(" 4: 4x MSAA, high quality (high GPU memory consumption)\n")
+	TEXT(" 8: 8x MSAA, very high quality (insane GPU memory consumption)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<FString> CVarNetPackageMapDebugObject(
+	TEXT("net.PackageMap.DebugObject"),
+	TEXT(""),
+	TEXT("Debugs PackageMap serialization of object")
+	TEXT("Partial name of object to debug"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<FString> CVarNetReplicationDebugProperty(
+	TEXT("net.Replication.DebugProperty"),
+	TEXT(""),
+	TEXT("Debugs Replication of property by name")
+	TEXT("Partial name of property to debug"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetRPCDebug(
+	TEXT("net.RPC.Debug"),
+	0,
+	TEXT("Print all RPC bunches sent over the network\n")
+	TEXT(" 0: no print.\n")
+	TEXT(" 1: Print bunches as they are sent."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetMontageDebug(
+	TEXT("net.Montage.Debug"),
+	0,
+	TEXT("Prints Replication information about AnimMontages\n")
+	TEXT(" 0: no print.\n")
+	TEXT(" 1: Print AnimMontage info on client side as they are played."),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarRenderTargetPoolMin(
+	TEXT("r.RenderTargetPoolMin"),
+	400,
+	TEXT("If the render target pool size (in MB) is below this number there is no deallocation of rendertargets")
+	TEXT("Default is 200 MB."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarShadowDistanceFieldPenumbraSize(
+	TEXT("r.Shadow.DistanceFieldPenumbraSize"),
+	0.05f,
+	TEXT("Controls the size of the uniform penumbra produced by static shadowing.\n")
+	TEXT("This is a fraction of MaxTransitionDistanceWorldSpace in BaseLightmass.ini."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarIdleWhenNotForeground(
+	TEXT("t.IdleWhenNotForeground"), 0,
+	TEXT("Prevents the engine from taking any CPU or GPU time while not the foreground app."),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarSetVSyncEnabled(
+	TEXT("r.VSync"),
+	0,
+	TEXT("0: VSync is disabled.(default)\n")
+	TEXT("1: VSync is enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
+	TEXT("r.FinishCurrentFrame"),
+	0,
+	TEXT("If on, the current frame will be forced to finish and render to the screen instead of being buffered.  This will improve latency, but slow down overall performance."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarMaxAnistropy(
+	TEXT("r.MaxAnisotropy"),
+	4,
+	TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
+	TEXT("r.Shadow.MaxResolution"),
+	1024,
+	TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarShadowCSMTransitionScale(
+	TEXT("r.Shadow.CSM.TransitionScale"),
+	1.0f,
+	TEXT("Allows to scale the cascaded shadow map transition region. Clamped within 0..2.\n")
+	TEXT("0: no transition (fastest)\n")
+	TEXT("1: as specific in the light settings (default)\n")
+	TEXT("2: 2x larger than what was specified in the light"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarMobileContentScaleFactor(
+	TEXT("r.MobileContentScaleFactor"),
+	1.0f,
+	TEXT("Content scale multiplier (equates to iOS's contentScaleFactor to support Retina displays"),
+	ECVF_Default);
+
+// this cvar can be removed in shipping to not compile shaders for development (faster)
+static TAutoConsoleVariable<int32> CVarCompileShadersForDevelopment(
+	TEXT("r.CompileShadersForDevelopment"),
+	1,
+	TEXT("Setting this to 0 allows to ship a game with more optimized shaders as some\n")
+	TEXT("editor and development features are not longer compiled into the shaders.\n")
+	TEXT(" Note: This should be done when shipping but it's not done automatically yet (feature need to mature\n")
+	TEXT("       and shaders will compile slower as shader caching from development isn't shared).\n")
+	TEXT("Cannot be changed at runtime - can be put into BaseEngine.ini\n")
+	TEXT(" 0: off, shader can run a bit faster\n")
+	TEXT(" 1: on (Default)"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarPS4MixeedModeShaderDebugInfo(
+	TEXT("r.PS4MixedModeShaderDebugInfo"),
+	0,
+	TEXT("Whether to compile shaders to allow mixed mode shader debugging. This will currently generate slower code.\n")
+	TEXT(" 0: Normal mode\n")
+	TEXT(" 1: Mixed mode)"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarPS4DumpShaderSDB(
+	TEXT("r.PS4DumpShaderSDB"),
+	0,
+	TEXT("Whether to dump shader sdb files used for shader association.\n")
+	TEXT(" 0: Disabled\n")
+	TEXT(" 1: Enabled)"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarDontLimitOnBattery(
+	TEXT("r.DontLimitOnBattery"),
+	0,
+	TEXT("0: Limit performance on devices with a battery.(default)\n")
+	TEXT("1: Do not limit performance due to device having a battery."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarViewDistanceScale(
+	TEXT("r.ViewDistanceScale"),
+	1.0f,
+	TEXT("Controls the view distance scale. A primitive's MaxDrawDistance is scaled by this value.\n")
+	TEXT("Higher values will increase view distance but at a performance cost.\n")
+	TEXT("Default = 1. Value should be in the range [0.0f, 1.0f]."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarLightFunctionQuality(
+	TEXT("r.LightFunctionQuality"),
+	2,
+	TEXT("Defines the light function quality which allows to adjust for quality or performance.\n")
+	TEXT("<=0: off (fastest)\n")
+	TEXT("  1: low quality (e.g. half res with blurring, not yet implemented)\n")
+	TEXT("  2: normal quality (default)\n")
+	TEXT("  3: high quality (e.g. super-sampled or colored, not yet implemented)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarEyeAdaptationQuality(
+	TEXT("r.EyeAdaptationQuality"),
+	2,
+	TEXT("Defines the eye adaptation quality which allows to adjust for quality or performance.\n")
+	TEXT("<=0: off (fastest)\n")
+	TEXT("  1: low quality (e.g. non histogram based, not yet implemented)\n")
+	TEXT("  2: normal quality (default)\n")
+	TEXT("  3: high quality (e.g. screen position localized, not yet implemented)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarShadowDistanceScale(
+	TEXT("r.Shadow.DistanceScale"),
+	1.0f,
+	TEXT("Scalability option to trade shadow distance versus performance for directional lights (clamped within a reasonable range).\n")
+	TEXT("<1: shorter distance\n")
+	TEXT(" 1: normal (default)\n")
+	TEXT(">1: larger distance"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarFreeSkeletalMeshBuffers(
+	TEXT("r.FreeSkeletalMeshBuffers"),
+	0,
+	TEXT("Controls whether skeletal mesh buffers are kept in CPU memory to support merging of skeletal meshes.\n")
+	TEXT("0: Keep buffers(default)\n")
+	TEXT("1: Free buffers"),
+	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarTonemapperQuality(
 	TEXT("r.TonemapperQuality"),
@@ -2109,32 +1795,8 @@ static TAutoConsoleVariable<int32> CVarRefractionQuality(
 	TEXT("  3: high quality (e.g. color fringe, not yet implemented)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<float> CVarSSSSS(
-	TEXT("r.SSSSS"),
-	0.0f,
-	TEXT("Very experimental screen space subsurface scattering on non unlit/lit materials\n")
-	TEXT("0: off\n")
-	TEXT("x: SSS radius in world space e.g. 10"),
-	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
-	TEXT("r.TriangleOrderOptimization"),
-	1,
-	TEXT("Controls the algorithm to use when optimizing the triangle order for the post-transform cache.\n")
-	TEXT("0: Use NVTriStrip (slower)\n")
-	TEXT("1: Use Forsyth algorithm (fastest)(default)"),
-	ECVF_ReadOnly);	
 
-static TAutoConsoleVariable<float> CVarFastBlurThreshold(
-	TEXT("r.FastBlurThreshold"),
-	7.0f,
-	TEXT("Defines at what radius the Gaussian blur optimization kicks in (estimated 25% - 40% faster).\n")
-	TEXT("The optimzation uses slightly less memory and has a quality loss on smallblur radius.\n")
-	TEXT("  0: use the optimization always (fastest, lowest quality)\n")
-	TEXT("  3: use the optimization starting at a 3 pixel radius (quite fast)\n")
-	TEXT("  7: use the optimization starting at a 7 pixel radius (default)\n")
-	TEXT(">15: barely ever use the optimization (high quality)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarUIBlurRadius(
 	TEXT("UI.BlurRadius"),
@@ -2143,15 +1805,6 @@ static TAutoConsoleVariable<float> CVarUIBlurRadius(
 	TEXT("as a percent of screen width\n")
 	TEXT("0 to turn off gaussian blur. (Default 1.2)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarDrawRectangleOptimization(
-	TEXT("r.DrawRectangleOptimization"),
-	1,
-	TEXT("Controls an optimization for DrawRectangle(). When enabled a triangle can be used to draw a quad in certain situations (viewport sized quad).\n")
-	TEXT("Using a triangle allows for slightly faster post processing in lower resolutions but can not always be used.\n")
-	TEXT(" 0: Optimization is disabled, DrawDenormalizedQuad always render with quad\n")
-	TEXT(" 1: Optimization is enabled, a triangle can be rendered where specified (default)"),
-	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarDBuffer(
 	TEXT("r.DBuffer"),
@@ -2168,11 +1821,7 @@ static TAutoConsoleVariable<float> CVarSkeletalMeshLODRadiusScale(
 	TEXT("Scale factor for the screen radius used in computing discrete LOD for skeletal meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
-	TEXT("r.StaticMeshLODDistanceScale"),
-	1.0f,
-	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 
 static TAutoConsoleVariable<int32> CVarOnlyStreamInTextures(
 	TEXT("r.OnlyStreamInTextures"),
@@ -2192,18 +1841,6 @@ static TAutoConsoleVariable<int32> CVarAllowHighQualityLightMaps(
 	TEXT("If set to 1, allow high quality lightmaps which don't bake in direct lighting of stationary lights"),
 	ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<float> CVarSetMipMapLODBias(
-	TEXT("r.MipMapLODBias"),
-	0.0f,
-	TEXT("Apply additional mip map bias for all 2D textures, range of -15.0 to 15.0"),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarVirtualTextureEnabled(
-	TEXT("r.VirtualTexture"),
-	1,
-	TEXT("If set to 1, textures will use virtual memory so they can be partially resident."),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarVirtualTextureReducedMemoryEnabled(
 	TEXT("r.VirtualTextureReducedMemory"),
 	0,
@@ -2214,16 +1851,4 @@ static TAutoConsoleVariable<int32> CVarPrecomputedVisibilityWarning(
 	TEXT("r.PrecomputedVisibilityWarning"),
 	0,
 	TEXT("If set to 1, a warning will be displayed when rendering a scene from a view point without precomputed visibility."),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<float> CVarDemosaicVposOffset(
-	TEXT("r.DemosaicVposOffset"),
-	0.0f,
-	TEXT("This offset is added to the rasterized position used for demosaic in the ES2 tonemapping shader. It exists to workaround driver bugs on some Android devices that have a half-pixel offset."),
-	ECVF_RenderThreadSafe);
-
-static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
-	TEXT("r.RenderLastFrameInStreamingPause"),
-	1,
-	TEXT("If 1 the previous frame is displayed during streaming pause. If zero the screen is left black."),
 	ECVF_RenderThreadSafe);

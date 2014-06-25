@@ -8,6 +8,14 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/DebugCameraHUD.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarDebugCameraTraceComplex(
+	TEXT("g.DebugCameraTraceComplex"),
+	1,
+	TEXT("Whether DebugCamera should use complex or simple collision for the line trace.\n")
+	TEXT("1: complex collision, 0: simple collision "),
+	ECVF_Cheat);
+#endif
 // ------------------
 // Externals
 // ------------------
@@ -88,8 +96,11 @@ void ADebugCameraHUD::PostRender()
 			//Canvas->DrawText(FString::Printf(TEXT("CamLoc:%s CamRot:%s"), *CamLoc.ToString(), *CamRot.ToString() ));
 
 			const TCHAR* CVarComplexName = TEXT("g.DebugCameraTraceComplex");
-			static const auto CVarComplex = IConsoleManager::Get().FindTConsoleVariableDataInt(CVarComplexName);
-			const bool bTraceComplex = (CVarComplex ? (CVarComplex->GetValueOnGameThread() != 0) : true);
+			bool bTraceComplex = true;
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			bTraceComplex = CVarDebugCameraTraceComplex.GetValueOnGameThread() != 0;
+#endif
 
 			FCollisionQueryParams TraceParams(NAME_None, bTraceComplex, this);
 			FHitResult Hit;

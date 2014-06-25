@@ -24,6 +24,13 @@
 static int32 PhysXSceneCount = 1;
 static const int PhysXSlowRebuildRate = 10;
 
+// Cvars
+static TAutoConsoleVariable<float> CVarBounceThresholdVelocity(
+	TEXT("p.BounceThresholdVelocity"),
+	200.f,
+	TEXT("A contact with a relative velocity below this will not bounce. Default: 200"),
+	ECVF_Default);
+
 FORCEINLINE EPhysicsSceneType SceneType(const FBodyInstance * BodyInstance)
 {
 #if WITH_PHYSX
@@ -1083,8 +1090,7 @@ void FPhysScene::InitPhysScene(uint32 SceneType)
 	PSceneDesc.flags |= PxSceneFlag::eENABLE_KINEMATIC_PAIRS;
 
 	// Set bounce threshold
-	static const auto CVarBounceThresholdVelocity = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.BounceThresholdVelocity"));
-	PSceneDesc.bounceThresholdVelocity = CVarBounceThresholdVelocity->GetValueOnGameThread();
+	PSceneDesc.bounceThresholdVelocity = CVarBounceThresholdVelocity.GetValueOnGameThread();
 
 	// Possibly set flags in async scene for better behavior with piles
 #if USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE

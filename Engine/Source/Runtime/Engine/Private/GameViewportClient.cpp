@@ -42,6 +42,15 @@ FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FVi
 
 DEFINE_STAT(STAT_UIDrawingTime);
 
+static TAutoConsoleVariable<int32> CVarSetBlackBordersEnabled(
+	TEXT("r.BlackBorders"),
+	1,
+	TEXT("To draw black borders around the rendered image\n")
+	TEXT("(prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)\n")
+	TEXT("in pixels, 0:off"),
+	ECVF_Default);
+
+
 /**
  * Draw debug info on a game scene view.
  */
@@ -826,8 +835,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 		// To draw black borders around the rendered image (prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BlackBorders"));
-			int32 BlackBorders = FMath::Clamp(CVar->GetValueOnGameThread(), 0, 10);
+			int32 BlackBorders = FMath::Clamp(CVarSetBlackBordersEnabled.GetValueOnGameThread(), 0, 10);
 
 			if(ViewFamily.Views.Num() == 1 && BlackBorders)
 			{

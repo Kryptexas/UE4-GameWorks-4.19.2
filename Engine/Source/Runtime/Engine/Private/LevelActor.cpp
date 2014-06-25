@@ -10,6 +10,14 @@
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
 
+// CVars
+static TAutoConsoleVariable<float> CVarEncroachEpsilon(
+	TEXT("p.EncroachEpsilon"),
+	0.15f,
+	TEXT("Epsilon value encroach checking for capsules\n")
+	TEXT("0: use full sized capsule. > 0: shrink capsule size by this amount (world units)"),
+	ECVF_Default);
+
 
 #if LINE_CHECK_TRACING
 
@@ -670,8 +678,7 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 
 bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation, FRotator TestRotation, FVector* ProposedAdjustment )
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.EncroachEpsilon"));
-	float Epsilon = CVar ? CVar->GetValueOnGameThread() : 0.f;
+	float Epsilon = CVarEncroachEpsilon.GetValueOnGameThread();
 
 	// currently just tests RootComponent.  @TODO FIXME should test all colliding components?  Cost/benefit?
 	UPrimitiveComponent* PrimComp = TestActor ? Cast<UPrimitiveComponent>(TestActor->GetRootComponent()) : NULL;

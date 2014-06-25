@@ -28,6 +28,45 @@ DEFINE_STAT(STAT_SetBodyTransform);
 
 FPhysCommandHandler * GPhysCommandHandler = NULL;
 
+// CVars
+static TAutoConsoleVariable<float> CVarToleranceScaleLength(
+	TEXT("p.ToleranceScale_Length"),
+	100.f,
+	TEXT("The approximate size of objects in the simulation. Default: 100"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<float> CVarTolerenceScaleMass(
+	TEXT("p.ToleranceScale_Mass"),
+	100.f,
+	TEXT("The approximate mass of a length * length * length block. Default: 100"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<float> CVarToleranceScaleSpeed(
+	TEXT("p.ToleranceScale_Speed"),
+	1000.f,
+	TEXT("The typical magnitude of velocities of objects in simulation. Default: 1000"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarAPEXMaxDestructibleDynamicChunkIslandCount(
+	TEXT("p.APEXMaxDestructibleDynamicChunkIslandCount"),
+	2000,
+	TEXT("APEX Max Destructilbe Dynamic Chunk Island Count."),
+	ECVF_Default);
+
+
+static TAutoConsoleVariable<int32> CVarAPEXMaxDestructibleDynamicChunkCount(
+	TEXT("p.APEXMaxDestructibleDynamicChunkCount"),
+	2000,
+	TEXT("APEX Max Destructible dynamic Chunk Count."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarAPEXSortDynamicChunksByBenefit(
+	TEXT("p.bAPEXSortDynamicChunksByBenefit"),
+	1,
+	TEXT("True if APEX should sort dynamic chunks by benefit."),
+	ECVF_Default);
+
+
 
 //////////////////////////////////////////////////////////////////////////
 // UWORLD
@@ -247,15 +286,11 @@ void InitGamePhys()
 	GPhysXProfileZoneManager = &PxProfileZoneManager::createProfileZoneManager(GPhysXFoundation);
 	check(GPhysXProfileZoneManager);
 
-	static const auto CVarToleranceScale_Length = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.ToleranceScale_Length"));
-	static const auto CVarToleranceScale_Mass = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.ToleranceScale_Mass"));
-	static const auto CVarToleranceScale_Speed = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.ToleranceScale_Speed"));
-
 	// Create Physics
 	PxTolerancesScale PScale;
-	PScale.length = CVarToleranceScale_Length->GetValueOnGameThread();
-	PScale.mass = CVarToleranceScale_Mass->GetValueOnGameThread();
-	PScale.speed = CVarToleranceScale_Speed->GetValueOnGameThread();
+	PScale.length = CVarToleranceScaleLength.GetValueOnGameThread();
+	PScale.mass = CVarTolerenceScaleMass.GetValueOnGameThread();
+	PScale.speed = CVarToleranceScaleSpeed.GetValueOnGameThread();
 
 	GPhysXSDK = PxCreatePhysics(PX_PHYSICS_VERSION, *GPhysXFoundation, PScale, false, GPhysXProfileZoneManager);
 	check(GPhysXSDK);
@@ -336,14 +371,10 @@ void InitGamePhys()
 	// Set chunk report for fracture effect callbacks
 	GApexModuleDestructible->setChunkReport(&GApexChunkReport);
 
-	static const auto CVarMaxDestructibleDynamicChunkIslandCount = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.APEXMaxDestructibleDynamicChunkIslandCount"));
-	GApexModuleDestructible->setMaxDynamicChunkIslandCount((physx::PxU32)FMath::Max(CVarMaxDestructibleDynamicChunkIslandCount->GetValueOnGameThread(), 0));
-
-	static const auto CVarMaxDestructibleDynamicChunkCount = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.APEXMaxDestructibleDynamicChunkCount"));
-	GApexModuleDestructible->setMaxChunkCount((physx::PxU32)FMath::Max(CVarMaxDestructibleDynamicChunkCount->GetValueOnGameThread(), 0));
-
-	static const auto CVarSortDynamicChunksByBenefit = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.bAPEXSortDynamicChunksByBenefit"));
-	GApexModuleDestructible->setSortByBenefit(CVarSortDynamicChunksByBenefit->GetValueOnGameThread()!=0);
+	
+	GApexModuleDestructible->setMaxDynamicChunkIslandCount((physx::PxU32)FMath::Max(CVarAPEXMaxDestructibleDynamicChunkIslandCount.GetValueOnGameThread(), 0));
+	GApexModuleDestructible->setMaxChunkCount((physx::PxU32)FMath::Max(CVarAPEXMaxDestructibleDynamicChunkCount.GetValueOnGameThread(), 0));
+	GApexModuleDestructible->setSortByBenefit(CVarAPEXSortDynamicChunksByBenefit.GetValueOnGameThread() != 0);
 
 	GApexModuleDestructible->setChunkReportSendChunkStateEvents(true);
 

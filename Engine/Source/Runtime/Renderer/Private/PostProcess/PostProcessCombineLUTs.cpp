@@ -11,6 +11,29 @@
 #include "PostProcessing.h"
 #include "ScreenRendering.h"
 
+
+// CVars
+static TAutoConsoleVariable<float> CVarColorMin(
+	TEXT("r.Color.Min"),
+	0.0f,
+	TEXT("Allows to define where the value 0 in the color channels is mapped to after color grading.\n")
+	TEXT("The value should be around 0, positive: a gray scale is added to the darks, negative: more dark values become black, Default: 0"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarColorMid(
+	TEXT("r.Color.Mid"),
+	0.5f,
+	TEXT("Allows to define where the value 0.5 in the color channels is mapped to after color grading (This is similar to a gamma correction).\n")
+	TEXT("Value should be around 0.5, smaller values darken the mid tones, larger values brighten the mid tones, Default: 0.5"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarColorMax(
+	TEXT("r.Color.Max"),
+	1.0f,
+	TEXT("Allows to define where the value 1.0 in the color channels is mapped to after color grading.\n")
+	TEXT("Value should be around 1, smaller values darken the highlights, larger values move more colors towards white, Default: 1"),
+	ECVF_RenderThreadSafe);
+
 // false:use 256x16 texture / true:use volume texture (faster, requires geometry shader)
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
 static bool UseVolumeTextureLUT(EShaderPlatform Platform) 
@@ -54,19 +77,10 @@ FColorRemapShaderParameters::FColorRemapShaderParameters(const FShaderParameterM
 void FColorRemapShaderParameters::Set(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI)
 {
 	FColorTransform ColorTransform;
-
-	{
-		static const auto ICVarMin = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Min"));
-		static const auto ICVarMid = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Mid"));
-		static const auto ICVarMax = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Color.Max"));
-		
-		check(ICVarMin && ICVarMid && ICVarMax);
-		
-		ColorTransform.MinValue = FMath::Clamp(ICVarMin->GetValueOnRenderThread(), -10.0f, 10.0f);
-		ColorTransform.MidValue = FMath::Clamp(ICVarMid->GetValueOnRenderThread(), -10.0f, 10.0f);
-		ColorTransform.MaxValue = FMath::Clamp(ICVarMax->GetValueOnRenderThread(), -10.0f, 10.0f);
-	}
-
+	ColorTransform.MinValue = FMath::Clamp(CVarColorMin.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MidValue = FMath::Clamp(CVarColorMid.GetValueOnRenderThread(), -10.0f, 10.0f);
+	ColorTransform.MaxValue = FMath::Clamp(CVarColorMax.GetValueOnRenderThread(), -10.0f, 10.0f);
+	
 	{
 		// x is the input value, y the output value
 		// RGB = a, b, c where y = a * x*x + b * x + c

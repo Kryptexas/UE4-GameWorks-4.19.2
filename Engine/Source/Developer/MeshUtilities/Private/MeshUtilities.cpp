@@ -32,6 +32,22 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities,Verbose,All);
 
+// CVars
+static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
+	TEXT("r.TriangleOrderOptimization"),
+	1,
+	TEXT("Controls the algorithm to use when optimizing the triangle order for the post-transform cache.\n")
+	TEXT("0: Use NVTriStrip (slower)\n")
+	TEXT("1: Use Forsyth algorithm (fastest)(default)"),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarAllowMeshDistanceFieldRepresentations (
+	TEXT("r.AllowMeshDistanceFieldRepresentations"),
+	0,
+	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
+	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
+	ECVF_ReadOnly);
+
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 
@@ -250,11 +266,8 @@ static void GenerateSignedDistanceFieldVolumeData(
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale)
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowMeshDistanceFieldRepresentations"));
-
 	if (DistanceFieldResolutionScale > 0 
-		&& CVar 
-		&& CVar->GetValueOnGameThread() != 0)
+		&& CVarAllowMeshDistanceFieldRepresentations.GetValueOnGameThread() != 0)
 	{
 		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
@@ -432,11 +445,8 @@ static void GenerateSignedDistanceFieldVolumeData(
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale)
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowMeshDistanceFieldRepresentations"));
-
 	if (DistanceFieldResolutionScale > 0 
-		&& CVar 
-		&& CVar->GetValueOnGameThread() != 0)
+		&& CVarAllowMeshDistanceFieldRepresentations.GetValueOnGameThread() != 0)
 	{
 		UE_LOG(LogMeshUtilities,Error,TEXT("Couldn't generate distance field for mesh, platform is missing required Vector intrinsics."));
 	}
@@ -3751,8 +3761,7 @@ void FMeshUtilities::StartupModule()
 		}
 	}
 
-	TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TriangleOrderOptimization"));
-	bUsingNvTriStrip = (CVar->GetValueOnGameThread() == 0);
+	bUsingNvTriStrip = (CVarTriangleOrderOptimization.GetValueOnGameThread() == 0);
 
 	// Construct and cache the version string for the mesh utilities module.
 	VersionString = FString::Printf(

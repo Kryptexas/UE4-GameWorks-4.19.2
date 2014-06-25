@@ -26,6 +26,45 @@ const float UCharacterMovementComponent::MAX_FLOOR_DIST = 2.4f;
 const float UCharacterMovementComponent::BRAKE_TO_STOP_VELOCITY = 10.f;
 const float UCharacterMovementComponent::SWEEP_EDGE_REJECT_DISTANCE = 0.15f;
 
+// CVars
+static TAutoConsoleVariable<int32> CVarNetEnableMoveCombining(
+	TEXT("p.NetEnableMoveCombining"),
+	1,
+	TEXT("Whether to enable move combining on the client to reduce bandwidth by combining similar moves.\n")
+	TEXT("0: Disable, 1: Enable"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarNetProxyShrinkRadius(
+	TEXT("p.NetProxyShrinkRadius"),
+	0.01f,
+	TEXT("Shrink simulated proxy capsule radius by this amount, to account for network rounding that may cause encroachment.\n")
+	TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
+	TEXT("<= 0: disabled, > 0: shrink by this amount."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarNetProxyShrinkHalfHeight(
+	TEXT("p.NetProxyShrinkHalfHeight"),
+	0.01f,
+	TEXT("Shrink simulated proxy capsule half height by this amount, to account for network rounding that may cause encroachment.\n")
+	TEXT("Changing this value at runtime may require the proxy to re-join for correct behavior.\n")
+	TEXT("<= 0: disabled, > 0: shrink by this amount."),
+	ECVF_Default);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CvarNetShowCorrections(
+	TEXT("p.NetShowCorrections"),
+	0,
+	TEXT("Whether to draw client position corrections (red is incorrect, green is corrected).\n")
+	TEXT("0: Disable, 1: Enable"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<float> CVarNetCorrectionLifetime(
+	TEXT("p.NetCorrectionLifetime"),
+	4.f,
+	TEXT("How long a visualized network correction persists.\n")
+	TEXT("Time in seconds each visualized network correction persists."),
+	ECVF_Cheat);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 // Version that does not use inverse sqrt estimate, for higher precision.
 FORCEINLINE FVector SafeNormalPrecise(const FVector& V)
@@ -806,11 +845,9 @@ void UCharacterMovementComponent::AdjustProxyCapsuleSize()
 	if (bShrinkProxyCapsule && CharacterOwner && CharacterOwner->Role == ROLE_SimulatedProxy)
 	{
 		bShrinkProxyCapsule = false;
-		static const auto CVarShrinkRadius = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.NetProxyShrinkRadius"));
-		static const auto CVarShrinkHalfHeight = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.NetProxyShrinkHalfHeight"));
 
-		float ShrinkRadius = CVarShrinkRadius ? FMath::Max(0.f, CVarShrinkRadius->GetValueOnGameThread()) : 0.f;
-		float ShrinkHalfHeight = CVarShrinkHalfHeight ? FMath::Max(0.f, CVarShrinkHalfHeight->GetValueOnGameThread()) : 0.f;
+		float ShrinkRadius = FMath::Max(0.f, CVarNetProxyShrinkRadius.GetValueOnGameThread());
+		float ShrinkHalfHeight = FMath::Max(0.f, CVarNetProxyShrinkHalfHeight.GetValueOnGameThread());
 
 		if (ShrinkRadius == 0.f && ShrinkHalfHeight == 0.f)
 		{
@@ -5024,8 +5061,7 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	// Add NewMove to the list
 	ClientData->SavedMoves.Push(NewMove);
 
-	static const auto CVarCombine = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.NetEnableMoveCombining"));
-	const bool bCanCombine = (!CVarCombine || CVarCombine->GetValueOnGameThread() != 0);
+	const bool bCanCombine = (CVarNetEnableMoveCombining.GetValueOnGameThread() != 0);
 
 	if (bCanCombine && ClientData->PendingMove.IsValid() == false)
 	{
@@ -5330,12 +5366,10 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		ServerData->PendingAdjustment.NewRot = CharacterOwner->GetActorRotation();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		static const auto CVarShowCorrections = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.NetShowCorrections"));
-		static const auto CVarCorrectionLifetime = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.NetCorrectionLifetime"));
-		if (CVarShowCorrections && CVarShowCorrections->GetValueOnGameThread() != 0)
+		if (CvarNetShowCorrections.GetValueOnGameThread() != 0)
 		{
 			UE_LOG(LogNetPlayerMovement, Warning, TEXT("******** Client Error at %f is %f Accel %s LocDiff %s ClientLoc %s, ServerLoc: %s, Base: %s"), TimeStamp, LocDiff.Size(), *Accel.ToString(), *LocDiff.ToString(), *ClientLoc.ToString(), *CharacterOwner->GetActorLocation().ToString(), *GetNameSafe(MovementBase));
-			const float DebugLifetime = CVarCorrectionLifetime ? CVarCorrectionLifetime->GetValueOnGameThread() : 1.f;
+			const float DebugLifetime = CVarNetCorrectionLifetime.GetValueOnGameThread();
 			DrawDebugCapsule(GetWorld(), CharacterOwner->GetActorLocation(), CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(100, 255, 100), true, DebugLifetime);
 			DrawDebugCapsule(GetWorld(), ClientLoc                    , CharacterOwner->GetSimpleCollisionHalfHeight(), CharacterOwner->GetSimpleCollisionRadius(), FQuat::Identity, FColor(255, 100, 100), true, DebugLifetime);
 		}

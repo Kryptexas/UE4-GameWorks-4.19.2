@@ -138,6 +138,22 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("  	   e.g. 1920x1080f")
 	);
 
+static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
+	TEXT("r.DepthOfFieldNearBlurSizeThreshold"),
+	0.01f,
+	TEXT("Sets the minimum near blur size before the effect is forcably disabled. Currently only affects Gaussian DOF.\n")
+	TEXT(" (default = 0.01f)"),
+	ECVF_RenderThreadSafe);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarSetOverrideFPS(
+	TEXT("t.OverrideFPS"),
+	0.0f,
+	TEXT("This allows to override the frame time measurement with a fixed fps number (game can run faster or slower).\n")
+	TEXT("<=0:off, in frames per second, e.g. 60"),
+	ECVF_Cheat);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 /** Enum entries represent index to global object referencer stored in UGameEngine */
 enum EGametypeContentReferencerTypes
 {
@@ -208,12 +224,11 @@ void ScalabilityCVarsSinkCallback()
 	static const auto* MaxAnisotropy = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
 	static const auto* MaxShadowResolution = ConsoleMan.FindTConsoleVariableDataInt(TEXT("r.Shadow.MaxResolution"));
 	static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
-	static const auto GaussianDOFNearThreshold = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.DepthOfFieldNearBlurSizeThreshold"));
 	GCachedScalabilityCVars.MaxAnisotropy = MaxAnisotropy->GetValueOnGameThread();
 	GCachedScalabilityCVars.MaxShadowResolution = MaxShadowResolution->GetValueOnGameThread();
 	GCachedScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
 	GCachedScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(GCachedScalabilityCVars.ViewDistanceScale);
-	GCachedScalabilityCVars.GaussianDOFNearThreshold = GaussianDOFNearThreshold->GetValueOnGameThread();
+	GCachedScalabilityCVars.GaussianDOFNearThreshold = CVarDepthOfFieldNearBlurSizeThreshold.GetValueOnGameThread();
 
 	// action needed if we change r.MaterialQualityLevel at runtime
 	{
@@ -1006,10 +1021,7 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto ICVarMin = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("t.OverrideFPS"));
-
-		float OverrideFPS = ICVarMin->GetValueOnGameThread();
-
+		float OverrideFPS = CVarSetOverrideFPS.GetValueOnGameThread();
 		if(OverrideFPS >= 0.001f)
 		{
 			// in seconds

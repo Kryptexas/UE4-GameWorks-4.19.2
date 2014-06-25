@@ -27,6 +27,28 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	TEXT(" 0..1: use specified max roughness (overrride PostprocessVolume setting)\n")
 	TEXT(" -1: no override (default)"),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarShadowFreezeCamera(
+	TEXT("r.Shadow.FreezeCamera"),
+	0,
+	TEXT("Debug the shadow methods by allowing to observe the system from outside.\n")
+	TEXT("0: default\n")
+	TEXT("1: freeze camera at current location"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<float> CVarExposureOffset(
+	TEXT("r.ExposureOffset"),
+	0.0f,
+	TEXT("For adjusting the exposure on top of post process settings and eye adaptation. For developers only. 0:default"),
+	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
+	TEXT("r.RenderTimeFrozen"),
+	0,
+	TEXT("Allows to freeze time based effects in order to provide more deterministic render profiling.\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on (Note: this also disables occlusion queries)"),
+	ECVF_Cheat);
 #endif
 
 static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
@@ -256,8 +278,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
 		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Shadow.FreezeCamera")); 
-		int32 Value = CVar->GetValueOnAnyThread();
+		int32 Value = CVarShadowFreezeCamera.GetValueOnAnyThread();
 
 		static FViewMatrices Backup = ShadowViewMatrices;
 
@@ -870,9 +891,7 @@ void FSceneView::EndFinalPostprocessSettings()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ExposureOffset"));
-
-		float Value = CVar->GetValueOnGameThread();
+		float Value = CVarExposureOffset.GetValueOnGameThread();
 		FinalPostProcessSettings.AutoExposureBias += Value;
 	}
 #endif
@@ -1143,9 +1162,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	ensure(CVS.bTimesSet);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderTimeFrozen")); 
-	int32 Value = CVar->GetValueOnAnyThread();
-
+	int32 Value = CVarRenderTimeFrozen.GetValueOnAnyThread();
 	if(Value)
 	{
 		CurrentWorldTime = 0;

@@ -11,6 +11,8 @@
 #include "PostProcessing.h"
 #include "PostProcessBokehDOF.h"
 
+
+
 /**
  * Indexing style for DOF
  */
@@ -595,6 +597,20 @@ void FRCPassPostProcessBokehDOF::ComputeDepthOfFieldParams(const FRenderingCompo
 	Out[1] = FVector4(MaxBokehSizeInPixel, YOffsetInUV, UsedYDivTextureY, YOffsetInPixel);
 }
 
+
+static TAutoConsoleVariable<int32> CVarBokehDOFIndexStyle(
+	TEXT("r.BokehDOFIndexStyle"),
+#if PLATFORM_MAC // Avoid a driver bug on OSX/NV cards that causes driver to generate an unwound index buffer
+	1,
+#else
+	0,
+#endif
+	TEXT("Controls whether to use a packed or unwound index buffer for Bokeh DOF.\n")
+	TEXT("0: Use packed index buffer (faster) (default)\n")
+	TEXT("1: Use unwound index buffer (slower)"),
+	ECVF_ReadOnly | ECVF_RenderThreadSafe);
+
+
 void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context)
 {
 	SCOPED_DRAW_EVENT(PassPostProcessBokehDOF, DEC_SCENE_ITEMS);
@@ -660,8 +676,7 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 
 	FIntPoint LeftTop = LocalViewRect.Min;
 
-	static IConsoleVariable* IndexStyleVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BokehDOFIndexStyle"));
-	static EBokehIndexStyle IndexStyle = (EBokehIndexStyle)IndexStyleVar->GetInt();
+	static EBokehIndexStyle IndexStyle = (EBokehIndexStyle)CVarBokehDOFIndexStyle.GetValueOnRenderThread();
 	
 	if(bHighQuality)
 	{

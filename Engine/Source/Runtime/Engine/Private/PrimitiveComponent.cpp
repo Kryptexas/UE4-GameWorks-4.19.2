@@ -32,6 +32,22 @@ static FAutoConsoleVariable CVarAllowCachedOverlaps(
 	TEXT("AllowCachedOverlaps"), 1,
 	TEXT("0: disable cached overlaps, 1: enable\n"));
 
+static TAutoConsoleVariable<float> CVarInitialOverlapTolerance(
+	TEXT("p.InitialOverlapTolerance"),
+	0.0f,
+	TEXT("Tolerance for initial overlapping test in PrimitiveComponent movement.\n")
+	TEXT("Normals within this tolerance are ignored if moving out of the object.\n")
+	TEXT("Dot product of movement direction and surface normal."),
+	ECVF_Default);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarShowInitialOverlaps(
+	TEXT("p.ShowInitialOverlaps"),
+	0,
+	TEXT("Show initial overlaps when moving a component, including estimated 'exit' direction.\n")
+	TEXT(" 0:off, otherwise on"),
+	ECVF_Cheat);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 ///////////////////////////////////////////////////////////////////////////////
 // PRIMITIVE COMPONENT
@@ -1139,8 +1155,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 	// This helps prevent getting stuck in walls.
 	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit )
 	{
-		static const auto OverlapToleranceICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.InitialOverlapTolerance"));
-		const float DotTolerance = OverlapToleranceICVar ? OverlapToleranceICVar->GetValueOnGameThread() : 0.f;
+		const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
 
 		// Dot product of movement direction against 'exit' direction
 		const FVector MovementDir = MovementDirDenormalized.SafeNormal();
@@ -1150,8 +1165,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
-			static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("p.ShowInitialOverlaps"));
-			if(ICVar->GetValueOnGameThread() != 0)
+			if(CVarShowInitialOverlaps.GetValueOnGameThread() != 0)
 			{
 				UE_LOG(LogTemp, Log, TEXT("Overlapping %s Dir %s Dot %f"), *GetNameSafe(TestHit.GetActor()), *MovementDir.ToString(), MoveDot);
 				DrawDebugDirectionalArrow(InWorld, TestHit.TraceStart, TestHit.TraceStart + 30.f * TestHit.ImpactNormal, 5.f, bMovingOut ? FColor(64,128,255) : FColor(255,64,64), true, 1.f);

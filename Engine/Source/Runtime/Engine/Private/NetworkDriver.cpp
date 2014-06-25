@@ -58,6 +58,35 @@ DEFINE_STAT(STAT_PercentOutVoice);
 #define DEBUG_REMOTEFUNCTION(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
 #endif
 
+// CVars
+static TAutoConsoleVariable<int32> CVarSetNetDormancyEnabled(
+	TEXT("net.DormancyEnable"),
+	1,
+	TEXT("Enables Network Dormancy System for reducing CPU and bandwidth overhead of infrequently updated actors\n")
+	TEXT("1 Enables network dormancy. 0 disables network dormancy."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetDormancyDraw(
+	TEXT("net.DormancyDraw"),
+	0,
+	TEXT("Draws debug information for network dormancy\n")
+	TEXT("1 Enables network dormancy debugging. 0 disables."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarNetDormancyDrawCullDistance(
+	TEXT("net.DormancyDrawCullDistance"),
+	5000.f,
+	TEXT("Cull distance for net.DormancyDraw. World Units")
+	TEXT("Max world units an actor can be away from the local view to draw its dormancy status"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarNetDormancyValidate(
+	TEXT("net.DormancyValidate"),
+	0,
+	TEXT("Validates that dormant actors do not change state while in a dormant state (on server only)")
+	TEXT("0: Dont validate. 1: Validate on wake up. 2: Validate on each net update"),
+	ECVF_Default);
+
 /*-----------------------------------------------------------------------------
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
@@ -296,9 +325,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		ClientConnections[i]->Tick();
 	}
 
-	
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyDraw"));
-	if (CVar && CVar->GetValueOnGameThread() > 0)
+	if (CVarNetDormancyDraw.GetValueOnGameThread() > 0)
 	{
 		DrawNetDriverDebug();
 	}
@@ -1449,8 +1476,7 @@ void UNetDriver::FlushActorDormancy(AActor * Actor)
 	// way too, since we dont have to check every dormant actor in ::ServerReplicateActor to see if it needs to go out of dormancy
 
 #if WITH_SERVER_CODE
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyEnable"));
-	if (CVar && CVar->GetValueOnGameThread() == 0)
+	if (CVarSetNetDormancyEnabled.GetValueOnGameThread() == 0)
 		return;
 
 	check(Actor);
@@ -2126,16 +2152,14 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
 
 					// Skip Actor if dormant
-					static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyEnable"));
-					if ( !CVar || CVar->GetValueOnGameThread() == 1 )
+					if ( CVarSetNetDormancyEnabled.GetValueOnGameThread() == 1 )
 					{
 						// If actor is already dormant on this channel, then skip replication entirely
 						if ( Connection->DormantActors.Contains( Actor ) )
 						{
 							// net.DormancyValidate can be set to 2 to validate dormant actor properties on every replicate
 							// (this could be moved to be done every tick instead of every net update if necessary, but seems excessive)
-							static const auto ValidateCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.DormancyValidate"));
-							if ( ValidateCVar && ValidateCVar->GetValueOnGameThread() == 2 )
+							if ( CVarNetDormancyValidate.GetValueOnGameThread() == 2 )
 							{
 								TSharedRef< FObjectReplicator > * Replicator = Connection->DormantReplicatorMap.Find( Actor );
 
@@ -2607,8 +2631,7 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("net.DormancyDrawCullDistance"));
-	const float CullDist = CVar ? CVar->GetValueOnGameThread() : 5000.f;
+	const float CullDist = CVarNetDormancyDrawCullDistance.GetValueOnGameThread();
 
 	for (FActorIterator It(GetWorld()); It; ++It)
 	{

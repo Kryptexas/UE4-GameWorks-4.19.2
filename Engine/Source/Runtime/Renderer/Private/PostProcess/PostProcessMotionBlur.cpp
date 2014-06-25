@@ -10,8 +10,15 @@
 #include "PostProcessMotionBlur.h"
 #include "PostProcessing.h"
 
-
-
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarMotionBlurFiltering(
+	TEXT("r.MotionBlurFiltering"),
+	0,
+	TEXT("Useful developer variable\n")
+	TEXT("0: off (default, expected by the shader for better quality)\n")
+	TEXT("1: on"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
 
 
 /** Encapsulates the post processing motion blur pixel shader. */
@@ -264,8 +271,7 @@ public:
 			bool bFiltered = false;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MotionBlurFiltering"));
-			bFiltered = CVar->GetValueOnRenderThread() != 0;
+			bFiltered = CVarMotionBlurFiltering.GetValueOnRenderThread() != 0;
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 			if(bFiltered)

@@ -84,12 +84,21 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FDrawRectangleParameters,TEXT("DrawRectanglePara
 
 typedef TUniformBufferRef<FDrawRectangleParameters> FDrawRectangleBufferRef;
 
+
+static TAutoConsoleVariable<int32> CVarDrawRectangleOptimization(
+	TEXT("r.DrawRectangleOptimization"),
+	1,
+	TEXT("Controls an optimization for DrawRectangle(). When enabled a triangle can be used to draw a quad in certain situations (viewport sized quad).\n")
+	TEXT("Using a triangle allows for slightly faster post processing in lower resolutions but can not always be used.\n")
+	TEXT(" 0: Optimization is disabled, DrawDenormalizedQuad always render with quad\n")
+	TEXT(" 1: Optimization is enabled, a triangle can be rendered where specified (default)"),
+	ECVF_RenderThreadSafe);
+
 static void DoDrawRectangleFlagOverride(EDrawRectangleFlags& Flags)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Determine triangle draw mode
-	static auto* TriangleModeCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DrawRectangleOptimization"));
-	int Value = TriangleModeCVar->GetValueOnRenderThread();
+	int Value = CVarDrawRectangleOptimization.GetValueOnRenderThread();
 
 	if(!Value)
 	{

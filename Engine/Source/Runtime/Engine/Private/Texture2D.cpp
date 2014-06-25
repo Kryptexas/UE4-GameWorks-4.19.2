@@ -43,9 +43,7 @@ static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreat
 	const uint32 iRequiredFlags =
 		TexCreate_OfflineProcessed;
 
-	static auto CVarVirtualTextureEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VirtualTexture"));
-	check(CVarVirtualTextureEnabled);
-	bool bCreateVirtual = ((TexCreateFlags & (iDisableFlags | iRequiredFlags)) == iRequiredFlags) && Texture->bIsStreamable && CVarVirtualTextureEnabled->GetValueOnRenderThread();
+	bool bCreateVirtual = ((TexCreateFlags & (iDisableFlags | iRequiredFlags)) == iRequiredFlags) && Texture->bIsStreamable && CVarVirtualTextureEnabled.GetValueOnRenderThread();
 	
 	static auto CVarVirtualTextureReducedMemoryEnabled = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VirtualTextureReducedMemory"));
 	check(CVarVirtualTextureReducedMemoryEnabled);
@@ -63,6 +61,19 @@ static bool CanCreateAsVirtualTexture(const UTexture2D* Texture, uint32 TexCreat
 int32 GDefragmentationRetryCounter = 10;
 /** Number of times to retry to reallocate a texture before trying a panic defragmentation, subsequent times. */
 int32 GDefragmentationRetryCounterLong = 100;
+
+/** CVars */
+static TAutoConsoleVariable<float> CVarSetMipMapLODBias(
+	TEXT("r.MipMapLODBias"),
+	0.0f,
+	TEXT("Apply additional mip map bias for all 2D textures, range of -15.0 to 15.0"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarVirtualTextureEnabled(
+	TEXT("r.VirtualTexture"),
+	1,
+	TEXT("If set to 1, textures will use virtual memory so they can be partially resident."),
+	ECVF_RenderThreadSafe);
 
 /** Turn on ENABLE_TEXTURE_TRACKING in ContentStreaming.cpp and setup GTrackedTextures to track specific textures through the streaming system. */
 extern bool TrackTextureEvent( FStreamingTexture* StreamingTexture, UTexture2D* Texture, bool bForceMipLevelsToBeResident, const FStreamingManagerTexture* Manager );
@@ -1146,10 +1157,11 @@ void UTexture2D::UpdateTextureRegions( int32 MipIndex, uint32 NumRegions, FUpdat
 
 #endif
 
+
+
 float UTexture2D::GetGlobalMipMapLODBias()
 {
-	static const auto CVarMipMapLODBias = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.MipMapLODBias"));
-	float BiasOffset = CVarMipMapLODBias->GetValueOnAnyThread(); // called from multiple threads.
+	float BiasOffset = CVarSetMipMapLODBias.GetValueOnAnyThread(); // called from multiple threads.
 	return FMath::Clamp(BiasOffset, -15.0f, 15.0f);
 }
 

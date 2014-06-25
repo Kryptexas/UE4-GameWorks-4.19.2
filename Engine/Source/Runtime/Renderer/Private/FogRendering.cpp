@@ -7,6 +7,26 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarFogStartDistance(
+	TEXT("r.FogStartDistance"),
+	-1.0f,
+	TEXT("Allows to override the FogStartDistance setting (needs ExponentialFog in the level).\n")
+	TEXT(" <0: use default settings (default: -1)\n")
+	TEXT(">=0: override settings by the given value (in world units)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarFogDensity(
+	TEXT("r.FogDensity"),
+	-1.0f,
+	TEXT("Allows to override the FogDensity setting (needs ExponentialFog in the level).\n")
+	TEXT("Using a strong value allows to quickly see which pixel are affected by fog.\n")
+	TEXT("Using a start distance allows to cull pixels are can speed up rendering.\n")
+	TEXT(" <0: use default settings (default: -1)\n")
+	TEXT(">=0: override settings by the given value (0:off, 1=very dense fog)"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
+
 /** Binds the parameters. */
 void FExponentialHeightFogShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 {
@@ -204,17 +224,9 @@ void FSceneRenderer::InitFogConstants()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FogDensity")); 
-
-		FogDensityOverride = CVar->GetValueOnAnyThread();
-	}
-
-	{
-		// console variable override
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FogStartDistance")); 
-
-		FogStartDistanceOverride = CVar->GetValueOnAnyThread();
+		// console variable overrides
+		FogDensityOverride = CVarFogDensity.GetValueOnAnyThread();
+		FogStartDistanceOverride = CVarFogStartDistance.GetValueOnAnyThread();
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

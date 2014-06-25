@@ -30,6 +30,18 @@ static FAutoConsoleVariableRef CVarDumpShaderDebugInfo(
 	TEXT("On iOS, if the PowerVR graphics SDK is installed to the default path, the PowerVR shader compiler will be called and errors will be reported during the cook.")
 	);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
+	TEXT(""),	// default
+	TEXT("Allows to specify a HLSL compiler version that is different from the one the code was compiled.\n")
+	TEXT("No path (\"\") means the default one is used.\n")
+	TEXT("If the compiler cannot be found an error is reported and it will compile further with the default one.\n")
+	TEXT("This console variable works with ShaderCompileWorker (with multi threading) and without multi threading.\n")
+	TEXT("This variable can be set in ConsoleVariables.ini to be defined at startup.\n")
+	TEXT("e.g. c:/temp/d3dcompiler_44.dll or \"\""),
+	ECVF_Cheat);
+#endif
+
 // Serialize Queued Job information
 static void DoWriteTasks(TArray<FShaderCompileJob*>& QueuedJobs, FArchive& TransferFile)
 {
@@ -1979,9 +1991,7 @@ void GlobalBeginCompileShader(
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.D3DCompilerPath"));
-
-		FString Path = CVar->GetString();
+		FString Path = CVarD3DCompilerPath.GetValueOnAnyThread();
 		if(!Path.IsEmpty())
 		{
 			Input.Environment.SetDefine(TEXT("D3DCOMPILER_PATH"), *Path);

@@ -30,13 +30,20 @@ static TAutoConsoleVariable<int32> CVarDiffuseFromCaptures(
 	TEXT(" 0 is off (default), 1 is on"),
 	ECVF_RenderThreadSafe);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
+	TEXT("r.ReflectionEnvironment"),
+	1,
+	TEXT("0:off, 1:on and blend with scene, 2:on and overwrite scene.\n")
+	TEXT("Whether to render the reflection environment feature, which implements local reflections through Reflection Capture actors."),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif 
+
 // to avoid having direct access from many places
 static int GetReflectionEnvironmentCVar()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ReflectionEnvironment"));
-	check(CVar);
-	return CVar->GetValueOnAnyThread();
+	return CVarReflectionEnvironment.GetValueOnAnyThread();
 #endif
 
 	// on, default mode

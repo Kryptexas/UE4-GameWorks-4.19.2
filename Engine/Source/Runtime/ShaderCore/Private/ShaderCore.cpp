@@ -12,13 +12,18 @@
 
 FSHAHash GGlobalShaderMapHash;
 
+static TAutoConsoleVariable<int32> CVarShaderDevelopmentMode(
+	TEXT("r.ShaderDevelopmentMode"),
+	0,
+	TEXT("0: Default, 1: Enable various shader development utilities, such as the ability to retry on failed shader compile, and extra logging as shaders are compiled."),
+	ECVF_Default);
+
 void UpdateShaderDevelopmentMode()
 {
 	// Keep LogShaders verbosity in sync with r.ShaderDevelopmentMode
 	// r.ShaderDevelopmentMode==1 results in all LogShaders log messages being displayed
-	static const auto CVar0 = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ShaderDevelopmentMode"));
 	bool bLogShadersUnsuppressed = UE_LOG_ACTIVE(LogShaders, Log);
-	bool bDesiredLogShadersUnsuppressed = CVar0->GetValueOnGameThread() == 1;
+	bool bDesiredLogShadersUnsuppressed = CVarShaderDevelopmentMode.GetValueOnGameThread() == 1;
 
 	if (bLogShadersUnsuppressed != bDesiredLogShadersUnsuppressed)
 	{

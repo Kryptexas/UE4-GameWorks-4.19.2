@@ -10,6 +10,16 @@
 #include "PostProcessBusyWait.h"
 #include "PostProcessing.h"
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<float> CVarSetGPUBusyWait(
+	TEXT("r.GPUBusyWait"),
+	0.0f,
+	TEXT("<=0:off, >0: keep the GPU busy with n units of some fixed amount of work, independent on the resolution\n")
+	TEXT("This can be useful to make GPU timing experiments. The value should roughly represent milliseconds.\n")
+	TEXT("Clamped at 500."),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
+
 /** Encapsulates the post processing busy wait pixel shader. */
 class FPostProcessBusyWaitPS : public FGlobalShader
 {
@@ -45,11 +55,9 @@ public:
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		{
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.GPUBusyWait"));
-
 			uint32 PixelCount = Context.View.ViewRect.Size().X * Context.View.ViewRect.Size().Y;
 
-			float CVarValue = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 500.0f);
+			float CVarValue = FMath::Clamp(CVarSetGPUBusyWait.GetValueOnRenderThread(), 0.0f, 500.0f);
 
 			// multiply with large number to get more human friendly number range
 			// calibrated on a NV580 to be roughly a millisecond

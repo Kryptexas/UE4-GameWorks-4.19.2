@@ -25,6 +25,19 @@
 	}
 #endif // WITH_PHYSX
 
+// CVars
+static TAutoConsoleVariable<float> CVarContactOffsetFactor(
+	TEXT("p.ContactOffsetFactor"),
+	0.01f,
+	TEXT("Multiplied by min dimension of object to calculate how close objects get before generating contacts. Default: 0.01"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<float> CVarMaxContactOffset(
+	TEXT("p.MaxContactOffset"),
+	1.f,
+	TEXT("Max value of contact offset, which controls how close objects get before generating contacts. Default: 1.0"),
+	ECVF_Default);
+
 DEFINE_LOG_CATEGORY(LogPhysics);
 UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -301,10 +314,8 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 	bool bDestStatic = (PDestActor->isRigidStatic() != NULL);
 
 	// Get contact offset params
-	static const auto CVarContactOffsetFactor = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.ContactOffsetFactor"));
-	const float ContactOffsetFactor = CVarContactOffsetFactor->GetValueOnGameThread();
-	static const auto CVarMaxContactOffset = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.MaxContactOffset"));
-	const float MaxContactOffset = CVarMaxContactOffset->GetValueOnGameThread();
+	const float ContactOffsetFactor = CVarContactOffsetFactor.GetValueOnGameThread();
+	const float MaxContactOffset = CVarMaxContactOffset.GetValueOnGameThread();
 
 	check(GEngine->DefaultPhysMaterial != NULL);
 	PxMaterial* PDefaultMat = GEngine->DefaultPhysMaterial->GetPhysXMaterial();

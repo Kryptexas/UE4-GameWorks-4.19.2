@@ -514,6 +514,18 @@ FPooledRenderTargetDesc FRCPassPostProcessWeightedSampleSum::ComputeOutputDesc(E
 	return Ret;
 }
 
+
+static TAutoConsoleVariable<float> CVarFastBlurThreshold(
+	TEXT("r.FastBlurThreshold"),
+	7.0f,
+	TEXT("Defines at what radius the Gaussian blur optimization kicks in (estimated 25% - 40% faster).\n")
+	TEXT("The optimzation uses slightly less memory and has a quality loss on smallblur radius.\n")
+	TEXT("  0: use the optimization always (fastest, lowest quality)\n")
+	TEXT("  3: use the optimization starting at a 3 pixel radius (quite fast)\n")
+	TEXT("  7: use the optimization starting at a 7 pixel radius (default)\n")
+	TEXT(">15: barely ever use the optimization (high quality)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 {
 	bool bRet = false;
@@ -536,13 +548,10 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 			// we scale by width because FOV is defined horizontally
 			float EffectiveBlurRadius = SizeScale * SrcSizeForThisAxis  * 2 / 100.0f;
 
-			// can be hard coded once the feature works reliable
-			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.FastBlurThreshold"));
-
 #if PLATFORM_HTML5
-			float FastBlurThreshold = CVar->GetValueOnGameThread();
+			float FastBlurThreshold = CVarFastBlurThreshold.GetValueOnGameThread();
 #else
-			float FastBlurThreshold = CVar->GetValueOnRenderThread();
+			float FastBlurThreshold = CVarFastBlurThreshold.GetValueOnRenderThread();
 #endif
 
 			// small radius look too different with this optimization so we only to it for larger radius

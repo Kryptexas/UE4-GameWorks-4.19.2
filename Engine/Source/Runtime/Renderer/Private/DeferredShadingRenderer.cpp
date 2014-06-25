@@ -27,6 +27,7 @@ TAutoConsoleVariable<int32> CVarEarlyZPass(
 	TEXT("  x: use built in heuristic (default is 3)\n"),
 	ECVF_Default);
 
+
 int32 GEarlyZPassMovable = 0;
 
 /** Affects static draw lists so must reload level to propagate. */
@@ -46,6 +47,14 @@ static TAutoConsoleVariable<int32> CVarTestUIBlur(
 	TEXT("0: off (default)\n")
 	TEXT("1: on\n"),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarVisualizeTexturePool(
+	TEXT("r.VisualizeTexturePool"),
+	0,
+	TEXT("Allows to enable the visualize the texture pool (currently only on console).\n")
+	TEXT(" 0: off\n")
+	TEXT(" 1: on"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -420,9 +429,7 @@ void FDeferredShadingSceneRenderer::RenderFinish()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.VisualizeTexturePool"));
-
-		if(ICVar->GetValueOnRenderThread())
+		if(CVarVisualizeTexturePool.GetValueOnRenderThread())
 		{
 			RenderVisualizeTexturePool();
 		}

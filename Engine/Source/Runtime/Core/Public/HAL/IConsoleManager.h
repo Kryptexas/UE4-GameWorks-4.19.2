@@ -172,6 +172,11 @@ public:
 		return 0; 
 	}
 
+	virtual class TConsoleVariableData<FString>* AsVariableString()
+	{
+		return 0;
+	}
+
 	/**
 	 * Casts this object to an IConsoleCommand, verifying first that it is safe to do so
 	 */
@@ -298,7 +303,7 @@ struct CORE_API IConsoleManager
 	 * @param Help must not be 0
 	 * @param Flags bitmask combined from EConsoleVariableFlags
 	 */
-	virtual IConsoleVariable* RegisterConsoleVariable(const TCHAR* Name, const TCHAR* DefaultValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
+	virtual IConsoleVariable* RegisterConsoleVariable(const TCHAR* Name, const FString& DefaultValue, const TCHAR* Help, uint32 Flags = ECVF_Default) = 0;
 	/**
 	 * Create a reference to a int console variable
 	 * @param Name must not be 0
@@ -728,12 +733,12 @@ class TAutoConsoleVariable : public FAutoConsoleObject
 {
 public:
 	/**
-	 * Create a float or int console variable
+	 * Create a float, int or string console variable
 	 * @param Name must not be 0
 	 * @param Help must not be 0
 	 * @param Flags bitmask combined from EConsoleVariableFlags
 	 */
-	TAutoConsoleVariable(const TCHAR* Name, T DefaultValue, const TCHAR* Help, uint32 Flags = ECVF_Default);
+	TAutoConsoleVariable(const TCHAR* Name, const T& DefaultValue, const TCHAR* Help, uint32 Flags = ECVF_Default);
 
 	T GetValueOnGameThread() const
 	{
@@ -755,17 +760,24 @@ private:
 };
 
 template <>
-inline TAutoConsoleVariable<int32>::TAutoConsoleVariable(const TCHAR* Name, int32 DefaultValue, const TCHAR* Help, uint32 Flags)
+inline TAutoConsoleVariable<int32>::TAutoConsoleVariable(const TCHAR* Name, const int32& DefaultValue, const TCHAR* Help, uint32 Flags)
 	: FAutoConsoleObject(IConsoleManager::Get().RegisterConsoleVariable(Name, DefaultValue, Help, Flags))
 {
 	Ref = AsVariable()->AsVariableInt();
 }
 
 template <>
-inline TAutoConsoleVariable<float>::TAutoConsoleVariable(const TCHAR* Name, float DefaultValue, const TCHAR* Help, uint32 Flags)
+inline TAutoConsoleVariable<float>::TAutoConsoleVariable(const TCHAR* Name, const float& DefaultValue, const TCHAR* Help, uint32 Flags)
 	: FAutoConsoleObject(IConsoleManager::Get().RegisterConsoleVariable(Name, DefaultValue, Help, Flags))
 {
 	Ref = AsVariable()->AsVariableFloat();
+}
+
+template <>
+inline TAutoConsoleVariable<FString>::TAutoConsoleVariable(const TCHAR* Name, const FString& DefaultValue, const TCHAR* Help, uint32 Flags)
+	: FAutoConsoleObject(IConsoleManager::Get().RegisterConsoleVariable(Name, DefaultValue, Help, Flags))
+{
+	Ref = AsVariable()->AsVariableString();
 }
 
 /**

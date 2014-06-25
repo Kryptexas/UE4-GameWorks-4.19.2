@@ -57,7 +57,7 @@ static TAutoConsoleVariable<int32> CVarCustomDepth(
 	ECVF_RenderThreadSafe
 	);
 
-TAutoConsoleVariable<int32> CVarMobileMSAA(
+static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("r.MobileMSAA"),
 	0,
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
@@ -66,6 +66,16 @@ TAutoConsoleVariable<int32> CVarMobileMSAA(
     TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
 	ECVF_RenderThreadSafe
 	);
+
+static TAutoConsoleVariable<int32> CVarGBufferFormat(
+	TEXT("r.GBufferFormat"),
+	1,
+	TEXT("Defines the memory layout used for the GBuffer.\n")
+	TEXT("(affects performance, mostly through bandwidth, quality of normals and material attributes).\n")
+	TEXT(" 0: lower precision (8bit per component, for profiling)\n")
+	TEXT(" 1: low precision (default)\n")
+	TEXT(" 5: high precision"),
+	ECVF_RenderThreadSafe);
 
 /** The global render targets used for scene rendering. */
 TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
@@ -143,17 +153,12 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 	check(DesiredBufferSize.X > 0 && DesiredBufferSize.Y > 0);
 	QuantizeBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
 
-	int GBufferFormat;
-	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBufferFormat"));
-	
-		GBufferFormat = CVar->GetValueOnRenderThread();
-	}
+	int GBufferFormat = CVarGBufferFormat.GetValueOnRenderThread();
 
 	int SceneColorFormat;
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFormat"));
-	
+
 		SceneColorFormat = CVar->GetValueOnRenderThread();
 	}
 		
@@ -916,6 +921,14 @@ const FTexture2DRHIRef& FSceneRenderTargets::GetEditorPrimitivesDepth()
 	return (const FTexture2DRHIRef&)EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture;
 }
 
+static TAutoConsoleVariable<int32> CVarSetSeperateTranslucencyEnabled(
+	TEXT("r.SeparateTranslucency"),
+	1,
+	TEXT("Allows to disable the separate translucency feature (all translucency is rendered in separate RT and composited\n")
+	TEXT("after DOF, if not specified otherwise in the material).\n")
+	TEXT(" 0: off (translucency is affected by depth of field)\n")
+	TEXT(" 1: on costs GPU performance and memory but keeps translucency unaffected by Depth of Fieled. (default)"),
+	ECVF_RenderThreadSafe);
 
 bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) const
 {

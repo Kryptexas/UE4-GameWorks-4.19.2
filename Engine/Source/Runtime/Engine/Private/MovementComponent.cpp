@@ -293,6 +293,11 @@ bool UMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, const FR
 	return bMoveResult;
 }
 
+static TAutoConsoleVariable<float> CVarPenetrationPullbackDistance(TEXT("p.PenetrationPullbackDistance"),
+	0.125f,
+	TEXT("Pull out from penetration of an object by this extra distance.\n")
+	TEXT("Distance added to penetration fix-ups."),
+	ECVF_Default);
 
 FVector UMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) const
 {
@@ -302,15 +307,13 @@ FVector UMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) cons
 	}
 
 	FVector Result;
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("p.PenetrationPullbackDistance"));
-	const float PullBackDistance = (CVar ? FMath::Abs(CVar->GetValueOnGameThread()) : 0.125f);
+	const float PullBackDistance = FMath::Abs(CVarPenetrationPullbackDistance.GetValueOnGameThread());
 	const float PenetrationDepth = (Hit.PenetrationDepth > 0.f ? Hit.PenetrationDepth : 0.125f);
 
 	Result = Hit.Normal * (PenetrationDepth + PullBackDistance);
 
 	return ConstrainDirectionToPlane(Result);
 }
-
 
 bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, const FHitResult& Hit, const FRotator& NewRotation)
 {

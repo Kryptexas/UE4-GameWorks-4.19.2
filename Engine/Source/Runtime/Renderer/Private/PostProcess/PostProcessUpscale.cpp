@@ -12,6 +12,13 @@
 #include "PostProcessHistogram.h"
 #include "PostProcessEyeAdaptation.h"
 
+static TAutoConsoleVariable<float> CVarScreenPercentageSoftness(
+	TEXT("r.ScreenPercentageSoftness"),
+	0.3f,
+	TEXT("To scale up with higher quality loosing some sharpness\n")
+	TEXT(" 0..1 (0.3 is good for ScreenPercentage 90"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 /** Encapsulates the post processing eye adaptation pixel shader. */
 template <uint32 Method>
 class FPostProcessUpscalePS : public FGlobalShader
@@ -62,9 +69,7 @@ public:
 		// If the method needs softness value
 		if(Method == 2)
 		{
-			static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentageSoftness"));
-
-			float UpscaleSoftnessValue = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 1.0f);
+			float UpscaleSoftnessValue = FMath::Clamp(CVarScreenPercentageSoftness.GetValueOnRenderThread(), 0.0f, 1.0f);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, UpscaleSoftness, UpscaleSoftnessValue);
 		}

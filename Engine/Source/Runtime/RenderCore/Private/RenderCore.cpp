@@ -151,7 +151,16 @@ DEFINE_STAT(STAT_ReflectiveShadowMapDrawTime);
 DEFINE_STAT(STAT_NumReflectiveShadowMapLights);
 DEFINE_STAT(STAT_RenderWholeSceneReflectiveShadowMapsTime);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+static TAutoConsoleVariable<int32> CVarForceLOD(
+	TEXT("r.ForceLOD"),
+	-1,
+	TEXT("LOD level to force, -1 is off."),
+	ECVF_Cheat | ECVF_RenderThreadSafe
+	);
+
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 /** Whether to pause the global realtime clock for the rendering thread (read and write only on main thread). */
 bool GPauseRenderingRealtimeClock;
@@ -212,8 +221,7 @@ RENDERCORE_API int32 GetCVarForceLOD()
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForceLOD"));
-		Ret = CVar->GetValueOnRenderThread();
+		Ret = CVarForceLOD.GetValueOnRenderThread();
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

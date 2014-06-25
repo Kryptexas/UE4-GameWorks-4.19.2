@@ -45,12 +45,24 @@ void RenderTargetPoolEvents(const TArray<FString>& Args)
 		UE_LOG(LogRenderTargetPool, Display, TEXT("r.DumpRenderTargetPoolEvents is now disabled, use r.DumpRenderTargetPoolEvents <SizeInKB> to enable or r.DumpRenderTargetPoolEvents ? for help"));
 	}
 }
+
+// CVars and commands
 static FAutoConsoleCommand GRenderTargetPoolEventsCmd(
 	TEXT("r.RenderTargetPool.Events"),
 	TEXT("Visualize the render target pool events over time in one frame. Optional parameter defines threshold in KB.\n")
 	TEXT("To disable the view use the command without any parameter"),
 	FConsoleCommandWithArgsDelegate::CreateStatic(RenderTargetPoolEvents)
 	);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static TAutoConsoleVariable<int32> CVarRenderTargetPoolTest(
+	TEXT("r.RenderTargetPoolTest"),
+	0,
+	TEXT("Clears the texture returned by the rendertarget pool with a special color\n")
+	TEXT("so we can see better which passes would need to clear. Doesn't work on volume textures and non rendertargets yet.\n")
+	TEXT(" 0:off (default), 1:on"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+#endif
 
 bool FRenderTargetPool::IsEventRecordingEnabled() const
 {
@@ -305,12 +317,10 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RenderTargetPoolTest"));
-		
 		//@todo-rco: RHIPacketList
 		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
-		if(ICVar->GetValueOnRenderThread())
+		if(CVarRenderTargetPoolTest.GetValueOnRenderThread())
 		{
 			if(Found->GetDesc().TargetableFlags & TexCreate_RenderTargetable)
 			{

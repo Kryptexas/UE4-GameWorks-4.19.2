@@ -416,10 +416,18 @@ void UMaterialGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, c
 	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
 }
 
+static TAutoConsoleVariable<int32> CVarPreventInvalidMaterialConnections(
+	TEXT("r.PreventInvalidMaterialConnections"),
+	1,
+	TEXT("Controls whether users can make connections in the material editor if the system\n")
+	TEXT("determines that they may cause compile errors\n")
+	TEXT("0: Allow all connections\n")
+	TEXT("1: Prevent invalid connections"),
+	ECVF_Cheat);
+
 const FPinConnectionResponse UMaterialGraphSchema::CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const
 {
-	static const auto PreventInvalidMaterialConnections = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PreventInvalidMaterialConnections"));
-	bool bPreventInvalidConnections = PreventInvalidMaterialConnections->GetValueOnGameThread() != 0;
+	bool bPreventInvalidConnections = CVarPreventInvalidMaterialConnections.GetValueOnGameThread() != 0;
 
 	// Make sure the pins are not on the same node
 	if (A->GetOwningNode() == B->GetOwningNode())

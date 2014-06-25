@@ -46,6 +46,12 @@ static FAutoConsoleVariableRef CVarMinScreenRadiusForCSMDepth(
 	ECVF_RenderThreadSafe
 	);
 
+static TAutoConsoleVariable<int32> CVarTemporalAASamples(
+	TEXT("r.TemporalAASamples"),
+	8,
+	TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
+	ECVF_RenderThreadSafe);
+
 #if PLATFORM_MAC // @todo: disabled until rendering problems with HZB occlusion in OpenGL are solved
 static int32 GHZBOcclusion = 0;
 #else
@@ -74,6 +80,12 @@ static TAutoConsoleVariable<int32> CVarLightShaftQuality(
 	TEXT("Defines the light shaft quality.\n")
 	TEXT("  0: off\n")
 	TEXT("  1: on (default)\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
+	TEXT("r.StaticMeshLODDistanceScale"),
+	1.0f,
+	TEXT("Scale factor for the distance used in computing discrete LOD for static meshes. (0.25-1)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 /** Distance fade cvars */
@@ -775,9 +787,7 @@ static void MarkRelevantStaticMeshesForView(
 	// outside of the loop to be more efficient
 	int32 ForcedLODLevel = (View.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 	
-	static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
-	check(StaticMeshLODDistanceScale);
-	const float LODScale = StaticMeshLODDistanceScale->GetValueOnRenderThread();
+	const float LODScale = CVarStaticMeshLODDistanceScale.GetValueOnRenderThread();
 	const float InvLODScale = 1.0f / LODScale;
 
 	const float MinScreenRadiusForCSMDepthSquared = GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth;
@@ -978,17 +988,14 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 			View.ViewRect.Width() * View.ViewRect.Height();
 		View.OneOverNumPossiblePixels = NumPossiblePixels > 0.0 ? 1.0f / NumPossiblePixels : 0.0f;
 
-
-		// Subpixel jitter for temporal AA
-		static const auto CVarTemporalAASamples = IConsoleManager::Get().FindTConsoleVariableDataInt( TEXT("r.TemporalAASamples") );
-
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
 		View.TemporalJitterPixelsX = 0.0f;
 		View.TemporalJitterPixelsY = 0.0f;
 
 		if( View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 		{
-			int32 TemporalAASamples = CVarTemporalAASamples->GetValueOnRenderThread();
+			// Subpixel jitter for temporal AA
+			int32 TemporalAASamples = CVarTemporalAASamples.GetValueOnRenderThread();
 		
 			if( TemporalAASamples > 1 )
 			{

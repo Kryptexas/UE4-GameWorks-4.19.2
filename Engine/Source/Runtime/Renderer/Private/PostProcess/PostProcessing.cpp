@@ -60,6 +60,33 @@ static TAutoConsoleVariable<int32> CVarRenderTargetSwitchWorkaround(
 	TEXT("We want this enabled (1) on all 32 bit iOS devices (implemented through DeviceProfiles)."),
 	ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarUpsampleQuality(
+	TEXT("r.UpsampleQuality"),
+	3,
+	TEXT(" 0: Nearest filtering\n")
+	TEXT(" 1: Simple Bilinear\n")
+	TEXT(" 2: 4 tap bilinear\n")
+	TEXT(" 3: Directional blur with unsharp mask upsample. (default)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
+	TEXT("r.MotionBlurSoftEdgeSize"),
+	1.0f,
+	TEXT("Defines how lange object motion blur is blurred (percent of screen width) to allow soft edge motion blur.\n")
+	TEXT("This scales linearly with the size (up to a maximum of 32 samples, 2.5 is about 18 samples) and with screen resolution\n")
+	TEXT("Smaller values are better for performance and provide more accurate motion vectors but the blurring outside the object is reduced.\n")
+	TEXT("If needed this can be exposed like the other motionblur settings.\n")
+	TEXT(" 0:off (not free and does never completely disable), >0, 1.0 (default)"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSSSSS(
+	TEXT("r.SSSSS"),
+	0.0f,
+	TEXT("Very experimental screen space subsurface scattering on non unlit/lit materials\n")
+	TEXT("0: off\n")
+	TEXT("x: SSS radius in world space e.g. 10"),
+	ECVF_RenderThreadSafe);
+
 IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostprocessCommonVS"),SF_Vertex);
 
 // -------------------------------------------------------
@@ -781,8 +808,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		{
 			// Screen Space Subsurface Scattering
 			{
-				static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.SSSSS"));
-				float Radius = ICVar->GetValueOnRenderThread();
+				float Radius = CVarSSSSS.GetValueOnRenderThread();
 
 				if(Radius > 0 && !bSimpleDynamicLighting)
 				{
@@ -896,12 +922,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 					SoftEdgeVelocity = FRenderingCompositeOutputRef(QuarterResVelocity);
 
-					float MotionBlurSoftEdgeSize;
-					{
-						static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.MotionBlurSoftEdgeSize"));
-
-						MotionBlurSoftEdgeSize = ICVar->GetValueOnRenderThread();
-					}
+					float MotionBlurSoftEdgeSize = CVarMotionBlurSoftEdgeSize.GetValueOnRenderThread();
 
 					if(MotionBlurSoftEdgeSize > 0.01f)
 					{

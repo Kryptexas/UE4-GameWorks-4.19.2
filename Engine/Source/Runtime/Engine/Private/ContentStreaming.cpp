@@ -128,6 +128,28 @@ static TAutoConsoleVariable<float> CVarStreamingBoost(
 	ECVF_Default
 	);
 
+#if PLATFORM_SUPPORTS_TEXTURE_STREAMING
+static TAutoConsoleVariable<int32> CVarSetTextureStreamingEnabled(
+	TEXT("r.TextureStreaming"),
+	1,
+	TEXT("Allows to define if texture streaming is enabled, can be changed at run time.\n")
+	TEXT("0: off\n")
+	TEXT("1: on (default)"),
+	ECVF_Default | ECVF_RenderThreadSafe);
+#endif
+
+static TAutoConsoleVariable<int32> CvarStreamingUseFixedPoolSize(
+	TEXT("r.Streaming.UseFixedPoolSize"),
+	0,
+	TEXT("If non-zero, do not allow the pool size to change at run time."),
+	ECVF_ReadOnly);
+
+static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
+	TEXT("r.Streaming.PoolSize"),
+	-1,
+	TEXT("-1: Default texture pool size, otherwise the size in MB\n"),
+	ECVF_Scalability);
+
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
 #define MAX_STREAMINGDISTANCE	10000.0f
 #define MAX_MIPDELTA			5.0f
@@ -1556,8 +1578,7 @@ FStreamingManagerCollection::FStreamingManagerCollection()
 	// Disable texture streaming if that was requested (needs to happen before the call to ProcessNewlyLoadedUObjects, as that can load textures)
 	if( FParse::Param( FCommandLine::Get(), TEXT( "NoTextureStreaming" ) ) )
 	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TextureStreaming"));
-		CVar->Set(0);
+		CVarSetTextureStreamingEnabled.AsVariable()->Set(0);
 	}
 #endif
 
@@ -1970,10 +1991,7 @@ void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(boo
 
 #if PLATFORM_SUPPORTS_TEXTURE_STREAMING
 	{
-		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TextureStreaming"));
-		check(CVar);
-
-		bUseTextureStreaming = CVar->GetValueOnGameThread() != 0;
+		bUseTextureStreaming = CVarSetTextureStreamingEnabled.GetValueOnGameThread() != 0;
 	}
 
 	if( !GRHISupportsTextureStreaming || IsRunningDedicatedServer() )
@@ -3638,11 +3656,8 @@ void FStreamingManagerTexture::StreamTexturesUnlimited( FStreamingContext& Conte
 
 void FStreamingManagerTexture::CheckUserSettings()
 {	
-	static const auto CVarStreamingTexturePoolSize = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.PoolSize"));
-	int32 PoolSizeSetting = CVarStreamingTexturePoolSize ? CVarStreamingTexturePoolSize->GetValueOnGameThread() : -1;
-
-	static const auto CVarUseFixedStreamingTexturePoolSize = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Streaming.UseFixedPoolSize"));
-	int32 FixedPoolSizeSetting = CVarUseFixedStreamingTexturePoolSize ? CVarUseFixedStreamingTexturePoolSize->GetValueOnGameThread() : -1;
+	int32 PoolSizeSetting = CVarStreamingPoolSize.GetValueOnGameThread();
+	int32 FixedPoolSizeSetting = CvarStreamingUseFixedPoolSize.GetValueOnGameThread();
 
 	if (FixedPoolSizeSetting == 0)
 	{
