@@ -720,7 +720,7 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		
 
 		// Make sure we are detached
-		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
+		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition || EAttachLocation::SnapToTarget;
 		DetachFromParent(bMaintainWorldPosition);
 
 		// Detach removes all Prerequisite, so will need to add after Detach happens
