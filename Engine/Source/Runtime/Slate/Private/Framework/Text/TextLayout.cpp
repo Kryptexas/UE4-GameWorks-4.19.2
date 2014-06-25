@@ -540,11 +540,11 @@ FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const F
 	}
 
 	const int32 LineTextLength = LineModels[ LineView.ModelIndex ].Text->Len();
-	if ( LineTextLength == 0 )
+	if ( LineTextLength == 0 || !LineView.Blocks.Num() )
 	{
 		return FTextLocation( LineView.ModelIndex, 0 );
 	}
-	else if (Relative.X < LineView.Offset.X)
+	else if (Relative.X < LineView.Blocks[0]->GetLocationOffset().X)
 	{
 		return FTextLocation(LineView.ModelIndex, LineView.Range.BeginIndex);
 	}
@@ -964,6 +964,13 @@ void FTextLayout::GetAsText(FString& DisplayText) const
 
 		DisplayText.AppendChar('\n');
 	}
+}
+
+void FTextLayout::GetAsText(FText& DisplayText) const
+{
+	FString DisplayString;
+	GetAsText(DisplayString);
+	DisplayText = FText::FromString(DisplayString);
 }
 
 void GetRangeAsTextFromLine(FString& DisplayText, const FTextLayout::FLineModel& LineModel, const FTextRange& Range)

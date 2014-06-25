@@ -636,71 +636,76 @@ static int32 OffsetToTestBasedOnDirection( int8 Direction )
 
 FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
 {
-	const int32 OldCaretPosition = CaretPosition;
+	bool bAllowMoveCursor = true;
+	int32 OldCaretPosition = CaretPosition;
 	int32 NewCaretPosition = OldCaretPosition;
 
-	const int32 StringLength = EditedText.ToString().Len();
-	const FString& EditedTextAsString = EditedText.ToString();
-
-	// If control is held down, jump to beginning of the current word (or, the previous word, if
-	// the caret is currently on a whitespace character
-	switch( Method ) 
+	// If we have selected text, the cursor needs to:
+	// a) Jump to the start of the selection if moving the cursor Left
+	// b) Jump to the end of the selection if moving the cursor Right
+	// This is done regardless of whether the selection was made left-to-right, or right-to-left
+	// This also needs to be done *before* moving to word boundaries, as the start point needs to be 
+	// the start or end of the selection depending on the above rules
+	if (Action == ECursorAction::MoveCursor && Method != ECursorMoveMethod::ScreenPosition && AnyTextSelected())
 	{
-	case ECursorMoveMethod::Word:
+		if (Method == ECursorMoveMethod::CharacterHorizontal)
 		{
-			const FString EditedTextString = EditedText.ToString();
-
-			if (Direction.X > 0)
-			{
-				// Scan right for text
-				int32 CurCharIndex = CaretPosition;
-				while( CurCharIndex < StringLength && !FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
-				{
-					++CurCharIndex;
-				}
-
-				// Scan right for whitespace
-				while( CurCharIndex < StringLength && FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
-				{
-					++CurCharIndex;
-				}
-
-				NewCaretPosition = CurCharIndex;
-			}
-			else
-			{
-				// Scan left for whitespace
-				int32 CurCharIndex = CaretPosition;
-				while( CurCharIndex > 0 && FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
-				{
-					--CurCharIndex;
-				}
-
-				// Scan left for text
-				while( CurCharIndex > 0 && !FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
-				{
-					--CurCharIndex;
-				}
-
-				NewCaretPosition = CurCharIndex;
-			}
+			// If we're moving the cursor horizontally, we just snap to the start or end of the selection rather than 
+			// move the cursor by the normal movement rules
+			bAllowMoveCursor = false;
 		}
-		break;
 
-	case ECursorMoveMethod::CharacterHorizontal:
-		NewCaretPosition = FMath::Clamp<int32>( CaretPosition + Direction.X, 0, StringLength );
-		break;
-	
-	case ECursorMoveMethod::CharacterVertical:
-		return FReply::Unhandled();
-	
-	case ECursorMoveMethod::ScreenPosition:
-		NewCaretPosition = FindClickedCharacterIndex( Direction );
-		break;
+		// Work out which edge of the selection we need to start at
+		bool bSnapToSelectionStart = false;
+		switch (Method)
+		{
+		case ECursorMoveMethod::CharacterHorizontal:
+		case ECursorMoveMethod::Word:
+			bSnapToSelectionStart = Direction.X < 0.0f;
+			break;
 
-	default:
-		checkSlow(false, "Unknown ECursorMoveMethod value");
-		break;
+		default:
+			break;
+		}
+
+		// Adjust the current cursor position - also set the new cursor position so that the bAllowMoveCursor == false case is handled
+		OldCaretPosition = bSnapToSelectionStart ? Selection.GetMinIndex() : Selection.GetMaxIndex();
+		NewCaretPosition = OldCaretPosition;
+
+		// If we're snapping to a word boundary, but the selection was already at a word boundary, don't let the cursor move any more
+		if (Method == ECursorMoveMethod::Word && IsAtWordStart(NewCaretPosition))
+		{
+			bAllowMoveCursor = false;
+		}
+	}
+
+	if (bAllowMoveCursor)
+	{
+		const int32 StringLength = EditedText.ToString().Len();
+
+		// If control is held down, jump to beginning of the current word (or, the previous word, if
+		// the caret is currently on a whitespace character
+		switch( Method ) 
+		{
+		case ECursorMoveMethod::Word:
+			NewCaretPosition = ScanForWordBoundary( CaretPosition, Direction.X );
+			break;
+
+		case ECursorMoveMethod::CharacterHorizontal:
+			NewCaretPosition = FMath::Clamp<int32>( CaretPosition + Direction.X, 0, StringLength );
+			break;
+	
+		case ECursorMoveMethod::CharacterVertical:
+			return FReply::Unhandled();
+	
+		case ECursorMoveMethod::ScreenPosition:
+			NewCaretPosition = FindClickedCharacterIndex( Direction );
+			break;
+
+		default:
+			checkSlow(false, "Unknown ECursorMoveMethod value");
+			break;
+		}
 	}
 
 	SetCaretPosition( NewCaretPosition );
@@ -804,7 +809,7 @@ void SEditableText::SelectWordAt(const FVector2D& LocalPosition)
 
 	// Select the word that the user double-clicked on, and move the caret to the end of that word
 	{
-		const FString EditedTextString = EditedText.ToString();
+		const FString& EditedTextString = EditedText.ToString();
 
 		// Find beginning of the word
 		int32 FirstWordCharIndex = ClickedCharIndex;
@@ -815,7 +820,7 @@ void SEditableText::SelectWordAt(const FVector2D& LocalPosition)
 
 		// Find end of the word
 		int32 LastWordCharIndex = ClickedCharIndex;
-		while( LastWordCharIndex < EditedText.ToString().Len() && !FText::IsWhitespace( EditedTextString[ LastWordCharIndex ] ) )
+		while( LastWordCharIndex < EditedTextString.Len() && !FText::IsWhitespace( EditedTextString[ LastWordCharIndex ] ) )
 		{
 			++LastWordCharIndex;
 		}
@@ -1697,6 +1702,63 @@ int32 SEditableText::FindClickedCharacterIndex( const FVector2D& InLocalCursorPo
 	const int32 ClickedCharIndex = FontMeasureService->FindCharacterIndexAtOffset( EditedText.ToString(), Font.Get(), ClampedCursorX );
 
 	return ClickedCharIndex;
+}
+
+
+int32 SEditableText::ScanForWordBoundary( const int32 Location, int8 Direction ) const
+{
+	const FString& EditedTextString = EditedText.ToString();
+	const int32 StringLength = EditedTextString.Len();
+
+	if (Direction > 0)
+	{
+		// Scan right for text
+		int32 CurCharIndex = Location;
+		while( CurCharIndex < StringLength && !FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+		{
+			++CurCharIndex;
+		}
+
+		// Scan right for whitespace
+		while( CurCharIndex < StringLength && FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+		{
+			++CurCharIndex;
+		}
+
+		return CurCharIndex;
+	}
+	else
+	{
+		// Scan left for whitespace
+		int32 CurCharIndex = Location;
+		while( CurCharIndex > 0 && FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
+		{
+			--CurCharIndex;
+		}
+
+		// Scan left for text
+		while( CurCharIndex > 0 && !FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
+		{
+			--CurCharIndex;
+		}
+
+		return CurCharIndex;
+	}
+}
+
+
+bool SEditableText::IsAtWordStart( const int32 Location ) const
+{
+	const FString& EditedTextString = EditedText.ToString();
+
+	if (Location > 0)
+	{
+		const TCHAR CharBeforeCursor = EditedTextString[Location - 1];
+		const TCHAR CharAtCursor = EditedTextString[Location];
+		return FText::IsWhitespace(CharBeforeCursor) && !FText::IsWhitespace(CharAtCursor);
+	}
+
+	return false;
 }
 
 

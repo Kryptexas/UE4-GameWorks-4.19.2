@@ -30,6 +30,7 @@ public:
 		, _SelectAllTextOnCommit( false )
 		, _BackgroundColor()		
 		, _Padding()
+		, _Margin()
 		, _ErrorReporting()
 		{}
 
@@ -97,6 +98,10 @@ public:
 
 		/** Padding between the box/border and the text widget inside (overrides Style) */
 		SLATE_ATTRIBUTE( FMargin, Padding )
+
+		/** The amount of blank space left around the edges of text area. 
+			This is different to Padding because this area is still considered part of the text area, and as such, can still be interacted with */
+		SLATE_ATTRIBUTE( FMargin, Margin )
 
 		/** Provide a alternative mechanism for error reporting. */
 		SLATE_ARGUMENT( TSharedPtr<class IErrorReportingWidget>, ErrorReporting )

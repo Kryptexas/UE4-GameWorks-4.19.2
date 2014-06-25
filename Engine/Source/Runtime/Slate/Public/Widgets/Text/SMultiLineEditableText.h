@@ -188,21 +188,12 @@ private:
 		}
 	};
 
+	/** Run highlighter used to draw the cursor */
 	class FSlateCursorRunHighlighter : public ISlateRunHighlighter
 	{
 	public:
 
 		static TSharedRef< FSlateCursorRunHighlighter > Create(const FCursorInfo* InCursorInfo);
-
-	public:
-
-		enum class EMode : uint8
-		{
-			Cursor,
-			Selection,
-		};
-
-	public:
 
 		virtual ~FSlateCursorRunHighlighter() {}
 
@@ -212,20 +203,37 @@ private:
 
 		virtual void OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 
-		void SetMode( EMode Mode );
+	protected:
 
-	private:
+		int32 OnPaintCursor( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, const bool bParentEnabled, const ECursorAlignment InCursorAlignment ) const;
 
 		FSlateCursorRunHighlighter(const FCursorInfo* InCursorInfo);
 
-	private:
-
 		/** Cursor data that this highlighter is tracking */
 		const FCursorInfo* CursorInfo;
+	};
 
-		EMode Mode;
+	/** Run highlighter used to draw selection ranges */
+	class FSlateSelectionRunHighlighter : public FSlateCursorRunHighlighter
+	{
+	public:
 
-		static FNoChildren NoChildrenInstance;
+		static TSharedRef< FSlateSelectionRunHighlighter > Create(const FCursorInfo* InCursorInfo);
+
+		virtual ~FSlateSelectionRunHighlighter() {}
+
+		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+
+		void SetCursorAlignment(const ECursorAlignment InCursorAlignment)
+		{
+			CursorAlignment = InCursorAlignment;
+		}
+
+	protected:
+
+		FSlateSelectionRunHighlighter(const FCursorInfo* InCursorInfo);
+
+		ECursorAlignment CursorAlignment;
 	};
 
 private:
@@ -354,13 +362,24 @@ private:
 
 	void SaveText(const FText& TextToSave);
 
+	/**
+	 * Sets the current editable text for this text block
+	 * Note: Doesn't update the value of BoundText, nor does it call OnTextChanged
+	 *
+	 * @param TextToSet		The new text to set in the internal TextLayout
+	 * @param bForce		True to force the update, even if the text currently matches what's in the TextLayout
+	 *
+	 * @return true if the text was updated, false if the text wasn't update (because it was already up-to-date)
+	 */
+	bool SetEditableText(const FText& TextToSet, const bool bForce = false);
+
 private:
 
 	/** The text displayed in this text block */
 	TAttribute<FText> BoundText;
 
-	/** The text that is currently in TextLayout; used to avoid un-needed updates */
-	TOptional<FText> LastSetText;
+	/** The state of BoundText last Tick() (only used when BoundText is bound to a delegate providing the source text) */
+	FText BoundTextLastTick;
 
 	/** In control of the layout and wrapping of the BoundText */
 	TSharedPtr< FSlateTextLayout > TextLayout;
@@ -381,7 +400,9 @@ private:
 	TAttribute< ETextJustify::Type > Justification; 
 	TAttribute< float > LineHeightPercentage;
 
-	TSharedPtr< FSlateCursorRunHighlighter > CursorSelectionHighlighter;
+	TSharedPtr< FSlateCursorRunHighlighter > CursorRunHighlighter;
+
+	TSharedPtr< FSlateSelectionRunHighlighter > SelectionRunHighlighter;
 
 	/** That start of the selection when there is a selection. The end is implicitly wherever the cursor happens to be. */
 	TOptional<FTextLocation> SelectionStart;

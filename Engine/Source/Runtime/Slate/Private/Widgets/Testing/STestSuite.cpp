@@ -1693,7 +1693,9 @@ public:
 							+SHorizontalBox::Slot()
 							[
 								SNew(SMultiLineEditableTextBox)
+								.Margin(10)
 								.Text(MultilineEditableText)
+								//.Justification(ETextJustify::Right)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 12))
 								.AutoWrapText(true)
 								.HintText(LOCTEXT("TypehereTextHint", "Type Here"))

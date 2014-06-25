@@ -373,6 +373,12 @@ protected:
 	 */
 	int32 FindClickedCharacterIndex( const FVector2D& InLocalCursorPosition ) const;
 
+	/** Find the closest word boundary */
+	int32 ScanForWordBoundary( const int32 Location, int8 Direction ) const; 
+
+	/** Are we currently at the beginning of a word */
+	bool IsAtWordStart( const int32 Location ) const;
+
 	/**
 	 * Adds the specified undo state to the undo stack
 	 *

@@ -44,6 +44,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.Justification(InArgs._Justification)
 					.LineHeightPercentage(InArgs._LineHeightPercentage)
+					.Margin(InArgs._Margin)
 					.WrapTextAt(InArgs._WrapTextAt)
 					.AutoWrapText(InArgs._AutoWrapText)
 				]

@@ -5,6 +5,11 @@
 #if !UE_ENABLE_ICU
 #include "Text.h"
 
+bool FText::IsWhitespace( const TCHAR Char )
+{
+	return FChar::IsWhitespace(Char);
+}
+
 FText FText::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));

@@ -297,6 +297,8 @@ public:
 
 	void GetAsText(FString& DisplayText) const;
 
+	void GetAsText(FText& DisplayText) const;
+
 	void GetSelectionAsText(FString& DisplayText, const FTextSelection& Selection) const;
 
 	FTextSelection GetWordAt(const FTextLocation& Location) const;
