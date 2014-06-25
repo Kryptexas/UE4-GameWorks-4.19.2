@@ -1844,6 +1844,12 @@ void UEditorEngine::CreateNewMapForEditing()
 
 UWorld* UEditorEngine::NewMap()
 {
+	// If we have a PIE session kill it before creating a new map
+	if (PlayWorld)
+	{
+		EndPlayMap();
+	}
+
 	const FScopedBusyCursor BusyCursor;
 
 	FWorldContext &Context = GetEditorWorldContext();
