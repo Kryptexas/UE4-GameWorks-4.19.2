@@ -2551,6 +2551,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->LODDistanceFactor           = OldLandscapeProxy->LODDistanceFactor;
 			Landscape->StaticLightingResolution    = OldLandscapeProxy->StaticLightingResolution;
 			Landscape->bCastStaticShadow           = OldLandscapeProxy->bCastStaticShadow;
+			Landscape->bCastShadowAsTwoSided	   = OldLandscapeProxy->bCastShadowAsTwoSided;
 			Landscape->LightmassSettings           = OldLandscapeProxy->LightmassSettings;
 			Landscape->CollisionThickness          = OldLandscapeProxy->CollisionThickness;
 			Landscape->BodyInstance.SetCollisionProfileName(OldLandscapeProxy->BodyInstance.GetCollisionProfileName());

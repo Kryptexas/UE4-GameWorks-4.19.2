@@ -351,7 +351,8 @@ void ULandscapeComponent::PostLoad()
 	if (ensure(LandscapeProxy))
 	{
 		bCastStaticShadow = LandscapeProxy->bCastStaticShadow;
-		
+		bCastShadowAsTwoSided = LandscapeProxy->bCastShadowAsTwoSided;
+
 		// convert from deprecated layer names to direct LayerInfo references
 		static const FName DataWeightmapName = FName("__DataLayer__");
 		for (int32 i = 0; i < WeightmapLayerAllocations.Num(); i++)
@@ -505,6 +506,7 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	LODDistanceFactor = 1.0f;
 	LODFalloff = ELandscapeLODFalloff::Linear;
 	bCastStaticShadow = true;
+	bCastShadowAsTwoSided = false;
 	bUsedForNavigation = true;
 	CollisionThickness = 16;
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
@@ -1304,6 +1306,7 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		//PrePivot = Landscape->PrePivot;
 		StaticLightingResolution = Landscape->StaticLightingResolution;
 		bCastStaticShadow = Landscape->bCastStaticShadow;
+		bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
 		ComponentSizeQuads = Landscape->ComponentSizeQuads;
 		NumSubsections = Landscape->NumSubsections;
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;

@@ -811,6 +811,7 @@ public:
 
 						// Assign shared properties
 						LandscapeComponent->bCastStaticShadow = Landscape->bCastStaticShadow;
+						LandscapeComponent->bCastShadowAsTwoSided = Landscape->bCastShadowAsTwoSided;
 
 						int32 ComponentVerts = (Landscape->SubsectionSizeQuads+1) * Landscape->NumSubsections;
 						// Update Weightmap Scale Bias

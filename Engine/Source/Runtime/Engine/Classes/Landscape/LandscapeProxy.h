@@ -257,6 +257,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Lighting)
 	uint32 bCastStaticShadow:1;
 
+	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Lighting)
+	uint32 bCastShadowAsTwoSided:1;
+
 	UPROPERTY()
 	uint32 bIsProxy:1;
 
