@@ -6,9 +6,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UCircularThrobberComponent
+// UCircularThrobber
 
-UCircularThrobberComponent::UCircularThrobberComponent(const FPostConstructInitializeProperties& PCIP)
+UCircularThrobber::UCircularThrobber(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SCircularThrobber::FArguments DefaultArgs;
@@ -18,7 +18,7 @@ UCircularThrobberComponent::UCircularThrobberComponent(const FPostConstructIniti
 	Radius = DefaultArgs._Radius;
 }
 
-TSharedRef<SWidget> UCircularThrobberComponent::RebuildWidget()
+TSharedRef<SWidget> UCircularThrobber::RebuildWidget()
 {
 	SCircularThrobber::FArguments DefaultArgs;
 

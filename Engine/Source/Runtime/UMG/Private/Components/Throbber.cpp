@@ -6,9 +6,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UThrobberComponent
+// UThrobber
 
-UThrobberComponent::UThrobberComponent(const FPostConstructInitializeProperties& PCIP)
+UThrobber::UThrobber(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SThrobber::FArguments DefaultArgs;
@@ -20,7 +20,7 @@ UThrobberComponent::UThrobberComponent(const FPostConstructInitializeProperties&
 	bAnimateOpacity = (DefaultArgs._Animate & SThrobber::Opacity) != 0;
 }
 
-TSharedRef<SWidget> UThrobberComponent::RebuildWidget()
+TSharedRef<SWidget> UThrobber::RebuildWidget()
 {
 	SThrobber::FArguments DefaultArgs;
 

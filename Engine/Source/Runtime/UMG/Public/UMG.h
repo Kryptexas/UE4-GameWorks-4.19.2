@@ -67,8 +67,8 @@
 
 #include "Spacer.h"
 
-#include "ThrobberComponent.h"
-#include "CircularThrobberComponent.h"
+#include "Throbber.h"
+#include "CircularThrobber.h"
 
 #include "TableViewBase.h"
 #include "ListView.h"

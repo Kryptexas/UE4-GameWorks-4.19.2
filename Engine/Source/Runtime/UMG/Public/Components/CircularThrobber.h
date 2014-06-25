@@ -2,13 +2,13 @@
 
 #pragma once
 
-#include "CircularThrobberComponent.generated.h"
+#include "CircularThrobber.generated.h"
 
 class USlateBrushAsset;
 
 /**  A throbber widget that orients images in a spinning circle. */
 UCLASS(meta=( Category="Misc" ), ClassGroup=UserInterface)
-class UMG_API UCircularThrobberComponent : public UWidget
+class UMG_API UCircularThrobber : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
