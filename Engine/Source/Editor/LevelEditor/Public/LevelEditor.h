@@ -152,6 +152,10 @@ public:
 	/* Create a tab manager for the level editor based on the given tab (or clears the tab manager if OwnerTab is null) */
 	virtual void SetLevelEditorTabManager( const TSharedPtr<SDockTab>& OwnerTab );
 
+	/** Called when the tab manager is changed */
+	DECLARE_EVENT(FLevelEditorModule, FTabManagerChangedEvent);
+	virtual FTabManagerChangedEvent& OnTabManagerChanged() { return TabManagerChangedEvent; }
+
 	/**
 	 * Called when actor selection changes
 	 * 
@@ -252,6 +256,9 @@ private:
 	TSharedPtr<FUICommandList> GlobalLevelEditorActions;
 
 	FAutoConsoleCommand ToggleImmersiveConsoleCommand;
+
+	/** Multicast delegate executed when the tab manager is changed */
+	FTabManagerChangedEvent TabManagerChangedEvent;
 
 	/** Multicast delegate executed when actor selection changes */
 	FActorSelectionChangedEvent ActorSelectionChangedEvent;

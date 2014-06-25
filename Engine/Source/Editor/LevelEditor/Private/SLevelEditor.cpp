@@ -1296,17 +1296,6 @@ void SLevelEditor::RefreshEditorModeCommands()
 				FIsActionChecked::CreateStatic( &SLevelEditor::IsModeActive, Mode.ID ));
 		}
 
-		// Register the new tab spawner, and unregister the old one if it exists
-		//if ( LevelEditorTabManager.IsValid() )
-		//{
-		//	LevelEditorTabManager->UnregisterTabSpawner( EditorModeTabName );
-
-		//	LevelEditorTabManager->RegisterTabSpawner( EditorModeTabName, FOnSpawnTab::CreateSP<SLevelEditor, FEdMode*>(this, &SLevelEditor::SpawnLevelEditorModeTab, Mode) )
-		//		.SetDisplayName( Mode->GetName() ) 
-		//		.SetGroup( MenuStructure.GetLevelEditorModesCategory() )
-		//		.SetIcon( Mode->GetIcon() );
-		//}
-
 		commandIndex++;
 	}
 
@@ -1319,33 +1308,6 @@ void SLevelEditor::RefreshEditorModeCommands()
 		}
 	}
 }
-
-//TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorModeTab( const FSpawnTabArgs& Args, FEdMode* EditorMode )
-//{
-	//if (!GLevelEditorModeTools().IsModeActive(EditorMode->GetID()))
-	//{
-	//	GLevelEditorModeTools().ActivateMode(EditorMode->GetID());
-	//}
-
-	//TSharedPtr<SDockTab> NewEditorModeTab;
-	//TSharedPtr<SLevelEditorModeContent> NewToolBox;
-
-	//SAssignNew( NewEditorModeTab, SDockTab )
-	//	.Icon( EditorMode->GetIcon().GetSmallIcon() )
-	//	.Label( EditorMode->GetName() );
-
-	//NewEditorModeTab->SetContent(
-	//	SNew( STutorialWrapper, TEXT("ToolsPanel") )
-	//	[
-	//		SAssignNew( NewToolBox, SLevelEditorModeContent, SharedThis( this ), NewEditorModeTab.ToSharedRef(), EditorMode )
-	//		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-	//	]
-	//);
-
-	//ModesTabs.Add( NewToolBox );
-
-	//return NewEditorModeTab.ToSharedRef();
-//}
 
 FReply SLevelEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
@@ -1432,7 +1394,6 @@ void SLevelEditor::SummonLevelViewportContextMenu()
 {
 	FLevelEditorContextMenu::SummonMenu( SharedThis( this ), LevelEditorMenuContext::Viewport );
 }
-
 
 const TArray< TSharedPtr< IToolkit > >& SLevelEditor::GetHostedToolkits() const
 {
