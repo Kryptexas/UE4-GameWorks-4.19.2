@@ -219,3 +219,8 @@ void FMetalDynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
 {
 
 }
+
+void* FMetalDynamicRHI::RHIGetNativeDevice()
+{
+	return NULL;
+}

@@ -177,3 +177,8 @@ void FEmptyDynamicRHI::RHIReleaseThreadOwnership()
 {
 
 }
+
+void* FEmptyDynamicRHI::RHIGetNativeDevice()
+{
+	return NULL;
+}

@@ -1159,3 +1159,8 @@ bool FOpenGLDynamicRHIModule::IsSupported()
 {
 	return PlatformInitOpenGL();
 }
+
+void* FOpenGLDynamicRHI::RHIGetNativeDevice()
+{
+	return NULL;
+}

@@ -1722,3 +1722,11 @@ DEFINE_RHIMETHOD_3(
 	float,MaxDepth,
 	,
 	);
+
+/**
+ * Provides access to the native device. Generally this should be avoided but is useful for third party plugins.
+ */
+DEFINE_RHIMETHOD_0(
+	void*,RHIGetNativeDevice,
+	return,return NULL
+	);
