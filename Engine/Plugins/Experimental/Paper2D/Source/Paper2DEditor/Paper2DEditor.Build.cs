@@ -38,6 +38,7 @@ public class Paper2DEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
+				"IntroTutorials"
 			}
 		);
 	}
