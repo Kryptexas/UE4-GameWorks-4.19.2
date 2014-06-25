@@ -33,8 +33,11 @@ struct SLATECORE_API FSlateDynamicImageBrush
 		bIsDynamicallyLoaded = true;
 
 		// if we have a texture, make a unique name
-		if (GetResourceObject() != nullptr)
+		if (ResourceObject != nullptr)
 		{
+			// @todo Slate - Hack:  This is to address an issue where the brush created and a GC occurs before the brush resource object becomes referenced
+			// by the Slate resource manager.  
+			ResourceObject->AddToRoot();
 			ResourceName = InTextureName;
 		}
 	}
