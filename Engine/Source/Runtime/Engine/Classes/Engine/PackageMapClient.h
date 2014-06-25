@@ -22,27 +22,12 @@
 #include "Net/DataBunch.h"
 #include "PackageMapClient.generated.h"
 
-class FMarkSerializeNewActorScoped
-{
-public:
-	FMarkSerializeNewActorScoped( bool & InIsSerializingNewActor ) : IsSerializingNewActorRef( InIsSerializingNewActor )
-	{ 
-		IsSerializingNewActorRef = true; 
-	};
 
-	~FMarkSerializeNewActorScoped()
-	{
-		IsSerializingNewActorRef = false;
-	}
-
-	bool & IsSerializingNewActorRef;
-};
-	
 /** Stores an object with path associated with FNetworkGUID */
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : GuidSequence( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
+	FNetGuidCacheObject() : GuidSequence( 0 ), InitialQueryTime( -1.0f ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
 	{
 	}
 
@@ -52,6 +37,8 @@ public:
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
 	int32						GuidSequence;				// We remember the guid sequence this net guid was generated on so we can tell how old it is
+
+	float						InitialQueryTime;
 
 	uint8						bNoLoad				: 1;	// Don't load this, only do a find
 	uint8						bIgnoreWhenMissing	: 1;	// Don't warn when this asset can't be found or loaded
@@ -76,6 +63,9 @@ public:
 	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad, const bool bIgnoreWhenMissing );
 	UObject *		GetObjectFromNetGUID( const FNetworkGUID & NetGUID );
 	bool			ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID );
+	bool			IsGUIDRegistered( const FNetworkGUID & NetGUID );
+	bool			IsGUIDLoaded( const FNetworkGUID & NetGUID );
+
 	UObject *		ResolvePath( const FString & PathName, UObject * ObjOuter, const bool bNoLoad );
 
 	TMap< FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
@@ -83,6 +73,7 @@ public:
 	int32											UniqueNetIDs[2];
 
 	int32											GuidSequence;
+	bool											IsExportingNetGUIDBunch;
 
 	UNetDriver *									Driver;
 
@@ -103,8 +94,6 @@ class UPackageMapClient : public UPackageMap
 	{
 		GuidCache				= InNetGUIDCache;
 		ExportNetGUIDCount		= 0;
-		IsExportingNetGUIDBunch = false;
-		IsSerializingNewActor	= false;
 	}
 
 	virtual ~UPackageMapClient()
@@ -148,6 +137,11 @@ class UPackageMapClient : public UPackageMap
 	virtual void		LogDebugInfo( FOutputDevice & Ar) override;
 	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID ) override;
 
+	TArray< FNetworkGUID > & GetMustBeMappedGuidsInLastBunch()
+	{
+		return MustBeMappedGuidsInLastBunch;
+	}
+
 protected:
 
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject * Object, FString PathName, UObject * ObjOuter );
@@ -161,8 +155,6 @@ protected:
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 	
 	bool IsNetGUIDAuthority();
-
-	bool IsExportingNetGUIDBunch;
 
 	class UNetConnection* Connection;
 
@@ -181,5 +173,5 @@ protected:
 
 	TSharedPtr< FNetGUIDCache >			GuidCache;
 
-	bool								IsSerializingNewActor;
+	TArray< FNetworkGUID >				MustBeMappedGuidsInLastBunch;
 };

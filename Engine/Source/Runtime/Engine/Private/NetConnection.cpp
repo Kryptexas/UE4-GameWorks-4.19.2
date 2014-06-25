@@ -832,16 +832,17 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		{
 			// Parse the incoming data.
 			FInBunch Bunch( this );
-			int32 IncomingStartPos = Reader.GetPosBits();
-			uint8 bControl      = Reader.ReadBit();
-			Bunch.PacketId     = PacketId;
-			Bunch.bOpen        = bControl ? Reader.ReadBit() : 0;
-			Bunch.bClose       = bControl ? Reader.ReadBit() : 0;
-			Bunch.bDormant	   = Bunch.bClose ? Reader.ReadBit() : 0;
-			Bunch.bReliable    = Reader.ReadBit();
-			Bunch.ChIndex      = Reader.ReadInt( MAX_CHANNELS );
-			Bunch.bHasGUIDs	   = Reader.ReadBit();
-			Bunch.bPartial	   = Reader.ReadBit();
+			int32 IncomingStartPos		= Reader.GetPosBits();
+			uint8 bControl				= Reader.ReadBit();
+			Bunch.PacketId				= PacketId;
+			Bunch.bOpen					= bControl ? Reader.ReadBit() : 0;
+			Bunch.bClose				= bControl ? Reader.ReadBit() : 0;
+			Bunch.bDormant				= Bunch.bClose ? Reader.ReadBit() : 0;
+			Bunch.bReliable				= Reader.ReadBit();
+			Bunch.ChIndex				= Reader.ReadInt( MAX_CHANNELS );
+			Bunch.bHasGUIDs				= Reader.ReadBit();
+			Bunch.bHasMustBeMappedGUIDs	= Reader.ReadBit();
+			Bunch.bPartial				= Reader.ReadBit();
 
 			if ( Bunch.bReliable )
 			{
@@ -884,7 +885,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				UE_LOG(LogNetTraffic, VeryVerbose, TEXT("Received: %s"), *Bunch.ToString());
 			}
 
-			int32 HeaderPos      = Reader.GetPosBits();
+			const int32 HeaderPos = Reader.GetPosBits();
+
 			if( Reader.IsError() )
 			{
 				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch header overflowed" ) );
@@ -1188,6 +1190,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteBit( Bunch.bReliable );
 	Header.WriteIntWrapped(Bunch.ChIndex, MAX_CHANNELS);
 	Header.WriteBit( Bunch.bHasGUIDs );
+	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
 	if (Bunch.bReliable || Bunch.bPartial)
 	{

@@ -24,12 +24,13 @@ public:
 	uint8					bClose;
 	uint8					bDormant;
 	uint8					bReliable;
-	uint8					bPartial;			// Not a complete bunch
-	uint8					bPartialInitial;	// The first bunch of a partial bunch
-	uint8					bPartialFinal;		// The final bunch of a partial bunch
-	uint8					bHasGUIDs;			// This bunch has networkGUID name/id pairs
+	uint8					bPartial;				// Not a complete bunch
+	uint8					bPartialInitial;		// The first bunch of a partial bunch
+	uint8					bPartialFinal;			// The final bunch of a partial bunch
+	uint8					bHasGUIDs;				// This bunch has networkGUID name/id pairs
+	uint8					bHasMustBeMappedGUIDs;	// This bunch has guids that must be mapped before we can process this bunch
 
-	TArray< FNetworkGUID >	ExportNetGUIDs;		// List of GUIDs that went out on this bunch
+	TArray< FNetworkGUID >	ExportNetGUIDs;			// List of GUIDs that went out on this bunch
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FString			DebugString;
@@ -89,19 +90,20 @@ class FInBunch : public FNetBitReader
 public:
 	// Variables.
 	int32				PacketId;	// Note this must stay as first member variable in FInBunch for FInBunch(FInBunch, bool) to work
-	FInBunch*		Next;
-	UNetConnection*	Connection;
+	FInBunch *			Next;
+	UNetConnection *	Connection;
 	int32				ChIndex;
 	int32				ChType;
 	int32				ChSequence;
-	uint8			bOpen;
-	uint8			bClose;
-	uint8			bDormant;		// Close, but go dormant
-	uint8			bReliable;
-	uint8			bPartial;		// Not a complete bunch
-	uint8			bPartialInitial;// The first bunch of a partial bunch
-	uint8			bPartialFinal;	// The final bunch of a partial bunch
-	uint8			bHasGUIDs; // This bunch has networkGUID name/id pairs
+	uint8				bOpen;
+	uint8				bClose;
+	uint8				bDormant;				// Close, but go dormant
+	uint8				bReliable;
+	uint8				bPartial;				// Not a complete bunch
+	uint8				bPartialInitial;		// The first bunch of a partial bunch
+	uint8				bPartialFinal;			// The final bunch of a partial bunch
+	uint8				bHasGUIDs;				// This bunch has networkGUID name/id pairs
+	uint8				bHasMustBeMappedGUIDs;	// This bunch has guids that must be mapped before we can process this bunch
 
 	FString	ToString()
 	{

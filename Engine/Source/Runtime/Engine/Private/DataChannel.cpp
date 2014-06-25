@@ -269,9 +269,9 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 {
 	// Immediately consume the NetGUID portion of this bunch, regardless if it is partial or reliable.
-	if (Bunch.bHasGUIDs)
+	if ( Bunch.bHasGUIDs )
 	{
-		Cast<UPackageMapClient>(Connection->PackageMap)->ReceiveNetGUIDBunch(Bunch);
+		Cast<UPackageMapClient>( Connection->PackageMap )->ReceiveNetGUIDBunch( Bunch );
 
 		if ( Bunch.IsError() )
 		{
@@ -279,7 +279,6 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 			return;
 		}
 	}
-
 
 	check(Connection->Channels[ChIndex]==this);
 
@@ -459,10 +458,15 @@ bool UChannel::ReceivedNextBunch( FInBunch & Bunch, bool & bOutSkipAck )
 						UE_LOG(LogNetPartialBunch, Verbose, TEXT("Completed Partial Bunch: Channel: %d ChSequence: %d. Num: %d Rel: %d CRC 0x%X"), InPartialBunch->ChIndex, InPartialBunch->ChSequence, InPartialBunch->GetNumBits(), Bunch.bReliable, FCrc::MemCrc_DEPRECATED(InPartialBunch->GetData(), InPartialBunch->GetNumBytes()));
 					}
 
+					check( !Bunch.bHasGUIDs );		// Shouldn't have these, they only go in initial partial export bunches
+
 					HandleBunch = InPartialBunch;
-					InPartialBunch->bPartialFinal = true;
-					InPartialBunch->bClose = Bunch.bClose;
-					InPartialBunch->bDormant = Bunch.bDormant;
+
+					InPartialBunch->bPartialFinal			= true;
+					InPartialBunch->bClose					= Bunch.bClose;
+					InPartialBunch->bDormant				= Bunch.bDormant;
+					InPartialBunch->bHasMustBeMappedGUIDs	= Bunch.bHasMustBeMappedGUIDs;
+
 					if (InPartialBunch->bOpen)
 					{
 						UE_LOG(LogNetPartialBunch, Verbose, TEXT("Channel: %d is now Open! [%d] - [%d]"), ChIndex, OpenPacketId.First, OpenPacketId.Last );
@@ -532,6 +536,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	check(!Closing);
 	check(Connection->Channels[ChIndex]==this);
 	check(!Bunch->IsError());
+	check( !Bunch->bHasGUIDs );
 
 	// Set bunch flags.
 	if( OpenPacketId.First==INDEX_NONE && OpenedLocally )
@@ -554,12 +559,46 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 
 	TArray<FOutBunch *> OutgoingBunches;
 
+	UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
 	// Let the package map add any outgoing bunches it needs to send
-	if (Cast<UPackageMapClient>(Connection->PackageMap)->AppendExportBunches(OutgoingBunches))
+	if ( PackageMapClient->AppendExportBunches( OutgoingBunches ) )
 	{
 		// Dont merge if we have multiple bunches to send.
 		Merge = false;
 	}
+
+	// Append any "must be mapped" guids to front of bunch
+	// This is so the client will know to make sure they are loaded, and pause the stream until they are
+	TArray< FNetworkGUID > & MustBeMappedGuidsInLastBunch = PackageMapClient->GetMustBeMappedGuidsInLastBunch();
+
+	if ( MustBeMappedGuidsInLastBunch.Num() > 0 && Connection->Driver->IsServer() )
+	{
+		//UE_LOG( LogNet, Warning, TEXT( "SendBunch: Appending must be mapped guids. NumGuids: %i" ), MustBeMappedGuidsInLastBunch.Num() );
+
+		// Rewrite the bunch with the unique guids in front
+		FOutBunch TempBunch( *Bunch );
+
+		Bunch->Reset();
+
+		// Write all the guids out
+		uint16 NumMustBeMappedGUIDs = MustBeMappedGuidsInLastBunch.Num();
+		*Bunch << NumMustBeMappedGUIDs;
+		for ( int32 i = 0; i < MustBeMappedGuidsInLastBunch.Num(); i++ )
+		{
+			*Bunch << MustBeMappedGuidsInLastBunch[i];
+		}
+
+		// Append the original bunch data at the end
+		Bunch->SerializeBits( TempBunch.GetData(), TempBunch.GetNumBits() );
+
+		Bunch->bHasMustBeMappedGUIDs = 1;
+
+		// We can't merge with this, since we need all the unique static guids in the front
+		Merge = false;
+	}
+
+	MustBeMappedGuidsInLastBunch.Empty();
 
 	//-----------------------------------------------------
 	// Contemplate merging.
@@ -596,7 +635,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		uint8 *data = Bunch->GetData();
 		int64 bitsLeft = Bunch->GetNumBits();
 		Merge = false;
-		
+
 		while(bitsLeft > 0)
 		{
 			FOutBunch * PartialBunch = new FOutBunch(this, false);
@@ -654,6 +693,11 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		NextBunch->bDormant = Bunch->bDormant;
 		NextBunch->ChIndex = Bunch->ChIndex;
 		NextBunch->ChType = Bunch->ChType;
+
+		if ( !NextBunch->bHasGUIDs )
+		{
+			NextBunch->bHasMustBeMappedGUIDs |= Bunch->bHasMustBeMappedGUIDs;
+		}
 
 		if (OutgoingBunches.Num() > 1)
 		{
@@ -1316,6 +1360,17 @@ void UActorChannel::CleanUp()
 		Connection->SentTemporaries.Remove(Actor);
 	}
 
+	// We don't care about any leftover pending guids at this point
+	PendingGuidResolves.Empty();
+
+	// Free any queued bunches
+	for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+	{
+		delete QueuedBunches[i];
+	}
+
+	QueuedBunches.Empty();
+
 	Super::CleanUp();
 }
 
@@ -1417,15 +1472,86 @@ void UActorChannel::SetChannelActorForDestroy( FActorDestructionInfo *DestructIn
 	}
 }
 
-void UActorChannel::ReceivedBunch( FInBunch& Bunch )
+void UActorChannel::Tick()
 {
-	check(!Closing);
+	Super::Tick();
+	
+	// Try to resolve any guids that are holding up the network stream on this channel
+	Connection->Driver->GuidCache->IsExportingNetGUIDBunch = true;		// Hack to make assert happy
+	for ( auto It = PendingGuidResolves.CreateIterator(); It; ++It )
+	{
+		if ( Connection->Driver->GuidCache->GetObjectFromNetGUID( *It ) != NULL )
+		{
+			// This guid is now resolved, we can remove it from the pending guid list
+			It.RemoveCurrent();
+		}
+	}
+	Connection->Driver->GuidCache->IsExportingNetGUIDBunch = false;
+
+	// If we don't have any pending guids to resolve, process any queued bunches now
+	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "UActorChannel::Tick: Purging queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+
+		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
+		{
+			ProcessBunch( *QueuedBunches[i] );
+			delete QueuedBunches[i];
+		}
+
+		QueuedBunches.Empty();
+	}
+}
+
+void UActorChannel::ReceivedBunch( FInBunch & Bunch )
+{
+	check( !Closing );
+
 	if ( Broken || bTornOff )
 	{
 		return;
 	}
 
-	const bool bIsServer = (Connection->Driver->ServerConnection == NULL);
+	if ( Bunch.bHasMustBeMappedGUIDs )
+	{
+		// If this bunch has any guids that must be mapped, we need to wait until they resolve before we can 
+		// process the rest of the stream on this channel
+		uint16 NumMustBeMappedGUIDs = 0;
+		Bunch << NumMustBeMappedGUIDs;
+
+		//UE_LOG( LogNetTraffic, Warning, TEXT( "Read must be mapped GUID's. NumMustBeMappedGUIDs: %i" ), NumMustBeMappedGUIDs );
+
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		for ( int32 i = 0; i < NumMustBeMappedGUIDs; i++ )
+		{
+			FNetworkGUID NetGUID;
+			Bunch << NetGUID;
+
+			// This GUID better have been exported before we get here, which means it must be registered by now
+			check( Connection->Driver->GuidCache->IsGUIDRegistered( NetGUID ) );
+
+			if ( !Connection->Driver->GuidCache->IsGUIDLoaded( NetGUID ) )
+			{
+				PendingGuidResolves.Add( NetGUID );
+			}
+		}
+	}
+
+	// If we have guids that need to be resolved, or we have existing pending bunches, we must process this bunch later
+	if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 )
+	{
+		QueuedBunches.Add( new FInBunch( Bunch ) );
+		return;
+	}
+
+	// We can process this bunch now
+	ProcessBunch( Bunch );
+}
+
+void UActorChannel::ProcessBunch( FInBunch & Bunch )
+{
+	const bool bIsServer = Connection->Driver->IsServer();
 
 	FReplicationFlags RepFlags;
 
