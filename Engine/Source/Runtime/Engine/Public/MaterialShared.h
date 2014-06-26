@@ -943,6 +943,11 @@ public:
 	*/
 	virtual void NotifyCompilationFinished() { }
 
+	/**
+	* Cancels all outstanding compilation jobs for this materail.
+	*/
+	ENGINE_API void CancelCompilation();
+
 	/** 
 	 * Blocks until compilation has completed. Returns immediately if a compilation is not outstanding.
 	 */
@@ -1054,6 +1059,11 @@ public:
 	static void RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 protected:
+
+	/**
+	* Fills the passed array with IDs of shader maps unfinished compilation jobs.
+	*/
+	void GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds);
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
 	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const = 0;

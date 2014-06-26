@@ -2197,6 +2197,9 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	
+	//Cancel any current compilation jobs that are in flight for this material.
+	CancelOutstandingCompilation();
 
 	// check for distortion in material 
 	{
@@ -2700,6 +2703,16 @@ void UMaterial::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 
 	Super::AddReferencedObjects(This, Collector);
 }
+
+#if WITH_EDITOR
+void UMaterial::CancelOutstandingCompilation()
+{
+	if (FMaterialResource* Res = GetMaterialResource(GRHIFeatureLevel))
+	{
+		Res->CancelCompilation();
+	}
+}
+#endif
 
 void UMaterial::UpdateMaterialShaders(TArray<FShaderType*>& ShaderTypesToFlush, TArray<const FVertexFactoryType*>& VFTypesToFlush, EShaderPlatform ShaderPlatform)
 {

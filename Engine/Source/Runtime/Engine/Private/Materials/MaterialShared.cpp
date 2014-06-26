@@ -347,19 +347,35 @@ EMaterialTessellationMode FMaterial::GetTessellationMode() const
 	return MTM_NoTessellation; 
 };
 
-void FMaterial::FinishCompilation()
+void FMaterial::GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds)
 {
-	TArray<int32> ShaderMapIdsToFinish;
-
-	// Build an array of the shader map Id's that we need to be compiled
+	// Build an array of the shader map Id's are not finished compiling.
 	if (GameThreadShaderMap && !GameThreadShaderMap->IsCompilationFinalized())
 	{
-		ShaderMapIdsToFinish.Add(GameThreadShaderMap->GetCompilingId());
+		ShaderMapIds.Add(GameThreadShaderMap->GetCompilingId());
 	}
 	else if (OutstandingCompileShaderMapId != INDEX_NONE)
 	{
-		ShaderMapIdsToFinish.Add(OutstandingCompileShaderMapId);
+		ShaderMapIds.Add(OutstandingCompileShaderMapId);
 	}
+}
+
+void FMaterial::CancelCompilation()
+{
+	TArray<int32> ShaderMapIdsToCancel;
+	GetShaderMapIDsWithUnfinishedCompilation(ShaderMapIdsToCancel);
+
+	if (ShaderMapIdsToCancel.Num() > 0)
+	{
+		// Cancel all compile jobs for these shader maps.
+		GShaderCompilingManager->CancelCompilation(*GetFriendlyName(), ShaderMapIdsToCancel);
+	}
+}
+
+void FMaterial::FinishCompilation()
+{
+	TArray<int32> ShaderMapIdsToFinish;
+	GetShaderMapIDsWithUnfinishedCompilation(ShaderMapIdsToFinish);
 
 	if (ShaderMapIdsToFinish.Num() > 0)
 	{

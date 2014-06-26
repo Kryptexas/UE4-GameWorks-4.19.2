@@ -34,6 +34,7 @@ public:
 
 	~FMatExpressionPreview()
 	{
+		CancelCompilation();
 		ReleaseResource();
 	}
 

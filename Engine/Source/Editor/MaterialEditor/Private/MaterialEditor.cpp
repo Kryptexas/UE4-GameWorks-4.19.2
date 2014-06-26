@@ -3125,13 +3125,6 @@ void FMaterialEditor::UndoGraphAction()
 	{
 		Material->BuildEditorParameterList();
 	}
-
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
 }
 
 void FMaterialEditor::RedoGraphAction()
@@ -3147,26 +3140,23 @@ void FMaterialEditor::RedoGraphAction()
 		Material->BuildEditorParameterList();
 	}
 
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
 }
 
 void FMaterialEditor::PostUndo(bool bSuccess)
 {
-	GraphEditor->ClearSelectionSet();
+	if (bSuccess)
+	{	
+		GraphEditor->ClearSelectionSet();
+		
+		Material->BuildEditorParameterList();
 
-	Material->BuildEditorParameterList();
+		// Update the current preview material.
+		UpdatePreviewMaterial();
 
-	// Update the current preview material.
-	UpdatePreviewMaterial();
-
-	RefreshExpressionPreviews();
-	GraphEditor->NotifyGraphChanged();
-	SetMaterialDirty();
+		RefreshExpressionPreviews();
+		GraphEditor->NotifyGraphChanged();
+		SetMaterialDirty();
+	}
 }
 
 void FMaterialEditor::NotifyPreChange(UProperty* PropertyAboutToChange)

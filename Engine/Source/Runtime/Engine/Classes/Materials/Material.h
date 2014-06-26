@@ -794,6 +794,11 @@ public:
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
+#if WITH_EDITOR
+	/** Cancels any currently outstanding compilation jobs for this material. Useful in the material editor when some edits superceds existing, in flight compilation jobs.*/
+	ENGINE_API virtual void CancelOutstandingCompilation();
+#endif // WITH_EDITOR
+
 	/**
 	 * Return the default material, loading it if necessary
 	 */
