@@ -1383,6 +1383,25 @@ bool UStruct::GetBoolMetaDataHierarchical(const FName& Key) const
 	}
 	return bResult;
 }
+
+bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue) const
+{
+	for (const UStruct* TestStruct = this; TestStruct != nullptr; TestStruct = TestStruct->GetSuperStruct())
+	{
+		if (TestStruct->HasMetaData(Key))
+		{
+			if (OutValue != nullptr)
+			{
+				*OutValue = TestStruct->GetMetaData(Key);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 #endif
 //
 // Serialize an expression to an archive.

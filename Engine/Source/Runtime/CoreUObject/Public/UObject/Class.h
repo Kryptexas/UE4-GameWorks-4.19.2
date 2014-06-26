@@ -366,8 +366,11 @@ public:
 	}
 
 #if WITH_EDITOR
-	/** Try and find metadata with the given key. If not found on this class, work up hierarchy looking for it. */
+	/** Try and find boolean metadata with the given key. If not found on this class, work up hierarchy looking for it. */
 	bool GetBoolMetaDataHierarchical(const FName& Key) const;
+
+	/** Try and find string metadata with the given key. If not found on this class, work up hierarchy looking for it. */
+	bool GetStringMetaDataHierarchical(const FName& Key, FString* OutValue = nullptr) const;
 #endif
 };
 
