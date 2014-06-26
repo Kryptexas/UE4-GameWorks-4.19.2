@@ -20,6 +20,7 @@ class UEditorUtilityBlueprintFactory : public UFactory
 	// UFactory interface
 	virtual bool ConfigureProperties() override;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
+	virtual bool CanCreateNew() const override;
 	// End of UFactory interface
 
 	/** Handler for when a class is picked in the class picker */

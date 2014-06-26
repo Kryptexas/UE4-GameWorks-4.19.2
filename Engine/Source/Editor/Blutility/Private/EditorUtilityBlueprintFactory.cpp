@@ -31,14 +31,7 @@ UEditorUtilityBlueprintFactory::UEditorUtilityBlueprintFactory(const class FPost
 {
 	UClass* DefaultParentClass = APlacedEditorUtilityBase::StaticClass();
 
-	if ( GEditor )
-	{
-		if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
-		{
-			bCreateNew = true;
-		}
-	}
-
+	bCreateNew = true;
 	bEditAfterNew = true;
 	SupportedClass = UEditorUtilityBlueprint::StaticClass();
 	ParentClass = DefaultParentClass;
@@ -98,6 +91,11 @@ UObject* UEditorUtilityBlueprintFactory::FactoryCreateNew(UClass* Class, UObject
 	{
 		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UEditorUtilityBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 	}
+}
+
+bool UEditorUtilityBlueprintFactory::CanCreateNew() const
+{
+	return GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 }
 
 void UEditorUtilityBlueprintFactory::OnClassPicked(UClass* InChosenClass)

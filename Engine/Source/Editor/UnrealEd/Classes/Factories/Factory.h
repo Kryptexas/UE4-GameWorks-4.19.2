@@ -26,10 +26,12 @@ class UNREALED_API UFactory : public UObject
 	UPROPERTY()
 	TArray<FString> Formats;
 
-	/** true if the factory creates a new object from scratch. */
+protected:
+	/** The default value to return from CanCreateNew() */
 	UPROPERTY()
 	uint32 bCreateNew:1;
 
+public:
 	/** true if the associated editor should be opened after creating a new object. */
 	UPROPERTY()
 	uint32 bEditAfterNew:1;
@@ -66,7 +68,7 @@ class UNREALED_API UFactory : public UObject
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface.
 
-	/** Returns true if this factory should be shown in the New Asset menu. */
+	/** Returns true if this factory should be shown in the New Asset menu (by default calls CanCreateNew). */
 	virtual bool ShouldShowInNewMenu() const;
 
 	/** Returns an optional override brush name for the new asset menu. If this is not specified, the thumbnail for the supported class will be used. */
@@ -89,7 +91,7 @@ class UNREALED_API UFactory : public UObject
 	/**
 	 * @return true if it supports this class 
 	 */
-	virtual bool DoesSupportClass(UClass * Class);
+	virtual bool DoesSupportClass(UClass* Class);
 
 	/**
 	 * Resolves SupportedClass for factories which support multiple classes.
@@ -105,6 +107,11 @@ class UNREALED_API UFactory : public UObject
 
 	/** Opens a dialog to configure the factory properties. Return false if user opted out of configuring properties */
 	virtual bool ConfigureProperties() { return true; }
+
+	/**
+	 * @return true if the factory can currently create a new object from scratch.
+	 */
+	virtual bool CanCreateNew() const { return bCreateNew; }
 
 	// @todo document
 	virtual UObject* FactoryCreateText( UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn ) {return NULL;}

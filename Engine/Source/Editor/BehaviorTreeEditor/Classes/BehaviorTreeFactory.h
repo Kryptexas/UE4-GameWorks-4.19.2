@@ -3,15 +3,15 @@
 #pragma once
 #include "BehaviorTreeFactory.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS()
 class UBehaviorTreeFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UFactory Interface
+	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
-	virtual bool ShouldShowInNewMenu() const override;
-	// Begin UFactory Interface	
+	virtual bool CanCreateNew() const override;
+	// End of UFactory interface
 };
 
 

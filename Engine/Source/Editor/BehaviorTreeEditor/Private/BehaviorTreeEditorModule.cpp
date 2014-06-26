@@ -105,15 +105,6 @@ void FBehaviorTreeEditorModule::ShutdownModule()
 	}
 }
 
-void FBehaviorTreeEditorModule::HandleExperimentalSettingChanged(FName PropertyName)
-{
-	if (PropertyName == TEXT("bBehaviorTreeEditor"))
-	{
-		UBehaviorTreeFactory* EditorUtilityBlueprintFactory = Cast<UBehaviorTreeFactory>(UBehaviorTreeFactory::StaticClass()->GetDefaultObject());
-		EditorUtilityBlueprintFactory->bCreateNew = GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor;;
-	}
-}
-
 TSharedRef<IBehaviorTreeEditor> FBehaviorTreeEditorModule::CreateBehaviorTreeEditor( const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UObject* Object )
 {
 	if (!ClassCache.IsValid())

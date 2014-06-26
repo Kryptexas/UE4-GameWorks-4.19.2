@@ -45,8 +45,6 @@ public:
 		{
 			RegisterBlutilityShelfTabSpawner();
 		}
-		
-		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().AddRaw(this, &FBlutilityModule::HandleExperimentalSettingChanged);
 	}
 
 	virtual void ShutdownModule() override
@@ -57,8 +55,6 @@ public:
 		}
 
 		UnregisterBlutilityShelfTabSpawner();
-
-		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().RemoveAll(this);
 
 		// Only unregister if the asset tools module is loaded.  We don't want to forcibly load it during shutdown phase.
 		check( EditorBlueprintAssetTypeActions.IsValid() );
@@ -109,12 +105,10 @@ protected:
 			if (GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints)
 			{
 				RegisterBlutilityShelfTabSpawner();
-				EditorUtilityBlueprintFactory->bCreateNew = true;
 			}
 			else
 			{
 				UnregisterBlutilityShelfTabSpawner();
-				EditorUtilityBlueprintFactory->bCreateNew = false;
 			}
 		}
 	}

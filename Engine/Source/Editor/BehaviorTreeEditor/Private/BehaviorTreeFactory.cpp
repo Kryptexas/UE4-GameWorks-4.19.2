@@ -10,19 +10,11 @@ UBehaviorTreeFactory::UBehaviorTreeFactory(const class FPostConstructInitializeP
 	: Super(PCIP)
 {
 	SupportedClass = UBehaviorTree::StaticClass();
+	bCreateNew = true;
 	bEditAfterNew = true;
-
-	//enable asset creation by Epic Labs
-	bool bCreateNewByEpicLabs = GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor;
-
-	// Check ini to see if we should enable creation
-	bool bBehaviorTreeNewAssetsEnabled = false;
-	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), bBehaviorTreeNewAssetsEnabled, GEngineIni);
-
-	bCreateNew = (bCreateNewByEpicLabs || bBehaviorTreeNewAssetsEnabled);
 }
 
-bool UBehaviorTreeFactory::ShouldShowInNewMenu() const
+bool UBehaviorTreeFactory::CanCreateNew() const
 {
 	bool bBehaviorTreeNewAssetsEnabled = false;
 	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), bBehaviorTreeNewAssetsEnabled, GEngineIni);

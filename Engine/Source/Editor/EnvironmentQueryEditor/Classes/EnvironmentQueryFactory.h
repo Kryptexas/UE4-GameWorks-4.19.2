@@ -8,9 +8,10 @@ class UEnvironmentQueryFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UFactory Interface
+	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn) override;
-	// Begin UFactory Interface	
+	virtual bool CanCreateNew() const override;
+	// End of UFactory interface	
 };
 
 

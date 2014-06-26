@@ -73,7 +73,7 @@ bool UFactory::FactoryCanImport( const FString& Filename )
 
 bool UFactory::ShouldShowInNewMenu() const
 {
-	return bCreateNew;
+	return CanCreateNew();
 }
 
 FText UFactory::GetDisplayName() const
@@ -224,7 +224,7 @@ UObject* UFactory::StaticImportObject
 	{
 		UFactory* Factory = Factories[i];
 		UObject* Result = NULL;
-		if( Factory->bCreateNew )
+		if( Factory->CanCreateNew() )
 		{
 			if( FCString::Stricmp(Filename,TEXT(""))==0 )
 			{

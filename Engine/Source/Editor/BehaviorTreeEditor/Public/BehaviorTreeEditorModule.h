@@ -32,8 +32,6 @@ public:
 	static const FName BehaviorTreeEditorAppIdentifier;
 
 private:
-	void HandleExperimentalSettingChanged(FName PropertyName);
-
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
