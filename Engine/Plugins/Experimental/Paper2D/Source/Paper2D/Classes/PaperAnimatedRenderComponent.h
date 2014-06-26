@@ -5,7 +5,7 @@
 #include "PaperFlipbook.h"
 #include "PaperAnimatedRenderComponent.generated.h"
 
-UCLASS(MinimalAPI, ShowCategories=(Mobility), meta=(BlueprintSpawnableComponent))
+UCLASS(MinimalAPI, ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
 class UPaperAnimatedRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

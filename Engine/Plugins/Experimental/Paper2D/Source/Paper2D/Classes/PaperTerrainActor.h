@@ -8,7 +8,7 @@
  * An instance of a piece of 2D terrain in the level
  */
 
-UCLASS(DependsOn=UEngineTypes, BlueprintType)
+UCLASS(DependsOn=UEngineTypes, BlueprintType, Experimental)
 class PAPER2D_API APaperTerrainActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

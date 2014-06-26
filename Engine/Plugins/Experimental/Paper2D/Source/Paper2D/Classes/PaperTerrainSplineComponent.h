@@ -6,7 +6,7 @@
 #include "PaperTerrainSplineComponent.generated.h"
 
 //@TODO: Document
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Experimental)
 class PAPER2D_API UPaperTerrainSplineComponent : public USplineComponent
 {
 	GENERATED_UCLASS_BODY()

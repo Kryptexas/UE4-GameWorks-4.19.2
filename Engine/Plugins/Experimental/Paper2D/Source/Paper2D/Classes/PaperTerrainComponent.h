@@ -16,7 +16,7 @@ struct FPaperTerrainMaterialPair
  * This takes a 2D terrain material and instances sprite geometry along the spline path.
  */
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Experimental)
 class PAPER2D_API UPaperTerrainComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
