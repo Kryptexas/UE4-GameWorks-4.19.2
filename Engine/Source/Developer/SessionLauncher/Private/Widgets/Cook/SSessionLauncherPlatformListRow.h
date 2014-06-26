@@ -89,7 +89,8 @@ private:
 
 		if (SelectedProfile.IsValid())
 		{
-			if (SelectedProfile->IsValidForLaunch() && SelectedProfile->GetCookedPlatforms().Contains(*PlatformName))
+			SelectedProfile->IsValidForLaunch();
+			if (SelectedProfile->GetCookedPlatforms().Contains(*PlatformName))
 			{
 				return ESlateCheckBoxState::Checked;
 			}

@@ -264,6 +264,11 @@ public:
 		return ValidationErrors.Contains(Error);
 	}
 
+	virtual FString GetInvalidPlatform() const override
+	{
+		return InvalidPlatform;
+	}
+
 	virtual bool IsBuilding() const override
 	{
 		return BuildGame;
@@ -781,6 +786,14 @@ protected:
 					ValidationErrors.Add(ELauncherProfileValidationErrors::NoPlatformSDKInstalled);
 					ILauncherServicesModule& LauncherServicesModule = FModuleManager::GetModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
 					LauncherServicesModule.BroadcastLauncherServicesSDKNotInstalled(PlatformName, NotInstalledDocLink);
+					if (!Platform)
+					{
+						CookedPlatforms.Remove(PlatformName);
+					}
+					else
+					{
+						InvalidPlatform = PlatformName;
+					}
 					return;
 				}
 			}
@@ -809,6 +822,7 @@ protected:
 							ValidationErrors.Add(ELauncherProfileValidationErrors::NoPlatformSDKInstalled);
 							ILauncherServicesModule& LauncherServicesModule = FModuleManager::GetModuleChecked<ILauncherServicesModule>(TEXT("LauncherServices"));
 							LauncherServicesModule.BroadcastLauncherServicesSDKNotInstalled(PlatformName, NotInstalledDocLink);
+							DeployedDeviceGroup->RemoveDevice(DeviceId);
 							return;
 						}
 					}
@@ -910,6 +924,7 @@ private:
 
 	// Holds the collection of validation errors.
 	TArray<ELauncherProfileValidationErrors::Type> ValidationErrors;
+	FString InvalidPlatform;
 
     // Holds the time out time for the cook on the fly server
     uint32 Timeout;

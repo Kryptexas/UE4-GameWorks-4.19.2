@@ -202,6 +202,8 @@ public:
 	 */
 	virtual bool HasValidationError( ELauncherProfileValidationErrors::Type Error ) const = 0;
 
+	virtual FString GetInvalidPlatform() const = 0;
+
 	/**
 	 * Checks whether devices of the specified platform can be deployed to.
 	 *

@@ -103,7 +103,7 @@ public:
 			+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is missing.").ToString(), ELauncherProfileValidationErrors::NoPlatformSDKInstalled)
+					MakeCallbackMessage(TEXT("Icons.Error"), ELauncherProfileValidationErrors::NoPlatformSDKInstalled)
 				]
 		];
 	}
@@ -139,6 +139,34 @@ protected:
 			];
 	}
 
+	/**
+	 * Creates a widget for a validation message.
+	 *
+	 * @param IconName The name of the message icon.
+	 * @param MessageType The message type.
+	 */
+	TSharedRef<SWidget> MakeCallbackMessage( const TCHAR* IconName,ELauncherProfileValidationErrors::Type Message )
+	{
+		return SNew(SHorizontalBox)
+			.Visibility(this, &SSessionLauncherValidation::HandleValidationMessageVisibility, Message)
+
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0)
+			[
+				SNew(SImage)
+					.Image(FEditorStyle::GetBrush(IconName))
+			]
+
+		+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+					.Text(this, &SSessionLauncherValidation::HandleValidationMessage, Message)
+			];
+	}
+
 private:
 
 	// Callback for getting the visibility state of a validation message.
@@ -155,6 +183,21 @@ private:
 		}
 
 		return EVisibility::Collapsed;
+	}
+
+	FString	HandleValidationMessage( ELauncherProfileValidationErrors::Type Error ) const
+	{
+		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+		if (SelectedProfile.IsValid())
+		{
+			if (SelectedProfile->HasValidationError(Error))
+			{
+				return LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is mising: ").ToString() + SelectedProfile->GetInvalidPlatform();
+			}
+		}
+
+		return TEXT("");
 	}
 
 private:
