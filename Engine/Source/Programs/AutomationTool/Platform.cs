@@ -301,6 +301,14 @@ namespace AutomationTool
         }
 
 		/// <summary>
+		/// Remaps movie directory for platforms that need a remap
+		/// </summary>
+		public virtual bool StageMovies
+		{
+			get { return true; }
+		}
+
+		/// <summary>
 		/// UnrealTargetPlatform type for this platform.
 		/// </summary>
 		public UnrealTargetPlatform PlatformType

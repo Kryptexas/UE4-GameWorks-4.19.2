@@ -543,6 +543,7 @@ public class IOSPlatform : Platform
 		// copy the movies from the project
 		{
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Build/IOS/Resources/Movies"), "*", false, null, "", true, false);
+			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Movies"), "*", true, null, "", true, false);
 		}
 	}
 
@@ -711,6 +712,11 @@ public class IOSPlatform : Platform
 
 			return base.RunClient(ClientRunFlags, ClientApp, ClientCmdLine, Params);
 		}
+	}
+
+	public override bool StageMovies
+	{
+		get { return false; }
 	}
 
 	#region Hooks
