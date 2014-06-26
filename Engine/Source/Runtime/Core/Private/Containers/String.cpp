@@ -491,7 +491,7 @@ bool FString::IsNumeric() const
 
 	TCHAR C = (*this)[0];
 	
-	if( C == '-' || C =='.' || FChar::IsDigit( C ) )
+	if( C == '-' || C == '+' || C =='.' || FChar::IsDigit( C ) )
 	{
 		bool HasDot = (C == '.');
 
