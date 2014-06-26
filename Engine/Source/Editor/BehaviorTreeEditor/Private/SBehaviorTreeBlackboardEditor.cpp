@@ -102,6 +102,12 @@ void SBehaviorTreeBlackboardEditor::HandleDeleteEntry()
 			}
 
 			GraphActionMenu->RefreshAllActions(true);
+
+			// signal de-selection
+			if(OnEntrySelected.IsBound())
+			{
+				OnEntrySelected.Execute(nullptr, false);
+			}
 		}
 	}
 }
