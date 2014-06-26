@@ -151,7 +151,7 @@ static void TransformNormalToShapeSpace(const PxMeshScale& meshScale, const PxVe
 
 
 /** Util to find the normal of the face that we hit */
-static bool FindGeomOpposingNormal(const PxLocationHit& PHit, FVector& OutNormal, FVector& OutPointOnGeom)
+static bool FindGeomOpposingNormal(const PxLocationHit& PHit, const FVector & Direction, FVector& OutNormal, FVector& OutPointOnGeom)
 {
 	OutPointOnGeom = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : FVector::ZeroVector;
 
@@ -196,6 +196,13 @@ static bool FindGeomOpposingNormal(const PxLocationHit& PHit, FVector& OutNormal
 
 		const PxVec3 PWorldTriNormal = PShapeWorldPose.rotate(PLocalTriNormal);
 		OutNormal = P2UVector(PWorldTriNormal);
+
+		if (PTriMeshGeom.meshFlags & PxMeshGeometryFlag::eDOUBLE_SIDED)
+		{
+			//double sided mesh so we need to consider direction of query
+			float sign = FVector::DotProduct(OutNormal, Direction) > 0 ? -1.f : 1.f;
+			OutNormal *= sign;
+		}
 		
 		if (PTriMeshGeom.scale.isIdentity())
 		{
@@ -376,7 +383,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 		// Compute better ImpactNormal. This is the same as Normal except when we hit convex/trimesh, and then its the most opposing normal of the geom at point of impact.
 		FVector PointOnGeom;
 		check(PHit.flags & PxHitFlag::ePOSITION);
-		if (FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
+		if (FindGeomOpposingNormal(PHit, TraceDir, OutResult.ImpactNormal, PointOnGeom))
 		{
 			ConvertConvexNormalToCapsuleNormal(Capsule->halfHeight, Capsule->radius, OutResult, &PointOnGeom);
 		}
@@ -393,7 +400,7 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 		// Compute better ImpactNormal. This is the same as Normal except when we hit convex/trimesh, and then its the most opposing normal of the geom at point of impact.
 		FVector PointOnGeom;
 		check(PHit.flags & PxHitFlag::ePOSITION);
-		if (FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
+		if (FindGeomOpposingNormal(PHit, TraceDir, OutResult.ImpactNormal, PointOnGeom))
 		{
 			const FPlane GeomPlane(PointOnGeom, OutResult.ImpactNormal);
 			const float DistFromPlane = FMath::Abs(GeomPlane.PlaneDot(OutResult.Location));
@@ -556,6 +563,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 {
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;
+	FVector TraceDir = EndLoc - StartLoc;
 
 	const PxShape* PShape = PHit.shape;
 	const PxRigidActor* PActor = PHit.actor;
@@ -594,7 +602,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 		{
 			// PxMeshQuery::findOverlapTriangleMesh failed, but we might have a valid face index at impact, so use that to grab the normal from that face.
 			FVector PointOnGeom;
-			if (!FindGeomOpposingNormal(PHit, OutResult.ImpactNormal, PointOnGeom))
+			if (!FindGeomOpposingNormal(PHit, TraceDir, OutResult.ImpactNormal, PointOnGeom))
 			{
 				// That failed (invalid face index). This really shouldn't happen.
 				OutResult.ImpactNormal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : FVector(0.f, 0.f, 1.f);

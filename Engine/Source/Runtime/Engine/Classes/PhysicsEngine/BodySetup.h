@@ -432,6 +432,13 @@ class UBodySetup : public UObject
 	UPROPERTY(Transient)
 	uint32 bMeshCollideAll:1;
 
+	/**
+	*	If true, the physics triangle mesh will use double sided faces when doing scene queries.
+	*	This is useful for planes and single sided meshes that need traces to work on both sides.
+	*/
+	UPROPERTY(EditAnywhere, Category=Physics)
+	uint32 bDoubleSidedGeometry : 1;
+
 	/**	Should we generate data necessary to support collision on normal (non-mirrored) versions of this body. */
 	UPROPERTY()
 	uint32 bGenerateNonMirroredCollision:1;

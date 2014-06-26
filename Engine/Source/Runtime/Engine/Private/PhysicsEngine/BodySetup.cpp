@@ -69,6 +69,7 @@ void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
 	DefaultInstance.CopyBodyInstancePropertiesFrom(&FromSetup->DefaultInstance);
 	PhysMaterial = FromSetup->PhysMaterial;
 	PhysicsType = FromSetup->PhysicsType;
+	bDoubleSidedGeometry = FromSetup->bDoubleSidedGeometry;
 }
 
 void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
@@ -491,9 +492,16 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 		PxTriangleMesh* UseTriMesh = bUseNegX ? TriMeshNegX : TriMesh;
 		if(UseTriMesh != NULL)
 		{
+			
+
 			PxTriangleMeshGeometry PTriMeshGeom;
 			PTriMeshGeom.triangleMesh = bUseNegX ? TriMeshNegX : TriMesh;
 			PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
+			if (bDoubleSidedGeometry)
+			{
+				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
+			}
+			
 
 			if(PTriMeshGeom.isValid())
 			{

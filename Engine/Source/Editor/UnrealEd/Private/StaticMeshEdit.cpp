@@ -938,6 +938,7 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 			{
 				// New collision geometry, but we still want the original settings
 				NewMesh->BodySetup->PhysicsType = ExistingMeshDataPtr->ExistingBodySetup->PhysicsType;
+				NewMesh->BodySetup->bDoubleSidedGeometry = ExistingMeshDataPtr->ExistingBodySetup->bDoubleSidedGeometry;
 				NewMesh->BodySetup->BoneName = ExistingMeshDataPtr->ExistingBodySetup->BoneName;
 				NewMesh->BodySetup->PhysMaterial = ExistingMeshDataPtr->ExistingBodySetup->PhysMaterial;
 				NewMesh->BodySetup->CollisionTraceFlag = ExistingMeshDataPtr->ExistingBodySetup->CollisionTraceFlag;
