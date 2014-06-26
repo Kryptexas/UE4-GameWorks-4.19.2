@@ -219,6 +219,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	bImpartBaseVelocityY = true;
 	bImpartBaseVelocityZ = true;
 	bImpartBaseAngularVelocity = true;
+	bAlwaysCheckFloor = true;
 
 	// default character can jump and walk
 	NavAgentProps.bCanJump = true;

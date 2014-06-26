@@ -591,8 +591,8 @@ public:
 	uint32 bFastAttachedMove:1;
 
 	/**
-	 * True to always force floor checks for non-moving Characters.
-	 * Normally floor checks are avoided if possible, but this can be used to force them if there are use-cases where they are being skipped erroneously.
+	 * True to always force floor checks for stationary Characters.
+	 * Normally floor checks are avoided if possible when not moving, but this can be used to force them if there are use-cases where they are being skipped erroneously.
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bAlwaysCheckFloor:1;
