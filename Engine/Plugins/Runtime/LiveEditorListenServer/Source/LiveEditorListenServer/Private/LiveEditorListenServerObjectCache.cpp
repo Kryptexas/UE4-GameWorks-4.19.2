@@ -142,7 +142,7 @@ void FObjectCache::EvaluatePendingCreations()
 			UObject *AsObject = const_cast<UObject*>( static_cast<const UObject*>(ObjectBase) );
 	
 			UWorld *World = GEngine->GetWorldFromContextObject( AsObject, false );
-			if ( World == NULL || World->WorldType != EWorldType::PIE )
+			if ( World == NULL || World->WorldType != EWorldType::Game )
 				continue;
 
 			for ( TMultiMap< const UObject*, TWeakObjectPtr<UObject> >::TConstIterator ObjIt(ObjectLookupCache); ObjIt; ++ObjIt )
