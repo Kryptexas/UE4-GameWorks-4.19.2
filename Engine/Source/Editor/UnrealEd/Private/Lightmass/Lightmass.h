@@ -345,6 +345,8 @@ public:
 	/** Exports some materials, amortized, returning true if completely done */
 	bool ExecuteAmortizedMaterialExport();
 
+	void IssueStaticShadowDepthMapTask(const ULightComponent* Light, int32 EstimatedCost);
+
 	/** Starts the asynchronous lightmass process */
 	bool BeginRun();
 
@@ -494,7 +496,7 @@ protected:
 	 *	@return	ULightComponent*	The corresponding light component.
 	 *								NULL if not found.
 	 */
-	ULightComponent* FindLight(FGuid& LightGuid);
+	ULightComponent* FindLight(const FGuid& LightGuid);
 
 	/**
 	 *	Retrieve the static mehs for the given Guid
@@ -654,6 +656,8 @@ protected:
 	 *									If false, store it off for later processing
 	 */
 	void	ImportStaticLightingTextureMapping( const FGuid& MappingGuid, bool bProcessImmediately );
+
+	void ImportStaticShadowDepthMap(ULightComponent* Light);
 
 	/** Reads in a TArray from the given channel. */
 	template<class T>

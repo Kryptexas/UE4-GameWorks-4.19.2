@@ -76,20 +76,20 @@ namespace Lightmass
 	}
 
 	/** Exports dominant shadow information to Unreal. */
-	void FLightmassSolverExporter::ExportDominantShadowInfo(const FGuid& LightGuid, const FDominantLightShadowInfo& DominantLightShadowInfo) const
+	void FLightmassSolverExporter::ExportStaticShadowDepthMap(const FGuid& LightGuid, const FStaticShadowDepthMap& StaticShadowDepthMap) const
 	{
 		const FString ChannelName = CreateChannelName(LightGuid, LM_DOMINANTSHADOW_VERSION, LM_DOMINANTSHADOW_EXTENSION);
 		const int32 ErrorCode = Swarm->OpenChannel(*ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS, true);
 		if( ErrorCode >= 0 )
 		{
-			Swarm->Write(&DominantLightShadowInfo, sizeof(FDominantLightShadowInfoData));
-			static_assert(sizeof(FDominantLightShadowSample) == sizeof(FDominantLightShadowSampleData), "Shadow derived size must match.");
-			WriteArray(DominantLightShadowInfo.ShadowMap);
+			Swarm->Write(&StaticShadowDepthMap, sizeof(FStaticShadowDepthMapData));
+			static_assert(sizeof(FStaticShadowDepthMapSample) == sizeof(FStaticShadowDepthMapSampleData), "ShadowDerivedSizeMustMatch");
+			WriteArray(StaticShadowDepthMap.ShadowMap);
 			Swarm->CloseCurrentChannel();
 		}
 		else
 		{
-			UE_LOG(LogLightmass, Log, TEXT("Failed to open dominant shadow channel!"));
+			UE_LOG(LogLightmass, Log, TEXT("Failed to open static shadow depth map channel!"));
 		}
 	}
 

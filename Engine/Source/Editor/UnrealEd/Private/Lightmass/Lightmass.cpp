@@ -1905,10 +1905,10 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MaxTransitionDistanceWorldSpace"), Scene.ShadowSettings.MaxTransitionDistanceWorldSpace, GLightmassIni));
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("ApproximateHighResTexelsPerMaxTransitionDistance"), Scene.ShadowSettings.ApproximateHighResTexelsPerMaxTransitionDistance, GLightmassIni));
 		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("MinDistanceFieldUpsampleFactor"), Scene.ShadowSettings.MinDistanceFieldUpsampleFactor, GLightmassIni));
-		Scene.ShadowSettings.DominantShadowTransitionSampleDistanceX = 1;
-		Scene.ShadowSettings.DominantShadowTransitionSampleDistanceY = 1;
-		Scene.ShadowSettings.DominantShadowSuperSampleFactor = 1;
-		Scene.ShadowSettings.DominantShadowMaxSamples = 1;
+		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceX"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, GLightmassIni));
+		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapTransitionSampleDistanceY"), Scene.ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, GLightmassIni));
+		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapSuperSampleFactor"), Scene.ShadowSettings.StaticShadowDepthMapSuperSampleFactor, GLightmassIni));
+		verify(GConfig->GetInt(TEXT("DevOptions.StaticShadows"), TEXT("StaticShadowDepthMapMaxSamples"), Scene.ShadowSettings.StaticShadowDepthMapMaxSamples, GLightmassIni));
 		verify(GConfig->GetFloat(TEXT("DevOptions.StaticShadows"), TEXT("MinUnoccludedFraction"), Scene.ShadowSettings.MinUnoccludedFraction, GLightmassIni));
 	}
 	{
@@ -2367,6 +2367,24 @@ bool FLightmassProcessor::ExecuteAmortizedMaterialExport()
 	return Exporter->WriteToMaterialChannel(Statistics);
 }
 
+void FLightmassProcessor::IssueStaticShadowDepthMapTask(const ULightComponent* Light, int32 EstimatedCost)
+{
+	if (Light->HasStaticShadowing() && !Light->HasStaticLighting())
+	{
+		NSwarm::FTaskSpecification NewTaskSpecification(Light->LightGuid, TEXT("StaticShadowDepthMaps"), NSwarm::JOB_TASK_FLAG_USE_DEFAULTS );
+		NewTaskSpecification.Cost = EstimatedCost;
+		int32 ErrorCode = Swarm.AddTask( NewTaskSpecification );
+		if( ErrorCode >= 0 )
+		{
+			NumTotalSwarmTasks++;
+		}
+		else
+		{
+			UE_LOG(LogLightmassSolver, Log,  TEXT("Error, AddTask for StaticShadowDepthMaps failed with error code %d"), ErrorCode );
+		}
+	}
+}
+
 bool FLightmassProcessor::BeginRun()
 {
 	{
@@ -2648,6 +2666,26 @@ bool FLightmassProcessor::BeginRun()
 			else
 			{
 				UE_LOG(LogLightmassSolver, Log,  TEXT("Error, AddTask failed with error code %d"), ErrorCode );
+			}
+		}
+
+		{
+			for (int32 LightIndex = 0; LightIndex < Exporter->DirectionalLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->DirectionalLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, INT_MAX);
+			}
+			
+			for (int32 LightIndex = 0; LightIndex < Exporter->SpotLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->SpotLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, 10000);
+			}
+
+			for (int32 LightIndex = 0; LightIndex < Exporter->PointLights.Num(); LightIndex++)
+			{
+				const ULightComponent* Light = Exporter->PointLights[LightIndex];
+				IssueStaticShadowDepthMapTask(Light, 10000);
 			}
 		}
 
@@ -3513,6 +3551,32 @@ FStaticLightingTextureMapping* FLightmassProcessor::GetStaticLightingTextureMapp
 	return NULL;
 }
 
+void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
+{
+	const FString ChannelName = Lightmass::CreateChannelName(Light->LightGuid, Lightmass::LM_DOMINANTSHADOW_VERSION, Lightmass::LM_DOMINANTSHADOW_EXTENSION);
+	const int32 Channel = Swarm.OpenChannel( *ChannelName, LM_DOMINANTSHADOW_CHANNEL_FLAGS );
+	if (Channel >= 0)
+	{
+		FStaticShadowDepthMap& DepthMap = Light->StaticShadowDepthMap;
+		Lightmass::FStaticShadowDepthMapData ShadowMapData;
+		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
+
+		DepthMap.WorldToLight = ShadowMapData.WorldToLight;
+		DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
+		DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
+
+		ReadArray(Channel, DepthMap.DepthSamples);
+		Swarm.CloseChannel(Channel);
+
+		BeginReleaseResource(&DepthMap);
+		BeginInitResource(&DepthMap);
+	}
+	else
+	{
+		UE_LOG(LogLightmassSolver, Log,  TEXT("Error, OpenChannel failed to open %s with error code %d"), *ChannelName, Channel );
+	}
+}
+
 /**
  * Import the mapping specified by a Guid.
  *	@param MappingGuid				Guid that identifies a mapping
@@ -3530,10 +3594,19 @@ void FLightmassProcessor::ImportMapping( const FGuid& MappingGuid, bool bProcess
 	}
 	else
 	{
-		FMappingImportHelper** pImportData = ImportedMappings.Find(MappingGuid);
-		if ((pImportData == NULL) || (*pImportData == NULL))
+		ULightComponent* Light = FindLight(MappingGuid);
+
+		if (Light)
 		{
-			UE_LOG(LogLightmassSolver, Warning, TEXT("Mapping not found for %s"), *(MappingGuid.ToString()));
+			ImportStaticShadowDepthMap(Light);
+		}
+		else
+		{
+			FMappingImportHelper** pImportData = ImportedMappings.Find(MappingGuid);
+			if ((pImportData == NULL) || (*pImportData == NULL))
+			{
+				UE_LOG(LogLightmassSolver, Warning, TEXT("Mapping not found for %s"), *(MappingGuid.ToString()));
+			}
 		}
 	}
 
@@ -3694,7 +3767,7 @@ void FLightmassProcessor::ImportDebugOutput()
  *	@return	ULightComponent*	The corresponding light component.
  *								NULL if not found.
  */
-ULightComponent* FLightmassProcessor::FindLight(FGuid& LightGuid)
+ULightComponent* FLightmassProcessor::FindLight(const FGuid& LightGuid)
 {
 	if (Exporter)
 	{

@@ -7,6 +7,34 @@
 
 #include "LightComponent.generated.h"
 
+/** 
+ * A texture containing depth values of static objects that was computed during the lighting build.
+ * Used by Stationary lights to shadow translucency.
+ */
+class FStaticShadowDepthMap : public FTexture
+{
+public:
+	/** Transform from world space to the coordinate space that DepthSamples are stored in. */
+	FMatrix WorldToLight;
+	/** Dimensions of the generated shadow map. */
+	int32 ShadowMapSizeX;
+	int32 ShadowMapSizeY;
+	/** Shadowmap depth values */
+	TArray<FFloat16> DepthSamples;
+
+	FStaticShadowDepthMap() :
+		WorldToLight(FMatrix::Identity),
+		ShadowMapSizeX(0),
+		ShadowMapSizeY(0)
+	{}
+
+	virtual void InitRHI();
+
+	void Empty();
+
+	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap);
+};
+
 UCLASS(abstract, HideCategories=(Trigger,Activation,"Components|Activation",Physics), ShowCategories=(Mobility))
 class ENGINE_API ULightComponent : public ULightComponentBase
 {
@@ -163,6 +191,11 @@ public:
 	/** The light's scene info. */
 	class FLightSceneProxy* SceneProxy;
 
+	FStaticShadowDepthMap StaticShadowDepthMap;
+
+	/** Fence used to track progress of render resource destruction. */
+	FRenderCommandFence DestroyFence;
+
 	/**
 	 * Test whether this light affects the given primitive.  This checks both the primitive and light settings for light relevance
 	 * and also calls AffectsBounds.
@@ -222,6 +255,7 @@ public:
 	float ComputeLightBrightness() const;
 
 	// Begin UObject interface.
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PreEditUndo() override;
@@ -230,6 +264,8 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void UpdateLightSpriteTexture() override;
 #endif // WITH_EDITOR
+	virtual void BeginDestroy() override;
+	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject interface.
 
 	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;

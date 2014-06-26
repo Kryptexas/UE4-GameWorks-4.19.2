@@ -710,11 +710,11 @@ public:
 		const FLightSceneInfo* LightSceneInfo, 
 		const FProjectedShadowInfo* ShadowMap, 
 		int32 VolumeCascadeIndexValue, 
-		bool bShadowed) const
+		bool bDynamicallyShadowed) const
 	{
 		SetDeferredLightParameters(RHICmdList, ShaderRHI, Shader->GetUniformBufferParameter<FDeferredLightUniformStruct>(), LightSceneInfo, View);
 
-		if (bShadowed)
+		if (bDynamicallyShadowed)
 		{
 			FVector4 ShadowmapMinMaxValue;
 			FMatrix WorldToShadowMatrixValue = ShadowMap->GetWorldToShadowMatrix(ShadowmapMinMaxValue);
@@ -790,7 +790,7 @@ private:
 IMPLEMENT_SHADER_TYPE(,FTranslucentObjectShadowingPS,TEXT("TranslucentLightingShaders"),TEXT("PerObjectShadowingMainPS"),SF_Pixel);
 
 /** Shader that adds direct lighting contribution from the given light to the current volume lighting cascade. */
-template<ELightComponentType InjectionType, bool bShadowed, bool bApplyLightFunction, bool bInverseSquared>
+template<ELightComponentType InjectionType, bool bDynamicallyShadowed, bool bApplyLightFunction, bool bInverseSquared>
 class TTranslucentLightingInjectPS : public FMaterialShader
 {
 	DECLARE_SHADER_TYPE(TTranslucentLightingInjectPS,Material);
@@ -801,7 +801,7 @@ public:
 		FMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("RADIAL_ATTENUATION"), (uint32)(InjectionType != LightType_Directional));
 		OutEnvironment.SetDefine(TEXT("INJECTION_PIXEL_SHADER"), 1);
-		OutEnvironment.SetDefine(TEXT("DYNAMICALLY_SHADOWED"), (uint32)bShadowed);
+		OutEnvironment.SetDefine(TEXT("DYNAMICALLY_SHADOWED"), (uint32)bDynamicallyShadowed);
 		OutEnvironment.SetDefine(TEXT("APPLY_LIGHT_FUNCTION"), (uint32)bApplyLightFunction);
 		OutEnvironment.SetDefine(TEXT("INVERSE_SQUARED_FALLOFF"), (uint32)bInverseSquared);
 	}
@@ -831,6 +831,10 @@ public:
 		LightFunctionParameters.Bind(Initializer.ParameterMap);
 		TranslucentInjectParameters.Bind(Initializer.ParameterMap);
 		LightFunctionWorldToLight.Bind(Initializer.ParameterMap, TEXT("LightFunctionWorldToLight"));
+		bStaticallyShadowed.Bind(Initializer.ParameterMap, TEXT("bStaticallyShadowed"));
+		StaticShadowDepthTexture.Bind(Initializer.ParameterMap, TEXT("StaticShadowDepthTexture"));
+		StaticShadowDepthTextureSampler.Bind(Initializer.ParameterMap, TEXT("StaticShadowDepthTextureSampler"));
+		WorldToStaticShadowMatrix.Bind(Initializer.ParameterMap, TEXT("WorldToStaticShadowMatrix"));
 	}
 	TTranslucentLightingInjectPS() {}
 
@@ -845,7 +849,7 @@ public:
 		int32 InnerSplitIndex, 
 		int32 VolumeCascadeIndexValue)
 	{
-		check(ShadowMap || !bShadowed);
+		check(ShadowMap || !bDynamicallyShadowed);
 		
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -898,7 +902,7 @@ public:
 		//@todo - needs to be a permutation to reduce shadow filtering work
 		SetShaderValue(RHICmdList, ShaderRHI, SpotlightMask, (LightSceneInfo->Proxy->GetLightType() == LightType_Spot ? 1.0f : 0.0f));
 
-		if (bShadowed)
+		if (bDynamicallyShadowed)
 		{
 			SetShaderValue(RHICmdList, ShaderRHI, DepthBiasParameters, FVector2D(ShadowMap->GetShaderDepthBias(), 1.0f / (ShadowMap->MaxSubjectZ - ShadowMap->MinSubjectZ)));
 
@@ -912,13 +916,13 @@ public:
 				);
 		}
 
-		if (bShadowed && InjectionType == LightType_Point)
+		if (bDynamicallyShadowed && InjectionType == LightType_Point)
 		{
 			OnePassShadowParameters.Set(RHICmdList, ShaderRHI, ShadowMap);
 		}
 
 		LightFunctionParameters.Set(RHICmdList, ShaderRHI, LightSceneInfo, 1);
-		TranslucentInjectParameters.Set(RHICmdList, ShaderRHI, this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, bShadowed);
+		TranslucentInjectParameters.Set(RHICmdList, ShaderRHI, this, View, LightSceneInfo, ShadowMap, VolumeCascadeIndexValue, bDynamicallyShadowed);
 
 		if (LightFunctionWorldToLight.IsBound())
 		{
@@ -929,6 +933,24 @@ public:
 
 			SetShaderValue(RHICmdList, ShaderRHI, LightFunctionWorldToLight, WorldToLight);
 		}
+
+		const FStaticShadowDepthMap* StaticShadowDepthMap = LightSceneInfo->Proxy->GetStaticShadowDepthMap();
+		const uint32 bStaticallyShadowedValue = LightSceneInfo->bPrecomputedLightingIsValid && StaticShadowDepthMap && StaticShadowDepthMap->TextureRHI ? 1 : 0;
+		FTextureRHIParamRef StaticShadowDepthMapTexture = StaticShadowDepthMap ? StaticShadowDepthMap->TextureRHI : GWhiteTexture->TextureRHI;
+		const FMatrix WorldToStaticShadow = StaticShadowDepthMap ? StaticShadowDepthMap->WorldToLight : FMatrix::Identity;
+
+		SetShaderValue(RHICmdList, ShaderRHI, bStaticallyShadowed, bStaticallyShadowedValue);
+
+		SetTextureParameter(
+			RHICmdList, 
+			ShaderRHI,
+			StaticShadowDepthTexture,
+			StaticShadowDepthTextureSampler,
+			TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
+			StaticShadowDepthMapTexture
+			);
+
+		SetShaderValue(RHICmdList, ShaderRHI, WorldToStaticShadowMatrix, WorldToStaticShadow);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -946,6 +968,10 @@ public:
 		Ar << LightFunctionParameters;
 		Ar << TranslucentInjectParameters;
 		Ar << LightFunctionWorldToLight;
+		Ar << bStaticallyShadowed;
+		Ar << StaticShadowDepthTexture;
+		Ar << StaticShadowDepthTextureSampler;
+		Ar << WorldToStaticShadowMatrix;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -962,11 +988,15 @@ private:
 	FLightFunctionSharedParameters LightFunctionParameters;
 	FTranslucentInjectParameters TranslucentInjectParameters;
 	FShaderParameter LightFunctionWorldToLight;
+	FShaderParameter bStaticallyShadowed;
+	FShaderResourceParameter StaticShadowDepthTexture;
+	FShaderResourceParameter StaticShadowDepthTextureSampler;
+	FShaderParameter WorldToStaticShadowMatrix;
 };
 
-#define IMPLEMENT_INJECTION_PIXELSHADER_TYPE(LightType,bShadowed,bApplyLightFunction,bInverseSquared) \
-	typedef TTranslucentLightingInjectPS<LightType,bShadowed,bApplyLightFunction,bInverseSquared> TTranslucentLightingInjectPS##LightType##bShadowed##bApplyLightFunction##bInverseSquared; \
-	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TTranslucentLightingInjectPS##LightType##bShadowed##bApplyLightFunction##bInverseSquared,TEXT("TranslucentLightInjectionShaders"),TEXT("InjectMainPS"),SF_Pixel);
+#define IMPLEMENT_INJECTION_PIXELSHADER_TYPE(LightType,bDynamicallyShadowed,bApplyLightFunction,bInverseSquared) \
+	typedef TTranslucentLightingInjectPS<LightType,bDynamicallyShadowed,bApplyLightFunction,bInverseSquared> TTranslucentLightingInjectPS##LightType##bDynamicallyShadowed##bApplyLightFunction##bInverseSquared; \
+	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>,TTranslucentLightingInjectPS##LightType##bDynamicallyShadowed##bApplyLightFunction##bInverseSquared,TEXT("TranslucentLightInjectionShaders"),TEXT("InjectMainPS"),SF_Pixel);
 
 /** Versions with a light function. */
 IMPLEMENT_INJECTION_PIXELSHADER_TYPE(LightType_Directional,true,true,false); 
@@ -1466,7 +1496,7 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
  * @param MaterialProxy must not be 0
  * @param InnerSplitIndex todo: get from ShadowMap, INDEX_NONE if no directional light
  */
-template<ELightComponentType InjectionType, bool bShadowed>
+template<ELightComponentType InjectionType, bool bDynamicallyShadowed>
 void SetInjectionShader(
 	FRHICommandList& RHICmdList,
 	const FViewInfo& View, 
@@ -1480,7 +1510,7 @@ void SetInjectionShader(
 	bool bApplyLightFunction,
 	bool bInverseSquared)
 {
-	check(ShadowMap || !bShadowed);
+	check(ShadowMap || !bDynamicallyShadowed);
 
 	const FMaterialShaderMap* MaterialShaderMap = MaterialProxy->GetMaterial(View.GetFeatureLevel())->GetRenderingThreadShaderMap();
 	FMaterialShader* PixelShader = NULL;
@@ -1491,14 +1521,14 @@ void SetInjectionShader(
 	{
 		if( bInverseSquared )
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, true && !Directional> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, true, true && !Directional> >();
 
 			check(InjectionPixelShader);
 			PixelShader = InjectionPixelShader;
 		}
 		else
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, false> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, true, false> >();
 
 			check(InjectionPixelShader);
 			PixelShader = InjectionPixelShader;
@@ -1508,22 +1538,22 @@ void SetInjectionShader(
 	{
 		if( bInverseSquared )
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, true && !Directional> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, false, true && !Directional> >();
 
 			check(InjectionPixelShader);
 			PixelShader = InjectionPixelShader;
 		}
 		else
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, false> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, false, false> >();
 
 			check(InjectionPixelShader);
 			PixelShader = InjectionPixelShader;
 		}
 	}
 	
-	FBoundShaderStateRHIRef& BoundShaderState = LightSceneInfo->TranslucentInjectBoundShaderState[InjectionType][bShadowed][bApplyLightFunction][bInverseSquared];
-	const FMaterialShaderMap*& CachedShaderMap = LightSceneInfo->TranslucentInjectCachedShaderMaps[InjectionType][bShadowed][bApplyLightFunction][bInverseSquared];
+	FBoundShaderStateRHIRef& BoundShaderState = LightSceneInfo->TranslucentInjectBoundShaderState[InjectionType][bDynamicallyShadowed][bApplyLightFunction][bInverseSquared];
+	const FMaterialShaderMap*& CachedShaderMap = LightSceneInfo->TranslucentInjectCachedShaderMaps[InjectionType][bDynamicallyShadowed][bApplyLightFunction][bInverseSquared];
 
 	// Recreate the bound shader state if the shader map has changed since the last cache
 	// This can happen due to async shader compiling
@@ -1542,13 +1572,13 @@ void SetInjectionShader(
 	{
 		if( bInverseSquared )
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, true && !Directional> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, true, true && !Directional> >();
 			check(InjectionPixelShader);
 			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 		else
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, true, false> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, true, false> >();
 			check(InjectionPixelShader);
 			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
@@ -1557,13 +1587,13 @@ void SetInjectionShader(
 	{
 		if( bInverseSquared )
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, true && !Directional> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, false, true && !Directional> >();
 			check(InjectionPixelShader);
 			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}
 		else
 		{
-			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bShadowed, false, false> >();
+			auto InjectionPixelShader = MaterialShaderMap->GetShader< TTranslucentLightingInjectPS<InjectionType, bDynamicallyShadowed, false, false> >();
 			check(InjectionPixelShader);
 			InjectionPixelShader->SetParameters(RHICmdList, View, LightSceneInfo, MaterialProxy, ShadowMap, InnerSplitIndex, VolumeCascadeIndexValue);
 		}

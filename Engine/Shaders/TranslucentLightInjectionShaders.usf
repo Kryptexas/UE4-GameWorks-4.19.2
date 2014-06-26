@@ -103,6 +103,16 @@ float4 ShadowInjectParams;
 float SpotlightMask;
 float2 DepthBiasParameters;
 
+/** Whether to compute static shadowing. */
+uint bStaticallyShadowed;
+
+/** Shadow depth map computed for static geometry by Lightmass. */
+Texture2D StaticShadowDepthTexture;
+SamplerState StaticShadowDepthTextureSampler;
+
+/** Transform used for static shadowing by spot and directional lights. */
+float4x4 WorldToStaticShadowMatrix;
+
 float GetLightFunctionShadowFactor(float3 WorldPositionForLighting)
 {
 	float ShadowFactor = 1;
@@ -114,7 +124,97 @@ float GetLightFunctionShadowFactor(float3 WorldPositionForLighting)
 		float3 LightFunction = GetLightFunctionColor(LightVector.xyz, WorldPositionForLighting);
 
 		// We only suport monochrome light functions
-		ShadowFactor = dot(LightFunction, .3333f).xxx;
+		ShadowFactor = dot(LightFunction, .3333f).x;
+	#endif
+
+	return ShadowFactor;
+}
+
+/** Computes dynamic and static shadowing for a point anywhere in space. */
+float ComputeVolumeShadowing(float3 WorldPositionForLighting)
+{
+	float ShadowFactor = 1;
+
+	BRANCH
+	if (bStaticallyShadowed)
+	{
+		bool bUsePointLightShadowing = false;
+
+		#if RADIAL_ATTENUATION
+			bUsePointLightShadowing = SpotlightMask < 1;
+		#endif
+
+		BRANCH
+		if (bUsePointLightShadowing)
+		{
+			float3 LightVector = WorldPositionForLighting - DeferredLightUniforms.LightPosition;
+			float DistanceToLight = length(LightVector);
+			float3 NormalizedLightVector = LightVector / DistanceToLight;
+
+			//@todo - use parametrization without slow inverse trig.  Dual paraboloid?
+			float NormalizedTheta = atan2(NormalizedLightVector.y, NormalizedLightVector.x) / (2 * PI);
+			// atan2 returns in the range [-PI, PI], wrap the negative portion to [.5, 1]
+			float U = NormalizedTheta > 0 ? NormalizedTheta : 1 + NormalizedTheta;
+			float V = acos(NormalizedLightVector.z) / PI;
+			float2 UnwrappedUVs = float2(U, V);
+
+			float ShadowDepth = Texture2DSampleLevel(StaticShadowDepthTexture, StaticShadowDepthTextureSampler, UnwrappedUVs, 0).x;
+			ShadowFactor = DistanceToLight * DeferredLightUniforms.LightInvRadius < ShadowDepth;
+		}
+		else
+		{
+			// This path is used for directional lights and spot lights, which only require a single projection
+			// Transform the world position into shadowmap space
+			float4 HomogeneousShadowPosition = mul(float4(WorldPositionForLighting, 1), WorldToStaticShadowMatrix);
+			float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+			// Treat as unshadowed if the voxel is outside of the shadow map
+			if (all(ShadowUVs >= 0 && ShadowUVs <= 1))
+			{
+				// Sample the shadowmap depth and determine if this voxel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(StaticShadowDepthTexture, StaticShadowDepthTextureSampler, ShadowUVs, 0).x;
+				ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth;
+			}
+		}
+	}		
+
+	#if DYNAMICALLY_SHADOWED
+		bool bUseCubemapShadowing = false;
+		float DynamicShadowFactor = 1;
+
+		#if RADIAL_ATTENUATION
+			bUseCubemapShadowing = SpotlightMask < 1;
+		#endif
+
+		if (bUseCubemapShadowing)
+		{
+			DynamicShadowFactor = CubemapHardwarePCF(WorldPositionForLighting, DeferredLightUniforms.LightPosition, DeferredLightUniforms.LightInvRadius, 0.03f * 512 * InvShadowmapResolution);
+		}
+		else
+		{
+			// Transform the world position into shadowmap space
+			float4 HomogeneousShadowPosition = mul(float4(WorldPositionForLighting, 1), WorldToShadowMatrix);
+			float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
+
+			// Treat as unshadowed if the voxel is outside of the shadow map
+			if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
+			{
+				// Sample the shadowmap depth and determine if this voxel is shadowed
+				float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowUVs, 0).x;
+				DynamicShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - DepthBiasParameters.x;
+			}
+		}
+
+		// fade shadows in the distance
+		#if !RADIAL_ATTENUATION 
+			float Depth = dot(WorldPositionForLighting - View.ViewOrigin.xyz, View.ViewForward);
+			float DistanceFade = saturate(Depth * ShadowInjectParams.z + ShadowInjectParams.w);
+			DynamicShadowFactor = lerp(DynamicShadowFactor, 1.0f, DistanceFade * DistanceFade);
+		#endif
+
+		// Combine static shadowing and dynamic shadowing, important for stationary directional lights with CSM
+		ShadowFactor = min(ShadowFactor, DynamicShadowFactor);
+
 	#endif
 
 	return ShadowFactor;
@@ -130,7 +230,7 @@ void InjectMainPS(
 	OutColor0 = 0;
 	OutColor1 = 0;
 
-	// compute XYZ of the position we shader
+	// compute XYZ of the position we want to shade
 	float3 WorldPosition;
 	{
 		float ZPosition = View.TranslucencyLightingVolumeMin[VolumeCascadeIndex].z + (Input.LayerIndex + .5f) * View.TranslucencyLightingVolumeInvSize[VolumeCascadeIndex].w;
@@ -144,11 +244,12 @@ void InjectMainPS(
 	// 0: no contribution, 1:full contribution
 	float Masking = 1.0f;
 
-	// clip if not in cascade shaft (two planes)
+	
 	#if RADIAL_ATTENUATION 
 	{
-		// cull volumes outside the light radius (value is < 0)
-		clip(CascadeBounds.w * CascadeBounds.w - dot(CascadeBounds.xyz - WorldPosition, CascadeBounds.xyz - WorldPosition));
+		// cull voxels outside the light radius (value is < 0)
+		float3 LightVector = DeferredLightUniforms.LightPosition - WorldPosition;
+		clip(1.0f / (DeferredLightUniforms.LightInvRadius * DeferredLightUniforms.LightInvRadius) - dot(LightVector, LightVector));
 	}
 	#else
 	{
@@ -163,17 +264,6 @@ void InjectMainPS(
 		// fade cascade transition regions (additivebly blended so it does a cross fade)
 		Masking *= saturate(DistToNear * ShadowInjectParams.x);
 		Masking *= saturate(DistToFar * ShadowInjectParams.y);
-	}
-	#endif
-
-	// todo: use DistanceFromCameraFade()
-	// Returns 0 for positions closer than the fade near distance from the camera, and 1 for positions further than the fade far distance.
-	float DistanceFade = 0;
-	#if !RADIAL_ATTENUATION
-	{
-		float Depth = dot(WorldPosition - View.ViewOrigin.xyz, View.ViewForward);
-		DistanceFade = saturate(Depth * ShadowInjectParams.z + ShadowInjectParams.w);
-		DistanceFade = DistanceFade * DistanceFade;
 	}
 	#endif
 
@@ -192,35 +282,8 @@ void InjectMainPS(
 		// Anything else would cause the extents of the shadowmap to not match up with the cone falloff on a spotlight
 		float Attenuation = CalcLightAttenuation(WorldPositionForLighting, WorldLightVector);
 
-		float ShadowFactor = 1;
-
-		#if DYNAMICALLY_SHADOWED
-			bool bUseCubemapShadowing = false;
-
-			#if RADIAL_ATTENUATION
-				bUseCubemapShadowing = SpotlightMask < 1;
-			#endif
-
-			if (bUseCubemapShadowing)
-			{
-				ShadowFactor = CubemapHardwarePCF(WorldPositionForLighting, DeferredLightUniforms.LightPosition, DeferredLightUniforms.LightInvRadius, 0.03f * 512 * InvShadowmapResolution);
-			}
-			else
-			{
-				// Transform the world position into shadowmap space
-				float4 HomogeneousShadowPosition = mul(float4(WorldPositionForLighting, 1), WorldToShadowMatrix);
-				float2 ShadowUVs = HomogeneousShadowPosition.xy / HomogeneousShadowPosition.w;
-
-				// Treat as unshadowed if the voxel is outside of the shadow map
-				if (all(ShadowUVs >= ShadowmapMinMax.xy && ShadowUVs <= ShadowmapMinMax.zw))
-				{
-					// Sample the shadowmap depth and determine if this voxel is shadowed
-					float ShadowDepth = Texture2DSampleLevel(ShadowDepthTexture, ShadowDepthTextureSampler, ShadowUVs, 0).x;
-					ShadowFactor = HomogeneousShadowPosition.z < ShadowDepth - DepthBiasParameters.x;
-				}
-			}
-		#endif
-
+		float ShadowFactor = ComputeVolumeShadowing(WorldPositionForLighting);
+		
 		if (VolumeCascadeIndex == 1)
 		{
 			// Larger values result in a shorter transition distance
@@ -241,11 +304,6 @@ void InjectMainPS(
 				ShadowFactor = lerp(1.0f, ShadowFactor, FinalLerpFactor);
 			#endif
 		}
-
-		// fade shadows in the distance
-		#if !RADIAL_ATTENUATION 
-			ShadowFactor = lerp(ShadowFactor, 1.0f, DistanceFade);
-		#endif
 
 		// Apply light function after edge fading, so that a light function which is modifying the light's brightness still works
 		ShadowFactor *= GetLightFunctionShadowFactor(WorldPositionForLighting);

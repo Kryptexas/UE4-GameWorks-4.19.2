@@ -741,6 +741,7 @@ public:
 
 	inline bool HasReflectiveShadowMap() const { return bHasReflectiveShadowMap; }
 	inline bool NeedsLPVInjection() const { return bAffectDynamicIndirectLighting; }
+	inline const class FStaticShadowDepthMap* GetStaticShadowDepthMap() const { return StaticShadowDepthMap; }
 
 	/**
 	 * Shifts light position and all relevant data by an arbitrary delta.
@@ -794,6 +795,8 @@ protected:
 
 	/** Transient shadowmap channel used to preview the results of stationary light shadowmap packing. */
 	int32 PreviewShadowMapChannel;
+
+	const class FStaticShadowDepthMap* StaticShadowDepthMap;
 
 	/** Light function parameters. */
 	FVector	LightFunctionScale;

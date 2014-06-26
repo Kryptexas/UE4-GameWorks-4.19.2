@@ -253,21 +253,18 @@ namespace Lightmass
 		float DirectionalLightShadowing;
 	};
 
-	/** Distance to the nearest shadow casting geometry for a single dominant light shadow map cell. */
-	class FDominantLightShadowSampleData
+	/** */
+	class FStaticShadowDepthMapSampleData
 	{
 	public:
-		uint16 Distance;
+		FFloat16 Distance;
 	};
 
-	class FDominantLightShadowInfoData
+	class FStaticShadowDepthMapData
 	{
 	public:
-		/** Transform from world space to the coordinate space that FDominantLightShadowSampleData's are stored in. */
+		/** Transform from world space to the coordinate space that FStaticShadowDepthMapSampleData's are stored in. */
 		FMatrix WorldToLight;
-		/** Light space bounds of the importance volume. */
-		FVector4 LightSpaceImportanceBoundMin;
-		FVector4 LightSpaceImportanceBoundMax;
 		/** Dimensions of the generated shadow map. */
 		int32 ShadowMapSizeX;
 		int32 ShadowMapSizeY;

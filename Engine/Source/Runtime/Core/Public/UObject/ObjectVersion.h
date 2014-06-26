@@ -568,6 +568,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_GAMEPLAY_TAG_CONTAINER_TAG_TYPE_CHANGE,
 	// Change from UInstancedFoliageSettings to UFoliageType, and change the api from being keyed on UStaticMesh* to UFoliageType*
 	VER_UE4_FOLIAGE_SETTINGS_TYPE,
+	// Lights serialize static shadow depth maps
+	VER_UE4_STATIC_SHADOW_DEPTH_MAPS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

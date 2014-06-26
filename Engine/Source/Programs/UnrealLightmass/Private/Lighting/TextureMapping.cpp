@@ -2693,7 +2693,7 @@ void FStaticLightingSystem::CalculateIndirectLightingTextureMapping(
 	// Whether to debug the task containing the selected texel only
 	const bool bDebugSelectedTaskOnly = true;
 
-	if (GeneralSettings.NumIndirectLightingBounces > 0 || AmbientOcclusionSettings.bUseAmbientOcclusion)
+	if (GeneralSettings.NumIndirectLightingBounces > 0 || AmbientOcclusionSettings.bUseAmbientOcclusion || SkyLights.Num() > 0)
 	{
 		const double StartCacheTime = FPlatformTime::Seconds();
 

@@ -206,10 +206,6 @@ FStaticLightingSystem::FStaticLightingSystem(const FLightingBuildOptions& InOpti
 ,	MappingTasksInProgressThatWillNeedHelp(0)
 ,	bVolumeLightingSamplesComplete(false)
 ,	VolumeLightingInterpolationOctree(FVector4(0,0,0), HALF_WORLD_MAX)
-,	bDominantShadowTaskComplete(false)
-,	NumOutstandingDominantShadowColumns(0)
-,	OutstandingDominantShadowYIndex(-1)
-,	DominantDirectionalLightId(0,0,0,0)
 ,	bShouldExportMeshAreaLightData(false)
 ,	bShouldExportVolumeDistanceField(false)
 ,	NumPhotonsEmittedDirect(0)
@@ -672,39 +668,28 @@ void FStaticLightingSystem::ExportNonMappingTasks()
 	CompleteVisibilityTaskList.ApplyAndClear(*this);
 
 	{
-		TMap<const FSpotLight*,FDominantLightShadowInfo> DominantSpotLightShadowInfoCopy;
+		TMap<const FLight*, FStaticShadowDepthMap*> CompletedStaticShadowDepthMapsCopy;
 		{
 			// Enter a critical section before modifying DominantSpotLightShadowInfos since the worker threads may also modify it at any time
-			FScopeLock Lock(&DominantLightShadowSync);
-			DominantSpotLightShadowInfoCopy = DominantSpotLightShadowInfos;
-			DominantSpotLightShadowInfos.Empty();
+			FScopeLock Lock(&CompletedStaticShadowDepthMapsSync);
+			CompletedStaticShadowDepthMapsCopy = CompletedStaticShadowDepthMaps;
+			CompletedStaticShadowDepthMaps.Empty();
 		}
-		for (TMap<const FSpotLight*,FDominantLightShadowInfo>::TIterator It(DominantSpotLightShadowInfoCopy); It; ++It)
+
+		for (TMap<const FLight*,FStaticShadowDepthMap*>::TIterator It(CompletedStaticShadowDepthMapsCopy); It; ++It)
 		{
-			const FSpotLight* SpotLight = It.Key();
-			Exporter.ExportDominantShadowInfo(SpotLight->Guid, It.Value());
+			const FLight* Light = It.Key();
+			Exporter.ExportStaticShadowDepthMap(Light->Guid, *It.Value());
+
 			// Tell Swarm the task is complete (if we're not in debugging mode).
-			if ( !IsDebugMode() )
+			if (!IsDebugMode())
 			{
 				FLightmassSwarm* Swarm = GetExporter().GetSwarm();
-				Swarm->TaskCompleted( SpotLight->Guid );
+				Swarm->TaskCompleted(Light->Guid);
 			}
-		}
-	}
-	
-	if (bDominantShadowTaskComplete)
-	{
-		Exporter.ExportDominantShadowInfo(DominantDirectionalLightId, DominantLightShadowInfo);
 
-		DominantLightShadowInfo.ShadowMap.Empty();
-
-		// Tell Swarm the task is complete (if we're not in debugging mode).
-		if ( !IsDebugMode() )
-		{
-			FLightmassSwarm* Swarm = GetExporter().GetSwarm();
-			Swarm->TaskCompleted( DominantDirectionalLightId );
+			delete It.Value();
 		}
-		bDominantShadowTaskComplete = 0;
 	}
 
 	if (bShouldExportMeshAreaLightData)
@@ -865,8 +850,8 @@ void FStaticLightingSystem::ValidateSettings(FScene& InScene)
 
 	// Round up to nearest odd number
 	ShadowSettings.MinDistanceFieldUpsampleFactor = FMath::Clamp(ShadowSettings.MinDistanceFieldUpsampleFactor - ShadowSettings.MinDistanceFieldUpsampleFactor % 2 + 1, 1, 17);
-	ShadowSettings.DominantShadowTransitionSampleDistanceX = FMath::Max(ShadowSettings.DominantShadowTransitionSampleDistanceX, DELTA);
-	ShadowSettings.DominantShadowTransitionSampleDistanceY = FMath::Max(ShadowSettings.DominantShadowTransitionSampleDistanceY, DELTA);
+	ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX = FMath::Max(ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, DELTA);
+	ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY = FMath::Max(ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, DELTA);
 
 	InScene.IrradianceCachingSettings.InterpolationMaxAngle = FMath::Clamp(InScene.IrradianceCachingSettings.InterpolationMaxAngle, 0.0f, 90.0f);
 	InScene.IrradianceCachingSettings.PointBehindRecordMaxAngle = FMath::Clamp(InScene.IrradianceCachingSettings.PointBehindRecordMaxAngle, 0.0f, 90.0f);
@@ -1019,9 +1004,9 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	{
 		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Block on IrradianceCache Interpolation tasks\n"), 100.0f * Stats.BlockOnIndirectLightingInterpolateTasksTime / TotalLightingBusyThreadTime, Stats.BlockOnIndirectLightingInterpolateTasksTime);
 	}
-	if (Stats.DominantShadowThreadTime > 0.1f)
+	if (Stats.StaticShadowDepthMapThreadTime > 0.1f)
 	{
-		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Dominant shadow map\n"), 100.0f * Stats.DominantShadowThreadTime / TotalLightingBusyThreadTime, Stats.DominantShadowThreadTime);
+		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Static shadow depth maps (max %.1fs)\n"), 100.0f * Stats.StaticShadowDepthMapThreadTime / TotalLightingBusyThreadTime, Stats.StaticShadowDepthMapThreadTime, Stats.MaxStaticShadowDepthMapThreadTime);
 	}
 	if (Stats.VolumeDistanceFieldThreadTime > 0.1f)
 	{
@@ -1039,7 +1024,7 @@ void FStaticLightingSystem::DumpStats(float TotalStaticLightingTime) const
 	{
 		SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Volume Samples\n"), 100.0f * Stats.VolumeSampleThreadTime / TotalLightingBusyThreadTime, Stats.VolumeSampleThreadTime);
 	}
-	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.VolumeSampleThreadTime + Stats.DominantShadowThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime), 0.0f);
+	const float UnaccountedLightingThreadTime = FMath::Max(TotalLightingBusyThreadTime - (SampleSetupTime + Stats.DirectLightingTime + Stats.BlockOnIndirectLightingCacheTasksTime + Stats.BlockOnIndirectLightingInterpolateTasksTime + Stats.SecondPassIrradianceCacheInterpolationTime + Stats.VolumeSampleThreadTime + Stats.StaticShadowDepthMapThreadTime + Stats.VolumeDistanceFieldThreadTime + PrecomputedVisibilityThreadTime), 0.0f);
 	SolverStats += FString::Printf( TEXT("%4.1f%%%8.1fs    Unaccounted\n"), 100.0f * UnaccountedLightingThreadTime / TotalLightingBusyThreadTime, UnaccountedLightingThreadTime);
 	// Send the message in multiple parts since it cuts off in the middle otherwise
 	LogSolverMessage(SolverStats);
@@ -1401,7 +1386,7 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 	bool& bWaitTimedOut, 
 	bool& bDynamicObjectTask, 
 	int32& PrecomputedVisibilityTaskIndex,
-	bool& bDominantShadowTask,
+	bool& bStaticShadowDepthMapTask,
 	bool& bMeshAreaLightDataTask,
 	bool& bVolumeDataTask)
 {
@@ -1411,7 +1396,7 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 	bWaitTimedOut = true;
 	bDynamicObjectTask = false;
 	PrecomputedVisibilityTaskIndex = INDEX_NONE;
-	bDominantShadowTask = false;
+	bStaticShadowDepthMapTask = false;
 	bMeshAreaLightDataTask = false;
 	bVolumeDataTask = false;
 
@@ -1465,7 +1450,7 @@ FStaticLightingMapping*	FStaticLightingSystem::ThreadGetNextMapping(
 			}
 			else if (Scene.FindLightByGuid(TaskGuid))
 			{
-				bDominantShadowTask = true;
+				bStaticShadowDepthMapTask = true;
 				Swarm->AcceptTask( TaskGuid );
 				bWaitTimedOut = false;
 			}
@@ -1506,22 +1491,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 	while (!bIsDone)
 	{
 		const double StartLoopTime = FPlatformTime::Seconds();
-		// Process another row of the dominant shadow map if necessary
-		if (NumOutstandingDominantShadowColumns > 0)
-		{
-			const int32 ThreadY = FPlatformAtomics::InterlockedIncrement(&OutstandingDominantShadowYIndex);
-			if (ThreadY < DominantLightShadowInfo.ShadowMapSizeY)
-			{
-				CalculateDominantShadowInfoWorkRange(ThreadY);
-				const int32 NumTasksRemaining = FPlatformAtomics::InterlockedDecrement(&NumOutstandingDominantShadowColumns);
-				if (NumTasksRemaining == 0)
-				{
-					// Signal to the main thread that all dominant shadow map tasks are complete
-					FPlatformAtomics::InterlockedExchange(&bDominantShadowTaskComplete, true);
-				}
-			}
-		}
-
+		
 		if (NumOutstandingVolumeDataLayers > 0)
 		{
 			const int32 ThreadZ = FPlatformAtomics::InterlockedIncrement(&OutstandingVolumeDataLayerIndex);
@@ -1541,7 +1511,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		bool bRequestForTaskTimedOut;
 		bool bDynamicObjectTask;
 		int32 PrecomputedVisibilityTaskIndex;
-		bool bDominantShadowTask;
+		bool bStaticShadowDepthMapTask;
 		bool bMeshAreaLightDataTask;
 		bool bVolumeDataTask;
 
@@ -1553,7 +1523,7 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 			bRequestForTaskTimedOut, 
 			bDynamicObjectTask, 
 			PrecomputedVisibilityTaskIndex,
-			bDominantShadowTask,
+			bStaticShadowDepthMapTask,
 			bMeshAreaLightDataTask,
 			bVolumeDataTask);
 
@@ -1589,13 +1559,13 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 		{
 			BeginCalculateVolumeDistanceField();
 		}
-		else if (bDominantShadowTask)
+		else if (bStaticShadowDepthMapTask)
 		{
-			BeginCalculateDominantShadowInfo(TaskGuid);
+			CalculateStaticShadowDepthMap(TaskGuid);
 		}
 		else
 		{
-			if (!bSignaledMappingsComplete && NumOutstandingDominantShadowColumns <= 0 && NumOutstandingVolumeDataLayers <= 0)
+			if (!bSignaledMappingsComplete && NumOutstandingVolumeDataLayers <= 0)
 			{
 				bSignaledMappingsComplete = true;
 				GSwarm->SendMessage( NSwarm::FTimingMessage( NSwarm::PROGSTATE_Processing0, ThreadIndex ) );
@@ -1622,7 +1592,6 @@ void FStaticLightingSystem::ThreadLoop(bool bIsMainThread, int32 ThreadIndex, FT
 
 			if (!NextCacheTask 
 				&& !NextInterpolateTask
-				&& NumOutstandingDominantShadowColumns <= 0 
 				&& NumOutstandingVolumeDataLayers <= 0)
 			{
 				if (MappingTasksInProgressThatWillNeedHelp <= 0 && !bRequestForTaskTimedOut)
@@ -2074,95 +2043,153 @@ FGatheredLightSample FStaticLightingSystem::CalculateApproximateSkyLighting(
 	return IncomingRadiance;
 }
 
-/** Initializes DominantLightShadowInfo and prepares for multithreaded generation of DominantLightShadowInfo.ShadowMap. */
-void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
+void FStaticLightingSystem::CalculateStaticShadowDepthMap(FGuid LightGuid)
 {
-	const FLight* DominantLight = Scene.FindLightByGuid(LightGuid);
-	check(DominantLight);
-	const FDirectionalLight* DominantDirectionalLight = DominantLight->GetDirectionalLight();
-	const FSpotLight* DominantSpotLight = DominantLight->GetSpotLight();
-	
-	if (DominantDirectionalLight)
+	const FLight* Light = Scene.FindLightByGuid(LightGuid);
+	check(Light);
+	const FDirectionalLight* DirectionalLight = Light->GetDirectionalLight();
+	const FSpotLight* SpotLight = Light->GetSpotLight();
+	const FPointLight* PointLight = Light->GetPointLight();
+	check(DirectionalLight || SpotLight || PointLight);
+
+	const double StartTime = FPlatformTime::Seconds();
+
+	FStaticLightingMappingContext Context(NULL, *this);
+	FStaticShadowDepthMap* ShadowDepthMap = new FStaticShadowDepthMap();
+
+	if (DirectionalLight)
 	{
-		checkSlow(DominantLightShadowInfo.ShadowMap.Num() == 0);
 		FVector4 XAxis, YAxis;
-		DominantDirectionalLight->Direction.FindBestAxisVectors3(XAxis, YAxis);
+		DirectionalLight->Direction.FindBestAxisVectors3(XAxis, YAxis);
 		// Create a coordinate system for the dominant directional light, with the z axis corresponding to the light's direction
-		DominantLightShadowInfo.WorldToLight = FBasisVectorMatrix(XAxis, YAxis, DominantDirectionalLight->Direction, FVector4(0,0,0));
+		ShadowDepthMap->WorldToLight = FBasisVectorMatrix(XAxis, YAxis, DirectionalLight->Direction, FVector4(0,0,0));
+
 		FBoxSphereBounds ImportanceVolume = GetImportanceBounds().SphereRadius > 0.0f ? GetImportanceBounds() : FBoxSphereBounds(AggregateMesh.GetBounds());
-		const FBox LightSpaceImportanceBounds = ImportanceVolume.GetBox().TransformBy(DominantLightShadowInfo.WorldToLight);
+		const FBox LightSpaceImportanceBounds = ImportanceVolume.GetBox().TransformBy(ShadowDepthMap->WorldToLight);
 
-		DominantLightShadowInfo.LightSpaceImportanceBoundMin = LightSpaceImportanceBounds.Min;
-		DominantLightShadowInfo.LightSpaceImportanceBoundMax = LightSpaceImportanceBounds.Max;
-
-		DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().X * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
-		DominantLightShadowInfo.ShadowMapSizeX = DominantLightShadowInfo.ShadowMapSizeX == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeX;
-		DominantLightShadowInfo.ShadowMapSizeY = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().Y * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceY, 4.0f));
-		DominantLightShadowInfo.ShadowMapSizeY = DominantLightShadowInfo.ShadowMapSizeY == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeY;
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().X * 2.0f / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX, 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
+		ShadowDepthMap->ShadowMapSizeY = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().Y * 2.0f / ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY, 4.0f));
+		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeY == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeY;
 
 		// Clamp the number of dominant shadow samples generated if necessary while maintaining aspect ratio
-		if ((uint64)DominantLightShadowInfo.ShadowMapSizeX * (uint64)DominantLightShadowInfo.ShadowMapSizeY > (uint64)ShadowSettings.DominantShadowMaxSamples)
+		if ((uint64)ShadowDepthMap->ShadowMapSizeX * (uint64)ShadowDepthMap->ShadowMapSizeY > (uint64)ShadowSettings.StaticShadowDepthMapMaxSamples)
 		{
-			const float AspectRatio = DominantLightShadowInfo.ShadowMapSizeX / (float)DominantLightShadowInfo.ShadowMapSizeY;
-			DominantLightShadowInfo.ShadowMapSizeY = FMath::TruncToInt(FMath::Sqrt(ShadowSettings.DominantShadowMaxSamples / AspectRatio));
-			DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(ShadowSettings.DominantShadowMaxSamples / DominantLightShadowInfo.ShadowMapSizeY);
+			const float AspectRatio = ShadowDepthMap->ShadowMapSizeX / (float)ShadowDepthMap->ShadowMapSizeY;
+			ShadowDepthMap->ShadowMapSizeY = FMath::TruncToInt(FMath::Sqrt(ShadowSettings.StaticShadowDepthMapMaxSamples / AspectRatio));
+			ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(ShadowSettings.StaticShadowDepthMapMaxSamples / ShadowDepthMap->ShadowMapSizeY);
 		}
 
 		// Allocate the shadow map
-		DominantLightShadowInfo.ShadowMap.Empty(DominantLightShadowInfo.ShadowMapSizeX * DominantLightShadowInfo.ShadowMapSizeY);
-		DominantLightShadowInfo.ShadowMap.AddZeroed(DominantLightShadowInfo.ShadowMapSizeX * DominantLightShadowInfo.ShadowMapSizeY);
+		ShadowDepthMap->ShadowMap.Empty(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
+		ShadowDepthMap->ShadowMap.AddZeroed(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
 
-		DominantDirectionalLightId = DominantDirectionalLight->Guid;
+		{
+			const float InvDistanceRange = 1.0f / (LightSpaceImportanceBounds.Max.Z - LightSpaceImportanceBounds.Min.Z);
+			const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
 
-		// Signal to the other threads to start processing rows of the shadow map
-		FPlatformAtomics::InterlockedExchange(&NumOutstandingDominantShadowColumns, DominantLightShadowInfo.ShadowMapSizeY);
+			for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
+			{
+				for (int32 X = 0; X < ShadowDepthMap->ShadowMapSizeX; X++)
+				{
+					float MaxSampleDistance = 0.0f;
+					// Super sample each cell
+					for (int32 SubSampleY = 0; SubSampleY < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleY++)
+					{
+						const float YFraction = (Y + SubSampleY / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeY - 1);
+						for (int32 SubSampleX = 0; SubSampleX < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleX++)
+						{
+							const float XFraction = (X + SubSampleX / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeX - 1);
+							// Construct a ray in light space along the direction of the light, starting at the minimum light space Z going to the maximum.
+							const FVector4 LightSpaceStartPosition(
+								LightSpaceImportanceBounds.Min.X + XFraction * (LightSpaceImportanceBounds.Max.X - LightSpaceImportanceBounds.Min.X),
+								LightSpaceImportanceBounds.Min.Y + YFraction * (LightSpaceImportanceBounds.Max.Y - LightSpaceImportanceBounds.Min.Y),
+								LightSpaceImportanceBounds.Min.Z);
+							const FVector4 LightSpaceEndPosition(LightSpaceStartPosition.X, LightSpaceStartPosition.Y, LightSpaceImportanceBounds.Max.Z);
+							// Transform the ray into world space in order to trace against the world space aggregate mesh
+							const FVector4 WorldSpaceStartPosition = LightToWorld.TransformPosition(LightSpaceStartPosition);
+							const FVector4 WorldSpaceEndPosition = LightToWorld.TransformPosition(LightSpaceEndPosition);
+							const FLightRay LightRay(
+								WorldSpaceStartPosition,
+								WorldSpaceEndPosition,
+								NULL,
+								NULL,
+								// We are tracing from the light instead of to the light,
+								// So flip sidedness so that backface culling matches up with tracing to the light
+								LIGHTRAY_FLIP_SIDEDNESS
+								);
+
+							FLightRayIntersection Intersection;
+							AggregateMesh.IntersectLightRay(LightRay, true, false, true, Context.RayCache, Intersection);
+
+							if (Intersection.bIntersects)
+							{
+								// Use the maximum distance of all super samples for each cell, to get a conservative shadow map
+								MaxSampleDistance = FMath::Max(MaxSampleDistance, (Intersection.IntersectionVertex.WorldPosition - WorldSpaceStartPosition).Size3());
+							}
+						}
+					}
+
+					if (MaxSampleDistance == 0.0f)
+					{
+						MaxSampleDistance = LightSpaceImportanceBounds.Max.Z - LightSpaceImportanceBounds.Min.Z;
+					} 
+
+					ShadowDepthMap->ShadowMap[Y * ShadowDepthMap->ShadowMapSizeX + X] = FStaticShadowDepthMapSample(FFloat16(MaxSampleDistance * InvDistanceRange));
+				}
+			}
+		}
+
+		ShadowDepthMap->WorldToLight *= FTranslationMatrix(-LightSpaceImportanceBounds.Min)
+			* FScaleMatrix(FVector(1.0f) / (LightSpaceImportanceBounds.Max - LightSpaceImportanceBounds.Min));
+
+		FScopeLock Lock(&CompletedStaticShadowDepthMapsSync);
+		CompletedStaticShadowDepthMaps.Add(DirectionalLight, ShadowDepthMap);
 	}
-	else if (DominantSpotLight)
+	else if (SpotLight)
 	{
-		// Don't bother parallelizing spot light computations, spotlight shadowmaps are usually much smaller than directional lights since they don't affect the whole scene
-		FDominantLightShadowInfo DominantLightShadowInfo;
 		FVector4 XAxis, YAxis;
-		DominantSpotLight->Direction.FindBestAxisVectors3(XAxis, YAxis);
-		// Create a coordinate system for the dominant spot light, with the z axis corresponding to the light's direction, and translated to the light's origin
-		DominantLightShadowInfo.WorldToLight = FTranslationMatrix(-DominantSpotLight->Position) * FBasisVectorMatrix(XAxis, YAxis, DominantSpotLight->Direction, FVector4(0,0,0));
+		SpotLight->Direction.FindBestAxisVectors3(XAxis, YAxis);
+		// Create a coordinate system for the spot light, with the z axis corresponding to the light's direction, and translated to the light's origin
+		ShadowDepthMap->WorldToLight = FTranslationMatrix(-SpotLight->Position) 
+			* FBasisVectorMatrix(XAxis, YAxis, SpotLight->Direction, FVector4(0,0,0));
 
 		// Distance from the light's direction axis to the edge of the cone at the radius of the light
-		const float HalfCrossSectionLength = DominantSpotLight->Radius * FMath::Tan(DominantSpotLight->OuterConeAngle * (float)PI / 180.0f);
+		const float HalfCrossSectionLength = SpotLight->Radius * FMath::Tan(SpotLight->OuterConeAngle * (float)PI / 180.0f);
 
-		DominantLightShadowInfo.LightSpaceImportanceBoundMin = FVector4(-HalfCrossSectionLength, -HalfCrossSectionLength, 0);
-		DominantLightShadowInfo.LightSpaceImportanceBoundMax = FVector4(HalfCrossSectionLength, HalfCrossSectionLength, DominantSpotLight->Radius);
+		const FVector4 LightSpaceImportanceBoundMin = FVector4(-HalfCrossSectionLength, -HalfCrossSectionLength, 0);
+		const FVector4 LightSpaceImportanceBoundMax = FVector4(HalfCrossSectionLength, HalfCrossSectionLength, SpotLight->Radius);
 
-		DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(FMath::Max(HalfCrossSectionLength / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
-		DominantLightShadowInfo.ShadowMapSizeX = DominantLightShadowInfo.ShadowMapSizeX == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeX;
-		DominantLightShadowInfo.ShadowMapSizeY = DominantLightShadowInfo.ShadowMapSizeX;
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(HalfCrossSectionLength / (2 * ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX), 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
+		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeX;
 
-		DominantLightShadowInfo.ShadowMap.Empty(DominantLightShadowInfo.ShadowMapSizeX * DominantLightShadowInfo.ShadowMapSizeY);
-		DominantLightShadowInfo.ShadowMap.AddZeroed(DominantLightShadowInfo.ShadowMapSizeX * DominantLightShadowInfo.ShadowMapSizeY);
+		ShadowDepthMap->ShadowMap.Empty(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
+		ShadowDepthMap->ShadowMap.AddZeroed(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
 
 		// Calculate the maximum possible distance for quantization
-		const float MaxPossibleDistance = FMath::Max(FVector4(HalfCrossSectionLength, HalfCrossSectionLength, DominantLightShadowInfo.LightSpaceImportanceBoundMax.Z - DominantLightShadowInfo.LightSpaceImportanceBoundMin.Z).Size3(), (float)KINDA_SMALL_NUMBER);
-		const FMatrix LightToWorld = DominantLightShadowInfo.WorldToLight.Inverse();
+		const float MaxPossibleDistance = LightSpaceImportanceBoundMax.Z - LightSpaceImportanceBoundMin.Z;
+		const FMatrix LightToWorld = ShadowDepthMap->WorldToLight.Inverse();
 		const FBoxSphereBounds ImportanceVolume = GetImportanceBounds().SphereRadius > 0.0f ? GetImportanceBounds() : FBoxSphereBounds(AggregateMesh.GetBounds());
 
-		FStaticLightingMappingContext Context(NULL, *this);
-		for (int32 Y = 0; Y < DominantLightShadowInfo.ShadowMapSizeY; Y++)
+		for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
 		{
-			for (int32 X = 0; X < DominantLightShadowInfo.ShadowMapSizeX; X++)
+			for (int32 X = 0; X < ShadowDepthMap->ShadowMapSizeX; X++)
 			{
 				float MaxSampleDistance = 0.0f;
 				// Super sample each cell
-				for (int32 SubSampleY = 0; SubSampleY < ShadowSettings.DominantShadowSuperSampleFactor; SubSampleY++)
+				for (int32 SubSampleY = 0; SubSampleY < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleY++)
 				{
-					const float YFraction = (Y + SubSampleY / (float)ShadowSettings.DominantShadowSuperSampleFactor) / (float)(DominantLightShadowInfo.ShadowMapSizeY - 1);
-					for (int32 SubSampleX = 0; SubSampleX < ShadowSettings.DominantShadowSuperSampleFactor; SubSampleX++)
+					const float YFraction = (Y + SubSampleY / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeY - 1);
+					for (int32 SubSampleX = 0; SubSampleX < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleX++)
 					{
-						const float XFraction = (X + SubSampleX / (float)ShadowSettings.DominantShadowSuperSampleFactor) / (float)(DominantLightShadowInfo.ShadowMapSizeX - 1);
+						const float XFraction = (X + SubSampleX / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeX - 1);
 						// Construct a ray in light space along the direction of the light, starting at the light and going to the maximum light space Z.
 						const FVector4 LightSpaceStartPosition(0,0,0);
 						const FVector4 LightSpaceEndPosition(
-							DominantLightShadowInfo.LightSpaceImportanceBoundMin.X + XFraction * (DominantLightShadowInfo.LightSpaceImportanceBoundMax.X - DominantLightShadowInfo.LightSpaceImportanceBoundMin.X),
-							DominantLightShadowInfo.LightSpaceImportanceBoundMin.Y + YFraction * (DominantLightShadowInfo.LightSpaceImportanceBoundMax.Y - DominantLightShadowInfo.LightSpaceImportanceBoundMin.Y),
-							DominantLightShadowInfo.LightSpaceImportanceBoundMax.Z);
+							LightSpaceImportanceBoundMin.X + XFraction * (LightSpaceImportanceBoundMax.X - LightSpaceImportanceBoundMin.X),
+							LightSpaceImportanceBoundMin.Y + YFraction * (LightSpaceImportanceBoundMax.Y - LightSpaceImportanceBoundMin.Y),
+							LightSpaceImportanceBoundMax.Z);
 						// Transform the ray into world space in order to trace against the world space aggregate mesh
 						const FVector4 WorldSpaceStartPosition = LightToWorld.TransformPosition(LightSpaceStartPosition);
 						const FVector4 WorldSpaceEndPosition = LightToWorld.TransformPosition(LightSpaceEndPosition);
@@ -2178,10 +2205,12 @@ void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
 
 						FLightRayIntersection Intersection;
 						AggregateMesh.IntersectLightRay(LightRay, true, false, true, Context.RayCache, Intersection);
-						if (Intersection.bIntersects && ImportanceVolume.GetBox().IsInside(Intersection.IntersectionVertex.WorldPosition))
+
+						if (Intersection.bIntersects)
 						{
+							const FVector4 LightSpaceIntersectPosition = ShadowDepthMap->WorldToLight.TransformPosition(Intersection.IntersectionVertex.WorldPosition);
 							// Use the maximum distance of all super samples for each cell, to get a conservative shadow map
-							MaxSampleDistance = FMath::Max(MaxSampleDistance, (Intersection.IntersectionVertex.WorldPosition - WorldSpaceStartPosition).Size3());
+							MaxSampleDistance = FMath::Max(MaxSampleDistance, LightSpaceIntersectPosition.Z);
 						}
 					}
 				}
@@ -2191,76 +2220,100 @@ void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
 					MaxSampleDistance = MaxPossibleDistance;
 				}
 
-				// Quantize the distance into a uint16 to reduce memory usage in Unreal
-				const uint16 QuantizedDistance = FMath::TruncToInt(65535 * FMath::Clamp(MaxSampleDistance / MaxPossibleDistance, 0.0f, 1.0f));
-				DominantLightShadowInfo.ShadowMap[Y * DominantLightShadowInfo.ShadowMapSizeX + X] = FDominantLightShadowSample(QuantizedDistance);
+				ShadowDepthMap->ShadowMap[Y * ShadowDepthMap->ShadowMapSizeX + X] = FStaticShadowDepthMapSample(FFloat16(MaxSampleDistance / MaxPossibleDistance));
 			}
 		}
 
-		// Enter a critical section before modifying DominantSpotLightShadowInfos since the main thread may also modify it at any time
-		FScopeLock Lock(&DominantLightShadowSync);
-		DominantSpotLightShadowInfos.Add(DominantSpotLight, DominantLightShadowInfo);
-	}
-}
+		ShadowDepthMap->WorldToLight *= 
+			// Perspective projection sized to the spotlight cone
+			FPerspectiveMatrix(SpotLight->OuterConeAngle * (float)PI / 180.0f, 1, 1, 0, SpotLight->Radius)
+			// Convert from NDC to texture space, normalize Z
+			* FMatrix(
+				FPlane(.5f,								0,							0,									0),
+				FPlane(0,								.5f,						0,									0),
+				FPlane(0,								0,							1.0f / LightSpaceImportanceBoundMax.Z,		0),
+				FPlane(.5f,								.5f,						0,									1));
 
-/** Generates a single row of the dominant light shadow map. */
-void FStaticLightingSystem::CalculateDominantShadowInfoWorkRange(int32 ShadowMapY)
-{
-	const double CalculateWorkRangeStart = FPlatformTime::Seconds();
-	const float InvDistanceRange = 1.0f / (DominantLightShadowInfo.LightSpaceImportanceBoundMax.Z - DominantLightShadowInfo.LightSpaceImportanceBoundMin.Z);
-	const FMatrix LightToWorld = DominantLightShadowInfo.WorldToLight.Inverse();
-	FStaticLightingMappingContext Context(NULL, *this);
-	const FBoxSphereBounds ImportanceVolume = GetImportanceBounds().SphereRadius > 0.0f ? GetImportanceBounds() : FBoxSphereBounds(AggregateMesh.GetBounds());
-	// Process a single row of the shadow map
-	for (int32 X = 0; X < DominantLightShadowInfo.ShadowMapSizeX; X++)
+		FScopeLock Lock(&CompletedStaticShadowDepthMapsSync);
+		CompletedStaticShadowDepthMaps.Add(SpotLight, ShadowDepthMap);
+	}
+	else if (PointLight)
 	{
-		float MaxSampleDistance = 0.0f;
-		// Super sample each cell
-		for (int32 SubSampleY = 0; SubSampleY < ShadowSettings.DominantShadowSuperSampleFactor; SubSampleY++)
-		{
-			const float YFraction = (ShadowMapY + SubSampleY / (float)ShadowSettings.DominantShadowSuperSampleFactor) / (float)(DominantLightShadowInfo.ShadowMapSizeY - 1);
-			for (int32 SubSampleX = 0; SubSampleX < ShadowSettings.DominantShadowSuperSampleFactor; SubSampleX++)
-			{
-				const float XFraction = (X + SubSampleX / (float)ShadowSettings.DominantShadowSuperSampleFactor) / (float)(DominantLightShadowInfo.ShadowMapSizeX - 1);
-				// Construct a ray in light space along the direction of the light, starting at the minimum light space Z going to the maximum.
-				const FVector4 LightSpaceStartPosition(
-					DominantLightShadowInfo.LightSpaceImportanceBoundMin.X + XFraction * (DominantLightShadowInfo.LightSpaceImportanceBoundMax.X - DominantLightShadowInfo.LightSpaceImportanceBoundMin.X),
-					DominantLightShadowInfo.LightSpaceImportanceBoundMin.Y + YFraction * (DominantLightShadowInfo.LightSpaceImportanceBoundMax.Y - DominantLightShadowInfo.LightSpaceImportanceBoundMin.Y),
-					DominantLightShadowInfo.LightSpaceImportanceBoundMin.Z);
-				const FVector4 LightSpaceEndPosition(LightSpaceStartPosition.X, LightSpaceStartPosition.Y,DominantLightShadowInfo.LightSpaceImportanceBoundMax.Z);
-				// Transform the ray into world space in order to trace against the world space aggregate mesh
-				const FVector4 WorldSpaceStartPosition = LightToWorld.TransformPosition(LightSpaceStartPosition);
-				const FVector4 WorldSpaceEndPosition = LightToWorld.TransformPosition(LightSpaceEndPosition);
-				const FLightRay LightRay(
-					WorldSpaceStartPosition,
-					WorldSpaceEndPosition,
-					NULL,
-					NULL,
-					// We are tracing from the light instead of to the light,
-					// So flip sidedness so that backface culling matches up with tracing to the light
-					LIGHTRAY_FLIP_SIDEDNESS
-					);
+		ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(FMath::Max(PointLight->Radius / (2 * ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX), 4.0f));
+		ShadowDepthMap->ShadowMapSizeX = ShadowDepthMap->ShadowMapSizeX == appTruncErrorCode ? INT_MAX : ShadowDepthMap->ShadowMapSizeX;
+		ShadowDepthMap->ShadowMapSizeY = ShadowDepthMap->ShadowMapSizeX;
 
-				FLightRayIntersection Intersection;
-				AggregateMesh.IntersectLightRay(LightRay, true, false, true, Context.RayCache, Intersection);
-				if (Intersection.bIntersects)
+		// Clamp the number of dominant shadow samples generated if necessary while maintaining aspect ratio
+		if ((uint64)ShadowDepthMap->ShadowMapSizeX * (uint64)ShadowDepthMap->ShadowMapSizeY > (uint64)ShadowSettings.StaticShadowDepthMapMaxSamples)
+		{
+			const float AspectRatio = ShadowDepthMap->ShadowMapSizeX / (float)ShadowDepthMap->ShadowMapSizeY;
+			ShadowDepthMap->ShadowMapSizeY = FMath::TruncToInt(FMath::Sqrt(ShadowSettings.StaticShadowDepthMapMaxSamples / AspectRatio));
+			ShadowDepthMap->ShadowMapSizeX = FMath::TruncToInt(ShadowSettings.StaticShadowDepthMapMaxSamples / ShadowDepthMap->ShadowMapSizeY);
+		}
+
+		// Allocate the shadow map
+		ShadowDepthMap->ShadowMap.Empty(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
+		ShadowDepthMap->ShadowMap.AddZeroed(ShadowDepthMap->ShadowMapSizeX * ShadowDepthMap->ShadowMapSizeY);
+
+		ShadowDepthMap->WorldToLight = FMatrix::Identity;
+
+		for (int32 Y = 0; Y < ShadowDepthMap->ShadowMapSizeY; Y++)
+		{
+			for (int32 X = 0; X < ShadowDepthMap->ShadowMapSizeX; X++)
+			{
+				float MaxSampleDistance = 0.0f;
+				// Super sample each cell
+				for (int32 SubSampleY = 0; SubSampleY < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleY++)
 				{
-					// Use the maximum distance of all super samples for each cell, to get a conservative shadow map
-					MaxSampleDistance = FMath::Max(MaxSampleDistance, (Intersection.IntersectionVertex.WorldPosition - WorldSpaceStartPosition).Size3());
+					const float YFraction = (Y + SubSampleY / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeY - 1);
+					const float Phi = YFraction * PI;
+					const float SinPhi = FMath::Sin(Phi);
+
+					for (int32 SubSampleX = 0; SubSampleX < ShadowSettings.StaticShadowDepthMapSuperSampleFactor; SubSampleX++)
+					{
+						const float XFraction = (X + SubSampleX / (float)ShadowSettings.StaticShadowDepthMapSuperSampleFactor) / (float)(ShadowDepthMap->ShadowMapSizeX - 1);
+						const float Theta = XFraction * 2 * PI;
+						const FVector Direction(FMath::Cos(Theta) * SinPhi, FMath::Sin(Theta) * SinPhi, FMath::Cos(Phi));
+
+						const FVector4 WorldSpaceStartPosition = PointLight->Position;
+						const FVector4 WorldSpaceEndPosition = PointLight->Position + Direction * PointLight->Radius;
+						const FLightRay LightRay(
+							WorldSpaceStartPosition,
+							WorldSpaceEndPosition,
+							NULL,
+							NULL,
+							// We are tracing from the light instead of to the light,
+							// So flip sidedness so that backface culling matches up with tracing to the light
+							LIGHTRAY_FLIP_SIDEDNESS
+							);
+
+						FLightRayIntersection Intersection;
+						AggregateMesh.IntersectLightRay(LightRay, true, false, true, Context.RayCache, Intersection);
+
+						if (Intersection.bIntersects)
+						{
+							// Use the maximum distance of all super samples for each cell, to get a conservative shadow map
+							MaxSampleDistance = FMath::Max(MaxSampleDistance, (Intersection.IntersectionVertex.WorldPosition - PointLight->Position).Size3());
+						}
+					}
 				}
+
+				if (MaxSampleDistance == 0.0f)
+				{
+					MaxSampleDistance = PointLight->Radius;
+				}
+
+				ShadowDepthMap->ShadowMap[Y * ShadowDepthMap->ShadowMapSizeX + X] = FStaticShadowDepthMapSample(FFloat16(MaxSampleDistance / PointLight->Radius));
 			}
 		}
 
-		if (MaxSampleDistance == 0.0f)
-		{
-			MaxSampleDistance = DominantLightShadowInfo.LightSpaceImportanceBoundMax.Z - DominantLightShadowInfo.LightSpaceImportanceBoundMin.Z;
-		}
-
-		// Quantize the distance into a uint16 to reduce memory usage in Unreal
-		const uint16 QuantizedDistance = FMath::TruncToInt(65535 * FMath::Clamp(MaxSampleDistance * InvDistanceRange, 0.0f, 1.0f));
-		DominantLightShadowInfo.ShadowMap[ShadowMapY * DominantLightShadowInfo.ShadowMapSizeX + X] = FDominantLightShadowSample(QuantizedDistance);
+		FScopeLock Lock(&CompletedStaticShadowDepthMapsSync);
+		CompletedStaticShadowDepthMaps.Add(PointLight, ShadowDepthMap);
 	}
-	Context.Stats.DominantShadowThreadTime = FPlatformTime::Seconds() - CalculateWorkRangeStart;
+
+	const float NewTime = FPlatformTime::Seconds() - StartTime;
+	Context.Stats.StaticShadowDepthMapThreadTime = NewTime;
+	Context.Stats.MaxStaticShadowDepthMapThreadTime = NewTime;
 }
 
 /**

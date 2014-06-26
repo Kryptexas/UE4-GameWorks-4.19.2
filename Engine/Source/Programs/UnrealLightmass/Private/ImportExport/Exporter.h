@@ -48,7 +48,7 @@ namespace Lightmass
 			const TMap<FGuid,TArray<class FVolumeLightingSample> >& VolumeSamples) const;
 
 		/** Exports dominant shadow information to Unreal. */
-		void ExportDominantShadowInfo(const FGuid& LightGuid, const class FDominantLightShadowInfo& DominantLightShadowInfo) const;
+		void ExportStaticShadowDepthMap(const FGuid& LightGuid, const class FStaticShadowDepthMap& StaticShadowDepthMap) const;
 
 		/** 
 		 * Exports information about mesh area lights back to Unreal, 

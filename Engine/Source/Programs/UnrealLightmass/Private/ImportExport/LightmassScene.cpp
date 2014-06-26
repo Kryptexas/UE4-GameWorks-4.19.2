@@ -416,8 +416,8 @@ void FScene::ApplyStaticLightingScale()
 	VolumeDistanceFieldSettings.VoxelSize *= SceneConstants.StaticLightingLevelScale;
 	VolumeDistanceFieldSettings.VolumeMaxDistance *= SceneConstants.StaticLightingLevelScale;
 	ShadowSettings.MaxTransitionDistanceWorldSpace *= SceneConstants.StaticLightingLevelScale;
-	ShadowSettings.DominantShadowTransitionSampleDistanceX *= SceneConstants.StaticLightingLevelScale;
-	ShadowSettings.DominantShadowTransitionSampleDistanceY *= SceneConstants.StaticLightingLevelScale;
+	ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceX *= SceneConstants.StaticLightingLevelScale;
+	ShadowSettings.StaticShadowDepthMapTransitionSampleDistanceY *= SceneConstants.StaticLightingLevelScale;
 	PhotonMappingSettings.IndirectPhotonEmitDiskRadius *= SceneConstants.StaticLightingLevelScale;
 	PhotonMappingSettings.MaxImportancePhotonSearchDistance *= SceneConstants.StaticLightingLevelScale;
 	PhotonMappingSettings.MinImportancePhotonSearchDistance *= SceneConstants.StaticLightingLevelScale;
