@@ -107,7 +107,7 @@ FReply SUMGEditorTree::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEve
 
 void SUMGEditorTree::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
 {
-	Array.Add(Widget->GetName());
+	Array.Add( Widget->GetLabel() );
 }
 
 void SUMGEditorTree::OnSearchChanged(const FText& InFilterText)

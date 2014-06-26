@@ -88,7 +88,7 @@ class UMG_API UBorder : public UContentWidget
 	void SetContentPadding(FMargin InContentPadding);
 
 	// UWidget interface
-	void SyncronizeProperties() override;
+	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
 #if WITH_EDITOR

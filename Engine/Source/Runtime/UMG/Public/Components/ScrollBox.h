@@ -10,6 +10,18 @@ class UMG_API UScrollBox : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Removes all child widget from the scrollbox */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ClearChildren();
+
+	/** Updates the scroll offset of the scrollbox */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetScrollOffset(float NewScrollOffset);
+
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
+
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -25,6 +37,8 @@ protected:
 	// End UPanelWidget
 
 protected:
+	/** The desired scroll offset for the underlying scrollbox.  This is a cache so that it can be set before the widget is constructed. */
+	float DesiredScrollOffset;
 
 	TSharedPtr<class SScrollBox> MyScrollBox;
 

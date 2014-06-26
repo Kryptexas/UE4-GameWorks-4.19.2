@@ -52,6 +52,31 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 	return BuildDesignTimeWidget( MyScrollBox.ToSharedRef() );
 }
 
+void UScrollBox::SyncronizeProperties()
+{
+	MyScrollBox->SetScrollOffset(DesiredScrollOffset);
+}
+
+void UScrollBox::ClearChildren()
+{
+	Slots.Reset();
+
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->ClearChildren();
+	}
+}
+
+void UScrollBox::SetScrollOffset(float NewScrollOffset)
+{
+	DesiredScrollOffset = NewScrollOffset;
+
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->SetScrollOffset(NewScrollOffset);
+	}
+}
+
 #if WITH_EDITOR
 
 const FSlateBrush* UScrollBox::GetEditorIcon()
