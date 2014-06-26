@@ -102,8 +102,8 @@ public class UE4GameTarget : TargetRules
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysXVehicle = false;
-			UEBuildConfiguration.bCompileForSize = true;
 			UEBuildConfiguration.bCompileFreeType = false;*/
+			UEBuildConfiguration.bCompileForSize = true;
 		}
 	}
 	public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
