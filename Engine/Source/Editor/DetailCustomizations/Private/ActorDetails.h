@@ -73,6 +73,8 @@ private:
 
 	void AddTransformCategory( IDetailLayoutBuilder& DetailBuilder );
 
+	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder );
+
 	/**
 	 * Creates a category for displaying materials used by the selected actors
 	 */

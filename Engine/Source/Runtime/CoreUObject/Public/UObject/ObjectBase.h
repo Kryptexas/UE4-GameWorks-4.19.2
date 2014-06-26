@@ -600,6 +600,12 @@ namespace UC
 
 		/// A root convert limits a sub-class to only be able to convert to child classes of the first root class going up the hierarchy.
 		ConversionRoot,
+
+		/// Marks this class as 'experimental' (a totally unsupported and undocumented prototype)
+		Experimental,
+
+		// Marks this class as an 'early access' preview (while not considered production-ready, it's a step beyond 'experimental' and is being provided as a preview of things to come)
+		EarlyAccessPreview,
 	};
 }
 

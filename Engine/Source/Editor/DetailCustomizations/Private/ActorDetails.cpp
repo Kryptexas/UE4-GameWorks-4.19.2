@@ -94,6 +94,8 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 			DetailLayout.HideProperty( GET_MEMBER_NAME_CHECKED(AActor, SpriteScale) );
 		}
 
+		AddExperimentalWarningCategory( DetailLayout );
+
 		AddTransformCategory( DetailLayout );
 
 		AddMaterialCategory( DetailLayout );
@@ -414,7 +416,52 @@ void FActorDetails::AddTransformCategory( IDetailLayoutBuilder& DetailBuilder )
 	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
 
 	TransformCategory.AddCustomBuilder( TransformDetails );
+}
 
+void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder )
+{
+	const FSelectedActorInfo& SelectedActorInfo = DetailBuilder.GetDetailsView().GetSelectedActorInfo();
+
+	if (SelectedActorInfo.bHaveExperimentalClass || SelectedActorInfo.bHaveEarlyAccessClass)
+	{
+		const bool bExperimental = SelectedActorInfo.bHaveExperimentalClass;
+
+		const FName CategoryName(TEXT("Warning"));
+		const FString CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning").ToString();
+		const FText WarningText = bExperimental ? LOCTEXT("ExperimentalClassWarning", "Uses experimental class") : LOCTEXT("EarlyAccessClassWarning", "Uses early access class");
+		const FString SearchString = WarningText.ToString();
+		const FText Tooltip = bExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
+		const FString ExcerptName = bExperimental ? TEXT("ActorUsesExperimentalClass") : TEXT("ActorUsesEarlyAccessClass");
+		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
+
+		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Transform);
+
+		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString);
+
+		WarningCategory.AddCustomRow(SearchString)
+		.WholeRowContent()
+		[
+			SNew(SHorizontalBox)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(SImage)
+				.Image(WarningIcon)
+			]
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(STextBlock)
+				.Text(WarningText)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		];
+	}
 }
 
 void FActorDetails::AddMaterialCategory( IDetailLayoutBuilder& DetailBuilder )

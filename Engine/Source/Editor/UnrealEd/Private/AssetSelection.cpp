@@ -27,6 +27,10 @@ extern void OnPlaceStaticMeshActor( AActor* MeshActor, bool bUseSurfaceOrientati
 
 namespace AssetSelectionUtils
 {
+	const FName DevelopmentStatusKey(TEXT("DevelopmentStatus"));
+	const FString EarlyAccessValue(TEXT("EarlyAccess"));
+	const FString ExperimentalValue(TEXT("Experimental"));
+
 	bool IsClassPlaceable(const UClass* Class)
 	{
 		const bool bIsAddable =
@@ -35,7 +39,7 @@ namespace AssetSelectionUtils
 			&& Class->IsChildOf( AActor::StaticClass() );
 		return bIsAddable;
 	}
-
+	
 	void GetSelectedAssets( TArray<FAssetData>& OutSelectedAssets )
 	{
 		// Add the selection from the content browser module
@@ -188,17 +192,36 @@ namespace AssetSelectionUtils
 						ActorInfo.bHaveAttachedActor = true;
 					}
 
-					TArray<UStaticMeshComponent*> StaticMeshComponents;
-					CurrentActor->GetComponents(StaticMeshComponents);
+					TArray<UActorComponent*> ActorComponents;
+					CurrentActor->GetComponents(ActorComponents);
 
-					for( int32 CompIndex = 0; CompIndex < StaticMeshComponents.Num(); ++CompIndex )
+					for( UActorComponent* Component : ActorComponents )
 					{
-						UStaticMeshComponent* SMComp = StaticMeshComponents[ CompIndex ];
-						if( SMComp->IsRegistered() )
+						if( UStaticMeshComponent* SMComp = Cast<UStaticMeshComponent>(Component) )
 						{
-							ActorInfo.bHaveStaticMeshComponent = true;
+							if( SMComp->IsRegistered() )
+							{
+								ActorInfo.bHaveStaticMeshComponent = true;
+							}
 						}
 
+						// Check for experimental classes in the component hierarchy
+						FString DevelopmentStatus;
+						if (Component->GetClass()->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
+						{
+							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
+							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
+						}
+					}
+
+					// Check for experimental classes in the actor hierarchy
+					{
+						FString DevelopmentStatus;
+						if (CurrentClass->GetStringMetaDataHierarchical(DevelopmentStatusKey, /*out*/ &DevelopmentStatus))
+						{
+							ActorInfo.bHaveExperimentalClass = ActorInfo.bHaveExperimentalClass || (DevelopmentStatus == ExperimentalValue);
+							ActorInfo.bHaveEarlyAccessClass = ActorInfo.bHaveEarlyAccessClass || (DevelopmentStatus == EarlyAccessValue);
+						}
 					}
 
 					if( CurrentActor->IsA( ALight::StaticClass() ) )
@@ -657,6 +680,8 @@ AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, cons
 bool FActorFactoryAssetProxy::IsActorValidForMaterialApplication( AActor* TargetActor )
 {
 	bool bIsValid = false;
+
+	//@TODO: PAPER2D: Extend this to support non mesh components (or make sprites a mesh component)
 
 	// Check if the actor has a mesh or fog volume density. If so, it can likely have
 	// a material applied to it. Otherwise, it cannot.

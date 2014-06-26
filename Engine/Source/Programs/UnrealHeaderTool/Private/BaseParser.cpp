@@ -104,6 +104,12 @@ namespace
 
 			FMetadataKeyword& Category = Dictionary.Add(TEXT("Category"), EMetadataValueArgument::Required);
 			Category.InsertAddAction(TEXT("Category"), TEXT(""));
+
+			FMetadataKeyword& ExperimentalFeature = Dictionary.Add(TEXT("Experimental"), EMetadataValueArgument::None);
+			ExperimentalFeature.InsertAddAction(TEXT("DevelopmentStatus"), TEXT("Experimental"));
+
+			FMetadataKeyword& EarlyAccessFeature = Dictionary.Add(TEXT("EarlyAccessPreview"), EMetadataValueArgument::None);
+			EarlyAccessFeature.InsertAddAction(TEXT("DevelopmentStatus"), TEXT("EarlyAccess"));
 		}
 
 		return Dictionary.Find(Keyword);

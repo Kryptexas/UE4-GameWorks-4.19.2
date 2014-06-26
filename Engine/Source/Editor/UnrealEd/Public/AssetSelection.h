@@ -104,6 +104,10 @@ struct FSelectedActorInfo
 	uint32 bHaveHidden:1;
 	/** true if a landscape is in the selection */
 	uint32 bHaveLandscape:1;
+	/** true if an experimental actor (or actor containing such a component) is selected */
+	uint32 bHaveExperimentalClass:1;
+	/** true if an early access actor (or actor containing such a component) is selected */
+	uint32 bHaveEarlyAccessClass:1;
 
 	FSelectedActorInfo()
 		: SelectionClass(NULL)
@@ -135,6 +139,8 @@ struct FSelectedActorInfo
 		, bHaveMatinee(false)
 		, bHaveHidden(false)
 		, bHaveLandscape(false)
+		, bHaveExperimentalClass(false)
+		, bHaveEarlyAccessClass(false)
 	{
 	}
 

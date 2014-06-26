@@ -3698,18 +3698,22 @@ bool FHeaderParser::CompileDeclaration( FClasses& AllClasses, FToken& Token )
 		check( TopNest->NestType == NEST_Class || TopNest->NestType == NEST_Interface );
 		CurrentAccessSpecifier = AccessSpecifier;
 	}
-	else if (Token.Matches(TEXT("class")) && TopNest->NestType == NEST_GlobalScope)
+	else if (Token.Matches(TEXT("class")) && (TopNest->NestType == NEST_GlobalScope))
 	{
 		if (!bHaveSeenFirstInterfaceClass || bFinishedParsingInterfaceClasses)
+		{
 			return SkipDeclaration(Token);
+		}
 
 		// Make sure the previous class ended with valid nesting.
 		if (bEncounteredNewStyleClass_UnmatchedBrackets)
-			FError::Throwf(TEXT("Missing } at end of class") );
+		{
+			FError::Throwf(TEXT("Missing } at end of class"));
+		}
 
 		// Start parsing the second class
 		bEncounteredNewStyleClass_UnmatchedBrackets = true;
-		bHaveSeenSecondInterfaceClass               = true;
+		bHaveSeenSecondInterfaceClass = true;
 		ParseSecondInterfaceClass(AllClasses);
 	}
 	else if (Token.Matches(TEXT("GENERATED_UCLASS_BODY")))
@@ -4100,10 +4104,10 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	TArray<FString> HideFunctions;
 	TArray<FString> AutoExpandCategories;
 	TArray<FString> AutoCollapseCategories;
-	Class->GetHideCategories        (HideCategories);
-	Class->GetShowCategories        (ShowSubCatgories);
-	Class->GetHideFunctions			(HideFunctions);
-	Class->GetAutoExpandCategories  (AutoExpandCategories);
+	Class->GetHideCategories(HideCategories);
+	Class->GetShowCategories(ShowSubCatgories);
+	Class->GetHideFunctions(HideFunctions);
+	Class->GetAutoExpandCategories(AutoExpandCategories);
 	Class->GetAutoCollapseCategories(AutoCollapseCategories);
 
 	// Class attributes.
@@ -4111,7 +4115,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 	check(ClassData);
 
 	// New-style UCLASS() syntax
-	TMap<FName, FString>       MetaData;
+	TMap<FName, FString> MetaData;
 
 	TArray<FPropertySpecifier> SpecifiersFound;
 	ReadSpecifierSetInsideMacro(SpecifiersFound, TEXT("Class"), MetaData);
@@ -4143,8 +4147,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 
 	// Process all of the class specifiers
 	TArray<FString> ClassGroupNames;
-	bool            bWithinSpecified         = false;
-	bool            bDeclaresConfigFile      = false;
+	bool bWithinSpecified = false;
+	bool bDeclaresConfigFile = false;
 	for (const FPropertySpecifier& PropSpecifier : SpecifiersFound)
 	{
 		const FString& Specifier = PropSpecifier.Key;
@@ -5578,6 +5582,15 @@ void FHeaderParser::ValidateMetaDataFormat(UField* Field, const FString& InKey, 
 					FError::Throwf(TEXT("%s doesn't make sense on static method '%s' in a blueprint function library"), *InKey, *Function->GetName());
 				}
 			}
+		}
+	}
+	else if (InKey == TEXT("DevelopmentStatus"))
+	{
+		const FString EarlyAccessValue(TEXT("EarlyAccess"));
+		const FString ExperimentalValue(TEXT("Experimental"));
+		if ((InValue != EarlyAccessValue) && (InValue != ExperimentalValue))
+		{
+			FError::Throwf(TEXT("'%s' metadata was '%s' but it must be %s or %s"), *InKey, *InValue, *ExperimentalValue, *EarlyAccessValue);
 		}
 	}
 }
