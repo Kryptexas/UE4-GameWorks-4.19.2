@@ -314,14 +314,6 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	// Add this newly spawned actor to the network actor list
 	AddNetworkActor( Actor );
 
-	// Broadcast notification of spawn
-	OnActorSpawned.Broadcast( Actor );
-
-	if( GIsEditor )
-	{
-		GEngine->BroadcastLevelActorAdded(Actor);
-	}
-
 #if PERF_SHOW_MULTI_PAWN_SPAWN_FRAMES
 	if( Cast<APawn>(Actor) )
 	{
@@ -337,6 +329,15 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 		return NULL;
 	}
 	Actor->CheckDefaultSubobjects();
+
+	// Broadcast notification of spawn
+	OnActorSpawned.Broadcast(Actor);
+
+	if (GIsEditor)
+	{
+		GEngine->BroadcastLevelActorAdded(Actor);
+	}
+
 	return Actor;
 }
 
