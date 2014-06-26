@@ -130,7 +130,7 @@ void FAssetTypeActions_EditorUtilityBlueprint::OpenAssetEditor(const TArray<UObj
 
 uint32 FAssetTypeActions_EditorUtilityBlueprint::GetCategories()
 {
-	return EAssetTypeCategories::Misc;
+	return EAssetTypeCategories::Blueprint;
 }
 
 void FAssetTypeActions_EditorUtilityBlueprint::ExecuteEdit(FWeakBlueprintPointerArray Objects)

@@ -6248,8 +6248,7 @@ FName UBlueprintMacroFactory::GetNewAssetThumbnailOverride() const
 
 uint32 UBlueprintMacroFactory::GetMenuCategories() const
 {
-	// Force this factory into the misc category, since it does not belong in the top menu
-	return EAssetTypeCategories::Misc;
+	return EAssetTypeCategories::Blueprint;
 }
 
 UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
@@ -6309,8 +6308,7 @@ FName UBlueprintFunctionLibraryFactory::GetNewAssetThumbnailOverride() const
 
 uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
 {
-	// Force this factory into the misc category, since it does not belong in the top menu
-	return EAssetTypeCategories::Misc;
+	return EAssetTypeCategories::Blueprint;
 }
 
 UObject* UBlueprintFunctionLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
@@ -6365,8 +6363,7 @@ FName UBlueprintInterfaceFactory::GetNewAssetThumbnailOverride() const
 
 uint32 UBlueprintInterfaceFactory::GetMenuCategories() const
 {
-	// Force this factory into the misc category, since it does not belong in the top menu
-	return EAssetTypeCategories::Misc;
+	return EAssetTypeCategories::Blueprint;
 }
 
 UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)

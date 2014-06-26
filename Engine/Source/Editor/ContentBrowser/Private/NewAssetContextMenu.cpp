@@ -178,6 +178,18 @@ void FNewAssetContextMenu::MakeContextMenu(FMenuBuilder& MenuBuilder, const FStr
 		}
 
 		{
+			TArray<FFactoryItem> BlueprintFactories = FindFactoriesInCategory(EAssetTypeCategories::Blueprint);
+			if (BlueprintFactories.Num() > 0)
+			{
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("BlueprintAssetCategory", "Blueprints"),
+					FText::GetEmpty(),
+					FNewMenuDelegate::CreateStatic(&FNewAssetContextMenu::CreateNewAssetMenuCategory, EAssetTypeCategories::Blueprint, InPath, InOnNewAssetRequested)
+					);
+			}
+		}
+
+		{
 			TArray<FFactoryItem> MaterialFactories = FindFactoriesInCategory(EAssetTypeCategories::MaterialsAndTextures);
 			if (MaterialFactories.Num() > 0)
 			{

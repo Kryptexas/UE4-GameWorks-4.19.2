@@ -15,6 +15,8 @@ namespace EAssetTypeCategories
 		UI						= 1 << 5,
 		Misc					= 1 << 6,
 		Gameplay				= 1 << 7,
+		Blueprint				= 1 << 8
+		// Last allowed value is 1 << 31
 	};
 }
 
