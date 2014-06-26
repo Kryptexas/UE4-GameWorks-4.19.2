@@ -556,6 +556,7 @@ void FVisualLog::LogLine(const AActor* Actor, const FName& CategoryName, ELogVer
 		Entry->LogLines.Add(FVisLogEntry::FLogLine(CategoryName, Verbosity, Line));
 	}
 }
+#endif // ENABLE_VISUAL_LOG
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -569,6 +570,7 @@ public:
 	{
 		if (FParse::Command(&Cmd, TEXT("VISLOG")))
 		{
+#if ENABLE_VISUAL_LOG
 			FString Command = FParse::Token(Cmd, 0);
 			if (Command == TEXT("record"))
 			{
@@ -601,11 +603,13 @@ public:
 				FLogVisualizerModule::Get()->SummonUI(InWorld);
 				return true;
 			}
+#else
+			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
+#endif
 		}
 		return false;
 	}
 } LogVisualizerExec;
 
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 #endif // ENABLE_VISUAL_LOG

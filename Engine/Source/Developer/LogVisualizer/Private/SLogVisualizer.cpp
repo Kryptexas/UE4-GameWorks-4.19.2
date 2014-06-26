@@ -23,6 +23,8 @@
 
 #include "SFilterList.h"
 
+#if ENABLE_VISUAL_LOG
+
 #define LOCTEXT_NAMESPACE "SLogVisualizer"
 
 const FName SLogVisualizer::NAME_LogName = TEXT("LogName");
@@ -1901,3 +1903,5 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 }
 
 #undef LOCTEXT_NAMESPACE
+
+#endif //ENABLE_VISUAL_LOG

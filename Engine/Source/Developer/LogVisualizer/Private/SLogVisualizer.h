@@ -57,6 +57,7 @@ struct FLogStatusItem
 /** Main LogVisualizer UI widget */
 class SLogVisualizer : public SCompoundWidget
 {
+#if ENABLE_VISUAL_LOG
 public:
 	static const FName NAME_LogName;
 	static const FName NAME_StartTime;
@@ -271,4 +272,5 @@ private:
 	TSharedPtr<STimeline> Timeline;
 	TSharedPtr<SScrollBar> ScrollBar;
 	TSharedPtr<SSlider> ZoomSlider;
+#endif
 };

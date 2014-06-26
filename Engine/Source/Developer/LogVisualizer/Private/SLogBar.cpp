@@ -104,7 +104,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 				FillImage,
 				ForegroundClippingRect,
 				DrawEffects,
-				SLogVisualizer::GetColorForUsedCategory(0)
+				FColor(0xff00A480)
 			);
 		}
 

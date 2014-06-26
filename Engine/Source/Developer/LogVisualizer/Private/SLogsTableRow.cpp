@@ -3,6 +3,7 @@
 #include "LogVisualizerPCH.h"
 #include "SLogBar.h"
 
+#if ENABLE_VISUAL_LOG
 void SLogsTableRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
 	Item = InArgs._Item;
@@ -108,3 +109,4 @@ void SLogsTableRow::OnBarGeometryChanged( FGeometry Geometry )
 		OwnerVisualizerWidget->GetTimeline()->SetDrawingGeometry( Geometry );
 	}
 }
+#endif //ENABLE_VISUAL_LOG

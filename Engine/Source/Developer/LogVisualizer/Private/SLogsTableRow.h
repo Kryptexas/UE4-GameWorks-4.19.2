@@ -7,6 +7,7 @@ struct FLogsListItem;
 /** Implements a row widget for log list. */
 class SLogsTableRow : public SMultiColumnTableRow< TSharedPtr<FLogsListItem> >
 {
+#if ENABLE_VISUAL_LOG
 	typedef SMultiColumnTableRow< TSharedPtr<FLogsListItem> > Super;
 public:
 
@@ -38,4 +39,5 @@ private:
 	TWeakPtr<SLogVisualizer> OwnerVisualizerWidgetPtr;
 
 	TSharedPtr<class SLogBar> LogBar;
+#endif //ENABLE_VISUAL_LOG
 };

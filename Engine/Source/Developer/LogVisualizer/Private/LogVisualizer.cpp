@@ -3,7 +3,7 @@
 #include "LogVisualizerPCH.h"
 #include "CollisionDebugDrawingPublic.h"
 
-
+#if ENABLE_VISUAL_LOG
 //////////////////////////////////////////////////////////////////////////
 
 void FLogVisualizer::SummonUI(UWorld* InWorld) 
@@ -134,3 +134,5 @@ int32 FLogVisualizer::GetLogIndexForActor(const AActor* Actor)
 
 	return ResultIndex;
 }
+
+#endif //ENABLE_VISUAL_LOG

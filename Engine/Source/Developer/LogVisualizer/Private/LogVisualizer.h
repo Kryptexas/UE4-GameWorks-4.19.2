@@ -4,6 +4,8 @@
 
 #include "VisualLog.h"
 
+#if ENABLE_VISUAL_LOG
+
 /** Actual implementation of LogVisualizer, private inside module */
 class FLogVisualizer : public ILogVisualizer
 {
@@ -52,3 +54,5 @@ private:
 	TWeakObjectPtr<UWorld>	World;
 	TWeakPtr<SWindow>		LogWindow;
 };
+
+#endif //ENABLE_VISUAL_LOG

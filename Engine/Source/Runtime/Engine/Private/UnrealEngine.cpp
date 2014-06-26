@@ -6333,6 +6333,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				MessageY += 20;
 			}
 
+#if ENABLE_VISUAL_LOG
 			FVisualLog* VisLog = FVisualLog::Get();
 			if (VisLog && (VisLog->IsRecording() || VisLog->IsRecordingOnServer()))
 			{
@@ -6348,7 +6349,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				Canvas->DrawItem(SmallTextItem);
 				SmallTextItem.SetColor(FLinearColor::White);
 			}
-
+#endif
 
 			/* @todo ue4 temporarily disabled
 			AWorldSettings* WorldSettings = World->GetWorldSettings();
