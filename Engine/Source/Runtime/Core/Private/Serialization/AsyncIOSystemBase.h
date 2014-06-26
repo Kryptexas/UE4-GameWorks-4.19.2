@@ -177,6 +177,8 @@ protected:
 
 		/** Name of file.																			*/
 		FString				FileName;
+		/** Hash of the name of the file. This avoids the need to do a string comparison.			*/
+		uint32				FileNameHash;
 		/** Offset into file.																		*/
 		int64				Offset;
 		/** Size in bytes of data to read.															*/
@@ -312,6 +314,15 @@ protected:
 	IFileHandle* FindCachedFileHandle( const FString& FileName );
 
 	/**
+	 * Returns cached file handle if found, or NULL if not. This function does
+	 * NOT create any file handles and therefore is not blocking.
+	 *
+	 * @param	FileNameHash	hash of the file name to retrieve cached handle for
+	 * @return	cached file handle, NULL if not cached
+	 */
+	IFileHandle* FindCachedFileHandle(const uint32 FileNameHash);
+
+	/**
 	 * Flushes all file handles.
 	 */
 	void FlushHandles();
@@ -376,7 +387,7 @@ protected:
 	/** Critical section used to syncronize access to outstanding requests map						*/
 	FCriticalSection*				CriticalSection;
 	/** TMap of file name string hash to file handles												*/
-	TMap<FString,IFileHandle*>		NameToHandleMap;
+	TMap<uint32, IFileHandle*>		NameHashToHandleMap;
 	/** Array of outstanding requests, processed in FIFO order										*/
 	TArray<FAsyncIORequest>			OutstandingRequests;
 	/** Event that is signaled if there are outstanding requests									*/
