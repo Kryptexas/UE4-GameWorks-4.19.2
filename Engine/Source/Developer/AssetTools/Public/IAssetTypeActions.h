@@ -39,12 +39,10 @@ struct FRevisionInfo
 	int32		Changelist;
 	FDateTime	Date;	
 
-	static FRevisionInfo InvalidRevision()
+	static inline FRevisionInfo InvalidRevision()
 	{
-		static const FRevisionInfo InvalidRevision{
-			-1, -1, FDateTime()
-		};
-		return InvalidRevision;
+		static const FRevisionInfo Ret = { -1, -1, FDateTime() };
+		return Ret;
 	}
 };
 
