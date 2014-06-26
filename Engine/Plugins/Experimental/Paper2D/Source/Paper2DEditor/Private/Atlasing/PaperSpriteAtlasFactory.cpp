@@ -20,3 +20,8 @@ UObject* UPaperSpriteAtlasFactory::FactoryCreateNew(UClass* InClass, UObject* In
 {
 	return ConstructObject<UObject>(SupportedClass, InParent, InName, Flags);
 }
+
+bool UPaperSpriteAtlasFactory::CanCreateNew() const
+{
+	return GetDefault<UPaperRuntimeSettings>()->bEnableSpriteAtlasGroups;
+}

@@ -15,4 +15,8 @@ class PAPER2D_API UPaperRuntimeSettings : public UObject
 	// The default scaling factor between pixels and Unreal units (cm) to use for newly created sprite assets (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category=Settings)
 	float DefaultPixelsPerUnrealUnit;
+
+	// Enables experimental *incomplete and unsupported* texture atlas groups that sprites can be assigned to
+	UPROPERTY(EditAnywhere, config, Category=Experimental)
+	bool bEnableSpriteAtlasGroups;
 };

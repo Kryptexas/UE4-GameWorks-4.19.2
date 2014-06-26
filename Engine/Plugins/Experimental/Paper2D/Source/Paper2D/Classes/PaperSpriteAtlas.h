@@ -5,7 +5,7 @@
 #include "PaperSpriteAtlas.generated.h"
 
 // Groups together a set of sprites that will try to share the same texture atlas (allowing them to be combined into a single draw call)
-UCLASS(MinimalAPI, BlueprintType, meta=(DisplayThumbnail = "true"))
+UCLASS(MinimalAPI, BlueprintType, Experimental, meta=(DisplayThumbnail = "true"))
 class UPaperSpriteAtlas : public UObject
 {
 	GENERATED_UCLASS_BODY()
