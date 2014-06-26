@@ -16,6 +16,26 @@ const FString UBehaviorTreeEditorTypes::PinCategory_SingleNode("SingleNode");
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
+FClassData::FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
+	bIsHidden(0), 
+	bHideParent(0), 
+	Class(InClass), 
+	DeprecatedMessage(InDeprecatedMessage)
+{
+	Category = GetCategory();
+}
+
+FClassData::FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass) :
+	bIsHidden(0), 
+	bHideParent(0), 
+	Class(InClass), 
+	AssetName(InAssetName), 
+	GeneratedClassPackage(InGeneratedClassPackage), 
+	ClassName(InClassName) 
+{
+	Category = GetCategory();
+}
+
 FString FClassData::ToString() const
 {
 	UClass* MyClass = Class.Get();
@@ -43,6 +63,11 @@ FString FClassData::ToString() const
 FString FClassData::GetClassName() const
 {
 	return Class.IsValid() ? Class->GetName() : ClassName;
+}
+
+FString FClassData::GetCategory() const
+{
+	return Class.IsValid() ? Class->GetMetaData(TEXT("Category")) : Category;
 }
 
 bool FClassData::IsAbstract() const

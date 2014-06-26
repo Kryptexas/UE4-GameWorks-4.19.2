@@ -224,7 +224,7 @@ UEdGraphSchema_BehaviorTree::UEdGraphSchema_BehaviorTree(const class FPostConstr
 {
 }
 
-TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FBehaviorTreeSchemaAction_NewNode> NewAction = TSharedPtr<FBehaviorTreeSchemaAction_NewNode>(new FBehaviorTreeSchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 
@@ -233,7 +233,7 @@ TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenu
 	return NewAction;
 }
 
-TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddNewSubNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddNewSubNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> NewAction = TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode>(new FBehaviorTreeSchemaAction_NewSubNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -274,20 +274,21 @@ void UEdGraphSchema_BehaviorTree::GetGraphNodeContextActions(FGraphContextMenuBu
 		FClassBrowseHelper::GatherClasses(UBTDecorator::StaticClass(), NodeClasses);
 
 		{
+			const FString& Category = UBehaviorTreeGraphNode_CompositeDecorator::StaticClass()->GetMetaData(TEXT("Category"));
 			UBehaviorTreeGraphNode_CompositeDecorator* OpNode = NewObject<UBehaviorTreeGraphNode_CompositeDecorator>(Graph);
-			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), FText::FromString(OpNode->GetNodeTypeDescription()), "");
+			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, Category, FText::FromString(OpNode->GetNodeTypeDescription()), "");
 			AddOpAction->ParentNode = Cast<UBehaviorTreeGraphNode>(ContextMenuBuilder.SelectedObjects[0]);
 			AddOpAction->NodeTemplate = OpNode;
 		}
 
-		for (int32 i = 0; i < NodeClasses.Num(); i++)
+		for (const auto& NodeClass : NodeClasses)
 		{
-			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClasses[i].ToString(), false));
+			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClass.ToString(), false));
 
 			UBehaviorTreeGraphNode* OpNode = NewObject<UBehaviorTreeGraphNode_Decorator>(Graph);
-			OpNode->ClassData = NodeClasses[i];
+			OpNode->ClassData = NodeClass;
 
-			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), NodeTypeName, "");
+			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, NodeClass.GetCategory(), NodeTypeName, "");
 			AddOpAction->ParentNode = Cast<UBehaviorTreeGraphNode>(ContextMenuBuilder.SelectedObjects[0]);
 			AddOpAction->NodeTemplate = OpNode;
 		}
@@ -295,14 +296,14 @@ void UEdGraphSchema_BehaviorTree::GetGraphNodeContextActions(FGraphContextMenuBu
 	else if (SubNodeType == ESubNode::Service)
 	{
 		FClassBrowseHelper::GatherClasses(UBTService::StaticClass(), NodeClasses);
-		for (int32 i = 0; i < NodeClasses.Num(); i++)
+		for (const auto& NodeClass : NodeClasses)
 		{
-			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClasses[i].ToString(), false));
+			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClass.ToString(), false));
 
 			UBehaviorTreeGraphNode* OpNode = NewObject<UBehaviorTreeGraphNode_Service>(Graph);
-			OpNode->ClassData = NodeClasses[i];
+			OpNode->ClassData = NodeClass;
 
-			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, TEXT(""), NodeTypeName, "");
+			TSharedPtr<FBehaviorTreeSchemaAction_NewSubNode> AddOpAction = AddNewSubNodeAction(ContextMenuBuilder, NodeClass.GetCategory(), NodeTypeName, "");
 			AddOpAction->ParentNode = Cast<UBehaviorTreeGraphNode>(ContextMenuBuilder.SelectedObjects[0]);
 			AddOpAction->NodeTemplate = OpNode;
 		}
@@ -323,47 +324,55 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 
 	if (bAllowComposites)
 	{
+		FCategorizedGraphActionListBuilder CompositesBuilder(TEXT("Composites"));
+
 		TArray<FClassData> NodeClasses;
 		FClassBrowseHelper::GatherClasses(UBTCompositeNode::StaticClass(), NodeClasses);
 
 		const FString ParallelClassName = UBTComposite_SimpleParallel::StaticClass()->GetName();
 
-		for (int32 i = 0; i < NodeClasses.Num(); i++)
+		for (const auto& NodeClass : NodeClasses)
 		{
-			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClasses[i].ToString(), false));
+			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClass.ToString(), false));
 
-			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Composites"), NodeTypeName, "");
+			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(CompositesBuilder, NodeClass.GetCategory(), NodeTypeName, "");
 
-			UBehaviorTreeGraphNode* OpNode = (NodeClasses[i].GetClassName() == ParallelClassName) ?
+			UBehaviorTreeGraphNode* OpNode = (NodeClass.GetClassName() == ParallelClassName) ?
 				NewObject<UBehaviorTreeGraphNode_SimpleParallel>(ContextMenuBuilder.OwnerOfTemporaries) :				
 				NewObject<UBehaviorTreeGraphNode_Composite>(ContextMenuBuilder.OwnerOfTemporaries);
 
-			OpNode->ClassData = NodeClasses[i];
+			OpNode->ClassData = NodeClass;
 			AddOpAction->NodeTemplate = OpNode;
 		}
+
+		ContextMenuBuilder.Append(CompositesBuilder);
 	}
 
 	if (bAllowTasks)
 	{
+		FCategorizedGraphActionListBuilder TasksBuilder(TEXT("Tasks"));
+
 		TArray<FClassData> NodeClasses;
 		FClassBrowseHelper::GatherClasses(UBTTaskNode::StaticClass(), NodeClasses);
 
-		for (int32 i = 0; i < NodeClasses.Num(); i++)
+		for (const auto& NodeClass : NodeClasses)
 		{
-			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClasses[i].ToString(), false));
+			const FText NodeTypeName = FText::FromString(FName::NameToDisplayString(NodeClass.ToString(), false));
 
-			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, TEXT("Tasks"), NodeTypeName, "");
+			TSharedPtr<FBehaviorTreeSchemaAction_NewNode> AddOpAction = AddNewNodeAction(TasksBuilder, NodeClass.GetCategory(), NodeTypeName, "");
 			UClass* GraphNodeClass = UBehaviorTreeGraphNode_Task::StaticClass();
 			
-			if (NodeClasses[i].GetClassName() == UBTTask_RunBehavior::StaticClass()->GetName())
+			if (NodeClass.GetClassName() == UBTTask_RunBehavior::StaticClass()->GetName())
 			{
 				GraphNodeClass = UBehaviorTreeGraphNode_SubtreeTask::StaticClass();
 			}
 
 			UBehaviorTreeGraphNode* OpNode = ConstructObject<UBehaviorTreeGraphNode>(GraphNodeClass, ContextMenuBuilder.OwnerOfTemporaries);
-			OpNode->ClassData = NodeClasses[i];
+			OpNode->ClassData = NodeClass;
 			AddOpAction->NodeTemplate = OpNode;
 		}
+
+		ContextMenuBuilder.Append(TasksBuilder);
 	}
 	
 	if (bNoParent)

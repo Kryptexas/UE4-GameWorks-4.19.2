@@ -1625,6 +1625,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		{
 			Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
 		}
+
+		// Add a category if one has been specified
+		if(Blueprint->BlueprintCategory.Len() > 0)
+		{
+			Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
+		}
 #endif
 
 		// Add in additional flags implied by the blueprint

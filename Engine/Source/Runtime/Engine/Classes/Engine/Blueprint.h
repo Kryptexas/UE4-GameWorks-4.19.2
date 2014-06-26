@@ -295,6 +295,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintDescription;
 
+	/** The category of the Blueprint, used to organize this Blueprint class when displayed in palette windows */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	FString BlueprintCategory;
+
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
 	bool bDisplayCompilePIEWarning;

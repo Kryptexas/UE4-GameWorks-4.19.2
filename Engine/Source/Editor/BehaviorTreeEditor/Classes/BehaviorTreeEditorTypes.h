@@ -19,15 +19,12 @@ struct FClassData
 	GENERATED_USTRUCT_BODY()
 
 	FClassData() {}
-	FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
-		bIsHidden(0), bHideParent(0), Class(InClass), DeprecatedMessage(InDeprecatedMessage)
-	{}
-	FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass) :
-		bIsHidden(0), bHideParent(0), Class(InClass), AssetName(InAssetName), GeneratedClassPackage(InGeneratedClassPackage), ClassName(InClassName) 
-	{}
+	FClassData(UClass* InClass, const FString& InDeprecatedMessage);
+	FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName, UClass* InClass);
 
 	FString ToString() const;
 	FString GetClassName() const;
+	FString GetCategory() const;
 	UClass* GetClass(bool bSilent = false);
 	bool IsAbstract() const;
 	
@@ -56,6 +53,10 @@ private:
 	/** resolved name of class from asset data */
 	UPROPERTY()
 	FString ClassName;
+
+	/** User-defined category for this class */
+	UPROPERTY()
+	FString Category;
 
 	/** message for deprecated class */
 	FString DeprecatedMessage;
