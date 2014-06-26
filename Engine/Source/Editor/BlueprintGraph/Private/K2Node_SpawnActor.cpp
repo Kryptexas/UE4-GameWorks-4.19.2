@@ -73,7 +73,6 @@ void UK2Node_SpawnActor::CreatePinsForClass(UClass* InClass)
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);	
-			Pin->bDefaultValueIsIgnored = true;
 		}
 	}
 
