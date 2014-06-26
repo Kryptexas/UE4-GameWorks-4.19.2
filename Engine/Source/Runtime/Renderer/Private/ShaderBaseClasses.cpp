@@ -263,7 +263,7 @@ void FMaterialShader::SetParameters(
 }
 
 #define IMPLEMENT_MATERIAL_SHADER_SetParameters( ShaderRHIParamRef ) \
-	template void FMaterialShader::SetParameters< ShaderRHIParamRef >( \
+	template RENDERER_API void FMaterialShader::SetParameters< ShaderRHIParamRef >( \
 		FRHICommandList& RHICmdList,					\
 		const ShaderRHIParamRef ShaderRHI,				\
 		const FMaterialRenderProxy* MaterialRenderProxy,\

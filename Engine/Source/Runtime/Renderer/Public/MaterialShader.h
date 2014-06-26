@@ -79,7 +79,7 @@ inline FArchive& operator<<(FArchive& Ar, FDebugUniformExpressionSet& DebugExpre
 
 
 /** Base class of all shaders that need material parameters. */
-class FMaterialShader : public FShader
+class RENDERER_API FMaterialShader : public FShader
 {
 public:
 	FMaterialShader() {}
@@ -88,7 +88,7 @@ public:
 
 	typedef void (*ModifyCompilationEnvironmentType)(EShaderPlatform, const FMaterial*, FShaderCompilerEnvironment&);
 
-	ENGINE_API static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 	}
 
