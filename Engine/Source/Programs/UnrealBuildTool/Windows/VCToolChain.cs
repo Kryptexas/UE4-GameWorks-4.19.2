@@ -1506,18 +1506,7 @@ namespace UnrealBuildTool
 
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-				{
-					throw new BuildException("Visual Studio 2012 must be installed in order to build this target.  However, Visual Studio 2013 was detected.  To compile with Visual Studio 2013, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
-				}
-				else if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2013 && !String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
-				{
-					throw new BuildException("Visual Studio 2013 must be installed in order to build this target.  However, Visual Studio 2012 was detected.  To compile with Visual Studio 2012, change the 'WindowsPlatform.Compiler' variable in UnrealBuildTool");
-				}
-				else
-				{
-					throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
-				}
+				throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
 			}
 
 			return BaseVSToolPath;

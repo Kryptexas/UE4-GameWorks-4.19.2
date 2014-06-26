@@ -24,8 +24,40 @@ namespace UnrealBuildTool
 
 	public class WindowsPlatform : UEBuildPlatform
 	{
+		/// Property caching.
+		private static WindowsCompiler? CachedCompiler;
+
 		/// Version of the compiler toolchain to use on Windows platform
-		public static readonly WindowsCompiler Compiler = WindowsCompiler.VisualStudio2013;
+		public static WindowsCompiler Compiler
+		{
+			get
+			{
+				// Cache the result because Compiler is often used.
+				if (CachedCompiler.HasValue)
+				{
+					return CachedCompiler.Value;
+				}
+
+				// First check if Visual Sudio 2013 is installed.
+				// If both 2012 and 2013 are installed, prefer 2013
+				if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+				// Next try Visual Studio 2012
+				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2012;
+				}
+				// Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
+				else
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+
+				return CachedCompiler.Value;
+			}
+		}
 
 		/// True if we are using "clang-cl" to compile instead of MSVC on Windows platform
 		public static readonly bool bCompileWithClang = false;
