@@ -205,6 +205,18 @@ void USkeletalMesh::LoadClothCollisionVolumes(int32 AssetIndex, NxClothingAsset*
 	}
 }
 
+bool USkeletalMesh::HasClothSectionsInAllLODs(int AssetIndex)
+{
+	bool bResult = false;
+
+	for (int32 LODIndex = 0; LODIndex < LODInfo.Num(); LODIndex++)
+	{
+		bResult |= HasClothSections(LODIndex, AssetIndex);
+	}
+
+	return bResult;
+}
+
 bool USkeletalMesh::HasClothSections(int32 LODIndex, int AssetIndex)
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
@@ -289,44 +301,56 @@ void USkeletalMesh::GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 Asset
 	}
 }
 
-bool USkeletalMesh::IsEnabledClothLOD(int32 AssetIndex)
+bool USkeletalMesh::IsMappedClothingLOD(int32 InLODIndex, int32 InAssetIndex)
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
 
-	FStaticLODModel& LODModel = Resource->LODModels[0];
-
-	TArray<uint32> SectionIndices;
-	GetOriginSectionIndicesWithCloth(0, AssetIndex, SectionIndices);
-
-	//if found more than 1 section enabled, return true
-	for(int32 i=0; i < SectionIndices.Num(); i++)
+	if (Resource && Resource->LODModels.IsValidIndex(InLODIndex))
 	{
-		if(LODModel.Sections[SectionIndices[i]].bEnableClothLOD)
+		FStaticLODModel& LODModel = Resource->LODModels[InLODIndex];
+
+		int32 NumSections = LODModel.Sections.Num();
+
+		// loop reversely for optimized search
+		for (int32 SecIdx = NumSections-1; SecIdx >= 0; SecIdx--)
 		{
-			return true;
+			int32 ClothAssetIndex = LODModel.Chunks[LODModel.Sections[SecIdx].ChunkIndex].CorrespondClothAssetIndex;
+			if (ClothAssetIndex == InAssetIndex)
+			{
+				return true;
+			}
+			else if (ClothAssetIndex == INDEX_NONE) // no more cloth sections
+			{
+				return false;
+			}
 		}
 	}
 
 	return false;
 }
 
-int32 USkeletalMesh::GetClothAssetIndex(int32 SectionIndex)
+int32 USkeletalMesh::GetClothAssetIndex(int32 LODIndex, int32 SectionIndex)
 {
 	FSkeletalMeshResource* Resource = GetImportedResource();
 
-	FStaticLODModel& LODModel = Resource->LODModels[0];
+	// no LODs
+	if (!Resource || !Resource->LODModels.IsValidIndex(LODIndex))
+	{
+		return INDEX_NONE;
+	}
+	FStaticLODModel& LODModel = Resource->LODModels[LODIndex];
 
-	//no sections
+	// no sections
 	if(!LODModel.Sections.IsValidIndex(SectionIndex))
 	{
-		return -1;
+		return INDEX_NONE;
 	}
 	int16 ClothSecIdx = LODModel.Sections[SectionIndex].CorrespondClothSectionIndex;
 
-	//no mapping
+	// no mapping
 	if(ClothSecIdx < 0)
 	{
-		return -1;
+		return INDEX_NONE;
 	}
 
 	int16 ChunkIdx = LODModel.Sections[ClothSecIdx].ChunkIndex;
@@ -1914,8 +1938,8 @@ void USkeletalMeshComponent::ValidateClothingActors()
 	{
 		FClothingAssetData& ClothAsset = SkeletalMesh->ClothingAssets[AssetIdx];
 
-		// if there exist mapped sections, create a clothing actor
-		if(SkeletalMesh->HasClothSections(0, AssetIdx))
+		// if there exist mapped sections for all LODs, create a clothing actor
+		if (SkeletalMesh->HasClothSectionsInAllLODs(AssetIdx))
 		{
 			if(CreateClothingActor(AssetIdx, ClothAsset.ApexClothingAsset))
 			{
@@ -1923,10 +1947,10 @@ void USkeletalMeshComponent::ValidateClothingActors()
 			}
 		}
 		else 
-		{	//don't have cloth sections but clothing actor is alive
+		{	// don't have cloth sections but a clothing actor is alive
 			if(IsValidClothingActor(AssetIdx))
 			{
-				//clear because mapped sections are removed
+				// clear this clothing actor because mapped sections are removed
 				ClothingActors[AssetIdx].Clear(true);
 			}
 		}
@@ -2074,42 +2098,44 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 
 	bool bFrozen = false;
 
-	for(int32 i=0; i<NumActors; i++)
+	for (int32 AssetIndex = 0; AssetIndex<NumActors; AssetIndex++)
 	{
-		if(IsValidClothingActor(i))
+		if (IsValidClothingActor(AssetIndex))
 		{			
-			int32 CurLODIndex = (int32)ClothingActors[i].ApexClothingActor->getGraphicalLod();
+			FClothingActor& Actor = ClothingActors[AssetIndex];
 
-			int32 NumClothLODs = ClothingActors[i].ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+			int32 CurLODIndex = (int32)Actor.ApexClothingActor->getGraphicalLod();
 
-			bool bEnabledLOD = SkeletalMesh->IsEnabledClothLOD(i);
+			// check whether clothing LOD is mapped for this LOD index
+			bool IsMappedClothLOD = SkeletalMesh->IsMappedClothingLOD(LODIndex, AssetIndex);
 
-			//Change Clothing LOD if new LOD index is different from current index
-			if(CurLODIndex != LODIndex)
+			// Change Clothing LOD if a new LOD index is different from the current index
+			if (IsMappedClothLOD && CurLODIndex != LODIndex)
 			{
 				//physical LOD is changed by graphical LOD
-				ClothingActors[i].ApexClothingActor->setGraphicalLOD(LODIndex);
+				Actor.ApexClothingActor->setGraphicalLOD(LODIndex);
 
-				if(ClothingActors[i].ApexClothingActor->isFrozen())
+				if (Actor.ApexClothingActor->isFrozen())
 				{
 					bFrozen = true;
 				}
 			}
 
-			//decide whether enable or disable
-			if( (LODIndex > 0  && !bEnabledLOD) ||
-			    (LODIndex >= NumClothLODs) )
+			int32 NumClothLODs = Actor.ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+
+			// decide whether should enable or disable
+			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
 			{
-				//disable clothing simulation
-				ClothingActors[i].ApexClothingActor->forcePhysicalLod(0);
+				// disable clothing simulation
+				Actor.ApexClothingActor->forcePhysicalLod(0);
 			}
 			else
 			{	
-				int32 CurPhysLOD = ClothingActors[i].ApexClothingActor->getActivePhysicalLod();
-				//enable clothing simulation
+				int32 CurPhysLOD = Actor.ApexClothingActor->getActivePhysicalLod();
+				// if disabled, enables clothing simulation
 				if(CurPhysLOD == 0)
 				{
-					ClothingActors[i].ApexClothingActor->forcePhysicalLod(1);
+					Actor.ApexClothingActor->forcePhysicalLod(1);
 				}
 			}
 		}
@@ -2120,7 +2146,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 #if WITH_EDITOR
 		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("SkelmeshComponent", "Warning_FrozenCloth", "Clothing will be melted from frozen state"));
 #endif
-		//melt it because rendering mesh is broken if frozen when changing LODs
+		// melt it because rendering mesh will be broken if frozen when changing LODs
 		FreezeClothSection(false);
 	}
 
@@ -4400,6 +4426,13 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 
 				if(NumSimulVertices > 0)
 				{
+					// if # of simulated vertices is bigger than loaded info, it will be LOD transition period 
+					// just skip this tick because PredictedLODLevel is different from internal clothing LOD. it will be matched at next tick
+					if (NumSimulVertices > NumPhysicalMeshVerts)
+					{
+						return;
+					}
+
 					bUseSimulatedResult = true;
 					SimulatedPhysicalMeshVertices.AddUninitialized(NumPhysicalMeshVerts);
 

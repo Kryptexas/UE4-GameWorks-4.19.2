@@ -438,6 +438,7 @@ TArray<UObject*> GetEditorObjectsOfClass( const TArray< UObject* >& Objects, con
 FPersona::FPersona()
 	: TargetSkeleton(NULL)
 	, PreviewComponent(NULL)
+	, PersonaMeshDetailLayout(NULL)
 	, PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 {
 	// Register to be notified when properties are edited

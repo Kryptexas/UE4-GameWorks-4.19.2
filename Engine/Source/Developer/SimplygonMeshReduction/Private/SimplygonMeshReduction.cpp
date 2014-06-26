@@ -225,6 +225,19 @@ public:
 			FSkeletalMeshLODInfo* NewLODInfo = new( SkeletalMesh->LODInfo ) FSkeletalMeshLODInfo;
 			FSkeletalMeshLODInfo& OldLODInfo = SkeletalMesh->LODInfo[0];
 			*NewLODInfo = OldLODInfo;
+
+			// creates LOD Material map for a newly generated LOD model
+			int32 NumSections = LODModels[0]->NumNonClothingSections();
+			if (NewLODInfo->LODMaterialMap.Num() != NumSections)
+			{
+				NewLODInfo->LODMaterialMap.Empty(NumSections);
+				NewLODInfo->LODMaterialMap.AddUninitialized(NumSections);
+			}
+
+			for (int32 Index = 0; Index < NumSections; Index++)
+			{
+				NewLODInfo->LODMaterialMap[Index] = Index;
+			}
 		}
 
 		// now try bone reduction process if it's setup

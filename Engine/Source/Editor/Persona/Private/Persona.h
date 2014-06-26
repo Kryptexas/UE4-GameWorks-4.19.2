@@ -304,6 +304,8 @@ public:
 	/** Shared data between modes - for now only used for viewport **/
 	FPersonaModeSharedData ModeSharedData;
 
+	/** holding this pointer to refresh persona mesh detials tab when LOD is changed **/
+	class IDetailLayoutBuilder* PersonaMeshDetailLayout;
 private:
 	// called when animation asset has been changed
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* );

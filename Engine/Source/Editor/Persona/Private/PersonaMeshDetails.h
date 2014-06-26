@@ -24,6 +24,18 @@ struct FClothAssetSubmeshIndex
 	}
 };
 
+struct FClothingComboInfo
+{
+	/* Per-material clothing combo boxes, array size must be same to # of sections */
+	TArray<TSharedPtr< STextComboBox >>		ClothingComboBoxes;
+	/* Clothing combo box strings */
+	TArray<TSharedPtr<FString> >			ClothingComboStrings;
+	/* Mapping from a combo box string to the asset and submesh it was generated from */
+	TMap<FString, FClothAssetSubmeshIndex>	ClothingComboStringReverseLookup;
+	/* The currently-selected index from each clothing combo box */
+	TArray<int32>							ClothingComboSelectedIndices;
+};
+
 class FPersonaMeshDetails : public IDetailCustomization
 
 {
@@ -42,7 +54,7 @@ private:
 	 *
 	 * @param OutMaterials	Handle to a material list builder that materials should be added to
 	 */
-	void OnGetMaterialsForView( class IMaterialListBuilder& OutMaterials );
+	void OnGetMaterialsForView( class IMaterialListBuilder& OutMaterials, int32 LODIndex );
 
 	/**
 	 * Called when a user drags a new material over a list item to replace it
@@ -52,7 +64,7 @@ private:
 	 * @param SlotIndex		The index of the slot on the component where materials should be replaces
 	 * @param bReplaceAll	If true all materials in the slot should be replaced not just ones using PrevMaterial
 	 */
-	void OnMaterialChanged( UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll );
+	void OnMaterialChanged(UMaterialInterface* NewMaterial, UMaterialInterface* PrevMaterial, int32 SlotIndex, bool bReplaceAll, int32 LODIndex);
 
 	
 	/**
@@ -61,7 +73,7 @@ private:
 	 * @param Material		The material that is being displayed
 	 * @param SlotIndex		The index of the material slot
 	 */
-	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
+	TSharedRef<SWidget> OnGenerateCustomNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex, int32 LODIndex);
 
 	/**
 	 * Called by the material list widget on generating each thumbnail widget
@@ -69,7 +81,7 @@ private:
 	 * @param Material		The material that is being displayed
 	 * @param SlotIndex		The index of the material slot
 	 */
-	TSharedRef<SWidget> OnGenerateCustomMaterialWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex);
+	TSharedRef<SWidget> OnGenerateCustomMaterialWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex, int32 LODIndex);
 
 	/**
 	 * Handler for check box display based on whether the material is highlighted
@@ -88,35 +100,38 @@ private:
 		/**
 	 * Handler for check box display based on whether the material has shadow casting enabled
 	 *
-	 * @param SectionIndex	The material section that is being tested
+	 * @param MaterialIndex	The material index which a section in a specific LOD model has
 	 */
-	ESlateCheckBoxState::Type IsShadowCastingEnabled(int32 SectionIndex) const;
+	ESlateCheckBoxState::Type IsShadowCastingEnabled(int32 MaterialIndex) const;
 
 	/**
 	 * Handler for changing shadow casting status on a material
 	 *
-	 * @param SectionIndex	The material section that is being tested
+	 * @param MaterialIndex	The material index which a section in a specific LOD model has
 	 */
-	void OnShadowCastingChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex);
-
-	/**
-	 * Handler for adding a material element when the user clicks a button
-	 */
-	FReply OnAddMaterialButtonClicked();
+	void OnShadowCastingChanged(ESlateCheckBoxState::Type NewState, int32 MaterialIndex);
 
 	/**
 	 * Handler for enabling delete button on materials
 	 *
 	 * @param SectionIndex - index of the section to check
 	 */
-	bool CanDeleteMaterialElement(int32 SectionIndex) const;
+	bool CanDeleteMaterialElement(int32 LODIndex, int32 SectionIndex) const;
 
 	/**
 	 * Handler for deleting material elements
 	 * 
 	 * @Param SectionIndex - material section to remove
 	 */
-	FReply OnDeleteButtonClicked(int32 SectionIndex);
+	FReply OnDeleteButtonClicked(int32 LODIndex, int32 SectionIndex);
+
+	/** Creates the UI for Current LOD panel */
+	void AddLODLevelCategories(IDetailLayoutBuilder& DetailLayout);
+
+	bool IsDuplicatedMaterialIndex(int32 LODIndex, int32 MaterialIndex);
+
+	/** Get a material index from LOD index and section index */
+	int32 GetMaterialIndex(int32 LODIndex, int32 SectionIndex);
 
 private:
 	// Container for the objects to display
@@ -125,24 +140,19 @@ private:
 	// Pointer back to Persona
 	TSharedPtr<FPersona> PersonaPtr;
 
+	IDetailLayoutBuilder* MeshDetailLayout;
 
 #if WITH_APEX_CLOTHING
 private:
-	/* Per-material clothing combo boxes, array size must be same to # of sections */
-	TArray<TSharedPtr< STextComboBox >>		ClothingComboBoxes;
-	/* Clothing combo box strings */
-	TArray<TSharedPtr<FString> >			ClothingComboStrings;
-	/* Mapping from a combo box string to the asset and submesh it was generated from */
-	TMap<FString, FClothAssetSubmeshIndex>	ClothingComboStringReverseLookup;
-	/* The currently-selected index from each clothing combo box */
-	TArray<int32>							ClothingComboSelectedIndices;
-	/* To check the changes of LOD info */
-	TArray<struct FSkeletalMeshLODInfo>		OldLODInfo;
+
+	// info about clothing combo boxes for multiple LOD
+	TArray<FClothingComboInfo>				ClothingComboLODInfos;
+
 
 	/* Clothing combo box functions */
-	EVisibility IsClothingComboBoxVisible(int32 MaterialIndex) const;
-	FString HandleSectionsComboBoxGetRowText( TSharedPtr<FString> Section, int32 SectionIndex );
-	void HandleSectionsComboBoxSelectionChanged( TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, int32 SlotIndex );
+	EVisibility IsClothingComboBoxVisible(int32 LODIndex, int32 SectionIndex) const;
+	FString HandleSectionsComboBoxGetRowText(TSharedPtr<FString> Section, int32 LODIndex, int32 SectionIndex);
+	void HandleSectionsComboBoxSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo, int32 LODIndex, int32 SectionIndex );
 	void UpdateComboBoxStrings();
 
 	/* Generate slate UI for Clothing category */
@@ -163,13 +173,6 @@ private:
 	/* Removes a clothing asset */ 
 	FReply OnRemoveApexFileClicked(int32 AssetIndex, IDetailLayoutBuilder* DetailLayout);
 
-	/* Enabling clothing LOD functions */
-	ESlateCheckBoxState::Type IsEnablingClothingLOD(int32 MaterialIndex) const;
-	void OnEnableClothingLOD(ESlateCheckBoxState::Type CheckState, int32 MaterialIndex);
-	EVisibility IsClothingLODCheckBoxVisible(int32 MaterialIndex) const;
-
-	/* if LODMaterialMap is changed, then re-map clothing sections by changed info */
-	void CheckLODMaterialMapChanges();
 
 	/* if physics properties are changed, then save to the clothing asset */
 	void UpdateClothPhysicsProperties(int32 AssetIndex);

@@ -759,14 +759,15 @@ public:
 	ENGINE_API void InitMorphTargets();
 
 #if WITH_APEX_CLOTHING
+	ENGINE_API bool  HasClothSectionsInAllLODs(int AssetIndex);
 	ENGINE_API bool	 HasClothSections(int32 LODIndex,int AssetIndex);
 	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, TArray<uint32>& OutSectionIndices);
 	ENGINE_API void	 GetOriginSectionIndicesWithCloth(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	ENGINE_API void	 GetClothSectionIndices(int32 LODIndex, int32 AssetIndex, TArray<uint32>& OutSectionIndices);
 	//moved from ApexClothingUtils because of compile issues
 	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset);
-	ENGINE_API bool  IsEnabledClothLOD(int32 AssetIndex);
-	ENGINE_API int32 GetClothAssetIndex(int32 SectionIndex);
+	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
+	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
 #endif// #if WITH_APEX_CLOTHING
 
 private:

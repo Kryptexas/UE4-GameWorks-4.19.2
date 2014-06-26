@@ -726,8 +726,8 @@ struct FSkelMeshChunk
 		, NumRigidVertices(0)
 		, NumSoftVertices(0)
 		, MaxBoneInfluences(4)
-		, CorrespondClothAssetIndex(-1)
-		, ClothAssetSubmeshIndex(-1)
+		, CorrespondClothAssetIndex(INDEX_NONE)
+		, ClothAssetSubmeshIndex(INDEX_NONE)
 	{}
 
 	FSkelMeshChunk(const FSkelMeshChunk& Other)
@@ -871,7 +871,8 @@ struct FSkelMeshSection
 	int16 CorrespondClothSectionIndex;
 
 	/** Decide whether enabling clothing LOD for this section or not, just using skelmesh LOD_0's one to decide */
-	uint8 bEnableClothLOD;
+	/** no need anymore because each clothing LOD will be assigned to each mesh LOD  */
+	uint8 bEnableClothLOD_DEPRECATED;
 
 	FSkelMeshSection()
 		: MaterialIndex(0)
@@ -882,7 +883,6 @@ struct FSkelMeshSection
 		, bSelected(false)
 		, bDisabled(false)
 		, CorrespondClothSectionIndex(-1)
-		, bEnableClothLOD(true)
 	{}
 
 	// Serialization.

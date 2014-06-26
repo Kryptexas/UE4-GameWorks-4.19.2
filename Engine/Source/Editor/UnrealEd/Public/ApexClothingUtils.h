@@ -81,15 +81,15 @@ namespace ApexClothingUtils
 
 #if WITH_APEX_CLOTHING
 
-	//if AssetIndex is -1, means newly added asset, otherwise re-import
+	// if AssetIndex is -1, means newly added asset, otherwise re-import
 	UNREALED_API EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile,USkeletalMesh* SkelMesh, int32 AssetIndex=-1);
 	UNREALED_API bool GetSubmeshInfoFromApexAsset(physx::apex::NxClothingAsset *InAsset, uint32 LODIndex, TArray<FSubmeshInfo>& OutSubmeshInfos);
 
-	//Imported LOD is decided according to bUseLOD in clothing asset
-	UNREALED_API bool ImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex);
+	// import cloth by a specifed section and LOD index
+	UNREALED_API bool ImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex);
 
 	UNREALED_API void ReImportClothingSectionsFromClothingAsset(USkeletalMesh* SkelMesh);
-	UNREALED_API void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 SectionIndex);
+	UNREALED_API void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, int32 LODIndex, uint32 SectionIndex);
 
 	UNREALED_API void BackupClothingDataFromSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
 	UNREALED_API void ReapplyClothingDataToSkeletalMesh(USkeletalMesh* SkelMesh, FClothingBackup& ClothingBackup);
@@ -98,7 +98,7 @@ namespace ApexClothingUtils
 
 	UNREALED_API physx::apex::NxClothingAsset* CreateApexClothingAssetFromBuffer(const uint8* Buffer, int32 BufferSize);
 
-	// if don't specify MaterialIndex, default material index will be used 
+	// if MaterialIndex is not specified, default material index will be used
 	UNREALED_API void GetPhysicsPropertiesFromApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& OutPropertyInfo);
 	UNREALED_API void SetPhysicsPropertiesToApexAsset(physx::apex::NxClothingAsset *InAsset, FClothPhysicsProperties& InPropertyInfo);
 #endif // #if WITH_APEX_CLOTHING

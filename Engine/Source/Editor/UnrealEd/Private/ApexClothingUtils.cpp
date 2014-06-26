@@ -23,8 +23,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 #define LOCTEXT_NAMESPACE "ApexClothingUtils"
 
-#define USE_MATERIAL_MAP 1
-
 namespace ApexClothingUtils
 {
 #if WITH_APEX_CLOTHING
@@ -1425,113 +1423,45 @@ bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 LOD
 											BoneNames, IndexBuffer, SubmeshTriangleCount);
 }
 
-
-bool ImportClothingSectionFromClothingAsset( USkeletalMesh* SkelMesh, uint32 SectionIndex, int32 AssetIndex, int32 AssetSubmeshIndex)
-{
-	check( SkelMesh->ClothingAssets.IsValidIndex(AssetIndex) );
-
-	int32 NumMeshLOD = SkelMesh->LODInfo.Num();
-
-	int32 NumImportLOD;
-
-	int32 NumAssetLOD = GetNumLODs(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset->GetAsset());
-
-	FSkeletalMeshResource* ImportedResource = SkelMesh->GetImportedResource();
-	if(ImportedResource->LODModels[0].Sections[SectionIndex].bEnableClothLOD)
-	{
-		NumImportLOD = FMath::Min(NumMeshLOD, NumAssetLOD);
-	}
-	else
-	{
-		NumImportLOD = 1;
-	}
-
-	bool bResult = false;
-	for(int32 LODIndex=0; LODIndex < NumImportLOD; LODIndex++)
-	{
-		uint32 NumNonClothSection = ImportedResource->LODModels[LODIndex].NumNonClothingSections();
-		if(SectionIndex < NumNonClothSection)
-		{
-			int32 SecIdx = SectionIndex;
-	#if USE_MATERIAL_MAP
-			int32 NumMaterialMap = SkelMesh->LODInfo[LODIndex].LODMaterialMap.Num();
-			if(NumMaterialMap > 0)
-			{
-				int32 MaterialIndex = ImportedResource->LODModels[LODIndex].Sections[SectionIndex].MaterialIndex;
-				int32 NewMatIndex = SkelMesh->LODInfo[LODIndex].LODMaterialMap[MaterialIndex];
-				SecIdx = FindSectionByMaterialIndex(SkelMesh, LODIndex, NewMatIndex);
-				if(SecIdx < 0)
-				{ 
-					continue;
-				}
-			}
-	#endif// #if USE_MATERIAL_MAP
-			bResult |= ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SecIdx, AssetIndex, AssetSubmeshIndex);
-		}
-	}
-
-	// Restores other LODs if mesh LOD is greater than asset LOD
-	for(int32 LODIndex=NumImportLOD; LODIndex < NumMeshLOD; LODIndex++)
-	{
-		FStaticLODModel& LODModel = ImportedResource->LODModels[LODIndex];
-		uint32 NumNonClothSection = LODModel.NumNonClothingSections();
-		if(SectionIndex < NumNonClothSection)
-		{
-			int32 SecIdx = SectionIndex;
-	#if USE_MATERIAL_MAP
-			if(SkelMesh->LODInfo[LODIndex].LODMaterialMap.Num() > 0)
-			{
-				int32 MaterialIndex = LODModel.Sections[SectionIndex].MaterialIndex;
-				int32 NewMatIndex = SkelMesh->LODInfo[LODIndex].LODMaterialMap[MaterialIndex];
-				SecIdx = FindSectionByMaterialIndex(SkelMesh, LODIndex, NewMatIndex);
-				if(SecIdx < 0)
-				{ 
-					continue;
-				}
-			}
-	#endif// #if USE_MATERIAL_MAP
-			RestoreOriginalClothingSection(SkelMesh, LODIndex, SecIdx);
-		}
-	}
-
-	return bResult;
-}
-
 void ReImportClothingSectionsFromClothingAsset(USkeletalMesh* SkelMesh)
 {
 	check(SkelMesh);
 
 	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
-	int32 NumSections = ImportedResource->LODModels[0].NumNonClothingSections();
 
-	for(int32 SectionIndex=0; SectionIndex < NumSections; SectionIndex++)
+	int32 NumLODs = ImportedResource->LODModels.Num();
+
+	for (int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 	{
-		ReImportClothingSectionFromClothingAsset(SkelMesh, SectionIndex);
+		int32 NumSections = ImportedResource->LODModels[LODIndex].NumNonClothingSections();
+
+		for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+		{
+			ReImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SectionIndex);
+		}
 	}
 }
 
-void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, uint32 SectionIndex)
+void ReImportClothingSectionFromClothingAsset(USkeletalMesh* SkelMesh, int32 LODIndex, uint32 SectionIndex)
 {
 	check(SkelMesh);
 
 	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
-	FStaticLODModel& LOD_0_Model = ImportedResource->LODModels[0];
+	FStaticLODModel& Model = ImportedResource->LODModels[LODIndex];
 
-	check(LOD_0_Model.Sections.IsValidIndex(SectionIndex));
+	check(Model.Sections.IsValidIndex(SectionIndex));
 
-	int16 ClothSecIdx = LOD_0_Model.Sections[SectionIndex].CorrespondClothSectionIndex;
+	int16 ClothSecIdx = Model.Sections[SectionIndex].CorrespondClothSectionIndex;
 	if(ClothSecIdx < 0)
 	{
-		// if there are sections which has clothing in other LODs, restore all LODs
-		RestoreOriginalClothingSectionAllLODs(SkelMesh, SectionIndex);
 		return;
 	}
 
-	int16 ClothChunkIdx = LOD_0_Model.Sections[ClothSecIdx].ChunkIndex;	
-	int16 AssetIndex = LOD_0_Model.Chunks[ClothChunkIdx].CorrespondClothAssetIndex;
-	int16 SubmeshIdx = LOD_0_Model.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
+	int16 ClothChunkIdx = Model.Sections[ClothSecIdx].ChunkIndex;
+	int16 AssetIndex = Model.Chunks[ClothChunkIdx].CorrespondClothAssetIndex;
+	int16 SubmeshIdx = Model.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
 
-	ImportClothingSectionFromClothingAsset(SkelMesh, SectionIndex, AssetIndex, SubmeshIdx);
+	ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SectionIndex, AssetIndex, SubmeshIdx);
 }
 
 static bool IsProperApexFile(NxClothingAsset& ApexClothingAsset, USkeletalMesh* SkelMesh)
@@ -1608,66 +1538,27 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 
 		FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
 		int32 NumLODs = ImportedResource->LODModels.Num();
-		FStaticLODModel& LOD_0_Model = ImportedResource->LODModels[0];
-
-		// clear mapping data of LODs other than LOD_0
-		for(int32 LODIndex=1; LODIndex < NumLODs; LODIndex++)
-		{
-			TArray<uint32> SectionIndicesLOD;
-			SkelMesh->GetOriginSectionIndicesWithCloth(LODIndex, AssetIndex, SectionIndicesLOD);
-
-			for(int32 i=0; i < SectionIndicesLOD.Num(); i++)
-			{
-				RestoreOriginalClothingSection(SkelMesh, LODIndex, SectionIndicesLOD[i]);
-			}
-		}
-
-		TArray<uint32> SectionIndices;
-		SkelMesh->GetOriginSectionIndicesWithCloth(0, AssetIndex, SectionIndices);
-
-		
-		if(!SkelMesh->IsEnabledClothLOD(AssetIndex))
-		{
-			NumLODs = 1;
-		}
 
 		for(int32 LODIndex=0; LODIndex < NumLODs; LODIndex++)
 		{
+			TArray<uint32> SectionIndices;
+			SkelMesh->GetOriginSectionIndicesWithCloth(LODIndex, AssetIndex, SectionIndices);
+
 			FStaticLODModel& LODModel = ImportedResource->LODModels[LODIndex];
 
 			for(int32 i=0; i < SectionIndices.Num(); i++)
 			{
-				//use LOD_0 info
-				FSkelMeshSection& Section = LOD_0_Model.Sections[SectionIndices[i]];
-
-				if(!Section.bEnableClothLOD && LODIndex > 0)
-				{
-					continue;
-				}
+				FSkelMeshSection& Section = LODModel.Sections[SectionIndices[i]];
 
 				int16 ClothSecIdx = Section.CorrespondClothSectionIndex;
-				int16 ClothChunkIdx = LOD_0_Model.Sections[ClothSecIdx].ChunkIndex;	
-				int16 SubmeshIdx = LOD_0_Model.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
+				int16 ClothChunkIdx = LODModel.Sections[ClothSecIdx].ChunkIndex;
+				int16 SubmeshIdx = LODModel.Chunks[ClothChunkIdx].ClothAssetSubmeshIndex;
 
 				int32 SecIdx = SectionIndices[i];
 
 				int32 NumNonClothSection = LODModel.NumNonClothingSections();
 				if(SecIdx < NumNonClothSection)
 				{
-	#if USE_MATERIAL_MAP
-					int32 NumMaterialMap = SkelMesh->LODInfo[LODIndex].LODMaterialMap.Num();
-					if(NumMaterialMap > 0)
-					{
-						int32 MaterialIndex = LODModel.Sections[SecIdx].MaterialIndex;
-						check(MaterialIndex < NumMaterialMap);
-						int32 NewMatIndex = SkelMesh->LODInfo[LODIndex].LODMaterialMap[MaterialIndex];
-						SecIdx = FindSectionByMaterialIndex(SkelMesh, LODIndex, NewMatIndex);
-						if(SecIdx < 0)
-						{ 
-							continue;
-						}
-					}
-	#endif// #if USE_MATERIAL_MAP
 					if(!ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SecIdx, AssetIndex, SubmeshIdx))
 					{
 						// if import is failed, restores original section because sub-mesh might be removed
@@ -1926,8 +1817,6 @@ void ReapplyClothingDataToSkeletalMesh( USkeletalMesh* SkelMesh, FClothingBackup
 			continue;
 		}
 
-		LODModel.Sections[SecIdx].bEnableClothLOD = Section.bEnableClothLOD;
-
 		int16 ChunkIndex = Section.ChunkIndex;
 
 		FSkelMeshChunk& Chunk = ClothingBackup.Chunks[ChunkIndex];
@@ -1972,6 +1861,7 @@ void GetPhysicsPropertiesFromApexAsset(NxClothingAsset *InAsset, FClothPhysicsPr
 	const NxParameterized::Interface* AssetParams = InAsset->getAssetNxParameterized();
 
 	uint32 MaterialIndex;
+	// uses default material index
 	verify(NxParameterized::getParamU32(*AssetParams, "materialIndex", MaterialIndex));
 	
 	// ClothingMaterialLibraryParameters 

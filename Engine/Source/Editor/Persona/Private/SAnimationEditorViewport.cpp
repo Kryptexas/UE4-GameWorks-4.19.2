@@ -17,6 +17,7 @@
 #include "AnimationEditorViewportClient.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/LODUtilities.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "PersonaViewportToolbar"
 
@@ -1354,6 +1355,11 @@ void SAnimationEditorViewportTabBody::OnLODChanged()
 	if ( LodCount < LODSelection )
 	{
 		OnSetLODModel( LOD_Auto );
+	}
+
+	if (PersonaPtr.Pin()->PersonaMeshDetailLayout)
+	{
+		PersonaPtr.Pin()->PersonaMeshDetailLayout->ForceRefreshDetails();
 	}
 }
 

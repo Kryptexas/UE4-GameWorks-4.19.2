@@ -1146,7 +1146,7 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 		
 		Ar << S.TriangleSorting;
 
-	//for clothing info
+	// for clothing info
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH )
 	{
 		Ar << S.bDisabled;
@@ -1155,7 +1155,7 @@ FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S)
 
 	if( Ar.UE4Ver() >= VER_UE4_APEX_CLOTH_LOD )
 	{
-		Ar << S.bEnableClothLOD;
+		Ar << S.bEnableClothLOD_DEPRECATED;
 	}
 
 	return Ar;
