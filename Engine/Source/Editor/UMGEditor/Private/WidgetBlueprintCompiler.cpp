@@ -537,7 +537,9 @@ void FWidgetBlueprintCompiler::ValidateWidgetNames()
 		}
 	}
 
-	for ( UWidget* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	TArray<UWidget*> Widgets;
+	Blueprint->WidgetTree->GetAllWidgets(Widgets);
+	for ( UWidget* Widget : Widgets )
 	{
 		if ( ParentBPNameValidator.IsValid() && ParentBPNameValidator->IsValid(Widget->GetName()) != EValidatorResult::Ok )
 		{
@@ -580,12 +582,12 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	TArray<UObject*> ClassSubObjects;
 	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
 
-	UWidgetBlueprint* Blueprint = WidgetBlueprint();
+	//UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
-	if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
-	{
-		ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UWidget>(Blueprint->WidgetTree->WidgetTemplates));
-	}
+	//if ( 0 != Blueprint->WidgetTree->WidgetTemplates.Num() )
+	//{
+	//	ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UWidget>(Blueprint->WidgetTree->WidgetTemplates));
+	//}
 }
 
 void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
@@ -597,7 +599,10 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	ValidateWidgetNames();
 
 	// Build the set of variables based on the variable widgets in the widget tree.
-	for ( UWidget* Widget : Blueprint->WidgetTree->WidgetTemplates )
+	TArray<UWidget*> Widgets;
+	Blueprint->WidgetTree->GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
 	{
 		// Skip non-variable widgets
 		if ( !Widget->bIsVariable )

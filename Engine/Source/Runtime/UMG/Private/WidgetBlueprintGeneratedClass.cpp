@@ -54,7 +54,10 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 	UClass* ActorClass = UserWidget->GetClass();
 
-	for ( UWidget* Widget : ClonedTree->WidgetTemplates )
+	TArray<UWidget*> ClonedWidgets;
+	ClonedTree->GetAllWidgets(ClonedWidgets);
+
+	for ( UWidget* Widget : ClonedWidgets )
 	{
 		// Not fatal if NULL, but shouldn't happen
 		if ( !ensure(Widget != NULL) )
@@ -62,7 +65,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			continue;
 		}
 
-		FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), UserWidget->Components.Num()) );
+		//FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), UserWidget->Components.Num()) );
 
 		FString VariableName = Widget->GetName();
 

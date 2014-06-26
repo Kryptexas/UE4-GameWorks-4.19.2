@@ -295,9 +295,8 @@ void SUMGEditorTree::RefreshTree()
 	RootWidgets.Reset();
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	TArray<UWidget*>& WidgetTemplates = Blueprint->WidgetTree->WidgetTemplates;
 
-	if ( WidgetTemplates.Num() > 0 )
+	if ( Blueprint->WidgetTree->RootWidget )
 	{
 		bool bRootPassed = true;
 
@@ -322,15 +321,15 @@ void SUMGEditorTree::RefreshTree()
 		
 		bIsFilterActive = bWillFilterBeActive;
 
-		WidgetsPassingFilter.Empty( WidgetTemplates.Num() );
+		WidgetsPassingFilter.Empty();
 		if ( bIsFilterActive )
 		{
-			bRootPassed = FilterWidgetHierarchy(WidgetTemplates[0]);
+			bRootPassed = FilterWidgetHierarchy(Blueprint->WidgetTree->RootWidget);
 		}
 
 		if ( bRootPassed )
 		{
-			RootWidgets.Add(WidgetTemplates[0]);
+			RootWidgets.Add(Blueprint->WidgetTree->RootWidget);
 		}
 	}
 

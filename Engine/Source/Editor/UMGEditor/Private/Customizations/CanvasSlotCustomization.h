@@ -12,7 +12,7 @@ public:
 	}
 
 	FCanvasSlotCustomization(UBlueprint* InBlueprint)
-		: Blueprint(CastChecked<UWidgetBlueprint>(InBlueprint))
+		: Blueprint(Cast<UWidgetBlueprint>(InBlueprint))
 	{
 	}
 	

@@ -13,7 +13,12 @@ UWidgetTree::UWidgetTree(const FPostConstructInitializeProperties& PCIP)
 UWidget* UWidgetTree::FindWidget(const FString& Name) const
 {
 	FString ExistingName;
-	for ( UWidget* Widget : WidgetTemplates )
+
+	// TODO UMG Hacky, remove this find widget function, or make it faster.
+	TArray<UWidget*> Widgets;
+	GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
 	{
 		Widget->GetName(ExistingName);
 		if ( ExistingName.Equals(Name, ESearchCase::IgnoreCase) )
@@ -27,24 +32,17 @@ UWidget* UWidgetTree::FindWidget(const FString& Name) const
 
 UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
-	for ( UWidget* Template : WidgetTemplates )
+	UPanelWidget* Parent = Widget->GetParent();
+	if ( Parent != NULL )
 	{
-		UPanelWidget* NonLeafTemplate = Cast<UPanelWidget>(Template);
-		if ( NonLeafTemplate )
-		{
-			for ( int32 ChildIndex = 0; ChildIndex < NonLeafTemplate->GetChildrenCount(); ChildIndex++ )
-			{
-				if ( NonLeafTemplate->GetChildAt(ChildIndex) == Widget )
-				{
-					OutChildIndex = ChildIndex;
-					return NonLeafTemplate;
-				}
-			}
-		}
+		OutChildIndex = Parent->GetChildIndex(Widget);
+	}
+	else
+	{
+		OutChildIndex = 0;
 	}
 
-	OutChildIndex = -1;
-	return NULL;
+	return Parent;
 }
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget, bool bIsRecursive)
@@ -75,7 +73,28 @@ bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget, bool bIsRecursive)
 		}
 	}
 
-	int32 IndexRemoved = WidgetTemplates.Remove(InRemovedWidget);
-	
-	return bRemoved || IndexRemoved != -1;
+	return bRemoved;
+}
+
+void UWidgetTree::GetAllWidgets(TArray<UWidget*>& Widgets) const
+{
+	if ( RootWidget )
+	{
+		Widgets.Add(RootWidget);
+		GetChildWidgets(RootWidget, Widgets);
+	}
+}
+
+void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const
+{
+	if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Parent) )
+	{
+		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
+		{
+			UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex);
+			Widgets.Add(ChildWidget);
+
+			GetChildWidgets(ChildWidget, Widgets);
+		}
+	}
 }

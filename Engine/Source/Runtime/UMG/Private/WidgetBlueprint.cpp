@@ -30,7 +30,9 @@ void UWidgetBlueprint::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITOR
-	for ( UWidget* Widget : WidgetTree->WidgetTemplates )
+	TArray<UWidget*> Widgets;
+	WidgetTree->GetAllWidgets(Widgets);
+	for ( UWidget* Widget : Widgets )
 	{
 		Widget->ConnectEditorData();
 	}

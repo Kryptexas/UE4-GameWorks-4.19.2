@@ -11,9 +11,9 @@ class UMG_API UWidgetTree : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Array of templates for widgets */
+	/** The root widget of the tree */
 	UPROPERTY()
-	TArray<UWidget*> WidgetTemplates;
+	UWidget* RootWidget;
 
 public:
 
@@ -22,6 +22,10 @@ public:
 	bool RemoveWidget(UWidget* Widget, bool bIsRecursive = true);
 
 	class UPanelWidget* FindWidgetParent(UWidget* Widget, int32& OutChildIndex);
+
+	void GetAllWidgets(TArray<UWidget*>& Widgets) const;
+
+	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
 
 	/** Constructs the widget, and adds it to the tree. */
 	template< class T >
@@ -34,7 +38,6 @@ public:
 
 		UWidget* Widget = (UWidget*)ConstructObject<UWidget>(WidgetType, this);
 		Widget->SetFlags(RF_Transactional);
-		WidgetTemplates.Add(Widget);
 
 		return (T*)Widget;
 	}

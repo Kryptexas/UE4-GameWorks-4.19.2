@@ -1029,19 +1029,19 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 					Transaction.Cancel();
 				}
 			}
-			else if ( BP->WidgetTree->WidgetTemplates.Num() == 1 )
-			{
-				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-				Widget->IsDesignTime(true);
-				
-				DropPreviewParent = NULL;
-				
-				return Widget;
-			}
+			//else if ( BP->WidgetTree->RootWidget != NULL && BP->WidgetTree->RootWidget.Child == 1 )
+			//{
+			//	UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
+			//	Widget->IsDesignTime(true);
+			//	
+			//	DropPreviewParent = NULL;
+			//	
+			//	return Widget;
+			//}
 		}
 		else
 		{
-			if ( BP->WidgetTree->WidgetTemplates.Num() == 0 )
+			if ( BP->WidgetTree->RootWidget == NULL )
 			{
 				FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
 
@@ -1056,6 +1056,8 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 				// Add it to the root if there are no other widgets to add it to.
 				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
 				Widget->IsDesignTime(true);
+
+				BP->WidgetTree->RootWidget = Widget;
 
 				SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
 

@@ -297,11 +297,10 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 		{
 			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
 			Slot->SetDesiredPosition(PasteLocation);
+			//TODO UMG - The paste location needs to be relative from the most upper left hand corner of other widgets in their container.
 		}
 
-		//TODO UMG HACK Because the WidgetTree isn't a real tree, add every widget.
 		NewWidget->SetFlags( RF_Transactional );
-		BP->WidgetTree->WidgetTemplates.Add( NewWidget );
 	}
 
 	//TODO UMG Reorder the live slot without rebuilding the structure
