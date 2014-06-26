@@ -134,6 +134,10 @@ bool UPaperAnimatedRenderComponent::SetFlipbook(class UPaperFlipbook* NewFlipboo
 		{
 			SourceFlipbook = NewFlipbook;
 
+			// We need to also reset the frame and time also
+			AccumulatedTime = 0.0f;
+			CalculateCurrentFrame();
+
 			// Need to send this to render thread at some point
 			MarkRenderStateDirty();
 
