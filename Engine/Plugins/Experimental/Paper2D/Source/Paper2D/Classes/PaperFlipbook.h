@@ -24,7 +24,10 @@ public:
 	}
 };
 
-UCLASS(MinimalAPI, BlueprintType, meta=(DisplayThumbnail = "true"))
+/**
+ * Contains an animation sequence of sprite frames
+ */
+UCLASS(MinimalAPI, BlueprintType, meta = (DisplayThumbnail = "true"))
 class UPaperFlipbook : public UObject
 {
 	GENERATED_UCLASS_BODY()
