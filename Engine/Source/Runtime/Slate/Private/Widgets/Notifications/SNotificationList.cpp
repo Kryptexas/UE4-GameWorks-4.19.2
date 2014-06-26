@@ -501,6 +501,12 @@ public:
 		}
 	}
 
+	/** Sets the ExpireDuration */
+	virtual void SetExpireDuration(float Duration)
+	{
+		ExpireDuration = Duration;
+	}
+
 protected:
 
 	/* Used to determine whether the button is visible */

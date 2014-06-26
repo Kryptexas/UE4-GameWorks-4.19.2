@@ -1198,10 +1198,23 @@ void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, bool
 {
 	if (Succeeded)
 	{
+		FText CompletionMsg;
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Deployment complete!! Open the app on your device to launch.");
+			TSharedPtr<SNotificationItem> NotificationItem = NotificationItemPtr.Pin();
+			NotificationItem->SetExpireDuration(30.0f);
+		}
+		else
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Launch complete!!");
+		}
+
 		TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 			NotificationItemPtr,
 			SNotificationItem::CS_Success,
-			LOCTEXT("LauncherTaskCompleted", "Launch complete!!")
+			CompletionMsg
 		);
 
 		// analytics for launch on
@@ -1219,10 +1232,20 @@ void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, bool
 	}
 	else
 	{
+		FText CompletionMsg;
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskFailed", "Deployment failed!!");
+		}
+		else
+		{
+			CompletionMsg = LOCTEXT("LauncherTaskFailed", "Launch failed!!");
+		}
 		TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 			NotificationItemPtr,
 			SNotificationItem::CS_Fail,
-			LOCTEXT("LauncherTaskFailed", "Launch failed!!")
+			CompletionMsg
 			);
 
 		// analytics for launch on
@@ -1300,7 +1323,11 @@ void UEditorEngine::PlayUsingLauncher()
 		LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::CopyToDevice);
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetHideFileServerWindow(false);
-		LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
+		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
+		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
+		{
+			LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
+		}
 
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
@@ -1343,7 +1370,7 @@ void UEditorEngine::PlayUsingLauncher()
 
 		Info.Image = FEditorStyle::GetBrush(TEXT("MainFrame.CookContent"));
 		Info.bFireAndForget = false;
-		Info.ExpireDuration = 3.0f;
+		Info.ExpireDuration = 10.0f;
 		Info.Hyperlink = FSimpleDelegate::CreateStatic(HandleHyperlinkNavigate);
 		Info.HyperlinkText = LOCTEXT("ShowOutputLogHyperlink", "Show Output Log");
 		Info.ButtonDetails.Add(
