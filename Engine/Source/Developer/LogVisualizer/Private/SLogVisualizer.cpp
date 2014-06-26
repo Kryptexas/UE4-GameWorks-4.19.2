@@ -44,7 +44,7 @@ template <typename ItemType>
 class SLogListView : public SListView<ItemType>
 {
 public:
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
 		if (!MouseEvent.IsLeftShiftDown())
 		{

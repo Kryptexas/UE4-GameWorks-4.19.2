@@ -17,7 +17,7 @@ public:
 	 */
 	UNREALED_API void Construct(const FArguments& InArgs);
 
-	UNREALED_API virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) OVERRIDE;
+	UNREALED_API virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 private:
 
