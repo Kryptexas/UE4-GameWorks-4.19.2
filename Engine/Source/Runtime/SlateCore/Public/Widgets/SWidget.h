@@ -390,21 +390,21 @@ public:
 	/**
 	 * Called when a touchpad touch is started (finger down)
 	 * 
-	 * @param TouchEvent	The touch event generated
+	 * @param InTouchEvent	The touch event generated
 	 */
 	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
 
 	/**
 	 * Called when a touchpad touch is moved  (finger moved)
 	 * 
-	 * @param TouchEvent	The touch event generated
+	 * @param InTouchEvent	The touch event generated
 	 */
 	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
 
 	/**
 	 * Called when a touchpad touch is ended (finger lifted)
 	 * 
-	 * @param TouchEvent	The touch event generated
+	 * @param InTouchEvent	The touch event generated
 	 */
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
 
