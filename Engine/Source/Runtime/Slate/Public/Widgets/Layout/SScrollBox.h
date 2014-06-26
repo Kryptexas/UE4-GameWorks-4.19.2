@@ -28,6 +28,7 @@ public:
 	SLATE_BEGIN_ARGS(SScrollBox)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBoxStyle>("ScrollBox") )
 		, _ExternalScrollbar()
+		, _OnUserScrolled()
 		{}
 		
 		SLATE_SUPPORTS_SLOT( FSlot )
@@ -37,6 +38,10 @@ public:
 
 		/** Custom scroll bar */
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
+
+		/** Called when the button is clicked */
+		SLATE_EVENT(FOnUserScrolled, OnUserScrolled)
+
 	SLATE_END_ARGS()
 
 
@@ -57,6 +62,8 @@ public:
 	/** @return Returns true if the user is currently interactively scrolling the view by holding
 		        the right mouse button and dragging. */
 	bool IsRightClickScrolling() const;
+
+	float GetScrollOffset();
 
 	void SetScrollOffset( float NewScrollOffset );
 
@@ -117,6 +124,9 @@ private:
 
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor;
+
+	/** Fired when the user scrolls the scrollbox */
+	FOnUserScrolled OnUserScrolled;
 };
 
 
