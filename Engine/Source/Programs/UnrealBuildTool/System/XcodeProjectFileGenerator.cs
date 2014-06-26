@@ -403,7 +403,7 @@ namespace UnrealBuildTool
 
 			if (Target.Type == XcodeTargetType.Legacy)
 			{
-				Contents.Append("\t\t\tpassBuildSettingsInEnvironment = 1;" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tpassBuildSettingsInEnvironment = 0;" + ProjectFileGenerator.NewLine);
 			}
 
 			Contents.Append("\t\t\tproductName = \"" + Target.DisplayName + "\";" + ProjectFileGenerator.NewLine);
