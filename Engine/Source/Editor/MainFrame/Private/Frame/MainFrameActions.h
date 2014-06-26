@@ -52,6 +52,7 @@ public:
 	TSharedPtr< FUICommandInfo > VisitSupportWebSite;
 	TSharedPtr< FUICommandInfo > VisitEpicGamesDotCom;
 	TSharedPtr< FUICommandInfo > AboutUnrealEd;
+	TSharedPtr< FUICommandInfo > CreditsUnrealEd;
 
 	TSharedPtr< FUICommandInfo > ResetLayout;
 	TSharedPtr< FUICommandInfo > SaveLayout;
@@ -139,6 +140,8 @@ public:
 	static void VisitForums();
 
 	static void AboutUnrealEd_Execute();
+
+	static void CreditsUnrealEd_Execute();
 
 	static void OpenWidgetReflector_Execute();
 

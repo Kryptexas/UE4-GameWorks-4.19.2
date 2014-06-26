@@ -230,6 +230,7 @@ void FMainMenu::FillHelpMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 		const FText AboutWindowTitle = NSLOCTEXT("MainHelpMenu", "AboutUnrealEditor", "About Unreal Editor...");
 
 		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().AboutUnrealEd, "AboutUnrealEd", AboutWindowTitle);
+		MenuBuilder.AddMenuEntry(FMainFrameCommands::Get().CreditsUnrealEd);
 	}
 	MenuBuilder.EndSection();
 #endif

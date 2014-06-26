@@ -127,6 +127,9 @@ void FMainFrameCommands::RegisterCommands()
 	UI_COMMAND( AboutUnrealEd, "About Editor...", "Displays application credits and copyright information", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( AboutUnrealEd, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::AboutUnrealEd_Execute ) );
 
+	UI_COMMAND( CreditsUnrealEd, "Credits", "Displays application credits", EUserInterfaceActionType::Button, FInputGesture() );
+	ActionList->MapAction( CreditsUnrealEd, FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::CreditsUnrealEd_Execute) );
+
 	UI_COMMAND( ResetLayout, "Reset Layout...", "Make a backup of your user settings and reset the layout customizations", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( ResetLayout, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ResetLayout) );
 
@@ -925,6 +928,34 @@ void FMainFrameActionCallbacks::AboutUnrealEd_Execute()
 	else
 	{
 		FSlateApplication::Get().AddWindow(AboutWindow.ToSharedRef());
+	}
+}
+
+void FMainFrameActionCallbacks::CreditsUnrealEd_Execute()
+{
+	const FText CreditsWindowTitle = LOCTEXT("CreditsUnrealEditor", "Credits");
+
+	TSharedPtr<SWindow> CreditsWindow =
+		SNew(SWindow)
+		.Title(CreditsWindowTitle)
+		.ClientSize(FVector2D(600.f, 700.f))
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.SizingRule(ESizingRule::FixedSize)
+		[
+			SNew(SCreditsScreen)
+		];
+
+	IMainFrameModule& MainFrame = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
+	TSharedPtr<SWindow> ParentWindow = MainFrame.GetParentWindow();
+
+	if ( ParentWindow.IsValid() )
+	{
+		FSlateApplication::Get().AddModalWindow(CreditsWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+	}
+	else
+	{
+		FSlateApplication::Get().AddWindow(CreditsWindow.ToSharedRef());
 	}
 }
 

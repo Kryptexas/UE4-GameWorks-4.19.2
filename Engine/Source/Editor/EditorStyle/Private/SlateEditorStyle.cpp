@@ -1295,6 +1295,72 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
+#if WITH_EDITOR
+	// Credits screen
+	{
+		Set("Credits.Button", FButtonStyle(NoBorder)
+			.SetNormal(FSlateNoResource())
+			.SetPressed(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor_Pressed))
+			.SetHovered(BOX_BRUSH("Common/RoundedSelection_16x", 4.0f / 16.0f, SelectionColor))
+			);
+
+		Set("Credits.Pause", new IMAGE_BRUSH("Icons/PauseCredits", Icon20x20));
+		Set("Credits.Play", new IMAGE_BRUSH("Icons/PlayCredits", Icon20x20));
+
+		FLinearColor EditorOrange = FLinearColor(0.728f, 0.364f, 0.003f);
+
+		FTextBlockStyle CreditsNormal = FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Normal", 16))
+			.SetShadowOffset(FVector2D::UnitVector);
+
+		Set("Credits.Normal", CreditsNormal);
+
+		Set("Credits.Strong", FTextBlockStyle(CreditsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 16))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H1", FTextBlockStyle(CreditsNormal)
+			.SetColorAndOpacity(EditorOrange)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 36))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H2", FTextBlockStyle(CreditsNormal)
+			.SetColorAndOpacity(EditorOrange)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 30))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H3", FTextBlockStyle(CreditsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 24))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H4", FTextBlockStyle(CreditsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 18))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H5", FTextBlockStyle(CreditsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 12))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		Set("Credits.H6", FTextBlockStyle(CreditsNormal)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 6))
+			.SetShadowOffset(FVector2D::UnitVector));
+
+		FTextBlockStyle LinkText = FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(EditorOrange)
+			.SetShadowOffset(FVector2D::UnitVector);
+		FButtonStyle HoverOnlyHyperlinkButton = FButtonStyle()
+			.SetNormal(FSlateNoResource())
+			.SetPressed(FSlateNoResource())
+			.SetHovered(BORDER_BRUSH("Old/HyperlinkUnderline", FMargin(0, 0, 0, 3 / 16.0f)));
+		FHyperlinkStyle HoverOnlyHyperlink = FHyperlinkStyle()
+			.SetUnderlineStyle(HoverOnlyHyperlinkButton)
+			.SetTextStyle(LinkText)
+			.SetPadding(FMargin(0.0f));
+
+		Set("Credits.Hyperlink", HoverOnlyHyperlink);
+	}
+#endif // WITH_EDITOR || IS_PROGRAM
+
 	// New Level Dialog
 #if WITH_EDITOR || IS_PROGRAM
 	{
@@ -2428,7 +2494,8 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 		Set( "PropertyWindow.Locked", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
 		Set( "PropertyWindow.Unlocked", new IMAGE_BRUSH( "Icons/padlock_unlocked_16x", Icon16x16 ) );
 		Set( "PropertyWindow.DiffersFromDefault", new IMAGE_BRUSH( "/PropertyView/DiffersFromDefault_8x8", FVector2D(8,8) ) ) ;
-		Set( "PropertyWindow.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
+		
+		Set( "PropertyWindow.NormalFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 8) );
 		Set( "PropertyWindow.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 8 ) );
 		Set( "PropertyWindow.ItalicFont", TTF_FONT( "Fonts/Roboto-Italic", 8 ) );
 		Set( "PropertyWindow.FilterFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
@@ -3290,6 +3357,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set("MainFrame.VisitSupportWebSite", new IMAGE_BRUSH("Icons/Help/icon_Help_support_16x", Icon16x16));
 		Set("MainFrame.VisitEpicGamesDotCom", new IMAGE_BRUSH("Icons/Help/icon_Help_epic_16x", Icon16x16));
 		Set("MainFrame.AboutUnrealEd", new IMAGE_BRUSH("Icons/Help/icon_Help_unreal_16x", Icon16x16));
+		Set("MainFrame.CreditsUnrealEd", new IMAGE_BRUSH("Icons/Help/icon_Help_credits_16x", Icon16x16));
 
 		const FLinearColor IconColor = FLinearColor::Black;
 		Set( "EditorViewport.TranslateMode", new IMAGE_BRUSH( "Icons/icon_translateb_16x", Icon16x16 ) );
@@ -3641,7 +3709,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		const FString SmallRoundedButtonEnd(TEXT("Common/SmallRoundedToggleRight"));
 
 		const FLinearColor NormalColor(0.15, 0.15, 0.15, 1);
-		
+
 		Set("Property.ToggleButton", FCheckBoxStyle()
 			.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
 			.SetUncheckedImage(BOX_BRUSH(*SmallRoundedButton, FMargin(7.f / 16.f), NormalColor))

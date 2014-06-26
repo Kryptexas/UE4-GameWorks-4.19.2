@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "AboutScreen.h"
+#include "CreditsScreen.h"
 #include "AssetToolsModule.h"
 #include "CrashTracker.h"
 #include "DesktopPlatformModule.h"
