@@ -4256,6 +4256,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("TouchInterface"),
 			TEXT("UserDefinedEnum"),
 			TEXT("UserDefinedStruct"),
+			TEXT("WindDirectionalSource"),
 		};
 
 		const TCHAR* Path = TEXT("Icons/AssetIcons/%s_%dx");
