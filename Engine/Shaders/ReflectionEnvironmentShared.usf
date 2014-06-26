@@ -15,11 +15,18 @@ half ComputeReflectionCaptureMipFromRoughness(half Roughness)
 	// Heuristic that maps roughness to mip level
 	// This is done in a way such that a certain mip level will always have the same roughness, regardless of how many mips are in the texture
 	// Using more mips in the cubemap just allows sharper reflections to be supported
-	// Note: this must match the logic in FilterReflectionEnvironment that generates the mip filter samples!
 	half LevelFrom1x1 = REFLECTION_CAPTURE_ROUGHEST_MIP - REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE * log2(Roughness);
 	// Note: must match GReflectionCaptureSize
-	half HardcodedNumCaptureArrayMips = 7;
+	const half HardcodedNumCaptureArrayMips = 7;
 	return HardcodedNumCaptureArrayMips - 1 - LevelFrom1x1;
+}
+
+float ComputeReflectionCaptureRoughnessFromMip( float Mip )
+{
+	// Note: must match GReflectionCaptureSize
+	const half HardcodedNumCaptureArrayMips = 7;
+	float LevelFrom1x1 = HardcodedNumCaptureArrayMips - 1 - Mip;
+	return exp2( ( REFLECTION_CAPTURE_ROUGHEST_MIP - LevelFrom1x1 ) / REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE );
 }
 
 TextureCube SkyLightCubemap;

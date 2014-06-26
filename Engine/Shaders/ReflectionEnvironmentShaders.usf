@@ -225,11 +225,7 @@ void ComputeBrightnessMain(
 
 #endif
 
-#ifndef NUM_FILTER_SAMPLES
-#define NUM_FILTER_SAMPLES 1
-#endif
-
-float FilterRoughness;
+#define NUM_FILTER_SAMPLES 1024
 
 Texture2D AverageBrightnessTexture;
 SamplerState AverageBrightnessSampler;
@@ -246,7 +242,7 @@ void FilterPS(
 #if FILTER_CUBEMAP
 
 	float3 N = normalize(CubeCoordinates);
-	float Roughness = FilterRoughness;
+	float Roughness = ComputeReflectionCaptureRoughnessFromMip( SourceMipIndex );
 
 	float4 FilteredColor = 0;
 	float Weight = 0;

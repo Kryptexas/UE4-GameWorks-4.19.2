@@ -22,6 +22,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,MinRoughness)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,DistanceFadeMAD)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ShadowMapChannelMask)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,bShadowed)
 END_UNIFORM_BUFFER_STRUCT(FDeferredLightUniformStruct)
 
 extern float GMinScreenRadiusForLights;
@@ -56,7 +57,7 @@ void SetDeferredLightParameters(
 
 	const FVector2D FadeParams = LightSceneInfo->Proxy->GetDirectionalLightDistanceFadeParameters();
 
-	// use MAD for efficieny in the shader
+	// use MAD for efficiency in the shader
 	DeferredLightUniformsValue.DistanceFadeMAD = FVector2D(FadeParams.Y, -FadeParams.X * FadeParams.Y);
 
 	int32 ShadowMapChannel = LightSceneInfo->Proxy->GetShadowMapChannel();
@@ -74,6 +75,14 @@ void SetDeferredLightParameters(
 		ShadowMapChannel == 1 ? 1 : 0,
 		ShadowMapChannel == 2 ? 1 : 0,
 		ShadowMapChannel == 3 ? 1 : 0);
+
+	DeferredLightUniformsValue.bShadowed = LightSceneInfo->Proxy->CastsDynamicShadow() || LightSceneInfo->Proxy->CastsStaticShadow();
+
+	if( LightSceneInfo->Proxy->IsInverseSquared() )
+	{
+		// Correction for lumen units
+		DeferredLightUniformsValue.LightColor *= 16.0f;
+	}
 
 	// When rendering reflection captures, the direct lighting of the light is actually the indirect specular from the main view
 	if (View.bIsReflectionCapture)

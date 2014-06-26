@@ -31,7 +31,7 @@ FDeferredLightData SetupLightDataForStandardDeferred()
 	//@todo - permutation opportunity
 	LightData.bSpotLight = RADIAL_ATTENUATION;
 	//@todo - permutation opportunity
-	LightData.bShadowed = true;
+	LightData.bShadowed = DeferredLightUniforms.bShadowed;
 
 	return LightData;
 }

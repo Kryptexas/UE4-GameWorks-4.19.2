@@ -682,34 +682,72 @@ void Main(
 
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED)
 
-		FGBufferData Data = (FGBufferData)0;
+		FGBufferData GBuffer = (FGBufferData)0;
 
-		Data.WorldNormal = MaterialParameters.WorldNormal;
+		GBuffer.WorldNormal = MaterialParameters.WorldNormal;
 #if DIFFUSE_SPEC_INPUTS
-		Data.DiffuseColor = DiffuseColor;
-		Data.SpecularColor = SpecularColor;
+		GBuffer.DiffuseColor = DiffuseColor;
+		GBuffer.SpecularColor = SpecularColor;
 #else
-		Data.BaseColor = BaseColor;
-		Data.Metallic = Metallic;
-		Data.Specular = Specular;
+		GBuffer.BaseColor = BaseColor;
+		GBuffer.Metallic = Metallic;
+		GBuffer.Specular = Specular;
 #endif
-		Data.Roughness = Roughness;
-		Data.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
-		Data.IndirectIrradiance = IndirectIrradiance;
-		Data.PrecomputedShadowFactors = PrecomputedShadowFactors;
-		Data.GBufferAO = MaterialAO;
-		Data.Opacity = Opacity;
-		Data.DecalMask = Primitive.DecalReceiverMask;
-		Data.HasDistanceFieldRepresentation = Primitive.HasDistanceFieldRepresentation;
+		GBuffer.Roughness = Roughness;
+		GBuffer.IndirectIrradiance = IndirectIrradiance;
+		GBuffer.PrecomputedShadowFactors = PrecomputedShadowFactors;
+		GBuffer.GBufferAO = MaterialAO;
+		GBuffer.Opacity = Opacity;
+		GBuffer.DecalMask = Primitive.DecalReceiverMask;
+		GBuffer.HasDistanceFieldRepresentation = Primitive.HasDistanceFieldRepresentation;
 
 		#if MATERIAL_SHADINGMODEL_UNLIT
-			Data.ShadingModelID = SHADINGMODELID_UNLIT;
+			GBuffer.ShadingModelID = SHADINGMODELID_UNLIT;
 		#elif MATERIAL_SHADINGMODEL_DEFAULT_LIT
-			Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+			GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 		#elif MATERIAL_SHADINGMODEL_SUBSURFACE
-			Data.ShadingModelID = SHADINGMODELID_SUBSURFACE;
+			GBuffer.ShadingModelID = SHADINGMODELID_SUBSURFACE;
+			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
 		#elif MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
-			Data.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
+			GBuffer.ShadingModelID = SHADINGMODELID_PREINTEGRATED_SKIN;
+			GBuffer.CustomData = EncodeSubsurfaceColor( SubsurfaceColor );
+		#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
+			GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
+
+			float ClearCoat = 1;
+			float ClearCoatRoughness = 0.1;
+			float Film = 1;
+			float MetalSpec = 0.9;
+
+			Film *= ClearCoat;
+
+			float NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
+
+			// Approximation of refraction's effect on EnvBRDF
+			float RefractionScale = saturate( (NoV - 1) * lerp( 1.3, 0.5, Roughness ) + 1 );
+
+#if DIFFUSE_SPEC_INPUTS
+			// Absorption doesn't work correctly with nonmetals with diffuse/spec
+			float3 AbsorptionColor = (1 - Film) + SpecularColor * ( Film * (1 / MetalSpec) );
+			GBuffer.SpecularColor = lerp( SpecularColor, MetalSpec, Film );
+#else
+			float3 AbsorptionColor = (1 - Film) + BaseColor * ( Film * (1 / MetalSpec) );
+			GBuffer.BaseColor = lerp( BaseColor, MetalSpec, Film );
+#endif
+
+			// Approximation of absorption integral, tuned for Roughness=0.4
+			float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
+
+#if DIFFUSE_SPEC_INPUTS
+			GBuffer.DiffuseColor *= Absorption;
+			GBuffer.SpecularColor *= Absorption * RefractionScale;
+#else
+			GBuffer.BaseColor *= Absorption * lerp( 1, RefractionScale, Metallic );
+			GBuffer.Specular *= Luminance( Absorption ) * RefractionScale;
+#endif
+
+			GBuffer.CustomData.x = ClearCoat;
+			GBuffer.CustomData.y = ClearCoatRoughness;
 		#else
 			// missing shading model, compiler should report ShadingModelID is not set
 		#endif
@@ -719,7 +757,7 @@ void Main(
 		#endif
 
 		float QuantizationBias = PseudoRandom( MaterialParameters.SVPosition.xy ) * 0.5 - 0.5;
-		EncodeGBuffer(Data, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, QuantizationBias);
+		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, QuantizationBias);
 	#endif 
 	
 

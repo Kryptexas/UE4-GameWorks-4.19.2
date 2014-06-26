@@ -35,10 +35,11 @@ FString GetShadingModelString(EMaterialShadingModel ShadingModel)
 	FString ShadingModelName;
 	switch(ShadingModel)
 	{
-		case MSM_DefaultLit: ShadingModelName = TEXT("MSM_DefaultLit"); break;
-		case MSM_Unlit: ShadingModelName = TEXT("MSM_Unlit"); break;
-		case MSM_Subsurface: ShadingModelName = TEXT("MSM_Subsurface"); break;
-		case MSM_PreintegratedSkin: ShadingModelName = TEXT("MSM_PreintegratedSkin"); break;
+		case MSM_Unlit:				ShadingModelName = TEXT("MSM_Unlit"); break;
+		case MSM_DefaultLit:		ShadingModelName = TEXT("MSM_DefaultLit"); break;
+		case MSM_Subsurface:		ShadingModelName = TEXT("MSM_Subsurface"); break;
+		case MSM_PreintegratedSkin:	ShadingModelName = TEXT("MSM_PreintegratedSkin"); break;
+		case MSM_ClearCoat:			ShadingModelName = TEXT("MSM_ClearCoat"); break;
 		default: ShadingModelName = TEXT("Unknown"); break;
 	}
 	return ShadingModelName;
@@ -74,10 +75,15 @@ void UpdateMaterialShaderCompilingStats(const FMaterial* Material)
 
 	switch(Material->GetShadingModel())
 	{
-		case MSM_Subsurface: 
-		case MSM_PreintegratedSkin: 
-		case MSM_DefaultLit: INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1); break;
-		case MSM_Unlit: INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumUnlitMaterialShaders,1); break;
+		case MSM_Unlit:
+			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumUnlitMaterialShaders,1);
+			break;
+		case MSM_DefaultLit:
+		case MSM_Subsurface:
+		case MSM_PreintegratedSkin:
+		case MSM_ClearCoat:
+			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1);
+			break;
 		default: break;
 	};
 

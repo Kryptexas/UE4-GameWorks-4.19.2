@@ -111,10 +111,11 @@ enum ETrailWidthMode
 UENUM()
 enum EMaterialShadingModel
 {
-	MSM_DefaultLit			UMETA(DisplayName="Default Lit"),
 	MSM_Unlit				UMETA(DisplayName="Unlit"),
+	MSM_DefaultLit			UMETA(DisplayName="Default Lit"),
 	MSM_Subsurface			UMETA(DisplayName="Subsurface"),
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
+	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
 	MSM_MAX,
 };
 

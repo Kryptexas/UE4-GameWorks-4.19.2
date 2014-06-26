@@ -468,6 +468,7 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	BlendMode = BLEND_Opaque;
+	ShadingModel = MSM_DefaultLit;
 	TranslucencyLightingMode = TLM_VolumetricNonDirectional;
 	TranslucencyDirectionalLightingIntensity = 1.0f;
 	TranslucentShadowDensityScale = 0.5f;

@@ -257,7 +257,8 @@ uint DecodeShadingModelId(float InPackedChannel)
 #define SHADINGMODELID_DEFAULT_LIT			1
 #define SHADINGMODELID_SUBSURFACE			2
 #define SHADINGMODELID_PREINTEGRATED_SKIN	3
-#define SHADINGMODELID_NUM					4
+#define SHADINGMODELID_CLEAR_COAT			4
+#define SHADINGMODELID_NUM					5
 
 // all values that are output by the forward rendering pass
 struct FGBufferData
@@ -287,7 +288,7 @@ struct FGBufferData
 	float Opacity;
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
-	// 0..255 SHADINGMODELID_UNLIT / SHADINGMODELID_DEFAULT_LIT / SHADINGMODELID_SUBSURFACE / SHADINGMODELID_PREINTEGRATED_SKIN
+	// 0..255 
 	uint ShadingModelID;
 	// 0..1 decal receiver mask
 	uint DecalMask;
@@ -330,7 +331,7 @@ struct FScreenSpaceData
 
 /** Populates OutGBufferA, B and C */
 void EncodeGBuffer(
-	FGBufferData Data,
+	FGBufferData GBuffer,
 	out float4 OutGBufferA,
 	out float4 OutGBufferB,
 	out float4 OutGBufferC,
@@ -339,13 +340,13 @@ void EncodeGBuffer(
 	float QuantizationBias = 0		// -0.5 to 0.5 random float. Used to bias quantization.
 	)
 {
-	OutGBufferA.rgb = EncodeNormal( Data.WorldNormal );
+	OutGBufferA.rgb = EncodeNormal( GBuffer.WorldNormal );
 
 	// compress in 2 bits
-	uint PackedAlpha = Data.DecalMask * 2 + (Data.HasDistanceFieldRepresentation);
+	uint PackedAlpha = GBuffer.DecalMask * 2 + (GBuffer.HasDistanceFieldRepresentation);
 	OutGBufferA.a = PackedAlpha * (1.0 / 3.0);
 
-	if (Data.ShadingModelID == SHADINGMODELID_UNLIT)
+	if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
 		OutGBufferB = 0;
 		OutGBufferC = 0;
@@ -353,29 +354,29 @@ void EncodeGBuffer(
 	}
 	else
 	{
-		bool bSubsurface = (Data.ShadingModelID == SHADINGMODELID_SUBSURFACE || Data.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
 
 #if DIFFUSE_SPEC_INPUTS
-		OutGBufferB.rgb = EncodeSpecularColor(Data.SpecularColor);
-		OutGBufferC.rgb = EncodeDiffuseColor(Data.DiffuseColor);
+		OutGBufferB.rgb = EncodeSpecularColor(GBuffer.SpecularColor);
+		OutGBufferC.rgb = EncodeDiffuseColor(GBuffer.DiffuseColor);
 #else
 		// NOTE OutGBufferB.b is currently unused!
-		OutGBufferB.r = bSubsurface ? Data.Opacity : Data.Metallic;
-		OutGBufferB.g = Data.Specular;
+		OutGBufferB.r = bSubsurface ? GBuffer.Opacity : GBuffer.Metallic;
+		OutGBufferB.g = GBuffer.Specular;
 		OutGBufferB.b = 0;
-		OutGBufferC.rgb = EncodeBaseColor(Data.BaseColor);
+		OutGBufferC.rgb = EncodeBaseColor(GBuffer.BaseColor);
 #endif
-		OutGBufferB.a = Data.ShadingModelID * (1.0 / 255.0);
+		OutGBufferB.a = GBuffer.ShadingModelID * (1.0 / 255.0);
 
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
-		OutGBufferC.a = EncodeIndirectIrradiance( Data.IndirectIrradiance * Data.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
+		OutGBufferC.a = EncodeIndirectIrradiance( GBuffer.IndirectIrradiance * GBuffer.GBufferAO ) + QuantizationBias * (1.0 / 255.0);
 
 		// Roughness in OutGBufferD.r instead of OutGBufferB.a so that deferred decals can blend in roughness while using MRT
-		OutGBufferD.r = Data.Roughness;
-		OutGBufferD.gba = Data.CustomData;
+		OutGBufferD.r = GBuffer.Roughness;
+		OutGBufferD.gba = GBuffer.CustomData;
 	}
 
-	OutGBufferE = Data.PrecomputedShadowFactors;
+	OutGBufferE = GBuffer.PrecomputedShadowFactors;
 }
 
 /** Populates FGBufferData */
@@ -389,58 +390,58 @@ FGBufferData DecodeGBufferData(
 	float SceneDepth,
 	bool bGetNormalizedNormal)
 {
-	FGBufferData ret;
+	FGBufferData GBuffer;
 
-	ret.WorldNormal = DecodeNormal( InGBufferA.xyz );
+	GBuffer.WorldNormal = DecodeNormal( InGBufferA.xyz );
 
 	if(bGetNormalizedNormal)
 	{
-		ret.WorldNormal = normalize(ret.WorldNormal);
+		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
 	}
 
 	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
-	ret.DecalMask = PackedAlpha & 2;
-	ret.HasDistanceFieldRepresentation = PackedAlpha & 1;
-	ret.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
+	GBuffer.DecalMask = PackedAlpha & 2;
+	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
+	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
-	bool bSubsurface = (ret.ShadingModelID == SHADINGMODELID_SUBSURFACE || ret.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
+	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN);
 
 #if DIFFUSE_SPEC_INPUTS
-	ret.BaseColor = 0;
-	ret.Metallic = 0;
-	ret.Specular = 0;
+	GBuffer.BaseColor = 0;
+	GBuffer.Metallic = 0;
+	GBuffer.Specular = 0;
 
-	ret.DiffuseColor = DecodeDiffuseColor(InGBufferC.rgb);
-	ret.SpecularColor = DecodeSpecularColor(InGBufferB.rgb);
+	GBuffer.DiffuseColor = DecodeDiffuseColor(InGBufferC.rgb);
+	GBuffer.SpecularColor = DecodeSpecularColor(InGBufferB.rgb);
 #else
-	ret.BaseColor = DecodeBaseColor(InGBufferC.rgb);
-	ret.Metallic = bSubsurface ? 0 : InGBufferB.r;
-	ret.Specular = InGBufferB.g;
+	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
+	GBuffer.Metallic = bSubsurface ? 0 : InGBufferB.r;
+	GBuffer.Specular = InGBufferB.g;
 
-	ret.DiffuseColor = ret.BaseColor - ret.BaseColor * ret.Metallic;
-	ret.SpecularColor = lerp( 0.08 * ret.Specular.xxx, ret.BaseColor, ret.Metallic );
+	GBuffer.DiffuseColor = GBuffer.BaseColor - GBuffer.BaseColor * GBuffer.Metallic;
+	GBuffer.SpecularColor = lerp( 0.08 * GBuffer.Specular.xxx, GBuffer.BaseColor, GBuffer.Metallic );
 
 	// todo: COMPILE_SHADERS_FOR_DEVELOPMENT is unfinished feature, using XBOXONE_PROFILE as workaround
 	#if COMPILE_SHADERS_FOR_DEVELOPMENT == 1 && !XBOXONE_PROFILE
 	{
 		// this feature is only needed for development/editor - we can compile it out for a shipping build (see r.CompileShadersForDevelopment cvar help)
-		ret.DiffuseColor = ret.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
-		ret.SpecularColor = ret.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
+		GBuffer.DiffuseColor = GBuffer.DiffuseColor * View.DiffuseOverrideParameter.www + View.DiffuseOverrideParameter.xyz;
+		GBuffer.SpecularColor = GBuffer.SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 	#endif //COMPILE_SHADERS_FOR_DEVELOPMENT == 1
 
 #endif
 
-	ret.Opacity = bSubsurface ? InGBufferB.r : 0;
+	GBuffer.Opacity = bSubsurface ? InGBufferB.r : 0;
 	
-	ret.Roughness = InGBufferD.r;
-	ret.CustomData = InGBufferD.gba;
-	ret.GBufferAO = 1;
-	ret.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
-	ret.PrecomputedShadowFactors = InGBufferE;
-	ret.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
-	ret.Depth = SceneDepth;
-	return ret;
+	GBuffer.Roughness = InGBufferD.r;
+	GBuffer.CustomData = InGBufferD.gba;
+	GBuffer.GBufferAO = 1;
+	GBuffer.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
+	GBuffer.PrecomputedShadowFactors = InGBufferE;
+	GBuffer.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
+	GBuffer.Depth = SceneDepth;
+	return GBuffer;
 }
 
 

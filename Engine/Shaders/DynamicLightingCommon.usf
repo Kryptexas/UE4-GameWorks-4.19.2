@@ -39,13 +39,13 @@ float RadialAttenuation(float3 WorldLightVector, half FalloffExponent)
 
 /** 
  * Calculates attenuation for a spot light.
- * WorldLightVector is the vector from the position being shaded to the light, divided by the radius of the light. 
+ * L normalize vector to light. 
  * SpotDirection is the direction of the spot light.
  * SpotAngles.x is CosOuterCone, SpotAngles.y is InvCosConeDifference. 
  */
-float SpotAttenuation(float3 WorldLightVector, float3 SpotDirection, float2 SpotAngles)
+float SpotAttenuation(float3 L, float3 SpotDirection, float2 SpotAngles)
 {
-	float ConeAngleFalloff = Square(saturate((dot(normalize(WorldLightVector), -SpotDirection) - SpotAngles.x) * SpotAngles.y));
+	float ConeAngleFalloff = Square(saturate((dot(L, -SpotDirection) - SpotAngles.x) * SpotAngles.y));
 	return ConeAngleFalloff;
 }
 
@@ -77,7 +77,7 @@ float CalcLightAttenuation(float3 WorldPosition, out float3 WorldLightVector)
 
 	float SpotFalloff = 1;
 	#if RADIAL_ATTENUATION
-		SpotFalloff = SpotAttenuation(WorldLightVector, -DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.SpotAngles);
+		SpotFalloff = SpotAttenuation( normalize(WorldLightVector), -DeferredLightUniforms.NormalizedLightDirection, DeferredLightUniforms.SpotAngles);
 	#endif
 
 	return SpotFalloff * DistanceAttenuation;
