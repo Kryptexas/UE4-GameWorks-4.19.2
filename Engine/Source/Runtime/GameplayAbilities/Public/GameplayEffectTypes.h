@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AttributeSet.h"
 #include "GameplayEffectTypes.generated.h"
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
@@ -13,6 +14,9 @@
 #endif
 
 class UAbilitySystemComponent;
+
+struct FGameplayEffectSpec;
+struct FGameplayEffectModCallbackData;
 
 UENUM(BlueprintType)
 namespace EGameplayModOp
@@ -132,7 +136,7 @@ namespace EGameplayEffectStackingPolicy
  *	We may need to store some positional information as well.
  *
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FGameplayEffectInstigatorContext
 {
 	GENERATED_USTRUCT_BODY()
@@ -237,9 +241,10 @@ FString EGameplayEffectCopyPolicyToString(int32 Type);
 FString EGameplayEffectStackingPolicyToString(int32 Type);
 
 
-DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData &);
-
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExecuted, const FGameplayAttribute &, const struct FGameplayEffectSpec &, struct FGameplayModifierEvaluatedData &);
+DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32 );
 
+DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);

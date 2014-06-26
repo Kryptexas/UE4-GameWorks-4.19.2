@@ -1328,8 +1328,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 				
 				const float NewPropertyValue = Aggregator.Evaluate().Magnitude;
 
-				ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f [was: %.2f]"), *Mod.Info.Attribute.GetName(), NewPropertyValue, CurrentValueOfProperty);
-				Owner->SetNumericAttribute(Mod.Info.Attribute, NewPropertyValue);
+				InternalUpdateNumericalAttribute(Mod.Info.Attribute, NewPropertyValue, &ExecuteData);
 			}
 
 			/** This should apply 'gameplay effect specific' rules, such as life steal, shields, etc */
@@ -1382,17 +1381,25 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 
 void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGameplayEffectHandle Handle)
 {
+	FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		// Execute
+		ExecuteActiveEffectsFrom(ActiveEffect->Spec, FModifierQualifier().IgnoreHandle(Handle));
+	}
+}
+
+FActiveGameplayEffect* FActiveGameplayEffectsContainer::GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle)
+{
 	// Could make this a map for quicker lookup
 	for (FActiveGameplayEffect& Effect : GameplayEffects)
 	{
 		if (Effect.Handle == Handle)
 		{
-			// Execute
-			ExecuteActiveEffectsFrom(Effect.Spec, FModifierQualifier().IgnoreHandle(Effect.Handle));
-
-			return;
+			return &Effect;
 		}
 	}
+	return nullptr;
 }
 
 void FActiveGameplayEffectsContainer::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
@@ -1521,11 +1528,21 @@ void FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty(FAggregator* Agg
 	ABILITY_LOG_SCOPE(TEXT("FActiveGameplayEffectsContainer::OnPropertyAggregatorDirty"));
 
 	// Immediately calculate the newest value of the property			
-	float NewPropertyValue = Aggregator->Evaluate().Magnitude;
+	float NewValue = Aggregator->Evaluate().Magnitude;
 
-	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewPropertyValue);
-	
-	Owner->SetNumericAttribute(Attribute, NewPropertyValue);
+	InternalUpdateNumericalAttribute(Attribute, NewValue, nullptr);
+}
+
+void FActiveGameplayEffectsContainer::InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData)
+{
+	ABILITY_LOG(Log, TEXT("Property %s new value is: %.2f"), *Attribute.GetName(), NewValue);
+	Owner->SetNumericAttribute(Attribute, NewValue);
+
+	FOnGameplayAttributeChange* Delegate = AttributeChangeDelegates.Find(Attribute);
+	if (Delegate)
+	{
+		Delegate->Broadcast(NewValue, ModData);
+	}
 }
 
 void FActiveGameplayEffectsContainer::StacksNeedToRecalculate()
@@ -1556,7 +1573,6 @@ FActiveGameplayEffect & FActiveGameplayEffectsContainer::CreateNewActiveGameplay
 			FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, LastAssignedHandle);
 			TimerManager.SetTimer(NewEffect.DurationHandle, Delegate, Spec.GetDuration(), false, Spec.GetDuration());
 		}
-
 		// The timer manager moves things from the pending list to the active list after checking the active list on the first tick so we need to execute here
 		if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
 		{
@@ -1687,6 +1703,9 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 /** This does cleanup that has to happen whether the effect is being removed locally or due to replication */
 void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(const FActiveGameplayEffect& Effect)
 {
+
+	Effect.OnRemovedDelegate.Broadcast();
+
 	// Update gameplaytag count and broadcast delegate if we are at 0
 	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 	for (auto BaseTagIt = Effect.Spec.Def->OwnedTagsContainer.CreateConstIterator(); BaseTagIt; ++BaseTagIt)
@@ -2009,6 +2028,11 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsTimeRemaining(con
 FOnGameplayEffectTagCountChanged& FActiveGameplayEffectsContainer::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
 	return GameplayTagEventMap.FindOrAdd(Tag);
+}
+
+FOnGameplayAttributeChange& FActiveGameplayEffectsContainer::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
+{
+	return AttributeChangeDelegates.FindOrAdd(Attribute);
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------

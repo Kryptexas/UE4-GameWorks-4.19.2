@@ -6,6 +6,7 @@
 
 #include "Abilities/GameplayAbility.h"
 
+
 UAbilityTask_WaitAbilityCommit::UAbilityTask_WaitAbilityCommit(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -22,6 +23,7 @@ UAbilityTask_WaitAbilityCommit* UAbilityTask_WaitAbilityCommit::WaitForAbilityCo
 		MyObj->InitTask(ThisAbility);
 		MyObj->WithTag = InWithTag;
 		MyObj->WithoutTag = InWithoutTag;
+
 
 		return MyObj;
 	}

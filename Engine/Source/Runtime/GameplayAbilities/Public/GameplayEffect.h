@@ -4,7 +4,6 @@
 
 #include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
-#include "AttributeSet.h"
 #include "TimerManager.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayEffect.generated.h"
@@ -1012,9 +1011,6 @@ struct FGameplayEffectSpec
 	}
 
 	void PrintAll() const;
-
-	// Callbacks
-	FOnAttributeGameplayEffectSpecExecuted	OnExecute;
 };
 
 /**
@@ -1061,6 +1057,8 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	UPROPERTY(NotReplicated)
 	float StartWorldTime;
+
+	FOnActiveGameplayEffectRemoved	OnRemovedDelegate;
 
 	FTimerHandle PeriodHandle;
 
@@ -1142,7 +1140,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	UAbilitySystemComponent *Owner;
 	
-	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey);
+	FActiveGameplayEffect& CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, int32 InPredictionKey);
+
+	FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle);
 
 	// returns true if none of the active effects provide immunity to Spec
 	// returns false if one (or more) of the active effects provides immunity to Spec
@@ -1161,6 +1161,8 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
+
+
 
 	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
 	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
@@ -1212,18 +1214,24 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	
 	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(FGameplayTag Tag);
 
+	FOnGameplayAttributeChange& RegisterGameplayAttributeEvent(FGameplayAttribute Attribute);
+
 private:
 
 	FTimerHandle StackHandle;
 
-	FAggregatorRef & FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
+	FAggregatorRef& FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
 	FActiveGameplayEffectHandle LastAssignedHandle;
 
 	TMap<FGameplayAttribute, FAggregatorRef> OngoingPropertyEffects;
 
+	TMap<FGameplayAttribute, FOnGameplayAttributeChange> AttributeChangeDelegates;
+
 	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
 	TMap<FGameplayTag, int32> GameplayTagCountMap;
+
+	void InternalUpdateNumericalAttribute(FGameplayAttribute Attribute, float NewValue, const FGameplayEffectModCallbackData* ModData);
 
 	bool IsNetAuthority() const;
 

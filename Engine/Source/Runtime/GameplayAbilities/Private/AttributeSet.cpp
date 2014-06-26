@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
@@ -85,14 +85,9 @@ void UAttributeSet::PrintDebug()
 	
 }
 
-void UAttributeSet::OnAttributeChange(UProperty *Property)
-{
-
-}
-
-FAttributeMetaData::FAttributeMetaData() :
-	MinValue(0.f),
-	MaxValue(1.f)
+FAttributeMetaData::FAttributeMetaData()
+	: MinValue(0.f)
+	, MaxValue(1.f)
 {
 
 }

@@ -204,6 +204,17 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitudeByTag(FActiveGameplayEf
 	return ActiveGameplayEffects.GetGameplayEffectMagnitudeByTag(InHandle, InTag);
 }
 
+FOnActiveGameplayEffectRemoved* UAbilitySystemComponent::OnGameplayEffectRemovedDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnRemovedDelegate;
+	}
+
+	return nullptr;
+}
+
 int32 UAbilitySystemComponent::GetNumActiveGameplayEffect() const
 {
 	return ActiveGameplayEffects.GetNumGameplayEffects();
@@ -233,6 +244,11 @@ bool UAbilitySystemComponent::HasAllTags(FGameplayTagContainer &Tags)
 FOnGameplayEffectTagCountChanged& UAbilitySystemComponent::RegisterGameplayTagEvent(FGameplayTag Tag)
 {
 	return ActiveGameplayEffects.RegisterGameplayTagEvent(Tag);
+}
+
+FOnGameplayAttributeChange& UAbilitySystemComponent::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
+{
+	return ActiveGameplayEffects.RegisterGameplayAttributeEvent(Attribute);
 }
 
 void UAbilitySystemComponent::TEMP_ApplyActiveGameplayEffects()

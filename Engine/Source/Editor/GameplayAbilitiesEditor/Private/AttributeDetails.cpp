@@ -9,6 +9,7 @@
 #include "KismetEditorUtilities.h"
 #include "AbilitySystemGlobals.h"
 #include "GameplayAbilitiesModule.h"
+#include "SGameplayAttributeGraphPin.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
 
@@ -51,6 +52,8 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 			}
 		}
 	}
+
+	// Fixme: this should be unified to use SGameplayATtributeWidget instead of custom combo box
 
 	HeaderRow.
 		NameContent()
@@ -126,6 +129,7 @@ void FAttributePropertyDetails::OnChangeProperty(TSharedPtr<FString> ItemSelecte
 			{
 				const UObject *ObjPtr = Property;
 				MyProperty->SetValue(ObjPtr);
+				
 				return;
 			}
 		}

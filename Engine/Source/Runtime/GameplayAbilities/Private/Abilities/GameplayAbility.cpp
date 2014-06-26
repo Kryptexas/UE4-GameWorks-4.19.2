@@ -473,6 +473,7 @@ void UGameplayAbility::ClientActivateAbilitySucceed_Internal(int32 PredictionKey
 
 void FGameplayAbilityActorInfo::InitFromActor(AActor *InActor)
 {
+	check(InActor);
 	Actor = InActor;
 
 	UStruct * Struct = FGameplayAbilityActorInfo::StaticStruct();

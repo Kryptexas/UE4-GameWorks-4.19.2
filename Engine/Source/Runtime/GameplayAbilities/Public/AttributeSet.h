@@ -84,10 +84,6 @@ public:
 	void ClampFromMetaDataTable(const UDataTable *DataTable);
 
 	virtual void PrintDebug();
-
-private:
-
-	void OnAttributeChange(UProperty *Property);
 };
 
 USTRUCT()
