@@ -3338,7 +3338,9 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 			Set( "LevelEditor.Tabs.Outliner", new IMAGE_BRUSH( "/Icons/icon_tab_SceneOutliner_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.ContentBrowser", new IMAGE_BRUSH( "/Icons/icon_tab_ContentBrowser_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Levels", new IMAGE_BRUSH( "/Icons/icon_tab_Levels_16x", Icon16x16 ) );
-			Set( "LevelEditor.Tabs.WorldBrowser", new IMAGE_BRUSH( "/Icons/icon_tab_Levels_16x", Icon16x16 ) );
+			Set( "LevelEditor.Tabs.WorldBrowser", new IMAGE_BRUSH( "/Icons/icon_tab_levels_16x", Icon16x16 ) );
+			Set( "LevelEditor.Tabs.WorldBrowserDetails", new IMAGE_BRUSH( "/Icons/icon_levels_detailsbutton_16x", Icon16x16 ) );
+			Set( "LevelEditor.Tabs.WorldBrowserComposition", new IMAGE_BRUSH( "/Icons/icon_levels_compositionbutton_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.Layers", new IMAGE_BRUSH( "/Icons/icon_tab_Layers_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.BuildAndSubmit", new IMAGE_BRUSH( "/Icons/icon_tab_BuildSubmit_16x", Icon16x16 ) );
 			Set( "LevelEditor.Tabs.StatsViewer", new IMAGE_BRUSH( "/Icons/icon_tab_Stats_16x", Icon16x16 ) );

@@ -41,10 +41,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
 	bool bMessagingDebugger;
 
-	/** The World browser allows you to edit a big world by manipulating individual levels positions and streaming properties */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="World Browser"))
-	bool bWorldBrowser;
-
 	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Actor Merging"))
 	bool bActorMerging;

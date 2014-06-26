@@ -582,7 +582,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 						]
 					]
 
-					// Button to summon levels details tab
+					// Button to summon level details tab
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.VAlign(VAlign_Center)
@@ -591,7 +591,7 @@ void SWorldHierarchy::OnBrowseWorld(UWorld* InWorld)
 						SNew(SButton)
 						.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
 						.OnClicked(this, &SWorldHierarchy::OnSummonDetails)
-						.ToolTipText(LOCTEXT("SummonDetailsToolTipText", "Summons sublevels details"))
+						.ToolTipText(LOCTEXT("SummonDetailsToolTipText", "Summons level details"))
 						.HAlign(HAlign_Center)
 						.VAlign(VAlign_Center)
 						.Content()

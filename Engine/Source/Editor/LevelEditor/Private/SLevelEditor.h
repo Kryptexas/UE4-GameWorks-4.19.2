@@ -145,12 +145,6 @@ private:
 	/** Called when a property is changed */
 	void HandleExperimentalSettingChanged(FName PropertyName);
 
-	/** Registers the tab spawner for the WorldBrowser tab */
-	void RegisterWorldBrowserTabSpawner();
-
-	/** Unregisters the tab spawner for the WorldBrowser tab */
-	void UnregisterWorldBrowserTabSpawner();
-
 	/** Rebuilds the command list for spawning editor modes, this is done when new modes are registered. */
 	void RefreshEditorModeCommands();
 
