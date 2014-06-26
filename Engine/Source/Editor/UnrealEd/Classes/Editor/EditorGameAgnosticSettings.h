@@ -28,6 +28,9 @@ class UEditorGameAgnosticSettings : public UObject
 	UPROPERTY(config)
 	bool bCopyStarterContentPreference;
 
+	UPROPERTY(config)
+	bool bShowPerformanceWarningPreference;
+
 	/** The id's of the surveys completed */
 	UPROPERTY(config)
 	TArray<FGuid> CompletedSurveys;

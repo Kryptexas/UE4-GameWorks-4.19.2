@@ -3797,7 +3797,12 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 				.SetHovered( IMAGE_BRUSH( "/Docking/CloseApp_Hovered", Icon16x16 ) ) );
 		}
 	}
+
+	// Scalability (Performance Warning)
+	{
+		Set( "Scalability.ScalabilitySettings", new IMAGE_BRUSH("Scalability/ScalabilitySettings", FVector2D(473.0f, 266.0f) ) );
 	}
+}
 
 void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 {
