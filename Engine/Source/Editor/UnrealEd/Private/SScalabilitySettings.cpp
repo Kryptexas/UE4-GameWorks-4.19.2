@@ -1,5 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-#include "LevelEditor.h"
+
+#include "UnrealEd.h"
 #include "SScalabilitySettings.h"
 
 #define LOCTEXT_NAMESPACE "EngineScalabiltySettings"

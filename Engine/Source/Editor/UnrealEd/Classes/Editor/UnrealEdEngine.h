@@ -80,6 +80,8 @@ struct FTemplateMapInfo
 	}
 };
 
+class FPerformanceMonitor;
+
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 {
@@ -709,4 +711,7 @@ protected:
 
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;
+
+	/** Instance responsible for monitoring this editor's performance */
+	FPerformanceMonitor* PerformanceMonitor;
 };

@@ -18,7 +18,7 @@ public:
 	SLATE_END_ARGS()
 
 	// Widget construction
-	void Construct( const FArguments& InArgs );
+	UNREALED_API void Construct( const FArguments& InArgs );
 
 private:
 

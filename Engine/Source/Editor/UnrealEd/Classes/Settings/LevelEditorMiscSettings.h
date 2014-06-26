@@ -53,6 +53,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Sound)
 	uint32 bEnableEditorSounds:1;
 
+public:	
+
+	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops */
+	UPROPERTY(EditAnywhere, config, Category=Performance)
+	bool bMonitorEditorPerformance;
+
 protected:
 
 	// Begin UObject overrides

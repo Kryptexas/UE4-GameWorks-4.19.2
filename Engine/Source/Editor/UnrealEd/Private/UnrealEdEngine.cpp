@@ -24,6 +24,7 @@
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "SnappingUtils.h"
 #include "PackageAutoSaver.h"
+#include "PerformanceMonitor.h"
 #include "BSPOps.h"
 #include "ComponentVisualizer.h"
 #include "Editor/EditorLiveStreaming/Public/IEditorLiveStreaming.h"
@@ -37,6 +38,8 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 
 	PackageAutoSaver.Reset(new FPackageAutoSaver);
 	PackageAutoSaver->LoadRestoreFile();
+
+	PerformanceMonitor = new FPerformanceMonitor;
 
 	// Register for the package dirty state updated callback to catch packages that have been modified and need to be checked out.
 	UPackage::PackageDirtyStateChangedEvent.AddUObject(this, &UUnrealEdEngine::OnPackageDirtyStateUpdated);
@@ -222,6 +225,8 @@ void UUnrealEdEngine::FinishDestroy()
 		PackageAutoSaver->UpdateRestoreFile(false);
 		PackageAutoSaver.Reset();
 	}
+
+	delete PerformanceMonitor;
 
 	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 	FCoreDelegates::PostGarbageCollect.RemoveAll(this);

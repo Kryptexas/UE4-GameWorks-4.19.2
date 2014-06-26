@@ -28,8 +28,9 @@ class UEditorGameAgnosticSettings : public UObject
 	UPROPERTY(config)
 	bool bCopyStarterContentPreference;
 
+	/** When set this will prompt a benchmark to be ran on startup to determine the best scalability settings */
 	UPROPERTY(config)
-	bool bShowPerformanceWarningPreference;
+	bool bApplyAutoScalabilityOnStartup;
 
 	/** The id's of the surveys completed */
 	UPROPERTY(config)
