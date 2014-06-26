@@ -6,8 +6,7 @@
 #include "Misc/CoreMisc.h"
 
 #if WITH_EDITOR
-#	include "Editor.h"
-#	include "LevelEditorViewport.h"
+#include "LevelEditorViewport.h"
 #endif //WITH_EDITOR
 
 
