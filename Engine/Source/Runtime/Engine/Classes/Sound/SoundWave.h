@@ -8,6 +8,8 @@
 
 #include "Sound/SoundBase.h"
 #include "Sound/SoundGroups.h"
+#include "SoundGroups.h"
+
 #include "SoundWave.generated.h"
 
 struct FActiveSound;
@@ -105,7 +107,7 @@ struct FStreamedAudioPlatformData
 
 };
 
-UCLASS(hidecategories=Object, editinlinenew, BlueprintType, dependson=USoundGroups)
+UCLASS(hidecategories=Object, editinlinenew, BlueprintType)
 class ENGINE_API USoundWave : public USoundBase
 {
 	GENERATED_UCLASS_BODY()

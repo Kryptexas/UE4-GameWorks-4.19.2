@@ -6,8 +6,11 @@
 //=============================================================================
 
 #pragma once
+
+#include "ParticleLODLevel.h"
 #include "ParticleHelper.h"
 #include "ParticleEmitterInstances.h"
+
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================
@@ -77,7 +80,7 @@ struct FParticleBurst
 	
 };
 
-UCLASS(dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
+UCLASS(hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
 {
 	GENERATED_UCLASS_BODY()

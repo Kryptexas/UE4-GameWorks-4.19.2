@@ -9,7 +9,7 @@
  * A Gameplay Ability Blueprint is essentially a specialized Blueprint whose graphs control a gameplay ability.
  */
 
-UCLASS(dependson = (UBlueprint), BlueprintType)
+UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayAbilityBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()

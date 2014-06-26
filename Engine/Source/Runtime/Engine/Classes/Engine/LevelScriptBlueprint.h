@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Blueprint.h"
+
 #include "LevelScriptBlueprint.generated.h"
 
-UCLASS(dependson=UBlueprint,MinimalAPI, NotBlueprintType)
+UCLASS(MinimalAPI, NotBlueprintType)
 class ULevelScriptBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()

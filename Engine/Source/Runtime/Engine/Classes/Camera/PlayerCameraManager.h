@@ -3,6 +3,9 @@
 #pragma once
 
 #include "CameraTypes.h"
+#include "Engine/Scene.h"
+#include "Engine/EngineBaseTypes.h"
+
 #include "PlayerCameraManager.generated.h"
 
 UENUM()
@@ -133,7 +136,7 @@ struct FViewTargetTransitionParams
 /**
  *	Defines the point of view of a player in world space.
  */
-UCLASS(notplaceable, dependson=UEngineBaseTypes, transient, dependson=UScene, BlueprintType, Blueprintable)
+UCLASS(notplaceable, transient, BlueprintType, Blueprintable)
 class ENGINE_API APlayerCameraManager : public AActor
 {
 	GENERATED_UCLASS_BODY()

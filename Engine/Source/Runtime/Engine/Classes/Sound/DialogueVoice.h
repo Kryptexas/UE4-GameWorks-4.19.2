@@ -6,9 +6,11 @@
  * Playable sound object for spoken dialogue 
  */
 
+#include "DialogueTypes.h"
+
 #include "DialogueVoice.generated.h"
 
-UCLASS(DependsOn=UDialogueTypes, hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueVoice : public UObject
 {
 	GENERATED_UCLASS_BODY()

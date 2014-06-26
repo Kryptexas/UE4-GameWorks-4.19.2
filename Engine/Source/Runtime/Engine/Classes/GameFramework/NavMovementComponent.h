@@ -5,12 +5,16 @@
  */
 
 #pragma once
+
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/PrimitiveComponent.h"
 #include "AI/Navigation/NavAgentInterface.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "GameFramework/MovementComponent.h"
+
 #include "NavMovementComponent.generated.h"
 
-UCLASS(abstract, dependson=(UNavigationSystem, UPrimitiveComponent, INavAgentInterface))
+UCLASS(abstract)
 class ENGINE_API UNavMovementComponent : public UMovementComponent
 {
 	GENERATED_UCLASS_BODY()

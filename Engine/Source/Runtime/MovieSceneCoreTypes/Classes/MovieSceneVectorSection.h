@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+
 #include "MovieSceneVectorSection.generated.h"
 
 /**
  * A vector section
  */
-UCLASS( DependsOn=UMovieSceneSection, MinimalAPI )
+UCLASS(MinimalAPI )
 class UMovieSceneVectorSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()

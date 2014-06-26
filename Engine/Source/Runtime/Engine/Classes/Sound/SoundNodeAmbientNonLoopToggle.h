@@ -6,10 +6,13 @@
  */
 
 #pragma once
+
+#include "SoundNodeAttenuation.h"
 #include "Sound/SoundNodeAmbientNonLoop.h"
+
 #include "SoundNodeAmbientNonLoopToggle.generated.h"
 
-UCLASS(hidecategories=Object, dependson=USoundNodeAttenuation, editinlinenew)
+UCLASS(hidecategories=Object, editinlinenew)
 class UDEPRECATED_SoundNodeAmbientNonLoopToggle : public UDEPRECATED_SoundNodeAmbientNonLoop
 {
 	GENERATED_UCLASS_BODY()

@@ -8,11 +8,13 @@
 #pragma once 
 
 #include "BlendSpace.h"
+#include "AnimInstance.h"
+
 #include "AimOffsetBlendSpace.generated.h"
 
 struct FBlendSample;
 
-UCLASS(config=Engine, hidecategories=Object, dependson=UAnimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UAimOffsetBlendSpace : public UBlendSpace
 {
 	GENERATED_UCLASS_BODY()

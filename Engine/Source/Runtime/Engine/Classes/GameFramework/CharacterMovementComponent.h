@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Interfaces/NetworkPredictionInterface.h"
+
 #include "CharacterMovementComponent.generated.h"
 
 /** Movement modes for Characters.  */
@@ -267,7 +268,7 @@ struct FCharacterMovementComponentPreClothTickFunction : public FTickFunction
 	virtual FString DiagnosticMessage() override;
 };
 
-UCLASS(dependson=(UNetworkPredictionInterface))
+UCLASS()
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()

@@ -5,7 +5,11 @@
  */
 
 #pragma once
+
+#include "Editor/UnrealEdTypes.h"
+
 #include "Materials/MaterialInstanceBasePropertyOverrides.h"
+
 #include "MaterialEditorInstanceConstant.generated.h"
 
 USTRUCT()
@@ -197,7 +201,7 @@ struct FEditorStaticComponentMaskParameterValue : public FEditorParameterValue
 	
 };
 
-UCLASS(hidecategories=Object, dependson=UUnrealEdTypes, collapsecategories)
+UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UMaterialEditorInstanceConstant : public UObject
 {
 	GENERATED_UCLASS_BODY()

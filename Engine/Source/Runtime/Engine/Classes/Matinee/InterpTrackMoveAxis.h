@@ -23,7 +23,7 @@ enum EInterpMoveAxis
 	AXIS_RotationZ,
 };
 
-UCLASS(dependson=UInterpTrackMove, MinimalAPI, meta=( DisplayName = "Move Axis Track" ) )
+UCLASS(MinimalAPI, meta=( DisplayName = "Move Axis Track" ) )
 class UInterpTrackMoveAxis : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

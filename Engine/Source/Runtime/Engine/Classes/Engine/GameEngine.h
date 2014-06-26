@@ -5,6 +5,9 @@
 //=============================================================================
 
 #pragma once
+
+#include "Engine/Engine.h"
+
 #include "GameEngine.generated.h"
 
 UCLASS(config=Engine, transient)

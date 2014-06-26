@@ -6,6 +6,8 @@
  * Context to sound wave map for spoken dialogue 
  */
 
+#include "DialogueTypes.h"
+
 #include "DialogueWave.generated.h"
 
 class USoundWave;
@@ -34,7 +36,7 @@ struct FDialogueContextMapping
 bool operator==(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 bool operator!=(const FDialogueContextMapping& LHS, const FDialogueContextMapping& RHS);
 
-UCLASS(DependsOn=UDialogueTypes, hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType)
 class UDialogueWave : public UObject
 {
 	GENERATED_UCLASS_BODY()

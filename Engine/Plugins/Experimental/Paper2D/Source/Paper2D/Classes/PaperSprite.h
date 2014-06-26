@@ -3,6 +3,8 @@
 #pragma once
 
 #include "SpriteEditorOnlyTypes.h"
+#include "Engine/EngineTypes.h"
+
 #include "PaperSprite.generated.h"
 
 UENUM()
@@ -37,7 +39,7 @@ struct FPaperSpriteSocket
  * Can also contain collision shapes for the sprite.
  */
 
-UCLASS(DependsOn=UEngineTypes, BlueprintType, meta=(DisplayThumbnail = "true"))
+UCLASS(BlueprintType, meta=(DisplayThumbnail = "true"))
 class PAPER2D_API UPaperSprite : public UObject, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()

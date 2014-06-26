@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "SoundClass.h"
 #include "Sound/SoundBase.h"
+
 #include "SoundCue.generated.h"
 
 struct FActiveSound;
@@ -33,7 +36,7 @@ struct FSoundNodeEditorData
 /**
  * The behavior of audio playback is defined within Sound Cues.
  */
-UCLASS(dependson=USoundClass, hidecategories=object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=object, MinimalAPI, BlueprintType)
 class USoundCue : public USoundBase
 {
 	GENERATED_UCLASS_BODY()

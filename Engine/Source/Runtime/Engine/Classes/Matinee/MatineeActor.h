@@ -3,6 +3,9 @@
 //  AActor  used to controll matinee's and to replicate activation, playback, and other relevant flags to net clients
 
 #pragma once
+
+#include "Engine/EngineBaseTypes.h"
+
 #include "MatineeActor.generated.h"
 
 /** Signature of function to handle a matinee event track key */
@@ -49,7 +52,7 @@ struct FInterpGroupActorInfo
 
 };
 
-UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
+UCLASS(MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

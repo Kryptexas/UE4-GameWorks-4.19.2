@@ -5,12 +5,14 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieScenePropertyTrack.h"
+#include "MovieScenePropertyTrack.h"
+
 #include "MovieSceneVectorTrack.generated.h"
 
 /**
  * Handles manipulation of component transforms in a movie scene
  */
-UCLASS( dependson=UMovieScenePropertyTrack, MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneVectorTrack : public UMovieScenePropertyTrack
 {
 	GENERATED_UCLASS_BODY()

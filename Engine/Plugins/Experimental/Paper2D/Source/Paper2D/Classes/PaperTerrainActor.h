@@ -2,13 +2,15 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
+
 #include "PaperTerrainActor.generated.h"
 
 /**
  * An instance of a piece of 2D terrain in the level
  */
 
-UCLASS(DependsOn=UEngineTypes, BlueprintType, Experimental)
+UCLASS(BlueprintType, Experimental)
 class PAPER2D_API APaperTerrainActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

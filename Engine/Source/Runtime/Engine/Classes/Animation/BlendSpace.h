@@ -4,12 +4,14 @@
 
 #include "BlendSpaceBase.h"
 #include "AnimInterpFilter.h"
+#include "AnimInstance.h"
+
 #include "BlendSpace.generated.h"
 
 /**
  * Contains a grid of data points with weights from sample points in the space
  */
-UCLASS(config=Engine, hidecategories=Object, dependson=UAnimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpace : public UBlendSpaceBase
 {
 	GENERATED_UCLASS_BODY()

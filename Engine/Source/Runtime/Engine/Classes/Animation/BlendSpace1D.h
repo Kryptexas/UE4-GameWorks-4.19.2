@@ -11,7 +11,7 @@
 #include "BlendSpaceBase.h"
 #include "BlendSpace1D.generated.h"
 
-UCLASS(config=Engine, hidecategories=Object, dependson=UVimInstance, MinimalAPI, BlueprintType)
+UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
 class UBlendSpace1D : public UBlendSpaceBase
 {
 	GENERATED_UCLASS_BODY()

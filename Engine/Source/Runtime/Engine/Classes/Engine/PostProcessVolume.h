@@ -6,11 +6,15 @@
 //=============================================================================
 
 #pragma once
+
+#include "Scene.h"
 #include "GameFramework/Volume.h"
+#include "Interfaces/Interface_PostProcessVolume.h"
+
 #include "PostProcessVolume.generated.h"
 
 	// for FPostprocessSettings
-UCLASS(dependson=UScene, autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
+UCLASS(autoexpandcategories=PostProcessVolume, hidecategories=(Advanced, Collision, Volume, Brush, Attachment), MinimalAPI)
 class APostProcessVolume : public AVolume, public IInterface_PostProcessVolume
 {
 	GENERATED_UCLASS_BODY()

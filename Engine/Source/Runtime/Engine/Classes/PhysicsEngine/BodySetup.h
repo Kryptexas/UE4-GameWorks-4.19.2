@@ -392,7 +392,7 @@ struct ENGINE_API FKAggregateGeom
 	float GetVolume(const FVector& Scale3D) const;
 };
 
-UCLASS(hidecategories=Object, MinimalAPI, dependson=BodyInstance)
+UCLASS(hidecategories=Object, MinimalAPI)
 class UBodySetup : public UObject
 {
 	GENERATED_UCLASS_BODY()

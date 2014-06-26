@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "Engine/EngineBaseTypes.h"
+#include "Components/ActorComponent.h"
+#include "Engine/EngineTypes.h"
+
 #include "Runtime/InputCore/Classes/InputCoreTypes.h"
 #include "Runtime/RenderCore/Public/RenderCommandFence.h"
 
@@ -143,7 +147,7 @@ public:
 * AActor::PostInitializeComponents - Called after the actor's components have been initialized
 * AActor::BeginPlay - Called when the level is started
 */
-UCLASS(abstract, dependson=(UEngineBaseTypes, UActorComponent, UEngineTypes), BlueprintType, Blueprintable, config=Engine)
+UCLASS(abstract, BlueprintType, Blueprintable, config=Engine)
 class ENGINE_API AActor : public UObject
 {
 	GENERATED_UCLASS_BODY()

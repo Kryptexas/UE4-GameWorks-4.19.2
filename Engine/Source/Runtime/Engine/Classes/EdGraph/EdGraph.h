@@ -1,8 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "BlueprintUtilities.h"
 #include "EdGraphSchema.h"
+#include "EdGraphNode.h"
+
 #include "EdGraph.generated.h"
 
 USTRUCT()
@@ -51,7 +54,7 @@ struct TStructOpsTypeTraits<FGraphReference> : public TStructOpsTypeTraitsBase
 	};
 };
 
-UCLASS(dependson=(UEdGraphNode))
+UCLASS()
 class ENGINE_API UEdGraph : public UObject
 {
 	GENERATED_UCLASS_BODY()

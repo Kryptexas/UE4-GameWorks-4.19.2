@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
+#include "Editor/UnrealEdTypes.h"
+
 #include "DEditorTextureParameterValue.generated.h"
 
-UCLASS(hidecategories=Object, dependson=UUnrealEdTypes, collapsecategories)
+UCLASS(hidecategories=Object, collapsecategories)
 class UNREALED_API UDEditorTextureParameterValue : public UDEditorParameterValue
 {
 	GENERATED_UCLASS_BODY()

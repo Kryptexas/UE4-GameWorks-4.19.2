@@ -266,7 +266,7 @@ enum ETypeAdvanceAnim
 	ETAA_Looped
 };
 
-UCLASS(abstract, MinimalAPI, dependson=UCurveBase, BlueprintType)
+UCLASS(abstract, MinimalAPI, BlueprintType)
 class UAnimSequenceBase : public UAnimationAsset
 {
 	GENERATED_UCLASS_BODY()

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Engine/Blueprint.h"
+#include "UserWidget.h"
 #include "WidgetBlueprintGeneratedClass.h"
 
 #include "WidgetBlueprint.generated.h"
@@ -38,7 +40,7 @@ class UMovieScene;
 /**
  * The widget blueprint enables extending UUserWidget the user extensible UWidget.
  */
-UCLASS(dependson=(UBlueprint, UUserWidget, UWidgetBlueprintGeneratedClass), BlueprintType)
+UCLASS(BlueprintType)
 class UMG_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()

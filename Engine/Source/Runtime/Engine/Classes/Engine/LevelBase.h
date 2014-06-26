@@ -7,7 +7,7 @@
 #pragma once
 #include "LevelBase.generated.h"
 
-UCLASS(Abstract, customConstructor, dependsOn=UGameEngine)
+UCLASS(Abstract, customConstructor)
 class ULevelBase : public UObject
 {
 	GENERATED_UCLASS_BODY()

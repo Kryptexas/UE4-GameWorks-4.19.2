@@ -5,6 +5,8 @@
 #include "AnimStateMachineTypes.h"
 #include "AnimSequenceBase.h"
 #include "Engine/BlueprintGeneratedClass.h"
+#include "AnimBlueprint.h"
+
 #include "AnimBlueprintGeneratedClass.generated.h"
 
 struct FAnimNotifyEvent;
@@ -156,7 +158,7 @@ namespace EPropertySearchMode
 }
 #endif
 
-UCLASS(dependson=(UAnimBlueprint, UAnimStateMachineTypes))
+UCLASS()
 class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
 	GENERATED_UCLASS_BODY()

@@ -2,12 +2,14 @@
 
 #pragma once
 
+#include "MovieSceneSection.h"
+
 #include "MovieSceneTransformSection.generated.h"
 
 /**
  * A transform section
  */
-UCLASS( DependsOn=UMovieSceneSection, MinimalAPI )
+UCLASS(MinimalAPI)
 class UMovieSceneTransformSection : public UMovieSceneSection
 {
 	GENERATED_UCLASS_BODY()

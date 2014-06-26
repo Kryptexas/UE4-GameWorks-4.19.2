@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "LiveEditorTypes.h"
+
 #include "K2Node_LiveEditObject.generated.h"
 
-UCLASS(DependsOn=ULiveEditorTypes,MinimalAPI)
+UCLASS(MinimalAPI)
 class UK2Node_LiveEditObject : public UK2Node
 {
 	GENERATED_UCLASS_BODY()

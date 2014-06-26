@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "PaperSprite.h"
+
 #include "PaperTileMapRenderComponent.generated.h"
 
-UCLASS(DependsOn=UPaperSprite, hideCategories=Object, Experimental)
+UCLASS(hideCategories=Object, Experimental)
 class PAPER2D_API UPaperTileMapRenderComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

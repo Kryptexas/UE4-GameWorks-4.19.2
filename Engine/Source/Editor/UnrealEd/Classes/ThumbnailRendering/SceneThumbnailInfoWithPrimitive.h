@@ -5,10 +5,13 @@
  */
 
 #pragma once
+
+#include "ThumbnailManager.h"
+
 #include "SceneThumbnailInfoWithPrimitive.generated.h"
 
 
-UCLASS(dependson=UThumbnailManager,MinimalAPI)
+UCLASS(MinimalAPI)
 class USceneThumbnailInfoWithPrimitive : public USceneThumbnailInfo
 {
 	GENERATED_UCLASS_BODY()

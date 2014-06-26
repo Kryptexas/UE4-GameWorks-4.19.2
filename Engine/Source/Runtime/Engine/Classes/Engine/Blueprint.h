@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "EdGraph/EdGraph.h"
 #include "EdGraph/EdGraphPin.h"
+#include "EdGraph/EdGraphNode.h"
 #include "BlueprintCore.h"
+
 #include "Blueprint.generated.h"
 
 /** States a blueprint can be in */
@@ -248,7 +251,7 @@ struct FEditedDocumentInfo
  * and script level events; giving designers and gameplay programmers the tools to quickly create and iterate gameplay from
  * within Unreal Editor without ever needing to write a line of code.
  */
-UCLASS(config=Engine, dependson=(UEdGraphPin,UEdGraph,UEdGraphNode), BlueprintType)
+UCLASS(config=Engine, BlueprintType)
 class ENGINE_API UBlueprint : public UBlueprintCore
 {
 	GENERATED_UCLASS_BODY()

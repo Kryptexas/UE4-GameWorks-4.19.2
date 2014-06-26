@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "../Engine/BlendableInterface.h"
-#include "../Materials/MaterialInterface.h"
+
+#include "Engine/BlendableInterface.h"
 #include "MaterialExpressionIO.h"
+#include "Materials/MaterialExpression.h"
+#include "Materials/MaterialInterface.h"
+
 #include "Material.generated.h"
 
 #if WITH_EDITOR
@@ -256,7 +259,7 @@ struct FMaterialParameterCollectionInfo
  * when light from the scene hits the surface, the shading model of the material is used to calculate how
  * that light interacts with the surface. 
  */
-UCLASS(hidecategories=Object, MinimalAPI, BlueprintType, DependsOn=UMaterialExpression)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface
 {
 	GENERATED_UCLASS_BODY()

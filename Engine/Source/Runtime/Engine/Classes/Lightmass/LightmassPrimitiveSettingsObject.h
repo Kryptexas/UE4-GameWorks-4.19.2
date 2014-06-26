@@ -5,9 +5,12 @@
  */
 
 #pragma once
+
+#include "Engine/EngineTypes.h"
+
 #include "LightmassPrimitiveSettingsObject.generated.h"
 
-UCLASS(hidecategories=Object, dependson=UEngineTypes, editinlinenew, MinimalAPI,collapsecategories)
+UCLASS(hidecategories=Object, editinlinenew, MinimalAPI,collapsecategories)
 class ULightmassPrimitiveSettingsObject : public UObject
 {
 	GENERATED_UCLASS_BODY()

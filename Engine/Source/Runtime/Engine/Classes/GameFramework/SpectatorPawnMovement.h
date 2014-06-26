@@ -5,10 +5,13 @@
  */
 
 #pragma once
+
+#include "FloatingPawnMovement.h"
 #include "GameFramework/FloatingPawnMovement.h"
+
 #include "SpectatorPawnMovement.generated.h"
 
-UCLASS(DependsOn=UFloatingPawnMovement)
+UCLASS()
 class ENGINE_API USpectatorPawnMovement : public UFloatingPawnMovement
 {
 	GENERATED_UCLASS_BODY()

@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Controller.h"
+
 #include "WheeledVehicle.generated.h"
 
-UCLASS(abstract, config=Game, dependson=(AController), BlueprintType)
+UCLASS(abstract, config=Game, BlueprintType)
 class ENGINE_API AWheeledVehicle : public APawn
 {
 	GENERATED_UCLASS_BODY()

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperTileSet.h"
+
 #include "PaperTileLayer.generated.h"
 
 USTRUCT(BlueprintType)
@@ -32,7 +34,7 @@ struct FPaperTileInfo
 	}
 };
 
-UCLASS(DependsOn=UPaperTileSet)
+UCLASS()
 class PAPER2D_API UPaperTileLayer : public UObject
 {
 	GENERATED_UCLASS_BODY()

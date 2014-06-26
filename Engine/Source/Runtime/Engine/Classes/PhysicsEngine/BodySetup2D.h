@@ -3,10 +3,11 @@
 #pragma once
 
 #include "AggregateGeometry2D.h"
+#include "Engine/EngineTypes.h"
 
 #include "BodySetup2D.generated.h"
 
-UCLASS(DependsOn=UEngineTypes)
+UCLASS()
 class ENGINE_API UBodySetup2D : public UBodySetup
 {
 	GENERATED_UCLASS_BODY()

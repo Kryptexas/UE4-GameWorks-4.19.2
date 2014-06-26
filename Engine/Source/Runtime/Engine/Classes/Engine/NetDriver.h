@@ -3,7 +3,9 @@
 //
 // Base class of a network driver attached to an active or pending level.
 #pragma once
-//
+
+#include "EngineTypes.h"
+
 #include "NetDriver.generated.h"
 
 class FRepChangedPropertyTracker;
@@ -90,7 +92,7 @@ struct FActorDestructionInfo
 };
 
 
-UCLASS(dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
+UCLASS(Abstract, customConstructor, transient, MinimalAPI, config=Engine)
 class UNetDriver : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()

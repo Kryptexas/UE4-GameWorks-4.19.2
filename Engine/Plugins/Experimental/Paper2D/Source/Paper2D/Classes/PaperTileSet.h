@@ -2,9 +2,11 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
+
 #include "PaperTileSet.generated.h"
 
-UCLASS(DependsOn=UEngineTypes)
+UCLASS()
 class PAPER2D_API UPaperTileSet : public UDataAsset //@TODO: Just to make it easy to spawn for now
 {
 	GENERATED_UCLASS_BODY()

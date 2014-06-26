@@ -4229,6 +4229,8 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 		}
 		else if (Specifier == TEXT("dependsOn"))
 		{
+			FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use proper #include instead."));
+
 			// Make sure the syntax matches but don't do anything with it; that's handled in MakeCommandlet.cpp
 			RequireSpecifierValue(PropSpecifier);
 		}

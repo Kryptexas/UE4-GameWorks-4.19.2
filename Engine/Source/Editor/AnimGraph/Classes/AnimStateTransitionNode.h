@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Animation/AnimInstance.h"
 #include "AnimStateNodeBase.h"
+
 #include "AnimStateTransitionNode.generated.h"
 
-UCLASS(MinimalAPI, DependsOn=UAnimInstance, config=Editor)
+UCLASS(MinimalAPI, config=Editor)
 class UAnimStateTransitionNode : public UAnimStateNodeBase
 {
 	GENERATED_UCLASS_BODY()

@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "GameViewportClient.h"
+
 #include "PendingNetGame.generated.h"
 
 /**
@@ -61,7 +64,7 @@ public:
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) PURE_VIRTUAL(FNetworkNotify::NotifyReceivedText,);
 };
 
-UCLASS(customConstructor, transient, dependsOn=UGameViewportClient)
+UCLASS(customConstructor, transient)
 class UPendingNetGame :
 	public UObject,
 	public FNetworkNotify

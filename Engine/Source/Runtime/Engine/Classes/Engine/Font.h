@@ -74,7 +74,7 @@ struct TStructOpsTypeTraits<FFontCharacter> : public TStructOpsTypeTraitsBase
  * the font database only contains the coordinates of the individual
  * glyph.
  */
-UCLASS(hidecategories=Object, dependson=UFontImportOptions, autoexpandcategories=Font, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, autoexpandcategories=Font, MinimalAPI, BlueprintType)
 class UFont : public UObject
 {
 	GENERATED_UCLASS_BODY()

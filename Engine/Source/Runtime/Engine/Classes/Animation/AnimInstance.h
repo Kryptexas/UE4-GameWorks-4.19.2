@@ -5,6 +5,8 @@
 #include "AnimationAsset.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "AnimSequence.h"
+#include "AnimStateMachineTypes.h"
+
 #include "AnimInstance.generated.h"
 
 struct FBoneContainer;
@@ -233,7 +235,7 @@ struct FSlotEvaluationPose
 	}
 };
 
-UCLASS(transient, Blueprintable, hideCategories=AnimInstance, DependsOn(UAnimStateMachineTypes), BlueprintType)
+UCLASS(transient, Blueprintable, hideCategories=AnimInstance, BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()

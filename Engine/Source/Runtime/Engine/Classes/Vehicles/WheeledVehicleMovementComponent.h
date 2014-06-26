@@ -3,6 +3,8 @@
 #pragma once
 
 #include "VehicleWheel.h"
+#include "Curves/CurveBase.h"
+
 #include "WheeledVehicleMovementComponent.generated.h"
 
 #if WITH_VEHICLE
@@ -160,7 +162,7 @@ struct FVehicleInputRate
 /**
  * Component to handle the vehicle simulation for an actor.
  */
-UCLASS(Abstract, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
+UCLASS(Abstract, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()

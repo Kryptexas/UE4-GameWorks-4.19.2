@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SoundClass.h"
 #include "Audio.h"
 #include "SoundMix.generated.h"
 
@@ -112,7 +113,7 @@ struct FSoundClassAdjuster
 	
 };
 
-UCLASS(BlueprintType, dependson=(USoundClass), hidecategories=object, MinimalAPI)
+UCLASS(BlueprintType, hidecategories=object, MinimalAPI)
 class USoundMix : public UObject
 {
 	GENERATED_UCLASS_BODY()

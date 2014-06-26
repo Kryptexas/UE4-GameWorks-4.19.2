@@ -7,9 +7,12 @@
 //=============================================================================
 
 #pragma once
+
+#include "Engine/EngineTypes.h"
 #include "Components/InputComponent.h"
 #include "GestureRecognizer.h"
 #include "KeyState.h"
+
 #include "PlayerInput.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
@@ -227,7 +230,7 @@ struct FAxisKeyDetails
 	}
 };
 
-UCLASS(Within=PlayerController, config=Input, dependsOn=UEngineTypes, transient)
+UCLASS(Within=PlayerController, config=Input, transient)
 class ENGINE_API UPlayerInput : public UObject
 {
 	GENERATED_UCLASS_BODY()

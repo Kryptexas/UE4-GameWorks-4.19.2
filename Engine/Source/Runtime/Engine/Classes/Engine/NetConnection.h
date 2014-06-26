@@ -5,10 +5,12 @@
 //
 
 #pragma once
+
 #include "Net/DataBunch.h"
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
 #include "Engine/NetDriver.h"
+
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
@@ -95,7 +97,7 @@ struct DelayedPacket
 #define PING_ACK_DELAY 0.5
 
 
-UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine, dependsOn=UGameEngine)
+UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
 	GENERATED_UCLASS_BODY()

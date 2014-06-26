@@ -5,9 +5,13 @@
 #include "StaticArray.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
+#include "Components/LightComponent.h"
 #include "Materials/MaterialInterface.h"
 #include "SceneTypes.h"
 #include "CollisionQueryParams.h"
+#include "Engine/Scene.h"
+#include "Engine/EngineTypes.h"
+
 #include "PrimitiveComponent.generated.h"
 
 class FPrimitiveSceneProxy;
@@ -116,7 +120,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentOnInputTouchEndSignature
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentBeginTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 
-UCLASS(dependson=(UScene, ULightComponent, UEngineTypes), abstract, HideCategories=(Mobility))
+UCLASS(abstract, HideCategories=(Mobility))
 class ENGINE_API UPrimitiveComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -1438,4 +1442,3 @@ public:
 	void DispatchOnInputTouchBegin(const ETouchIndex::Type Key);
 	void DispatchOnInputTouchEnd(const ETouchIndex::Type Key);
 };
-

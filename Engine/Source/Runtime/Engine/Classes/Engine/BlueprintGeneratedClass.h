@@ -379,7 +379,7 @@ public:
 #endif
 };
 
-UCLASS(dependson=DynamicBlueprintBinding)
+UCLASS()
 class ENGINE_API UBlueprintGeneratedClass : public UClass
 {
 	GENERATED_UCLASS_BODY()

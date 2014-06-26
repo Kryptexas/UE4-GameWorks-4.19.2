@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Engine/Blueprint.h"
+#include "AnimInstance.h"
+
 #include "AnimBlueprint.generated.h"
 
 USTRUCT()
@@ -52,7 +54,7 @@ struct FAnimParentNodeAssetOverride
  * It can perform blending of animations, directly control the bones of the skeleton, and output a final pose
  * for a Skeletal Mesh each frame.
  */
-UCLASS(dependson=(UBlueprint, UAnimInstance), BlueprintType)
+UCLASS(BlueprintType)
 class ENGINE_API UAnimBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
