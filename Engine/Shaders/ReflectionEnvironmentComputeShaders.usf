@@ -697,7 +697,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 			GBuffer.SpecularColor = GBuffer.SpecularColor * AB.x + AB.y * saturate( 50 * GBuffer.SpecularColor.g ) * (1 - ClearCoat);
 			
 			// F_Schlick
-			float F0 = GBuffer.Specular * 0.08;
+			float F0 = 0.04;
 			float Fc = pow( 1 - NoV, 5 );
 			float F = Fc + (1 - Fc) * F0;
 			F *= ClearCoat;

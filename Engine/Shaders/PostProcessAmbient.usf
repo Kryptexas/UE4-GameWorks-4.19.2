@@ -200,14 +200,14 @@ float3 ClearCoatShadingPerLight( Shared, float3 L, float3 V, half3 N )
 
 float3 ClearCoatShading( FGBufferData GBuffer, float Roughness, float3 L, float3 V, half3 N )
 {
-	float ClearCoat = 1;
-	float ClearCoatRoughness = 0.1;
+	const float ClearCoat			= GBuffer.CustomData.x;
+	const float ClearCoatRoughness	= GBuffer.CustomData.y;
 	float Film = 1;
 	float MetalSpec = 0.9;
 
 	Film *= ClearCoat;
 
-#if 0
+#if 1
 	float3 H = normalize(V + L);
 	float NoL = saturate( dot(N, L) );
 	float NoV = saturate( dot(N, V) );
@@ -219,7 +219,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float Roughness, float3 L, float3
 	float Vis = Vis_Kelemen( VoH );
 	
 	// F_Schlick
-	float F0 = GBuffer.Specular * 0.08;
+	float F0 = 0.04;
 	float Fc = pow( 1 - VoH, 5 );
 	float F = Fc + (1 - Fc) * F0;
 
@@ -257,7 +257,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float Roughness, float3 L, float3
 	float Vis = Vis_Kelemen( VoH );
 	
 	// F_Schlick
-	float F0 = GBuffer.Specular * 0.08;
+	float F0 = 0.04;
 	float Fc = pow( 1 - VoH, 5 );
 	float F = Fc + (1 - Fc) * F0;
 
@@ -305,7 +305,7 @@ float3 ClearCoatShading( FGBufferData GBuffer, float Roughness, float3 L, float3
 	float Vis = Vis_Kelemen( VoH );
 	
 	// F_Schlick
-	float F0 = GBuffer.Specular * 0.08;
+	float F0 = 0.04;
 	float Fc = pow( 1 - VoH, 5 );
 	float F = Fc + (1 - Fc) * F0;
 
@@ -430,8 +430,8 @@ float3 ImageBasedLightingMIS( FGBufferData GBuffer, float3 V, float3 N, uint2 Ra
 				}
 				float Weight = rcp( InvWeight );
 
-				//float3 Shading = ClearCoatShading( GBuffer, GBuffer.Roughness, L, V, N );
-				float3 Shading = StandardShading( GBuffer, GBuffer.Roughness, L, V, N );
+				float3 Shading = ClearCoatShading( GBuffer, GBuffer.Roughness, L, V, N );
+				//float3 Shading = StandardShading( GBuffer, GBuffer.Roughness, L, V, N );
 			
 				Lighting += SampleColor * Shading * ( NoL * Weight );
 			}
@@ -548,8 +548,8 @@ float3 ImageBasedLightingSplitSum( FGBufferData GBuffer, float3 V, float3 N, uin
 		return 0;
 	}
 
-	float ClearCoat = 1;
-	float ClearCoatRoughness = 0.1;
+	const float ClearCoat			= GBuffer.CustomData.x;
+	const float ClearCoatRoughness	= GBuffer.CustomData.y;
 	float Film = 1;
 	float MetalSpec = 0.9;
 
@@ -560,7 +560,7 @@ float3 ImageBasedLightingSplitSum( FGBufferData GBuffer, float3 V, float3 N, uin
 	float Lobe1Roughness = ClearCoatRoughness;
 	float Lobe2Roughness = GBuffer.Roughness;
 	
-#if 1
+#if 0
 	float3 Lobe1Color = FilterEnvMap( Random, Lobe1Roughness, N, V );
 	float3 Lobe2Color = FilterEnvMap( Random, Lobe2Roughness, N, V );
 #else
@@ -576,7 +576,7 @@ float3 ImageBasedLightingSplitSum( FGBufferData GBuffer, float3 V, float3 N, uin
 #endif
 
 	// F_Schlick
-	float F0 = GBuffer.Specular * 0.08;
+	float F0 = 0.04;
 	float Fc = pow( 1 - NoV, 5 );
 	float F = Fc + (1 - Fc) * F0;
 	F *= ClearCoat;
@@ -625,7 +625,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	// Diffuse
 	{
 	#if IMPORTANCE_SAMPLE
-		//DiffuseAndSpecular += DiffuseIBL( Random, GBuffer.DiffuseColor, GBuffer.WorldNormal );
+		DiffuseAndSpecular += DiffuseIBL( Random, GBuffer.DiffuseColor, GBuffer.WorldNormal );
 	#else
 		// we want to access the mip with the preconvolved diffuse lighting (coneangle=90 degree)
 		DiffuseAndSpecular += GBuffer.DiffuseColor * DiffuseLookup;
@@ -635,7 +635,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	// Specular
 	{
 	#if IMPORTANCE_SAMPLE
-		//DiffuseAndSpecular += SpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
+		DiffuseAndSpecular += SpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
 		//DiffuseAndSpecular += ApproximateSpecularIBL( Random, GBuffer.SpecularColor, GBuffer.Roughness, GBuffer.WorldNormal, -ScreenVector );
 	#else
 		float3 R = reflect( ScreenVector, GBuffer.WorldNormal );
@@ -648,13 +648,13 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	#endif
 	}
 
-	#if IMPORTANCE_SAMPLE
-		DiffuseAndSpecular += ImageBasedLightingMIS( GBuffer, -ScreenVector, GBuffer.WorldNormal, Random );
-	#endif
-
 	BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
 	{
+	#if IMPORTANCE_SAMPLE
+		DiffuseAndSpecular = ImageBasedLightingMIS( GBuffer, -ScreenVector, GBuffer.WorldNormal, Random );
+	#else
 		DiffuseAndSpecular = ImageBasedLightingSplitSum( GBuffer, -ScreenVector, GBuffer.WorldNormal, Random );
+	#endif
 	}
 	
 	// apply darkening from ambient occlusion (does not use PostprocessInput1 to set white texture if SSAO is off)
