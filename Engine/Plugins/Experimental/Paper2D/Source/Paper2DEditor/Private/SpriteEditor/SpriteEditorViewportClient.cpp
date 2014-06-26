@@ -95,6 +95,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	if (SourceSprite != NULL)
 	{
 		TargetSprite->PivotMode = ESpritePivotMode::Bottom_Left;
+		TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
 		TargetSprite->BlendMode = SourceSprite->BlendMode;
 
 		if (SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture())
@@ -537,7 +538,7 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		FIntPoint Size = Viewport->GetSizeXY();
 		if (bDeferZoomToSprite && Size.X > 0 && Size.Y > 0)
 		{
-			UPaperRenderComponent *ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
+			UPaperRenderComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
 			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
 			bDeferZoomToSprite = false;
 		}		

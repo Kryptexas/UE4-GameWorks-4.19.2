@@ -952,15 +952,15 @@ FVector UPaperSprite::ConvertPivotSpaceToTextureSpace(FVector Input) const
 
 FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
 {
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-	return (PaperAxisX * SourcePoint.X) + (PaperAxisY * (SourceDims.Y - SourcePoint.Y));
-}
+	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
 
-// FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector& SourcePoint) const
-// {
-// 	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-// 	return FVector(SourcePoint.X, SourcePoint.Y, SourceDims.Y - SourcePoint.Z);
-// }
+	const FVector2D SourcePointInUU = SourcePoint * UnitsPerPixel;
+
+	const FVector2D SourceDimsInPixels = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
+	const FVector2D SourceDimsInUU = SourceDimsInPixels * UnitsPerPixel;
+
+	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * (SourceDimsInUU.Y - SourcePointInUU.Y));
+}
 
 FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const
 {
