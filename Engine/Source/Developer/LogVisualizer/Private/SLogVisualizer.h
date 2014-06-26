@@ -65,15 +65,16 @@ public:
 	static const FName NAME_LogTimeSpan;
 
 	/** Expressed in Hz */
-	static const int32 FullUpdateFrequency = 2; 
+	static const int32 FullUpdateFrequency = 2;
 
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnZoomChanged, float, float);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHistogramWindowChanged, float);
 
 	SLATE_BEGIN_ARGS(SLogVisualizer) {}
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, FLogVisualizer* InAnalyzer);
+		void Construct(const FArguments& InArgs, FLogVisualizer* InAnalyzer);
 
 	virtual ~SLogVisualizer();
 
@@ -100,8 +101,10 @@ public:
 	TSharedRef<ITableRow> LogsListGenerateRow(TSharedPtr<FLogsListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void LogsListSelectionChanged(TSharedPtr<FLogsListItem> SelectedItem, ESelectInfo::Type SelectInfo);
 	TSharedRef<ITableRow> LogEntryLinesGenerateRow(TSharedPtr<FLogEntryItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
-	
+
 	FOnZoomChanged& OnZoomChanged() { return ZoomChangedNotify; }
+
+	FOnHistogramWindowChanged& OnHistogramWindowChanged() { return HistogramWindowChangedNotify; }
 
 	void OnListDoubleClick(TSharedPtr<FLogsListItem>);
 	void DoFullUpdate();
@@ -140,6 +143,7 @@ public:
 	float GetCurrentViewedTime() const { return CurrentViewedTime; }
 
 	static FLinearColor GetColorForUsedCategory(int32 Index);
+	float GetHistogramPreviewWindow() { return HistogramPreviewWindow; }
 
 protected:
 	float GetMaxScrollOffsetFraction() const
@@ -151,6 +155,7 @@ protected:
 	{
 		return GetZoom() - 1.0f;
 	}
+
 
 	void DrawOnCanvas(UCanvas* Canvas, APlayerController*);
 
@@ -189,6 +194,8 @@ private:
 	void OnSetZoomValue(float NewValue);
 	void OnZoomScrolled(float InScrollOffsetFraction);
 
+	void OnSetHistogramWindowValue(float NewValue);
+
 	/** handler for toggling DrawLogEntriesPath option change */
 	void OnDrawLogEntriesPathChanged(ESlateCheckBoxState::Type NewState);
 	/** retrieves whether DrawLogEntriesPath checkbox should be checked */
@@ -199,6 +206,12 @@ private:
 	/** retrieves whether IgnoreTrivialLogs checkbox should be checked */
 	ESlateCheckBoxState::Type GetIgnoreTrivialLogs() const;
 
+	void OnChangeHistogramLabelLocation(ESlateCheckBoxState::Type NewState);
+	ESlateCheckBoxState::Type GetHistogramLabelLocation() const;
+
+	void OnStickToLastData(ESlateCheckBoxState::Type NewState);
+	ESlateCheckBoxState::Type GetStickToLastData() const;
+	
 	/** handler for toggling log visualizer camera in game view */
 	void OnToggleCamera(ESlateCheckBoxState::Type NewState);
 	/** retrieves whether ToggleCamera toggle button should appear pressed */
@@ -252,14 +265,19 @@ private:
 	float MaxZoom;
 	
 	FOnZoomChanged ZoomChangedNotify;
+	FOnHistogramWindowChanged HistogramWindowChangedNotify;
+	float HistogramPreviewWindow;
 
 	FDebugDrawDelegate DrawingOnCanvasDelegate;
 
 	bool bDrawLogEntriesPath;
 	bool bIgnoreTrivialLogs;
+	bool bShowHistogramLabelsOutside;
+	bool bStickToLastData;
 
 	TWeakObjectPtr<class ALogVisualizerCameraController> CameraController;
 	TArray< TSharedPtr<FLogStatusItem> > StatusItems;
+
 
 	// WIDGETS
 

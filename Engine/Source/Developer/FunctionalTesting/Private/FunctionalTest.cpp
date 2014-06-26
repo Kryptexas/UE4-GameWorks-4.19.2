@@ -250,7 +250,7 @@ void AFunctionalTest::GoToObservationPoint()
 		APlayerController* PC = World->GetFirstPlayerController();
 		if (PC && PC->GetPawn())
 		{
-			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation());
+			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);
 			PC->SetControlRotation(ObservationPoint->GetActorRotation());
 		}
 	}

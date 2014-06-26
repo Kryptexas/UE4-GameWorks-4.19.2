@@ -35,7 +35,7 @@ void UK2Node_SwitchEnum::SetEnum(UEnum* InEnum)
 				FString const EnumValueName = Enum->GetEnumName(EnumIndex);
 				EnumEntries.Add( FName(*EnumValueName) );
 
-				FString EnumFriendlyName = Enum->GetDisplayNameText(EnumIndex).ToString();
+				FString EnumFriendlyName = Enum->GetEnumText(EnumIndex).ToString();
 				if (EnumFriendlyName.Len() == 0)
 				{
 					EnumFriendlyName = EnumValueName;

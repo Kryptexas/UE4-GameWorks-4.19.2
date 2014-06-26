@@ -40,6 +40,21 @@ namespace LogVisualizer
 	static const FString FileTypes = FString::Printf( TEXT("%s (%s)|%s"), *LogFileDescription, *LogFileExtension, *LogFileExtension );
 }
 
+template <typename ItemType>
+class SLogListView : public SListView<ItemType>
+{
+public:
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE
+	{
+		if (!MouseEvent.IsLeftShiftDown())
+		{
+			return SListView<ItemType>::OnMouseWheel(MyGeometry, MouseEvent);
+		};
+
+		return FReply::Unhandled();
+	}
+};
+
 FColor SLogVisualizer::ColorPalette[] = {
 	FColor(0xff00A480),
 	FColorList::Aquamarine,
@@ -52,6 +67,12 @@ FColor SLogVisualizer::ColorPalette[] = {
 	FColorList::NeonBlue,
 	FColorList::MediumSlateBlue,
 	FColorList::SpicyPink,
+	FColorList::SpringGreen,
+	FColorList::SteelBlue,
+	FColorList::SummerSky,
+	FColorList::Violet,
+	FColorList::VioletRed,
+	FColorList::YellowGreen,
 	FColor(0xff62E200),
 	FColor(0xff1F7B67),
 	FColor(0xff62AA2A),
@@ -99,6 +120,9 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 	CurrentViewedTime = 0.f;
 	bDrawLogEntriesPath = true;
 	bIgnoreTrivialLogs = true;
+	HistogramPreviewWindow = 50;
+	bShowHistogramLabelsOutside = false;
+	bStickToLastData = false;
 
 	UsedCategories.Empty();
 
@@ -253,6 +277,32 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry."))
 						]
 					]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SLogVisualizer::OnChangeHistogramLabelLocation)
+							.IsChecked(this, &SLogVisualizer::GetHistogramLabelLocation)
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("VisLogHistogramLabelLocation", "Set histogram labels outside graph"))
+								.ToolTipText(LOCTEXT("VisLogHistogramLabelLocationTooltip", "Whether to show histogram labels inside graph or outside."))
+							]
+						]
+					+ SVerticalBox::Slot()
+						.AutoHeight()
+						[
+							SNew(SCheckBox)
+							.OnCheckStateChanged(this, &SLogVisualizer::OnStickToLastData)
+							.IsChecked(this, &SLogVisualizer::GetStickToLastData)
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(LOCTEXT("VisLogStickToLastData", "Stick to recent data"))
+								.ToolTipText(LOCTEXT("VisLogStickToLastDataTooltip", "Whether to show the recent data or not."))
+							]
+						]
 				]
 			]
 
@@ -281,7 +331,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 					.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
 					.Padding(1.0)
 					[
-						SAssignNew(LogsListWidget, SListView< TSharedPtr<FLogsListItem> >)
+						SAssignNew(LogsListWidget, SLogListView< TSharedPtr<FLogsListItem> >)
 						.ItemHeight(20)
 						// Called when the user double-clicks with LMB on an item in the list
 						.OnMouseButtonDoubleClick(this, &SLogVisualizer::OnListDoubleClick)
@@ -638,6 +688,16 @@ void SLogVisualizer::Tick( const FGeometry& AllottedGeometry, const double InCur
 	{
 		DoFullUpdate();
 	}
+
+	if (bStickToLastData && World && !World->bPlayersOnly  && LogVisualizer->IsRecording()  && World->IsPlayInEditor() && LogVisualizer && LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
+	{
+		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
+		if (Log->Entries.Num() > 0 && LogEntryIndex != Log->Entries.Num() - 1)
+		{
+			LogEntryIndex = Log->Entries.Num() - 1;
+			ShowEntry(Log->Entries[LogEntryIndex].Get());
+		}
+	}
 }
 
 FReply SLogVisualizer::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -647,6 +707,13 @@ FReply SLogVisualizer::OnMouseWheel( const FGeometry& MyGeometry, const FPointer
 		OnSetZoomValue(FMath::Clamp(ZoomSliderValue + MouseEvent.GetWheelDelta() * 0.05f, 0.f, 1.f));
 		return FReply::Handled();
 	}
+
+	if (MouseEvent.IsLeftShiftDown())
+	{
+		OnSetHistogramWindowValue(MouseEvent.GetWheelDelta());
+		return FReply::Handled();
+	}
+
 	return SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 }
 
@@ -852,8 +919,11 @@ void SLogVisualizer::DoFullUpdate()
 		if (LogListItem->IsValid() && LogVisualizer->Logs.IsValidIndex((*LogListItem)->LogIndex))
 		{
 			TSharedPtr<FActorsVisLog>& Log = LogVisualizer->Logs[(*LogListItem)->LogIndex];
-			LogsStartTime = FMath::Min(Log->Entries[0]->TimeStamp, LogsStartTime);
-			LogsEndTime = FMath::Max(Log->Entries[Log->Entries.Num()-1]->TimeStamp, LogsEndTime);
+			if (Log->Entries.Num() > 0)
+			{
+				LogsStartTime = FMath::Min(Log->Entries[0]->TimeStamp, LogsStartTime);
+				LogsEndTime = FMath::Max(Log->Entries[Log->Entries.Num() - 1]->TimeStamp, LogsEndTime);
+			}
 		}
 	}
 
@@ -1019,6 +1089,21 @@ void SLogVisualizer::SetCurrentViewedTime(float NewTime, const bool bForce)
 	}
 
 	CurrentViewedTime = NewTime;
+
+#if WITH_EDITOR
+	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor && EEngine != NULL)
+	{
+		for (int32 i = 0; i < EEngine->AllViewportClients.Num(); i++)
+		{
+			FEditorViewportClient* ViewportClient = EEngine->AllViewportClients[i];
+			if (ViewportClient)
+			{
+				ViewportClient->Invalidate();
+			}
+		}
+	}
+#endif
 }
 
 void SLogVisualizer::RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry)
@@ -1054,7 +1139,14 @@ FLinearColor SLogVisualizer::GetColorForUsedCategory(int32 Index)
 		return ColorPalette[Index];
 	}
 
-	return FLinearColor::White;
+	static bool bReateColorList = false;
+	static FColorList StaticColor;
+	if (!bReateColorList)
+	{
+		bReateColorList = true;
+		StaticColor.CreateColorMap();
+	}
+	return StaticColor.GetFColorByIndex(Index);
 }
 
 TSharedRef<ITableRow> SLogVisualizer::HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable)
@@ -1290,6 +1382,12 @@ void SLogVisualizer::OnZoomScrolled(float InScrollOffsetFraction)
 	}
 }
 
+void SLogVisualizer::OnSetHistogramWindowValue(float NewValue)
+{
+	HistogramPreviewWindow = FMath::Clamp(HistogramPreviewWindow + NewValue * 1.0f, 0.0f, 100.0f);
+	HistogramWindowChangedNotify.Broadcast(HistogramPreviewWindow);
+}
+
 void SLogVisualizer::OnDrawLogEntriesPathChanged(ESlateCheckBoxState::Type NewState)
 {
 	bDrawLogEntriesPath = (NewState == ESlateCheckBoxState::Checked);
@@ -1309,6 +1407,26 @@ void SLogVisualizer::OnIgnoreTrivialLogs(ESlateCheckBoxState::Type NewState)
 ESlateCheckBoxState::Type SLogVisualizer::GetIgnoreTrivialLogs() const
 {
 	return bIgnoreTrivialLogs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SLogVisualizer::OnChangeHistogramLabelLocation(ESlateCheckBoxState::Type NewState)
+{
+	bShowHistogramLabelsOutside = (NewState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SLogVisualizer::GetHistogramLabelLocation() const
+{
+	return bShowHistogramLabelsOutside ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SLogVisualizer::OnStickToLastData(ESlateCheckBoxState::Type NewState)
+{
+	bStickToLastData = (NewState == ESlateCheckBoxState::Checked);
+}
+
+ESlateCheckBoxState::Type SLogVisualizer::GetStickToLastData() const
+{
+	return bStickToLastData ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 void SLogVisualizer::OnToggleCamera(ESlateCheckBoxState::Type NewState)
@@ -1374,6 +1492,32 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			Canvas->DrawText(Font, TimeStampString, EntryScreenLoc.X, EntryScreenLoc.Y);
 
 			//let's draw histogram data
+
+			static const float StartGoldenRatio[] = {
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+				FMath::SRand(),
+			};
+
+			const float GoldenRatioConjugate = 0.618033988749895f;
+
 			struct FGraphLineData
 			{
 				FName DataName;
@@ -1391,14 +1535,37 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 
 			TMap<FName, FGraphData>	CollectedGraphs;
 
+			float MinTime, MaxTime;
+			Timeline->GetMinMaxValues(MinTime, MaxTime);
+
+			const float StartTime = Timeline->GetOffset() + MinTime;
+			const float EndTime = StartTime + (MaxTime - MinTime) / this->GetZoom();
+			const float WindowHalfWidth = (EndTime - StartTime) * HistogramPreviewWindow * 0.01 * 0.5;
+			const FVector2D TimeStampWindow(Entry->TimeStamp - WindowHalfWidth, Entry->TimeStamp + WindowHalfWidth);
+
+			int32 ColorIndex = 0;
 			for (int32 EntryIndex = 0; EntryIndex < Entries.Num(); ++EntryIndex)
 			{
 				const TSharedPtr<FVisLogEntry>& CurrentEntry = Entries[EntryIndex];
-				if (CurrentEntry->TimeStamp > Entry->TimeStamp)
+				if (HistogramPreviewWindow <= 0)
 				{
-					break;
+					if (CurrentEntry->TimeStamp > Entry->TimeStamp)
+					{
+						break;
+					}
 				}
+				else
+				{
+					if (CurrentEntry->TimeStamp < TimeStampWindow.X)
+					{
+						continue;
+					}
 
+					if (CurrentEntry->TimeStamp > TimeStampWindow.Y)
+					{
+						break;
+					}
+				}
 				const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
 				for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 				{
@@ -1423,6 +1590,12 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 			int32 GraphIndex = 0;
 			if (CollectedGraphs.Num() > 0)
 			{
+				const float GraphWidth = 0.8f / CollectedGraphs.Num();
+				const float GraphSpacing = 0.2f / (CollectedGraphs.Num()+1);
+				float CurrentX = GraphSpacing;
+				float CurrentY = (1.0f - GraphWidth) * 0.5f;
+				int32 GraphIndex = 0;
+
 				for (auto It(CollectedGraphs.CreateConstIterator()); It; ++It)
 				{
 					TWeakObjectPtr<UReporterGraph> HistogramGraph = Canvas->GetReporterGraph();
@@ -1432,32 +1605,43 @@ void SLogVisualizer::DrawOnCanvas(UCanvas* Canvas, APlayerController*)
 					}
 					HistogramGraph->SetNumGraphLines(It->Value.GraphLines.Num());
 					int32 LineIndex = 0;
+					UFont* Font = GEngine->GetSmallFont();
+					int32 MaxStringSize = 0;
+					float Hue = 0;// StartGoldenRatio[GraphIndex++];
+
 					for (auto LinesIt(It->Value.GraphLines.CreateConstIterator()); LinesIt; ++LinesIt)
 					{
-						int32 ColorIndex = UsedCategories.Find(LinesIt->Value.DataName.ToString());
-						if (ColorIndex == INDEX_NONE)
+						Hue += GoldenRatioConjugate;
+						if (Hue > 1)
 						{
-							ColorIndex = UsedCategories.AddUnique(LinesIt->Value.DataName.ToString());
+							Hue -= FMath::FloorToFloat(Hue);
 						}
-
-						HistogramGraph->GetGraphLine(LineIndex)->Color = GetColorForUsedCategory(ColorIndex);
+						HistogramGraph->GetGraphLine(LineIndex)->Color = FLinearColor::FGetHSV(Hue * 255, 0, 244);
 						HistogramGraph->GetGraphLine(LineIndex)->LineName = LinesIt->Value.DataName.ToString();
 						HistogramGraph->GetGraphLine(LineIndex)->Data.Append(LinesIt->Value.Samples);
+
+						int32 DummyY, CurrentX;
+						StringSize(Font, CurrentX, DummyY, *LinesIt->Value.DataName.ToString());
+						MaxStringSize = CurrentX > MaxStringSize ? CurrentX : MaxStringSize;
+
 						++LineIndex;
 					}
 
-					float dx = 0.8f / CollectedGraphs.Num();
-					HistogramGraph->SetGraphScreenSize( 0.1f + GraphIndex * (dx+0.02), 0.1f + GraphIndex * dx + dx, (1.0f - dx) * 0.5f,   1.0f - (1 - dx) * 0.5f);
-					HistogramGraph->SetAxesMinMax(It->Value.Min, It->Value.Max);
+					FVector2D GraphSpaceSize;
+					GraphSpaceSize.Y = GraphSpaceSize.X = 0.8f / CollectedGraphs.Num();
 
+					HistogramGraph->SetGraphScreenSize(CurrentX, CurrentX + GraphWidth, CurrentY, CurrentY + GraphWidth);
+					CurrentX += GraphWidth + GraphSpacing;
+					HistogramGraph->SetAxesMinMax(FVector2D(TimeStampWindow.X, It->Value.Min.Y), FVector2D(TimeStampWindow.Y, It->Value.Max.Y));
+					
 					HistogramGraph->SetNumThresholds(1);
 					FGraphThreshold* GraphThreshold = HistogramGraph->GetThreshold(0);
 					GraphThreshold->Threshold = 0.f;
 					GraphThreshold->Color = FLinearColor::White;
 					GraphThreshold->ThresholdName = TEXT("     0");
 					HistogramGraph->SetStyles(EGraphAxisStyle::Grid, EGraphDataStyle::Lines);
-					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 90) );
-					HistogramGraph->SetLegendPosition(ELegendPosition::Inside);
+					HistogramGraph->SetBackgroundColor( FColor(0,0,0, 200) );
+					HistogramGraph->SetLegendPosition(bShowHistogramLabelsOutside ? ELegendPosition::Outside : ELegendPosition::Inside);
 
 					HistogramGraph->bVisible = true;
 					HistogramGraph->Draw(Canvas);

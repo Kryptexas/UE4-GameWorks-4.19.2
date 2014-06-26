@@ -34,7 +34,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	// PathFollowingComponent BEGIN
 	virtual void Initialize() override;
 	virtual void Cleanup() override;
-	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false) override;
+	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false, uint8 MessageFlags = 0) override;
 	virtual void PauseMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true) override;
 	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest) override;
 	virtual FVector GetMoveFocus(bool bAllowStrafe) const override;
@@ -79,6 +79,9 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }
 	FORCEINLINE ECrowdAvoidanceQuality::Type GetCrowdAvoidanceQuality() const { return AvoidanceQuality; }
+	FORCEINLINE int32 GetAvoidanceGroup() const { return AvoidanceGroup.Packed; }
+	FORCEINLINE int32 GetGroupsToAvoid() const { return GroupsToAvoid.Packed; }
+	FORCEINLINE int32 GetGroupsToIgnore() const { return GroupsToIgnore.Packed; }
 
 	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
 #if ENABLE_VISUAL_LOG
@@ -89,6 +92,18 @@ protected:
 
 	UPROPERTY(transient)
 	class UCharacterMovementComponent* CharacterMovement;
+
+	/** Group mask for this agent */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask AvoidanceGroup;
+
+	/** Will avoid other agents if they are in one of specified groups */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask GroupsToAvoid;
+
+	/** Will NOT avoid other agents if they are in one of specified groups, higher priority than GroupsToAvoid */
+	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	FNavAvoidanceMask GroupsToIgnore;
 
 	/** if set, velocity will be updated even if agent is falling */
 	uint32 bAffectFallingVelocity : 1;

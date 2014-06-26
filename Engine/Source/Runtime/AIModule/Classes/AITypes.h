@@ -111,6 +111,7 @@ namespace EPawnActionEventType
 	enum Type
 	{
 		Invalid,
+		FailedToStart,
 		FinishedAborting,
 		FinishedExecution,
 		Push,

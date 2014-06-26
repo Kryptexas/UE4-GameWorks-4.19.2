@@ -553,7 +553,31 @@ void UCheatManager::DisableDebugCamera()
 	}
 }
 
-void UCheatManager::InitCheatManager() {}
+void UCheatManager::InitCheatManager() 
+{
+
+}
+
+void UCheatManager::BeginDestroy()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (VisLog && VisLog->IsRecording() && bToggleAILogging)
+	{
+		UWorld *World = GetWorld();
+		if (World)
+		{
+			// clear timer, we'll dump all remaining logs
+			World->GetTimerManager().ClearTimer(this, &UCheatManager::DumpAILogs);
+		}
+
+		// stop recording and dump all remaining logs
+		VisLog->SetIsRecording(false);
+		bToggleAILogging = false;
+	}
+#endif
+	Super::BeginDestroy();
+}
 
 bool UCheatManager::ServerToggleAILogging_Validate()
 {
@@ -595,14 +619,16 @@ void UCheatManager::ServerToggleAILogging_Implementation()
 
 		// stop recording and dump all remaining logs in a moment
 		VisLog->SetIsRecording(false, true);
+		bToggleAILogging = false;
 	}
 	else
 	{
-		VisLog->SetIsRecording(true, true);
 		if (World)
 		{
 			World->GetTimerManager().SetTimer(this, &UCheatManager::DumpAILogs, DumpAILogsInterval);
 		}
+		VisLog->SetIsRecording(true, true);
+		bToggleAILogging = true;
 	}
 
 	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));

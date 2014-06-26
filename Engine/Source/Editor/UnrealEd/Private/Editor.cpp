@@ -47,6 +47,7 @@
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Editor/LevelEditor/Public/ILevelViewport.h"
 
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
@@ -4494,6 +4495,12 @@ TSharedPtr<SViewport> UEditorEngine::GetGameViewportWidget() const
 		if (It.Value().SlatePlayInEditorWindowViewport.IsValid())
 		{
 			return It.Value().SlatePlayInEditorWindowViewport->GetViewportWidget().Pin();
+		}
+
+		TSharedPtr<ILevelViewport> DestinationLevelViewport = It.Value().DestinationSlateViewport.Pin();
+		if (DestinationLevelViewport.IsValid())
+		{
+			return DestinationLevelViewport->GetViewportWidget().Pin();
 		}
 	}
 

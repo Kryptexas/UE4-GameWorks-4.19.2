@@ -3,6 +3,8 @@
 #include "LogVisualizerPCH.h"
 #include "SLogBar.h"
 
+#define LOCTEXT_NAMESPACE "SLogBar"
+
 const float SLogBar::SubPixelMinSize = 3.0f;
 const float SLogBar::TimeUnit = 1.f/60.f;
 const float SLogBar::MaxUnitSizePx = 16.f;
@@ -27,6 +29,7 @@ void SLogBar::Construct( const FArguments& InArgs )
 	TotalTime = 1.0;
 	RowIndex = INDEX_NONE;
 	bShouldDrawSelection = false;
+	HistogramPreviewWindow = 50;
 }
 
 int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -59,6 +62,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 	);	
 
 	// Draw all bars
+	bool bDrawHistogramCursor = false;
 	int32 EntryIndex = 0;
 	while (EntryIndex < Entries.Num())
 	{
@@ -70,6 +74,7 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 				EntryIndex++;
 				continue;
 			}
+			bDrawHistogramCursor |= Entry->HistogramSamples.Num() > 0;
 		}
 
 		// find bar width, connect all contiguous bars to draw them as one geometry (rendering optimization)
@@ -110,29 +115,75 @@ int32 SLogBar::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyC
 
 		EntryIndex = StartIndex;
 	}
-	
-	// draw "current time"
+
+	if (Entries.Num() > 0)
 	{
-		const float RelativePos = Offset + (DisplayedTime.Execute() - StartTime) / TotalTime * Zoom;
-		const float PosX = (float)(LogBarWidth * RelativePos);
-		const float ClampedSize = FMath::Clamp(TimeUnit / TotalTime * Zoom, 0.0f, 1.0f );
-		float CurrentTimeMarkWidth = (float)FMath::Max(LogBarWidth * ClampedSize
-			, ClampedSize > 0.0f ? SubPixelMinSize : 0.0f);
-		
-		// Draw Event bar
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			RetLayerId++,
-			AllottedGeometry.ToPaintGeometry(
-			FVector2D( PosX - 2.f, 0.0f ),
-			FVector2D( CurrentTimeMarkWidth + 4.f, AllottedGeometry.Size.Y )),
-			TimeMarkImage,
-			ForegroundClippingRect,
-			DrawEffects,
-			CurrentTimeColor
-			);
+		// draw "current time"
+		{
+			const float RelativePos = Offset + (DisplayedTime.Execute() - StartTime) / TotalTime * Zoom;
+			const float PosX = (float)(LogBarWidth * RelativePos);
+			const float ClampedSize = FMath::Clamp(TimeUnit / TotalTime * Zoom, 0.0f, 1.0f);
+			float CurrentTimeMarkWidth = (float)FMath::Max(LogBarWidth * ClampedSize
+				, ClampedSize > 0.0f ? SubPixelMinSize : 0.0f);
+
+			// Draw Event bar
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				RetLayerId++,
+				AllottedGeometry.ToPaintGeometry(
+				FVector2D(PosX - 2.f, 0.0f),
+				FVector2D(CurrentTimeMarkWidth + 4.f, AllottedGeometry.Size.Y)),
+				FillImage,
+				ForegroundClippingRect,
+				DrawEffects,
+				CurrentTimeColor
+				);
+		}
+
+		// draw PreviewWindow for 2d graphs
+		int32 EntryIndex = CurrentEntryIndex.IsBound() ? CurrentEntryIndex.Execute() : INDEX_NONE;
+		if (bDrawHistogramCursor && Entries.IsValidIndex(EntryIndex) == true)
+		{
+			static FColor DrawColor = FColor(CurrentTimeColor.R, CurrentTimeColor.G, CurrentTimeColor.B, 128);
+			const float RelativePos = Offset + (DisplayedTime.Execute() - StartTime) / TotalTime * Zoom;
+			const float PosX = (float)(LogBarWidth * RelativePos);
+			const float ClampedSize = FMath::Clamp(TimeUnit / TotalTime * Zoom, 0.0f, 1.0f);
+
+			TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+			float StartX, EndX;
+			CalculateEntryGeometry(Entry.Get(), AllottedGeometry, StartX, EndX);
+			const float WindowHalfWidth = LogBarWidth * HistogramPreviewWindow * 0.01;
+
+			const float RelativeStartPos = PosX - WindowHalfWidth * 0.5f;
+
+			// Draw Event bar
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				RetLayerId++,
+				AllottedGeometry.ToPaintGeometry(
+				FVector2D(RelativeStartPos, 0.0f),
+				FVector2D(WindowHalfWidth, AllottedGeometry.Size.Y)),
+				FillImage,
+				ForegroundClippingRect,
+				DrawEffects,
+				DrawColor
+				);
+
+			// Draw Event bar
+			FSlateDrawElement::MakeBox(
+				OutDrawElements,
+				RetLayerId++,
+				AllottedGeometry.ToPaintGeometry(
+				FVector2D(RelativeStartPos, 0.0f),
+				FVector2D(WindowHalfWidth, AllottedGeometry.Size.Y)),
+				SelectedImage,
+				ForegroundClippingRect,
+				DrawEffects,
+				DrawColor
+				);
+		}
 	}
-	
+
 	if (bShouldDrawSelection)
 	{
 		EntryIndex = CurrentEntryIndex.IsBound() ? CurrentEntryIndex.Execute() : INDEX_NONE;
@@ -335,6 +386,31 @@ void SLogBar::SetEntries(const TArray<TSharedPtr<FVisLogEntry> >& InEntries, flo
 	Entries = InEntries;
 	StartTime = InStartTime;
 	TotalTime = InTotalTime;
+
+	bool bDrawHistogramCursor = false;
+	int32 EntryIndex = 0;
+	while (EntryIndex < Entries.Num())
+	{
+		TSharedPtr<FVisLogEntry> Entry = Entries[EntryIndex];
+		if (!Entry.IsValid())
+		{
+			EntryIndex++;
+			continue;
+		}
+
+		bDrawHistogramCursor |= Entry->HistogramSamples.Num() > 0;
+		EntryIndex++;
+	}
+
+	if (bDrawHistogramCursor)
+	{
+		//const FText ToolTip(TEXT("Use mouse wheel and left shift to modify graph window"));
+		SetToolTipText(TAttribute<FString>(TEXT("Use mouse wheel and left shift to modify 2d graph cursor size")));
+	}
+	else
+	{
+		SetToolTipText(FText());
+	}
 }
 
 void SLogBar::OnCurrentTimeChanged(float NewTime)
@@ -360,6 +436,11 @@ void SLogBar::SetZoomAndOffset(float InZoom, float InOffset)
 	SetOffset(InOffset);
 } 
 
+void SLogBar::SetHistogramWindow(float InWindowSize)
+{
+	HistogramPreviewWindow = InWindowSize;
+}
+
 void SLogBar::UpdateShouldDrawSelection()
 {
 	/*const bool bNewShouldDraw = ShouldDrawSelection.Execute();
@@ -373,4 +454,6 @@ void SLogBar::UpdateShouldDrawSelection()
 	}
 	}*/
 }
+
+#undef LOCTEXT_NAMESPACE 
 

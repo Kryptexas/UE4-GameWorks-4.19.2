@@ -71,6 +71,15 @@ namespace EPathFollowingDebugTokens
 	};
 }
 
+namespace EPathFollowingMessage
+{
+	enum Type
+	{
+		NoPath,			// abort reason for AI message
+		OtherRequest,	// abort reason for AI message
+	};
+}
+
 UCLASS(config=Engine)
 class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIResourceInterface
 {
@@ -118,7 +127,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	 *  @param RequestID - request to abort, 0 = current
 	 *  @param bResetVelocity - try to stop movement component
 	 *  @param bSilent - finish with Skipped result instead of Aborted */
-	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false);
+	virtual void AbortMove(const FString& Reason, FAIRequestID RequestID = FAIRequestID::CurrentRequest, bool bResetVelocity = true, bool bSilent = false, uint8 MessageFlags = 0);
 
 	/** pause path following
 	*  @param RequestID - request to pause, FAIRequestID::CurrentRequest means pause current request, regardless of its ID */

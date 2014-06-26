@@ -649,6 +649,15 @@ void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, struct dtC
 			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
 			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
 			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0);
+
+		AgentParams->avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
+		AgentParams->groupsToAvoid = CrowdComponent->GetGroupsToAvoid();
+		AgentParams->groupsToIgnore = CrowdComponent->GetGroupsToIgnore();
+	}
+	else
+	{
+		AgentParams->avoidanceGroup = 1;
+		AgentParams->groupsToAvoid = MAX_uint32;
 	}
 }
 

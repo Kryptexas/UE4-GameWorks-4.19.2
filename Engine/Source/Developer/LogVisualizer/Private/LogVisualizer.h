@@ -12,6 +12,7 @@ class FLogVisualizer : public ILogVisualizer
 public:
 	virtual void SummonUI(UWorld* InWorld) override;
 	virtual void CloseUI(UWorld* InWorld) override;
+	virtual bool IsOpenUI(UWorld* InWorld) override;
 
 	virtual bool IsRecording();
 	// End ILogVisualizer interface

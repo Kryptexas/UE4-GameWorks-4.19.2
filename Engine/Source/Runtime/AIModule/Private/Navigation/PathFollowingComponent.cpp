@@ -157,7 +157,7 @@ FAIRequestID UPathFollowingComponent::RequestMove(FNavPathSharedPtr InPath, FReq
 		{
 			const bool bResetVelocity = false;
 			const bool bFinishAsSkipped = true;
-			AbortMove(TEXT("new request"), PrevMoveId, bResetVelocity, bFinishAsSkipped);
+			AbortMove(TEXT("new request"), PrevMoveId, bResetVelocity, bFinishAsSkipped, EPathFollowingMessage::OtherRequest);
 		}
 		
 		Reset();
@@ -235,7 +235,7 @@ bool UPathFollowingComponent::UpdateMove(FNavPathSharedPtr InPath, FAIRequestID 
 	return true;
 }
 
-void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent)
+void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
 {
 	UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("AbortMove: Reason(%s) RequestID(%u)"), *Reason, RequestID);
 
@@ -270,7 +270,11 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 		// notify observers after state was reset (they can request another move)
 		SavedReqFinished.ExecuteIfBound(FinishResult);
 		OnMoveFinished.Broadcast(AbortedMoveId, FinishResult);
-		FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_MoveFinished, this, AbortedMoveId, FAIMessage::Failure));
+
+		FAIMessage Msg(UBrainComponent::AIMessage_MoveFinished, this, AbortedMoveId, FAIMessage::Failure);
+		Msg.SetFlag(MessageFlags);
+
+		FAIMessage::Send(Cast<AController>(GetOwner()), Msg);
 	}
 	else
 	{
@@ -719,7 +723,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 {
 	if (!Path.IsValid() || MovementComp == NULL)
 	{
-		AbortMove(TEXT("no path"));
+		AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		return;
 	}
 
@@ -727,7 +731,7 @@ void UPathFollowingComponent::UpdatePathSegment()
 	{
 		if (NavComp == NULL || !NavComp->IsWaitingForRepath())
 		{
-			AbortMove(TEXT("no path"));
+			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		}
 		return;
 	}

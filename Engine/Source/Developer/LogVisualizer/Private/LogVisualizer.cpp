@@ -62,6 +62,16 @@ void FLogVisualizer::CloseUI(UWorld* InWorld)
 	}
 }
 
+bool FLogVisualizer::IsOpenUI(UWorld* InWorld)
+{
+	if (LogWindow.IsValid() && World.IsValid() && World == InWorld)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void FLogVisualizer::CleanUp()
 {
 	FVisualLog::Get()->ClearNewLogsObserver();

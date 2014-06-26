@@ -217,6 +217,11 @@ static int getNeighbours(const float* pos, const float height, const float range
 		const float distSqr = dtVlenSqr(diff);
 		if (distSqr > dtSqr(range))
 			continue;
+
+		// [UE4] add only when avoidance group allows it
+		const bool bDontAvoid = (skip->params.groupsToIgnore & ag->params.avoidanceGroup) || !(skip->params.groupsToAvoid & ag->params.avoidanceGroup);
+		if (bDontAvoid)
+			continue;
 		
 		n = addNeighbour(ids[i], distSqr, result, n, maxResult);
 	}

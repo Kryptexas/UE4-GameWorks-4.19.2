@@ -776,6 +776,7 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& InColour )
 {
 	DrawnSize = FVector2D(EForceInit::ForceInitToZero);
+	FVector2D CurrentPos = FVector2D(EForceInit::ForceInitToZero);
 	FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
 	FTexture* LastTexture = NULL;
 	UTexture2D* Tex = NULL;
@@ -794,11 +795,20 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 
 		FFontCharacter& Char = Font->Characters[Ch];
 
+		if (DrawnSize.Y == 0)
+		{
+			// We have a valid character so initialize vertical DrawnSize
+			DrawnSize.Y = Font->GetMaxCharHeight() * YScale;
+		}
+
 		if (FChar::IsLinebreak(Chars[i]))
 		{
 			// Set current character offset to the beginning of next line.
-			DrawnSize.X = 0.0f;
-			DrawnSize.Y += Char.VSize * YScale;
+			CurrentPos.X = 0.0f;
+			CurrentPos.Y += Font->GetMaxCharHeight() * YScale;
+
+			// Increase the vertical DrawnSize
+			DrawnSize.Y += Font->GetMaxCharHeight() * YScale;
 
 			// Don't draw newline character
 			continue;
@@ -824,8 +834,8 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 			}
 			LastTexture = Tex->Resource;
 
-			const float X		= DrawnSize.X + DrawPos.X;
-			const float Y		= DrawnSize.Y + DrawPos.Y + Char.VerticalOffset * YScale;
+			const float X		= CurrentPos.X + DrawPos.X;
+			const float Y		= CurrentPos.Y + DrawPos.Y + Char.VerticalOffset * YScale;
 			float SizeX			= Char.USize * XScale;
 			const float SizeY	= Char.VSize * YScale;
 			const float U		= Char.StartU * InvTextureSize.X;
@@ -870,7 +880,13 @@ void FCanvasTextItem::DrawStringInternal( class FCanvas* InCanvas, const FVector
 			}
 
 			// Update the current rendering position
-			DrawnSize.X += SizeX;
+			CurrentPos.X += SizeX;
+
+			// Increase the Horizontal DrawnSize
+			if (CurrentPos.X > DrawnSize.X)
+			{
+				DrawnSize.X = CurrentPos.X;
+			}
 		}
 	}
 }

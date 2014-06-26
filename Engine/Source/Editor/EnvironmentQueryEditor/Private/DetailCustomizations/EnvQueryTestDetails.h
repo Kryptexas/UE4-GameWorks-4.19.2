@@ -53,10 +53,6 @@ protected:
 	FString GetScoreEquationInfo() const;
 
  	EVisibility GetScoreVisibility() const;
-// 	EVisibility GetScoreFactorVisibility() const;
-// 	EVisibility GetScoreConstantVisibility() const;
-	// Only needed if we add support for parametric equations
-// 	EVisibility GetScorePowerVisibility() const;
 
 	TSharedRef<SWidget> OnGetFilterTestContent();
 	void BuildFilterTestValues();

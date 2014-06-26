@@ -26,8 +26,9 @@ class AIMODULE_API UEnvQueryTest : public UObject
 		Meta=(ToolTip="Boolean value that must be matched in order for scoring to occur or filtering test to pass."))
 	FEnvBoolParam BoolFilter;
 
+	// TODO: REMOVE, Deprecated!
 	/** filter for test value; currently this is the ONLY value, because we can only filter in one direction. */
-	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	UPROPERTY()
 	FEnvFloatParam FloatFilter;
 
 	UPROPERTY(EditDefaultsOnly, Category=Filter,
@@ -44,12 +45,12 @@ class AIMODULE_API UEnvQueryTest : public UObject
 
 	// TODO: REMOVE, Deprecated!
 	/** Condition for discarding item */
-	UPROPERTY(EditDefaultsOnly, Category=DeprecatedFilt)
+	UPROPERTY()
 	TEnumAsByte<EEnvTestCondition::Type> Condition;
 
 	// TODO: REMOVE, Deprecated!
 	/** Weight modifier */
-	UPROPERTY(EditDefaultsOnly, Category=Weight)
+	UPROPERTY()
 	TEnumAsByte<EEnvTestWeight::Type> WeightModifier;
 
 	/** Cost of test */
@@ -101,7 +102,7 @@ private:
 public:
 	// TODO: REMOVE, Deprecated!
 	/** If set, items not passing filter condition will be removed from query, otherwise they will receive score 0 */
-	UPROPERTY(EditDefaultsOnly, Category=DeprecatedFilt)
+	UPROPERTY()
 	uint32 bDiscardFailedItems : 1;
 
 	FExecuteTestSignature ExecuteDelegate;

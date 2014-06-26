@@ -112,46 +112,50 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 	if (!GameplayRootTag.IsValid() && GameplayTagTables.Num() > 0)
 	{
 		GameplayRootTag = MakeShareable(new FGameplayTagNode());
-		TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
-		TSet<FName> RootTags;
-
+		
 		for (auto It(GameplayTagTables.CreateIterator()); It; It++)
 		{
-			static const FString ContextString(TEXT("UNKNOWN"));
-			const int32 NumRows = (*It)->RowMap.Num();
-			for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
+			PopulateTreeFromDataTable(*It);
+		}
+	}
+}
+
+void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
+{
+	TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
+	static const FString ContextString(TEXT("UNKNOWN"));
+	const int32 NumRows = InTable->RowMap.Num();
+	for (int32 RowIdx = 0; RowIdx < NumRows; ++RowIdx)
+	{
+		FGameplayTagTableRow* TagRow = InTable->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
+		if (TagRow)
+		{
+			// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
+			// gameplay tag tree
+			TArray<FString> SubTags;
+			TagRow->Tag.ParseIntoArray(&SubTags, TEXT("."), true);
+
+			if (SubTags.Num() > 0)
 			{
-				FGameplayTagTableRow* TagRow = (*It)->FindRow<FGameplayTagTableRow>(*FString::Printf(TEXT("%d"), RowIdx), ContextString);
-				if (TagRow)
+				int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow->CategoryText : FText());
+				TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
+
+				for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
 				{
-					// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
-					// gameplay tag tree
-					TArray<FString> SubTags;
-					TagRow->Tag.ParseIntoArray(&SubTags, TEXT("."), true);
-
-					if (SubTags.Num() > 0)
+					TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
+					FText Description;
+					if (SubTagIdx == SubTags.Num() - 1)
 					{
-						int32 InsertionIdx = InsertTagIntoNodeArray(*SubTags[0], NULL, GameplayRootTags, SubTags.Num() == 1 ? TagRow->CategoryText : FText());
-						TSharedPtr<FGameplayTagNode> CurNode = GameplayRootTags[InsertionIdx];
-
-						for (int32 SubTagIdx = 1; SubTagIdx < SubTags.Num(); ++SubTagIdx)
-						{
-							TArray< TSharedPtr<FGameplayTagNode> >& ChildTags = CurNode.Get()->GetChildTagNodes();
-							FText Description;
-							if (SubTagIdx == SubTags.Num() - 1)
-							{
-								Description = TagRow->CategoryText;
-							}
-							InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
-
-							CurNode = ChildTags[InsertionIdx];
-						}
+						Description = TagRow->CategoryText;
 					}
+					InsertionIdx = InsertTagIntoNodeArray(*SubTags[SubTagIdx], CurNode, ChildTags, Description);
+
+					CurNode = ChildTags[InsertionIdx];
 				}
 			}
 		}
-		GameplayRootTags.Sort(FCompareFGameplayTagNodeByTag());
 	}
+	GameplayRootTags.Sort(FCompareFGameplayTagNodeByTag());
 }
 
 UGameplayTagsManager::~UGameplayTagsManager()

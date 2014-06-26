@@ -4,6 +4,7 @@
 
 #include "NavLinkDefinition.h"
 #include "NavigationModifier.h"
+#include "NavigationAvoidanceTypes.h"
 #include "NavigationTypes.generated.h"
 
 #define INVALID_NAVNODEREF (0)
@@ -212,6 +213,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE class ANavigationData *GetOwner() const { return Owner.Get(); }
 	FORCEINLINE bool IsDirect() const { return Owner.Get() == NULL; }
 	FORCEINLINE FVector GetDestinationLocation() const { return IsValid() ? PathPoints.Last().Location : INVALID_NAVEXTENT; }
+	FORCEINLINE void GetObserver(FPathObserverDelegate& Observer) const { Observer = ObserverDelegate; }
 
 	FORCEINLINE void MarkReady() { bIsReady = true; }
 	FORCEINLINE void SetOwner(const class ANavigationData* const NewOwner) { Owner = NewOwner; }

@@ -93,8 +93,15 @@ struct dtCrowdAgentParams
 	/// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
 	float separationWeight;
 
+	/// [UE4] Groups flags attached to the agent
+	unsigned int avoidanceGroup;
+	/// [UE4] Avoid agents when they group is matching mask
+	unsigned int groupsToAvoid;
+	/// [UE4] Don't avoid agents when they group is matching mask
+	unsigned int groupsToIgnore;
+
 	/// Flags that impact steering behavior. (See: #UpdateFlags)
-	unsigned char updateFlags;
+	unsigned short updateFlags;
 
 	/// The index of the avoidance configuration to use for the agent. 
 	/// [Limits: 0 <= value <= #DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS]

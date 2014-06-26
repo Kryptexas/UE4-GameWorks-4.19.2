@@ -449,6 +449,11 @@ public:
 	void Init();
 
 	/**
+	 * Logs out the entire state of the SpatializationHelper
+	 */
+	void DumpSpatializationState() const;
+
+	/**
 	 * Calculates the spatialized volumes for each channel.
 	 *
 	 * @param	OrientFront				The listener's facing direction.

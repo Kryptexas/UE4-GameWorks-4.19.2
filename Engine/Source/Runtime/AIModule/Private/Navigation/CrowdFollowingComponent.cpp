@@ -28,6 +28,10 @@ UCrowdFollowingComponent::UCrowdFollowingComponent(const class FPostConstructIni
 	CollisionQueryRange = 400.0f;		// approx: radius * 12.0f
 	PathOptimizationRange = 1000.0f;	// approx: radius * 30.0f
 	AvoidanceQuality = ECrowdAvoidanceQuality::Low;
+
+	AvoidanceGroup.SetFlagsDirectly(1);
+	GroupsToAvoid.SetFlagsDirectly(MAX_uint32);
+	GroupsToIgnore.SetFlagsDirectly(0);
 }
 
 FVector UCrowdFollowingComponent::GetCrowdAgentLocation() const
@@ -294,7 +298,7 @@ void UCrowdFollowingComponent::Cleanup()
 	}
 }
 
-void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent)
+void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID RequestID, bool bResetVelocity, bool bSilent, uint8 MessageFlags)
 {
 	if (bEnableCrowdSimulation && (Status != EPathFollowingStatus::Idle) && RequestID.IsEquivalent(GetCurrentRequestId()))
 	{
@@ -305,7 +309,7 @@ void UCrowdFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Req
 		}
 	}
 
-	Super::AbortMove(Reason, RequestID, bResetVelocity, bSilent);
+	Super::AbortMove(Reason, RequestID, bResetVelocity, bSilent, MessageFlags);
 }
 
 void UCrowdFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
@@ -564,7 +568,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 	if (!Path.IsValid() || MovementComp == NULL)
 	{
-		AbortMove(TEXT("no path"));
+		AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		return;
 	}
 
@@ -572,7 +576,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 	{
 		if (NavComp == NULL || !NavComp->IsWaitingForRepath())
 		{
-			AbortMove(TEXT("no path"));
+			AbortMove(TEXT("no path"), FAIRequestID::CurrentRequest, true, false, EPathFollowingMessage::NoPath);
 		}
 		return;
 	}

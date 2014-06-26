@@ -150,33 +150,29 @@ void UReporterGraph::DrawLegend(UCanvas* Canvas)
 	FVector2D CurrentTextPos = GraphScreenSize.Max;
 	CurrentTextPos.X = GraphScreenSize.Min.X;
 	UFont* Font = GEngine->GetSmallFont();
-	if(LegendWidth < KINDA_SMALL_NUMBER)
-	{
-		if (LegendPosition == ELegendPosition::Outside)
-		{
-			int32 DummyY, CurrentX;
-			for (int32 i = 0; i < CurrentData.Num(); i++)
-			{
-				StringSize(Font, CurrentX, DummyY, *CurrentData[i].LineName);
 
-				if (CurrentX > LegendWidth)
-				{
-					LegendWidth = CurrentX;
-				}
-			}
-		}
-		else
-		{
-			int32 DummyY, CurrentX;
-			StringSize(Font, CurrentX, DummyY, TEXT("M"));
-			LegendWidth = -CurrentX;
-		}
-	}
-	
+	int32 DummyY, CurrentX;
+	StringSize(Font, CurrentX, DummyY, TEXT("99.99"));
+	const float InsideLegendWidth = -CurrentX;
+
 	for(int32 i = 0; i < CurrentData.Num(); i++)
 	{
 		FVector2D ScreenPos = ToScreenSpace(CurrentTextPos, Canvas);
-		Canvas->Canvas->DrawShadowedString(ScreenPos.X  - LegendWidth, ScreenPos.Y, *CurrentData[i].LineName, Font, CurrentData[i].Color);
+		if (LegendPosition == ELegendPosition::Outside)
+		{
+			int32 DummyY, CurrentX;
+			StringSize(Font, CurrentX, DummyY, *CurrentData[i].LineName);
+			LegendWidth = CurrentX + 10;
+		}
+		else
+		{
+			LegendWidth = InsideLegendWidth;
+		}
+
+		FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::FromString(*CurrentData[i].LineName), Font, CurrentData[i].Color);
+		TextItem.EnableShadow(FColor::Black, FVector2D(1, 1));
+		TextItem.SetColor(CurrentData[i].Color);
+		Canvas->DrawItem(TextItem, ScreenPos.X - LegendWidth, ScreenPos.Y);
 
 		CurrentTextPos.Y -= (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y) / CurrentData.Num();
 	}
@@ -195,9 +191,19 @@ void UReporterGraph::DrawAxes(UCanvas* Canvas)
 	YMax.Y = GraphScreenSize.Max.Y;
 
 	// Draw the X axis
+	const float SizeX = (XMax.X - Min.X) * Canvas->SizeX;
+	int32 StringSizeX, StringSizeY;
+	UFont* Font = GEngine->GetSmallFont();
+
+	StringSize(Font, StringSizeX, StringSizeY, *FString::Printf(TEXT("%.2f"), GraphMinMaxData.Max.X) );
+	NumXNotches = FMath::CeilToInt(SizeX * 0.7 / StringSizeX);
+
 	DrawAxis(Canvas, Min, XMax, NumXNotches, false);
 
 	// Draw the Y axis
+	StringSize(Font, StringSizeX, StringSizeY, *FString::Printf(TEXT("%.2f"), GraphMinMaxData.Max.Y));
+	float SizeY = (YMax.Y - Min.Y) * Canvas->SizeY;
+	NumYNotches = FMath::CeilToInt(SizeY * 0.7 / StringSizeY);
 	DrawAxis(Canvas, Min, YMax, NumYNotches, true);
 }
 
@@ -275,7 +281,7 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 			NotchLocation.X += NotchDelta;
 		}
 
-		FString NotchValue = FString::Printf(TEXT("%1.0f"), (bIsVerticalAxis ? GraphMinMaxData.Min.Y + (NotchDataDelta.Y * (i + 1)) : GraphMinMaxData.Min.X + (NotchDataDelta.X * (i + 1))));
+		FString NotchValue = FString::Printf(TEXT("%1.2f"), (bIsVerticalAxis ? GraphMinMaxData.Min.Y + (NotchDataDelta.Y * (i + 1)) : GraphMinMaxData.Min.X + (NotchDataDelta.X * (i + 1))));
 		
 		int32 StringSizeX, StringSizeY;
 		StringSize(Font, StringSizeX, StringSizeY, *NotchValue );

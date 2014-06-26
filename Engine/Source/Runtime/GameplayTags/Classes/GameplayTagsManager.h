@@ -232,6 +232,11 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 
 private:
 
+	friend class FGameplayTagTest;
+
+	/** Helper function to populate the tag tree from each table */
+	void PopulateTreeFromDataTable(class UDataTable* Table);
+
 	/**
 	 * Helper function for RequestGameplayTagParents to add all parents to the container
 	 *

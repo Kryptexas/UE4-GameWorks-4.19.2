@@ -77,6 +77,9 @@ class ENGINE_API UCheatManager : public UObject
 	/** If we should trace complex collision in debug capsule sweeps. Set with DebugCapsuleSweepComplex() */
 	uint32 bDebugCapsuleTraceComplex:1;
 
+	/** Holds information if we used ToggleAILogging cheat to activate AI logging */
+	uint32 bToggleAILogging : 1;
+
 	/** How far debugf trace should go out from player viewpoint */
 	float DebugTraceDistance;
 
@@ -331,6 +334,12 @@ class ENGINE_API UCheatManager : public UObject
 	 * This is not an actor, so we need a stand in for PostInitializeComponents 
 	 */
 	virtual void InitCheatManager();
+
+	/**
+	* Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
+	* asynchronous cleanup process.
+	*/
+	virtual void BeginDestroy() override;
 
 	/** Use the Outer Player Controller to get a World.  */
 	UWorld* GetWorld() const;

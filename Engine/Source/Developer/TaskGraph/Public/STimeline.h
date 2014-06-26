@@ -48,6 +48,10 @@ public:
 		Zoom = FMath::Max(InZoom, 1.0f);
 	}
 
+	float GetZoom()
+	{
+		return Zoom;
+	}
 	/**
 	 * Sets the graph's offset by which all graph bars should be moved
 	 *
@@ -74,13 +78,19 @@ public:
 	 * @param InMin	New min value.
 	 * @param InMin	New max value.
 	 */
-	void SetMinMaxValues( float InMin, float InMax )
+	void SetMinMaxValues(float InMin, float InMax)
 	{
 		MinValue = InMin;
 		MaxValue = InMax;
-	} 
+	}
 
-	void SetDrawingGeometry( const FGeometry& Geometry )
+	void GetMinMaxValues(float &InMin, float &InMax)
+	{
+		InMin = MinValue;
+		InMax = MaxValue;
+	}
+
+	void SetDrawingGeometry(const FGeometry& Geometry)
 	{
 		DrawingGeometry = Geometry;
 	}

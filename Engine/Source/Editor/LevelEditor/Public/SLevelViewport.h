@@ -88,6 +88,8 @@ public:
 	virtual bool HasPlayInEditorViewport() const override; 
 	virtual FViewport* GetActiveViewport() override;
 	virtual TSharedRef< const SWidget> AsWidget() override { return AsShared(); }
+	virtual TWeakPtr< SViewport > GetViewportWidget() override { return ViewportWidget; }
+
 
 	/** SEditorViewport Interface */
 	virtual void OnFocusViewportToSelection() override;

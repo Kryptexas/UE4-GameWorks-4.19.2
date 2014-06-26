@@ -134,6 +134,10 @@ public:
 
 	void SetZoomAndOffset(float InZoom, float InOffset);
 
+	void SetHistogramWindow(float InWindowSize);
+
+	float GetHistogramPreviewWindow() { return HistogramPreviewWindow; }
+
 	/**
 	 * Gets the graph's offset value
 	 *
@@ -200,6 +204,8 @@ private:
 
 	/** Current offset of the graph */
 	float Offset;
+
+	float HistogramPreviewWindow;
 
 	/** Last hovered event index */
 	int32 LastHoveredEvent;
