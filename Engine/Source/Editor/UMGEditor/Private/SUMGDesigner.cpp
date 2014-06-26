@@ -912,8 +912,7 @@ void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
 		}
 
 		UWidgetBlueprint* BP = GetBlueprint();
-		const bool bIsRecursive = false;
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
 		DropPreviewWidget = NULL;
 	}
 }
@@ -929,8 +928,7 @@ FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEven
 			DropPreviewParent->RemoveChild(DropPreviewWidget);
 		}
 		
-		const bool bIsRecursive = false;
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
 		DropPreviewWidget = NULL;
 	}
 	
@@ -964,8 +962,7 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 			DropPreviewParent->RemoveChild(DropPreviewWidget);
 		}
 
-		const bool bIsRecursive = false;
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
 		DropPreviewWidget = NULL;
 	}
 
@@ -1156,8 +1153,7 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 			DropPreviewParent->RemoveChild(DropPreviewWidget);
 		}
 		
-		const bool bIsRecursive = false;
-		BP->WidgetTree->RemoveWidget(DropPreviewWidget, bIsRecursive);
+		BP->WidgetTree->RemoveWidget(DropPreviewWidget);
 		DropPreviewWidget = NULL;
 	}
 	

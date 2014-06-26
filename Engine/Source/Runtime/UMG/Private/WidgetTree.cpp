@@ -45,7 +45,7 @@ UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildInde
 	return Parent;
 }
 
-bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget, bool bIsRecursive)
+bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
 	InRemovedWidget->Modify();
 
@@ -62,15 +62,10 @@ bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget, bool bIsRecursive)
 		}
 	}
 
-	if ( bIsRecursive )
+	if ( InRemovedWidget == RootWidget )
 	{
-		if ( UPanelWidget* InNonLeafRemovedWidget = Cast<UPanelWidget>(InRemovedWidget) )
-		{
-			while ( InNonLeafRemovedWidget->GetChildrenCount() > 0 )
-			{
-				RemoveWidget(InNonLeafRemovedWidget->GetChildAt(0));
-			}
-		}
+		RootWidget = NULL;
+		bRemoved = true;
 	}
 
 	return bRemoved;
