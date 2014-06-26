@@ -4,7 +4,7 @@
 
 #include "LogVisualizerCameraController.generated.h"
 
-UCLASS(config=Input)
+UCLASS(config=Input, hidedropdown)
 class ALogVisualizerCameraController : public ADebugCameraController
 {
 public:
