@@ -352,7 +352,7 @@ public:
 			// Draw a current camera position
 			{
 				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
-				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().Inverse();
+				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().InverseSafe();
 				FVector ObserverPosition	= ObserverViewToWorld.GetOrigin();
 				FRotator ObserverRotation	= ObserverViewToWorld.Rotator();
 								
