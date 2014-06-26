@@ -73,6 +73,7 @@ void UBehaviorTreeGraphNode::PrepareForCopying()
 		NodeInstance->Rename(NULL, this, REN_DontCreateRedirectors | REN_DoNotDirty );
 	}
 }
+#if WITH_EDITOR
 
 void UBehaviorTreeGraphNode::PostEditImport()
 {
@@ -86,6 +87,13 @@ void UBehaviorTreeGraphNode::PostEditImport()
 		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
 	}
 }
+
+void UBehaviorTreeGraphNode::PostEditUndo()
+{
+	ResetNodeOwner();
+}
+
+#endif
 
 void UBehaviorTreeGraphNode::PostCopyNode()
 {

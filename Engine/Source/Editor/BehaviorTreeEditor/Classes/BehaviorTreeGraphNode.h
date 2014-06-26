@@ -41,7 +41,10 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	// End UEdGraphNode Interface
 
 	// Begin UObject Interface
+#if WITH_EDITOR
 	virtual void PostEditImport() override;
+	virtual void PostEditUndo() override;
+#endif
 	// End UObject
 
 	// @return the input pin for this state
