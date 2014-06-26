@@ -375,6 +375,8 @@ void FAnimationViewportClient::SetPreviewMeshComponent(UDebugSkelMeshComponent* 
 {
 	PreviewSkelMeshComp = InPreviewSkelMeshComp;
 
+	PreviewSkelMeshComp->BonesOfInterest.Empty();
+
 	UpdateCameraSetup();
 }
 
