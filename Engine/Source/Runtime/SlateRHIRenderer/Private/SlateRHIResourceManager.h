@@ -55,6 +55,8 @@ public:
 
 private:
 	TMap<FName, TSharedPtr<FDynamicTextureResource> > DynamicNativeTextureMap;
+	
+	TMap<UObject*, TWeakPtr<FDynamicTextureResource> > DynamicNativeTextureMapLookupByTextureObject;
 
 	TMap<UObject*, TSharedPtr<FDynamicTextureResource> > DynamicResourceObjectMap;
 
