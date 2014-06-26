@@ -1644,7 +1644,10 @@ void UActorChannel::ProcessBunch( FInBunch & Bunch )
 	
 	for (auto RepComp = ReplicationMap.CreateIterator(); RepComp; ++RepComp)
 	{
-		RepComp.Value()->PostReceivedBunch();
+		if ( RepComp.Key().IsValid() )
+		{
+			RepComp.Value()->PostReceivedBunch();
+		}
 	}
 
 	// After all properties have been initialized, call PostNetInit. This should call BeginPlay() so initialization can be done with proper starting values.
@@ -1716,7 +1719,6 @@ bool UActorChannel::ReplicateActor()
 			{
 				RepComp.Value()->ForceRefreshUnreliableProperties();
 			}
-
 		}
 	}
 	else
@@ -1927,8 +1929,13 @@ void UActorChannel::BecomeDormant()
 
 bool UActorChannel::ReadyForDormancy(bool suppressLogs)
 {
-	for (auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt)
+	for ( auto MapIt = ReplicationMap.CreateIterator(); MapIt; ++MapIt )
 	{
+		if ( !MapIt.Key().IsValid() )
+		{
+			continue;
+		}
+
 		if (!MapIt.Value()->ReadyForDormancy(suppressLogs))
 		{
 			return false;
