@@ -1046,6 +1046,12 @@ protected:
 	*/
 	virtual void OnChildAttached(USceneComponent* ChildComponent) override;
 
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const 
+	{
+		return false;
+	}
+
 public:
 	virtual bool IsSimulatingPhysics(FName BoneName = NAME_None) const override;
 

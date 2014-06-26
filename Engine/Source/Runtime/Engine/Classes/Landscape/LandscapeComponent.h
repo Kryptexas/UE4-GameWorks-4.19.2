@@ -470,6 +470,14 @@ public:
 	friend struct FLandscapeComponentDataInterface;
 
 	void SetLOD(bool bForced, int32 InLODValue);
+
+protected:
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		return true;
+	}
 };
 
 

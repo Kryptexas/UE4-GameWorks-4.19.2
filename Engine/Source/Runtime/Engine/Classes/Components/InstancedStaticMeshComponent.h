@@ -152,5 +152,13 @@ private:
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
 
+protected:
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		//@todo - support for instanced meshes
+		return false;
+	}
 };
 

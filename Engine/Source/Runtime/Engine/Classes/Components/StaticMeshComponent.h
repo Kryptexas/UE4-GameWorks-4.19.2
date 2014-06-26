@@ -327,7 +327,6 @@ public:
 		int32& VertexLightMapMemoryUsage, int32& VertexShadowMapMemoryUsage,
 		int32& StaticLightingResolution, bool& bIsUsingTextureMapping, bool& bHasLightmapTexCoords) const;
 
-
 	/**
 	 * Determines whether any of the component's LODs require override vertex color fixups
 	 *
@@ -370,24 +369,24 @@ private:
 
 	/** Update the vertex override colors */
 	void PrivateFixupOverrideColors( const TArray<int32>& LODsToUpdate );
+
+protected:
+
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		return true;
+	}
+
 public:
 
 	void ReleaseResources();
 
-
-
-
-
-
 	/** Allocates an implementation of FStaticLightingMesh that will handle static lighting for this component */
 	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights);
 
-
-
-
 	/** Add or remove elements to have the size in the specified range. Reconstructs elements if MaxSize<MinSize */
 	void SetLODDataCount( const uint32 MinSize, const uint32 MaxSize );
-
 
 	/**
 	 *	Switches the static mesh component to use either Texture or Vertex static lighting.

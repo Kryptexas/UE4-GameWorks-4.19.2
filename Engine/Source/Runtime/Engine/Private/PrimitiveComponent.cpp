@@ -150,7 +150,7 @@ bool UPrimitiveComponent::IsEditorOnly() const
 
 bool UPrimitiveComponent::HasStaticLighting() const
 {
-	return (Mobility == EComponentMobility::Static) || bLightAsIfStatic;
+	return ((Mobility == EComponentMobility::Static) || bLightAsIfStatic) && SupportsStaticLighting();
 }
 
 

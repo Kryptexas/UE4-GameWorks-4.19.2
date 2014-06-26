@@ -160,6 +160,13 @@ private:
 	friend void SetDebugLightmapSample(TArray<UActorComponent*>* Components, UModel* Model, int32 iSurf, FVector ClickLocation);
 	friend class UModel;
 	friend class FStaticLightingSystem;
+
+protected:
+	/** Whether the component type supports static lighting. */
+	virtual bool SupportsStaticLighting() const override
+	{
+		return true;
+	}
 };
 
 
