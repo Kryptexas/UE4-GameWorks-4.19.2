@@ -1142,6 +1142,9 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 
 FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
+	bMouseDown = false;
+	bMovingExistingWidget = false;
+
 	UWidgetBlueprint* BP = GetBlueprint();
 	
 	if (DropPreviewWidget)
