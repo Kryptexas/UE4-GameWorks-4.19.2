@@ -116,6 +116,7 @@ public:
 			// f(MaxRoughness/2) = 1
 
 			float RoughnessMaskScale = -2.0f / MaxRoughness;
+			RoughnessMaskScale *= SSRQuality < 3 ? 2.0f : 1.0f;
 
 			FLinearColor Value(
 				FMath::Clamp(Context.View.FinalPostProcessSettings.ScreenSpaceReflectionIntensity * 0.01f, 0.0f, 1.0f), 
