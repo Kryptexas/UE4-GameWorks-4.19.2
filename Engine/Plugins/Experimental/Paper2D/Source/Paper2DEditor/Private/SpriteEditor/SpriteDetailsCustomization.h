@@ -20,4 +20,6 @@ public:
 protected:
 	EVisibility PhysicsModeMatches(TSharedPtr<IPropertyHandle> Property, ESpriteCollisionMode::Type DesiredMode) const;
 	EVisibility AnyPhysicsMode(TSharedPtr<IPropertyHandle> Property) const;
+	EVisibility GetAtlasGroupVisibility(TSharedPtr<IPropertyHandle> Property) const;
+	EVisibility GetCustomPivotVisibility(TSharedPtr<IPropertyHandle> Property) const;
 };
