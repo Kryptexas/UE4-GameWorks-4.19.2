@@ -309,6 +309,15 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	}
 #endif
 
+#if SSR_QUALITY == 0
+	// visualize SSR
+
+	float PatternMask = ((PixelPos.x / 2 + PixelPos.y / 2) % 2) * 0.7f;
+
+	OutColor = lerp(float4(1, 0, 0, 1), float4(1, 1 ,0, 1), PatternMask) * 0.3f;
+	return;
+#endif
+
 	float Roughness = ScreenSpaceData.GBuffer.Roughness;
 
 	float3 N = ScreenSpaceData.GBuffer.WorldNormal;

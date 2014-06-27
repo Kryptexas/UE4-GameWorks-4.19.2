@@ -209,6 +209,7 @@ struct FEngineShowFlags
 		// we enable it manually on the editor view ports
 		SetSnap(false);
 		SetVisualizeDistanceFieldAO(false);
+		SetVisualizeSSR(false);
 	}
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)
