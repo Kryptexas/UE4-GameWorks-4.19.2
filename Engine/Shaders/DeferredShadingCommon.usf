@@ -289,7 +289,7 @@ struct FGBufferData
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
 	// 0..255 
-	uint ShadingModelID;
+	int ShadingModelID;
 	// 0..1 decal receiver mask
 	uint DecalMask;
 	// 0..1
