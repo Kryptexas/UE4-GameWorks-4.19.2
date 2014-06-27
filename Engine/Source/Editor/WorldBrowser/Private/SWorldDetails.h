@@ -29,6 +29,9 @@ private:
 	/** Handles selection changes in data source */
 	void OnSelectionChanged();
 
+	/** Handles levels collection changes in data source */
+	void OnCollectionChanged();
+
 	/**  */
 	void OnSetInspectedLevel(TSharedPtr<FLevelModel> InLevelModel, ESelectInfo::Type SelectInfo);
 	TSharedRef<SWidget> HandleInspectedLevelComboBoxGenerateWidget(TSharedPtr<FLevelModel> InLevelModel) const;

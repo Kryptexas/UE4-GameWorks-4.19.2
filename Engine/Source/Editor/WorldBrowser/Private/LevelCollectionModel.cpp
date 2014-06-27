@@ -190,9 +190,6 @@ void FLevelCollectionModel::PopulateLevelsList()
 	AllLevelsMap.Empty();
 
 	OnLevelsCollectionChanged();
-	
-	UpdateAllLevels();
-	PopulateFilteredLevelsList();
 }
 
 void FLevelCollectionModel::PopulateFilteredLevelsList()
@@ -1588,6 +1585,9 @@ void FLevelCollectionModel::FillSourceControlMenu(FMenuBuilder& InMenuBuilder)
 
 void FLevelCollectionModel::OnLevelsCollectionChanged()
 {
+	UpdateAllLevels();
+	PopulateFilteredLevelsList();
+
 	BroadcastCollectionChanged();
 }
 
