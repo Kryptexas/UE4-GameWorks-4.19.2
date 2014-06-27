@@ -15,7 +15,9 @@
 
 bool FText::IsWhitespace( const TCHAR Char )
 {
-	const UChar32 ICUChar = ICUUtilities::ConvertChar32(Char);
+	// TCHAR should either be UTF-16 or UTF-32, so we should be fine to cast it to a UChar32 for the whitespace
+	// check, since whitespace is never a pair of UTF-16 characters
+	const UChar32 ICUChar = static_cast<UChar32>(Char);
 	return u_isWhitespace(ICUChar) != 0;
 }
 

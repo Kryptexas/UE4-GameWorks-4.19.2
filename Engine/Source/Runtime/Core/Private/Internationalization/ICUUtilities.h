@@ -12,9 +12,5 @@ namespace ICUUtilities
 	icu::UnicodeString ConvertString(const FString& Source, const bool ShouldNullTerminate = true);
 	void ConvertString(const icu::UnicodeString& Source, FString& Destination);
 	FString ConvertString(const icu::UnicodeString& Source);
-
-	/** Convert TCHAR -> UChar32 */
-	void ConvertChar32(const TCHAR Source, UChar32& Destination);
-	UChar32 ConvertChar32(const TCHAR Source);
 }
 #endif

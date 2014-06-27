@@ -96,32 +96,5 @@ namespace ICUUtilities
 		ConvertString(Source, Destination);
 		return Destination;
 	}
-
-	void ConvertChar32(const TCHAR Source, UChar32& Destination)
-	{
-		const char* const SourceEncoding = FPlatformString::GetEncodingName();
-	
-		UErrorCode ICUStatus = U_ZERO_ERROR;
-		
-		UConverter* ICUConverter = ucnv_open(SourceEncoding, &ICUStatus);
-		if( U_FAILURE(ICUStatus) ) 
-		{
-			return;
-		}
-
-
-		const char* NativeChars = reinterpret_cast<const char*>(&Source);
-		const int32_t NativeCharsLen = sizeof(TCHAR);
-		Destination = ucnv_getNextUChar(ICUConverter, &NativeChars, NativeChars + NativeCharsLen, &ICUStatus);
-
-		ucnv_close(ICUConverter);
-	}
-
-	UChar32 ConvertChar32(const TCHAR Source)
-	{
-		UChar32 Destination = 0;
-		ConvertChar32(Source, Destination);
-		return Destination;
-	}
 }
 #endif
