@@ -142,7 +142,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 	FNetworkGUID		GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
-	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID ) { return NULL; }
+	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
 
 protected:
 

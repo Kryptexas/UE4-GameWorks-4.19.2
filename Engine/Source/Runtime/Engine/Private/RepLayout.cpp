@@ -1347,7 +1347,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 
 		check( Cmd.Type == REPCMD_PropertyObject );
 
-		UObject * Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid );
+		UObject * Object = PackageMap->GetObjectFromNetGUID( It.Value().Guid, false );
 
 		if ( Object != NULL )
 		{

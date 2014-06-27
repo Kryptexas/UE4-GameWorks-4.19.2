@@ -1477,21 +1477,19 @@ void UActorChannel::Tick()
 	Super::Tick();
 	
 	// Try to resolve any guids that are holding up the network stream on this channel
-	Connection->Driver->GuidCache->IsExportingNetGUIDBunch = true;		// Hack to make assert happy
 	for ( auto It = PendingGuidResolves.CreateIterator(); It; ++It )
 	{
-		if ( Connection->Driver->GuidCache->GetObjectFromNetGUID( *It ) != NULL )
+		if ( Connection->Driver->GuidCache->GetObjectFromNetGUID( *It, true ) != NULL )
 		{
 			// This guid is now resolved, we can remove it from the pending guid list
 			It.RemoveCurrent();
 		}
 	}
-	Connection->Driver->GuidCache->IsExportingNetGUIDBunch = false;
 
 	// If we don't have any pending guids to resolve, process any queued bunches now
 	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
 	{
-		UE_LOG( LogNet, Warning, TEXT( "UActorChannel::Tick: Purging queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 
 		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
 		{
