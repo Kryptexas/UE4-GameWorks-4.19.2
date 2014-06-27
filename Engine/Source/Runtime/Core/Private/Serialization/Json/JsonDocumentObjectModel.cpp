@@ -8,6 +8,78 @@
 const TArray< TSharedPtr<FJsonValue> > FJsonValue::EMPTY_ARRAY;
 const TSharedPtr<FJsonObject> FJsonValue::EMPTY_OBJECT(new FJsonObject());
 
+double FJsonValue::AsNumber() const
+{
+	double Number = 0.0;
+	if(!TryGetNumber(Number))
+	{
+		ErrorMessage(TEXT("Number"));
+	}
+	return Number;
+}
+
+FString FJsonValue::AsString() const 
+{
+	FString String;
+	if(!TryGetString(String))
+	{
+		ErrorMessage(TEXT("String"));
+	}
+	return String;
+}
+
+bool FJsonValue::AsBool() const 
+{
+	bool Bool = false;
+	if(!TryGetBool(Bool))
+	{
+		ErrorMessage(TEXT("Boolean")); 
+	}
+	return Bool;
+}
+
+const TArray< TSharedPtr<FJsonValue> >& FJsonValue::AsArray() const 
+{
+	const TArray< TSharedPtr<FJsonValue> > *Array = &EMPTY_ARRAY;
+	if(!TryGetArray(Array))
+	{
+		ErrorMessage(TEXT("Array")); 
+	}
+	return *Array;
+}
+
+const TSharedPtr<FJsonObject>& FJsonValue::AsObject() const 
+{
+	const TSharedPtr<FJsonObject> *Object = &EMPTY_OBJECT;
+	if(!TryGetObject(Object))
+	{
+		ErrorMessage(TEXT("Object"));
+	}
+	return *Object;
+}
+
+bool FJsonValue::TryGetNumber(int32& OutNumber) const
+{
+	double Double;
+	if(TryGetNumber(Double) && Double >= INT_MIN && Double <= INT_MAX)
+	{
+		OutNumber = (int32)(Double + 0.5);
+		return true;
+	}
+	return false;
+}
+
+bool FJsonValue::TryGetNumber(uint32& OutNumber) const
+{
+	double Double;
+	if(TryGetNumber(Double) && Double >= 0.0 && Double <= UINT_MAX)
+	{
+		OutNumber = (uint32)(Double + 0.5);
+		return true;
+	}
+	return false;
+}
+
 //static 
 bool FJsonValue::CompareEqual(const FJsonValue& Lhs, const FJsonValue& Rhs)
 {
@@ -107,6 +179,24 @@ double FJsonObject::GetNumberField(const FString& FieldName) const
 	return GetField<EJson::None>(FieldName)->AsNumber();
 }
 
+bool FJsonObject::TryGetNumberField(const FString& FieldName, double& OutNumber) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetNumber(OutNumber);
+}
+
+bool FJsonObject::TryGetNumberField(const FString& FieldName, int32& OutNumber) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetNumber(OutNumber);
+}
+
+bool FJsonObject::TryGetNumberField(const FString& FieldName, uint32& OutNumber) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetNumber(OutNumber);
+}
+
 void FJsonObject::SetNumberField( const FString& FieldName, double Number )
 {
 	this->Values.Add( FieldName, MakeShareable(new FJsonValueNumber(Number)) );
@@ -115,6 +205,12 @@ void FJsonObject::SetNumberField( const FString& FieldName, double Number )
 FString FJsonObject::GetStringField(const FString& FieldName) const
 {
 	return GetField<EJson::None>(FieldName)->AsString();
+}
+
+bool FJsonObject::TryGetStringField(const FString& FieldName, FString& OutString) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetString(OutString);
 }
 
 void FJsonObject::SetStringField( const FString& FieldName, const FString& StringValue )
@@ -127,6 +223,12 @@ bool FJsonObject::GetBoolField(const FString& FieldName) const
 	return GetField<EJson::None>(FieldName)->AsBool();
 }
 
+bool FJsonObject::TryGetBoolField(const FString& FieldName, bool& OutBool) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetBool(OutBool);
+}
+
 void FJsonObject::SetBoolField( const FString& FieldName, bool InValue )
 {
 	this->Values.Add( FieldName, MakeShareable( new FJsonValueBoolean(InValue) ) );
@@ -137,6 +239,12 @@ const TArray< TSharedPtr<FJsonValue> >& FJsonObject::GetArrayField(const FString
 	return GetField<EJson::Array>(FieldName)->AsArray();
 }
 
+bool FJsonObject::TryGetArrayField(const FString& FieldName, const TArray< TSharedPtr<FJsonValue> >*& OutArray) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetArray(OutArray);
+}
+
 void FJsonObject::SetArrayField( const FString& FieldName, const TArray< TSharedPtr<FJsonValue> >& Array )
 {
 	this->Values.Add( FieldName, MakeShareable( new FJsonValueArray(Array) ) );
@@ -145,6 +253,12 @@ void FJsonObject::SetArrayField( const FString& FieldName, const TArray< TShared
 const TSharedPtr<FJsonObject>& FJsonObject::GetObjectField(const FString& FieldName) const
 {
 	return GetField<EJson::Object>(FieldName)->AsObject();
+}
+
+bool FJsonObject::TryGetObjectField(const FString& FieldName, const TSharedPtr<FJsonObject>*& OutObject) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	return Field.IsValid() && Field->TryGetObject(OutObject);
 }
 
 void FJsonObject::SetObjectField( const FString& FieldName, const TSharedPtr<FJsonObject>& JsonObject )
