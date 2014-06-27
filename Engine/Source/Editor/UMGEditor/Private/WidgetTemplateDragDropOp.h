@@ -5,14 +5,18 @@
 #include "DecoratedDragDropOp.h"
 #include "WidgetTemplate.h"
 
+/**
+ * This drag drop operation allows widget templates from the palate to be dragged and dropped into the designer
+ * or the widget hierarchy in order to spawn new widgets.
+ */
 class FWidgetTemplateDragDropOp : public FDecoratedDragDropOp
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FWidgetTemplateDragDropOp, FDecoratedDragDropOp)
 
+	/** The template to create an instance */
 	TSharedPtr<FWidgetTemplate> Template;
 
+	/** Constructs the drag drop operation */
 	static TSharedRef<FWidgetTemplateDragDropOp> New(const TSharedPtr<FWidgetTemplate>& InTemplate);
-
-	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
 };

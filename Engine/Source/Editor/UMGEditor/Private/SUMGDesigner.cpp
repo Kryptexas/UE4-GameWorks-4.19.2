@@ -25,8 +25,6 @@ public:
 	FWidgetReference Widget;
 
 	static TSharedRef<FSelectedWidgetDragDropOp> New(FWidgetReference InWidget);
-
-	//virtual TSharedPtr<SWidget> GetDefaultDecorator() const override;
 };
 
 TSharedRef<FSelectedWidgetDragDropOp> FSelectedWidgetDragDropOp::New(FWidgetReference InWidget)
@@ -975,90 +973,75 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 		Target = bIsPreview ? WidgetUnderCursor.GetPreview() : WidgetUnderCursor.GetTemplate();
 	}
 
-	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
-	if ( DragDropOp.IsValid() )
-	{		
-		if ( Target )
+	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
+	if ( TemplateDragDropOp.IsValid() )
+	{
+		// If there's no root widget go ahead and add the widget into the root slot.
+		if ( BP->WidgetTree->RootWidget == NULL )
 		{
-			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
+
+			if ( !bIsPreview )
 			{
-				UPanelWidget* Parent = Cast<UPanelWidget>(Target);
-
-				FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
-
-				if ( !bIsPreview )
-				{
-					Parent->SetFlags(RF_Transactional);
-					Parent->Modify();
-
-					BP->WidgetTree->SetFlags(RF_Transactional);
-					BP->WidgetTree->Modify();
-				}
-				
-				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-				Widget->IsDesignTime(true);
-			
-				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-				if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
-				{
-					Slot->SetDesiredPosition(LocalPosition);
-					Slot->SetDesiredSize(FVector2D(150, 30));
-					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-
-					DropPreviewParent = Parent;
-
-					if ( bIsPreview )
-					{
-						Transaction.Cancel();
-					}
-
-					return Widget;
-				}
-				else
-				{
-					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
-					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
-				}
-
-				if ( bIsPreview )
-				{
-					Transaction.Cancel();
-				}
+				BP->WidgetTree->SetFlags(RF_Transactional);
+				BP->WidgetTree->Modify();
 			}
-			//else if ( BP->WidgetTree->RootWidget != NULL && BP->WidgetTree->RootWidget.Child == 1 )
-			//{
-			//	UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-			//	Widget->IsDesignTime(true);
-			//	
-			//	DropPreviewParent = NULL;
-			//	
-			//	return Widget;
-			//}
-		}
-		else
-		{
-			if ( BP->WidgetTree->RootWidget == NULL )
+
+			// TODO UMG This method isn't great, maybe the user widget should just be a canvas.
+
+			// Add it to the root if there are no other widgets to add it to.
+			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
+			Widget->IsDesignTime(true);
+
+			BP->WidgetTree->RootWidget = Widget;
+
+			SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+
+			DropPreviewParent = NULL;
+
+			if ( bIsPreview )
 			{
-				FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
+				Transaction.Cancel();
+			}
 
-				if ( !bIsPreview )
-				{
-					BP->WidgetTree->SetFlags(RF_Transactional);
-					BP->WidgetTree->Modify();
-				}
+			return Widget;
+		}
+		// If there's already a root widget we need to try and place our widget into a parent widget that we've picked against
+		else if ( Target && Target->IsA(UPanelWidget::StaticClass()) )
+		{
+			UPanelWidget* Parent = Cast<UPanelWidget>(Target);
 
-				// TODO UMG This method isn't great, maybe the user widget should just be a canvas.
+			FScopedTransaction Transaction(LOCTEXT("Designer_AddWidget", "Add Widget"));
 
-				// Add it to the root if there are no other widgets to add it to.
-				UWidget* Widget = DragDropOp->Template->Create(BP->WidgetTree);
-				Widget->IsDesignTime(true);
+			// If this isn't a preview operation we need to modify a few things to properly undo the operation.
+			if ( !bIsPreview )
+			{
+				Parent->SetFlags(RF_Transactional);
+				Parent->Modify();
 
-				BP->WidgetTree->RootWidget = Widget;
+				BP->WidgetTree->SetFlags(RF_Transactional);
+				BP->WidgetTree->Modify();
+			}
 
-				SelectedWidget = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), Widget);
+			// Construct the widget and mark it for design time rendering.
+			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
+			Widget->IsDesignTime(true);
 
-				DropPreviewParent = NULL;
+			// Determine local position inside the parent widget and add the widget to the slot.
+			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			if ( UPanelSlot* Slot = Parent->AddChild(Widget) )
+			{
+				TSharedPtr<SWidget> SlateWidget = Widget->GetWidget();
+				SlateWidget->SlatePrepass();
+				const FVector2D& WidgetDesiredSize = SlateWidget->GetDesiredSize();
+
+				static const FVector2D MinimumDefaultSize(20, 20);
+				FVector2D LocalSize = FVector2D(FMath::Max(WidgetDesiredSize.X, MinimumDefaultSize.X), FMath::Max(WidgetDesiredSize.Y, MinimumDefaultSize.Y));
+
+				Slot->SetDesiredPosition(LocalPosition);
+				Slot->SetDesiredSize(LocalSize);
+
+				DropPreviewParent = Parent;
 
 				if ( bIsPreview )
 				{
@@ -1067,71 +1050,79 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 
 				return Widget;
 			}
+			else
+			{
+				// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+				//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
+			}
+
+			if ( bIsPreview )
+			{
+				Transaction.Cancel();
+			}
 		}
 	}
 
 	// Attempt to deal with moving widgets from a drag operation.
 	if ( SelectedDragDropOp.IsValid() )
 	{
-		if ( Target )
+		if ( Target && Target->IsA(UPanelWidget::StaticClass()) )
 		{
-			if ( Target->IsA(UPanelWidget::StaticClass()) )
+			UPanelWidget* NewParent = Cast<UPanelWidget>(Target);
+
+			FScopedTransaction Transaction(LOCTEXT("Designer_MoveWidget", "Move Widget"));
+
+			// If this isn't a preview operation we need to modify a few things to properly undo the operation.
+			if ( !bIsPreview )
 			{
-				UPanelWidget* NewParent = Cast<UPanelWidget>(Target);
+				NewParent->SetFlags(RF_Transactional);
+				NewParent->Modify();
 
-				FScopedTransaction Transaction(LOCTEXT("Designer_MoveWidget", "Move Widget"));
+				BP->WidgetTree->SetFlags(RF_Transactional);
+				BP->WidgetTree->Modify();
+			}
 
+			UWidget* Widget = bIsPreview ? SelectedDragDropOp->Widget.GetPreview() : SelectedDragDropOp->Widget.GetTemplate();
+
+			if ( Widget->GetParent() )
+			{
 				if ( !bIsPreview )
 				{
-					NewParent->SetFlags(RF_Transactional);
-					NewParent->Modify();
-
-					BP->WidgetTree->SetFlags(RF_Transactional);
-					BP->WidgetTree->Modify();
+					Widget->GetParent()->Modify();
 				}
 
-				UWidget* Widget = bIsPreview ? SelectedDragDropOp->Widget.GetPreview() : SelectedDragDropOp->Widget.GetTemplate();
+				Widget->GetParent()->RemoveChild(Widget);
+			}
 
-				if ( Widget->GetParent() )
-				{
-					if ( !bIsPreview )
-					{
-						Widget->GetParent()->Modify();
-					}
+			FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
+			{
+				FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
 
-					Widget->GetParent()->RemoveChild(Widget);
-				}
+				//TODO UMG Migrate existing slot info
+				Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
+				//Slot->SetDesiredSize(FVector2D(150, 30));
+				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
+				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
 
-				FVector2D LocalPosition = ArrangedWidget.Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
-				if ( UPanelSlot* Slot = NewParent->AddChild(Widget) )
-				{
-					FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
-
-					//TODO UMG Migrate existing slot info
-					Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
-					//Slot->SetDesiredSize(FVector2D(150, 30));
-					//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-					//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
-
-					DropPreviewParent = NewParent;
-
-					if ( bIsPreview )
-					{
-						Transaction.Cancel();
-					}
-
-					return Widget;
-				}
-				else
-				{
-					// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
-					//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
-				}
+				DropPreviewParent = NewParent;
 
 				if ( bIsPreview )
 				{
 					Transaction.Cancel();
 				}
+
+				return Widget;
+			}
+			else
+			{
+				// TODO UMG ERROR Slot can not be created because maybe the max children has been reached.
+				//          Maybe we can traverse the hierarchy and add it to the first parent that will accept it?
+			}
+
+			if ( bIsPreview )
+			{
+				Transaction.Cancel();
 			}
 		}
 	}
