@@ -20,7 +20,6 @@
 /* Private includes
  *****************************************************************************/
 
- #include "PluginManagerShared.h"
  #include "PluginManager.h"
  #include "ProjectManager.h"
  

@@ -4,6 +4,8 @@
 
 #include "Json.h"
 
+enum class EModuleLoadResult;
+
 /**
  * Phase at which this module should be loaded during startup.
  */
@@ -30,14 +32,6 @@ namespace ELoadingPhase
 		Max
 	};
 
-	/**
-	 * Returns the earliest of two load phases.
-	 *
-	 * @param	The value to convert to a string
-	 * @return	The string representation of this enum value
-	 */
-	ELoadingPhase::Type Earliest( ELoadingPhase::Type First, ELoadingPhase::Type Second );
-	
 	/**
 	 * Converts a string to a ELoadingPhase::Type value
 	 *
@@ -111,8 +105,8 @@ struct FModuleDescriptor
 	/** List of disallowed platforms */
 	TArray<FString> BlacklistPlatforms;
 
-	/** Module info constructor */
-	FModuleDescriptor();
+	/** Normal constructor */
+	FModuleDescriptor(const FName InName = NAME_None, EHostType::Type InType = EHostType::Runtime, ELoadingPhase::Type InLoadingPhase = ELoadingPhase::Default);
 
 	/** Reads a descriptor from the given JSON object */
 	bool Read(const FJsonObject& Object, FText& OutFailReason);
@@ -131,4 +125,10 @@ struct FModuleDescriptor
 
 	/** Tests whether the module should be loaded for the current engine configuration */
 	bool IsLoadedInCurrentConfiguration() const;
+
+	/** Loads all the modules for a given loading phase. Returns a map of module names to load errors */
+	static void LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, const TArray<FModuleDescriptor>& Modules, TMap<FName, EModuleLoadResult>& ModuleLoadErrors);
+
+	/** Checks whether all the modules in an array are up to date */
+	static bool AreModulesUpToDate(const TArray<FModuleDescriptor>& Modules);
 };

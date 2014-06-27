@@ -2,101 +2,23 @@
 
 #include "ProjectsPrivatePCH.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
 #define LOCTEXT_NAMESPACE "ProjectManager"
 
-
-FProject::FProject()
-{
-}
-
-FProject::FProject( const FProjectInfo& InitProjectInfo )
-	: ProjectInfo(InitProjectInfo)
-{
-}
-
-bool FProject::IsSignedSampleProject(const FString& FilePath) const
-{
-	return ProjectInfo.EpicSampleNameHash == GetTypeHash(FPaths::GetCleanFilename(FilePath));
-}
-
-void FProject::SignSampleProject(const FString& FilePath, const FString& Category)
-{
-	ProjectInfo.EpicSampleNameHash = GetTypeHash(FPaths::GetCleanFilename(FilePath));
-	ProjectInfo.Category = Category;
-}
-
-void FProject::UpdateSupportedTargetPlatforms(const FName& InPlatformName, const bool bIsSupported)
-{
-	if ( bIsSupported )
-	{
-		ProjectInfo.TargetPlatforms.AddUnique(InPlatformName);
-	}
-	else
-	{
-		ProjectInfo.TargetPlatforms.Remove(InPlatformName);
-	}
-}
-
-void FProject::ClearSupportedTargetPlatforms()
-{
-	ProjectInfo.TargetPlatforms.Empty();
-}
-
-bool FProject::PerformAdditionalDeserialization(const TSharedRef< FJsonObject >& FileObject)
-{
-	ReadNumberFromJSON(FileObject, TEXT("EpicSampleNameHash"), ProjectInfo.EpicSampleNameHash);
-
-	ProjectInfo.TargetPlatforms.Empty();
-	if ( FileObject->HasField(TEXT("TargetPlatforms")) )
-	{
-		const TSharedPtr<FJsonValue>& TargetPlatformsValue = FileObject->GetField<EJson::Array>(TEXT("TargetPlatforms"));
-		const TArray<TSharedPtr<FJsonValue>>& TargetPlatformsArray = TargetPlatformsValue->AsArray();
-		for ( const auto& TargetPlatformsEntry : TargetPlatformsArray )
-		{
-			const FString PlatformName = TargetPlatformsEntry->AsString();
-			ProjectInfo.TargetPlatforms.Add(*PlatformName);
-		}
-	}
-
-	return true;
-}
-
-void FProject::PerformAdditionalSerialization(const TSharedRef< TJsonWriter<> >& Writer) const
-{
-	Writer->WriteValue(TEXT("EpicSampleNameHash"), FString::Printf(TEXT("%u"), ProjectInfo.EpicSampleNameHash));
-
-	if ( ProjectInfo.TargetPlatforms.Num() > 0 )
-	{
-		Writer->WriteArrayStart(TEXT("TargetPlatforms"));
-		for ( const FName& PlatformName : ProjectInfo.TargetPlatforms )
-		{
-			Writer->WriteValue(PlatformName.ToString());
-		}
-		Writer->WriteArrayEnd();
-	}
-}
-
-
-
-
-
 FProjectManager::FProjectManager()
 {
-
 }
 
 bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 {
+	// Try to load the descriptor
 	FText FailureReason;
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	if ( NewProject->LoadFromFile(InProjectFile, FailureReason) )
+	TSharedPtr<FProjectDescriptor> Descriptor = MakeShareable(new FProjectDescriptor());
+	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
-		// Load successful. Set the loaded project file pointer.
-		CurrentlyLoadedProject = NewProject;
-
+		// Create the project
+		CurrentlyLoadedProject = Descriptor;
 		return true;
 	}
 	
@@ -120,7 +42,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 	if ( CurrentlyLoadedProject.IsValid() )
 	{
 		TMap<FName, EModuleLoadResult> ModuleLoadFailures;
-		CurrentlyLoadedProject->LoadModules(LoadingPhase, ModuleLoadFailures);
+		FModuleDescriptor::LoadModulesForPhase(LoadingPhase, CurrentlyLoadedProject->Modules, ModuleLoadFailures);
 
 		if ( ModuleLoadFailures.Num() > 0 )
 		{
@@ -170,7 +92,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 bool FProjectManager::AreProjectModulesUpToDate()
 {
-	return !CurrentlyLoadedProject.IsValid() || CurrentlyLoadedProject->AreModulesUpToDate();
+	return !CurrentlyLoadedProject.IsValid() || FModuleDescriptor::AreModulesUpToDate(CurrentlyLoadedProject->Modules);
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
@@ -187,61 +109,41 @@ const FString& FProjectManager::NonStaticGetProjectFileExtension()
 
 bool FProjectManager::GenerateNewProjectFile(const FString& NewProjectFilename, const TArray<FString>& StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	NewProject->UpdateVersionToCurrent(EngineIdentifier);
-	NewProject->ReplaceModulesInProject(&StartupModuleNames);
+	FProjectDescriptor Descriptor;
+	Descriptor.EngineAssociation = EngineIdentifier;
 
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *NewProjectFilename) )
+	for(int32 Idx = 0; Idx < StartupModuleNames.Num(); Idx++)
 	{
-		return true;
+		Descriptor.Modules.Add(FModuleDescriptor(*StartupModuleNames[Idx]));
 	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(NewProjectFilename) );
-		return false;
-	}
+
+	return Descriptor.Save(NewProjectFilename, OutFailReason);
 }
 
 bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename, const FString& NewProjectFilename, const FString& EngineIdentifier, FText& OutFailReason)
 {
 	// Load the source project
-	TSharedRef<FProject> SourceProject = MakeShareable( new FProject() );
-	if ( !SourceProject->LoadFromFile(SourceProjectFilename, OutFailReason) )
+	FProjectDescriptor Project;
+	if(!Project.Load(SourceProjectFilename, OutFailReason))
 	{
 		return false;
 	}
 
-	// Duplicate the project info
-	FProjectInfo ProjectInfo = SourceProject->GetProjectInfo();
-
-	// Clear the sample hash
-	ProjectInfo.EpicSampleNameHash = 0;
+	// Update it to current
+	Project.EngineAssociation = EngineIdentifier;
+	Project.EpicSampleNameHash = 0;
 
 	// Fix up module names
 	const FString BaseSourceName = FPaths::GetBaseFilename(SourceProjectFilename);
 	const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFilename);
-	for ( auto ModuleIt = ProjectInfo.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+	for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
 	{
 		FModuleDescriptor& ModuleInfo = *ModuleIt;
 		ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
 	}
 
-	// Create new project, update version numbers (no need to replace modules here)
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject(ProjectInfo) );
-	NewProject->UpdateVersionToCurrent(EngineIdentifier);
-
-	// Serialize and write to disk
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *NewProjectFilename) )
-	{
-		return true;
-	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(NewProjectFilename) );
-		return false;
-	}
+	// Save it to disk
+	return Project.Save(NewProjectFilename, OutFailReason);
 }
 
 bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
@@ -252,57 +154,45 @@ bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* St
 	}
 
 	// Freshen version information
-	CurrentlyLoadedProject->UpdateVersionToCurrent(EngineIdentifier);
+	CurrentlyLoadedProject->EngineAssociation = EngineIdentifier;
 
 	// Replace the modules names, if specified
-	CurrentlyLoadedProject->ReplaceModulesInProject(StartupModuleNames);
+	if(StartupModuleNames != NULL)
+	{
+		CurrentlyLoadedProject->Modules.Empty();
+		for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
+		{
+			CurrentlyLoadedProject->Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+		}
+	}
 
 	// Update file on disk
-	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
-	if ( FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath()) )
-	{
-		return true;
-	}
-	else
-	{
-		// We failed to generate the file. Could be read only.
-		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(FPaths::GetProjectFilePath()) );
-		return false;
-	}
+	return CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), OutFailReason);
 }
 
 bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
-	if ( !NewProject->LoadFromFile(FilePath, OutFailReason) )
+	FProjectDescriptor Descriptor;
+	if(!Descriptor.Load(FilePath, OutFailReason))
 	{
 		return false;
 	}
 
-	NewProject->SignSampleProject(FilePath, Category);
-
-	const FString& FileContents = NewProject->SerializeToJSON();
-	if (FFileHelper::SaveStringToFile(FileContents, *FilePath))
-	{
-		return true;
-	}
-	else
-	{
-		OutFailReason = FText::Format( LOCTEXT("FailedToSaveSignedProject", "Failed to save signed project file {0}"), FText::FromString(FilePath) );
-		return false;
-	}
+	Descriptor.Sign(FilePath);
+	Descriptor.Category = Category;
+	return Descriptor.Save(FilePath, OutFailReason);
 }
 
 bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
 	FText FailReason;
-	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	FProjectDescriptor Descriptor;
+	if(!Descriptor.Load(FilePath, FailReason))
 	{
 		return false;
 	}
 
-	QueryStatusForProjectImpl(*NewProject, FilePath, OutProjectStatus);
+	QueryStatusForProjectImpl(Descriptor, FilePath, OutProjectStatus);
 	return true;
 }
 
@@ -317,31 +207,37 @@ bool FProjectManager::QueryStatusForCurrentProject(FProjectStatus& OutProjectSta
 	return true;
 }
 
-void FProjectManager::QueryStatusForProjectImpl(const FProject& Project, const FString& FilePath, FProjectStatus& OutProjectStatus)
+void FProjectManager::QueryStatusForProjectImpl(const FProjectDescriptor& ProjectInfo, const FString& FilePath, FProjectStatus& OutProjectStatus)
 {
-	const FProjectInfo& ProjectInfo = Project.GetProjectInfo();
-	OutProjectStatus.Name = ProjectInfo.Name;
+	OutProjectStatus.Name = FPaths::GetBaseFilename(FilePath);
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
 	OutProjectStatus.bCodeBasedProject = ProjectInfo.Modules.Num() > 0;
-	OutProjectStatus.bSignedSampleProject = Project.IsSignedSampleProject(FilePath);
-	OutProjectStatus.bRequiresUpdate = Project.RequiresUpdate();
+	OutProjectStatus.bSignedSampleProject = ProjectInfo.IsSigned(FilePath);
+	OutProjectStatus.bRequiresUpdate = ProjectInfo.FileVersion < EProjectDescriptorVersion::Latest;
 	OutProjectStatus.TargetPlatforms = ProjectInfo.TargetPlatforms;
 }
 
 void FProjectManager::UpdateSupportedTargetPlatformsForProject(const FString& FilePath, const FName& InPlatformName, const bool bIsSupported)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
+	FProjectDescriptor NewProject;
+
 	FText FailReason;
-	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	if ( !NewProject.Load(FilePath, FailReason) )
 	{
 		return;
 	}
 
-	NewProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+	if ( bIsSupported )
+	{
+		NewProject.TargetPlatforms.AddUnique(InPlatformName);
+	}
+	else
+	{
+		NewProject.TargetPlatforms.Remove(InPlatformName);
+	}
 
-	const FString& FileContents = NewProject->SerializeToJSON();
-	FFileHelper::SaveStringToFile(FileContents, *FilePath);
+	NewProject.Save(FilePath, FailReason);
 
 	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
 	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
@@ -361,25 +257,24 @@ void FProjectManager::UpdateSupportedTargetPlatformsForCurrentProject(const FNam
 
 	CurrentlyLoadedProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
 
-	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
-	FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath());
+	FText FailReason;
+	CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), FailReason);
 
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }
 
 void FProjectManager::ClearSupportedTargetPlatformsForProject(const FString& FilePath)
 {
-	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
+	FProjectDescriptor Descriptor;
+
 	FText FailReason;
-	if ( !NewProject->LoadFromFile(FilePath, FailReason) )
+	if ( !Descriptor.Load(FilePath, FailReason) )
 	{
 		return;
 	}
 
-	NewProject->ClearSupportedTargetPlatforms();
-
-	const FString& FileContents = NewProject->SerializeToJSON();
-	FFileHelper::SaveStringToFile(FileContents, *FilePath);
+	Descriptor.TargetPlatforms.Empty();
+	Descriptor.Save(FilePath, FailReason);
 
 	// Call OnTargetPlatformsForCurrentProjectChangedEvent if this project is the same as the one we currently have loaded
 	const FString CurrentProjectPath = FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath());
@@ -397,10 +292,10 @@ void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
 		return;
 	}
 
-	CurrentlyLoadedProject->ClearSupportedTargetPlatforms();
+	CurrentlyLoadedProject->TargetPlatforms.Empty();
 
-	const FString& FileContents = CurrentlyLoadedProject->SerializeToJSON();
-	FFileHelper::SaveStringToFile(FileContents, *FPaths::GetProjectFilePath());
+	FText FailReason;
+	CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), FailReason);
 
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }

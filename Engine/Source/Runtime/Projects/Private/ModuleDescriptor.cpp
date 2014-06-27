@@ -2,40 +2,7 @@
 
 #include "ProjectsPrivatePCH.h"
 
-#define LOCTEXT_NAMESPACE "PluginManagerShared"
-
-static int32 GetLoadOrderValue( ELoadingPhase::Type Phase )
-{
-	switch( Phase )
-	{
-	case ELoadingPhase::PostDefault:
-		return 500;
-
-	case ELoadingPhase::Default:
-		return 400;
-
-	case ELoadingPhase::PreDefault:
-		return 300;
-			
-	case ELoadingPhase::PreLoadingScreen:
-		return 200;
-
-	case ELoadingPhase::PostConfigInit:
-		return 100;
-
-	default:
-		ensureMsgf( false, TEXT( "Unrecognized ELoadingPhase value: %i" ), Phase );
-		return 0;
-	}
-}
-
-ELoadingPhase::Type ELoadingPhase::Earliest(ELoadingPhase::Type PhaseA, ELoadingPhase::Type PhaseB)
-{
-	const int32 PhaseAValue = GetLoadOrderValue(PhaseA);
-	const int32 PhaseBValue = GetLoadOrderValue(PhaseB);
-
-	return PhaseAValue < PhaseBValue ? PhaseA : PhaseB;
-}
+#define LOCTEXT_NAMESPACE "ModuleDescriptor"
 
 ELoadingPhase::Type ELoadingPhase::FromString( const TCHAR *String )
 {
@@ -118,109 +85,11 @@ const TCHAR* EHostType::ToString( const EHostType::Type Value )
 	}
 }
 
-FModuleDescriptor::FModuleDescriptor()
+FModuleDescriptor::FModuleDescriptor(const FName InName, EHostType::Type InType, ELoadingPhase::Type InLoadingPhase)
+	: Name(InName)
+	, Type(InType)
+	, LoadingPhase(InLoadingPhase)
 {
-	Name = NAME_None;
-	Type = EHostType::Runtime;
-	LoadingPhase = ELoadingPhase::Default;
-}
-
-bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
-{
-	// Cache the string for the current platform
-	static FString UBTPlatform(FPlatformMisc::GetUBTPlatform());
-
-	// Check the platform is whitelisted
-	if(WhitelistPlatforms.Num() > 0 && !WhitelistPlatforms.Contains(UBTPlatform))
-	{
-		return false;
-	}
-
-	// Check the platform is not blacklisted
-	if(BlacklistPlatforms.Num() > 0 && BlacklistPlatforms.Contains(UBTPlatform))
-	{
-		return false;
-	}
-
-	// Check the module is compatible with this target. This should match UEBuildTarget.ShouldIncludePluginModule in UBT
-	switch (Type)
-	{
-	case EHostType::Runtime:
-	case EHostType::RuntimeNoCommandlet:
-		return true;
-
-	case EHostType::Developer:
-		#if WITH_UNREAL_DEVELOPER_TOOLS
-			return true;
-		#endif
-		break;
-
-	case EHostType::Editor:
-	case EHostType::EditorNoCommandlet:
-		#if WITH_EDITOR
-			return true;
-		#endif
-		break;
-
-	case EHostType::Program:
-		#if IS_PROGRAM
-			return true;
-		#endif
-		break;
-	}
-
-	return false;
-}
-
-bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
-{
-	// Check that the module is built for this configuration
-	if(!IsCompiledInCurrentConfiguration())
-	{
-		return false;
-	}
-
-	// Check that the runtime environment allows it to be loaded
-	switch (Type)
-	{
-	case EHostType::Runtime:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-			return true;
-		#endif
-		break;
-
-	case EHostType::RuntimeNoCommandlet:
-		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
-			if(!IsRunningCommandlet()) return true;
-		#endif
-		break;
-
-	case EHostType::Developer:
-		#if WITH_UNREAL_DEVELOPER_TOOLS
-			return true;
-		#endif
-		break;
-
-	case EHostType::Editor:
-		#if WITH_EDITOR
-			if(GIsEditor) return true;
-		#endif
-		break;
-
-	case EHostType::EditorNoCommandlet:
-		#if WITH_EDITOR
-			if(GIsEditor && !IsRunningCommandlet()) return true;
-		#endif
-		break;
-
-	case EHostType::Program:
-		#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
-			return true;
-		#endif
-		break;
-	}
-
-	return false;
 }
 
 bool FModuleDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
@@ -357,6 +226,148 @@ void FModuleDescriptor::WriteArray(TJsonWriter<>& Writer, const TCHAR* Name, con
 		}
 		Writer.WriteArrayEnd();
 	}
+}
+
+bool FModuleDescriptor::IsCompiledInCurrentConfiguration() const
+{
+	// Cache the string for the current platform
+	static FString UBTPlatform(FPlatformMisc::GetUBTPlatform());
+
+	// Check the platform is whitelisted
+	if(WhitelistPlatforms.Num() > 0 && !WhitelistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	// Check the platform is not blacklisted
+	if(BlacklistPlatforms.Num() > 0 && BlacklistPlatforms.Contains(UBTPlatform))
+	{
+		return false;
+	}
+
+	// Check the module is compatible with this target. This should match UEBuildTarget.ShouldIncludePluginModule in UBT
+	switch (Type)
+	{
+	case EHostType::Runtime:
+	case EHostType::RuntimeNoCommandlet:
+		return true;
+
+	case EHostType::Developer:
+		#if WITH_UNREAL_DEVELOPER_TOOLS
+			return true;
+		#endif
+		break;
+
+	case EHostType::Editor:
+	case EHostType::EditorNoCommandlet:
+		#if WITH_EDITOR
+			return true;
+		#endif
+		break;
+
+	case EHostType::Program:
+		#if IS_PROGRAM
+			return true;
+		#endif
+		break;
+	}
+
+	return false;
+}
+
+bool FModuleDescriptor::IsLoadedInCurrentConfiguration() const
+{
+	// Check that the module is built for this configuration
+	if(!IsCompiledInCurrentConfiguration())
+	{
+		return false;
+	}
+
+	// Check that the runtime environment allows it to be loaded
+	switch (Type)
+	{
+	case EHostType::Runtime:
+		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+			return true;
+		#endif
+		break;
+
+	case EHostType::RuntimeNoCommandlet:
+		#if WITH_ENGINE || WITH_PLUGIN_SUPPORT
+			if(!IsRunningCommandlet()) return true;
+		#endif
+		break;
+
+	case EHostType::Developer:
+		#if WITH_UNREAL_DEVELOPER_TOOLS
+			return true;
+		#endif
+		break;
+
+	case EHostType::Editor:
+		#if WITH_EDITOR
+			if(GIsEditor) return true;
+		#endif
+		break;
+
+	case EHostType::EditorNoCommandlet:
+		#if WITH_EDITOR
+			if(GIsEditor && !IsRunningCommandlet()) return true;
+		#endif
+		break;
+
+	case EHostType::Program:
+		#if WITH_PLUGIN_SUPPORT && IS_PROGRAM
+			return true;
+		#endif
+		break;
+	}
+
+	return false;
+}
+
+void FModuleDescriptor::LoadModulesForPhase(ELoadingPhase::Type LoadingPhase, const TArray<FModuleDescriptor>& Modules, TMap<FName, EModuleLoadResult>& ModuleLoadErrors)
+{
+	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	{
+		const FModuleDescriptor& Descriptor = Modules[Idx];
+
+		// Don't need to do anything if this module is already loaded
+		if( !FModuleManager::Get().IsModuleLoaded( Descriptor.Name ) )
+		{
+			if( LoadingPhase == Descriptor.LoadingPhase && Descriptor.IsLoadedInCurrentConfiguration() )
+			{
+				// @todo plugin: DLL search problems.  Plugins that statically depend on other modules within this plugin may not be found?  Need to test this.
+
+				// NOTE: Loading this module may cause other modules to become loaded, both in the engine or game, or other modules 
+				//       that are part of this project or plugin.  That's totally fine.
+				EModuleLoadResult FailureReason;
+				const TSharedPtr<IModuleInterface>& ModuleInterface = FModuleManager::Get().LoadModuleWithFailureReason( Descriptor.Name, FailureReason );
+				if( ModuleInterface.IsValid() )
+				{
+					// Module loaded OK (or was already loaded.)
+				}
+				else 
+				{
+					// The module failed to load. Note this in the ModuleLoadErrors list.
+					ModuleLoadErrors.Add(Descriptor.Name, FailureReason);
+				}
+			}
+		}
+	}
+}
+
+bool FModuleDescriptor::AreModulesUpToDate(const TArray<FModuleDescriptor>& Modules)
+{
+	for(int Idx = 0; Idx < Modules.Num(); Idx++)
+	{
+		const FModuleDescriptor &Module = Modules[Idx];
+		if (Module.IsCompiledInCurrentConfiguration() && !FModuleManager::Get().IsModuleUpToDate(Module.Name))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE
