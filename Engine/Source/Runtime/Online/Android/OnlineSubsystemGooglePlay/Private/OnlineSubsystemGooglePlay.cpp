@@ -103,9 +103,6 @@ bool FOnlineSubsystemGooglePlay::Init()
 	AchievementsInterface = MakeShareable(new FOnlineAchievementsGooglePlay(this));
 	ExternalUIInterface = MakeShareable(new FOnlineExternalUIGooglePlay());
 
-	extern void AndroidThunkCpp_GooglePlayConnect();
-	AndroidThunkCpp_GooglePlayConnect();
-
 	return true;
 }
 
