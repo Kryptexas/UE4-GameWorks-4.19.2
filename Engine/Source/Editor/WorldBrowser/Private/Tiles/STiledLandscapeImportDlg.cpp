@@ -42,6 +42,7 @@ static FIntPoint ExtractTileCoordinates(FString BaseFilename)
 
 void STiledLandcapeImportDlg::Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow)
 {
+	bShouldImport = false;
 	ParentWindow = InParentWindow;
 	
 	ChildSlot
@@ -357,6 +358,11 @@ TSharedRef<ITableRow> STiledLandcapeImportDlg::OnGenerateWidgetForLayerDataListV
 	
 }
 
+bool STiledLandcapeImportDlg::ShouldImport() const
+{
+	return bShouldImport;
+}
+
 const FTiledLandscapeImportSettings& STiledLandcapeImportDlg::GetImportSettings() const
 {
 	return ImportSettings;
@@ -545,14 +551,15 @@ FReply STiledLandcapeImportDlg::OnClickedImport()
 	}
 					
 	ParentWindow->RequestDestroyWindow();
+	bShouldImport = true;	
 	return FReply::Handled();	
 }
 
 FReply STiledLandcapeImportDlg::OnClickedCancel()
 {
 	ParentWindow->RequestDestroyWindow();
-	
-	ImportSettings.HeightmapFileList.Empty();
+	bShouldImport = false;	
+
 	return FReply::Handled();	
 }
 

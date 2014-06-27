@@ -25,6 +25,7 @@ public:
 	void Construct(const FArguments& InArgs, TSharedPtr<SWindow> InParentWindow);
 
 	/** */
+	bool ShouldImport() const;	
 	const FTiledLandscapeImportSettings& GetImportSettings() const;
 
 private:
@@ -87,6 +88,9 @@ private:
 	void UpdateLandscapeLayerList();
 
 private:
+	/** */
+	bool bShouldImport;
+	
 	/** */
 	TSharedPtr<SWindow> ParentWindow;
 		

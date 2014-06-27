@@ -1389,7 +1389,7 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 {
 	/** Create the window to host widget */
 	TSharedRef<SWindow> ImportWidnow = SNew(SWindow)
-											.Title(LOCTEXT("TiledLandcapeImport_DialogTitle", "Import Tiled Heightmap"))
+											.Title(LOCTEXT("TiledLandcapeImport_DialogTitle", "Import Tiled Landscape"))
 											.SizingRule( ESizingRule::Autosized )
 											.SupportsMinimize(false) 
 											.SupportsMaximize(false);
@@ -1400,11 +1400,11 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 	/** Show the dialog window as a modal window */
 	Editor->EditorAddModalWindow(ImportWidnow);
-
-	const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
 		
-	if (ImportSettings.HeightmapFileList.Num())
+	if (ImportDialog->ShouldImport() && ImportDialog->GetImportSettings().HeightmapFileList.Num())
 	{
+		const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
+
 		// Default path for imported landscape tiles
 		// Use tile prefix as a folder name under world root
 		FString WorldRootPath = FPackageName::LongPackageNameToFilename(GetWorld()->WorldComposition->GetWorldRoot());
