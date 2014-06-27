@@ -950,27 +950,64 @@ bool FTextLayout::IsEmpty() const
 	return (LineModels.Num() == 0 || (LineModels.Num() == 1 && LineModels[0].Text->Len() == 0));
 }
 
-void FTextLayout::GetAsText(FString& DisplayText) const
+void FTextLayout::GetAsText(FString& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const
 {
+	GetAsTextAndOffsets(&DisplayText, OutTextOffsetLocations);
+}
+
+void FTextLayout::GetAsText(FText& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const
+{
+	FString DisplayString;
+	GetAsText(DisplayString, OutTextOffsetLocations);
+	DisplayText = FText::FromString(DisplayString);
+}
+
+void FTextLayout::GetTextOffsetLocations(FTextOffsetLocations& OutTextOffsetLocations) const
+{
+	GetAsTextAndOffsets(nullptr, &OutTextOffsetLocations);
+}
+
+void FTextLayout::GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const
+{
+	int32 DisplayTextLength = 0;
+
+	if (OutTextOffsetLocations)
+	{
+		OutTextOffsetLocations->OffsetData.Reserve(LineModels.Num());
+	}
+
 	for (int LineModelIndex = 0; LineModelIndex < LineModels.Num(); LineModelIndex++)
 	{
 		const FLineModel& LineModel = LineModels[LineModelIndex];
 
+		// Append \n to the end of the previous line
+		if (LineModelIndex > 0)
+		{
+			if (OutDisplayText)
+			{
+				OutDisplayText->AppendChar('\n');
+			}
+			++DisplayTextLength;
+		}
+
+		int32 LineLength = 0;
 		for (int RunIndex = 0; RunIndex < LineModel.Runs.Num(); RunIndex++)
 		{
 			const FRunModel& Run = LineModel.Runs[RunIndex];
-			Run.AppendText(DisplayText);
+			if (OutDisplayText)
+			{
+				Run.AppendText(*OutDisplayText);
+			}
+			LineLength += Run.GetTextRange().Len();
 		}
 
-		DisplayText.AppendChar('\n');
-	}
-}
+		if (OutTextOffsetLocations)
+		{
+			OutTextOffsetLocations->OffsetData.Add(FTextOffsetLocations::FOffsetEntry(DisplayTextLength, LineLength));
+		}
 
-void FTextLayout::GetAsText(FText& DisplayText) const
-{
-	FString DisplayString;
-	GetAsText(DisplayString);
-	DisplayText = FText::FromString(DisplayString);
+		DisplayTextLength += LineLength;
+	}
 }
 
 void GetRangeAsTextFromLine(FString& DisplayText, const FTextLayout::FLineModel& LineModel, const FTextRange& Range)
@@ -1457,4 +1494,40 @@ TSharedRef< IRun > FTextLayout::FRunModel::GetRun() const
 FTextLayout::FRunModel::FRunModel( const TSharedRef< IRun >& InRun ) : Run( InRun )
 {
 
+}
+
+int32 FTextLayout::FTextOffsetLocations::TextLocationToOffset(const FTextLocation& InLocation) const
+{
+	const int32 LineIndex = InLocation.GetLineIndex();
+	if(LineIndex >= 0 && LineIndex < OffsetData.Num())
+	{
+		const FOffsetEntry& OffsetEntry = OffsetData[LineIndex];
+		return OffsetEntry.FlatStringIndex + InLocation.GetOffset();
+	}
+	return INDEX_NONE;
+}
+
+FTextLocation FTextLayout::FTextOffsetLocations::OffsetToTextLocation(const int32 InOffset) const
+{
+	for(int32 OffsetEntryIndex = 0; OffsetEntryIndex < OffsetData.Num(); ++OffsetEntryIndex)
+	{
+		const FOffsetEntry& OffsetEntry = OffsetData[OffsetEntryIndex];
+		const FTextRange FlatLineRange(OffsetEntry.FlatStringIndex, OffsetEntry.FlatStringIndex + OffsetEntry.DocumentLineLength);
+		if(FlatLineRange.InclusiveContains(InOffset))
+		{
+			const int32 OffsetWithinLine = InOffset - OffsetEntry.FlatStringIndex;
+			return FTextLocation(OffsetEntryIndex, OffsetWithinLine);
+		}
+	}
+	return FTextLocation();
+}
+
+int32 FTextLayout::FTextOffsetLocations::GetTextLength() const
+{
+	if(OffsetData.Num())
+	{
+		const FOffsetEntry& OffsetEntry = OffsetData.Last();
+		return OffsetEntry.FlatStringIndex + OffsetEntry.DocumentLineLength;
+	}
+	return 0;
 }

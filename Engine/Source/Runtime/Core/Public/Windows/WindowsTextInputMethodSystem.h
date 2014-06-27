@@ -95,6 +95,7 @@ private:
 		struct
 		{
 			bool IsComposing;
+			bool IsDeactivating;
 			int32 CompositionBeginIndex;
 			uint32 CompositionLength;
 		} IMMContext;

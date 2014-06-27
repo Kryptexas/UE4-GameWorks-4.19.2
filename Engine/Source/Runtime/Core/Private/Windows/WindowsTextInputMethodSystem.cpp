@@ -12,12 +12,20 @@ namespace
 {
 	FString GetIMMStringAsFString(HIMC IMMContext, const DWORD StringType)
 	{
-		const LONG StringNeededSize = ::ImmGetCompositionString(IMMContext, StringType, nullptr, 0);
-		TCHAR* RawString = reinterpret_cast<TCHAR*>(malloc(StringNeededSize));
-		::ImmGetCompositionString(IMMContext, StringType, RawString, StringNeededSize);
-		const FString Str(StringNeededSize / sizeof(TCHAR), RawString);
-		free(RawString);
-		return Str;
+		// Get the internal buffer of the string, we're going to use it as scratch space
+		FString OutString;
+		TArray<TCHAR>& OutStringBuffer = OutString.GetCharArray();
+				
+		// Work out the maximum size required and resize the buffer so it can hold enough data
+		const LONG StringNeededSizeBytes = ::ImmGetCompositionString(IMMContext, StringType, nullptr, 0);
+		const int32 StringNeededSizeTCHARs = static_cast<int32>(StringNeededSizeBytes) / sizeof(TCHAR);
+		OutStringBuffer.SetNumUninitialized(StringNeededSizeTCHARs + 1); // +1 for null
+
+		// Get directly into the string buffer, and then null terminate the FString
+		::ImmGetCompositionString(IMMContext, StringType, OutStringBuffer.GetData(), StringNeededSizeBytes);
+		OutStringBuffer[StringNeededSizeTCHARs] = 0;
+
+		return OutString;
 	}
 
 	class FTextInputMethodChangeNotifier : public ITextInputMethodChangeNotifier
@@ -233,6 +241,7 @@ void FWindowsTextInputMethodSystem::BeginIMMComposition()
 	FInternalContext& InternalContext = ContextToInternalContextMap[ActiveContext];
 				
 	InternalContext.IMMContext.IsComposing = true;
+	InternalContext.IMMContext.IsDeactivating = false;
 	ActiveContext->BeginComposition();
 
 	uint32 SelectionBeginIndex = 0;
@@ -254,6 +263,7 @@ void FWindowsTextInputMethodSystem::EndIMMComposition()
 
 	FInternalContext& InternalContext = ContextToInternalContextMap[ActiveContext];
 	InternalContext.IMMContext.IsComposing = false;
+	InternalContext.IMMContext.IsDeactivating = false;
 	ActiveContext->EndComposition();
 }
 
@@ -529,6 +539,7 @@ void FWindowsTextInputMethodSystem::ActivateContext(const TSharedRef<ITextInputM
 
 	// IMM Implementation
 	InternalContext.IMMContext.IsComposing = false;
+	InternalContext.IMMContext.IsDeactivating = false;
 
 	// TSF Implementation
 	FCOMPtr<FTextStoreACP>& TextStore = InternalContext.TSFContext;
@@ -574,8 +585,9 @@ void FWindowsTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInpu
 	const TSharedPtr<FGenericWindow> GenericWindow = Context->GetWindow();
 	const HWND Hwnd = GenericWindow.IsValid() ? reinterpret_cast<HWND>(GenericWindow->GetOSWindowHandle()) : nullptr;
 	HIMC IMMContext = ::ImmGetContext(Hwnd);
-	// Request the composition is canceled to ensure that the composition input UI is closed, and that a WM_IME_ENDCOMPOSITION message is sent
-	::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
+	InternalContext.IMMContext.IsDeactivating = true;
+	// Request the composition is completed to ensure that the composition input UI is closed, and that a WM_IME_ENDCOMPOSITION message is sent
+	::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
 	::ImmReleaseContext(Hwnd, IMMContext);
 
 	// General Implementation
@@ -652,22 +664,60 @@ int32 FWindowsTextInputMethodSystem::ProcessMessage(HWND hwnd, uint32 msg, WPARA
 
 				UpdateIMMWindowPositions(IMMContext);
 
+				const bool bHasBeenCanceled = !lParam;
 				const bool bHasCompositionStringFlag = !!(lParam & GCS_COMPSTR);
 				const bool bHasResultStringFlag = !!(lParam & GCS_RESULTSTR);
 				const bool bHasNoMoveCaretFlag = !!(lParam & CS_NOMOVECARET);
 				const bool bHasCursorPosFlag = !!(lParam & GCS_CURSORPOS);
 
+				// Canceled, so remove the compositing string
+				if(bHasBeenCanceled)
+				{
+					UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("WM_IME_COMPOSITION Composition Canceled"));
+
+					// We might have been canceled from a mouse move, so we need to take the current selection so we can restore it properly
+					// otherwise calling SetTextInRange can cause the cursor/selection to jump around
+					uint32 SelectionBeginIndex = 0;
+					uint32 SelectionLength = 0;
+					ITextInputMethodContext::ECaretPosition SelectionCaretPosition = ITextInputMethodContext::ECaretPosition::Ending;
+					ActiveContext->GetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
+
+					// Clear Composition
+					ActiveContext->SetTextInRange(InternalContext.IMMContext.CompositionBeginIndex, InternalContext.IMMContext.CompositionLength, TEXT(""));
+					
+					// Restore any previous selection
+					ActiveContext->SetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
+
+					EndIMMComposition();
+				}
+
 				// Check Result
 				if(bHasResultStringFlag)
 				{
+					// If we're being deactivated, so we need to take the current selection so we can restore it properly
+					// otherwise calling SetTextInRange can cause the cursor/selection to jump around
+					uint32 SelectionBeginIndex = 0;
+					uint32 SelectionLength = 0;
+					ITextInputMethodContext::ECaretPosition SelectionCaretPosition = ITextInputMethodContext::ECaretPosition::Ending;
+					ActiveContext->GetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
+
 					const FString ResultString = GetIMMStringAsFString(IMMContext, GCS_RESULTSTR);
 					UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("WM_IME_COMPOSITION Result String: %s"), *ResultString);
 
 					// Update Result
 					ActiveContext->SetTextInRange(InternalContext.IMMContext.CompositionBeginIndex, InternalContext.IMMContext.CompositionLength, ResultString);
 
-					// Once we get a result, we're done; set the caret to the end of the result and end the current composition
-					ActiveContext->SetSelectionRange(InternalContext.IMMContext.CompositionBeginIndex + ResultString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+					if(InternalContext.IMMContext.IsDeactivating)
+					{
+						// Restore any previous selection
+						ActiveContext->SetSelectionRange(SelectionBeginIndex, SelectionLength, SelectionCaretPosition);
+					}
+					else
+					{
+						// Once we get a result, we're done; set the caret to the end of the result and end the current composition
+						ActiveContext->SetSelectionRange(InternalContext.IMMContext.CompositionBeginIndex + ResultString.Len(), 0, ITextInputMethodContext::ECaretPosition::Ending);
+					}
+
 					EndIMMComposition();
 				}
 

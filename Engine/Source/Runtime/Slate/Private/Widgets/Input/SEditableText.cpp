@@ -295,10 +295,10 @@ void SEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurr
 bool SEditableText::FTextInputMethodContext::IsReadOnly()
 {
 	bool Return = true;
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		Return = This->GetIsReadOnly();
+		Return = OwningWidgetPtr->GetIsReadOnly();
 	}
 	return Return;
 }
@@ -306,10 +306,10 @@ bool SEditableText::FTextInputMethodContext::IsReadOnly()
 uint32 SEditableText::FTextInputMethodContext::GetTextLength()
 {
 	uint32 TextLength = 0;
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		const FString& EditedText = This->EditedText.ToString();
+		const FString& EditedText = OwningWidgetPtr->EditedText.ToString();
 		TextLength = EditedText.Len();
 	}
 	return TextLength;
@@ -317,25 +317,25 @@ uint32 SEditableText::FTextInputMethodContext::GetTextLength()
 
 void SEditableText::FTextInputMethodContext::GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& OutCaretPosition)
 {
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		if(This->Selection.StartIndex != This->Selection.FinishIndex)
+		if(OwningWidgetPtr->Selection.StartIndex != OwningWidgetPtr->Selection.FinishIndex)
 		{
-			BeginIndex = This->Selection.GetMinIndex();
-			Length = This->Selection.GetMaxIndex() - BeginIndex;
+			BeginIndex = OwningWidgetPtr->Selection.GetMinIndex();
+			Length = OwningWidgetPtr->Selection.GetMaxIndex() - BeginIndex;
 		}
 		else
 		{
-			BeginIndex = This->CaretPosition;
+			BeginIndex = OwningWidgetPtr->CaretPosition;
 			Length = 0;
 		}
 
-		if(This->CaretPosition == BeginIndex + Length)
+		if(OwningWidgetPtr->CaretPosition == BeginIndex + Length)
 		{
 			OutCaretPosition = ITextInputMethodContext::ECaretPosition::Ending;
 		}
-		else if(This->CaretPosition == BeginIndex)
+		else if(OwningWidgetPtr->CaretPosition == BeginIndex)
 		{
 			OutCaretPosition = ITextInputMethodContext::ECaretPosition::Beginning;
 		}
@@ -344,9 +344,9 @@ void SEditableText::FTextInputMethodContext::GetSelectionRange(uint32& BeginInde
 
 void SEditableText::FTextInputMethodContext::SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition InCaretPosition)
 {
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
 		const uint32 MinIndex = BeginIndex;
 		const uint32 MaxIndex = MinIndex + Length;
 
@@ -369,45 +369,45 @@ void SEditableText::FTextInputMethodContext::SetSelectionRange(const uint32 Begi
 			break;
 		}
 
-		This->SetCaretPosition(SelectionEndIndex);
-		This->ClearSelection();
-		This->SelectText(SelectionBeginIndex);
+		OwningWidgetPtr->SetCaretPosition(SelectionEndIndex);
+		OwningWidgetPtr->ClearSelection();
+		OwningWidgetPtr->SelectText(SelectionBeginIndex);
 	}
 }
 
 void SEditableText::FTextInputMethodContext::GetTextInRange(const uint32 BeginIndex, const uint32 Length, FString& OutString)
 {
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		const FString& EditedText = This->EditedText.ToString();
+		const FString& EditedText = OwningWidgetPtr->EditedText.ToString();
 		OutString = EditedText.Mid(BeginIndex, Length);
 	}
 }
 
 void SEditableText::FTextInputMethodContext::SetTextInRange(const uint32 BeginIndex, const uint32 Length, const FString& InString)
 {
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		const FString& OldText = This->EditedText.ToString();
+		const FString& OldText = OwningWidgetPtr->EditedText.ToString();
 		
 		// We don't use Start/FinishEditing text here because the whole IME operation handles that.
 		// Also, we don't want to support undo for individual characters added during an IME context
-		This->EditedText = FText::FromString(OldText.Left( BeginIndex ) + InString + OldText.Mid( BeginIndex + Length ));
-		This->SaveText();
+		OwningWidgetPtr->EditedText = FText::FromString(OldText.Left( BeginIndex ) + InString + OldText.Mid( BeginIndex + Length ));
+		OwningWidgetPtr->SaveText();
 
-		This->OnTextChanged.ExecuteIfBound(This->EditedText);
+		OwningWidgetPtr->OnTextChanged.ExecuteIfBound(OwningWidgetPtr->EditedText);
 	}
 }
 
 int32 SEditableText::FTextInputMethodContext::GetCharacterIndexFromPoint(const FVector2D& Point)
 {
 	int32 CharacterIndex = INDEX_NONE;
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		CharacterIndex = This->FindClickedCharacterIndex(CachedGeometry, Point);
+		CharacterIndex = OwningWidgetPtr->FindClickedCharacterIndex(CachedGeometry, Point);
 	}
 	return CharacterIndex;
 }
@@ -415,19 +415,18 @@ int32 SEditableText::FTextInputMethodContext::GetCharacterIndexFromPoint(const F
 bool SEditableText::FTextInputMethodContext::GetTextBounds(const uint32 BeginIndex, const uint32 Length, FVector2D& Position, FVector2D& Size)
 {
 	bool IsClipped = false;
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-
-		const FSlateFontInfo& FontInfo = This->Font.Get();
-		const FString VisibleText = This->GetStringToRender();
+		const FSlateFontInfo& FontInfo = OwningWidgetPtr->Font.Get();
+		const FString VisibleText = OwningWidgetPtr->GetStringToRender();
 		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
 		const float TextLeft = FontMeasureService->Measure( VisibleText.Left( BeginIndex ), FontInfo ).X;
 		const float TextRight = FontMeasureService->Measure( VisibleText.Left( BeginIndex + Length ), FontInfo ).X;
 
-		const float ScrollAreaLeft = This->ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
-		const float ScrollAreaRight = This->ScrollHelper.ToScrollerSpace( CachedGeometry.Size ).X;
+		const float ScrollAreaLeft = OwningWidgetPtr->ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
+		const float ScrollAreaRight = OwningWidgetPtr->ScrollHelper.ToScrollerSpace( CachedGeometry.Size ).X;
 
 		const int32 FirstVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaLeft );
 		const int32 LastVisibleCharacter = FontMeasureService->FindCharacterIndexAtOffset( VisibleText, FontInfo, ScrollAreaRight );
@@ -442,17 +441,17 @@ bool SEditableText::FTextInputMethodContext::GetTextBounds(const uint32 BeginInd
 
 		const float TextVertOffset = EditableTextDefs::TextVertOffsetPercent * FontHeight;
 
-		Position = CachedGeometry.LocalToAbsolute( This->ScrollHelper.FromScrollerSpace( FVector2D( TextLeft, DrawPositionY + TextVertOffset ) ) );
-		Size = CachedGeometry.Scale * This->ScrollHelper.SizeFromScrollerSpace( FVector2D( TextRight - TextLeft, CachedGeometry.Size.Y ) );
+		Position = CachedGeometry.LocalToAbsolute( OwningWidgetPtr->ScrollHelper.FromScrollerSpace( FVector2D( TextLeft, DrawPositionY + TextVertOffset ) ) );
+		Size = CachedGeometry.Scale * OwningWidgetPtr->ScrollHelper.SizeFromScrollerSpace( FVector2D( TextRight - TextLeft, CachedGeometry.Size.Y ) );
 	}
 	return IsClipped;
 }
 
 void SEditableText::FTextInputMethodContext::GetScreenBounds(FVector2D& Position, FVector2D& Size)
 {
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
 		Position = CachedGeometry.AbsolutePosition;
 		Size = CachedGeometry.GetDrawSize();
 	}
@@ -461,10 +460,10 @@ void SEditableText::FTextInputMethodContext::GetScreenBounds(FVector2D& Position
 TSharedPtr<FGenericWindow> SEditableText::FTextInputMethodContext::GetWindow()
 {
 	TSharedPtr<FGenericWindow> Window;
-	if(OwningWidget.IsValid())
+	const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+	if(OwningWidgetPtr.IsValid())
 	{
-		const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-		const TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow( This );
+		const TSharedPtr<SWindow> SlateWindow = FSlateApplication::Get().FindWidgetWindow( OwningWidgetPtr.ToSharedRef() );
 		Window = SlateWindow.IsValid() ? SlateWindow->GetNativeWindow() : nullptr;
 	}
 	return Window;
@@ -476,10 +475,10 @@ void SEditableText::FTextInputMethodContext::BeginComposition()
 	{
 		IsComposing = true;
 
-		if(OwningWidget.IsValid())
+		const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+		if(OwningWidgetPtr.IsValid())
 		{
-			const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-			This->StartChangingText();
+			OwningWidgetPtr->StartChangingText();
 		}
 	}
 }
@@ -496,10 +495,10 @@ void SEditableText::FTextInputMethodContext::EndComposition()
 {
 	if(IsComposing)
 	{
-		if(OwningWidget.IsValid())
+		const TSharedPtr<SEditableText> OwningWidgetPtr = OwningWidget.Pin();
+		if(OwningWidgetPtr.IsValid())
 		{
-			const TSharedRef<SEditableText> This = OwningWidget.Pin().ToSharedRef();
-			This->FinishChangingText();
+			OwningWidgetPtr->FinishChangingText();
 		}
 
 		IsComposing = false;
@@ -636,6 +635,12 @@ static int32 OffsetToTestBasedOnDirection( int8 Direction )
 
 FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2D& Direction, ECursorAction::Type Action )
 {
+	// We can't use the keyboard to move the cursor while composing, as the IME has control over it
+	if(TextInputMethodContext->IsComposing && Method != ECursorMoveMethod::ScreenPosition)
+	{
+		return FReply::Handled();
+	}
+
 	bool bAllowMoveCursor = true;
 	int32 OldCaretPosition = CaretPosition;
 	int32 NewCaretPosition = OldCaretPosition;
@@ -717,6 +722,18 @@ FReply SEditableText::MoveCursor( ECursorMoveMethod::Type Method, const FVector2
 	else
 	{
 		ClearSelection();
+	}
+
+	// If we've moved the cursor while composing, we need to end the current composition session
+	// Note: You should only be able to do this via the mouse due to the check at the top of this function
+	if(TextInputMethodContext->IsComposing)
+	{
+		ITextInputMethodSystem* const TextInputMethodSystem = FSlateApplication::Get().GetTextInputMethodSystem();
+		if(TextInputMethodSystem)
+		{
+			TextInputMethodSystem->DeactivateContext(TextInputMethodContext.ToSharedRef());
+			TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
+		}
 	}
 
 	return FReply::Handled();
@@ -1243,10 +1260,12 @@ int32 SEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRec
 	}
 
 	// Draw composition background
-	if( TextInputMethodContext->IsComposing )
+	// We only draw the composition highlight if the cursor is within the composition range
+	const FTextRange CompositionRange(TextInputMethodContext->CompositionBeginIndex, TextInputMethodContext->CompositionBeginIndex + TextInputMethodContext->CompositionLength);
+	if( TextInputMethodContext->IsComposing && CompositionRange.InclusiveContains(CaretPosition) )
 	{
-		const float CompositionLeft = FontMeasureService->Measure( VisibleText.Left( TextInputMethodContext->CompositionBeginIndex ), FontInfo ).X;
-		const float CompositionRight = FontMeasureService->Measure( VisibleText.Left( TextInputMethodContext->CompositionBeginIndex + TextInputMethodContext->CompositionLength ), FontInfo ).X;
+		const float CompositionLeft = FontMeasureService->Measure( VisibleText.Left( CompositionRange.BeginIndex ), FontInfo ).X;
+		const float CompositionRight = FontMeasureService->Measure( VisibleText.Left( CompositionRange.EndIndex ), FontInfo ).X;
 		const float CompositionTop = 0.0f;
 		const float CompositionBottom = FontMeasureService->Measure( VisibleText.Mid( TextInputMethodContext->CompositionBeginIndex, TextInputMethodContext->CompositionLength ), FontInfo ).Y;
 

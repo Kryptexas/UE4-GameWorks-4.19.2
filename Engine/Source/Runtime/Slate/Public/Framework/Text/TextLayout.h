@@ -218,6 +218,37 @@ public:
 		int32 ModelIndex;
 	};
 
+	/** A mapping between the offsets into the text as a flat string (with line-breaks), and the internal lines used within a text layout */
+	struct FTextOffsetLocations
+	{
+	friend class FTextLayout;
+
+	public:
+		int32 TextLocationToOffset(const FTextLocation& InLocation) const;
+		FTextLocation OffsetToTextLocation(const int32 InOffset) const;
+		int32 GetTextLength() const;
+
+	private:
+		struct FOffsetEntry
+		{
+			FOffsetEntry(const int32 InFlatStringIndex, const int32 InDocumentLineLength)
+				: FlatStringIndex(InFlatStringIndex)
+				, DocumentLineLength(InDocumentLineLength)
+			{
+			}
+
+			/** Index in the flat string for this entry */
+			int32 FlatStringIndex;
+
+			/** The length of the line in the document (not including any trailing \n character) */
+			int32 DocumentLineLength;
+		};
+
+		/** This array contains one entry for each line in the document; 
+			the array index is the line number, and the entry contains the index in the flat string that marks the start of the line, 
+			along with the length of the line (not including any trailing \n character) */
+		TArray<FOffsetEntry> OffsetData;
+	};
 
 public:
 
@@ -295,9 +326,12 @@ public:
 
 	bool IsEmpty() const;
 
-	void GetAsText(FString& DisplayText) const;
+	void GetAsText(FString& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations = nullptr) const;
 
-	void GetAsText(FText& DisplayText) const;
+	void GetAsText(FText& DisplayText, FTextOffsetLocations* const OutTextOffsetLocations = nullptr) const;
+
+	/** Constructs an array containing the mappings between the text that would be returned by GetAsText, and the internal FTextLocation points used within this text layout */
+	void GetTextOffsetLocations(FTextOffsetLocations& OutTextOffsetLocations) const;
 
 	void GetSelectionAsText(FString& DisplayText, const FTextSelection& Selection) const;
 
@@ -349,6 +383,8 @@ private:
 	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutHighlightIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
 	FBreakCandidate CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak );
+
+	void GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const;
 
 protected:
 

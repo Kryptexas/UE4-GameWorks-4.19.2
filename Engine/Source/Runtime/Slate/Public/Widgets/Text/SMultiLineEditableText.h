@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "MultiBox/MultiBoxExtender.h"
 #include "ITextEditorWidget.h"
+#include "ITextInputMethodSystem.h"
 
 /** An editable text widget that supports multiple lines and soft word-wrapping. */
 class SLATE_API SMultiLineEditableText : public SWidget, public ITextEditorWidget
@@ -64,6 +64,7 @@ public:
 	SLATE_END_ARGS()
 
 	SMultiLineEditableText();
+	virtual ~SMultiLineEditableText();
 
 	void Construct( const FArguments& InArgs );
 
@@ -85,6 +86,48 @@ public:
 
 private:
 	
+	/** 
+	 * Note: The IME interface for the multiline editable text uses the pre-flowed version of the string since the IME APIs are designed to work with flat strings
+	 *		 This means we have to do a bit of juggling to convert between the two
+	 */
+	friend class FTextInputMethodContext;
+	class FTextInputMethodContext : public ITextInputMethodContext
+	{
+	public:
+		FTextInputMethodContext(const TWeakPtr<SMultiLineEditableText>& InOwningWidget)
+			:	OwningWidget(InOwningWidget)
+			,	IsComposing(false)
+			,	CompositionBeginIndex(INDEX_NONE)
+			,	CompositionLength(0)
+		{}
+
+		virtual ~FTextInputMethodContext() {}
+
+	private:
+		virtual bool IsReadOnly() override;
+		virtual uint32 GetTextLength() override;
+		virtual void GetSelectionRange(uint32& BeginIndex, uint32& Length, ECaretPosition& CaretPosition) override;
+		virtual void SetSelectionRange(const uint32 BeginIndex, const uint32 Length, const ECaretPosition CaretPosition) override;
+		virtual void GetTextInRange(const uint32 BeginIndex, const uint32 Length, FString& OutString) override;
+		virtual void SetTextInRange(const uint32 BeginIndex, const uint32 Length, const FString& InString) override;
+		virtual int32 GetCharacterIndexFromPoint(const FVector2D& Point) override;
+		virtual bool GetTextBounds(const uint32 BeginIndex, const uint32 Length, FVector2D& Position, FVector2D& Size) override;
+		virtual void GetScreenBounds(FVector2D& Position, FVector2D& Size) override;
+		virtual TSharedPtr<FGenericWindow> GetWindow() override;
+		virtual void BeginComposition() override;
+		virtual void UpdateCompositionRange(const int32 InBeginIndex, const uint32 InLength) override;
+		virtual void EndComposition() override;
+
+	private:
+		TWeakPtr<SMultiLineEditableText> OwningWidget;
+
+	public:
+		FGeometry CachedGeometry;
+		bool IsComposing;
+		int32 CompositionBeginIndex;
+		uint32 CompositionLength;
+	};
+
 	enum class ECursorAlignment : uint8
 	{
 		/** Visually align the cursor to the left of the character its placed at, and insert text before the character */
@@ -205,7 +248,7 @@ private:
 
 	protected:
 
-		int32 OnPaintCursor( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, const bool bParentEnabled, const ECursorAlignment InCursorAlignment ) const;
+		int32 OnPaintCursor( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, const bool bParentEnabled, const float InCursorOffset, const ECursorAlignment InCursorAlignment ) const;
 
 		FSlateCursorRunHighlighter(const FCursorInfo* InCursorInfo);
 
@@ -234,6 +277,22 @@ private:
 		FSlateSelectionRunHighlighter(const FCursorInfo* InCursorInfo);
 
 		ECursorAlignment CursorAlignment;
+	};
+
+	/** Run highlighter used to draw the composition range */
+	class FSlateCompositionRunHighlighter : public FSlateCursorRunHighlighter
+	{
+	public:
+
+		static TSharedRef< FSlateCompositionRunHighlighter > Create(const FCursorInfo* InCursorInfo);
+
+		virtual ~FSlateCompositionRunHighlighter() {}
+
+		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+
+	protected:
+
+		FSlateCompositionRunHighlighter(const FCursorInfo* InCursorInfo);
 	};
 
 private:
@@ -313,6 +372,9 @@ private:
 
 	bool DoesClipboardHaveAnyText() const;
 
+	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
+	void InsertTextAtCursor(const FString& InString);
+
 	/**
 	 * Given a location and a Direction to offset, return a new location.
 	 *
@@ -373,6 +435,12 @@ private:
 	 */
 	bool SetEditableText(const FText& TextToSet, const bool bForce = false);
 
+	/**
+	 * Gets the current editable text for this text block
+	 * Note: We don't store text in this form (it's stored as lines in the text layout) so every call to this function has to reconstruct it
+	 */
+	FText GetEditableText() const;
+
 private:
 
 	/** The text displayed in this text block */
@@ -403,6 +471,8 @@ private:
 	TSharedPtr< FSlateCursorRunHighlighter > CursorRunHighlighter;
 
 	TSharedPtr< FSlateSelectionRunHighlighter > SelectionRunHighlighter;
+
+	TSharedPtr< FSlateCompositionRunHighlighter > CompositionRunHighlighter;
 
 	/** That start of the selection when there is a selection. The end is implicitly wherever the cursor happens to be. */
 	TOptional<FTextLocation> SelectionStart;
@@ -454,4 +524,10 @@ private:
 
 	/** Weak pointer to context menu window that's currently open, if there is one */
 	TWeakPtr< SWindow > ContextMenuWindow;
+
+	/** Implemented context object for text input method systems. */
+	TSharedPtr<FTextInputMethodContext> TextInputMethodContext;
+
+	/** Notification interface object for text input method systems. */
+	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
 };
