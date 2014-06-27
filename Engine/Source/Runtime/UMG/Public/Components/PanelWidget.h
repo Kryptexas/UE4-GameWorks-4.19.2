@@ -20,21 +20,32 @@ public:
 
 	//TODO UMG Add ways to make adding slots callable by blueprints.
 
+	/**  */
 	int32 GetChildrenCount() const;
 
+	/**  */
 	UWidget* GetChildAt(int32 Index) const;
 
+	/**  */
 	int32 GetChildIndex(UWidget* Content) const;
 
+	/**  */
 	bool RemoveChildAt(int32 Index);
 
+	/**  */
 	UPanelSlot* AddChild(UWidget* Content);
 
+	/**  */
 	void ReplaceChildAt(int32 Index, UWidget* Content);
 
+	/**  */
 	void InsertChildAt(int32 Index, UWidget* Content);
 
+	/**  */
 	bool RemoveChild(UWidget* Content);
+
+	/**  */
+	bool CanHaveMultipleChildren() const { return bCanHaveMultipleChildren; }
 
 #if WITH_EDITOR
 	virtual void ConnectEditorData() override

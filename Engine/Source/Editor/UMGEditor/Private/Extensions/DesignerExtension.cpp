@@ -47,12 +47,12 @@ FWidgetReference FWidgetReference::FromPreview(TSharedPtr<FWidgetBlueprintEditor
 
 bool FWidgetReference::IsValid() const
 {
-	return TemplateWidget != NULL && GetPreview();
+	return TemplateWidget.Get() != NULL && GetPreview();
 }
 
 UWidget* FWidgetReference::GetTemplate() const
 {
-	return TemplateWidget;
+	return TemplateWidget.Get();
 }
 
 UWidget* FWidgetReference::GetPreview() const
@@ -61,9 +61,9 @@ UWidget* FWidgetReference::GetPreview() const
 	{
 		UUserWidget* PreviewRoot = WidgetEditor.Pin()->GetPreview();
 
-		if ( PreviewRoot && TemplateWidget )
+		if ( PreviewRoot && TemplateWidget.Get() )
 		{
-			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateWidget->GetName());
+			UWidget* PreviewWidget = PreviewRoot->GetHandleFromName(TemplateWidget.Get()->GetName());
 			return PreviewWidget;
 		}
 	}

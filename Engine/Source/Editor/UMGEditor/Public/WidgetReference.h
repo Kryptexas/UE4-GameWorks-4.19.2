@@ -38,7 +38,7 @@ public:
 	/** Checks if widget reference is the same as nother widget reference, based on the template pointers. */
 	bool operator==( const FWidgetReference& Other ) const
 	{
-		return TemplateWidget == Other.TemplateWidget;
+		return TemplateWidget.Get() == Other.TemplateWidget.Get();
 	}
 
 private:
@@ -49,7 +49,7 @@ private:
 	TWeakPtr<class FWidgetBlueprintEditor> WidgetEditor;
 
 	//TODO UMG We probably want to make this a weak object reference.
-	UWidget* TemplateWidget;
+	TWeakObjectPtr<UWidget> TemplateWidget;
 };
 
 inline uint32 GetTypeHash(const struct FWidgetReference& WidgetRef)

@@ -275,9 +275,13 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 
 	UPanelWidget* ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
 
-	if ( ParentWidget )
+	// TODO UMG Find paste parent, may not be the selected widget...  Maybe it should be the parent of the copied widget until,
+	// we do a paste here, from a right click menu.
+
+	if ( !ParentWidget )
 	{
-		ParentWidget->Modify();
+		// TODO UMG allow pasting into the root slot?
+		return;
 	}
 
 	// Grab the text to paste from the clipboard.
@@ -288,6 +292,17 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 	TSet<UWidget*> PastedWidgets;
 	FWidgetBlueprintEditorUtils::ImportWidgetsFromText(BP, TextToImport, /*out*/ PastedWidgets);
 
+	if ( !ParentWidget->CanHaveMultipleChildren() )
+	{
+		if ( ParentWidget->GetChildrenCount() > 0 || PastedWidgets.Num() > 1 )
+		{
+			// We can't paste the widgets into this container, there isn't enough room.
+			return;
+		}
+	}
+
+	ParentWidget->Modify();
+
 	for ( UWidget* NewWidget : PastedWidgets )
 	{
 		// Widgets with a null parent mean that they were the root most widget of their selection set when
@@ -296,7 +311,10 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 		if ( NewWidget->GetParent() == NULL )
 		{
 			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
-			Slot->SetDesiredPosition(PasteLocation);
+			if ( Slot )
+			{
+				Slot->SetDesiredPosition(PasteLocation);
+			}
 			//TODO UMG - The paste location needs to be relative from the most upper left hand corner of other widgets in their container.
 		}
 
