@@ -2455,7 +2455,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 {
 	UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(NewPreviewExpression);
 
-	if( PreviewExpression == NewPreviewExpression )
+	if( PreviewExpression == NewPreviewExpression || NULL == NewPreviewExpression )
 	{
 		if (FunctionOutput)
 		{
@@ -3529,6 +3529,11 @@ void FMaterialEditor::CleanUnusedExpressions()
 				UMaterialExpression* MaterialExpression = GraphNode->MaterialExpression;
 
 				FBlueprintEditorUtils::RemoveNode(NULL, GraphNode, true);
+
+				if (PreviewExpression == MaterialExpression)
+				{
+					SetPreviewExpression(NULL);
+				}
 
 				MaterialExpression->Modify();
 				Material->Expressions.Remove(MaterialExpression);
