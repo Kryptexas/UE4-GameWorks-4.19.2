@@ -310,6 +310,12 @@ bool SWidget::HasMouseCapture() const
 }
 
 
+void SWidget::OnMouseCaptureLost()
+{
+	
+}
+
+
 bool SWidget::FindChildGeometries( const FGeometry& MyGeometry, const TSet< TSharedRef<SWidget> >& WidgetsToFind, TMap<TSharedRef<SWidget>, FArrangedWidget>& OutResult ) const
 {
 	FindChildGeometries_Helper(MyGeometry, WidgetsToFind, OutResult);

@@ -514,7 +514,7 @@ public:
 	/**
 	 * Called when this widget had captured the mouse, but that capture has been revoked for some reason.
 	 */
-	virtual void OnMouseCaptureLost() { }
+	virtual void OnMouseCaptureLost();
 
 	/**
 	 * Ticks this widget and all of it's child widgets.  Should not be called directly.
