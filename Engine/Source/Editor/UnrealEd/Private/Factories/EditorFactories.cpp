@@ -6600,7 +6600,6 @@ UObject* UObjectLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 UDataAssetFactory::UDataAssetFactory(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	
 	bCreateNew = true;
 	bEditAfterNew = true;
 	SupportedClass = UDataAsset::StaticClass();
@@ -6634,13 +6633,13 @@ bool UDataAssetFactory::ConfigureProperties()
 	}
 
 	return bPressedOk;
-};
+}
 
 UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	if(DataAssetClass != NULL)
+	if (DataAssetClass != NULL)
 	{
-		return CastChecked<UDataAsset>(StaticConstructObject(DataAssetClass,InParent,Name,Flags));
+		return CastChecked<UDataAsset>(StaticConstructObject(DataAssetClass, InParent, Name, Flags | RF_Transactional));
 	}
 	else
 	{

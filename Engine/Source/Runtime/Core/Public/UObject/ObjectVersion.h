@@ -570,6 +570,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FOLIAGE_SETTINGS_TYPE,
 	// Lights serialize static shadow depth maps
 	VER_UE4_STATIC_SHADOW_DEPTH_MAPS,
+	// Add RF_Transactional to data assets, fixing undo problems when editing them
+	VER_UE4_ADD_TRANSACTIONAL_TO_DATA_ASSETS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
