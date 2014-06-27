@@ -439,8 +439,20 @@ void FFeedbackContextEditor::UpdateProgress( int32 Numerator, int32 Denominator 
 		if( StatusMessageStack.Num() <= 1 || bCanCancelTask)
 		{
 			// calculate our previous percentage and our new one
-			float SavedRatio = (float)StatusMessage.SavedNumerator / (float)StatusMessage.SavedDenominator;
-			float NewRatio = (float)StatusMessage.ProgressNumerator / (float)StatusMessage.ProgressDenominator;
+			float SavedRatio = 0.0f;
+			float NewRatio = 0.0f;
+
+			// Check divisors to guard against divide by zeros
+			if ( StatusMessage.SavedDenominator > 0 )
+			{
+				SavedRatio = (float)StatusMessage.SavedNumerator / (float)StatusMessage.SavedDenominator;
+			}
+
+			if ( ensure(StatusMessage.ProgressDenominator > 0) )
+			{
+				NewRatio = (float)StatusMessage.ProgressNumerator / (float)StatusMessage.ProgressDenominator;
+			}
+
 			double Now = FPlatformTime::Seconds();
 
 			// update the progress bar if we've moved enough since last time, or we are going to start or end of bar,
