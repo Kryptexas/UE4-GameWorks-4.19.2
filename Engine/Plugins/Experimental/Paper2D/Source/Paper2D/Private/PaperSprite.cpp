@@ -880,7 +880,7 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 
 			// Attempt to triangulate this polygon
 			TArray<FClipSMTriangle> GeneratedTriangles;
-			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon))
+			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon, Source.bAvoidVertexMerging))
 			{
 				// Convert the triangles back to our 2D data structure
 				for (int32 TriangleIndex = 0; TriangleIndex < GeneratedTriangles.Num(); ++TriangleIndex)
