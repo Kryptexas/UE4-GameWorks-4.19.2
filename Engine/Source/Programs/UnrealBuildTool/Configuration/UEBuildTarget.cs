@@ -2123,24 +2123,17 @@ namespace UnrealBuildTool
 				if (ShouldCompileMonolithic() || Rules.Type == TargetRules.TargetType.Program)
 				{
 					var FilterPluginNames = new List<string>(Rules.AdditionalPlugins);
-					var ConfigDirectory = String.Empty;
-					var ConfigKey = String.Empty;
 
+					// Add the list of plugins enabled by default
 					if (UEBuildConfiguration.bCompileAgainstEngine)
 					{
-						ConfigDirectory = ProjectDirectory;
-						ConfigKey = "EnabledPlugins";
+						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
 					}
 					else if (Rules.Type == TargetRules.TargetType.Program)
 					{
-						ConfigDirectory = Path.Combine(ProjectDirectory, "Programs", GetTargetName());
-						ConfigKey = "ProgramEnabledPlugins";
-					}
-					if (!String.IsNullOrEmpty(ConfigDirectory))
-					{
-						var Config = new ConfigCacheIni(Platform, "Engine", ConfigDirectory);
+						var Config = new ConfigCacheIni(Platform, "Engine", Path.Combine(ProjectDirectory, "Programs", GetTargetName()));
 						List<string> ConfigPlugins;
-						if (Config.GetArray("Plugins", ConfigKey, out ConfigPlugins))
+						if (Config.GetArray("Plugins", "ProgramEnabledPlugins", out ConfigPlugins))
 						{
 							FilterPluginNames.AddRange(ConfigPlugins);
 						}

@@ -48,7 +48,7 @@ bool FProjectDescriptor::Load(const FString& FileName, FText& OutFailReason)
 	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
 	if ( !FJsonSerializer::Deserialize(Reader, Object) || !Object.IsValid() )
 	{
-		OutFailReason = FText::Format(LOCTEXT("FailedToReadDescriptorFile", "Failed to read file. {1}"), FText::FromString(Reader->GetErrorMessage()));
+		OutFailReason = FText::Format(LOCTEXT("FailedToReadDescriptorFile", "Failed to read file. {0}"), FText::FromString(Reader->GetErrorMessage()));
 		return false;
 	}
 

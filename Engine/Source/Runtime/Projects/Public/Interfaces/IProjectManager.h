@@ -228,11 +228,11 @@ public:
 	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const = 0;
 
 	/**
-	 * Hack to checks whether the current project has a third party plugin enabled (ie. one which is not included by default in UE4Game).
+	 * Hack to checks whether the current project has a non-default plugin enabled (ie. one which is not included by default in UE4Game).
 	 * 
-	 * @return	True if the project has a third party plugin enabled.
+	 * @return	True if the project has a non-default plugin enabled.
 	 */
-	virtual bool IsThirdPartyPluginEnabled() const = 0;
+	virtual bool IsNonDefaultPluginEnabled() const = 0;
 
 	/**
 	 * Sets whether a plugin is enabled, and updates the project descriptor on disk. May require restarting to load it.

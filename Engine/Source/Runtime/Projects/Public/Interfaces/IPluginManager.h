@@ -41,6 +41,9 @@ public:
 	/** True if plugin is currently enabled */
 	bool bIsEnabled;
 
+	/** True if plugin is enabled by default in all projects */
+	bool bIsEnabledByDefault;
+
 	/** True if the plugin is a 'built-in' engine plugin */
 	bool bIsBuiltIn;
 

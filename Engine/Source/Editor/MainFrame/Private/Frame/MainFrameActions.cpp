@@ -508,7 +508,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
 		return;
 	}
-	if (FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS") && IProjectManager::Get().IsThirdPartyPluginEnabled())
+	if (FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
 		return;

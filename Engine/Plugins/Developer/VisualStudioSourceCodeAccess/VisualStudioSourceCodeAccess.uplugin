@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Allows access to source code in Visual Studio.",
 	"Category" : "Developer.Source Code Access",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

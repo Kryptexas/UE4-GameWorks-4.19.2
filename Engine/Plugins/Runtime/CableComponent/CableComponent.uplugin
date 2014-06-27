@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "A simulated cable component.",
 	"Category" : "Rendering.Components",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

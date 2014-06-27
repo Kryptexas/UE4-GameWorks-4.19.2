@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "A new renderable Component class that allows you to specify custom geometry via C++ or Blueprint.",
 	"Category" : "Rendering.Components",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

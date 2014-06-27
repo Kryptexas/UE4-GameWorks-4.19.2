@@ -1204,7 +1204,7 @@ void UEditorEngine::HandleLaunchCompleted(bool Succeeded, double TotalTime, bool
 		{
 			CompletionMsg = LOCTEXT("LauncherTaskCompleted", "Deployment complete!! Open the app on your device to launch.");
 			TSharedPtr<SNotificationItem> NotificationItem = NotificationItemPtr.Pin();
-			NotificationItem->SetExpireDuration(30.0f);
+//			NotificationItem->SetExpireDuration(30.0f);
 		}
 		else
 		{
@@ -1291,7 +1291,7 @@ void UEditorEngine::PlayUsingLauncher()
 			bPlayUsingLauncher = false;
 			return;
 		}
-		if (FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && IProjectManager::Get().IsThirdPartyPluginEnabled())
+		if (FRocketSupport::IsRocket() && PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) == TEXT("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("LaunchOnDeviceNotWorkingMessage", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
 			bPlayUsingLauncher = false;

@@ -60,6 +60,9 @@ namespace UnrealBuildTool
 		// List of modules in this plugin
 		public readonly List<PluginModuleInfo> Modules = new List<PluginModuleInfo>();
 
+		// Whether this plugin is enabled by default
+		public bool bEnabledByDefault;
+
 		// Where does this plugin live?
 		public LoadedFromType LoadedFrom;
 
@@ -200,6 +203,13 @@ namespace UnrealBuildTool
 			PluginInfo.LoadedFrom = LoadedFrom;
 			PluginInfo.Directory = PluginFileInfo.Directory.FullName;
 			PluginInfo.Name = Path.GetFileName(PluginInfo.Directory);
+
+			// Determine whether the plugin should be enabled by default
+			object EnabledByDefaultObject;
+			if(PluginDescriptorDict.TryGetValue("EnabledByDefault", out EnabledByDefaultObject) && (EnabledByDefaultObject is bool))
+			{
+				PluginInfo.bEnabledByDefault = (bool)EnabledByDefaultObject;
+			}
 
 			// This plugin might have some modules that we need to know about.  Let's take a look.
 			{

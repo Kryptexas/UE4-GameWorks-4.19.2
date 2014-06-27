@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "An importer for SpeedTree runtime (SRT) files.",
 	"CategoryPath" : "Editor",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

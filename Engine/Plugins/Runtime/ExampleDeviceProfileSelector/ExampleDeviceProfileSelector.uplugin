@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Example Device Profile Selector used show selection of device profiles on hardware",
 	"Category" : "Programming Runtime.Plugins",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

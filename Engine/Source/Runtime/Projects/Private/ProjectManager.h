@@ -31,7 +31,7 @@ public:
 	virtual void ClearSupportedTargetPlatformsForCurrentProject() override;
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() override { return OnTargetPlatformsForCurrentProjectChangedEvent; }
 	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const override;
-	virtual bool IsThirdPartyPluginEnabled() const override;
+	virtual bool IsNonDefaultPluginEnabled() const override;
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) override;
 	virtual bool IsRestartRequired() const override;
 

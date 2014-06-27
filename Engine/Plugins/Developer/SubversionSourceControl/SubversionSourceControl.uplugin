@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Subversion source control management",
 	"Category" : "Editor.Source Control",
+	"EnabledByDefault" : true,
 	
 	"Modules" :
 	[

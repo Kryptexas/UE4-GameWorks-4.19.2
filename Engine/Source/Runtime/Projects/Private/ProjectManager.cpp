@@ -329,47 +329,19 @@ void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
 	}
 }
 
-bool FProjectManager::IsThirdPartyPluginEnabled() const
+bool FProjectManager::IsNonDefaultPluginEnabled() const
 {
-	static bool bInit = false;
-	TArray<FString> StandardPlugins;
-	if (!bInit)
-	{
-		StandardPlugins.Add(TEXT("BlankPlugin"));
-		StandardPlugins.Add(TEXT("UObjectPlugin"));
-		StandardPlugins.Add(TEXT("PluginsEditor"));
-		StandardPlugins.Add(TEXT("EpicSurvey"));
-		StandardPlugins.Add(TEXT("OculusRift"));
-		StandardPlugins.Add(TEXT("CustomMeshComponent"));
-		StandardPlugins.Add(TEXT("MessagingDebugger"));
-		StandardPlugins.Add(TEXT("PerforceSourceControl"));
-		StandardPlugins.Add(TEXT("SubversionSourceControl"));
-		StandardPlugins.Add(TEXT("UdpMessaging"));
-		StandardPlugins.Add(TEXT("WindowsMoviePlayer"));
-		StandardPlugins.Add(TEXT("CableComponent"));
-		StandardPlugins.Add(TEXT("ExampleDeviceProfileSelector"));
-		StandardPlugins.Add(TEXT("WinDualShock"));
-		StandardPlugins.Add(TEXT("VisualStudioSourceCodeAccess"));
-		StandardPlugins.Add(TEXT("XCodeSourceCodeAccess"));
-		StandardPlugins.Add(TEXT("SlateRemote"));
-		StandardPlugins.Add(TEXT("ScriptPlugin"));
-		StandardPlugins.Add(TEXT("ScriptEditorPlugin"));
-		StandardPlugins.Add(TEXT("SpeedTreeImporter"));
-		StandardPlugins.Add(TEXT("AppleMoviePlayer"));
-		StandardPlugins.Add(TEXT("IOSDeviceProfileSelector"));
-		bInit = true;
-	}
-
 	TArray<FString> EnabledPlugins;
 	GetEnabledPlugins(EnabledPlugins);
 
-	for (int Index = 0; Index < EnabledPlugins.Num(); ++Index)
+	for(const FPluginStatus& Plugin: IPluginManager::Get().QueryStatusForAllPlugins())
 	{
-		if (!StandardPlugins.Contains(EnabledPlugins[Index]))
+		if((!Plugin.bIsBuiltIn || !Plugin.bIsEnabledByDefault) && EnabledPlugins.Contains(Plugin.Name))
 		{
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -432,15 +404,11 @@ bool FProjectManager::IsRestartRequired() const
 
 void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames)
 {
-	// Read all the enabled plugins from the ini file
-	OutPluginNames.Empty();
-	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), OutPluginNames, GEngineIni );
-
-	// Add all the game plugins
+	// Add all the game plugins and everything marked as enabled by default
 	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
 	for(const FPluginStatus& PluginStatus: PluginStatuses)
 	{
-		if(!PluginStatus.bIsBuiltIn)
+		if(PluginStatus.bIsEnabledByDefault || !PluginStatus.bIsBuiltIn)
 		{
 			OutPluginNames.AddUnique(PluginStatus.Name);
 		}

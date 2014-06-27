@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Provides a visual debugger for the messaging sub-system.",
 	"Category" : "Visual Debugging.Messaging",
+	"EnabledByDefault" : true,
 
 	"Modules" :
 	[

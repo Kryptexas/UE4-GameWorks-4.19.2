@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Paper2D adds tools and assets to help create 2D games including animated sprite assets, tilesets, 2D level editing tools, and more.",
 	"Category" : "2D.Helpers",
+	"EnabledByDefault" : true,
 
 	"Modules" :
 	[

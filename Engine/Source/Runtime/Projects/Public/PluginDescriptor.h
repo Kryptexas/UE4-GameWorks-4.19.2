@@ -59,6 +59,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
+	/** Whether this plugin should be enabled by default for all projects */
+	bool bEnabledByDefault;
+
 	/** Can this plugin contain content? */
 	bool bCanContainContent;
 

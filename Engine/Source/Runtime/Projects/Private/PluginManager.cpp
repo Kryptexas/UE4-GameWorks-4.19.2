@@ -436,6 +436,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.CategoryPath = PluginInfo.Category;
 		PluginStatus.bIsEnabled = Plugin->bEnabled;
 		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );
+		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
 		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
 
 		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time

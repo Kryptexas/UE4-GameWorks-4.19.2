@@ -9,6 +9,7 @@ FPluginDescriptor::FPluginDescriptor()
 {
 	FileVersion = EPluginDescriptorVersion::Latest;
 	Version = 0;
+	bEnabledByDefault = false;
 	bCanContainContent = false;
 	bIsBetaVersion = false;
 }
@@ -86,6 +87,7 @@ bool FPluginDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 		return false;
 	}
 
+	Object.TryGetBoolField(TEXT("EnabledByDefault"), bEnabledByDefault);
 	Object.TryGetBoolField(TEXT("CanContainContent"), bCanContainContent);
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
 	return true;
