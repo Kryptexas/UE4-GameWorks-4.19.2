@@ -330,7 +330,7 @@ EColumnSortMode::Type FPropertyTable::GetColumnSortMode( const TSharedRef< class
 	return EColumnSortMode::None;
 }
 
-void FPropertyTable::SortByColumnWithId( const FName& ColumnId, EColumnSortMode::Type SortMode )
+void FPropertyTable::SortByColumnWithId( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type SortMode )
 {
 	for( auto ColumnIter = Columns.CreateIterator(); ColumnIter; ++ColumnIter )
 	{

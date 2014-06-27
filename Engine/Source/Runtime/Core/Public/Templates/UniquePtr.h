@@ -16,6 +16,9 @@
 template <typename T>
 class TUniquePtr
 {
+	template <typename OtherT>
+	friend class TUniquePtr;
+
 public:
 	/**
 	 * Default constructor - initializes the TUniquePtr to null.

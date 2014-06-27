@@ -265,7 +265,7 @@ protected:
 	void HighlightHotPath_OnCheckStateChanged( ESlateCheckBoxState::Type InState );
 
 	void InitializeAndShowHeaderColumns();
-	void TreeViewHeaderRow_OnSortModeChanged( const FName& ColumnID, EColumnSortMode::Type );
+	void TreeViewHeaderRow_OnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnID, const EColumnSortMode::Type SortMode );
 
 	void SetSortModeForColumn( const FName& ColumnID, EColumnSortMode::Type SortMode );
 

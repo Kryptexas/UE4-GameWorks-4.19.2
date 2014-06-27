@@ -1047,15 +1047,25 @@ struct SLATECORE_API FTableColumnHeaderStyle : public FSlateWidgetStyle
 
 	static const FTableColumnHeaderStyle& GetDefault();
 
-	/** Image used when a column is sorted in ascending order */
+	/** Image used when a column is primarily sorted in ascending order */
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush SortAscendingImage;
-	FTableColumnHeaderStyle& SetSortAscendingImage( const FSlateBrush& InSortAscendingImage ){ SortAscendingImage = InSortAscendingImage; return *this; }
+	FSlateBrush SortPrimaryAscendingImage;
+	FTableColumnHeaderStyle& SetSortPrimaryAscendingImage(const FSlateBrush& InSortPrimaryAscendingImage){ SortPrimaryAscendingImage = InSortPrimaryAscendingImage; return *this; }
 
-	/** Image used when a column is sorted in descending order */
+	/** Image used when a column is primarily sorted in descending order */
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateBrush SortDescendingImage;
-	FTableColumnHeaderStyle& SetSortDescendingImage( const FSlateBrush& InSortDescendingImage ){ SortDescendingImage = InSortDescendingImage; return *this; }
+	FSlateBrush SortPrimaryDescendingImage;
+	FTableColumnHeaderStyle& SetSortPrimaryDescendingImage(const FSlateBrush& InSortPrimaryDescendingImage){ SortPrimaryDescendingImage = InSortPrimaryDescendingImage; return *this; }
+
+	/** Image used when a column is secondarily sorted in ascending order */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush SortSecondaryAscendingImage;
+	FTableColumnHeaderStyle& SetSortSecondaryAscendingImage(const FSlateBrush& InSortSecondaryAscendingImage){ SortSecondaryAscendingImage = InSortSecondaryAscendingImage; return *this; }
+
+	/** Image used when a column is secondarily sorted in descending order */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush SortSecondaryDescendingImage;
+	FTableColumnHeaderStyle& SetSortSecondaryDescendingImage(const FSlateBrush& InSortSecondaryDescendingImage){ SortSecondaryDescendingImage = InSortSecondaryDescendingImage; return *this; }
 
 	/** Brush used to draw the header in its normal state */
 	UPROPERTY(EditAnywhere, Category=Appearance)

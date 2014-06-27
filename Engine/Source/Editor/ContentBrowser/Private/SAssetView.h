@@ -502,13 +502,16 @@ private:
 	float GetTileViewItemBaseWidth() const;
 
 	/** Gets the sort mode for the supplied ColumnId */
-	EColumnSortMode::Type GetColumnSortMode(FName ColumnId) const;
+	EColumnSortMode::Type GetColumnSortMode(const FName ColumnId) const;
+
+	/** Gets the sort order for the supplied ColumnId */
+	EColumnSortPriority::Type GetColumnSortPriority(const FName ColumnId) const;
 
 	/** Handler for when a column header is clicked */
-	void OnSortColumnHeader( const FName& ColumnId, EColumnSortMode::Type NewSortMode );
+	void OnSortColumnHeader(const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type NewSortMode);
 
 	/** Handler for when a column header is clicked */
-	bool IsPathInAssetItemsList(FName ObjectPath) const;
+	bool IsPathInAssetItemsList(const FName& ObjectPath) const;
 
 	/** Returns the state of the is working progress bar */
 	TOptional< float > GetIsWorkingProgressBarState() const;

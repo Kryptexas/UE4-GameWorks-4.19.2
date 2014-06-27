@@ -16,6 +16,7 @@ public:
 
 	STableColumnHeader()
 		: SortMode( EColumnSortMode::None )
+		, SortPriority( EColumnSortPriority::Primary )
 		, OnSortModeChanged()
 		, ContextMenuContent( SNullWidget::NullWidget )
 		, ColumnId( NAME_None )
@@ -38,8 +39,8 @@ public:
 		Style = InArgs._Style;
 		ColumnId = Column.ColumnId;
 		SortMode = Column.SortMode;
+		SortPriority = Column.SortPriority;
 
-		SortMode = Column.SortMode;
 		OnSortModeChanged = Column.OnSortModeChanged;
 		ContextMenuContent = Column.HeaderMenuContent.Widget;
 
@@ -182,6 +183,18 @@ public:
 		SortMode = NewMode;
 	}
 
+	/** Gets sorting order */
+	EColumnSortPriority::Type GetSortPriority() const
+	{
+		return SortPriority.Get();
+	}
+
+	/** Sets sorting order */
+	void SetSortPriority(EColumnSortPriority::Type NewPriority)
+	{
+		SortPriority = NewPriority;
+	}
+
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ContextMenuContent != SNullWidget::NullWidget )
@@ -276,7 +289,11 @@ private:
 	/** Gets the icon associated with the current sorting mode */
 	const FSlateBrush* GetSortingBrush() const
 	{
-		return (SortMode == EColumnSortMode::Ascending ? &Style->SortAscendingImage : &Style->SortDescendingImage);
+		EColumnSortPriority::Type ColumnSortPriority = SortPriority.Get();
+
+		return ( SortMode.Get() == EColumnSortMode::Ascending ? 
+			(SortPriority.Get() == EColumnSortPriority::Secondary ? &Style->SortSecondaryAscendingImage : &Style->SortPrimaryAscendingImage) :
+			(SortPriority.Get() == EColumnSortPriority::Secondary ? &Style->SortSecondaryDescendingImage : &Style->SortPrimaryDescendingImage) );
 	}
 
 	/** Checks if sorting mode has been selected */
@@ -290,17 +307,40 @@ private:
 	{
 		if ( OnSortModeChanged.IsBound() )
 		{
+			const bool bIsShiftClicked = FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+			EColumnSortPriority::Type ColumnSortPriority = SortPriority.Get();
 			EColumnSortMode::Type ColumnSortMode = SortMode.Get();
-			if ( ColumnSortMode == EColumnSortMode::None || ColumnSortMode == EColumnSortMode::Descending )
+			if (ColumnSortMode == EColumnSortMode::None)
 			{
+				if (bIsShiftClicked && SortPriority.IsBound())
+				{
+					ColumnSortPriority = EColumnSortPriority::Secondary;
+				}
+				else
+				{
+					ColumnSortPriority = EColumnSortPriority::Primary;
+				}
+
 				ColumnSortMode = EColumnSortMode::Ascending;
 			}
 			else
 			{
-				ColumnSortMode = EColumnSortMode::Descending;
+				if (!bIsShiftClicked && ColumnSortPriority == EColumnSortPriority::Secondary)
+				{
+					ColumnSortPriority = EColumnSortPriority::Primary;
+				}
+
+				if (ColumnSortMode == EColumnSortMode::Descending)
+				{
+					ColumnSortMode = EColumnSortMode::Ascending;
+				}
+				else
+				{
+					ColumnSortMode = EColumnSortMode::Descending;
+				}
 			}
 
-			OnSortModeChanged.Execute( ColumnId, ColumnSortMode );
+			OnSortModeChanged.Execute(ColumnSortPriority, ColumnId, ColumnSortMode);
 		}
 
 		return FReply::Handled();
@@ -319,6 +359,9 @@ private:
 
 	/** Current sorting mode */
 	TAttribute< EColumnSortMode::Type > SortMode;
+
+	/** Current sorting order */
+	TAttribute< EColumnSortPriority::Type > SortPriority;
 
 	/** Callback triggered when sorting mode changes */
 	FOnSortModeChanged OnSortModeChanged;

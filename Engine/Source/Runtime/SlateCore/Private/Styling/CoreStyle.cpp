@@ -121,6 +121,7 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	// Slate Units do NOT have to map to pixels.
 	const FVector2D Icon5x16(5.0f, 16.0f);
 	const FVector2D Icon8x4(8.0f, 4.0f);
+	const FVector2D Icon16x4(16.0f, 4.0f);
 	const FVector2D Icon8x8(8.0f, 8.0f);
 	const FVector2D Icon10x10(10.0f, 10.0f);
 	const FVector2D Icon12x12(12.0f, 12.0f);
@@ -624,8 +625,10 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "TreeArrow_Expanded_Hovered", new IMAGE_BRUSH( "Common/TreeArrow_Expanded_Hovered", Icon10x10, DefaultForeground ) );
 
 		const FTableColumnHeaderStyle TableColumnHeaderStyle = FTableColumnHeaderStyle()
-			.SetSortAscendingImage( IMAGE_BRUSH( "Common/SortUpArrow", Icon8x4 ) )
-			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
+			.SetSortPrimaryAscendingImage(IMAGE_BRUSH("Common/SortUpArrow", Icon8x4))
+			.SetSortPrimaryDescendingImage(IMAGE_BRUSH("Common/SortDownArrow", Icon8x4))
+			.SetSortSecondaryAscendingImage(IMAGE_BRUSH("Common/SortUpArrows", Icon16x4))
+			.SetSortSecondaryDescendingImage(IMAGE_BRUSH("Common/SortDownArrows", Icon16x4))
 			.SetNormalBrush( BOX_BRUSH( "Common/ColumnHeader", 4.f/32.f ) )
 			.SetHoveredBrush( BOX_BRUSH( "Common/ColumnHeader_Hovered", 4.f/32.f ) )
 			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
@@ -634,8 +637,10 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "TableView.Header.Column", TableColumnHeaderStyle );
 
 		const FTableColumnHeaderStyle TableLastColumnHeaderStyle = FTableColumnHeaderStyle()
-			.SetSortAscendingImage( IMAGE_BRUSH( "Common/SortUpArrow", Icon8x4 ) )
-			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
+			.SetSortPrimaryAscendingImage(IMAGE_BRUSH("Common/SortUpArrow", Icon8x4))
+			.SetSortPrimaryDescendingImage(IMAGE_BRUSH("Common/SortDownArrow", Icon8x4))
+			.SetSortSecondaryAscendingImage(IMAGE_BRUSH("Common/SortUpArrows", Icon16x4))
+			.SetSortSecondaryDescendingImage(IMAGE_BRUSH("Common/SortDownArrows", Icon16x4))
 			.SetNormalBrush( FSlateNoResource() )
 			.SetHoveredBrush( BOX_BRUSH( "Common/LastColumnHeader_Hovered", 4.f/32.f ) )
 			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )

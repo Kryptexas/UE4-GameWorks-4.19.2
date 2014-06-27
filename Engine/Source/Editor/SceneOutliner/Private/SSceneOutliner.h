@@ -534,7 +534,7 @@ namespace SceneOutliner
 		/********** Sort functions **********/
 
 		/** Handles column sorting mode change */
-		void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+		void OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode );
 
 		/** @return Returns the current sort mode of the specified column */
 		EColumnSortMode::Type GetColumnSortMode( const FName ColumnId ) const;

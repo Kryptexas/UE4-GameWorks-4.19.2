@@ -489,8 +489,10 @@ FTableColumnHeaderStyle::FTableColumnHeaderStyle()
 
 void FTableColumnHeaderStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) const
 {
-	OutBrushes.Add( &SortAscendingImage );
-	OutBrushes.Add( &SortDescendingImage );
+	OutBrushes.Add( &SortPrimaryAscendingImage );
+	OutBrushes.Add( &SortPrimaryDescendingImage );
+	OutBrushes.Add( &SortSecondaryAscendingImage );
+	OutBrushes.Add( &SortSecondaryDescendingImage );
 	OutBrushes.Add( &NormalBrush );
 	OutBrushes.Add( &HoveredBrush );
 	OutBrushes.Add( &MenuDropdownImage );

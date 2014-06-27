@@ -139,7 +139,7 @@ protected:
 	 *
 	 * @param InSortMode New sorting mode
 	 */
-	void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+	void OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode );
 
 	/**
 	 * @return Returns the current sort mode of the specified column

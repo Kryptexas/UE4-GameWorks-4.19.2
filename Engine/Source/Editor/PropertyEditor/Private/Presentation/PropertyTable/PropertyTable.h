@@ -109,7 +109,7 @@ public:
 	virtual void SetSelectionMode( const ESelectionMode::Type Mode ) override;
 
 	virtual EColumnSortMode::Type GetColumnSortMode( const TSharedRef< class IPropertyTableColumn > Column ) const override;
-	virtual void SortByColumnWithId( const FName& ColumnId, EColumnSortMode::Type SortMode ) override;
+	virtual void SortByColumnWithId( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type SortMode ) override;
 	virtual void SortByColumn( const TSharedRef< class IPropertyTableColumn >& Column, EColumnSortMode::Type SortMode ) override;
 
 	virtual void PasteTextAtCell( const FString& Text, const TSharedRef< class IPropertyTableCell >& Cell ) override;

@@ -2086,7 +2086,7 @@ void SEventGraph::InitializeAndShowHeaderColumns()
 }
 
 
-void SEventGraph::TreeViewHeaderRow_OnSortModeChanged( const FName& ColumnID, EColumnSortMode::Type SortMode )
+void SEventGraph::TreeViewHeaderRow_OnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnID, const EColumnSortMode::Type SortMode )
 {
 	SetSortModeForColumn( ColumnID, SortMode );
 	TreeView_Refresh();

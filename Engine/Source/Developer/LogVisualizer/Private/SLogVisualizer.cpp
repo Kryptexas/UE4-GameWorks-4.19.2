@@ -1988,7 +1988,7 @@ FString SLogVisualizer::GetLogEntryStatusText() const
 	return TEXT("Pause game with Pause button\nand select log entry to start viewing\nlog's content");
 }
 
-void SLogVisualizer::OnSortByChanged(const FName& ColumnName, EColumnSortMode::Type NewSortMode)
+void SLogVisualizer::OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode)
 {
 	SortBy = ELogsSortMode::ByName;
 

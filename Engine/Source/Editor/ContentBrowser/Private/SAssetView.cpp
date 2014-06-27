@@ -1227,12 +1227,14 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 			+ SHeaderRow::Column(SortManager.NameColumnId)
 			.FillWidth(300)
 			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.NameColumnId ) ) )
+			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.NameColumnId)))
 			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 			.DefaultLabel( LOCTEXT("Column_Name", "Name") )
 			//@TODO: Query the OnAssetTagWantsToBeDisplayed column filter here too, in case the user wants to bury the type column
 			+ SHeaderRow::Column(SortManager.ClassColumnId)
 			.FillWidth(160)
 			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.ClassColumnId ) ) )
+			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
 			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 			.DefaultLabel( LOCTEXT("Column_Class", "Type") )
 		);
@@ -1626,10 +1628,24 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 
 		// Keep track of the current column name to see if we need to change it now that columns are being removed
 		// Name, Class, and Path are always relevant
-		const FName CurrentSortColumn = SortManager.GetSortColumnId();
-		bool bSortColumnStillRelevant = CurrentSortColumn == FAssetViewSortManager::NameColumnId
-									|| CurrentSortColumn == FAssetViewSortManager::ClassColumnId
-									|| CurrentSortColumn == FAssetViewSortManager::PathColumnId;
+		struct FSortOrder
+		{
+			bool bSortRelevant;
+			FName SortColumn;
+			FSortOrder(bool bInSortRelevant, const FName& InSortColumn) : bSortRelevant(bInSortRelevant), SortColumn(InSortColumn) {}
+		};
+		TArray<FSortOrder> CurrentSortOrder;
+		for (int32 PriorityIdx = 0; PriorityIdx < EColumnSortPriority::Max; PriorityIdx++)
+		{
+			const FName SortColumn = SortManager.GetSortColumnId(static_cast<EColumnSortPriority::Type>(PriorityIdx));
+			if (SortColumn != NAME_None)
+			{
+				const bool bSortRelevant = SortColumn == FAssetViewSortManager::NameColumnId
+					|| SortColumn == FAssetViewSortManager::ClassColumnId
+					|| SortColumn == FAssetViewSortManager::PathColumnId;
+				CurrentSortOrder.Add(FSortOrder(bSortRelevant, SortColumn));
+			}
+		}
 
 		// If we have a new majority type, add the new type's columns
 		if ( NewMajorityAssetType != NAME_None )
@@ -1667,6 +1683,7 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 								ColumnView->GetHeaderRow()->AddColumn(
 										SHeaderRow::Column(Tag)
 										.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, Tag ) ) )
+										.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, Tag)))
 										.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 										.DefaultLabel( DisplayName )
 										.HAlignCell( (TagIt->Type == UObject::FAssetRegistryTag::TT_Numerical) ? HAlign_Right : HAlign_Left )
@@ -1674,9 +1691,12 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 									);
 
 								// If we found a tag the matches the column we are currently sorting on, there will be no need to change the column
-								if ( Tag == CurrentSortColumn )
+								for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
 								{
-									bSortColumnStillRelevant = true;
+									if (Tag == CurrentSortOrder[SortIdx].SortColumn)
+									{
+										CurrentSortOrder[SortIdx].bSortRelevant = true;
+									}
 								}
 							}
 						}
@@ -1685,10 +1705,36 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 			}	
 		}
 
-		if ( !bSortColumnStillRelevant )
+		// Are any of the sort columns irrelevant now, if so remove them from the list
+		bool CurrentSortChanged = false;
+		for (int32 SortIdx = CurrentSortOrder.Num() - 1; SortIdx >= 0; SortIdx--)
+		{
+			if (!CurrentSortOrder[SortIdx].bSortRelevant)
+			{
+				CurrentSortOrder.RemoveAt(SortIdx);
+				CurrentSortChanged = true;
+			}
+		}
+		if (CurrentSortOrder.Num() > 0 && CurrentSortChanged)
+		{
+			// Sort order has changed, update the columns keeping those that are relevant
+			int32 PriorityNum = EColumnSortPriority::Primary;
+			for (int32 SortIdx = 0; SortIdx < CurrentSortOrder.Num(); SortIdx++)
+			{
+				check(CurrentSortOrder[SortIdx].bSortRelevant);
+				if (!SortManager.SetOrToggleSortColumn(static_cast<EColumnSortPriority::Type>(PriorityNum), CurrentSortOrder[SortIdx].SortColumn))
+				{
+					// Toggle twice so mode is preserved if this isn't a new column assignation
+					SortManager.SetOrToggleSortColumn(static_cast<EColumnSortPriority::Type>(PriorityNum), CurrentSortOrder[SortIdx].SortColumn);
+				}				
+				bPendingSortFilteredItems = true;
+				PriorityNum++;
+			}
+		}
+		else if (CurrentSortOrder.Num() == 0)
 		{
 			// If the current sort column is no longer relevant, revert to "Name" and resort when convenient
-			SortManager.SetOrToggleSortColumn(FAssetViewSortManager::NameColumnId);
+			SortManager.ResetSort();
 			bPendingSortFilteredItems = true;
 		}
 	}
@@ -3492,26 +3538,40 @@ float SAssetView::GetTileViewItemBaseWidth() const
 	return ( TileViewThumbnailSize + TileViewThumbnailPadding * 2 ) * FMath::Lerp( MinThumbnailScale, MaxThumbnailScale, GetThumbnailScale() );
 }
 
-EColumnSortMode::Type SAssetView::GetColumnSortMode(FName ColumnId) const
+EColumnSortMode::Type SAssetView::GetColumnSortMode(const FName ColumnId) const
 {
-	if ( ColumnId == SortManager.GetSortColumnId() )
+	for (int32 PriorityIdx = 0; PriorityIdx < EColumnSortPriority::Max; PriorityIdx++)
 	{
-		return SortManager.GetSortMode();
+		const EColumnSortPriority::Type SortPriority = static_cast<EColumnSortPriority::Type>(PriorityIdx);
+		if (ColumnId == SortManager.GetSortColumnId(SortPriority))
+		{
+			return SortManager.GetSortMode(SortPriority);
+		}
 	}
-	else
-	{
-		return EColumnSortMode::None;
-	}
+	return EColumnSortMode::None;
 }
 
-void SAssetView::OnSortColumnHeader( const FName& ColumnId, EColumnSortMode::Type NewSortMode )
+EColumnSortPriority::Type SAssetView::GetColumnSortPriority(const FName ColumnId) const
 {
-	SortManager.SetSortColumnId( ColumnId );
-	SortManager.SetSortMode( NewSortMode );
+	for (int32 PriorityIdx = 0; PriorityIdx < EColumnSortPriority::Max; PriorityIdx++)
+	{
+		const EColumnSortPriority::Type SortPriority = static_cast<EColumnSortPriority::Type>(PriorityIdx);
+		if (ColumnId == SortManager.GetSortColumnId(SortPriority))
+		{
+			return SortPriority;
+		}
+	}
+	return EColumnSortPriority::Primary;
+}
+
+void SAssetView::OnSortColumnHeader(const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type NewSortMode)
+{
+	SortManager.SetSortColumnId(SortPriority, ColumnId);
+	SortManager.SetSortMode(SortPriority, NewSortMode);
 	SortList();
 }
 
-bool SAssetView::IsPathInAssetItemsList(FName ObjectPath) const
+bool SAssetView::IsPathInAssetItemsList(const FName& ObjectPath) const
 {
 	for ( auto AssetIt = AssetItems.CreateConstIterator(); AssetIt; ++AssetIt )
 	{

@@ -82,6 +82,7 @@ public:
 
 		const FVector2D Icon7x16;
 		const FVector2D Icon8x4;
+		const FVector2D Icon16x4;
 		const FVector2D Icon8x8;
 		const FVector2D Icon10x10;
 		const FVector2D Icon12x12;

@@ -96,7 +96,7 @@ public:
 	FReply OnRemove();
 	void OnPauseChanged(ESlateCheckBoxState::Type NewState);
 	void FilterTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
-	void OnSortByChanged(const FName& ColumnName, EColumnSortMode::Type NewSortMode);
+	void OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode);
 	// Table delegates
 	TSharedRef<ITableRow> LogsListGenerateRow(TSharedPtr<FLogsListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void LogsListSelectionChanged(TSharedPtr<FLogsListItem> SelectedItem, ESelectInfo::Type SelectInfo);

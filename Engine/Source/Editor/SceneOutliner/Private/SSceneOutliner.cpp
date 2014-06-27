@@ -3105,7 +3105,7 @@ namespace SceneOutliner
 		return SortMode;
 	}
 
-	void SSceneOutliner::OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode )
+	void SSceneOutliner::OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode )
 	{
 		if (CustomColumn.IsValid() && ColumnId == CustomColumn->GetColumnID() && !CustomColumn->SupportsSorting())
 		{

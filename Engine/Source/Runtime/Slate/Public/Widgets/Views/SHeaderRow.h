@@ -5,6 +5,16 @@
 class SSplitter;
 class IGridRow; 
 
+namespace EColumnSortPriority
+{
+	enum Type
+	{
+		Primary = 0,
+		Secondary = 1,
+		Max,
+	};
+};
+
 namespace EColumnSortMode
 {
 	enum Type
@@ -46,7 +56,7 @@ enum class EHeaderComboVisibility
 };
 
 /** Callback when sort mode changes */
-DECLARE_DELEGATE_TwoParams( FOnSortModeChanged, const FName&, EColumnSortMode::Type );
+DECLARE_DELEGATE_ThreeParams( FOnSortModeChanged, EColumnSortPriority::Type, const FName&, EColumnSortMode::Type );
 
 /**	Callback when the width of the column changes */
 DECLARE_DELEGATE_OneParam( FOnWidthChanged, float );
@@ -96,6 +106,7 @@ public:
 			SLATE_ARGUMENT( EVerticalAlignment, VAlignCell )
 
 			SLATE_ATTRIBUTE( EColumnSortMode::Type, SortMode )
+			SLATE_ATTRIBUTE( EColumnSortPriority::Type, SortPriority )
 			SLATE_EVENT( FOnSortModeChanged, OnSort )
 		SLATE_END_ARGS()
 
@@ -115,6 +126,7 @@ public:
 			, CellHAlignment( InArgs._HAlignCell )
 			, CellVAlignment( InArgs._VAlignCell )
 			, SortMode( InArgs._SortMode )
+			, SortPriority( InArgs._SortPriority )
 			, OnSortModeChanged( InArgs._OnSort )
 		{
 			if ( InArgs._FixedWidth.IsSet() )
@@ -179,6 +191,7 @@ public:
 		EVerticalAlignment CellVAlignment;
 
 		TAttribute< EColumnSortMode::Type > SortMode;
+		TAttribute< EColumnSortPriority::Type > SortPriority;
 		FOnSortModeChanged OnSortModeChanged;
 	};
 

@@ -424,7 +424,7 @@ private:
 	 * @param	ColumnId	The new column to sort by
 	 * @param	InSortMode	The sort mode (ascending or descending)
 	 */
-	void OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode );
+	void OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode );
 
 	/**
 	 * Requests that the source list data be sorted according to the current sort column and mode,

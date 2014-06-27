@@ -278,7 +278,7 @@ void SEventsTree::OnGetChildrenForEventsList( TSharedPtr<FVisualizerEvent> InIte
 	OutChildren = InItem->Children;
 }
 
-void SEventsTree::OnColumnSortModeChanged( const FName& ColumnId, EColumnSortMode::Type InSortMode )
+void SEventsTree::OnColumnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnId, const EColumnSortMode::Type InSortMode )
 {
 	SortByColumn = ColumnId;
 	SortMode = InSortMode;
