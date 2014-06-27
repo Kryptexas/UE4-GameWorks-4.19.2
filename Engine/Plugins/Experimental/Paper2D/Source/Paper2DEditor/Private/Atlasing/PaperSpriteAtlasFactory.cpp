@@ -18,7 +18,7 @@ UPaperSpriteAtlasFactory::UPaperSpriteAtlasFactory(const class FPostConstructIni
 
 UObject* UPaperSpriteAtlasFactory::FactoryCreateNew(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	return ConstructObject<UObject>(SupportedClass, InParent, InName, Flags);
+	return ConstructObject<UObject>(SupportedClass, InParent, InName, Flags | RF_Transactional);
 }
 
 bool UPaperSpriteAtlasFactory::CanCreateNew() const

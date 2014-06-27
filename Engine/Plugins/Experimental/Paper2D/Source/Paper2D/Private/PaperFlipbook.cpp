@@ -2,6 +2,7 @@
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbook.h"
+#include "PaperCustomVersion.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbook
@@ -52,3 +53,23 @@ UPaperSprite* UPaperFlipbook::GetSpriteAtTime(float Time) const
 
 	return NULL;
 }
+
+#if WITH_EDITORONLY_DATA
+void UPaperFlipbook::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperFlipbook::PostLoad()
+{
+	Super::PostLoad();
+
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+	if (PaperVer < FPaperCustomVersion::AddTransactionalToClasses)
+	{
+		SetFlags(RF_Transactional);
+	}
+}
+#endif

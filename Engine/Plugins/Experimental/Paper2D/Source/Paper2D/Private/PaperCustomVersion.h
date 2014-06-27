@@ -28,6 +28,9 @@ struct FPaperCustomVersion
 		// Fixed typo in convex hull generation code for 3D custom collision
 		FixTypoIn3DConvexHullCollisionGeneration = 6,
 
+		// Fixed undo issues in several asset types due to missing RF_Transactional flag
+		AddTransactionalToClasses = 7,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

@@ -26,7 +26,7 @@ bool UPaperSpriteFactory::ConfigureProperties()
 
 UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	UPaperSprite* NewSprite = ConstructObject<UPaperSprite>(Class, InParent, Name, Flags);
+	UPaperSprite* NewSprite = ConstructObject<UPaperSprite>(Class, InParent, Name, Flags | RF_Transactional);
 
 	if (bUseSourceRegion)
 	{

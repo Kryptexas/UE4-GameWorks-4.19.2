@@ -32,6 +32,7 @@ FPrimitiveSceneProxy* UPaperTileMapRenderComponent::CreateSceneProxy()
 void UPaperTileMapRenderComponent::PostInitProperties()
 {
 	TileMap = NewObject<UPaperTileMap>(this);
+	TileMap->SetFlags(RF_Transactional);
 	Super::PostInitProperties();
 }
 
@@ -92,6 +93,7 @@ void UPaperTileMapRenderComponent::PostLoad()
 	{
 		// Create a tile map object and move our old properties over to it
 		TileMap = NewObject<UPaperTileMap>(this);
+		TileMap->SetFlags(RF_Transactional);
 		TileMap->MapWidth = MapWidth_DEPRECATED;
 		TileMap->MapHeight = MapHeight_DEPRECATED;
 		TileMap->TileWidth = TileWidth_DEPRECATED;

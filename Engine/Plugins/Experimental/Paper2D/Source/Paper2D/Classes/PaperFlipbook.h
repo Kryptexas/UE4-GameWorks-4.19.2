@@ -41,4 +41,11 @@ class UPaperFlipbook : public UObject
 	PAPER2D_API int32 GetNumFrames() const;
 	PAPER2D_API float GetDuration() const;
 	PAPER2D_API UPaperSprite* GetSpriteAtTime(float Time) const;
+
+	// UObject interface
+#if WITH_EDITORONLY_DATA
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostLoad() override;
+#endif
+	// End of UObject interface
 };

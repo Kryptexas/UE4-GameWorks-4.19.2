@@ -1093,6 +1093,11 @@ void UPaperSprite::PostLoad()
 	bool bRebuildCollision = false;
 	bool bRebuildRenderData = false;
 
+	if (PaperVer < FPaperCustomVersion::AddTransactionalToClasses)
+	{
+		SetFlags(RF_Transactional);
+	}
+
 	if (PaperVer < FPaperCustomVersion::AddPixelsPerUnrealUnit)
 	{
 		PixelsPerUnrealUnit = 1.0f;
