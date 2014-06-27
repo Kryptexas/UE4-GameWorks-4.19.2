@@ -50,12 +50,17 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 				.Image( this, &SCheckBox::OnGetCheckImage )
 				.ColorAndOpacity( ForegroundColor )
 			]
-			+SHorizontalBox::Slot()
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding( Padding )
 			.VAlign( VAlign_Center )
 			[
-				InArgs._Content.Widget
+				SAssignNew(ContentContainer, SBorder)
+				.BorderImage(FStyleDefaults::GetNoBrush())
+				.Padding(0.0f)
+				[
+					InArgs._Content.Widget
+				]
 			]
 		];
 	}
@@ -65,7 +70,7 @@ void SCheckBox::Construct( const SCheckBox::FArguments& InArgs )
 		// Toggle buttons have a visual appearance that is similar to a Slate button
 		this->ChildSlot
 		[
-			SNew( SBorder )
+			SAssignNew( ContentContainer, SBorder )
 			// Make sure we aren't trying to compute the desired size when the check box is collapsed
 			.Visibility(InArgs._Visibility)
 			// Bind the border background to our method that gets a slate brush for the current state of the control
@@ -348,6 +353,11 @@ void SCheckBox::PlayUncheckedSound() const
 void SCheckBox::PlayHoverSound() const
 {
 	FSlateApplication::Get().PlaySound( HoveredSound );
+}
+
+void SCheckBox::SetContent(const TSharedRef< SWidget >& InContent)
+{
+	ContentContainer->SetContent(InContent);
 }
 
 void SCheckBox::SetStyle(const FCheckBoxStyle* InStyle)

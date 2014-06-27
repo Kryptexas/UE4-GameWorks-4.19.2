@@ -191,6 +191,9 @@ public:
 	/** See the IsChecked attribute */
 	void SetIsChecked(TAttribute<ESlateCheckBoxState::Type> InIsChecked);
 	
+	/** See the Content slot */
+	void SetContent(const TSharedRef< SWidget >& InContent);
+	
 	/** See the Style attribute */
 	void SetStyle(const FCheckBoxStyle* InStyle);
 	
@@ -293,4 +296,8 @@ protected:
 
 	/** The Sound to play when the check box is unchecked */
 	FSlateSound UncheckedSound;
+
+protected:
+	/** When in toggle button mode, this will hold the pointer to the toggle button's border */
+	TSharedPtr<SBorder> ContentContainer;
 };
