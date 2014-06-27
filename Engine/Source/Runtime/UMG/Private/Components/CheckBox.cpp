@@ -23,13 +23,6 @@ UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 
 TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
-	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
-	if ( StylePtr == NULL )
-	{
-		SCheckBox::FArguments Defaults;
-		StylePtr = Defaults._Style;
-	}
-
 	TOptional<FSlateSound> OptionalCheckedSound;
 	if ( CheckedSound.GetResourceObject() )
 	{
@@ -49,7 +42,6 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 	}
 
 	MyCheckbox = SNew(SCheckBox)
-		.Style(StylePtr)
 		.OnCheckStateChanged( BIND_UOBJECT_DELEGATE(FOnCheckStateChanged, SlateOnCheckStateChangedCallback) )
 		.HAlign( HorizontalAlignment )
 		.Padding( Padding )
@@ -59,6 +51,11 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 		.UncheckedSoundOverride(OptionalUncheckedSound)
 		.HoveredSoundOverride(OptionalHoveredSound)
 		;
+
+	if ( GetChildrenCount() > 0 )
+	{
+		MyCheckbox->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+	}
 	
 	return MyCheckbox.ToSharedRef();
 }
@@ -66,6 +63,15 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 void UCheckBox::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
+
+	const FCheckBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FCheckBoxStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		SCheckBox::FArguments Defaults;
+		StylePtr = Defaults._Style;
+	}
+
+	MyCheckbox->SetStyle(StylePtr);
 
 	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState) );
 	
@@ -80,6 +86,24 @@ void UCheckBox::SyncronizeProperties()
 	MyCheckbox->SetUndeterminedImage(UndeterminedImage ? &UndeterminedImage->Brush : nullptr);
 	MyCheckbox->SetUndeterminedHoveredImage(UndeterminedHoveredImage ? &UndeterminedHoveredImage->Brush : nullptr);
 	MyCheckbox->SetUndeterminedPressedImage(UndeterminedPressedImage ? &UndeterminedPressedImage->Brush : nullptr);
+}
+
+void UCheckBox::OnSlotAdded(UPanelSlot* Slot)
+{
+	// Add the child to the live slot if it already exists
+	if ( MyCheckbox.IsValid() )
+	{
+		MyCheckbox->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+	}
+}
+
+void UCheckBox::OnSlotRemoved(UPanelSlot* Slot)
+{
+	// Remove the widget from the live slot if it exists.
+	if ( MyCheckbox.IsValid() )
+	{
+		MyCheckbox->SetContent(SNullWidget::NullWidget);
+	}
 }
 
 bool UCheckBox::IsPressed() const
