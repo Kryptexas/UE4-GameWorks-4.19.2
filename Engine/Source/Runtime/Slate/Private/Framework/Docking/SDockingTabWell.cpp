@@ -464,13 +464,18 @@ void SDockingTabWell::RemoveAndDestroyTab(const TSharedRef<SDockTab>& TabToRemov
 		
 		if ( ensure(ParentTabStack.IsValid()) )
 		{
+			TSharedPtr<SDockingArea> DockAreaPtr = ParentTabStack->GetDockArea();
+
 			ParentTabStack->OnTabClosed( TabToRemove );
 			
 			// We might be closing down an entire dock area, if this is a major tab.
 			// Use this opportunity to save its layout
 			if (RemovalMethod == SDockingNode::TabRemoval_Closed)
 			{
-				ParentTabStack->GetDockArea()->GetTabManager()->GetPrivateApi().OnTabClosing( TabToRemove );
+				if (DockAreaPtr.IsValid())
+				{
+					DockAreaPtr->GetTabManager()->GetPrivateApi().OnTabClosing( TabToRemove );
+				}
 			}
 
 			if (Tabs.Num() == 0)
@@ -481,10 +486,12 @@ void SDockingTabWell::RemoveAndDestroyTab(const TSharedRef<SDockTab>& TabToRemov
 			{
 				RefreshParentContent();
 			}
+
+			if (DockAreaPtr.IsValid())
+			{
+				DockAreaPtr->CleanUp( RemovalMethod );
+			}
 		}
-
-
-		GetDockArea()->CleanUp( RemovalMethod );
 	}
 }
 
