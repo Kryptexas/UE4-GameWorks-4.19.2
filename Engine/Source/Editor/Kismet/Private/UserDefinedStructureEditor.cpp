@@ -25,6 +25,7 @@ public:
 	void Initialize()
 	{
 		StructData = MakeShareable(new FStructOnScope(GetUserDefinedStruct()));
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(GetUserDefinedStruct(), StructData->GetStructMemory());
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs ViewArgs;
