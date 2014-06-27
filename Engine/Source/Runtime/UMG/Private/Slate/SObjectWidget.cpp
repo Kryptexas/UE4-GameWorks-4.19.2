@@ -14,14 +14,22 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 
 SObjectWidget::~SObjectWidget(void)
 {
-	printf("");
 }
 
 void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	printf("");
 	Collector.AddReferencedObject(WidgetObject);
 }
+
+void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	return WidgetObject->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
+//bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)
+//{
+
+//}
 
 int32 SObjectWidget::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
