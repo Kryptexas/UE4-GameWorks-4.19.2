@@ -76,6 +76,9 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	// Create a sprite and render component for the source texture view
 	{
 		UPaperSprite* DummySprite = NewObject<UPaperSprite>();
+		DummySprite->SpriteCollisionDomain = ESpriteCollisionMode::None;
+		DummySprite->PivotMode = ESpritePivotMode::Bottom_Left;
+
 		SourceTextureViewComponent = NewObject<UPaperRenderComponent>();
 		SourceTextureViewComponent->SetSprite(DummySprite);
 		UpdateSourceTextureSpriteFromSprite(GetSpriteBeingEdited());
@@ -94,12 +97,9 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 
 	if (SourceSprite != NULL)
 	{
-		TargetSprite->PivotMode = ESpritePivotMode::Bottom_Left;
-		TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
-
-		if (SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture())
+		if ((SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture()) || (TargetSprite->PixelsPerUnrealUnit != SourceSprite->PixelsPerUnrealUnit))
 		{
-			TargetSprite->InitializeSprite(SourceSprite->SourceTexture);
+			TargetSprite->InitializeSprite(SourceSprite->SourceTexture, SourceSprite->PixelsPerUnrealUnit);
 		}
 	}
 	else
@@ -741,9 +741,10 @@ void FSpriteEditorViewportClient::NotifySpriteBeingEditedHasChanged()
 	// Update components to know about the new sprite being edited
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
 
-	SourceTextureViewComponent->SetSprite(Sprite);
 	RenderSpriteComponent->SetSprite(Sprite);
+	UpdateSourceTextureSpriteFromSprite(Sprite);
 
+	//
 	bDeferZoomToSprite = true;
 }
 

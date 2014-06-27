@@ -271,6 +271,11 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 #if WITH_EDITORONLY_DATA
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	if (PixelsPerUnrealUnit <= 0.0f)
+	{
+		PixelsPerUnrealUnit = 1.0f;
+	}
+
 	//@TODO: Determine when these are really needed!
 	TComponentReregisterContext<UPaperRenderComponent> ReregisterStaticComponents;
 	TComponentReregisterContext<UPaperAnimatedRenderComponent> ReregisterAnimatedComponents;
@@ -391,7 +396,7 @@ void UPaperSprite::BuildCustomCollisionData()
 
 
 	// Adjust the collision data to be relative to the pivot and scaled from pixels to uu
-	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 	for (FVector2D& Point : CollisionData)
 	{
 		Point = ConvertTextureSpaceToPivotSpace(Point) * UnitsPerPixel;
@@ -466,7 +471,7 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 	CreatePolygonFromBoundingBox(CollisionGeometry, bUseTightBounds);
 
 	// Bake it to the runtime structure
-	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
 	switch (SpriteCollisionDomain)
 	{
@@ -574,7 +579,7 @@ void UPaperSprite::RebuildRenderData()
 	// Adjust for the pivot and store in the baked geometry buffer
 	const FVector2D DeltaUV((BakedSourceTexture != nullptr) ? (BakedSourceUV - SourceUV) : FVector2D::ZeroVector);
 
-	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
@@ -972,7 +977,7 @@ FVector UPaperSprite::ConvertPivotSpaceToTextureSpace(FVector Input) const
 
 FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
 {
-	const float UnitsPerPixel = 1.0f / PixelsPerUnrealUnit;
+	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
 	const FVector2D SourcePointInUU = SourcePoint * UnitsPerPixel;
 
@@ -995,7 +1000,7 @@ FTransform UPaperSprite::GetPivotToWorld() const
 	const FVector2D Pivot = GetPivotPosition();
 	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 
-	const FVector Translation((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY));
+	const FVector Translation(((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY)) * GetUnrealUnitsPerPixel());
 	return FTransform(Translation);
 }
 

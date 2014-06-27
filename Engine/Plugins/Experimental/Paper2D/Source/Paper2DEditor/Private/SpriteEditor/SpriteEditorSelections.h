@@ -221,7 +221,9 @@ public:
 			default:
 				break;
 			}
-			Result = BoundsVertex.X * PaperAxisX + (SourceDims.Y - BoundsVertex.Y) * PaperAxisY;
+
+			const FVector PixelSpaceResult = BoundsVertex.X * PaperAxisX + (SourceDims.Y - BoundsVertex.Y) * PaperAxisY;
+			Result = PixelSpaceResult * Sprite->GetUnrealUnitsPerPixel();
 		}
 
 		return Result;
@@ -328,7 +330,8 @@ public:
 					const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 
 					const FVector2D Result2D = Vertices[TargetVertexIndex];
-					Result = (Result2D.X * PaperAxisX) + ((SourceDims.Y - Result2D.Y) * PaperAxisY);
+					const FVector PixelSpaceResult = (Result2D.X * PaperAxisX) + ((SourceDims.Y - Result2D.Y) * PaperAxisY);
+					Result = PixelSpaceResult * Sprite->GetUnrealUnitsPerPixel();
 				}
 			}
 		}

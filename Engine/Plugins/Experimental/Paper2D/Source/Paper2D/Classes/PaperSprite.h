@@ -174,6 +174,7 @@ public:
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
 	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
+	float GetUnrealUnitsPerPixel() const { return 1.0f / PixelsPerUnrealUnit; }
 #endif
 
 	// Returns the texture this should be rendered with

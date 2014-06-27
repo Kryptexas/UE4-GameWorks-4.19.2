@@ -100,21 +100,24 @@ FTransform UPaperRenderComponent::GetSocketTransform(FName InSocketName, ERelati
 	{
 		if (FPaperSpriteSocket* Socket = SourceSprite->FindSocket(InSocketName))
 		{
+			FTransform SocketLocalTransform = Socket->LocalTransform;
+			SocketLocalTransform.ScaleTranslation(SourceSprite->GetUnrealUnitsPerPixel());
+
 			switch (TransformSpace)
 			{
 				case RTS_World:
-					return Socket->LocalTransform * ComponentToWorld;
+					return SocketLocalTransform * ComponentToWorld;
 
 				case RTS_Actor:
 					if (const AActor* Actor = GetOwner())
 					{
-						const FTransform SocketTransform = Socket->LocalTransform * ComponentToWorld;
+						const FTransform SocketTransform = SocketLocalTransform * ComponentToWorld;
 						return SocketTransform.GetRelativeTransform(Actor->GetTransform());
 					}
 					break;
 
 				case RTS_Component:
-					return Socket->LocalTransform;
+					return SocketLocalTransform;
 
 				default:
 					check(false);

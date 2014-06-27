@@ -569,7 +569,7 @@ void UPaperTerrainComponent::SpawnFromPoly(const class UPaperSprite* NewSprite, 
 {
 	//@TODO: Need to split geom tools out of UnrealEd to support this outside of the editor
 #if WITH_EDITOR
-	const FVector2D TextureSizeInUnits = TextureSize / NewSprite->GetPixelsPerUnrealUnit();
+	const FVector2D TextureSizeInUnits = TextureSize * NewSprite->GetUnrealUnitsPerPixel();
 
 	if (Poly.Vertices.Num() >= 3)
 	{
