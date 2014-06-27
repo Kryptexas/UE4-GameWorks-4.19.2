@@ -74,10 +74,6 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	TArray<FPaperSpriteSocket> Sockets;
 
-public:
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	TEnumAsByte<EBlendMode> BlendMode;
-
 	// Collision domain (no collision, 2D, or 3D)
 	UPROPERTY(Category=Collision, EditAnywhere)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;

@@ -96,7 +96,6 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	{
 		TargetSprite->PivotMode = ESpritePivotMode::Bottom_Left;
 		TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
-		TargetSprite->BlendMode = SourceSprite->BlendMode;
 
 		if (SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture())
 		{
