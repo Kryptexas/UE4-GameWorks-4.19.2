@@ -19,6 +19,7 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 	FString CreditsText;
 	FFileHelper::LoadFileToString(CreditsText, *( FPaths::EngineContentDir() + TEXT("Editor/Credits.rt") ));
 	CreditsText.ReplaceInline(TEXT("%VERSION%"), *Version);
+	CreditsText.ReplaceInline(TEXT("\r\n"), TEXT("\n"));
 
 	ChildSlot
 	[
