@@ -141,7 +141,7 @@ namespace iPhonePackager
 
 					// Copy the file into the destination location
 					string EffectivePrefix = bIsDistribution ? "Distro_" : Config.SigningPrefix;
-					string DestinationFilename = Path.Combine(Config.BuildDirectory, EffectivePrefix + Program.GameName + ".mobileprovision");
+					string DestinationFilename = Path.Combine(Config.ProvisionDirectory, EffectivePrefix + Program.GameName + ".mobileprovision");
 
 					if (File.Exists(DestinationFilename))
 					{
