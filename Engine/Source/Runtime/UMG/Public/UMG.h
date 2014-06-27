@@ -59,7 +59,7 @@
 #include "Button.h"
 #include "CheckBox.h"
 #include "EditableText.h"
-#include "EditableTextBlock.h"
+#include "EditableTextBox.h"
 #include "Image.h"
 #include "Slider.h"
 #include "ProgressBar.h"

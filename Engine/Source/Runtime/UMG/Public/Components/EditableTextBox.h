@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "EditableTextBlock.generated.h"
+#include "EditableTextBox.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextBlock_TextChangedEvent, const FText&, Text);
 //DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextBlock_TextCommittedEvent, const FText&, Text, ETextCommit::Type, Type);
 
 /** Editable text box widget */
 UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
-class UMG_API UEditableTextBlock : public UWidget
+class UMG_API UEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 

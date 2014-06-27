@@ -123,6 +123,21 @@ bool UPanelWidget::RemoveChild(UWidget* Content)
 	return false;
 }
 
+void UPanelWidget::PostLoad()
+{
+	Super::PostLoad();
+
+	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
+	{
+		// Remove any slots where their content is null, we don't support content-less slots.
+		if ( Slots[SlotIndex]->Content == NULL )
+		{
+			Slots.RemoveAt(SlotIndex);
+			SlotIndex--;
+		}
+	}
+}
+
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

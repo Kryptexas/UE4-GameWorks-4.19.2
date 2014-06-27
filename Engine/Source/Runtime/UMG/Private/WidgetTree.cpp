@@ -86,10 +86,12 @@ void UWidgetTree::GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) co
 	{
 		for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
 		{
-			UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex);
-			Widgets.Add(ChildWidget);
+			if ( UWidget* ChildWidget = PanelParent->GetChildAt(ChildIndex) )
+			{
+				Widgets.Add(ChildWidget);
 
-			GetChildWidgets(ChildWidget, Widgets);
+				GetChildWidgets(ChildWidget, Widgets);
+			}
 		}
 	}
 }

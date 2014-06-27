@@ -5,9 +5,9 @@
 #define LOCTEXT_NAMESPACE "UMG"
 
 /////////////////////////////////////////////////////
-// UEditableTextBlock
+// UEditableTextBox
 
-UEditableTextBlock::UEditableTextBlock(const FPostConstructInitializeProperties& PCIP)
+UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	ForegroundColor = FLinearColor::Black;
@@ -30,7 +30,7 @@ UEditableTextBlock::UEditableTextBlock(const FPostConstructInitializeProperties&
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
-TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
+TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
 	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
 
@@ -52,7 +52,7 @@ TSharedRef<SWidget> UEditableTextBlock::RebuildWidget()
 	return MyEditableTextBlock.ToSharedRef();
 }
 
-void UEditableTextBlock::SyncronizeProperties()
+void UEditableTextBox::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
@@ -65,7 +65,7 @@ void UEditableTextBlock::SyncronizeProperties()
 	// TODO UMG Complete making all properties settable on SEditableTextBox
 }
 
-FText UEditableTextBlock::GetText() const
+FText UEditableTextBox::GetText() const
 {
 	if ( MyEditableTextBlock.IsValid() )
 	{
@@ -75,7 +75,7 @@ FText UEditableTextBlock::GetText() const
 	return Text;
 }
 
-void UEditableTextBlock::SetText(FText InText)
+void UEditableTextBox::SetText(FText InText)
 {
 	Text = InText;
 	if ( MyEditableTextBlock.IsValid() )
@@ -84,14 +84,14 @@ void UEditableTextBlock::SetText(FText InText)
 	}
 }
 
-void UEditableTextBlock::SlateOnTextChanged(const FText& Text)
+void UEditableTextBox::SlateOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
 }
 
 #if WITH_EDITOR
 
-const FSlateBrush* UEditableTextBlock::GetEditorIcon()
+const FSlateBrush* UEditableTextBox::GetEditorIcon()
 {
 	return FUMGStyle::Get().GetBrush("Widget.EditableTextBlock");
 }

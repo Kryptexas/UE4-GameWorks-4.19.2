@@ -53,10 +53,17 @@ public:
 		for ( UPanelSlot* Slot : Slots )
 		{
 			Slot->Parent = this;
-			Slot->Content->Slot = Slot;
+			if ( Slot->Content )
+			{
+				Slot->Content->Slot = Slot;
+			}
 		}
 	}
 #endif
+
+	// Begin UObject
+	virtual void PostLoad() override;
+	// End UObject
 
 protected:
 
