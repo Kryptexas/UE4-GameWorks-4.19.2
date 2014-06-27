@@ -116,10 +116,9 @@ void FNavigationLockContext::LockUpdates()
 	}
 	else
 	{
-		const TArray<FWorldContext>& AllContexts = GEngine->GetWorldContexts();
-		for (int32 Idx = 0; Idx < AllContexts.Num(); Idx++)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(AllContexts[Idx].World());
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 			if (NavSys)
 			{
 				NavSys->BeginFakeComponentChanges();
@@ -142,10 +141,9 @@ void FNavigationLockContext::UnlockUpdates()
 	}
 	else
 	{
-		const TArray<FWorldContext>& AllContexts = GEngine->GetWorldContexts();
-		for (int32 Idx = 0; Idx < AllContexts.Num(); Idx++)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(AllContexts[Idx].World());
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 			if (NavSys)
 			{
 				NavSys->EndFakeComponentChanges();

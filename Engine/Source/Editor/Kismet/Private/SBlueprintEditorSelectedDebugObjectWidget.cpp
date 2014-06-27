@@ -566,13 +566,12 @@ EVisibility SBlueprintEditorSelectedDebugObjectWidget::IsDebugWorldComboVisible(
 {
 	if (GEditor->PlayWorld != NULL)
 	{
-		const TArray<FWorldContext> &WorldContexts = GEngine->GetWorldContexts();
 		int32 LocalWorldCount = 0;
-		for (int32 i = 0; i < WorldContexts.Num() && LocalWorldCount <= 1; ++i)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (WorldContexts[i].WorldType == EWorldType::PIE && WorldContexts[i].World() != NULL)
+			if (Context.WorldType == EWorldType::PIE && Context.World() != NULL)
 			{
-				LocalWorldCount++;
+				++LocalWorldCount;
 			}
 		}
 

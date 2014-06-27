@@ -1901,10 +1901,9 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 			UPackage* LevelPackage = Cast<UPackage>(Level->GetOutermost());
 			UE_LOG(LogStreaming, Log, TEXT("PrepareStreamedOutLevelsForGC called on '%s'"), *LevelPackage->GetName() );
 			
-			const TArray<FWorldContext>& WorldList = GEngine->GetWorldContexts();
-			for (int32 ContextIdx = 0; ContextIdx < WorldList.Num(); ++ContextIdx)
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
 			{
-				UWorld* World = WorldList[ContextIdx].World();
+				UWorld* World = Context.World();
 				if (World)
 				{
 					// This can never ever be called during tick; same goes for GC in general.
@@ -3183,15 +3182,11 @@ ENGINE_API const FString GetMapNameStatic()
 	FWorldContext const* ContextToUse = NULL;
 	if ( GEngine )
 	{
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-
 		// We're going to look through the WorldContexts and pull any Game context we find
 		// If there isn't a Game context, we'll take the first PIE we find
 		// and if none of those we'll use an Editor
-		for (int32 WorldIndex = 0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
 		{
-			const FWorldContext& WorldContext = WorldContexts[WorldIndex];
-
 			if (WorldContext.WorldType == EWorldType::Game)
 			{
 				ContextToUse = &WorldContext;

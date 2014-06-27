@@ -81,7 +81,6 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 			Message->InstanceType = TEXT("Other");
 		}
 
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
 		FWorldContext const* ContextToUse = NULL;
 
 		// TODO: Should we be iterating here and sending a message for each context?
@@ -89,10 +88,8 @@ void FEngineService::SendPong( const IMessageContextRef& Context )
 		// We're going to look through the WorldContexts and pull any Game context we find
 		// If there isn't a Game context, we'll take the first PIE we find
 		// and if none of those we'll use an Editor
-		for (int32 WorldIndex = 0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
 		{
-			const FWorldContext& WorldContext = WorldContexts[WorldIndex];
-
 			if (WorldContext.WorldType == EWorldType::Game)
 			{
 				ContextToUse = &WorldContext;

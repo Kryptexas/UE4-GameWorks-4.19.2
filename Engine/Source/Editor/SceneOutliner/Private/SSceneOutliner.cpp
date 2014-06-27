@@ -688,17 +688,16 @@ namespace SceneOutliner
 		TGuardValue<bool> ReentrantGuard(bIsReentrant, true);
 	
 
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-		for (int32 WorldIndex=0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (WorldContexts[WorldIndex].WorldType == EWorldType::PIE)
+			if (Context.WorldType == EWorldType::PIE)
 			{
-				RepresentingWorld = WorldContexts[WorldIndex].World();
+				RepresentingWorld = Context.World();
 				break;
 			}
-			else if (WorldContexts[WorldIndex].WorldType == EWorldType::Editor)
+			else if (Context.WorldType == EWorldType::Editor)
 			{
-				RepresentingWorld = WorldContexts[WorldIndex].World();
+				RepresentingWorld = Context.World();
 			}
 		}
 		

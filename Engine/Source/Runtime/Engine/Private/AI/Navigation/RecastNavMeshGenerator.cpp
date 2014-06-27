@@ -366,12 +366,11 @@ static UWorld* FindEditorWorld()
 {
 	if (GEngine)
 	{
-		const TArray<FWorldContext>& Worlds = GEngine->GetWorldContexts();
-		for (int32 i = 0; i < Worlds.Num(); i++)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (Worlds[i].WorldType == EWorldType::Editor)
+			if (Context.WorldType == EWorldType::Editor)
 			{
-				return Worlds[i].World();
+				return Context.World();
 			}
 		}
 	}

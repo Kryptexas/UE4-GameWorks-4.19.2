@@ -241,10 +241,9 @@ void UNavigationQueryFilter::PostEditChangeProperty(struct FPropertyChangedEvent
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	// remove cached filter settings from existing NavigationSystems
-	const TArray<FWorldContext>& Worlds = GEngine->GetWorldContexts();
-	for (int32 i = 0; i < Worlds.Num(); i++)
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Worlds[i].World());
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Context.World());
 		if (NavSys)
 		{
 			NavSys->ResetCachedFilter(GetClass());

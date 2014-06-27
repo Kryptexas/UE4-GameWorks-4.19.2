@@ -1975,11 +1975,9 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	{
 		bIdleMode = true;
 
-		const TArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
-
-		for (int32 WorldIndex = 0; WorldIndex < WorldContexts.Num(); ++WorldIndex)
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
 		{
-			if (!WorldContexts[WorldIndex].World()->AreAlwaysLoadedLevelsLoaded())
+			if (!Context.World()->AreAlwaysLoadedLevelsLoaded())
 			{
 				bIdleMode = false;
 				break;

@@ -3017,11 +3017,9 @@ bool FPhAT::CanStartSimulation() const
 
 bool FPhAT::IsPIERunning()
 {
-	TArray<FWorldContext> WorldContexts = GEngine->GetWorldContexts();
-
-	for (int32 i=0; i < WorldContexts.Num(); ++i)
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
 	{
-		if (WorldContexts[i].World()->IsPlayInEditor())
+		if (Context.World()->IsPlayInEditor())
 		{
 			return true;
 		}
