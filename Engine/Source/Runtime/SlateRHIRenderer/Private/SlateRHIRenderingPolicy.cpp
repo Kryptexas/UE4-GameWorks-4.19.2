@@ -4,6 +4,7 @@
 #include "RenderingPolicy.h"
 #include "SlateRHIRenderingPolicy.h"
 #include "SlateShaders.h"
+#include "SlateMaterialShader.h"
 #include "SlateRHIResourceManager.h"
 #include "TileRendering.h"
 #include "PreviewScene.h"
