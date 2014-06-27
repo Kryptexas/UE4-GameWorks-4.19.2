@@ -115,7 +115,24 @@ FChildren* SRichTextBlock::GetChildren()
 
 void SRichTextBlock::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	const ETextJustify::Type TextJustification = TextLayout->GetJustification();
+
+	if ( TextJustification == ETextJustify::Right )
+	{
+		const FVector2D TextLayoutSize = TextLayout->GetSize();
+		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
+		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
+	}
+	else if ( TextJustification == ETextJustify::Center )
+	{
+		const FVector2D TextLayoutSize = TextLayout->GetSize();
+		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
+		TextLayout->ArrangeChildren( AllottedGeometry.MakeChild( Offset, TextLayoutSize ), ArrangedChildren );
+	}
+	else
+	{
+		TextLayout->ArrangeChildren( AllottedGeometry, ArrangedChildren );
+	}
 }
 
 TSharedPtr< ITextDecorator > SRichTextBlock::TryGetDecorator( const TArray< TSharedRef< ITextDecorator > >& InDecorators, const FString& InText, const FTextRunParseResults& TextRun ) const
