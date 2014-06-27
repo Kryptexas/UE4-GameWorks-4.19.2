@@ -52,10 +52,17 @@ void FAndroidWindow::SetOSWindowHandle(void* InWindow)
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);"
 static bool GAndroidIsPortrait = false;
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetWindowInfo(JNIEnv* jenv, jobject thiz, jboolean bIsPortrait)
+static int GAndroidDepthBufferPreference = 0;
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetWindowInfo(JNIEnv* jenv, jobject thiz, jboolean bIsPortrait, jint DepthBufferPreference)
 {
 	GAndroidIsPortrait = bIsPortrait == JNI_TRUE;
+	GAndroidDepthBufferPreference = DepthBufferPreference;
 	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("App is running in %s\n"), GAndroidIsPortrait ? TEXT("Portrait") : TEXT("Landscape"));
+}
+
+int32 FAndroidWindow::GetDepthBufferPreference()
+{
+	return GAndroidDepthBufferPreference;
 }
 
 FPlatformRect FAndroidWindow::GetScreenRect()

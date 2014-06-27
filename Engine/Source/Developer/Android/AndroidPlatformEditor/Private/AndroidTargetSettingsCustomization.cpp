@@ -115,6 +115,10 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	AppManifestCategory.AddProperty(OrientationProperty)
 		.EditCondition(SetupForPlatformAttribute, NULL);
 
+	TSharedRef<IPropertyHandle> DepthBufferPreferenceProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, DepthBufferPreference));
+	DepthBufferPreferenceProperty->SetOnPropertyValueChanged(FSimpleDelegate::CreateRaw(this, &FAndroidTargetSettingsCustomization::OnDepthBufferPreferenceModified));
+	AppManifestCategory.AddProperty(DepthBufferPreferenceProperty)
+		.EditCondition(SetupForPlatformAttribute, NULL);
 
 	// Google Play category
 	IDetailCategoryBuilder& GooglePlayCategory = DetailLayout.EditCategory(TEXT("GooglePlayServices"));
@@ -287,6 +291,42 @@ FString FAndroidTargetSettingsCustomization::OrientationToString(const EAndroidS
 	check(Enum != nullptr);
 	
 	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)Orientation);
+}
+
+void FAndroidTargetSettingsCustomization::OnDepthBufferPreferenceModified()
+{
+	check(SetupForPlatformAttribute.Get() == true);
+
+
+	FManifestUpdateHelper Updater(GameManifestPath);
+
+	const FString PrefixTag(TEXT("meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\""));
+	const FString ClosingQuote(TEXT("\""));
+	const FString NewDepthBufferPreferenceString = DepthBufferPreferenceToString(GetDefault<UAndroidRuntimeSettings>()->DepthBufferPreference);
+
+	// First check if the key needs to be created
+	if (!Updater.HasKey(PrefixTag))
+	{
+		// Add the key for value replacement
+		const FString CloseActivityTag(TEXT("</activity"));
+		const FString CloseBracket(TEXT(">"));
+		const FString NewKeyString(TEXT(">\n\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"0\"/"));
+		Updater.ReplaceKey(CloseActivityTag, CloseBracket, NewKeyString);
+	}
+
+	Updater.ReplaceKey(PrefixTag, ClosingQuote, NewDepthBufferPreferenceString);
+
+	Updater.Finalize(GameManifestPath);
+}
+
+FString FAndroidTargetSettingsCustomization::DepthBufferPreferenceToString(const EAndroidDepthBufferPreference::Type DepthBufferPreference)
+{
+	extern ANDROIDRUNTIMESETTINGS_API class UEnum* Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
+
+	UEnum* Enum = Z_Construct_UEnum_UAndroidRuntimeSettings_EAndroidDepthBufferPreference();
+	check(Enum != nullptr);
+
+	return Enum->GetMetaData(TEXT("ManifestValue"), (int32)DepthBufferPreference);
 }
 
 void FAndroidTargetSettingsCustomization::OnAppIDModified()

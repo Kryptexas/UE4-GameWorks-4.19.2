@@ -39,6 +39,7 @@ public:
 
 	static void CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, int32_t& SurfaceHeight);
 
+	static int32 GetDepthBufferPreference();
 
 protected:
 	/** @return true if the native window is currently in fullscreen mode, false otherwise */

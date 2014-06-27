@@ -17,6 +17,9 @@ import android.content.Intent;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
 
 import android.media.AudioManager;
 import android.util.DisplayMetrics;
@@ -238,9 +241,27 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// Grab a reference to the asset manager
 		AssetManagerReference = this.getAssets();
 
+		// Get the preferred depth buffer size from AndroidManifest.xml
+		int DepthBufferPreference = 0;
+		try {
+			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
+			Bundle bundle = ai.metaData;
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.DepthBufferPreference"))
+			{
+				DepthBufferPreference = bundle.getInt("com.epicgames.ue4.GameActivity.DepthBufferPreference");
+				Log.debug( "Found DepthBufferPreference = " + DepthBufferPreference);
+			} else {
+				Log.debug( "Did not find DepthBufferPreference, using default.");
+			}
+		} catch (NameNotFoundException e) {
+			Log.debug( "Failed to load meta-data: NameNotFound: " + e.getMessage());
+		} catch (NullPointerException e) {
+			Log.debug( "Failed to load meta-data: NullPointer: " + e.getMessage());
+		}
+
 		// tell the engine if this is a portrait app
 		nativeSetGlobalActivity();
-		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT);
+		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 
 
 		Log.debug( "Android version is " + android.os.Build.VERSION.RELEASE );
@@ -818,7 +839,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public native boolean nativeIsShippingBuild();
 	public native void nativeSetGlobalActivity();
-	public native void nativeSetWindowInfo(boolean bIsPortrait);
+	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);
 	public native void nativeUpdateAchievements(JavaAchievement[] Achievements);
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel );

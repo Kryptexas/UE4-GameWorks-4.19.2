@@ -37,6 +37,9 @@ private:
 	// Called when the orientation is modified
 	void OnOrientationModified();
 
+	// Called when the depth preference is modified
+	void OnDepthBufferPreferenceModified();
+
 	// Called when the app id is modified
 	void OnAppIDModified();
 
@@ -71,6 +74,9 @@ private:
 
 	// Converts an orientation enum to the associated string value
 	static FString OrientationToString(const EAndroidScreenOrientation::Type Orientation);
+
+	// Converts an depth preference enum to the associated string value
+	static FString DepthBufferPreferenceToString(const EAndroidDepthBufferPreference::Type DepthBufferPreference);
 
 	IDetailLayoutBuilder* SavedLayoutBuilder;
 };

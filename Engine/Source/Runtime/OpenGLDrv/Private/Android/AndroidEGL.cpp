@@ -109,7 +109,6 @@ EGLConfigParms::EGLConfigParms(const EGLConfigParms& Parms)
 	stencilSize = Parms.stencilSize;
 	sampleBuffers = Parms.sampleBuffers;
 	sampleSamples = Parms.sampleSamples;
-
 }
 
 EGLConfigParms::EGLConfigParms()  : 
@@ -118,11 +117,15 @@ validConfig (0)
 	,greenSize(8)
 	,blueSize(8)
 	,alphaSize(0)
-	,depthSize(16)
+	,depthSize(24)
 	,stencilSize(0)
 	,sampleBuffers(0)
 	,sampleSamples(0)
 {
+	// If not default, set the preference
+	int DepthBufferPreference = (int)FAndroidWindow::GetDepthBufferPreference();
+	if (DepthBufferPreference > 0)
+		depthSize = DepthBufferPreference;
 }
 
 AndroidEGL::AndroidEGL()
