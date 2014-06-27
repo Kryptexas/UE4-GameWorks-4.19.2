@@ -13,6 +13,7 @@ public:
 	virtual FDetailWidgetRow& AddWidgetRow() override;
 	virtual IDetailPropertyRow& AddPropertyRow( TSharedRef<IPropertyHandle> PropertyHandle ) override;
 	virtual void ToggleExpansion( bool bExpand ) override;
+	virtual bool GetExpansionState() const override;
 
 	/** @return The name of the group */
 	FName GetGroupName() const { return GroupName; }

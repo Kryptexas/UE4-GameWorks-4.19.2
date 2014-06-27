@@ -12,6 +12,7 @@ namespace InputConstants
 struct FMappingSet
 {
 	FName SharedName;
+	IDetailGroup* DetailGroup;
 	TArray<TSharedRef<IPropertyHandle>> Mappings;
 };
 
@@ -27,7 +28,7 @@ public:
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
 	virtual bool InitiallyCollapsed() const override { return true; };
-	virtual FName GetName() const override { return NAME_None; }
+	virtual FName GetName() const override { return FName(TEXT("ActionMappings")); }
 
 private:
 	void AddActionMappingButton_OnClick();
@@ -42,6 +43,8 @@ private:
 	{
 		OnRebuildChildren.ExecuteIfBound();
 	}
+	/** Makes sure that renamed groups have their expansion set to their previous state */
+	void HandleRenamedGroupExpansion();
 
 private:
 	/** Called to rebuild the children of the detail tree */
@@ -54,6 +57,8 @@ private:
 	TSharedPtr<IPropertyHandle> ActionMappingsPropertyHandle;
 
 	TArray<FMappingSet> GroupedMappings;
+
+	TPair<FName,bool> RenamedGroupExpansionState;
 };
 
 class FAxisMappingsNodeBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FAxisMappingsNodeBuilder>
@@ -68,7 +73,7 @@ public:
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) override;
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override;
 	virtual bool InitiallyCollapsed() const override { return true; };
-	virtual FName GetName() const override { return NAME_None; }
+	virtual FName GetName() const override { return FName(TEXT("AxisMappings")); }
 
 private:
 	void AddAxisMappingButton_OnClick();
@@ -83,6 +88,8 @@ private:
 	{
 		OnRebuildChildren.ExecuteIfBound();
 	}
+	/** Makes sure that renamed groups have their expansion set to their previous state */
+	void HandleRenamedGroupExpansion();
 
 private:
 	/** Called to rebuild the children of the detail tree */
@@ -95,6 +102,8 @@ private:
 	TSharedPtr<IPropertyHandle> AxisMappingsPropertyHandle;
 
 	TArray<FMappingSet> GroupedMappings;
+
+	TPair<FName,bool> RenamedGroupExpansionState;
 };
 
 class FInputSettingsDetails : public IDetailCustomization

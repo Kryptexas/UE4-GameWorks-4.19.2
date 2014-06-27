@@ -46,4 +46,9 @@ public:
 	 * @param bExpand	true to expand the group, false to collapse
 	 */
 	virtual void ToggleExpansion( bool bExpand ) = 0;
+
+	/**
+	 * Gets the current state of expansion for the group
+	 */
+	virtual bool GetExpansionState() const = 0;
 };

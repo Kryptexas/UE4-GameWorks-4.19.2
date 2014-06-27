@@ -66,6 +66,15 @@ void FDetailGroup::ToggleExpansion( bool bExpand )
 	}
 }
 
+bool FDetailGroup::GetExpansionState() const
+{
+	if (ParentCategory.IsValid() && OwnerTreeNode.IsValid())
+	{
+		return ParentCategory.Pin()->GetSavedExpansionState(*OwnerTreeNode.Pin().Get());
+	}
+	return false;
+}
+
 bool FDetailGroup::HasColumns() const
 {
 	if( HeaderCustomization.IsValid() && HeaderCustomization->HasPropertyNode() && HeaderCustomization->PropertyRow->HasColumns() )
