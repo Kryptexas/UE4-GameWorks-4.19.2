@@ -17,7 +17,7 @@ void SWorldHierarchyItem::Construct(const FArguments& InArgs, TSharedRef<STableV
 	HighlightText = InArgs._HighlightText;
 
 	StreamingLevelAlwaysLoadedBrush = FEditorStyle::GetBrush("WorldBrowser.LevelStreamingAlwaysLoaded");
-	StreamingLevelKismetBrush = FEditorStyle::GetBrush("WorldBrowser.LevelStreamingKismet");
+	StreamingLevelKismetBrush = FEditorStyle::GetBrush("WorldBrowser.LevelStreamingBlueprint");
 
 	SMultiColumnTableRow<TSharedPtr<FLevelModel>>::Construct(
 		FSuperRowType::FArguments()
