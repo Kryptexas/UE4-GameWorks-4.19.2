@@ -157,11 +157,11 @@ FReply FDragConnection::DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPo
 
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "GraphEd_CreateConnection", "Create Pin Link") );
 
-	UEdGraphPin* PinA = GetHoveredPin();
+	UEdGraphPin* PinB = GetHoveredPin();
 	bool bError = false;
 	TSet<UEdGraphNode*> NodeList;
 
-	for (UEdGraphPin* PinB : ValidSourcePins)
+	for (UEdGraphPin* PinA : ValidSourcePins)
 	{
 		if ((PinA != NULL) && (PinB != NULL))
 		{
