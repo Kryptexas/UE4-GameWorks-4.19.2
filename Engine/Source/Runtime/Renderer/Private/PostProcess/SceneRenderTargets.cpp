@@ -1028,6 +1028,13 @@ void FSceneRenderTargets::AllocateForwardShadingPathRenderTargets()
 	{
 		SceneAlphaCopy = GSystemTextures.MaxFP16Depth;
 	}
+
+	// When targeting DX Feature Level 10, create an auxiliary texture to store the resolved scene depth, and a render-targetable surface to hold the unresolved scene depth.
+	if (!GSupportsDepthFetchDuringDepthTest)
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, AuxiliarySceneDepthZ, TEXT("AuxiliarySceneDepthZ"));
+	}
 }
 
 // for easier use of "VisualizeTexture"

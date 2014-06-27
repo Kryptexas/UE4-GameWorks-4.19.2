@@ -883,7 +883,7 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
-	bEnabled = View.GetFeatureLevel() >= ERHIFeatureLevel::SM3;
+	bEnabled = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
 	ViewRect = View.UnscaledViewRect;
 	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 

@@ -52,7 +52,7 @@ namespace
 
 		typedef FDummyResolveParameter FParameter;
 
-		static bool ShouldCache(EShaderPlatform Platform) { return Platform == SP_PCD3D_SM4; }
+		static bool ShouldCache(EShaderPlatform Platform) { return GetMaxSupportedFeatureLevel(Platform) <= ERHIFeatureLevel::SM4; }
 
 		FResolveDepthNonMSPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 		FGlobalShader(Initializer)
@@ -119,7 +119,7 @@ namespace
 		DECLARE_SHADER_TYPE(FResolveVS,Global);
 	public:
 
-		static bool ShouldCache(EShaderPlatform Platform) { return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); }
+		static bool ShouldCache(EShaderPlatform Platform) { return true; }
 
 		FResolveVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
 			FGlobalShader(Initializer)

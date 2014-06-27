@@ -88,6 +88,9 @@ void FForwardShadingSceneRenderer::Render()
 
 	RenderForwardShadingBasePass(RHICmdList);
 
+	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
+	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture();
+
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{
