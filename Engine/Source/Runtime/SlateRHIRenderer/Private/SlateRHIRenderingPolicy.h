@@ -195,13 +195,10 @@ private:
 	 * @param DrawEffects	Draw effects being used
 	 * @return The pixel shader for use with the shader type and draw effects
 	 */
-	class FSlateElementPS* GetPixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects );
-private:
-	/** Global shader states */
-	static FGlobalBoundShaderState NormalShaderStates[4][2 /* UseTextureAlpha */];
-	static FGlobalBoundShaderState DisabledShaderStates[4][2 /* UseTextureAlpha */];
-	static FGlobalBoundShaderState MaterialShaderState;
+	class FSlateElementPS* GetTexturePixelShader( ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects );
+	class FSlateMaterialShaderPS* GetMaterialPixelShader( const class FMaterial* Material, ESlateShader::Type ShaderType, ESlateDrawEffect::Type DrawEffects );
 
+private:
 	/** Buffers used for rendering */
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers[2];
 	FSlateElementIndexBuffer IndexBuffers[2];

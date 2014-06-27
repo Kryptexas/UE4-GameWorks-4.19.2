@@ -23,11 +23,12 @@ private:
 	 *  Get the Slate Brush margin property row visibility
 	 */
 	EVisibility GetMarginPropertyVisibility() const;
-	
-	/** Called when the asset picker needs to be filtered */
-	bool OnFilterAssetPicker( const FAssetData& InAssetData ) const;
+
 
 	/** Slate Brush DrawAs property */
 	TSharedPtr<IPropertyHandle> DrawAsProperty;
+
+	/** Error text to display if the resource object is not valid*/
+	TSharedPtr<SErrorText> ResourceErrorText;
 };
 

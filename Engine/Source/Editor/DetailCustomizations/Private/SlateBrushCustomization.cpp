@@ -181,6 +181,7 @@ public:
 			]
 		);
 
+		CachedTextureSize = FVector2D::ZeroVector;
 		CachePropertyValues();
 		SetDefaultAlignment();
 		UpdatePreviewImageSize();
@@ -575,15 +576,23 @@ private:
 		UObject* ResourceObject;
 		FPropertyAccess::Result Result = ResourceObjectProperty->GetValue( ResourceObject );
 		if( Result == FPropertyAccess::Success )
-		{
-			UTexture2D* BrushTexture = Cast<UTexture2D>(ResourceObject);
-			CachedTextureSize = BrushTexture ? FVector2D( BrushTexture->GetSizeX(), BrushTexture->GetSizeY() ) : FVector2D( 32.0f, 32.0f );
-
+		{				
 			TArray<void*> RawData;
-			ImageSizeProperty->AccessRawData( RawData );
-			if( RawData.Num() > 0 && RawData[ 0 ] != NULL )
+			ImageSizeProperty->AccessRawData(RawData);
+			if (RawData.Num() > 0 && RawData[0] != NULL)
 			{
-				CachedImageSizeValue = *static_cast<FVector2D*>(RawData[ 0 ]);
+				CachedImageSizeValue = *static_cast<FVector2D*>(RawData[0]);
+			}
+
+			UTexture2D* BrushTexture = Cast<UTexture2D>(ResourceObject);
+			if( BrushTexture )
+			{
+				CachedTextureSize = FVector2D( BrushTexture->GetSizeX(), BrushTexture->GetSizeY() );
+			}
+			else if( CachedTextureSize == FVector2D::ZeroVector )
+			{
+				// If the cached texture size is not initialized, create a default value now for materials 
+				CachedTextureSize = CachedImageSizeValue;
 			}
 
 			uint8 DrawAsType;
@@ -933,6 +942,71 @@ private:
 const float SSlateBrushPreview::ImagePadding = 5.0f;
 const float SSlateBrushPreview::BorderHitSize = 8.0f;
 
+class SBrushResourceObjectBox : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS( SBrushResourceObjectBox ) {}
+	
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs, IStructCustomizationUtils* StructCustomizationUtils, TSharedPtr<IPropertyHandle> InResourceObjectProperty )
+	{
+		ResourceObjectProperty = InResourceObjectProperty;
+		ChildSlot
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1)
+			[
+				SNew(SObjectPropertyEntryBox)
+				.PropertyHandle(InResourceObjectProperty)
+				.ThumbnailPool(StructCustomizationUtils->GetThumbnailPool())
+				.OnShouldFilterAsset(this, &SBrushResourceObjectBox::OnFilterAssetPicker)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( 0.0f, 3.0f )
+			[
+				SAssignNew(ResourceErrorText, SErrorText)
+			]
+		];
+	}
+
+	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+	{
+		UObject* Resource = nullptr;
+
+		if( ResourceObjectProperty->GetValue(Resource) == FPropertyAccess::Success && Resource && Resource->IsA<UMaterialInterface>() )
+		{
+			UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>( Resource );
+			UMaterial* BaseMaterial = MaterialInterface->GetBaseMaterial();
+			if( BaseMaterial && !BaseMaterial->bUsedWithUI )
+			{
+				ResourceErrorText->SetError( NSLOCTEXT("FSlateBrushStructCustomization", "ResourceErrorText", "This material is not supported in UI.  Please check \"Used with UI\" in the material editor" ) );
+			}
+			else
+			{
+				ResourceErrorText->SetError( FText::GetEmpty() );
+			}
+		}
+		else if( ResourceErrorText->HasError() )
+		{
+			ResourceErrorText->SetError( FText::GetEmpty() );
+		}
+	}
+
+private:
+
+	/** Called when the asset picker needs to be filtered */
+	bool OnFilterAssetPicker(const FAssetData& InAssetData) const
+	{
+		UClass* Class = InAssetData.GetClass();
+		return !Class->IsChildOf(UTexture2D::StaticClass()) && !Class->IsChildOf(UMaterialInterface::StaticClass());
+	}
+
+private:
+	TSharedPtr<IPropertyHandle> ResourceObjectProperty;
+	TSharedPtr<SErrorText> ResourceErrorText;
+};
 
 TSharedRef<IPropertyTypeCustomization> FSlateBrushStructCustomization::MakeInstance() 
 {
@@ -972,10 +1046,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	.MinDesiredWidth(250.0f)
 	.MaxDesiredWidth(0.0f)
 	[
-		SNew( SObjectPropertyEntryBox )
-		.PropertyHandle( ResourceObjectProperty )
-		.ThumbnailPool( StructCustomizationUtils.GetThumbnailPool() )
-		.OnShouldFilterAsset( this, &FSlateBrushStructCustomization::OnFilterAssetPicker )
+		SNew( SBrushResourceObjectBox, &StructCustomizationUtils, ResourceObjectProperty )
 	];
 
 	StructBuilder.AddChildProperty( ImageSizeProperty.ToSharedRef() );
@@ -1029,11 +1100,6 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	}
 }
 
-bool FSlateBrushStructCustomization::OnFilterAssetPicker( const FAssetData& InAssetData ) const
-{
-	UClass* Class = InAssetData.GetClass();
-	return !Class->IsChildOf( UTexture2D::StaticClass() );//&& !Class->IsChildOf( UMaterialInterface::StaticClass() );
-}
 
 EVisibility FSlateBrushStructCustomization::GetTilingPropertyVisibility() const
 {

@@ -27,7 +27,7 @@
 #define DEBUG_CLIPPING 0
 
 /** Display gamma */
-float DisplayGamma;
+float InvDisplayGamma;
 /** Per element params */
 float4 ShaderParams;
 
@@ -51,13 +51,19 @@ struct VertexOut
 float4 GetMaterialColor( VertexOut InVertex, float2 UV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
-	CalcMaterialParameters(Parameters, true, InVertex.Position);
-#if NUM_MATERIAL_TEXCOORDS
-	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
-	{
-		Parameters.TexCoords[CoordinateIndex] = InVertex.TextureCoordinates.xy*InVertex.TextureCoordinates.zw;
-	}
+	CalcMaterialParameters(Parameters, true, float4(InVertex.WorldPosition,0,1));
+#if NUM_MATERIAL_TEXCOORDS == 1
+	Parameters.TexCoords[0] = UV;
+#elif NUM_MATERIAL_TEXCOORDS == 2
+	Parameters.TexCoords[0] = UV;
+	Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
+#elif NUM_MATERIAL_TEXCOORDS == 3
+	Parameters.TexCoords[0] = UV;
+	Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
+	Parameters.TexCoords[2] = InVertex.TextureCoordinates.zw;
 #endif
+
+	Parameters.VertexColor = InVertex.Color;
 
 	// Clip if masked
 	GetMaterialCoverageAndClipping( Parameters );
@@ -278,11 +284,13 @@ float4 Main( VertexOut VIn ) : SV_Target0
 	OutColor.rgb = lerp( OutColor.rgb, Grayish, clamp( distance( OutColor.rgb, Grayish ), 0, .8)  );
 #endif
 
+#if !USE_MATERIALS
 	OutColor = ApplyColorVisionDeficiencyFilter(OutColor);
+#endif
 
 #if !COMPILER_GLSL_ES2
 	// gamma correct
-	OutColor.rgb = pow(OutColor.rgb,1.0f/DisplayGamma);
+	OutColor.rgb = pow(OutColor.rgb,InvDisplayGamma);
 #endif
 
 

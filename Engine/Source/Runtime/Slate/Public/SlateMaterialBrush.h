@@ -4,8 +4,11 @@
 
 #include "Slate.h"
 
-#if ALLOW_SLATE_MATERIALS
-
+/**
+ * Dynamic rush for referencing a UMaterial.  
+ *
+ * Note: This brush nor the slate renderer holds a strong reference to the material.  You are responsible for maintaining the lifetime of the brush and material object.
+ */
 struct FSlateMaterialBrush : public FSlateBrush
 {
 	FSlateMaterialBrush( class UMaterialInterface& InMaterial, const FVector2D& InImageSize )
@@ -23,5 +26,3 @@ struct FSlateMaterialBrush : public FSlateBrush
 		}
 	}
 }; 
-
-#endif

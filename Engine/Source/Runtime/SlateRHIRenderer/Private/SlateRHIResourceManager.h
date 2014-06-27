@@ -61,7 +61,7 @@ private:
 	TMap<UObject*, TSharedPtr<FDynamicTextureResource> > DynamicResourceObjectMap;
 
 	/** Map of all material resources */
-	TMap<UMaterialInterface*, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
+	TMap<TWeakObjectPtr<UMaterialInterface>, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
 };
 
 

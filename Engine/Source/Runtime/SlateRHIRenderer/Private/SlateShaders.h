@@ -88,7 +88,7 @@ public:
 		TextureParameter.Bind( Initializer.ParameterMap, TEXT("ElementTexture"));
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("ElementTextureSampler"));
 		ShaderParams.Bind( Initializer.ParameterMap, TEXT("ShaderParams"));
-		DisplayGamma.Bind( Initializer.ParameterMap,TEXT("DisplayGamma"));
+		DisplayGamma.Bind( Initializer.ParameterMap,TEXT("InvDisplayGamma"));
 	}
 
 

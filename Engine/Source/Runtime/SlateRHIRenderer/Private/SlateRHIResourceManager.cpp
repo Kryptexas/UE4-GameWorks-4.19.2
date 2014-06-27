@@ -168,16 +168,6 @@ void FDynamicResourceMap::AddReferencedObjects(FReferenceCollector& Collector)
 			Collector.AddReferencedObject(Resource->TextureObject);
 		}
 	}
-
-
-	for (TMap<UMaterialInterface*, TSharedPtr<FSlateMaterialResource> >::TIterator It(MaterialResourceMap); It; ++It)
-	{
-		TSharedPtr<FSlateMaterialResource>& Resource = It.Value();
-		if (Resource->MaterialObject)
-		{
-			Collector.AddReferencedObject(Resource->MaterialObject);
-		}
-	}
 }
 
 
@@ -632,6 +622,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const F
 	{
 		// Keep the resource up to date
 		MaterialResource->SlateMaterial->SetResource(Material->GetRenderProxy(false, false));
+		MaterialResource->Proxy->ActualSize = InBrush.ImageSize.IntPoint();
 	}
 
 	return MaterialResource->Proxy;
