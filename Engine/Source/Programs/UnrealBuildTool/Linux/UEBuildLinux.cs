@@ -223,7 +223,6 @@ namespace UnrealBuildTool.Linux
         public override void ValidateUEBuildConfiguration()
         {
             BuildConfiguration.bUseUnityBuild = true;
-            UEBuildConfiguration.bCompileAPEX = false;
 
             // Don't stop compilation at first error...
             BuildConfiguration.bStopXGECompilationAfterErrors = true;

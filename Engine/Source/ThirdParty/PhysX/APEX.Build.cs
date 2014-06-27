@@ -131,7 +131,17 @@ public class APEX : ModuleRules
 
 			LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
 		}
-		else if (Target.Platform == UnrealTargetPlatform.PS4)
+        else if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            APEXLibDir += "/Linux/" + Target.Architecture;
+            Definitions.Add("APEX_STATICALLY_LINKED=1");
+
+            ApexLibraries.Add("APEX_Legacy{0}");
+            ApexLibraries.Add("APEX_Loader{0}");
+
+            LibraryFormatString = APEXLibDir + "/lib{0}" + ".a";
+        }
+        else if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			Definitions.Add("APEX_STATICALLY_LINKED=1");
 			Definitions.Add("WITH_APEX_LEGACY=0");
