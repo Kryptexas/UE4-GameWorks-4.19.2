@@ -132,6 +132,7 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 		[
 			SNew(SOverlay)
 
+			// The bottom layer of the overlay where the actual preview widget appears.
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
@@ -140,12 +141,25 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 				.Visibility(EVisibility::HitTestInvisible)
 			]
 
+			// A layer in the overlay where we put all the user intractable widgets, like the reorder widgets.
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
 			[
 				SAssignNew(ExtensionWidgetCanvas, SCanvas)
 				.Visibility(EVisibility::SelfHitTestInvisible)
+			]
+
+			// Bottom-right corner text indicating the experimental nature of umg
+			+ SOverlay::Slot()
+			.Padding(10)
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			[
+				SNew(STextBlock)
+				.Visibility( EVisibility::HitTestInvisible )
+				.TextStyle( FEditorStyle::Get(), "Graph.CornerText" )
+				.Text(LOCTEXT("ExperimentalWarning", "Experimental"))
 			]
 		]
 	);
