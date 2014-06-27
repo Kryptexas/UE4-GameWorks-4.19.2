@@ -35,8 +35,6 @@ struct FPrimitiveViewRelevance
 	uint32 bMaskedRelevance : 1;
 	/** The primitive has one or more distortion elements. */
 	uint32 bDistortionRelevance : 1;
-	/** The primitive reads from scene color. */
-	uint32 bSceneColorRelevance : 1;
 	/** The primitive has one or more elements that have SeparateTranslucency. */
 	uint32 bSeparateTranslucencyRelevance : 1;
 	/** The primitive has one or more elements that have normal translucency. */
@@ -69,7 +67,6 @@ struct FPrimitiveViewRelevance
 		bOpaqueRelevance(true),
 		bMaskedRelevance(false),
 		bDistortionRelevance(false),
-		bSceneColorRelevance(false),
 		bSeparateTranslucencyRelevance(false),
 		bNormalTranslucencyRelevance(false),
 		bInitializedThisFrame(false)
@@ -89,7 +86,6 @@ struct FPrimitiveViewRelevance
 		bRenderInMainPass |= B.bRenderInMainPass !=0;
 		bEditorPrimitiveRelevance |= B.bEditorPrimitiveRelevance !=0;
 		bEditorNoDepthTestPrimitiveRelevance |= B.bEditorNoDepthTestPrimitiveRelevance !=0;
-		bSceneColorRelevance |= B.bSceneColorRelevance != 0;
 		bNeedsPreRenderView |= B.bNeedsPreRenderView != 0;
 		bHasSimpleLights |= B.bHasSimpleLights != 0;
 		bSeparateTranslucencyRelevance |= B.bSeparateTranslucencyRelevance != 0;

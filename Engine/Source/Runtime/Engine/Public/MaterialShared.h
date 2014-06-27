@@ -252,7 +252,7 @@ class FMaterialCompilationOutput
 {
 public:
 	FMaterialCompilationOutput() :
-		bUsesSceneColor(false),
+		bRequiresSceneColorCopy(false),
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
@@ -266,7 +266,7 @@ public:
 	/** 
 	 * Indicates whether the material uses scene color. 
 	 */
-	bool bUsesSceneColor;
+	bool bRequiresSceneColorCopy;
 
 	/** true if the material needs the scenetexture lookups. */
 	bool bNeedsSceneTextures;
@@ -636,7 +636,7 @@ public:
 	bool IsCompilationFinalized() const { return bCompilationFinalized; }
 	bool CompiledSuccessfully() const { return bCompiledSuccessfully; }
 	const FString& GetDebugDescription() const { return DebugDescription; }
-	bool UsesSceneColor() const { return MaterialCompilationOutput.bUsesSceneColor; }
+	bool RequiresSceneColorCopy() const { return MaterialCompilationOutput.bRequiresSceneColorCopy; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
@@ -972,7 +972,7 @@ public:
 		//@todo - remove non-dynamic parameter particle VF and always support dynamic parameter
 		return true; 
 	}
-	ENGINE_API bool UsesSceneColor() const;
+	ENGINE_API bool RequiresSceneColorCopy() const;
 	ENGINE_API bool NeedsSceneTextures() const;
 	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	

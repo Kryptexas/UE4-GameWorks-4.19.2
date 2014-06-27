@@ -210,9 +210,6 @@ private:
 
 	void RenderLightShaftBloom(FRHICommandList& RHICmdList);
 
-	/** Makes a copy of scene color so that a material with a scene color node can read the up to date scene color. */
-	void CopySceneColor(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
-
 	/** Reuses an existing translucent shadow map if possible or re-renders one if necessary. */
 	const FProjectedShadowInfo* PrepareTranslucentShadowMap(const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass);
 

@@ -166,12 +166,12 @@ IMPLEMENT_SHADER_TYPE(,FCopySceneColorPS,TEXT("TranslucentLightingShaders"),TEXT
 
 FGlobalBoundShaderState CopySceneColorBoundShaderState;
 
-void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
+void FTranslucencyDrawingPolicyFactory::CopySceneColor(const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy)
 {
 	//@todo-rco: RHIPacketList
 	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
-	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneInfo->Proxy->GetOwnerName().ToString(), *PrimitiveSceneInfo->Proxy->GetResourceName().ToString());
+	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneColor for %s %s"), *PrimitiveSceneProxy->GetOwnerName().ToString(), *PrimitiveSceneProxy->GetResourceName().ToString());
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -192,7 +192,7 @@ void FDeferredShadingSceneRenderer::CopySceneColor(const FViewInfo& View, const 
 		RHICmdList,
 		0, 0, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		View.ViewRect.Min.X, View.ViewRect.Min.Y,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 		GSceneRenderTargets.GetBufferSizeXY(),
@@ -332,6 +332,21 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))
 	{
+		if (Material->RequiresSceneColorCopy())
+		{
+			if (DrawingContext.bSceneColorCopyIsUpToDate == false)
+			{
+				CopySceneColor(View, PrimitiveSceneProxy);
+				// Restore state
+				SetTranslucentRenderTargetAndState(View, false);
+
+				// separate translucency is not updating scene color so we don't need to copy it multiple times.
+				// optimization:
+				// we should consider the same for non separate translucency (could cause artifacts but will be much faster)
+				DrawingContext.bSceneColorCopyIsUpToDate = DrawingContext.bSeparateTranslucencyPass;
+			}
+		}
+
 		const bool bDisableDepthTest = Material->ShouldDisableDepthTest();
 		const bool bEnableResponsiveAA = Material->ShouldEnableResponsiveAA();
 		// editor compositing not supported on translucent materials currently
@@ -465,10 +480,6 @@ void FTranslucentPrimSet::DrawPrimitives(
 	const TArray<FSortedPrim,SceneRenderingAllocator>& PhaseSortedPrimitives =
 		bSeparateTranslucencyPass ? SortedSeparateTranslucencyPrims : SortedPrims;
 
-	// optimization - separate translucency is not updating scene color so we don't need to copy it multiple times
-	// we should consider the same for non separate translucency (can cause artifacts there but will be much faster)
-	bool bSceneColorWasAlreadyCopied = false;
-
 	if( PhaseSortedPrimitives.Num() )
 	{
 		// Draw sorted scene prims
@@ -481,18 +492,6 @@ void FTranslucentPrimSet::DrawPrimitives(
 			checkSlow(ViewRelevance.HasTranslucency());
 			
 			const FProjectedShadowInfo* TranslucentSelfShadow = Renderer.PrepareTranslucentShadowMap(View, PrimitiveSceneInfo, bSeparateTranslucencyPass);
-
-			if (ViewRelevance.bSceneColorRelevance)
-			{
-				if (!bSeparateTranslucencyPass || !bSceneColorWasAlreadyCopied)
-				{
-					Renderer.CopySceneColor(View, PrimitiveSceneInfo);
-					bSceneColorWasAlreadyCopied = true;
-
-					// Restore state
-					SetTranslucentRenderTargetAndState(View, bSeparateTranslucencyPass);
-				}
-			}
 
 			RenderPrimitive(View, PrimitiveSceneInfo, ViewRelevance, TranslucentSelfShadow, bSeparateTranslucencyPass);
 		}
@@ -516,7 +515,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 		{
 			TDynamicPrimitiveDrawer<FTranslucencyDrawingPolicyFactory> TranslucencyDrawer(
 				&View,
-				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow),
+				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, bSeparateTranslucencyPass),
 				false
 				);
 
@@ -548,7 +547,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
 						RHICmdList, 
 						View,
-						FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow),
+						FTranslucencyDrawingPolicyFactory::ContextType( TranslucentSelfShadow, bSeparateTranslucencyPass),
 						StaticMesh,
 						StaticMesh.Elements.Num() == 1 ? 1 : View.StaticMeshBatchVisibility[StaticMesh.Id],
 						false,

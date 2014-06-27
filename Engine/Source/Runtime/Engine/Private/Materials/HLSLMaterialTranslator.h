@@ -300,7 +300,7 @@ public:
 			Material->CompileErrors.Empty();
 			Material->ErrorExpressions.Empty();
 
-			MaterialCompilationOutput.bUsesSceneColor = false;
+			MaterialCompilationOutput.bRequiresSceneColorCopy = false;
 			check(!MaterialCompilationOutput.bNeedsSceneTextures);
 			MaterialCompilationOutput.bUsesEyeAdaptation = false;
 
@@ -408,17 +408,15 @@ public:
 				Errorf(TEXT("Only transparent or postprocess materials can read from scene depth."));
 			}
 
-			if (MaterialCompilationOutput.bUsesSceneColor && Material->GetMaterialDomain() != MD_PostProcess)
+			if (MaterialCompilationOutput.bRequiresSceneColorCopy)
 			{
-				if (!IsTranslucentBlendMode(Material->GetBlendMode()))
+				if (Material->GetMaterialDomain() != MD_Surface)
 				{
-					Errorf(TEXT("Only transparent or postprocess materials can read from scene color."));
+					Errorf(TEXT("Only 'surface' material domain can use the scene color node."));
 				}
-				else if (!Material->IsSeparateTranslucencyEnabled())
+				else if (!IsTranslucentBlendMode(Material->GetBlendMode()))
 				{
-					// rendering without separate translucency could mean the scenecolor surface
-					// may be set simultaneously as both source texture and destination target. (error)
-					Errorf(TEXT("Cannot read from scene color whilst separate translucency is disabled."));
+					Errorf(TEXT("Only translucent materials can use the scene color node."));
 				}
 			}
 
@@ -448,7 +446,7 @@ public:
 					}
 					else if (bNeedsSceneTexturePostProcessInputs)
 					{
-						Errorf(TEXT("SceneTexture expressions cannot use post process inputs in non post process domain materials"));
+						Errorf(TEXT("SceneTexture expressions cannot use post process inputs or scene color in non post process domain materials"));
 					}
 				}
 			}
@@ -2328,9 +2326,6 @@ protected:
 				|| SceneTextureId == PPI_SceneColor);
 		}
 
-		MaterialCompilationOutput.bUsesSceneColor = MaterialCompilationOutput.bUsesSceneColor
-			|| SceneTextureId == PPI_SceneColor;
-
 		MaterialCompilationOutput.bNeedsGBuffer = MaterialCompilationOutput.bNeedsGBuffer
 			|| SceneTextureId == PPI_DiffuseColor 
 			|| SceneTextureId == PPI_SpecularColor
@@ -2366,7 +2361,7 @@ protected:
 			return INDEX_NONE;
 		}
 
-		MaterialCompilationOutput.bUsesSceneColor = true;
+		MaterialCompilationOutput.bRequiresSceneColorCopy = true;
 
 		int32 ScreenUVCode = GetScreenAlignedUV(Offset, UV, bUseOffset);
 		return AddCodeChunk(

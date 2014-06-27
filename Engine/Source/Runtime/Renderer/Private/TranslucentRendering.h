@@ -17,9 +17,13 @@ public:
 	struct ContextType 
 	{
 		const FProjectedShadowInfo* TranslucentSelfShadow;
+		bool bSeparateTranslucencyPass;
+		bool bSceneColorCopyIsUpToDate;
 
-		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL) 
-			: TranslucentSelfShadow(InTranslucentSelfShadow) 
+		ContextType(const FProjectedShadowInfo* InTranslucentSelfShadow = NULL, bool bSeparateTranslucencyPassIn = false)
+			: TranslucentSelfShadow(InTranslucentSelfShadow),
+			bSeparateTranslucencyPass(bSeparateTranslucencyPassIn),
+			bSceneColorCopyIsUpToDate(false)
 		{}
 	};
 
@@ -76,6 +80,11 @@ private:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
+
+	/**
+	* Resolves the scene color target and copies it for use as a source texture.
+	*/
+	static void CopySceneColor(const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
 };
 
 

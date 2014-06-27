@@ -43,9 +43,6 @@ struct ENGINE_API FMaterialRelevance
 		uint32 bDistortion : 1;
 
 	UPROPERTY()
-		uint32 bUsesSceneColor : 1;
-
-	UPROPERTY()
 		uint32 bSeparateTranslucency : 1;
 
 	UPROPERTY()
@@ -59,7 +56,6 @@ struct ENGINE_API FMaterialRelevance
 		: bOpaque(false)
 		, bMasked(false)
 		, bDistortion(false)
-		, bUsesSceneColor(false)
 		, bSeparateTranslucency(false)
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)
@@ -71,7 +67,6 @@ struct ENGINE_API FMaterialRelevance
 		bOpaque |= B.bOpaque;
 		bMasked |= B.bMasked;
 		bDistortion |= B.bDistortion;
-		bUsesSceneColor |= B.bUsesSceneColor;
 		bSeparateTranslucency |= B.bSeparateTranslucency;
 		bNormalTranslucency |= B.bNormalTranslucency;
 		bDisableDepthTest |= B.bDisableDepthTest;

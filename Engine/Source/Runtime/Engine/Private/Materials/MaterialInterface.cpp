@@ -14,7 +14,6 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bOpaqueRelevance = bOpaque;
 	OutViewRelevance.bMaskedRelevance = bMasked;
 	OutViewRelevance.bDistortionRelevance = bDistortion;
-	OutViewRelevance.bSceneColorRelevance = bUsesSceneColor;
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
 }
@@ -49,7 +48,6 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bOpaque = !bIsTranslucent;
 		MaterialRelevance.bMasked = Material->bIsMasked;
 		MaterialRelevance.bDistortion = Material->bUsesDistortion && bIsTranslucent;
-		MaterialRelevance.bUsesSceneColor = MaterialResource->UsesSceneColor();
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;

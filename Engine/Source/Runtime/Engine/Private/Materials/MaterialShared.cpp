@@ -318,7 +318,7 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-		Ar << bUsesSceneColor;
+		Ar << bRequiresSceneColorCopy;
 	}
 
 	Ar << bNeedsSceneTextures;
@@ -434,15 +434,15 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 	return EmptyExpressions;
 }
 
-bool FMaterial::UsesSceneColor() const 
+bool FMaterial::RequiresSceneColorCopy() const 
 {
 	if (IsInGameThread() && GameThreadShaderMap)
 	{
-		return GameThreadShaderMap->UsesSceneColor();
+		return GameThreadShaderMap->RequiresSceneColorCopy();
 	}
 	else if (IsInRenderingThread() && RenderingThreadShaderMap)
 	{
-		return RenderingThreadShaderMap->UsesSceneColor();
+		return RenderingThreadShaderMap->RequiresSceneColorCopy();
 	}
 
 	return false;
@@ -1175,7 +1175,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
-	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR"), UsesSceneColor() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_USES_SCENE_COLOR_COPY"), RequiresSceneColorCopy() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_FULLY_ROUGH"), IsFullyRough() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_NONMETAL"), IsNonmetal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
