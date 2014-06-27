@@ -2,6 +2,7 @@
 
 #include "ComponentVisualizersPrivatePCH.h"
 #include "SplineComponentVisualizer.h"
+#include "ScopedTransaction.h"
 
 IMPLEMENT_HIT_PROXY(HSplineVisProxy, HComponentVisProxy);
 IMPLEMENT_HIT_PROXY(HSplineKeyProxy, HSplineVisProxy);
@@ -25,9 +26,13 @@ public:
 
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(DeleteKey, "Delete key", "Delete the currently selected key.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete));
-		UI_COMMAND(DuplicateKey, "Duplicate key", "Duplicates the currently selected key.", EUserInterfaceActionType::Button, FInputGesture());
-		UI_COMMAND(ResetToAutomaticTangent, "Reset to Automatic Tangent", "Specify that the tangent for this key will be reset to its default auto-generated value.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(DeleteKey, "Delete Key", "Delete the currently selected key.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Delete));
+		UI_COMMAND(DuplicateKey, "Duplicate Key", "Duplicate the currently selected key.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(ResetToUnclampedTangent, "Unclamped Tangent", "Reset the tangent for this key to its default unclamped value.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(ResetToClampedTangent, "Clamped Tangent", "Reset the tangent for this key to its default clamped value.", EUserInterfaceActionType::Button, FInputGesture());
+		UI_COMMAND(SetKeyToCurve, "Curve", "Set spline key to Curve type", EUserInterfaceActionType::RadioButton, FInputGesture());
+		UI_COMMAND(SetKeyToLinear, "Linear", "Set spline key to Linear type", EUserInterfaceActionType::RadioButton, FInputGesture());
+		UI_COMMAND(SetKeyToConstant, "Constant", "Set spline key to Constant type", EUserInterfaceActionType::RadioButton, FInputGesture());
 	}
 
 public:
@@ -37,8 +42,20 @@ public:
 	/** Duplicate key */
 	TSharedPtr<FUICommandInfo> DuplicateKey;
 
-	/** Reset to automatic tangent */
-	TSharedPtr<FUICommandInfo> ResetToAutomaticTangent;
+	/** Reset to unclamped tangent */
+	TSharedPtr<FUICommandInfo> ResetToUnclampedTangent;
+
+	/** Reset to clamped tangent */
+	TSharedPtr<FUICommandInfo> ResetToClampedTangent;
+
+	/** Set spline key to Curve type */
+	TSharedPtr<FUICommandInfo> SetKeyToCurve;
+
+	/** Set spline key to Linear type */
+	TSharedPtr<FUICommandInfo> SetKeyToLinear;
+
+	/** Set spline key to Constant type */
+	TSharedPtr<FUICommandInfo> SetKeyToConstant;
 };
 
 
@@ -68,9 +85,32 @@ void FSplineComponentVisualizer::OnRegister()
 		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::IsSelectionValid));
 
 	SplineComponentVisualizerActions->MapAction(
-		Commands.ResetToAutomaticTangent,
-		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnResetToAutomaticTangent),
-		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::CanResetToAutomaticTangent));
+		Commands.ResetToUnclampedTangent,
+		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnResetToAutomaticTangent, CIM_CurveAuto),
+		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::CanResetToAutomaticTangent, CIM_CurveAuto));
+
+	SplineComponentVisualizerActions->MapAction(
+		Commands.ResetToClampedTangent,
+		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnResetToAutomaticTangent, CIM_CurveAutoClamped),
+		FCanExecuteAction::CreateSP(this, &FSplineComponentVisualizer::CanResetToAutomaticTangent, CIM_CurveAutoClamped));
+
+	SplineComponentVisualizerActions->MapAction(
+		Commands.SetKeyToCurve,
+		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnSetKeyType, CIM_CurveAuto),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FSplineComponentVisualizer::IsKeyTypeSet, CIM_CurveAuto));
+
+	SplineComponentVisualizerActions->MapAction(
+		Commands.SetKeyToLinear,
+		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnSetKeyType, CIM_Linear),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FSplineComponentVisualizer::IsKeyTypeSet, CIM_Linear));
+
+	SplineComponentVisualizerActions->MapAction(
+		Commands.SetKeyToConstant,
+		FExecuteAction::CreateSP(this, &FSplineComponentVisualizer::OnSetKeyType, CIM_Constant),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FSplineComponentVisualizer::IsKeyTypeSet, CIM_Constant));
 }
 
 FSplineComponentVisualizer::~FSplineComponentVisualizer()
@@ -82,6 +122,11 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 {
 	if (const USplineComponent* SplineComp = Cast<const USplineComponent>(Component))
 	{
+		if (!SplineComp->bAllowSplineEditingPerInstance)
+		{
+			return;
+		}
+
 		const FColor DrawColor(255, 255, 255);
 		const FColor SelectedColor(255, 0, 0);
 		const float GrabHandleSize = 12.0f;
@@ -111,11 +156,8 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 
 			// Draw the keypoint
 			PDI->SetHitProxy(new HSplineKeyProxy(Component, KeyIdx));
-
 			PDI->DrawPoint(NewKeyPos, KeyColor, GrabHandleSize, SDPG_Foreground);
-
 			PDI->SetHitProxy(NULL);
-
 
 			// If not the first keypoint, draw a line to the previous keypoint.
 			if (KeyIdx>0)
@@ -141,12 +183,6 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 						FVector NewPos = SplineComp->ComponentToWorld.TransformPosition( SplineInfo.Eval(NewTime, FVector::ZeroVector) );
 
 						PDI->DrawLine(OldPos, NewPos, DrawColor, SDPG_Foreground);
-
-						// Don't draw point for last one - its the keypoint drawn above.
-						if (false)// (StepIdx != NumSteps)
-						{
-							PDI->DrawPoint(NewPos, DrawColor, 3.f, SDPG_Foreground);
-						}
 
 						OldTime = NewTime;
 						OldPos = NewPos;
@@ -311,7 +347,13 @@ void FSplineComponentVisualizer::EndEditing()
 
 void FSplineComponentVisualizer::OnDuplicateKey()
 {
+	const FScopedTransaction Transaction(LOCTEXT("DuplicateKey", "Duplicate Spline Key"));
 	USplineComponent* SplineComp = GetEditedSplineComponent();
+
+	if (AActor* Owner = SplineComp->GetOwner())
+	{
+		Owner->Modify();
+	}
 
 	FInterpCurvePoint<FVector> KeyToDupe = SplineComp->SplineInfo.Points[SelectedKeyIndex];
 	KeyToDupe.InterpMode = CIM_CurveAuto;
@@ -325,17 +367,25 @@ void FSplineComponentVisualizer::OnDuplicateKey()
 	NotifyComponentModified();
 }
 
+
 void FSplineComponentVisualizer::OnDeleteKey()
 {
+	const FScopedTransaction Transaction(LOCTEXT("DeleteKey", "Delete Spline Key"));
 	USplineComponent* SplineComp = GetEditedSplineComponent();
 
-	SplineComp->SplineInfo.Points.RemoveAt(SelectedKeyIndex);
+	if (AActor* Owner = SplineComp->GetOwner())
+	{
+		Owner->Modify();
+	}
 
+	SplineComp->SplineInfo.Points.RemoveAt(SelectedKeyIndex);
 	SplineComp->RefreshSplineInputs(); // update input value for each key
+
 	SelectedKeyIndex = INDEX_NONE; // deselect any keys
 
 	NotifyComponentModified();
 }
+
 
 bool FSplineComponentVisualizer::IsSelectionValid() const
 {
@@ -346,21 +396,64 @@ bool FSplineComponentVisualizer::IsSelectionValid() const
 }
 
 
-void FSplineComponentVisualizer::OnResetToAutomaticTangent()
+void FSplineComponentVisualizer::OnResetToAutomaticTangent(EInterpCurveMode Mode)
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
-	SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode = CIM_CurveAuto;
 
-	NotifyComponentModified();
+	if (SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode != Mode)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetToAutomaticTangent", "Reset to Automatic Tangent"));
+		if (AActor* Owner = SplineComp->GetOwner())
+		{
+			Owner->Modify();
+		}
+
+		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode = Mode;
+		NotifyComponentModified();
+	}
 }
 
-bool FSplineComponentVisualizer::CanResetToAutomaticTangent() const
+
+bool FSplineComponentVisualizer::CanResetToAutomaticTangent(EInterpCurveMode Mode) const
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
 	return (SplineComp &&
 		SelectedKeyIndex != INDEX_NONE &&
 		SelectedKeyIndex < SplineComp->SplineInfo.Points.Num() &&
-		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode != CIM_CurveAuto);
+		SplineComp->SplineInfo.Points[SelectedKeyIndex].IsCurveKey() &&
+		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode != Mode);
+}
+
+
+void FSplineComponentVisualizer::OnSetKeyType(EInterpCurveMode Mode)
+{
+	USplineComponent* SplineComp = GetEditedSplineComponent();
+
+	if (SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode != Mode)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetToAutomaticTangent", "Reset to Automatic Tangent"));
+		if (AActor* Owner = SplineComp->GetOwner())
+		{
+			Owner->Modify();
+		}
+
+		SplineComp->SplineInfo.Points[SelectedKeyIndex].InterpMode = Mode;
+		NotifyComponentModified();
+	}
+}
+
+
+bool FSplineComponentVisualizer::IsKeyTypeSet(EInterpCurveMode Mode) const
+{
+	if (IsSelectionValid())
+	{
+		USplineComponent* SplineComp = GetEditedSplineComponent();
+
+		const auto& SelectedPoint = SplineComp->SplineInfo.Points[SelectedKeyIndex];
+		return ((Mode == CIM_CurveAuto && SelectedPoint.IsCurveKey()) || SelectedPoint.InterpMode == Mode);
+	}
+
+	return false;
 }
 
 
@@ -372,7 +465,24 @@ TSharedPtr<SWidget> FSplineComponentVisualizer::GenerateContextMenu() const
 		{
 			MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DeleteKey);
 			MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().DuplicateKey);
-			MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().ResetToAutomaticTangent);
+
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("KeyType", "Key Type"),
+				LOCTEXT("KeyTypeTooltip", "Define the type of the spline key."),
+				FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateSplinePointTypeSubMenu));
+
+			// Only add the Automatic Tangents submenu if the key is a curve type
+			USplineComponent* SplineComp = GetEditedSplineComponent();
+			if (SplineComp &&
+				SelectedKeyIndex != INDEX_NONE &&
+				SelectedKeyIndex < SplineComp->SplineInfo.Points.Num() &&
+				SplineComp->SplineInfo.Points[SelectedKeyIndex].IsCurveKey())
+			{
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("ResetToAutomaticTangent", "Reset to Automatic Tangent"),
+					LOCTEXT("ResetToAutomaticTangentTooltip", "Reset the point tangent to an automatically generated value."),
+					FNewMenuDelegate::CreateSP(this, &FSplineComponentVisualizer::GenerateTangentTypeSubMenu));
+			}
 		}
 		MenuBuilder.EndSection();
 	}
@@ -380,6 +490,22 @@ TSharedPtr<SWidget> FSplineComponentVisualizer::GenerateContextMenu() const
 	TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
 	return MenuWidget;
 }
+
+
+void FSplineComponentVisualizer::GenerateSplinePointTypeSubMenu(FMenuBuilder& MenuBuilder) const
+{
+	MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().SetKeyToCurve);
+	MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().SetKeyToLinear);
+	MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().SetKeyToConstant);
+}
+
+
+void FSplineComponentVisualizer::GenerateTangentTypeSubMenu(FMenuBuilder& MenuBuilder) const
+{
+	MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().ResetToUnclampedTangent);
+	MenuBuilder.AddMenuEntry(FSplineComponentVisualizerCommands::Get().ResetToClampedTangent);
+}
+
 
 void FSplineComponentVisualizer::NotifyComponentModified()
 {

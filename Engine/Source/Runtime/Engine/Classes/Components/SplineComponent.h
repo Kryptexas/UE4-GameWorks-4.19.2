@@ -16,8 +16,12 @@ class ENGINE_API USplineComponent : public USceneComponent
 	FInterpCurveVector SplineInfo;
 
 	/** Input, distance along curve, output, parameter that puts you there. */
-	UPROPERTY()
+	UPROPERTY(Transient, TextExportTransient)
 	FInterpCurveFloat SplineReparamTable;
+
+	/** If true, spline keys may be edited per instance in the level viewport. Otherwise, the spline should be initialized in the construction script. */
+	UPROPERTY(EditDefaultsOnly, Category = Spline)
+	bool bAllowSplineEditingPerInstance;
 
 	/** Number of steps per spline segment to place in the reparameterization table */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Spline, meta=(ClampMin=4, UIMin=4, ClampMax=100, UIMax=100))
@@ -48,9 +52,17 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	void AddSplineWorldPoint(const FVector& Position);
 
+	/** Adds a local space point to the spline */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void AddSplineLocalPoint(const FVector& Position);
+
 	/** Sets the spline to an array of world space points */
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	void SetSplineWorldPoints(const TArray<FVector>& Points);
+
+	/** Sets the spline to an array of local space points */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void SetSplineLocalPoints(const TArray<FVector>& Points);
 
 	/** Move an existing point to a new world location */
 	UFUNCTION(BlueprintCallable, Category = Spline)
@@ -100,8 +112,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FRotator GetWorldRotationAtTime(float Time, bool bUseConstantVelocity = false) const;
 
-#if WITH_EDITORONLY_DATA
 	// UObject interface
+	virtual void PostLoad() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+#if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 #endif

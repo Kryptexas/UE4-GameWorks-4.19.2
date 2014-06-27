@@ -58,8 +58,17 @@ private:
 	void OnDuplicateKey();
 	bool IsSelectionValid() const;
 
-	void OnResetToAutomaticTangent();
-	bool CanResetToAutomaticTangent() const;
+	void OnResetToAutomaticTangent(EInterpCurveMode Mode);
+	bool CanResetToAutomaticTangent(EInterpCurveMode Mode) const;
+
+	void OnSetKeyType(EInterpCurveMode Mode);
+	bool IsKeyTypeSet(EInterpCurveMode Mode) const;
+
+	/** Generate the submenu containing the available point types */
+	void GenerateSplinePointTypeSubMenu(FMenuBuilder& MenuBuilder) const;
+
+	/** Generate the submenu containing the available auto tangent types */
+	void GenerateTangentTypeSubMenu(FMenuBuilder& MenuBuilder) const;
 
 	/** Output log commands */
 	TSharedPtr<FUICommandList> SplineComponentVisualizerActions;
