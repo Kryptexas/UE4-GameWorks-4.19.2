@@ -645,7 +645,7 @@ void FStreamingLevelCollectionModel::SetStreamingLevelsClass_Executed(UClass* In
 	SetSelectedLevels(SelectedLevelsCopy);
 
 	// Force a cached level list rebuild
-	PopulateLevelsList();
+	//PopulateLevelsList();
 }
 
 //streaming volumes

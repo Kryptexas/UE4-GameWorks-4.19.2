@@ -314,20 +314,20 @@ bool FLevelCollectionModel::IsFilterActive() const
 void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
 {
 	// Clear selection flag from currently selected levels
-	for (auto It = SelectedLevelsList.CreateIterator(); It; ++It)
+	for (auto LevelModel : SelectedLevelsList)
 	{
-		(*It)->SetLevelSelectionFlag(false);
+		LevelModel->SetLevelSelectionFlag(false);
 	}
 	
 	SelectedLevelsList.Empty(); 
 	
 	// Set selection flag to selected levels	
-	for (auto It = InList.CreateConstIterator(); It; ++It)
+	for (auto LevelModel : InList)
 	{
-		if (PassesAllFilters(*It))
+		if (LevelModel.IsValid() && PassesAllFilters(LevelModel))
 		{
-			(*It)->SetLevelSelectionFlag(true);
-			SelectedLevelsList.Add(*It);
+			LevelModel->SetLevelSelectionFlag(true);
+			SelectedLevelsList.Add(LevelModel);
 		}
 	}
 
