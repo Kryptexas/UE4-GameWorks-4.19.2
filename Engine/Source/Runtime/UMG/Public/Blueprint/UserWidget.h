@@ -116,7 +116,7 @@ public:
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
-	void Tick(FGeometry MyGeometry, double InCurrentTime, float InDeltaTime);
+	void Tick(FGeometry MyGeometry, float InDeltaTime);
 
 	//TODO UMG HitTest
 
