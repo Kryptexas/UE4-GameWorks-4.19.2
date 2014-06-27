@@ -38,6 +38,7 @@ public:
 
 	SLATE_END_ARGS()
 
+	virtual ~SMenuAnchor();
 	
 	/**
 	 * Construct this widget
