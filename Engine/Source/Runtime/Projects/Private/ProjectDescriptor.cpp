@@ -90,6 +90,12 @@ bool FProjectDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 		return false;
 	}
 
+	// Read the plugins
+	if(!FPluginReferenceDescriptor::ReadArray(Object, TEXT("Plugins"), Plugins, OutFailReason))
+	{
+		return false;
+	}
+
 	// Read the target platforms
 	const TArray< TSharedPtr<FJsonValue> > *TargetPlatformsValue;
 	if(Object.TryGetArrayField(TEXT("TargetPlatforms"), TargetPlatformsValue))
@@ -141,6 +147,9 @@ void FProjectDescriptor::Write(TJsonWriter<>& Writer) const
 
 	// Write the module list
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
+
+	// Write the plugin list
+	FPluginReferenceDescriptor::WriteArray(Writer, TEXT("Plugins"), Plugins);
 
 	// Write the target platforms
 	if ( TargetPlatforms.Num() > 0 )

@@ -71,9 +71,6 @@ public:
 	virtual bool IsPluginModule( const FName ModuleName ) const override;
 	virtual bool AreEnabledPluginModulesUpToDate() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
-	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) override;
-	virtual bool IsRestartRequired() const override;
-	virtual bool HasThirdPartyPlugin() const override;
 
 private:
 
@@ -86,12 +83,6 @@ private:
 
 	/** Registers content mount points for all enabled plugins */
 	void RegisterEnabledPluginMountPoints();
-
-	/** Returns all plugins currently configured to be enabled */
-	void GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginNames) const;
-
-	/** Sets the list of currently configured plugins */
-	void ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled);
 
 private:
 	/** All of the plugins that we know about */
@@ -106,9 +97,6 @@ private:
 
 	/** The earliest phase that modules are loaded requires some additional initialization */
 	bool bEarliestPhaseProcessed;
-
-	/** true if plugin changes have been made that will only take effect after a restart */
-	bool bRestartRequired;
 };
 
 

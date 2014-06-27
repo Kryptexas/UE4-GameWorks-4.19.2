@@ -9,10 +9,6 @@ DEFINE_LOG_CATEGORY_STATIC( LogPluginManager, Log, All );
 
 namespace PluginSystemDefs
 {
-	/** Latest supported version for plugin descriptor files.  We can still usually load older versions, but not newer version.
-	    NOTE: This constant exists in UnrealBuildTool code as well. */
-	static const int32 LatestPluginDescriptorFileVersion = 1;	// IMPORTANT: Remember to also update Plugins.cs (and Plugin system documentation) when this changes!
-		
 	/** File extension of plugin descriptor files.
 	    NOTE: This constant exists in UnrealBuildTool code as well. */
 	static const TCHAR PluginDescriptorFileExtension[] = TEXT( ".uplugin" );
@@ -56,7 +52,6 @@ void FPluginInstance::RegisterPluginMountPoints( const IPluginManager::FRegister
 
 FPluginManager::FPluginManager()
 	: bEarliestPhaseProcessed(false)
-	, bRestartRequired(false)
 {
 	DiscoverAllPlugins();
 }
@@ -287,7 +282,11 @@ void FPluginManager::DiscoverAllPlugins()
 void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 {
 	TArray< FString > EnabledPluginNames;
-	GetPluginsConfiguredToBeEnabled(EnabledPluginNames);
+#if IS_PROGRAM
+	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+#else
+	FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+#endif
 
 	TSet< FString > AllEnabledPlugins;
 	AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
@@ -406,93 +405,6 @@ bool FPluginManager::AreEnabledPluginModulesUpToDate()
 	return true;
 }
 
-void FPluginManager::GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginNames) const
-{
-#if !IS_PROGRAM
-	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), OutPluginNames, GEngineIni );
-#else
-	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), OutPluginNames, GEngineIni);
-#endif
-}
-
-bool FPluginManager::HasThirdPartyPlugin() const
-{
-	static bool bInit = false;
-	TArray<FString> StandardPlugins;
-	if (!bInit)
-	{
-		StandardPlugins.Add(TEXT("BlankPlugin"));
-		StandardPlugins.Add(TEXT("UObjectPlugin"));
-		StandardPlugins.Add(TEXT("PluginsEditor"));
-		StandardPlugins.Add(TEXT("EpicSurvey"));
-		StandardPlugins.Add(TEXT("OculusRift"));
-		StandardPlugins.Add(TEXT("CustomMeshComponent"));
-		StandardPlugins.Add(TEXT("MessagingDebugger"));
-		StandardPlugins.Add(TEXT("PerforceSourceControl"));
-		StandardPlugins.Add(TEXT("SubversionSourceControl"));
-		StandardPlugins.Add(TEXT("UdpMessaging"));
-		StandardPlugins.Add(TEXT("WindowsMoviePlayer"));
-		StandardPlugins.Add(TEXT("CableComponent"));
-		StandardPlugins.Add(TEXT("ExampleDeviceProfileSelector"));
-		StandardPlugins.Add(TEXT("WinDualShock"));
-		StandardPlugins.Add(TEXT("VisualStudioSourceCodeAccess"));
-		StandardPlugins.Add(TEXT("XCodeSourceCodeAccess"));
-		StandardPlugins.Add(TEXT("SlateRemote"));
-		StandardPlugins.Add(TEXT("ScriptPlugin"));
-		StandardPlugins.Add(TEXT("ScriptEditorPlugin"));
-		StandardPlugins.Add(TEXT("SpeedTreeImporter"));
-		StandardPlugins.Add(TEXT("AppleMoviePlayer"));
-		StandardPlugins.Add(TEXT("IOSDeviceProfileSelector"));
-		bInit = true;
-	}
-
-	TArray<FString> EnabledPlugins;
-	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), EnabledPlugins, GEngineIni );
-
-	for (int Index = 0; Index < EnabledPlugins.Num(); ++Index)
-	{
-		if (!StandardPlugins.Contains(EnabledPlugins[Index]))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-void FPluginManager::ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled)
-{
-	TArray< FString > EnabledPluginNames;
-	GetPluginsConfiguredToBeEnabled(EnabledPluginNames);
-
-	bool bSaveEnabledPluginNames = false;
-	if ( bEnabled )
-	{
-		if ( !EnabledPluginNames.Contains(PluginName) )
-		{
-			EnabledPluginNames.Add(PluginName);
-			bSaveEnabledPluginNames = true;
-		}
-	}
-	else
-	{
-		int32 ExistingEnabledIdx = EnabledPluginNames.Find(PluginName);
-		if ( ExistingEnabledIdx != INDEX_NONE )
-		{
-			EnabledPluginNames.RemoveAt(ExistingEnabledIdx);
-			bSaveEnabledPluginNames = true;
-		}
-	}
-
-	bRestartRequired = true;
-
-	if ( bSaveEnabledPluginNames )
-	{
-		GConfig->SetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), EnabledPluginNames, GEngineIni );
-		GConfig->Flush(false);
-	}
-}
-
-
 IPluginManager& IPluginManager::Get()
 {
 	// Single instance of manager, allocated on demand and destroyed on program exit.
@@ -537,26 +449,6 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	}
 
 	return PluginStatuses;
-}
-
-void FPluginManager::SetPluginEnabled( const FString& PluginName, bool bEnabled )
-{
-	for( auto PluginIt( AllPlugins.CreateConstIterator() ); PluginIt; ++PluginIt )
-	{
-		const TSharedRef< FPluginInstance >& Plugin = *PluginIt;
-
-		if ( Plugin->Name == PluginName )
-		{
-			Plugin->bEnabled = bEnabled;
-			ConfigurePluginToBeEnabled(PluginName, bEnabled);
-			break;
-		}
-	}
-}
-
-bool FPluginManager::IsRestartRequired() const
-{
-	return bRestartRequired;
 }
 
 #undef LOCTEXT_NAMESPACE

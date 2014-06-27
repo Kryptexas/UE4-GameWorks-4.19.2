@@ -2464,32 +2464,36 @@ void GameProjectUtils::OnUpdateProjectCancel()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+void GameProjectUtils::TryMakeProjectFileWriteable()
 {
+	FString ProjectFileName = FPaths::GetProjectFilePath();
+
 	// First attempt to check out the file if SCC is enabled
 	if ( ISourceControlModule::Get().IsEnabled() )
 	{
-		OutbWasCheckedOut = GameProjectUtils::CheckoutGameProjectFile(ProjectFilename, OutFailReason);
-		if ( !OutbWasCheckedOut )
-		{
-			// Failed to check out the file
-			return false;
-		}
+		FText FailReason;
+		GameProjectUtils::CheckoutGameProjectFile(ProjectFileName, FailReason);
 	}
-	else
+
+	// Check if it's writeable
+	if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFileName))
 	{
-		if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFilename))
+		FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated, would you like to make it writeable?");
+
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFileName));
+
+		if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldMakeProjectWriteable, Arguments)) == EAppReturnType::Yes)
 		{
-			FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated, would you like to make it writeable?");
-			FFormatNamedArguments Arguments;
-			Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFilename));
-			if ( FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldMakeProjectWriteable, Arguments)) == EAppReturnType::Yes )
-			{
-				FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFilename, false);
-			}
+			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFileName, false);
 		}
-		OutbWasCheckedOut = false;
 	}
+}
+
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+{
+	// Make sure we can write to the project file
+	TryMakeProjectFileWriteable();
 
 	// Now tell the project manager to update the file
 	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, EngineIdentifier, OutFailReason))

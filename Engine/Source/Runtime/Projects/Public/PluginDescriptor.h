@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Projects.h"
 #include "ModuleDescriptor.h"
 
 /**
@@ -73,3 +74,40 @@ struct PROJECTS_API FPluginDescriptor
 	/** Reads the descriptor from the given JSON object */
 	bool Read(const FJsonObject& Object, FText& OutFailReason);
 };
+
+/**
+ * Descriptor for a plugin reference. Contains the information required to enable or disable a plugin for a given platform.
+ */
+struct PROJECTS_API FPluginReferenceDescriptor
+{
+	/** Name of the plugin */
+	FString Name;
+
+	/** Whether it should be enabled by default */
+	bool bEnabled;
+
+	/** If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank). */
+	TArray<FString> WhitelistPlatforms;
+
+	/** If enabled, list of platforms for which the plugin should be disabled. */
+	TArray<FString> BlacklistPlatforms;
+
+	/** Constructor */
+	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false);
+
+	/** Determines whether the plugin is enabled for the given platform */
+	bool IsEnabledForPlatform(const FString& Platform) const;
+
+	/** Reads the descriptor from the given JSON object */
+	bool Read(const FJsonObject& Object, FText& OutFailReason);
+
+	/** Reads an array of modules from the given JSON object */
+	static bool ReadArray(const FJsonObject& Object, const TCHAR* Name, TArray<FPluginReferenceDescriptor>& OutModules, FText& OutFailReason);
+
+	/** Writes a descriptor to JSON */
+	void Write(TJsonWriter<>& Writer) const;
+
+	/** Writes an array of modules to JSON */
+	static void WriteArray(TJsonWriter<>& Writer, const TCHAR* Name, const TArray<FPluginReferenceDescriptor>& Modules);
+};
+

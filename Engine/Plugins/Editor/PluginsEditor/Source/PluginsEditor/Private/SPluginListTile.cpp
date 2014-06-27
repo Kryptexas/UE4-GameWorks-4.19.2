@@ -6,6 +6,7 @@
 #include "SPluginsEditor.h"
 #include "SPluginList.h"
 #include "PluginStyle.h"
+#include "GameProjectGenerationModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
@@ -275,7 +276,14 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ESlateCheckBoxState::Type Ne
 	}
 
 	ItemData->PluginStatus.bIsEnabled = bNewEnabledState;
-	IPluginManager::Get().SetPluginEnabled(ItemData->PluginStatus.Name, bNewEnabledState);
+
+	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable();
+
+	FText FailMessage;
+	if(!IProjectManager::Get().SetPluginEnabled(ItemData->PluginStatus.Name, bNewEnabledState, FailMessage))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
+	}
 }
 
 

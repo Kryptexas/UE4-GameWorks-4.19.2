@@ -141,6 +141,9 @@ public:
 	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
 	static void CheckAndWarnProjectFilenameValid();
 
+	/** Checks out the current project file (or prompts to make writable) */
+	static void TryMakeProjectFileWriteable();
+
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
 	static bool UpdateGameProject(const FString &EngineIdentifier);
 

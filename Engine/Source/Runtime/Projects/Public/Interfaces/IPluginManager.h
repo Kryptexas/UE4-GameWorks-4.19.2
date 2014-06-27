@@ -110,21 +110,4 @@ public:
 	 * @return	 Array of plugin status objects
 	 */
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const = 0;
-
-	/**
-	 * Sets the enabled state for the specified plugin. This change may not take effect until the editor is restarted.
-	 */
-	virtual void SetPluginEnabled( const FString& PluginName, bool bEnabled ) = 0;
-
-	/**
-	 * @return true if plugin changes have been made that will only take effect after a restart
-	 */
-	virtual bool IsRestartRequired() const = 0;
-
-	/**
-	 * Determines if a third-party plugin has been requested in the executable
-	 *
-	 * @return true if a third party plugin is enabled
-	 */
-	virtual bool HasThirdPartyPlugin() const = 0;
 };

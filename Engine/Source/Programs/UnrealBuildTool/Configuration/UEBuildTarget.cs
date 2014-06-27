@@ -2145,7 +2145,18 @@ namespace UnrealBuildTool
 							FilterPluginNames.AddRange(ConfigPlugins);
 						}
 					}
-					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)));
+
+					// Update the plugin list for game targets
+					if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())
+					{
+						// Enable all the game specific plugins by default
+						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.LoadedFrom == PluginInfo.LoadedFromType.GameProject).Select(x => x.Name));
+
+						// Use the project settings to update the plugin list for this target
+						FilterPluginNames = UProjectInfo.GetEnabledPlugins(UnrealBuildTool.GetUProjectFile(), FilterPluginNames, Platform);
+					}
+
+					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)).Distinct());
 				}
 				else
 				{

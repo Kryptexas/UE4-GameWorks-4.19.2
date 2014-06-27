@@ -8,6 +8,12 @@ DEFINE_LOG_CATEGORY_STATIC( LogProjectManager, Log, All );
 
 FProjectManager::FProjectManager()
 {
+	bRestartRequired = false;
+}
+
+const FProjectDescriptor* FProjectManager::GetCurrentProject() const
+{
+	return CurrentProject.Get();
 }
 
 bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
@@ -18,7 +24,7 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	if(Descriptor->Load(InProjectFile, FailureReason))
 	{
 		// Create the project
-		CurrentlyLoadedProject = Descriptor;
+		CurrentProject = Descriptor;
 		return true;
 	}
 	
@@ -39,10 +45,10 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 	bool bSuccess = true;
 
-	if ( CurrentlyLoadedProject.IsValid() )
+	if ( CurrentProject.IsValid() )
 	{
 		TMap<FName, EModuleLoadResult> ModuleLoadFailures;
-		FModuleDescriptor::LoadModulesForPhase(LoadingPhase, CurrentlyLoadedProject->Modules, ModuleLoadFailures);
+		FModuleDescriptor::LoadModulesForPhase(LoadingPhase, CurrentProject->Modules, ModuleLoadFailures);
 
 		if ( ModuleLoadFailures.Num() > 0 )
 		{
@@ -92,7 +98,7 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 
 bool FProjectManager::AreProjectModulesUpToDate()
 {
-	return !CurrentlyLoadedProject.IsValid() || FModuleDescriptor::AreModulesUpToDate(CurrentlyLoadedProject->Modules);
+	return !CurrentProject.IsValid() || FModuleDescriptor::AreModulesUpToDate(CurrentProject->Modules);
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
@@ -148,26 +154,26 @@ bool FProjectManager::DuplicateProjectFile(const FString& SourceProjectFilename,
 
 bool FProjectManager::UpdateLoadedProjectFileToCurrent(const TArray<FString>* StartupModuleNames, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	if ( !CurrentlyLoadedProject.IsValid() )
+	if ( !CurrentProject.IsValid() )
 	{
 		return false;
 	}
 
 	// Freshen version information
-	CurrentlyLoadedProject->EngineAssociation = EngineIdentifier;
+	CurrentProject->EngineAssociation = EngineIdentifier;
 
 	// Replace the modules names, if specified
 	if(StartupModuleNames != NULL)
 	{
-		CurrentlyLoadedProject->Modules.Empty();
+		CurrentProject->Modules.Empty();
 		for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
 		{
-			CurrentlyLoadedProject->Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+			CurrentProject->Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
 		}
 	}
 
 	// Update file on disk
-	return CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), OutFailReason);
+	return CurrentProject->Save(FPaths::GetProjectFilePath(), OutFailReason);
 }
 
 bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& Category, FText& OutFailReason)
@@ -198,12 +204,12 @@ bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectSta
 
 bool FProjectManager::QueryStatusForCurrentProject(FProjectStatus& OutProjectStatus) const
 {
-	if ( !CurrentlyLoadedProject.IsValid() )
+	if ( !CurrentProject.IsValid() )
 	{
 		return false;
 	}
 
-	QueryStatusForProjectImpl(*CurrentlyLoadedProject, FPaths::GetProjectFilePath(), OutProjectStatus);
+	QueryStatusForProjectImpl(*CurrentProject, FPaths::GetProjectFilePath(), OutProjectStatus);
 	return true;
 }
 
@@ -250,15 +256,15 @@ void FProjectManager::UpdateSupportedTargetPlatformsForProject(const FString& Fi
 
 void FProjectManager::UpdateSupportedTargetPlatformsForCurrentProject(const FName& InPlatformName, const bool bIsSupported)
 {
-	if ( !CurrentlyLoadedProject.IsValid() )
+	if ( !CurrentProject.IsValid() )
 	{
 		return;
 	}
 
-	CurrentlyLoadedProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
+	CurrentProject->UpdateSupportedTargetPlatforms(InPlatformName, bIsSupported);
 
 	FText FailReason;
-	CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), FailReason);
+	CurrentProject->Save(FPaths::GetProjectFilePath(), FailReason);
 
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
 }
@@ -287,17 +293,158 @@ void FProjectManager::ClearSupportedTargetPlatformsForProject(const FString& Fil
 
 void FProjectManager::ClearSupportedTargetPlatformsForCurrentProject()
 {
-	if ( !CurrentlyLoadedProject.IsValid() )
+	if ( !CurrentProject.IsValid() )
 	{
 		return;
 	}
 
-	CurrentlyLoadedProject->TargetPlatforms.Empty();
+	CurrentProject->TargetPlatforms.Empty();
 
 	FText FailReason;
-	CurrentlyLoadedProject->Save(FPaths::GetProjectFilePath(), FailReason);
+	CurrentProject->Save(FPaths::GetProjectFilePath(), FailReason);
 
 	OnTargetPlatformsForCurrentProjectChangedEvent.Broadcast();
+}
+
+void FProjectManager::GetEnabledPlugins(TArray<FString>& OutPluginNames) const
+{
+	// Get the default list of plugin names
+	GetDefaultEnabledPlugins(OutPluginNames);
+
+	// Modify that with the list of plugins in the project file
+	const FProjectDescriptor *Project = GetCurrentProject();
+	if(Project != NULL)
+	{
+		for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+		{
+			if(Plugin.IsEnabledForPlatform(FPlatformMisc::GetUBTPlatform()))
+			{
+				OutPluginNames.AddUnique(Plugin.Name);
+			}
+			else
+			{
+				OutPluginNames.Remove(Plugin.Name);
+			}
+		}
+	}
+}
+
+bool FProjectManager::IsThirdPartyPluginEnabled() const
+{
+	static bool bInit = false;
+	TArray<FString> StandardPlugins;
+	if (!bInit)
+	{
+		StandardPlugins.Add(TEXT("BlankPlugin"));
+		StandardPlugins.Add(TEXT("UObjectPlugin"));
+		StandardPlugins.Add(TEXT("PluginsEditor"));
+		StandardPlugins.Add(TEXT("EpicSurvey"));
+		StandardPlugins.Add(TEXT("OculusRift"));
+		StandardPlugins.Add(TEXT("CustomMeshComponent"));
+		StandardPlugins.Add(TEXT("MessagingDebugger"));
+		StandardPlugins.Add(TEXT("PerforceSourceControl"));
+		StandardPlugins.Add(TEXT("SubversionSourceControl"));
+		StandardPlugins.Add(TEXT("UdpMessaging"));
+		StandardPlugins.Add(TEXT("WindowsMoviePlayer"));
+		StandardPlugins.Add(TEXT("CableComponent"));
+		StandardPlugins.Add(TEXT("ExampleDeviceProfileSelector"));
+		StandardPlugins.Add(TEXT("WinDualShock"));
+		StandardPlugins.Add(TEXT("VisualStudioSourceCodeAccess"));
+		StandardPlugins.Add(TEXT("XCodeSourceCodeAccess"));
+		StandardPlugins.Add(TEXT("SlateRemote"));
+		StandardPlugins.Add(TEXT("ScriptPlugin"));
+		StandardPlugins.Add(TEXT("ScriptEditorPlugin"));
+		StandardPlugins.Add(TEXT("SpeedTreeImporter"));
+		StandardPlugins.Add(TEXT("AppleMoviePlayer"));
+		StandardPlugins.Add(TEXT("IOSDeviceProfileSelector"));
+		bInit = true;
+	}
+
+	TArray<FString> EnabledPlugins;
+	GetEnabledPlugins(EnabledPlugins);
+
+	for (int Index = 0; Index < EnabledPlugins.Num(); ++Index)
+	{
+		if (!StandardPlugins.Contains(EnabledPlugins[Index]))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason)
+{
+	// Don't go any further if there's no project loaded
+	if(!CurrentProject.IsValid())
+	{
+		OutFailReason = LOCTEXT("NoProjectLoaded", "No project is currently loaded");
+		return false;
+	}
+
+	// Find or create the index of any existing reference in the project descriptor
+	int PluginRefIdx = 0;
+	for(;;PluginRefIdx++)
+	{
+		if(PluginRefIdx == CurrentProject->Plugins.Num())
+		{
+			PluginRefIdx = CurrentProject->Plugins.Add(FPluginReferenceDescriptor(PluginName, bEnabled));
+			break;
+		}
+		else if(CurrentProject->Plugins[PluginRefIdx].Name == PluginName)
+		{
+			CurrentProject->Plugins[PluginRefIdx].bEnabled = bEnabled;
+			break;
+		}
+	}
+
+	// If the current plugin reference is the default, just remove it from the list
+	const FPluginReferenceDescriptor* PluginRef = &CurrentProject->Plugins[PluginRefIdx];
+	if(PluginRef->WhitelistPlatforms.Num() == 0 && PluginRef->BlacklistPlatforms.Num() == 0)
+	{
+		// Get the default list of enabled plugins
+		TArray<FString> DefaultEnabledPlugins;
+		GetDefaultEnabledPlugins(DefaultEnabledPlugins);
+
+		// Check the enabled state is the same in that
+		if(DefaultEnabledPlugins.Contains(PluginName) == bEnabled)
+		{
+			CurrentProject->Plugins.RemoveAt(PluginRefIdx);
+			PluginRefIdx = INDEX_NONE;
+		}
+	}
+
+	// Try to save the project file
+	if(!CurrentProject->Save(*FPaths::GetProjectFilePath(), OutFailReason))
+	{
+		return false;
+	}
+
+	// Flag that a restart is required and return
+	bRestartRequired = true;
+	return true;
+}
+
+bool FProjectManager::IsRestartRequired() const
+{
+	return bRestartRequired;
+}
+
+void FProjectManager::GetDefaultEnabledPlugins(TArray<FString>& OutPluginNames)
+{
+	// Read all the enabled plugins from the ini file
+	OutPluginNames.Empty();
+	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), OutPluginNames, GEngineIni );
+
+	// Add all the game plugins
+	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
+	for(const FPluginStatus& PluginStatus: PluginStatuses)
+	{
+		if(!PluginStatus.bIsBuiltIn)
+		{
+			OutPluginNames.AddUnique(PluginStatus.Name);
+		}
+	}
 }
 
 IProjectManager& IProjectManager::Get()

@@ -3,6 +3,8 @@
 #pragma once
 
 #include "Projects.h"
+#include "ModuleDescriptor.h"
+#include "PluginDescriptor.h"
 
 /**
  * Version numbers for project descriptors.
@@ -40,8 +42,11 @@ struct PROJECTS_API FProjectDescriptor
 	/** Description to show in the project browser */
 	FString Description;
 
-	/** List of all modules associated with this plugin */
+	/** List of all modules associated with this project */
 	TArray<FModuleDescriptor> Modules;
+
+	/** List of plugins for this project (may be enabled/disabled) */
+	TArray<FPluginReferenceDescriptor> Plugins;
 
 	/** Array of platforms that this project is targeting */
 	TArray<FName> TargetPlatforms;

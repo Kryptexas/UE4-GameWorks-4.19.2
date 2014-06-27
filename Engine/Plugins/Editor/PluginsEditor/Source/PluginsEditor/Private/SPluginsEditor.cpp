@@ -124,7 +124,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 
 EVisibility SPluginsEditor::HandleRestartEditorNoticeVisibility() const
 {
-	return IPluginManager::Get().IsRestartRequired() ? EVisibility::Visible : EVisibility::Collapsed;
+	return IProjectManager::Get().IsRestartRequired() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 

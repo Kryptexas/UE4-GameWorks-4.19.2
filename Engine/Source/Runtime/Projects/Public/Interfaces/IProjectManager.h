@@ -5,6 +5,7 @@
 
 #include "EngineVersion.h"
 #include "ModuleDescriptor.h"
+#include "ProjectDescriptor.h"
 
 /**
  * Simple data structure that is filled when querying information about projects
@@ -75,6 +76,13 @@ public:
 	 * @return	Reference to the singleton object
 	 */
 	static PROJECTS_API IProjectManager& Get();
+
+	/**
+	 * Gets the current project descriptor.
+	 *
+	 * @return Pointer to the currently loaded project descriptor. NULL if none is loaded.
+	 */
+	virtual const FProjectDescriptor* GetCurrentProject() const = 0;
 
 	/**
 	 * Loads the specified project file.
@@ -211,6 +219,37 @@ public:
 	/** Called when the target platforms for the current project are changed */
 	DECLARE_MULTICAST_DELEGATE(FOnTargetPlatformsForCurrentProjectChangedEvent);
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() = 0;
+
+	/**
+	 * Gets a list of plugins enabled for the current project.
+	 * 
+	 * @param	OutPluginNames		Array to receive the list of plugin names
+	 */
+	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const = 0;
+
+	/**
+	 * Hack to checks whether the current project has a third party plugin enabled (ie. one which is not included by default in UE4Game).
+	 * 
+	 * @return	True if the project has a third party plugin enabled.
+	 */
+	virtual bool IsThirdPartyPluginEnabled() const = 0;
+
+	/**
+	 * Sets whether a plugin is enabled, and updates the project descriptor on disk. May require restarting to load it.
+	 * 
+	 * @param	PluginName		Name of the plugin
+	 * @param	bEnabled		Whether to enable or disable the plugin
+	 * @param	OutFailReason	On failure, gives an error message
+	 * @return	True if the plugin has been marked as enabled, and the project descriptor has been saved.
+	 */
+	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) = 0;
+
+	/**
+	 * Returns whether a restart is required to reflect changes to the project.
+	 * 
+	 * @return	True if the application needs to be restarted.
+	 */
+	virtual bool IsRestartRequired() const = 0;
 
 	/** Helper functions to reduce the syntax complexity of commonly used functions */
 	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }

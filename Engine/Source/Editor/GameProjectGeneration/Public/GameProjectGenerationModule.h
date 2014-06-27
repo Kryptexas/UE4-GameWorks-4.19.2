@@ -47,6 +47,9 @@ public:
 	DECLARE_EVENT(FGameProjectGenerationModule, FAddCodeToProjectDialogOpenedEvent);
 	FAddCodeToProjectDialogOpenedEvent& OnAddCodeToProjectDialogOpened() { return AddCodeToProjectDialogOpenedEvent; }
 
+	/** Tries to make the project file writable. Prompts to check out as necessary. */
+	virtual void TryMakeProjectFileWriteable();
+
 	/** Prompts the user to update his project file, if necessary. */
 	virtual void CheckForOutOfDateGameProjectFile();
 

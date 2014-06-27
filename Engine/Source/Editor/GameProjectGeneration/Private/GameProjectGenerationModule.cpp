@@ -43,6 +43,10 @@ void FGameProjectGenerationModule::OpenAddCodeToProjectDialog()
 	AddCodeToProjectDialogOpenedEvent.Broadcast();
 }
 
+void FGameProjectGenerationModule::TryMakeProjectFileWriteable()
+{
+	GameProjectUtils::TryMakeProjectFileWriteable();
+}
 
 void FGameProjectGenerationModule::CheckForOutOfDateGameProjectFile()
 {

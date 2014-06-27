@@ -22,6 +22,7 @@ namespace UnrealBuildTool.Rules
 					"EditorStyle",
 					"Projects",
 					"UnrealEd",
+					"GameProjectGeneration",
 				}
 			);
 		}

@@ -13,6 +13,7 @@ public:
 	FProjectManager();
 
 	/** IProjectManager interface */
+	virtual const FProjectDescriptor *GetCurrentProject() const override;
 	virtual bool LoadProjectFile( const FString& ProjectFile ) override;
 	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) override;
 	virtual bool AreProjectModulesUpToDate( ) override;
@@ -29,15 +30,25 @@ public:
 	virtual void ClearSupportedTargetPlatformsForProject(const FString& FilePath) override;
 	virtual void ClearSupportedTargetPlatformsForCurrentProject() override;
 	virtual FOnTargetPlatformsForCurrentProjectChangedEvent& OnTargetPlatformsForCurrentProjectChanged() override { return OnTargetPlatformsForCurrentProjectChangedEvent; }
+	virtual void GetEnabledPlugins(TArray<FString>& OutPluginNames) const override;
+	virtual bool IsThirdPartyPluginEnabled() const override;
+	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) override;
+	virtual bool IsRestartRequired() const override;
 
 private:
 	static void QueryStatusForProjectImpl(const FProjectDescriptor& Project, const FString& FilePath, FProjectStatus& OutProjectStatus);
 
+	/** Gets the list of plugins enabled by default, excluding the project overrides */
+	static void GetDefaultEnabledPlugins(TArray<FString>& PluginNames);
+
 	/** The project that is currently loaded in the editor */
-	TSharedPtr< FProjectDescriptor > CurrentlyLoadedProject;
+	TSharedPtr< FProjectDescriptor > CurrentProject;
 
 	/** Delegate called when the target platforms for the current project are changed */
 	FOnTargetPlatformsForCurrentProjectChangedEvent OnTargetPlatformsForCurrentProjectChangedEvent;
+
+	/** Whether we need to restart in order to reflect change to the current project */
+	bool bRestartRequired;
 };
 
 

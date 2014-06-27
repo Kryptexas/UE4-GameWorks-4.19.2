@@ -91,4 +91,123 @@ bool FPluginDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
 	return true;
 }
 
+
+
+
+
+
+
+
+FPluginReferenceDescriptor::FPluginReferenceDescriptor(const FString &InName, bool bInEnabled)
+	: Name(InName)
+	, bEnabled(bInEnabled)
+{
+}
+
+bool FPluginReferenceDescriptor::IsEnabledForPlatform(const FString& Platform) const
+{
+	// If it's not enabled at all, return false
+	if(!bEnabled)
+	{
+		return false;
+	}
+
+	// If there is a list of whitelisted platforms, and this isn't one of them, return false
+	if(WhitelistPlatforms.Num() > 0 && !WhitelistPlatforms.Contains(Platform))
+	{
+		return false;
+	}
+
+	// If this platform is blacklisted, also return false
+	if(BlacklistPlatforms.Contains(Platform))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FPluginReferenceDescriptor::Read(const FJsonObject& Object, FText& OutFailReason)
+{
+	// Get the name
+	if(!Object.TryGetStringField(TEXT("Name"), Name))
+	{
+		OutFailReason = LOCTEXT("PluginReferenceWithoutName", "Plugin references must have a 'Name' field");
+		return false;
+	}
+
+	// Get the enabled field
+	if(!Object.TryGetBoolField(TEXT("Enabled"), bEnabled))
+	{
+		OutFailReason = LOCTEXT("PluginReferenceWithoutEnabled", "Plugin references must have an 'Enabled' field");
+		return false;
+	}
+
+	// Get the platform lists
+	Object.TryGetStringArrayField(TEXT("WhitelistPlatforms"), WhitelistPlatforms);
+	Object.TryGetStringArrayField(TEXT("BlacklistPlatforms"), BlacklistPlatforms);
+	return true;
+}
+
+bool FPluginReferenceDescriptor::ReadArray(const FJsonObject& Object, const TCHAR* Name, TArray<FPluginReferenceDescriptor>& OutPlugins, FText& OutFailReason)
+{
+	const TArray< TSharedPtr<FJsonValue> > *Array;
+	if(Object.TryGetArrayField(Name, Array))
+	{
+		for(const TSharedPtr<FJsonValue> &Item : *Array)
+		{
+			const TSharedPtr<FJsonObject> *Object;
+			if(Item.IsValid() && Item->TryGetObject(Object))
+			{
+				FPluginReferenceDescriptor Plugin;
+				if(!Plugin.Read(*Object->Get(), OutFailReason))
+				{
+					return false;
+				}
+				OutPlugins.Add(Plugin);
+			}
+		}
+	}
+	return true;
+}
+
+void FPluginReferenceDescriptor::Write(TJsonWriter<>& Writer) const
+{
+	Writer.WriteObjectStart();
+	Writer.WriteValue(TEXT("Name"), Name);
+	Writer.WriteValue(TEXT("Enabled"), bEnabled);
+	if (WhitelistPlatforms.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("WhitelistPlatforms"));
+		for(int Idx = 0; Idx < WhitelistPlatforms.Num(); Idx++)
+		{
+			Writer.WriteValue(WhitelistPlatforms[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
+	if (BlacklistPlatforms.Num() > 0)
+	{
+		Writer.WriteArrayStart(TEXT("BlacklistPlatforms"));
+		for(int Idx = 0; Idx < BlacklistPlatforms.Num(); Idx++)
+		{
+			Writer.WriteValue(BlacklistPlatforms[Idx]);
+		}
+		Writer.WriteArrayEnd();
+	}
+	Writer.WriteObjectEnd();
+}
+
+void FPluginReferenceDescriptor::WriteArray(TJsonWriter<>& Writer, const TCHAR* Name, const TArray<FPluginReferenceDescriptor>& Plugins)
+{
+	if(Plugins.Num() > 0)
+	{
+		Writer.WriteArrayStart(Name);
+		for(int Idx = 0; Idx < Plugins.Num(); Idx++)
+		{
+			Plugins[Idx].Write(Writer);
+		}
+		Writer.WriteArrayEnd();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
