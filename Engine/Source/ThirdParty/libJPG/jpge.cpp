@@ -21,8 +21,8 @@
 
 namespace jpge {
 
-static inline void *jpge_malloc(size_t nSize) { return malloc(nSize); }
-static inline void jpge_free(void *p) { free(p); }
+static inline void *jpge_malloc(size_t nSize) { return FMemory::Malloc(nSize); }
+static inline void jpge_free(void *p) { FMemory::Free(p);; }
 
 // Various JPEG enums and tables.
 enum { M_SOF0 = 0xC0, M_DHT = 0xC4, M_SOI = 0xD8, M_EOI = 0xD9, M_SOS = 0xDA, M_DQT = 0xDB, M_APP0 = 0xE0 };
