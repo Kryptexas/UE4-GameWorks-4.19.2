@@ -76,29 +76,15 @@ public:
 		return( BufferSize ); 
 	}
 
-	/** 
-	 * Returns the number of channels for this buffer
-	 */
-	int GetNumChannels( void ) 
-	{ 
-		return( NumChannels ); 
-	}
-		
 	/** Audio device this buffer is attached to */
 	FALAudioDevice*			AudioDevice;
 	/** Array of buffer ids used to reference the data stored in AL. */
 	ALuint					BufferIds[2];
-	/** Resource ID of associated USoundeWave */
-	int						ResourceID;
-	/** Human readable name of resource, most likely name of UObject associated during caching. */
-	FString					ResourceName;
 	/** Format of the data internal to OpenAL */
 	ALuint					InternalFormat;
 
 	/** Number of bytes stored in OpenAL, or the size of the ogg vorbis data */
 	int						BufferSize;
-	/** The number of channels in this sound buffer - should be directly related to InternalFormat */
-	int						NumChannels;
 	/** Sample rate of the ogg vorbis data - typically 44100 or 22050 */
 	int						SampleRate;
 };

@@ -30,9 +30,6 @@ FCoreAudioSoundBuffer::FCoreAudioSoundBuffer( FAudioDevice* InAudioDevice, ESoun
 	PCMData( NULL ),
 	PCMDataSize( 0 ),
 	DecompressionState( NULL ),
-	NumChannels( 0 ),
-	ResourceID( 0 ),
-	bAllocationInPermanentPool( false ),
 	bDynamicResource( false )
 {
 }

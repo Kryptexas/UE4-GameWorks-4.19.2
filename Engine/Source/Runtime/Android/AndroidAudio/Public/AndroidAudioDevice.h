@@ -97,26 +97,13 @@ public:
 		return( BufferSize ); 
 	}
 
-	/** 
-	 * Returns the number of channels for this buffer
-	 */
-	int GetNumChannels( void ) 
-	{ 
-		return( NumChannels ); 
-	}
-	
-		
 	/** Audio device this buffer is attached to */
 	FSLESAudioDevice*			AudioDevice;
 	/** Data */
 	uint8*					AudioData;
-	/** Human readable name of resource, most likely name of UObject associated during caching. */
-	FString					ResourceName;
 
 	/** Number of bytes stored in OpenAL, or the size of the ogg vorbis data */
 	int						BufferSize;
-	/** The number of channels in this sound buffer - should be directly related to InternalFormat */
-	int						NumChannels;
 	/** Sample rate of the ogg vorbis data - typically 44100 or 22050 */
 	int						SampleRate;
 

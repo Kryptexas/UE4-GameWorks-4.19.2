@@ -157,14 +157,6 @@ public:
 	
 	/** Wrapper to handle the decompression of audio codecs */
 	class ICompressedAudioInfo*		DecompressionState;
-	/** Cumulative channels from all streams */
-	int32							NumChannels;
-	/** Resource ID of associated USoundWave */
-	int32							ResourceID;
-	/** Human readable name of resource, most likely name of UObject associated during caching.	*/
-	FString						ResourceName;
-	/** Whether memory for this buffer has been allocated from permanent pool. */
-	bool						bAllocationInPermanentPool;
 	/** Set to true when the PCM data should be freed when the buffer is destroyed */
 	bool						bDynamicResource;
 };
