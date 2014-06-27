@@ -41,7 +41,6 @@ void SCreditsScreen::Construct(const FArguments& InArgs)
 					.Text(FText::FromString(CreditsText))
 					.TextStyle(FEditorStyle::Get(), "Credits.Normal")
 					.DecoratorStyleSet(&FEditorStyle::Get())
-					.AutoWrapText(true)
 					.Justification(ETextJustify::Center)
 					+ SRichTextBlock::HyperlinkDecorator(TEXT("browser"), this, &SCreditsScreen::OnBrowserLinkClicked)
 				]
