@@ -80,14 +80,14 @@ IMPLEMENT_SHADER_TYPE(,FGammaCorrectionVS,TEXT("GammaCorrection"),TEXT("MainVS")
 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
 * @param View - The view to process.
 */
-void FDeferredShadingSceneRenderer::FinishRenderViewTarget(const FViewInfo* View, bool bLastView)
+void FDeferredShadingSceneRenderer::FinishRenderViewTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, bool bLastView)
 {
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
 	// Render the velocities of movable objects for the motion blur effect (currently we only support one view)
-	RenderVelocities(*View, VelocityRT, bLastView);
+	RenderVelocities(RHICmdList, *View, VelocityRT, bLastView);
 
-	GPostProcessing.Process(*View, VelocityRT);
+	GPostProcessing.Process(RHICmdList, *View, VelocityRT);
 
 	// we rendered to it during the frame, seems we haven't made use of it, because there is should be released
 	FSceneViewState* ViewState = (FSceneViewState*)View->State;
@@ -98,7 +98,7 @@ void FDeferredShadingSceneRenderer::FinishRenderViewTarget(const FViewInfo* View
 }
 
 // TODO: REMOVE if no longer needed:
-void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma)
+void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, float OverrideGamma)
 {
 	// Set the view family's render target/viewport.
 	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
@@ -123,7 +123,7 @@ void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdL
 	TShaderMapRef<FGammaCorrectionPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState PostProcessBoundShaderState;
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 	SetGlobalBoundShaderState(RHICmdList, PostProcessBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	float InvDisplayGamma = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();

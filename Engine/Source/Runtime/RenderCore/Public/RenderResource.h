@@ -324,7 +324,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		TextureRHI.SafeRelease();
 		SamplerStateRHI.SafeRelease();
@@ -343,7 +343,7 @@ public:
 	virtual ~FVertexBuffer() {}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexBufferRHI.SafeRelease();
 	}
@@ -360,11 +360,11 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// create a static vertex buffer
 		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), BUF_Static|BUF_ZeroStride,CreateInfo);
+		VertexBufferRHI = RHICreateVertexBuffer(sizeof(uint32), BUF_Static | BUF_ZeroStride, CreateInfo);
 		uint32* Vertices = (uint32*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(uint32), RLM_WriteOnly);
 		Vertices[0] = FColor(255, 255, 255, 255).DWColor();
 		RHIUnlockVertexBuffer(VertexBufferRHI);
@@ -384,7 +384,7 @@ public:
 	virtual ~FIndexBuffer() {}
 
 	// FRenderResource interface.
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		IndexBufferRHI.SafeRelease();
 	}

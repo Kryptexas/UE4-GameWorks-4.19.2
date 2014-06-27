@@ -162,7 +162,7 @@ public:
 	void UnlinkDrawList(FDrawListElementLink* Link);
 
 	/** Adds the static mesh to the appropriate draw lists in a scene. */
-	void AddToDrawLists(FScene* Scene);
+	void AddToDrawLists(FRHICommandListImmediate& RHICmdList, FScene* Scene);
 
 	/** Removes the static mesh from all draw lists. */
 	void RemoveFromDrawLists();

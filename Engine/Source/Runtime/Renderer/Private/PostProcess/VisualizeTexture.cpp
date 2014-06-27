@@ -191,13 +191,13 @@ public:
 IMPLEMENT_SHADER_TYPE(,FVisualizeTexturePresentPS,TEXT("VisualizeTexture"),TEXT("PresentPS"),SF_Pixel);
 
 
-template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
+template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandListImmediate& RHICmdList, const FVisualizeTextureData& Data)
 {
 	TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<VisualizeTexturePS<TextureType> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	PixelShader->SetParameters(RHICmdList, Data);
@@ -220,7 +220,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 		EDRF_UseTriangleOptimization);
 }
 
-void RenderVisualizeTexture(FRHICommandList& RHICmdList, const FVisualizeTextureData& Data)
+void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, const FVisualizeTextureData& Data)
 {
 	if(Data.Desc.Is2DTexture())
 	{
@@ -311,7 +311,7 @@ FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSi
 	return ret;
 }
 
-void FVisualizeTexture::GenerateContent(FRHICommandList& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc)
+void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc)
 {
 	// otherwise StartFrame() wasn't called
 	check(ViewRect != FIntRect(0, 0, 0, 0))
@@ -374,7 +374,6 @@ void FVisualizeTexture::GenerateContent(FRHICommandList& RHICmdList, const FScen
 		default:
 			break;
 	}
-	RHICmdList.CheckIsNull(); // this stuff is manging resources directly, so that won't work in parallel
 
 	bool bIsDefault = StencilSRVSrc == GBlackTexture->TextureRHI;
 	bool bDepthStencil = Desc.Is2DTexture() && Desc.Format == PF_DepthStencil;
@@ -447,9 +446,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandList& RHICmdList, const FScen
 		
 		
 		
-		RHICmdList.CheckIsNull(); // synchronous readback, won't work with parallel
-		
-		RHIReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
+		RHICmdList.ReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
 
 		// if the format and texture type is supported
 		if(Bitmap.Num())
@@ -473,7 +470,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandList& RHICmdList, const FScen
 	}
 }
 
-void FVisualizeTexture::PresentContent(FRHICommandList& RHICmdList, const FSceneView& View)
+void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	if(Mode != 0)
 	{
@@ -509,7 +506,7 @@ void FVisualizeTexture::PresentContent(FRHICommandList& RHICmdList, const FScene
 	TShaderMapRef<FVisualizeTexturePresentPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -550,7 +547,6 @@ void FVisualizeTexture::PresentContent(FRHICommandList& RHICmdList, const FScene
 			return View.Family->RenderTarget->GetRenderTargetTexture();
 		}
 	} TempRenderTarget(View);
-	RHICmdList.CheckIsNull(); // canvas doesn't work with command lists
 
 	FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime);
 
@@ -624,8 +620,9 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 	ObservedDebugNameReusedGoal = InObservedDebugNameReusedGoal;
 }
 
-void FVisualizeTexture::SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
+void FVisualizeTexture::SetCheckPoint(FRHICommandListImmediate& RHICmdList, const IPooledRenderTarget* PooledRenderTarget)
 {
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!PooledRenderTarget || !bEnabled)
 	{

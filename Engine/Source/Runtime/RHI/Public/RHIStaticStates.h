@@ -47,11 +47,11 @@ private:
 		}
 
 		// FRenderResource interface.
-		virtual void InitRHI()
+		virtual void InitRHI() override
 		{
 			StateRHI = InitializerType::CreateRHI();
 		}
-		virtual void ReleaseRHI()
+		virtual void ReleaseRHI() override
 		{
 			StateRHI.SafeRelease();
 		}

@@ -2769,7 +2769,7 @@ namespace MaterialExportUtils
 					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 				{
 					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICopyToResolveTarget(
+					RHICmdList.CopyToResolveTarget(
 						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 						RenderTargetResource->TextureRHI,					// Dest texture
 						false,												// Do we need the source image content again?
@@ -2853,7 +2853,7 @@ namespace MaterialExportUtils
 					FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 				{
 					// Copy (resolve) the rendered thumbnail from the render target to its texture
-					RHICopyToResolveTarget(
+					RHICmdList.CopyToResolveTarget(
 						RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 						RenderTargetResource->TextureRHI,					// Dest texture
 						false,												// Do we need the source image content again?

@@ -654,7 +654,7 @@ FSceneRenderer::~FSceneRenderer()
 /** 
 * Finishes the view family rendering.
 */
-void FSceneRenderer::RenderFinish()
+void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(RenderFinish, DEC_SCENE_ITEMS);
 
@@ -664,7 +664,7 @@ void FSceneRenderer::RenderFinish()
 		const FViewInfo& View = Views[0];
 
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FRenderingCompositeOutputRef BusyWait;
 		{
@@ -809,14 +809,14 @@ void FSceneRenderer::RenderFinish()
 				continue;
 			}
 
-			GRenderTargetPool.PresentContent(View);
+			GRenderTargetPool.PresentContent(RHICmdList, View);
 		}
 	}
 
 #endif
 
 	// Notify the RHI we are done rendering a scene.
-	RHIEndScene();
+	RHICmdList.EndScene();
 }
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
@@ -833,7 +833,7 @@ FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InVi
 	}
 }
 
-void FSceneRenderer::RenderCustomDepthPass()
+void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 {
 	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 	{
@@ -858,12 +858,9 @@ void FSceneRenderer::RenderCustomDepthPass()
 	}
 
 	// Render CustomDepth
-	if(GSceneRenderTargets.BeginRenderingCustomDepth(bPrimitives))
+	if (GSceneRenderTargets.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
 	{
 		SCOPED_DRAW_EVENT(CustomDepth, DEC_SCENE_ITEMS);
-
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
@@ -871,23 +868,23 @@ void FSceneRenderer::RenderCustomDepthPass()
 
 			FViewInfo& View = Views[ViewIndex];
 
-			RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 			// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-			RHIClear(false, FLinearColor(0,0,0,0), true, 0.0f, false, 0, FIntRect());
+			RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, false, 0, FIntRect());
 			
 			// seems this is set each draw call anyway
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 
 			// Note, this is a reversed Z depth surface, so CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 			View.CustomDepthSet.DrawPrims(RHICmdList, &View, false);
 		}
 
 		// resolve using the current ResolveParams 
-		GSceneRenderTargets.FinishRenderingCustomDepth();
+		GSceneRenderTargets.FinishRenderingCustomDepth(RHICmdList);
 	}
 }
 
@@ -919,7 +916,7 @@ void FSceneRenderer::OnStartFrame()
  *
  * @param SceneRenderer	Scene renderer to use for rendering.
  */
-static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
+static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
 {
     FMemMark MemStackMark(FMemStack::Get());
 
@@ -946,12 +943,12 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.
-			SceneRenderer->RenderHitProxies();
+			SceneRenderer->RenderHitProxies(RHICmdList);
 		}
 		else
 		{
 			// Render the scene.
-			SceneRenderer->Render();
+			SceneRenderer->Render(RHICmdList);
 		}
 
 #if STATS
@@ -1016,7 +1013,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewF
 			FDrawSceneCommand,
 			FSceneRenderer*,SceneRenderer,SceneRenderer,
 		{
-			RenderViewFamily_RenderThread(SceneRenderer);
+			RenderViewFamily_RenderThread(RHICmdList, SceneRenderer);
 		});
 	}
 }

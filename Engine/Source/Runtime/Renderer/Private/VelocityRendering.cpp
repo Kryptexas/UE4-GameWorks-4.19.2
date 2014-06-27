@@ -447,7 +447,7 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
-void FDeferredShadingSceneRenderer::RenderVelocities(const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame)
+void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bLastFrame)
 {
 	SCOPE_CYCLE_COUNTER( STAT_RenderVelocities );
 
@@ -472,29 +472,26 @@ void FDeferredShadingSceneRenderer::RenderVelocities(const FViewInfo& View, TRef
 
 	GPrevPerBoneMotionBlur.LockData();
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
 	const uint32 MinY = View.ViewRect.Min.Y * VelocityBufferSize.Y / BufferSize.Y;
 	const uint32 MaxX = View.ViewRect.Max.X * VelocityBufferSize.X / BufferSize.X;
 	const uint32 MaxY = View.ViewRect.Max.Y * VelocityBufferSize.Y / BufferSize.Y;
-	RHISetRenderTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
+	SetRenderTarget(RHICmdList, VelocityRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthTexture());
 
-	RHISetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
+	RHICmdList.SetViewport(MinX, MinY, 0.0f, MaxX, MaxY, 1.0f);
 
 	// Clear the velocity buffer (0.0f means "use static background velocity").
-	RHIClear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+	RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
 	// Blending is not supported with the velocity buffer format on other platforms
 	// opaque velocities in R|G channels, B is used to identify object motion
-	RHISetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA>::GetRHI());
 	// Use depth tests, no z-writes, backface-culling. 
 
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
 			
-	RHISetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
+	RHICmdList.SetRasterizerState(GetStaticRasterizerState<true>(FM_Solid, CM_CW));
 
 	// Draw velocities for movable static meshes.
 	Scene->VelocityDrawList.DrawVisible(RHICmdList, View,View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
@@ -519,11 +516,11 @@ void FDeferredShadingSceneRenderer::RenderVelocities(const FViewInfo& View, TRef
 	}				
 	Drawer.IsDirty();
 
-	RHICopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 	// restore any color write state changes
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	GPrevPerBoneMotionBlur.UnlockData(bLastFrame);
 
 	// to be able to observe results with VisualizeTexture

@@ -996,7 +996,7 @@ static void SetShaderTempl(const FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessTonemapPS<ConfigIndex> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -1028,9 +1028,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+	
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
@@ -1083,7 +1081,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	// We only release the SceneColor after the last view was processed (SplitScreen)
 	if(Context.View.Family->Views[Context.View.Family->Views.Num() - 1] == &Context.View)
 	{
-		Context.RHICmdList.CheckIsNull(); // probably can't do this parallel
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
 		GSceneRenderTargets.SetSceneColor(0);
@@ -1352,7 +1349,7 @@ static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, boo
 	VertexShader->bUsedFramebufferFetch = bUsedFramebufferFetch;
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -1451,8 +1448,6 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	// Double buffer tonemapper output for temporal AA.
 	if(Context.View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA)
 	{
-		Context.RHICmdList.CheckIsNull(); // modifies the viewstate, probably not appropriate for parallel work
-
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState) 
 		{

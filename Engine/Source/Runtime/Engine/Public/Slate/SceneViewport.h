@@ -105,7 +105,7 @@ public:
 	virtual void EnqueueBeginRenderFrame() override;
 
 	/** Called when a frame starts to render */
-	virtual void BeginRenderFrame() override;
+	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override;
 
 	/** 
 	 * Called when a frame is done rendering
@@ -113,7 +113,7 @@ public:
 	 * @param bPresent	Not used in Slate viewports
 	 * @param bLockToVsync	Not used in Slate viewports
 	 */
-	virtual void EndRenderFrame( bool bPresent, bool bLockToVsync ) override;
+	virtual void EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync) override;
 
 	/**
 	 * Ticks the viewport

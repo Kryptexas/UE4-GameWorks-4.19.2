@@ -209,14 +209,14 @@ static void AddDeferredDecalsBeforeLighting(FPostprocessContext& Context)
 	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 }
 
-void FCompositionLighting::ProcessBeforeBasePass(const FViewInfo& View)
+void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
 
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 
@@ -244,12 +244,10 @@ void FCompositionLighting::ProcessBeforeBasePass(const FViewInfo& View)
 	}
 }
 
-void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
+void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+	
 	// might get renamed to refracted or ...WithAO
 	GSceneRenderTargets.GetSceneColor()->SetDebugName(TEXT("SceneColor"));
 	// to be able to observe results with VisualizeTexture
@@ -265,7 +263,7 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 	// so that the passes can register themselves to the graph
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 
@@ -307,19 +305,17 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 }
 
 
-void FCompositionLighting::ProcessLighting(const FViewInfo& View)
+void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	check(IsInRenderingThread());
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+	
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapDiffuse);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapNormal);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.ReflectiveShadowMapDepth);
 
 	{
 		FMemMark Mark(FMemStack::Get());
-		FRenderingCompositePassContext CompositeContext(View);
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 

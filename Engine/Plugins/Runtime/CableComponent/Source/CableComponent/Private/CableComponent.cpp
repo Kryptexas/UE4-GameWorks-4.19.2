@@ -8,7 +8,7 @@
 class FCableVertexBuffer : public FVertexBuffer 
 {
 public:
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		VertexBufferRHI = RHICreateVertexBuffer(NumVerts * sizeof(FDynamicMeshVertex), BUF_Dynamic, CreateInfo);
@@ -21,7 +21,7 @@ public:
 class FCableIndexBuffer : public FIndexBuffer 
 {
 public:
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FRHIResourceCreateInfo CreateInfo;
 		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), NumIndices * sizeof(int32), BUF_Dynamic, CreateInfo);

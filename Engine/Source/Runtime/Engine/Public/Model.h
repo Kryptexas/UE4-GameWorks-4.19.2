@@ -285,7 +285,7 @@ public:
 	FModelVertexBuffer(UModel* InModel);
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("BSP vertices"); }
 	
 	/**

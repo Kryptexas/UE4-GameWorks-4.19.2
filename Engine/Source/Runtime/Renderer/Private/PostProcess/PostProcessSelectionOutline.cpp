@@ -57,8 +57,6 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 		if (PrimitivesByActor.Num())
 		{
-			Context.RHICmdList.CheckIsNull(); // this uses draw dynamic elements
-
 			// 0 means no object, 1 means BSP so we start with 1
 			uint32 StencilValue = 2;
 
@@ -109,7 +107,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 			InnerRect.InflateRect(-1);
 
 			// We could use Clear with InnerRect but this is just an optimization - on some hardware it might do a full clear (and we cannot disable yet)
-			//			RHIClear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, InnerRect);
+			//			RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, 0.0f, true, 0, InnerRect);
 			// so we to 4 clears - one for each border.
 
 			// top
@@ -320,7 +318,7 @@ static void SetSelectionOutlineShaderTempl(const FRenderingCompositePassContext&
 	TShaderMapRef<FPostProcessSelectionOutlinePS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 

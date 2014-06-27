@@ -90,7 +90,6 @@ public:
 	// @param FilterOverrideArray can be 0 if Filter is used
 	template< typename ShaderRHIParamRef >
 	void Set(
-		FRHICommandList& RHICmdList,
 		const ShaderRHIParamRef& ShaderRHI,
 		const FRenderingCompositePassContext& Context,
 		FSamplerStateRHIParamRef Filter,

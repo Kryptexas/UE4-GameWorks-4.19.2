@@ -103,11 +103,11 @@ FAutoConsoleCommand CmdCompositionGraphDebug(
 	);
 #endif
 
-FRenderingCompositePassContext::FRenderingCompositePassContext(const FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
+FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, const FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
 	: View(InView)
 	//		, CompositingOutputRTItem(InRenderTargetItem)
 	, Pass(0)
-	, RHICmdList(FRHICommandList::GetNullRef())
+	, RHICmdList(InRHICmdList)
 	, ViewPortRect(0, 0, 0 ,0)
 {
 	check(!IsViewportValid());
@@ -251,7 +251,7 @@ void FRenderingCompositionGraph::DumpOutputToFile(FRenderingCompositePassContext
 	TArray<FColor> Bitmap;
 
 	FIntPoint Extent = Context.View.ViewRect.Size();
-	RHIReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
+	Context.RHICmdList.ReadSurfaceData(Texture, FIntRect(0, 0, Extent.X, Extent.Y), Bitmap, ReadDataFlags);
 
 	static TCHAR File[MAX_SPRINTF];
 	FCString::Sprintf( File, TEXT("%s.bmp"), *Filename);
@@ -540,7 +540,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 				TArray<FColor>* OutputColorArray = Pass->GetOutputColorArray((EPassOutputId)OutputId);
 				if (OutputColorArray)
 				{
-					RHIReadSurfaceData(
+					Context.RHICmdList.ReadSurfaceData(
 						PassOutput->PooledRenderTarget->GetRenderTargetItem().TargetableTexture,
 						Context.View.ViewRect,
 						*OutputColorArray,
@@ -667,22 +667,21 @@ void FPostProcessPassParameters::Bind(const FShaderParameterMap& ParameterMap)
 
 void FPostProcessPassParameters::SetPS(const FPixelShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(Context.RHICmdList, ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
 }
 
 void FPostProcessPassParameters::SetCS(const FComputeShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(Context.RHICmdList, ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
 }
 
 void FPostProcessPassParameters::SetVS(const FVertexShaderRHIParamRef& ShaderRHI, const FRenderingCompositePassContext& Context, FSamplerStateRHIParamRef Filter, bool bWhiteIfNoTexture, FSamplerStateRHIParamRef* FilterOverrideArray)
 {
-	Set(Context.RHICmdList, ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
+	Set(ShaderRHI, Context, Filter, bWhiteIfNoTexture, FilterOverrideArray);
 }
 
 template< typename ShaderRHIParamRef >
 void FPostProcessPassParameters::Set(
-	FRHICommandList& RHICmdList,
 	const ShaderRHIParamRef& ShaderRHI,
 	const FRenderingCompositePassContext& Context,
 	FSamplerStateRHIParamRef Filter,
@@ -700,11 +699,11 @@ void FPostProcessPassParameters::Set(
 	// but not both
 	check(!FilterOverrideArray || !Filter);
 
-	RHICmdList.CheckIsNull();
+	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 
 	if(BilinearTextureSampler0.IsBound())
 	{
-		RHISetShaderSampler(
+		RHICmdList.SetShaderSampler(
 			ShaderRHI, 
 			BilinearTextureSampler0.GetBaseIndex(), 
 			TStaticSamplerState<SF_Bilinear>::GetRHI()
@@ -713,7 +712,7 @@ void FPostProcessPassParameters::Set(
 
 	if(BilinearTextureSampler1.IsBound())
 	{
-		RHISetShaderSampler(
+		RHICmdList.SetShaderSampler(
 			ShaderRHI, 
 			BilinearTextureSampler1.GetBaseIndex(), 
 			TStaticSamplerState<SF_Bilinear>::GetRHI()
@@ -824,7 +823,6 @@ void FPostProcessPassParameters::Set(
 
 #define IMPLEMENT_POST_PROCESS_PARAM_SET( ShaderRHIParamRef ) \
 	template void FPostProcessPassParameters::Set< ShaderRHIParamRef >( \
-		FRHICommandList& RHICmdList,					\
 		const ShaderRHIParamRef& ShaderRHI,				\
 		const FRenderingCompositePassContext& Context,	\
 		FSamplerStateRHIParamRef Filter,				\

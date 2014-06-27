@@ -282,7 +282,7 @@ public:
 		MaxObjects = 0;
 	}
 
-	virtual void InitDynamicRHI() 
+	virtual void InitDynamicRHI()  override
 	{
 		if (MaxObjects > 0)
 		{
@@ -297,7 +297,7 @@ public:
 		}
 	}
 
-	virtual void ReleaseDynamicRHI()
+	virtual void ReleaseDynamicRHI() override
 	{
 		ObjectData.Bounds.SafeRelease();
 		ObjectData.Data.SafeRelease();
@@ -941,7 +941,7 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FComputeDistanceFieldNormalCS,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("ComputeDistanceFieldNormalCS"),SF_Compute);
 
-void ComputeDistanceFieldNormal(FRHICommandList& RHICmdList, const TArray<FViewInfo>& Views, FSceneRenderTargetItem& DistanceFieldNormal, int32 NumObjects)
+void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArray<FViewInfo>& Views, FSceneRenderTargetItem& DistanceFieldNormal, int32 NumObjects)
 {
 	if (GAOComputeShaderNormalCalculation)
 	{
@@ -985,7 +985,7 @@ void ComputeDistanceFieldNormal(FRHICommandList& RHICmdList, const TArray<FViewI
 			TShaderMapRef<FComputeDistanceFieldNormalPS> PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
-			RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+			
 			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			PixelShader->SetParameters(RHICmdList, View, NumObjects);
@@ -2054,7 +2054,7 @@ void AllocateOrReuseAORenderTarget(TRefCountPtr<IPooledRenderTarget>& Target, co
 }
 
 void UpdateHistory(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
 	FViewInfo& View, 
 	const TCHAR* HistoryRTName,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
@@ -2068,7 +2068,6 @@ void UpdateHistory(
 	{
 		if (*HistoryState && !View.bCameraCut && !View.bPrevTransformsReset)
 		{
-			RHICmdList.CheckIsNull(); // direct allocation of resources won't work in parallel
 			// Reuse a render target from the pool with a consistent name, for vis purposes
 			TRefCountPtr<IPooledRenderTarget> NewHistory;
 			AllocateOrReuseAORenderTarget(NewHistory, HistoryRTName);
@@ -2086,7 +2085,7 @@ void UpdateHistory(
 				TShaderMapRef<FUpdateHistoryPS> PixelShader( GetGlobalShaderMap() );
 
 				static FGlobalBoundShaderState BoundShaderState;
-				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				PixelShader->SetParameters(RHICmdList, View, (*HistoryState)->GetRenderTargetItem(), AOSource->GetRenderTargetItem());
@@ -2121,9 +2120,8 @@ void UpdateHistory(
 	}
 }
 
-void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Views, FSceneRenderTargetItem& IrradianceCacheInterpolation, TRefCountPtr<IPooledRenderTarget>& AOOutput)
+void PostProcessBentNormalAO(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views, FSceneRenderTargetItem& IrradianceCacheInterpolation, TRefCountPtr<IPooledRenderTarget>& AOOutput)
 {
-	RHICmdList.CheckIsNull(); // direct allocation of resources won't work in parallel
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
 	AllocateOrReuseAORenderTarget(DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"));
 
@@ -2154,7 +2152,7 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 			TShaderMapRef<FDistanceFieldAOCombinePS2> PixelShader(GetGlobalShaderMap());
 
 			static FGlobalBoundShaderState BoundShaderState;
-			RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+			
 			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			PixelShader->SetParameters(RHICmdList, View, IrradianceCacheInterpolation);
@@ -2190,7 +2188,7 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 			TShaderMapRef<FFillGapsPS> PixelShader( GetGlobalShaderMap() );
 
 			static FGlobalBoundShaderState BoundShaderState;
-			RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+			
 			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 			VertexShader->SetParameters(RHICmdList, View);
@@ -2281,7 +2279,7 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FDistanceFieldAOUpsamplePS,TEXT("DistanceFieldSurfaceCacheLighting"),TEXT("AOUpsamplePS"),SF_Pixel);
 
-void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& Views, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal)
+void UpsampleBentNormalAO(FRHICommandListImmediate& RHICmdList, const TArray<FViewInfo>& Views, TRefCountPtr<IPooledRenderTarget>& DistanceFieldAOBentNormal)
 {
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -2298,7 +2296,7 @@ void UpsampleBentNormalAO(FRHICommandList& RHICmdList, const TArray<FViewInfo>& 
 		TShaderMapRef<FDistanceFieldAOUpsamplePS> PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		
 		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		PixelShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormal);
@@ -2472,7 +2470,7 @@ void GenerateBestSpacedVectors()
 	}
 }
 
-FIntPoint BuildTileObjectLists(FRHICommandList& RHICmdList, FScene* Scene, TArray<FViewInfo>& Views, int32 NumObjects)
+FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Scene, TArray<FViewInfo>& Views, int32 NumObjects)
 {
 	SCOPED_DRAW_EVENT(BuildTileList, DEC_SCENE_ITEMS);
 	SetRenderTarget(RHICmdList, NULL, NULL);
@@ -2481,7 +2479,6 @@ FIntPoint BuildTileObjectLists(FRHICommandList& RHICmdList, FScene* Scene, TArra
 
 	if (GAOScatterTileCulling)
 	{
-		RHICmdList.CheckIsNull(); // direct allocation of resources won't work in parallel
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -2538,7 +2535,7 @@ FIntPoint BuildTileObjectLists(FRHICommandList& RHICmdList, FScene* Scene, TArra
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 				static FGlobalBoundShaderState BoundShaderState;
-				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GetVertexDeclarationFVector4(), *VertexShader, *PixelShader);
 
 				VertexShader->SetParameters(RHICmdList, View, NumObjects);
@@ -2604,7 +2601,7 @@ FIntPoint BuildTileObjectLists(FRHICommandList& RHICmdList, FScene* Scene, TArra
 	return TileListGroupSize;
 }
 
-void RenderIrradianceCacheInterpolation(FRHICommandList& RHICmdList, TArray<FViewInfo>& Views, IPooledRenderTarget* InterpolationTarget, FSceneRenderTargetItem& DistanceFieldNormal, int32 DepthLevel, int32 DestLevelDownsampleFactor, bool bFinalInterpolation)
+void RenderIrradianceCacheInterpolation(FRHICommandListImmediate& RHICmdList, TArray<FViewInfo>& Views, IPooledRenderTarget* InterpolationTarget, FSceneRenderTargetItem& DistanceFieldNormal, int32 DepthLevel, int32 DestLevelDownsampleFactor, bool bFinalInterpolation)
 {
 	check(!(bFinalInterpolation && DepthLevel != 0));
 
@@ -2663,7 +2660,7 @@ void RenderIrradianceCacheInterpolation(FRHICommandList& RHICmdList, TArray<FVie
 				for (int32 SplatSourceDepthLevel = MaxAllowedLevel; SplatSourceDepthLevel >= DepthLevel; SplatSourceDepthLevel--)
 				{
 					static FGlobalBoundShaderState BoundShaderState;
-					RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+					
 					SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 					VertexShader->SetParameters(RHICmdList, View, SplatSourceDepthLevel, DestLevelDownsampleFactor, NormalizedOffsetToPixelCenter);
@@ -2680,7 +2677,7 @@ void RenderIrradianceCacheInterpolation(FRHICommandList& RHICmdList, TArray<FVie
 				for (int32 SplatSourceDepthLevel = MaxAllowedLevel; SplatSourceDepthLevel >= DepthLevel; SplatSourceDepthLevel--)
 				{
 					static FGlobalBoundShaderState BoundShaderState;
-					RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+					
 					SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 					VertexShader->SetParameters(RHICmdList, View, SplatSourceDepthLevel, DestLevelDownsampleFactor, NormalizedOffsetToPixelCenter);
@@ -2817,7 +2814,7 @@ void UpdateVisibleObjectBuffers(const FScene* Scene, const FViewInfo& View, int3
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHICommandList& RHICmdList, FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor)
+bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHICommandListImmediate& RHICmdList, FSceneRenderTargetItem& OutBentNormalAO, bool bApplyToSceneColor)
 {
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
@@ -2831,8 +2828,6 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderDistanceFieldAOSurfaceCache);
 		SCOPED_DRAW_EVENT(DistanceFieldAO, DEC_SCENE_ITEMS);
-
-		RHICmdList.CheckIsNull(); // direct allocation of things will not work, probably
 
 		// Update the global distance field atlas
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
@@ -3019,11 +3014,11 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 
 				if (bApplyToSceneColor)
 				{
-					GSceneRenderTargets.BeginRenderingSceneColor(false);
+					GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, false);
 				}
 				else
 				{
-					RHISetRenderTarget(OutBentNormalAO.TargetableTexture, NULL);
+					SetRenderTarget(RHICmdList, OutBentNormalAO.TargetableTexture, NULL);
 				}
 
 				// Upsample to full resolution, write to output
@@ -3101,7 +3096,7 @@ private:
 IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS<true>,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,TDynamicSkyLightDiffusePS<false>,TEXT("SkyLighting"),TEXT("SkyLightDiffusePS"),SF_Pixel);
 
-void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandList& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList)
 {
 	if (Scene->SkyLight
 		&& Scene->SkyLight->ProcessedTexture
@@ -3129,8 +3124,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandList& RH
 			bApplyShadowing = RenderDistanceFieldAOSurfaceCache(RHICmdList, LightAccumulation->GetRenderTargetItem(), false);
 		}
 
-		RHICmdList.CheckIsNull(); // BRSC is not supported in parallel
-		GSceneRenderTargets.BeginRenderingSceneColor();
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 		for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 		{
@@ -3148,7 +3142,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandList& RH
 				TShaderMapRef<TDynamicSkyLightDiffusePS<true> > PixelShader( GetGlobalShaderMap() );
 
 				static FGlobalBoundShaderState BoundShaderState;
-				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture);
@@ -3158,7 +3152,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandList& RH
 				TShaderMapRef<TDynamicSkyLightDiffusePS<false> > PixelShader( GetGlobalShaderMap() );
 
 				static FGlobalBoundShaderState BoundShaderState;
-				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				PixelShader->SetParameters(RHICmdList, View, LightAccumulation->GetRenderTargetItem().ShaderResourceTexture);

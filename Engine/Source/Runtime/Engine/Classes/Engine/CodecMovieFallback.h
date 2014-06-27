@@ -37,7 +37,7 @@ class UCodecMovieFallback : public UCodecMovie
 
 	virtual void ResetStream() override;
 
-	virtual void GetFrame( class FTextureMovieResource* InTextureMovieResource ) override;
+	virtual void GetFrame(FRHICommandListImmediate& RHICmdList, class FTextureMovieResource* InTextureMovieResource) override;
 
 	// End CodecMovie Interface
 };

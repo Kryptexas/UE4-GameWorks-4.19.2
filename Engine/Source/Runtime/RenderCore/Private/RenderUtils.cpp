@@ -148,18 +148,18 @@ class FColoredTexture : public FTexture
 {
 public:
 	// FResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// Create the texture RHI.  		
 		FRHIResourceCreateInfo CreateInfo;
-		FTexture2DRHIRef Texture2D = RHICreateTexture2D(1,1,PF_B8G8R8A8,1,1,TexCreate_ShaderResource,CreateInfo);
+		FTexture2DRHIRef Texture2D = RHICreateTexture2D(1, 1, PF_B8G8R8A8, 1, 1, TexCreate_ShaderResource, CreateInfo);
 		TextureRHI = Texture2D;
 
 		// Write the contents of the texture.
 		uint32 DestStride;
-		FColor* DestBuffer = (FColor*)RHILockTexture2D(Texture2D,0,RLM_WriteOnly,DestStride,false);
+		FColor* DestBuffer = (FColor*)RHILockTexture2D(Texture2D, 0, RLM_WriteOnly, DestStride, false);
 		*DestBuffer = FColor(R, G, B, A);
-		RHIUnlockTexture2D(Texture2D,0,false);
+		RHIUnlockTexture2D(Texture2D, 0, false);
 
 		// Create the sampler state RHI resource.
 		FSamplerStateInitializerRHI SamplerStateInitializer(SF_Point,AM_Wrap,AM_Wrap,AM_Wrap);
@@ -235,7 +235,7 @@ public:
 	/**
 	 * Initialize RHI resources.
 	 */
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
 		{
@@ -275,7 +275,7 @@ class FBlackArrayTexture : public FTexture
 {
 public:
 	// FResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
 		{
@@ -327,7 +327,7 @@ public:
 	static const FColor MipColors[NumMips];
 
 	// FResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// Create the texture RHI.
 		int32 TextureSize = 1 << (NumMips - 1);
@@ -340,7 +340,7 @@ public:
 		int32 Size = TextureSize;
 		for ( int32 MipIndex=0; MipIndex < NumMips; ++MipIndex )
 		{
-			FColor* DestBuffer = (FColor*) RHILockTexture2D(Texture2D,MipIndex,RLM_WriteOnly,DestStride,false);
+			FColor* DestBuffer = (FColor*)RHILockTexture2D(Texture2D, MipIndex, RLM_WriteOnly, DestStride, false);
 			for ( int32 Y=0; Y < Size; ++Y )
 			{
 				for ( int32 X=0; X < Size; ++X )
@@ -349,7 +349,7 @@ public:
 				}
 				DestBuffer += DestStride / sizeof(FColor);
 			}
-			RHIUnlockTexture2D(Texture2D,MipIndex,false);
+			RHIUnlockTexture2D(Texture2D, MipIndex, false);
 			Size >>= 1;
 		}
 
@@ -409,7 +409,7 @@ public:
 	{}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// Create the texture RHI.
 		FRHIResourceCreateInfo CreateInfo;
@@ -420,9 +420,9 @@ public:
 		for(uint32 FaceIndex = 0;FaceIndex < 6;FaceIndex++)
 		{
 			uint32 DestStride;
-			FColor* DestBuffer = (FColor*)RHILockTextureCubeFace(TextureCube,FaceIndex,0,0,RLM_WriteOnly,DestStride,false);
+			FColor* DestBuffer = (FColor*)RHILockTextureCubeFace(TextureCube, FaceIndex, 0, 0, RLM_WriteOnly, DestStride, false);
 			*DestBuffer = Color;
-			RHIUnlockTextureCubeFace(TextureCube,FaceIndex,0,0,false);
+			RHIUnlockTextureCubeFace(TextureCube, FaceIndex, 0, 0, false);
 		}
 
 		// Create the sampler state RHI resource.
@@ -467,7 +467,7 @@ class FBlackCubeArrayTexture : public FTexture
 {
 public:
 	// FResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
 		{
@@ -479,10 +479,10 @@ public:
 			for(uint32 FaceIndex = 0;FaceIndex < 6;FaceIndex++)
 			{
 				uint32 DestStride;
-				FColor* DestBuffer = (FColor*)RHILockTextureCubeFace(TextureCubeArray,FaceIndex,0,0,RLM_WriteOnly,DestStride,false);
+				FColor* DestBuffer = (FColor*)RHILockTextureCubeFace(TextureCubeArray, FaceIndex, 0, 0, RLM_WriteOnly, DestStride, false);
 				// Note: alpha is used by reflection environment to say how much of the foreground texture is visible, so 0 says it is completely invisible
 				*DestBuffer = FColor(0, 0, 0, 0);
-				RHIUnlockTextureCubeFace(TextureCubeArray,FaceIndex,0,0,false);
+				RHIUnlockTextureCubeFace(TextureCubeArray, FaceIndex, 0, 0, false);
 			}
 
 			// Create the sampler state RHI resource.
@@ -724,13 +724,13 @@ class FVector4VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 		Elements.Add(FVertexElement(0, 0, VET_Float4, 0, sizeof(FVector4)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -747,13 +747,13 @@ class FVector3VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 		Elements.Add(FVertexElement(0, 0, VET_Float3, 0, sizeof(FVector)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}

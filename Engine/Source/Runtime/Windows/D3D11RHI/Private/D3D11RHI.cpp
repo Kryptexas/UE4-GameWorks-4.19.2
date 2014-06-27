@@ -182,8 +182,8 @@ FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FD3D11DynamicRHI::IssueLongGPUTask()
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
 
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
@@ -224,6 +224,7 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 			DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 		}
 	}
+	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 }
 
 void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)

@@ -16,7 +16,7 @@ TGlobalResource<FSystemTextures> GSystemTextures;
 
 uint8 Quantize8SignedByte(float x);
 
-void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
+void FSystemTextures::InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (bTexturesInitialized && FeatureLevelInitializedTo >= InFeatureLevel)
 	{
@@ -26,7 +26,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 
 	// start with a defined state for the scissor rect (D3D11 was returning (0,0,0,0) which caused a clear to not execute correctly)
 	// todo: move this to an earlier place (for dx9 is has to be after device creation which is after window creation)
-	RHISetScissorRect(false, 0, 0, 0, 0);
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
 	// First initialize textures that are common to all feature levels. This is always done the first time we come into this function, as doesn't care about the
 	// requested feature level
@@ -37,9 +37,9 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, WhiteDummy, TEXT("WhiteDummy"));
 
-			RHISetRenderTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHIClear(true, FLinearColor(1, 1, 1, 1), false, 0, false, 0, FIntRect());
-			RHICopyToResolveTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, WhiteDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			SetRenderTarget(RHICmdList, WhiteDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHICmdList.Clear(true, FLinearColor(1, 1, 1, 1), false, 0, false, 0, FIntRect());
+			RHICmdList.CopyToResolveTarget(WhiteDummy->GetRenderTargetItem().TargetableTexture, WhiteDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create a dummy black texture.
@@ -47,9 +47,9 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_B8G8R8A8, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, BlackDummy, TEXT("BlackDummy"));
 
-			RHISetRenderTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHIClear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
-			RHICopyToResolveTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, BlackDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			SetRenderTarget(RHICmdList, BlackDummy->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
+			RHICmdList.CopyToResolveTarget(BlackDummy->GetRenderTargetItem().TargetableTexture, BlackDummy->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 
 		// Create the PerlinNoiseGradient texture
@@ -58,7 +58,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 			GRenderTargetPool.FindFreeElement(Desc, PerlinNoiseGradient, TEXT("PerlinNoiseGradient"));
 			// Write the contents of the texture.
 			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 			// seed the pseudo random stream with a good value
 			FRandomStream RandomStream(12345);
 			// Values represent float3 values in the -1..1 range.
@@ -80,7 +80,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 					*Dest = gradtable[(uint32)(RandomStream.GetFraction() * 11.9999999f)];
 				}
 			}
-			RHIUnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PerlinNoiseGradient->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 		}
 
 		if (!GSupportsShaderFramebufferFetch && GPixelFormats[PF_FloatRGBA].Supported)
@@ -88,9 +88,9 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_FloatRGBA, TexCreate_HideInVisualizeTexture, TexCreate_RenderTargetable, false));
 			GRenderTargetPool.FindFreeElement(Desc, MaxFP16Depth, TEXT("MaxFP16Depth"));
 
-			RHISetRenderTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
-			RHIClear(true, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), false, 0, false, 0, FIntRect());
-			RHICopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			SetRenderTarget(RHICmdList, MaxFP16Depth->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
+			RHICmdList.Clear(true, FLinearColor(65000.0f, 65000.0f, 65000.0f, 65000.0f), false, 0, false, 0, FIntRect());
+			RHICmdList.CopyToResolveTarget(MaxFP16Depth->GetRenderTargetItem().TargetableTexture, MaxFP16Depth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 	}
 
@@ -196,7 +196,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 
 		FUpdateTextureRegion3D Region(0, 0, 0, 0, 0, 0, Desc.Extent.X, Desc.Extent.Y, Desc.Depth);
 
-		RHIUpdateTexture3D(
+		RHICmdList.UpdateTexture3D(
 			(FTexture3DRHIRef&)PerlinNoise3D->GetRenderTargetItem().ShaderResourceTexture,
 			0,
 			Region,
@@ -236,7 +236,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 		GRenderTargetPool.FindFreeElement(Desc, SSAORandomization, TEXT("SSAORandomization"));
 		// Write the contents of the texture.
 		uint32 DestStride;
-		uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture,0,RLM_WriteOnly,DestStride,false);
+		uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 
 		for(int32 y = 0; y < Desc.Extent.Y; ++y)
 		{
@@ -249,7 +249,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 				*Dest = Bases[Index];
 			}
 		}
-		RHIUnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+		RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)SSAORandomization->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 
 		{
 			// for testing, with 128x128 R8G8 we are very close to the reference (if lower res is needed we might have to add an offset to counter the 0.5f texel shift)
@@ -267,7 +267,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 			GRenderTargetPool.FindFreeElement(Desc, PreintegratedGF, TEXT("PreintegratedGF"));
 			// Write the contents of the texture.
 			uint32 DestStride;
-			uint8* DestBuffer = (uint8*)RHILockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
+			uint8* DestBuffer = (uint8*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, DestStride, false);
 
 			// x is NoV, y is roughness
 			for (int32 y = 0; y < Desc.Extent.Y; y++)
@@ -343,7 +343,7 @@ void FSystemTextures::InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel)
 					}
 				}
 			}
-			RHIUnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, false);
+			RHICmdList.UnlockTexture2D((FTexture2DRHIRef&)PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture, 0, false);
 		}
 	}
 

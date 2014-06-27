@@ -1,11 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	RHI.cpp: Render Hardware Interface implementation.
-=============================================================================*/
 
 #include "RHI.h"
 #include "RHICommandList.h"
+//#include "../../RenderCore/Public/RenderingThread.h"
 
 DEFINE_STAT(STAT_RHICmdListExecuteTime);
 DEFINE_STAT(STAT_RHICmdListEnqueueTime);
@@ -20,6 +18,13 @@ static FAutoConsoleVariableRef CVarRHICmd(
 	TEXT("0: Disables the RHI Command List mode, running regular RHI calls (default)\n")
 	TEXT("1: Enables the RHI Command List mode")
 	);
+
+static TAutoConsoleVariable<int32> CVarRHICmdBypass(
+	TEXT("r.RHICmdBypass"),
+	FRHICommandListExecutor::DefaultBypass,
+	TEXT("Whether to bypass the rhi command list and send the rhi commands immediately.\n")
+	TEXT("0: Disable, 1: Enable"),
+	ECVF_Cheat);
 
 static int32 GRHISkip = 0;
 static FAutoConsoleVariableRef CVarRHICmdSkip(
@@ -46,18 +51,9 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 	);
 
 RHI_API FRHICommandListExecutor GRHICommandList;
-RHI_API FRHICommandList FRHICommandList::NullRHICommandList;
+//RHI_API FGlobalRHI GRHI;
 
 static_assert(sizeof(FRHICommand) == sizeof(FRHICommandNopEndOfPage), "These should match for filling in the end of a page when a new allocation won't fit");
-
-//@todo-rco: Temp hack!
-static FRHICommandList GCommandList;
-
-
-FRHICommandListExecutor::FRHICommandListExecutor() :
-	bLock(false)
-{
-}
 
 template <bool bOnlyTestMemAccess>
 void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
@@ -87,7 +83,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetRasterizerState>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHISetRasterizerState(RHICmd->State);
+					SetRasterizerState_Internal(RHICmd->State);
 				}
 				RHICmd->State->Release();
 			}
@@ -99,12 +95,12 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					switch (RHICmd->ShaderFrequency)
 					{
-					case SF_Vertex:		RHISetShaderParameter((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
-					case SF_Hull:		RHISetShaderParameter((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
-					case SF_Domain:		RHISetShaderParameter((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
-					case SF_Geometry:	RHISetShaderParameter((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
-					case SF_Pixel:		RHISetShaderParameter((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
-					case SF_Compute:	RHISetShaderParameter((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Vertex:		SetShaderParameter_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Hull:		SetShaderParameter_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Domain:		SetShaderParameter_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Geometry:	SetShaderParameter_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Pixel:		SetShaderParameter_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
+					case SF_Compute:	SetShaderParameter_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->BufferIndex, RHICmd->BaseIndex, RHICmd->NumBytes, RHICmd->NewValue); break;
 					default: check(0); break;
 					}
 				}
@@ -117,12 +113,12 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					switch (RHICmd->ShaderFrequency)
 					{
-					case SF_Vertex:		RHISetShaderUniformBuffer((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
-					case SF_Hull:		RHISetShaderUniformBuffer((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
-					case SF_Domain:		RHISetShaderUniformBuffer((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
-					case SF_Geometry:	RHISetShaderUniformBuffer((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
-					case SF_Pixel:		RHISetShaderUniformBuffer((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
-					case SF_Compute:	RHISetShaderUniformBuffer((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Vertex:		SetShaderUniformBuffer_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Hull:		SetShaderUniformBuffer_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Domain:		SetShaderUniformBuffer_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Geometry:	SetShaderUniformBuffer_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Pixel:		SetShaderUniformBuffer_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
+					case SF_Compute:	SetShaderUniformBuffer_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->UniformBuffer); break;
 					default: check(0); break;
 					}
 				}
@@ -137,12 +133,12 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					switch (RHICmd->ShaderFrequency)
 					{
-					case SF_Vertex:		RHISetShaderSampler((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
-					case SF_Hull:		RHISetShaderSampler((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
-					case SF_Domain:		RHISetShaderSampler((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
-					case SF_Geometry:	RHISetShaderSampler((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
-					case SF_Pixel:		RHISetShaderSampler((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
-					case SF_Compute:	RHISetShaderSampler((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Vertex:		SetShaderSampler_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Hull:		SetShaderSampler_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Domain:		SetShaderSampler_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Geometry:	SetShaderSampler_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Pixel:		SetShaderSampler_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
+					case SF_Compute:	SetShaderSampler_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->Sampler); break;
 					default: check(0); break;
 					}
 				}
@@ -157,12 +153,12 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					switch (RHICmd->ShaderFrequency)
 					{
-					case SF_Vertex:		RHISetShaderTexture((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
-					case SF_Hull:		RHISetShaderTexture((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
-					case SF_Domain:		RHISetShaderTexture((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
-					case SF_Geometry:	RHISetShaderTexture((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
-					case SF_Pixel:		RHISetShaderTexture((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
-					case SF_Compute:	RHISetShaderTexture((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Vertex:		SetShaderTexture_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Hull:		SetShaderTexture_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Domain:		SetShaderTexture_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Geometry:	SetShaderTexture_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Pixel:		SetShaderTexture_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
+					case SF_Compute:	SetShaderTexture_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->TextureIndex, RHICmd->Texture); break;
 					default: check(0); break;
 					}
 				}
@@ -170,12 +166,62 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				RHICmd->Texture->Release();
 			}
 			break;
+		case ERCT_SetShaderResourceViewParameter:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderResourceViewParameter>();
+				if (!bOnlyTestMemAccess)
+				{
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Vertex:		SetShaderResourceViewParameter_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					case SF_Hull:		SetShaderResourceViewParameter_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					case SF_Domain:		SetShaderResourceViewParameter_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					case SF_Geometry:	SetShaderResourceViewParameter_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					case SF_Pixel:		SetShaderResourceViewParameter_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					case SF_Compute:	SetShaderResourceViewParameter_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->SamplerIndex, RHICmd->SRV); break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->SRV->Release();
+			}
+			break;
+		case ERCT_SetUAVParameter:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter>();
+				if (!bOnlyTestMemAccess)
+				{
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Compute:	SetUAVParameter_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->UAVIndex, RHICmd->UAV); break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->UAV->Release();
+			}
+			break;
+		case ERCT_SetUAVParameter_IntialCount:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter_IntialCount>();
+				if (!bOnlyTestMemAccess)
+				{
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Compute:	SetUAVParameter_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->UAVIndex, RHICmd->UAV, RHICmd->InitialCount); break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->UAV->Release();
+			}
+			break;
 		case ERCT_DrawPrimitive:
 			{
 				auto* RHICmd = Iter.NextCommand<FRHICommandDrawPrimitive>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHIDrawPrimitive(RHICmd->PrimitiveType, RHICmd->BaseVertexIndex, RHICmd->NumPrimitives, RHICmd->NumInstances);
+					DrawPrimitive_Internal(RHICmd->PrimitiveType, RHICmd->BaseVertexIndex, RHICmd->NumPrimitives, RHICmd->NumInstances);
 				}
 			}
 			break;
@@ -184,7 +230,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandDrawIndexedPrimitive>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHIDrawIndexedPrimitive(RHICmd->IndexBuffer, RHICmd->PrimitiveType, RHICmd->BaseVertexIndex, RHICmd->MinIndex, RHICmd->NumVertices, RHICmd->StartIndex, RHICmd->NumPrimitives, RHICmd->NumInstances);
+					DrawIndexedPrimitive_Internal(RHICmd->IndexBuffer, RHICmd->PrimitiveType, RHICmd->BaseVertexIndex, RHICmd->MinIndex, RHICmd->NumVertices, RHICmd->StartIndex, RHICmd->NumPrimitives, RHICmd->NumInstances);
 				}
 				RHICmd->IndexBuffer->Release();
 			}
@@ -194,7 +240,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetBoundShaderState>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHISetBoundShaderState(RHICmd->BoundShaderState);
+					SetBoundShaderState_Internal(RHICmd->BoundShaderState);
 				}
 				RHICmd->BoundShaderState->Release();
 			}
@@ -204,7 +250,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetBlendState>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHISetBlendState(RHICmd->State, RHICmd->BlendFactor);
+					SetBlendState_Internal(RHICmd->State, RHICmd->BlendFactor);
 				}
 				RHICmd->State->Release();
 			}
@@ -214,7 +260,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetStreamSource>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHISetStreamSource(RHICmd->StreamIndex, RHICmd->VertexBuffer, RHICmd->Stride, RHICmd->Offset);
+					SetStreamSource_Internal(RHICmd->StreamIndex, RHICmd->VertexBuffer, RHICmd->Stride, RHICmd->Offset);
 				}
 				RHICmd->VertexBuffer->Release();
 			}
@@ -224,7 +270,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				auto* RHICmd = Iter.NextCommand<FRHICommandSetDepthStencilState>();
 				if (!bOnlyTestMemAccess)
 				{
-					RHISetDepthStencilState(RHICmd->State, RHICmd->StencilRef);
+					SetDepthStencilState_Internal(RHICmd->State, RHICmd->StencilRef);
 				}
 				RHICmd->State->Release();
 			}
@@ -238,23 +284,12 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 }
 
 
-void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList& CmdList)
+void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 {
-	if (CmdList.IsNull())
-	{
-		// HACK!
-		return;
-	}
-
+	CmdList.bExecuting = true;
 	SCOPE_CYCLE_COUNTER(STAT_RHICmdListExecuteTime);
 
-	check(CmdList.CanAddCommand());
-
-	FScopeLock Lock(&CriticalSection);
-	check(bLock);
-	bLock = false;
-
-	CmdList.State = FRHICommandList::Executing;
+	check(IsInRenderingThread());
 
 	INC_MEMORY_STAT_BY(STAT_RHICmdListMemory, CmdList.GetUsedMemory());
 
@@ -263,6 +298,10 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList& CmdList)
 
 	if (!bSkipRHICmdList)
 	{
+		if (&CmdList != &GetImmediateCommandList())
+		{
+			GetImmediateCommandList().Flush();
+		}
 		static IConsoleVariable* RHIExecCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHIExec"));
 		if (RHIExecCVar && RHIExecCVar->GetInt() != 0)
 		{
@@ -284,25 +323,14 @@ void FRHICommandListExecutor::ExecuteAndFreeList(FRHICommandList& CmdList)
 	}
 
 	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList.NumCommands);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (&CmdList == &GetImmediateCommandList())
+	{
+		bLatchedBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+	}
+#endif
 	CmdList.Reset();
 }
-
-FRHICommandList& FRHICommandListExecutor::CreateList()
-{
-	FScopeLock Lock(&CriticalSection);
-	check(!bLock);
-	bLock = true;
-	check(GCommandList.State == FRHICommandList::Kicked);
-	check(GCommandList.NumCommands == 0);
-	GCommandList.State = FRHICommandList::Ready;
-	return GCommandList;
-}
-
-void FRHICommandListExecutor::Verify()
-{
-	check(!bLock);
-}
-
 
 FRHICommandList::FMemManager::FMemManager() :
 	FirstPage(nullptr),
@@ -319,7 +347,7 @@ FRHICommandList::FMemManager::~FMemManager()
 		FirstPage = Page;
 	}
 
-	FirstPage = LastPage = (FPage*)0x1; // we want this to not bypass the cmd list; please just crash.
+	FirstPage = LastPage = nullptr;
 }
 
 const SIZE_T FRHICommandList::FMemManager::GetUsedMemory() const

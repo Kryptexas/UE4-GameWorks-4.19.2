@@ -35,8 +35,8 @@ public:
 	virtual ~FD3D11ConstantBuffer();
 
 	// FRenderResource interface.
-	virtual void	InitDynamicRHI();
-	virtual void	ReleaseDynamicRHI();
+	virtual void	InitDynamicRHI() override;
+	virtual void	ReleaseDynamicRHI() override;
 
 	/**
 	* Updates a variable in the constant buffer.

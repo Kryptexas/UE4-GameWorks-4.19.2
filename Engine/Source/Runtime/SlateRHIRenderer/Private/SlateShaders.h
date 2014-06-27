@@ -22,10 +22,10 @@ public:
 	virtual ~FSlateVertexDeclaration() {}
 
 	/** Initializes the vertex declaration RHI resource */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/** Releases the vertex declaration RHI resource */
-	virtual void ReleaseRHI();
+	virtual void ReleaseRHI() override;
 };
 
 /** The slate Vertex shader representation */

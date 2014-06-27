@@ -53,7 +53,7 @@ public:
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		DeferredParameters.Set(RHICmdList, ShaderRHI, Context.View);
-		CubemapShaderParameters.SetParameters(ShaderRHI, Entry);
+		CubemapShaderParameters.SetParameters(RHICmdList, ShaderRHI, Entry);
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 	}
 	
@@ -102,7 +102,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	TShaderMapRef<FPostProcessAmbientPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	uint32 Count = Context.View.FinalPostProcessSettings.ContributingCubemaps.Num();
 	for(uint32 i = 0; i < Count; ++i)
@@ -113,7 +113,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 			SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		}
 
-		//@todo-rco: RHIPacketList
+		
 		PixelShader->SetParameters(Context.RHICmdList, Context, Context.View.FinalPostProcessSettings.ContributingCubemaps[i]);
 
 		// Draw a quad mapping scene color to the view's render target
@@ -154,22 +154,19 @@ void FCubemapShaderParameters::Bind(const FShaderParameterMap& ParameterMap)
 	AmbientCubemapSampler.Bind(ParameterMap, TEXT("AmbientCubemapSampler"));
 }
 
-void FCubemapShaderParameters::SetParameters(const FPixelShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParameters(FRHICommandList& RHICmdList, const FPixelShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
-	SetParametersTemplate(ShaderRHI,Entry);
+	SetParametersTemplate(RHICmdList, ShaderRHI, Entry);
 }
 
-void FCubemapShaderParameters::SetParameters(const FComputeShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParameters(FRHICommandList& RHICmdList, const FComputeShaderRHIParamRef ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
-	SetParametersTemplate(ShaderRHI,Entry);
+	SetParametersTemplate(RHICmdList, ShaderRHI, Entry);
 }
 
 template<typename TShaderRHIRef>
-void FCubemapShaderParameters::SetParametersTemplate(const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
+void FCubemapShaderParameters::SetParametersTemplate(FRHICommandList& RHICmdList, const TShaderRHIRef& ShaderRHI, const FFinalPostProcessSettings::FCubemapEntry& Entry) const
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	// floats to render the cubemap
 	{
 		float MipCount = 0;

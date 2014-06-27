@@ -84,10 +84,10 @@ public:
 	* @param PhaseSortedPrimitives - array with the primitives we want to draw
 	* @param bSeparateTranslucencyPass
 	*/
-	void DrawPrimitives(const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, bool bSeparateTranslucencyPass) const;
+	void DrawPrimitives(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FDeferredShadingSceneRenderer& Renderer, bool bSeparateTranslucencyPass) const;
 
 	/** Draw all the primitives in this set for the forward shading pipeline. */
-	void DrawPrimitivesForForwardShading(const class FViewInfo& View, class FSceneRenderer& Renderer) const;
+	void DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View, class FSceneRenderer& Renderer) const;
 
 	/**
 	* Add a new primitive to the list of sorted prims
@@ -184,10 +184,10 @@ private:
 	TArray<FSortedPrim,SceneRenderingAllocator> SortedSeparateTranslucencyPrims;
 
 	/** Renders a single primitive for the deferred shading pipeline. */
-	void RenderPrimitive(const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, bool bSeparateTranslucencyPass) const;
+	void RenderPrimitive(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance, const FProjectedShadowInfo* TranslucentSelfShadow, bool bSeparateTranslucencyPass) const;
 
 	/** Renders a single primitive for the forward shading pipeline. */
-	void RenderPrimitiveForForwardShading(const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance) const;
+	void RenderPrimitiveForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, const FPrimitiveViewRelevance& ViewRelevance) const;
 };
 
 /** A batched occlusion primitive. */
@@ -214,7 +214,7 @@ public:
 	~FOcclusionQueryBatcher();
 
 	/** Renders the current batch and resets the batch state. */
-	void Flush();
+	void Flush(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Batches a primitive's occlusion query for rendering.
@@ -253,16 +253,16 @@ public:
 					~FHZBOcclusionTester() {}
 
 	// FRenderResource interface
-	virtual void	InitDynamicRHI();
-	virtual void	ReleaseDynamicRHI();
+					virtual void	InitDynamicRHI() override;
+					virtual void	ReleaseDynamicRHI() override;
 	
 	uint32			GetNum() const { return Primitives.Num(); }
 
 	uint32			AddBounds( const FVector& BoundsOrigin, const FVector& BoundsExtent );
-	void			Submit( const FViewInfo& View );
+	void			Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-	void			MapResults();
-	void			UnmapResults();
+	void			MapResults(FRHICommandListImmediate& RHICmdList);
+	void			UnmapResults(FRHICommandListImmediate& RHICmdList);
 	bool			IsVisible( uint32 Index ) const;
 
 	bool IsValidFrame(uint32 FrameNumber) const;
@@ -520,8 +520,8 @@ public:
 
 	// FSceneRenderer interface
 
-	virtual void Render() = 0;
-	virtual void RenderHitProxies() {}
+	virtual void Render(FRHICommandListImmediate& RHICmdList) = 0;
+	virtual void RenderHitProxies(FRHICommandListImmediate& RHICmdList) {}
 
 	/** Creates a scene renderer based on the current feature level. */
 	static FSceneRenderer* CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer);
@@ -533,10 +533,10 @@ protected:
 	// Shared functionality between all scene renderers
 
 	/** Performs once per frame setup prior to visibility determination. */
-	void PreVisibilityFrameSetup();
+	void PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList);
 
 	/** Computes which primitives are visible and relevant for each view. */
-	void ComputeViewVisibility();
+	void ComputeViewVisibility(FRHICommandListImmediate& RHICmdList);
 
 	/** Performs once per frame setup after to visibility determination. */
 	void PostVisibilityFrameSetup();
@@ -551,17 +551,17 @@ protected:
 	bool ShouldRenderTranslucency() const;
 
 	/** TODO: REMOVE if no longer needed: Copies scene color to the viewport's render target after applying gamma correction. */
-	void GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma);
+	void GammaCorrectToViewportRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, float OverrideGamma);
 
 	/** Updates state for the end of the frame. */
-	void RenderFinish();
+	void RenderFinish(FRHICommandListImmediate& RHICmdList);
 
-	void RenderCustomDepthPass();
+	void RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList);
 
 	void OnStartFrame();
 
 	/** Renders the scene's distortion */
-	void RenderDistortion(FRHICommandList& RHICmdList);
+	void RenderDistortion(FRHICommandListImmediate& RHICmdList);
 };
 
 
@@ -576,18 +576,18 @@ public:
 
 	// FSceneRenderer interface
 
-	virtual void Render() override;
+	virtual void Render(FRHICommandListImmediate& RHICmdList) override;
 
 protected:
 
-	void InitViews();
+	void InitViews(FRHICommandListImmediate& RHICmdList);
 
 	/** Renders the opaque base pass for forward shading. */
-	void RenderForwardShadingBasePass(FRHICommandList& RHICmdList);
+	void RenderForwardShadingBasePass(FRHICommandListImmediate& RHICmdList);
 
 	/** Makes a copy of scene alpha so PC can emulate ES2 framebuffer fetch. */
-	void CopySceneAlpha(FRHICommandList& RHICmdList, const FSceneView& View);
+	void CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FSceneView& View);
 
 	/** Renders the base pass for translucency. */
-	void RenderTranslucency();
+	void RenderTranslucency(FRHICommandListImmediate& RHICmdList);
 };

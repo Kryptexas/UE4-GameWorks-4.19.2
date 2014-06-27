@@ -61,7 +61,7 @@ UTexture::UTexture(const class FPostConstructInitializeProperties& PCIP)
 			FCreateTextureRefCommand,
 			UTexture*,Texture,this,
 		{
-			FTextureReferenceRHIRef TextureRef = RHICreateTextureReference();
+			FTextureReferenceRHIRef TextureRef = RHICmdList.CreateTextureReference();
 			TextureRef->AddRef();
 			Texture->TextureRefRHI = TextureRef;
 		});

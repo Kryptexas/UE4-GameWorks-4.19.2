@@ -229,19 +229,19 @@ public:
 	~FPrimitiveSceneInfo();
 
 	/** Adds the primitive to the scene. */
-	void AddToScene(bool bUpdateStaticDrawLists);
+	void AddToScene(FRHICommandListImmediate& RHICmdList, bool bUpdateStaticDrawLists);
 
 	/** Removes the primitive from the scene. */
 	void RemoveFromScene(bool bUpdateStaticDrawLists);
 
 	/** Updates the primitive's static meshes in the scene. */
-	void ConditionalUpdateStaticMeshes();
+	void ConditionalUpdateStaticMeshes(FRHICommandListImmediate& RHICmdList);
 
 	/** Sets a flag to update the primitive's static meshes before it is next rendered. */
 	void BeginDeferredUpdateStaticMeshes();
 
 	/** Adds the primitive's static meshes to the scene. */
-	void AddStaticMeshes();
+	void AddStaticMeshes(FRHICommandListImmediate& RHICmdList);
 
 	/** Removes the primitive's static meshes from the scene. */
 	void RemoveStaticMeshes();

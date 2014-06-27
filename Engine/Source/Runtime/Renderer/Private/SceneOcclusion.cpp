@@ -69,7 +69,7 @@ FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
 	return Queries.Pop();
 }
 
-void FRenderQueryPool::ReleaseQuery( FRenderQueryRHIRef &Query )
+void FRenderQueryPool::ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query)
 {
 	if ( IsValidRef(Query) )
 	{
@@ -80,7 +80,7 @@ void FRenderQueryPool::ReleaseQuery( FRenderQueryRHIRef &Query )
 			Queries.Add( Query );
 
 			// Tell RHI we don't need the result anymore.
-			RHIResetRenderQuery( Query );
+			RHICmdList.ResetRenderQuery(Query);
 		}
 
 		// De-ref without deleting.
@@ -199,7 +199,7 @@ const uint8* FSceneViewState::GetPrecomputedVisibilityData(FViewInfo& View, cons
 	return PrecomputedVisibilityData;
 }
 
-void FSceneViewState::TrimOcclusionHistory(float MinHistoryTime,float MinQueryTime,int32 FrameNumber)
+void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float MinHistoryTime, float MinQueryTime, int32 FrameNumber)
 {
 	// Only trim every few frames, since stale entries won't cause problems
 	if (FrameNumber % 6 == 0)
@@ -212,7 +212,7 @@ void FSceneViewState::TrimOcclusionHistory(float MinHistoryTime,float MinQueryTi
 			// If the primitive has an old pending occlusion query, release it.
 			if(PrimitiveIt->LastConsideredTime < MinQueryTime)
 			{
-				PrimitiveIt->ReleaseQueries(OcclusionQueryPool);
+				PrimitiveIt->ReleaseQueries(RHICmdList, OcclusionQueryPool);
 			}
 
 			// If the primitive hasn't been considered for visibility recently, remove its history from the set.
@@ -224,7 +224,7 @@ void FSceneViewState::TrimOcclusionHistory(float MinHistoryTime,float MinQueryTi
 	}
 }
 
-bool FSceneViewState::IsShadowOccluded(FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow) const
+bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow) const
 {
 	// Find the shadow's occlusion query from the previous frame.
 	const FSceneViewState::FProjectedShadowKey Key(PrimitiveId, Light, SplitIndex, bTranslucentShadow);
@@ -235,7 +235,7 @@ bool FSceneViewState::IsShadowOccluded(FPrimitiveComponentId PrimitiveId, const 
 	// Only block on the query if not running SLI
 	const bool bWaitOnQuery = GNumActiveGPUsForRendering == 1;
 
-	if(Query && RHIGetRenderQueryResult(*Query, NumSamples, bWaitOnQuery))
+	if (Query && RHICmdList.GetRenderQueryResult(*Query, NumSamples, bWaitOnQuery))
 	{
 		// If the shadow's occlusion query didn't have any pixels visible the previous frame, it's occluded.
 		return NumSamples == 0;
@@ -303,7 +303,7 @@ void FSceneViewState::ApplyWorldOffset(FVector InOffset)
 class FOcclusionQueryIndexBuffer : public FIndexBuffer
 {
 public:
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		const uint32 MaxBatchedPrimitives = FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize;
 		const uint32 Stride = sizeof(uint16);
@@ -336,7 +336,7 @@ FOcclusionQueryBatcher::~FOcclusionQueryBatcher()
 	check(!BatchOcclusionQueries.Num());
 }
 
-void FOcclusionQueryBatcher::Flush()
+void FOcclusionQueryBatcher::Flush(FRHICommandListImmediate& RHICmdList)
 {
 	if(BatchOcclusionQueries.Num())
 	{
@@ -354,9 +354,9 @@ void FOcclusionQueryBatcher::Flush()
 			uint32 VertexBufferOffset = Batch.VertexAllocation.VertexOffset;
 			const int32 NumPrimitivesThisBatch = (BatchIndex != (NumBatches-1)) ? MaxBatchedPrimitives : NumBatchedPrimitives;
 				
-			RHIBeginRenderQuery(BatchOcclusionQuery);
-			RHISetStreamSource(0,VertexBufferRHI,sizeof(FVector),VertexBufferOffset);
-			RHIDrawIndexedPrimitive(
+			RHICmdList.BeginRenderQuery(BatchOcclusionQuery);
+			RHICmdList.SetStreamSource(0, VertexBufferRHI, sizeof(FVector), VertexBufferOffset);
+			RHICmdList.DrawIndexedPrimitive(
 				IndexBufferRHI,
 				PT_TriangleList,
 				/*BaseVertexIndex=*/ 0,
@@ -366,7 +366,7 @@ void FOcclusionQueryBatcher::Flush()
 				/*NumPrimitives=*/ 12 * NumPrimitivesThisBatch,
 				/*NumInstances=*/ 1
 				);
-			RHIEndRenderQuery(BatchOcclusionQuery);
+			RHICmdList.EndRenderQuery(BatchOcclusionQuery);
 		}
 		INC_DWORD_STAT_BY(STAT_OcclusionQueries,BatchOcclusionQueries.Num());
 
@@ -410,7 +410,7 @@ FRenderQueryRHIParamRef FOcclusionQueryBatcher::BatchPrimitive(const FVector& Bo
 	return CurrentBatchOcclusionQuery->Query;
 }
 
-static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader)
+static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader)
 {
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
@@ -427,20 +427,19 @@ static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjected
 		);
 	if( !bIntersectsNearClippingPlane )
 	{
+
 		// Allocate an occlusion query for the primitive from the occlusion query pool.
 		const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
-
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+		
 		VertexShader->SetParameters(RHICmdList, View);
 
 		// Draw the primitive's bounding box, using the occlusion query.
-		RHIBeginRenderQuery(ShadowOcclusionQuery);
+		RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
 
 		void* VerticesPtr;
 		void* IndicesPtr;
 		// preallocate memory to fill out with vertices and indices
-		RHIBeginDrawIndexedPrimitiveUP( PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
+		RHICmdList.BeginDrawIndexedPrimitiveUP(PT_TriangleList, 12, 8, sizeof(FVector), VerticesPtr, 0, NUM_CUBE_VERTICES, sizeof(uint16), IndicesPtr);
 		FVector* Vertices = (FVector*)VerticesPtr;
 		uint16* Indices = (uint16*)IndicesPtr;
 
@@ -479,8 +478,8 @@ static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjected
 		checkSlow(ShadowOcclusionQueryMap.Find(Key) == NULL);
 		ShadowOcclusionQueryMap.Add(Key, ShadowOcclusionQuery);
 
-		RHIEndDrawIndexedPrimitiveUP();
-		RHIEndRenderQuery(ShadowOcclusionQuery);
+		RHICmdList.EndDrawIndexedPrimitiveUP();
+		RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
 	}
 }
 
@@ -548,7 +547,7 @@ uint32 FHZBOcclusionTester::AddBounds( const FVector& BoundsCenter, const FVecto
 	return Index;
 }
 
-void FHZBOcclusionTester::MapResults()
+void FHZBOcclusionTester::MapResults(FRHICommandListImmediate& RHICmdList)
 {
 	check( !ResultsBuffer );
 
@@ -567,7 +566,7 @@ void FHZBOcclusionTester::MapResults()
 		int32 Width = 0;
 		int32 Height = 0;
 
-		RHIMapStagingSurface( ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture, (void*&)ResultsBuffer, Width, Height );
+		RHICmdList.MapStagingSurface(ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture, (void*&)ResultsBuffer, Width, Height);
 
 		// Can happen because of device removed, we might crash later but this occlusion culling system can behave gracefully.
 		if(!ResultsBuffer)
@@ -583,12 +582,12 @@ void FHZBOcclusionTester::MapResults()
 	check( ResultsBuffer );
 }
 
-void FHZBOcclusionTester::UnmapResults()
+void FHZBOcclusionTester::UnmapResults(FRHICommandListImmediate& RHICmdList)
 {
 	check( ResultsBuffer );
 	if(!IsInvalidFrame())
 	{
-		RHIUnmapStagingSurface( ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture );
+		RHICmdList.UnmapStagingSurface(ResultsTextureCPU->GetRenderTargetItem().ShaderResourceTexture);
 	}
 	ResultsBuffer = NULL;
 }
@@ -673,10 +672,9 @@ public:
 
 IMPLEMENT_SHADER_TYPE(,FHZBTestPS,TEXT("HZBOcclusion"),TEXT("HZBTestPS"),SF_Pixel);
 
-void FHZBOcclusionTester::Submit( const FViewInfo& View )
+void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	SCOPED_DRAW_EVENT(SubmitHZB, DEC_SCENE_ITEMS);
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef(); // many things below which do not support parallel
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	if( !ViewState )
@@ -753,7 +751,6 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 		TShaderMapRef< FHZBTestPS >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		PixelShader->SetParameters(RHICmdList, View,  ViewState->HZB, BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture );
@@ -854,7 +851,7 @@ public:
 IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<0>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBuildPS"),SF_Pixel);
 
-void BuildHZB( const FViewInfo& View )
+void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
 	SCOPED_DRAW_EVENT(BuildHZB, DEC_SCENE_ITEMS);
@@ -883,9 +880,7 @@ void BuildHZB( const FViewInfo& View )
 	
 	FSceneRenderTargetItem& HZBRenderTarget = ViewState->HZB.Texture->GetRenderTargetItem();
 	
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+	
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState< false, CF_Always >::GetRHI());
@@ -900,7 +895,7 @@ void BuildHZB( const FViewInfo& View )
 		TShaderMapRef< THZBBuildPS<0> >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		
 		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		// Imperfect sampling, doesn't matter too much
@@ -934,7 +929,7 @@ void BuildHZB( const FViewInfo& View )
 		TShaderMapRef< THZBBuildPS<1> >	PixelShader( GetGlobalShaderMap() );
 
 		static FGlobalBoundShaderState BoundShaderState;
-		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		
 		SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		PixelShader->SetParameters(RHICmdList, View, SrcSize, ViewState->HZB.MipSRVs[ MipIndex - 1 ] );
@@ -961,11 +956,10 @@ void BuildHZB( const FViewInfo& View )
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, ViewState->HZB.Texture);
 }
 
-void FDeferredShadingSceneRenderer::BeginOcclusionTests()
+void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
 	const bool bUseDownsampledDepth = IsValidRef(GSceneRenderTargets.GetSmallDepthSurface()) && GSceneRenderTargets.UseDownsizedOcclusionQueries();
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	if (bUseDownsampledDepth)
 	{
@@ -1017,14 +1011,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 			TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
 
 			// Clear primitives which haven't been visible recently out of the occlusion history, and reset old pending occlusion queries.
-			ViewState->TrimOcclusionHistory(ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime,ViewFamily.CurrentRealTime,FrameNumber);
+			ViewState->TrimOcclusionHistory(RHICmdList, ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime, ViewFamily.CurrentRealTime, FrameNumber);
 
 			// Give back all these occlusion queries to the pool.
 			for ( TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef>::TIterator QueryIt(ShadowOcclusionQueryMap); QueryIt; ++QueryIt )
 			{
 				//FRenderQueryRHIParamRef Query = QueryIt.Value();
 				//check( Query.GetRefCount() == 1 );
-				ViewState->OcclusionQueryPool.ReleaseQuery( QueryIt.Value() );
+				ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, QueryIt.Value());
 			}
 			ShadowOcclusionQueryMap.Reset();
 
@@ -1055,8 +1049,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 							if (!bCameraInsideLightGeometry)
 							{
 								const FRenderQueryRHIRef ShadowOcclusionQuery = ViewState->OcclusionQueryPool.AllocateQuery();
-								RHICmdList.CheckIsNull(); // RHIBeginRenderQuery
-								RHIBeginRenderQuery(ShadowOcclusionQuery);
+								RHICmdList.BeginRenderQuery(ShadowOcclusionQuery);
 
 								FSceneViewState::FProjectedShadowKey Key(
 									ProjectedShadowInfo.ParentSceneInfo ? 
@@ -1073,14 +1066,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 								VertexShader->SetParametersWithBoundingSphere(RHICmdList, View, ProjectedShadowInfo.LightSceneInfo->Proxy->GetBoundingSphere());
 								StencilingGeometry::DrawSphere(RHICmdList);
 
-								RHIEndRenderQuery(ShadowOcclusionQuery);
+								RHICmdList.EndRenderQuery(ShadowOcclusionQuery);
 							}
 						}
 						// Don't query preshadows, since they are culled if their subject is occluded.
 						// Don't query if any subjects are visible because the shadow frustum will be definitely unoccluded
 						else if (!ProjectedShadowInfo.IsWholeSceneDirectionalShadow() && !ProjectedShadowInfo.bPreShadow && !ProjectedShadowInfo.SubjectsVisible(View))
 						{
-							IssueProjectedShadowOcclusionQuery(View, ProjectedShadowInfo, *VertexShader);
+							IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader);
 						}
 					}
 
@@ -1088,7 +1081,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 					for(int32 ShadowIndex = 0;ShadowIndex < VisibleLightInfo.OccludedPerObjectShadows.Num();ShadowIndex++)
 					{
 						const FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.OccludedPerObjectShadows[ShadowIndex];
-						IssueProjectedShadowOcclusionQuery(View, ProjectedShadowInfo, *VertexShader);
+						IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader);
 					}
 				}
 			}
@@ -1102,11 +1095,11 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 
 				{
 					SCOPED_DRAW_EVENT(IndividualQueries, DEC_SCENE_ITEMS);
-					View.IndividualOcclusionQueries.Flush();
+					View.IndividualOcclusionQueries.Flush(RHICmdList);
 				}
 				{
 					SCOPED_DRAW_EVENT(GroupedQueries, DEC_SCENE_ITEMS);
-					View.GroupedOcclusionQueries.Flush();
+					View.GroupedOcclusionQueries.Flush(RHICmdList);
 				}
 		    }
 	    }
@@ -1123,14 +1116,14 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 
 			SCOPED_DRAW_EVENT(HZB, DEC_SCENE_ITEMS);
 
-			BuildHZB( View );
-			ViewState->HZBOcclusionTests.Submit( View );
+			BuildHZB(RHICmdList, View);
+			ViewState->HZBOcclusionTests.Submit(RHICmdList, View);
 		}
 	}
 
 	if (bUseDownsampledDepth)
 	{
 		// Restore default render target
-		GSceneRenderTargets.BeginRenderingSceneColor();
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 	}
 }

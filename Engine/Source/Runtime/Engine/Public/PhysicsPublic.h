@@ -533,7 +533,7 @@ class FConvexCollisionVertexBuffer : public FVertexBuffer
 public:
 	TArray<FDynamicMeshVertex> Vertices;
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 };
 
 class FConvexCollisionIndexBuffer : public FIndexBuffer 
@@ -541,7 +541,7 @@ class FConvexCollisionIndexBuffer : public FIndexBuffer
 public:
 	TArray<int32> Indices;
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 };
 
 class FConvexCollisionVertexFactory : public FLocalVertexFactory

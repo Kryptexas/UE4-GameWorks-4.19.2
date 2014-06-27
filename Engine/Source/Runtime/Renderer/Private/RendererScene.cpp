@@ -139,7 +139,7 @@ void FScene::CheckPrimitiveArrays()
 	check(Primitives.Num() == PrimitiveOcclusionBounds.Num());
 }
 
-void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo)
+void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneInfo* PrimitiveSceneInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AddScenePrimitiveRenderThreadTime);
 	
@@ -161,7 +161,7 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSc
 	PrimitiveSceneInfo->LinkAttachmentGroup();
 
 	// Add the primitive to the scene.
-	PrimitiveSceneInfo->AddToScene(true);
+	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
 }
 
 /**
@@ -336,12 +336,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FPrimitiveSceneInfo*,PrimitiveSceneInfo,PrimitiveSceneInfo,
 		{
 			FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-			Scene->AddPrimitiveSceneInfo_RenderThread(PrimitiveSceneInfo);
+			Scene->AddPrimitiveSceneInfo_RenderThread(RHICmdList, PrimitiveSceneInfo);
 		});
 
 }
 
-void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
+void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePrimitiveTransformRenderThreadTime);
 
@@ -364,7 +364,7 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* Primiti
 	check(!(bUpdateStaticDrawLists && PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num()));
 
 	// Re-add the primitive to the scene with the new transform.
-	PrimitiveSceneProxy->GetPrimitiveSceneInfo()->AddToScene(bUpdateStaticDrawLists);
+	PrimitiveSceneProxy->GetPrimitiveSceneInfo()->AddToScene(RHICmdList, bUpdateStaticDrawLists);
 }
 
 void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
@@ -450,7 +450,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 				FPrimitiveUpdateParams,UpdateParams,UpdateParams,
 				{
 					FScopeCycleCounter Context(UpdateParams.PrimitiveSceneProxy->GetStatId());
-					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
+					UpdateParams.Scene->UpdatePrimitiveTransform_RenderThread(RHICmdList, UpdateParams.PrimitiveSceneProxy, UpdateParams.WorldBounds, UpdateParams.LocalBounds, UpdateParams.LocalToWorld, UpdateParams.OwnerPosition);
 				});
 		}
 	}
@@ -1510,7 +1510,7 @@ void FScene::SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* Preco
 	});
 }
 
-void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpdateMap& MaterialsToUpdate)
+void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmediate& RHICmdList, const FMaterialsToUpdateMap& MaterialsToUpdate)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Scene_SetShaderMapsOnMaterialResources_RT);
 
@@ -1554,7 +1554,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpd
 	// Update static draw lists, which cache shader references from materials, but the shader map has now changed
 	if (bFoundAnyInitializedMaterials)
 	{
-		UpdateStaticDrawListsForMaterials_RenderThread(MaterialArray);
+		UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, MaterialArray);
 	}
 }
 
@@ -1571,11 +1571,11 @@ void FScene::SetShaderMapsOnMaterialResources(const TMap<FMaterial*, class FMate
 		FScene*,Scene,this,
 		FMaterialsToUpdateMap,MaterialsToUpdate,MaterialsToUpdate,
 	{
-		Scene->SetShaderMapsOnMaterialResources_RenderThread(MaterialsToUpdate);
+		Scene->SetShaderMapsOnMaterialResources_RenderThread(RHICmdList, MaterialsToUpdate);
 	});
 }
 
-void FScene::UpdateStaticDrawListsForMaterials_RenderThread(const TArray<const FMaterial*>& Materials)
+void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<const FMaterial*>& Materials)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Scene_UpdateStaticDrawListsForMaterials_RT);
 
@@ -1614,7 +1614,7 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(const TArray<const F
 		FPrimitiveSceneInfo* Primitive = PrimitivesToUpdate[PrimitiveIndex];
 
 		Primitive->RemoveStaticMeshes();
-		Primitive->AddStaticMeshes();
+		Primitive->AddStaticMeshes(RHICmdList);
 	}
 }
 
@@ -1625,7 +1625,7 @@ void FScene::UpdateStaticDrawListsForMaterials(const TArray<const FMaterial*>& M
 		FScene*,Scene,this,
 		TArray<const FMaterial*>,Materials,Materials,
 	{
-		Scene->UpdateStaticDrawListsForMaterials_RenderThread(Materials);
+		Scene->UpdateStaticDrawListsForMaterials_RenderThread(RHICmdList, Materials);
 	});
 }
 

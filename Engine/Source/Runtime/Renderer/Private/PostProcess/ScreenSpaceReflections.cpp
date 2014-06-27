@@ -195,7 +195,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	int SSRQuality = ComputeSSRQuality(View.FinalPostProcessSettings.ScreenSpaceReflectionQuality);
 
 	SSRQuality = FMath::Clamp(SSRQuality, 1, 4);
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	uint32 iPreFrame = bPrevFrame ? 1 : 0;
 
@@ -254,13 +254,13 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 
 	return Ret;
 }
-void BuildHZB( const FViewInfo& View );
+void BuildHZB(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-void ScreenSpaceReflections( const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput )
+void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
-	BuildHZB( View );
+	BuildHZB(RHICmdList, View);
 
-	FRenderingCompositePassContext CompositeContext( View );
+	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 	FPostprocessContext Context( CompositeContext.Graph, View );
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;

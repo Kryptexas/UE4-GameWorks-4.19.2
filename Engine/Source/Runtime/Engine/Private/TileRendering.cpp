@@ -42,7 +42,7 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	void InitRHI()
+	virtual void InitRHI() override
 	{
 		// used with a tristrip, so only 4 vertices are needed
 		uint32 Size = 4 * sizeof(FMaterialTileVertex);
@@ -131,7 +131,7 @@ public:
 };
 TGlobalResource<FTileMesh> GTileMesh;
 
-void FTileRenderer::DrawTile(const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId)
+void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId)
 {
 	FMaterialTileVertex DestVertex[4];
 
@@ -157,5 +157,5 @@ void FTileRenderer::DrawTile(const class FSceneView& View, const FMaterialRender
 	Mesh.DynamicVertexData = DestVertex;
 	Mesh.MaterialRenderProxy = MaterialRenderProxy;
 
-	GetRendererModule().DrawTileMesh(View, Mesh, bIsHitTesting, HitProxyId);
+	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
 }

@@ -307,14 +307,14 @@ public:
 	/**
 	 *	Starts a new rendering frame. Called from the rendering thread.
 	 */
-	ENGINE_API virtual void	BeginRenderFrame();
+	ENGINE_API virtual void	BeginRenderFrame(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 *	Ends a rendering frame. Called from the rendering thread.
 	 *	@param bPresent		Whether the frame should be presented to the screen
 	 *	@param bLockToVsync	Whether the GPU should block until VSYNC before presenting
 	 */
-	ENGINE_API virtual void	EndRenderFrame( bool bPresent, bool bLockToVsync );
+	ENGINE_API virtual void	EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync);
 
 	/**
 	 * @return whether or not this Controller has a keyboard available to be used
@@ -437,7 +437,7 @@ public:
 	/**
 	 * Update the render target surface RHI to the current back buffer 
 	 */
-	void UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
+	void UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * First chance for viewports to render custom stats text
@@ -591,10 +591,10 @@ protected:
 	/** Triggers the taking of a high res screen shot for this viewport. */
 	bool bTakeHighResScreenShot;
 	// FRenderResource interface.
-	ENGINE_API virtual void InitDynamicRHI();
-	ENGINE_API virtual void ReleaseDynamicRHI();
-	ENGINE_API virtual void InitRHI();
-	ENGINE_API virtual void ReleaseRHI();
+	ENGINE_API virtual void InitDynamicRHI() override;
+	ENGINE_API virtual void ReleaseDynamicRHI() override;
+	ENGINE_API virtual void InitRHI() override;
+	ENGINE_API virtual void ReleaseRHI() override;
 };
 
 // Shortcuts for checking the state of both left&right variations of control keys.

@@ -378,7 +378,7 @@ void FMetalDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexI
 	}
 
 	// how many verts to render
-	uint32 NumVertices = RHIGetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
+	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
 	// finalize any pending state
 	FMetalManager::Get()->PrepareToDraw(NumVertices);
@@ -414,7 +414,7 @@ void FMetalDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	// finalize any pending state
 	FMetalManager::Get()->PrepareToDraw(NumVertices);
 	
-	uint32 NumIndices = RHIGetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
+	uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 #if !NO_DRAW
 	[FMetalManager::GetContext() drawIndexedPrimitives:TranslatePrimitiveType(PrimitiveType)
 											indexCount:NumIndices
@@ -471,7 +471,7 @@ void FMetalDynamicRHI::RHIEndDrawPrimitiveUP()
 	[FMetalManager::GetContext() setVertexBuffer:FMetalManager::Get()->GetRingBuffer() offset:GPendingVertexBufferOffset atIndex:UNREAL_TO_METAL_BUFFER_INDEX(0)];
 	
 	// how many to draw
-	uint32 NumVertices = RHIGetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
+	uint32 NumVertices = GetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
 
 	// last minute draw setup
 	FMetalManager::Get()->PrepareToDraw(0);
@@ -516,7 +516,7 @@ void FMetalDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	[FMetalManager::GetContext() setVertexBuffer:FMetalManager::Get()->GetRingBuffer() offset:GPendingVertexBufferOffset atIndex:UNREAL_TO_METAL_BUFFER_INDEX(0)];
 
 	// how many to draw
-	uint32 NumIndices = RHIGetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
+	uint32 NumIndices = GetVertexCountForPrimitiveCount(GPendingNumPrimitives, GPendingPrimitiveType);
 
 	// last minute draw setup
 	FMetalManager::Get()->PrepareToDraw(0);

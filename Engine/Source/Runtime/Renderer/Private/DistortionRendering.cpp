@@ -500,7 +500,6 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetMeshRenderState(
 	const ElementDataType& ElementData
 	) const
 {
-	RHICmdList.CheckIsNull();
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
@@ -686,12 +685,9 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::IsMaterialIgnored(c
 	FDistortionPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FDistortionPrimSet::DrawAccumulatedOffsets(const FViewInfo* ViewInfo,bool bInitializeOffsets)
+bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmdList, const FViewInfo* ViewInfo, bool bInitializeOffsets)
 {
 	bool bDirty=false;
-
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	// Draw the view's elements with the translucent drawing policy.
 	bDirty |= DrawViewElements<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> >(
@@ -767,7 +763,7 @@ void FDistortionPrimSet::AddScenePrimitive(FPrimitiveSceneProxy* PrimitiveSceneP
 /** 
  * Renders the scene's distortion 
  */
-void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
+void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(Distortion, DEC_SCENE_ITEMS);
 
@@ -828,10 +824,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 				// additive blending of offsets (or complexity if the shader complexity viewmode is enabled)
 				RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
-				RHICmdList.CheckIsNull(); // DrawAccumulatedOffsets
-
 				// draw only distortion meshes to accumulate their offsets
-				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(&View,false);
+				bDirty |= View.DistortionPrimSet.DrawAccumulatedOffsets(RHICmdList, &View, false);
 			}
 
 			if (bDirty)
@@ -852,9 +846,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 	{
 		SCOPED_DRAW_EVENT(DistortionApply, DEC_SCENE_ITEMS);
 
-		RHICmdList.CheckIsNull(); // GSceneRenderTargets.ResolveSceneColor
-
-		GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 // OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
@@ -886,7 +878,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 				SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 				// useful when we move this into the compositing graph
-				FRenderingCompositePassContext Context(View);
+				FRenderingCompositePassContext Context(RHICmdList, View);
 
 				// Set the view family's render target/viewport.
 				Context.SetViewportAndCallRHI(View.ViewRect);
@@ -895,7 +887,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 				TShaderMapRef<FDistortionApplyScreenPS> PixelShader(GetGlobalShaderMap());
 
 				static FGlobalBoundShaderState BoundShaderState;
-				RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+				
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				VertexShader->SetParameters(Context);
@@ -924,13 +916,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandList& RHICmdList)
 		
 		}
 
-		RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
 		// OCULUS BEGIN
 		GSceneRenderTargets.SetSceneColor(NewSceneColor);
 		check(GSceneRenderTargets.GetSceneColor());
 // OCULUS END				
 		// Distortions RT is no longer needed, buffer can be reused by the pool, see BeginRenderingDistortionAccumulation() call above
-		GSceneRenderTargets.FinishRenderingSceneColor(false);
+		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 	}
 }
 

@@ -20,8 +20,8 @@ public:
 	~FMetalGlobalUniformBuffer();
 
 	// FRenderResource interface.
-	virtual void	InitDynamicRHI();
-	virtual void	ReleaseDynamicRHI();
+	virtual void	InitDynamicRHI() override;
+	virtual void	ReleaseDynamicRHI() override;
 
 	
 	void UpdateConstant(const void* Data, uint16 Offset, uint16 Size);

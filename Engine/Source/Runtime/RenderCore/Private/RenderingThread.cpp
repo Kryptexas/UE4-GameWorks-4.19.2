@@ -36,22 +36,6 @@ FString GRenderingThreadError;
  */
 volatile bool GIsRenderingThreadHealthy = true;
 
-/** Whether the rendering thread is suspended (not even processing the tickables) */
-volatile int32 GIsRenderingThreadSuspended = 0;
-
-/** Thread used for rendering */
-RENDERCORE_API FRunnableThread* GRenderingThread = NULL;
-
-// Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
-RENDERCORE_API bool IsInActualRenderingThread()
-{
-	return GRenderingThread && FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID();
-}
-
-RENDERCORE_API bool IsInRenderingThread()
-{
-	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
-}
 
 /**
  * Maximum rate the rendering thread will tick tickables when idle (in Hz)
@@ -778,6 +762,10 @@ void FlushRenderingCommands()
 	delete PendingCleanupObjects;
 }
 
+FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
+{
+	return FRHICommandListExecutor::GetImmediateCommandList();
+}
 
 /** The set of deferred cleanup objects which are pending cleanup. */
 static TLockFreePointerList<FDeferredCleanupInterface>	PendingCleanupObjectsList;

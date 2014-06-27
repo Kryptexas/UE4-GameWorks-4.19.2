@@ -638,24 +638,24 @@ public:
 	/**
 	 * Set output buffer for this shader.
 	 */
-	void SetOutput( FUnorderedAccessViewRHIParamRef VolumeTextureUAV )
+	void SetOutput(FRHICommandList& RHICmdList, FUnorderedAccessViewRHIParamRef VolumeTextureUAV)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( OutVolumeTexture.IsBound() )
 		{
-			RHISetUAVParameter( ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), VolumeTextureUAV );
+			RHICmdList.SetUAVParameter(ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), VolumeTextureUAV);
 		}
 	}
 
 	/**
 	 * Unbinds any buffers that have been bound.
 	 */
-	void UnbindBuffers()
+	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		if ( OutVolumeTexture.IsBound() )
 		{
-			RHISetUAVParameter( ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), FUnorderedAccessViewRHIParamRef() );
+			RHICmdList.SetUAVParameter(ComputeShaderRHI, OutVolumeTexture.GetBaseIndex(), FUnorderedAccessViewRHIParamRef());
 		}
 	}
 
@@ -755,7 +755,7 @@ public:
 	 * Updates the vector field.
 	 * @param DeltaSeconds - Elapsed time since the last update.
 	 */
-	virtual void Update(float DeltaSeconds)
+	virtual void Update(FRHICommandListImmediate& RHICmdList, float DeltaSeconds) override
 	{
 		check(IsInRenderingThread());
 
@@ -811,21 +811,21 @@ public:
 				NoiseVolumeTextureRHI = AnimatedVectorField->NoiseField->Resource->VolumeTextureRHI;
 			}
 
-			RHISetComputeShader(CompositeCS->GetComputeShader());
-			CompositeCS->SetOutput(VolumeTextureUAV);
+			RHICmdList.SetComputeShader(CompositeCS->GetComputeShader());
+			CompositeCS->SetOutput(RHICmdList, VolumeTextureUAV);
 			/// ?
 			CompositeCS->SetParameters(
-				FRHICommandList::GetNullRef(),
+				RHICmdList,
 				UniformBuffer,
 				AnimatedVectorField->Texture->Resource->TextureRHI,
 				NoiseVolumeTextureRHI );
 			DispatchComputeShader(
-				FRHICommandList::GetNullRef(),
+				RHICmdList,
 				*CompositeCS,
 				SizeX / THREADS_PER_AXIS,
 				SizeY / THREADS_PER_AXIS,
 				SizeZ / THREADS_PER_AXIS );
-			CompositeCS->UnbindBuffers();
+			CompositeCS->UnbindBuffers(RHICmdList);
 		}
 	}
 

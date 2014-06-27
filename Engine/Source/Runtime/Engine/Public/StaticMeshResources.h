@@ -318,7 +318,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("PositionOnly Static-mesh vertices"); }
 
 private:
@@ -495,7 +495,7 @@ public:
 	void ConvertToFullPrecisionUVs();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("Static-mesh vertices"); }
 
 private:

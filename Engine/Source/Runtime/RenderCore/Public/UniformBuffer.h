@@ -49,7 +49,7 @@ public:
 	}
 	
 	// FRenderResource interface.
-	virtual void InitDynamicRHI()
+	virtual void InitDynamicRHI() override
 	{
 		UniformBufferRHI = RHICreateUniformBuffer(Contents,TBufferStruct::StaticStruct.GetLayout(),BufferUsage);
 	}

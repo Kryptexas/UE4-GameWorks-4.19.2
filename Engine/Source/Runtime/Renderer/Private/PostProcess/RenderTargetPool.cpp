@@ -317,8 +317,8 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+		
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 		if(CVarRenderTargetPoolTest.GetValueOnRenderThread())
 		{
@@ -687,10 +687,8 @@ inline void DrawBorder(FCanvas& Canvas, const FIntRect Rect, FLinearColor Color)
 	Canvas.DrawTile(Rect.Max.X - 1, Rect.Min.Y + 1, 1, Rect.Max.Y - Rect.Min.Y - 2, 0, 0, 1, 1, Color);
 }
 
-void FRenderTargetPool::PresentContent(const FSceneView& View)
+void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	if (RenderTargetPoolEvents.Num())
 	{
 		AddPhaseEvent(TEXT("FrameEnd"));

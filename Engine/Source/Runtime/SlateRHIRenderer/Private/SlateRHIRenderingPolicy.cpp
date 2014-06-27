@@ -263,15 +263,12 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	return *View;
 }
 
-void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches )
+void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, const FIntPoint& InViewportSize, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateDrawTime );
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
-
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
 	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
@@ -333,7 +330,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 					PixelShader->GetPixelShader(),
 					FGeometryShaderRHIRef());
 
-				RHISetBoundShaderState(BoundShaderState);
+				RHICmdList.SetBoundShaderState(BoundShaderState);
 
 				VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix);
 				VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
@@ -449,7 +446,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 						PixelShader->GetPixelShader(),
 						FGeometryShaderRHIRef());
 
-					RHISetBoundShaderState(BoundShaderState);
+					RHICmdList.SetBoundShaderState(BoundShaderState);
 
 					VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, 1.0f / DisplayGamma, ShaderParams.PixelParams);
@@ -467,7 +464,7 @@ void FSlateRHIRenderingPolicy::DrawElements( const FIntPoint& InViewportSize, FS
 		else if (RenderBatch.CustomDrawer.IsValid())
 		{
 			// This element is custom and has no Slate geometry.  Tell it to render itself now
-			RenderBatch.CustomDrawer.Pin()->DrawRenderThread( &BackBuffer.GetRenderTargetTexture() );
+			RenderBatch.CustomDrawer.Pin()->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
 		}
 
 	}

@@ -693,7 +693,7 @@ public:
 	// @param OutCascadeSettings can be 0
 	virtual FSphere GetShadowSplitBounds(const class FSceneView& View, int32 SplitIndex, FShadowCascadeSettings* OutCascadeSettings) const { return FSphere(FVector::ZeroVector, 0); }
 
-	virtual void SetScissorRect(const FSceneView& View) const
+	virtual void SetScissorRect(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const
 	{
 	}
 

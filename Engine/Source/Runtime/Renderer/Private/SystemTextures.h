@@ -24,7 +24,7 @@ public:
 	/**
 	 * Initialize/allocate textures if not already.
 	 */
-	void InitializeTextures(ERHIFeatureLevel::Type InFeatureLevel);
+	void InitializeTextures(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type InFeatureLevel);
 
 	// FRenderResource interface.
 	/**

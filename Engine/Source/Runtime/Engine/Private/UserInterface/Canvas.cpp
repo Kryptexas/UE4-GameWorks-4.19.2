@@ -175,8 +175,8 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 		{
 			const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+			
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 			// draw batched items
 			Data->BatchedElements.Draw(
@@ -222,9 +222,7 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 				FBatchedDrawParameters,Parameters,DrawParameters,
 			{
 				const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-				//@todo-rco: RHIPacketList
-				FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+				
 				// draw batched items
 				Parameters.RenderData->BatchedElements.Draw(
 					RHICmdList,
@@ -294,6 +292,7 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 		{
 			const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
 			FTileRenderer::DrawTile(
+				FRHICommandListExecutor::GetImmediateCommandList(),
 				*View, 
 				Data->MaterialRenderProxy, 
 				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
@@ -333,6 +332,7 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 			{
 				const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
 				FTileRenderer::DrawTile(
+					RHICmdList,
 					*Parameters.View, 
 					Parameters.RenderData->MaterialRenderProxy, 
 					Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
@@ -494,18 +494,19 @@ void FCanvas::Flush(bool bForce)
 	};
 	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
 	SortedElements.Sort( FCompareFCanvasSortElement() );
-
 	if( GRenderingThread && IsInRenderingThread() )
 	{
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 		SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
 		const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 		check(IsValidRef(RenderTargetTexture));
 
 		// Set the RHI render target.
-		RHISetRenderTarget(RenderTargetTexture, FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
 		// disable depth test & writes
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 		if( ViewRect.Area() <= 0 )
 		{
@@ -513,7 +514,7 @@ void FCanvas::Flush(bool bForce)
 		}
 
 		// set viewport to RT size
-		RHISetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
+		RHICmdList.SetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
 	}
 	else 
 	{
@@ -539,13 +540,13 @@ void FCanvas::Flush(bool bForce)
 			SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
 
 			// Set the RHI render target.
-			RHISetRenderTarget(Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 			// disable depth test & writes
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 			const FIntRect& ViewportRect = Parameters.ViewRect;
 			// set viewport to RT size
-			RHISetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+			RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
 		});
 	}
 
@@ -686,10 +687,10 @@ void FCanvas::Clear(const FLinearColor& Color)
 		{
 			if( CanvasRenderTarget )
 			{
-				RHISetRenderTarget(CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-				RHISetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
+				::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
+				RHICmdList.SetViewport(0,0,0.0f,CanvasRenderTarget->GetSizeXY().X,CanvasRenderTarget->GetSizeXY().Y,1.0f);
 			}
-			RHIClear(true,Color,false,0.0f,false,0, FIntRect());
+			RHICmdList.Clear(true,Color,false,0.0f,false,0, FIntRect());
 		});
 }
 

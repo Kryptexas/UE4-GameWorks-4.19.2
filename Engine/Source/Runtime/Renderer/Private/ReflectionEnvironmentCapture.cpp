@@ -236,7 +236,6 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList)
 	{
-		RHICmdList.CheckIsNull();
 		const int32 EffectiveTopMipSize = GReflectionCaptureSize;
 		const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
 		// Read from the smallest mip that was downsampled to
@@ -275,7 +274,7 @@ private:
 IMPLEMENT_SHADER_TYPE(,FComputeBrightnessPS,TEXT("ReflectionEnvironmentShaders"),TEXT("ComputeBrightnessMain"),SF_Pixel);
 
 /** Computes the average brightness of the given reflection capture and stores it in the scene. */
-void ComputeAverageBrightness(FRHICommandList& RHICmdList)
+void ComputeAverageBrightness(FRHICommandListImmediate& RHICmdList)
 {
 	SetRenderTarget(RHICmdList, GSceneRenderTargets.ReflectionBrightness->GetRenderTargetItem().TargetableTexture, NULL);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -286,7 +285,7 @@ void ComputeAverageBrightness(FRHICommandList& RHICmdList)
 	TShaderMapRef<FComputeBrightnessPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(RHICmdList);
@@ -303,7 +302,7 @@ void ComputeAverageBrightness(FRHICommandList& RHICmdList)
 }
 
 /** Generates mips for glossiness and filters the cubemap for a given reflection. */
-void FilterReflectionEnvironment(FRHICommandList& RHICmdList, FSHVectorRGB3* OutIrradianceEnvironmentMap)
+void FilterReflectionEnvironment(FRHICommandListImmediate& RHICmdList, FSHVectorRGB3* OutIrradianceEnvironmentMap)
 {
 	const int32 EffectiveTopMipSize = GReflectionCaptureSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
@@ -444,14 +443,14 @@ void FilterReflectionEnvironment(FRHICommandList& RHICmdList, FSHVectorRGB3* Out
 				{
 					PixelShader = *TShaderMapRef< TCubeFilterPS<1> >( GetGlobalShaderMap() );
 					static FGlobalBoundShaderState BoundShaderState;
-					RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+					
 					SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader, *GeometryShader);
 				}
 				else
 				{
 					PixelShader = *TShaderMapRef< TCubeFilterPS<0> >( GetGlobalShaderMap() );
 					static FGlobalBoundShaderState BoundShaderState;
-					RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+					
 					SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader, *GeometryShader);
 				}
 
@@ -497,14 +496,14 @@ void FilterReflectionEnvironment(FRHICommandList& RHICmdList, FSHVectorRGB3* Out
 					{
 						PixelShader = *TShaderMapRef< TCubeFilterPS<1> >( GetGlobalShaderMap() );
 						static FGlobalBoundShaderState BoundShaderState;
-						RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+						
 						SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 					}
 					else
 					{
 						PixelShader = *TShaderMapRef< TCubeFilterPS<0> >( GetGlobalShaderMap() );
 						static FGlobalBoundShaderState BoundShaderState;
-						RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+						
 						SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 					}
 
@@ -775,7 +774,7 @@ int32 FindOrAllocateCubemapIndex(FScene* Scene, const UReflectionCaptureComponen
 	return CaptureIndex;
 }
 
-void ClearScratchCubemaps(FRHICommandList& RHICmdList)
+void ClearScratchCubemaps(FRHICommandListImmediate& RHICmdList)
 {
 	// Clear scratch render targets to a consistent but noticeable value
 	// This makes debugging capture issues much easier, otherwise the random contents from previous captures is shown
@@ -821,10 +820,9 @@ void ClearScratchCubemaps(FRHICommandList& RHICmdList)
 }
 
 /** Captures the scene for a reflection capture by rendering the scene multiple times and copying into a cubemap texture. */
-void CaptureSceneToScratchCubemap(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, ECubeFace CubeFace, bool bCapturingForSkyLight, bool bLowerHemisphereIsBlack)
+void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, ECubeFace CubeFace, bool bCapturingForSkyLight, bool bLowerHemisphereIsBlack)
 {
 	FMemMark MemStackMark(FMemStack::Get());
-	RHICmdList.CheckIsNull(); //FDeferredUpdateResource::UpdateResources()
 	// update any resources that needed a deferred update
 	FDeferredUpdateResource::UpdateResources();
 	
@@ -832,7 +830,7 @@ void CaptureSceneToScratchCubemap(FRHICommandList& RHICmdList, FSceneRenderer* S
 		SCOPED_DRAW_EVENT(CubeMapCapture, DEC_SCENE_ITEMS);
 
 		// Render the scene normally for one face of the cubemap
-		SceneRenderer->Render();
+		SceneRenderer->Render(RHICmdList);
 
 #if PLATFORM_PS4 // @todo ps4 - this should be done a different way
 		// PS4 needs some code here to process the scene
@@ -916,7 +914,7 @@ void CaptureSceneToScratchCubemap(FRHICommandList& RHICmdList, FSceneRenderer* S
 	delete SceneRenderer;
 }
 
-void CopyCubemapToScratchCubemap(FRHICommandList& RHICmdList, UTextureCube* SourceCubemap, bool bIsSkyLight, bool bLowerHemisphereIsBlack)
+void CopyCubemapToScratchCubemap(FRHICommandListImmediate& RHICmdList, UTextureCube* SourceCubemap, bool bIsSkyLight, bool bLowerHemisphereIsBlack)
 {
 	check(SourceCubemap);
 	
@@ -1145,7 +1143,7 @@ void FScene::UpdateAllReflectionCaptures()
 	}
 }
 
-void GetReflectionCaptureData_RenderingThread(FScene* Scene, const UReflectionCaptureComponent* Component, FReflectionCaptureFullHDRDerivedData* OutDerivedData)
+void GetReflectionCaptureData_RenderingThread(FRHICommandListImmediate& RHICmdList, FScene* Scene, const UReflectionCaptureComponent* Component, FReflectionCaptureFullHDRDerivedData* OutDerivedData)
 {
 	const FCaptureComponentSceneState* ComponentStatePtr = Scene->ReflectionSceneData.AllocatedReflectionCaptureState.Find(Component);
 
@@ -1185,7 +1183,7 @@ void GetReflectionCaptureData_RenderingThread(FScene* Scene, const UReflectionCa
 				// Read each mip face
 				//@todo - do this without blocking the GPU so many times
 				//@todo - pool the temporary textures in RHIReadSurfaceFloatData instead of always creating new ones
-				RHIReadSurfaceFloatData(EffectiveDest.ShaderResourceTexture, FIntRect(0, 0, MipSize, MipSize), SurfaceData, (ECubeFace)CubeFace, CaptureIndex, MipIndex);
+				RHICmdList.ReadSurfaceFloatData(EffectiveDest.ShaderResourceTexture, FIntRect(0, 0, MipSize, MipSize), SurfaceData, (ECubeFace)CubeFace, CaptureIndex, MipIndex);
 				const int32 DestIndex = MipBaseIndex + CubeFace * CubeFaceBytes;
 				uint8* FaceData = &CaptureData[DestIndex];
 				check(SurfaceData.Num() * SurfaceData.GetTypeSize() == CubeFaceBytes);
@@ -1209,7 +1207,7 @@ void FScene::GetReflectionCaptureData(UReflectionCaptureComponent* Component, FR
 		const UReflectionCaptureComponent*,Component,Component,
 		FReflectionCaptureFullHDRDerivedData*,OutDerivedData,&OutDerivedData,
 	{
-		GetReflectionCaptureData_RenderingThread(Scene, Component, OutDerivedData);
+		GetReflectionCaptureData_RenderingThread(RHICmdList, Scene, Component, OutDerivedData);
 	});
 
 	// Necessary since the RT is writing to OutDerivedData directly
@@ -1338,7 +1336,7 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 			BeginFrame,
 		{
 			GFrameNumberRenderThread++;
-			RHIBeginFrame();
+			RHICmdList.BeginFrame();
 		})
 
 		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
@@ -1410,15 +1408,15 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 			bool, bCapturingForSkyLight, bCapturingForSkyLight,
 			bool, bLowerHemisphereIsBlack, bLowerHemisphereIsBlack,
 		{
-			//@todo-rco: RHIPacketList
-			CaptureSceneToScratchCubemap(FRHICommandList::GetNullRef(), SceneRenderer, CubeFace, bCapturingForSkyLight, bLowerHemisphereIsBlack);
+			
+			CaptureSceneToScratchCubemap(RHICmdList, SceneRenderer, CubeFace, bCapturingForSkyLight, bLowerHemisphereIsBlack);
 
-			RHIEndFrame();
+			RHICmdList.EndFrame();
 		});
 	}
 }
 
-void CopyToSceneArray(FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
+void CopyToSceneArray(FRHICommandListImmediate& RHICmdList, FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
 {
 	const int32 EffectiveTopMipSize = GReflectionCaptureSize;
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
@@ -1434,12 +1432,12 @@ void CopyToSceneArray(FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
 
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
-			RHICopyToResolveTarget(EffectiveSource.ShaderResourceTexture, EffectiveDest.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, CaptureIndex));
+			RHICmdList.CopyToResolveTarget(EffectiveSource.ShaderResourceTexture, EffectiveDest.ShaderResourceTexture, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, CaptureIndex));
 		}
 	}
 }
 
-void CopyToComponentTexture(FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
+void CopyToComponentTexture(FRHICommandListImmediate& RHICmdList, FScene* Scene, FReflectionCaptureProxy* ReflectionProxy)
 {
 	check(ReflectionProxy->SM4FullHDRCubemap);
 	const int32 EffectiveTopMipSize = GReflectionCaptureSize;
@@ -1453,7 +1451,7 @@ void CopyToComponentTexture(FScene* Scene, FReflectionCaptureProxy* ReflectionPr
 
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
-			RHICopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ReflectionProxy->SM4FullHDRCubemap->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
+			RHICmdList.CopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ReflectionProxy->SM4FullHDRCubemap->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
 		}
 	}
 }
@@ -1491,9 +1489,6 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 			ENQUEUE_UNIQUE_RENDER_COMMAND( 
 				FilterCommand,
 			{
-				//@todo-rco: RHIPacketList
-				FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 				FilterReflectionEnvironment(RHICmdList, NULL);
 			});
 
@@ -1510,11 +1505,11 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 			{
 				if (FeatureLevel == ERHIFeatureLevel::SM5)
 				{
-					CopyToSceneArray(Scene, ReflectionProxy);
+					CopyToSceneArray(RHICmdList, Scene, ReflectionProxy);
 				}
 				else if (FeatureLevel == ERHIFeatureLevel::SM4)
 				{
-					CopyToComponentTexture(Scene, ReflectionProxy);
+					CopyToComponentTexture(RHICmdList, Scene, ReflectionProxy);
 				}
 
 				// Clean up the proxy now that the rendering thread is done with it
@@ -1524,7 +1519,7 @@ void FScene::UpdateReflectionCaptureContents(UReflectionCaptureComponent* Captur
 	}
 }
 
-void CopyToSkyTexture(FScene* Scene, FTexture* ProcessedTexture)
+void CopyToSkyTexture(FRHICommandListImmediate& RHICmdList, FScene* Scene, FTexture* ProcessedTexture)
 {
 	const int32 EffectiveTopMipSize = ProcessedTexture->GetSizeX();
 	const int32 NumMips = FMath::CeilLogTwo(EffectiveTopMipSize) + 1;
@@ -1537,7 +1532,7 @@ void CopyToSkyTexture(FScene* Scene, FTexture* ProcessedTexture)
 
 		for (int32 CubeFace = 0; CubeFace < CubeFace_MAX; CubeFace++)
 		{
-			RHICopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
+			RHICmdList.CopyToResolveTarget(EffectiveSource.ShaderResourceTexture, ProcessedTexture->TextureRHI, true, FResolveParams(FResolveRect(), (ECubeFace)CubeFace, MipIndex, 0, 0));
 		}
 	}
 }
@@ -1550,9 +1545,6 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			ClearCommand,
 		{
 			//@todo realtime skylight updates - skip this
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 			ClearScratchCubemaps(RHICmdList);
 		});
 
@@ -1568,8 +1560,8 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 				UTextureCube*, SourceTexture, CaptureComponent->Cubemap,
 				bool, bLowerHemisphereIsBlack, CaptureComponent->bLowerHemisphereIsBlack,
 			{
-				//@todo-rco: RHIPacketList
-				CopyCubemapToScratchCubemap(FRHICommandList::GetNullRef(), SourceTexture, true, bLowerHemisphereIsBlack);
+				
+				CopyCubemapToScratchCubemap(RHICmdList, SourceTexture, true, bLowerHemisphereIsBlack);
 			});
 		}
 		else
@@ -1581,9 +1573,6 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			FilterCommand,
 			FSHVectorRGB3*, IrradianceEnvironmentMap, &OutIrradianceEnvironmentMap,
 		{
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 			FilterReflectionEnvironment(RHICmdList, IrradianceEnvironmentMap);
 		});
 
@@ -1599,7 +1588,7 @@ void FScene::UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent
 			FScene*, Scene, this,
 				FTexture*, ProcessedTexture, OutProcessedTexture,
 		{
-				CopyToSkyTexture(Scene, ProcessedTexture);
+			CopyToSkyTexture(RHICmdList, Scene, ProcessedTexture);
 		});
 		}
 	}

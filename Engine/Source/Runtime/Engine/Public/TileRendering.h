@@ -15,7 +15,7 @@ public:
 	 * Draw a tile at the given location and size, using the given UVs
 	 * (UV = [0..1]
 	 */
-	ENGINE_API static void DrawTile(const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting=false, const FHitProxyId HitProxyId=FHitProxyId());
+	ENGINE_API static void DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting = false, const FHitProxyId HitProxyId = FHitProxyId());
 
 private:
 

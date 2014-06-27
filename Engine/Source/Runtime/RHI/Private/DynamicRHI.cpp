@@ -76,14 +76,35 @@ void RHIExit()
 }
 
 // Implement the static RHI methods that call the dynamic RHI.
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	RHI_API Type Name ParameterTypesAndNames \
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
 	{ \
 		check(GDynamicRHI); \
-		ReturnStatement GDynamicRHI->Name ParameterNames; \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type RHI##Name ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	RHI_API Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		check(GDynamicRHI); \
+		ReturnStatement GDynamicRHI->RHI##Name ParameterNames; \
 	}
 #include "RHIMethods.h"
 #undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
 
 #else
 

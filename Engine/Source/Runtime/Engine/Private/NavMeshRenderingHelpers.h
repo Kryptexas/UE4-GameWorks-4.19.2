@@ -311,9 +311,8 @@ public:
 
 			const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 			const FTexture2DRHIRef DepthTexture;
-			//@todo-rco: RHIPacketList
-			FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+			
+			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 			BatchedElements.Draw(
 				RHICmdList,
 				bNeedToSwitchVerticalAxis,

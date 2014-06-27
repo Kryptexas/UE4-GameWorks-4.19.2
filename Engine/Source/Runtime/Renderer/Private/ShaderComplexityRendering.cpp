@@ -183,7 +183,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	TShaderMapRef<FShaderComplexityApplyPS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState ShaderComplexityBoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 	SetGlobalBoundShaderState(Context.RHICmdList, ShaderComplexityBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	PixelShader->SetParameters(Context, Colors);

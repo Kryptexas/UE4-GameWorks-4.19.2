@@ -134,7 +134,7 @@ public:
 	/** The vertex declaration. */
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 
@@ -174,7 +174,7 @@ TGlobalResource<FParticleCurveInjectionVertexDeclaration> GParticleCurveInjectio
  * @param InPendingCurves - Curves to be stored on the GPU.
  */
 static void InjectCurves(
-	FRHICommandList& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList,
 	FTexture2DRHIParamRef CurveTextureRHI,
 	FTexture2DRHIParamRef CurveTextureTargetRHI,
 	TArray<FCurveSamples>& InPendingCurves )
@@ -186,8 +186,6 @@ static void InjectCurves(
 	SCOPED_DRAW_EVENT(InjectParticleCurves, DEC_PARTICLE);
 
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
-
-	RHICmdList.CheckIsNull();
 
 	SetRenderTarget(RHICmdList, CurveTextureTargetRHI, FTextureRHIParamRef());
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
@@ -213,7 +211,7 @@ static void InjectCurves(
 		const int32 SampleByteCount = SampleCount * sizeof(FColor);
 		FColor* RESTRICT DestSamples = (FColor*)RHILockVertexBuffer( ScratchVertexBufferRHI, 0, SampleByteCount, RLM_WriteOnly );
 		FMemory::Memcpy( DestSamples, Curve.Samples, SampleByteCount );
-		RHIUnlockVertexBuffer( ScratchVertexBufferRHI );
+		RHICmdList.UnlockVertexBuffer(ScratchVertexBufferRHI);
 		FMemory::Free( Curve.Samples );
 		Curve.Samples = NULL;
 
@@ -227,7 +225,7 @@ static void InjectCurves(
 		TShaderMapRef<FParticleCurveInjectionPS> PixelShader( GetGlobalShaderMap() );
 
 		// Bound shader state.
-		RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		
 		static FGlobalBoundShaderState BoundShaderState;
 		SetGlobalBoundShaderState(
 			RHICmdList,
@@ -595,9 +593,9 @@ void FParticleCurveTexture::SubmitPendingCurves()
 			FParticleCurveTexture*, ParticleCurveTexture, this,
 			TArray<FCurveSamples>, PendingCurves, PendingCurves,
 		{
-			//@todo-rco: RHIPacketList
+			
 			InjectCurves(
-				FRHICommandList::GetNullRef(),
+				RHICmdList,
 				ParticleCurveTexture->CurveTextureRHI,
 				ParticleCurveTexture->CurveTextureTargetRHI,
 				PendingCurves

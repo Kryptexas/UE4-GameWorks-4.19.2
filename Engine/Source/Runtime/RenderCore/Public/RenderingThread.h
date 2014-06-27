@@ -15,16 +15,6 @@
 // Render thread API
 ////////////////////////////////////
 
-/** @return True if called from the rendering thread, or if called from ANY thread during single threaded rendering */
-extern RENDERCORE_API bool IsInRenderingThread();
-
-/** @return True if called from the rendering thread. */
-// Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
-extern RENDERCORE_API bool IsInActualRenderingThread();
-
-/** Thread used for rendering */
-extern RENDERCORE_API FRunnableThread* GRenderingThread;
-
 /**
  * Whether the renderer is currently running in a separate thread.
  * If this is false, then all rendering commands will be executed immediately instead of being enqueued in the rendering command buffer.
@@ -160,12 +150,16 @@ public:
 //
 // Macros for using render commands.
 //
+// ideally this would be inline, however that changes the module dependency situation
+extern RENDERCORE_API class FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand();
+
 
 DECLARE_STATS_GROUP(TEXT("Render Thread Commands"), STATGROUP_RenderThreadCommands, STATCAT_Advanced);
 
 #define TASK_FUNCTION(Code) \
 		void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) \
 		{ \
+			FRHICommandListImmediate& RHICmdList = GetImmediateCommandList_ForRenderCommand(); \
 			Code; \
 		} 
 

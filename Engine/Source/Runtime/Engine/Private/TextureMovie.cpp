@@ -418,7 +418,8 @@ void FTextureMovieResource::UpdateResource()
 	if( Owner->Decoder )
 	{
 		SCOPED_DRAW_EVENTF(EventDecode, DEC_SCENE_ITEMS, TEXT("Movie[%s]"),*Owner->GetName());
-		Owner->Decoder->GetFrame(this);
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		Owner->Decoder->GetFrame(RHICmdList, this);
 	}
 }
 

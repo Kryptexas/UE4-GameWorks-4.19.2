@@ -142,65 +142,65 @@ public:
 	/**
 	 * Clears the GBuffer render targets to default values.
 	 */
-	void ClearGBufferTargets(const FLinearColor& ClearColor);
+	void ClearGBufferTargets(FRHICommandListImmediate& RHICmdList, const FLinearColor& ClearColor);
 	/**
 	 * Sets the scene color target and restores its contents if necessary
 	 * @param bGBufferPass - Whether the pass about to be rendered is the GBuffer population pass
 	 */
-	void BeginRenderingSceneColor(bool bGBufferPass = false);
+	void BeginRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bGBufferPass = false);
 	/**
 	 * Called when finished rendering to the scene color surface
 	 * @param bKeepChanges - if true then the SceneColorSurface is resolved to the SceneColorTexture
 	 */
-	void FinishRenderingSceneColor(bool bKeepChanges = true, const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingSceneColor(FRHICommandListImmediate& RHICmdList, bool bKeepChanges = true, const FResolveRect& ResolveRect = FResolveRect());
 
 	// @return true: call FinishRenderingCustomDepth after rendering, false: don't render it, feature is disabled
-	bool BeginRenderingCustomDepth(bool bPrimitives);
+	bool BeginRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
 	// only call if BeginRenderingCustomDepth() returned true
-	void FinishRenderingCustomDepth(const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingCustomDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/**
 	 * Resolve a previously rendered scene color surface.
 	 */
-	void ResolveSceneColor(const FResolveRect& ResolveRect = FResolveRect());
+	void ResolveSceneColor(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the GBuffer targets so that their resolved textures can be sampled. */
-	void ResolveGBufferSurfaces(const FResolveRect& ResolveRect = FResolveRect());
+	void ResolveGBufferSurfaces(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingShadowDepth();
+	void BeginRenderingShadowDepth(FRHICommandListImmediate& RHICmdList);
 
 	/** Binds the appropriate shadow depth cube map for rendering. */
-	void BeginRenderingCubeShadowDepth(int32 ShadowResolution);
+	void BeginRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution);
 
 	/**
 	 * Called when finished rendering to the subject shadow depths so the surface can be copied to texture
 	 * @param ResolveParams - optional resolve params
 	 */
-	void FinishRenderingShadowDepth(const FResolveRect& ResolveRect = FResolveRect());
+	void FinishRenderingShadowDepth(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
-	void BeginRenderingReflectiveShadowMap( class FLightPropagationVolume* Lpv );
-	void FinishRenderingReflectiveShadowMap( const FResolveRect& ResolveRect = FResolveRect() );
+	void BeginRenderingReflectiveShadowMap(FRHICommandListImmediate& RHICmdList, class FLightPropagationVolume* Lpv);
+	void FinishRenderingReflectiveShadowMap(FRHICommandListImmediate& RHICmdList, const FResolveRect& ResolveRect = FResolveRect());
 
 	/** Resolves the appropriate shadow depth cube map and restores default state. */
-	void FinishRenderingCubeShadowDepth(int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
+	void FinishRenderingCubeShadowDepth(FRHICommandListImmediate& RHICmdList, int32 ShadowResolution, const FResolveParams& ResolveParams = FResolveParams());
 	
-	void BeginRenderingTranslucency(const class FViewInfo& View);
+	void BeginRenderingTranslucency(FRHICommandListImmediate& RHICmdList, const class FViewInfo& View);
 
-	bool BeginRenderingSeparateTranslucency(const FViewInfo& View, bool bFirstTimeThisFrame);
-	void FinishRenderingSeparateTranslucency(const FViewInfo& View);
+	bool BeginRenderingSeparateTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bFirstTimeThisFrame);
+	void FinishRenderingSeparateTranslucency(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 	void FreeSeparateTranslucency();
 
-	void ResolveSceneDepthTexture();
-	void ResolveSceneDepthToAuxiliaryTexture();
+	void ResolveSceneDepthTexture(FRHICommandListImmediate& RHICmdList);
+	void ResolveSceneDepthToAuxiliaryTexture(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingPrePass();
-	void FinishRenderingPrePass();
+	void BeginRenderingPrePass(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingPrePass(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingSceneAlphaCopy();
-	void FinishRenderingSceneAlphaCopy();
+	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation();
-	void FinishRenderingLightAttenuation();
+	void BeginRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
+	void FinishRenderingLightAttenuation(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Cleans up editor primitive targets that we no longer need
@@ -229,8 +229,8 @@ public:
 
 
 	// FRenderResource interface.
-	virtual void InitDynamicRHI();
-	virtual void ReleaseDynamicRHI();
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	// Texture Accessors -----------
 

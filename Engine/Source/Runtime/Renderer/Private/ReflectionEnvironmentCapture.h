@@ -8,7 +8,7 @@
 
 extern ENGINE_API int32 GReflectionCaptureSize;
 
-extern void ComputeDiffuseIrradiance(FRHICommandList& RHICmdList, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap);
+extern void ComputeDiffuseIrradiance(FRHICommandListImmediate& RHICmdList, FTextureRHIRef LightingSource, int32 LightingSourceMipIndex, FSHVectorRGB3* OutIrradianceEnvironmentMap);
 
 class FDownsampleGS : public FGlobalShader
 {

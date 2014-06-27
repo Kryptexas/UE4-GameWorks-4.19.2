@@ -18,8 +18,8 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void	InitDynamicRHI();
-	virtual void	ReleaseDynamicRHI();
+	virtual void	InitDynamicRHI() override;
+	virtual void	ReleaseDynamicRHI() override;
 
 	/**
 	* Get the current pool buffer

@@ -217,7 +217,7 @@ public:
 	/**
 	 * Called when the resource is initialized. This is only called by the rendering thread.
 	 */
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		INC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 		INC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );
@@ -261,7 +261,7 @@ public:
 		bGreyScaleFormat = (PixelFormat == PF_G8) || (PixelFormat == PF_BC4);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		DEC_DWORD_STAT_BY( STAT_TextureMemory, TextureSize );
 		DEC_DWORD_STAT_FNAME_BY( LODGroupStatName, TextureSize );

@@ -21,6 +21,19 @@ CORE_API bool IsInSlateThread()
 	return GSlateLoadingThreadId != 0 && FPlatformTLS::GetCurrentThreadId() == GSlateLoadingThreadId;
 }
 
+CORE_API int32 GIsRenderingThreadSuspended = 0;
+
+CORE_API FRunnableThread* GRenderingThread = NULL;
+
+CORE_API bool IsInActualRenderingThread()
+{
+	return GRenderingThread && FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID();
+}
+
+CORE_API bool IsInRenderingThread()
+{
+	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
+}
 
 
 // Fake threads

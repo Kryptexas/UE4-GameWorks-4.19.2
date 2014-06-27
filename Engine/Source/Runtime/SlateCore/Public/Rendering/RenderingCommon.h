@@ -461,5 +461,5 @@ public:
 	 *
 	 * @param RenderTarget	handle to the platform specific render target implementation.  Note this is already bound by Slate initially 
 	 */
-	virtual void DrawRenderThread( const void* RenderTarget ) = 0;
+	virtual void DrawRenderThread(class FRHICommandListImmediate& RHICmdList, const void* RenderTarget) = 0;
 };

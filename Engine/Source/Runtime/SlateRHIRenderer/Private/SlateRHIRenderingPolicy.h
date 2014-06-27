@@ -135,10 +135,10 @@ public:
 	~FSlateElementIndexBuffer();
 
 	/** Initializes the index buffers RHI resource. */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/** Releases the index buffers RHI resource. */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 	/** Returns a friendly name for this buffer. */
 	virtual FString GetFriendlyName() const { return TEXT("SlateElementIndices"); }
@@ -177,11 +177,11 @@ public:
 	~FSlateRHIRenderingPolicy();
 	
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
-	virtual void DrawElements( const FIntPoint& InViewportSize, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
+	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, const FIntPoint& InViewportSize, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches);
 
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return ResourceManager; }
-
+	
 	void InitResources();
 	void ReleaseResources();
 

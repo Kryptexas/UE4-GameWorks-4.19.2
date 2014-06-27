@@ -102,7 +102,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * Should we cache the material's shadertype on this platform with this vertex factory? 

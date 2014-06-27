@@ -867,11 +867,23 @@ private:
 
 
 /** @return True if called from the game thread. */
-extern CORE_API bool IsInGameThread ();
+extern CORE_API bool IsInGameThread();
 
 /** @return True if called from the slate thread, and not merely a thread calling slate functions. */
-extern CORE_API bool IsInSlateThread ();
+extern CORE_API bool IsInSlateThread();
 
+/** @return True if called from the rendering thread, or if called from ANY thread during single threaded rendering */
+extern CORE_API bool IsInRenderingThread();
+
+/** @return True if called from the rendering thread. */
+// Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
+extern CORE_API bool IsInActualRenderingThread();
+
+/** Thread used for rendering */
+extern CORE_API FRunnableThread* GRenderingThread;
+
+/** Whether the rendering thread is suspended (not even processing the tickables) */
+extern CORE_API int32 GIsRenderingThreadSuspended;
 
 /** Minimal base class for the thread singleton. */
 struct FThreadSingleton

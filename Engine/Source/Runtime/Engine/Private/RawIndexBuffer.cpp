@@ -43,7 +43,7 @@ void FRawIndexBuffer::InitRHI()
 		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16),Size,BUF_Static,CreateInfo);
 
 		// Initialize the buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Size,RLM_WriteOnly);
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Size, RLM_WriteOnly);
 		FMemory::Memcpy(Buffer,Indices.GetTypedData(),Size);
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
@@ -82,7 +82,7 @@ void FRawIndexBuffer16or32::InitRHI()
 		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint32),Size,BUF_Static,CreateInfo);
 
 		// Initialize the buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Size,RLM_WriteOnly);
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Size, RLM_WriteOnly);
 		FMemory::Memcpy(Buffer,Indices.GetTypedData(),Size);
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}

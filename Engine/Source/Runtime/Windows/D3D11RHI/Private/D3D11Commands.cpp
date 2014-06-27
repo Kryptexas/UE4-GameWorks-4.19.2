@@ -1159,54 +1159,6 @@ static D3D11_PRIMITIVE_TOPOLOGY GetD3D11PrimitiveType(uint32 PrimitiveType, bool
 	return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-static uint32 GetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 PrimitiveType)
-{
-	uint32 VertexCount = 0;
-	switch(PrimitiveType)
-	{
-	case PT_TriangleList: VertexCount = NumPrimitives*3; break;
-	case PT_TriangleStrip: VertexCount = NumPrimitives+2; break;
-	case PT_LineList: VertexCount = NumPrimitives*2; break;
-
-	case PT_1_ControlPointPatchList:
-	case PT_2_ControlPointPatchList:
-	case PT_3_ControlPointPatchList: 
-	case PT_4_ControlPointPatchList: 
-	case PT_5_ControlPointPatchList:
-	case PT_6_ControlPointPatchList:
-	case PT_7_ControlPointPatchList: 
-	case PT_8_ControlPointPatchList: 
-	case PT_9_ControlPointPatchList: 
-	case PT_10_ControlPointPatchList: 
-	case PT_11_ControlPointPatchList: 
-	case PT_12_ControlPointPatchList: 
-	case PT_13_ControlPointPatchList: 
-	case PT_14_ControlPointPatchList: 
-	case PT_15_ControlPointPatchList: 
-	case PT_16_ControlPointPatchList: 
-	case PT_17_ControlPointPatchList: 
-	case PT_18_ControlPointPatchList: 
-	case PT_19_ControlPointPatchList: 
-	case PT_20_ControlPointPatchList: 
-	case PT_21_ControlPointPatchList: 
-	case PT_22_ControlPointPatchList: 
-	case PT_23_ControlPointPatchList: 
-	case PT_24_ControlPointPatchList: 
-	case PT_25_ControlPointPatchList: 
-	case PT_26_ControlPointPatchList: 
-	case PT_27_ControlPointPatchList: 
-	case PT_28_ControlPointPatchList: 
-	case PT_29_ControlPointPatchList: 
-	case PT_30_ControlPointPatchList: 
-	case PT_31_ControlPointPatchList: 
-	case PT_32_ControlPointPatchList: 
-		VertexCount = (PrimitiveType - PT_1_ControlPointPatchList + 1) * NumPrimitives;
-		break;
-	default: UE_LOG(LogD3D11RHI, Fatal,TEXT("Unknown primitive type: %u"),PrimitiveType);
-	};
-
-	return VertexCount;
-}
 
 void FD3D11DynamicRHI::CommitNonComputeShaderConstants()
 {
@@ -1409,7 +1361,7 @@ void FD3D11DynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType,uint32 BaseVertexIn
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
 
-	uint32 VertexCount = RHIGetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
+	uint32 VertexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 
 	GPUProfilingData.RegisterGPUWork(NumPrimitives * NumInstances, VertexCount * NumInstances);
 
@@ -1492,7 +1444,7 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	uint32 SizeFormat = sizeof(DXGI_FORMAT);
 	const DXGI_FORMAT Format = (IndexBuffer->GetStride() == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
 
-	uint32 IndexCount = RHIGetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
+	uint32 IndexCount = GetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 
 	// Verify that we are not trying to read outside the index buffer range
 	// test is an optimized version of: StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride() 
@@ -1668,6 +1620,8 @@ void FD3D11DynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool 
 
 void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
+
 	GRHICommandList.Verify();
 
 	// Helper struct to record and restore device states RHIClearMRT modifies.
@@ -1987,9 +1941,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(GetGlobalShaderMap());
 			PixelShader = *MRTPixelShader;
 		}
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+		
 		SetGlobalBoundShaderState(RHICmdList, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
 		FMemory::MemZero(ShaderClearColors);
@@ -2047,6 +1999,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
 			}
 		}
+		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 		if (bChangedDepthStencilTarget)
 		{
@@ -2333,6 +2286,106 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 				RHICmd->Texture->Release();
 			}
 			break;
+		case ERCT_SetShaderResourceViewParameter:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderResourceViewParameter>();
+				{
+					uint32 Start = FPlatformTime::Cycles();
+
+					FD3D11ShaderResourceView*  SRV = (FD3D11ShaderResourceView*)RHICmd->SRV;
+
+					FD3D11BaseShaderResource* Resource = SRV->Resource;
+					ID3D11ShaderResourceView* D3D11SRV = SRV->View;
+
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Vertex:
+						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Vertex>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					case SF_Hull:
+						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Hull>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					case SF_Domain:
+						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Domain>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					case SF_Geometry:
+						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Geometry>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					case SF_Pixel:
+						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Pixel>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					case SF_Compute:
+						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
+						SetShaderResourceView<SF_Compute>(Resource, D3D11SRV, RHICmd->SamplerIndex);
+						break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->SRV->Release();
+			}
+			break;
+		case ERCT_SetUAVParameter:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter>();
+				{
+					uint32 Start = FPlatformTime::Cycles();
+
+					FD3D11UnorderedAccessView*  UAV = (FD3D11UnorderedAccessView*)RHICmd->UAV;
+
+					FD3D11BaseShaderResource* Resource = UAV->Resource;
+					ID3D11UnorderedAccessView* D3D11UAV = UAV->View;
+
+
+					ConditionalClearShaderResource(Resource);
+
+					uint32 InitialCount = -1;
+
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Compute:
+						//VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
+						Direct3DDeviceIMContext->CSSetUnorderedAccessViews(RHICmd->UAVIndex, 1, &D3D11UAV, &InitialCount);
+						break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->UAV->Release();
+			}
+			break;
+		case ERCT_SetUAVParameter_IntialCount:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter_IntialCount>();
+				{
+					uint32 Start = FPlatformTime::Cycles();
+
+					FD3D11UnorderedAccessView*  UAV = (FD3D11UnorderedAccessView*)RHICmd->UAV;
+
+					FD3D11BaseShaderResource* Resource = UAV->Resource;
+					ID3D11UnorderedAccessView* D3D11UAV = UAV->View;
+
+
+					ConditionalClearShaderResource(Resource);
+
+					switch (RHICmd->ShaderFrequency)
+					{
+					case SF_Compute:
+						//VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
+						Direct3DDeviceIMContext->CSSetUnorderedAccessViews(RHICmd->UAVIndex, 1, &D3D11UAV, &RHICmd->InitialCount);
+						break;
+					default: check(0); break;
+					}
+				}
+				RHICmd->Shader->Release();
+				RHICmd->UAV->Release();
+			}
+			break;
 		case ERCT_DrawPrimitive:
 			{
 				auto* RHICmd = Iter.NextCommand<FRHICommandDrawPrimitive>();
@@ -2341,7 +2394,7 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 
 					CommitGraphicsResourceTables();
 					CommitNonComputeShaderConstants();
-					const uint32 VertexCount = RHIGetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
+					const uint32 VertexCount = GetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
 
 					GPUProfilingData.RegisterGPUWork(RHICmd->NumPrimitives * RHICmd->NumInstances, VertexCount * RHICmd->NumInstances);
 					StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(RHICmd->PrimitiveType, bUsingTessellation));
@@ -2376,7 +2429,7 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					uint32 SizeFormat = sizeof(DXGI_FORMAT);
 					const DXGI_FORMAT Format = (IndexBuffer->GetStride() == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
 
-					uint32 IndexCount = RHIGetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
+					uint32 IndexCount = GetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
 
 					// Verify that we are not trying to read outside the index buffer range
 					checkf(RHICmd->StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride(), 

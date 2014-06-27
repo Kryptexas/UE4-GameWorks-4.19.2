@@ -102,7 +102,7 @@ void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassCont
 
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FIntPoint ViewportSize = ViewFamily.RenderTarget->GetSizeXY();
-	RHISetViewport(0, 0, 0.0f, ViewportSize.X, ViewportSize.Y, 1.0f);
+	Context.RHICmdList.SetViewport(0, 0, 0.0f, ViewportSize.X, ViewportSize.Y, 1.0f);
 
 	Ptr<FDistortionMesh> mesh = RenderParams_RenderThread.pDistortionMesh[(View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1];
 

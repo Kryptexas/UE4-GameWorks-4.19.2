@@ -49,7 +49,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FLocalVertexFactory::InitRHI();
 	}

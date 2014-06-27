@@ -16,14 +16,14 @@ struct FRWBuffer
 
 	FRWBuffer(): NumBytes(0) {}
 
-	void Initialize(uint32 BytesPerElement,uint32 NumElements,EPixelFormat Format,uint32 AdditionalUsage = 0)
+	void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0)
 	{
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		NumBytes = BytesPerElement * NumElements;
 		FRHIResourceCreateInfo CreateInfo;
-		Buffer = RHICreateVertexBuffer(NumBytes,BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
-		UAV = RHICreateUnorderedAccessView(Buffer,Format);
-		SRV = RHICreateShaderResourceView(Buffer,BytesPerElement,Format);
+		Buffer = RHICreateVertexBuffer(NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
+		UAV = RHICreateUnorderedAccessView(Buffer, Format);
+		SRV = RHICreateShaderResourceView(Buffer, BytesPerElement, Format);
 	}
 
 	void Release()
@@ -44,13 +44,13 @@ struct FReadBuffer
 
 	FReadBuffer(): NumBytes(0) {}
 
-	void Initialize(uint32 BytesPerElement,uint32 NumElements,EPixelFormat Format,uint32 AdditionalUsage = 0)
+	void Initialize(uint32 BytesPerElement, uint32 NumElements, EPixelFormat Format, uint32 AdditionalUsage = 0)
 	{
 		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM4);
 		NumBytes = BytesPerElement * NumElements;
 		FRHIResourceCreateInfo CreateInfo;
-		Buffer = RHICreateVertexBuffer(NumBytes,BUF_ShaderResource | AdditionalUsage,CreateInfo);
-		SRV = RHICreateShaderResourceView(Buffer,BytesPerElement,Format);
+		Buffer = RHICreateVertexBuffer(NumBytes, BUF_ShaderResource | AdditionalUsage, CreateInfo);
+		SRV = RHICreateShaderResourceView(Buffer, BytesPerElement, Format);
 	}
 
 	void Release()
@@ -71,13 +71,13 @@ struct FRWBufferStructured
 
 	FRWBufferStructured(): NumBytes(0) {}
 
-	void Initialize( uint32 BytesPerElement, uint32 NumElements, uint32 AdditionalUsage = 0, bool bUseUavCounter = false, bool bAppendBuffer = false )
+	void Initialize(uint32 BytesPerElement, uint32 NumElements, uint32 AdditionalUsage = 0, bool bUseUavCounter = false, bool bAppendBuffer = false)
 	{
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		NumBytes = BytesPerElement * NumElements;
 		FRHIResourceCreateInfo CreateInfo;
 		Buffer = RHICreateStructuredBuffer(BytesPerElement, NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | AdditionalUsage, CreateInfo);
-		UAV = RHICreateUnorderedAccessView(Buffer,bUseUavCounter, bAppendBuffer);
+		UAV = RHICreateUnorderedAccessView(Buffer, bUseUavCounter, bAppendBuffer);
 		SRV = RHICreateShaderResourceView(Buffer);
 	}
 
@@ -100,14 +100,14 @@ struct FRWBufferByteAddress
 
 	FRWBufferByteAddress(): NumBytes(0) {}
 
-	void Initialize( uint32 InNumBytes, uint32 AdditionalUsage = 0 )
+	void Initialize(uint32 InNumBytes, uint32 AdditionalUsage = 0)
 	{
 		NumBytes = InNumBytes;
 		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		check( NumBytes % 4 == 0 );
 		FRHIResourceCreateInfo CreateInfo;
 		Buffer = RHICreateStructuredBuffer(4, NumBytes, BUF_UnorderedAccess | BUF_ShaderResource | BUF_ByteAddressBuffer | AdditionalUsage, CreateInfo);
-		UAV = RHICreateUnorderedAccessView(Buffer, false, false );
+		UAV = RHICreateUnorderedAccessView(Buffer, false, false);
 		SRV = RHICreateShaderResourceView(Buffer);
 	}
 
@@ -121,21 +121,21 @@ struct FRWBufferByteAddress
 };
 
 /** Helper for the common case of using a single color and depth render target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget);
 	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
 	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
 }
 
 /** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
+inline void SetRenderTarget(FRHICommandListImmediate& RHICmdList, FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
 {
 	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
 	RHICmdList.SetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
@@ -143,7 +143,7 @@ inline void SetRenderTarget(FRHICommandList& RHICmdList, FTextureRHIParamRef New
 
 /** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
 inline void SetRenderTargets(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
 	uint32 NewNumSimultaneousRenderTargets, 
 	const FTextureRHIParamRef* NewRenderTargetsRHI,
 	FTextureRHIParamRef NewDepthStencilTargetRHI,
@@ -159,59 +159,6 @@ inline void SetRenderTargets(
 	}
 
 	RHICmdList.SetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
-}
-
-
-
-/** Helper for the common case of using a single color and depth render target. */
-inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, FTextureRHIParamRef NewDepthStencilTarget)
-{
-	FRHIRenderTargetView RTV(NewRenderTarget);
-	RHISetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
-}
-
-/** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, int32 MipIndex, FTextureRHIParamRef NewDepthStencilTarget)
-{
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, -1);
-	RHISetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
-}
-
-/** Helper for the common case of using a single color and depth render target, with a mip index for the color target. */
-inline void RHISetRenderTarget(FTextureRHIParamRef NewRenderTarget, int32 MipIndex, int32 ArraySliceIndex, FTextureRHIParamRef NewDepthStencilTarget)
-{
-	FRHIRenderTargetView RTV(NewRenderTarget, MipIndex, ArraySliceIndex);
-	RHISetRenderTargets(1, &RTV, NewDepthStencilTarget, 0, NULL);
-}
-
-/** Helper that converts FTextureRHIParamRef's into FRHIRenderTargetView's. */
-inline void RHISetRenderTargets(
-	uint32 NewNumSimultaneousRenderTargets,
-	const FTextureRHIParamRef* NewRenderTargetsRHI,
-	FTextureRHIParamRef NewDepthStencilTargetRHI,
-	uint32 NewNumUAVs,
-	const FUnorderedAccessViewRHIParamRef* UAVs
-	)
-{
-	FRHIRenderTargetView RTVs[MaxSimultaneousRenderTargets];
-
-	for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
-	{
-		RTVs[Index] = FRHIRenderTargetView(NewRenderTargetsRHI[Index]);
-	}
-
-	RHISetRenderTargets(NewNumSimultaneousRenderTargets, RTVs, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
-}
-/** Sets a depth-stencil state with a default stencil ref value of 0. */
-inline void RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewState)
-{
-	RHISetDepthStencilState(NewState,0);
-}
-
-/** Sets a blend state with a default blend factor of white. */
-inline void RHISetBlendState(FBlendStateRHIParamRef NewState)
-{
-	RHISetBlendState(NewState,FLinearColor::White);
 }
 
 /**
@@ -258,13 +205,13 @@ inline void RHICreateTargetableShaderResource2D(
 	if (!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,NumSamples,Flags | TargetableTextureFlags,CreateInfo);
-		OutShaderResourceTexture = RHICreateTexture2D(SizeX,SizeY,Format,NumMips,1,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, NumSamples, Flags | TargetableTextureFlags, CreateInfo);
+		OutShaderResourceTexture = RHICreateTexture2D(SizeX, SizeY, Format, NumMips, 1, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, CreateInfo);
 	}
 }
 
@@ -305,13 +252,13 @@ inline void RHICreateTargetableShaderResourceCube(
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TargetableTextureFlags,CreateInfo);
-		OutShaderResourceTexture = RHICreateTextureCube(LinearSize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TargetableTextureFlags, CreateInfo);
+		OutShaderResourceTexture = RHICreateTextureCube(LinearSize, Format, NumMips, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, CreateInfo);
 	}
 }
 
@@ -350,13 +297,13 @@ inline void RHICreateTargetableShaderResourceCubeArray(
 	if(!bForceSeparateTargetAndShaderResource/* && GSupportsRenderDepthTargetableShaderResources*/)
 	{
 		// Create a single texture that has both TargetableTextureFlags and TexCreate_ShaderResource set.
-		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TargetableTextureFlags | TexCreate_ShaderResource, CreateInfo);
 	}
 	else
 	{
 		// Create a texture that has TargetableTextureFlags set, and a second texture that has TexCreate_ResolveTargetable and TexCreate_ShaderResource set.
-		OutTargetableTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TargetableTextureFlags,CreateInfo);
-		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize,ArraySize,Format,NumMips,Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource,CreateInfo);
+		OutTargetableTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TargetableTextureFlags, CreateInfo);
+		OutShaderResourceTexture = RHICreateTextureCubeArray(LinearSize, ArraySize, Format, NumMips, Flags | TexCreate_ResolveTargetable | TexCreate_ShaderResource, CreateInfo);
 	}
 }
 /**
@@ -365,7 +312,7 @@ inline void RHICreateTargetableShaderResourceCubeArray(
  * @param PrimitiveType The type of primitives.
  * @returns The number of vertices.
  */
-inline uint32 RHIGetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 PrimitiveType)
+inline uint32 GetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 PrimitiveType)
 {
 	uint32 VertexCount = 0;
 	switch(PrimitiveType)
@@ -421,10 +368,10 @@ inline uint32 RHIGetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 Pr
  * @param VertexData A reference to memory preallocate in RHIBeginDrawPrimitiveUP
  * @param VertexDataStride Size of each vertex
  */
-inline void DrawPrimitiveUP(FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
+inline void DrawPrimitiveUP(FRHICommandListImmediate& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
 {
 	void* Buffer = NULL;
-	const uint32 VertexCount = RHIGetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
+	const uint32 VertexCount = GetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
 	RHICmdList.BeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, VertexCount, VertexDataStride, Buffer);
 	FMemory::Memcpy( Buffer, VertexData, VertexCount * VertexDataStride );
 	RHICmdList.EndDrawPrimitiveUP();
@@ -442,7 +389,7 @@ inline void DrawPrimitiveUP(FRHICommandList& RHICmdList, uint32 PrimitiveType, u
  * @param VertexDataStride The size of one vertex
  */
 inline void DrawIndexedPrimitiveUP(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
 	uint32 PrimitiveType,
 	uint32 MinVertexIndex,
 	uint32 NumVertices,
@@ -454,7 +401,7 @@ inline void DrawIndexedPrimitiveUP(
 {
 	void* VertexBuffer = NULL;
 	void* IndexBuffer = NULL;
-	const uint32 NumIndices = RHIGetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
+	const uint32 NumIndices = GetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
 	RHICmdList.BeginDrawIndexedPrimitiveUP(
 		PrimitiveType,
 		NumPrimitives,

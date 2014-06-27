@@ -81,12 +81,12 @@ public:
 	/**
 	 * Initializes all OpenGL resources.
 	 */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/**
 	 * Releases all OpenGL resources.
 	 */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 
 private:
@@ -306,7 +306,7 @@ public:
 	virtual void PopEvent();
 
 
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type Name ParameterTypesAndNames
+	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 

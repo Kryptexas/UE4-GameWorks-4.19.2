@@ -1012,42 +1012,41 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	FViewport::EnqueueBeginRenderFrame();
 }
 
-void FSceneViewport::BeginRenderFrame()
+void FSceneViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
-	
 	if( bUseSeparateRenderTarget )
 	{
-		RHISetRenderTarget( RenderTargetTextureRHI,  FTexture2DRHIRef() );
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
 	}
 	else if( IsValidRef( ViewportRHI ) ) 
 	{
 		// Get the backbuffer render target to render directly to it
-		RenderTargetTextureRHI = RHIGetViewportBackBuffer( ViewportRHI );
+		RenderTargetTextureRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
 		if (GRHIShaderPlatform != SP_METAL)
 		{
 			// unused set render targets are bad on Metal
-			RHISetRenderTarget(RenderTargetTextureRHI, FTexture2DRHIRef());
+			SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTexture2DRHIRef());
 		}
 	}
 }
 
-void FSceneViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
+void FSceneViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync)
 {
 	check( IsInRenderingThread() );
-	if( bUseSeparateRenderTarget )
+	if (bUseSeparateRenderTarget)
 	{
 		// @todo-mobile
 		if (GRHIShaderPlatform == SP_OPENGL_ES2)
 		{
 			check(0);
 		}
-		RHICopyToResolveTarget( RenderTargetTextureRHI, SlateRenderTargetHandle->GetRHIRef(), false, FResolveParams() ); 
+		RHICmdList.CopyToResolveTarget( RenderTargetTextureRHI, SlateRenderTargetHandle->GetRHIRef(), false, FResolveParams() ); 
 	}
 	else
 	{
 		// Set the active render target(s) to nothing to release references in the case that the viewport is resized by slate before we draw again
-		RHISetRenderTarget( FTexture2DRHIRef(), FTexture2DRHIRef() );
+		SetRenderTarget(RHICmdList,  FTexture2DRHIRef(), FTexture2DRHIRef() );
 		// Note: this releases our reference but does not release the resource as it is owned by slate (this is intended)
 		RenderTargetTextureRHI.SafeRelease();
 	}

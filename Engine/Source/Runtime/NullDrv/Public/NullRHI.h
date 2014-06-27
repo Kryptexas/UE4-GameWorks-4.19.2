@@ -20,7 +20,7 @@ public:
 
 	// Implement the dynamic RHI interface using the null implementations defined in RHIMethods.h
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-		virtual Type Name ParameterTypesAndNames { NullImplementation; }
+	virtual Type RHI##Name ParameterTypesAndNames{ NullImplementation; }
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 

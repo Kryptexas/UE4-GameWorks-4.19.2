@@ -89,7 +89,7 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.UnscaledViewRect;
 	
-	GSceneRenderTargets.BeginRenderingLightAttenuation();
+	GSceneRenderTargets.BeginRenderingLightAttenuation(Context.RHICmdList);
 	
 	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetLightAttenuation()->GetRenderTargetItem();
 
@@ -125,7 +125,6 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
-	Context.RHICmdList.CheckIsNull(); // this won't work for parallel rendering
 	GSceneRenderTargets.SetLightAttenuation(0);
 }
 

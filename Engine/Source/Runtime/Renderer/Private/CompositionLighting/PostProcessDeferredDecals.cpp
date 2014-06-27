@@ -136,7 +136,7 @@ struct FTransientDecalRenderData
 	}
 };
 // @param RenderState 0:before BasePass, 1:before lighting, (later we could add "after lighting" and multiply)
-void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 RenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
+void SetDecalBlendState(FRHICommandList& RHICmdList, const ERHIFeatureLevel::Type SMFeatureLevel, uint32 RenderStage, EDecalBlendMode DecalBlendMode, bool bHasNormal)
 {
 	if(RenderStage == 0)
 	{
@@ -144,7 +144,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 		switch(DecalBlendMode)
 		{
 		case DBM_DBuffer_ColorNormalRoughness:
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -152,7 +152,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Color:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
@@ -160,7 +160,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_ColorNormal:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One >::GetRHI() );		
@@ -168,7 +168,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_ColorRoughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -176,7 +176,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Normal:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One>::GetRHI() );		
@@ -184,7 +184,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_NormalRoughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -192,7 +192,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 
 		case DBM_DBuffer_Roughness:
 			// we can optimize using less MRT later
-			RHISetBlendState( TStaticBlendState< 
+			RHICmdList.SetBlendState( TStaticBlendState< 
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_Zero, BF_One,								BO_Add,BF_Zero,BF_One,
 				CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add,BF_Zero,BF_InverseSourceAlpha >::GetRHI() );		
@@ -217,7 +217,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			{
 				if(bHasNormal)
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -227,7 +227,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 				}
 				else
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -238,7 +238,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			}
 			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				RHISetBlendState( TStaticBlendState<
+				RHICmdList.SetBlendState( TStaticBlendState<
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Emissive
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Normal
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_One,							BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -253,7 +253,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			{
 				if(bHasNormal)
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -263,7 +263,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 				}
 				else
 				{
-					RHISetBlendState( TStaticBlendState<
+					RHICmdList.SetBlendState( TStaticBlendState<
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_One,						BO_Add, BF_Zero, BF_One,	// Emissive
 						CW_RGB, BO_Add, BF_Zero,		BF_One,						BO_Add, BF_Zero, BF_One,	// Normal
 						CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -274,7 +274,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			}
 			else if(SMFeatureLevel == ERHIFeatureLevel::SM4)
 			{
-				RHISetBlendState( TStaticBlendState<
+				RHICmdList.SetBlendState( TStaticBlendState<
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Emissive
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Normal
 					CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,			BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -285,11 +285,11 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			break;
 
 		case DBM_Normal:
-			RHISetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI() );
+			RHICmdList.SetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha >::GetRHI() );
 			break;
 
 		case DBM_Emissive:
-			RHISetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI() );
+			RHICmdList.SetBlendState( TStaticBlendState< CW_RGB, BO_Add, BF_SourceAlpha, BF_One >::GetRHI() );
 			break;
 
 		default:
@@ -350,7 +350,7 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
+void StencilDecalMask(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -363,7 +363,6 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
 
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FStencilDecalMaskPS> PixelShader(GetGlobalShaderMap());
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 	
 	SetGlobalBoundShaderState(RHICmdList, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
@@ -603,14 +602,12 @@ private:
 static TGlobalResource<FUnitCubeVertexBuffer> GUnitCubeVertexBuffer;
 static TGlobalResource<FUnitCubeIndexBuffer> GUnitCubeIndexBuffer;
 
-void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FTransientDecalRenderData& DecalData, FShader* VertexShader)
+void SetShader(const FRenderingCompositePassContext& Context, const FTransientDecalRenderData& DecalData, FShader* VertexShader)
 {
 	const FSceneView& View = Context.View;
 	
 	const FMaterialShaderMap* MaterialShaderMap = DecalData.MaterialResource->GetRenderingThreadShaderMap();
 	FDeferredDecalPS* PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
-
-	RHICmdList.CheckIsNull();
 
 	// This was cached but when changing the material (e.g. editor) it wasn't updated.
 	// This will change with upcoming multi threaded rendering changes.
@@ -620,15 +617,15 @@ void SetShader(FRHICommandList& RHICmdList, const FRenderingCompositePassContext
 		FMemory::Memzero(Strides, sizeof(Strides));
 		Strides[0] = sizeof(FVector);
 
-		BoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
+		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
 	}
 
-	RHISetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
 
-	PixelShader->SetParameters(RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy);
+	PixelShader->SetParameters(Context.RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy);
 }
 
-bool RenderPreStencil(FRHICommandList& RHICmdList, FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
+bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialShaderMap* MaterialShaderMap, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
 	SCOPED_DRAW_EVENT(RenderPreStencil, DEC_SCENE_ITEMS);
 
@@ -653,24 +650,22 @@ bool RenderPreStencil(FRHICommandList& RHICmdList, FRenderingCompositePassContex
 
 	FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
 	
-	RHICmdList.CheckIsNull();
-
 	// This was cached but when changing the material (e.g. editor) it wasn't updated.
 	// This will change with upcoming multi threaded rendering changes.
 	FBoundShaderStateRHIRef BoundShaderState;
 	{
-		BoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef());
+		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef());
 	}
 
-	RHISetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
 
-	VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
+	VertexShader->SetParameters(Context.RHICmdList, View, FrustumComponentToClip);
 
 	// Set states, the state cache helps us avoiding redundant sets
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 
 	// all the same to have DX10 working
-	RHISetBlendState( TStaticBlendState<
+	Context.RHICmdList.SetBlendState(TStaticBlendState<
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Emissive
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Normal
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One,	// Metallic, Specular
@@ -679,7 +674,7 @@ bool RenderPreStencil(FRHICommandList& RHICmdList, FRenderingCompositePassContex
 	>::GetRHI() );
 
 	// Carmack's reverse on the bounds
-	RHISetDepthStencilState(TStaticDepthStencilState<
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 		false,CF_LessEqual,
 		true,CF_Equal,SO_Keep,SO_Keep,SO_Increment,
 		true,CF_Equal,SO_Keep,SO_Keep,SO_Decrement,
@@ -687,7 +682,7 @@ bool RenderPreStencil(FRHICommandList& RHICmdList, FRenderingCompositePassContex
 	>::GetRHI());
 
 	// Render decal mask
-	RHIDrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
+	Context.RHICmdList.DrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
 
 	return true;
 }
@@ -707,8 +702,8 @@ FRCPassPostProcessDeferredDecals::FRCPassPostProcessDeferredDecals(uint32 InRend
 
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	
+	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
 
 	bool bDBuffer = IsDBufferEnabled();
 	float bDecalPreStencil = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
@@ -890,7 +885,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		SCOPED_DRAW_EVENT(Decals, DEC_SCENE_ITEMS);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 		
-		RHISetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
+		RHICmdList.SetStreamSource(0, GUnitCubeVertexBuffer.VertexBufferRHI, sizeof(FVector4), 0);
 
 		for (int32 DecalIndex = 0; DecalIndex < SortedDecals.Num(); DecalIndex++)
 		{
@@ -911,7 +906,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			{
 				if(bDecalPreStencil)
 				{
-					bThisDecalUsesStencil = RenderPreStencil(RHICmdList, Context, MaterialShaderMap, ComponentToWorldMatrix, FrustumComponentToClip);
+					bThisDecalUsesStencil = RenderPreStencil(Context, MaterialShaderMap, ComponentToWorldMatrix, FrustumComponentToClip);
 					WasInsideDecal = -1;
 					LastDecalBlendMode = -1;
 				}
@@ -982,12 +977,12 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				LastDecalBlendMode = DecalData.DecalBlendMode;
 				LastDecalHasNormal = (int32)DecalData.bHasNormal;
 
-				SetDecalBlendState(SMFeatureLevel, RenderStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
+				SetDecalBlendState(RHICmdList, SMFeatureLevel, RenderStage, (EDecalBlendMode)LastDecalBlendMode, DecalData.bHasNormal);
 			}
 
 			{
 				FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
-				SetShader(RHICmdList, Context, DecalData, VertexShader);
+				SetShader(Context, DecalData, VertexShader);
 
 				VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
 
@@ -998,13 +993,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					if ( !(IsInsideDecal & 1) )
 					{
 						// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light function geometry
-						RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI());
+						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
 						if(bStencilDecals)
 						{
 							// Enable stencil testing, only write to pixels with stencil of 0
 							if ( bThisDecalUsesStencil )
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_Always,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
@@ -1013,7 +1008,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							}
 							else
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_Always,
 									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
@@ -1022,7 +1017,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 						}
 						else
 						{
-							RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always,true>::GetRHI(), 0);
+							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true>::GetRHI(), 0);
 						}
 					}
 					else
@@ -1036,7 +1031,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 							if ( bThisDecalUsesStencil )
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_GreaterEqual,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
@@ -1045,25 +1040,25 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 							}
 							else
 							{
-								RHISetDepthStencilState(TStaticDepthStencilState<
+								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 									false,CF_GreaterEqual,
 									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
 									0x80,0x00>::GetRHI(), 0);
 							}
-							RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI());
+							RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 						}
 						else
 						{
-							RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI(), 0);
+							RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_GreaterEqual>::GetRHI(), 0);
 						}
-						RHISetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid,CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid,CM_CCW>::GetRHI());
+						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 					}
 				}
 
-				SetShader(RHICmdList, Context, DecalData, VertexShader);
+				SetShader(Context, DecalData, VertexShader);
 
-				RHIDrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
+				RHICmdList.DrawIndexedPrimitive(GUnitCubeIndexBuffer.IndexBufferRHI, PT_TriangleList, 0, 0, 8, 0, GUnitCubeIndexBuffer.GetIndexCount() / 3, 0);
 			}
 		}
 
@@ -1072,7 +1067,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 
 		// Clear stencil to 0, which is the assumed default by other passes
-		RHIClear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
+		RHICmdList.Clear(false, FLinearColor::White, false, 0, true, 0, FIntRect());
 	}
 
 	if(RenderStage == 0)

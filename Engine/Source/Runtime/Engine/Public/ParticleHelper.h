@@ -2836,7 +2836,7 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// create a static vertex buffer
 		FRHIResourceCreateInfo CreateInfo;

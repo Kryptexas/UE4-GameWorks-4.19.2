@@ -14,7 +14,7 @@ static const int32 GMaxNumObjectsPerTile = 512;
 class FRefinementLevelResources
 {
 public:
-	void InitDynamicRHI() 
+	void InitDynamicRHI()
 	{
 		//@todo - handle max exceeded
 		PositionAndRadius.Initialize(sizeof(float) * 4, GMaxIrradianceCacheSamples, PF_A32B32G32R32F, BUF_Static);
@@ -23,7 +23,7 @@ public:
 		BentNormal.Initialize(sizeof(FFloat16Color), GMaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 		ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 		SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
-		TileCoordinate.Initialize(sizeof(uint16) * 2, GMaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
+		TileCoordinate.Initialize(sizeof(uint16)* 2, GMaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
 	}
 
 	void ReleaseDynamicRHI()
@@ -71,7 +71,7 @@ public:
 		delete TempResources;
 	}
 
-	virtual void InitDynamicRHI() 
+	virtual void InitDynamicRHI() override
 	{
 		DispatchParameters.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 
@@ -85,7 +85,7 @@ public:
 		bClearedResources = false;
 	}
 
-	virtual void ReleaseDynamicRHI()
+	virtual void ReleaseDynamicRHI() override
 	{
 		DispatchParameters.Release();
 
@@ -111,20 +111,20 @@ public:
 class FTileIntersectionResources : public FRenderResource
 {
 public:
-	virtual void InitDynamicRHI() 
+	virtual void InitDynamicRHI() override
 	{
-		TileConeAxisAndCos.Initialize(sizeof(float) * 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
-		TileConeDepthRanges.Initialize(sizeof(float) * 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
+		TileConeAxisAndCos.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
+		TileConeDepthRanges.Initialize(sizeof(float)* 4, TileDimensions.X * TileDimensions.Y, PF_A32B32G32R32F, BUF_Static);
 
 		TileHeadDataUnpacked.Initialize(sizeof(uint32), TileDimensions.X * TileDimensions.Y * 4, PF_R32_UINT, BUF_Static);
-		TileHeadData.Initialize(sizeof(uint32) * 4, TileDimensions.X * TileDimensions.Y, PF_R32G32B32A32_UINT, BUF_Static);
+		TileHeadData.Initialize(sizeof(uint32)* 4, TileDimensions.X * TileDimensions.Y, PF_R32G32B32A32_UINT, BUF_Static);
 
 		//@todo - handle max exceeded
 		TileArrayData.Initialize(sizeof(uint16), GMaxNumObjectsPerTile * TileDimensions.X * TileDimensions.Y * 3, PF_R16_UINT, BUF_Static);
 		TileArrayNextAllocation.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
 	}
 
-	virtual void ReleaseDynamicRHI()
+	virtual void ReleaseDynamicRHI() override
 	{
 		TileConeAxisAndCos.Release();
 		TileConeDepthRanges.Release();

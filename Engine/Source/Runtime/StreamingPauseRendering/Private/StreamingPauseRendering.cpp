@@ -91,7 +91,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 			FViewport*,Viewport,Viewport.Get(),
 			//FIntPoint,InRestoreSize,RestoreSize,
 		{
-			Viewport->EndRenderFrame( false, false );
+			Viewport->EndRenderFrame(RHICmdList, false, false);
 		});
 	}
 

@@ -321,7 +321,7 @@ static void UpdatePrimitiveFading(const FScene* Scene, FViewInfo& View)
 /**
  * Cull occluded primitives in the view.
  */
-static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
+static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* Scene, FViewInfo& View)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OcclusionCull);
 
@@ -372,7 +372,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_MapHZBResults);
 				check(!ViewState->HZBOcclusionTests.IsValidFrame(View.FrameNumber));
-				ViewState->HZBOcclusionTests.MapResults();
+				ViewState->HZBOcclusionTests.MapResults(RHICmdList);
 			}
 
 			FViewElementPDI OcclusionPDI(&View, NULL);
@@ -439,7 +439,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 							if (IsValidRef(PastQuery))
 							{
 								// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
-								if ( RHIGetRenderQueryResult(PastQuery,NumSamples,true) )
+								if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
 								{
 									// we render occlusion without MSAA
 									uint32 NumPixels = (uint32)NumSamples;
@@ -499,7 +499,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 
 					if (bClearQueries)
 					{
-						ViewState->OcclusionQueryPool.ReleaseQuery( PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber) );
+						ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(View.FrameNumber));
 					}
 				}
 
@@ -596,7 +596,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 			{
 				QUICK_SCOPE_CYCLE_COUNTER(STAT_HZBUnmapResults);
 
-				ViewState->HZBOcclusionTests.UnmapResults();
+				ViewState->HZBOcclusionTests.UnmapResults(RHICmdList);
 
 				if( bSubmitQueries )
 				{
@@ -638,6 +638,7 @@ typedef TArray<uint8, SceneRenderingAllocator> FPrimitivePreRenderViewMasks;
  *                                callback for this view will have ViewBit set.
  */
 static void ComputeRelevanceForView(
+	FRHICommandListImmediate& RHICmdList,
 	const FScene* Scene,
 	FViewInfo& View,
 	uint8 ViewBit,
@@ -749,7 +750,7 @@ static void ComputeRelevanceForView(
 			PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
 		}
 
-		PrimitiveSceneInfo->ConditionalUpdateStaticMeshes();
+		PrimitiveSceneInfo->ConditionalUpdateStaticMeshes(RHICmdList);
 	}
 }
 
@@ -918,10 +919,10 @@ float Halton( int32 Index, int32 Base )
 	return Result;
 }
 
-void FSceneRenderer::PreVisibilityFrameSetup()
+void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdList)
 {
 	// Notify the RHI we are beginning to render a scene.
-	RHIBeginScene();
+	RHICmdList.BeginScene();
 
 	// Notify the FX system that the scene is about to perform visibility checks.
 	if (Scene->FXSystem)
@@ -1192,7 +1193,7 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 	}
 }
 
-void FSceneRenderer::ComputeViewVisibility()
+void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ViewVisibilityTime);
 
@@ -1363,7 +1364,7 @@ void FSceneRenderer::ComputeViewVisibility()
 		// Occlusion cull for all primitives in the view frustum, but not in wireframe.
 		if (!View.Family->EngineShowFlags.Wireframe)
 		{
-			int32 NumOccludedPrimitivesInView = OcclusionCull(Scene, View);
+			int32 NumOccludedPrimitivesInView = OcclusionCull(RHICmdList, Scene, View);
 			STAT(NumOccludedPrimitives += NumOccludedPrimitivesInView);
 		}
 
@@ -1372,7 +1373,7 @@ void FSceneRenderer::ComputeViewVisibility()
 
 		// Compute view relevance for all visible primitives.
 		RelevantStaticPrimitives.Reset();
-		ComputeRelevanceForView(Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks);
+		ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks);
 		MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1510,14 +1511,14 @@ uint32 GetShadowQuality();
  * Initialize scene's views.
  * Check visibility, sort translucent items, etc.
  */
-void FDeferredShadingSceneRenderer::InitViews()
+void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPED_DRAW_EVENT(InitViews, DEC_SCENE_ITEMS);
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
-	PreVisibilityFrameSetup();
-	ComputeViewVisibility();
+	PreVisibilityFrameSetup(RHICmdList);
+	ComputeViewVisibility(RHICmdList);
 	PostVisibilityFrameSetup();
 
 	FVector AverageViewPosition(0);
@@ -1535,7 +1536,7 @@ void FDeferredShadingSceneRenderer::InitViews()
 	if (bDynamicShadows && !IsSimpleDynamicLightingEnabled())
 	{
 		// Setup dynamic shadows.
-		InitDynamicShadows();
+		InitDynamicShadows(RHICmdList);
 	}
 
 	if(ViewFamily.EngineShowFlags.MotionBlur && GRenderingRealtimeClock.GetGamePaused())

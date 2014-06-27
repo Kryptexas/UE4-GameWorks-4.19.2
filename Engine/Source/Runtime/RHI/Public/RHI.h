@@ -1025,9 +1025,21 @@ DECLARE_MEMORY_STAT_POOL_EXTERN(TEXT("Pixel buffer memory"),STAT_PixelBufferMemo
 
 #if !USE_DYNAMIC_RHI
 	// Define the statically bound RHI methods with the RHI name prefix.
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) extern Type Name ParameterTypesAndNames
-	#include "RHIMethods.h"
-	#undef DEFINE_RHIMETHOD
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern Type Name##_Internal ParameterTypesAndNames
+#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern Type RHI##Name ParameterTypesAndNames
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern Type Name##_Internal ParameterTypesAndNames
+#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	extern Type Name##_Internal ParameterTypesAndNames
+
+#include "RHIMethods.h"
+#undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
+
 #endif
 
 /** Initializes the RHI. */

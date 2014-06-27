@@ -111,7 +111,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 	TShaderMapRef<FPostProcessTestImagePS> PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -150,7 +150,6 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 				return Texture;
 			}
 		} TempRenderTarget(View, (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture);
-		Context.RHICmdList.CheckIsNull(); // canvas doesn't use the cmd list
 
 		FCanvas Canvas(&TempRenderTarget, NULL, ViewFamily.CurrentRealTime, ViewFamily.CurrentWorldTime, ViewFamily.DeltaWorldTime);
 

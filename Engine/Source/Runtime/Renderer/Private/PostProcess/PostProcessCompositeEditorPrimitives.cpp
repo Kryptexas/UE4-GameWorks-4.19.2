@@ -168,7 +168,7 @@ static void SetCompositePrimitivesShaderTempl(const FRenderingCompositePassConte
 	TShaderMapRef<FPostProcessCompositeEditorPrimitivesPS<MSAASampleCount> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -221,7 +221,6 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 
 		RenderPrimitivesToComposite(Context.RHICmdList, View);
 
-		Context.RHICmdList.CheckIsNull(); // this probably won't work with parallel rendering
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.EditorPrimitivesColor);
 	}
 
@@ -279,7 +278,6 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTargetSurface, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Clean up targets
-	Context.RHICmdList.CheckIsNull(); // this probably won't work with parallel rendering
 	GSceneRenderTargets.CleanUpEditorPrimitiveTargets();
 }
 
@@ -293,9 +291,8 @@ FPooledRenderTargetDesc FRCPassPostProcessCompositeEditorPrimitives::ComputeOutp
 	return Ret;
 }
 
-void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FRHICommandList& RHICmdList, const FViewInfo& View)
+void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
-	RHICmdList.CheckIsNull(); // This uses DrawDynamicElements
 
 	// Always depth test against other editor primitives
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
@@ -372,7 +369,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 
-		DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View,FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_Foreground, false);
+		DrawViewElements<FBasePassOpaqueDrawingPolicyFactory>(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_Foreground, false);
 
 		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), false);
 	}

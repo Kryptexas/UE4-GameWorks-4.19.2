@@ -109,7 +109,7 @@ class FQuadVertexBuffer : public FVertexBuffer
 {
 public:
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		// Used as a non-indexed triangle list, so 6 vertices per quad
 		const uint32 Size = 6 * sizeof(FScreenVertex);
@@ -141,7 +141,7 @@ class FCircleVertexBuffer : public FVertexBuffer
 {
 public:
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		int32 NumSections = 8;
 

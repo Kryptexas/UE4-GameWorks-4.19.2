@@ -85,7 +85,7 @@ float UCodecMovieFallback::GetFrameRate()
 }
 
 
-void UCodecMovieFallback::GetFrame( class FTextureMovieResource* InTextureMovieResource )
+void UCodecMovieFallback::GetFrame(FRHICommandListImmediate& RHICmdList, class FTextureMovieResource* InTextureMovieResource)
 {
 	CurrentTime += 1.f / GetFrameRate();
 	if( CurrentTime > PlaybackDuration )
@@ -96,9 +96,9 @@ void UCodecMovieFallback::GetFrame( class FTextureMovieResource* InTextureMovieR
 		InTextureMovieResource->IsInitialized() )
 	{
 		FLinearColor ClearColor(1.f,CurrentTime/PlaybackDuration,0.f,1.f);
-		RHISetRenderTarget(InTextureMovieResource->GetRenderTargetTexture(),FTextureRHIRef());
-		RHIClear(true,ClearColor,false,0.f,false,0, FIntRect());
-		RHICopyToResolveTarget(InTextureMovieResource->GetRenderTargetTexture(),InTextureMovieResource->TextureRHI,false,FResolveParams());
+		SetRenderTarget(RHICmdList, InTextureMovieResource->GetRenderTargetTexture(), FTextureRHIRef());
+		RHICmdList.Clear(true, ClearColor, false, 0.f, false, 0, FIntRect());
+		RHICmdList.CopyToResolveTarget(InTextureMovieResource->GetRenderTargetTexture(), InTextureMovieResource->TextureRHI, false, FResolveParams());
 	}
 }
 

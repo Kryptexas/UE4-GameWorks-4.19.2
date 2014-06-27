@@ -175,9 +175,8 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 
 void FHitProxyDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIParamRef BoundShaderState) const
 {
-	RHICmdList.CheckIsNull();
 	// Set the actual shader & vertex declaration state
-	RHISetBoundShaderState( BoundShaderState);
+	RHICmdList.SetBoundShaderState(BoundShaderState);
 
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -246,7 +245,7 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 		PixelShader->SetHitProxyId(RHICmdList, HitProxyId);	
 	}
 
-	RHISetRasterizerState(GetStaticRasterizerState<false>(
+	RHICmdList.SetRasterizerState(GetStaticRasterizerState<false>(
 		(Mesh.bWireframe || IsWireframe()) ? FM_Wireframe : FM_Solid,
 		((IsTwoSided() && !NeedsBackfacePass()) || Mesh.bDisableBackfaceCulling) ? CM_None :
 			(XOR(XOR(View.bReverseCulling,bBackFace), Mesh.ReverseCulling) ? CM_CCW : CM_CW)
@@ -329,14 +328,14 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 	return false;
 }
 
-void FDeferredShadingSceneRenderer::RenderHitProxies()
+void FDeferredShadingSceneRenderer::RenderHitProxies(FRHICommandListImmediate& RHICmdList)
 {
 #if WITH_EDITOR
 
 	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
 
 	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures(FeatureLevel);
+	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
 	// Allocate the maximum scene render target space for the current view family.
 	GSceneRenderTargets.Allocate(ViewFamily);
@@ -355,22 +354,19 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 		// HitProxyRT==0 should never happen but better we don't crash
 		return;
 	}
-
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
+	
 	SetRenderTarget(RHICmdList, HitProxyRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 
 	// Clear color for each view.
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
-		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-		RHIClear(true,FLinearColor::White,false,1,false,0, FIntRect());
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+		RHICmdList.Clear(true, FLinearColor::White, false, 1, false, 0, FIntRect());
 	}
 
 	// Find the visible primitives.
-	InitViews();
+	InitViews(RHICmdList);
 
 	// Dynamic vertex and index buffers need to be committed before rendering.
 	FGlobalDynamicVertexBuffer::Get().Commit();
@@ -378,8 +374,8 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 
 	// Depth tests + writes, no alpha blending.
 	// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-	RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 	const bool bNeedToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
 
@@ -388,13 +384,12 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 		const FViewInfo& View = Views[ViewIndex];
 
 		// Set the device viewport for the view.
-		RHISetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
+		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 		// Clear the depth buffer for each DPG.
 		// Note, this is a reversed Z depth surface, so 0.0f is the far plane.
-		RHIClear(false,FLinearColor::Black,true,0.0f,true,0, FIntRect());
+		RHICmdList.Clear(false, FLinearColor::Black, true, 0.0f, true, 0, FIntRect());
 
-			
 		// Adjust the visibility map for this view
 		if( !View.bAllowTranslucentPrimitivesInHitProxy )
 		{
@@ -438,14 +433,14 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 		// Some elements should never be occluded (e.g. gizmos).
 		// So we render those twice, first to overwrite potentially nearer objects,
 		// then again to allows proper occlusion within those elements.
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(View,FHitProxyDrawingPolicyFactory::ContextType(),SDPG_Foreground,bPreFog);
 
 		View.TopBatchedViewElements.Draw(RHICmdList, bNeedToSwitchVerticalAxis, View.ViewProjectionMatrix, View.ViewRect.Width(), View.ViewRect.Height(), true);
 
 		// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-		RHISetDepthStencilState(TStaticDepthStencilState<true,CF_GreaterEqual>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual>::GetRHI());
 		// Draw the view's foreground elements last.
 		DrawViewElements<FHitProxyDrawingPolicyFactory>(View,FHitProxyDrawingPolicyFactory::ContextType(),SDPG_Foreground,bPreFog);
 
@@ -453,12 +448,12 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	}
 
 	// Finish drawing to the hit proxy render target.
-	RHICopyToResolveTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, HitProxyRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	RHICmdList.CopyToResolveTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, HitProxyRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 	// to be able to observe results with VisualizeTexture
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, HitProxyRT);
 
 	// After scene rendering, disable the depth buffer.
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
 	//
 	// Copy the hit proxy buffer into the view family's render target.
@@ -517,6 +512,6 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 				1.0f
 				);
 
-	RHIEndScene();
+	RHICmdList.EndScene();
 #endif
 }

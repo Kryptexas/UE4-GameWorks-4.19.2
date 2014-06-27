@@ -122,6 +122,7 @@ struct FParticleSimulationSortInfo
  * @returns the buffer index in which sorting results are stored.
  */
 int32 SortParticlesGPU(
+	FRHICommandListImmediate& RHICmdList,
 	FParticleSortBuffers& ParticleSortBuffers,
 	FTexture2DRHIParamRef PositionTextureRHI,
 	FTexture2DRHIParamRef PositionZWTextureRHI,

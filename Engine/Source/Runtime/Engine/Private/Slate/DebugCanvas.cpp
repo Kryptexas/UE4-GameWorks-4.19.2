@@ -163,7 +163,7 @@ void FDebugCanvasDrawer::InitDebugCanvas(UWorld* InWorld)
 	}
 }
 
-void FDebugCanvasDrawer::DrawRenderThread( const void* InWindowBackBuffer )
+void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer)
 {
 	check( IsInRenderingThread() );
 

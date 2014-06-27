@@ -276,10 +276,8 @@ void GetLightNameForDrawEvent(const FLightSceneProxy* LightProxy, FString& Light
 uint32 GetShadowQuality();
 
 /** Renders the scene's lighting. */
-void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICmdList)
 {
-	RHICmdList.CheckIsNull();
-
 	SCOPED_DRAW_EVENT(Lights, DEC_SCENE_ITEMS);
 
 	if(IsSimpleDynamicLightingEnabled())
@@ -418,14 +416,14 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			}
 			else if (SimpleLights.InstanceData.Num() > 0)
 			{
-				GSceneRenderTargets.BeginRenderingSceneColor();
+				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 				RenderSimpleLightsStandardDeferred(RHICmdList, SimpleLights);
 			}
 
 			{
 				SCOPED_DRAW_EVENT(StandardDeferredLighting, DEC_SCENE_ITEMS);
 
-				GSceneRenderTargets.BeginRenderingSceneColor();
+				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 				// Draw non-shadowed non-light function lights without changing render targets between them
 				for (int32 LightIndex = StandardDeferredStart; LightIndex < AttenuationLightStart; LightIndex++)
@@ -474,15 +472,15 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			SCOPED_DRAW_EVENTF(EventLightPass, DEC_SCENE_ITEMS, *LightNameWithLevel);
 
 			// Do not resolve to scene color texture, this is done lazily
-			GSceneRenderTargets.FinishRenderingSceneColor(false);
+			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 
 			if (bDrawShadows)
 			{
 				INC_DWORD_STAT(STAT_NumShadowedLights);
 
 				// All shadows render with min blending
-				GSceneRenderTargets.BeginRenderingLightAttenuation();
-				RHIClear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
+				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+				RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
 
 				bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
 				// Render non-modulated projected shadows to the attenuation buffer.
@@ -519,7 +517,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			}
 				
 			// Resolve light attenuation buffer
-			GSceneRenderTargets.FinishRenderingLightAttenuation();
+			GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
 			
 			if(bDirectLighting && !bInjectedTranslucentVolume)
 			{
@@ -529,7 +527,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 			}
 
 			GSceneRenderTargets.SetLightAttenuationMode(true);
-			GSceneRenderTargets.BeginRenderingSceneColor();
+			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
 			if(bDirectLighting)
@@ -539,7 +537,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 		}
 
 		// Do not resolve to scene color texture, this is done lazily
-		GSceneRenderTargets.FinishRenderingSceneColor(false);
+		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 
 		// Restore the default mode
 		GSceneRenderTargets.SetLightAttenuationMode(true);
@@ -568,8 +566,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 								FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
 								if (Lpv && LightSceneInfo->Proxy)
 								{
-									//@todo-rco: RHIPacketList
-									Lpv->InjectLightDirect(FRHICommandList::GetNullRef(), *LightSceneInfo->Proxy);
+									
+									Lpv->InjectLightDirect(RHICmdList, *LightSceneInfo->Proxy);
 								}
 							}
 						}
@@ -580,7 +578,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandList& RHICmdList)
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(FRHICommandList& RHICmdList, const TSparseArray<FLightSceneInfoCompact>& LightArray)
+void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(FRHICommandListImmediate& RHICmdList, const TSparseArray<FLightSceneInfoCompact>& LightArray)
 {
 	for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(LightArray); LightIt; ++LightIt)
 	{
@@ -612,14 +610,14 @@ void FDeferredShadingSceneRenderer::RenderLightArrayForOverlapViewmode(FRHIComma
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandListImmediate& RHICmdList)
 {
 	if (Scene->bIsEditorScene)
 	{
-		GSceneRenderTargets.BeginRenderingSceneColor();
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
-		RHIClear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
+		RHICmdList.Clear(true, FLinearColor::Black, false, 0, false, 0, FIntRect());
 
 		RenderLightArrayForOverlapViewmode(RHICmdList, Scene->Lights);
 
@@ -660,7 +658,7 @@ static FVertexDeclarationRHIParamRef GetDeferredLightingVertexDeclaration()
 
 template<bool bUseIESProfile, bool bRadialAttenuation, bool bInverseSquaredFalloff>
 static void SetShaderTemplLighting(
-	FRHICommandList& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList,
 	const FSceneView& View, 
 	FShader* VertexShader,
 	const FLightSceneInfo* LightSceneInfo)
@@ -681,7 +679,7 @@ static void SetShaderTemplLighting(
 
 template<bool bUseIESProfile, bool bRadialAttenuation, bool bInverseSquaredFalloff>
 static void SetShaderTemplLightingSimple(
-	FRHICommandList& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList,
 	const FSceneView& View, 
 	FShader* VertexShader,
 	const FSimpleLightEntry& SimpleLight,
@@ -708,7 +706,7 @@ static void SetShaderTemplLightingSimple(
  * @param LightIndex The light's index into FScene::Lights
  * @return true if anything got rendered
  */
-void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent)
+void FDeferredShadingSceneRenderer::RenderLight(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT(STAT_NumLightsUsingStandardDeferred);
@@ -833,7 +831,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 	}
 }
 
-void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(FRHICommandList& RHICmdList, const FSimpleLightArray& SimpleLights)
+void FDeferredShadingSceneRenderer::RenderSimpleLightsStandardDeferred(FRHICommandListImmediate& RHICmdList, const FSimpleLightArray& SimpleLights)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DirectLightRenderingTime);
 	INC_DWORD_STAT_BY(STAT_NumLightsUsingStandardDeferred, SimpleLights.InstanceData.Num());

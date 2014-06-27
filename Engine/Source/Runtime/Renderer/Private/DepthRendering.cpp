@@ -259,8 +259,6 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 
 void FPositionOnlyDepthDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
 {
-	RHICmdList.CheckIsNull();
-
 	// Set the actual shader & vertex declaration state
 	RHICmdList.SetBoundShaderState( BoundShaderState);
 

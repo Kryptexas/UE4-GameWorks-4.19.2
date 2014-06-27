@@ -65,8 +65,8 @@ public:
 	virtual void UpdateVectorField(UVectorFieldComponent* VectorFieldComponent) override;
 	virtual FParticleEmitterInstance* CreateGPUSpriteEmitterInstance(FGPUSpriteEmitterInfo& EmitterInfo) override;
 	virtual void PreInitViews() override;
-	virtual void PreRender() override;
-	virtual void PostRenderOpaque(const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) override;
+	virtual void PreRender(FRHICommandListImmediate& RHICmdList) override;
+	virtual void PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const class FSceneView* CollisionView, FTexture2DRHIParamRef SceneDepthTexture, FTexture2DRHIParamRef GBufferATexture) override;
 	// End FFXSystemInterface.
 
 	/*--------------------------------------------------------------------------
@@ -141,7 +141,7 @@ private:
 	 * Sorts all GPU particles that have called AddSortedGPUSimulation since the
 	 * last reset.
 	 */
-	void SortGPUParticles();
+	void SortGPUParticles(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Resets all simulations to be run in the main pass.
@@ -156,6 +156,7 @@ private:
 	 * @param GBufferATexture	GBuffer texture containing the world normal.
 	 */
 	void SimulateGPUParticles(
+		FRHICommandListImmediate& RHICmdList,
 		EParticleSimulatePhase::Type Phase,
 		const class FSceneView* CollisionView,
 		FTexture2DRHIParamRef SceneDepthTexture,

@@ -26,7 +26,9 @@ enum ERHICommandType
 	ERCT_SetBlendState,
 	ERCT_SetStreamSource,
 	ERCT_SetDepthStencilState,
-
+	ERCT_SetShaderResourceViewParameter,
+	ERCT_SetUAVParameter,
+	ERCT_SetUAVParameter_IntialCount,
 	ERCT_,
 };
 
@@ -50,10 +52,9 @@ struct FRHICommand
 	};
 };
 
-class RHI_API FRHICommandList
+class RHI_API FRHICommandList : public FNoncopyable
 {
 private:
-	static FRHICommandList NullRHICommandList;
 
 	struct FMemManager
 	{
@@ -119,14 +120,8 @@ private:
 		FMemManager();
 		~FMemManager();
 
-		FORCEINLINE bool IsNull() const
-		{
-			return (this == &NullRHICommandList.MemManager);
-		}
-
 		FORCEINLINE uint8* Alloc(SIZE_T InSize)
 		{
-			checkSlow(!IsNull());
 			InSize = (InSize + (Alignment - 1)) & ~(Alignment - 1);
 			bool bTryAgain = false;
 
@@ -178,27 +173,27 @@ public:
 		Alignment = sizeof(SIZE_T),
 	};
 
-	static FORCEINLINE FRHICommandList& GetNullRef()
-	{
-		return NullRHICommandList;
-	}
-
 	FRHICommandList()
 	{
 		Reset();
 	}
+	~FRHICommandList()
+	{
+		Flush();
+	}
+	inline void Flush();
 
 	template <typename TShaderRHIParamRef>
 	inline void SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBufferRHI);
-
-	template <typename TShaderRHIParamRef>
-	inline void SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV);
 
 	template <typename TShaderRHIParamRef>
 	inline void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* Value, bool bValueInStack = false);
 
 	template <typename TShaderRHIParamRef>
 	inline void SetShaderTexture(TShaderRHIParamRef Shader, uint32 TextureIndex, FTextureRHIParamRef Texture);
+
+	template <typename TShaderRHIParamRef>
+	inline void SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV);
 
 	template <typename TShaderRHIParamRef>
 	inline void SetShaderSampler(TShaderRHIParamRef Shader, uint32 SamplerIndex, FSamplerStateRHIParamRef State);
@@ -215,115 +210,12 @@ public:
 	inline void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances);
 	inline void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances);
 	inline void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset);
-
-	// need cmd list implementations
-
-	FORCEINLINE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
-	{
-		CheckIsNull();
-		RHISetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
-	}
-
 	inline void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0);
-
-	FORCEINLINE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
-	{
-		CheckIsNull();
-		RHIBeginDrawPrimitiveUP(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData);
-	}
-	
-	FORCEINLINE void EndDrawPrimitiveUP()
-	{
-		CheckIsNull();
-		RHIEndDrawPrimitiveUP();
-	}
-
-	FORCEINLINE void CopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
-	{
-		CheckIsNull();
-		RHICopyToResolveTarget(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
-	}
-
-	FORCEINLINE void BeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData)
-	{
-		CheckIsNull();
-		RHIBeginDrawIndexedPrimitiveUP(PrimitiveType, NumPrimitives, NumVertices, VertexDataStride, OutVertexData, MinVertexIndex, NumIndices, IndexDataStride, OutIndexData);
-	}
-
-	FORCEINLINE void EndDrawIndexedPrimitiveUP()
-	{
-		CheckIsNull();
-		RHIEndDrawIndexedPrimitiveUP();
-	}
-
-	FORCEINLINE void Clear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
-	{
-		CheckIsNull();
-		RHIClear(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
-	}
-
-	FORCEINLINE void ClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
-	{
-		CheckIsNull();
-		RHIClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
-	}
-
-	FORCEINLINE void SetRenderTargets(uint32 NewNumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargetsRHI, FTextureRHIParamRef NewDepthStencilTargetRHI, uint32 NewNumUAVs, const FUnorderedAccessViewRHIParamRef* UAVs)
-	{
-		CheckIsNull();
-		RHISetRenderTargets(NewNumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI, NewNumUAVs, UAVs);
-	}
-
-	FORCEINLINE void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
-	{
-		CheckIsNull();
-		RHIEnableDepthBoundsTest(bEnable, MinDepth, MaxDepth);
-	}
-
-	FORCEINLINE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
-	{
-		CheckIsNull();
-		RHISetScissorRect(bEnable, MinX, MinY, MaxX, MaxY);
-	}
-
-	FORCEINLINE void ClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32* Values)
-	{
-		CheckIsNull();
-		RHIClearUAV(UnorderedAccessViewRHI, Values);
-	}
-
-	FORCEINLINE void SetComputeShader(FComputeShaderRHIParamRef ComputeShaderRHI)
-	{
-		CheckIsNull();
-		RHISetComputeShader(ComputeShaderRHI);
-	}
-
-	FORCEINLINE void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset)
-	{
-		CheckIsNull();
-		RHIDrawPrimitiveIndirect(PrimitiveType, ArgumentBufferRHI, ArgumentOffset);
-	}
-
-	FORCEINLINE bool IsNull() const
-	{
-		return MemManager.IsNull();
-	}
-
-	FORCEINLINE void CheckIsNull() const
-	{
-		check(IsNull());
-	}
 
 	const SIZE_T GetUsedMemory() const;
 
-protected:
-	enum EState
-	{
-		Ready,
-		Executing,
-		Kicked,
-	};
-	EState State;
+private:
+	bool bExecuting;
 	uint32 NumCommands;
 
 	FORCEINLINE uint8* Alloc(SIZE_T InSize)
@@ -331,16 +223,15 @@ protected:
 		return MemManager.Alloc(InSize);
 	}
 
-	FORCEINLINE bool CanAddCommand() const
+	FORCEINLINE bool HasCommands() const
 	{
-		return (State == Ready);
+		return (NumCommands > 0);
 	}
 
 	template <typename TCmd>
 	FORCEINLINE TCmd* AddCommand(uint32 ExtraData = 0)
 	{
-		checkSlow(!IsNull());
-		check(CanAddCommand());
+		checkSlow(!bExecuting);
 		TCmd* Cmd = (TCmd*)Alloc(sizeof(TCmd) + ExtraData);
 		//::OutputDebugStringW(*FString::Printf(TEXT("Add %d: @ 0x%p, %d bytes\n"), NumCommands, (void*)Cmd, (sizeof(TCmd) + ExtraData)));
 		++NumCommands;
@@ -349,15 +240,12 @@ protected:
 
 	void Reset()
 	{
-		State = Kicked;
+		bExecuting = false;
 		NumCommands = 0;
 		MemManager.Reset();
 	}
 
-	FORCEINLINE bool Bypass()
-	{
-		return IsNull();
-	}
+	inline bool Bypass();
 
 	friend class FRHICommandListExecutor;
 	friend class FRHICommandListIterator;
@@ -366,23 +254,143 @@ protected:
 	friend struct FRHICommandNopBlob;
 };
 
+class RHI_API FRHICommandListImmediate : public FRHICommandList
+{
+	friend class FRHICommandListExecutor;
+	FRHICommandListImmediate()
+	{
+	}
+public:
+
+	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
+	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+		FORCEINLINE Type Name ParameterTypesAndNames \
+		{ \
+			Flush(); \
+			ReturnStatement Name##_Internal ParameterNames; \
+		}
+	#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+		FORCEINLINE Type Name ParameterTypesAndNames \
+		{ \
+			ReturnStatement RHI##Name ParameterNames; \
+		}
+	#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+		FORCEINLINE Type Name ParameterTypesAndNames \
+		{ \
+			Flush(); \
+			ReturnStatement Name##_Internal ParameterNames; \
+		}
+	#include "RHIMethods.h"
+	#undef DEFINE_RHIMETHOD
+	#undef DEFINE_RHIMETHOD_CMDLIST
+	#undef DEFINE_RHIMETHOD_GLOBAL
+	#undef DEFINE_RHIMETHOD_GLOBALFLUSH
+};
+
+#if 0
+class RHI_API FRHICommandListBypass
+{
+	friend class FRHICommandListExecutor;
+	FRHICommandListBypass()
+	{
+	}
+public:
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement Name##_Internal ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+	FORCEINLINE Type Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement Name##_Internal ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+	FORCEINLINE Type Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+	FORCEINLINE Type Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement Name##_Internal ParameterNames; \
+	}
+#include "RHIMethods.h"
+#undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
+};
+#endif
+
 class RHI_API FRHICommandListExecutor
 {
 public:
-	FRHICommandListExecutor();
-	FRHICommandList& CreateList();
-	void ExecuteAndFreeList(FRHICommandList& CmdList);
+	enum
+	{
+		DefaultBypass = 1
+	};
+	FRHICommandListExecutor()
+		: bLatchedBypass(!!DefaultBypass)
+	{
+	}
+	static inline FRHICommandListImmediate& GetImmediateCommandList();
+	static inline FRHICommandListImmediate& GetRecursiveRHICommandList(); // Only for use by RHI implementations
 
-	void Verify();
+	void ExecuteList(FRHICommandList& CmdList);
+
+	FORCEINLINE void Verify()
+	{
+		check(!CommandListImmediate.HasCommands());
+	}
+	FORCEINLINE bool Bypass()
+	{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		return bLatchedBypass;
+#else
+		return !!DefaultBypass;
+#endif
+	}
 
 private:
-	FCriticalSection CriticalSection;
-	bool bLock;
+	bool bLatchedBypass;
+	FRHICommandListImmediate CommandListImmediate;
 
 	template <bool bOnlyTestMemAccess>
 	void ExecuteList(FRHICommandList& CmdList);
 };
 extern RHI_API FRHICommandListExecutor GRHICommandList;
+
+FORCEINLINE bool FRHICommandList::Bypass()
+{
+	return GRHICommandList.Bypass();
+}
+
+FORCEINLINE FRHICommandListImmediate& FRHICommandListExecutor::GetImmediateCommandList()
+{
+	return GRHICommandList.CommandListImmediate;
+}
+FORCEINLINE FRHICommandListImmediate& FRHICommandListExecutor::GetRecursiveRHICommandList()
+{
+	check(!GRHICommandList.CommandListImmediate.bExecuting); // queued RHI commands must not be implemented by calling other queued RHI commands
+	GRHICommandList.CommandListImmediate.Flush(); // if for some reason this is called non-recursively, this flushes everything to get us in a reasonable state for the recursive, hazardous calls
+	return GRHICommandList.CommandListImmediate;
+}
+
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
+#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
+#define DEFINE_RHIMETHOD_GLOBAL(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation)
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
+	FORCEINLINE Type RHI##Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement FRHICommandListExecutor::GetImmediateCommandList().Name ParameterNames; \
+	}
+#include "RHIMethods.h"
+#undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
+
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Command List Execute"),STAT_RHICmdListExecuteTime,STATGROUP_RHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Command List Enqueue"),STAT_RHICmdListEnqueueTime,STATGROUP_RHI, );

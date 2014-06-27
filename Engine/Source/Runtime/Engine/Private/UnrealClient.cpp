@@ -62,7 +62,7 @@ bool FRenderTarget::ReadPixels(TArray< FColor >& OutImageData, FReadSurfaceDataF
 		ReadSurfaceCommand,
 		FReadSurfaceContext,Context,ReadSurfaceContext,
 	{
-		RHIReadSurfaceData(
+		RHICmdList.ReadSurfaceData(
 			Context.SrcRenderTarget->GetRenderTargetTexture(),
 			Context.Rect,
 			*Context.OutData,
@@ -123,7 +123,7 @@ bool FRenderTarget::ReadFloat16Pixels(FFloat16Color* OutImageData,ECubeFace Cube
 		ReadSurfaceFloatCommand,
 		FReadSurfaceFloatContext,Context,ReadSurfaceFloatContext,
 	{
-		RHIReadSurfaceFloatData(
+		RHICmdList.ReadSurfaceFloatData(
 			Context.SrcRenderTarget->GetRenderTargetTexture(),
 			Context.Rect,
 			*Context.OutData,
@@ -695,13 +695,13 @@ public:
 	}
 
 	// Begin FViewport interface
-	virtual void BeginRenderFrame() 
+	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
 	{
 		check( IsInRenderingThread() );
-		RHISetRenderTarget( RenderTargetTextureRHI,  FTexture2DRHIRef() );
+		SetRenderTarget(RHICmdList,  RenderTargetTextureRHI,  FTexture2DRHIRef() );
 	};
 
-	void EndRenderFrame( bool bPresent, bool bLockToVsync )
+	virtual void EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync) override
 	{
 		check( IsInRenderingThread() );
 	}
@@ -732,10 +732,10 @@ public:
 	}
 
 	// @todo UE4 DLL: Without these functions we get unresolved linker errors with FRenderResource
-	virtual void InitRHI(){}
-	virtual void ReleaseRHI(){}
-	virtual void InitResource(){ FViewport::InitResource(); }
-	virtual void ReleaseResource() { FViewport::ReleaseResource(); }
+	virtual void InitRHI() override{}
+	virtual void ReleaseRHI() override{}
+	virtual void InitResource() override{ FViewport::InitResource(); }
+	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
 	virtual FString GetFriendlyName() const { return FString(TEXT("FDummyViewport"));}
 	// End FRenderResource interface
 private:
@@ -817,7 +817,7 @@ void FViewport::HighResScreenshot()
 		FViewport*,Viewport,DummyViewport,
 		FIntPoint,InRestoreSize,RestoreSize,
 	{
-		Viewport->EndRenderFrame( false, false );
+		Viewport->EndRenderFrame(RHICmdList, false, false);
 		GetRendererModule().SceneRenderTargetsSetBufferSize(InRestoreSize.X, InRestoreSize.Y);
 	});
 
@@ -866,19 +866,18 @@ struct FEndDrawingCommandParams
  *
  * @param Parameters	Parameters passed from the gamethread to the renderthread command.
  */
-static void ViewportEndDrawing( FEndDrawingCommandParams Parameters )
+static void ViewportEndDrawing(FRHICommandListImmediate& RHICmdList, FEndDrawingCommandParams Parameters)
 {	
 	GInputLatencyTimer.RenderThreadTrigger = Parameters.bShouldTriggerTimerEvent;
-	Parameters.Viewport->EndRenderFrame( Parameters.bShouldPresent, Parameters.bLockToVsync );	
+	Parameters.Viewport->EndRenderFrame(RHICmdList, Parameters.bShouldPresent, Parameters.bLockToVsync);
 }
 
 /** Starts a new rendering frame. Called from the rendering thread. */
-void FViewport::BeginRenderFrame()
+void FViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
-
-	RHIBeginDrawingViewport( GetViewportRHI(), FTextureRHIRef() );
-	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer( );
+	RHICmdList.BeginDrawingViewport(GetViewportRHI(), FTextureRHIRef());
+	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
 }
 
 /**
@@ -886,12 +885,12 @@ void FViewport::BeginRenderFrame()
  *	@param bPresent		Whether the frame should be presented to the screen
  *	@param bLockToVsync	Whether the GPU should block until VSYNC before presenting
  */
-void FViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
+void FViewport::EndRenderFrame(FRHICommandListImmediate& RHICmdList, bool bPresent, bool bLockToVsync)
 {
 	check( IsInRenderingThread() );
 
 	uint32 StartTime = FPlatformTime::Cycles();
-	RHIEndDrawingViewport( GetViewportRHI(), bPresent, bLockToVsync );
+	RHICmdList.EndDrawingViewport(GetViewportRHI(), bPresent, bLockToVsync);
 	uint32 EndTime = FPlatformTime::Cycles();
 
 	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += EndTime - StartTime;
@@ -961,7 +960,7 @@ void FViewport::EnqueueBeginRenderFrame()
 		BeginDrawingCommand,
 		FViewport*,Viewport,this,
 	{
-		Viewport->BeginRenderFrame();
+		Viewport->BeginRenderFrame(RHICmdList);
 	});
 }
 
@@ -1085,7 +1084,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 					EndDrawingCommand,
 					FEndDrawingCommandParams,Parameters,Params,
 				{
-					ViewportEndDrawing( Parameters );
+					ViewportEndDrawing(RHICmdList, Parameters);
 				});
 
 				GInputLatencyTimer.GameThreadTrigger = false;
@@ -1165,10 +1164,10 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 			FViewport*, Viewport, this,
 			{
 			// Set the hit proxy map's render target.
-			RHISetRenderTarget(Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef());
+			SetRenderTarget(RHICmdList, Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef());
 
 			// Clear the hit proxy map to white, which is overloaded to mean no hit proxy.
-			RHIClear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
+			RHICmdList.Clear(true, FLinearColor::White, false, 0, false, 0, FIntRect());
 		});
 
 		// Let the viewport client draw its hit proxies.
@@ -1184,16 +1183,16 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 			FHitProxyMap*, HitProxyMap, &HitProxyMap,
 			{
 			// Copy (resolve) the rendered thumbnail from the render target to its texture
-			RHICopyToResolveTarget(HitProxyMap->GetRenderTargetTexture(), HitProxyMap->GetHitProxyTexture(), false, FResolveParams());
-			RHICopyToResolveTarget(HitProxyMap->GetRenderTargetTexture(), HitProxyMap->GetHitProxyCPUTexture(), false, FResolveParams());
+			RHICmdList.CopyToResolveTarget(HitProxyMap->GetRenderTargetTexture(), HitProxyMap->GetHitProxyTexture(), false, FResolveParams());
+			RHICmdList.CopyToResolveTarget(HitProxyMap->GetRenderTargetTexture(), HitProxyMap->GetHitProxyCPUTexture(), false, FResolveParams());
 		});
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			EndDrawingCommand,
 			FViewport*, Viewport, this,
 			{
-			Viewport->EndRenderFrame(false, false);
-		});
+				Viewport->EndRenderFrame(RHICmdList, false, false);
+			});
 
 		// Cache the hit proxies for the next GetHitProxyMap call.
 		bHitProxiesCached = true;
@@ -1220,7 +1219,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 			ReadSurfaceCommand,
 			FReadSurfaceContext, Context, ReadSurfaceContext,
 			{
-			RHIReadSurfaceData(
+			RHICmdList.ReadSurfaceData(
 			Context.Viewport->HitProxyMap.GetHitProxyCPUTexture(),
 			Context.Rect,
 			*Context.OutData,
@@ -1419,7 +1418,9 @@ void FViewport::SetViewportClient( FViewportClient* InViewportClient )
 void FViewport::InitDynamicRHI()
 {
 	// Capture the viewport's back buffer surface for use through the FRenderTarget interface.
-	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
+	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
 
 	if(bRequiresHitProxyStorage)
 	{
@@ -1446,14 +1447,14 @@ void FViewport::InitRHI()
 
 	if(!IsValidRef(ViewportRHI))
 	{
-		ViewportRHI = RHICreateViewport(
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		ViewportRHI = RHICmdList.CreateViewport(
 			GetWindow(),
 			SizeX,
 			SizeY,
 			IsFullscreen()
 			);
-		
-		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
+		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
 	}
 }
 
@@ -1567,11 +1568,11 @@ bool FViewport::HasToggleFreezeCommand()
 /**
  * Update the render target surface RHI to the current back buffer 
  */
-void FViewport::UpdateRenderTargetSurfaceRHIToCurrentBackBuffer()
+void FViewport::UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(FRHICommandListImmediate& RHICmdList)
 {
 	if(IsValidRef(ViewportRHI))
 	{
-		RenderTargetTextureRHI = RHIGetViewportBackBuffer(ViewportRHI);
+		RenderTargetTextureRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
 	}
 }
 

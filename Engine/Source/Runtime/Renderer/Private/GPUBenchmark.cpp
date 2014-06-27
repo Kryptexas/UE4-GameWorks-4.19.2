@@ -125,13 +125,13 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessBenchmarkVS,TEXT("GPUBenchmark"),TEXT("MainBe
 
 
 template <uint32 Method>
-void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandListImmediate& RHICmdList, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
 {
 	TShaderMapRef<FPostProcessBenchmarkVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FPostProcessBenchmarkPS<Method> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
-	RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+	
 
 	SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -153,7 +153,7 @@ void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, TRe
 	}
 }
 
-void RunBenchmarkShader(FRHICommandList& RHICmdList, const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
+void RunBenchmarkShader(FRHICommandListImmediate& RHICmdList, const FSceneView& View, uint32 MethodId, TRefCountPtr<IPooledRenderTarget>& Src, uint32 Count)
 {
 	SCOPED_DRAW_EVENTF(Benchmark, DEC_SCENE_ITEMS, TEXT("Benchmark Method:%d"), MethodId);
 
@@ -346,11 +346,8 @@ private:
 #endif
 
 
-void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut)
+void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkResults& InOut, const FSceneView& View, uint32 WorkScale, bool bDebugOut)
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 	check(IsInRenderingThread());
 	
 	// two RT to ping pong so we force the GPU to flush it's pipeline
@@ -368,9 +365,9 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 	}
 
 	// set the state
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	{
 		// larger number means more accuracy but slower, some slower GPUs might timeout with a number to large
@@ -413,7 +410,7 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 		// e.g. on NV670: Method3 (mostly fill rate )-> 26GP/s (seems realistic)
 		// reference: http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units theoretical: 29.3G/s
 
-		RHIEndRenderQuery(TimerQueries[0]);
+		RHICmdList.EndRenderQuery(TimerQueries[0]);
 
 		// multiple iterations to see how trust able the values are
 		for(uint32 Iteration = 0; Iteration < IterationCount; ++Iteration)
@@ -431,14 +428,14 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RTItems[DestRTIndex]);
 
-				RHISetRenderTarget(RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());	
+				SetRenderTarget(RHICmdList, RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());	
 
 				// decide how much work we do in this pass
 				PassCount[Iteration] = (Iteration / 10 + 1) * WorkScale;
 
 				RunBenchmarkShader(RHICmdList, View, MethodId, RTItems[SrcRTIndex], PassCount[Iteration]);
 
-				RHICopyToResolveTarget(RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, RTItems[DestRTIndex]->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+				RHICmdList.CopyToResolveTarget(RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture, RTItems[DestRTIndex]->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 				/*if(bGPUCPUSync)
 				{
@@ -447,7 +444,7 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 					FResolveParams Param;
 
 					Param.Rect = FResolveRect(0, 0, 1, 1);
-					RHICopyToResolveTarget(
+					RHICmdList.CopyToResolveTarget(
 						RTItems[DestRTIndex]->GetRenderTargetItem().TargetableTexture,
 						RTItems[2]->GetRenderTargetItem().ShaderResourceTexture,
 						false,
@@ -461,7 +458,7 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 					RHIUnmapStagingSurface(RTItems[2]->GetRenderTargetItem().ShaderResourceTexture);
 				}*/
 
-				RHIEndRenderQuery(TimerQueries[QueryIndex]);
+				RHICmdList.EndRenderQuery(TimerQueries[QueryIndex]);
 
 				// ping pong
 				DestRTIndex = 1 - DestRTIndex;
@@ -470,8 +467,8 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 
 		{
 			uint64 OldAbsTime = 0;
-			RHIGetRenderQueryResult(TimerQueries[0], OldAbsTime, true);
-			GTimerQueryPool.ReleaseQuery(TimerQueries[0]);
+			RHICmdList.GetRenderQueryResult(TimerQueries[0], OldAbsTime, true);
+			GTimerQueryPool.ReleaseQuery(RHICmdList, TimerQueries[0]);
 
 #if !UE_BUILD_SHIPPING
 			FBenchmarkGraph BenchmarkGraph(IterationCount, IterationCount, *(FPaths::ScreenShotDir() + TEXT("GPUSynthBenchmarkGraph.bmp")));
@@ -486,8 +483,8 @@ void RendererGPUBenchmark(FSynthBenchmarkResults& InOut, const FSceneView& View,
 					uint32 QueryIndex = 1 + Iteration * MethodCount + MethodId;
 
 					uint64 AbsTime;
-					RHIGetRenderQueryResult(TimerQueries[QueryIndex], AbsTime, true);
-					GTimerQueryPool.ReleaseQuery(TimerQueries[QueryIndex]);
+					RHICmdList.GetRenderQueryResult(TimerQueries[QueryIndex], AbsTime, true);
+					GTimerQueryPool.ReleaseQuery(RHICmdList, TimerQueries[QueryIndex]);
 
 					Results[MethodId] = AbsTime - OldAbsTime;
 					OldAbsTime = AbsTime;

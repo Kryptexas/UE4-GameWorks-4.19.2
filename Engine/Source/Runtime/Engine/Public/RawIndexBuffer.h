@@ -20,7 +20,7 @@ public:
 	void CacheOptimize();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer& I);
@@ -45,7 +45,7 @@ public:
 	void CacheOptimize();
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	// Serialization.
 	friend FArchive& operator<<(FArchive& Ar,FRawIndexBuffer16or32& I);
@@ -221,7 +221,7 @@ public:
 	/**
 	* Create the index buffer RHI resource and initialize its data
 	*/
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		uint32 Size = Indices.Num() * sizeof(INDEX_TYPE);
 		if(Indices.Num())

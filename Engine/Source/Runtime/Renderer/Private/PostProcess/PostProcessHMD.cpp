@@ -25,7 +25,7 @@ public:
 	/** Destructor. */
 	virtual ~FDistortionVertexDeclaration() {}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		uint16 Stride = sizeof(FDistortionVertex);
 		FVertexDeclarationElementList Elements;
@@ -37,7 +37,7 @@ public:
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -194,12 +194,11 @@ void FRCPassPostProcessHMD::Process(FRenderingCompositePassContext& Context)
 		TShaderMapRef<FPostProcessHMDVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FPostProcessHMDPS> PixelShader(GetGlobalShaderMap());
 		static FGlobalBoundShaderState BoundShaderState;
-		Context.RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
+		
 		SetGlobalBoundShaderState(Context.RHICmdList, BoundShaderState, GDistortionVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 		VertexShader->SetVS(Context, View.StereoPass);
 		PixelShader->SetPS(Context, SrcRect, SrcSize, View.StereoPass, QuadTexTransform);
 	}
-	Context.RHICmdList.CheckIsNull(); // this call may not properly use the cmd list in the context
 	GEngine->HMDDevice->DrawDistortionMesh_RenderThread(Context, View, SrcSize);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

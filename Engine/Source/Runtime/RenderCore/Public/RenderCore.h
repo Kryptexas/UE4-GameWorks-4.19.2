@@ -4,9 +4,7 @@
 	RenderCore.h: Render core module definitions.
 =============================================================================*/
 
-#ifndef __RenderCore_H__
-#define __RenderCore_H__
-
+#pragma once
 #include "Core.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRendererCore, Log, All);
@@ -271,4 +269,3 @@ extern RENDERCORE_API uint32 GSwapBufferTime;
 // shared by renderer and engine, compiles down to a constant in final release
 RENDERCORE_API int32 GetCVarForceLOD();
 
-#endif

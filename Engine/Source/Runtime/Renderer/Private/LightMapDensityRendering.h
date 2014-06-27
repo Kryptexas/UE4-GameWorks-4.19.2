@@ -298,10 +298,8 @@ public:
 
 	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIRef ShaderState ) const
 	{
-		RHICmdList.CheckIsNull();
-
 		// Set the actual shader & vertex declaration state
-		RHISetBoundShaderState(ShaderState);
+		RHICmdList.SetBoundShaderState(ShaderState);
 
 		// Set the base pass shader parameters for the material.
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -313,7 +311,7 @@ public:
 			DomainShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 		}
 
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader,PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);

@@ -29,9 +29,9 @@ public:
 		Format = InFormat;
 	}
 
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		TextureCubeRHI.SafeRelease();
 		FTexture::ReleaseRHI();

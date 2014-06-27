@@ -79,7 +79,7 @@ private:
 
 struct FRenderingCompositePassContext
 {
-	FRenderingCompositePassContext(const FViewInfo& InView);
+	FRenderingCompositePassContext(FRHICommandListImmediate& RHICmdList, const FViewInfo& InView);
 
 	~FRenderingCompositePassContext();
 
@@ -136,7 +136,7 @@ struct FRenderingCompositePassContext
 
 	FRenderingCompositionGraph Graph;
 
-	FRHICommandList& RHICmdList;
+	FRHICommandListImmediate& RHICmdList;
 
 private:
 	// cached state to map between ScreenPos and pixels

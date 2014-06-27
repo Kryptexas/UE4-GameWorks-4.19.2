@@ -13,9 +13,8 @@
 #include "PostProcessAmbient.h"
 #include "PostProcessing.h"
 
-void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
+void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer, FTextureRenderTargetResource* TextureRenderTarget, const FName OwnerName, const FResolveParams& ResolveParams, bool bUseSceneColorTexture)
 {
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 	FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
@@ -34,7 +33,7 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 		FIntRect UnconstrainedViewRect = SceneRenderer->Views[0].UnconstrainedViewRect;
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetTexture(), NULL);
 		RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ViewRect);
-		SceneRenderer->Render();
+		SceneRenderer->Render(RHICmdList);
 
 		// Copy the captured scene into the destination texture
 		if (bUseSceneColorTexture)
@@ -49,10 +48,9 @@ void UpdateSceneCaptureContent_RenderThread(FSceneRenderer* SceneRenderer, FText
 			TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 			TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
 			static FGlobalBoundShaderState BoundShaderState;
-			RHICmdList.CheckIsNull(); // need new approach for "static FGlobalBoundShaderState" for parallel rendering
 			SetGlobalBoundShaderState(RHICmdList, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-			FRenderingCompositePassContext Context(SceneRenderer->Views[0]);
+			FRenderingCompositePassContext Context(RHICmdList, SceneRenderer->Views[0]);
 
 			VertexShader->SetParameters(RHICmdList, SceneRenderer->Views[0]);
 			PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), GSceneRenderTargets.GetSceneColorTexture());
@@ -190,7 +188,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponent2D* CaptureCompone
 			FName, OwnerName, OwnerName,
 			bool, bUseSceneColorTexture, bUseSceneColorTexture,
 		{
-			UpdateSceneCaptureContent_RenderThread(SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
+			UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(), bUseSceneColorTexture);
 		});
 	}
 }
@@ -261,7 +259,7 @@ void FScene::UpdateSceneCaptureContents(USceneCaptureComponentCube* CaptureCompo
 				FName, OwnerName, OwnerName,
 				ECubeFace, TargetFace, TargetFace,
 			{
-				UpdateSceneCaptureContent_RenderThread(SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
+				UpdateSceneCaptureContent_RenderThread(RHICmdList, SceneRenderer, TextureRenderTarget, OwnerName, FResolveParams(FResolveRect(), TargetFace), true);
 			});
 		}
 	}

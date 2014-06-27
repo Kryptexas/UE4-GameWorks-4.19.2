@@ -44,7 +44,7 @@ class FMeshPaintBatchedElementParameters : public FBatchedElementParameters
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture ) override
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
 		MeshPaintRendering::SetMeshPaintShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
@@ -63,7 +63,7 @@ class FMeshPaintDilateBatchedElementParameters : public FBatchedElementParameter
 public:
 
 	/** Binds vertex and pixel shaders for this element */
-	virtual void BindShaders_RenderThread(FRHICommandList& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture ) override
+	virtual void BindShaders_RenderThread(FRHICommandListImmediate& RHICmdList, const FMatrix& InTransform, const float InGamma, const FMatrix& ColorWeights, const FTexture* Texture) override
 	{
 		MeshPaintRendering::SetMeshPaintDilateShaders_RenderThread(RHICmdList, InTransform, InGamma, ShaderParams );
 	}
@@ -2271,7 +2271,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 			FTextureRenderTargetResource*, BrushRenderTargetResource, BrushRenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 			BrushRenderTargetResource->GetRenderTargetTexture(),	// Source texture
 			BrushRenderTargetResource->TextureRHI,
 			true,													// Do we need the source image content again?
@@ -2290,7 +2290,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 				FTextureRenderTargetResource*, BrushMaskRenderTargetResource, BrushMaskRenderTargetResource,
 			{
 				// Copy (resolve) the rendered image from the frame buffer to its render target texture
-				RHICopyToResolveTarget(
+				RHICmdList.CopyToResolveTarget(
 					BrushMaskRenderTargetResource->GetRenderTargetTexture(),		// Source texture
 					BrushMaskRenderTargetResource->TextureRHI,
 					true,												// Do we need the source image content again?
@@ -2390,7 +2390,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 				FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 			{
 				// Copy (resolve) the rendered image from the frame buffer to its render target texture
-				RHICopyToResolveTarget(
+				RHICmdList.CopyToResolveTarget(
 					RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 					RenderTargetResource->TextureRHI,
 					true,												// Do we need the source image content again?
@@ -3303,7 +3303,7 @@ void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture
 			FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 				RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 				RenderTargetResource->TextureRHI,					// Dest texture
 				true,												// Do we need the source image content again?
@@ -3514,7 +3514,7 @@ bool FEdModeMeshPaint::GenerateSeamMask(UStaticMeshComponent* StaticMeshComponen
 			FTextureRenderTargetResource*, RenderTargetResource, RenderTargetResource,
 		{
 			// Copy (resolve) the rendered image from the frame buffer to its render target texture
-			RHICopyToResolveTarget(
+			RHICmdList.CopyToResolveTarget(
 				RenderTargetResource->GetRenderTargetTexture(),		// Source texture
 				RenderTargetResource->TextureRHI,
 				true,												// Do we need the source image content again?

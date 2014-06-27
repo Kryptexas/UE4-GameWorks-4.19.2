@@ -200,14 +200,14 @@ public:
 	// Destructor
 	virtual ~FFogVertexDeclaration() {}
 
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		FVertexDeclarationElementList Elements;
 		Elements.Add(FVertexElement(0, 0, VET_Float2, 0, sizeof(FVector2D)));
 		VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 	}
 
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
@@ -275,7 +275,7 @@ void FSceneRenderer::InitFogConstants()
 FGlobalBoundShaderState ExponentialBoundShaderState;
 
 /** Sets the bound shader state for either the per-pixel or per-sample fog pass. */
-void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene,const FViewInfo& View,FLightShaftsOutput LightShaftsOutput)
+void SetFogShaders(FRHICommandListImmediate& RHICmdList, FScene* Scene, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
@@ -288,7 +288,7 @@ void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene,const FViewInfo& V
 	}
 }
 
-bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandList& RHICmdList, FLightShaftsOutput LightShaftsOutput)
+bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdList, FLightShaftsOutput LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
@@ -307,9 +307,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandList& RHICmdList, FLigh
 			0, 2, 3
 		};
 
-		RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
-
-		GSceneRenderTargets.BeginRenderingSceneColor();
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
@@ -346,7 +344,7 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandList& RHICmdList, FLigh
 		}
 
 		//no need to resolve since we used alpha blending
-		GSceneRenderTargets.FinishRenderingSceneColor(false);
+		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 		return true;
 	}
 

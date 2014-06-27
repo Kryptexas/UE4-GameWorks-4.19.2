@@ -40,10 +40,10 @@ public:
 		, UnscaledVirtualScreen(InUnscaledVirtualScreen) {}
 
 	/** FRenderResource Interface.  Called when render resources need to be initialized */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/** FRenderResource Interface.  Called when render resources need to be released */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 	
 	/** Changes the target readback buffer */
 	void SwapTargetReadbackBuffer() {ReadbackBufferIndex = (ReadbackBufferIndex + 1) % 2;}
@@ -109,8 +109,8 @@ private:
 		bool bFullscreen;
 	
 		/** FRenderResource interface */
-		virtual void InitRHI();
-		virtual void ReleaseRHI();
+		virtual void InitRHI() override;
+		virtual void ReleaseRHI() override;
 
 		FViewportInfo()
 			:	OSWindow(NULL), 
@@ -160,7 +160,7 @@ public:
 	virtual void SetColorVisionDeficiencyType( uint32 Type ) override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread( const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync );
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync);
 
 
 	/**

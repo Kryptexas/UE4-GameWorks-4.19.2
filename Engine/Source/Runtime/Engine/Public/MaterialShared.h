@@ -1268,8 +1268,8 @@ public:
 	bool IsHovered() const { return bHovered; }
 
 	// FRenderResource interface.
-	ENGINE_API virtual void InitDynamicRHI();
-	ENGINE_API virtual void ReleaseDynamicRHI();
+	ENGINE_API virtual void InitDynamicRHI() override;
+	ENGINE_API virtual void ReleaseDynamicRHI() override;
 
 	ENGINE_API static const TSet<FMaterialRenderProxy*>& GetMaterialRenderProxyMap() 
 	{

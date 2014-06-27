@@ -52,7 +52,7 @@ public:
 	void Copy(const FLocalVertexFactory& Other);
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	static bool SupportsTessellationShaders() { return true; }
 

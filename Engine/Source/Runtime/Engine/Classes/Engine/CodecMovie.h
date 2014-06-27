@@ -89,7 +89,7 @@ class UCodecMovie : public UObject
 	 *
 	 * @param InTextureMovieResource - output from movie decoding is written to this resource
 	 */
-	virtual void GetFrame( class FTextureMovieResource* InTextureMovieResource ) {}
+	virtual void GetFrame(FRHICommandListImmediate& RHICmdList, class FTextureMovieResource* InTextureMovieResource) {}
 
 	/**
 	 * Returns the playback time of the movie.

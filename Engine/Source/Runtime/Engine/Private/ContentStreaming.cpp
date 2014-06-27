@@ -2308,16 +2308,15 @@ struct FTextureStreamingCompare
  *	@param RequiredMemorySize	- Amount of memory to try to free up, in bytes
  *	@param bSucceeded			- [out] Upon return, whether it succeeded or not
  **/
-void Renderthread_StreamOutTextureData( TArray<FTextureSortElement>* InCandidateTextures, int32 RequiredMemorySize, volatile bool* bSucceeded )
+void Renderthread_StreamOutTextureData(FRHICommandListImmediate& RHICmdList, TArray<FTextureSortElement>* InCandidateTextures, int32 RequiredMemorySize, volatile bool* bSucceeded)
 {
 	*bSucceeded = false;
-
 	// only for debugging?
 	FTextureMemoryStats OldStats;
-	RHIGetTextureMemoryStats(OldStats);
+	RHICmdList.GetTextureMemoryStats(OldStats);
 
 	// Makes sure that texture memory can get freed up right away.
-	RHIBlockUntilGPUIdle();
+	RHICmdList.BlockUntilGPUIdle();
 
 	FTextureSortElement* CandidateTextures = InCandidateTextures->GetTypedData();
 
@@ -2447,7 +2446,7 @@ bool FStreamingManagerTexture::StreamOutTextureData( int32 RequiredMemorySize )
 		int32,RequiredMemorySize,RequiredMemorySize,
 		volatile bool*,bSucceeded,&bSucceeded,
 	{
-		Renderthread_StreamOutTextureData( CandidateTextures, RequiredMemorySize, bSucceeded );
+		Renderthread_StreamOutTextureData(RHICmdList, CandidateTextures, RequiredMemorySize, bSucceeded);
 	});
 
 	// Block until the command has finished executing.

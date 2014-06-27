@@ -175,7 +175,7 @@ public:
 	void Copy(const FLandscapeVertexFactory& Other);
 
 	// FRenderResource interface.
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	static bool SupportsTessellationShaders() { return true; }
 
@@ -253,7 +253,7 @@ public:
 	/** 
 	* Initialize the RHI for this rendering resource 
 	*/
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 };
 
 

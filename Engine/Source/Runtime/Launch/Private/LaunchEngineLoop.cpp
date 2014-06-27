@@ -2008,7 +2008,7 @@ void FEngineLoop::Tick()
 			{
 				GFrameNumberRenderThread++;
 				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
-				RHIBeginFrame();
+				RHICmdList.BeginFrame();
 			});
 
 		// Flush debug output which has been buffered by other threads.
@@ -2176,7 +2176,7 @@ void FEngineLoop::Tick()
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			EndFrame,
 		{
-			RHIEndFrame();
+			RHICmdList.EndFrame();
 			GDynamicRHI->PopEvent();
 		});
 	} 

@@ -120,7 +120,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	// hacky cast
-	FRenderingCompositePassContext RenderingCompositePassContext((FViewInfo&)View);
+	FRenderingCompositePassContext RenderingCompositePassContext(Context.RHICmdList, (FViewInfo&)View);
 	RenderingCompositePassContext.Pass = this;
 
 	FIntRect SrcRect = View.ViewRect;

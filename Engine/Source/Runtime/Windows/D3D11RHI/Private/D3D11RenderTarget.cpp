@@ -172,8 +172,8 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	typename TPixelShader::FParameter PixelShaderParameter
 	)
 {
-	//@todo-rco: RHIPacketList
-	FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
+	
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
 
 	// Save the current viewport so that it can be restored
 	D3D11_VIEWPORT SavedViewport;
@@ -181,8 +181,9 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	StateCache.GetViewports(&NumSavedViewports,&SavedViewport);
 
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
-	RHISetBlendState(TStaticBlendState<>::GetRHI(),FLinearColor::White);
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(),FLinearColor::White);
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 	// Make sure the destination is not bound as a shader resource.
 	if (DestTexture)
@@ -209,7 +210,8 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 			Direct3DDeviceContext->ClearDepthStencilView(DestTextureDSV,D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,0,0);
 		}
 
-		RHISetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
+		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 		// Write to the dest texture as a depth-stencil target.
 		ID3D11RenderTargetView* NullRTV = NULL;
@@ -226,13 +228,14 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 			Direct3DDeviceContext->ClearRenderTargetView(DestTextureRTV,(float*)&ClearColor);
 		}
 
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(),0);
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(),0);
+		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 		// Write to the dest surface as a render target.
 		Direct3DDeviceContext->OMSetRenderTargets(1,&DestTextureRTV,NULL);
 	}
 
-	RHISetViewport(0.0f, 0.0f, 0.0f, ResolveTargetDesc.Width, ResolveTargetDesc.Height, 1.0f  );
+	RHICmdList.SetViewport(0.0f, 0.0f, 0.0f, ResolveTargetDesc.Width, ResolveTargetDesc.Height, 1.0f  );
 
 
 	// Generate the vertices used to copy from the source surface to the destination surface.
@@ -253,6 +256,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	SetGlobalBoundShaderState(RHICmdList, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
 	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
+	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 	// Set the source texture.
 	const uint32 TextureIndex = ResolvePixelShader->UnresolvedSurface.GetBaseIndex();
@@ -282,6 +286,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	Vertices[3].UV.Y       = MaxV;
 
 	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 	if (SourceTexture)
 	{

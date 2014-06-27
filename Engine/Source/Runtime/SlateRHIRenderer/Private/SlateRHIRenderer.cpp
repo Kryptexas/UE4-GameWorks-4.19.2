@@ -333,11 +333,11 @@ void FSlateRHIRenderer::ConditionalResizeViewport( FViewportInfo* ViewInfo, uint
 
 		if( IsValidRef( ViewInfo->ViewportRHI ) )
 		{
-			RHIResizeViewport( ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen );
+			RHIResizeViewport(ViewInfo->ViewportRHI, NewWidth, NewHeight, bFullscreen);
 		}
 		else
 		{
-			ViewInfo->ViewportRHI = RHICreateViewport( ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen );
+			ViewInfo->ViewportRHI = RHICreateViewport(ViewInfo->OSWindow, NewWidth, NewHeight, bFullscreen);
 		}
 
 		// Safe to call here as the rendering thread has been suspended: game thread == render thread!
@@ -394,7 +394,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 }
 
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync )
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync)
 {
 	SCOPED_DRAW_EVENT(SlateUI, DEC_SCENE_ITEMS);
 
@@ -409,23 +409,23 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
-		RHIBeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
-		RHISetViewport( 0,0,0,ViewportInfo.Width, ViewportInfo.Height, 0.0f );
+		RHICmdList.BeginDrawingViewport(ViewportInfo.ViewportRHI, FTextureRHIRef());
+		RHICmdList.SetViewport( 0,0,0,ViewportInfo.Width, ViewportInfo.Height, 0.0f );
 
-		FTexture2DRHIRef BackBuffer = RHIGetViewportBackBuffer( ViewportInfo.ViewportRHI );
+		FTexture2DRHIRef BackBuffer = RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
 
 		if( ViewportInfo.bRequiresStencilTest )
 		{
 			check(IsValidRef( ViewportInfo.DepthStencil ));
 
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
-			RHISetRenderTarget( BackBuffer, ViewportInfo.DepthStencil );
+			SetRenderTarget(RHICmdList,  BackBuffer, ViewportInfo.DepthStencil );
 			// Clear the stencil buffer
-			RHIClear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
+			RHICmdList.Clear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
 		}
 		else
 		{
-			RHISetRenderTarget(BackBuffer, FTextureRHIRef());
+			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
 		}
 
 #if DEBUG_OVERDRAW
@@ -437,6 +437,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 
 			RenderingPolicy->DrawElements
 			(
+				RHICmdList,
 				FIntPoint(ViewportInfo.Width, ViewportInfo.Height),
 				BackBufferTarget,
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
@@ -450,7 +451,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 	uint32 StartTime		= FPlatformTime::Cycles();
 		
 	// Note - We do not include present time in the slate render thread stat
-	RHIEndDrawingViewport( ViewportInfo.ViewportRHI, true, bLockToVsync );
+	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
 	uint32 EndTime		= FPlatformTime::Cycles();
 
@@ -619,7 +620,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER( SlateDrawWindowsCommand, 
 						FSlateDrawWindowCommandParams, Params, Params,
 					{
-						Params.Renderer->DrawWindow_RenderThread( *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync );
+						Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync);
 					});
 
 					SlateWindowRendered.Broadcast( *Params.SlateWindow, &ViewInfo->ViewportRHI );
@@ -631,8 +632,8 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 							FIntRect, ScreenshotRect, ScreenshotRect,
 							TArray<FColor>*, OutScreenshotData, OutScreenshotData,
 						{
-							FTexture2DRHIRef BackBuffer = RHIGetViewportBackBuffer(Params.ViewportInfo->ViewportRHI);
-							RHIReadSurfaceData(BackBuffer, ScreenshotRect, *OutScreenshotData, FReadSurfaceDataFlags());
+							FTexture2DRHIRef BackBuffer = RHICmdList.GetViewportBackBuffer(Params.ViewportInfo->ViewportRHI);
+							RHICmdList.ReadSurfaceData(BackBuffer, ScreenshotRect, *OutScreenshotData, FReadSurfaceDataFlags());
 						});
 
 						FlushRenderingCommands();
@@ -774,15 +775,19 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		SetupWindowState,
 		FSetupWindowStateContext,Context,SetupWindowStateContext,
 	{
-		RHISetRenderTarget(Context.CrashReportResource->GetBuffer(), FTextureRHIRef());
+		SetRenderTarget(RHICmdList, Context.CrashReportResource->GetBuffer(), FTextureRHIRef());		
+		RHICmdList.SetViewport(0, 0, 0.0f, Context.IntermediateBufferSize.Width(), Context.IntermediateBufferSize.Height(), 1.0f);
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		
-		RHISetViewport(0, 0, 0.0f, Context.IntermediateBufferSize.Width(), Context.IntermediateBufferSize.Height(), 1.0f);
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-		RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+		RHICmdList.SetViewport(0, 0, 0.0f, Context.IntermediateBufferSize.Width(), Context.IntermediateBufferSize.Height(), 1.0f);
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 		// @todo livestream: Ideally this "desktop background color" should be configurable in the editor's preferences
-		RHIClear(true, FLinearColor( 0.02f, 0.02f, 0.2f ), false, 0.f, false, 0x00, FIntRect());
+		RHICmdList.Clear(true, FLinearColor(0.02f, 0.02f, 0.2f), false, 0.f, false, 0x00, FIntRect());
 	});
 
 	// draw windows to buffer
@@ -831,20 +836,18 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 				TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 				TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
 
-				FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 				static FGlobalBoundShaderState BoundShaderState;
 				SetGlobalBoundShaderState(RHICmdList, BoundShaderState, Context.RendererModule->GetFilterVertexDeclaration().VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 				if( Context.WindowRect.Width() != Context.InViewportInfo->Width || Context.WindowRect.Height() != Context.InViewportInfo->Height )
 				{
 					// We're scaling down the window, so use bilinear filtering
-					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), RHIGetViewportBackBuffer(Context.InViewportInfo->ViewportRHI));
+					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Bilinear>::GetRHI(), RHICmdList.GetViewportBackBuffer(Context.InViewportInfo->ViewportRHI));
 				}
 				else
 				{
 					// Drawing 1:1, so no filtering needed
-					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), RHIGetViewportBackBuffer(Context.InViewportInfo->ViewportRHI));
+					PixelShader->SetParameters(RHICmdList, TStaticSamplerState<SF_Point>::GetRHI(), RHICmdList.GetViewportBackBuffer(Context.InViewportInfo->ViewportRHI));
 				}
 
 				Context.RendererModule->DrawRectangle(
@@ -872,14 +875,14 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	// @todo livestream: The cursor is probably still hidden when dragging with the mouse captured (grabby hand)
 	if( FSlateApplication::Get().GetMouseCaptureWindow() == nullptr )
 	{
-		FSlateDrawElement::MakeBox(
-			*WindowElementList,
-			0,
+	FSlateDrawElement::MakeBox(
+		*WindowElementList,
+		0,
 			FPaintGeometry(ScaledCursorLocation, FVector2D(32, 32) * XScaling, XScaling),
-			FCoreStyle::Get().GetBrush("CrashTracker.Cursor"),
+		FCoreStyle::Get().GetBrush("CrashTracker.Cursor"),
 			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
 	}
-
+	
 	for (int32 i = 0; i < KeypressBuffer.Num(); ++i)
 	{
 		FSlateDrawElement::MakeText(
@@ -917,7 +920,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		WriteMouseCursorAndKeyPresses,
 		FWriteMouseCursorAndKeyPressesContext, Context, WriteMouseCursorAndKeyPressesContext,
 	{
-		RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		
 		Context.RenderPolicy->UpdateBuffers(*Context.SlateElementList);
 		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
@@ -925,7 +928,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(Context.ViewportSize, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, Context.ViewportSize, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
 		}
 	});
 
@@ -944,7 +947,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		ReadbackFromIntermediateBuffer,
 		FReadbackFromIntermediateBufferContext,Context,ReadbackFromIntermediateBufferContext,
 	{
-		RHICopyToResolveTarget(
+		RHICmdList.CopyToResolveTarget(
 			Context.CrashReportResource->GetBuffer(),
 			Context.CrashReportResource->GetReadbackBuffer(),
 			false,
@@ -972,7 +975,7 @@ void FSlateRHIRenderer::MapVirtualScreenBuffer(void** OutImageData)
 		SCOPE_CYCLE_COUNTER(STAT_MapStagingBuffer);
 		int32 UnusedWidth = 0;
 		int32 UnusedHeight = 0;
-		RHIMapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), *Context.OutData, UnusedWidth, UnusedHeight);
+		RHICmdList.MapStagingSurface(Context.CrashReportResource->GetReadbackBuffer(), *Context.OutData, UnusedWidth, UnusedHeight);
 		Context.CrashReportResource->SwapTargetReadbackBuffer();
 	});
 }
@@ -992,7 +995,7 @@ void FSlateRHIRenderer::UnmapVirtualScreenBuffer()
 		FReadbackFromStagingBufferContext,Context,ReadbackFromStagingBufferContext,
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UnmapStagingBuffer);
-		RHIUnmapStagingSurface(Context.CrashReportResource->GetReadbackBuffer());
+		RHICmdList.UnmapStagingSurface(Context.CrashReportResource->GetReadbackBuffer());
 	});
 }
 

@@ -67,9 +67,9 @@ class FPostProcessing
 {
 public:
 	// @param VelocityRT only valid if motion blur is supported
-	void Process(const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
+	void Process(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT);
 
-	void ProcessES2( const FViewInfo& View, bool bUsedFramebufferFetch );
+	void ProcessES2(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, bool bUsedFramebufferFetch);
 };
 
 /** The global used for post processing. */

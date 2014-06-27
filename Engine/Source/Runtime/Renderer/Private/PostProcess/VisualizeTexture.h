@@ -12,7 +12,7 @@ public:
 	FVisualizeTexture();
 
 	/** renders the VisualizeTextureContent to the current render target */
-	void PresentContent(FRHICommandList& RHICmdList, const FSceneView& View);
+	void PresentContent(FRHICommandListImmediate& RHICmdList, const FSceneView& View);
 	/** */
 	void OnStartFrame(const FSceneView& View);
 	/** */
@@ -23,7 +23,7 @@ public:
 	 * calling this allows to grab the state of the texture at this point to be queried by visualizetexture e.g. "vis LightAttenuation@2"
 	 * @param PooledRenderTarget 0 is silently ignored
 	 */
-	void SetCheckPoint(FRHICommandList& RHICmdList, const IPooledRenderTarget* PooledRenderTarget);
+	void SetCheckPoint(FRHICommandListImmediate& RHICmdList, const IPooledRenderTarget* PooledRenderTarget);
 
 	// @param bExtended true: with more convenience - not needed for crashes but useful from the console
 	void DebugLog(bool bExtended);
@@ -88,7 +88,7 @@ private:
 
 	// is called by FPooledRenderTarget
 
-	void GenerateContent(FRHICommandList& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc);
+	void GenerateContent(FRHICommandListImmediate& RHICmdList, const FSceneRenderTargetItem& RenderTargetItem, const FPooledRenderTargetDesc& Desc);
 
 	FIntRect ComputeVisualizeTextureRect(FIntPoint InputTextureSize) const;
 };

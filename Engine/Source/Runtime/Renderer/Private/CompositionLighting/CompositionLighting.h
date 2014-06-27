@@ -14,11 +14,11 @@
 class FCompositionLighting
 {
 public:
-	void ProcessBeforeBasePass(const FViewInfo& View);
+	void ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-	void ProcessAfterBasePass(const FViewInfo& View);
+	void ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 
-	void ProcessLighting(const FViewInfo& View);
+	void ProcessLighting(FRHICommandListImmediate& RHICmdList, const FViewInfo& View);
 };
 
 /** The global used for deferred lighting. */

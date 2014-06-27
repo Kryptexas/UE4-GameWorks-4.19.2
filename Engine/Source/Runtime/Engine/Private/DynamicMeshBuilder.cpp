@@ -183,7 +183,7 @@ public:
 	TArray<int32> Indices;
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		uint32 SizeInBytes = Indices.Num() * sizeof(int32);
 		if(SizeInBytes <= FGlobalDynamicMeshIndexPolicy().GetPoolBucketSize(FGlobalDynamicMeshIndexPolicy::NumPoolBuckets - 1))
@@ -202,7 +202,7 @@ public:
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 	
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		if(IndexBufferRHI->GetSize() <= FGlobalDynamicMeshIndexPolicy().GetPoolBucketSize(FGlobalDynamicMeshIndexPolicy::NumPoolBuckets - 1))
 		{
@@ -232,7 +232,7 @@ public:
 	TArray<FDynamicMeshVertex> Vertices;
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		uint32 SizeInBytes = Vertices.Num() * sizeof(FDynamicMeshVertex);
 		if(SizeInBytes <= FGlobalDynamicMeshIndexPolicy().GetPoolBucketSize(FGlobalDynamicMeshIndexPolicy::NumPoolBuckets - 1))
@@ -251,7 +251,7 @@ public:
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 	
-	virtual void ReleaseRHI()
+	virtual void ReleaseRHI() override
 	{
 		if(VertexBufferRHI->GetSize() <= FGlobalDynamicMeshVertexPolicy().GetPoolBucketSize(FGlobalDynamicMeshVertexPolicy::NumPoolBuckets - 1))
 		{

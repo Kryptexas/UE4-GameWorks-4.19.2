@@ -431,7 +431,7 @@ FGlobalBoundShaderState BlurLightShaftsBoundShaderState;
 FGlobalBoundShaderState AccumulateTermBoundShaderState;
 FGlobalBoundShaderState ApplyLightShaftsBoundShaderState;
 
-void AllocateOrReuseLightShaftRenderTarget(TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name)
+void AllocateOrReuseLightShaftRenderTarget(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name)
 {
 	if (!Target)
 	{
@@ -441,9 +441,6 @@ void AllocateOrReuseLightShaftRenderTarget(TRefCountPtr<IPooledRenderTarget>& Ta
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(LightShaftSize, LightShaftFilterBufferFormat, TexCreate_None, TexCreate_RenderTargetable, false));
 		GRenderTargetPool.FindFreeElement(Desc, Target, Name);
 
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
 		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 	}
@@ -451,7 +448,7 @@ void AllocateOrReuseLightShaftRenderTarget(TRefCountPtr<IPooledRenderTarget>& Ta
 
 /** Generates the downsampled light shaft mask for either occlusion or bloom.  This swaps input and output before returning. */
 template<bool bDownsampleOcclusion>
-void DownsamplePass(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
+void DownsamplePass(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
 	SCOPED_DRAW_EVENT(Downsample, DEC_SCENE_ITEMS);
 
@@ -521,6 +518,7 @@ void DownsamplePass(FRHICommandList& RHICmdList, const FViewInfo& View, const FL
 
 /** Applies Temporal AA to the light shaft source. */
 void ApplyTemporalAA(
+	FRHICommandListImmediate& RHICmdList,
 	FViewInfo& View, 
 	const TCHAR* HistoryRTName,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
@@ -536,7 +534,7 @@ void ApplyTemporalAA(
 		if (*HistoryState && !View.bCameraCut)
 		{
 			FMemMark Mark(FMemStack::Get());
-			FRenderingCompositePassContext CompositeContext(View);
+			FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 			FPostprocessContext Context(CompositeContext.Graph, View);
 
 			// Nodes for input render targets
@@ -553,7 +551,7 @@ void ApplyTemporalAA(
 
 			// Reuse a render target from the pool with a consistent name, for vis purposes
 			TRefCountPtr<IPooledRenderTarget> NewHistory;
-			AllocateOrReuseLightShaftRenderTarget(NewHistory, HistoryRTName);
+			AllocateOrReuseLightShaftRenderTarget(RHICmdList, NewHistory, HistoryRTName);
 
 			// Setup the output to write to the new history render target
 			Context.FinalOutput = FRenderingCompositeOutputRef(NodeTemporalAA);
@@ -576,7 +574,7 @@ void ApplyTemporalAA(
 			HistoryOutput = LightShaftsSource;
 			LightShaftsSource = NULL;
 
-			AllocateOrReuseLightShaftRenderTarget(LightShaftsSource, HistoryRTName);
+			AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShaftsSource, HistoryRTName);
 		}
 	}
 	else
@@ -588,7 +586,7 @@ void ApplyTemporalAA(
 
 /** Applies screen space radial blur passes. */
 void ApplyRadialBlurPasses(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View, 
 	const FLightSceneInfo* const LightSceneInfo, 
 	/** First pass source - this will not be overwritten. */
@@ -645,7 +643,7 @@ void ApplyRadialBlurPasses(
 	}
 }
 
-void FinishOcclusionTerm(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
+void FinishOcclusionTerm(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource, TRefCountPtr<IPooledRenderTarget>& LightShaftsDest)
 {
 	TShaderMapRef<FScreenVS> ScreenVertexShader(GetGlobalShaderMap());
 
@@ -715,7 +713,7 @@ bool ShouldRenderLightShaftsForLight(const FViewInfo& View, const FLightSceneInf
 }
 
 /** Renders light shafts. */
-FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHICommandList& RHICmdList)
+FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHICommandListImmediate& RHICmdList)
 {
 	FLightShaftsOutput Output;
 
@@ -736,12 +734,10 @@ FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHI
 			{
 				SCOPED_DRAW_EVENT(RenderLightShaftOcclusion, DEC_SCENE_ITEMS);
 
-				RHICmdList.CheckIsNull(); // resource allocation
-
 				// Allocate light shaft render targets on demand, using the pool
 				// Need two targets to ping pong between
-				AllocateOrReuseLightShaftRenderTarget(LightShafts0, TEXT("LightShafts0"));
-				AllocateOrReuseLightShaftRenderTarget(LightShafts1, TEXT("LightShafts1"));
+				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts0, TEXT("LightShafts0"));
+				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts1, TEXT("LightShafts1"));
 
 				for (int ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 				{
@@ -761,7 +757,7 @@ FLightShaftsOutput FDeferredShadingSceneRenderer::RenderLightShaftOcclusion(FRHI
 
 						// Apply temporal AA to the occlusion mask
 						// Result will be in HistoryOutput
-						ApplyTemporalAA(View, TEXT("LSOcclusionHistory"), HistoryState, LightShafts0, HistoryOutput);
+						ApplyTemporalAA(RHICmdList, View, TEXT("LSOcclusionHistory"), HistoryState, LightShafts0, HistoryOutput);
 
 						// Apply radial blur passes
 						// Send HistoryOutput in as the first pass input only, so it will not be overwritten by any subsequent passes, since it is needed for next frame
@@ -837,12 +833,11 @@ private:
 
 IMPLEMENT_SHADER_TYPE(,FApplyLightShaftsPixelShader,TEXT("LightShaftShader"),TEXT("ApplyLightShaftsPixelMain"),SF_Pixel);
 
-void ApplyLightShaftBloom(FRHICommandList& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
+void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FLightSceneInfo* const LightSceneInfo, TRefCountPtr<IPooledRenderTarget>& LightShaftsSource)
 {
 	SCOPED_DRAW_EVENT(Apply, DEC_SCENE_ITEMS);
-	RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
 
-	GSceneRenderTargets.BeginRenderingSceneColor();
+	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 	RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
@@ -874,13 +869,11 @@ void ApplyLightShaftBloom(FRHICommandList& RHICmdList, const FViewInfo& View, co
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	GSceneRenderTargets.FinishRenderingSceneColor(false);
+	GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
 }
 
-void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandList& RHICmdList)
+void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList)
 {
-	RHICmdList.CheckIsNull(); // resource allocation
-
 	if (DoesViewFamilyAllowLightShafts(ViewFamily))
 	{
 		TRefCountPtr<IPooledRenderTarget> LightShafts0;
@@ -895,8 +888,8 @@ void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandList& RHICm
 				SCOPED_DRAW_EVENT(RenderLightShaftBloom, DEC_SCENE_ITEMS);
 
 				// Allocate light shaft render targets on demand, using the pool
-				AllocateOrReuseLightShaftRenderTarget(LightShafts0, TEXT("LightShafts0"));
-				AllocateOrReuseLightShaftRenderTarget(LightShafts1, TEXT("LightShafts1"));
+				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts0, TEXT("LightShafts0"));
+				AllocateOrReuseLightShaftRenderTarget(RHICmdList, LightShafts1, TEXT("LightShafts1"));
 
 				for (int ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 				{
@@ -922,7 +915,7 @@ void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandList& RHICm
 
 						// Apply temporal AA to the occlusion mask
 						// Result will be in HistoryOutput
-						ApplyTemporalAA(View, TEXT("LSBloomHistory"), HistoryState, LightShafts0, HistoryOutput);
+						ApplyTemporalAA(RHICmdList, View, TEXT("LSBloomHistory"), HistoryState, LightShafts0, HistoryOutput);
 
 						// Apply radial blur passes
 						// Send HistoryOutput in as the first pass input only, so it will not be overwritten by any subsequent passes, since it is needed for next frame

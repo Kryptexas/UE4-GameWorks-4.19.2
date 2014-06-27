@@ -19,10 +19,10 @@ public:
 	virtual uint32 GetHeight() const { return Height; }
 
 	/** FRenderResource Interface.  Called when render resources need to be initialized */
-	virtual void InitDynamicRHI();
+	virtual void InitDynamicRHI() override;
 
 	/** FRenderResource Interface.  Called when render resources need to be released */
-	virtual void ReleaseDynamicRHI();
+	virtual void ReleaseDynamicRHI() override;
 
 	/**
 	 * Resize the texture.  Can only be called on the render thread
@@ -91,7 +91,7 @@ public:
 	{
 	}
 
-	virtual void InitDynamicRHI() {}
+	virtual void InitDynamicRHI() override {}
 
 	/** 
 	 * Releases all dynamic RHI data

@@ -1176,7 +1176,7 @@ public:
 	/**
 	* Initialize the RHI resource for this vertex buffer
 	*/
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	* @return text description for the resource type
@@ -1543,7 +1543,7 @@ public:
 	/**
 	 * Initialize the RHI resource for this vertex buffer
 	 */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * @return text description for the resource type
@@ -1656,7 +1656,7 @@ public:
 	/**
 	 * Initialize the RHI resource for this vertex buffer
 	 */
-	virtual void InitRHI();
+	virtual void InitRHI() override;
 
 	/**
 	 * @return text description for the resource type

@@ -218,14 +218,15 @@ void FSlateTextureRenderTarget2DResource::ReleaseDynamicRHI()
 void FSlateTextureRenderTarget2DResource::UpdateResource()
 {
 	check(IsInRenderingThread());
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 	// clear the target surface to green
-	RHISetRenderTarget(RenderTargetTextureRHI,FTextureRHIRef());
-	RHISetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
-	RHIClear(true,ClearColor,false,0.f,false,0, FIntRect());
+	SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
+	RHICmdList.SetViewport(0,0,0.0f,TargetSizeX,TargetSizeY,1.0f);
+	RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
 
 	// copy surface to the texture for use
-	RHICopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
+	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
 }
 
 FIntPoint FSlateTextureRenderTarget2DResource::GetSizeXY() const

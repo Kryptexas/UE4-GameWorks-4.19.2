@@ -60,8 +60,9 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
  * @param PixelShader				- the pixel shader to use in creating the new bound shader state
  * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
  */
+
 extern ENGINE_API void SetGlobalBoundShaderState(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,

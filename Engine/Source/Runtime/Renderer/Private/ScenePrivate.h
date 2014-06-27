@@ -134,15 +134,15 @@ public:
 	}
 
 	template<class TOcclusionQueryPool> // here we use a template just to allow this to be inlined without sorting out the header order
-	FORCEINLINE void ReleaseQueries(TOcclusionQueryPool& Pool)
+	FORCEINLINE void ReleaseQueries(FRHICommandListImmediate& RHICmdList, TOcclusionQueryPool& Pool)
 	{
 #if WITH_SLI
 		for (int32 QueryIndex = 0; QueryIndex < NumBufferedFrames; QueryIndex++)
 		{
-			Pool.ReleaseQuery(PendingOcclusionQuery[QueryIndex]);
+			Pool.ReleaseQuery(RHICmdList, PendingOcclusionQuery[QueryIndex]);
 		}
 #else
-		Pool.ReleaseQuery(PendingOcclusionQuery);
+		Pool.ReleaseQuery(RHICmdList, PendingOcclusionQuery);
 #endif
 	}
 
@@ -205,7 +205,7 @@ public:
 	FRenderQueryRHIRef AllocateQuery();
 
 	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
-	void ReleaseQuery( FRenderQueryRHIRef &Query );
+	void ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query);
 
 private:
 	/** Container for available render queries. */
@@ -578,14 +578,14 @@ public:
 	 *							visible and unoccluded since this time will be discarded.
 	 * @param MinQueryTime - The pending occlusion queries older than this will be discarded.
 	 */
-	void TrimOcclusionHistory(float MinHistoryTime,float MinQueryTime,int32 FrameNumber);
+	void TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList, float MinHistoryTime, float MinQueryTime, int32 FrameNumber);
 
 	/**
 	 * Checks whether a shadow is occluded this frame.
 	 * @param Primitive - The shadow subject.
 	 * @param Light - The shadow source.
 	 */
-	bool IsShadowOccluded(FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow) const;
+	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow) const;
 
 	TRefCountPtr<IPooledRenderTarget>& GetEyeAdaptation()
 	{
@@ -606,12 +606,12 @@ public:
 	}
 
     // FRenderResource interface.
-	virtual void InitDynamicRHI()
+	virtual void InitDynamicRHI() override
     {
 		HZBOcclusionTests.InitDynamicRHI();
 	}
 
-    virtual void ReleaseDynamicRHI()
+	virtual void ReleaseDynamicRHI() override
     {
         ShadowOcclusionQueryMap.Reset();
 		PrimitiveOcclusionHistorySet.Empty();
@@ -732,8 +732,8 @@ public:
 		MaxCubemaps(0)
 	{}
 
-	virtual void InitDynamicRHI();
-	virtual void ReleaseDynamicRHI();
+	virtual void InitDynamicRHI() override;
+	virtual void ReleaseDynamicRHI() override;
 
 	/** 
 	 * Updates the maximum number of cubemaps that this array is allocated for.
@@ -1424,7 +1424,7 @@ private:
 	 * Adds a primitive to the scene.  Called in the rendering thread by AddPrimitive.
 	 * @param PrimitiveSceneInfo - The primitive being added.
 	 */
-	void AddPrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo);
+	void AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/**
 	 * Removes a primitive from the scene.  Called in the rendering thread by RemovePrimitive.
@@ -1433,7 +1433,7 @@ private:
 	void RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/** Updates a primitive's transform, called on the rendering thread. */
-	void UpdatePrimitiveTransform_RenderThread(FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
+	void UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHICmdList, FPrimitiveSceneProxy* PrimitiveSceneProxy, const FBoxSphereBounds& WorldBounds, const FBoxSphereBounds& LocalBounds, const FMatrix& LocalToWorld, const FVector& OwnerPosition);
 
 	/** Updates a single primitive's lighting attachment root. */
 	void UpdatePrimitiveLightingAttachmentRoot(UPrimitiveComponent* Primitive);
@@ -1468,10 +1468,10 @@ private:
 	void UpdateAllReflectionCaptures();
 
 	/** Sets shader maps on the specified materials without blocking. */
-	void SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpdateMap& MaterialsToUpdate);
+	void SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmediate& RHICmdList, const FMaterialsToUpdateMap& MaterialsToUpdate);
 
 	/** Updates static draw lists for the given materials. */
-	void UpdateStaticDrawListsForMaterials_RenderThread(const TArray<const FMaterial*>& Materials);
+	void UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmediate& RHICmdList, const TArray<const FMaterial*>& Materials);
 
 	/**
 	 * Shifts scene data by provided delta

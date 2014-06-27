@@ -43,7 +43,7 @@ extern void DrawRectangle(
 	);
 
 extern void DrawTransformedRectangle(
-	FRHICommandList& RHICmdList,
+	FRHICommandListImmediate& RHICmdList,
     float X,
     float Y,
     float SizeX,

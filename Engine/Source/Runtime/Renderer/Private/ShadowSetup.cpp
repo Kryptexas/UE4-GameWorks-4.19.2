@@ -1024,6 +1024,7 @@ bool FDeferredShadingSceneRenderer::ShouldCreateObjectShadowForStationaryLight(c
 }
 
 void FDeferredShadingSceneRenderer::SetupInteractionShadows(
+	FRHICommandListImmediate& RHICmdList,
 	FLightPrimitiveInteraction* Interaction, 
 	FVisibleLightInfo& VisibleLightInfo, 
 	bool bStaticSceneOnly,
@@ -1055,12 +1056,13 @@ void FDeferredShadingSceneRenderer::SetupInteractionShadows(
 			&& (bCreateTranslucentObjectShadow || bCreateInsetObjectShadow || bCreateObjectShadowForStationaryLight))
 		{
 			// Create projected shadow infos
-			CreatePerObjectProjectedShadow(Interaction, bCreateTranslucentObjectShadow, bCreateInsetObjectShadow || bCreateObjectShadowForStationaryLight, ViewDependentWholeSceneShadows, PreShadows);
+			CreatePerObjectProjectedShadow(RHICmdList, Interaction, bCreateTranslucentObjectShadow, bCreateInsetObjectShadow || bCreateObjectShadowForStationaryLight, ViewDependentWholeSceneShadows, PreShadows);
 		}
 	}
 }
 
 void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
+	FRHICommandListImmediate& RHICmdList,
 	FLightPrimitiveInteraction* Interaction, 
 	bool bCreateTranslucentObjectShadow, 
 	bool bCreateOpaqueObjectShadow,
@@ -1103,14 +1105,14 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			!bCreateOpaqueObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries &&	View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false)
 			);
 
 		const bool bTranslucentShadowIsOccluded = 
 			!bCreateTranslucentObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries && View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true)
 			);
 
 		const bool bSubjectIsVisibleInThisView = View.PrimitiveVisibilityMap[PrimitiveSceneInfo->GetIndex()];
@@ -1549,7 +1551,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 	}
 }
 
-void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility()
+void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList)
 {
 	// Initialize the views' ProjectedShadowVisibilityMaps and remove shadows without subjects.
 	for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
@@ -1614,6 +1616,7 @@ void FDeferredShadingSceneRenderer::InitProjectedShadowVisibility()
 						!View.bIgnoreExistingQueries &&
 						View.State &&
 						((FSceneViewState*)View.State)->IsShadowOccluded(
+							RHICmdList,
 							ProjectedShadowInfo.ParentSceneInfo ? 
 								ProjectedShadowInfo.ParentSceneInfo->PrimitiveComponentId :
 								FPrimitiveComponentId(),
@@ -1892,7 +1895,7 @@ void FDeferredShadingSceneRenderer::GatherShadowPrimitives(
 	}
 }
 
-void FDeferredShadingSceneRenderer::InitDynamicShadows()
+void FDeferredShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DynamicShadowSetupTime);
 
@@ -2053,7 +2056,7 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows()
 							Interaction = Interaction->GetNextPrimitive()
 							)
 						{
-							SetupInteractionShadows(Interaction, VisibleLightInfo, bStaticSceneOnly, ViewDependentWholeSceneShadows, PreShadows);
+							SetupInteractionShadows(RHICmdList, Interaction, VisibleLightInfo, bStaticSceneOnly, ViewDependentWholeSceneShadows, PreShadows);
 						}
 					}
 				}
@@ -2061,7 +2064,7 @@ void FDeferredShadingSceneRenderer::InitDynamicShadows()
 		}
 
 		// Calculate visibility of the projected shadows.
-		InitProjectedShadowVisibility();
+		InitProjectedShadowVisibility(RHICmdList);
 	}
 
 	// Clear old preshadows and attempt to add new ones to the cache

@@ -172,11 +172,12 @@ bool FPreviewElement::BeginRenderingCanvas( const FIntRect& InCanvasRect, const 
 	return false;
 }
 
-void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
+void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, const void* InWindowBackBuffer)
 {
 	// Clip the canvas to avoid having to set UV values
 	FIntRect ClippingRect = RenderTarget->GetClippingRect();
-	RHISetScissorRect(	true,
+
+	RHICmdList.SetScissorRect(true,
 						ClippingRect.Min.X,
 						ClippingRect.Min.Y,
 						ClippingRect.Max.X,
@@ -198,7 +199,7 @@ void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
 		Canvas.Flush(true);
 	}
 	RenderTarget->ClearRenderTargetTexture();
-	RHISetScissorRect(false,0,0,0,0);
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
 /////////////////////////////////////////////////////

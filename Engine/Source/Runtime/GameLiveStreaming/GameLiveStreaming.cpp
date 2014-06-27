@@ -273,7 +273,7 @@ void FGameLiveStreaming::BroadcastGameVideoFrame()
 				ReadbackFromStagingBuffer,
 				FReadbackFromStagingBufferContext,Context,ReadbackFromStagingBufferContext,
 			{
-				RHIUnmapStagingSurface( Context.This->ReadbackTextures[ Context.This->ReadbackTextureIndex ] );
+				RHICmdList.UnmapStagingSurface(Context.This->ReadbackTextures[Context.This->ReadbackTextureIndex]);
 			});
 		}								
 	}
@@ -325,16 +325,14 @@ void FGameLiveStreaming::StartCopyingNextGameVideoFrame( const FViewportRHIRef& 
 
 		const FSceneRenderTargetItem& DestRenderTarget = ResampleTexturePooledRenderTarget->GetRenderTargetItem();
 
-		RHISetRenderTarget( DestRenderTarget.TargetableTexture, FTextureRHIRef() );
-		RHISetViewport(0, 0, 0.0f, Context.ResizeTo.X, Context.ResizeTo.Y, 1.0f);
+		SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
+		RHICmdList.SetViewport(0, 0, 0.0f, Context.ResizeTo.X, Context.ResizeTo.Y, 1.0f);
 
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-		RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
-		FTexture2DRHIRef ViewportBackBuffer = RHIGetViewportBackBuffer( Context.ViewportRHI );
+		FTexture2DRHIRef ViewportBackBuffer = RHICmdList.GetViewportBackBuffer(Context.ViewportRHI);
 
 		TShaderMapRef<FScreenVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FScreenPS> PixelShader(GetGlobalShaderMap());
@@ -366,7 +364,7 @@ void FGameLiveStreaming::StartCopyingNextGameVideoFrame( const FViewportRHIRef& 
 
 		// Asynchronously copy render target from GPU to CPU
 		const bool bKeepOriginalSurface = false;
-		RHICopyToResolveTarget(
+		RHICmdList.CopyToResolveTarget(
 			DestRenderTarget.TargetableTexture,
 			Context.This->ReadbackTextures[ Context.This->ReadbackTextureIndex ],
 			bKeepOriginalSurface,
@@ -390,7 +388,7 @@ void FGameLiveStreaming::StartCopyingNextGameVideoFrame( const FViewportRHIRef& 
 		{
 			int32 UnusedWidth = 0;
 			int32 UnusedHeight = 0;
-			RHIMapStagingSurface( Context.This->ReadbackTextures[ Context.This->ReadbackTextureIndex ], Context.This->ReadbackBuffers[ Context.This->ReadbackBufferIndex ], UnusedWidth, UnusedHeight );
+			RHICmdList.MapStagingSurface(Context.This->ReadbackTextures[Context.This->ReadbackTextureIndex], Context.This->ReadbackBuffers[Context.This->ReadbackBufferIndex], UnusedWidth, UnusedHeight);
 
 			// Ping pong between readback textures
 			Context.This->ReadbackTextureIndex = ( Context.This->ReadbackTextureIndex + 1 ) % 2;

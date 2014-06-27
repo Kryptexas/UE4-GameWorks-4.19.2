@@ -266,7 +266,7 @@ FORCEINLINE void SetSamplerParameter(
  */
 template<typename ShaderTypeRHIParamRef>
 FORCEINLINE void SetSRVParameter(
-	FRHICommandList& RHICmdList, 
+	FRHICommandList& RHICmdList,
 	ShaderTypeRHIParamRef Shader,
 	const FShaderResourceParameter& Parameter,
 	FShaderResourceViewRHIParamRef NewShaderResourceViewRHI

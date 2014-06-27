@@ -38,7 +38,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if(NumVertices)
 		{
@@ -89,7 +89,7 @@ public:
 	}
 
 	// FRenderResource interface.
-	virtual void InitRHI()
+	virtual void InitRHI() override
 	{
 		if(NumEdges)
 		{

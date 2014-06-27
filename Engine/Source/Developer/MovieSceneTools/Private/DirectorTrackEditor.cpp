@@ -133,7 +133,7 @@ void FShotThumbnail::CopyTextureIn(FSlateRenderTargetRHI* InTexture)
 		FSlateRenderTargetRHI*, RenderTarget, InTexture,
 		FSlateTexture2DRHIRef*, TargetTexture, Texture,
 	{
-		RHICopyToResolveTarget(RenderTarget->GetRHIRef(), TargetTexture->GetTypedResource(), false, FResolveParams());
+		RHICmdList.CopyToResolveTarget(RenderTarget->GetRHIRef(), TargetTexture->GetTypedResource(), false, FResolveParams());
 	});
 }
 

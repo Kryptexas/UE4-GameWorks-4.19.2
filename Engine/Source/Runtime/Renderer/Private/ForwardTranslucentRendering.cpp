@@ -45,17 +45,16 @@ IMPLEMENT_SHADER_TYPE(,FForwardCopySceneAlphaPS,TEXT("TranslucentLightingShaders
 
 FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 
-void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandList& RHICmdList, const FSceneView& View)
+void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
-	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
-	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	RHICmdList.CheckIsNull(); // GSceneRenderTargets ops
-	GSceneRenderTargets.ResolveSceneColor();
+	GSceneRenderTargets.ResolveSceneColor(RHICmdList);
 
-	GSceneRenderTargets.BeginRenderingSceneAlphaCopy();
+	GSceneRenderTargets.BeginRenderingSceneAlphaCopy(RHICmdList);
 
 	int X = GSceneRenderTargets.GetBufferSizeXY().X;
 	int Y = GSceneRenderTargets.GetBufferSizeXY().Y;
@@ -79,7 +78,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandList& RHICmdList, c
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	GSceneRenderTargets.FinishRenderingSceneAlphaCopy();
+	GSceneRenderTargets.FinishRenderingSceneAlphaCopy(RHICmdList);
 }
 
 
@@ -243,7 +242,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
 FTranslucentPrimSet
 -----------------------------------------------------------------------------*/
 
-void FTranslucentPrimSet::DrawPrimitivesForForwardShading(const FViewInfo& View, FSceneRenderer& Renderer) const
+void FTranslucentPrimSet::DrawPrimitivesForForwardShading(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FSceneRenderer& Renderer) const
 {
 	// Draw sorted scene prims
 	for (int32 PrimIdx = 0; PrimIdx < SortedPrims.Num(); PrimIdx++)
@@ -252,11 +251,12 @@ void FTranslucentPrimSet::DrawPrimitivesForForwardShading(const FViewInfo& View,
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
 		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveId];
 
-		RenderPrimitiveForForwardShading(View, PrimitiveSceneInfo, ViewRelevance);
+		RenderPrimitiveForForwardShading(RHICmdList, View, PrimitiveSceneInfo, ViewRelevance);
 	}
 }
 
 void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View, 
 	FPrimitiveSceneInfo* PrimitiveSceneInfo, 
 	const FPrimitiveViewRelevance& ViewRelevance) const
@@ -280,9 +280,6 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 				&View
 				);
 		}
-
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
 
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )
@@ -310,13 +307,10 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 	}
 }
 
-void FForwardShadingSceneRenderer::RenderTranslucency()
+void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& RHICmdList)
 {
 	if (ShouldRenderTranslucency())
 	{
-		//@todo-rco: RHIPacketList
-		FRHICommandList& RHICmdList = FRHICommandList::GetNullRef();
-
 		const bool bGammaSpace = !IsMobileHDR();
 		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
@@ -339,15 +333,15 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 
 			if (!bGammaSpace)
 			{
-				GSceneRenderTargets.BeginRenderingTranslucency(View);
+				GSceneRenderTargets.BeginRenderingTranslucency(RHICmdList, View);
 			}
 
 			// Enable depth test, disable depth writes.
 			// Note, this is a reversed Z depth surface, using CF_GreaterEqual.
-			RHISetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_GreaterEqual>::GetRHI());
 
 			// Draw only translucent prims that don't read from scene color
-			View.TranslucentPrimSet.DrawPrimitivesForForwardShading(View, *this);
+			View.TranslucentPrimSet.DrawPrimitivesForForwardShading(RHICmdList, View, *this);
 			// Draw the view's mesh elements with the translucent drawing policy.
 			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(View,FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),SDPG_World,false);
 			// Draw the view's mesh elements with the translucent drawing policy.

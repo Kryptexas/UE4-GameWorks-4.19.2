@@ -52,7 +52,7 @@ class STATIC_RHI_CLASS_NAME
 public:
 
 	// For Static RHI, we declare the various RHI functions as static methods
-	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) static Type Name ParameterTypesAndNames
+	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) static Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
 
@@ -186,13 +186,31 @@ private:
 };
 
 // Implement the statically bound RHI methods to simply call the static RHI.
-#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
-	FORCEINLINE Type Name ParameterTypesAndNames \
+#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type Name##_Internal ParameterTypesAndNames \
 	{ \
-		ReturnStatement GStaticRHI->Name ParameterNames; \
+		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBAL(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type RHI##Name ParameterTypesAndNames \
+	{ \
+		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD_GLOBALFLUSH(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
+	}
+#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \
+	FORCEINLINE Type Name##_Internal ParameterTypesAndNames \
+	{ \
+		ReturnStatement GStaticRHI->RHI##Name ParameterNames; \
 	}
 #include "RHIMethods.h"
 #undef DEFINE_RHIMETHOD
+#undef DEFINE_RHIMETHOD_CMDLIST
+#undef DEFINE_RHIMETHOD_GLOBAL
+#undef DEFINE_RHIMETHOD_GLOBALFLUSH
 
 #endif	//#if USE_STATIC_RHI
 

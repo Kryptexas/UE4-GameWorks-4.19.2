@@ -84,7 +84,7 @@ private:
 	/**
 	* Resolves the scene color target and copies it for use as a source texture.
 	*/
-	static void CopySceneColor(const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
+	static void CopySceneColor(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, const FPrimitiveSceneProxy* PrimitiveSceneProxy);
 };
 
 
@@ -240,4 +240,4 @@ private:
 	FShaderParameter MinZ;
 };
 
-extern void RasterizeToVolumeTexture(FRHICommandList& RHICmdList, FVolumeBounds VolumeBounds);
+extern void RasterizeToVolumeTexture(FRHICommandListImmediate& RHICmdList, FVolumeBounds VolumeBounds);
