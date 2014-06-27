@@ -315,7 +315,6 @@ public:
 				.Padding(this, &SItemEditor::GetVariableHeight)
 				[
 					SNew( SButton )
-					.TouchMethod( EButtonTouchMethod::PreciseTap )
 					.OnClicked( this, &SItemEditor::OnAddChild )
 					[
 						SNew(STextBlock)

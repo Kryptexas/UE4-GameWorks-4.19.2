@@ -19,7 +19,6 @@ public:
 		, _ContentPadding(FMargin(4.0, 2.0))
 		, _Text()
 		, _ClickMethod( EButtonClickMethod::DownAndUp )
-		, _TouchMethod( EButtonTouchMethod::DownAndUp )
 		, _DesiredSizeScale( FVector2D(1,1) )
 		, _ContentScale( FVector2D(1,1) )
 		, _ButtonColorAndOpacity(FLinearColor::White)
@@ -53,9 +52,6 @@ public:
 
 		/** Sets the rules to use for determining whether the button was clicked.  This is an advanced setting and generally should be left as the default. */
 		SLATE_ARGUMENT( EButtonClickMethod::Type, ClickMethod )
-
-		/** How should the button be clicked with touch events? */
-		SLATE_ARGUMENT( EButtonTouchMethod::Type, TouchMethod )
 
 		SLATE_ATTRIBUTE( FVector2D, DesiredSizeScale )
 
@@ -164,9 +160,6 @@ protected:
 
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;
-
-	/** How should the button be clicked with touch events? */
-	EButtonTouchMethod::Type TouchMethod;
 
 	/** Can this button be focused? */
 	bool bIsFocusable;
