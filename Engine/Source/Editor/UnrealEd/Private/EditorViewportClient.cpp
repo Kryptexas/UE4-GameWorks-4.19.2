@@ -2831,7 +2831,9 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
 		{
-			if (GestureType == EGestureEvent::Scroll)
+			const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
+			const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
+			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
 				const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);
 				
