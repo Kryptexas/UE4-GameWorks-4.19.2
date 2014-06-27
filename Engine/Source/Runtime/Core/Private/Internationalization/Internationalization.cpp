@@ -212,7 +212,7 @@ namespace
 
 		FileAr->Serialize(*contents, FileSize); 
 
-		FileAr->Close(); // Close the file archive to free up the handle - it is unneeded since the data is in memory.
+		delete FileAr;
 
 		return TRUE;
 	}
