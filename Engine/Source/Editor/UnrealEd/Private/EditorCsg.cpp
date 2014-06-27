@@ -24,9 +24,9 @@ public:
 	 * Default constructor, initializing all member variables and iterating to first.
 	 */
 	FStaticBrushIterator( UWorld* InWorld )
-	:	World( InWorld ),
-		ActorIndex( -1 ),
-		ReachedEnd( false )
+	:	ActorIndex( -1 ),
+		ReachedEnd( false ),
+		World( InWorld )
 	{
 		// Iterate to first.
 		++(*this);

@@ -11,8 +11,8 @@
 // FBlueprintCompileReinstancer
 
 FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToReinstance, bool bIsBytecodeOnly, bool bSkipGC)
-	: DuplicatedClass(NULL)
-	, ClassToReinstance(InClassToReinstance)
+	: ClassToReinstance(InClassToReinstance)
+	, DuplicatedClass(NULL)
 	, OriginalCDO(NULL)
 	, bHasReinstanced(false)
 	, bSkipGarbageCollection(bSkipGC)

@@ -114,7 +114,8 @@ class UNREALED_API FMipLevelBatchedElementParameters : public FBatchedElementPar
 {
 public:
 	FMipLevelBatchedElementParameters(float InMipLevel, bool bInHDROutput = false)
-		: MipLevel(InMipLevel), bHDROutput(bInHDROutput)
+		: bHDROutput(bInHDROutput)
+		, MipLevel(InMipLevel)
 	{
 	}
 

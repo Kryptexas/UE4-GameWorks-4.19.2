@@ -14,8 +14,8 @@
 
 FEditorModeInfo::FEditorModeInfo()
 	: ID(NAME_None)
-	, PriorityOrder(MAX_int32)
 	, bVisible(false)
+	, PriorityOrder(MAX_int32)
 {
 }
 

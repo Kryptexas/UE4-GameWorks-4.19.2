@@ -563,10 +563,10 @@ FAssetThumbnail::FAssetThumbnail( UObject* InAsset, uint32 InWidth, uint32 InHei
 }
 
 FAssetThumbnail::FAssetThumbnail( const FAssetData& InAssetData , uint32 InWidth, uint32 InHeight, const TSharedPtr<class FAssetThumbnailPool>& InThumbnailPool )
-	: AssetData ( InAssetData )
+	: ThumbnailPool( InThumbnailPool )
+	, AssetData ( InAssetData )
 	, Width( InWidth )
 	, Height( InHeight )
-	, ThumbnailPool( InThumbnailPool )
 {
 	if ( InThumbnailPool.IsValid() )
 	{
@@ -680,10 +680,10 @@ void FAssetThumbnail::RefreshThumbnail()
 }
 
 FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<bool>& InAreRealTimeThumbnailsAllowed, double InMaxFrameTimeAllowance, uint32 InMaxRealTimeThumbnailsPerFrame )
-	: NumInPool( InNumInPool )
-	, AreRealTimeThumbnailsAllowed( InAreRealTimeThumbnailsAllowed )
-	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
+	: AreRealTimeThumbnailsAllowed( InAreRealTimeThumbnailsAllowed )
+	, NumInPool( InNumInPool )
 	, MaxRealTimeThumbnailsPerFrame( InMaxRealTimeThumbnailsPerFrame )
+	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
 {
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
 	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);

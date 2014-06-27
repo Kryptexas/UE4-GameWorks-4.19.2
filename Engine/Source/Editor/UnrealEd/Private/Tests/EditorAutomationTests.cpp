@@ -2024,10 +2024,10 @@ namespace StaticMeshUVTest
 
 		/** Constructor */
 		FUVTestHelper(FAutomationTestBase* BaseTest) :
-			CurrentTest(BaseTest),
+			CurrentState(EStaticMeshUVTestState::Ready),
 			CurrentPackage(NULL),
 			LoadedPackageCount(0),
-			CurrentState(EStaticMeshUVTestState::Ready)
+			CurrentTest(BaseTest)
 		{
 			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
 			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());

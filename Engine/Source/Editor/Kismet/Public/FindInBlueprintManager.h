@@ -80,9 +80,9 @@ struct FSearchData
 	int32 DDCRetrievalID;
 
 	FSearchData()
-		: bMarkedForDeletion(false)
+		: Blueprint(nullptr)
+		, bMarkedForDeletion(false)
 		, DDCRetrievalID(INDEX_NONE)
-		, Blueprint(nullptr)
 	{
 
 	}

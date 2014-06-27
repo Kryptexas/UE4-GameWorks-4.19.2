@@ -126,18 +126,18 @@ struct FMeshBoneInfo
 
 	FMeshBoneInfo(const FName & InName, const FString& InExportName, int32 InParentIndex)
 	:	Name(InName)
-	,	ParentIndex(InParentIndex)
 #if WITH_EDITORONLY_DATA
 	, ExportName(InExportName)
 #endif
+	,	ParentIndex(InParentIndex)
 	{}
 
 	FMeshBoneInfo(const FMeshBoneInfo & Other)
 		:	Name(Other.Name)
-		,	ParentIndex(Other.ParentIndex)
 #if WITH_EDITORONLY_DATA
 		, ExportName(Other.ExportName)
 #endif
+		,	ParentIndex(Other.ParentIndex)
 	{}
 
 	bool operator==( const FMeshBoneInfo& B ) const

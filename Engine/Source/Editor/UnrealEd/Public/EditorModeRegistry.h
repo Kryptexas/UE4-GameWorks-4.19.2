@@ -60,6 +60,9 @@ struct FEditorModeInfo
 
 struct IEditorModeFactory : public TSharedFromThis<IEditorModeFactory>
 {
+	/** Virtual destructor */
+	virtual ~IEditorModeFactory() {}
+
 	/**
 	 * Allows mode factories to handle selection change events, and potentially activate/deactivate modes
 
@@ -82,6 +85,7 @@ struct IEditorModeFactory : public TSharedFromThis<IEditorModeFactory>
 struct FEditorModeFactory : IEditorModeFactory
 {
 	FEditorModeFactory(FEditorModeInfo InModeInfo) : ModeInfo(InModeInfo) {}
+	virtual ~FEditorModeFactory() {}
 
 	/** Information pertaining to this factory's mode */
 	FEditorModeInfo ModeInfo;

@@ -875,12 +875,12 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, Schema(InSchema)
 	, bIsUbergraph(false)
 	, bCannotBeCalledFromOtherKismet(false)
-	, NetFlags(0)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
+	, NetFlags(0)
 	, SourceEventFromStubGraph(NULL)
 {
 	NetNameMap = new FNetNameMapping();

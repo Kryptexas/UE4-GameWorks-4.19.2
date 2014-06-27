@@ -485,7 +485,7 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( const UModel& InModel, int
 	// Does the box intersect the frustum
 	bool bIntersects = InFrustum.IntersectBox( NodeBB.GetCenter(), NodeBB.GetExtent(), bFullyContained );
 
-	return bIntersects && (!bUseStrictSelection || bUseStrictSelection && bFullyContained );
+	return bIntersects && (!bUseStrictSelection || (bUseStrictSelection && bFullyContained));
 }
 
 /** 

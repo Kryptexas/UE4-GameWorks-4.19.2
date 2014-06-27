@@ -2216,8 +2216,8 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 ,	bQuitReceived(false)
 ,	NumCompletedTasks(0)
 ,	bRunningLightmass(false)
-,	bDumpBinaryResults( bInDumpBinaryResults )
 ,	bOnlyBuildVisibility( bInOnlyBuildVisibility )
+,	bDumpBinaryResults( bInDumpBinaryResults )
 ,	bImportCompletedMappingsImmediately(false)
 ,	MappingToProcessIndex(0)
 {
