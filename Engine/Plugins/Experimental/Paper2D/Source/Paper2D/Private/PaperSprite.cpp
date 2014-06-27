@@ -897,28 +897,37 @@ void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>
 	SpriteTextureBitmap.ExtractRects(/*out*/ OutRects);
 }
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture)
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit)
 {
 	if (Texture != NULL)
 	{
 		const FVector2D Dimension(Texture->GetSizeX(), Texture->GetSizeY());
-		InitializeSprite(Texture, FVector2D::ZeroVector, Dimension);
+		InitializeSprite(Texture, FVector2D::ZeroVector, Dimension, InPixelsPerUnrealUnit);
 	}
 	else
 	{
-		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D(1.0f, 1.0f));
+		InitializeSprite(NULL, FVector2D::ZeroVector, FVector2D(1.0f, 1.0f), InPixelsPerUnrealUnit);
 	}
-
-	PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 }
 
-void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
+void UPaperSprite::InitializeSprite(UTexture2D* Texture)
 {
+	InitializeSprite(Texture, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
+}
+
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnrealUnit)
+{
+	PixelsPerUnrealUnit = InPixelsPerUnrealUnit;
 	SourceTexture = Texture;
 	SourceUV = Offset;
 	SourceDimension = Dimension;
 	RebuildCollisionData();
 	RebuildRenderData();
+}
+
+void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension)
+{
+	InitializeSprite(Texture, Offset, Dimension, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 }
 
 FVector2D UPaperSprite::ConvertTextureSpaceToPivotSpace(FVector2D Input) const

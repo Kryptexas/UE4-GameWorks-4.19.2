@@ -165,8 +165,10 @@ public:
 	void Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target);
 
 	// Reinitializes this sprite (NOTE: Does not register existing components in the world)
+	void InitializeSprite(UTexture2D* Texture, float InPixelsPerUnrealUnit);
 	void InitializeSprite(UTexture2D* Texture);
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension);
+	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnit);
 
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
