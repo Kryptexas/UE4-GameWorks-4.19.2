@@ -213,6 +213,32 @@ bool FJsonObject::TryGetStringField(const FString& FieldName, FString& OutString
 	return Field.IsValid() && Field->TryGetString(OutString);
 }
 
+bool FJsonObject::TryGetStringArrayField(const FString& FieldName, TArray<FString>& OutArray) const
+{
+	TSharedPtr<FJsonValue> Field = TryGetField(FieldName);
+	if(!Field.IsValid())
+	{
+		return false;
+	}
+
+	const TArray< TSharedPtr<FJsonValue> > *Array;
+	if(!Field->TryGetArray(Array))
+	{
+		return false;
+	}
+
+	for(int Idx = 0; Idx < Array->Num(); Idx++)
+	{
+		FString Element;
+		if(!(*Array)[Idx]->TryGetString(Element))
+		{
+			return false;
+		}
+		OutArray.Add(Element);
+	}
+	return true;
+}
+
 void FJsonObject::SetStringField( const FString& FieldName, const FString& StringValue )
 {
 	this->Values.Add( FieldName, MakeShareable(new FJsonValueString(StringValue)) );

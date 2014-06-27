@@ -227,13 +227,13 @@ public:
 	/** Get the field named FieldName as a number. Ensures that the field is present and is of type Json number. */
 	double GetNumberField(const FString& FieldName) const;
 
-	/** Get the field named FieldName as a number. Returns false if it cannot be converted. */
+	/** Get the field named FieldName as a number. Returns false if it doesn't exist or cannot be converted. */
 	bool TryGetNumberField(const FString& FieldName, double& OutNumber) const;
 
-	/** Get the field named FieldName as a number, and makes sure it's within int32 range. Returns false if it cannot be converted. */
+	/** Get the field named FieldName as a number, and makes sure it's within int32 range. Returns false if it doesn't exist or cannot be converted. */
 	bool TryGetNumberField(const FString& FieldName, int32& OutNumber) const;
 
-	/** Get the field named FieldName as a number, and makes sure it's within uint32 range. Returns false if it cannot be converted.  */
+	/** Get the field named FieldName as a number, and makes sure it's within uint32 range. Returns false if it doesn't exist or cannot be converted.  */
 	bool TryGetNumberField(const FString& FieldName, uint32& OutNumber) const;
 
 	/** Add a field named FieldName with Number as value */
@@ -242,8 +242,11 @@ public:
 	/** Get the field named FieldName as a string. */
 	FString GetStringField(const FString& FieldName) const;
 
-	/** Get the field named FieldName as a string. Returns false if it cannot be converted. */
+	/** Get the field named FieldName as a string. Returns false if it doesn't exist or cannot be converted. */
 	bool TryGetStringField(const FString& FieldName, FString& OutString) const;
+
+	/** Get the field named FieldName as an array of strings. Returns false if it doesn't exist or any member cannot be converted. */
+	bool TryGetStringArrayField(const FString& FieldName, TArray<FString>& OutArray) const;
 
 	/** Add a field named FieldName with value of StringValue */
 	void SetStringField( const FString& FieldName, const FString& StringValue );
@@ -251,7 +254,7 @@ public:
 	/** Get the field named FieldName as a boolean. */
 	bool GetBoolField(const FString& FieldName) const;
 
-	/** Get the field named FieldName as a string. Returns false if it cannot be converted. */
+	/** Get the field named FieldName as a string. Returns false if it doesn't exist or cannot be converted. */
 	bool TryGetBoolField(const FString& FieldName, bool& OutBool) const;
 
 	/** Set a boolean field named FieldName and value of InValue */
