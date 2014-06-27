@@ -502,7 +502,7 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 	}
 
 	// todo
-	static int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
+	int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
 
 	const float SizeX = View->ViewRect.Width();
 	const float Zoom = (1.0f / View->ViewMatrices.ProjMatrix.M[0][0]) * 2.0f / SizeX;
