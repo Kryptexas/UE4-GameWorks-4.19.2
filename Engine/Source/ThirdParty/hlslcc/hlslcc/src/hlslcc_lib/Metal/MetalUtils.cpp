@@ -1820,7 +1820,7 @@ struct FConvertHalfToFloatUniformAndSamples : public ir_rvalue_visitor
 
 	_mesa_glsl_parse_state* State;
 
-	bool bIsMaster = true;
+	bool bIsMaster;
 	bool bConvertUniforms;
 	bool bConvertSamples;
 
@@ -2068,10 +2068,11 @@ void FMetalCodeBackend::BreakPrecisionChangesVisitor(exec_list* ir, _mesa_glsl_p
 struct FDeReferencePackedVarsVisitor : public ir_rvalue_visitor
 {
 	_mesa_glsl_parse_state* State;
-	int ExpressionDepth = 0;
+	int ExpressionDepth;
 
-	FDeReferencePackedVarsVisitor(_mesa_glsl_parse_state* InState) :
-		State(InState)
+	FDeReferencePackedVarsVisitor(_mesa_glsl_parse_state* InState)
+		: State(InState)
+		, ExpressionDepth(0)
 	{
 	}
 

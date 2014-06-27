@@ -398,7 +398,7 @@ protected:
 	//bool bIsFunctionSig = false;
 
 	// Use packed_ prefix when printing out structs
-	bool bUsePacked = false;
+	bool bUsePacked;
 
 	/**
 	 * Return true if the type is a multi-dimensional array. Also, track the
@@ -2628,6 +2628,7 @@ public:
 		, should_print_uint_literals_as_ints(false)
 		, loop_count(0)
 		, bStageInEmitted(false)
+		, bUsePacked(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);

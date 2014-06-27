@@ -15,6 +15,9 @@
     <Filter Include="Source Files\glsl">
       <UniqueIdentifier>{dfad4158-be71-418d-8d2d-330130ae9787}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Metal">
+      <UniqueIdentifier>{eb61802e-eef0-43cb-8b14-91b5056f85f7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\hlslcc_lib\hlslcc.h">
@@ -127,6 +130,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.h">
       <Filter>Source Files\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.h">
+      <Filter>Source Files\Metal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.h">
+      <Filter>Source Files\Metal</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -351,6 +360,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.cpp">
       <Filter>Source Files\glsl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalBackend.cpp">
+      <Filter>Source Files\Metal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.cpp">
+      <Filter>Source Files\Metal</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
