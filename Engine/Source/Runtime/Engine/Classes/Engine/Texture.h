@@ -602,7 +602,7 @@ public:
 	/**
 	 * Blocks on async cache tasks and prepares platform data for use.
 	 */
-	void FinishCachePlatformData();
+	ENGINE_API void FinishCachePlatformData();
 
 	/**
 	 * Forces platform data to be rebuilt.
