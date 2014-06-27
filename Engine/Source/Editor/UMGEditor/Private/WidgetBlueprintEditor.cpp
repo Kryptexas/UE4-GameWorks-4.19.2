@@ -415,4 +415,16 @@ UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()
 	return DefaultMovieScene;
 }
 
+FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
+{
+	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance();
+
+	if ( GetBlueprintObj()->IsA(UWidgetBlueprint::StaticClass()) )
+	{
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "WIDGET BLUEPRINT").ToString();
+	}
+
+	return AppearanceInfo;
+}
+
 #undef LOCTEXT_NAMESPACE

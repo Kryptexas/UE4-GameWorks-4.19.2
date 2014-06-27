@@ -60,6 +60,9 @@ public:
 	/** Paste Metadata */
 	FVector2D PasteDropLocation;
 
+protected:
+	virtual FGraphAppearanceInfo GetGraphAppearance() const override;
+
 private:
 	bool CanDeleteSelectedWidgets();
 	void DeleteSelectedWidgets();
