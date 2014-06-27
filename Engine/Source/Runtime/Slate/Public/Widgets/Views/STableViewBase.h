@@ -41,6 +41,7 @@ public:
 	virtual void OnMouseCaptureLost() override;
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -214,6 +215,9 @@ protected:
 
 	/** Scroll offset from the beginning of the list in items */
 	double ScrollOffset;
+
+	/** Did the user start an interaction in this list? */
+	bool bStartedTouchInteraction;
 
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
