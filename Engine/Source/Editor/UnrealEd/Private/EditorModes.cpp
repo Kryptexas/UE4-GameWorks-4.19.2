@@ -190,6 +190,8 @@ FEdMode::FEdMode()
 	, EditedPropertyIndex( INDEX_NONE )
 	, bEditedPropertyIsTransform( false )
 	, bPendingDeletion( false )
+	/** Deprecated members */
+	, Name(Info.Name), ID(Info.ID), IconBrush(Info.IconBrush), bVisible(Info.bVisible), PriorityOrder(Info.PriorityOrder)
 {
 	bDrawKillZ = true;
 }
@@ -1182,6 +1184,39 @@ FEditorModeTools::~FEditorModeTools()
 	USelection::SelectObjectEvent.RemoveAll(this);
 }
 
+/*********** DEPRECATED ***********/
+void FEditorModeTools::RegisterMode(TSharedRef<FEdMode> ModeToRegister)
+{
+	struct LegacyModeFactory : IEditorModeFactory
+	{
+		LegacyModeFactory(TSharedRef<FEdMode> InMode) : EditorMode(InMode){}
+		TSharedRef<FEdMode> EditorMode;
+
+		virtual void OnSelectionChanged(FEditorModeTools& Tools, UObject* ItemUndergoingChange) const override { }
+		virtual TSharedRef<FEdMode> CreateMode() const override { return EditorMode; }
+		virtual FEditorModeInfo GetModeInfo() const override { return EditorMode->GetModeInfo(); }
+	};
+
+	FEditorModeRegistry::Get().RegisterMode(ModeToRegister->GetID(), MakeShareable(new LegacyModeFactory(ModeToRegister)));
+}
+void FEditorModeTools::UnregisterMode(TSharedRef<FEdMode> ModeToUnregister)
+{
+	FEditorModeRegistry::Get().UnregisterMode(ModeToUnregister->GetID());
+}
+void FEditorModeTools::GetModes(TArray<FEdMode*>& OutModes)
+{
+	OutModes.Empty();
+	for (TSharedPtr<FEdMode> Mode : Modes)
+	{
+		OutModes.Add(Mode.Get());
+	}
+	for (const auto& Pair : RecycledModes)
+	{
+		OutModes.Add(Pair.Value.Get());
+	}
+}
+/*********** END DEPRECATED ***********/
+
 /**
  * Loads the state that was saved in the INI file
  */
@@ -1543,6 +1578,11 @@ bool FEditorModeTools::StartTracking(FEditorViewportClient* InViewportClient, FV
 
 	for ( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			Mode->StartTracking_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), InViewport);
+		}
 		bTransactionHandled |= Mode->StartTracking(InViewportClient, InViewport);
 	}
 
@@ -1557,6 +1597,11 @@ bool FEditorModeTools::EndTracking(FEditorViewportClient* InViewportClient, FVie
 
 	for ( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			Mode->EndTracking_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), InViewport);
+		}
 		bTransactionHandled |= Mode->EndTracking(InViewportClient, InViewportClient->Viewport);
 	}
 
@@ -1646,6 +1691,11 @@ bool FEditorModeTools::HandleClick(FEditorViewportClient* InViewportClient,  HHi
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->HandleClick_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), HitProxy, Click);
+		}
 		bHandled |= Mode->HandleClick(InViewportClient, HitProxy, Click);
 	}
 
@@ -1697,6 +1747,12 @@ void FEditorModeTools::Tick( FEditorViewportClient* ViewportClient, float DeltaT
 
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (ViewportClient->IsLevelEditorClient())
+		{
+			Mode->Tick_Deprecated( static_cast<FLevelEditorViewportClient*>(ViewportClient), DeltaTime );
+		}
+
 		Mode->Tick( ViewportClient, DeltaTime );
 	}
 }
@@ -1707,6 +1763,11 @@ bool FEditorModeTools::InputDelta( FEditorViewportClient* InViewportClient,FView
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->InputDelta_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), InViewport, InDrag, InRot, InScale);
+		}
 		bHandled |= Mode->InputDelta( InViewportClient, InViewport, InDrag, InRot, InScale );
 	}
 	return bHandled;
@@ -1718,6 +1779,11 @@ bool FEditorModeTools::CapturedMouseMove( FEditorViewportClient* InViewportClien
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->CapturedMouseMove_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), InViewport, InMouseX, InMouseY);
+		}
 		bHandled |= Mode->CapturedMouseMove( InViewportClient, InViewport, InMouseX, InMouseY );
 	}
 	return bHandled;
@@ -1729,6 +1795,11 @@ bool FEditorModeTools::InputKey(FEditorViewportClient* InViewportClient, FViewpo
 	bool bHandled = false;
 	for (const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->InputKey_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport, Key, Event);
+		}
 		bHandled |= Mode->InputKey( InViewportClient, Viewport, Key, Event );
 	}
 	return bHandled;
@@ -1740,6 +1811,11 @@ bool FEditorModeTools::InputAxis(FEditorViewportClient* InViewportClient, FViewp
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->InputAxis_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport, ControllerId, Key, Delta, DeltaTime);
+		}
 		bHandled |= Mode->InputAxis( InViewportClient, Viewport, ControllerId, Key, Delta, DeltaTime );
 	}
 	return bHandled;
@@ -1750,6 +1826,11 @@ bool FEditorModeTools::MouseEnter( FEditorViewportClient* InViewportClient, FVie
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->MouseEnter_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport, X, Y);
+		}
 		bHandled |= Mode->MouseEnter( InViewportClient, Viewport, X, Y );
 	}
 	return bHandled;
@@ -1760,6 +1841,11 @@ bool FEditorModeTools::MouseLeave( FEditorViewportClient* InViewportClient, FVie
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->MouseLeave_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport);
+		}
 		bHandled |= Mode->MouseLeave( InViewportClient, Viewport );
 	}
 	return bHandled;
@@ -1771,6 +1857,11 @@ bool FEditorModeTools::MouseMove( FEditorViewportClient* InViewportClient, FView
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->MouseMove_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport, X, Y);
+		}
 		bHandled |= Mode->MouseMove( InViewportClient, Viewport, X, Y );
 	}
 	return bHandled;
@@ -1781,6 +1872,11 @@ bool FEditorModeTools::ReceivedFocus( FEditorViewportClient* InViewportClient, F
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->ReceivedFocus_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport);
+		}
 		bHandled |= Mode->ReceivedFocus( InViewportClient, Viewport );
 	}
 	return bHandled;
@@ -1791,6 +1887,11 @@ bool FEditorModeTools::LostFocus( FEditorViewportClient* InViewportClient, FView
 	bool bHandled = false;
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			bHandled |= Mode->LostFocus_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport);
+		}
 		bHandled |= Mode->LostFocus( InViewportClient, Viewport );
 	}
 	return bHandled;
@@ -1819,6 +1920,11 @@ void FEditorModeTools::DrawHUD( FEditorViewportClient* InViewportClient,FViewpor
 {
 	for( const auto& Mode : Modes)
 	{
+		// Call the deprecated method if applicable
+		if (InViewportClient->IsLevelEditorClient())
+		{
+			Mode->DrawHUD_Deprecated(static_cast<FLevelEditorViewportClient*>(InViewportClient), Viewport, View, Canvas);
+		}
 		Mode->DrawHUD( InViewportClient, Viewport, View, Canvas );
 	}
 }

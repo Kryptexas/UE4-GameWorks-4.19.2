@@ -36,6 +36,11 @@ class FEditorModeTools& GLevelEditorModeTools()
 	return *EditorModeToolsSingleton;
 }
 
+FEditorModeTools& GEditorModeTools()
+{
+	return GLevelEditorModeTools();
+}
+
 FLevelEditorViewportClient* GCurrentLevelEditingViewportClient = NULL;
 /** Tracks the last level editing viewport client that received a key press. */
 FLevelEditorViewportClient* GLastKeyLevelEditingViewportClient = NULL;

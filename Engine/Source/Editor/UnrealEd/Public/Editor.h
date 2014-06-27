@@ -556,7 +556,8 @@ UNREALED_API bool IsUniqueObjectName( const FName& InName, UObject* Outer, FText
  * Provides access to the FEditorModeTools for the level editor
  */
 UNREALED_API class FEditorModeTools& GLevelEditorModeTools();
-
+DEPRECATED(4.3, "GEditorModeTools is now deprecated. Please use GLevelEditorModeTools instead.")
+UNREALED_API class FEditorModeTools& GEditorModeTools();
 
 namespace EditorUtilities
 {

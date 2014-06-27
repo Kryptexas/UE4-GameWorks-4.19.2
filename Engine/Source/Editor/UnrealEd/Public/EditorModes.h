@@ -104,6 +104,85 @@ public:
 	FEdMode();
 	virtual ~FEdMode();
 
+protected:
+#ifdef __clang__
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#else
+	#pragma warning(push)
+	#pragma warning(disable:4996)
+#endif
+
+	friend FEditorModeTools;
+	FEdMode(const FEdMode &);	// Need this to stop the compiler generating one for us and causing a compile warning with the deprecated API
+
+	/** Deprecated API. We use a non-virtual method of a different name to ensure that we remove all deprecated usage from the engine when the deprecated methods are removed. */
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool MouseEnter(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) { return false; }
+	bool MouseEnter_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) { return MouseEnter(ViewportClient, Viewport, x, y); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool MouseLeave(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return false; }
+	bool MouseLeave_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return MouseLeave(ViewportClient, Viewport); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool MouseMove(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) { return false; }
+	bool MouseMove_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) { return MouseMove(ViewportClient, Viewport, x, y); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool ReceivedFocus(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return false; }
+	bool ReceivedFocus_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return ReceivedFocus(ViewportClient, Viewport); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool LostFocus(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return false; }
+	bool LostFocus_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport) { return LostFocus(ViewportClient, Viewport); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool CapturedMouseMove(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) { return false; }
+	bool CapturedMouseMove_Deprecated(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, int32 InMouseX, int32 InMouseY) { return CapturedMouseMove(InViewportClient	, InViewport, InMouseX, InMouseY); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) { return false; }
+	bool InputKey_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) { return InputKey(ViewportClient, Viewport, Key, Event); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime) { return false; }
+	bool InputAxis_Deprecated(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime) { return InputAxis(InViewportClient, Viewport, ControllerId, Key, Delta, DeltaTime); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) { return false; }
+	bool InputDelta_Deprecated(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale) { return InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool StartTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) { return false; }
+	bool StartTracking_Deprecated(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) { return StartTracking(InViewportClient, InViewport); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool EndTracking(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) { return false; }
+	bool EndTracking_Deprecated(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport) { return EndTracking(InViewportClient, InViewport); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual void Tick(FLevelEditorViewportClient* ViewportClient, float DeltaTime) {}
+	void Tick_Deprecated(FLevelEditorViewportClient* ViewportClient, float DeltaTime) { Tick(ViewportClient, DeltaTime); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual void DrawBrackets(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) {}
+	void DrawBrackets_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) { DrawBrackets(ViewportClient, Viewport, View, Canvas); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual void DrawHUD(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) {}
+	void DrawHUD_Deprecated(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, const FSceneView* View, FCanvas* Canvas) { DrawHUD(ViewportClient, Viewport, View, Canvas); }
+	DEPRECATED(4.3, "FLevelEditorViewportClient* overrides are now deprecated, please use FEditorViewportClient* overrides instead.")
+	virtual bool HandleClick(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click) { return false; }
+	bool HandleClick_Deprecated(FLevelEditorViewportClient* InViewportClient, HHitProxy *HitProxy, const FViewportClick &Click) { return HandleClick(InViewportClient, HitProxy, Click); }
+
+	/** All the following members have been moved into the "Info" member, assigned on construction from FEditorModeRegistry::CreateMode */
+	DEPRECATED(4.3, "Editor mode information is now provided by FEditorModeRegistry.")
+	FText& Name;
+	DEPRECATED(4.3, "Editor mode information is now provided by FEditorModeRegistry.")
+	FEditorModeID& ID;
+	DEPRECATED(4.3, "Editor mode information is now provided by FEditorModeRegistry.")
+	FSlateIcon& IconBrush;
+	DEPRECATED(4.3, "Editor mode information is now provided by FEditorModeRegistry.")
+	bool& bVisible;
+	DEPRECATED(4.3, "Editor mode information is now provided by FEditorModeRegistry.")
+	int32& PriorityOrder;
+
+#ifdef __clang__
+	#pragma clang diagnostic pop
+#else
+	#pragma warning(pop)
+#endif
+	/** End Deprecated API */
+
+public:
 	virtual void Initialize() {}
 
 	virtual bool MouseEnter( FEditorViewportClient* ViewportClient,FViewport* Viewport,int32 x, int32 y );
@@ -428,6 +507,19 @@ class UNREALED_API FEditorModeTools : public FGCObject
 public:
 	FEditorModeTools();
 	virtual ~FEditorModeTools();
+
+	/** Deprecated API */
+	DEPRECATED(4.3, "Modes are no longer registered through FEditorModeTools. Please use FEditorModeRegistry instead.")
+	void RegisterMode(TSharedRef<FEdMode> ModeToRegister);
+	DEPRECATED(4.3, "Modes are no longer registered through FEditorModeTools. Please use FEditorModeRegistry instead.")
+	void UnregisterMode(TSharedRef<FEdMode> ModeToUnregister);
+	DEPRECATED(4.3, "Mode compatability is now determined through FEdMode::IsModeCompatible.")
+	void RegisterCompatibleModes( const FEditorModeID& Mode, const FEditorModeID& CompatibleMode ){}
+	DEPRECATED(4.3, "Mode compatability is now determined through FEdMode::IsModeCompatible.")
+	void UnregisterCompatibleModes(const FEditorModeID& Mode, const FEditorModeID& CompatibleMode){}
+	DEPRECATED(4.3, "GetModes is now deprecated. Please use GetActiveModes or FEditorModeRegistry::GetSortedModeInfo.")
+	void GetModes(TArray<FEdMode*>& OutModes);
+	/** End Deprecated API */
 
 	/**
 	 * Set the default editor mode for these tools
