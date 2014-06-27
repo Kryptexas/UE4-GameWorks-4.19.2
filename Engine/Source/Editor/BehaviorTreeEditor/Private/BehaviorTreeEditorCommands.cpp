@@ -13,6 +13,7 @@ FBTCommonCommands::FBTCommonCommands()
 void FBTCommonCommands::RegisterCommands()
 {
 	UI_COMMAND(SearchBT, "Search", "Search this Behavior Tree.", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::F));
+	UI_COMMAND(NewBlackboard, "New Blackboard", "Create a new Blackboard Data Asset", EUserInterfaceActionType::Button, FInputGesture());
 }
 
 FBTDebuggerCommands::FBTDebuggerCommands() 

@@ -18,7 +18,8 @@ public class BehaviorTreeEditor : ModuleRules
             new string[] {
 				"AssetRegistry",
 				"AssetTools",
-                "PropertyEditor"
+                "PropertyEditor",
+				"ContentBrowser"
 			}
 		);
 
@@ -52,7 +53,8 @@ public class BehaviorTreeEditor : ModuleRules
                 "WorkspaceMenuStructure",
                 "PropertyEditor",
 				"AssetTools",
-				"AssetRegistry"
+				"AssetRegistry",
+				"ContentBrowser"
             }
 		);
 	}

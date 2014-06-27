@@ -3,7 +3,7 @@
 #pragma once
 #include "DataAssetFactory.generated.h"
 
-UCLASS(hidecategories=Object)
+UCLASS(hidecategories=Object, MinimalAPI)
 class UDataAssetFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()

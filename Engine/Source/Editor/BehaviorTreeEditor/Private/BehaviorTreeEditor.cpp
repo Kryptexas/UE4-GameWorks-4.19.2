@@ -32,6 +32,7 @@
 #include "ClassViewerModule.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "BehaviorTreeEditor"
 
@@ -125,6 +126,11 @@ void FBehaviorTreeEditor::NotifyPostChange( const FPropertyChangedEvent& Propert
 {
 	if(PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive)
 	{
+		if(PropertyChangedEvent.Property != nullptr && PropertyChangedEvent.Property->GetFName() == TEXT("BlackboardAsset"))
+		{
+			BlackboardData = BehaviorTree->BlackboardAsset;
+		}
+
 		if(BlackboardView.IsValid())
 		{
 			BlackboardView->SetObject(GetBlackboardData());
@@ -783,7 +789,25 @@ void FBehaviorTreeEditor::OnSelectedNodesChanged(const TSet<class UObject*>& New
 	}
 	else if (DetailsView.IsValid())
 	{
-		DetailsView->SetObject(NULL);
+		if (Selection.Num() == 0)
+		{
+			// if nothing is selected, display the root
+			UBehaviorTreeGraphNode* RootNode = nullptr;
+			for (const auto& Node : MyGraph->Nodes)
+			{
+				RootNode = Cast<UBehaviorTreeGraphNode_Root>(Node);
+				if (RootNode != nullptr)
+				{
+					break;
+				}
+			}
+
+			DetailsView->SetObject(RootNode);
+		}
+		else
+		{
+			DetailsView->SetObject(nullptr);
+		}
 	}
 
 	MyGraph->UpdateAbortHighlight(Mode0, Mode1);
@@ -907,7 +931,8 @@ void FBehaviorTreeEditor::GetAbortModePreview(const class UBTDecorator* Decorato
 void FBehaviorTreeEditor::CreateInternalWidgets()
 {
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
-	const FDetailsViewArgs DetailsViewArgs( false, false, true, true, false );
+	FDetailsViewArgs DetailsViewArgs( false, false, true, true, false );
+	DetailsViewArgs.NotifyHook = this;
 	DetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
 	DetailsView->SetObject( NULL );
 	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateSP(this, &FBehaviorTreeEditor::IsPropertyVisible));
@@ -946,6 +971,11 @@ void FBehaviorTreeEditor::BindCommonCommands()
 	ToolkitCommands->MapAction(FBTCommonCommands::Get().SearchBT,
 			FExecuteAction::CreateSP(this, &FBehaviorTreeEditor::SearchTree),
 			FCanExecuteAction::CreateSP(this, &FBehaviorTreeEditor::CanSearchTree)
+			);
+
+	ToolkitCommands->MapAction(FBTCommonCommands::Get().NewBlackboard,
+			FExecuteAction::CreateSP(this, &FBehaviorTreeEditor::CreateNewBlackboard),
+			FCanExecuteAction::CreateSP(this, &FBehaviorTreeEditor::CanCreateNewBlackboard)
 			);
 }
 
@@ -2117,6 +2147,27 @@ bool FBehaviorTreeEditor::IsNewServiceButtonVisible() const
 bool FBehaviorTreeEditor::IsNewServiceComboVisible() const
 {
 	return FClassBrowseHelper::IsMoreThanOneServiceClassAvailable();
+}
+
+void FBehaviorTreeEditor::CreateNewBlackboard()
+{
+	FString PathName = BehaviorTree->GetOutermost()->GetPathName();
+	PathName = FPaths::GetPath(PathName);
+	const FString PathNameWithFilename = PathName / LOCTEXT("NewBlackboardName", "NewBlackboardData").ToString();
+
+	FString Name;
+	FString PackageName;
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateUniqueAssetName(PathNameWithFilename, TEXT(""), PackageName, Name);
+
+	UDataAssetFactory* DataAssetFactory = ConstructObject<UDataAssetFactory>(UDataAssetFactory::StaticClass());
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+	ContentBrowserModule.Get().CreateNewAsset(Name, PathName, UBlackboardData::StaticClass(), DataAssetFactory);
+}
+
+bool FBehaviorTreeEditor::CanCreateNewBlackboard() const
+{
+	return !IsDebuggerReady();
 }
 
 #undef LOCTEXT_NAMESPACE

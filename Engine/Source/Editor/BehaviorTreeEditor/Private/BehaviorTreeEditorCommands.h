@@ -10,6 +10,7 @@ public:
 	FBTCommonCommands();
 
 	TSharedPtr<FUICommandInfo> SearchBT;
+	TSharedPtr<FUICommandInfo> NewBlackboard;
 
 	/** Initialize commands */
 	virtual void RegisterCommands() override;

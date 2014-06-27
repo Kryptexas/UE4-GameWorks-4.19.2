@@ -150,6 +150,12 @@ void FBehaviorTreeEditorToolbar::FillBehaviorTreeToolbar(FToolBarBuilder& Toolba
 
 	if (!BehaviorTreeEditorPtr->IsDebuggerReady() && BehaviorTreeEditorPtr->GetCurrentMode() == FBehaviorTreeEditor::BehaviorTreeMode)
 	{
+		ToolbarBuilder.BeginSection("Blackboard");
+		{
+			ToolbarBuilder.AddToolBarButton(FBTCommonCommands::Get().NewBlackboard);
+		}
+		ToolbarBuilder.EndSection();
+
 		ToolbarBuilder.BeginSection("BehaviorTree");
 		{
 			const FText NewTaskLabel = LOCTEXT( "NewTask_Label", "New Task" );

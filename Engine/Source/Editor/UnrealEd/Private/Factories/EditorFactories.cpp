@@ -6643,7 +6643,9 @@ UObject* UDataAssetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 	}
 	else
 	{
-		return NULL;
+		// if we have no data asset class, use the passed-in class instead
+		check(Class->IsChildOf(UDataAsset::StaticClass()));
+		return CastChecked<UDataAsset>(StaticConstructObject(Class,InParent,Name,Flags));
 	}
 }
 

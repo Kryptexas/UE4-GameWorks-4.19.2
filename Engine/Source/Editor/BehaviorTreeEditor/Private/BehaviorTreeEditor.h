@@ -232,6 +232,12 @@ public:
 	/** Whether the combo button to create a new Blueprint-based service from all available base classes is visible */
 	bool IsNewServiceComboVisible() const;
 
+	/** Create a new Blackboard alongside the currently-edited behavior tree */
+	void CreateNewBlackboard();
+
+	/** Whether we can currently create a new Blackboard */
+	bool CanCreateNewBlackboard() const;
+
 protected:
 	/** Called when "Save" is clicked for this asset */
 	virtual void SaveAsset_Execute() override;
