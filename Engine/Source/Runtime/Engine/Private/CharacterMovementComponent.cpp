@@ -1776,21 +1776,6 @@ bool UCharacterMovementComponent::ResolvePenetration(const FVector& Adjustment, 
 }
 
 
-FVector UCharacterMovementComponent::GetPenetrationAdjustment(const FHitResult& Hit) const
-{
-	FVector Adjustment = Super::GetPenetrationAdjustment(Hit);
-
-	if (Adjustment.Z > 0.f && IsMovingOnGround())
-	{
-		// Don't allow upward adjustments to move us high off the ground.
-		// Floor height adjustments will take care of penetrations on the lower portion of the capsule.
-		Adjustment.Z = 0.f;
-	}
-
-	return Adjustment;
-}
-
-
 float UCharacterMovementComponent::SlideAlongSurface(const FVector& Delta, float Time, const FVector& InNormal, FHitResult &Hit, bool bHandleImpact)
 {
 	if (!Hit.bBlockingHit)

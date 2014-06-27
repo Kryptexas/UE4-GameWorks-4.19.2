@@ -1135,9 +1135,6 @@ protected:
 	/** Overridden to set bJustTeleported to true, so we don't make incorrect velocity calculations based on adjusted movement. */
 	virtual bool ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FRotator& NewRotation) override;
 
-	/** Overridden to avoid upward adjustments that can go too high when walking. */
-	virtual FVector GetPenetrationAdjustment(const FHitResult& Hit) const override;
-
 	/** Don't call for intermediate parts of move! */
 	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
