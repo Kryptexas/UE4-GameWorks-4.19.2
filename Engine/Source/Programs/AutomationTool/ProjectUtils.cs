@@ -157,7 +157,7 @@ namespace AutomationTool
 			if (CommandUtils.CmdEnv.HasCapabilityToCompile)
 			{
 				DetectTargetsForProject(Properties);
-				Properties.bIsCodeBasedProject = !CommandUtils.IsNullOrEmpty(Properties.Targets);
+				Properties.bIsCodeBasedProject = !CommandUtils.IsNullOrEmpty(Properties.Targets) || !CommandUtils.IsNullOrEmpty(Properties.Programs);
 			}
 			else
 			{
