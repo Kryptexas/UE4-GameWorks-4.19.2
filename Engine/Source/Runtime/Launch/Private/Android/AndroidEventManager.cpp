@@ -120,6 +120,11 @@ void FAppEventManager::Tick()
 			bRunning = false;
 		}
 	}
+
+	if (!bRunning && FirstInitialized)
+	{
+		EventHandlerEvent->Wait();
+	}
 }
 
 FAppEventManager::FAppEventManager():
@@ -166,6 +171,11 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 
 		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
 	}
+}
+
+void FAppEventManager::SetEventHandlerEvent(FEvent* InEventHandlerEvent)
+{
+	EventHandlerEvent = InEventHandlerEvent;
 }
 
 void FAppEventManager::PauseRendering()
