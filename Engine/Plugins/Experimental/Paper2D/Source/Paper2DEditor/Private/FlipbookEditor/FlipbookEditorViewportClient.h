@@ -47,7 +47,7 @@ private:
 	TWeakObjectPtr<class UPaperFlipbook> FlipbookBeingEditedLastFrame;
 
 	// Render component for the sprite being edited
-	TWeakObjectPtr<UPaperAnimatedRenderComponent> AnimatedRenderComponent;
+	TWeakObjectPtr<UPaperFlipbookComponent> AnimatedRenderComponent;
 
 	// Should we show the sprite pivot?
 	bool bShowPivot;

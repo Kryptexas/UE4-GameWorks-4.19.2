@@ -17,7 +17,7 @@ public:
 
 	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
-		if (UPaperRenderComponent* RenderComp = Cast<UPaperRenderComponent>(InComponent))
+		if (UPaperSpriteComponent* RenderComp = Cast<UPaperSpriteComponent>(InComponent))
 		{
 			UPaperSprite* Sprite = Cast<UPaperSprite>(InAsset);
 
@@ -33,7 +33,7 @@ public:
 
 	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
-		if (UPaperRenderComponent* RenderComp = Cast<UPaperRenderComponent>(InComponent))
+		if (UPaperSpriteComponent* RenderComp = Cast<UPaperSpriteComponent>(InComponent))
 		{
 			return RenderComp->GetSprite();
 		}

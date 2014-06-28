@@ -3,10 +3,10 @@
 #pragma once
 
 #include "PaperSpriteComponent.h"
-#include "PaperRenderActor.generated.h"
+#include "PaperSpriteActor.generated.h"
 
 UCLASS(MinimalAPI)
-class APaperRenderActor : public AActor
+class APaperSpriteActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
@@ -20,3 +20,6 @@ class APaperRenderActor : public AActor
 	// End of AActor interface
 };
 
+// Allow the old name to continue to work for one release
+DEPRECATED(4.3, "APaperRenderActor has been renamed to APaperSpriteActor")
+typedef APaperSpriteActor APaperRenderActor;

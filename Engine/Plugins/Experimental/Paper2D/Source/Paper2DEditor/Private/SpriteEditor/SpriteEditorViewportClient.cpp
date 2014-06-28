@@ -66,7 +66,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 
 	// Create a render component for the sprite being edited
 	{
-		RenderSpriteComponent = NewObject<UPaperRenderComponent>();
+		RenderSpriteComponent = NewObject<UPaperSpriteComponent>();
 		UPaperSprite* Sprite = GetSpriteBeingEdited();
 		RenderSpriteComponent->SetSprite(Sprite);
 
@@ -79,7 +79,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 		DummySprite->SpriteCollisionDomain = ESpriteCollisionMode::None;
 		DummySprite->PivotMode = ESpritePivotMode::Bottom_Left;
 
-		SourceTextureViewComponent = NewObject<UPaperRenderComponent>();
+		SourceTextureViewComponent = NewObject<UPaperSpriteComponent>();
 		SourceTextureViewComponent->SetSprite(DummySprite);
 		UpdateSourceTextureSpriteFromSprite(GetSpriteBeingEdited());
 
@@ -566,7 +566,7 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		FIntPoint Size = Viewport->GetSizeXY();
 		if (bDeferZoomToSprite && Size.X > 0 && Size.Y > 0)
 		{
-			UPaperRenderComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
+			UPaperSpriteComponent* ComponentToFocusOn = SourceTextureViewComponent->IsVisible() ? SourceTextureViewComponent : RenderSpriteComponent;
 			FocusViewportOnBox(ComponentToFocusOn->Bounds.GetBox(), true);
 			bDeferZoomToSprite = false;
 		}		

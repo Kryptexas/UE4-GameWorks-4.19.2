@@ -1,12 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
-#include "PaperRenderActor.h"
+#include "PaperSpriteActor.h"
 
 //////////////////////////////////////////////////////////////////////////
-// APaperRenderActor
+// APaperSpriteActor
 
-APaperRenderActor::APaperRenderActor(const FPostConstructInitializeProperties& PCIP)
+APaperSpriteActor::APaperSpriteActor(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	RenderComponent = PCIP.CreateDefaultSubobject<UPaperSpriteComponent>(this, TEXT("RenderComponent"));
@@ -17,7 +17,7 @@ APaperRenderActor::APaperRenderActor(const FPostConstructInitializeProperties& P
 }
 
 #if WITH_EDITOR
-bool APaperRenderActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+bool APaperSpriteActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	if (UPaperSprite* SourceSprite = RenderComponent->GetSprite())
 	{

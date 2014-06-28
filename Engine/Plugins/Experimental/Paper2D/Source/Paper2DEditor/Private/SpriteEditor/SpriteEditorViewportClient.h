@@ -110,10 +110,10 @@ private:
 	TWeakPtr<FSpriteEditor> SpriteEditorPtr;
 
 	// Render component for the source texture view
-	UPaperRenderComponent* SourceTextureViewComponent;
+	UPaperSpriteComponent* SourceTextureViewComponent;
 
 	// Render component for the sprite being edited
-	UPaperRenderComponent* RenderSpriteComponent;
+	UPaperSpriteComponent* RenderSpriteComponent;
 
 	// Widget mode
 	FWidget::EWidgetMode WidgetMode;

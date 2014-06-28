@@ -10,7 +10,7 @@ UPaperSpriteActorFactory::UPaperSpriteActorFactory(const FPostConstructInitializ
 	: Super(PCIP)
 {
 	DisplayName = NSLOCTEXT("Paper2D", "PaperSpriteFactoryDisplayName", "Add Sprite");
-	NewActorClass = APaperRenderActor::StaticClass();
+	NewActorClass = APaperSpriteActor::StaticClass();
 }
 
 void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
@@ -19,8 +19,8 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	{
 		GEditor->SetActorLabelUnique(NewActor, Sprite->GetName());
 
-		APaperRenderActor* TypedActor = CastChecked<APaperRenderActor>(NewActor);
-		UPaperRenderComponent* RenderComponent = TypedActor->RenderComponent;
+		APaperSpriteActor* TypedActor = CastChecked<APaperSpriteActor>(NewActor);
+		UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();
@@ -31,7 +31,7 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 
 void UPaperSpriteActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	checkf(false, TEXT("APaperRenderActor isn't blueprintable; how did you get here?"));
+	checkf(false, TEXT("APaperSpriteActor isn't blueprintable; how did you get here?"));
 }
 
 bool UPaperSpriteActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)

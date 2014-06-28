@@ -20,7 +20,7 @@ void UPaperFlipbookActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor
 		GEditor->SetActorLabelUnique(NewActor, Flipbook->GetName());
 
 		APaperFlipbookActor* TypedActor = CastChecked<APaperFlipbookActor>(NewActor);
-		UPaperAnimatedRenderComponent* RenderComponent = TypedActor->RenderComponent;
+		UPaperFlipbookComponent* RenderComponent = TypedActor->RenderComponent;
 		check(RenderComponent);
 
 		RenderComponent->UnregisterComponent();

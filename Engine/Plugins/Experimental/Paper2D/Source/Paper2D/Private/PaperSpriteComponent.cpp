@@ -75,7 +75,7 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 		DrawCall.Color = SpriteColor;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				FSendPaperRenderComponentDynamicData,
+				FSendPaperSpriteComponentDynamicData,
 				FPaperRenderSceneProxy*,InSceneProxy,(FPaperRenderSceneProxy*)SceneProxy,
 				FSpriteDrawCallRecord,InSpriteToSend,DrawCall,
 			{

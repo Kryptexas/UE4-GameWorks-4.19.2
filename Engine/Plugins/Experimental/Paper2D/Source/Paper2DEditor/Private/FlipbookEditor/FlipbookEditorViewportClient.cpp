@@ -23,7 +23,7 @@ FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UP
 	SetRealtime(true);
 
 	// Create a render component for the sprite being edited
-	AnimatedRenderComponent = NewObject<UPaperAnimatedRenderComponent>();
+	AnimatedRenderComponent = NewObject<UPaperFlipbookComponent>();
 	AnimatedRenderComponent->SetFlipbook(FlipbookBeingEdited.Get());
 	AnimatedRenderComponent->UpdateBounds();
 	PreviewScene->AddComponent(AnimatedRenderComponent.Get(), FTransform::Identity);
