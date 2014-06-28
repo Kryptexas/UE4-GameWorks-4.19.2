@@ -168,7 +168,7 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	, WireframeColor(FLinearColor::White)
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
-	if (const UPaperRenderComponent* RenderComp = Cast<const UPaperRenderComponent>(InComponent))
+	if (const UPaperSpriteComponent* RenderComp = Cast<const UPaperSpriteComponent>(InComponent))
 	{
 		WireframeColor = RenderComp->GetWireframeColor();
 
@@ -216,7 +216,7 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 
 	checkSlow(IsInRenderingThread());
 
-	if (SourceSprite != NULL)//const UPaperRenderComponent* TypedFoo = Cast<const UPaperRenderComponent>(OwnerComponent))
+	if (SourceSprite != NULL)
 	{
 		// Show 3D physics
 		if ((View->Family->EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())

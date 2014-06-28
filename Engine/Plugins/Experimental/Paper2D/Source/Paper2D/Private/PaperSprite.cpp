@@ -276,9 +276,9 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 		PixelsPerUnrealUnit = 1.0f;
 	}
 
-	//@TODO: Determine when these are really needed!
-	TComponentReregisterContext<UPaperRenderComponent> ReregisterStaticComponents;
-	TComponentReregisterContext<UPaperAnimatedRenderComponent> ReregisterAnimatedComponents;
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
+	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
 
 	// Update the pivot
 	if (PivotMode != ESpritePivotMode::Custom)

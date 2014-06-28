@@ -4,10 +4,10 @@
 
 #include "PaperSprite.h"
 
-#include "PaperRenderComponent.generated.h"
+#include "PaperSpriteComponent.generated.h"
 
 UCLASS(MinimalAPI, ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
-class UPaperRenderComponent : public UPrimitiveComponent
+class UPaperSpriteComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -67,3 +67,7 @@ public:
 protected:
 	friend class FPaperRenderSceneProxy;
 };
+
+// Allow the old name to continue to work for one release
+DEPRECATED(4.3, "UPaperRenderComponent has been renamed to UPaperSpriteComponent")
+typedef UPaperSpriteComponent UPaperRenderComponent;

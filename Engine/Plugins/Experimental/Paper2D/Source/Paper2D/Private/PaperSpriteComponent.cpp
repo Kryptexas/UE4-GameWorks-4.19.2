@@ -2,13 +2,13 @@
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperRenderSceneProxy.h"
-#include "PaperRenderComponent.h"
+#include "PaperSpriteComponent.h"
 #include "PhysicsEngine/BodySetup2D.h"
 
 //////////////////////////////////////////////////////////////////////////
-// UPaperRenderComponent
+// UPaperSpriteComponent
 
-UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializeProperties& PCIP)
+UPaperSpriteComponent::UPaperSpriteComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
@@ -19,7 +19,7 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 }
 
 #if WITH_EDITOR
-void UPaperRenderComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UPaperSpriteComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);
 
@@ -27,7 +27,7 @@ void UPaperRenderComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 }
 #endif
 
-FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
+FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 {
 	FPaperRenderSceneProxy* NewProxy = new FPaperRenderSceneProxy(this);
 	FSpriteDrawCallRecord DrawCall;
@@ -37,7 +37,7 @@ FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform& LocalToWorld) const
+FBoxSphereBounds UPaperSpriteComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	if (SourceSprite != NULL)
 	{
@@ -66,7 +66,7 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform& LocalToWorl
 	}
 }
 
-void UPaperRenderComponent::SendRenderDynamicData_Concurrent()
+void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 {
 	if (SceneProxy != NULL)
 	{
@@ -84,7 +84,7 @@ void UPaperRenderComponent::SendRenderDynamicData_Concurrent()
 	}
 }
 
-bool UPaperRenderComponent::HasAnySockets() const
+bool UPaperSpriteComponent::HasAnySockets() const
 {
 	if (SourceSprite != NULL)
 	{
@@ -94,7 +94,7 @@ bool UPaperRenderComponent::HasAnySockets() const
 	return false;
 }
 
-FTransform UPaperRenderComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
+FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
 	if (SourceSprite != NULL)
 	{
@@ -128,7 +128,7 @@ FTransform UPaperRenderComponent::GetSocketTransform(FName InSocketName, ERelati
 	return Super::GetSocketTransform(InSocketName, TransformSpace);
 }
 
-void UPaperRenderComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
+void UPaperSpriteComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
 	if (SourceSprite != NULL)
 	{
@@ -136,12 +136,12 @@ void UPaperRenderComponent::QuerySupportedSockets(TArray<FComponentSocketDescrip
 	}
 }
 
-UBodySetup* UPaperRenderComponent::GetBodySetup()
+UBodySetup* UPaperSpriteComponent::GetBodySetup()
 {
 	return (SourceSprite != nullptr) ? SourceSprite->BodySetup : nullptr;
 }
 
-bool UPaperRenderComponent::SetSprite(class UPaperSprite* NewSprite)
+bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 {
 	if (NewSprite != SourceSprite)
 	{
@@ -167,12 +167,12 @@ bool UPaperRenderComponent::SetSprite(class UPaperSprite* NewSprite)
 	return false;
 }
 
-UPaperSprite* UPaperRenderComponent::GetSprite()
+UPaperSprite* UPaperSpriteComponent::GetSprite()
 {
 	return SourceSprite;
 }
 
-void UPaperRenderComponent::SetSpriteColor(FLinearColor NewColor)
+void UPaperSpriteComponent::SetSpriteColor(FLinearColor NewColor)
 {
 	// Can't set color on a static component
 	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (SpriteColor != NewColor))
@@ -184,12 +184,12 @@ void UPaperRenderComponent::SetSpriteColor(FLinearColor NewColor)
 	}
 }
 
-FLinearColor UPaperRenderComponent::GetWireframeColor() const
+FLinearColor UPaperSpriteComponent::GetWireframeColor() const
 {
 	return FLinearColor::Yellow;
 }
 
-const UObject* UPaperRenderComponent::AdditionalStatObject() const
+const UObject* UPaperSpriteComponent::AdditionalStatObject() const
 {
 	return SourceSprite;
 }

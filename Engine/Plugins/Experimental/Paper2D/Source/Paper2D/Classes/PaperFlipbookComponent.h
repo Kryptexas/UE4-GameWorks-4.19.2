@@ -3,10 +3,10 @@
 #pragma once
 
 #include "PaperFlipbook.h"
-#include "PaperAnimatedRenderComponent.generated.h"
+#include "PaperFlipbookComponent.generated.h"
 
 UCLASS(MinimalAPI, ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
-class UPaperAnimatedRenderComponent : public UPrimitiveComponent
+class UPaperFlipbookComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -61,3 +61,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	// End of UPrimitiveComponent interface
 };
+
+// Allow the old name to continue to work for one release
+DEPRECATED(4.3, "UPaperAnimatedRenderComponent has been renamed to UPaperFlipbookComponent")
+typedef UPaperFlipbookComponent UPaperAnimatedRenderComponent;

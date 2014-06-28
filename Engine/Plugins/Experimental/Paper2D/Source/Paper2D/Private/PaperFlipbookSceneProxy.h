@@ -5,10 +5,10 @@
 #include "PaperRenderSceneProxy.h"
 
 //////////////////////////////////////////////////////////////////////////
-// FPaperAnimatedRenderSceneProxy
+// FPaperFlipbookSceneProxy
 
-class FPaperAnimatedRenderSceneProxy : public FPaperRenderSceneProxy
+class FPaperFlipbookSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperAnimatedRenderSceneProxy(const UPaperAnimatedRenderComponent* InComponent);
+	FPaperFlipbookSceneProxy(const UPaperFlipbookComponent* InComponent);
 };

@@ -9,7 +9,7 @@
 APaperRenderActor::APaperRenderActor(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	RenderComponent = PCIP.CreateDefaultSubobject<UPaperRenderComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = PCIP.CreateDefaultSubobject<UPaperSpriteComponent>(this, TEXT("RenderComponent"));
 	RenderComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	RenderComponent->Mobility = EComponentMobility::Static;
 

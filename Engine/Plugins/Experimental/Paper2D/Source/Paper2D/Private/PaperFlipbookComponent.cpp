@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
-#include "PaperAnimatedRenderSceneProxy.h"
-#include "PaperAnimatedRenderComponent.h"
+#include "PaperFlipbookSceneProxy.h"
+#include "PaperFlipbookComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
-// UPaperAnimatedRenderComponent
+// UPaperFlipbookComponent
 
-UPaperAnimatedRenderComponent::UPaperAnimatedRenderComponent(const FPostConstructInitializeProperties& PCIP)
+UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -18,7 +18,7 @@ UPaperAnimatedRenderComponent::UPaperAnimatedRenderComponent(const FPostConstruc
 
 	SpriteColor = FLinearColor::White;
 
-	Mobility = EComponentMobility::Movable; //@TODO: Change the default!
+	Mobility = EComponentMobility::Movable;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	bTickInEditor = true;
@@ -28,9 +28,9 @@ UPaperAnimatedRenderComponent::UPaperAnimatedRenderComponent(const FPostConstruc
 	PlayRate = 1.0f;
 }
 
-FPrimitiveSceneProxy* UPaperAnimatedRenderComponent::CreateSceneProxy()
+FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 {
-	FPaperAnimatedRenderSceneProxy* NewProxy = new FPaperAnimatedRenderSceneProxy(this);
+	FPaperFlipbookSceneProxy* NewProxy = new FPaperFlipbookSceneProxy(this);
 
 	CalculateCurrentFrame();
 	UPaperSprite* SpriteToSend = NULL;
@@ -46,13 +46,13 @@ FPrimitiveSceneProxy* UPaperAnimatedRenderComponent::CreateSceneProxy()
 	return NewProxy;
 }
 
-FBoxSphereBounds UPaperAnimatedRenderComponent::CalcBounds(const FTransform & LocalToWorld) const
+FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
 	const float NewScale = LocalToWorld.GetScale3D().GetMax() * 300.0f;//(Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);  //@TODO: Compute a realistic bound
 	return FBoxSphereBounds(LocalToWorld.GetTranslation(), FVector(NewScale,NewScale,NewScale), FMath::Sqrt(3.0f * FMath::Square(NewScale)));
 }
 
-void UPaperAnimatedRenderComponent::CalculateCurrentFrame()
+void UPaperFlipbookComponent::CalculateCurrentFrame()
 {
 	if (SourceFlipbook != NULL && SourceFlipbook->FramesPerSecond > 0)
 	{
@@ -89,7 +89,7 @@ void UPaperAnimatedRenderComponent::CalculateCurrentFrame()
 	}
 }
 
-void UPaperAnimatedRenderComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	// Indicate we need to send new dynamic data.
 	MarkRenderDynamicDataDirty();
@@ -100,7 +100,7 @@ void UPaperAnimatedRenderComponent::TickComponent(float DeltaTime, enum ELevelTi
 	//Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UPaperAnimatedRenderComponent::SendRenderDynamicData_Concurrent()
+void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 {
 	if (SceneProxy != NULL)
 	{
@@ -124,7 +124,7 @@ void UPaperAnimatedRenderComponent::SendRenderDynamicData_Concurrent()
 	}
 }
 
-bool UPaperAnimatedRenderComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
+bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 {
 	if (NewFlipbook != SourceFlipbook)
 	{
@@ -154,17 +154,17 @@ bool UPaperAnimatedRenderComponent::SetFlipbook(class UPaperFlipbook* NewFlipboo
 	return false;
 }
 
-UPaperFlipbook* UPaperAnimatedRenderComponent::GetFlipbook()
+UPaperFlipbook* UPaperFlipbookComponent::GetFlipbook()
 {
 	return SourceFlipbook;
 }
 
-UMaterialInterface* UPaperAnimatedRenderComponent::GetSpriteMaterial() const
+UMaterialInterface* UPaperFlipbookComponent::GetSpriteMaterial() const
 {
 	return Material;
 }
 
-void UPaperAnimatedRenderComponent::SetSpriteColor(FLinearColor NewColor)
+void UPaperFlipbookComponent::SetSpriteColor(FLinearColor NewColor)
 {
 	// Can't set color on a static component
 	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (SpriteColor != NewColor))
@@ -176,7 +176,7 @@ void UPaperAnimatedRenderComponent::SetSpriteColor(FLinearColor NewColor)
 	}
 }
 
-void UPaperAnimatedRenderComponent::SetCurrentTime(float NewTime)
+void UPaperFlipbookComponent::SetCurrentTime(float NewTime)
 {
 	// Can't set color on a static component
 	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (NewTime != AccumulatedTime))
@@ -186,7 +186,7 @@ void UPaperAnimatedRenderComponent::SetCurrentTime(float NewTime)
 	}
 }
 
-const UObject* UPaperAnimatedRenderComponent::AdditionalStatObject() const
+const UObject* UPaperFlipbookComponent::AdditionalStatObject() const
 {
 	return SourceFlipbook;
 }

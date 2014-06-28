@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "PaperRenderComponent.h"
+#include "PaperSpriteComponent.h"
 #include "PaperRenderActor.generated.h"
 
 UCLASS(MinimalAPI)
@@ -11,7 +11,7 @@ class APaperRenderActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(Category=Sprite, VisibleAnywhere)
-	TSubobjectPtr<class UPaperRenderComponent> RenderComponent;
+	TSubobjectPtr<class UPaperSpriteComponent> RenderComponent;
 
 	// AActor interface
 #if WITH_EDITOR
