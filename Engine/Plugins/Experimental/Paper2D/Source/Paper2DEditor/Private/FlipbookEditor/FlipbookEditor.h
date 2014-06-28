@@ -22,6 +22,7 @@ public:
 	virtual FText GetToolkitName() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
+	virtual FString GetDocumentationLink() const override;
 	// End of FAssetEditorToolkit
 
 	// FSerializableObject interface

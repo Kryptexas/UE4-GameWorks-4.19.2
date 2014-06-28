@@ -434,6 +434,11 @@ FString FSpriteEditor::GetWorldCentricTabPrefix() const
 	return TEXT("SpriteEditor");
 }
 
+FString FSpriteEditor::GetDocumentationLink() const
+{
+	return TEXT("Engine/Paper2D/SpriteEditor");
+}
+
 FLinearColor FSpriteEditor::GetWorldCentricTabColorScale() const
 {
 	return FLinearColor::White;
