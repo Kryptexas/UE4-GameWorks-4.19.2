@@ -68,7 +68,17 @@ TMap<FName, ULinkerLoad::FSubobjectRedirect> ULinkerLoad::SubobjectNameRedirects
  */
 void ULinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 {		
-	if( GConfig )
+	static bool bAlreadyInitialized_CreateActiveRedirectsMap = false;
+	if (bAlreadyInitialized_CreateActiveRedirectsMap)
+	{
+		return;
+	}
+	else
+	{
+		bAlreadyInitialized_CreateActiveRedirectsMap = true;
+	}
+
+	if (GConfig)
 	{
 		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIniName );
 		for( FConfigSection::TIterator It(*PackageRedirects); It; ++It )
@@ -657,12 +667,7 @@ void UpdateObjectLoadingStatusMessage()
  */
 ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 {
-	static bool bAlreadyInitialized_CreateActiveRedirectsMap = false;
-	if( bAlreadyInitialized_CreateActiveRedirectsMap == false )
-	{
-		CreateActiveRedirectsMap( GEngineIni );
-		bAlreadyInitialized_CreateActiveRedirectsMap = true;
-	}
+	CreateActiveRedirectsMap( GEngineIni );
 
 	if( !Loader )
 	{

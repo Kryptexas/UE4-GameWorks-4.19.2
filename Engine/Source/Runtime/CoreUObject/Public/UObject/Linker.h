@@ -1325,7 +1325,7 @@ public:
 	/**
 	 * Add redirects to ULinkerLoad static map
 	 */
-	COREUOBJECT_API void CreateActiveRedirectsMap(const FString& GEngineIniName);
+	COREUOBJECT_API static void CreateActiveRedirectsMap(const FString& GEngineIniName);
 
 	/**
 	 * Locates the class adjusted index and its package adjusted index for a given class name in the import map
