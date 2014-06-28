@@ -49,18 +49,28 @@ private:
 	{
 		MainBoxPtr->ClearChildren();
 
+		// Color each region based on whether a sprite has been set or not for it
+		const auto BorderColorDelegate = [](UPaperFlipbook* ThisFlipbook, int32 TestIndex) -> FSlateColor
+		{
+			const bool bFrameValid = ThisFlipbook->GetSpriteAtFrame(TestIndex) != nullptr;
+			return bFrameValid ? FLinearColor::White : FLinearColor::Black;
+		};
+
+		// Create the sections for each keyframe
 		if (UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get())
 		{
 			for (int32 KeyFrameIdx = 0; KeyFrameIdx < Flipbook->KeyFrames.Num(); ++KeyFrameIdx)
 			{
 				MainBoxPtr->AddSlot()
 				.AutoWidth()
+				.Padding(FMargin(0.0f, 7.0f, 0.0f, 7.0f))
 				[
 					SNew(SBox)
 					.WidthOverride( TAttribute<FOptionalSize>::Create( TAttribute<FOptionalSize>::FGetter::CreateSP(this, &STimelineTrack::GetFrameWidth, KeyFrameIdx) ) )
 					[
 						SNew(SBorder)
-						.BorderImage( FEditorStyle::GetBrush("PropertyTable.CurrentCellBorder") )
+						.BorderImage(FEditorStyle::GetBrush("FlipbookEditor.RegionBorder"))
+						.BorderBackgroundColor_Static(BorderColorDelegate, Flipbook, KeyFrameIdx)
 						[
 							SNullWidget::NullWidget
 						]
