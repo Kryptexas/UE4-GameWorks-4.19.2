@@ -25,8 +25,14 @@ public:
 		uint32 bModified : 1;
 		uint32 bOffMeshLink : 1;
 
-		FORCEINLINE bool operator==(const FNodeDebugData& Other) const { return PolyRef == Other.PolyRef; }
-		FORCEINLINE friend uint32 GetTypeHash(const FNodeDebugData& Other) { return Other.PolyRef; }
+		FORCEINLINE bool operator==(const FNodeDebugData& Other) const 
+		{ 
+			return PolyRef == Other.PolyRef; 
+		}
+		FORCEINLINE friend uint32 GetTypeHash(const FNodeDebugData& Other) 
+		{ 
+			return Other.PolyRef; 
+		}
 	};
 
 	FNavTestSceneProxy(const UNavTestRenderingComponent* InComponent) 

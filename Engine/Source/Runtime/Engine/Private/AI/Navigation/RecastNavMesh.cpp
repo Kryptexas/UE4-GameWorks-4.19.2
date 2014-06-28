@@ -87,7 +87,10 @@ public:
 private:
 	FConditionalScopeLock();
 	FConditionalScopeLock(FConditionalScopeLock* InScopeLock);
-	FConditionalScopeLock& operator= (FConditionalScopeLock& InScopeLock) { return *this; }
+	FConditionalScopeLock& operator= (FConditionalScopeLock& InScopeLock) 
+	{ 
+		return *this; 
+	}
 
 	FCriticalSection* SyncObject;
 	bool bLock;
