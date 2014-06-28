@@ -53,6 +53,11 @@ public:
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 
+	/** See Content Slot attribute */
+	void SetContent(TSharedRef<SWidget> InContent);
+
+	/** See MenuContent attribute */
+	void SetMenuContent(TSharedRef<SWidget> InMenuContent);
 	
 	/**
 	 * Open or close the popup

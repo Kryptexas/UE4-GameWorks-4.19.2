@@ -36,6 +36,7 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
 
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetUObject, UObject*, Item);
 
@@ -119,6 +120,10 @@ public:
 	/** Gets if the button is currently being hovered by the mouse */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool IsHovered() const;
+
+	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ForceLayoutPrepass();
 
 	/** Gets the parent widget */
 	UFUNCTION(BlueprintCallable, Category="Widget")

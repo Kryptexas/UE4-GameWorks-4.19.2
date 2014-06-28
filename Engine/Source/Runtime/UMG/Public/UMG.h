@@ -66,6 +66,7 @@
 #include "ComboBox.h"
 
 #include "Spacer.h"
+#include "MenuAnchor.h"
 
 #include "Throbber.h"
 #include "CircularThrobber.h"

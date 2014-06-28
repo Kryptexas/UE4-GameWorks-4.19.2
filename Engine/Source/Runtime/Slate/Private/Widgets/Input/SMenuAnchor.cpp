@@ -120,6 +120,20 @@ void SMenuAnchor::Tick( const FGeometry& AllottedGeometry, const double InCurren
 	bDismissedThisTick = false;
 }
 
+void SMenuAnchor::SetContent(TSharedRef<SWidget> InContent)
+{
+	ChildSlot
+		.Padding(0)
+		[
+			InContent
+		];
+}
+
+void SMenuAnchor::SetMenuContent(TSharedRef<SWidget> InMenuContent)
+{
+	MenuContent = InMenuContent;
+}
+
 /**
  * Open or close the popup
  *

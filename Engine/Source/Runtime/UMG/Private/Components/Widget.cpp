@@ -68,6 +68,14 @@ bool UWidget::IsHovered() const
 	return false;
 }
 
+void UWidget::ForceLayoutPrepass()
+{
+	if ( MyWidget.IsValid() )
+	{
+		MyWidget.Pin()->SlatePrepass();
+	}
+}
+
 UPanelWidget* UWidget::GetParent() const
 {
 	if ( Slot )
