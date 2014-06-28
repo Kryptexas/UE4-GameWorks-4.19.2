@@ -22,6 +22,13 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList);
 
+	// SWidget interface
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	// End of SWidget interface
+
+private:
+	void OnAssetsDropped(const class FAssetDragDropOp& DragDropOp);
+
 private:
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
