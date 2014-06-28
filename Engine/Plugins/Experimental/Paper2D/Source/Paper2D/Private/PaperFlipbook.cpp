@@ -54,6 +54,11 @@ UPaperSprite* UPaperFlipbook::GetSpriteAtTime(float Time) const
 	return NULL;
 }
 
+UPaperSprite* UPaperFlipbook::GetSpriteAtFrame(int32 FrameIndex) const
+{
+	return KeyFrames.IsValidIndex(FrameIndex) ? KeyFrames[FrameIndex].Sprite : nullptr;
+}
+
 #if WITH_EDITORONLY_DATA
 void UPaperFlipbook::Serialize(FArchive& Ar)
 {

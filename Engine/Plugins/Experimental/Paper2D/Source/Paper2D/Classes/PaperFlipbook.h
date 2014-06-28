@@ -41,6 +41,7 @@ class UPaperFlipbook : public UObject
 	PAPER2D_API int32 GetNumFrames() const;
 	PAPER2D_API float GetDuration() const;
 	PAPER2D_API UPaperSprite* GetSpriteAtTime(float Time) const;
+	PAPER2D_API UPaperSprite* GetSpriteAtFrame(int32 FrameIndex) const;
 
 	// UObject interface
 #if WITH_EDITORONLY_DATA
