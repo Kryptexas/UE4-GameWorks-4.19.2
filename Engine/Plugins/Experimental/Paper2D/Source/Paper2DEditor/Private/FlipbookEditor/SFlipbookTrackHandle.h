@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////////
 // SFlipbookTrackHandle
 
+// This is the grab handle at the end of a frame region, which can be dragged to change the duration
 class SFlipbookTrackHandle : public SImage
 {
 public:
@@ -28,7 +29,9 @@ public:
 		bDragging = false;
 		StartingFrameRun = INDEX_NONE;
 
-		SImage::Construct(SImage::FArguments());
+		SImage::Construct(
+			SImage::FArguments()
+			.Image(FEditorStyle::GetBrush("FlipbookEditor.RegionGrabHandle")));
 	}
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override

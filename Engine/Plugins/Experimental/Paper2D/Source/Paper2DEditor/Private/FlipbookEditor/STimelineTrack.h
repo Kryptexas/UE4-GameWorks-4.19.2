@@ -21,7 +21,7 @@ public:
 		SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;
 		FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
 
-		HandleWidth = 4;
+		HandleWidth = 12;
 		NumKeyframesFromLastRebuild = 0;
 
 		ChildSlot

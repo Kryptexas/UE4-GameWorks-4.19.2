@@ -3,6 +3,7 @@
 //////////////////////////////////////////////////////////////////////////
 // STimelineHeader
 
+// This is the bar above the timeline which (will someday) shows the frame ticks and current time
 class STimelineHeader : public SCompoundWidget
 {
 public:
@@ -15,39 +16,38 @@ public:
 	SLATE_ATTRIBUTE(float, SlateUnitsPerFrame)
 		SLATE_ATTRIBUTE(class UPaperFlipbook*, FlipbookBeingEdited)
 		SLATE_ATTRIBUTE(float, PlayTime)
+	SLATE_END_ARGS()
 
-		SLATE_END_ARGS()
-
-		void Construct(const FArguments& InArgs)
+	void Construct(const FArguments& InArgs)
 	{
-			SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;
-			FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
-			PlayTime = InArgs._PlayTime;
+		SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;
+		FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
+		PlayTime = InArgs._PlayTime;
 
-			NumFramesFromLastRebuild = 0;
+		NumFramesFromLastRebuild = 0;
 
-			ChildSlot
+		ChildSlot
+		[
+			SNew(SOverlay)
+
+			+ SOverlay::Slot()
+			[
+				SAssignNew(MainBoxPtr, SHorizontalBox)
+			]
+
+			+ SOverlay::Slot()
+			.Padding(TAttribute<FMargin>(this, &STimelineHeader::GetPlayTimePadding))
+			[
+				SNew(SBox)
+				.WidthOverride(SlateUnitsPerFrame.Get())
 				[
-					SNew(SOverlay)
+					SNew(SSpacer)
+				]
+			]
+		];
 
-					+ SOverlay::Slot()
-					[
-						SAssignNew(MainBoxPtr, SHorizontalBox)
-					]
-
-					+ SOverlay::Slot()
-						.Padding(TAttribute<FMargin>(this, &STimelineHeader::GetPlayTimePadding))
-						[
-							SNew(SBox)
-							.WidthOverride(SlateUnitsPerFrame.Get())
-							[
-								SNew(SImage)
-							]
-						]
-				];
-
-			Rebuild();
-		}
+		Rebuild();
+	}
 
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
