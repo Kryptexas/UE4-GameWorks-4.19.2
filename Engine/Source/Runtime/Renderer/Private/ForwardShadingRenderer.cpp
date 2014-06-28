@@ -140,7 +140,18 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Drop depth and stencil before post processing to avoid export.
 		RHICmdList.DiscardRenderTargets(true, true, 0);
 
-		// Finish rendering for each view.
+		// Finish rendering for each view, or the full stereo buffer if enabled
+		if (GEngine->IsStereoscopic3D())
+		{
+			check(Views.Num() > 1);
+
+			//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
+			FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
+			Views[0].ViewRect.Max = Views[1].ViewRect.Max;
+			GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
+			Views[0].ViewRect.Max = OriginalMax0;
+		}
+		else
 		{
 			SCOPED_DRAW_EVENT(FinishRendering, DEC_SCENE_ITEMS);
 			SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
