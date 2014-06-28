@@ -4,8 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "PawnActionsComponent.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogPawnAction, Warning, All);
-
 USTRUCT()
 struct FPawnActionEvent
 {

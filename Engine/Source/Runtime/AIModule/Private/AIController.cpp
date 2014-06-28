@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "VisualLog.h"
 #include "Kismet/GameplayStatics.h"
 #include "DisplayDebugHelpers.h"
 #include "BrainComponent.h"

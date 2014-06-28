@@ -5,7 +5,6 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
-#include "VisualLog.h"
 
 //----------------------------------------------------------------------//
 // FBehaviorTreeInstance

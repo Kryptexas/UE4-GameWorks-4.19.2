@@ -5,7 +5,7 @@
 #include "EnvironmentQuery/Items/EnvQueryItemType_Point.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_OnCircle.h"
 #include "AI/Navigation/RecastNavMesh.h"
-#include "VisualLog.h"
+
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
 

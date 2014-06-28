@@ -4,6 +4,8 @@
 #include "Actions/PawnAction.h"
 #include "Actions/PawnActionsComponent.h"
 
+DEFINE_LOG_CATEGORY(LogPawnAction);
+
 namespace
 {
 	FString GetActionResultName(int32 Index)

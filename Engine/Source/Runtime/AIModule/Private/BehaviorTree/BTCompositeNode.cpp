@@ -2,7 +2,6 @@
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BTCompositeNode.h"
-#include "VisualLog.h"
 
 UBTCompositeNode::UBTCompositeNode(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {

@@ -11,7 +11,7 @@
 #include "GameFramework/Character.h"
 #include "Engine/Canvas.h"
 #include "TimerManager.h"
-#include "VisualLog.h"
+
 #include "Navigation/PathFollowingComponent.h"
 
 #define USE_PHYSIC_FOR_VISIBILITY_TESTS 1 // Physic will be used for visibility tests if set or only raycasts on navmesh if not

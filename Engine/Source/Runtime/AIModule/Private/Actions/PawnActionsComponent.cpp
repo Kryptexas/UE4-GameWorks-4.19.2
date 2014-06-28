@@ -3,8 +3,6 @@
 #include "AIModulePrivate.h"
 #include "Actions/PawnActionsComponent.h"
 
-DEFINE_LOG_CATEGORY(LogPawnAction);
-
 //----------------------------------------------------------------------//
 // helpers
 //----------------------------------------------------------------------//

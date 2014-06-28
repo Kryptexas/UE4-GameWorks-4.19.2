@@ -11,7 +11,6 @@
 #include "Navigation/CrowdManager.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdAgentInterface.h"
-#include "VisualLog.h"
 
 #include "DrawDebugHelpers.h"
 

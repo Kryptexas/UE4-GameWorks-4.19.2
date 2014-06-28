@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "VisualLog.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Navigation/NavigationComponent.h"

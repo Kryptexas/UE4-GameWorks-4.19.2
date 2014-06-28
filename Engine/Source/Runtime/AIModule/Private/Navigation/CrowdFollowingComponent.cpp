@@ -6,7 +6,7 @@
 #include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "VisualLog.h"
+
 
 DEFINE_LOG_CATEGORY(LogCrowdFollowing);
 

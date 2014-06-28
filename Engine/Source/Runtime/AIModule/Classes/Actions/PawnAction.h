@@ -8,6 +8,7 @@
 class UPawnAction;
 class UPawnActionsComponent;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogPawnAction, Warning, All);
 DECLARE_DELEGATE_TwoParams(FPawnActionEventDelegate, UPawnAction*, EPawnActionEventType::Type);
 
 UENUM()
