@@ -2950,6 +2950,10 @@ bool FHeaderParser::GetVarType
 				if (GetIdentifier(InnerClass))
 				{
 					TempClass = AllClasses.FindScriptClass(InnerClass.Identifier);
+					if (TempClass == nullptr)
+					{
+						FError::Throwf(TEXT("Unrecognized type '%s' (in expression %s<%s>)"), InnerClass.Identifier, VarType.Identifier, InnerClass.Identifier);
+					}
 
 					if (bIsAutoweakPtrTemplate)
 					{
