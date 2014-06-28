@@ -37,6 +37,7 @@ protected:
 	UPaperFlipbook* FlipbookBeingEdited;
 	TSharedPtr<class SFlipbookEditorViewport> ViewportPtr;
 	float PlayTime;
+	int32 CurrentSelectedKeyframe;
 
 protected:
 	void BindCommands();
@@ -47,4 +48,9 @@ protected:
 
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
+
+	void DeleteSelection();
+	void DuplicateSelection();
+	void SetSelection(int32 NewSelection);
+	bool HasValidSelection() const;
 };

@@ -206,8 +206,9 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 			.Padding(0, 8, 0, 0)
 			.AutoHeight()
 			[
-				SNew(SFlipbookTimeline)
+				SNew(SFlipbookTimeline, GetToolkitCommands())
 				.FlipbookBeingEdited(this, &FFlipbookEditor::GetFlipbookBeingEdited)
+				.OnSelectionChanged(this, &FFlipbookEditor::SetSelection)
 			]
 		];
 }
@@ -254,6 +255,7 @@ void FFlipbookEditor::InitFlipbookEditor(const EToolkitMode::Type Mode, const TS
 	FAssetEditorManager::Get().CloseOtherEditors(InitFlipbook, this);
 	FlipbookBeingEdited = InitFlipbook;
 	PlayTime = 0;
+	CurrentSelectedKeyframe = INDEX_NONE;
 
 	FFlipbookEditorCommands::Register();
 
@@ -308,24 +310,17 @@ void FFlipbookEditor::InitFlipbookEditor(const EToolkitMode::Type Mode, const TS
 
 void FFlipbookEditor::BindCommands()
 {
-// 	const FFlipbookEditorCommands& Commands = FFlipbookEditorCommands::Get();
-// 
-// 	const TSharedRef<FUICommandList>& UICommandList = GetToolkitCommands();
-// 
-// 	UICommandList->MapAction( FGenericCommands::Get().Delete,
-// 		FExecuteAction::CreateSP( this, &FStaticMeshEditor::DeleteSelectedSockets ),
-// 		FCanExecuteAction::CreateSP( this, &FStaticMeshEditor::HasSelectedSockets ));
-// 
-// 	UICommandList->MapAction( FGenericCommands::Get().Undo, 
-// 		FExecuteAction::CreateSP( this, &FStaticMeshEditor::UndoAction ) );
-// 
-// 	UICommandList->MapAction( FGenericCommands::Get().Redo, 
-// 		FExecuteAction::CreateSP( this, &FStaticMeshEditor::RedoAction ) );
-// 
-// 	UICommandList->MapAction(
-// 		FGenericCommands::Get().Duplicate,
-// 		FExecuteAction::CreateSP(this, &FStaticMeshEditor::DuplicateSelectedSocket),
-// 		FCanExecuteAction::CreateSP(this, &FStaticMeshEditor::HasSelectedSockets));
+	const FFlipbookEditorCommands& Commands = FFlipbookEditorCommands::Get();
+
+	const TSharedRef<FUICommandList>& UICommandList = GetToolkitCommands();
+
+	UICommandList->MapAction(FGenericCommands::Get().Delete,
+		FExecuteAction::CreateSP(this, &FFlipbookEditor::DeleteSelection),
+		FCanExecuteAction::CreateSP(this, &FFlipbookEditor::HasValidSelection));
+
+	UICommandList->MapAction(FGenericCommands::Get().Duplicate,
+		FExecuteAction::CreateSP(this, &FFlipbookEditor::DuplicateSelection),
+		FCanExecuteAction::CreateSP(this, &FFlipbookEditor::HasValidSelection));
 }
 
 FName FFlipbookEditor::GetToolkitFName() const
@@ -409,6 +404,43 @@ void FFlipbookEditor::ExtendToolbar()
 
  	IPaper2DEditorModule* Paper2DEditorModule = &FModuleManager::LoadModuleChecked<IPaper2DEditorModule>("Paper2DEditor");
  	AddToolbarExtender(Paper2DEditorModule->GetFlipbookEditorToolBarExtensibilityManager()->GetAllExtenders());
+}
+
+void FFlipbookEditor::DeleteSelection()
+{
+	if (FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("DeleteKeyframe", "Delete Keyframe"));
+		FlipbookBeingEdited->Modify();
+
+		FlipbookBeingEdited->KeyFrames.RemoveAt(CurrentSelectedKeyframe);
+
+		CurrentSelectedKeyframe = INDEX_NONE;
+	}
+}
+
+void FFlipbookEditor::DuplicateSelection()
+{
+	if (FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("DuplicateKeyframe", "Duplicate Keyframe"));
+		FlipbookBeingEdited->Modify();
+
+		FPaperFlipbookKeyFrame NewFrame = FlipbookBeingEdited->KeyFrames[CurrentSelectedKeyframe];
+		FlipbookBeingEdited->KeyFrames.Insert(NewFrame, CurrentSelectedKeyframe);
+
+		CurrentSelectedKeyframe = INDEX_NONE;
+	}
+}
+
+void FFlipbookEditor::SetSelection(int32 NewSelection)
+{
+	CurrentSelectedKeyframe = NewSelection;
+}
+
+bool FFlipbookEditor::HasValidSelection() const
+{
+	return FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe);
 }
 
 //////////////////////////////////////////////////////////////////////////

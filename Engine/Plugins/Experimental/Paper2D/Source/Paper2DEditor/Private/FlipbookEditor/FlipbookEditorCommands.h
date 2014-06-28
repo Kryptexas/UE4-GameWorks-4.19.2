@@ -26,4 +26,6 @@ public:
 
 	// View Menu Commands
 	TSharedPtr<FUICommandInfo> SetShowPivot;
+
+	// 
 };

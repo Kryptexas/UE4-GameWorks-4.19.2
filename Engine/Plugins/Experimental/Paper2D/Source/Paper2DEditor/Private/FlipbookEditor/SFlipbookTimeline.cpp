@@ -3,6 +3,11 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SFlipbookTimeline.h"
 
+#define LOCTEXT_NAMESPACE "FlipbookEditor"
+
+//////////////////////////////////////////////////////////////////////////
+// Inline widgets
+
 #include "SFlipbookTrackHandle.h"
 #include "STimelineHeader.h"
 #include "STimelineTrack.h"
@@ -10,10 +15,11 @@
 //////////////////////////////////////////////////////////////////////////
 // SFlipbookTimeline
 
-void SFlipbookTimeline::Construct(const FArguments& InArgs)
+void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList)
 {
 	FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
 	PlayTime = InArgs._PlayTime;
+	OnSelectionChanged = InArgs._OnSelectionChanged;
 
 	const int32 SlateUnitsPerFrame = 32;
 	const int32 FrameHeight = 48;
@@ -40,11 +46,16 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs)
 			[
 				SNew(SBox).HeightOverride(FrameHeight)
 				[
-					SNew(STimelineTrack)
+					SNew(STimelineTrack, InCommandList)
 					.SlateUnitsPerFrame(SlateUnitsPerFrame)
 					.FlipbookBeingEdited(FlipbookBeingEdited)
+					.OnSelectionChanged(OnSelectionChanged)
 				]
 			]
 		]
 	];
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

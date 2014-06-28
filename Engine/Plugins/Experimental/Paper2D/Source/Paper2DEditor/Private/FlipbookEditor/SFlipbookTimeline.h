@@ -4,6 +4,9 @@
 
 struct FSpriteAnimationFrame;
 
+// Called when the selection changes
+DECLARE_DELEGATE_OneParam(FOnFlipbookKeyframeSelectionChanged, int32);
+
 class SFlipbookTimeline : public SCompoundWidget
 {
 public:
@@ -14,12 +17,13 @@ public:
 
 		SLATE_ATTRIBUTE(class UPaperFlipbook*, FlipbookBeingEdited)
 		SLATE_ATTRIBUTE(float, PlayTime)
-
+		SLATE_EVENT(FOnFlipbookKeyframeSelectionChanged, OnSelectionChanged)
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList);
 
 private:
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
+	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
 };

@@ -13,13 +13,17 @@ public:
 
 		SLATE_ATTRIBUTE( float, SlateUnitsPerFrame )
 		SLATE_ATTRIBUTE( class UPaperFlipbook*, FlipbookBeingEdited )
+		SLATE_EVENT( FOnFlipbookKeyframeSelectionChanged, OnSelectionChanged )
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs)
+	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList)
 	{
+		CommandList = InCommandList;
 		SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;
 		FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
+		SelectedFrame = INDEX_NONE;
+		OnSelectionChanged = InArgs._OnSelectionChanged;
 
 		HandleWidth = 12;
 		NumKeyframesFromLastRebuild = 0;
@@ -44,15 +48,29 @@ public:
 		}
 	}
 
+	FReply KeyframeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, int32 FrameIndex)
+	{
+		if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+		{
+			TSharedRef<SWidget> MenuContents = GenerateContextMenu(FrameIndex);
+			FSlateApplication::Get().PushMenu(AsShared(), MenuContents, MouseEvent.GetScreenSpacePosition(), FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+
+			return FReply::Handled();
+		}
+
+		return FReply::Unhandled();
+	}
+
 private:
 	void Rebuild()
 	{
 		MainBoxPtr->ClearChildren();
 
 		// Color each region based on whether a sprite has been set or not for it
-		const auto BorderColorDelegate = [](UPaperFlipbook* ThisFlipbook, int32 TestIndex) -> FSlateColor
+		const auto BorderColorDelegate = [](TAttribute<UPaperFlipbook*> ThisFlipbookPtr, int32 TestIndex) -> FSlateColor
 		{
-			const bool bFrameValid = ThisFlipbook->GetSpriteAtFrame(TestIndex) != nullptr;
+			UPaperFlipbook* FlipbookPtr = ThisFlipbookPtr.Get();
+			const bool bFrameValid = (FlipbookPtr != nullptr) && (FlipbookPtr->GetSpriteAtFrame(TestIndex) != nullptr);
 			return bFrameValid ? FLinearColor::White : FLinearColor::Black;
 		};
 
@@ -70,7 +88,8 @@ private:
 					[
 						SNew(SBorder)
 						.BorderImage(FEditorStyle::GetBrush("FlipbookEditor.RegionBorder"))
-						.BorderBackgroundColor_Static(BorderColorDelegate, Flipbook, KeyFrameIdx)
+						.BorderBackgroundColor_Static(BorderColorDelegate, FlipbookBeingEdited, KeyFrameIdx)
+						.OnMouseButtonUp(this, &STimelineTrack::KeyframeOnMouseButtonUp, KeyFrameIdx)
 						[
 							SNullWidget::NullWidget
 						]
@@ -112,7 +131,26 @@ private:
 		}
 	}
 
+	TSharedRef<SWidget> GenerateContextMenu(int32 FrameIndex)
+	{
+		SelectedFrame = FrameIndex;
+		OnSelectionChanged.ExecuteIfBound(SelectedFrame);
+
+		FMenuBuilder MenuBuilder(true, CommandList);
+		MenuBuilder.BeginSection("KeyframeActions", LOCTEXT("KeyframeActionsSectionHeader", "Keyframe Actions"));
+
+// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
+// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
+
+		MenuBuilder.EndSection();
+
+		return MenuBuilder.MakeWidget();
+	}
 private:
+	int32 SelectedFrame;
 	TAttribute<float> SlateUnitsPerFrame;
 	TAttribute< class UPaperFlipbook* > FlipbookBeingEdited;
 
@@ -120,4 +158,7 @@ private:
 
 	int32 NumKeyframesFromLastRebuild;
 	float HandleWidth;
+
+	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
+	TSharedPtr<const FUICommandList> CommandList;
 };
