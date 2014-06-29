@@ -48,8 +48,34 @@ FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 
 FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToWorld) const
 {
-	const float NewScale = LocalToWorld.GetScale3D().GetMax() * 300.0f;//(Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);  //@TODO: Compute a realistic bound
-	return FBoxSphereBounds(LocalToWorld.GetTranslation(), FVector(NewScale,NewScale,NewScale), FMath::Sqrt(3.0f * FMath::Square(NewScale)));
+	if (SourceFlipbook != nullptr)
+	{
+		// Graphics bounds.
+		FBoxSphereBounds NewBounds = SourceFlipbook->GetRenderBounds().TransformBy(LocalToWorld);
+
+		//@TODO: PAPER2D: Add collision support to flipbooks
+#if 0
+		// Add bounds of collision geometry (if present).
+		if (UBodySetup* BodySetup = SourceFlipbook->BodySetup)
+		{
+			const FBox AggGeomBox = BodySetup->AggGeom.CalcAABB(LocalToWorld);
+			if (AggGeomBox.IsValid)
+			{
+				NewBounds = Union(NewBounds, FBoxSphereBounds(AggGeomBox));
+			}
+		}
+#endif
+
+		// Apply bounds scale
+		NewBounds.BoxExtent *= BoundsScale;
+		NewBounds.SphereRadius *= BoundsScale;
+
+		return NewBounds;
+	}
+	else
+	{
+		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
+	}
 }
 
 void UPaperFlipbookComponent::CalculateCurrentFrame()

@@ -26,7 +26,7 @@ int32 UPaperFlipbook::GetNumFrames() const
 
 float UPaperFlipbook::GetDuration() const
 {
-	if ( FramesPerSecond != 0 )
+	if (FramesPerSecond != 0)
 	{
 		return GetNumFrames() / FramesPerSecond;
 	}
@@ -36,7 +36,7 @@ float UPaperFlipbook::GetDuration() const
 
 UPaperSprite* UPaperFlipbook::GetSpriteAtTime(float Time) const
 {
-	if ( FramesPerSecond != 0 )
+	if (FramesPerSecond != 0)
 	{
 		float SumTime = 0.0f;
 
@@ -78,3 +78,29 @@ void UPaperFlipbook::PostLoad()
 	}
 }
 #endif
+
+FBoxSphereBounds UPaperFlipbook::GetRenderBounds() const
+{
+	FBoxSphereBounds MergedBoundingBox(ForceInit);
+	bool bHasValidBounds = false;
+
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite != nullptr)
+		{
+			const FBoxSphereBounds FrameBounds = KeyFrame.Sprite->GetRenderBounds();
+
+			if (bHasValidBounds)
+			{
+				MergedBoundingBox = Union(MergedBoundingBox, FrameBounds);
+			}
+			else
+			{
+				MergedBoundingBox = FrameBounds;
+				bHasValidBounds = true;
+			}
+		}
+	}
+
+	return MergedBoundingBox;
+}
