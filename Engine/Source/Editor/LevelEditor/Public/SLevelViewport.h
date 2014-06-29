@@ -93,6 +93,7 @@ public:
 
 	/** SEditorViewport Interface */
 	virtual void OnFocusViewportToSelection() override;
+	virtual EVisibility GetTransformToolbarVisibility() const override;
 
 	/**
 	 * Called when the maximize command is executed                   
@@ -126,11 +127,6 @@ public:
 	 * Called to get the visibility of the viewport's maximize/minimize toggle button. Returns EVisibility::Collapsed when in immersive mode
 	 */
 	EVisibility GetMaximizeToggleVisibility() const;
-
-	/**
-	 * Called to get the visibility of the viewport's transform toolbar.
-	 */
-	EVisibility GetTransformToolbarVisibility() const;
 
 	/**
 	 * @return true if the active viewport is currently being used for play in editor

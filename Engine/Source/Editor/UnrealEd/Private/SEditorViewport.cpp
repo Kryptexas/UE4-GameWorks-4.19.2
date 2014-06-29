@@ -379,6 +379,11 @@ void SEditorViewport::OnScreenCaptureForProjectThumbnail()
 	}
 }
 
+EVisibility SEditorViewport::GetTransformToolbarVisibility() const
+{
+	return (Client->GetWidgetMode() != FWidget::WM_None) ? EVisibility::Visible : EVisibility::Hidden;
+}
+
 bool SEditorViewport::IsWidgetModeActive( FWidget::EWidgetMode Mode ) const
 {
 	return Client->GetWidgetMode() == Mode;
