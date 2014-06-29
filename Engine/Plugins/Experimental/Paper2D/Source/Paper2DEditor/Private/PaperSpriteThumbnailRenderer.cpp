@@ -16,6 +16,30 @@ void UPaperSpriteThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint
 	DrawFrame(Sprite, X, Y, Width, Height, RenderTarget, Canvas);
 }
 
+void UPaperSpriteThumbnailRenderer::DrawGrid(int32 X, int32 Y, uint32 Width, uint32 Height, FCanvas* Canvas)
+{
+	static UTexture2D* GridTexture = NULL;
+	if (GridTexture == NULL)
+	{
+		GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);
+	}
+
+	const bool bAlphaBlend = false;
+
+	Canvas->DrawTile(
+		(float)X,
+		(float)Y,
+		(float)Width,
+		(float)Height,
+		0.0f,
+		0.0f,
+		4.0f,
+		4.0f,
+		FLinearColor::White,
+		GridTexture->Resource,
+		bAlphaBlend);
+}
+
 void UPaperSpriteThumbnailRenderer::DrawFrame(class UPaperSprite* Sprite, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas)
 {
 	if (const UTexture2D* SourceTexture = (Sprite != NULL) ? Sprite->GetSourceTexture() : NULL)
@@ -25,26 +49,7 @@ void UPaperSpriteThumbnailRenderer::DrawFrame(class UPaperSprite* Sprite, int32 
 		// Draw the grid behind the sprite
 		if (bUseTranslucentBlend)
 		{
-			static UTexture2D* GridTexture = NULL;
-			if (GridTexture == NULL)
-			{
-				GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);
-			}
-
-			const bool bAlphaBlend = false;
-
-			Canvas->DrawTile(
-				(float)X,
-				(float)Y,
-				(float)Width,
-				(float)Height,
-				0.0f,
-				0.0f,
-				4.0f,
-				4.0f,
-				FLinearColor::White,
-				GridTexture->Resource,
-				bAlphaBlend);
+			DrawGrid(X, Y, Width, Height, Canvas);
 		}
 
 		// Draw the sprite itself
@@ -85,5 +90,10 @@ void UPaperSpriteThumbnailRenderer::DrawFrame(class UPaperSprite* Sprite, int32 
 			SpriteColor,
 			SourceTexture->Resource,
 			bUseTranslucentBlend);
+	}
+	else
+	{
+		// Fallback for a bogus sprite
+		DrawGrid(X, Y, Width, Height, Canvas);
 	}
 }

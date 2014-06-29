@@ -41,7 +41,7 @@ public:
 		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		int32 NewNumKeyframes = (Flipbook != NULL ? Flipbook->KeyFrames.Num() : 0);
+		int32 NewNumKeyframes = (Flipbook != nullptr) ? Flipbook->GetNumKeyFrames() : 0;
 		if (NewNumKeyframes != NumKeyframesFromLastRebuild)
 		{
 			Rebuild();
@@ -77,7 +77,7 @@ private:
 		// Create the sections for each keyframe
 		if (UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get())
 		{
-			for (int32 KeyFrameIdx = 0; KeyFrameIdx < Flipbook->KeyFrames.Num(); ++KeyFrameIdx)
+			for (int32 KeyFrameIdx = 0; KeyFrameIdx < Flipbook->GetNumKeyFrames(); ++KeyFrameIdx)
 			{
 				MainBoxPtr->AddSlot()
 				.AutoWidth()
@@ -109,7 +109,7 @@ private:
 				];
 			}
 
-			NumKeyframesFromLastRebuild = Flipbook->KeyFrames.Num();
+			NumKeyframesFromLastRebuild = Flipbook->GetNumKeyFrames();
 		}
 		else
 		{
@@ -120,9 +120,9 @@ private:
 	FOptionalSize GetFrameWidth(int32 KeyFrameIdx) const
 	{
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		if (Flipbook && Flipbook->KeyFrames.IsValidIndex(KeyFrameIdx))
+		if (Flipbook && Flipbook->IsValidKeyFrameIndex(KeyFrameIdx))
 		{
-			const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->KeyFrames[KeyFrameIdx];
+			const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(KeyFrameIdx);
 			return FMath::Max<float>(0, KeyFrame.FrameRun * SlateUnitsPerFrame.Get() - HandleWidth);
 		}
 		else

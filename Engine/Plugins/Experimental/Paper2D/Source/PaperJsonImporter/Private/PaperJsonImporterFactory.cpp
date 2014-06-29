@@ -248,60 +248,61 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 				{
 					Flipbook = NewNamedObject<UPaperFlipbook>(InParent, InName, Flags);
 					Result = Flipbook;
-				}
 
-				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frame"), true, true);
+					GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frame"), true, true);
+					FScopedFlipbookMutator EditLock(Flipbook);
 
-				// Create objects for each successfully parsed frame
-				const int32 FrameRun = 1; //@TODO: Don't make a keyframe for every single item if we can help it
-				for (int32 FrameIndex = 0; FrameIndex < ParsedFrames.Num(); ++FrameIndex)
-				{
-					GWarn->StatusUpdate(FrameIndex, ParsedFrames.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frames"));
-
-					// Check for user canceling the import
-					if (GWarn->ReceivedUserCancel())
+					// Create objects for each successfully parsed frame
+					const int32 FrameRun = 1; //@TODO: Don't make a keyframe for every single item if we can help it
+					for (int32 FrameIndex = 0; FrameIndex < ParsedFrames.Num(); ++FrameIndex)
 					{
-						break;
+						GWarn->StatusUpdate(FrameIndex, ParsedFrames.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Importing Sprite Frames"));
+
+						// Check for user canceling the import
+						if (GWarn->ReceivedUserCancel())
+						{
+							break;
+						}
+
+						const FSpriteFrame& Frame = ParsedFrames[FrameIndex];
+
+						// Create a package for the frame
+						const FString TargetSubPath = LongPackagePath + TEXT("/Frames");
+
+						UObject* OuterForFrame = NULL; // @TODO: Use this if we don't want them to be individual assets - Flipbook;
+
+						// Create a unique package name and asset name for the frame
+						const FString TentativePackagePath = PackageTools::SanitizePackageName(TargetSubPath + TEXT("/") + Frame.FrameName.ToString());
+						FString DefaultSuffix;
+						FString AssetName;
+						FString PackageName;
+						AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
+
+						// Create a package for the frame
+						OuterForFrame = CreatePackage(NULL, *PackageName);
+
+						// Create a frame in the package
+						UPaperSprite* TargetSprite = NewNamedObject<UPaperSprite>(OuterForFrame, *AssetName, Flags);
+						FAssetRegistryModule::AssetCreated(TargetSprite);
+
+						TargetSprite->Modify();
+
+						TargetSprite->InitializeSprite(ImportedTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet);
+
+						//@TODO: Need to support pivot behavior - Total guess at pivot behavior
+						//const FVector2D SizeDifference = Frame.SpriteSourceSize - Frame.SpriteSizeInSheet;
+						//TargetSprite->SpriteData.Destination = FVector(SizeDifference.X * -0.5f, 0.0f, SizeDifference.Y * -0.5f);
+
+						// Create the entry in the animation
+						FPaperFlipbookKeyFrame* DestFrame = new (EditLock.KeyFrames) FPaperFlipbookKeyFrame();
+						DestFrame->Sprite = TargetSprite;
+						DestFrame->FrameRun = FrameRun;
+
+						TargetSprite->PostEditChange();
 					}
 
-					const FSpriteFrame& Frame = ParsedFrames[FrameIndex];
-
-					// Create a package for the frame
-					const FString TargetSubPath = LongPackagePath + TEXT("/Frames");
-
-					UObject* OuterForFrame = NULL; // @TODO: Use this if we don't want them to be individual assets - Flipbook;
-
-					// Create a unique package name and asset name for the frame
-					const FString TentativePackagePath = PackageTools::SanitizePackageName(TargetSubPath + TEXT("/") + Frame.FrameName.ToString());
-					FString DefaultSuffix;
-					FString AssetName;
-					FString PackageName;
-					AssetToolsModule.Get().CreateUniqueAssetName(TentativePackagePath, /*out*/ DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);
-
-					// Create a package for the frame
-					OuterForFrame = CreatePackage(NULL, *PackageName);
-
-					// Create a frame in the package
-					UPaperSprite* TargetSprite = NewNamedObject<UPaperSprite>(OuterForFrame, *AssetName, Flags);
-					FAssetRegistryModule::AssetCreated(TargetSprite);
-
-					TargetSprite->Modify();
-
-					TargetSprite->InitializeSprite(ImportedTexture, Frame.SpritePosInSheet, Frame.SpriteSizeInSheet);
-
-					//@TODO: Need to support pivot behavior - Total guess at pivot behavior
-					//const FVector2D SizeDifference = Frame.SpriteSourceSize - Frame.SpriteSizeInSheet;
-					//TargetSprite->SpriteData.Destination = FVector(SizeDifference.X * -0.5f, 0.0f, SizeDifference.Y * -0.5f);
-
-					// Create the entry in the animation
-					FPaperFlipbookKeyFrame* DestFrame = new (Flipbook->KeyFrames) FPaperFlipbookKeyFrame();
-					DestFrame->Sprite = TargetSprite;
-					DestFrame->FrameRun = FrameRun;
-
-					TargetSprite->PostEditChange();
+					GWarn->EndSlowTask();
 				}
-
-				GWarn->EndSlowTask();
 			}
 			else
 			{

@@ -13,4 +13,6 @@ class UPaperSpriteThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 
 protected:
 	void DrawFrame(class UPaperSprite* Sprite, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas);
+
+	void DrawGrid(int32 X, int32 Y, uint32 Width, uint32 Height, FCanvas* Canvas);
 };

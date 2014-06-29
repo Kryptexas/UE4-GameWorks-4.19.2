@@ -437,12 +437,14 @@ void FFlipbookEditor::ExtendToolbar()
 
 void FFlipbookEditor::DeleteSelection()
 {
-	if (FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe))
+
+	if (FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("DeleteKeyframe", "Delete Keyframe"));
 		FlipbookBeingEdited->Modify();
 
-		FlipbookBeingEdited->KeyFrames.RemoveAt(CurrentSelectedKeyframe);
+		FScopedFlipbookMutator EditLock(FlipbookBeingEdited);
+		EditLock.KeyFrames.RemoveAt(CurrentSelectedKeyframe);
 
 		CurrentSelectedKeyframe = INDEX_NONE;
 	}
@@ -450,13 +452,15 @@ void FFlipbookEditor::DeleteSelection()
 
 void FFlipbookEditor::DuplicateSelection()
 {
-	if (FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe))
+	if (FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("DuplicateKeyframe", "Duplicate Keyframe"));
 		FlipbookBeingEdited->Modify();
 
-		FPaperFlipbookKeyFrame NewFrame = FlipbookBeingEdited->KeyFrames[CurrentSelectedKeyframe];
-		FlipbookBeingEdited->KeyFrames.Insert(NewFrame, CurrentSelectedKeyframe);
+		FScopedFlipbookMutator EditLock(FlipbookBeingEdited);
+
+		FPaperFlipbookKeyFrame NewFrame = EditLock.KeyFrames[CurrentSelectedKeyframe];
+		EditLock.KeyFrames.Insert(NewFrame, CurrentSelectedKeyframe);
 
 		CurrentSelectedKeyframe = INDEX_NONE;
 	}
@@ -469,7 +473,7 @@ void FFlipbookEditor::SetSelection(int32 NewSelection)
 
 bool FFlipbookEditor::HasValidSelection() const
 {
-	return FlipbookBeingEdited->KeyFrames.IsValidIndex(CurrentSelectedKeyframe);
+	return FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe);
 }
 
 //////////////////////////////////////////////////////////////////////////
