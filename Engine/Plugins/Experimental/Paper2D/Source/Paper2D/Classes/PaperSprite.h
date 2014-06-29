@@ -60,6 +60,7 @@ protected:
 	FVector2D BakedSourceUV;
 #endif
 
+	// The source texture that the sprite comes from
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	UTexture2D* SourceTexture;
 
@@ -77,6 +78,10 @@ protected:
 	// Collision domain (no collision, 2D, or 3D)
 	UPROPERTY(Category=Collision, EditAnywhere)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
+
+	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
+	UPROPERTY(Category = Sprite, EditAnywhere)
+	float PixelsPerUnrealUnit;
 
 public:
 	// Baked physics data.
@@ -101,10 +106,6 @@ protected:
 	// The extrusion thickness of collision geometry when using a 3D collision domain
 	UPROPERTY(Category=Collision, EditAnywhere)
 	float CollisionThickness;
-
-	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	float PixelsPerUnrealUnit;
 
 	// Custom render geometry polygons (in texture space)
 	UPROPERTY(Category=Rendering, EditAnywhere)
@@ -173,9 +174,10 @@ public:
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
+#endif
+
 	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
 	float GetUnrealUnitsPerPixel() const { return 1.0f / PixelsPerUnrealUnit; }
-#endif
 
 	// Returns the texture this should be rendered with
 	UTexture2D* GetBakedTexture() const;
