@@ -44,6 +44,18 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 	{
 		Canvas.SetHitProxy(NULL);
 	}
+
+	int32 YPos = 42;
+
+	static const FText FlipbookHelpStr = LOCTEXT("FlipbookEditHelp", "Flipbook editor (currently playing)");
+
+	// Display tool help
+	{
+		FCanvasTextItem TextItem(FVector2D(6, YPos), FlipbookHelpStr, GEngine->GetSmallFont(), FLinearColor::White);
+		TextItem.EnableShadow(FLinearColor::Black);
+		TextItem.Draw(&Canvas);
+		YPos += 36;
+	}
 }
 
 void FFlipbookEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)

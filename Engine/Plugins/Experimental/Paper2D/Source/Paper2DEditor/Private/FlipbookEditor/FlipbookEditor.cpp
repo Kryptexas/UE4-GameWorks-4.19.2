@@ -12,6 +12,7 @@
 #include "SEditorViewport.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
+#include "SFlipbookEditorViewportToolbar.h"
 
 #include "SFlipbookTimeline.h"
 
@@ -38,7 +39,7 @@ const FName FFlipbookEditorTabs::ViewportID(TEXT("Viewport"));
 //////////////////////////////////////////////////////////////////////////
 // SFlipbookEditorViewport
 
-class SFlipbookEditorViewport : public SEditorViewport
+class SFlipbookEditorViewport : public SEditorViewport, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SFlipbookEditorViewport)
@@ -57,7 +58,14 @@ public:
 	virtual void BindCommands() override;
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual EVisibility GetTransformToolbarVisibility() const override;
 	// End of SEditorViewport interface
+
+	// ICommonEditorViewportToolbarInfoProvider interface
+	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
+	virtual TSharedPtr<FExtender> GetExtenders() const override;
+	virtual void OnFloatingButtonClicked() override;
+	// End of ICommonEditorViewportToolbarInfoProvider interface
 
 private:
 	TAttribute<UPaperFlipbook*> FlipbookBeingEdited;
@@ -128,7 +136,28 @@ bool SFlipbookEditorViewport::IsVisible() const
 
 TSharedPtr<SWidget> SFlipbookEditorViewport::MakeViewportToolbar()
 {
-	return NULL;
+	return SNew(SFlipbookEditorViewportToolbar, SharedThis(this));
+}
+
+EVisibility SFlipbookEditorViewport::GetTransformToolbarVisibility() const
+{
+	// Nothing to transform in the flipbook editor, yet...
+	return EVisibility::Hidden;
+}
+
+TSharedRef<class SEditorViewport> SFlipbookEditorViewport::GetViewportWidget()
+{
+	return SharedThis(this);
+}
+
+TSharedPtr<FExtender> SFlipbookEditorViewport::GetExtenders() const
+{
+	TSharedPtr<FExtender> Result(MakeShareable(new FExtender));
+	return Result;
+}
+
+void SFlipbookEditorViewport::OnFloatingButtonClicked()
+{
 }
 
 /////////////////////////////////////////////////////

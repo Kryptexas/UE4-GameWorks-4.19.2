@@ -99,6 +99,11 @@ public:
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged();
+
+	ESpriteEditorMode::Type GetCurrentMode() const
+	{
+		return CurrentMode;
+	}
 private:
 	// Editor mode
 	ESpriteEditorMode::Type CurrentMode;

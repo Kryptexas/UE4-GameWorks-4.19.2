@@ -12,6 +12,7 @@
 #include "SEditorViewport.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
+#include "SSpriteEditorViewportToolbar.h"
 
 #include "SSpriteList.h"
 
@@ -40,7 +41,7 @@ const FName FSpriteEditorTabs::SpriteListID(TEXT("SpriteList"));
 //////////////////////////////////////////////////////////////////////////
 // SSpriteEditorViewport
 
-class SSpriteEditorViewport : public SEditorViewport
+class SSpriteEditorViewport : public SEditorViewport, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	SLATE_BEGIN_ARGS(SSpriteEditorViewport) {}
@@ -52,7 +53,14 @@ public:
 	virtual void BindCommands() override;
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual EVisibility GetTransformToolbarVisibility() const override;
 	// End of SEditorViewport interface
+
+	// ICommonEditorViewportToolbarInfoProvider interface
+	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
+	virtual TSharedPtr<FExtender> GetExtenders() const override;
+	virtual void OnFloatingButtonClicked() override;
+	// End of ICommonEditorViewportToolbarInfoProvider interface
 
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged()
@@ -191,12 +199,32 @@ TSharedRef<FEditorViewportClient> SSpriteEditorViewport::MakeEditorViewportClien
 
 bool SSpriteEditorViewport::IsVisible() const
 {
-	return true;//@TODO: Determine this better so viewport ticking optimizaitons can take place
+	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 TSharedPtr<SWidget> SSpriteEditorViewport::MakeViewportToolbar()
 {
-	return NULL;
+	return SNew(SSpriteEditorViewportToolbar, SharedThis(this));
+}
+
+EVisibility SSpriteEditorViewport::GetTransformToolbarVisibility() const
+{
+	return EVisibility::Visible;
+}
+
+TSharedRef<class SEditorViewport> SSpriteEditorViewport::GetViewportWidget()
+{
+	return SharedThis(this);
+}
+
+TSharedPtr<FExtender> SSpriteEditorViewport::GetExtenders() const
+{
+	TSharedPtr<FExtender> Result(MakeShareable(new FExtender));
+	return Result;
+}
+
+void SSpriteEditorViewport::OnFloatingButtonClicked()
+{
 }
 
 /////////////////////////////////////////////////////
