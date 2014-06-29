@@ -40,6 +40,12 @@ public class ICU : ModuleRules
                 break;
         }
 
+        // link statically on Linux until we figure out so location for deployment/local builds
+        if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            ICULinkType = EICULinkType.Static;
+        }
+
         string TargetSpecificPath = ICURootPath + PlatformFolderName + "/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))

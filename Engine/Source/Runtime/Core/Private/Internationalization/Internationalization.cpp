@@ -255,7 +255,8 @@ void FInternationalization::Initialize()
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 
-#if IS_PROGRAM || !IS_MONOLITHIC
+// Linux needs to have those compiled statically at least until we settle on .so location for deployed/native builds
+#if (IS_PROGRAM || !IS_MONOLITHIC) && !PLATFORM_LINUX
 	LoadDLLs();
 #endif /*IS_PROGRAM || !IS_MONOLITHIC*/
 
