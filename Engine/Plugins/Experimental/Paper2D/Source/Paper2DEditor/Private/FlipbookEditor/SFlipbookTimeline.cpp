@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SFlipbookTimeline.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
+#include "Editor/UnrealEd/Public/ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
