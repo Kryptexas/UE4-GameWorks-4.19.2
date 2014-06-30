@@ -317,7 +317,7 @@ namespace MarkdownSharp.EpicMarkdown
                 try
                 {
                     var path = new EMLocalFilePath(Markdown.Unescape(url), doc, data,
-                        fileName => System.IO.Path.GetFileNameWithoutExtension(fileName) + "." + imageFormatType.ToString());
+                        fileName => System.IO.Path.GetFileNameWithoutExtension(fileName) + "." + ImageConversion.GetImageExt(imageFormatType));
 
                     if (!path.IsImage)
                     {

@@ -168,6 +168,27 @@ namespace MarkdownSharp
             }
         }
 
+        public static String GetImageExt(ImageFormat formatType)
+        {
+            //Only support conversin to jpg, gif and png for web images
+            if (formatType == ImageFormat.Jpeg)
+            {
+                return "jpg";
+            }
+            if (formatType == ImageFormat.Gif)
+            {
+                return "gif";
+            }
+            if (formatType == ImageFormat.Png)
+            {
+                return "png";
+            }
+            else
+            {
+                throw new Exception(Language.Message("UnknowFormatGivenForConversion", formatType.ToString()));
+            }
+        }
+
         /// <summary>
         /// returns a codec we use for image compression
         /// </summary>
