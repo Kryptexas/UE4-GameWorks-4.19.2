@@ -1686,6 +1686,8 @@ bool FEngineLoop::LoadStartupCoreModules()
 	if (!IsRunningDedicatedServer())
 	{
 		FModuleManager::Get().LoadModule("Slate");
+		// UMG must be loaded for runtime and cooking.
+		FModuleManager::Get().LoadModule("UMG");
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 		FModuleManager::Get().LoadModule("MessageLog");

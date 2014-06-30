@@ -32,7 +32,9 @@ struct UMG_API FDelegateEditorBinding
 		return ObjectName == Other.ObjectName && PropertyName == Other.PropertyName;
 	}
 
+#if WITH_EDITOR
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
+#endif
 };
 
 class UMovieScene;

@@ -73,6 +73,7 @@ public class Engine : ModuleRules
 			{
 				"MovieSceneCore",
 				"MovieSceneCoreTypes",
+				"UMG",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
 			}

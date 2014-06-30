@@ -5,6 +5,7 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+#if WITH_EDITOR
 FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprint* Blueprint) const
 {
 	FDelegateRuntimeBinding Binding;
@@ -14,6 +15,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 
 	return Binding;
 }
+#endif
 
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
@@ -49,7 +51,7 @@ UClass* UWidgetBlueprint::GetBlueprintClass() const
 {
 	return UWidgetBlueprintGeneratedClass::StaticClass();
 }
-#endif
+
 
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
@@ -78,6 +80,7 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 
 	return Result;
 }
+#endif
 
 void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
