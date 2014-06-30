@@ -223,6 +223,17 @@ void FPerformanceMonitor::HidePerformanceWarning()
 	}
 }
 
+
+bool FPerformanceMonitor::IsTickable() const
+{
+#if UE_BUILD_DEBUG
+	// We don't do this in debug
+	return false;
+#else
+	return true;
+#endif
+}
+
 void FPerformanceMonitor::Tick(float DeltaTime)
 {
 	if (GEngine->ShouldThrottleCPUUsage())
