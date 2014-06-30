@@ -389,11 +389,6 @@ void ULandscapeComponent::PostLoad()
 				WeightmapTextures[Idx]->ClearFlags(RF_Standalone);
 			}
 		}
-
-		if (GetLinkerUE4Version() < VER_UE4_FIXUP_TERRAIN_LAYER_NODES)
-		{
-			UpdateMaterialInstances();
-		}
 	}
 #endif
 
