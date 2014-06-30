@@ -2,118 +2,9 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "MakeStructHandler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
-
-//////////////////////////////////////////////////////////////////////////
-// FKCHandler_MakeStruct
-
-class FKCHandler_MakeStruct : public FNodeHandlingFunctor
-{
-public:
-	UEdGraphPin* FindOutputStructPinChecked(UEdGraphNode* Node)
-	{
-		check(NULL != Node);
-		UEdGraphPin* OutputPin = NULL;
-		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
-		{
-			UEdGraphPin* Pin = Node->Pins[PinIndex];
-			if (Pin && (EGPD_Output == Pin->Direction) && !CompilerContext.GetSchema()->IsMetaPin(*Pin))
-			{
-				OutputPin = Pin;
-				break;
-			}
-		}
-		check(NULL != OutputPin);
-		return OutputPin;
-	}
-
-	FKCHandler_MakeStruct(FKismetCompilerContext& InCompilerContext)
-		: FNodeHandlingFunctor(InCompilerContext)
-	{
-	}
-
-	virtual void RegisterNets(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
-	{
-		UK2Node_MakeStruct* Node = CastChecked<UK2Node_MakeStruct>(InNode);
-		if (NULL == Node->StructType)
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_UnknownStructure_Error", "Unknown structure to break for @@").ToString(), Node);
-			return;
-		}
-
-		if(!UK2Node_MakeStruct::CanBeMade(Node->StructType))
-		{
-			CompilerContext.MessageLog.Warning(*LOCTEXT("MakeStruct_Error", "The structure contains read-only members @@. Try use specialized 'make' function if available. ").ToString(), Node);
-		}
-
-		FNodeHandlingFunctor::RegisterNets(Context, Node);
-
-		UEdGraphPin* OutputPin = FindOutputStructPinChecked(Node);
-		UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(OutputPin);
-		check(NULL != Net);
-		FBPTerminal** FoundTerm = Context.NetMap.Find(Net);
-		FBPTerminal* Term = FoundTerm ? *FoundTerm : NULL;
-		check(NULL != Term);
-
-		UStruct* StructInTerm = Cast<UStruct>(Term->Type.PinSubCategoryObject.Get());
-		if (NULL == StructInTerm || !StructInTerm->IsChildOf(Node->StructType))
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_NoMatch_Error", "Structures don't match for @@").ToString(), Node);
-		}
-	}
-
-	virtual void RegisterNet(FKismetFunctionContext& Context, UEdGraphPin* Net) override
-	{
-		FBPTerminal* Term = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-		Term->CopyFromPin(Net, Context.NetNameMap->MakeValidName(Net));
-		Context.NetMap.Add(Net, Term);
-	}
-
-	virtual void Compile(FKismetFunctionContext& Context, UEdGraphNode* InNode) override
-	{
-		UK2Node_MakeStruct* Node = CastChecked<UK2Node_MakeStruct>(InNode);
-		if (NULL == Node->StructType)
-		{
-			CompilerContext.MessageLog.Error(*LOCTEXT("MakeStruct_UnknownStructure_Error", "Unknown structure to break for @@").ToString(), Node);
-			return;
-		}
-
-		UEdGraphPin* OutputStructNet = FEdGraphUtilities::GetNetFromPin(FindOutputStructPinChecked(Node));
-		FBPTerminal** FoundTerm = Context.NetMap.Find(OutputStructNet);
-		FBPTerminal* OutputStructTerm = FoundTerm ? *FoundTerm : NULL;
-		check(NULL != OutputStructTerm);
-
-		for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
-		{
-			UEdGraphPin* Pin = Node->Pins[PinIndex];
-			if (Pin && !CompilerContext.GetSchema()->IsMetaPin(*Pin) && (Pin->Direction == EGPD_Input))
-			{
-				FBPTerminal** FoundSrcTerm = Context.NetMap.Find(FEdGraphUtilities::GetNetFromPin(Pin));
-				FBPTerminal* SrcTerm = FoundSrcTerm ? *FoundSrcTerm : NULL;
-				check(NULL != SrcTerm);
-
-				UProperty* BoundProperty = FindField<UProperty>(Node->StructType, *(Pin->PinName));
-				check(NULL != BoundProperty);
-
-				FBPTerminal* DstTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
-				DstTerm->CopyFromPin(Pin, Context.NetNameMap->MakeValidName(Pin));
-				DstTerm->AssociatedVarProperty = BoundProperty;
-				DstTerm->Context = OutputStructTerm;
-
-				FBlueprintCompiledStatement& Statement = Context.AppendStatementForNode(Node);
-				Statement.Type = KCST_Assignment;
-				Statement.LHS = DstTerm;
-				Statement.RHS.Add(SrcTerm);
-			}
-		}
-		if(!Node->IsNodePure())
-		{
-			GenerateSimpleThenGoto(Context, *Node);
-		}
-	}
-};
 
 //////////////////////////////////////////////////////////////////////////
 // UK2Node_MakeStruct
@@ -136,43 +27,43 @@ void UK2Node_MakeStruct::FMakeStructPinManager::CustomizePinData(UEdGraphPin* Pi
 				InPin.DefaultTextValue = FText::FromString(Value);
 			}
 			else
-	{
+			{
 				InPin.DefaultValue = Value;
 			}
-	}
+		}
 	};
 
 	UK2Node_StructOperation::FStructOperationOptionalPinManager::CustomizePinData(Pin, SourcePropertyName, ArrayIndex, Property);
-		if(Pin && Property)
-		{
-			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-			check(Schema);
+	if (Pin && Property)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		check(Schema);
 		const bool bIsText = Property->IsA<UTextProperty>();
 		checkSlow(bIsText == (Schema->PC_Text == Pin->PinType.PinCategory));
 
-			const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
-			if (!MetadataDefaultValue.IsEmpty())
-			{
+		const FString& MetadataDefaultValue = Property->GetMetaData(TEXT("MakeStructureDefaultValue"));
+		if (!MetadataDefaultValue.IsEmpty())
+		{
 			FPinDefaultValueHelper::Set(*Pin, MetadataDefaultValue, bIsText);
-				return;
-			}
+			return;
+		}
 
-			if(NULL != SampleStructMemory)
+		if (NULL != SampleStructMemory)
+		{
+			FString NewDefaultValue;
+			if (Property->ExportText_InContainer(0, NewDefaultValue, SampleStructMemory, SampleStructMemory, NULL, PPF_None))
 			{
-				FString NewDefaultValue;
-				if(Property->ExportText_InContainer(0, NewDefaultValue, SampleStructMemory, SampleStructMemory, NULL, PPF_None))
+				if (Schema->IsPinDefaultValid(Pin, NewDefaultValue, NULL, FText::GetEmpty()).IsEmpty())
 				{
-					if(Schema->IsPinDefaultValid(Pin, NewDefaultValue, NULL, FText::GetEmpty()).IsEmpty())
-					{
 					FPinDefaultValueHelper::Set(*Pin, NewDefaultValue, bIsText);
-						return;
-					}
+					return;
 				}
 			}
-			
-			Schema->SetPinDefaultValueBasedOnType(Pin);
 		}
+
+		Schema->SetPinDefaultValueBasedOnType(Pin);
 	}
+}
 
 bool UK2Node_MakeStruct::FMakeStructPinManager::CanTreatPropertyAsOptional(UProperty* TestProperty) const
 	{
@@ -299,13 +190,13 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
-	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
 		{
-			Result = ERedirectType_Custom;
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			if (K2Schema->ArePinTypesCompatible(NewPin->PinType, OldPin->PinType))
+			{
+				Result = ERedirectType_Custom;
+			}
 		}
-	}
 		else if ((EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
 		{
 			TMap<FName, FName>* StructRedirects = UStruct::TaggedPropertyRedirects.Find(StructType->GetFName());
