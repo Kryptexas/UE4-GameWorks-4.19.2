@@ -188,8 +188,10 @@ bool FStructureEditorUtils::CanHaveAMemberVariableOfType(const UUserDefinedStruc
 
 struct FMemberVariableNameHelper
 {
-	static FName Generate(UUserDefinedStruct* Struct, const FString& NameBase)
+	static FName Generate(UUserDefinedStruct* Struct, const FString& NameBase, const FGuid Guid, FString* OutFriendlyName = NULL)
 	{
+		check(Struct);
+
 		FString Result;
 		if (!NameBase.IsEmpty())
 		{
@@ -205,14 +207,35 @@ struct FMemberVariableNameHelper
 			Result = TEXT("MemberVar");
 		}
 
-		if(Struct)
+		const uint32 UniqueNameId = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->GenerateUniqueNameIdForMemberVariable();
+		const FString FriendlyName = FString::Printf(TEXT("%s_%u"), *Result, UniqueNameId);
+		if (OutFriendlyName)
 		{
-			const uint32 UniqueNameId = CastChecked<UUserDefinedStructEditorData>(Struct->EditorData)->GenerateUniqueNameIdForMemberVariable();
-			Result = FString::Printf(TEXT("%s_%u"), *Result, UniqueNameId);
+			*OutFriendlyName = FriendlyName;
 		}
-		FName NameResult = FName(*Result);
+		const FName NameResult = *FString::Printf(TEXT("%s_%s"), *FriendlyName, *Guid.ToString(EGuidFormats::Digits));
 		check(NameResult.IsValidXName(INVALID_OBJECTNAME_CHARACTERS));
 		return NameResult;
+	}
+
+	static FGuid GetGuidFromName(const FName Name)
+	{
+		const FString NameStr = Name.ToString();
+		const int32 GuidStrLen = 32;
+		if (NameStr.Len() > (GuidStrLen + 1))
+		{
+			const int32 UnderscoreIndex = NameStr.Len() - GuidStrLen - 1;
+			if (TCHAR('_') == NameStr[UnderscoreIndex])
+			{
+				const FString GuidStr = NameStr.Right(GuidStrLen);
+				FGuid Guid;
+				if (FGuid::ParseExact(GuidStr, EGuidFormats::Digits, Guid))
+				{
+					return Guid;
+				}
+			}
+		}
+		return FGuid();
 	}
 };
 
@@ -230,16 +253,17 @@ bool FStructureEditorUtils::AddVariable(UUserDefinedStruct* Struct, const FEdGra
 			return false;
 		}
 
-		const FName VarName = FMemberVariableNameHelper::Generate(Struct, FString());
+		const FGuid Guid = FGuid::NewGuid();
+		FString DisplayName;
+		const FName VarName = FMemberVariableNameHelper::Generate(Struct, FString(), Guid, &DisplayName);
 		check(NULL == GetVarDesc(Struct).FindByPredicate(FStructureEditorUtils::FFindByNameHelper<FStructVariableDescription>(VarName)));
-		const FString DisplayName = VarName.ToString();
 		check(IsUniqueVariableDisplayName(Struct, DisplayName));
 
 		FStructVariableDescription NewVar;
 		NewVar.VarName = VarName;
 		NewVar.FriendlyName = DisplayName;
 		NewVar.SetPinType(VarType);
-		NewVar.VarGuid = FGuid::NewGuid();
+		NewVar.VarGuid = Guid;
 		NewVar.bDontEditoOnInstance = false;
 		NewVar.bInvalidMember = false;
 		GetVarDesc(Struct).Add(NewVar);
@@ -281,20 +305,28 @@ bool FStructureEditorUtils::RenameVariable(UUserDefinedStruct* Struct, FGuid Var
 	if (Struct)
 	{
 		auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
-		if (VarDesc &&
-			FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
+		if (VarDesc && FName(*NewDisplayNameStr).IsValidXName(INVALID_OBJECTNAME_CHARACTERS) &&
 			IsUniqueVariableDisplayName(Struct, NewDisplayNameStr))
 		{
 			const FScopedTransaction Transaction(LOCTEXT("RenameVariable", "Rename Variable"));
 			ModifyStructData(Struct);
 
 			VarDesc->FriendlyName = NewDisplayNameStr;
+			//>>> TEMPORARY it's more important to prevent changes in structs instances, than to have consistent names
+			if (GetGuidFromPropertyName(VarDesc->VarName).IsValid())
+			//<<< TEMPORARY
+			{
+				const FName NewName = FMemberVariableNameHelper::Generate(Struct, NewDisplayNameStr, VarGuid);
+				check(NULL == GetVarDesc(Struct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(NewName)))
+				VarDesc->VarName = NewName;
+			}
 			OnStructureChanged(Struct);
 			return true;
 		}
 	}
 	return false;
 }
+
 
 bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid VarGuid, const FEdGraphPinType& NewType)
 {
@@ -316,7 +348,7 @@ bool FStructureEditorUtils::ChangeVariableType(UUserDefinedStruct* Struct, FGuid
 				const FScopedTransaction Transaction(LOCTEXT("ChangeVariableType", "Change Variable Type"));
 				ModifyStructData(Struct);
 
-				VarDesc->VarName = FMemberVariableNameHelper::Generate(Struct, VarDesc->FriendlyName);
+				VarDesc->VarName = FMemberVariableNameHelper::Generate(Struct, VarDesc->FriendlyName, VarDesc->VarGuid);
 				VarDesc->DefaultValue = FString();
 				VarDesc->SetPinType(NewType);
 
@@ -650,6 +682,17 @@ FGuid FStructureEditorUtils::GetGuidForProperty(const UProperty* Property)
 	auto UDStruct = Property ? Cast<const UUserDefinedStruct>(Property->GetOwnerStruct()) : NULL;
 	auto VarDesc = UDStruct ? GetVarDesc(UDStruct).FindByPredicate(FFindByNameHelper<FStructVariableDescription>(Property->GetFName())) : NULL;
 	return VarDesc ? VarDesc->VarGuid : FGuid();
+}
+
+UProperty* FStructureEditorUtils::GetPropertyByGuid(const UUserDefinedStruct* Struct, const FGuid VarGuid)
+{
+	const auto VarDesc = GetVarDescByGuid(Struct, VarGuid);
+	return VarDesc ? FindField<UProperty>(Struct, VarDesc->VarName) : NULL;
+}
+
+FGuid FStructureEditorUtils::GetGuidFromPropertyName(const FName Name)
+{
+	return FMemberVariableNameHelper::GetGuidFromName(Name);
 }
 
 #undef LOCTEXT_NAMESPACE

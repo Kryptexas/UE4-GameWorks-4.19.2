@@ -718,13 +718,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			PropertyName = Tag.Name;
 
-			static FName DEBUG_Name(TEXT("NewVar"));
-			if (Tag.Name == DEBUG_Name)
-			{
-				static volatile int32 xx = 0;
-				xx++;
-			}
-
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
 			{
@@ -813,7 +806,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 				RemainingArrayDim = Property ? Property->ArrayDim : 0;
 			}
-
+#if WITH_EDITOR
+			if (!Property)
+			{
+				Property = CustomFindProperty(Tag.Name);
+			}
+#endif // WITH_EDITOR
 			// Check if this is a struct property and we have a redirector
 			if (Tag.Type==NAME_StructProperty && Property != NULL && Tag.Type == Property->GetID())
 			{
@@ -1033,8 +1031,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 				else
 				{
-					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
-				}
+				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+			}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
@@ -1090,14 +1088,14 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			else
 			{
-				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
+					uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
 
-				// This property is ok.			
-				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+					// This property is ok.			
+					Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
 
-				AdvanceProperty = true;
-				continue;
-			}
+					AdvanceProperty = true;
+					continue;
+				}
 
 			AdvanceProperty = false;
 

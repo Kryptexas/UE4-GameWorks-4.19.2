@@ -301,6 +301,11 @@ public:
 
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
+#if WITH_EDITOR
+private:
+	virtual UProperty* CustomFindProperty(const FName Name) const { return NULL; };
+#endif // WITH_EDITOR
+public:
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 

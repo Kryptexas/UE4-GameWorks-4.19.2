@@ -53,4 +53,10 @@ public:
 	// UScriptStruct interface.
 	virtual void RecursivelyPreload() override;
 	// End of  UScriptStruct interface.
+
+#if WITH_EDITOR
+private:
+	// UStruct
+	virtual UProperty* CustomFindProperty(const FName Name) const override;
+#endif	// WITH_EDITOR
 };
