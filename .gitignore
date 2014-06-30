@@ -72,7 +72,6 @@
 /Engine/Source/ThirdParty/**/*.dylib
 /Engine/Source/ThirdParty/**/*.bmp
 /Engine/Source/ThirdParty/**/*.so
-/Engine/Source/ThirdParty/**/*.bc
 /Engine/Source/ThirdParty/**/*.bsc
 /Engine/Source/ThirdParty/**/*.idb
 
