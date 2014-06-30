@@ -1323,7 +1323,7 @@ static void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FStr
 	External interface.
 ------------------------------------------------------------------------------*/
 
-static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
+static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
 {
 	const TCHAR* FrequencySwitch = TEXT("");
 	switch (Frequency)
@@ -1388,9 +1388,7 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	FString CmdLine = FPaths::RootDir() / FString::Printf(TEXT("Engine\\Source\\ThirdParty\\hlslcc\\hlslcc\\bin\\Win64\\VS2013\\hlslcc_64.exe %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, VersionSwitch, ApplyCSE);
-	CmdLine += "\npause";
-	return CmdLine;
+	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
 }
 
 /**
@@ -1524,7 +1522,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		{
 			const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
 			const FString USFFile = (Input.DumpDebugInfoPath / Input.SourceFilename) + TEXT(".usf");
-			const FString CCBatchFileContents = CreateCommandLineHLSLCC(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
+			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 			if (!CCBatchFileContents.IsEmpty())
 			{
 				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));

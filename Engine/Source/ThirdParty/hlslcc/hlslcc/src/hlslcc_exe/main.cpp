@@ -12,6 +12,7 @@
 #include "hlslcc.h"
 #include "glsl/ir_gen_glsl.h"
 #include "Metal/MetalBackend.h"
+#include "ShaderCompilerCommon.h"
 
 enum EHlslccBackend
 {
@@ -99,81 +100,92 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 {
 	while (argc)
 	{
-		if ( !strcmp( *argv, "-vs" ) )
+		if (**argv == '-')
 		{
-			OutOptions.Frequency = HSF_VertexShader;
-		}
-		else if ( !strcmp( *argv, "-ps" ) )
-		{
-			OutOptions.Frequency = HSF_PixelShader;
-		}
-		else if ( !strcmp( *argv, "-gs" ) )
-		{
-			OutOptions.Frequency = HSF_GeometryShader;
-		}
-		else if ( !strcmp( *argv, "-ds" ) )
-		{
-			OutOptions.Frequency = HSF_DomainShader;
-		}
-		else if ( !strcmp( *argv, "-hs" ) )
-		{
-			OutOptions.Frequency = HSF_HullShader;
-		}
-		else if ( !strcmp( *argv, "-cs" ) )
-		{
-			OutOptions.Frequency = HSF_ComputeShader;
-		}
-		else if ( !strcmp( *argv, "-gl3" ) )
-		{
-			OutOptions.Target = HCT_FeatureLevelSM4;
-			OutOptions.Backend = HB_Glsl;
-		}
-		else if ( !strcmp( *argv, "-gl4" ) )
-		{
-			OutOptions.Target = HCT_FeatureLevelSM5;
-			OutOptions.Backend = HB_Glsl;
-		}
-		else if ( !strcmp( *argv, "-es2" ) )
-		{
-			OutOptions.Target = HCT_FeatureLevelES2;
-			OutOptions.Backend = HB_Glsl;
-		}
-		else if (!strcmp(*argv, "-metal"))
-		{
-			OutOptions.Target = HCT_FeatureLevelES3_1;
-			OutOptions.Backend = HB_Metal;
-		}
-		else if (!strncmp(*argv, "-entry=", 7))
-		{
-			OutOptions.Entry = (*argv) + 7;
-		}
-		else if ( !strcmp( *argv, "-ast" ) )
-		{
-			OutOptions.bDumpAST = true;
-		}
-		else if (!strcmp( *argv, "-flattenub"))
-		{
-			OutOptions.bFlattenUB = true;
-		}
-		else if (!strcmp( *argv, "-flattenubstruct"))
-		{
-			OutOptions.bFlattenUBStructures = true;
-		}
-		else if (!strcmp( *argv, "-groupflatub"))
-		{
-			OutOptions.bGroupFlattenedUB = true;
-		}
-		else if (!strcmp( *argv, "-cse"))
-		{
-			OutOptions.bCSE = true;
-		}
-		else if (!strcmp( *argv, "-xpxpr"))
-		{
-			OutOptions.bExpandExpressions = true;
-		}
-		else if ( !strncmp( *argv, "-o=", 3) )
-		{
-			OutOptions.OutFile = (*argv) + 3;
+			if (!strcmp(*argv, "-vs"))
+			{
+				OutOptions.Frequency = HSF_VertexShader;
+			}
+			else if (!strcmp(*argv, "-ps"))
+			{
+				OutOptions.Frequency = HSF_PixelShader;
+			}
+			else if (!strcmp(*argv, "-gs"))
+			{
+				OutOptions.Frequency = HSF_GeometryShader;
+			}
+			else if (!strcmp(*argv, "-ds"))
+			{
+				OutOptions.Frequency = HSF_DomainShader;
+			}
+			else if (!strcmp(*argv, "-hs"))
+			{
+				OutOptions.Frequency = HSF_HullShader;
+			}
+			else if (!strcmp(*argv, "-cs"))
+			{
+				OutOptions.Frequency = HSF_ComputeShader;
+			}
+			else if (!strcmp(*argv, "-gl3"))
+			{
+				OutOptions.Target = HCT_FeatureLevelSM4;
+				OutOptions.Backend = HB_Glsl;
+			}
+			else if (!strcmp(*argv, "-gl4"))
+			{
+				OutOptions.Target = HCT_FeatureLevelSM5;
+				OutOptions.Backend = HB_Glsl;
+			}
+			else if (!strcmp(*argv, "-es2"))
+			{
+				OutOptions.Target = HCT_FeatureLevelES2;
+				OutOptions.Backend = HB_Glsl;
+			}
+			else if (!strcmp(*argv, "-mac"))
+			{
+				// Ignore...
+			}
+			else if (!strcmp(*argv, "-metal"))
+			{
+				OutOptions.Target = HCT_FeatureLevelES3_1;
+				OutOptions.Backend = HB_Metal;
+			}
+			else if (!strncmp(*argv, "-entry=", 7))
+			{
+				OutOptions.Entry = (*argv) + 7;
+			}
+			else if (!strcmp(*argv, "-ast"))
+			{
+				OutOptions.bDumpAST = true;
+			}
+			else if (!strcmp(*argv, "-flattenub"))
+			{
+				OutOptions.bFlattenUB = true;
+			}
+			else if (!strcmp(*argv, "-flattenubstruct"))
+			{
+				OutOptions.bFlattenUBStructures = true;
+			}
+			else if (!strcmp(*argv, "-groupflatub"))
+			{
+				OutOptions.bGroupFlattenedUB = true;
+			}
+			else if (!strcmp(*argv, "-cse"))
+			{
+				OutOptions.bCSE = true;
+			}
+			else if (!strcmp(*argv, "-xpxpr"))
+			{
+				OutOptions.bExpandExpressions = true;
+			}
+			else if (!strncmp(*argv, "-o=", 3))
+			{
+				OutOptions.OutFile = (*argv) + 3;
+			}
+			else
+			{
+				dprintf("Warning: Unknown option %s\n", *argv);
+			}
 		}
 		else
 		{

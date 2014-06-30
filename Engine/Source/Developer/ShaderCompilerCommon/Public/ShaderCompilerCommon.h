@@ -60,3 +60,11 @@ extern SHADERCOMPILERCOMMON_API void BuildResourceTableTokenStream(
 //		[...]UniformBuffer_Member[...]
 //		}
 extern SHADERCOMPILERCOMMON_API bool RemoveUniformBuffersFromSource(FString& SourceCode);
+
+extern SHADERCOMPILERCOMMON_API FString CreateCrossCompilerBatchFileContents(
+											const FString& ShaderFile,
+											const FString& OutputFile,
+											const FString& FrequencySwitch,
+											const FString& EntryPoint,
+											const FString& VersionSwitch,
+											const FString& ExtraArguments = TEXT(""));
