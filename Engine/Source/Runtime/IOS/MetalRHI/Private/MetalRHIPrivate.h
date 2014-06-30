@@ -9,7 +9,7 @@
 #include "Engine.h"
 
 // UE4 has a Max of 8 RTs, but we max out at 4, no need to waste time processing 8
-// @todo urban: Currently only using 1, so just do 1!
+// @todo metal mrt: Currently only using 1, so just do 1!
 const uint32 MaxMetalRenderTargets = 1;
 
 // How many possible vertex streams are allowed
@@ -20,8 +20,6 @@ const uint32 BufferOffsetAlignment = 256;
 
 //#define BUFFER_CACHE_MODE MTLResourceOptionCPUCacheModeDefault
 #define BUFFER_CACHE_MODE MTLResourceOptionCPUCacheModeWriteCombined
-
-#define GPU_TIMINGS 0 // (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 
 #define SHOULD_TRACK_OBJECTS 0 // (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 

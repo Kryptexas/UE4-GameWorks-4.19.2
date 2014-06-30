@@ -220,7 +220,7 @@ FMetalUniformBuffer::FMetalUniformBuffer(const void* Contents, const FRHIUniform
 		FMemory::Memcpy(((uint8*)[Buffer contents]) + Offset, Contents, Layout.ConstantBufferSize);
 	}
 
-	// @todo metal: Add support for resource tables!
+	// set up an SRT-style uniform buffer
 	if (Layout.Resources.Num())
 	{
 		int32 NumResources = Layout.Resources.Num();

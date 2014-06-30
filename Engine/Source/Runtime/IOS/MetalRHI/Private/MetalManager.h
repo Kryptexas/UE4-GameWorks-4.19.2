@@ -205,15 +205,6 @@ protected:
 	FRasterizerStateInitializerRHI ShadowRasterizerState;
 	bool bFirstRasterizerState;
 
-#if GPU_TIMINGS
-	// holds on to timing info
-	double GPUTimers[256];
-	uint8 TimerIndex;
-	uint8 FirstIndexThisFrame;
-	uint8 FirstIndexToDump;
-	uint8 LastIndexToDump;
-#endif
-
 	/** Apply the SRT before drawing */
 	void CommitGraphicsResourceTables();
 

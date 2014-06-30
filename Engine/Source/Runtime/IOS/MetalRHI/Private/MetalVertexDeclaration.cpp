@@ -90,12 +90,8 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 	{
 		const FVertexElement& Element = Elements[ElementIndex];
 		
-		// @todo urban: for zero stride elements, assume a repeated color
-		// @todo urban: Make sure zero stride actually works now!! If so, then we can remove the hack zero stride buffer
-		uint32 Stride = Element.Stride;// ? Element.Stride : 4;
-
-		checkf(Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Stride, 
-			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Stride);
+		checkf(Element.Stride == 0 || Element.Offset + TranslateElementTypeToSize(Element.Type) <= Element.Stride, 
+			TEXT("Stream component is bigger than stride: Offset: %d, Size: %d [Type %d], Stride: %d"), Element.Offset, TranslateElementTypeToSize(Element.Type), (uint32)Element.Type, Element.Stride);
 
 		// we offset 6 buffers to leave space for uniform buffers
 		uint32 ShaderBufferIndex = UNREAL_TO_METAL_BUFFER_INDEX(Element.StreamIndex);
@@ -104,29 +100,32 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		uint32* ExistingStride = BufferStrides.Find(ShaderBufferIndex);
 		if (ExistingStride == NULL)
 		{
-			BufferStrides.Add(ShaderBufferIndex, Stride);
+			// handle 0 stride buffers
+			MTLVertexStepFunction Function = (Element.Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex);
+			uint32 StepRate = (Element.Stride == 0 ? 0 : 1);
+			// even with MTLVertexStepFunctionConstant, it needs a non-zero stride (not sure why)
+			uint32 Stride = (Element.Stride == 0 ? 4 : Element.Stride);
+
+			// look for any unset strides coming from UE4 (this can be removed when all are fixed)
+			if (Element.Stride == 0xFFFF)
+			{
+				NSLog(@"Setting illegal stride - break here if you want to find out why, but this won't break until we try to render with it");
+				Stride = 200;
+			}
+
+			// set the stride once per buffer
+			[Layout setStride:Stride stepFunction:Function stepRate:StepRate atVertexBufferIndex:ShaderBufferIndex];
+
+			// track this buffer and stride
+			BufferStrides.Add(ShaderBufferIndex, Element.Stride);
 		}
 		else
 		{
-			check(Stride == *ExistingStride);
+			// if the strides of elements with same buffer index have different strides, something is VERY wrong
+			check(Element.Stride == *ExistingStride);
 		}
 
+		// set the format for each element
 		[Layout setVertexFormat:TranslateElementTypeToMTLType(Element.Type) offset:Element.Offset vertexBufferIndex:ShaderBufferIndex atAttributeIndex:Element.AttributeIndex];
-	}
-
-	for (auto It = BufferStrides.CreateIterator(); It; ++It)
-	{
-		uint32 Stride = It.Value();
-		if (Stride == 0xFFFF)
-		{
-			NSLog(@"Setting illegal stride - break here if you want to find out why, but this won't break until we try to render with it");
-			Stride = 200;// 16;
-		}
-
-		// handle 0 stride buffers
-		MTLVertexStepFunction Function = (Stride == 0 ? MTLVertexStepFunctionConstant : MTLVertexStepFunctionPerVertex);
-		uint32 StepRate = (Stride == 0 ? 0 : 1);
-		uint32 UsedStride = (Stride == 0 ? 4 : Stride);
-		[Layout setStride:UsedStride stepFunction:Function stepRate:StepRate atVertexBufferIndex:It.Key()];
 	}
 }
