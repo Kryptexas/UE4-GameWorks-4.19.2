@@ -1345,7 +1345,7 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 // @param MinY including like Win32 RECT
 // @param MaxX excluding like Win32 RECT
 // @param MaxY excluding like Win32 RECT
-DEFINE_RHIMETHOD_6(
+DEFINE_RHIMETHOD_CMDLIST_6(
 	void,SetViewport,
 	uint32,MinX,
 	uint32,MinY,
@@ -1359,7 +1359,7 @@ DEFINE_RHIMETHOD_6(
 // @param MinY including like Win32 RECT
 // @param MaxX excluding like Win32 RECT
 // @param MaxY excluding like Win32 RECT
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,SetScissorRect,
 	bool,bEnable,
 	uint32,MinX,
@@ -1709,7 +1709,7 @@ DEFINE_RHIMETHOD_CMDLIST_2(
 	const FLinearColor&,BlendFactor,
 	,
 	);
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,SetRenderTargets,
 	uint32,NumSimultaneousRenderTargets,
 	const FRHIRenderTargetView*,NewRenderTargets,

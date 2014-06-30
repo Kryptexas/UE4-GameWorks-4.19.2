@@ -29,6 +29,9 @@ enum ERHICommandType
 	ERCT_SetShaderResourceViewParameter,
 	ERCT_SetUAVParameter,
 	ERCT_SetUAVParameter_IntialCount,
+	ERCT_SetViewport,
+	ERCT_SetScissorRect,
+	ERCT_SetRenderTargets,
 	ERCT_,
 };
 
@@ -51,6 +54,332 @@ struct FRHICommand
 		IsEndOfPage = 0,
 	};
 };
+
+
+struct FRHICommandPerShader : public FRHICommand
+{
+	FRHIResource* Shader;
+	EShaderFrequency ShaderFrequency;
+
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void SetShader(TShaderRHIParamRef InShader)
+	{
+		Shader = InShader;
+		ShaderFrequency = (EShaderFrequency)TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency;
+	}
+};
+
+struct FRHICommandNopEndOfPage : public FRHICommand
+{
+	enum
+	{
+		IsEndOfPage = 1
+	};
+};
+
+struct FRHICommandNopBlob : public FRHICommand
+{
+	void* Data;
+	uint32 Size;
+	FORCEINLINE void Set(FRHICommandList* List, uint32 InSize, const void* InData)
+	{
+		Type = ERCT_NopBlob;
+		Size = InSize;
+
+		// Data is stored after 'this'
+		Data = &this[1];
+		FMemory::Memcpy(Data, InData, InSize);
+	}
+
+	uint32 ExtraSize() const
+	{
+		return Size;
+	}
+};
+
+struct FRHICommandSetRasterizerState : public FRHICommand
+{
+	FRasterizerStateRHIParamRef State;
+	FORCEINLINE void Set(FRasterizerStateRHIParamRef InState)
+	{
+		Type = ERCT_SetRasterizerState;
+		State = InState;
+	}
+};
+
+struct FRHICommandSetDepthStencilState : public FRHICommand
+{
+	FDepthStencilStateRHIParamRef State;
+	uint32 StencilRef;
+	FORCEINLINE void Set(FDepthStencilStateRHIParamRef InState, uint32 InStencilRef)
+	{
+		Type = ERCT_SetDepthStencilState;
+		State = InState;
+		StencilRef = InStencilRef;
+	}
+};
+
+struct FRHICommandSetShaderParameter : public FRHICommandPerShader
+{
+	const void* NewValue;
+	uint32 BufferIndex;
+	uint32 BaseIndex;
+	uint32 NumBytes;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InBufferIndex, uint32 InBaseIndex, uint32 InNumBytes, const void* InNewValue)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetShaderParameter;
+		Shader = InShader;
+		BufferIndex = InBufferIndex;
+		BaseIndex = InBaseIndex;
+		NumBytes = InNumBytes;
+		NewValue = InNewValue;
+	}
+};
+
+struct FRHICommandSetShaderUniformBuffer : public FRHICommandPerShader
+{
+	uint32 BaseIndex;
+	FUniformBufferRHIParamRef UniformBuffer;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InBaseIndex, FUniformBufferRHIParamRef InUniformBuffer)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetShaderUniformBuffer;
+		Shader = InShader;
+		BaseIndex = InBaseIndex;
+		UniformBuffer = InUniformBuffer;
+	}
+};
+
+struct FRHICommandSetShaderTexture : public FRHICommandPerShader
+{
+	uint32 TextureIndex;
+	FTextureRHIParamRef Texture;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InTextureIndex, FTextureRHIParamRef InTexture)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetShaderTexture;
+		Shader = InShader;
+		TextureIndex = InTextureIndex;
+		Texture = InTexture;
+	}
+};
+
+struct FRHICommandSetShaderResourceViewParameter : public FRHICommandPerShader
+{
+	uint32 SamplerIndex;
+	FShaderResourceViewRHIParamRef SRV;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FShaderResourceViewRHIParamRef InSRV)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetShaderResourceViewParameter;
+		Shader = InShader;
+		SamplerIndex = InSamplerIndex;
+		SRV = InSRV;
+	}
+};
+
+struct FRHICommandSetUAVParameter : public FRHICommandPerShader
+{
+	uint32 UAVIndex;
+	FUnorderedAccessViewRHIParamRef UAV;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetUAVParameter;
+		Shader = InShader;
+		UAVIndex = InUAVIndex;
+		UAV = InUAV;
+	}
+};
+
+struct FRHICommandSetUAVParameter_IntialCount : public FRHICommandPerShader
+{
+	uint32 UAVIndex;
+	FUnorderedAccessViewRHIParamRef UAV;
+	uint32 InitialCount;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InUAVIndex, FUnorderedAccessViewRHIParamRef InUAV, uint32 InInitialCount)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetUAVParameter_IntialCount;
+		Shader = InShader;
+		UAVIndex = InUAVIndex;
+		UAV = InUAV;
+		InitialCount = InInitialCount;
+	}
+};
+
+struct FRHICommandSetShaderSampler : public FRHICommandPerShader
+{
+	uint32 SamplerIndex;
+	FSamplerStateRHIParamRef Sampler;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE void Set(TShaderRHIParamRef InShader, uint32 InSamplerIndex, FSamplerStateRHIParamRef InSampler)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetShaderSampler;
+		Shader = InShader;
+		SamplerIndex = InSamplerIndex;
+		Sampler = InSampler;
+	}
+};
+
+struct FRHICommandDrawPrimitive : public FRHICommand
+{
+	uint32 PrimitiveType;
+	uint32 BaseVertexIndex;
+	uint32 NumPrimitives;
+	uint32 NumInstances;
+	FORCEINLINE void Set(uint32 InPrimitiveType, uint32 InBaseVertexIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+	{
+		Type = ERCT_DrawPrimitive;
+		PrimitiveType = InPrimitiveType;
+		BaseVertexIndex = InBaseVertexIndex;
+		NumPrimitives = InNumPrimitives;
+		NumInstances = InNumInstances;
+	}
+};
+
+struct FRHICommandDrawIndexedPrimitive : public FRHICommand
+{
+	FIndexBufferRHIParamRef IndexBuffer;
+	uint32 PrimitiveType;
+	int32 BaseVertexIndex;
+	uint32 MinIndex;
+	uint32 NumVertices;
+	uint32 StartIndex;
+	uint32 NumPrimitives;
+	uint32 NumInstances;
+	FORCEINLINE void Set(FIndexBufferRHIParamRef InIndexBuffer, uint32 InPrimitiveType, int32 InBaseVertexIndex, uint32 InMinIndex, uint32 InNumVertices, uint32 InStartIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+	{
+		Type = ERCT_DrawIndexedPrimitive;
+		IndexBuffer = InIndexBuffer;
+		PrimitiveType = InPrimitiveType;
+		BaseVertexIndex = InBaseVertexIndex;
+		MinIndex = InMinIndex;
+		NumVertices = InNumVertices;
+		StartIndex = InStartIndex;
+		NumPrimitives = InNumPrimitives;
+		NumInstances = InNumInstances;
+	}
+};
+
+struct FRHICommandSetBoundShaderState : public FRHICommand
+{
+	FBoundShaderStateRHIParamRef BoundShaderState;
+	FORCEINLINE void Set(FBoundShaderStateRHIParamRef InBoundShaderState)
+	{
+		Type = ERCT_SetBoundShaderState;
+		BoundShaderState = InBoundShaderState;
+	}
+};
+
+struct FRHICommandSetBlendState : public FRHICommand
+{
+	FBlendStateRHIParamRef State;
+	FLinearColor BlendFactor;
+	FORCEINLINE void Set(FBlendStateRHIParamRef InState, const FLinearColor& InBlendFactor)
+	{
+		Type = ERCT_SetBlendState;
+		State = InState;
+		BlendFactor = InBlendFactor;
+	}
+};
+
+struct FRHICommandSetStreamSource : public FRHICommand
+{
+	uint32 StreamIndex;
+	FVertexBufferRHIParamRef VertexBuffer;
+	uint32 Stride;
+	uint32 Offset;
+	FORCEINLINE void Set(uint32 InStreamIndex, FVertexBufferRHIParamRef InVertexBuffer, uint32 InStride, uint32 InOffset)
+	{
+		Type = ERCT_SetStreamSource;
+		StreamIndex = InStreamIndex;
+		VertexBuffer = InVertexBuffer;
+		Stride = InStride;
+		Offset = InOffset;
+	}
+};
+
+struct FRHICommandSetViewport : public FRHICommand
+{
+	uint32 MinX;
+	uint32 MinY;
+	float MinZ;
+	uint32 MaxX;
+	uint32 MaxY;
+	float MaxZ;
+	FORCEINLINE void Set(uint32 InMinX, uint32 InMinY, float InMinZ, uint32 InMaxX, uint32 InMaxY, float InMaxZ)
+	{
+		Type = ERCT_SetViewport;
+		MinX = InMinX;
+		MinY = InMinY;
+		MinZ = InMinZ;
+		MaxX = InMaxX;
+		MaxY = InMaxY;
+		MaxZ = InMaxZ;
+	}
+};
+
+struct FRHICommandSetScissorRect : public FRHICommand
+{
+	bool bEnable;
+	uint32 MinX;
+	uint32 MinY;
+	uint32 MaxX;
+	uint32 MaxY;
+	FORCEINLINE void Set(bool InbEnable, uint32 InMinX, uint32 InMinY, uint32 InMaxX, uint32 InMaxY)
+	{
+		Type = ERCT_SetScissorRect;
+		bEnable = InbEnable;
+		MinX = InMinX;
+		MinY = InMinY;
+		MaxX = InMaxX;
+		MaxY = InMaxY;
+	}
+};
+
+struct FRHICommandSetRenderTargets : public FRHICommand
+{
+	uint32 NewNumSimultaneousRenderTargets;
+	FRHIRenderTargetView NewRenderTargetsRHI[MaxSimultaneousRenderTargets];
+	FTextureRHIParamRef NewDepthStencilTargetRHI;
+	uint32 NewNumUAVs;
+	FUnorderedAccessViewRHIParamRef UAVs[MaxSimultaneousUAVs];
+
+	FORCEINLINE void Set(
+		uint32 InNewNumSimultaneousRenderTargets,
+		const FRHIRenderTargetView* InNewRenderTargetsRHI,
+		FTextureRHIParamRef InNewDepthStencilTargetRHI,
+		uint32 InNewNumUAVs,
+		const FUnorderedAccessViewRHIParamRef* InUAVs
+		)
+
+	{
+		Type = ERCT_SetRenderTargets;
+		check(NewNumSimultaneousRenderTargets <= MaxSimultaneousRenderTargets && NewNumUAVs <= MaxSimultaneousUAVs);
+		NewNumSimultaneousRenderTargets = InNewNumSimultaneousRenderTargets;
+		for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
+		{
+			NewRenderTargetsRHI[Index] = InNewRenderTargetsRHI[Index];
+		}
+		NewDepthStencilTargetRHI = InNewDepthStencilTargetRHI;
+		NewNumUAVs = InNewNumUAVs;
+		for (uint32 Index = 0; Index < NewNumUAVs; Index++)
+		{
+			UAVs[Index] = InUAVs[Index];
+		}
+	}
+};
+
+
 
 class RHI_API FRHICommandList : public FNoncopyable
 {
@@ -184,33 +513,257 @@ public:
 	inline void Flush();
 
 	template <typename TShaderRHIParamRef>
-	inline void SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBufferRHI);
+	FORCEINLINE void SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
+	{
+		if (Bypass())
+		{
+			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetShaderUniformBuffer>();
+		Cmd->Set<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
+		Shader->AddRef();
+		UniformBuffer->AddRef();
+	}
 
 	template <typename TShaderRHIParamRef>
-	inline void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* Value, bool bValueInStack = false);
+	FORCEINLINE void SetShaderParameter(TShaderRHIParamRef Shader, uint32 BufferIndex, uint32 BaseIndex, uint32 NumBytes, const void* NewValue, bool bValueInStack = false)
+	{
+		if (Bypass())
+		{
+			SetShaderParameter_Internal(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+			return;
+		}
+
+		if (bValueInStack)
+		{
+			auto* Blob = AddCommand<FRHICommandNopBlob>(NumBytes);
+			Blob->Set(this, NumBytes, NewValue);
+			NewValue = Blob->Data;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetShaderParameter>();
+		Cmd->Set<TShaderRHIParamRef>(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
+		Shader->AddRef();
+	}
 
 	template <typename TShaderRHIParamRef>
-	inline void SetShaderTexture(TShaderRHIParamRef Shader, uint32 TextureIndex, FTextureRHIParamRef Texture);
+	FORCEINLINE void SetShaderTexture(TShaderRHIParamRef Shader, uint32 TextureIndex, FTextureRHIParamRef Texture)
+	{
+		if (Bypass())
+		{
+			SetShaderTexture_Internal(Shader, TextureIndex, Texture);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandSetShaderTexture>();
+		Cmd->Set<TShaderRHIParamRef>(Shader, TextureIndex, Texture);
+		Shader->AddRef();
+		Texture->AddRef();
+	}
 
 	template <typename TShaderRHIParamRef>
-	inline void SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV);
+	FORCEINLINE void SetShaderResourceViewParameter(TShaderRHIParamRef Shader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV)
+	{
+		if (Bypass())
+		{
+			SetShaderResourceViewParameter_Internal(Shader, SamplerIndex, SRV);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetShaderResourceViewParameter>();
+		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, SRV);
+		Shader->AddRef();
+		SRV->AddRef();
+	}
 
 	template <typename TShaderRHIParamRef>
-	inline void SetShaderSampler(TShaderRHIParamRef Shader, uint32 SamplerIndex, FSamplerStateRHIParamRef State);
+	FORCEINLINE void SetShaderSampler(TShaderRHIParamRef Shader, uint32 SamplerIndex, FSamplerStateRHIParamRef State)
+	{
+		if (Bypass())
+		{
+			SetShaderSampler_Internal(Shader, SamplerIndex, State);
+			return;
+		}
 
-	inline void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV);
-	inline void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount);
+		auto* Cmd = AddCommand<FRHICommandSetShaderSampler>();
+		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, State);
+		Shader->AddRef();
+		State->AddRef();
+	}
 
-	inline void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState);
+	FORCEINLINE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
+	{
+		if (Bypass())
+		{
+			SetUAVParameter_Internal(Shader, UAVIndex, UAV);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetUAVParameter>();
+		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV);
+		Shader->AddRef();
+		UAV->AddRef();
+	}
 
-	inline void SetRasterizerState(FRasterizerStateRHIParamRef State);
+	FORCEINLINE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
+	{
+		if (Bypass())
+		{
+			SetUAVParameter_Internal(Shader, UAVIndex, UAV, InitialCount);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetUAVParameter_IntialCount>();
+		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV, InitialCount);
+		Shader->AddRef();
+		UAV->AddRef();
+	}
 
-	inline void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White);
+	FORCEINLINE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
+	{
+		if (Bypass())
+		{
+			SetBoundShaderState_Internal(BoundShaderState);
+			return;
+		}
 
-	inline void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances);
-	inline void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances);
-	inline void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset);
-	inline void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0);
+		auto* Cmd = AddCommand<FRHICommandSetBoundShaderState>();
+		Cmd->Set(BoundShaderState);
+		BoundShaderState->AddRef();
+	}
+
+	FORCEINLINE void SetRasterizerState(FRasterizerStateRHIParamRef State)
+	{
+		if (Bypass())
+		{
+			SetRasterizerState_Internal(State);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandSetRasterizerState>();
+		Cmd->Set(State);
+		State->AddRef();
+	}
+
+	FORCEINLINE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
+	{
+		if (Bypass())
+		{
+			SetBlendState_Internal(State, BlendFactor);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandSetBlendState>();
+		Cmd->Set(State, BlendFactor);
+		State->AddRef();
+	}
+
+	FORCEINLINE void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances)
+	{
+		if (Bypass())
+		{
+			DrawPrimitive_Internal(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandDrawPrimitive>();
+		Cmd->Set(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
+	}
+
+	FORCEINLINE void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
+	{
+		if (Bypass())
+		{
+			DrawIndexedPrimitive_Internal(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandDrawIndexedPrimitive>();
+		Cmd->Set(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+		IndexBuffer->AddRef();
+	}
+
+	FORCEINLINE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
+	{
+		if (Bypass())
+		{
+			SetStreamSource_Internal(StreamIndex, VertexBuffer, Stride, Offset);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandSetStreamSource>();
+		Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
+		VertexBuffer->AddRef();
+	}
+
+	FORCEINLINE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
+	{
+		if (Bypass())
+		{
+			SetDepthStencilState_Internal(NewStateRHI, StencilRef);
+			return;
+		}
+
+		auto* Cmd = AddCommand<FRHICommandSetDepthStencilState>();
+		Cmd->Set(NewStateRHI, StencilRef);
+		NewStateRHI->AddRef();
+	}
+
+	FORCEINLINE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
+	{
+		if (Bypass())
+		{
+			SetViewport_Internal(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetViewport>();
+		Cmd->Set(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
+	}
+
+	FORCEINLINE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
+	{
+		if (Bypass())
+		{
+			SetScissorRect_Internal(bEnable, MinX, MinY, MaxX, MaxY);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetScissorRect>();
+		Cmd->Set(bEnable,  MinX, MinY, MaxX, MaxY);
+	}
+
+	FORCEINLINE void SetRenderTargets(
+		uint32 NewNumSimultaneousRenderTargets,
+		const FRHIRenderTargetView* NewRenderTargetsRHI,
+		FTextureRHIParamRef NewDepthStencilTargetRHI,
+		uint32 NewNumUAVs,
+		const FUnorderedAccessViewRHIParamRef* UAVs
+		)
+	{
+		if (Bypass())
+		{
+			SetRenderTargets_Internal(
+				NewNumSimultaneousRenderTargets,
+				NewRenderTargetsRHI,
+				NewDepthStencilTargetRHI,
+				NewNumUAVs,
+				UAVs);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetRenderTargets>();
+		Cmd->Set(
+			NewNumSimultaneousRenderTargets,
+			NewRenderTargetsRHI,
+			NewDepthStencilTargetRHI,
+			NewNumUAVs,
+			UAVs);
+		for (uint32 Index = 0; Index < NewNumSimultaneousRenderTargets; Index++)
+		{
+			NewRenderTargetsRHI[Index].Texture->AddRef();
+		}
+		NewDepthStencilTargetRHI->AddRef();
+		for (uint32 Index = 0; Index < NewNumUAVs; Index++)
+		{
+			UAVs[Index]->AddRef();
+		}
+
+	}
 
 	const SIZE_T GetUsedMemory() const;
 

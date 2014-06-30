@@ -148,7 +148,7 @@ public:
 		return true;
 	}
 
-	virtual void SetScissorRect(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const
+	virtual void SetScissorRect(FRHICommandList& RHICmdList, const FSceneView& View) const override
 	{
 		// Calculate a scissor rectangle for the light's radius.
 		if((GetLightToWorld().GetOrigin() - View.ViewMatrices.ViewOrigin).Size() > Radius)

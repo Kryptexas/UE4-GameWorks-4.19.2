@@ -437,6 +437,12 @@ public:
 		ArraySliceIndex(-1)
 	{}
 
+	FRHIRenderTargetView(const FRHIRenderTargetView& Other) :
+		Texture(Other.Texture),
+		MipIndex(Other.MipIndex),
+		ArraySliceIndex(Other.ArraySliceIndex)
+	{}
+
 	FRHIRenderTargetView(FTextureRHIParamRef InTexture) :
 		Texture(InTexture),
 		MipIndex(0),

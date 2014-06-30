@@ -275,6 +275,47 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				RHICmd->State->Release();
 			}
 			break;
+		case ERCT_SetViewport:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetViewport>();
+				if (!bOnlyTestMemAccess)
+				{
+					SetViewport_Internal(RHICmd->MinX, RHICmd->MinY, RHICmd->MinZ, RHICmd->MaxX, RHICmd->MaxY, RHICmd->MaxZ);
+				}
+			}
+			break;
+		case ERCT_SetScissorRect:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetScissorRect>();
+				if (!bOnlyTestMemAccess)
+				{
+					SetScissorRect_Internal(RHICmd->bEnable, RHICmd->MinX, RHICmd->MinY, RHICmd->MaxX, RHICmd->MaxY);
+				}
+			}
+			break;
+		case ERCT_SetRenderTargets:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetRenderTargets>();
+				if (!bOnlyTestMemAccess)
+				{
+					SetRenderTargets_Internal(
+						RHICmd->NewNumSimultaneousRenderTargets,
+						RHICmd->NewRenderTargetsRHI,
+						RHICmd->NewDepthStencilTargetRHI,
+						RHICmd->NewNumUAVs,
+						RHICmd->UAVs);
+				}
+				for (uint32 Index = 0; Index < RHICmd->NewNumSimultaneousRenderTargets; Index++)
+				{
+					RHICmd->NewRenderTargetsRHI[Index].Texture->Release();
+				}
+				RHICmd->NewDepthStencilTargetRHI->Release();
+				for (uint32 Index = 0; Index < RHICmd->NewNumUAVs; Index++)
+				{
+					RHICmd->UAVs[Index]->Release();
+				}
+			}
+			break;
 		default:
 			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
 		}

@@ -240,4 +240,4 @@ private:
 	FShaderParameter MinZ;
 };
 
-extern void RasterizeToVolumeTexture(FRHICommandListImmediate& RHICmdList, FVolumeBounds VolumeBounds);
+extern void RasterizeToVolumeTexture(FRHICommandList& RHICmdList, FVolumeBounds VolumeBounds);

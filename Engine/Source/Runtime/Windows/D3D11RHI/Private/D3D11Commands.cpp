@@ -2082,6 +2082,7 @@ uint32 FD3D11DynamicRHI::RHIGetGPUFrameCycles()
 
 void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 {
+	check(0); // this path has gone stale and needs updated methods, starting at ERCT_SetScissorRect
 	FRHICommandListIterator Iter(*CmdList);
 	while (Iter.HasCommandsLeft())
 	{
@@ -2531,6 +2532,26 @@ void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 					StateCache.SetDepthStencilState(State->Resource, RHICmd->StencilRef);
 				}
 				RHICmd->State->Release();
+			}
+			break;
+		case ERCT_SetViewport:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetViewport>();
+				{
+					// These are the maximum viewport extents for D3D11. Exceeding them leads to badness.
+					check(RHICmd->MinX <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
+					check(RHICmd->MinY <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
+					check(RHICmd->MaxX <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
+					check(RHICmd->MaxY <= (uint32)D3D11_VIEWPORT_BOUNDS_MAX);
+
+					D3D11_VIEWPORT Viewport = { RHICmd->MinX, RHICmd->MinY, RHICmd->MaxX - RHICmd->MinX, RHICmd->MaxY - RHICmd->MinY, RHICmd->MinZ, RHICmd->MaxZ };
+					//avoid setting a 0 extent viewport, which the debug runtime doesn't like
+					if (Viewport.Width > 0 && Viewport.Height > 0)
+					{
+						StateCache.SetViewport(Viewport);
+						SetScissorRectIfRequiredWhenSettingViewport(RHICmd->MinX, RHICmd->MinY, RHICmd->MaxX, RHICmd->MaxY);
+					}
+				}
 			}
 			break;
 		default:
