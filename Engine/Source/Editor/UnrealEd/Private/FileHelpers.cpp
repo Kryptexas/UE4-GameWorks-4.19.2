@@ -23,6 +23,8 @@
 
 #include "Dialogs/DlgPickAssetPath.h"
 
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
 //definition of flag used to do special work when we're attempting to load the "startup map"
@@ -1490,6 +1492,84 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 	return FEditorFileUtils::PromptToCheckoutLevels( bCheckDirty, LevelsToCheckOut );	
 }
 
+void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
+{
+	struct FLocal
+	{
+		static void OpenLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType, FOnLevelsChosen OnLevelsChosen)
+		{
+			const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
+			if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
+			{
+				// Close the popup and any open menus
+				FSlateApplication::Get().DismissAllMenus();
+
+				TArray<FAssetData> SelectedWorldAssets;
+				for ( const auto& AssetIt : SelectedAssets )
+				{
+					if (AssetIt.AssetClass == UWorld::StaticClass()->GetFName())
+					{
+						SelectedWorldAssets.Add(AssetIt);
+					}
+				}
+
+				OnLevelsChosen.ExecuteIfBound(SelectedWorldAssets);
+			}
+		}
+	};
+
+	const FVector2D AssetPickerSize(800.0f, 650.0f);
+
+	FMenuBuilder MenuBuilder(false, NULL);
+
+	FAssetPickerConfig AssetPickerConfig;
+	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
+	AssetPickerConfig.bAllowDragging = false;
+	AssetPickerConfig.SelectionMode = bAllowMultipleSelection ? ESelectionMode::Multi : ESelectionMode::Single;
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
+	AssetPickerConfig.ThumbnailScale = 0;
+	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLocal::OpenLevelFromAssetPicker, OnLevelsChosen);
+	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
+	if (CurrentWorld)
+	{
+		AssetPickerConfig.InitialAssetSelection = FAssetData(CurrentWorld);
+	}
+
+	// Create the contents of the popup
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+	TSharedRef<SWidget> ActualWidget =
+		SNew(SBox)
+		.HeightOverride(AssetPickerSize.X)
+		.WidthOverride(AssetPickerSize.Y)
+		[
+			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
+		];
+
+	// Wrap the picker widget in a multibox-style menu body
+	MenuBuilder.BeginSection("AssetPickerOpenLevel", NSLOCTEXT("OpenLevelDialog", "WindowTitle", "Select Level"));
+	{
+		const bool bNoIndent = true;
+		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), bNoIndent);
+	}
+	MenuBuilder.EndSection();
+
+	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
+
+	// Determine where the pop-up should open
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
+	if (ParentWindow.IsValid())
+	{
+		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
+		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
+		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
+
+		// Open the pop-up
+		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
+		FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
+	}
+}
+
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
 {
 	if( FPaths::GetExtension(MapFilename, true) != FPackageName::GetMapPackageExtension() )
@@ -1582,51 +1662,87 @@ void FEditorFileUtils::LoadMap()
 		return;
 	}
 
-	bool bFilenameIsValid = false;
-	FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
-
-	while( !bFilenameIsValid )
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
 	{
-		TArray<FString> OutFiles;
-		if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
+		struct FLocal
 		{
-			const FString& FileToOpen = OutFiles[0];
-
-			FText ErrorMessage;
-			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
-			if ( !bFilenameIsValid )
+			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
 			{
-				// Start the loop over, prompting for load again
-				const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Filename"), DisplayFilename);
-				Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-				Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-				const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-				FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-				continue;
-			}
-
-			if( !GIsDemoMode )
-			{
-				// If there are any unsaved changes to the current level, see if the user wants to save those first.
-				bool bPromptUserToSave = true;
-				bool bSaveMapPackages = true;
-				bool bSaveContentPackages = true;
-				if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+				if ( SelectedAssets.Num() > 0 )
 				{
-					// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
-					return;
+					const FAssetData& AssetData = SelectedAssets[0];
+
+					if (!GIsDemoMode)
+					{
+						// If there are any unsaved changes to the current level, see if the user wants to save those first.
+						bool bPromptUserToSave = true;
+						bool bSaveMapPackages = true;
+						bool bSaveContentPackages = true;
+						if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
+						{
+							return;
+						}
+					}
+
+					const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
+					const bool bLoadAsTemplate = false;
+					const bool bShowProgress = true;
+					FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 				}
 			}
+		};
+		
+		const bool bAllowMultipleSelection = false;
+		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen), bAllowMultipleSelection);
+	}
+	else
+	{
+		bool bFilenameIsValid = false;
+		FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
 
-			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-			LoadMap( FileToOpen, false, true );
-		}
-		else
+		while( !bFilenameIsValid )
 		{
-			// User canceled the open dialog, do not prompt again.
-			break;
+			TArray<FString> OutFiles;
+			if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
+			{
+				const FString& FileToOpen = OutFiles[0];
+
+				FText ErrorMessage;
+				bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
+				if ( !bFilenameIsValid )
+				{
+					// Start the loop over, prompting for load again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Filename"), DisplayFilename);
+					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
+					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
+					const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+					continue;
+				}
+
+				if( !GIsDemoMode )
+				{
+					// If there are any unsaved changes to the current level, see if the user wants to save those first.
+					bool bPromptUserToSave = true;
+					bool bSaveMapPackages = true;
+					bool bSaveContentPackages = true;
+					if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+					{
+						// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+						return;
+					}
+				}
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
+				LoadMap( FileToOpen, false, true );
+			}
+			else
+			{
+				// User canceled the open dialog, do not prompt again.
+				break;
+			}
 		}
 	}
 }

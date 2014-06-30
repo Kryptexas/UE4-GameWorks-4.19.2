@@ -7,6 +7,7 @@
 // Forward declarations.
 class FFileName;
 class FString;
+class FAssetData;
 
 enum EFileInteraction
 {
@@ -45,6 +46,15 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////
 	// Loading
+
+	DECLARE_DELEGATE_OneParam(FOnLevelsChosen, const TArray<FAssetData>& /*SelectedLevels*/);
+	/**
+	 * Opens a non-modal dialog to allow the user to choose a level
+	 *
+	 * @param	OnLevelsChosen				Delegate executed when one more more levels have been selected
+	 * @param	bAllowMultipleSelection		If true, more than one level can be chosen
+	 */
+	static UNREALED_API void OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection);
 
 	/**
 	 * Returns true if the specified map filename is valid for loading or saving.

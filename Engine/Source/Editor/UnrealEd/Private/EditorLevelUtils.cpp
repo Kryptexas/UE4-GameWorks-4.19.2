@@ -121,6 +121,54 @@ namespace EditorLevelUtils
 		}
 	}
 
+	ULevel* AddLevelsToWorld(UWorld* InWorld, const TArray<FString>& LevelPackageNames, UClass* LevelStreamingClass)
+	{
+		if ( !ensure(InWorld) )
+		{
+			return nullptr;
+		}
+
+		TArray<FString> PackageNames = LevelPackageNames;
+
+		// Sort the level packages alphabetically by name.
+		PackageNames.Sort();
+
+		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
+		FScopedLevelDirtied LevelDirtyCallback;
+
+		// Try to add the levels that were specified in the dialog.
+		ULevel* NewLevel = nullptr;
+		for (const auto& PackageName : PackageNames)
+		{
+			NewLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
+
+		} // for each file
+
+		// Set the last loaded level to be the current level
+		if (NewLevel)
+		{
+			InWorld->SetCurrentLevel(NewLevel);
+		}
+
+		// For safety
+		if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+		{
+			GLevelEditorModeTools().ActivateDefaultMode();
+		}
+
+		// refresh editor windows
+		FEditorDelegates::RefreshAllBrowsers.Broadcast();
+
+		// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
+		GUnrealEd->UpdateVolumeActorVisibility(NULL);
+
+		return NewLevel;
+	}
+
 	ULevel* AddLevelToWorld( UWorld* InWorld, const TCHAR* LevelPackageName, UClass* LevelStreamingClass)
 	{
 		ULevel* NewLevel = NULL;

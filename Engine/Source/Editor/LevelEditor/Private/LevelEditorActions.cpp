@@ -27,7 +27,6 @@
 #include "LightingTools.h"
 #include "MRUFavoritesList.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SnappingUtils.h"
 #include "Layers/ILayers.h"
 #include "IPlacementModeModule.h"
@@ -181,91 +180,6 @@ void FLevelEditorActionCallbacks::OpenLevel()
 bool FLevelEditorActionCallbacks::OpenLevel_CanExecute()
 {
 	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
-}
-
-FAssetPickerConfig FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig()
-{
-	FAssetPickerConfig AssetPickerConfig;
-	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-	AssetPickerConfig.bAllowDragging = false;
-	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
-	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
-	if (CurrentWorld)
-	{
-		AssetPickerConfig.InitialAssetSelection = FAssetData(CurrentWorld);
-	}
-
-	return AssetPickerConfig;
-}
-
-void FLevelEditorActionCallbacks::OpenLevelPickingDialog()
-{
-	const FVector2D AssetPickerSize(600.0f, 586.0f);
-
-	FMenuBuilder MenuBuilder(false, NULL);
-
-	// Create the contents of the popup
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-	FAssetPickerConfig AssetPickerConfig = CreateLevelAssetPickerConfig();
-	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
-	TSharedRef<SWidget> ActualWidget = 
-		SNew(SBox)
-		.HeightOverride(AssetPickerSize.X)
-		.WidthOverride(AssetPickerSize.Y)
-		[
-			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-		];
-
-	// Wrap the picker widget in a multibox-style menu body
-	MenuBuilder.BeginSection("AssetPickerOpenLevel", NSLOCTEXT("OpenLevelDialog", "WindowTitle", "Open Level"));
-	{
-		const bool bNoIndent = true;
-		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), bNoIndent);
-	}
-	MenuBuilder.EndSection();
-
-	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
-
-	// Determine where the pop-up should open
-	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
-	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
-	if (ParentWindow.IsValid())
-	{
-		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
-		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
-		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
-
-		// Open the pop-up
-		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
-		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
-{
-	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
-	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
-	{
-		const FAssetData& AssetData = SelectedAssets[0];
-		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
-		{
-			// Close the menu that we were picking from
-			FSlateApplication::Get().DismissAllMenus();
-
-			// If there are any unsaved changes to the current level, see if the user wants to save those first.
-			bool bPromptUserToSave = true;
-			bool bSaveMapPackages = true;
-			bool bSaveContentPackages = true;
-			if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
-			{
-				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
-				const bool bLoadAsTemplate = false;
-				const bool bShowProgress = true;
-				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
-			}
-		}
-	}
 }
 
 void FLevelEditorActionCallbacks::DeltaTransform()
@@ -2620,15 +2534,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::N ) );
-	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
-	{
-		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
-		UI_COMMAND( LegacyOpenLevel, "Open Other Level...", "Loads an existing level using the file explorer", EUserInterfaceActionType::Button, FInputGesture() );
-	}
-	else
-	{
-		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
-	}
+	UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
 	UI_COMMAND( Save, "Save", "Saves the current level to disk", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SaveAs, "Save As...", "Save the current level as...", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift|EModifierKey::Control, EKeys::S ) );
 	UI_COMMAND( SaveAllLevels, "Save All Levels", "Saves all unsaved levels to disk", EUserInterfaceActionType::Button, FInputGesture() );

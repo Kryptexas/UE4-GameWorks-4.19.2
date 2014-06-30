@@ -3,6 +3,8 @@
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
 
+class FAssetData;
+
 typedef TFilterCollection< const TSharedPtr< FLevelViewModel >& > LevelFilterCollection;
 typedef IFilter< const TSharedPtr< FLevelViewModel >& > LevelFilter;
 
@@ -138,9 +140,6 @@ public:
 
 	/** Caches the variables for which SCC menu options are available */
 	void CacheCanExecuteSourceControlVars();
-
-	/** Directly adds the levels selected from the asset picker to the world */
-	void AddExistingLevelFromAssetPicker(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod);
 
 	/********************************************************************
 	 * EVENTS
@@ -369,8 +368,11 @@ private:
 	/** Calls AddExistingLevel which adds an existing level; prompts for path */
 	void AddExistingLevel_Executed();
 	
-	/** Adds an existing level; prompts for path, Returns true if a level is selected */
-	bool AddExistingLevel();
+	/** Adds an existing level; prompts for path. If bRemoveInvalidSelectedLevelsAfter is true, any invalid levels are removed after */
+	void AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter = false);
+
+	/** Handler for when a level is selected after invoking AddExistingLevel */
+	void HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter);
 
 	/** Add Selected Actors to New Level; prompts for level save location */
 	void AddSelectedActorsToNewLevel_Executed();

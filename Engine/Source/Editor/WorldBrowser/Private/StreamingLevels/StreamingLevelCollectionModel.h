@@ -86,7 +86,10 @@ private:
 	void AddExistingLevel_Executed();
 	
 	/** Adds an existing level; prompts for path, Returns true if a level is selected */
-	bool AddExistingLevel();
+	void AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter = false);
+
+	/** Handler for when a level is selected after invoking AddExistingLevel */
+	void HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter);
 
 	/** Add Selected Actors to New Level; prompts for level save location */
 	void AddSelectedActorsToNewLevel_Executed();

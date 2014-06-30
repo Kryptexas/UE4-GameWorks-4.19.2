@@ -130,20 +130,8 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 			// New Level
 			MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().NewLevel );
 
-			static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
-			if ( bUsingWorldAssets )
-			{
-				// Open level menu.
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("OpenLevelSubMenu", "Open Level"),
-					LOCTEXT("OpenLevelSubMenu_ToolTip", "Select a level to load"),
-					FNewMenuDelegate::CreateStatic(&Local::MakeOpenLevelMenu), false, FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.OpenLevel"));
-			}
-			else
-			{
-				// Open Level
-				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().OpenLevel );
-			}
+			// Open Level
+			MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().OpenLevel );
 
 			// Open Asset
 			//@TODO: Doesn't work when summoned from here: MenuBuilder.AddMenuEntry( FGlobalEditorCommonCommands::Get().SummonOpenAssetDialog );
@@ -156,35 +144,6 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 
 			// Save Levels
 			MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SaveAllLevels );
-		}
-
-		static void MakeOpenLevelMenu( FMenuBuilder& MenuBuilder )
-		{
-			// Asset picker for a level
-			{
-				FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-				FAssetPickerConfig AssetPickerConfig = FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig();
-				AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
-				AssetPickerConfig.ThumbnailScale = 0;
-
-				TSharedRef<SWidget> MenuContent =
-					SNew(SBox)
-					.HeightOverride(600)
-					.WidthOverride(300)
-					[
-						ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-					];
-
-				const bool bNoIndent = true;
-				MenuBuilder.AddWidget(MenuContent, FText::GetEmpty(), bNoIndent);
-			}
-
-			MenuBuilder.BeginSection("LegacyOpenLevel", LOCTEXT("LegacyOpenLevelHeading", "Other Levels"));
-			{
-				// Legacy Open Level
-				MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().LegacyOpenLevel );
-			}
-			MenuBuilder.EndSection();
 		}
 
 		static void FillFavoriteLevelSubMenu( FMenuBuilder& MenuBuilder, const int32 CurFavoriteIndex )

@@ -1368,110 +1368,108 @@ void FLevelCollectionViewModel::AddExistingLevel_Executed()
 	AddExistingLevel();
 }
 
-bool FLevelCollectionViewModel::AddExistingLevel()
+void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	TArray<FString> OpenFilenames;
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	bool bOpened = false;
-	if ( DesktopPlatform )
+	if ( FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")) )
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+		const bool bAllowMultipleSelection = true;
+		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, bAllowMultipleSelection);
+	}
+	else
+	{
+		TArray<FString> OpenFilenames;
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		bool bOpened = false;
+		if ( DesktopPlatform )
 		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			void* ParentWindowWindowHandle = NULL;
+
+			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+			{
+				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
+
+			bOpened = DesktopPlatform->OpenFileDialog(
+				ParentWindowWindowHandle,
+				NSLOCTEXT("UnrealEd", "Open", "Open").ToString(),
+				*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
+				TEXT(""),
+				*FEditorFileUtils::GetFilterString(FI_Load),
+				EFileDialogFlags::Multiple,
+				OpenFilenames
+				);
 		}
 
-		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
-		NSLOCTEXT("UnrealEd", "Open", "Open").ToString(),
-		*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
-		TEXT(""),
-		*FEditorFileUtils::GetFilterString(FI_Load),
-			EFileDialogFlags::Multiple,
-			OpenFilenames
-			);
+		if( bOpened )
+		{
+			// Save the path as default for next time
+			FEditorDirectories::Get().SetLastDirectory( ELastDirectory::UNR, FPaths::GetPath( OpenFilenames[ 0 ] ) );
+
+			TArray<FString> Filenames;
+			for( int32 FileIndex = 0 ; FileIndex < OpenFilenames.Num() ; ++FileIndex )
+			{
+				// Strip paths from to get the level package names.
+				const FString FilePath( OpenFilenames[FileIndex] );
+
+				// make sure the level is in our package cache, because the async loading code will use this to find it
+				if (!FPaths::FileExists(FilePath))
+				{
+					FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelImportFromExternal", "Importing external sublevels is not allowed. Move the level files into the standard content directory and try again.\nAfter moving the level(s), restart the editor.") );
+					return;				
+				}
+
+				FText ErrorMessage;
+				bool bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(OpenFilenames[FileIndex], ErrorMessage);
+				if ( !bFilenameIsValid )
+				{
+					// Start the loop over, prompting for save again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*OpenFilenames[FileIndex]) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Filename"), DisplayFilename);
+					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
+					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
+					const FText DisplayMessage = FText::Format( NSLOCTEXT("UnrealEd", "Error_InvalidLevelToAdd", "Unable to add streaming level {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+					return;
+				}
+
+				Filenames.Add( FilePath );
+			}
+
+			TArray<FString> PackageNames;
+			for ( const auto& Filename : Filenames )
+			{
+				const FString& PackageName = FPackageName::FilenameToLongPackageName(Filename);
+				PackageNames.Add(PackageName);
+			}
+
+			EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
+
+			if (bRemoveInvalidSelectedLevelsAfter)
+			{
+				RemoveInvalidSelectedLevels_Executed();
+			}
+		}
+	}
+}
+
+void FLevelCollectionViewModel::HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter)
+{
+	TArray<FString> PackageNames;
+	for (const auto& AssetData : SelectedAssets)
+	{
+		PackageNames.Add(AssetData.PackageName.ToString());
 	}
 
-	if( bOpened )
+	EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
+
+	if (bRemoveInvalidSelectedLevelsAfter)
 	{
-		// Save the path as default for next time
-		FEditorDirectories::Get().SetLastDirectory( ELastDirectory::UNR, FPaths::GetPath( OpenFilenames[ 0 ] ) );
-
-		TArray<FString> Filenames;
-		for( int32 FileIndex = 0 ; FileIndex < OpenFilenames.Num() ; ++FileIndex )
-		{
-			// Strip paths from to get the level package names.
-			const FString FilePath( OpenFilenames[FileIndex] );
-
-			// make sure the level is in our package cache, because the async loading code will use this to find it
-			if (!FPaths::FileExists(FilePath))
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelImportFromExternal", "Importing external sublevels is not allowed. Move the level files into the standard content directory and try again.\nAfter moving the level(s), restart the editor.") );
-				return false;				
-			}
-
-			FText ErrorMessage;
-			bool bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(OpenFilenames[FileIndex], ErrorMessage);
-			if ( !bFilenameIsValid )
-			{
-				// Start the loop over, prompting for save again
-				const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*OpenFilenames[FileIndex]) );
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Filename"), DisplayFilename);
-				Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-				Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-				const FText DisplayMessage = FText::Format( NSLOCTEXT("UnrealEd", "Error_InvalidLevelToAdd", "Unable to add streaming level {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-				FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-				return false;
-			}
-
-			Filenames.Add( FilePath );
-		}
-
-		// Sort the level packages alphabetically by name.
-		Filenames.Sort();
-
-		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
-		FScopedLevelDirtied LevelDirtyCallback;
-
-		// Try to add the levels that were specified in the dialog.
-		ULevel* NewLevel = nullptr;
-		for( int32 FileIndex = 0 ; FileIndex < Filenames.Num() ; ++FileIndex )
-		{
-			const FString& PackageName = FPackageName::FilenameToLongPackageName(Filenames[FileIndex]);
-
-			NewLevel = EditorLevelUtils::AddLevelToWorld(CurrentWorld.Get(), *PackageName, AddedLevelStreamingClass);
-			if (NewLevel)
-			{
-				LevelDirtyCallback.Request();
-			}
-
-		} // for each file
-
-		// Set the last loaded level to be the current level
-		if (NewLevel)
-		{
-			CurrentWorld->SetCurrentLevel(NewLevel);
-		}
-
-		// For safety
-		if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
-		{
-			GLevelEditorModeTools().ActivateDefaultMode();
-		}
-
-		// refresh editor windows
-		FEditorDelegates::RefreshAllBrowsers.Broadcast();
+		RemoveInvalidSelectedLevels_Executed();
 	}
-
-	// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
-	GUnrealEd->UpdateVolumeActorVisibility(NULL);
-
-	// return whether a level was selected
-	return bOpened;
 }
 
 void FLevelCollectionViewModel::AddSelectedActorsToNewLevel_Executed()
@@ -1482,10 +1480,8 @@ void FLevelCollectionViewModel::AddSelectedActorsToNewLevel_Executed()
 void FLevelCollectionViewModel::FixupInvalidReference_Executed()
 {
 	// Browsing is essentially the same as adding an existing level
-	if (AddExistingLevel())
-	{
-		RemoveInvalidSelectedLevels_Executed();
-	}
+	const bool bRemoveInvalidSelectedLevelsAfter = true;
+	AddExistingLevel(bRemoveInvalidSelectedLevelsAfter);
 }
 
 void FLevelCollectionViewModel::RemoveInvalidSelectedLevels_Executed()
@@ -2085,42 +2081,6 @@ void FLevelCollectionViewModel::CacheCanExecuteSourceControlVars()
 		{
 			// All options are available, no need to keep iterating
 			break;
-		}
-	}
-}
-
-void FLevelCollectionViewModel::AddExistingLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
-{
-	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
-	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
-	{
-		const FAssetData& AssetData = SelectedAssets[0];
-		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
-		{
-			// Close the menu that we were picking from
-			FSlateApplication::Get().DismissAllMenus();
-
-			// Fire ULevel::LevelDirtiedEvent when falling out of scope.
-			FScopedLevelDirtied LevelDirtyCallback;
-
-			// Add the level
-			ULevel* NewLevel = EditorLevelUtils::AddLevelToWorld(CurrentWorld.Get(), *AssetData.PackageName.ToString(), AddedLevelStreamingClass);
-			if (NewLevel)
-			{
-				LevelDirtyCallback.Request();
-			}
-
-			// For safety
-			if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
-			{
-				GLevelEditorModeTools().ActivateDefaultMode();
-			}
-
-			// refresh editor windows
-			FEditorDelegates::RefreshAllBrowsers.Broadcast();
-
-			// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
-			GUnrealEd->UpdateVolumeActorVisibility(NULL);
 		}
 	}
 }
