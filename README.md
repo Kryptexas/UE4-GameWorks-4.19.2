@@ -49,8 +49,8 @@ git checkout 4.3
    have a branch suffix (such as _UnrealEngine-4.3_), but that's fine.
 
 1. Download the **required dependencies**:
-   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.3-preview/Required_1of2.zip) and
-   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.3-preview/Required_2of2.zip).
+   [Required_1of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.3.0-preview/Required_1of2.zip) and
+   [Required_2of2.zip](https://github.com/EpicGames/UnrealEngine/releases/download/4.3.0-preview/Required_2of2.zip).
 
 1. Unzip the dependencies into the _UnrealEngine_ folder alongside the source.  Be careful to make sure the folders are merged together 
    correctly.  On Mac, we recommend **Option + dragging** the unzipped files into the _UnrealEngine_ folder, then selecting **Keep Newer** if prompted.
@@ -101,9 +101,9 @@ git checkout 4.3
 
 **iOS** programming requires a Mac. Instructions are in the [iOS getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/iOS/GettingStarted/index.html).
 
-**HTML5** is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
+**HTML5** is supported using Emscripten, and requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3.0-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder. Please see the [HTML5 getting started guide](https://docs.unrealengine.com/latest/INT/Platforms/HTML5/GettingStarted/index.html).
 
-**Linux** support requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder, and the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v3_clang-3.3_ld-2.24_glibc-2.12.2.zip) to be installed. See the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux).
+**Linux** support requires the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3.0-preview/Optional.zip) to be unzipped into your _UnrealEngine_ folder, and the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v3_clang-3.3_ld-2.24_glibc-2.12.2.zip) to be installed. See the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux).
 
 **Playstation 4** or **XboxOne** development require additional files that can only be provided after your registered developer status is confirmed by Sony or Microsoft. See [the announcement blog post](https://www.unrealengine.com/blog/playstation-4-and-xbox-one-now-supported) for more information.
 
@@ -114,7 +114,7 @@ Additional Notes
 
 Visual Studio 2013 and Xcode 5.1 are strongly recommended for development.
 
-Legacy support for Visual Studio 2012 can be enabled by unzipping the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3-preview/Optional.zip) into your UnrealEngine folder
+Legacy support for Visual Studio 2012 can be enabled by unzipping the [optional dependencies](https://github.com/EpicGames/UnrealEngine/releases/download/4.3.0-preview/Optional.zip) into your UnrealEngine folder
 and changing WindowsPlatform.Compiler to VisualStudio2012 in Engine\Source\Programs\UnrealBuildTool\Windows\UEBuildWindows.cs.
 
 The first time you start the editor from a fresh source build, you may experience long load times.  This only happens on the first 
