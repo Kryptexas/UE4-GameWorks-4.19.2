@@ -23,6 +23,8 @@ struct FOpenGL3 : public FOpenGLBase
 	static FORCEINLINE bool SupportsSeamlessCubeMap()			{ return bSupportsSeamlessCubemap; }
 	static FORCEINLINE bool SupportsVolumeTextureRendering()	{ return bSupportsVolumeTextureRendering; }
 	static FORCEINLINE bool SupportsGenerateMipmap()			{ return true; }
+	static FORCEINLINE bool AmdWorkaround()						{ return bAmdWorkaround; }
+
 
 	// Optional
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)

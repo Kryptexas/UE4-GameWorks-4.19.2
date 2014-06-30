@@ -746,15 +746,6 @@ bool PlatformInitOpenGL()
 			ENUM_GL_ENTRYPOINTS_DLL(CHECK_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS(CHECK_GL_ENTRYPOINTS);
 			checkf(bFoundAllEntryPoints, TEXT("Failed to find all OpenGL entry points."));
-
-			FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR) ) );
-			if ( VendorName.Contains(TEXT("ATI ")) )
-			{
-				// Workaround for AMD driver not handling GL_SRGB8_ALPHA8 in glTexStorage2D() properly (gets treated as non-sRGB)
-				glTexStorage1D = NULL;
-				glTexStorage2D = NULL;
-				glTexStorage3D = NULL;
-			}
 		}
 
 		// The dummy context can now be released.

@@ -135,6 +135,8 @@ public:
 	static FORCEINLINE bool SupportsDepthBoundsTest()					{ return false; }
 	static FORCEINLINE bool SupportsTextureNPOT()						{ return true; }
 	static FORCEINLINE bool HasHardwareHiddenSurfaceRemoval()			{ return false; }
+	static FORCEINLINE bool AmdWorkaround()								{ return false; }
+
 
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT16; }
 
@@ -332,6 +334,10 @@ protected:
 	
 	/** GL_EXT_texture_filter_anisotropic Can we use anisotropic filtering? */
 	static bool bSupportsTextureFilterAnisotropic;
+
+	/** Workaround AMD driver issues. */
+	static bool bAmdWorkaround;
+
 };
 
 /** Unreal tokens that maps to different OpenGL tokens by platform. */
