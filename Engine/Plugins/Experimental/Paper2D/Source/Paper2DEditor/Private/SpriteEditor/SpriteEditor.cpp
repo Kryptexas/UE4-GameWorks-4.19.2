@@ -119,6 +119,12 @@ void SSpriteEditorViewport::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FEditorViewportClient::IsSetShowCollisionChecked ) );
 
+	CommandList->MapAction(
+		Commands.SetShowMeshEdges,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowMeshEdges),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowMeshEdgesChecked));
+
  	CommandList->MapAction(
  		Commands.SetShowSockets,
  		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSockets ),
@@ -500,15 +506,7 @@ void FSpriteEditor::ExtendToolbar()
 
 			ToolbarBuilder.BeginSection("Command");
 			{
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowGrid);
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowBounds);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowCollision);
-
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSockets);
-
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowPivot);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowNormals);
 			}
 			ToolbarBuilder.EndSection();
 

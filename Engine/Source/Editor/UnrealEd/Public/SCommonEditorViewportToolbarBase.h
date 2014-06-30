@@ -119,7 +119,7 @@ private:
 	 *
 	 * @return The widget containing the show menu content
 	 */
-	TSharedRef<SWidget> GenerateShowMenu() const;
+	virtual TSharedRef<SWidget> GenerateShowMenu() const;
 
 	/**
 	 * @return The widget containing the perspective only FOV window.
