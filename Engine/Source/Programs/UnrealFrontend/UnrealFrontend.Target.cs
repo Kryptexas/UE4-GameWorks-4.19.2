@@ -8,6 +8,7 @@ public class UnrealFrontendTarget : TargetRules
 	public UnrealFrontendTarget( TargetInfo Target )
 	{
 		Type = TargetType.Program;
+		AdditionalPlugins.Add("UdpMessaging");
 	}
 
 	//

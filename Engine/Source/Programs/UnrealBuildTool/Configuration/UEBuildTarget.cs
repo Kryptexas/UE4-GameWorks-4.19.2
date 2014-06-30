@@ -2129,15 +2129,6 @@ namespace UnrealBuildTool
 					{
 						FilterPluginNames.AddRange(ValidPlugins.Where(x => x.bEnabledByDefault).Select(x => x.Name));
 					}
-					else if (Rules.Type == TargetRules.TargetType.Program)
-					{
-						var Config = new ConfigCacheIni(Platform, "Engine", Path.Combine(ProjectDirectory, "Programs", GetTargetName()));
-						List<string> ConfigPlugins;
-						if (Config.GetArray("Plugins", "ProgramEnabledPlugins", out ConfigPlugins))
-						{
-							FilterPluginNames.AddRange(ConfigPlugins);
-						}
-					}
 
 					// Update the plugin list for game targets
 					if(Rules.Type != TargetRules.TargetType.Program && UnrealBuildTool.HasUProjectFile())

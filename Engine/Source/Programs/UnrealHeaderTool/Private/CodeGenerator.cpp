@@ -11,6 +11,7 @@
 #include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "StringUtils.h"
+#include "IPluginManager.h"
 
 /////////////////////////////////////////////////////
 // Globals
@@ -4368,14 +4369,18 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 /** Get all script plugins based on ini setting */
 void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 {
-	TArray<FString> ScriptPluginNames;
-	GConfig->GetArray(TEXT("Plugins"), TEXT("ScriptPlugins"), ScriptPluginNames, GEngineIni);
-	for (auto& PluginName : ScriptPluginNames)
+	const FString CodeGeneratorPluginCategory(TEXT("UnrealHeaderTool.Code Generator"));
+	const TArray<FPluginStatus> Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
+	for (auto PluginIt(Plugins.CreateConstIterator()); PluginIt; ++PluginIt)
 	{
-		auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginName);
-		if (GeneratorInterface)
+		const auto& PluginStatus = *PluginIt;
+		if (PluginStatus.bIsEnabled && PluginStatus.CategoryPath.StartsWith(CodeGeneratorPluginCategory))
 		{
-			ScriptPlugins.Add(GeneratorInterface);
+			auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginStatus.Name);
+			if (GeneratorInterface)
+			{
+				ScriptPlugins.Add(GeneratorInterface);
+			}
 		}
 	}
 

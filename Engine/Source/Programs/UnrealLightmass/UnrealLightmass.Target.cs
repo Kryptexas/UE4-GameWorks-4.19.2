@@ -8,6 +8,7 @@ public class UnrealLightmassTarget : TargetRules
 	public UnrealLightmassTarget(TargetInfo Target)
 	{
 		Type = TargetType.Program;
+		AdditionalPlugins.Add("UdpMessaging");
 	}
 
 	//
