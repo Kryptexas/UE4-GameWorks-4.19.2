@@ -812,6 +812,9 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 				if(Radius > 0 && !bSimpleDynamicLighting)
 				{
+					// matching AdjustGBufferRefCount(-1) call is in FRCPassPostProcessSubsurface::Process()
+					GSceneRenderTargets.AdjustGBufferRefCount(1);
+
 					FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup());
 					PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 

@@ -385,6 +385,9 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 			EDRF_UseTriangleOptimization);
 
 		Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+		// matching AdjustGBufferRefCount(1) call is PostProcessing.cpp
+		GSceneRenderTargets.AdjustGBufferRefCount(-1);
 	}
 }
 
