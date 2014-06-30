@@ -517,15 +517,15 @@ void FSpriteEditor::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 
-			ToolbarBuilder.BeginSection("Mode");
-			{
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
-				//@TODO: PAPER2D: Re-enable once it does something: ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterAddSpriteMode);
-			}
-			ToolbarBuilder.EndSection();
+// 			ToolbarBuilder.BeginSection("Mode");
+// 			{
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
+// 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
+// 				//@TODO: PAPER2D: Re-enable once it does something: ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterAddSpriteMode);
+// 			}
+// 			ToolbarBuilder.EndSection();
 		}
 	};
 
@@ -538,10 +538,16 @@ void FSpriteEditor::ExtendToolbar()
 		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar )
 		);
 
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		ViewportPtr->GetCommandList(),
+		FToolBarExtensionDelegate::CreateSP(this, &FSpriteEditor::CreateModeToolbarWidgets));
+
 	AddToolbarExtender(ToolbarExtender);
 
  	IPaper2DEditorModule* Paper2DEditorModule = &FModuleManager::LoadModuleChecked<IPaper2DEditorModule>("Paper2DEditor");
- 	AddToolbarExtender(Paper2DEditorModule->GetSpriteEditorToolBarExtensibilityManager()->GetAllExtenders());
+	AddToolbarExtender(Paper2DEditorModule->GetSpriteEditorToolBarExtensibilityManager()->GetAllExtenders());
 }
 
 void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
@@ -558,6 +564,17 @@ void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
 		RemoveEditingObject(OldSprite);
 		AddEditingObject(NewSprite);
 	}
+}
+
+
+void FSpriteEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
+{
+	FToolBarBuilder ToolbarBuilder(ViewportPtr->GetCommandList(), FMultiBoxCustomization::None);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
+	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);
+	AddToolbarWidget(ToolbarBuilder.MakeWidget());
 }
 
 //////////////////////////////////////////////////////////////////////////
