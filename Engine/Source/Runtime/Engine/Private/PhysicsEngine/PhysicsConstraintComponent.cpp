@@ -401,8 +401,8 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 	ConstraintInstance.SecAxis1 = A1Transform.InverseTransformVectorNoScale(WOrth);
 
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);
-	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(WPri);
-	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(WOrth);
+	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WPri));
+	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WOrth));
 }
 
 #if WITH_EDITOR

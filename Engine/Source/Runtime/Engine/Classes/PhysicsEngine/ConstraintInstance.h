@@ -240,6 +240,11 @@ struct ENGINE_API FConstraintInstance
 	/** Damping of the twist limit constraint if soft limit is used for twist motions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bTwistLimitSoft", ClampMin = "0.0"))
 	float TwistLimitDamping;
+
+	/** Specifies the angular offset between the two frames of reference. By default limit goes from (-Angle, +Angle)
+	  * This allows you to bias the limit for swing1 swing2 and twist. */
+	UPROPERTY(EditAnywhere, Category = Angular)
+	FRotator AngularRotationOffset;
 	
 	/** Whether it is possible to break the joint with angular force. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular)
