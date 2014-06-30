@@ -1130,20 +1130,6 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,		COND_SimulatedOnly );
 }
 
-void ACharacter::UpdateFromCompressedFlags(uint8 Flags)
-{
-	const bool bWasJumping = bPressedJump;
-
-	bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);	
-	CharacterMovement->bWantsToCrouch = ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0);
-
-	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
-	if (!bWasJumping && bPressedJump)
-	{
-		JumpKeyHoldTime = 0.0f;
-	}
-}
-
 bool ACharacter::IsPlayingRootMotion() const
 {
 	return (GetRootMotionAnimMontageInstance() != NULL);

@@ -1358,6 +1358,9 @@ protected:
 	/* Process a move at the given time stamp, given the compressed flags representing various events that occurred (ie jump). */
 	virtual void MoveAutonomous( float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel);
 
+	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
+	virtual void UpdateFromCompressedFlags(uint8 Flags);
+
 public:
 
 	/** React to instantaneous change in position. Invalidates cached floor recomputes it if possible if there is a current movement base. */

@@ -5408,7 +5408,7 @@ void UCharacterMovementComponent::MoveAutonomous
 		return;
 	}
 
-	CharacterOwner->UpdateFromCompressedFlags(CompressedFlags);
+	UpdateFromCompressedFlags(CompressedFlags);
 	CharacterOwner->CheckJumpInput(DeltaTime);
 
 	Acceleration = ConstrainInputAcceleration(NewAccel);
@@ -6356,5 +6356,22 @@ uint8 FSavedMove_Character::GetCompressedFlags() const
 	return Result;
 }
 
+void UCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
+{
+	if (!CharacterOwner)
+	{
+		return;
+	}
 
+	const bool bWasJumping = CharacterOwner->bPressedJump;
+
+	CharacterOwner->bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);	
+	bWantsToCrouch = ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0);
+
+	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
+	if (!bWasJumping && CharacterOwner->bPressedJump)
+	{
+		CharacterOwner->JumpKeyHoldTime = 0.0f;
+	}
+}
 

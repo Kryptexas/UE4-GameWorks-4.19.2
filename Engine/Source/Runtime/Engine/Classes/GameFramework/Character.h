@@ -507,8 +507,8 @@ public:
 	 */
 	virtual float GetJumpMaxHoldTime() const;
 
-	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
-	virtual void UpdateFromCompressedFlags(uint8 Flags);
+	DEPRECATED(4.4, "UpdateFromCompressedFlags has moved to UCharacterMovementComponent")
+	virtual void UpdateFromCompressedFlags(uint8 Flags) { }
 
 public:
 	// Note: these network functions should be moved to the Character movement component. They are currently just wrappers that pass the calls to CharacterMovement.
