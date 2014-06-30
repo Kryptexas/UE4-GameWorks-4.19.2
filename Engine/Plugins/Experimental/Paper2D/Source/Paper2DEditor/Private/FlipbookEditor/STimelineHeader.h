@@ -28,33 +28,18 @@ public:
 
 		ChildSlot
 		[
-			SNew(SOverlay)
-
-			+ SOverlay::Slot()
-			[
-				SAssignNew(MainBoxPtr, SHorizontalBox)
-			]
-
-			+ SOverlay::Slot()
-			.Padding(TAttribute<FMargin>(this, &STimelineHeader::GetPlayTimePadding))
-			[
-				SNew(SBox)
-				.WidthOverride(SlateUnitsPerFrame.Get())
-				[
-					SNew(SSpacer)
-				]
-			]
+			SAssignNew(MainBoxPtr, SHorizontalBox)
 		];
 
 		Rebuild();
 	}
 
-	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
 	{
 		SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		int32 NewNumFrames = (Flipbook != NULL ? Flipbook->GetNumFrames() : 0);
+		int32 NewNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
 		if (NewNumFrames != NumFramesFromLastRebuild)
 		{
 			Rebuild();
@@ -68,7 +53,7 @@ private:
 
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
 		float LocalSlateUnitsPerFrame = SlateUnitsPerFrame.Get();
-		if (Flipbook && LocalSlateUnitsPerFrame > 0)
+		if ((Flipbook != nullptr) && (LocalSlateUnitsPerFrame > 0))
 		{
 			const int32 NumFrames = Flipbook->GetNumFrames();
 			for (int32 FrameIdx = 0; FrameIdx < NumFrames; ++FrameIdx)
@@ -93,13 +78,6 @@ private:
 			NumFramesFromLastRebuild = 0;
 		}
 	}
-
-	FMargin GetPlayTimePadding() const
-	{
-		float PlayTimePadding = PlayTime.Get() - SlateUnitsPerFrame.Get() / 2;
-		return FMargin(PlayTimePadding, 0, 0, 0);
-	}
-
 
 private:
 	TAttribute<float> SlateUnitsPerFrame;

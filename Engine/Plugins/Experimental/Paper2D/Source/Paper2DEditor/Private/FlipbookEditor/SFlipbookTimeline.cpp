@@ -23,7 +23,7 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 	PlayTime = InArgs._PlayTime;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
 
-	const int32 SlateUnitsPerFrame = 32;
+	SlateUnitsPerFrame = 32;
 	const int32 FrameHeight = 48;
 
 	ChildSlot
@@ -113,6 +113,36 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 		FScopedFlipbookMutator EditLock(ThisFlipbook);
 		EditLock.KeyFrames.Append(NewFrames);
 	}
+}
+
+int32 SFlipbookTimeline::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	LayerId = SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	const float CurrentTimeSecs = PlayTime.Get();
+	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
+	const float TotalTimeSecs = (Flipbook != nullptr) ? Flipbook->GetTotalDuration() : 0.0f;
+	const int32 TotalNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
+
+	const float SlateTotalDistance = SlateUnitsPerFrame * TotalNumFrames;
+	const float CurrentTimeXPos = (CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance;
+
+	++LayerId;
+	TArray<FVector2D> LinePoints;
+	LinePoints.Add(FVector2D(CurrentTimeXPos, 0.f));
+	LinePoints.Add(FVector2D(CurrentTimeXPos, AllottedGeometry.Size.Y));
+
+	FSlateDrawElement::MakeLines(
+		OutDrawElements,
+		LayerId,
+		AllottedGeometry.ToPaintGeometry(),
+		LinePoints,
+		MyClippingRect,
+		ESlateDrawEffect::None,
+		FLinearColor::Red
+		);
+
+	return LayerId;
 }
 
 //////////////////////////////////////////////////////////////////////////

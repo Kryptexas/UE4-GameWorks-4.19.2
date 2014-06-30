@@ -212,6 +212,8 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 	ViewInputMax = GetTotalSequenceLength();
 	LastObservedSequenceLength = ViewInputMax;
 
+	//@TODO: PAPER2D: Implement OnBeginSliderMovement/OnEndSliderMovement so that refreshing works, animation stops, etc...
+
 	TSharedRef<SWidget> ScrubControl = SNew(SScrubControlPanel)
 		.IsEnabled(true)
 		.Value(this, &FFlipbookEditor::GetPlaybackPosition)
@@ -232,8 +234,6 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 		.ViewInputMin(this, &FFlipbookEditor::GetViewRangeMin)
 		.ViewInputMax(this, &FFlipbookEditor::GetViewRangeMax)
 		.OnSetInputViewRange(this, &FFlipbookEditor::SetViewRange)
-//		.OnCropAnimSequence(this, &SAnimationScrubPanel::OnCropAnimSequence)
-//		.OnReZeroAnimSequence(this, &SAnimationScrubPanel::OnReZeroAnimSequence)
 		.bAllowZoom(true)
 		.IsRealtimeStreamingMode(false)
 		.bLastFrameIsFirstFrame(false);
@@ -273,6 +273,7 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 				SNew(SFlipbookTimeline, GetToolkitCommands())
 				.FlipbookBeingEdited(this, &FFlipbookEditor::GetFlipbookBeingEdited)
 				.OnSelectionChanged(this, &FFlipbookEditor::SetSelection)
+				.PlayTime(this, &FFlipbookEditor::GetPlaybackPosition)
 			]
 
 			+SVerticalBox::Slot()
