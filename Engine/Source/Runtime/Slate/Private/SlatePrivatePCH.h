@@ -31,3 +31,4 @@
 #include "EditableTextBoxWidgetStyle.h"
 #include "ProgressWidgetStyle.h"
 #include "ScrollBoxWidgetStyle.h"
+#include "ScrollBarWidgetStyle.h"

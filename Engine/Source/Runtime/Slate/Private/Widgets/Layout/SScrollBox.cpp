@@ -149,6 +149,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 		ScrollBar = 
 			SNew( SScrollBar)
 			.Thickness(FVector2D(5.0f, 5.0f))
+			.Style( InArgs._BarStyle )
 			.OnUserScrolled(this, &SScrollBox::ScrollBar_OnUserScrolled);
 
 		PanelAndScrollbar->AddSlot()
