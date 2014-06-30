@@ -87,7 +87,7 @@ private:
 					.WidthOverride( TAttribute<FOptionalSize>::Create( TAttribute<FOptionalSize>::FGetter::CreateSP(this, &STimelineTrack::GetFrameWidth, KeyFrameIdx) ) )
 					[
 						SNew(SBorder)
-						.BorderImage(FEditorStyle::GetBrush("FlipbookEditor.RegionBorder"))
+						.BorderImage(FEditorStyle::GetBrush("FlipbookEditor.RegionBody"))
 						.BorderBackgroundColor_Static(BorderColorDelegate, FlipbookBeingEdited, KeyFrameIdx)
 						.OnMouseButtonUp(this, &STimelineTrack::KeyframeOnMouseButtonUp, KeyFrameIdx)
 						[
