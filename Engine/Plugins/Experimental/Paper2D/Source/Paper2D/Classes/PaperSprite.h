@@ -80,7 +80,7 @@ protected:
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
 
 	// The scaling factor between pixels and Unreal units (cm) (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
-	UPROPERTY(Category = Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta = (DisplayName = "Pixels per unit"))
 	float PixelsPerUnrealUnit;
 
 public:
