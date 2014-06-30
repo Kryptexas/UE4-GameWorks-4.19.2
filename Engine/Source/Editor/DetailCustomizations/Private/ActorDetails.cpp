@@ -436,31 +436,32 @@ void FActorDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& Detail
 
 		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Transform);
 
-		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString);
+		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
+			.WholeRowContent()
+			[
+				SNew(SHorizontalBox)
+				.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+				.Visibility(EVisibility::Visible)
 
-		WarningCategory.AddCustomRow(SearchString)
-		.WholeRowContent()
-		[
-			SNew(SHorizontalBox)
-			.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-			[
-				SNew(SImage)
-				.Image(WarningIcon)
-			]
-			+SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-			[
-				SNew(STextBlock)
-				.Text(WarningText)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-			]
-		];
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(SImage)
+					.Image(WarningIcon)
+				]
+
+				+SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(STextBlock)
+					.Text(WarningText)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			];
 	}
 }
 
