@@ -2455,7 +2455,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 {
 	UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(NewPreviewExpression);
 
-	if( PreviewExpression == NewPreviewExpression || NULL == NewPreviewExpression )
+	if (!NewPreviewExpression || PreviewExpression == NewPreviewExpression)
 	{
 		if (FunctionOutput)
 		{
