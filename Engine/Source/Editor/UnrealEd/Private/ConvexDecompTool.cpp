@@ -6,6 +6,7 @@
 
 #include "UnrealEd.h"
 #include "ThirdParty/HACD/HACD_1.0/public/HACD.h"
+#include "ConvexDecompTool.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogConvexDecompTool, Log, All);
 
@@ -25,7 +26,7 @@ public:
 	}
 };
 
-UNREALED_API void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, int32 InMaxHullCount, int32 InMaxHullVerts)
+void DecomposeMeshToHulls(UBodySetup* InBodySetup, const TArray<FVector>& InVertices, const TArray<uint32>& InIndices, int32 InMaxHullCount, int32 InMaxHullVerts)
 {
 	check(InBodySetup != NULL);
 

@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_ActorBase.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType_VectorBase.h"
@@ -90,9 +91,6 @@ FString UEnvQueryTypes::DescribeBoolParam(const FEnvBoolParam& Param)
 
 	return Param.Value ? TEXT("true") : TEXT("false");
 }
-
-FEnvDirection::~FEnvDirection()
-{ }
 
 FText FEnvDirection::ToText() const
 {

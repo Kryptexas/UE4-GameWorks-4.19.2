@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "Tickable.h"
-
 /**
  * This class provides common registration for gamethread editor only tickable objects. It is an
  * abstract base class requiring you to implement the Tick() method.

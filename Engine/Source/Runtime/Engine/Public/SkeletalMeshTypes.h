@@ -14,8 +14,6 @@
 #include "GPUSkinPublicDefs.h"
 #include "Components/PrimitiveComponent.h"
 #include "PrimitiveSceneProxy.h"
-#include "Misc/OutputDevice.h"
-#include "EngineLogs.h"
 
 // Define that controls showing chart of distance factors for skel meshes during entire run of the game on exit.
 #define CHART_DISTANCE_FACTORS 0
@@ -127,17 +125,17 @@ struct FMeshBoneInfo
 	FMeshBoneInfo() : Name(NAME_None), ParentIndex(INDEX_NONE) {}
 
 	FMeshBoneInfo(const FName & InName, const FString& InExportName, int32 InParentIndex)
-		:	Name(InName)
+	:	Name(InName)
 #if WITH_EDITORONLY_DATA
-		,	ExportName(InExportName)
+	, ExportName(InExportName)
 #endif
-		,	ParentIndex(InParentIndex)
+	,	ParentIndex(InParentIndex)
 	{}
 
 	FMeshBoneInfo(const FMeshBoneInfo & Other)
 		:	Name(Other.Name)
 #if WITH_EDITORONLY_DATA
-		,	ExportName(Other.ExportName)
+		, ExportName(Other.ExportName)
 #endif
 		,	ParentIndex(Other.ParentIndex)
 	{}

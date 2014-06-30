@@ -9,7 +9,6 @@
 #include "SoundBase.generated.h"
 
 struct FActiveSound;
-struct FAttenuationSettings;
 struct FSoundParseParameters;
 struct FWaveInstance;
 class  USoundClass;

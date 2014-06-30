@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "PackageAutoSaver.h"
 #include "PackageRestore.h"
+#include "Json.h"
 
 namespace PackageAutoSaverJson
 {

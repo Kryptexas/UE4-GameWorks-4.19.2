@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "TickableEditorObject.h"
 #include "AutoReimportManager.generated.h"
 
 /* Deals with auto reimporting of objects when the objects file on disk is modified*/

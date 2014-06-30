@@ -6,8 +6,6 @@
  */
 
 #pragma once
-#include "Animation/EditorAnimBaseObj.h"
-#include "Animation/AnimMontage.h"
 #include "EditorBranchPoint.generated.h"
 
 

@@ -2,7 +2,6 @@
 
 
 #pragma once
-#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryPhysicsAsset.generated.h"
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)

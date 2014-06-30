@@ -2,6 +2,7 @@
 
 
 #include "UnrealEd.h"
+#include "BusyCursor.h"
 #include "ReferencedAssetsUtils.h"
 #include "AssetRegistryModule.h"
 
@@ -182,8 +183,8 @@ FFindAssetsArchive::FFindAssetsArchive(
 	bool bIncludeDefaults/*=false*/,
 	bool bReverseReferenceGraph/*=false*/ ) 
 : StartObject(Search), AssetList(OutAssetList), CurrentReferenceGraph(ReferenceGraph)
-, bIncludeScriptRefs(bIncludeClasses), bIncludeDefaultRefs(bIncludeDefaults), MaxRecursionDepth(MaxRecursion)
-, CurrentDepth(0), bUseReverseReferenceGraph(bReverseReferenceGraph)
+, bIncludeScriptRefs(bIncludeClasses), bIncludeDefaultRefs(bIncludeDefaults), MaxRecursionDepth(MaxRecursion), bUseReverseReferenceGraph(bReverseReferenceGraph)
+, CurrentDepth(0)
 {
 	ArIsObjectReferenceCollector = true;
 	ArIsModifyingWeakAndStrongReferences = true; // While we are not modifying them, we want to follow weak references as well

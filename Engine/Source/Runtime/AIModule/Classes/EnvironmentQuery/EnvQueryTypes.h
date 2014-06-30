@@ -3,7 +3,6 @@
 #pragma once
 
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
-#include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvQueryTypes.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
@@ -273,8 +272,6 @@ USTRUCT()
 struct AIMODULE_API FEnvDirection
 {
 	GENERATED_USTRUCT_BODY()
-
-	~FEnvDirection();
 
 	/** line A: start context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "BlueprintNodeHelpers.h"
 
 namespace BlueprintNodeHelpers
 {
@@ -75,7 +76,7 @@ namespace BlueprintNodeHelpers
 		}
 	}
 
-	AIMODULE_API FString DescribeProperty(const UProperty* Prop, const uint8* PropertyAddr)
+	FString DescribeProperty(const UProperty* Prop, const uint8* PropertyAddr)
 	{
 		FString ExportedStringValue;
 		const UStructProperty* StructProp = Cast<const UStructProperty>(Prop);

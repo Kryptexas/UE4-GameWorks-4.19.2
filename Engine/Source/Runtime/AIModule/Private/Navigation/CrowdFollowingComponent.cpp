@@ -4,6 +4,7 @@
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Navigation/CrowdManager.h"
 #include "Navigation/NavigationComponent.h"
+#include "AI/Navigation/NavLinkCustomInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 

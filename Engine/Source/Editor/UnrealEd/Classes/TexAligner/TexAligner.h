@@ -10,8 +10,6 @@
 
 #include "TexAligner.generated.h"
 
-class FPoly;
-
 /** Alignment types. */
 UENUM()
 enum ETexAlign

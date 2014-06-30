@@ -5,7 +5,6 @@
 //=============================================================================
 
 #pragma once
-#include "Exporters/Exporter.h"
 #include "AnimSequenceExporterFBX.generated.h"
 
 UCLASS()

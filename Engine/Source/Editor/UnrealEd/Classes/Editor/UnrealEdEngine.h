@@ -6,8 +6,6 @@
 #include "ComponentVisualizerManager.h"
 #include "UnrealEdEngine.generated.h"
 
-class IEngineLoop;
-
 UENUM()
 enum EPackageNotifyState
 {

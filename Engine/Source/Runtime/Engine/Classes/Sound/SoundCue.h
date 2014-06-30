@@ -3,7 +3,6 @@
 #pragma once
 
 #include "SoundClass.h"
-#include "Sound/SoundAttenuation.h"
 #include "Sound/SoundBase.h"
 
 #include "SoundCue.generated.h"

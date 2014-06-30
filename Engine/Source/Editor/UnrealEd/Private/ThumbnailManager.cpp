@@ -2,6 +2,8 @@
 
 #include "UnrealEd.h"
 
+#include "SoundDefinitions.h"
+#include "BlueprintUtilities.h"
 #include "ImageUtils.h"
 
 #include "ISourceControlModule.h"

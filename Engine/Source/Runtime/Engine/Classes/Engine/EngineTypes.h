@@ -7,7 +7,6 @@
  *	use in multiple files where the enum can't be mapped to a specific file.
  */
 #include "NetSerialization.h"
-#include "UObject/NameTypes.h"
 #include "EngineTypes.generated.h"
 
 UENUM()

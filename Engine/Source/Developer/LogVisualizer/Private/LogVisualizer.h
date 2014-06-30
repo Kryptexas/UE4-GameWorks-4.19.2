@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "VisualLog.h"
+
 #if ENABLE_VISUAL_LOG
 
 class FVisualLog;

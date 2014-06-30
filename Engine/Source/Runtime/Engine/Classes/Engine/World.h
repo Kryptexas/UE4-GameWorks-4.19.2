@@ -24,10 +24,6 @@ class ABrush;
 class UModel;
 class APhysicsVolume;
 class UTexture2D;
-class AController;
-class APlayerController;
-class APawn;
-class ULevel;
 
 template<typename,typename> class TOctree;
 
@@ -38,7 +34,7 @@ template<typename,typename> class TOctree;
 typedef TArray<TAutoWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
-typedef TArray<ULevel*>::TConstIterator FConstLevelIterator;
+typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
 

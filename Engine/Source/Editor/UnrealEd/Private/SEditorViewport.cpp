@@ -5,6 +5,7 @@
 #include "EditorViewportClient.h"
 #include "SceneViewport.h"
 #include "EditorViewportCommands.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "EditorViewport"
 

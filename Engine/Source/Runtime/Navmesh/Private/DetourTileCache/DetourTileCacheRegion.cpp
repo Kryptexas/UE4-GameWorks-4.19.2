@@ -25,6 +25,9 @@
 #include "DetourAssert.h"
 #include "DetourTileCacheBuilder.h"
 #include <string.h>
+#include <float.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 static const unsigned short DT_BORDER_REG = 0x8000;
 

@@ -2,7 +2,6 @@
 
 
 #pragma once
-#include "Components/SkeletalMeshComponent.h"
 #include "DebugSkelMeshComponent.generated.h"
 
 USTRUCT()

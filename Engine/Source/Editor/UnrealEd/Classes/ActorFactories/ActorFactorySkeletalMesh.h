@@ -2,10 +2,7 @@
 
 
 #pragma once
-#include "ActorFactories/ActorFactory.h"
 #include "ActorFactorySkeletalMesh.generated.h"
-
-class USkeletalMesh;
 
 UCLASS(MinimalAPI, config=Editor)
 class UActorFactorySkeletalMesh : public UActorFactory

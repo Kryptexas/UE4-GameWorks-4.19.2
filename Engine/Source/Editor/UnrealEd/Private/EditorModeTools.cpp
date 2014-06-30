@@ -2,7 +2,9 @@
 
 
 #include "UnrealEd.h"
-#include "EditorModeTools.h"
+#include "SurfaceIterators.h"
+#include "BSPOps.h"
+
 
 FModeTool::FModeTool():
 	ID( MT_None ),

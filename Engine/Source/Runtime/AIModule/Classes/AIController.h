@@ -240,7 +240,7 @@ public:
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 
 #if ENABLE_VISUAL_LOG
-	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const;
+	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const override;
 #endif
 
 	virtual void Reset() override;

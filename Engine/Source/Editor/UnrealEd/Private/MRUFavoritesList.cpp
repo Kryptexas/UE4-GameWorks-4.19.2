@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "MRUFavoritesList.h"
+#include "ConfigCacheIni.h"
 
 const FString FMainMRUFavoritesList::FAVORITES_INI_SECTION = TEXT("FavoriteFiles");
 

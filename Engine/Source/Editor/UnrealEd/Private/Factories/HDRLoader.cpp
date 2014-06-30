@@ -4,6 +4,7 @@
 #include "UnrealEd.h"
 #include "HDRLoader.h"
 #include "DDSLoader.h"
+#include "Collision.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHDRLoader, Log, All);
 

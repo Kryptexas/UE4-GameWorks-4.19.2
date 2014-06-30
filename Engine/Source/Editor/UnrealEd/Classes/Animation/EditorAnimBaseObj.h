@@ -10,7 +10,6 @@
 
 DECLARE_DELEGATE_TwoParams( FOnAnimObjectChange, class UObject*, bool)
 
-class UAnimSequenceBase;
 
 UCLASS(abstract, MinimalAPI)
 class UEditorAnimBaseObj: public UObject

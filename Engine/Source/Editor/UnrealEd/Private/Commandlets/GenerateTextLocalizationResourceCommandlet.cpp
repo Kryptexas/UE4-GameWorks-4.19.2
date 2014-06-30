@@ -2,9 +2,11 @@
 
 #include "UnrealEd.h"
 #include "TextLocalizationResourceGenerator.h"
+#include "Json.h"
 #include "InternationalizationManifest.h"
+#include "InternationalizationManifestJsonSerializer.h"
+#include "InternationalizationArchive.h"
 #include "InternationalizationArchiveJsonSerializer.h"
-#include "Internationalization/InternationalizationManifestJsonSerializer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGenerateTextLocalizationResourceCommandlet, Log, All);
 

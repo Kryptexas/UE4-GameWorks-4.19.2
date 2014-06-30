@@ -2,10 +2,10 @@
 
 #pragma once
 
+#include "STimeline.h"
 #include "Debug/DebugDrawService.h"
 
 class SLogFilterList;
-class STimeline;
 
 struct FLogsListItem
 {

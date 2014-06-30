@@ -20,6 +20,7 @@
 //
 
 #include "NavmeshModulePrivatePCH.h"
+#include <math.h>
 #include "DebugDraw.h"
 #include "DetourDebugDraw.h"
 #include "DetourNavMesh.h"

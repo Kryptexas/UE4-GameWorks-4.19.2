@@ -4,7 +4,7 @@
 
 #include "LightComponentBase.h"
 #include "SceneTypes.h"
-#include "EngineDefines.h"
+
 #include "LightComponent.generated.h"
 
 /** 

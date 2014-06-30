@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizerPCH.h"
+#include "CollisionDebugDrawingPublic.h"
 
 #if ENABLE_VISUAL_LOG
-#include "VisualLog.h"
-
 //////////////////////////////////////////////////////////////////////////
 
 void FLogVisualizer::SummonUI(UWorld* InWorld) 

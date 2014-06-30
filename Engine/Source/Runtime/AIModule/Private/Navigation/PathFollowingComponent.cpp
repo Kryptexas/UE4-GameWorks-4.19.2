@@ -10,6 +10,7 @@
 #include "GameFramework/NavMovementComponent.h"
 #include "GameFramework/Character.h"
 #include "Engine/Canvas.h"
+#include "TimerManager.h"
 
 #include "Navigation/PathFollowingComponent.h"
 

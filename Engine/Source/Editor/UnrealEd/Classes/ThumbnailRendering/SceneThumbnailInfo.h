@@ -5,7 +5,6 @@
  */
 
 #pragma once
-#include "EditorFramework/ThumbnailInfo.h"
 #include "SceneThumbnailInfo.generated.h"
 
 

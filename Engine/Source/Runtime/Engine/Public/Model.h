@@ -16,8 +16,6 @@ class ABrush;
 class UModel;
 class ULightComponent;
 class UPolys;
-class UMaterialInterface;
-class ULevel;
 
 //
 // One vertex associated with a Bsp node's polygon.  Contains a vertex index

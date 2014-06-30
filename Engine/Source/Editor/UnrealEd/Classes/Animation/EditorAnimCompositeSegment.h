@@ -6,8 +6,6 @@
  */
 
 #pragma once
-#include "Animation/EditorAnimBaseObj.h"
-#include "Animation/AnimCompositeBase.h"
 #include "EditorAnimCompositeSegment.generated.h"
 
 DECLARE_DELEGATE_OneParam( FOnAnimSegmentChanged, class UEditorAnimSegment*)

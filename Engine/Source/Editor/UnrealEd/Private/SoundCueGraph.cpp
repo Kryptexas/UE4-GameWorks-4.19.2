@@ -4,7 +4,7 @@
 // USoundCueGraph
 
 #include "UnrealEd.h"
-#include "SoundCueGraph/SoundCueGraph.h"
+#include "SoundDefinitions.h"
 
 USoundCueGraph::USoundCueGraph(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

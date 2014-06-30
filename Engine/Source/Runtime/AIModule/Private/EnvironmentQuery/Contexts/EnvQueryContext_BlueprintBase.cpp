@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "BlueprintNodeHelpers.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_BlueprintBase.h"
 #include "EnvironmentQuery/Items/EnvQueryAllItemTypes.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"

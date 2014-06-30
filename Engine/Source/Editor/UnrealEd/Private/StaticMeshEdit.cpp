@@ -6,8 +6,11 @@
 
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
+#include "Factories.h"
+#include "TextureLayout.h"
 #include "BSPOps.h"
 #include "RawMesh.h"
+#include "MeshUtilities.h"
 
 bool GBuildStaticMeshCollision = 1;
 

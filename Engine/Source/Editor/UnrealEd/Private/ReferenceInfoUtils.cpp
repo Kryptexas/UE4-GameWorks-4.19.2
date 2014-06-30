@@ -1,8 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "AssetRegistryModule.h"
 #include "../Private/ReferenceInfoUtils.h"
+#include "AssetRegistryModule.h"
+#include "Editor/MainFrame/Public/MainFrame.h"
 
 void ExecuteReferenceInfo(const TArray<FString>& Args, UWorld* InWorld )
 {

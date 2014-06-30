@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeManager.h"
 #if WITH_EDITOR
 #include "Kismet2/KismetEditorUtilities.h"

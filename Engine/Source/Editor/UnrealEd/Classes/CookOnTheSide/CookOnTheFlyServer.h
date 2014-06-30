@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "TickableEditorObject.h"
 #include "CookOnTheFlyServer.generated.h"
 
 
@@ -116,7 +115,7 @@ private:
 	};
 
 public:
-	virtual ~UCookOnTheFlyServer();
+
 
 	template<typename Type>
 	struct FThreadSafeQueue : public FUnsyncronizedQueue<Type, FCriticalSection, FScopeLock>
