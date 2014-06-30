@@ -297,8 +297,8 @@ namespace MarkdownSharp.Doxygen
                                 // ignore compound
                                 break;
                             default:
-                                throw new InvalidOperationException(Language.Message("DoxygenCompoundKindNotSupported",
-                                                                                     compound.GetAttribute("kind", "")));
+                                //throw new InvalidOperationException(Language.Message("DoxygenCompoundKindNotSupported", compound.GetAttribute("kind", "")));
+                                break;
                         }
                     }
                 }
