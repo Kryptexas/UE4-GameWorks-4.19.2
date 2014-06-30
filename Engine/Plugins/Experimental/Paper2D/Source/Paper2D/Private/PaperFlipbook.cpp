@@ -17,6 +17,11 @@ UPaperFlipbook::UPaperFlipbook(const FPostConstructInitializeProperties& PCIP)
 	FramesPerSecond = 15;
 }
 
+int32 UPaperFlipbook::GetFramesPerSecond() const
+{
+	return FramesPerSecond;
+}
+
 int32 UPaperFlipbook::GetNumFrames() const
 {
 	int32 SumFrames = 0;

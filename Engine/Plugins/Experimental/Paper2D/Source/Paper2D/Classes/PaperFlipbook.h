@@ -42,6 +42,9 @@ protected:
 	TArray<FPaperFlipbookKeyFrame> KeyFrames;
 
 public:
+	// Returns the nominal frame rate to play this flipbook animation back at
+	int32 GetFramesPerSecond() const;
+
 	// Returns the total number of frames
 	int32 GetNumFrames() const;
 
