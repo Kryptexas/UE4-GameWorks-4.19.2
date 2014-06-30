@@ -10,7 +10,6 @@
 //@todo-rco: Remove STL!
 #include <algorithm>
 #include <stack>
-#include <sstream>
 #include <vector>
 #include "mesa/ir_basic_block.h"
 

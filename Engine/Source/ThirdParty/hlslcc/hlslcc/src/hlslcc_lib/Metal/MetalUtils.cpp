@@ -16,7 +16,6 @@
 #include "../mesa/ir_optimization.h"
 #include "../Metal/MetalUtils.h"
 #include <algorithm>
-#include <stack>
 
 
 const bool bExpandVSInputsToFloat4 = false;

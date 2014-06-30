@@ -41,7 +41,6 @@
 #include "../IRDump.h"
 //@todo-rco: Remove STL!
 #include <sstream>
-#include <stack>
 //#define OPTIMIZE_ANON_STRUCTURES_OUT
 // We can't optimize them out presently, because apparently Windows Radeon
 // OpenGL driver chokes on valid GLSL code then.
@@ -1545,6 +1544,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 	{
 		if (constant->type == glsl_type::float_type
 			|| constant->type == glsl_type::half_type
+			|| constant->type == glsl_type::bool_type
 			|| constant->type == glsl_type::int_type
 			|| constant->type == glsl_type::uint_type)
 		{
@@ -2630,7 +2630,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			case GLSL_OUTPUTTOPOLOGY_TRIANGLE_CCW:
 				str << "triangles, cw";
 				break;
-		}
+			}
 
 			switch (tessellation.partitioning)
 			{

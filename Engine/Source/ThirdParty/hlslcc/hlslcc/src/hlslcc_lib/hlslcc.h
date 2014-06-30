@@ -12,7 +12,7 @@ extern "C" {
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 54,
+	HLSLCC_VersionMinor = 55,
 };
 
 /**

@@ -16,12 +16,6 @@
 #include "OptValueNumbering.h"
 #include "IRDump.h"
 
-//@todo-rco: Remove STL!
-// for std::sort
-#include <algorithm>
-#include <map>
-#include <set>
-
 extern int _mesa_hlsl_debug;
 
 /** Enable this define to time shader compilation. */

@@ -9,7 +9,6 @@
 #include "IRDump.h"
 //@todo-rco: Remove STL!
 #include <algorithm>
-#include <stack>
 #include <sstream>
 
 
@@ -1045,18 +1044,15 @@ bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_par
 
 struct FFixRedundantCastsVisitor : public ir_rvalue_visitor
 {
-	std::stack<ir_expression*> Stack;
 	FFixRedundantCastsVisitor() {}
 
 	virtual ir_visitor_status visit_enter(ir_expression* ir)
 	{
-		Stack.push(ir);
 		return ir_rvalue_visitor::visit_enter(ir);
 	}
 
 	virtual ir_visitor_status visit_leave(ir_expression* ir)
 	{
-		Stack.pop();
 		auto Result = ir_rvalue_visitor::visit_leave(ir);
 		return Result;
 	}
