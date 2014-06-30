@@ -4,6 +4,7 @@
 #include "SFlipbookTimeline.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/ScopedTransaction.h"
+#include "FlipbookEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -22,6 +23,7 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 	FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
 	PlayTime = InArgs._PlayTime;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
+	CommandList = InCommandList;
 
 	SlateUnitsPerFrame = 32;
 	const int32 FrameHeight = 48;
@@ -80,6 +82,7 @@ FReply SFlipbookTimeline::OnDrop(const FGeometry& MyGeometry, const FDragDropEve
 
 void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp)
 {
+	//@TODO: Support inserting in addition to dropping at the end
 	TArray<FPaperFlipbookKeyFrame> NewFrames;
 	for (const FAssetData& AssetData : DragDropOp.AssetData)
 	{
@@ -127,6 +130,7 @@ int32 SFlipbookTimeline::OnPaint(const FGeometry& AllottedGeometry, const FSlate
 	const float SlateTotalDistance = SlateUnitsPerFrame * TotalNumFrames;
 	const float CurrentTimeXPos = (CurrentTimeSecs / TotalTimeSecs) * SlateTotalDistance;
 
+	// Draw a line for the current scrub cursor
 	++LayerId;
 	TArray<FVector2D> LinePoints;
 	LinePoints.Add(FVector2D(CurrentTimeXPos, 0.f));
@@ -143,6 +147,36 @@ int32 SFlipbookTimeline::OnPaint(const FGeometry& AllottedGeometry, const FSlate
 		);
 
 	return LayerId;
+}
+
+TSharedRef<SWidget> SFlipbookTimeline::GenerateContextMenu()
+{
+	FMenuBuilder MenuBuilder(true, CommandList);
+	MenuBuilder.BeginSection("KeyframeActions", LOCTEXT("KeyframeActionsSectionHeader", "Keyframe Actions"));
+
+	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
+	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+	MenuBuilder.AddMenuEntry(FFlipbookEditorCommands::Get().AddNewFrame);
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+FReply SFlipbookTimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		TSharedRef<SWidget> MenuContents = GenerateContextMenu();
+		FSlateApplication::Get().PushMenu(AsShared(), MenuContents, MouseEvent.GetScreenSpacePosition(), FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+
+		return FReply::Handled();
+	}
+	else
+	{
+		return FReply::Unhandled();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

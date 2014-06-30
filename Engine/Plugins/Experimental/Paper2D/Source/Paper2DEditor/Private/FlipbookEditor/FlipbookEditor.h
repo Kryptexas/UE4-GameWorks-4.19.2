@@ -96,7 +96,9 @@ protected:
 	void DuplicateSelection();
 	void SetSelection(int32 NewSelection);
 	bool HasValidSelection() const;
-
+	void AddNewKeyFrameAtEnd();
+	void AddNewKeyFrameBefore();
+	void AddNewKeyFrameAfter();
 
 	FReply OnClick_Forward();
 	FReply OnClick_Forward_Step();
