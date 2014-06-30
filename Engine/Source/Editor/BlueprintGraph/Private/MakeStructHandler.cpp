@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "MakeStructHandler.h"
 #include "K2Node_MakeStruct.h"
+#include "KismetCompiler.h"
 
 #define LOCTEXT_NAMESPACE "FKCHandler_MakeStruct"
 
