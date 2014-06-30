@@ -9,6 +9,9 @@ UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SUniformGridPanel::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 UClass* UUniformGridPanel::GetSlotClass() const
@@ -38,7 +41,6 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 {
 	MyUniformGridPanel =
 		SNew(SUniformGridPanel)
-		.SlotPadding(SlotPadding)
 		.MinDesiredSlotWidth(MinDesiredSlotWidth)
 		.MinDesiredSlotHeight(MinDesiredSlotHeight);
 
@@ -52,4 +54,11 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 	}
 
 	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
+}
+
+void UUniformGridPanel::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyUniformGridPanel->SetSlotPadding(SlotPadding);
 }

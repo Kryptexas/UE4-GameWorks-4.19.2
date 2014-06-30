@@ -12,17 +12,17 @@ UCanvasPanelSlot::UCanvasPanelSlot(const FPostConstructInitializeProperties& PCI
 	LayoutData.Offsets = FMargin(0, 0, 100, 30);
 	LayoutData.Anchors = FAnchors(0.0f, 0.0f);
 	LayoutData.Alignment = FVector2D(0.0f, 0.0f);
+	ZOrder = 0;
 }
 
 void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 {
 	Slot = &Canvas->AddSlot()
-		.Offset(LayoutData.Offsets)
-		.Anchors(LayoutData.Anchors)
-		.Alignment(LayoutData.Alignment)
 		[
 			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
 		];
+
+	SyncronizeProperties();
 }
 
 void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
@@ -123,11 +123,21 @@ void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 	}
 }
 
+void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
+{
+	ZOrder = InZOrder;
+	if ( Slot )
+	{
+		Slot->ZOrder(InZOrder);
+	}
+}
+
 void UCanvasPanelSlot::SyncronizeProperties()
 {
 	SetOffset(LayoutData.Offsets);
 	SetAnchors(LayoutData.Anchors);
 	SetAlignment(LayoutData.Alignment);
+	SetZOrder(ZOrder);
 }
 
 #if WITH_EDITOR

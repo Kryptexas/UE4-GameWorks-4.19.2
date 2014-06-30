@@ -15,6 +15,10 @@ class UMG_API UEditableTextBox : public UWidget
 
 protected:
 
+	/** Style used for the text box */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
+	USlateWidgetStyleAsset* Style;
+
 	/** The text content for this editable text box widget */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
 	FText Text;
@@ -93,6 +97,9 @@ protected:
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetError(FText InError);
 	
 	// UWidget interface
 	virtual void SyncronizeProperties() override;

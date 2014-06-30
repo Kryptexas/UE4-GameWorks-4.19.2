@@ -11,7 +11,10 @@
 class SObjectWidget : public SCompoundWidget, public FGCObject
 {
 	SLATE_BEGIN_ARGS(SObjectWidget)
-	{ }
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
+
 		SLATE_DEFAULT_SLOT(FArguments, Content)
 	SLATE_END_ARGS()
 

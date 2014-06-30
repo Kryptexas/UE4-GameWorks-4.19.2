@@ -11,6 +11,9 @@ UScrollBox::UScrollBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SScrollBox::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 UClass* UScrollBox::GetSlotClass() const
@@ -38,7 +41,23 @@ void UScrollBox::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
-	MyScrollBox = SNew(SScrollBox);
+	const FScrollBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FScrollBoxStyle>() : NULL;
+	if ( StylePtr == NULL )
+	{
+		SScrollBox::FArguments Defaults;
+		StylePtr = Defaults._Style;
+	}
+
+	const FScrollBarStyle* BarStylePtr = ( BarStyle != NULL ) ? BarStyle->GetStyle<FScrollBarStyle>() : NULL;
+	if ( BarStylePtr == NULL )
+	{
+		SScrollBox::FArguments Defaults;
+		BarStylePtr = Defaults._BarStyle;
+	}
+
+	MyScrollBox = SNew(SScrollBox)
+		.Style(StylePtr)
+		.BarStyle(BarStylePtr);
 
 	for ( UPanelSlot* Slot : Slots )
 	{

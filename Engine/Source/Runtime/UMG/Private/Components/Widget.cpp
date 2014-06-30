@@ -90,14 +90,14 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 {
 	TSharedPtr<SWidget> SafeWidget;
 
+	UWidget* MutableThis = const_cast<UWidget*>( this );
+
 	if ( !MyWidget.IsValid() )
 	{
 		// We lie a bit about this being a const function.  If this is the first call it's not really const
 		// and we need to construct and cache the widget for the first run.  But instead of forcing everyone
 		// downstream to make RebuildWidget const and force every implementation to make things mutable, we
 		// just blow away the const here.
-		UWidget* MutableThis = const_cast<UWidget*>(this);
-		
 		SafeWidget = MutableThis->RebuildWidget();
 		MyWidget = SafeWidget;
 		MutableThis->SyncronizeProperties();
@@ -107,7 +107,18 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 		SafeWidget = MyWidget.Pin();
 	}
 
-	return SafeWidget.ToSharedRef();
+	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
+	if ( MutableThis->IsA(UUserWidget::StaticClass()) )
+	{
+		return SNew(SObjectWidget, Cast<UUserWidget>(MutableThis))
+		[
+			SafeWidget.ToSharedRef()
+		];
+	}
+	else
+	{
+		return SafeWidget.ToSharedRef();
+	}
 }
 
 TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)

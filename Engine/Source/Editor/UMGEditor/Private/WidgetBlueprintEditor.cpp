@@ -176,6 +176,13 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 			PreviewScene.GetWorld()->Tick(bIsRealTime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly, DeltaTime);
 		}
 	}
+
+	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
+	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
+	if ( PreviewWidgetActorPtr.IsStale(true) )
+	{
+		UpdatePreview(GetWidgetBlueprintObj(), true);
+	}
 }
 
 static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObject, UProperty* MemberProperty)
@@ -306,22 +313,6 @@ UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 
 UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 {
-	//// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	//if ( PreviewWidgetActorPtr.IsStale(true) )
-	//{
-	//	UWorld* PreviewWorld = PreviewWidgetActorPtr->GetWorld();
-	//	for ( TActorIterator<AActor> It(PreviewWorld); It; ++It )
-	//	{
-	//		AActor* Actor = *It;
-	//		if ( !Actor->IsPendingKillPending()
-	//			&& Actor->GetClass()->ClassGeneratedBy == PreviewBlueprint )
-	//		{
-	//			PreviewActorPtr = Actor;
-	//			break;
-	//		}
-	//	}
-	//}
-
 	return PreviewWidgetActorPtr.Get();
 }
 
@@ -401,7 +392,6 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();
-
 }
 
 UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()

@@ -9,6 +9,9 @@ UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SHorizontalBox::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 UClass* UHorizontalBox::GetSlotClass() const

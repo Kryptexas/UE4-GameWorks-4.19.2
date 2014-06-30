@@ -9,6 +9,9 @@ UOverlay::UOverlay(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SOverlay::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 UClass* UOverlay::GetSlotClass() const

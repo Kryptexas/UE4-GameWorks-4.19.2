@@ -9,6 +9,9 @@ UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = true;
+
+	SWidgetSwitcher::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 int32 UWidgetSwitcher::GetNumWidgets() const

@@ -35,6 +35,12 @@ public:
 			return *this;
 		}
 
+		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
+		{
+			ZOrderAttr = InZOrder;
+			return *this;
+		}
+
 		FSlot& operator[]( TSharedRef<SWidget> InWidget )
 		{
 			Widget = InWidget;
@@ -59,12 +65,16 @@ public:
 		/** Size */
 		TAttribute<FVector2D> AlignmentAttr;
 
+		/** Size */
+		TAttribute<int32> ZOrderAttr;
+
 		/** Default values for a slot. */
 		FSlot()
 			: Widget( SNullWidget::NullWidget )
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
 			, AnchorsAttr( FAnchors( 0.5f, 0.5f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
+			, ZOrderAttr( 0 )
 		{ }
 	};
 

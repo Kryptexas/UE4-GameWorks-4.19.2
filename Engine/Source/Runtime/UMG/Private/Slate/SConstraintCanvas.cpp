@@ -37,6 +37,19 @@ int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 	return -1;
 }
 
+struct FChildZOrder
+{
+	int32 ChildIndex;
+	int32 ZOrder;
+};
+
+struct FSortSlotsByZOrder
+{
+	FORCEINLINE bool operator()(const FChildZOrder& A, const FChildZOrder& B) const
+	{
+		return A.ZOrder < B.ZOrder;
+	}
+};
 
 /* SWidget overrides
  *****************************************************************************/
@@ -45,9 +58,25 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 {
 	if (Children.Num() > 0)
 	{
-		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
+		// Sort the children based on zorder.
+		TArray< FChildZOrder > SlotOrder;
+		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
 			const SConstraintCanvas::FSlot& CurChild = Children[ChildIndex];
+
+			FChildZOrder Order;
+			Order.ChildIndex = ChildIndex;
+			Order.ZOrder = CurChild.ZOrderAttr.Get();
+			SlotOrder.Add( Order );
+		}
+
+		SlotOrder.Sort(FSortSlotsByZOrder());
+
+		// Arrange the children now in their proper z-order.
+		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
+		{
+			const FChildZOrder& CurSlot = SlotOrder[ChildIndex];
+			const SConstraintCanvas::FSlot& CurChild = Children[CurSlot.ChildIndex];
 
 			const FMargin Offset = CurChild.OffsetAttr.Get();
 			const FVector2D Alignment = CurChild.AlignmentAttr.Get();
@@ -93,7 +122,7 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 				LocalPosition.Y = AnchorPixels.Top + Offset.Top - AlignmentOffset.Y;
 				LocalSize.Y = Size.Y;
 			}
-						
+			
 			// Add the information about this child to the output list (ArrangedChildren)
 			ArrangedChildren.AddWidget( AllottedGeometry.MakeChild(
 				// The child widget being arranged

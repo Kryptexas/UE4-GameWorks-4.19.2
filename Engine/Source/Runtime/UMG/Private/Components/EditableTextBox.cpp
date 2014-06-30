@@ -56,6 +56,12 @@ void UEditableTextBox::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
+	const FEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextBoxStyle>() : NULL;
+	if ( StylePtr )
+	{
+		MyEditableTextBlock->SetStyle(StylePtr);
+	}
+
 	MyEditableTextBlock->SetText(Text);
 	MyEditableTextBlock->SetHintText(HintText);
 	MyEditableTextBlock->SetIsReadOnly(IsReadOnly);
@@ -84,6 +90,14 @@ void UEditableTextBox::SetText(FText InText)
 	}
 }
 
+void UEditableTextBox::SetError(FText InError)
+{
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetError(InError);
+	}
+}
+
 void UEditableTextBox::SlateOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
@@ -93,7 +107,7 @@ void UEditableTextBox::SlateOnTextChanged(const FText& Text)
 
 const FSlateBrush* UEditableTextBox::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget.EditableTextBlock");
+	return FUMGStyle::Get().GetBrush("Widget.EditableTextBox");
 }
 
 #endif

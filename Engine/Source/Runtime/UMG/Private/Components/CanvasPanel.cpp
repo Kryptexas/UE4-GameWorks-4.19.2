@@ -44,6 +44,9 @@ UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 {
 	bIsVariable = false;
 	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
+
+	SConstraintCanvas::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
 }
 
 UClass* UCanvasPanel::GetSlotClass() const

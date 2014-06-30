@@ -9,6 +9,9 @@ UVerticalBox::UVerticalBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SVerticalBox::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity( Defaults._Visibility.Get() );
 }
 
 UClass* UVerticalBox::GetSlotClass() const

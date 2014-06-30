@@ -86,6 +86,7 @@ public:
 
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
 /**
@@ -114,6 +115,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
+
+	/** Called when the widget is constructed */
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	void Construct();
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);

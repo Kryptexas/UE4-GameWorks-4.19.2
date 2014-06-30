@@ -30,8 +30,12 @@ TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
 class SViewportWidgetHost : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(SViewportWidgetHost)
-	{ }
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
+
 		SLATE_DEFAULT_SLOT(FArguments, Content)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, bool bInModal)
@@ -44,10 +48,10 @@ class SViewportWidgetHost : public SCompoundWidget
 			];
 	}
 
-	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override
-	{
-		return true;
-	}
+	//virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override
+	//{
+	//	return false;
+	//}
 
 	virtual bool SupportsKeyboardFocus() const override
 	{
@@ -90,35 +94,35 @@ class SViewportWidgetHost : public SCompoundWidget
 	//	return FReply::Handled();
 	//}
 
-	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
+	//FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	//{
+	//	if ( bModal )
+	//	{
+	//		return FReply::Handled();
+	//	}
 
-		return FReply::Unhandled();
-	}
+	//	return FReply::Unhandled();
+	//}
 
-	FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
+	//FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	//{
+	//	if ( bModal )
+	//	{
+	//		return FReply::Handled();
+	//	}
 
-		return FReply::Unhandled();
-	}
+	//	return FReply::Unhandled();
+	//}
 
-	FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
+	//FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	//{
+	//	if ( bModal )
+	//	{
+	//		return FReply::Handled();
+	//	}
 
-		return FReply::Unhandled();
-	}
+	//	return FReply::Unhandled();
+	//}
 
 protected:
 	bool bModal;
@@ -139,6 +143,8 @@ UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	AbsoluteSize = FVector2D(100, 100);
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
+
+	Visiblity = ESlateVisibility::SelfHitTestInvisible;
 }
 
 void UUserWidget::PostInitProperties()
@@ -154,7 +160,7 @@ void UUserWidget::PostInitProperties()
 		BGClass->InitializeWidget(this);
 	}
 
-	//RebuildWidget();
+	//TODO UMG For non-BP versions how do we generate the Components list?
 }
 
 UWorld* UUserWidget::GetWorld() const
@@ -176,8 +182,6 @@ UWorld* UUserWidget::GetWorld() const
 
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	GetWidget();
-	
 	TWeakObjectPtr<UWidget> VisualWidget = WidgetToComponent.FindRef(InWidget);
 	return VisualWidget.Get();
 }
@@ -207,16 +211,14 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 		WidgetToComponent.Add(Widget, Handle);
 	}
 
-	return SNew(SObjectWidget, this)
-		[
-			UserRootWidget.ToSharedRef()
-		];
+	// Notify the widget that it has been constructed.
+	Construct();
+
+	return UserRootWidget.ToSharedRef();
 }
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
-	GetWidget();
-	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -230,8 +232,6 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 
 UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
-	GetWidget();
-	
 	for ( auto& Entry : WidgetToComponent )
 	{
 		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
@@ -279,8 +279,6 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 
 UWidget* UUserWidget::GetRootWidgetComponent()
 {
-	GetWidget();
-	
 	if ( Components.Num() > 0 )
 	{
 		return Components[0];
@@ -291,8 +289,6 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 
 void UUserWidget::Show()
 {
-	GetWidget();
-	
 	if ( !FullScreenWidget.IsValid() )
 	{
 		TSharedRef<SWidget> RootWidget = MakeFullScreenWidget();
@@ -326,8 +322,6 @@ void UUserWidget::Show()
 
 void UUserWidget::Hide()
 {
-	GetWidget();
-	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
@@ -356,15 +350,11 @@ void UUserWidget::Hide()
 
 bool UUserWidget::GetIsVisible()
 {
-	GetWidget();
-	
 	return FullScreenWidget.IsValid();
 }
 
 TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 {
-	GetWidget();
-	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();

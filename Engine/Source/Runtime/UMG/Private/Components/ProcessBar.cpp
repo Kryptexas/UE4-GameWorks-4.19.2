@@ -11,6 +11,7 @@ UProgressBar::UProgressBar(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	BarFillType = EProgressBarFillType::LeftToRight;
+	bIsMarquee = false;
 	Percent = 0;
 	FillColorAndOpacity = FLinearColor::White;
 	BorderPadding = FVector2D(1, 0);
@@ -30,8 +31,10 @@ void UProgressBar::SyncronizeProperties()
 	{
 		MyProgressBar->SetStyle(StylePtr);
 	}
-	
-	MyProgressBar->SetPercent(bOverride_Percent ? Percent : TOptional<float>());
+
+	TAttribute< TOptional<float> > PercentBinding = OPTIONAL_BINDING_CONVERT(float, Percent, TOptional<float>, ConvertFloatToOptionalFloat);
+
+	MyProgressBar->SetPercent(bIsMarquee ? TOptional<float>() : PercentBinding);
 	
 	MyProgressBar->SetBarFillType(BarFillType);
 	MyProgressBar->SetFillColorAndOpacity(FillColorAndOpacity);

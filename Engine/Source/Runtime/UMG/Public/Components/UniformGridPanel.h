@@ -22,6 +22,10 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 	UPROPERTY(EditDefaultsOnly, Category=Layout)
 	float MinDesiredSlotHeight;
 
+	// UWidget interface
+	virtual void SyncronizeProperties() override;
+	// End of UWidget interface
+
 protected:
 
 	// UPanelWidget

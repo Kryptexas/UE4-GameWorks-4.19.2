@@ -29,7 +29,13 @@ public:
 
 	// Common Bindings
 	DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FGetBool);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(float, FGetFloat);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(int32, FGetInt32);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
@@ -198,9 +204,17 @@ protected:
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
+protected:
+	//TODO UMG Consider moving conversion functions into another class.
+	// Conversion functions
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
 	{
 		return ConvertSerializedVisibilityToRuntime(SerializedType.Get());
+	}
+
+	TOptional<float> ConvertFloatToOptionalFloat(TAttribute<float> InFloat) const
+	{
+		return InFloat.Get();
 	}
 
 protected:
