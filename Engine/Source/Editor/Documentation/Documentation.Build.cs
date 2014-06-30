@@ -39,9 +39,12 @@ namespace UnrealBuildTool.Rules
                     "EditorStyle",
                     "UnrealEd",
 					"Analytics",
-					"SourceCodeAccess"
+					"SourceCodeAccess",
+					"SourceControl"
 				}
 			);
+
+			CircularlyReferencedDependentModules.Add("SourceControl");
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[]
