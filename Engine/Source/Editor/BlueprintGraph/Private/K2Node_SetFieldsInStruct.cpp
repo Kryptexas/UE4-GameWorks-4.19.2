@@ -69,12 +69,77 @@ FString UK2Node_SetFieldsInStruct::GetTooltip() const
 
 FName UK2Node_SetFieldsInStruct::GetPaletteIcon(FLinearColor& OutColor) const
 { 
-	return UK2Node::GetPaletteIcon(OutColor); 
+	return UK2Node_Variable::GetPaletteIcon(OutColor);
 }
 
 FNodeHandlingFunctor* UK2Node_SetFieldsInStruct::CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_SetFieldsInStruct(CompilerContext);
+}
+
+bool UK2Node_SetFieldsInStruct::ShowCustomPinActions(const UEdGraphPin* Pin, bool bIgnorePinsNum)
+{
+	const int32 MinimalPinsNum = 4;
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	const auto Node = Pin ? Cast<const UK2Node_SetFieldsInStruct>(Pin->GetOwningNodeUnchecked()) : NULL;
+	return Node
+		&& ((Node->Pins.Num() > MinimalPinsNum) || bIgnorePinsNum)
+		&& (EGPD_Input == Pin->Direction)
+		&& (Pin->PinName != SetFieldsInStructHelper::StructRefPinName())
+		&& !Schema->IsMetaPin(*Pin);
+}
+
+void UK2Node_SetFieldsInStruct::RemoveFieldPins(const UEdGraphPin* Pin, EPinsToRemove Selection)
+{
+	if (ShowCustomPinActions(Pin, false) && (Pin->GetOwningNodeUnchecked() == this))
+	{
+		bool bWasChanged = false;
+		for (FOptionalPinFromProperty& OptionalProperty : ShowPinForProperties)
+		{
+			const bool bHide = ((Pin->PinName == OptionalProperty.PropertyName.ToString()) == (Selection == EPinsToRemove::GivenPin));
+			if (OptionalProperty.bShowPin && bHide)
+			{
+				bWasChanged = true;
+				OptionalProperty.bShowPin = false;
+			}
+		}
+
+		if (bWasChanged)
+		{
+			ReconstructNode();
+		}
+	}
+}
+
+bool UK2Node_SetFieldsInStruct::AllPinsAreShown() const
+{
+	for (const FOptionalPinFromProperty& OptionalProperty : ShowPinForProperties)
+	{
+		if (!OptionalProperty.bShowPin)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void UK2Node_SetFieldsInStruct::RestoreAllPins()
+{
+	bool bWasChanged = false;
+	for (FOptionalPinFromProperty& OptionalProperty : ShowPinForProperties)
+	{
+		if (!OptionalProperty.bShowPin)
+		{
+			bWasChanged = true;
+			OptionalProperty.bShowPin = true;
+		}
+	}
+
+	if (bWasChanged)
+	{
+		ReconstructNode();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

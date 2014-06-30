@@ -20,4 +20,16 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	virtual bool IsNodePure() const override { return false; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End K2Node interface
+
+	BLUEPRINTGRAPH_API static bool ShowCustomPinActions(const UEdGraphPin* InGraphPin, bool bIgnorePinsNum);
+
+	enum EPinsToRemove
+	{
+		GivenPin,
+		AllOtherPins
+	};
+
+	BLUEPRINTGRAPH_API void RemoveFieldPins(const UEdGraphPin* InGraphPin, EPinsToRemove Selection);
+	BLUEPRINTGRAPH_API bool AllPinsAreShown() const;
+	BLUEPRINTGRAPH_API void RestoreAllPins();
 };

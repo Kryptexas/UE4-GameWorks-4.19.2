@@ -580,6 +580,15 @@ protected:
 	void OnRemoveExecutionPin();
 	bool CanRemoveExecutionPin() const;
 
+	void OnRemoveThisStructVarPin();
+	bool CanRemoveThisStructVarPin() const;
+
+	void OnRemoveOtherStructVarPins();
+	bool CanRemoveOtherStructVarPins() const;
+
+	void OnRestoreAllStructVarPins();
+	bool CanRestoreAllStructVarPins() const;
+
 	void OnAddOptionPin();
 	bool CanAddOptionPin() const;
 

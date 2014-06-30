@@ -32,6 +32,7 @@
 #include "K2Node_GetEnumeratorName.h"
 #include "K2Node_GetEnumeratorNameAsString.h"
 #include "K2Node_Tunnel.h"
+#include "K2Node_SetFieldsInStruct.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FBlueprintMetadata
@@ -831,6 +832,12 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					    MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().RemoveExecutionPin );
 				    }
 			    }
+
+				if (UK2Node_SetFieldsInStruct::ShowCustomPinActions(InGraphPin, true))
+				{
+					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RemoveThisStructVarPin);
+					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RemoveOtherStructVarPins);
+				}
 		    }
 		}
 		MenuBuilder->EndSection();
@@ -928,6 +935,11 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					{
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindVariableReferences);
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeVariableDefinition);
+					}
+
+					if (InGraphNode->IsA(UK2Node_SetFieldsInStruct::StaticClass()))
+					{
+						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RestoreAllStructVarPins);
 					}
 
 					MenuBuilder->AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames selected function or variable in blueprint.") );
@@ -3892,7 +3904,7 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 			}
 
 			// Check to see if the struct has a native make/break that we should try to convert to.
-			if(OldMakeStructNode->StructType && OldMakeStructNode->StructType->GetBoolMetaData(TEXT("HasNativeMake")))
+			if (OldMakeStructNode->StructType && OldMakeStructNode->StructType->HasMetaData(TEXT("HasNativeMake")))
 			{
 				UFunction* MakeNodeFunction = NULL;
 
@@ -3973,7 +3985,7 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 			}
 
 				// Check to see if the struct has a native make/break that we should try to convert to.
-			if(OldBreakStructNode->StructType && OldBreakStructNode->StructType->GetBoolMetaData(TEXT("HasNativeBreak")))
+			if (OldBreakStructNode->StructType && OldBreakStructNode->StructType->HasMetaData(TEXT("HasNativeBreak")))
 			{
 				UFunction* BreakNodeFunction = NULL;
 

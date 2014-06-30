@@ -24,6 +24,7 @@
 #include "K2Node_SwitchEnum.h"
 #include "K2Node_SwitchString.h"
 #include "K2Node_VariableSetRef.h"
+#include "K2Node_SetFieldsInStruct.h"
 
 #include "EdGraphSchema_K2_Actions.h"
 
@@ -1309,6 +1310,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			if ((K2Schema->PC_Struct == FromPin.PinType.PinCategory) && !FromPin.PinType.bIsArray)
 			{
 				UScriptStruct* PinStruct = Cast<UScriptStruct>(FromPin.PinType.PinSubCategoryObject.Get());
+				const bool bCanBeMade = UK2Node_MakeStruct::CanBeMade(PinStruct);
 				if ((FromPin.Direction == EGPD_Output) && UK2Node_BreakStruct::CanBeBroken(PinStruct))
 				{
 					UK2Node_BreakStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_BreakStruct>();
@@ -1316,9 +1318,17 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
 				}
-				else if ((FromPin.Direction == EGPD_Input) && UK2Node_MakeStruct::CanBeMade(PinStruct))
+				else if ((FromPin.Direction == EGPD_Input) && bCanBeMade)
 				{
 					UK2Node_MakeStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_MakeStruct>();
+					NodeTemplate->StructType = PinStruct;
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					Action->NodeTemplate = NodeTemplate;
+				}
+
+				if ((FromPin.Direction == EGPD_Output) && bCanBeMade)
+				{
+					UK2Node_SetFieldsInStruct* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_SetFieldsInStruct>();
 					NodeTemplate->StructType = PinStruct;
 					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 					Action->NodeTemplate = NodeTemplate;
@@ -1929,12 +1939,24 @@ void FK2ActionMenuBuilder::GetStructActions(FBlueprintGraphActionListBuilder& Co
 
 			if (UK2Node_MakeStruct::CanBeMade(Struct))
 			{
-				UK2Node_MakeStruct* MakeNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_MakeStruct>();
-				if( MakeNodeTemplate != NULL )
 				{
-					MakeNodeTemplate->StructType = Struct;
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, MakeNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), MakeNodeTemplate->GetTooltip(), 0, MakeNodeTemplate->GetKeywords());
-					Action->NodeTemplate = MakeNodeTemplate;
+					UK2Node_MakeStruct* MakeNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_MakeStruct>();
+					if (MakeNodeTemplate != NULL)
+					{
+						MakeNodeTemplate->StructType = Struct;
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, MakeNodeTemplate->GetNodeTitle(ENodeTitleType::ListView), MakeNodeTemplate->GetTooltip(), 0, MakeNodeTemplate->GetKeywords());
+						Action->NodeTemplate = MakeNodeTemplate;
+					}
+				}
+
+				{
+					UK2Node_SetFieldsInStruct* SetFieldsTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_SetFieldsInStruct>();
+					if (SetFieldsTemplate != NULL)
+					{
+						SetFieldsTemplate->StructType = Struct;
+						TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MakeStructCategory, SetFieldsTemplate->GetNodeTitle(ENodeTitleType::ListView), SetFieldsTemplate->GetTooltip(), 0, SetFieldsTemplate->GetKeywords());
+						Action->NodeTemplate = SetFieldsTemplate;
+					}
 				}
 			}
 		}
@@ -2483,8 +2505,8 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 		static const FName HasNativeMake(TEXT("HasNativeMake"));
 		static const FName HasNativeBreak(TEXT("HasNativeBreak"));
 		const UScriptStruct* ScriptStruct = Cast<const UScriptStruct>(DesiredPinType.PinSubCategoryObject.Get());
-		const bool bUseNativeMake = bWantOutput && ScriptStruct && ScriptStruct->GetBoolMetaData(HasNativeMake);
-		const bool bUseNativeBrake = !bWantOutput && ScriptStruct && ScriptStruct->GetBoolMetaData(HasNativeBreak);
+		const bool bUseNativeMake = bWantOutput && ScriptStruct && ScriptStruct->HasMetaData(HasNativeMake);
+		const bool bUseNativeBrake = !bWantOutput && ScriptStruct && ScriptStruct->HasMetaData(HasNativeBreak);
 
 		for (TFieldIterator<UFunction> FunctionIt(Class, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 		{

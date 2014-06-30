@@ -463,6 +463,21 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanRemoveExecutionPin )
 				);
 
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RemoveThisStructVarPin,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRemoveThisStructVarPin),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRemoveThisStructVarPin)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RemoveOtherStructVarPins,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRemoveOtherStructVarPins),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRemoveOtherStructVarPins)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RestoreAllStructVarPins,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRestoreAllStructVarPins),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRestoreAllStructVarPins)
+				);
+
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AddOptionPin,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAddOptionPin ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanAddOptionPin )
@@ -2878,6 +2893,96 @@ bool FBlueprintEditor::CanRemoveExecutionPin() const
 	}
 
 	return bReturnValue;
+}
+
+void  FBlueprintEditor::OnRemoveThisStructVarPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	UEdGraphPin* SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	UEdGraphNode* OwningNode = SelectedPin ? SelectedPin->GetOwningNodeUnchecked() : NULL;
+	if (auto SetFilestInStructNode = Cast<UK2Node_SetFieldsInStruct>(OwningNode))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RemoveThisStructVarPin", "Remove Struct Var Pin"));
+		SetFilestInStructNode->Modify();
+		SelectedPin->Modify();
+		SetFilestInStructNode->RemoveFieldPins(SelectedPin, UK2Node_SetFieldsInStruct::EPinsToRemove::GivenPin);
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+
+		UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
+}
+
+bool FBlueprintEditor::CanRemoveThisStructVarPin() const
+{
+	auto FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	const auto SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	return UK2Node_SetFieldsInStruct::ShowCustomPinActions(SelectedPin, false);
+}
+
+void  FBlueprintEditor::OnRemoveOtherStructVarPins()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	UEdGraphPin* SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	UEdGraphNode* OwningNode = SelectedPin ? SelectedPin->GetOwningNodeUnchecked() : NULL;
+	if (auto SetFilestInStructNode = Cast<UK2Node_SetFieldsInStruct>(OwningNode))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RemoveOtherStructVarPins", "Remove Other Struct Var Pins"));
+		SetFilestInStructNode->Modify();
+		SelectedPin->Modify();
+		SetFilestInStructNode->RemoveFieldPins(SelectedPin, UK2Node_SetFieldsInStruct::EPinsToRemove::AllOtherPins);
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+
+		UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
+}
+
+bool FBlueprintEditor::CanRemoveOtherStructVarPins() const
+{
+	auto FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	const auto SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	return UK2Node_SetFieldsInStruct::ShowCustomPinActions(SelectedPin, false);
+}
+
+void FBlueprintEditor::OnRestoreAllStructVarPins()
+{
+	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
+	FGraphPanelSelectionSet::TConstIterator It(SelectedNodes);
+	UK2Node_SetFieldsInStruct* Node = (!!It) ? Cast<UK2Node_SetFieldsInStruct>(*It) : NULL;
+	if (Node && !Node->AllPinsAreShown())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RestoreAllStructVarPins", "Restore all struct var pins"));
+		Node->Modify();
+		Node->RestoreAllPins();
+
+		// Refresh the current graph, so the pins can be updated
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		if (FocusedGraphEd.IsValid())
+		{
+			UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+			FocusedGraphEd->NotifyGraphChanged();
+		}
+	}
+
+	
+}
+
+bool FBlueprintEditor::CanRestoreAllStructVarPins() const
+{
+	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
+	FGraphPanelSelectionSet::TConstIterator It(SelectedNodes);
+	UK2Node_SetFieldsInStruct* Node = (!!It) ? Cast<UK2Node_SetFieldsInStruct>(*It) : NULL;
+	return Node && !Node->AllPinsAreShown();
 }
 
 void FBlueprintEditor::OnAddOptionPin()
