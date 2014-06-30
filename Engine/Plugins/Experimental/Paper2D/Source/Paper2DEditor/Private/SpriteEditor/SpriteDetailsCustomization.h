@@ -20,6 +20,14 @@ public:
 protected:
 	EVisibility PhysicsModeMatches(TSharedPtr<IPropertyHandle> Property, ESpriteCollisionMode::Type DesiredMode) const;
 	EVisibility AnyPhysicsMode(TSharedPtr<IPropertyHandle> Property) const;
-	EVisibility GetAtlasGroupVisibility(TSharedPtr<IPropertyHandle> Property) const;
 	EVisibility GetCustomPivotVisibility(TSharedPtr<IPropertyHandle> Property) const;
+
+	static EVisibility GetAtlasGroupVisibility();
+	static EVisibility Get2DPhysicsNotEnabledWarningVisibility();
+
+	static FDetailWidgetRow& GenerateWarningRow(IDetailCategoryBuilder& WarningCategory, bool bExperimental, const FText& WarningText, const FText& Tooltip, const FString& ExcerptLink, const FString& ExcerptName);
+
+	void BuildSpriteSection(IDetailCategoryBuilder& SpriteCategory, IDetailLayoutBuilder& DetailLayout);
+	void BuildCollisionSection(IDetailCategoryBuilder& CollisionCategory, IDetailLayoutBuilder& DetailLayout);
+	void BuildRenderingSection(IDetailCategoryBuilder& RenderingCategory, IDetailLayoutBuilder& DetailLayout);
 };
