@@ -33,27 +33,43 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 		SNew(SBorder)
 		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 		[
-			SNew(SVerticalBox)
-		
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(0,0,0,2)
+			SNew(SHorizontalBox)
+
+			// Empty flipbook instructions
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 			[
-				SNew(STimelineHeader)
-				.SlateUnitsPerFrame(SlateUnitsPerFrame)
-				.FlipbookBeingEdited(FlipbookBeingEdited)
-				.PlayTime(PlayTime)
+				SNew(STextBlock)
+				.Visibility(this, &SFlipbookTimeline::NoFramesWarningVisibility)
+				.Text(LOCTEXT("EmptyTimelineInstruction", "Right-click here or drop in sprites to add key frames"))
 			]
 
-			+SVerticalBox::Slot()
-			.AutoHeight()
+			// Flipbook header and track
+			+SHorizontalBox::Slot()
 			[
-				SNew(SBox).HeightOverride(FrameHeight)
+				SNew(SVerticalBox)
+		
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0,0,0,2)
 				[
-					SNew(STimelineTrack, InCommandList)
+					SNew(STimelineHeader)
 					.SlateUnitsPerFrame(SlateUnitsPerFrame)
 					.FlipbookBeingEdited(FlipbookBeingEdited)
-					.OnSelectionChanged(OnSelectionChanged)
+					.PlayTime(PlayTime)
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SBox).HeightOverride(FrameHeight)
+					[
+						SNew(STimelineTrack, InCommandList)
+						.SlateUnitsPerFrame(SlateUnitsPerFrame)
+						.FlipbookBeingEdited(FlipbookBeingEdited)
+						.OnSelectionChanged(OnSelectionChanged)
+					]
 				]
 			]
 		]
@@ -177,6 +193,13 @@ FReply SFlipbookTimeline::OnMouseButtonUp(const FGeometry& MyGeometry, const FPo
 	{
 		return FReply::Unhandled();
 	}
+}
+
+EVisibility SFlipbookTimeline::NoFramesWarningVisibility() const
+{
+	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
+	const int32 TotalNumFrames = (Flipbook != nullptr) ? Flipbook->GetNumFrames() : 0;
+	return (TotalNumFrames == 0) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 //////////////////////////////////////////////////////////////////////////
