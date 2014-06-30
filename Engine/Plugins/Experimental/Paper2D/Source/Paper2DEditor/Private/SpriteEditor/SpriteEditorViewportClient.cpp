@@ -347,6 +347,28 @@ void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FScen
 	YPos = (int32)TextItem.Position.Y;
 }
 
+void FSpriteEditorViewportClient::DrawBoundsAsText(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, int32& YPos)
+{
+	FNumberFormattingOptions NoDigitGroupingFormat;
+	NoDigitGroupingFormat.UseGrouping = false;
+
+	UPaperSprite* Sprite = GetSpriteBeingEdited();
+	FBoxSphereBounds Bounds = Sprite->GetRenderBounds();
+
+	const FText DisplaySizeText = FText::Format(LOCTEXT("BoundsSize", "Approx. Size: {0}x{1}x{2}"),
+		FText::AsNumber((int32)(Bounds.BoxExtent.X * 2.0f), &NoDigitGroupingFormat),
+		FText::AsNumber((int32)(Bounds.BoxExtent.Y * 2.0f), &NoDigitGroupingFormat),
+		FText::AsNumber((int32)(Bounds.BoxExtent.Z * 2.0f), &NoDigitGroupingFormat));
+
+	Canvas.DrawShadowedString(
+		6,
+		YPos,
+		*DisplaySizeText.ToString(),
+		GEngine->GetSmallFont(),
+		FLinearColor::White);
+	YPos += 18;
+}
+
 void FSpriteEditorViewportClient::DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	UPaperSprite* Sprite = GetSpriteBeingEdited();
@@ -461,6 +483,10 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		// As well as all of the geometry
 		DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
 		DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+
+		// And bounds
+		DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
+
 		break;
 	case ESpriteEditorMode::EditCollisionMode:
 		{
@@ -492,6 +518,9 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			const FLinearColor RenderGeomColor(1.0f, 0.2f, 0.0f, 1.0f);
 			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, true);
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+
+			// And bounds
+			DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
 		}
 		break;
 	case ESpriteEditorMode::EditSourceRegionMode:
