@@ -96,7 +96,6 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);	
-			Pin->bDefaultValueIsIgnored = true;
 		}
 	}
 
@@ -309,6 +308,7 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 		static FString PropertyNameParamName = FString(TEXT("PropertyName"));
 
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+		(void)Schema;
 
 		UK2Node_SpawnActorFromClass* SpawnNode = this;
 		UEdGraphPin* SpawnNodeExec = SpawnNode->GetExecPin();
@@ -396,20 +396,23 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 		// create 'set var' nodes
 
 		// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
-		UK2Node_CallFunction* LastNode = CallBeginSpawnNode;
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallBeginSpawnNode, SpawnNode, CallBeginResult );
+
+#if 0
+		UEdGraphPin* LastThen = CallBeginSpawnNode->GetThenPin();
 
 		// Create 'set var by name' nodes and hook them up
 		for(int32 PinIdx=0; PinIdx < SpawnNode->Pins.Num(); PinIdx++)
 		{
 			// Only create 'set param by name' node if this pin is linked to something
-			UEdGraphPin* SpawnVarPin = SpawnNode->Pins[PinIdx];
-			if(SpawnVarPin->LinkedTo.Num() > 0)
+			UEdGraphPin* OrgPin = SpawnNode->Pins[PinIdx];
+			if(OrgPin->LinkedTo.Num() > 0 || OrgPin->DefaultValue != FString() )
 			{
-				UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(SpawnVarPin->PinType);
+				UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
 				if(SetByNameFunction)
 				{
 					UK2Node_CallFunction* SetVarNode = NULL;
-					if(SpawnVarPin->PinType.bIsArray)
+					if(OrgPin->PinType.bIsArray)
 					{
 						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(SpawnNode, SourceGraph);
 					}
@@ -421,9 +424,8 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 					SetVarNode->AllocateDefaultPins();
 
 					// Connect this node into the exec chain
-					UEdGraphPin* LastThen = LastNode->GetThenPin();
-					UEdGraphPin* SetVarExec = SetVarNode->GetExecPin();
-					LastThen->MakeLinkTo(SetVarExec);
+					Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
+					LastThen = SetVarNode->GetThenPin();
 
 					// Connect the new actor to the 'object' pin
 					UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
@@ -431,21 +433,20 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 
 					// Fill in literal for 'property name' pin - name of pin is property name
 					UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-					PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
+					PropertyNamePin->DefaultValue = OrgPin->PinName;
 
 					// Move connection from the variable pin on the spawn node to the 'value' pin
 					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
+					CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
 					SetVarNode->PinConnectionListChanged(ValuePin);
 
-					// Update 'last node in sequence' var
-					LastNode = SetVarNode;
+					// PinSubCategoryObject is lost when we go from function back to pin when we have type information that is BP only (IE an enum created in the editor):
+					ValuePin->PinType.PinSubCategoryObject = OrgPin->PinType.PinSubCategoryObject;
 				}
 			}
 		}
-
+#endif
 		// Make exec connection between 'then' on last node and 'finish'
-		UEdGraphPin* LastThen = LastNode->GetThenPin();
 		LastThen->MakeLinkTo(CallFinishExec);
 
 		// Break any links to the expanded node

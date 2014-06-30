@@ -502,6 +502,64 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 	}
 }
 
+UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult)
+{
+	static FString ObjectParamName = FString(TEXT("Object"));
+	static FString ValueParamName = FString(TEXT("Value"));
+	static FString PropertyNameParamName = FString(TEXT("PropertyName"));
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	UEdGraphPin* LastThen = CallBeginSpawnNode->GetThenPin();
+
+	// Create 'set var by name' nodes and hook them up
+	for (int32 PinIdx = 0; PinIdx < SpawnNode->Pins.Num(); PinIdx++)
+	{
+		// Only create 'set param by name' node if this pin is linked to something
+		UEdGraphPin* OrgPin = SpawnNode->Pins[PinIdx];
+		if (NULL == CallBeginSpawnNode->FindPin(OrgPin->PinName) &&
+			(OrgPin->LinkedTo.Num() > 0 || OrgPin->DefaultValue != FString()))
+		{
+			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
+			if (SetByNameFunction)
+			{
+				UK2Node_CallFunction* SetVarNode = NULL;
+				if (OrgPin->PinType.bIsArray)
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(SpawnNode, SourceGraph);
+				}
+				else
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(SpawnNode, SourceGraph);
+				}
+				SetVarNode->SetFromFunction(SetByNameFunction);
+				SetVarNode->AllocateDefaultPins();
+
+				// Connect this node into the exec chain
+				Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
+				LastThen = SetVarNode->GetThenPin();
+
+				// Connect the new actor to the 'object' pin
+				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
+				CallBeginResult->MakeLinkTo(ObjectPin);
+
+				// Fill in literal for 'property name' pin - name of pin is property name
+				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
+				PropertyNamePin->DefaultValue = OrgPin->PinName;
+
+				// Move connection from the variable pin on the spawn node to the 'value' pin
+				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
+				CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
+				SetVarNode->PinConnectionListChanged(ValuePin);
+
+				// PinSubCategoryObject is lost when we go from function back to pin when we have type information that is BP only (IE an enum created in the editor):
+				ValuePin->PinType.PinSubCategoryObject = OrgPin->PinType.PinSubCategoryObject;
+			}
+		}
+	}
+
+	return LastThen;
+}
+
 /** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */
 UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const FName& PropertyName, const FEdGraphPinType& Type, UClass* SelfClass, uint64 PropertyFlags, const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
 {

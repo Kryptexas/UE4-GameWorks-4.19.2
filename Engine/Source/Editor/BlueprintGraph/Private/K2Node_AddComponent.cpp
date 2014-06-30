@@ -398,46 +398,54 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		// exec in
 		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *NewNode->GetExecPin());
 
+#if 1
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes( CompilerContext, SourceGraph, NewNode, this, ReturnPin );
+#else
 		UEdGraphPin* LastThen = NewNode->GetThenPin();
 		for(int32 PinIndex = 0; PinIndex < Pins.Num(); PinIndex++)
 		{
 			UEdGraphPin* OrgPin = Pins[PinIndex];
-			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
-			if((NULL == NewNode->FindPin(OrgPin->PinName)) && SetByNameFunction)
+			if( NULL == NewNode->FindPin(OrgPin->PinName))
 			{
-				UK2Node_CallFunction* SetVarNode = NULL;
-				if(OrgPin->PinType.bIsArray)
+				UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
+				if(SetByNameFunction)
 				{
-					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
-				}
-				else
-				{
-					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-				}
-				SetVarNode->SetFromFunction(SetByNameFunction);
-				SetVarNode->AllocateDefaultPins();
+					UK2Node_CallFunction* SetVarNode = NULL;
+					if(OrgPin->PinType.bIsArray)
+					{
+						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
+					}
+					else
+					{
+						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
+					}
+					SetVarNode->SetFromFunction(SetByNameFunction);
+					SetVarNode->AllocateDefaultPins();
 
-				// Connect this node into the exec chain
-				Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
-				LastThen = SetVarNode->GetThenPin();
+					// Connect this node into the exec chain
+					Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
+					LastThen = SetVarNode->GetThenPin();
 
-				// Connect the new actor to the 'object' pin
-				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
-				Schema->TryCreateConnection(ReturnPin, ObjectPin);
+					// Connect the new actor to the 'object' pin
+					UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
+					Schema->TryCreateConnection(ReturnPin, ObjectPin);
 
-				// Fill in literal for 'property name' pin - name of pin is property name
-				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-				PropertyNamePin->DefaultValue = OrgPin->PinName;
+					// Fill in literal for 'property name' pin - name of pin is property name
+					UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
+					PropertyNamePin->DefaultValue = OrgPin->PinName;
 
-				// Move connection from the variable pin on the spawn node to the 'value' pin
-				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-				CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
-				if(OrgPin->PinType.bIsArray)
-				{
+					// Move connection from the variable pin on the spawn node to the 'value' pin
+					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
+					CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
 					SetVarNode->PinConnectionListChanged(ValuePin);
+
+					// PinSubCategoryObject is lost when we go from function back to pin when we have type information that is BP only (IE an enum created in the editor):
+					ValuePin->PinType.PinSubCategoryObject = OrgPin->PinType.PinSubCategoryObject;
 				}
 			}
 		}
+#endif
+
 		CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *LastThen);
 		BreakAllNodeLinks();
 	}
