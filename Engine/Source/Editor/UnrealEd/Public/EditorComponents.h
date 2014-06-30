@@ -6,6 +6,14 @@
 
 #pragma once
 
+#include "UObject/GCObject.h"
+#include "Engine/EngineTypes.h"
+
+class FSceneView;
+class FPrimitiveDrawInterface;
+class FReferenceCollector;
+class UMaterial;
+class UMaterialInstanceDynamic;
 
 class FGridWidget : public FGCObject
 {

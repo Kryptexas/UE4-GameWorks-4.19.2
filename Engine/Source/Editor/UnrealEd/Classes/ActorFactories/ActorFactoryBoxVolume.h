@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryBoxVolume.generated.h"
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)

@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
-#include "GameplayDebuggingTypes.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EQSTestingPawn.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -13,7 +12,6 @@
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
-#include "Engine/Brush.h"
 #include "Editor/EditorEngine.h"
 extern UNREALED_API class UEditorEngine* GEditor;
 #endif // WITH_EDITOR

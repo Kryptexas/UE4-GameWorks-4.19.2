@@ -9,7 +9,6 @@
 #include "EnvironmentQuery/EQSTestingPawn.h"
 
 #if WITH_EDITOR
-#include "Engine/Brush.h"
 #include "Editor/EditorEngine.h"
 #include "EngineUtils.h"
 

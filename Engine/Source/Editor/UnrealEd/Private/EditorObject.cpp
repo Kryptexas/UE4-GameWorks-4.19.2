@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-#include "Factories.h"
 #include "BSPOps.h"
 
 #include "Foliage/InstancedFoliageActor.h"

@@ -3,14 +3,11 @@
 
 #include "UnrealEd.h"
 #include "SourceCodeNavigation.h"
-#include "MainFrame.h"
 #include "ISourceCodeAccessModule.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
-	#include <DbgHelp.h>				
-	#include <TlHelp32.h>		
-	#include <psapi.h>
+	#include <DbgHelp.h>
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_MAC
 #include <mach-o/dyld.h>

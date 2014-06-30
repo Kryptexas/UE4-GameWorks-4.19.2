@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "MainFrame.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "EditorBuildUtils.h"
 

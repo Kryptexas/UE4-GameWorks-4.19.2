@@ -4,7 +4,7 @@
 #include "UnrealEd.h"
 #include "FeedbackContextEditor.h"
 #include "Dialogs/SBuildProgress.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
+#include "Interfaces/IMainFrameModule.h"
 
 /** Called to cancel the slow task activity */
 DECLARE_DELEGATE( FOnCancelClickedDelegate );

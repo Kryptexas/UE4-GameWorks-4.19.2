@@ -29,9 +29,6 @@
 */
 
 #include "UnrealEd.h"
-#include "Factories.h"
-#include "Engine.h"
-#include "TextureLayout.h"
 #include "FbxImporter.h"
 
 using namespace UnFbx;

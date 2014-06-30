@@ -2,12 +2,11 @@
 
 
 #include "UnrealEd.h"
-#include "TexAlignTools.h"
-#include "ScopedTransaction.h"
 #include "Slate.h"
 #include "ObjectTools.h"
-#include "Editor/MainFrame/Public/MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "Interfaces/IMainFrameModule.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogDialogs, Log, All);
 
 #define LOCTEXT_NAMESPACE "Dialogs"

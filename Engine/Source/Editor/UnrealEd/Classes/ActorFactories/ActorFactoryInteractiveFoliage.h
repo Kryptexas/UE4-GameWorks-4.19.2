@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ActorFactories/ActorFactoryStaticMesh.h"
 #include "ActorFactoryInteractiveFoliage.generated.h"
 
 UCLASS(MinimalAPI, config=Editor)

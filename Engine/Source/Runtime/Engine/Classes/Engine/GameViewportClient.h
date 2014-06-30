@@ -19,6 +19,8 @@
 #include "Engine/ScriptViewportClient.h"
 #include "GameViewportClient.generated.h"
 
+class UNetDriver;
+
 /**
  * Enum of the different splitscreen types
  */

@@ -6,7 +6,6 @@
 
 #include "UnrealEd.h"
 #include "Factories.h"
-#include "SkelImport.h"
 
 #define SET_MORPH_ERROR( ErrorType ) { if( Error ) *Error = ErrorType; }
 

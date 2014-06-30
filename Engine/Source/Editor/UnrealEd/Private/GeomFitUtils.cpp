@@ -8,9 +8,8 @@
 #include "StaticMeshResources.h"
 #include "EditorSupportDelegates.h"
 #include "BSPOps.h"
-#include "../Private/GeomFitUtils.h"
 #include "RawMesh.h"
-#include "MeshUtilities.h"
+#include "GeomFitUtils.h"
 
 #define LOCAL_EPS (0.01f)
 static void AddVertexIfNotPresent(TArray<FVector> &vertices, FVector &newVertex)

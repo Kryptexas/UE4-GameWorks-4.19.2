@@ -3,7 +3,6 @@
 
 #include "UnrealEd.h"
 #include "SEditorViewportToolBarButton.h"
-#include "SViewportToolBar.h"
 
 
 void SEditorViewportToolBarButton::Construct( const FArguments& Declaration )

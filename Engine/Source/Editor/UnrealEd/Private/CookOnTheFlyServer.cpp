@@ -70,7 +70,8 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const class FPostConstructInitializePro
 	bCookOnTheFly = true;
 }
 
-
+UCookOnTheFlyServer::~UCookOnTheFlyServer()
+{ }
 
 void UCookOnTheFlyServer::Tick(float DeltaTime)
 {

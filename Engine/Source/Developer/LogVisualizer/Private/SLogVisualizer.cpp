@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizerPCH.h"
+#if ENABLE_VISUAL_LOG
+
 #include "SLogBar.h"
 #include "Debug/LogVisualizerCameraController.h"
 #include "Debug/ReporterGraph.h"
@@ -22,9 +24,8 @@
 #include "GameplayDebuggingComponent.h"
 
 #include "SFilterList.h"
-
-#if ENABLE_VISUAL_LOG
-
+#include "STimeLine.h"
+#include "Interfaces/IMainFrameModule.h"
 #define LOCTEXT_NAMESPACE "SLogVisualizer"
 
 const FName SLogVisualizer::NAME_LogName = TEXT("LogName");

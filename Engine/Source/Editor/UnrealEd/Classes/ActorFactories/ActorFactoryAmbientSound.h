@@ -7,6 +7,7 @@
  * The base class of all ambient sound types
  */
 
+#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryAmbientSound.generated.h"
 
 UCLASS(MinimalAPI, config=Editor, collapsecategories, hidecategories=Object)

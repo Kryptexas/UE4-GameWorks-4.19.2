@@ -5,7 +5,6 @@
 #include "DisplayDebugHelpers.h"
 #include "BrainComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
-#include "BehaviorTree/BehaviorTreeManager.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"

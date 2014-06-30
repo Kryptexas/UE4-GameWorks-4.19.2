@@ -2,6 +2,7 @@
 
 #pragma once 
 #include "Commandlets/Commandlet.h"
+#include "Sound/DialogueTypes.h"
 #include "GatherTextFromAssetsCommandlet.generated.h"
 
 namespace EAssetTextGatherStatus
@@ -17,6 +18,7 @@ namespace EAssetTextGatherStatus
 }
 
 class FLocMetadataValue;
+class UDialogueWave;
 
 /**
  *	UGatherTextFromAssetsCommandlet: Localization commandlet that collects all text to be localized from the game assets.

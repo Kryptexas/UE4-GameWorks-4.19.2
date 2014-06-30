@@ -3,10 +3,8 @@
 
 #include "UnrealEd.h"
 
-#include "SoundDefinitions.h"
 #include "Dialogs/DlgSoundWaveOptions.h"
 #include "SoundPreviewThread.h"
-#include "Slate.h"
 
 /** 
  * Info used to setup the rows of the sound quality previewer

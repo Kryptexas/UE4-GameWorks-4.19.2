@@ -15,7 +15,7 @@
 #include "PrimitiveComponent.generated.h"
 
 class FPrimitiveSceneProxy;
-
+class AController;
 /** Information about a vertex of a primitive's triangle. */
 struct FPrimitiveTriangleVertex
 {

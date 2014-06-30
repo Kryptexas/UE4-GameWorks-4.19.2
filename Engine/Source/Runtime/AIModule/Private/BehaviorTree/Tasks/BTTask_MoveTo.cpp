@@ -2,7 +2,6 @@
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_MoveTo.h"
-#include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"

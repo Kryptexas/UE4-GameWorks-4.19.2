@@ -2,7 +2,6 @@
 
 
 #include "UnrealEd.h"
-#include "Slate.h"
 #include "ClassIconFinder.h"
 
 const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObjectPtr<AActor> >& InActors, UClass*& CommonBaseClass)

@@ -25,6 +25,7 @@ class UMaterial;
 class UMaterialInstance;
 class UMaterialExpression;
 class UMaterialInterface;
+class UTexture;
 struct FExpressionInput;
 
 #define ME_CAPTION_HEIGHT		18

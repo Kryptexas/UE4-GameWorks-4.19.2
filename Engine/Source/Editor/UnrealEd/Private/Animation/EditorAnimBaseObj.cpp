@@ -5,7 +5,7 @@
 =============================================================================*/ 
 
 #include "UnrealEd.h"
-#include "AssetNotifications.h"
+#include "Animation/EditorAnimBaseObj.h"
 
 #define LOCTEXT_NAMESPACE "SSkeletonTree"
 

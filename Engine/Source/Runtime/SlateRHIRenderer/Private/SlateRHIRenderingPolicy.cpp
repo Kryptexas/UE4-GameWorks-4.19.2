@@ -9,6 +9,7 @@
 #include "TileRendering.h"
 #include "PreviewScene.h"
 #include "EngineModule.h"
+#include "SlateMaterialShader.h"
 
 static EPrimitiveType GetRHIPrimitiveType( ESlateDrawPrimitive::Type SlateType )
 {

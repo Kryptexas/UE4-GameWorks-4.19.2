@@ -3,6 +3,8 @@
 #pragma once
 #include "ObjectLibrary.generated.h"
 
+class FAssetData;
+
 /** Class that holds a library of Objects */
 UCLASS(MinimalAPI)
 class UObjectLibrary : public UObject
@@ -36,7 +38,7 @@ protected:
 	bool bIsFullyLoaded;
 
 	/** Asset data of objects that will belong in library, possibly not loaded yet */
-	TArray<class FAssetData>	AssetDataList;
+	TArray<FAssetData>	AssetDataList;
 
 public:
 	// Begin UObject Interface

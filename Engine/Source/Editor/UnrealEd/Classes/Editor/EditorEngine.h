@@ -6,13 +6,15 @@
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
 #include "../Settings/LevelEditorViewportSettings.h"
+#include "Engine/Brush.h"
+#include "Engine/Engine.h"
 #include "EditorEngine.generated.h"
 
 class FAssetData;
 class UAnimSequence;
 class USkeleton;
 class FPoly;
-
+class APlayerStart;
 //
 // Things to set in mapSetBrush.
 //

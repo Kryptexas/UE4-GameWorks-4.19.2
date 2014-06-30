@@ -3,13 +3,6 @@
 
 #include "UnrealEd.h"
 
-#if PLATFORM_WINDOWS
-// Needed for showing balloon messages
-#include "AllowWindowsPlatformTypes.h"
-		#include <ShellAPI.h>
-#include "HideWindowsPlatformTypes.h"
-#endif
-
 DEFINE_LOG_CATEGORY(LogUtils);
 
 IMPLEMENT_HIT_PROXY(HWidgetUtilProxy,HHitProxy);

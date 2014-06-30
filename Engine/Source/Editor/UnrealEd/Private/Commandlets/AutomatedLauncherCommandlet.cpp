@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-
-#include "LauncherAutomatedService.h"
-
+#include "Interfaces/ILauncherAutomatedServiceProvider.h"
+#include "Interfaces/ILauncherAutomatedServiceModule.h"
 
 UAutomatedLauncherCommandlet::UAutomatedLauncherCommandlet(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

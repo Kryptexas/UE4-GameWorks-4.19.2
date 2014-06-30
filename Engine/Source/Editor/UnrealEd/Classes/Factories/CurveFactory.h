@@ -5,7 +5,10 @@
  */
 
 #pragma once
+#include "Factories/Factory.h"
 #include "CurveFactory.generated.h"
+
+class UCurveBase;
 
 /** Enum indicating the type of curve to make */
 UENUM()

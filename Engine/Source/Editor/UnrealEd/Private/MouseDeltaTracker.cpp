@@ -3,10 +3,8 @@
 
 #include "UnrealEd.h"
 #include "MouseDeltaTracker.h"
-#include "DragTool_BoxSelect.h"
-#include "DragTool_Measure.h"
-#include "DragTool_FrustumSelect.h"
 #include "SnappingUtils.h"
+#include "EditorDragTools.h"
 
 #define LOCTEXT_NAMESPACE "MouseDeltaTracker"
 

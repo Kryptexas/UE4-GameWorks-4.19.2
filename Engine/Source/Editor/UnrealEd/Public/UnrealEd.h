@@ -7,8 +7,6 @@
 
 #if WITH_EDITOR
 
-#include "Engine.h"
-
 #include "Slate.h"
 #include "EditorStyle.h"
 

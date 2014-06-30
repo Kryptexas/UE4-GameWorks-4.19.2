@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizerPCH.h"
-#include "SLogBar.h"
 
 #if ENABLE_VISUAL_LOG
+
+#include "SLogBar.h"
+#include "STimeLine.h"
+
 void SLogsTableRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
 {
 	Item = InArgs._Item;

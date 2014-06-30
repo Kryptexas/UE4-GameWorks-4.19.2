@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "GameFramework/Actor.h"
+
 /** Macro to convert ECollisionChannels to bit flag **/
 #define ECC_TO_BITFIELD(x)	(1<<(x))
 /** Macro to convert from CollisionResponseContainer to bit flag **/

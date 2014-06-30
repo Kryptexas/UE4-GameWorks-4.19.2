@@ -3,7 +3,6 @@
 
 #include "UnrealEd.h"
 #include "SoundPreviewThread.h"
-#include "SoundDefinitions.h"
 
 /**
  *

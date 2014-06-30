@@ -9,15 +9,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogApexClothingUtils, Log, All);
 
 #if WITH_APEX
 
-#include "EditorPhysXSupport.h"
-// Utilities
-#include "NxParamUtils.h"
-
 #if WITH_APEX_CLOTHING
 	#include "NxClothingAssetAuthoring.h"
+	#include "NxClothingAsset.h"
 #endif // #if WITH_APEX_CLOTHING
 
-#include "Runtime/Engine/Private/PhysicsEngine/PhysXSupport.h"
+#include "NxParamUtils.h"
+#include "NxRenderMeshAsset.h"
 
 #endif // #if WITH_APEX
 

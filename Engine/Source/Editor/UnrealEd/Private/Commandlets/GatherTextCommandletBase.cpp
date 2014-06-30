@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "Json.h"
 #include "InternationalizationManifestJsonSerializer.h"
 #include "Internationalization/InternationalizationMetadata.h"
 #include "InternationalizationMetadataJsonSerializer.h"

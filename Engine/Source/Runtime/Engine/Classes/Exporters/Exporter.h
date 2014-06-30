@@ -9,6 +9,8 @@
 #pragma once
 #include "Exporter.generated.h"
 
+class UActorComponent;
+
 UCLASS(abstract, transient, MinimalAPI)
 class UExporter : public UObject
 {

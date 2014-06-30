@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "VisualLog.h"
-
 #if ENABLE_VISUAL_LOG
+
+struct FActorsVisLog;
 
 /** Actual implementation of LogVisualizer, private inside module */
 class FLogVisualizer : public ILogVisualizer

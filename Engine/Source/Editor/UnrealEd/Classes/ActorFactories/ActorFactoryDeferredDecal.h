@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "ActorFactories/ActorFactory.h"
 #include "ActorFactoryDeferredDecal.generated.h"
 
 UCLASS(MinimalAPI, config=Editor)

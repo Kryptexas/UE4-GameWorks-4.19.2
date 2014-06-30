@@ -10,6 +10,9 @@
 
 // Forward declarations
 class UFoliageType_InstancedStaticMesh;
+class FStaticMeshRenderData;
+class UNavCollision;
+struct FTriMeshCollisionData;
 
 /*-----------------------------------------------------------------------------
 	Legacy mesh optimization settings.
@@ -317,7 +320,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	GENERATED_UCLASS_BODY()
 
 	/** Pointer to the data used to render this static mesh. */
-	TScopedPointer<class FStaticMeshRenderData> RenderData;
+	TScopedPointer<FStaticMeshRenderData> RenderData;
 
 #if WITH_EDITORONLY_DATA
 	/** Imported raw mesh bulk data. */
@@ -458,7 +461,7 @@ protected:
 public:
 	/** Pre-build navigation collision */
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, editinline, Category=Navigation)
-	class UNavCollision* NavCollision;
+	UNavCollision* NavCollision;
 	
 public:
 	/**
@@ -550,7 +553,7 @@ public:
 	ENGINE_API static void CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >& InOutAssetsWithMissingUVSets, TArray< FString >& InOutAssetsWithBadUVSets, TArray< FString >& InOutAssetsWithValidUVSets, bool bInVerbose = true );
 
 	// Begin Interface_CollisionDataProvider Interface
-	ENGINE_API virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	ENGINE_API virtual bool GetPhysicsTriMeshData(FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	ENGINE_API virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override
 	{

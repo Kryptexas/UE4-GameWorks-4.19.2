@@ -3,8 +3,8 @@
 
 #include "UnrealEd.h"
 #include "STransformViewportToolbar.h"
-#include "SLevelViewport.h"
 #include "EditorViewportCommands.h"
+#include "SEditorViewport.h"
 
 #define LOCTEXT_NAMESPACE "TransformToolBar"
 

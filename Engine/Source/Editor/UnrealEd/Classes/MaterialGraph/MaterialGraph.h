@@ -8,6 +8,8 @@ DECLARE_DELEGATE_RetVal( bool, FRealtimeStateGetter );
 DECLARE_DELEGATE( FSetMaterialDirty );
 DECLARE_DELEGATE_OneParam( FToggleExpressionCollapsed, UMaterialExpression* );
 
+class UMaterialGraphNode_Comment;
+class UMaterialExpressionComment;
 /**
  * A human-readable name - material expression input pair.
  */
