@@ -3190,7 +3190,7 @@ bool FLevelEditorViewportClient::ComponentIsTouchingSelectionBox(AActor* InActor
 	}
 	else if ( !bConsiderOnlyBSP )
 	{
-		bool bSelectByBoundingBox = false;
+		bool bSelectByBoundingBox = true;
 
 		if( bSelectByBoundingBox )
 		{
