@@ -4,7 +4,7 @@
 
 #if ENABLE_VISUAL_LOG
 
-struct FVisualLog;
+class FVisualLog;
 struct FActorsVisLog;
 
 /** Actual implementation of LogVisualizer, private inside module */
