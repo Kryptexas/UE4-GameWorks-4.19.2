@@ -106,6 +106,9 @@ public:
 		return EditableText->GetText();
 	}
 
+	/** See attribute Style */
+	void SetStyle(const FEditableTextBoxStyle* InStyle);
+
 	/**
 	 * Sets the text string currently being edited 
 	 *
@@ -136,6 +139,7 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 
 protected:
+	const FEditableTextBoxStyle* Style;
 
 	/** Editable text widget */
 	TSharedPtr< SEditableText > EditableText;
