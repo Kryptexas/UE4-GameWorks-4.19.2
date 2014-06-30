@@ -666,6 +666,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		RenderLights(RHICmdList);
 
+		GRenderTargetPool.AddPhaseEvent(TEXT("AfterRenderLights"));
+
 		InjectAmbientCubemapTranslucentVolumeLighting(RHICmdList);
 
 		CompositeIndirectTranslucentVolumeLighting(RHICmdList);
