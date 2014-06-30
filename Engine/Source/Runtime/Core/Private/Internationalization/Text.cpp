@@ -707,7 +707,11 @@ const FString& FText::ToString() const
 
 FString FText::BuildSourceString() const
 {
-	return History->ToText(true).ToString();
+	if(History.IsValid())
+	{
+		return History->ToText(true).ToString();
+	}
+	return DisplayString.Get();
 }
 
 void FText::Rebuild() const
