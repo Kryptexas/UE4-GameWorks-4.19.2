@@ -62,18 +62,52 @@
 # log files for linux scripts (e.g. BuildThirdParty.sh)
 /Engine/Build/BatchFiles/Linux/*.log
 
-# Ignore third party binaries
-/Engine/Source/ThirdParty/**/*.exe
-/Engine/Source/ThirdParty/**/*.pdb
-/Engine/Source/ThirdParty/**/*.lib
-/Engine/Source/ThirdParty/**/*.a
-/Engine/Source/ThirdParty/**/*.obj
-/Engine/Source/ThirdParty/**/*.dll
-/Engine/Source/ThirdParty/**/*.dylib
-/Engine/Source/ThirdParty/**/*.bmp
-/Engine/Source/ThirdParty/**/*.so
-/Engine/Source/ThirdParty/**/*.bsc
-/Engine/Source/ThirdParty/**/*.idb
+# Ignore third party folders
+/Engine/Source/ThirdParty/ANGLE/**
+/Engine/Source/ThirdParty/DirectShow/**
+/Engine/Source/ThirdParty/elftoolchain/**
+/Engine/Source/ThirdParty/Facebook/**
+/Engine/Source/ThirdParty/FBX/**
+/Engine/Source/ThirdParty/ForsythTriOO/**
+/Engine/Source/ThirdParty/FreeType2/**
+/Engine/Source/ThirdParty/HACD/**
+/Engine/Source/ThirdParty/hlslcc/**
+/Engine/Source/ThirdParty/ICU/**
+/Engine/Source/ThirdParty/IntelTBB/**
+/Engine/Source/ThirdParty/jemalloc/**
+/Engine/Source/ThirdParty/Kiss_FFT/**
+/Engine/Source/ThirdParty/libcurl/**
+/Engine/Source/ThirdParty/libJPG/**
+/Engine/Source/ThirdParty/libOpus/**
+/Engine/Source/ThirdParty/libPNG/**
+/Engine/Source/ThirdParty/Licenses/**
+/Engine/Source/ThirdParty/Mac/**
+/Engine/Source/ThirdParty/MCPP/**
+/Engine/Source/ThirdParty/NVIDIA/**
+/Engine/Source/ThirdParty/nvtesslib/**
+/Engine/Source/ThirdParty/nvTextureTools/**
+/Engine/Source/ThirdParty/nvTriStrip/**
+/Engine/Source/ThirdParty/Oculus/**
+/Engine/Source/ThirdParty/Ogg/**
+/Engine/Source/ThirdParty/OneSky/**
+/Engine/Source/ThirdParty/OpenAL/**
+/Engine/Source/ThirdParty/OpenGL/**
+/Engine/Source/ThirdParty/OpenSSL/**
+/Engine/Source/ThirdParty/Perforce/**
+/Engine/Source/ThirdParty/PhysX/**
+/Engine/Source/ThirdParty/portmidi/**
+/Engine/Source/ThirdParty/Qualcomm/TextureConverter/**
+/Engine/Source/ThirdParty/Recast/**
+/Engine/Source/ThirdParty/SDL/**
+/Engine/Source/ThirdParty/SDL2/**
+/Engine/Source/ThirdParty/Steamworks/**
+/Engine/Source/ThirdParty/Vorbis/**
+/Engine/Source/ThirdParty/Windows/DirectX/**
+/Engine/Source/ThirdParty/zlib/**
+
+# Add back in all the build files for third party modules
+!/Engine/Source/ThirdParty/**/*.[Bb]uild.cs
+!/Engine/Source/ThirdParty/hlslcc/Makefile
 
 # Ignore sample and template projects
 /Samples/**
