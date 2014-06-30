@@ -30,6 +30,7 @@ public:
 		, _ViewInputMin()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
+		, _bLastFrameIsFirstFrame(true)
 		{}
 		
 		/** The value to display */
@@ -54,7 +55,7 @@ public:
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
 		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
-
+		SLATE_ARGUMENT( bool, bLastFrameIsFirstFrame )
 	SLATE_END_ARGS()
 
 
@@ -74,7 +75,7 @@ public:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 
-	static int32 GetDivider( float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames );
+	static int32 GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames, bool bLastFrameIsFirstFrame = true);
 protected:
 
 	/**
@@ -127,5 +128,7 @@ private:
 	/** Bar Dragging*/
 	int32 DraggableBarIndex;
 	bool DraggingBar;
+
+	bool bLastFrameIsFirstFrame;
 };
 
