@@ -1849,6 +1849,7 @@ UObject::UObject(const class FPostConstructInitializeProperties& PCIP)
 {
 	check(!PCIP.Obj || PCIP.Obj == this);
 	const_cast<FPostConstructInitializeProperties&>(PCIP).Obj = this;
+	const_cast<FPostConstructInitializeProperties&>(PCIP).FinalizeSubobjectClassInitialization();
 }
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
@@ -1861,6 +1862,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
 	ObjectArchetype(NULL),
 	bCopyTransientsFromClassDefaults(false),
 	bShouldIntializePropsFromArchetype(true),
+	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(NULL),
 	LastConstructedObject(GConstructedObject)
 {
@@ -1875,6 +1877,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* 
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
 	bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults),
 	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
+	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(InInstanceGraph),
 	LastConstructedObject(GConstructedObject)
 {
@@ -2129,6 +2132,12 @@ bool FPostConstructInitializeProperties::IslegalOverride(FName InComponentName, 
 		return false;
 	}
 	return true;
+}
+
+void FPostConstructInitializeProperties::AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const
+{
+	UE_CLOG(!bSubobjectClassInitializationAllowed, LogUObjectGlobals, Fatal,
+		TEXT("%s.%s: Subobject class setup is only allowed in base class constructor call (in the initialization list)"), Obj ? *Obj->GetFullName() : TEXT("NULL"), SubobjectName);
 }
 
 UObject* StaticConstructObject

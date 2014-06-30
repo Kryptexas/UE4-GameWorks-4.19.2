@@ -801,6 +801,7 @@ public:
 	template<class T>
 	FPostConstructInitializeProperties const& SetDefaultSubobjectClass(FName SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
 		return *this;
 	}
@@ -811,6 +812,7 @@ public:
 	template<class T>
 	FORCEINLINE FPostConstructInitializeProperties const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
 		return *this;
 	}
@@ -821,6 +823,7 @@ public:
 	 */
 	FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(FName SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
 		return *this;
 	}
@@ -831,6 +834,7 @@ public:
 	 */
 	FORCEINLINE FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
 		return *this;
 	}
@@ -844,6 +848,11 @@ public:
 	 * Asserts with the specified message if code is executed inside UObject constructor
 	 **/
 	static void AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage);
+
+	FORCEINLINE void FinalizeSubobjectClassInitialization()
+	{
+		bSubobjectClassInitializationAllowed = false;
+	}
 
 private:
 
@@ -962,6 +971,8 @@ private:
 		TArray<FSubobjectInit, TInlineAllocator<8> > SubobjectInits;
 	};
 
+	/** Asserts if SetDefaultSubobjectClass or DoNotCreateOptionalDefaultSuobject are called inside of the constructor body */
+	void AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const;
 
 	/**  object to initialize, from static allocate object, after construction **/
 	UObject* Obj;
@@ -971,6 +982,8 @@ private:
 	bool bCopyTransientsFromClassDefaults;
 	/**  If true, intialize the properties **/
 	bool bShouldIntializePropsFromArchetype;
+	/**  Only true until PCIP has not reached the base UObject class */
+	bool bSubobjectClassInitializationAllowed;
 	/**  Instance graph **/
 	struct FObjectInstancingGraph* InstanceGraph;
 	/**  List of component classes to override from derived classes **/
