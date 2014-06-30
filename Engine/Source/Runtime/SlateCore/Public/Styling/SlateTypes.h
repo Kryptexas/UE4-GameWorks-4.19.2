@@ -502,7 +502,7 @@ struct SLATECORE_API FEditableTextBoxStyle : public FSlateWidgetStyle
 
 	FEditableTextBoxStyle();
 
-	virtual ~FEditableTextBoxStyle() {}
+	virtual ~FEditableTextBoxStyle();
 
 	virtual void GetResources( TArray< const FSlateBrush* >& OutBrushes ) const override;
 
