@@ -46,7 +46,8 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, SlateOnTextChanged))
+		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
 
 	return MyEditableTextBlock.ToSharedRef();
@@ -98,9 +99,14 @@ void UEditableTextBox::SetError(FText InError)
 	}
 }
 
-void UEditableTextBox::SlateOnTextChanged(const FText& Text)
+void UEditableTextBox::HandleOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
+}
+
+void UEditableTextBox::HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
 #if WITH_EDITOR

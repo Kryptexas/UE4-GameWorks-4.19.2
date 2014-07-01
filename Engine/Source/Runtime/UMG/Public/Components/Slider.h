@@ -42,15 +42,15 @@ class UMG_API USlider : public UWidget
 	bool Locked;
 
 	/** Invoked when the mouse is pressed and a capture begins. */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnMouseCaptureBeginEvent OnMouseCaptureBegin;
 
 	/** Invoked when the mouse is released and a capture ends. */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnMouseCaptureEndEvent OnMouseCaptureEnd;
 
 	/** Called when the value is changed by slider or typing. */
-	UPROPERTY(BlueprintAssignable)
+	UPROPERTY(BlueprintAssignable, Category="Widget Event")
 	FOnFloatValueChangedEvent OnValueChanged;
 
 	/** Gets the current value of the slider. */
