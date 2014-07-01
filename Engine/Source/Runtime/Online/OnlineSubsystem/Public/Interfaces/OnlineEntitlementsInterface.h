@@ -15,14 +15,16 @@ typedef FString FUniqueEntitlementId;
 struct FOnlineEntitlement
 {
 	/** Unique Entitlement Id associated with this entitlement */
-	FUniqueEntitlementId EntitlementId;
+	FUniqueEntitlementId Id;
+	/** Display name for the entitlement */
+	FString Name;
 
 	/**
 	 * Equality operator
 	 */
 	bool operator==(const FOnlineEntitlement& Other) const
 	{
-		return Other.EntitlementId == EntitlementId;
+		return Other.Id == Id;
 	}
 };
 
@@ -68,7 +70,7 @@ public:
 	 *
 	 * @return true if the operation started successfully
 	 */
-	virtual bool QueryEntitlements(const FUniqueNetId& UserId) = 0;
+	virtual bool QueryEntitlements(const FUniqueNetId& UserId, const FPagedQuery& Page = FPagedQuery()) = 0;
 	
 	/**
 	 * Delegate instanced called when enumerating entitlements has completed
