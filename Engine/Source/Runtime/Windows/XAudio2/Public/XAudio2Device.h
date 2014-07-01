@@ -63,7 +63,8 @@ enum ESoundFormat
 	SoundFormat_PCMPreview,
 	SoundFormat_PCMRT,
 	SoundFormat_XMA2,
-	SoundFormat_XWMA
+	SoundFormat_XWMA,
+	SoundFormat_Streaming
 };
 
 class FXAudio2SoundBuffer;
@@ -111,6 +112,11 @@ class FXAudio2Device : public FAudioDevice
 	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) override;
 
 	virtual bool SupportsRealtimeDecompression() const override
+	{
+		return true;
+	}
+
+	virtual bool SupportsStreaming() const override
 	{
 		return true;
 	}

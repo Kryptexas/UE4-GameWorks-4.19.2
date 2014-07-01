@@ -170,6 +170,15 @@ public:
 	static FXAudio2SoundBuffer* CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
 
 	/**
+	 * Static function used to create an XAudio buffer and dynamically upload streaming data to.
+	 *
+	 * @param InWave		USoundWave to use as template and wave source
+	 * @param AudioDevice	audio device to attach created buffer to
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 */
+	static FXAudio2SoundBuffer* CreateStreamingBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
+
+	/**
 	 * Static function used to create a buffer.
 	 *
 	 * @param InWave USoundWave to use as template and wave source
@@ -184,6 +193,9 @@ public:
 	 * @return Size in bytes
 	 */
 	int32 GetSize( void );
+
+	virtual int32 GetCurrentChunkIndex() const override;
+	virtual int32 GetCurrentChunkOffset() const override;
 
 	/** Audio device this buffer is attached to	*/
 	FAudioDevice*				AudioDevice;

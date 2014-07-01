@@ -329,6 +329,13 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 			AudioClassInfo->NumRealTime++;
 			break;
 
+		case DTYPE_Streaming:
+			// Add these to real time count for now - eventually compressed data won't be loaded &
+			// might have a class info entry of their own
+			AudioClassInfo->SizeRealTime += SoundWave->GetCompressedDataSize(GetRuntimeFormat(SoundWave));
+			AudioClassInfo->NumRealTime++;
+			break;
+
 		case DTYPE_Setup:
 		case DTYPE_Invalid:
 		default:
@@ -1842,6 +1849,7 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 				// Try to initialize source.
 				if( Source->Init( WaveInstance ) )
 				{
+					IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundSource(Source);
 					// Associate wave instance with it which is used earlier in this function.
 					WaveInstanceSourceMap.Add( WaveInstance, Source );
 					// Playback might be deferred till the end of the update function on certain implementations.
@@ -2283,7 +2291,11 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
 		// handle audio decompression
-		if (SupportsRealtimeDecompression() && 
+		if (SupportsStreaming() && SoundWave->IsStreaming())
+		{
+			SoundWave->DecompressionType = DTYPE_Streaming;
+		}
+		else if (SupportsRealtimeDecompression() && 
 			(bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration)))
 		{
 			// Store as compressed data and decompress in realtime

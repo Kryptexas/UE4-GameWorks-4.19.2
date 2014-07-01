@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "GenericPlatformMemoryPoolStats.h"
+#include "AudioStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentStreaming, Log, All);
 
@@ -1583,6 +1584,9 @@ FStreamingManagerCollection::FStreamingManagerCollection()
 #endif
 
 	AddOrRemoveTextureStreamingManagerIfNeeded(true);
+
+	AudioStreamingManager = new FAudioStreamingManager();
+	AddStreamingManager( AudioStreamingManager );
 }
 
 /**
@@ -1770,6 +1774,12 @@ ITextureStreamingManager& FStreamingManagerCollection::GetTextureStreamingManage
 {
 	check(TextureStreamingManager != 0);
 	return *TextureStreamingManager;
+}
+
+IAudioStreamingManager& FStreamingManagerCollection::GetAudioStreamingManager() const
+{
+	check(AudioStreamingManager);
+	return *AudioStreamingManager;
 }
 
 /** Don't stream world resources for the next NumFrames. */

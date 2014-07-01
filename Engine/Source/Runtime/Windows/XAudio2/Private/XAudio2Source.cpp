@@ -368,6 +368,7 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
 				break;
 
 			case SoundFormat_PCMRT:
+			case SoundFormat_Streaming:
 				SubmitPCMRTBuffers();
 				break;
 
@@ -1081,7 +1082,7 @@ bool FXAudio2SoundSource::IsFinished( void )
 		XAUDIO2_VOICE_STATE SourceState;
 		Source->GetState( &SourceState );
 
-		const bool bIsRealTimeSource = XAudio2Buffer->SoundFormat == SoundFormat_PCMRT;
+		const bool bIsRealTimeSource = XAudio2Buffer->SoundFormat == SoundFormat_PCMRT || XAudio2Buffer->SoundFormat == SoundFormat_Streaming;
 
 		// If we have no queued buffers, we're either at the end of a sound, or starved
 		if( SourceState.BuffersQueued == 0 )

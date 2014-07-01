@@ -487,6 +487,12 @@ public:
 		return false;	// assume no support by default
 	}
 
+	/** Whether this device supports streaming of sound waves (i.e. DTYPE_Streaming) */
+	virtual bool SupportsStreaming() const
+	{
+		return false;	// assume no support by default
+	}
+
 	/** Creates a Compressed audio info class suitable for decompressing this SoundWave */
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) { return NULL; }
 

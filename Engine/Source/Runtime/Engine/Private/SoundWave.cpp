@@ -20,6 +20,7 @@ void FStreamedAudioChunk::Serialize(FArchive& Ar, UObject* Owner, int32 ChunkInd
 	Ar << bCooked;
 
 	BulkData.Serialize(Ar, Owner, ChunkIndex);
+	Ar << DataSize;
 
 #if WITH_EDITORONLY_DATA
 	if (!bCooked)
@@ -300,12 +301,13 @@ void USoundWave::PostLoad()
 		}
 	}
 
-#if WITH_EDITORONLY_DATA
 	if (IsStreaming())
 	{
+#if WITH_EDITORONLY_DATA
 		FinishCachePlatformData();
-	}
 #endif // #if WITH_EDITORONLY_DATA
+		IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundWave(this);
+	}
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTimeChannels, NumChannels * Duration );
@@ -398,6 +400,14 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			FreeResources();
 			UpdatePlatformData();
 			MarkPackageDirty();
+			if (IsStreaming())
+			{
+				IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundWave(this);
+			}
+			else
+			{
+				IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
+			}
 		}
 	}
 }
@@ -479,8 +489,10 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 
 bool USoundWave::IsReadyForFinishDestroy()
 {
-	// Wait till vorbis decompression finishes before deleting resource.
-	return( ( AudioDecompressor == NULL ) || AudioDecompressor->IsDone() );
+	bool bIsStreamingInProgress = IStreamingManager::Get().GetAudioStreamingManager().IsStreamingInProgress(this);
+
+	// Wait till streaming and decompression finishes before deleting resource.
+	return( !bIsStreamingInProgress && (( AudioDecompressor == NULL ) || AudioDecompressor->IsDone()) );
 }
 
 
@@ -492,6 +504,8 @@ void USoundWave::FinishDestroy()
 
 	CleanupCachedRunningPlatformData();
 	CleanupCachedCookedPlatformData();
+
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
 }
 
 void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
@@ -646,11 +660,32 @@ void USoundWave::UpdatePlatformData()
 {
 	if (IsStreaming())
 	{
-		// TODO: Check we aren't already streaming before doing this
+		// Make sure there are no pending requests in flight.
+		while (IStreamingManager::Get().GetAudioStreamingManager().IsStreamingInProgress(this))
+		{
+			// Give up timeslice.
+			FPlatformProcess::Sleep(0);
+		}
 
 #if WITH_EDITORONLY_DATA
 		// Recache platform data if the source has changed.
 		CachePlatformData();
 #endif
+	}
+}
+
+void USoundWave::GetChunkData(int32 ChunkIndex, uint8** OutChunkData)
+{
+	if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
+	{
+		// Unable to load chunks from the cache. Rebuild the sound and try again.
+		UE_LOG(LogAudio, Warning, TEXT("GetChunkData failed for %s"), *GetPathName());
+#if WITH_EDITORONLY_DATA
+		ForceRebuildPlatformData();
+		if (RunningPlatformData->TryLoadChunk(ChunkIndex, OutChunkData) == false)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Failed to build sound %s."), *GetPathName());
+		}
+#endif // #if WITH_EDITORONLY_DATA
 	}
 }

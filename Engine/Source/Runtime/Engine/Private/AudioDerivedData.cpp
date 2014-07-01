@@ -14,7 +14,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 
 // If you want to bump this version, generate a new guid using
 // VS->Tools->Create GUID and paste it here.
-#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("B9C1C21AEBE443B28C3B5546C8D5D742")
+#define STREAMEDAUDIO_DERIVEDDATA_VER		TEXT("2F3D9C2B13284A2AB73726A0A37C10C1")
 
 /**
  * Computes the derived data key suffix for a SoundWave's Streamed Audio.
@@ -71,6 +71,7 @@ static void GetStreamedAudioDerivedDataKeyFromSuffix(const FString& KeySuffix, F
  */
 static void GetStreamedAudioDerivedChunkKey(
 	int32 ChunkIndex,
+	const FStreamedAudioChunk& Chunk,
 	const FString& KeySuffix,
 	FString& OutKey
 	)
@@ -78,7 +79,7 @@ static void GetStreamedAudioDerivedChunkKey(
 	OutKey = FDerivedDataCacheInterface::BuildCacheKey(
 		TEXT("STREAMEDAUDIO"),
 		STREAMEDAUDIO_DERIVEDDATA_VER,
-		*FString::Printf(TEXT("%s_CHUNK%u"), *KeySuffix, ChunkIndex)
+		*FString::Printf(TEXT("%s_CHUNK%u_%d"), *KeySuffix, ChunkIndex, Chunk.DataSize)
 		);
 }
 
@@ -166,7 +167,7 @@ static void PutDerivedDataInCache(
 	{
 		FString ChunkDerivedDataKey;
 		FStreamedAudioChunk& Chunk = DerivedData->Chunks[ChunkIndex];
-		GetStreamedAudioDerivedChunkKey(ChunkIndex, DerivedDataKeySuffix, ChunkDerivedDataKey);
+		GetStreamedAudioDerivedChunkKey(ChunkIndex, Chunk, DerivedDataKeySuffix, ChunkDerivedDataKey);
 
 		if (UE_LOG_ACTIVE(LogAudio,Verbose))
 		{
@@ -198,8 +199,9 @@ namespace EStreamedAudioCacheFlags
 		None			= 0x0,
 		Async			= 0x1,
 		ForceRebuild	= 0x2,
-		AllowAsyncBuild	= 0x4,
-		ForDDCBuild		= 0x8,
+		InlineChunks	= 0x4,
+		AllowAsyncBuild	= 0x8,
+		ForDDCBuild		= 0x10,
 	};
 };
 
@@ -252,6 +254,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 				for (int32 ChunkIndex = 0; ChunkIndex < ChunkBuffers.Num(); ++ChunkIndex)
 				{
 					FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
+					NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
 					NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 					void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
 					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetTypedData(), ChunkBuffers[ChunkIndex].Num());
@@ -262,6 +265,7 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 			{
 				// Could not split so copy compressed data into a single chunk
 				FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
+				NewChunk->DataSize = CompressedBuffer.Num();
 				NewChunk->BulkData.Lock(LOCK_READ_WRITE);
 				void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
 				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetTypedData(), CompressedBuffer.Num());
@@ -276,7 +280,8 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 		
 		if (DerivedData->Chunks.Num())
 		{
-			bSucceeded = true;
+			bool bInlineChunks = (CacheFlags & EStreamedAudioCacheFlags::InlineChunks) != 0;
+			bSucceeded = !bInlineChunks || DerivedData->TryInlineChunkData();
 		}
 		else
 		{
@@ -308,6 +313,7 @@ public:
 	{
 		TArray<uint8> RawDerivedData;
 		bool bForceRebuild = (CacheFlags & EStreamedAudioCacheFlags::ForceRebuild) != 0;
+		bool bInlineChunks = (CacheFlags & EStreamedAudioCacheFlags::InlineChunks) != 0;
 		bool bForDDC = (CacheFlags & EStreamedAudioCacheFlags::ForDDCBuild) != 0;
 		bool bAllowAsyncBuild = (CacheFlags & EStreamedAudioCacheFlags::AllowAsyncBuild) != 0;
 
@@ -318,7 +324,18 @@ public:
 			bSucceeded = true;
 			if (bForDDC)
 			{
-				bSucceeded = DerivedData->TryLoadChunks(0,NULL);
+				for (int32 Index = 0; Index < DerivedData->NumChunks; ++Index)
+				{
+					if (!DerivedData->TryLoadChunk(Index, NULL))
+					{
+						bSucceeded = false;
+						break;
+					}
+				}
+			}
+			else if (bInlineChunks)
+			{
+				bSucceeded = DerivedData->TryInlineChunkData();
 			}
 			else
 			{
@@ -430,6 +447,42 @@ static void BeginLoadDerivedChunks(TIndirectArray<FStreamedAudioChunk>& Chunks, 
 	}
 }
 
+bool FStreamedAudioPlatformData::TryInlineChunkData()
+{
+	TArray<uint32> AsyncHandles;
+	TArray<uint8> TempData;
+	FDerivedDataCacheInterface& DDC = GetDerivedDataCacheRef();
+
+	BeginLoadDerivedChunks(Chunks, 0, AsyncHandles);
+	for (int32 ChunkIndex = 0; ChunkIndex < Chunks.Num(); ++ChunkIndex)
+	{
+		FStreamedAudioChunk& Chunk = Chunks[ChunkIndex];
+		if (Chunk.DerivedDataKey.IsEmpty() == false)
+		{
+			uint32 AsyncHandle = AsyncHandles[ChunkIndex];
+			DDC.WaitAsynchronousCompletion(AsyncHandle);
+			if (DDC.GetAsynchronousResults(AsyncHandle, TempData))
+			{
+				int32 ChunkSize = 0;
+				FMemoryReader Ar(TempData, /*bIsPersistent=*/ true);
+				Ar << ChunkSize;
+
+				Chunk.BulkData.Lock(LOCK_READ_WRITE);
+				void* ChunkData = Chunk.BulkData.Realloc(ChunkSize);
+				Ar.Serialize(ChunkData, ChunkSize);
+				Chunk.BulkData.Unlock();
+				Chunk.DerivedDataKey.Empty();
+			}
+			else
+			{
+				return false;
+			}
+			TempData.Reset();
+		}
+	}
+	return true;
+}
+
 #endif //WITH_EDITORONLY_DATA
 
 FStreamedAudioPlatformData::FStreamedAudioPlatformData()
@@ -451,72 +504,74 @@ FStreamedAudioPlatformData::~FStreamedAudioPlatformData()
 #endif
 }
 
-bool FStreamedAudioPlatformData::TryLoadChunks(int32 FirstChunkToLoad, void** OutChunkData)
+bool FStreamedAudioPlatformData::TryLoadChunk(int32 ChunkIndex, uint8** OutChunkData)
 {
-	int32 NumChunksCached = 0;
+	bool bCachedChunk = false;
+	FStreamedAudioChunk& Chunk = Chunks[ChunkIndex];
 
 #if WITH_EDITORONLY_DATA
-	TArray<uint8> TempData;
-	TArray<uint32> AsyncHandles;
+	// Begin async DDC retrieval
 	FDerivedDataCacheInterface& DDC = GetDerivedDataCacheRef();
-	BeginLoadDerivedChunks(Chunks, FirstChunkToLoad, AsyncHandles);
+	uint32 AsyncHandle = 0;
+	if (!Chunk.DerivedDataKey.IsEmpty())
+	{
+		AsyncHandle = DDC.GetAsynchronous(*Chunk.DerivedDataKey);
+	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	// Load remaining chunks (if any) from bulk data.
-	for (int32 ChunkIndex = FirstChunkToLoad; ChunkIndex < Chunks.Num(); ++ChunkIndex)
+	// Load chunk from bulk data if available.
+	if (Chunk.BulkData.GetBulkDataSize() > 0)
 	{
-		FStreamedAudioChunk& Chunk = Chunks[ChunkIndex];
-		if (Chunk.BulkData.GetBulkDataSize() > 0)
+		if (OutChunkData)
 		{
+			if (*OutChunkData == NULL)
+			{
+				*OutChunkData = static_cast<uint8*>(FMemory::Malloc(Chunk.BulkData.GetBulkDataSize()));
+			}
+			Chunk.BulkData.GetCopy((void**)OutChunkData);
+		}
+		bCachedChunk = true;
+	}
+
+#if WITH_EDITORONLY_DATA
+	// Wait for async DDC to complete
+	if (Chunk.DerivedDataKey.IsEmpty() == false)
+	{
+		TArray<uint8> TempData;
+		DDC.WaitAsynchronousCompletion(AsyncHandle);
+		if (DDC.GetAsynchronousResults(AsyncHandle, TempData))
+		{
+			int32 ChunkSize = 0;
+			FMemoryReader Ar(TempData, /*bIsPersistent=*/ true);
+			Ar << ChunkSize;
+
+			if (ChunkSize != Chunk.DataSize)
+			{
+				UE_LOG(LogAudio, Warning,
+					TEXT("Chunk %d of %s SoundWave has invalid data in the DDC. Got %d bytes, expected %d. Key=%s"),
+					ChunkIndex,
+					*AudioFormat.ToString(),
+					ChunkSize,
+					Chunk.DataSize,
+					*Chunk.DerivedDataKey
+					);
+			}
+
+			bCachedChunk = true;
+
 			if (OutChunkData)
 			{
-				OutChunkData[ChunkIndex - FirstChunkToLoad] = FMemory::Malloc(Chunk.BulkData.GetBulkDataSize());
-				Chunk.BulkData.GetCopy(&OutChunkData[ChunkIndex - FirstChunkToLoad]);
-			}
-			NumChunksCached++;
-		}
-	}
-
-#if WITH_EDITORONLY_DATA
-	// Wait for async DDC gets.
-	for (int32 ChunkIndex = FirstChunkToLoad; ChunkIndex < Chunks.Num(); ++ChunkIndex)
-	{
-		FStreamedAudioChunk& Chunk = Chunks[ChunkIndex];
-		if (Chunk.DerivedDataKey.IsEmpty() == false)
-		{
-			uint32 AsyncHandle = AsyncHandles[ChunkIndex];
-			DDC.WaitAsynchronousCompletion(AsyncHandle);
-			if (DDC.GetAsynchronousResults(AsyncHandle, TempData))
-			{
-				FMemoryReader Ar(TempData, /*bIsPersistent=*/ true);
-				NumChunksCached++;
-
-				if (OutChunkData)
+				if (*OutChunkData == NULL)
 				{
-					OutChunkData[ChunkIndex - FirstChunkToLoad] = FMemory::Malloc(TempData.Num());
-					Ar.Serialize(OutChunkData[ChunkIndex - FirstChunkToLoad], TempData.Num());
+					*OutChunkData = static_cast<uint8*>(FMemory::Malloc(ChunkSize));
 				}
+				Ar.Serialize(*OutChunkData, ChunkSize);
 			}
-			TempData.Reset();
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	if (NumChunksCached != (Chunks.Num() - FirstChunkToLoad))
-	{
-		// Unable to cache all chunks. Release memory for those that were cached.
-		for (int32 ChunkIndex = FirstChunkToLoad; ChunkIndex < Chunks.Num(); ++ChunkIndex)
-		{
-			if (OutChunkData && OutChunkData[ChunkIndex - FirstChunkToLoad])
-			{
-				FMemory::Free(OutChunkData[ChunkIndex - FirstChunkToLoad]);
-				OutChunkData[ChunkIndex - FirstChunkToLoad] = NULL;
-			}
-		}
-		return false;
-	}
-
-	return true;
+	return bCachedChunk;
 }
 
 #if WITH_EDITORONLY_DATA
@@ -857,7 +912,7 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 			if (PlatformDataToSave == NULL)
 			{
 				PlatformDataToSave = new FStreamedAudioPlatformData();
-				PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::Async);
+				PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::InlineChunks | EStreamedAudioCacheFlags::Async);
 
 				CookedPlatformData.Add(DerivedDataKey, PlatformDataToSave);
 			}
@@ -919,7 +974,7 @@ void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPl
 		// Retrieve format to cache for targetplatform.
 		FName PlatformFormat = TargetPlatform->GetWaveFormat(this);
 
-		uint32 CacheFlags = EStreamedAudioCacheFlags::Async;
+		uint32 CacheFlags = EStreamedAudioCacheFlags::Async | EStreamedAudioCacheFlags::InlineChunks;
 
 		// If source data is resident in memory then allow the streamed audio to be built
 		// in a background thread.
@@ -969,5 +1024,17 @@ void USoundWave::FinishCachePlatformData()
 
 	check(RunningPlatformData->DerivedDataKey == DerivedDataKey);
 #endif
+}
+
+void USoundWave::ForceRebuildPlatformData()
+{
+	if (RunningPlatformData)
+	{
+		RunningPlatformData->Cache(
+			*this,
+			GetWaveFormatForRunningPlatform(*this),
+			EStreamedAudioCacheFlags::ForceRebuild
+			);
+	}
 }
 #endif //WITH_EDITORONLY_DATA

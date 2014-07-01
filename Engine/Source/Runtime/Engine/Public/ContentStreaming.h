@@ -476,6 +476,42 @@ struct ITextureStreamingManager : public IStreamingManager
 };
 
 /**
+ * Interface to add functions specifically related to audio streaming
+ */
+struct IAudioStreamingManager : public IStreamingManager
+{
+	/** Adds a new Sound Wave to the streaming manager. */
+	virtual void AddStreamingSoundWave(USoundWave* SoundWave) = 0;
+
+	/** Removes a Sound Wave from the streaming manager. */
+	virtual void RemoveStreamingSoundWave(USoundWave* SoundWave) = 0;
+
+	/** Returns true if this is a Sound Wave that is managed by the streaming manager. */
+	virtual bool IsManagedStreamingSoundWave(const USoundWave* SoundWave) const = 0;
+
+	/** Returns true if this Sound Wave is currently streaming a chunk. */
+	virtual bool IsStreamingInProgress(const USoundWave* SoundWave) = 0;
+
+	/** Adds a new Sound Source to the streaming manager. */
+	virtual void AddStreamingSoundSource(FSoundSource* SoundSource) = 0;
+
+	/** Removes a Sound Source from the streaming manager. */
+	virtual void RemoveStreamingSoundSource(FSoundSource* SoundSource) = 0;
+
+	/** Returns true if this is a streaming Sound Source that is managed by the streaming manager. */
+	virtual bool IsManagedStreamingSoundSource(const FSoundSource* SoundSource) const = 0;
+
+	/**
+	 * Gets a pointer to a chunk of audio data
+	 *
+	 * @param SoundWave		SoundWave we want a chunk from
+	 * @param ChunkIndex	Index of the chunk we want
+	 * @return Either the desired chunk or NULL if it's not loaded
+	 */
+	virtual const uint8* GetLoadedChunk(const USoundWave* SoundWave, uint32 ChunkIndex) const = 0;
+};
+
+/**
  * Streaming manager collection, routing function calls to streaming managers that have been added
  * via AddStreamingManager.
  */
@@ -552,6 +588,11 @@ struct FStreamingManagerCollection : public IStreamingManager
 	 * Gets a reference to the Texture Streaming Manager interface
 	 */
 	ITextureStreamingManager& GetTextureStreamingManager() const;
+
+	/**
+	 * Gets a reference to the Audio Streaming Manager interface
+	 */
+	IAudioStreamingManager& GetAudioStreamingManager() const;
 
 	/**
 	 * Adds a streaming manager to the array of managers to route function calls to.
@@ -649,6 +690,9 @@ protected:
 
 	/** The currently added texture streaming manager. Can be NULL*/
 	FStreamingManagerTexture* TextureStreamingManager;
+
+	/** The audio streaming manager, should always exist */
+	IAudioStreamingManager* AudioStreamingManager;
 };
 
 /*-----------------------------------------------------------------------------

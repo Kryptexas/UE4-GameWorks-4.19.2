@@ -79,6 +79,44 @@ public:
 	 * Gets the size of the source buffer originally passed to the info class (bytes)
 	 */
 	virtual uint32 GetSourceBufferSize() const = 0;
+
+	////////////////////////////////////////////////////////////////
+	// Following functions are optional if streaming is supported //
+	////////////////////////////////////////////////////////////////
+
+	/**
+	 * Whether this decompression class supports streaming decompression
+	 */
+	virtual bool SupportsStreaming() const {return false;}
+
+	/**
+	* Streams the header information of a compressed format
+	*
+	* @param	Wave			Wave that will be read from to retrieve necessary chunk
+	* @param	QualityInfo		Quality Info (to be filled out)
+	*/
+	virtual bool StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo) {return false;}
+
+	/**
+	* Decompresses streamed data to raw PCM data.
+	*
+	* @param	Destination	where to place the decompressed sound
+	* @param	bLooping	whether to loop the sound by seeking to the start, or pad the buffer with zeroes
+	* @param	BufferSize	number of bytes of PCM data to create
+	*
+	* @return	bool		true if the end of the data was reached (for both single shot and looping sounds)
+	*/
+	virtual bool StreamCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize) {return false;}
+
+	/**
+	 * Gets the chunk index that was last read from (for Streaming Manager requests)
+	 */
+	virtual int32 GetCurrentChunkIndex() const {return -1;}
+
+	/**
+	 * Gets the offset into the chunk that was last read to (for Streaming Manager priority)
+	 */
+	virtual int32 GetCurrentChunkOffset() const {return -1;}
 };
 
 #if WITH_OGGVORBIS
@@ -140,6 +178,8 @@ public:
 
 #define OPUS_ID_STRING "UE4OPUS"
 
+struct FOpusDecoderWrapper;
+
 /**
 * Helper class to parse opus data
 */
@@ -149,19 +189,60 @@ public:
 	ENGINE_API FOpusAudioInfo(void);
 	ENGINE_API virtual ~FOpusAudioInfo(void);
 
+	// ICompressedAudioInfo Interface
+	ENGINE_API virtual bool ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo) override;
+	ENGINE_API virtual bool ReadCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize) override;
+	ENGINE_API virtual void SeekToTime(const float SeekTime) override {};
+	ENGINE_API virtual void ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo) override;
+	ENGINE_API virtual void EnableHalfRate(bool HalfRate) override {};
+	virtual uint32 GetSourceBufferSize() const override { return SrcBufferDataSize;}
+
+	virtual bool SupportsStreaming() const override {return true;}
+	virtual bool StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo) override;
+	virtual bool StreamCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize) override;
+	virtual int32 GetCurrentChunkIndex() const override {return CurrentChunkIndex;}
+	virtual int32 GetCurrentChunkOffset() const override {return SrcBufferOffset;}
+	// End of ICompressedAudioInfo Interface
+
+protected:
 	/** Emulate read from memory functionality */
 	size_t			Read(void *ptr, uint32 size);
 
-	// ICompressedAudioInfo Interface
-	ENGINE_API virtual bool ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo);
-	ENGINE_API virtual bool ReadCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize);
-	ENGINE_API virtual void SeekToTime(const float SeekTime) {};
-	ENGINE_API virtual void ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo);
-	ENGINE_API virtual void EnableHalfRate(bool HalfRate) {};
-	virtual uint32 GetSourceBufferSize() const { return SrcBufferDataSize;}
-	// End of ICompressedAudioInfo Interface
+	/**
+	 * Decompresses a frame of Opus data to PCM buffer
+	 *
+	 * @param FrameSize Size of the frame in bytes
+	 * @return The amount of samples that were decompressed (< 0 indicates error)
+	 */
+	int32 DecompressToPCMBuffer(uint16 FrameSize);
 
-	struct FOpusDecoderWrapper* OpusDecoderWrapper;
+	/**
+	 * Adds to the count of samples that have currently been decoded
+	 *
+	 * @param NewSamples	How many samples have been decoded
+	 * @return How many samples were actually part of the true sample count
+	 */
+	uint32 IncrementCurrentSampleCount(uint32 NewSamples);
+
+	/**
+	 * Writes data from decoded PCM buffer, taking into account whether some PCM has been written before
+	 *
+	 * @param Destination	Where to place the decoded sound
+	 * @param BufferSize	Size of the destination buffer in bytes
+	 * @return				How many bytes were written
+	 */
+	uint32	WriteFromDecodedPCM(uint8* Destination, uint32 BufferSize);
+
+	/**
+	 * Zeroes the contents of a buffer
+	 *
+	 * @param Destination	Buffer to zero
+	 * @param BufferSize	Size of the destination buffer in bytes
+	 * @return				How many bytes were zeroed
+	 */
+	uint32	ZeroBuffer(uint8* Destination, uint32 BufferSize);
+
+	FOpusDecoderWrapper*	OpusDecoderWrapper;
 	const uint8*	SrcBufferData;
 	uint32			SrcBufferDataSize;
 	uint32			SrcBufferOffset;
@@ -170,10 +251,16 @@ public:
 	uint32			TrueSampleCount;
 	uint32			CurrentSampleCount;
 	uint8			NumChannels;
+	uint32			SampleStride;
 
 	TArray<uint8>	LastDecodedPCM;
 	uint32			LastPCMByteSize;
 	uint32			LastPCMOffset;
+	bool			bStoringEndOfFile;
+
+	// Streaming specific
+	USoundWave*		StreamingSoundWave;
+	int32			CurrentChunkIndex;
 };
 
 /**

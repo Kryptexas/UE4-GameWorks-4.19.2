@@ -133,6 +133,7 @@ FXAudio2SoundBuffer::~FXAudio2SoundBuffer( void )
 		break;
 
 	case SoundFormat_PCMRT:
+	case SoundFormat_Streaming:
 		// Buffers are freed as part of the ~FSoundSource
 		break;
 
@@ -196,9 +197,23 @@ int32 FXAudio2SoundBuffer::GetSize( void )
 	case SoundFormat_XWMA:
 		TotalSize = XWMA.XWMADataSize + XWMA.XWMASeekDataSize;
 		break;
+
+	case SoundFormat_Streaming:
+		TotalSize = ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
+		break;
 	}
 
 	return( TotalSize );
+}
+
+int32 FXAudio2SoundBuffer::GetCurrentChunkIndex() const
+{
+	return DecompressionState->GetCurrentChunkIndex();
+}
+
+int32 FXAudio2SoundBuffer::GetCurrentChunkOffset() const
+{
+	return DecompressionState->GetCurrentChunkOffset();
 }
 
 /** 
@@ -300,7 +315,15 @@ void FXAudio2SoundBuffer::InitXWMA( USoundWave* Wave, FXMAInfo* XMAInfo )
  */
 bool FXAudio2SoundBuffer::ReadCompressedData( uint8* Destination, bool bLooping )
 {
-	return( DecompressionState->ReadCompressedData( Destination, bLooping, MONO_PCM_BUFFER_SIZE * NumChannels ) );
+	const uint32 kPCMBufferSize = MONO_PCM_BUFFER_SIZE * NumChannels;
+	if (SoundFormat == SoundFormat_Streaming)
+	{
+		return DecompressionState->StreamCompressedData( Destination, bLooping, kPCMBufferSize );
+	}
+	else
+	{
+		return( DecompressionState->ReadCompressedData( Destination, bLooping, kPCMBufferSize ) );
+	}
 }
 
 void FXAudio2SoundBuffer::Seek( const float SeekTime )
@@ -451,6 +474,41 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateNativeBuffer( FXAudio2Device* XA
 	return( Buffer );
 }
 
+FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateStreamingBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave )
+{
+	// Always create a new buffer for streaming sounds
+	FXAudio2SoundBuffer* Buffer = new FXAudio2SoundBuffer(XAudio2Device, SoundFormat_Streaming);
+
+	// Prime the first two buffers and prepare the decompression
+	FSoundQualityInfo QualityInfo = { 0 };
+
+	Buffer->DecompressionState = XAudio2Device->CreateCompressedAudioInfo(Wave);
+
+	if (Buffer->DecompressionState->StreamCompressedInfo(Wave, &QualityInfo))
+	{
+		// Refresh the wave data
+		Wave->SampleRate = QualityInfo.SampleRate;
+		Wave->NumChannels = QualityInfo.NumChannels;
+		Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
+		Wave->Duration = QualityInfo.Duration;
+
+		// Clear out any dangling pointers
+		Buffer->PCM.PCMData = NULL;
+		Buffer->PCM.PCMDataSize = 0;
+
+		Buffer->InitWaveFormatEx(WAVE_FORMAT_PCM, Wave, false);
+	}
+	else
+	{
+		Wave->DecompressionType = DTYPE_Invalid;
+		Wave->NumChannels = 0;
+
+		Wave->RemoveAudioResource();
+	}
+
+	return(Buffer);
+}
+
 /**
  * Static function used to create a buffer.
  *
@@ -471,7 +529,7 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::Init( FAudioDevice* AudioDevice, USoun
 
 	// Allow the precache to happen if necessary
 	EDecompressionType DecompressionType = Wave->DecompressionType;
-	if (bForceRealTime &&  DecompressionType != DTYPE_Setup )
+	if (bForceRealTime && DecompressionType != DTYPE_Setup && DecompressionType != DTYPE_Streaming)
 	{
 		DecompressionType = DTYPE_RealTime;
 	}
@@ -525,6 +583,11 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::Init( FAudioDevice* AudioDevice, USoun
 		{
 			Buffer = CreateNativeBuffer( XAudio2Device, Wave );
 		}
+		break;
+
+	case DTYPE_Streaming:
+		// Always create a new buffer for streaming sounds
+		Buffer = CreateStreamingBuffer( XAudio2Device, Wave );
 		break;
 
 	case DTYPE_Invalid:

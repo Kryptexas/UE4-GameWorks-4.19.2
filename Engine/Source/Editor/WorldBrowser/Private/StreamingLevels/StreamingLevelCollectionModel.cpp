@@ -6,6 +6,7 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "LevelEditor.h"
 #include "DesktopPlatformModule.h"
+#include "AssetData.h"
 
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelCollectionModel.h"

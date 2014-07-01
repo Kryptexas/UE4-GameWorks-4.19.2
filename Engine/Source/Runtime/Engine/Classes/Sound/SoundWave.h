@@ -26,6 +26,7 @@ enum EDecompressionType
 	DTYPE_RealTime,
 	DTYPE_Procedural,
 	DTYPE_Xenon,
+	DTYPE_Streaming,
 	DTYPE_MAX,
 };
 
@@ -34,6 +35,9 @@ enum EDecompressionType
  */
 struct FStreamedAudioChunk
 {
+	/** Size of the chunk of data in bytes */
+	int32 DataSize;
+
 	/** Bulk data if stored in the package. */
 	FByteBulkData BulkData;
 
@@ -86,14 +90,13 @@ struct FStreamedAudioPlatformData
 	~FStreamedAudioPlatformData();
 
 	/**
-	 * Try to load audio chunks from the derived data cache.
-	 * @param FirstChunkToLoad - The first Chunk index to load.
-	 * @param OutChunkData -	Must point to an array of pointers with at least
-	 *						Audio.Chunks.Num() - FirstChunkToLoad + 1 entries. Upon
-	 *						return those pointers will contain audio chunk data.
-	 * @returns true if all requested chunks have been loaded.
+	 * Try to load audio chunk from the derived data cache.
+	 * @param ChunkIndex	The Chunk index to load.
+	 * @param OutChunkData	Address of pointer that will store chunk data - should
+	 *						either be NULL or have enough space for the chunk
+	 * @returns true if requested chunk has been loaded.
 	 */
-	bool TryLoadChunks(int32 FirstChunkToLoad, void** OutChunkData);
+	bool TryLoadChunk(int32 ChunkIndex, uint8** OutChunkData);
 
 	/** Serialization. */
 	void Serialize(FArchive& Ar, class USoundWave* Owner);
@@ -248,7 +251,7 @@ public:
 	/** The streaming derived data for this sound on this platform. */
 	FStreamedAudioPlatformData *RunningPlatformData;
 
-	/* cooked streaming platform data for this sound */
+	/** cooked streaming platform data for this sound */
 	TMap<FString, FStreamedAudioPlatformData*> CookedPlatformData;
 
 	// Begin UObject interface. 
@@ -390,7 +393,19 @@ public:
 	 * Blocks on async cache tasks and prepares platform data for use.
 	 */
 	void FinishCachePlatformData();
+
+	/**
+	 * Forces platform data to be rebuilt.
+	 */
+	void ForceRebuildPlatformData();
 #endif
+
+	/**
+	 * Get Chunk data for a specified chunk index.
+	 * @param ChunkIndex	The Chunk index to cache.
+	 * @param OutChunkData	Address of pointer that will store data.
+	 */
+	void GetChunkData(int32 ChunkIndex, uint8** OutChunkData);
 };
 
 
