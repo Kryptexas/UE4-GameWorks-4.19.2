@@ -807,6 +807,7 @@ void FStaticMeshRenderData::ResolveSectionInfo(UStaticMesh* Owner)
 {
 	int32 LODIndex = 0;
 	int32 MaxLODs = LODResources.Num();
+	check(MaxLODs <= MAX_STATIC_MESH_LODS);
 	for (; LODIndex < MaxLODs; ++LODIndex)
 	{
 		FStaticMeshLODResources& LOD = LODResources[LODIndex];
@@ -2545,6 +2546,7 @@ bool UStaticMesh::CanLODsShareStaticLighting() const
 void UStaticMesh::ConvertLegacyLODDistance()
 {
 	check(SourceModels.Num() > 0);
+	check(SourceModels.Num() <= MAX_STATIC_MESH_LODS);
 
 	if(SourceModels.Num() == 1)
 	{

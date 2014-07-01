@@ -42,7 +42,7 @@ void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuEntries( FGraphContextMenuBu
 
 	UK2Node* EnumNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UGameplayTagsK2Node_LiteralGameplayTag>();
 
-	const FString Category = FunctionCategory + TEXT("|Game");
+	const FString Category = FunctionCategory + TEXT("|Gameplay Tags|Tag Container");
 	const FText MenuDesc = EnumNodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
 	const FString Tooltip = EnumNodeTemplate->GetTooltip();
 	const FString Keywords = EnumNodeTemplate->GetKeywords();

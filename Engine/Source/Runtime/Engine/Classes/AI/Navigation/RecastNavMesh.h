@@ -17,9 +17,10 @@
 #define NAVMESHVER_SEGMENT_LINKS		6
 #define NAVMESHVER_DYNAMIC_LINKS		7
 #define NAVMESHVER_64BIT				9
+#define NAVMESHVER_CLUSTER_SIMPLIFIED	10
 
-#define NAVMESHVER_LATEST				NAVMESHVER_64BIT
-#define NAVMESHVER_MIN_COMPATIBLE		NAVMESHVER_64BIT
+#define NAVMESHVER_LATEST				NAVMESHVER_CLUSTER_SIMPLIFIED
+#define NAVMESHVER_MIN_COMPATIBLE		NAVMESHVER_CLUSTER_SIMPLIFIED
 
 #define RECAST_MAX_SEARCH_NODES		2048
 #define RECAST_MAX_PATH_VERTS		64
@@ -508,6 +509,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	float DefaultMaxSearchNodes;
 
+	/** specifes default limit to A* nodes used when performing hierarchical navigation queries. */
+	UPROPERTY(config)
+	float DefaultMaxHierarchicalSearchNodes;
+
 	/** partitioning method for creating navmesh polys */
 	UPROPERTY(EditAnywhere, Category=Generation, config, AdvancedDisplay)
 	TEnumAsByte<ERecastPartitioning::Type> RegionPartitioning;
@@ -794,9 +799,6 @@ public:
 	/** Retrieves start and end point of offmesh link */
 	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
 
-	/** Retrieves center of cluster (either middle of center poly, or calculated from all vertices). Returns false on error. */
-	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
-
 	/** Retrieves bounds of cluster. Returns false on error. */
 	bool GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const;
 
@@ -812,9 +814,6 @@ public:
 	 *		add an extra margin to PathingDistance */
 	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundPolys, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
 
-	/** Retrieves all clusters within given pathing distance from StartLocation. */
-	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundClusters, bool bBackTracking = false) const;
-
 	/** Filters nav polys in PolyRefs with Filter */
 	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
 
@@ -827,9 +826,8 @@ public:
 
 	// @todo docuement
 	static FPathFindingResult FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
-	static FPathFindingResult FindHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
-	static bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
-	static bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
+	static bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
+	static bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 	static bool NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier, FRaycastResult& Result);
 	static bool NavMeshRaycast(const ANavigationData* Self, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSharedPtr<const FNavigationQueryFilter> QueryFilter, const UObject* Querier = NULL);
 

@@ -43,6 +43,8 @@
 #define SPEAKER_5POINT0          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT )
 #define SPEAKER_6POINT1          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT | SPEAKER_BACK_CENTER )
 
+#define UE4_XAUDIO3D_INPUTCHANNELS 1
+
 struct FPCMBufferInfo
 {
 	/** Format of the source PCM data */
@@ -449,8 +451,8 @@ class FSpatializationHelper
 	X3DAUDIO_DISTANCE_CURVE_POINT ReverbVolumeCurvePoint[2];
 	X3DAUDIO_DISTANCE_CURVE       ReverbVolumeCurve;
 
-	float                         EmitterAzimuths;
-	float					      MatrixCoefficients[SPEAKER_COUNT];
+	float                         EmitterAzimuths[UE4_XAUDIO3D_INPUTCHANNELS];
+	float					      MatrixCoefficients[UE4_XAUDIO3D_INPUTCHANNELS * SPEAKER_COUNT];
 	
 public:
 	/**

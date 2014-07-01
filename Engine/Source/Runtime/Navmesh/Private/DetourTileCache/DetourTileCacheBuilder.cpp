@@ -66,9 +66,8 @@ void dtFreeTileCacheClusterSet(dtTileCacheAlloc* alloc, dtTileCacheClusterSet* c
 	dtAssert(alloc);
 
 	if (!clusters) return;
-	alloc->free(clusters->center);
-	alloc->free(clusters->nlinks);
-	alloc->free(clusters->links);
+	alloc->free(clusters->polyMap);
+	alloc->free(clusters->regMap);
 	alloc->free(clusters);
 }
 
@@ -646,14 +645,16 @@ static void getContourCenter(const dtTileCacheContour* cont, const float* orig, 
 	center[2] += orig[2];
 }
 
-static int findContourFromSet(const dtTileCacheContourSet& cset, unsigned short reg)
+static void addUniqueRegion(unsigned short* arr, unsigned short v, int& n)
 {
-	for (int i = 0; i < cset.nconts; ++i)
+	for (int i = 0; i < n; i++)
 	{
-		if (cset.conts[i].reg == reg)
-			return i;
+		if (arr[i] == v)
+			return;
 	}
-	return -1;
+
+	arr[n] = v;
+	n++;
 }
 
 // TODO: move this somewhere else, once the layer meshing is done.
@@ -876,24 +877,41 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 	}
 
 	// Build clusters
-	clusters.nclusters = layer.regCount;
-	clusters.center = (float*)alloc->alloc(sizeof(float)*3*clusters.nclusters);
-	clusters.nlinks = (unsigned short*)alloc->alloc(sizeof(unsigned short)*clusters.nclusters);
-	if (!clusters.center || !clusters.nlinks)
+	clusters.nregs = layer.regCount;
+	clusters.npolys = 0;
+	clusters.nclusters = 0;
+	clusters.regMap = (unsigned short*)alloc->alloc(sizeof(unsigned short)*clusters.nregs);
+	if (!clusters.regMap)
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 
-	memset(clusters.center, 0, sizeof(float)*3*clusters.nclusters);
-	memset(clusters.nlinks, 0, sizeof(unsigned short)*clusters.nclusters);
-
-	const int maxClusterLinks = clusters.nclusters*clusters.nclusters;
-	dtScopedDelete<unsigned short> clusterLinks(maxClusterLinks);
-	memset(clusterLinks, 0xffff, sizeof(unsigned short)*maxClusterLinks);
-	
-	unsigned short numAddedLinks = 0;
-
-	for (int i = 0; i < clusters.nclusters; i++)
+	memset(clusters.regMap, 0xff, sizeof(unsigned short)*clusters.nregs);
+	if (clusters.nregs <= 0)
 	{
-		unsigned short firstLinkForCluster = numAddedLinks;
+		return DT_SUCCESS;
+	}
+
+	// outer loop: find first unassigned region
+	// loop: find all contours matching this region
+	// - create new cluster (once)
+	// - gather all neighbor regions
+	// - repeat inner loop for every region from list
+	
+	dtScopedDelete<unsigned short> neiRegs(layer.regCount);
+	dtScopedDelete<unsigned short> newNeiRegs(layer.regCount);
+	int nneiRegs = 0;
+	int nnewNeiRegs = 0;
+	
+	for (int i = 0; i < clusters.nregs; i++)
+	{
+		if (clusters.regMap[i] != 0xffff)
+		{
+			continue;
+		}
+
+		bool bCanAddCluster = true;
+		int newClusterId = clusters.nclusters;
+		nneiRegs = 0;
+
 		for (int ic = 0; ic < lcset.nconts; ic++)
 		{
 			// there could be more than one contour per region...
@@ -903,45 +921,54 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 				continue;
 			}
 
-			unsigned short& nnei = clusters.nlinks[i];
-			if (cont.nverts > 0)
+			if (bCanAddCluster)
 			{
-				getContourCenter(&cont, layer.header->bmin, cs, ch, &clusters.center[i*3]);
+				clusters.regMap[i] = newClusterId;
+				clusters.nclusters++;
+				bCanAddCluster = false;
 			}
 
 			for (int j = 0; j < nlinks[ic]; j++)
 			{
 				unsigned short neiReg = (unsigned short)(links[linksBase[ic] + j]);
-				const int neiCont = findContourFromSet(lcset, neiReg);
-				if (neiCont < 0 || lcset.conts[neiCont].area == DT_TILECACHE_NULL_AREA) continue;
+				addUniqueRegion(neiRegs, neiReg, nneiRegs);
+			}
+		}
 
-				const unsigned short neiCluster = neiReg;
-				bool bFound = false;
-				for (unsigned short k = firstLinkForCluster; k < numAddedLinks; k++)
+		while (nneiRegs > 0)
+		{
+			nnewNeiRegs = 0;
+			for (int ir = 0; ir < nneiRegs; ir++)
+			{
+				dtAssert(neiRegs[ir] < clusters.nregs);
+				if (clusters.regMap[neiRegs[ir]] != 0xffff)
 				{
-					if (clusterLinks[k] == neiCluster)
+					continue;
+				}
+
+				for (int ic = 0; ic < lcset.nconts; ic++)
+				{
+					// there could be more than one contour per region...
+					dtTileCacheContour& cont = lcset.conts[ic];
+					if (cont.reg != (unsigned short)neiRegs[ir] || cont.area == DT_TILECACHE_NULL_AREA)
 					{
-						bFound = true;
-						break;
+						continue;
+					}
+
+					clusters.regMap[cont.reg] = newClusterId;
+					for (int j = 0; j < nlinks[ic]; j++)
+					{
+						unsigned short neiReg = (unsigned short)(links[linksBase[ic] + j]);
+						addUniqueRegion(newNeiRegs, neiReg, nnewNeiRegs);
 					}
 				}
-
-				if (!bFound && numAddedLinks < maxClusterLinks)
-				{
-					clusterLinks[numAddedLinks] = neiCluster;
-					numAddedLinks++;
-					nnei++;
-				}
 			}
+
+			nneiRegs = nnewNeiRegs;
+			memcpy(neiRegs, newNeiRegs, sizeof(unsigned short)* nnewNeiRegs);
 		}
 	}
 
-	if (numAddedLinks)
-	{
-		clusters.links = (unsigned short*)alloc->alloc(sizeof(unsigned short)*numAddedLinks);
-		memcpy(clusters.links, clusterLinks, sizeof(unsigned short)*numAddedLinks);
-	}
-	
 	return DT_SUCCESS;
 }	
 
@@ -2262,6 +2289,26 @@ dtStatus dtMarkConvexArea(dtTileCacheLayer& layer, const float* orig, const floa
 	return DT_SUCCESS;
 }
 
+dtStatus dtBuildTileCacheClusters(dtTileCacheAlloc* alloc, dtTileCacheClusterSet& lclusters, dtTileCachePolyMesh& lmesh)
+{
+	lclusters.npolys = lmesh.npolys;
+	lclusters.polyMap = (unsigned short*)alloc->alloc(sizeof(unsigned short)*lclusters.npolys);
+	if (!lclusters.polyMap)
+		return DT_FAILURE | DT_OUT_OF_MEMORY;
+
+	memset(lclusters.polyMap, 0, sizeof(unsigned short)*lclusters.npolys);
+	for (int i = 0; i < lclusters.npolys; i++)
+	{
+		unsigned short reg = lmesh.regs[i];
+		if (reg < lclusters.nregs)
+		{
+			dtAssert(reg < lclusters.nregs);
+			lclusters.polyMap[i] = lclusters.regMap[reg];
+		}
+	}
+	
+	return DT_SUCCESS;
+}
 
 dtStatus dtBuildTileCacheLayer(dtTileCacheCompressor* comp,
 							   dtTileCacheLayerHeader* header,

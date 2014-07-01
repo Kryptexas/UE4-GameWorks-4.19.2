@@ -176,6 +176,15 @@ public:
 	 */
 	void SetLegendPosition(ELegendPosition::Type Position);
 
+	/** Enables small effset for data sets to make it easier to read
+	 * @Param Enable - set to true to enable offsets
+	 */
+	void OffsetDataSets(bool Enable) { bOffsetDataSets = Enable; }
+
+	/** Checks if we have enabled offset for data sets on graph
+	 */
+	bool IsOffsetForDataSetsEnabled() { return !!bOffsetDataSets; }
+
 protected:
 
 	/** Draw background under graph
@@ -259,5 +268,7 @@ protected:
 
 	/** Background color to draw under graph */
 	FColor BackgroundColor;
+
+	int32 bOffsetDataSets : 1;
 };
 

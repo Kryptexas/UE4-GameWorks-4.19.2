@@ -231,6 +231,7 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 	, DrawOffset(10.f)
 	, MaxSimplificationError(1.3f)	// from RecastDemo
 	, DefaultMaxSearchNodes(RECAST_MAX_SEARCH_NODES)
+	, DefaultMaxHierarchicalSearchNodes(RECAST_MAX_SEARCH_NODES)
 	, bPerformVoxelFiltering(true)	
 	, NextTimeToSortTiles(0.f)
 	, TileSetUpdateInterval(1.0f)
@@ -255,7 +256,7 @@ ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& P
 		INC_DWORD_STAT_BY( STAT_NavigationMemory, sizeof(*this) );
 
 		FindPathImplementation = FindPath;
-		FindHierarchicalPathImplementation = FindHierarchicalPath;
+		FindHierarchicalPathImplementation = FindPath;
 
 		TestPathImplementation = TestPath;
 		TestHierarchicalPathImplementation = TestHierarchicalPath;
@@ -1296,18 +1297,6 @@ bool ARecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FV
 	return bSuccess;
 }
 
-bool ARecastNavMesh::GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const
-{
-	bool bSuccess = false;
-	if (RecastNavMeshImpl)
-	{
-		SECTION_LOCK_TILES;
-		bSuccess = RecastNavMeshImpl->GetClusterCenter(ClusterRef, bUseCenterPoly, OutCenter);
-	}
-
-	return bSuccess;
-}
-
 bool ARecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const
 {
 	bool bSuccess = false;
@@ -1332,18 +1321,6 @@ bool ARecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, cons
 	return bSuccess;
 }
 
-bool ARecastNavMesh::GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundClusters, bool bBackTracking) const
-{
-	bool bSuccess = false;
-	if (RecastNavMeshImpl)
-	{
-		SECTION_LOCK_TILES;
-		bSuccess = RecastNavMeshImpl->GetClustersWithinPathingDistance(StartLoc, PathingDistance, bBackTracking, FoundClusters);
-	}
-
-	return bSuccess;
-}
-
 void ARecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex) const
 {
 	if (RecastNavMeshImpl)
@@ -1352,6 +1329,7 @@ void ARecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 T
 		RecastNavMeshImpl->GetDebugGeometry(OutGeometry, TileIndex);
 	}
 }
+
 void ARecastNavMesh::GetDebugTileBounds(FBox& OuterBox, int32& NumTilesX, int32& NumTilesY) const
 {
 	if (RecastNavMeshImpl)
@@ -1551,62 +1529,7 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 	return Result;
 }
 
-FPathFindingResult ARecastNavMesh::FindHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
-{
-	const ANavigationData* Self = Query.NavData.Get();
-	check(Cast<const ARecastNavMesh>(Self));
-
-	const ARecastNavMesh* RecastNavMesh = (const ARecastNavMesh*)Self;
-	if (Self == NULL || RecastNavMesh->RecastNavMeshImpl == NULL)
-	{
-		return ENavigationQueryResult::Error;
-	}
-
-	const bool bCanUseHierachicalPath = (Query.QueryFilter == RecastNavMesh->GetDefaultQueryFilter());
-
-	FPathFindingResult Result;
-	Result.Path = Self->CreatePathInstance<FNavMeshPath>();
-
-	FNavMeshPath* NavMeshPath = (FNavMeshPath*)Result.Path.Get();
-	NavMeshPath->Filter = Query.QueryFilter;
-	NavMeshPath->ApplyFlags(Query.NavDataFlags);
-
-	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
-	{
-		Result.Path->PathPoints.Reset();
-		Result.Path->PathPoints.Add(FNavPathPoint(Query.EndLocation));
-		Result.Result = ENavigationQueryResult::Success;
-	}
-	else
-	{
-		SECTION_LOCK_TILES_FOR(RecastNavMesh);
-
-		bool bUseFallbackSearch = false;
-		if (bCanUseHierachicalPath)
-		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindClusterPath(Query.StartLocation, Query.EndLocation, *NavMeshPath);
-			if (Result.Result == ENavigationQueryResult::Error)
-			{
-				bUseFallbackSearch = true;
-			}
-		}
-		else
-		{
-			UE_LOG(LogNavigation, Warning, TEXT("Hierarchical path finding request failed: filter doesn't match!"));
-			bUseFallbackSearch = true;
-		}
-
-		if (bUseFallbackSearch)
-		{
-			Result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath(Query.StartLocation, Query.EndLocation, *NavMeshPath,
-				*(Query.QueryFilter.Get()), Query.Owner.Get());
-		}
-	}
-
-	return Result;
-}
-
-bool ARecastNavMesh::TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
+bool ARecastNavMesh::TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes)
 {
 	const ANavigationData* Self = Query.NavData.Get();
 	check(Cast<const ARecastNavMesh>(Self));
@@ -1622,14 +1545,14 @@ bool ARecastNavMesh::TestPath(const FNavAgentProperties& AgentProperties, const 
 	{
 		SECTION_LOCK_TILES_FOR(RecastNavMesh);
 
-		ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get());
+		ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get(), NumVisitedNodes);
 		bPathExists = (Result == ENavigationQueryResult::Success);
 	}
 
 	return bPathExists;
 }
 
-bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
+bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes)
 {
 	const ANavigationData* Self = Query.NavData.Get();
 	check(Cast<const ARecastNavMesh>(Self));
@@ -1650,7 +1573,7 @@ bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProper
 		bool bUseFallbackSearch = false;
 		if (bCanUseHierachicalPath)
 		{
-			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestClusterPath(Query.StartLocation, Query.EndLocation);
+			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestClusterPath(Query.StartLocation, Query.EndLocation, NumVisitedNodes);
 			bPathExists = (Result == ENavigationQueryResult::Success);
 
 			if (Result == ENavigationQueryResult::Error)
@@ -1666,7 +1589,7 @@ bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProper
 
 		if (bUseFallbackSearch)
 		{
-			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get());
+			ENavigationQueryResult::Type Result = RecastNavMesh->RecastNavMeshImpl->TestPath(Query.StartLocation, Query.EndLocation, *(Query.QueryFilter.Get()), Query.Owner.Get(), NumVisitedNodes);
 			bPathExists = (Result == ENavigationQueryResult::Success);
 		}
 	}

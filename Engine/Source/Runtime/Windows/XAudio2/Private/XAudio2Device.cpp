@@ -92,8 +92,6 @@ bool FXAudio2Device::InitializeHardware()
 		return( false );
 	}
 
-	SpatializationHelper.Init();
-
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UINT32 DeviceCount = 0;
 	ValidateAPICall(TEXT("GetDeviceCount"),
@@ -123,6 +121,14 @@ bool FXAudio2Device::InitializeHardware()
 
 	FXAudioDeviceProperties::NumSpeakers = UE4_XAUDIO2_NUMCHANNELS;
 	SampleRate = FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec;
+
+	// Fail on devices using channels greater than the max
+	if (FXAudioDeviceProperties::NumSpeakers > SPEAKER_COUNT)
+	{
+		UE_LOG(LogInit, Log, TEXT("XAudio2 device used more channels than the max supported. Used: %d, Max: %d"), FXAudioDeviceProperties::NumSpeakers, SPEAKER_COUNT);
+		FXAudioDeviceProperties::XAudio2 = NULL;
+		return( false );
+	}
 
 	// Clamp the output frequency to the limits of the reverb XAPO
 	if( SampleRate > XAUDIO2FX_REVERB_MAX_FRAMERATE )
@@ -164,7 +170,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
-
+	SpatializationHelper.Init();
 
 	// Initialize permanent memory stack for initial & always loaded sound allocations.
 	if( CommonAudioPoolSize )

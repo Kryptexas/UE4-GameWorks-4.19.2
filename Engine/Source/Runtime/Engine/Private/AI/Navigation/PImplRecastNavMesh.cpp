@@ -124,6 +124,11 @@ ENavigationQueryResult::Type DTStatusToNavQueryResult(dtStatus Status)
 // FRecastQueryFilter();
 //----------------------------------------------------------------------//
 
+FRecastQueryFilter::FRecastQueryFilter()
+{
+	SetExcludedArea(RECAST_NULL_AREA);
+}
+
 INavigationQueryFilterInterface* FRecastQueryFilter::CreateCopy() const 
 {
 	return new FRecastQueryFilter(*this);
@@ -133,6 +138,7 @@ void FRecastQueryFilter::Reset()
 {
 	dtQueryFilter* Filter = static_cast<dtQueryFilter*>(this);
 	Filter = new(Filter) dtQueryFilter();
+	SetExcludedArea(RECAST_NULL_AREA);
 }
 
 void FRecastQueryFilter::SetAreaCost(uint8 AreaType, float Cost)
@@ -403,7 +409,6 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 	int32 offMeshConCount;
 	int32 offMeshSegConCount;
 	int32 clusterCount;
-	int32 clusterConCount;
 
 	if (Ar.IsSaving())
 	{
@@ -419,13 +424,12 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 		offMeshConCount = H->offMeshConCount;
 		offMeshSegConCount = H->offMeshSegConCount;
 		clusterCount = H->clusterCount;
-		clusterConCount = H->maxClusterCons;
 	}
 
 	Ar << totVertCount << totPolyCount << maxLinkCount;
 	Ar << detailMeshCount << detailVertCount << detailTriCount;
 	Ar << bvNodeCount << offMeshConCount << offMeshSegConCount;
-	Ar << clusterCount << clusterConCount;
+	Ar << clusterCount;
 	int32 polyClusterCount = detailMeshCount;
 
 	// calc sizes for our data so we know how much to allocate and where to read/write stuff
@@ -440,9 +444,8 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 	const int32 bvTreeSize = dtAlign4(sizeof(dtBVNode)*bvNodeCount);
 	const int32 offMeshConsSize = dtAlign4(sizeof(dtOffMeshConnection)*offMeshConCount);
 	const int32 offMeshSegsSize = dtAlign4(sizeof(dtOffMeshSegmentConnection)*offMeshSegConCount);
-	const int32 clustersSize = dtAlign4(sizeof(dtCluster)*clusterCount);
+	const int32 clusterSize = dtAlign4(sizeof(dtCluster)*clusterCount);
 	const int32 polyClustersSize = dtAlign4(sizeof(unsigned short)*polyClusterCount);
-	const int32 clusterConSize = dtAlign4(sizeof(unsigned short)*clusterConCount);
 
 	if (Ar.IsLoading())
 	{
@@ -451,8 +454,8 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 		// allocate data chunk for this navmesh tile.  this is its final destination.
 		TileDataSize = headerSize + vertsSize + polysSize + linksSize +
 			detailMeshesSize + detailVertsSize + detailTrisSize +
-			bvTreeSize + offMeshConsSize + offMeshSegsSize +
-			clustersSize + polyClustersSize + clusterConSize;
+			bvTreeSize + offMeshConsSize + offMeshSegsSize + 
+			clusterSize + polyClustersSize;
 		TileData = (unsigned char*)dtAlloc(sizeof(unsigned char)*TileDataSize, DT_ALLOC_PERM);
 		if (!TileData)
 		{
@@ -480,9 +483,8 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 		dtBVNode* BVTree = (dtBVNode*)d; d += bvTreeSize;
 		dtOffMeshConnection* OffMeshCons = (dtOffMeshConnection*)d; d += offMeshConsSize;
 		dtOffMeshSegmentConnection* OffMeshSegs = (dtOffMeshSegmentConnection*)d; d += offMeshSegsSize;
-		dtCluster* Clusters = (dtCluster*)d; d += clustersSize;
+		dtCluster* Clusters = (dtCluster*)d; d += clusterSize;
 		unsigned short* PolyClusters = (unsigned short*)d; d += polyClustersSize;
-		unsigned short* ClusterCons = (unsigned short*)d; d += clusterConSize;
 
 		check(d==(TileData + TileDataSize));
 
@@ -497,7 +499,7 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 		Ar << Header->bmin[0] << Header->bmin[1] << Header->bmin[2];
 		Ar << Header->bmax[0] << Header->bmax[1] << Header->bmax[2];
 		Ar << Header->bvQuantFactor;
-		Ar << Header->clusterCount << Header->maxClusterCons;
+		Ar << Header->clusterCount;
 		Ar << Header->offMeshSegConCount << Header->offMeshSegPolyBase << Header->offMeshSegVertBase;
 
 		// mesh and offmesh connection vertices, just an array of floats (one float triplet per vert)
@@ -586,26 +588,16 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 		}
 
 		// serialize clusters
-		for (int32 ClusterIdx = 0; ClusterIdx < clusterCount; ++ClusterIdx)
+		for (int32 CIdx = 0; CIdx < clusterCount; ++CIdx)
 		{
-			dtCluster& Cluster = Clusters[ClusterIdx];
-			Ar << Cluster.centerPoly << Cluster.firstLink << Cluster.numLinks;
-			Ar << Cluster.center[0] << Cluster.center[1] << Cluster.center[2];
+			dtCluster& cluster = Clusters[CIdx];
+			Ar << cluster.center[0] << cluster.center[1] << cluster.center[2];
 		}
 
 		// serialize poly clusters map
 		{
 			unsigned short* C = PolyClusters;
 			for (int32 PolyClusterIdx = 0; PolyClusterIdx < polyClusterCount; ++PolyClusterIdx)
-			{
-				Ar << *C; C++;
-			}
-		}
-
-		// serialize cluster links
-		{
-			unsigned short* C = ClusterCons;
-			for (int32 ClusterConIdx = 0; ClusterConIdx < clusterConCount; ++ClusterConIdx)
 			{
 				Ar << *C; C++;
 			}
@@ -762,7 +754,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	return DTStatusToNavQueryResult(FindPathStatus);
 }
 
-ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner) const
+ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, int32* NumVisitedNodes) const
 {
 	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(InQueryFilter.GetImplementation()))->GetAsDetourQueryFilter();
 	if (QueryFilter == NULL)
@@ -792,16 +784,21 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::TestPath(const FVector& StartL
 		&RecastStartPos.X, &RecastEndPos.X, QueryFilter,
 		PathCorridorPolys, &NumPathCorridorPolys, MAX_PATH_CORRIDOR_POLYS, PathCorridorCost, 0);
 
+	if (NumVisitedNodes)
+	{
+		*NumVisitedNodes = NavQuery.getQueryNodes();
+	}
+
 	return DTStatusToNavQueryResult(FindPathStatus);
 }
 
-ENavigationQueryResult::Type FPImplRecastNavMesh::TestClusterPath(const FVector& StartLoc, const FVector& EndLoc) const
+ENavigationQueryResult::Type FPImplRecastNavMesh::TestClusterPath(const FVector& StartLoc, const FVector& EndLoc, int32* NumVisitedNodes) const
 {
 	FVector RecastStartPos, RecastEndPos;
 	NavNodeRef StartPolyID, EndPolyID;
 	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
 
-	INITIALIZE_NAVQUERY_SIMPLE(ClusterQuery, RECAST_MAX_SEARCH_NODES);
+	INITIALIZE_NAVQUERY_SIMPLE(ClusterQuery, NavMeshOwner->DefaultMaxHierarchicalSearchNodes);
 
 	const bool bCanSearch = InitPathfinding(StartLoc, EndLoc, ClusterQuery, ClusterFilter, RecastStartPos, StartPolyID, RecastEndPos, EndPolyID);
 	if (!bCanSearch)
@@ -810,94 +807,10 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::TestClusterPath(const FVector&
 	}
 
 	const dtStatus status = ClusterQuery.testClusterPath(StartPolyID, EndPolyID);
-	return DTStatusToNavQueryResult(status);
-}
-
-ENavigationQueryResult::Type FPImplRecastNavMesh::FindClusterPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path) const
-{
-	FVector RecastStartPos, RecastEndPos;
-	NavNodeRef StartPolyID, EndPolyID;
-	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
-
-	INITIALIZE_NAVQUERY_SIMPLE(ClusterQuery, RECAST_MAX_SEARCH_NODES);
-
-	const bool bCanSearch = InitPathfinding(StartLoc, EndLoc, ClusterQuery, ClusterFilter, RecastStartPos, StartPolyID, RecastEndPos, EndPolyID);
-	if (!bCanSearch)
+	if (NumVisitedNodes)
 	{
-		return ENavigationQueryResult::Error;
+		*NumVisitedNodes = ClusterQuery.getQueryNodes();
 	}
-
-	// initialize output
-	Path.PathPoints.Reset();
-	Path.PathCorridor.Reset();
-	Path.PathCorridorCost.Reset();
-
-	TArray<dtClusterRef> ClusterPath;
-
-	const ENavigationQueryResult::Type ClusterGraphResult = FindPathOnClusterGraph(StartPolyID, EndPolyID, ClusterQuery, ClusterFilter, ClusterPath);
-	if (ClusterGraphResult == ENavigationQueryResult::Error)
-	{
-		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::FindClusterPath unable to search cluster graph"));
-		return ENavigationQueryResult::Error;
-	}
-
-	const EClusterPath::Type PathType =
-		(ClusterGraphResult == ENavigationQueryResult::Fail) ? EClusterPath::Partial : EClusterPath::Complete;
-
-	const ENavigationQueryResult::Type SearchResult = FindPathThroughClusters(StartPolyID, EndPolyID, StartLoc, EndLoc, RecastStartPos, RecastEndPos, ClusterQuery, ClusterFilter, ClusterPath, PathType, Path);
-	return SearchResult;
-}
-
-ENavigationQueryResult::Type FPImplRecastNavMesh::FindPathThroughClusters(NavNodeRef StartPoly, NavNodeRef EndPoly,
-	const FVector& StartLoc, const FVector& EndLoc,
-	const FVector& RecastStart, FVector& RecastEnd,
-	const dtNavMeshQuery& ClusterQuery, const dtQueryFilter* ClusterFilter,
-	const TArray<dtClusterRef>& ClusterPath, const EClusterPath::Type& ClusterPathType,
-	FNavMeshPath& Path) const
-{
-	static const int32 MAX_PATH_CORRIDOR_POLYS = 128;
-	NavNodeRef PathCorridorPolys[MAX_PATH_CORRIDOR_POLYS];
-	float PathCorridorCost[MAX_PATH_CORRIDOR_POLYS];
-	int32 NumPathCorridorPolys;
-
-	dtStatus FindPathStatus = ClusterQuery.findPathThroughClusters(StartPoly, EndPoly, &RecastStart.X, &RecastEnd.X, ClusterFilter,
-		ClusterPath.GetTypedData(), ClusterPath.Num(),
-		PathCorridorPolys, &NumPathCorridorPolys, MAX_PATH_CORRIDOR_POLYS, PathCorridorCost);
-
-	if (dtStatusSucceed(FindPathStatus))
-	{
-		if (ClusterPathType == EClusterPath::Partial)
-		{
-			FindPathStatus |= DT_PARTIAL_RESULT;
-		}
-
-		PostProcessPath(FindPathStatus, Path, ClusterQuery, ClusterFilter,
-			StartPoly, EndPoly, StartLoc, EndLoc, RecastStart, RecastEnd,
-			PathCorridorPolys, PathCorridorCost, NumPathCorridorPolys);
-	}
-
-	if (dtStatusDetail(FindPathStatus, DT_PARTIAL_RESULT))
-	{
-		Path.SetIsPartial(true);
-		// this means path finding algorithm reached the limit of InQueryFilter.GetMaxSearchNodes()
-		// nodes in A* node pool. This can mean resulting path is way off.
-		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
-	}
-
-	Path.MarkReady();
-
-	return DTStatusToNavQueryResult(FindPathStatus);
-}
-
-ENavigationQueryResult::Type FPImplRecastNavMesh::FindPathOnClusterGraph(NavNodeRef StartPoly, NavNodeRef EndPoly,
-	const dtNavMeshQuery& ClusterQuery, const dtQueryFilter* ClusterFilter,
-	TArray<NavNodeRef>& ClusterPath) const
-{
-	ClusterPath.Init(RECAST_MAX_PATH_VERTS);
-	int32 PathSize = 0;
-
-	const dtStatus status = ClusterQuery.findPathOnClusterGraph(StartPoly, EndPoly, ClusterFilter, ClusterPath.GetTypedData(), &PathSize, ClusterPath.Num(), 0);
-	ClusterPath.SetNum(PathSize);
 
 	return DTStatusToNavQueryResult(status);
 }
@@ -1334,8 +1247,13 @@ bool FPImplRecastNavMesh::ProjectPointToNavMesh(const FVector& Point, FNavLocati
 
 		if( PolyRef > 0 )
 		{
-			bSuccess = true;
-			Result = FNavLocation(Recast2UnrVector(ClosestPoint), PolyRef);
+			// one last step required due to recast's BVTree imprecision
+			const FVector& UnrealClosestPoint = Recast2UnrVector(ClosestPoint);			
+			if (FVector::DistSquared(UnrealClosestPoint, Point) <= Extent.SizeSquared())
+			{
+				bSuccess = true;
+				Result = FNavLocation(UnrealClosestPoint, PolyRef);
+			}
 		}
 	}
 
@@ -1462,47 +1380,6 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 	dtStatus Status = NavQuery.findPolysInPathDistance(StartPolyID, RecastStartPos
 		, PathingDistance, QueryFilter, FoundPolys.GetTypedData(), &NumPolys, Filter.GetMaxSearchNodes());
 
-	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
-
-	return FoundPolys.Num() > 0;
-}
-
-bool FPImplRecastNavMesh::GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, bool bBackTracking, TArray<NavNodeRef>& FoundPolys) const
-{
-	ensure(PathingDistance > 0.0f && "PathingDistance <= 0 doesn't make sense");
-
-	// sanity check
-	if (DetourNavMesh == NULL)
-	{
-		return false;
-	}
-
-	INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
-
-	const dtQueryFilter* ClusterFilter = ((const FRecastQueryFilter*)NavMeshOwner->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
-	ensure(ClusterFilter);
-	if (ClusterFilter == NULL)
-	{
-		return false;
-	}
-
-	dtQueryFilter MyFilter(*ClusterFilter);
-	MyFilter.setIsBacktracking(bBackTracking);
-
-	// @todo this should be configurable in some kind of FindPathQuery structure
-	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
-	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
-
-	float RecastStartPos[3];
-	Unr2RecastVector(StartLoc, RecastStartPos);
-	// @TODO add failure handling
-	NavNodeRef StartPolyID = INVALID_NAVNODEREF;
-	NavQuery.findNearestPoly(RecastStartPos, Extent, &MyFilter, &StartPolyID, NULL);
-
-	FoundPolys.AddUninitialized(256);
-	int32 NumPolys;
-
-	dtStatus Status = NavQuery.findClustersInPathDistance(StartPolyID, RecastStartPos, PathingDistance, &MyFilter, FoundPolys.GetTypedData(), &NumPolys, 256);
 	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
 
 	return FoundPolys.Num() > 0;
@@ -1665,31 +1542,6 @@ bool FPImplRecastNavMesh::GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& Point
 			PointB = Recast2UnrealPoint(RcPointB);
 			return true;
 		}
-	}
-
-	return false;
-}
-
-bool FPImplRecastNavMesh::GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const
-{
-	if (DetourNavMesh == NULL || !ClusterRef)
-	{
-		return false;
-	}
-
-	const dtMeshTile* Tile = DetourNavMesh->getTileByRef(ClusterRef);
-	uint32 ClusterIdx = DetourNavMesh->decodeClusterIdCluster(ClusterRef);
-
-	if (Tile && ClusterIdx < (uint32)Tile->header->clusterCount)
-	{
-		dtCluster& ClusterData = Tile->clusters[ClusterIdx];
-		if (bUseCenterPoly)
-		{
-			return GetPolyCenter(ClusterData.centerPoly, OutCenter);
-		}
-		
-		OutCenter = Recast2UnrealPoint(Tile->clusters[ClusterIdx].center);
-		return true;
 	}
 
 	return false;
@@ -2204,8 +2056,8 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 						const dtCluster& c1 = OtherTile->clusters[linkedIdx];
 
 						FRecastDebugGeometry::FClusterLink LinkGeom;
-						LinkGeom.FromCluster = Recast2UnrVector(c0.center);
-						LinkGeom.ToCluster = Recast2UnrVector(c1.center);
+						LinkGeom.FromCluster = Recast2UnrealPoint(c0.center);
+						LinkGeom.ToCluster = Recast2UnrealPoint(c1.center);
 
 						if (linkedIdx > i || TileIdx > (int32)ConstNavMesh->decodeClusterIdTile(link.ref))
 						{

@@ -77,9 +77,6 @@ struct dtNavMeshCreateParams
 	/// @{
 	unsigned short* polyClusters;			///< Cluster Id for each polygon [Size: #polyCount]
 	unsigned short clusterCount;			///< Number of unique clusters
-	float* clusterCenters;					///< Center points of clusters [Size: 3 * #clusterCount]
-	unsigned short* clusterLinkCount;		///< Number of links for each cluster [Size: #clusterCount]
-	unsigned short* clusterLinks;			///< Links for each cluster [Size: sum of #clusterLinkCount]
 
 	/// @}
 	/// @name Height Detail Attributes (Optional)

@@ -731,8 +731,7 @@ dtNavMesh::dtNavMesh() :
 	m_tiles(0),
 	m_saltBits(0),
 	m_tileBits(0),
-	m_polyBits(0),
-	m_clusterQuery(0)
+	m_polyBits(0)
 {
 	memset(&m_params, 0, sizeof(dtNavMeshParams));
 	m_orig[0] = 0;
@@ -756,7 +755,6 @@ dtNavMesh::~dtNavMesh()
 	}
 	dtFree(m_posLookup);
 	dtFree(m_tiles);
-	dtFreeNavMeshQuery(m_clusterQuery);
 }
 		
 dtStatus dtNavMesh::init(const dtNavMeshParams* params)
@@ -800,10 +798,6 @@ dtStatus dtNavMesh::init(const dtNavMeshParams* params)
 	if (m_saltBits < DT_MIN_SALT_BITS)
 		return DT_FAILURE | DT_INVALID_PARAM;
 	
-	// Cluster graph
-	m_clusterQuery = dtAllocNavMeshQuery();
-	m_clusterQuery->init(this, 2048);
-
 	return DT_SUCCESS;
 }
 
@@ -1213,82 +1207,6 @@ void dtNavMesh::baseOffMeshLinks(dtMeshTile* tile)
 	}
 }
 
-float dtNavMesh::getClusterLinkCost(const dtMeshTile* tile0, unsigned int cluster0, const dtMeshTile* tile1, unsigned int cluster1, const class dtQueryFilter* filter) const
-{
-	const dtCluster& c0 = tile0->clusters[cluster0];
-	const dtCluster& c1 = tile1->clusters[cluster1];
-
-	const int maxPathSize = 256;
-	dtPolyRef path[maxPathSize] = { 0 };
-	int pathSize = 0;
-	float totalCost;
-
-	const dtStatus status = m_clusterQuery->findPath(c0.centerPoly, c1.centerPoly, c0.center, c1.center, filter, path, &pathSize, maxPathSize, 0, &totalCost);
-	if (dtStatusFailed(status) || dtStatusDetail(status, DT_PARTIAL_RESULT))
-	{
-		return -1.0f;
-	}
-
-	return totalCost;
-}
-
-void dtNavMesh::connectIntClusterLinks(dtMeshTile* tile)
-{
-	// find polygons nearest to clusters' center points
-	float bmin[3], bmax[3], ext[3] = { tile->header->walkableRadius * 5.0f, tile->header->walkableHeight * 5.0f, tile->header->walkableRadius * 5.0f };
-	dtPolyRef polys[128];
-
-	for (int i = 0; i < tile->header->clusterCount; i++)
-	{
-		dtCluster& cluster = tile->clusters[i];
-		dtVsub(bmin, cluster.center, ext);
-		dtVadd(bmax, cluster.center, ext);
-
-		// Get nearby polygons from proximity grid.
-		int polyCount = queryPolygonsInTile(tile, bmin, bmax, polys, 128);
-
-		// Find nearest polygon amongst the nearby polygons.
-		cluster.centerPoly = 0;
-		float nearestDistanceSqr = FLT_MAX;
-		for (int ip = 0; ip < polyCount; ++ip)
-		{
-			dtPolyRef testRef = polys[ip];
-			unsigned int testIdx = decodePolyIdPoly(testRef);
-			if (tile->polyClusters[testIdx] != i)
-				continue;
-
-			float closestPtPoly[3];
-			closestPointOnPolyInTile(tile, testIdx, cluster.center, closestPtPoly);
-			const float d = dtVdistSqr(cluster.center, closestPtPoly);
-			if (d < nearestDistanceSqr)
-			{
-				nearestDistanceSqr = d;
-				cluster.centerPoly = testRef;
-			}
-		}
-	}
-
-	// initialize internal links and their costs after center polys were identified
-	int numCons = 0;
-
-	const bool bUniqueCheck = false;
-	const unsigned char clinkFlags = DT_CLINK_VALID_FWD | DT_CLINK_VALID_BCK;
-
-	for (int i = 0; i < tile->header->clusterCount; i++)
-	{
-		dtCluster& cluster = tile->clusters[i];
-		cluster.firstLink = DT_NULL_LINK;
-
-		for (unsigned int j = 0; j < cluster.numLinks; j++)
-		{
-			unsigned short clinkCon = tile->clusterCons[j + numCons];
-			connectClusterLink(tile, i, tile, clinkCon, clinkFlags, bUniqueCheck);
-		}
-
-		numCons += cluster.numLinks;
-	}
-}
-
 void dtNavMesh::connectClusterLink(dtMeshTile* tile0, unsigned int clusterIdx0, dtMeshTile* tile1, unsigned int clusterIdx1, unsigned char flags, bool bCheckExisting)
 {
 	if (tile0 == tile1 && clusterIdx0 == clusterIdx1)
@@ -1330,8 +1248,7 @@ void dtNavMesh::connectClusterLink(dtMeshTile* tile0, unsigned int clusterIdx0, 
 	}
 
 	// assign cost and side properties
-	const unsigned char sideMask = 0xFF & ~(DT_CLINK_HASCOST_FWD | DT_CLINK_HASCOST_BCK);
-	link->flags = (link->flags | flags) & sideMask;
+	link->flags = link->flags | flags;
 }
 
 void dtNavMesh::unconnectClusterLinks(dtMeshTile* tile0, dtMeshTile* tile1)
@@ -1368,75 +1285,6 @@ void dtNavMesh::unconnectClusterLinks(dtMeshTile* tile0, dtMeshTile* tile1)
 				pj = j;
 				j = link.next;
 			}
-		}
-	}
-}
-
-void dtNavMesh::updateClusterLink(dtMeshTile* tile0, unsigned int cluster0, dtMeshTile* tile1, unsigned int cluster1, class dtQueryFilter* filter)
-{
-	if (!tile0 || !tile1 ||
-		cluster0 >= (unsigned int)tile0->header->clusterCount ||
-		cluster1 >= (unsigned int)tile1->header->clusterCount)
-	{
-		return;
-	}
-
-	const unsigned int tile1Num = decodeClusterIdTile(getClusterRefBase(tile1));
-
-	unsigned int i = tile0->clusters[cluster0].firstLink;
-	while (i != DT_NULL_LINK)
-	{
-		dtClusterLink& link = getClusterLink(tile0, i);
-
-		// compare only tile and cluster, ignore salt
-		const unsigned int linkTileNum = decodeClusterIdTile(link.ref);
-		const unsigned int linkClusterNum = decodeClusterIdCluster(link.ref);
-		if (linkTileNum == tile1Num && linkClusterNum == cluster1)
-		{
-			link.flags &= ~(DT_CLINK_HASCOST_FWD | DT_CLINK_HASCOST_BCK);
-
-			const bool bPrevBacktracking = filter->getIsBacktracking();
-			
-			filter->setIsBacktracking(false);
-			updateClusterLink(tile0, cluster0, i, filter);
-			
-			filter->setIsBacktracking(true);
-			updateClusterLink(tile0, cluster0, i, filter);
-			
-			filter->setIsBacktracking(bPrevBacktracking);
-			break;
-		}
-
-		i = link.next;
-	}
-}
-
-void dtNavMesh::updateClusterLink(const dtMeshTile* tile, unsigned int clusterIdx, unsigned int linkIdx, const class dtQueryFilter* filter) const
-{
-	const dtClusterLink& link = getClusterLink(tile, linkIdx);
-	const bool bBacktracking = filter->getIsBacktracking();
-	if (bBacktracking)
-	{
-		if ((link.flags & DT_CLINK_HASCOST_BCK) == 0)
-		{
-			const dtMeshTile* otherTile = getTileByRef(link.ref);
-			const unsigned int otherClusterIdx = decodeClusterIdCluster(link.ref);
-
-			dtClusterLink* clink = (dtClusterLink*)&link;
-			clink->flags |= DT_CLINK_HASCOST_BCK;
-			clink->costBck = getClusterLinkCost(otherTile, otherClusterIdx, tile, clusterIdx, filter);
-		}
-	}
-	else
-	{
-		if ((link.flags & DT_CLINK_HASCOST_FWD) == 0)
-		{
-			const dtMeshTile* otherTile = getTileByRef(link.ref);
-			const unsigned int otherClusterIdx = decodeClusterIdCluster(link.ref);
-
-			dtClusterLink* clink = (dtClusterLink*)&link;
-			clink->flags |= DT_CLINK_HASCOST_FWD;
-			clink->costFwd = getClusterLinkCost(tile, clusterIdx, otherTile, otherClusterIdx, filter);
 		}
 	}
 }
@@ -1731,7 +1579,6 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	const int offMeshSegsSize = dtAlign4(sizeof(dtOffMeshSegmentConnection)*header->offMeshSegConCount);
 	const int clustersSize = dtAlign4(sizeof(dtCluster)*header->clusterCount);
 	const int clusterPolysSize = dtAlign4(sizeof(unsigned short)*header->offMeshBase);
-	const int clusterConsSize = dtAlign4(sizeof(unsigned short)*header->maxClusterCons);
  
 	unsigned char* d = data + headerSize;
 	tile->verts = (float*)d; d += vertsSize;
@@ -1745,17 +1592,23 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	tile->offMeshSeg = (dtOffMeshSegmentConnection*)d; d += offMeshSegsSize;
 	tile->clusters = (dtCluster*)d; d += clustersSize;
 	tile->polyClusters = (unsigned short*)d; d += clusterPolysSize;
-	tile->clusterCons = (unsigned short*)d; d += clusterConsSize;
 
 	// If there are no items in the bvtree, reset the tree pointer.
 	if (!bvtreeSize)
 		tile->bvTree = 0;
 
-	if (!clustersSize)
+	const bool bHasClusters = header->clusterCount > 0;
+	if (bHasClusters)
 	{
-		tile->clusters = 0;
+		for (int i = 0; i < header->clusterCount; i++)
+		{
+			tile->clusters[i].numLinks = 0;
+			tile->clusters[i].firstLink = DT_NULL_LINK;
+		}
+	}
+	else
+	{
 		tile->polyClusters = 0;
-		tile->clusterCons = 0;
 	}
 
 	// Build links freelist
@@ -1781,9 +1634,6 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	
 	dtOffMeshSegmentData* segList = initSegmentIntersection(tile);
 
-	const bool shouldUpdateClusterLinks = (clustersSize > 0);
-	connectIntClusterLinks(tile);
-
 	// Create connections with neighbour tiles.
 	ReadTilesHelper TileArray;
 	int nneis = getTileCountAt(header->x, header->y);
@@ -1795,12 +1645,12 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 	{
 		if (neis[j] != tile)
 		{
-			connectExtLinks(tile, neis[j], -1, shouldUpdateClusterLinks);
-			connectExtLinks(neis[j], tile, -1, shouldUpdateClusterLinks);
+			connectExtLinks(tile, neis[j], -1, bHasClusters);
+			connectExtLinks(neis[j], tile, -1, bHasClusters);
 			appendSegmentIntersection(segList, tile, neis[j]);
 		}
-		connectExtOffMeshLinks(tile, neis[j], -1, shouldUpdateClusterLinks);
-		connectExtOffMeshLinks(neis[j], tile, -1, shouldUpdateClusterLinks);
+		connectExtOffMeshLinks(tile, neis[j], -1, bHasClusters);
+		connectExtOffMeshLinks(neis[j], tile, -1, bHasClusters);
 	}
 	
 	// Connect with neighbour tiles.
@@ -1812,11 +1662,11 @@ dtStatus dtNavMesh::addTile(unsigned char* data, int dataSize, int flags,
 		getNeighbourTilesAt(header->x, header->y, i, neis, nneis);
 		for (int j = 0; j < nneis; ++j)
 		{
-			connectExtLinks(tile, neis[j], i, shouldUpdateClusterLinks);
-			connectExtLinks(neis[j], tile, dtOppositeTile(i), shouldUpdateClusterLinks);
+			connectExtLinks(tile, neis[j], i, bHasClusters);
+			connectExtLinks(neis[j], tile, dtOppositeTile(i), bHasClusters);
 			appendSegmentIntersection(segList, tile, neis[j]);
-			connectExtOffMeshLinks(tile, neis[j], i, shouldUpdateClusterLinks);
-			connectExtOffMeshLinks(neis[j], tile, dtOppositeTile(i), shouldUpdateClusterLinks);
+			connectExtOffMeshLinks(tile, neis[j], i, bHasClusters);
+			connectExtOffMeshLinks(neis[j], tile, dtOppositeTile(i), bHasClusters);
 		}
 	}
 
@@ -2537,7 +2387,7 @@ void dtNavMesh::applyWorldOffset(const float* offset)
 				dtVadd(&(tile.offMeshCons->pos[j*6+0]), &(tile.offMeshCons->pos[j*6+0]), offset);
 				dtVadd(&(tile.offMeshCons->pos[j*6+3]), &(tile.offMeshCons->pos[j*6+3]), offset);
 			}
-
+			
 			// Shift clusters
 			for (int j = 0; j < tile.header->clusterCount; ++j)
 			{

@@ -2781,6 +2781,13 @@ bool FRecastTileGenerator::GenerateNavigationData(class FNavMeshBuildContext* Bu
 				BuildContext->log(RC_LOG_ERROR, "GenerateNavigationData: Failed to generate poly mesh.");
 				return false;
 			}
+
+			status = dtBuildTileCacheClusters(&MyAllocator, *GenerationContext.ClusterSet, *GenerationContext.PolyMesh);
+			if (dtStatusFailed(status))
+			{
+				BuildContext->log(RC_LOG_ERROR, "GenerateNavigationData: Failed to update cluster set.");
+				return false;
+			}
 		}
 
 		// Build detail mesh
@@ -2879,10 +2886,7 @@ bool FRecastTileGenerator::GenerateNavigationData(class FNavMeshBuildContext* Bu
 			Params.buildBvTree = TileConfig.bGenerateBVTree;
 #if GENERATE_CLUSTER_LINKS
 			Params.clusterCount = GenerationContext.ClusterSet->nclusters;
-			Params.clusterCenters = GenerationContext.ClusterSet->center;
-			Params.clusterLinkCount = GenerationContext.ClusterSet->nlinks;
-			Params.clusterLinks = GenerationContext.ClusterSet->links;
-			Params.polyClusters = GenerationContext.PolyMesh->regs;
+			Params.polyClusters = GenerationContext.ClusterSet->polyMap;
 #endif
 
 			RECAST_STAT(STAT_Navigation_Async_Recast_CreateNavMeshData);

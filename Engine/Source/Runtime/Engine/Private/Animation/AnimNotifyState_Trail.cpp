@@ -202,30 +202,39 @@ bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshCo
 	//Validate the user input and report any errors.
 	if (FirstSocketName == NAME_None)
 	{
-		if( bReportErrors )
+		if (bReportErrors)
+		{
 			MeshComp->ReportAnimNotifyError(FirstSocketEqualsNoneErrorText, this);
+		}
 		bError = true;
 	}
 
 	if (SecondSocketName == NAME_None)
 	{
-		if( bReportErrors )
+		if (bReportErrors)
+		{
 			MeshComp->ReportAnimNotifyError(SecondSocketEqualsNoneErrorText, this);
+		}
 		bError = true;
 	}
 
 	if (!PSTemplate)
 	{
-		if( bReportErrors )
-			MeshComp->ReportAnimNotifyError( PSTemplateEqualsNoneErrorText, this);
+		if (bReportErrors)
+		{
+			MeshComp->ReportAnimNotifyError(PSTemplateEqualsNoneErrorText, this);
+		}
 		bError = true;
 	}
 	else
 	{
 		if (!PSTemplate->ContainsEmitterType(UParticleModuleTypeDataAnimTrail::StaticClass()))
 		{
-			if( bReportErrors )
+			if (bReportErrors)
+			{
 				MeshComp->ReportAnimNotifyError(PSTemplateInvalidErrorText, this);
+			}
+
 			bError = true;
 		}
 	}

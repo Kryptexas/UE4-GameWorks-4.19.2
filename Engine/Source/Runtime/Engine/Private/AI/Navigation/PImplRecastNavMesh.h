@@ -20,6 +20,7 @@
 class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
 public:
+	FRecastQueryFilter();
 	virtual ~FRecastQueryFilter(){}
 
 	virtual void Reset() override;
@@ -49,15 +50,6 @@ struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
 	UNavigationSystem* NavSys;
 	const UObject* SearchOwner;
 };
-
-namespace EClusterPath
-{
-	enum Type
-	{
-		Partial,
-		Complete,
-	};
-}
 
 /** Engine Private! - Private Implementation details of ARecastNavMesh */
 class ENGINE_API FPImplRecastNavMesh
@@ -105,14 +97,11 @@ public:
 	/** Generates path from the given query. Synchronous. */
 	ENavigationQueryResult::Type FindPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
-	/** Generates path from the given query using cluster graph (faster, but less optimal). */
-	ENavigationQueryResult::Type FindClusterPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path) const;
-	
 	/** Check if path exists */
-	ENavigationQueryResult::Type TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
+	ENavigationQueryResult::Type TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, int32* NumVisitedNodes = 0) const;
 
 	/** Check if path exists using cluster graph */
-	ENavigationQueryResult::Type TestClusterPath(const FVector& StartLoc, const FVector& EndLoc) const;
+	ENavigationQueryResult::Type TestClusterPath(const FVector& StartLoc, const FVector& EndLoc, int32* NumVisitedNodes = 0) const;
 
 	/** Checks if the whole segment is in navmesh */
 	void Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const;
@@ -146,9 +135,6 @@ public:
 	 *		add an extra margin to PathingDistance */
 	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<NavNodeRef>& FoundPolys) const;
 
-	/** Retrieves all clusters within given pathing distance from StartLocation */
-	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, bool bBackTracking, TArray<NavNodeRef>& FoundClusters) const;
-
 	//@todo document
 	void GetEdgesForPathCorridor(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
 
@@ -177,9 +163,6 @@ public:
 	uint32 GetLinkUserId(NavNodeRef LinkPolyID) const;
 	/** Retrieves start and end point of offmesh link */
 	bool GetLinkEndPoints(NavNodeRef LinkPolyID, FVector& PointA, FVector& PointB) const;
-
-	/** Retrieves center of cluster. Returns false on error. */
-	bool GetClusterCenter(NavNodeRef ClusterRef, bool bUseCenterPoly, FVector& OutCenter) const;
 
 	/** Retrieves bounds of cluster. Returns false on error. */
 	bool GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) const;
@@ -225,19 +208,6 @@ public:
 
 	/** Helper function to serialize a single Recast tile. */
 	static void SerializeRecastMeshTile(FArchive& Ar, unsigned char*& TileData, int32& TileDataSize);
-
-	/** Generates path from the given query using existing cluster path */
-	ENavigationQueryResult::Type FindPathThroughClusters(dtPolyRef StartPoly, dtPolyRef EndPoly,
-		const FVector& UnrealStart, const FVector& UnrealEnd,
-		const FVector& RecastStart, FVector& RecastEnd,
-		const dtNavMeshQuery& ClusterQuery, const dtQueryFilter* ClusterFilter, 
-		const TArray<dtClusterRef>& ClusterPath, const EClusterPath::Type& ClusterPathType,
-		FNavMeshPath& Path) const;
-
-	/** Generates cluster path from the given query */
-	ENavigationQueryResult::Type FindPathOnClusterGraph(dtPolyRef StartPoly, dtPolyRef EndPoly,
-		const dtNavMeshQuery& ClusterQuery, const dtQueryFilter* ClusterFilter,
-		TArray<dtClusterRef>& ClusterPath) const;
 
 	/** Initialize data for pathfinding */
 	bool InitPathfinding(const FVector& UnrealStart, const FVector& UnrealEnd, 

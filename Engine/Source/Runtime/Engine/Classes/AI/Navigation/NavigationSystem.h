@@ -18,7 +18,7 @@
 
 #define NAV_USE_MAIN_NAVIGATION_DATA NULL
 
-DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
 /** delegate to let interested parties know that new nav area class has been registered */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const class UClass* /*AreaClass*/);
@@ -266,7 +266,7 @@ public:
 	 *  @param Mode switch between normal and hierarchical path finding algorithms. @note Hierarchical mode ignores QueryFilter
 	 *	@return true if path exists
 	 */
-	bool TestPathSync(FPathFindingQuery Query, EPathFindingMode::Type Mode = EPathFindingMode::Regular) const;
+	bool TestPathSync(FPathFindingQuery Query, EPathFindingMode::Type Mode = EPathFindingMode::Regular, int32* NumVisitedNodes = NULL) const;
 
 	/** Finds random point in navigable space
 	 *	@param ResultLocation Found point is put here
@@ -337,6 +337,8 @@ public:
 
 	/** @return default obstacle area class */
 	FORCEINLINE static TSubclassOf<class UNavArea> GetDefaultObstacleArea() { return DefaultObstacleArea; }
+
+	FORCEINLINE const FNavDataConfig& GetDefaultSupportedAgentConfig() const { check(SupportedAgents.Num() > 0);  return SupportedAgents[0]; }
 
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
 

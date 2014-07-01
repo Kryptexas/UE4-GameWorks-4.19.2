@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 			return Result;
 		}
 		
-		static string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
+		string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
 		{
 			string Result = "";
 
@@ -274,6 +274,15 @@ namespace UnrealBuildTool
 			if (CompileEnvironment.Config.bCreateDebugInfo)
 			{
 				Result += " -gdwarf-2";
+			}
+
+			// Add additional frameworks so that their headers can be found
+			foreach (UEBuildFramework Framework in CompileEnvironment.Config.AdditionalFrameworks)
+			{
+				if (Framework.OwningModule != null && Framework.FrameworkZipPath != null && Framework.FrameworkZipPath != "")
+				{
+					Result += " -F \"" + GetRemoteIntermediateFrameworkZipPath(Framework) + "\"";
+				}
 			}
 
 			return Result;

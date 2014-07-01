@@ -839,6 +839,17 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
  */
 void GenerateWindowsErrorReport(const FString & WERPath)
 {
+	struct FLocalHelpers
+	{
+		static const TCHAR* GetEngineMode()
+		{
+			return	IsRunningCommandlet()?	 	TEXT("Commandlet") :
+					GIsEditor?				 	TEXT("Editor") :
+					IsRunningDedicatedServer()?	TEXT("Server") :
+												TEXT("Game");
+		}
+	};
+
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
 	if (ReportFile != NULL)
 	{
@@ -850,15 +861,15 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("<WERReportMetadata>"));
 		
 		WriteLine(ReportFile, TEXT("\t<OSVersionInformation>"));
-		WriteLine(ReportFile, TEXT("\t\t<WindowsNTVersion>6.1</WindowsNTVersion>"));
-		WriteLine(ReportFile, TEXT("\t\t<Build>7601 Service Pack 1</Build>"));
-		WriteLine(ReportFile, TEXT("\t\t<Product>(0x30): Windows 7 Professional</Product>"));
-		WriteLine(ReportFile, TEXT("\t\t<Edition>Professional</Edition>"));
-		WriteLine(ReportFile, TEXT("\t\t<BuildString>7601.18044.amd64fre.win7sp1_gdr.130104-1431</BuildString>"));
-		WriteLine(ReportFile, TEXT("\t\t<Revision>1130</Revision>"));
-		WriteLine(ReportFile, TEXT("\t\t<Flavor>Multiprocessor Free</Flavor>"));
-		WriteLine(ReportFile, TEXT("\t\t<Architecture>X64</Architecture>"));
-		WriteLine(ReportFile, TEXT("\t\t<LCID>1033</LCID>"));
+		WriteLine(ReportFile, TEXT("\t\t<WindowsNTVersion>0.0</WindowsNTVersion>"));
+		WriteLine(ReportFile, TEXT("\t\t<Build>No Build</Build>"));
+		WriteLine(ReportFile, TEXT("\t\t<Product>Linux</Product>"));
+		WriteLine(ReportFile, TEXT("\t\t<Edition>No Edition</Edition>"));
+		WriteLine(ReportFile, TEXT("\t\t<BuildString>No BuildString</BuildString>"));
+		WriteLine(ReportFile, TEXT("\t\t<Revision>0</Revision>"));
+		WriteLine(ReportFile, TEXT("\t\t<Flavor>No Flavor</Flavor>"));
+		WriteLine(ReportFile, TEXT("\t\t<Architecture>Unknown Architecture</Architecture>"));
+		WriteLine(ReportFile, TEXT("\t\t<LCID>0</LCID>"));
 		WriteLine(ReportFile, TEXT("\t</OSVersionInformation>"));
 		
 		WriteLine(ReportFile, TEXT("\t<ParentProcessInformation>"));
@@ -871,14 +882,14 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter0>UE4-%s</Parameter0>"), FApp::GetGameName()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter1>1.0.%d.%d</Parameter1>"), ENGINE_VERSION_HIWORD, ENGINE_VERSION_LOWORD));
-		WriteLine(ReportFile, TEXT("\t\t<Parameter2>528f2d37</Parameter2>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter3>KERNELBASE.dll</Parameter3>"));												// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter4>6.1.7601.18015</Parameter4>"));												// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter5>50b8479b</Parameter5>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000001</Parameter6>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000009E5D</Parameter7>"));											// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter8>!!</Parameter8>"));															// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter9>UE4!D:/ShadowArtSync/UE4/Engine/Binaries/Win64/!Editor!0</Parameter9>"));	// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter2>0</Parameter2>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter3>Unknown Fault Module</Parameter3>"));										// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter4>0.0.0.0</Parameter4>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter5>00000000</Parameter5>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000000</Parameter6>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000000000</Parameter7>"));											// FIXME: supply valid?
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter8>!%s!</Parameter8>"), FCommandLine::Get()));				// FIXME: supply valid? Only partially valid
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FLocalHelpers::GetEngineMode(), BUILT_FROM_CHANGELIST));
 		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));

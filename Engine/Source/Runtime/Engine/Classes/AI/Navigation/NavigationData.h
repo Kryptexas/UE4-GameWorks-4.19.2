@@ -209,11 +209,11 @@ public:
 	 *
 	 *	@note don't make this function virtual! Look at implementation details and its comments for more info.
 	 */
-	FORCEINLINE bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query) const
+	FORCEINLINE bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes) const
 	{
 		check(TestPathImplementation);
 		// this awkward implementation avoids virtual call overhead - it's possible this function will be called a lot
-		return (*TestPathImplementation)(AgentProperties, Query);
+		return (*TestPathImplementation)(AgentProperties, Query, NumVisitedNodes);
 	}
 
 	/** 
@@ -223,11 +223,11 @@ public:
 	 *
 	 *	@note don't make this function virtual! Look at implementation details and its comments for more info.
 	 */
-	FORCEINLINE bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query) const
+	FORCEINLINE bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes) const
 	{
 		check(TestHierarchicalPathImplementation);
 		// this awkward implementation avoids virtual call overhead - it's possible this function will be called a lot
-		return (*TestHierarchicalPathImplementation)(AgentProperties, Query);
+		return (*TestHierarchicalPathImplementation)(AgentProperties, Query, NumVisitedNodes);
 	}
 
 	/** 
@@ -341,7 +341,7 @@ protected:
 	FFindPathPtr FindPathImplementation;
 	FFindPathPtr FindHierarchicalPathImplementation; 
 	
-	typedef bool (*FTestPathPtr)(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
+	typedef bool (*FTestPathPtr)(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 	FTestPathPtr TestPathImplementation;
 	FTestPathPtr TestHierarchicalPathImplementation; 
 

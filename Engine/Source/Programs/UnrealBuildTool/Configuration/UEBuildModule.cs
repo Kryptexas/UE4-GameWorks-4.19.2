@@ -494,6 +494,7 @@ namespace UnrealBuildTool
 			ref List<string> IncludePaths,
 			ref List<string> SystemIncludePaths,
 			ref List<string> Definitions,
+			ref List<UEBuildFramework> AdditionalFrameworks,
 			ref Dictionary<UEBuildModule, bool> VisitedModules
 			)
 		{
@@ -558,7 +559,7 @@ namespace UnrealBuildTool
 					foreach(var DependencyName in PublicDependencyModuleNames)
 					{
 						var DependencyModule = Target.GetModuleByName(DependencyName);
-						DependencyModule.SetupPublicCompileEnvironment(SourceBinary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref VisitedModules);
+						DependencyModule.SetupPublicCompileEnvironment(SourceBinary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref AdditionalFrameworks,ref VisitedModules);
 					}
 				}
 
@@ -567,11 +568,14 @@ namespace UnrealBuildTool
 				{
 					bool bInnerIncludePathsOnly = true;
 					var IncludePathModule = Target.GetModuleByName(IncludePathModuleName);
-					IncludePathModule.SetupPublicCompileEnvironment( SourceBinary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref VisitedModules );
+					IncludePathModule.SetupPublicCompileEnvironment( SourceBinary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref AdditionalFrameworks, ref VisitedModules );
 				}
 
 				// Add the module's directory to the include path, so we can root #includes to it
 				IncludePaths.Add(Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ModuleDirectory, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/'));
+
+				// Add the additional frameworks so that the compiler can know about their #include paths
+				AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
 			}
 		}
 		
@@ -579,7 +583,8 @@ namespace UnrealBuildTool
 		protected virtual void SetupPrivateCompileEnvironment(
 			ref List<string> IncludePaths,
 			ref List<string> SystemIncludePaths,
-			ref List<string> Definitions
+			ref List<string> Definitions,
+			ref List<UEBuildFramework> AdditionalFrameworks
 			)
 		{
 			var VisitedModules = new Dictionary<UEBuildModule, bool>();
@@ -589,13 +594,13 @@ namespace UnrealBuildTool
 
 			// Allow the module's public dependencies to modify the compile environment.
 			bool bIncludePathsOnly = false;
-			SetupPublicCompileEnvironment(Binary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref VisitedModules);
+			SetupPublicCompileEnvironment(Binary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref AdditionalFrameworks,ref VisitedModules);
 
 			// Also allow the module's private dependencies to modify the compile environment.
 			foreach(var DependencyName in PrivateDependencyModuleNames)
 			{
 				var DependencyModule = Target.GetModuleByName(DependencyName);
-				DependencyModule.SetupPublicCompileEnvironment(Binary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref VisitedModules);
+				DependencyModule.SetupPublicCompileEnvironment(Binary,bIncludePathsOnly,ref IncludePaths,ref SystemIncludePaths,ref Definitions,ref AdditionalFrameworks,ref VisitedModules);
 			}
 
 			// Add include paths from modules with header files that our private files need access to, but won't necessarily be importing
@@ -603,7 +608,7 @@ namespace UnrealBuildTool
 			{
 				bool bInnerIncludePathsOnly = true;
 				var IncludePathModule = Target.GetModuleByName(IncludePathModuleName);
-				IncludePathModule.SetupPublicCompileEnvironment( Binary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref VisitedModules );
+				IncludePathModule.SetupPublicCompileEnvironment(Binary, bInnerIncludePathsOnly, ref IncludePaths, ref SystemIncludePaths, ref Definitions, ref AdditionalFrameworks, ref VisitedModules);
 			}
 		}
 
@@ -1601,7 +1606,7 @@ namespace UnrealBuildTool
 			Result.Config.Definitions.AddRange(Definitions);
 
 			// Setup the compile environment for the module.
-			SetupPrivateCompileEnvironment(ref Result.Config.IncludePaths, ref Result.Config.SystemIncludePaths, ref Result.Config.Definitions);
+			SetupPrivateCompileEnvironment(ref Result.Config.IncludePaths, ref Result.Config.SystemIncludePaths, ref Result.Config.Definitions, ref Result.Config.AdditionalFrameworks);
 
 			return Result;
 		}
@@ -1626,7 +1631,8 @@ namespace UnrealBuildTool
 			List<string> PrivateIncludePaths = new List<string>();
 			List<string> PrivateSystemIncludePaths = new List<string>();
 			List<string> PrivateDefinitions = new List<string>();
-			SetupPrivateCompileEnvironment(ref PrivateIncludePaths, ref PrivateSystemIncludePaths, ref PrivateDefinitions);
+			List<UEBuildFramework> PrivateFrameworks = new List<UEBuildFramework>();
+			SetupPrivateCompileEnvironment(ref PrivateIncludePaths, ref PrivateSystemIncludePaths, ref PrivateDefinitions, ref PrivateFrameworks);
 
 			// Add all of the include paths
 			List<string> IncludePaths = new List<string>();
@@ -1671,6 +1677,14 @@ namespace UnrealBuildTool
 			{
 				Writer.WriteStartElement("include");
 				Writer.WriteAttributeString("path", IncludePath);
+				Writer.WriteEndElement();
+			}
+			Writer.WriteEndElement();
+			Writer.WriteStartElement("additionalFrameworks");
+			foreach (UEBuildFramework Framework in PrivateFrameworks)
+			{
+				Writer.WriteStartElement("framework");
+				Writer.WriteAttributeString("name", Framework.FrameworkName);
 				Writer.WriteEndElement();
 			}
 			Writer.WriteEndElement();
@@ -2025,6 +2039,12 @@ namespace UnrealBuildTool
 		{
 			FrameworkName = InFrameworkName;
 		}
+
+        public UEBuildFramework(string InFrameworkName, string InFrameworkZipPath)
+        {
+            FrameworkName = InFrameworkName;
+            FrameworkZipPath = InFrameworkZipPath;
+        }
 
 		public UEBuildFramework( string InFrameworkName, string InFrameworkZipPath, string InCopyBundledAssets )
 		{

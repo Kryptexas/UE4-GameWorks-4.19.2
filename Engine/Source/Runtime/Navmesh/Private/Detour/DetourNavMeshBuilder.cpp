@@ -457,13 +457,6 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 			detailTriCount += nv-2;
 		}
 	}
-	
-	// Calculate max number of cluster links
-	int maxClusterLinks = 0;
-	for (int i = 0; i < params->clusterCount; i++)
-	{
-		maxClusterLinks += params->clusterLinkCount[i];
-	}
  
 	// Calculate data size
 	const int headerSize = dtAlign4(sizeof(dtMeshHeader));
@@ -478,13 +471,12 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	const int offMeshSegSize = dtAlign4(sizeof(dtOffMeshSegmentConnection)*storedOffMeshSegCount);
 	const int clustersSize = dtAlign4(sizeof(dtCluster)*params->clusterCount);
 	const int polyClustersSize = dtAlign4(sizeof(unsigned short)*params->polyCount);
-	const int clusterConsSize = dtAlign4(sizeof(unsigned short)*maxClusterLinks);
  
 	
 	const int dataSize = headerSize + vertsSize + polysSize + linksSize +
 						 detailMeshesSize + detailVertsSize + detailTrisSize +
 						 bvTreeSize + offMeshConsSize + offMeshSegSize +
-						 clustersSize + polyClustersSize + clusterConsSize;
+						 clustersSize + polyClustersSize;
 						 
 	unsigned char* data = (unsigned char*)dtAlloc(sizeof(unsigned char)*dataSize, DT_ALLOC_PERM);
 	if (!data)
@@ -507,7 +499,6 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	dtOffMeshSegmentConnection* offMeshSegs = (dtOffMeshSegmentConnection*)d; d += offMeshSegSize;
 	dtCluster* clusters = (dtCluster*)d; d += clustersSize;
 	unsigned short* polyClusters = (unsigned short*)d; d += polyClustersSize;
-	unsigned short* clusterCons = (unsigned short*)d; d += clusterConsSize;
 	
 	// Store header
 	header->magic = DT_NAVMESH_MAGIC;
@@ -535,7 +526,6 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	header->offMeshSegConCount = storedOffMeshSegCount;
 	header->bvNodeCount = params->buildBvTree ? params->polyCount*2 : 0;
 	header->clusterCount = params->clusterCount; 
-	header->maxClusterCons = maxClusterLinks;
 
 	const int offMeshVertsBase = params->vertCount;
 	const int offMeshPolyBase = params->polyCount;
@@ -748,18 +738,36 @@ bool dtCreateNavMeshData(dtNavMeshCreateParams* params, unsigned char** outData,
 	dtFree(offMeshConClass);
 	
 	// Store clusters
-	if (params->clusterCount)
+	if (params->polyClusters)
 	{
 		memcpy(polyClusters, params->polyClusters, sizeof(unsigned short)*params->polyCount);
-		memcpy(clusterCons, params->clusterLinks, sizeof(unsigned short)*maxClusterLinks);
+	}
 
-		for (int i = 0; i < params->clusterCount; i++)
+	for (int i = 0; i < params->clusterCount; i++)
+	{
+		dtCluster& cluster = clusters[i];
+		cluster.firstLink = DT_NULL_LINK;
+		cluster.numLinks = 0;
+		dtVset(cluster.center, 0.f, 0.f, 0.f);
+
+		// calculate center point: take from first poly
+		for (int j = 0; j < params->polyCount; j++)
 		{
-			dtCluster& cluster = clusters[i];
-			cluster.firstLink = DT_NULL_LINK;
-			cluster.centerPoly = 0;
-			cluster.numLinks = params->clusterLinkCount[i];
-			dtVcopy(cluster.center, &params->clusterCenters[i*3]);
+			if (polyClusters[j] != i)
+			{
+				continue;
+			}
+
+			const dtPoly* poly = &navPolys[j];
+			float c[3] = { 0.0f, 0.0f, 0.0f };
+
+			for (int iv = 0; iv < poly->vertCount; iv++)
+			{
+				dtVadd(c, c, &navVerts[poly->verts[iv] * 3]);
+			}
+			
+			dtVmad(cluster.center, cluster.center, c, 1.0f / poly->vertCount);
+			break;
 		}
 	}
  
@@ -813,7 +821,6 @@ bool dtNavMeshHeaderSwapEndian(unsigned char* data, const int /*dataSize*/)
 	dtSwapEndian(&header->bmax[2]);
 	dtSwapEndian(&header->bvQuantFactor);
 	dtSwapEndian(&header->clusterCount);
-	dtSwapEndian(&header->maxClusterCons); 
 
 	// Freelist index and pointers are updated when tile is added, no need to swap.
 
@@ -848,7 +855,6 @@ bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 	const int offMeshSegSize = dtAlign4(sizeof(dtOffMeshSegmentConnection)*header->offMeshSegConCount);
 	const int clustersSize = dtAlign4(sizeof(dtCluster)*header->clusterCount);
 	const int polyClustersSize = dtAlign4(sizeof(unsigned short)*header->offMeshBase);
-	const int clusterConsSize = dtAlign4(sizeof(unsigned short)*header->maxClusterCons);
 
 	unsigned char* d = data + headerSize;
 	float* verts = (float*)d; d += vertsSize;
@@ -862,7 +868,6 @@ bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 	dtOffMeshSegmentConnection* offMeshSegs = (dtOffMeshSegmentConnection*)d; d += offMeshSegSize;
 	dtCluster* clusters = (dtCluster*)d; d += clustersSize;
 	unsigned short* polyClusters = (unsigned short*)d; d += polyClustersSize;
-	unsigned short* clusterCons = (unsigned short*)d; d += clusterConsSize;
  	
 	// Vertices
 	for (int i = 0; i < header->vertCount*3; ++i)
@@ -937,23 +942,10 @@ bool dtNavMeshDataSwapEndian(unsigned char* data, const int /*dataSize*/)
 		dtSwapEndian(&con->firstPoly);
 		dtSwapEndian(&con->userId);
 	}
-	
-	// Clusters
-	for (int i = 0; i < header->clusterCount; i++)
-	{
-		dtCluster* cluster = &clusters[i];
-		for (int j = 0; j < 3; j++)
-			dtSwapEndian(&cluster->center[j]);
-	}
 
 	for (int i = 0; i < header->offMeshBase; i++)
 	{
 		dtSwapEndian(&polyClusters[i]);
-	}
-
-	for (int i = 0; i < header->maxClusterCons; i++)
-	{
-		dtSwapEndian(&clusterCons[i]);
 	}
  
 	return true;

@@ -486,7 +486,9 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 #if WITH_NAVIGATION_GENERATOR
 	DirtyAreasUpdateTime += DeltaSeconds;
 	const float DirtyAreasUpdateDeltaTime = 1.0f / DirtyAreasUpdateFreq;
-	if (DirtyAreas.Num() > 0 && DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime)
+	const bool bCanRebuildNow = (DirtyAreasUpdateTime >= DirtyAreasUpdateDeltaTime) || (GetWorld() && !GetWorld()->IsGameWorld());
+
+	if (DirtyAreas.Num() > 0 && bCanRebuildNow)
 	{
 		for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 		{
@@ -609,7 +611,7 @@ FPathFindingResult UNavigationSystem::FindPathSync(FPathFindingQuery Query, EPat
 	return Result;
 }
 
-bool UNavigationSystem::TestPathSync(FPathFindingQuery Query, EPathFindingMode::Type Mode) const
+bool UNavigationSystem::TestPathSync(FPathFindingQuery Query, EPathFindingMode::Type Mode, int32* NumVisitedNodes) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_PathfindingSync);
 
@@ -623,11 +625,11 @@ bool UNavigationSystem::TestPathSync(FPathFindingQuery Query, EPathFindingMode::
 	{
 		if (Mode == EPathFindingMode::Hierarchical)
 		{
-			bExists = Query.NavData->TestHierarchicalPath(FNavAgentProperties(), Query);
+			bExists = Query.NavData->TestHierarchicalPath(FNavAgentProperties(), Query, NumVisitedNodes);
 		}
 		else
 		{
-			bExists = Query.NavData->TestPath(FNavAgentProperties(), Query);
+			bExists = Query.NavData->TestPath(FNavAgentProperties(), Query, NumVisitedNodes);
 		}
 	}
 

@@ -250,6 +250,9 @@ namespace UnrealBuildTool
 		/** Additional arguments to pass to the compiler. */
 		public string AdditionalArguments = "";
 
+		/** A list of additional frameworks whose include paths are needed. */
+		public List<UEBuildFramework> AdditionalFrameworks = new List<UEBuildFramework>();
+
 		/** Default constructor. */
 		public CPPEnvironmentConfiguration()
 		{
@@ -281,6 +284,7 @@ namespace UnrealBuildTool
  			PrivateAssemblyDependencies  .AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
 			Definitions                  .AddRange(InCopyEnvironment.Definitions);
 			AdditionalArguments                    = InCopyEnvironment.AdditionalArguments;
+			AdditionalFrameworks		 .AddRange(InCopyEnvironment.AdditionalFrameworks);
 		}
 	}
 

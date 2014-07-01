@@ -14,7 +14,8 @@ UReporterGraph::UReporterGraph(const class FPostConstructInitializeProperties& P
 	LegendPosition = ELegendPosition::Outside;
 	NumXNotches = 10;
 	NumYNotches = 10;
-	
+	bOffsetDataSets = false;
+
 	BackgroundColor = FColor(0, 0, 0, 0);
 }
 
@@ -41,8 +42,6 @@ void UReporterGraph::Draw(UCanvas* Canvas)
 
 	DrawBackground(Canvas);
 
-	DrawLegend(Canvas);
-
 	switch(DataStyle)
 	{
 		case EGraphDataStyle::Lines:
@@ -59,6 +58,8 @@ void UReporterGraph::Draw(UCanvas* Canvas)
 			DrawAxes(Canvas);
 		} break;
 	}
+
+	DrawLegend(Canvas);
 
 	DrawThresholds(Canvas);
 }
@@ -117,7 +118,7 @@ void UReporterGraph::SetNumThresholds(int32 NumThresholds)
 
 FGraphThreshold* UReporterGraph::GetThreshold(int32 ThresholdIndex)
 {
-	if(ThresholdIndex < 0 || ThresholdIndex > Thresholds.Num())
+	if (!Thresholds.IsValidIndex(ThresholdIndex))
 	{
 		return NULL;
 	}
@@ -137,8 +138,8 @@ void UReporterGraph::SetLegendPosition(ELegendPosition::Type Position)
 
 void UReporterGraph::DrawBackground(UCanvas* Canvas)
 {
-	FVector2D Min = FVector2D(GraphScreenSize.Min.X * Canvas->SizeX, GraphScreenSize.Min.Y * Canvas->SizeY);
-	FVector2D Max = FVector2D(GraphScreenSize.Max.X * Canvas->SizeX, GraphScreenSize.Max.Y * Canvas->SizeY);
+	FVector2D Min = FVector2D(GraphScreenSize.Min.X * Canvas->SizeX, Canvas->SizeY - GraphScreenSize.Min.Y * Canvas->SizeY);
+	FVector2D Max = FVector2D(GraphScreenSize.Max.X * Canvas->SizeX, Canvas->SizeY - GraphScreenSize.Max.Y * Canvas->SizeY);
 
 	FCanvasTileItem TileItem(Min, GWhiteTexture, Max-Min, BackgroundColor);
 	TileItem.BlendMode = SE_BLEND_Translucent;
@@ -190,14 +191,12 @@ void UReporterGraph::DrawAxes(UCanvas* Canvas)
 	FVector2D YMax = GraphScreenSize.Min;
 	YMax.Y = GraphScreenSize.Max.Y;
 
-	// Draw the X axis
-	const float SizeX = (XMax.X - Min.X) * Canvas->SizeX;
-	int32 StringSizeX, StringSizeY;
 	UFont* Font = GEngine->GetSmallFont();
-
+	int32 StringSizeX, StringSizeY;
+	// Draw the X axis
 	StringSize(Font, StringSizeX, StringSizeY, *FString::Printf(TEXT("%.2f"), GraphMinMaxData.Max.X) );
+	const float SizeX = (XMax.X - Min.X) * Canvas->SizeX;
 	NumXNotches = FMath::CeilToInt(SizeX * 0.7 / StringSizeX);
-
 	DrawAxis(Canvas, Min, XMax, NumXNotches, false);
 
 	// Draw the Y axis
@@ -270,8 +269,29 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 	}
 	
 	UFont* Font = GEngine->GetSmallFont();
-	for(int i = 0; i < NumNotches; i++)
+	const FVector2D Width = FVector2D((GraphScreenSize.Max.X - GraphScreenSize.Min.X), 0);
+	const FVector2D Height = FVector2D(0, (GraphScreenSize.Max.Y - GraphScreenSize.Min.Y));
+
+	for (int Index = 0; Index < NumNotches + 1; Index++)
 	{
+		FString NotchValue = FString::Printf(TEXT("%1.2f"), (bIsVerticalAxis ? GraphMinMaxData.Min.Y + (NotchDataDelta.Y * (Index /*+ 1*/)) : GraphMinMaxData.Min.X + (NotchDataDelta.X * (Index /*+ 1*/))));
+		
+		int32 StringSizeX, StringSizeY;
+		StringSize(Font, StringSizeX, StringSizeY, *NotchValue );
+
+		FVector2D ScreenPos = ToScreenSpace(NotchLocation, Canvas);
+
+		if (bIsVerticalAxis)
+		{
+			Canvas->Canvas->DrawShadowedString(ScreenPos.X - StringSizeX - 4, ScreenPos.Y - StringSizeY * 0.5f, *NotchValue, Font, AxesColor);
+			DrawLine(Canvas, NotchLocation, NotchLocation + Width, NotchColor);
+		}
+		else
+		{
+			Canvas->Canvas->DrawShadowedString( ScreenPos.X - StringSizeX * 0.5f, ScreenPos.Y + (AxisStyle == EGraphAxisStyle::Grid ? + 5 : -NotchLength.Y * Canvas->SizeY), *NotchValue , Font, AxesColor);
+			DrawLine(Canvas, NotchLocation, NotchLocation + Height, NotchColor);
+		}
+		
 		if(bIsVerticalAxis)
 		{
 			NotchLocation.Y += NotchDelta;
@@ -280,24 +300,6 @@ void UReporterGraph::DrawAxis(UCanvas* Canvas, FVector2D Start, FVector2D End, f
 		{
 			NotchLocation.X += NotchDelta;
 		}
-
-		FString NotchValue = FString::Printf(TEXT("%1.2f"), (bIsVerticalAxis ? GraphMinMaxData.Min.Y + (NotchDataDelta.Y * (i + 1)) : GraphMinMaxData.Min.X + (NotchDataDelta.X * (i + 1))));
-		
-		int32 StringSizeX, StringSizeY;
-		StringSize(Font, StringSizeX, StringSizeY, *NotchValue );
-
-		FVector2D ScreenPos = ToScreenSpace(NotchLocation, Canvas);
-
-		if(bIsVerticalAxis)
-		{
-			Canvas->Canvas->DrawShadowedString( ScreenPos.X + NotchLength.X, ScreenPos.Y - StringSizeY * 0.5f, *NotchValue , Font, AxesColor);
-		}
-		else
-		{
-			Canvas->Canvas->DrawShadowedString( ScreenPos.X - StringSizeX * 0.5f, ScreenPos.Y + (AxisStyle == EGraphAxisStyle::Grid ? 0 : -NotchLength.Y * Canvas->SizeY), *NotchValue , Font, AxesColor);
-		}
-		
-		DrawLine(Canvas, NotchLocation, NotchLocation + NotchLength, NotchColor);
 	}
 }
 
@@ -329,8 +331,27 @@ void UReporterGraph::DrawData(UCanvas* Canvas)
 {
 	FVector2D Start, End;
 	
-	for(int32 i = 0; i < CurrentData.Num(); i++)
+	const FVector2D Min = FVector2D(GraphScreenSize.Min.X * Canvas->SizeX, Canvas->SizeY - GraphScreenSize.Min.Y * Canvas->SizeY);
+	const FVector2D Max = FVector2D(GraphScreenSize.Max.X * Canvas->SizeX, Canvas->SizeY - GraphScreenSize.Max.Y * Canvas->SizeY);
+	const float Height = GraphScreenSize.Max.Y - GraphScreenSize.Min.Y;
+	const float dx = Height / FMath::Abs(Max.Y - Min.Y);
+
+	float UpOffset = 0;
+	float DownOffset = 0;
+	for (int32 i = 0; i < CurrentData.Num(); i++)
 	{
+		if (IsOffsetForDataSetsEnabled())
+		{
+			if (i % 2)
+			{
+				UpOffset += dx;
+			}
+			else
+			{
+				DownOffset += dx;
+			}
+		}
+
 		for(int32 j = 1; j < CurrentData[i].Data.Num(); j++)
 		{
 			Start = CurrentData[i].Data[j - 1];
@@ -341,7 +362,14 @@ void UReporterGraph::DrawData(UCanvas* Canvas)
 
 			if(DataStyle == EGraphDataStyle::Lines)
 			{
-				DrawLine(Canvas, Start, End, CurrentData[i].Color);
+				if (i % 2)
+				{
+					DrawLine(Canvas, Start + FVector2D(UpOffset, UpOffset), End + FVector2D(UpOffset, UpOffset), CurrentData[i].Color);
+				}
+				else
+				{
+					DrawLine(Canvas, Start - FVector2D(DownOffset, DownOffset), End - FVector2D(DownOffset, DownOffset), CurrentData[i].Color);
+				}
 			}
 			else
 			{

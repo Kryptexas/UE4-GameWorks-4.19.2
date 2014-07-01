@@ -8,6 +8,9 @@
 #include "Runtime/Online/OnlineSubsystem/Public/OnlineSubsystemTypes.h"
 #include "GameSession.generated.h"
 
+class UWorld;
+class APlayerController;
+
 UCLASS(config=Game, notplaceable)
 class ENGINE_API AGameSession : public AInfo
 {
@@ -86,10 +89,24 @@ class ENGINE_API AGameSession : public AInfo
 	// LOGOUT
 
 	/** Called when a PlayerController logs out of game. */
-	virtual void NotifyLogout(class APlayerController* PC);
+	virtual void NotifyLogout(APlayerController* PC);
 
 	/** Unregister a player from the online service session	 */
 	virtual void UnregisterPlayer(APlayerController* ExitingPlayer);
+
+	/**
+	 * Add a player to the admin list of this session
+	 *
+	 * @param AdminPlayer player to add to the list
+	 */
+	virtual void AddAdmin(APlayerController* AdminPlayer);
+
+	/**
+	 * Remove a player from the admin list of this session
+	 *
+	 * @param AdminPlayer player to remove from the list
+	 */
+	virtual void RemoveAdmin(APlayerController* AdminPlayer);
 
 	/** 
 	 * Forcibly remove player from the server
@@ -99,7 +116,7 @@ class ENGINE_API AGameSession : public AInfo
 	 *
 	 * @return true if player was able to be kicked, false otherwise
 	 */
-	virtual bool KickPlayer(class APlayerController* KickedPlayer, const FText& KickReason);
+	virtual bool KickPlayer(APlayerController* KickedPlayer, const FText& KickReason);
 
 	/**
 	 * Forcibly remove player from the server and ban them permanently
@@ -109,7 +126,7 @@ class ENGINE_API AGameSession : public AInfo
 	 *
 	 * @return true if player was able to be banned, false otherwise
 	 */
-	virtual bool BanPlayer(class APlayerController* BannedPlayer, const FText& BanReason);
+	virtual bool BanPlayer(APlayerController* BannedPlayer, const FText& BanReason);
 
 	/** Gracefully tell all clients then local players to return to lobby */
 	virtual void ReturnToMainMenuHost();
@@ -187,7 +204,7 @@ private:
  * @param PlayerNetId the id to search for
  * @return the player controller if found, otherwise NULL
  */
-ENGINE_API class APlayerController* GetPlayerControllerFromNetId(class UWorld* World, const FUniqueNetId& PlayerNetId);
+ENGINE_API APlayerController* GetPlayerControllerFromNetId(UWorld* World, const FUniqueNetId& PlayerNetId);
 
 
 
