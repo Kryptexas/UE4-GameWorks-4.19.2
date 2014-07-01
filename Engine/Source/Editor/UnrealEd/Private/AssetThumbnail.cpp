@@ -687,12 +687,20 @@ FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<b
 {
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
 	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);
+	if ( GEditor )
+	{
+		GEditor->OnActorMoved().AddRaw( this, &FAssetThumbnailPool::OnActorPostEditMove );
+	}
 }
 
 FAssetThumbnailPool::~FAssetThumbnailPool()
 {
 	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+	if ( GEditor )
+	{
+		GEditor->OnActorMoved().RemoveAll(this);
+	}
 
 	// Release all the texture resources
 	ReleaseResources();
@@ -1205,6 +1213,18 @@ void FAssetThumbnailPool::OnAssetLoaded( UObject* Asset )
 	if ( Asset != NULL )
 	{
 		RecentlyLoadedAssets.Add( FName(*Asset->GetPathName()) );
+	}
+}
+
+void FAssetThumbnailPool::OnActorPostEditMove( AActor* Actor )
+{
+	if (Actor != NULL)
+	{
+		UWorld* World = Actor->GetWorld();
+		if (World)
+		{
+			RefreshThumbnailsFor(FName(*World->GetPathName()));
+		}
 	}
 }
 

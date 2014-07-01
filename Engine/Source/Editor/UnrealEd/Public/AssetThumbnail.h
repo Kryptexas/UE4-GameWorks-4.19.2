@@ -188,6 +188,9 @@ private:
 	/** Handler for when an asset is loaded */
 	void OnAssetLoaded( UObject* Asset );
 
+	/** Handler for when an actor is moved in a level. Used to update world asset thumbnails. */
+	void OnActorPostEditMove( AActor* Actor );
+
 	/** Handler for when an asset is loaded */
 	void OnObjectPropertyChanged( UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent );
 
