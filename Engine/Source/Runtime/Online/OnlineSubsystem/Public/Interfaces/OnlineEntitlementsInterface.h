@@ -20,6 +20,14 @@ struct FOnlineEntitlement
 	FString Name;
 
 	/**
+	 * @return Any additional data associated with the entitlement
+ 	 */
+	virtual bool GetAttribute(const FString& AttrName, FString& OutAttrValue) const
+	{
+		return false;
+	}
+
+	/**
 	 * Equality operator
 	 */
 	bool operator==(const FOnlineEntitlement& Other) const
