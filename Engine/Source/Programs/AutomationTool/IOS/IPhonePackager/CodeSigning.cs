@@ -11,6 +11,7 @@ using System.IO;
 using MachObjectHandling;
 using System.Diagnostics;
 using System.Xml;
+using UnrealBuildTool;
 
 namespace iPhonePackager
 {
@@ -103,10 +104,10 @@ namespace iPhonePackager
 			return bOverridesExists && (Provision != null) && (Cert != null);
 		}
 
-		protected virtual byte[] GetMobileProvision(string CFBundleIdentifier)
+		protected virtual byte[] GetMobileProvision()
 		{
 			// find the movile provision file in the library
-			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+			string MobileProvisionFilename = MobileProvision.FindCompatibleProvision();
 
 			byte[] Result = null;
 			try
@@ -122,9 +123,9 @@ namespace iPhonePackager
 			return Result;
 		}
 
-		public void LoadMobileProvision(string CFBundleIdentifier)
+		public void LoadMobileProvision()
 		{
-			byte[] MobileProvisionFile = GetMobileProvision(CFBundleIdentifier);
+			byte[] MobileProvisionFile = GetMobileProvision();
 
 			if (MobileProvisionFile != null)
 			{
@@ -290,15 +291,8 @@ namespace iPhonePackager
 			// Load Info.plist, which guides nearly everything else
 			Info = LoadInfoPList();
 
-			// Get the name of the bundle
-			string CFBundleIdentifier;
-			if (!Info.GetString("CFBundleIdentifier", out CFBundleIdentifier))
-			{
-				throw new InvalidDataException("Info.plist must contain the key CFBundleIdentifier");
-			}
-
 			// Load the mobile provision, which provides entitlements and a partial cert which can be used to find an installed certificate
-			LoadMobileProvision(CFBundleIdentifier);
+			LoadMobileProvision();
 			if (Provision == null)
 			{
 				return;
@@ -306,8 +300,9 @@ namespace iPhonePackager
 
 			// Install the Apple trust chain certs (required to do a CMS signature with full chain embedded)
 			List<string> TrustChainCertFilenames = new List<string>();
-			TrustChainCertFilenames.Add("AppleWorldwideDeveloperRelationsCA.pem");
-			TrustChainCertFilenames.Add("AppleRootCA.pem");
+			string CertPath = Path.GetFullPath(Path.Combine("Engine/Build/IOS"));
+			TrustChainCertFilenames.Add(Path.Combine(CertPath, "AppleWorldwideDeveloperRelationsCA.pem"));
+			TrustChainCertFilenames.Add(Path.Combine(CertPath, "AppleRootCA.pem"));
 			InstallCertificates(TrustChainCertFilenames);
 
 			// Find and load the signing cert

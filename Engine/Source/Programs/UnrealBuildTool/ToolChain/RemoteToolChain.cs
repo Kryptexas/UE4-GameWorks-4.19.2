@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -12,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
-	abstract class RemoteToolChain : UEToolChain
+	public abstract class RemoteToolChain : UEToolChain
     {
 		protected void RegisterRemoteToolChain(UnrealTargetPlatform InPlatform, CPPTargetPlatform CPPPlatform)
 		{
@@ -35,6 +36,30 @@ namespace UnrealBuildTool
 		/** The path (on the Mac) to the your particular development directory, where files will be copied to from the PC */
 		public static string UserDevRootMac = "/UE4/Builds/";
 
+		/** Whether or not to connect to UnrealRemoteTool using RPCUtility */
+		[XmlConfig]
+		public static bool bUseRPCUtil = true;
+		
+		/** Path to rsync executable and parameters for your rsync utility */
+		[XmlConfig]
+		public static string RSyncExe = "C:\\Program Files (x86)\\DeltaCopy\\rsync.exe";
+
+		/** Path to rsync executable and parameters for your rsync utility */
+		[XmlConfig]
+		public static string SSHExe = "C:\\Program Files (x86)\\DeltaCopy\\ssh.exe";
+
+		/** The authentication used for Rsync (for the -e rsync flag) */
+		[XmlConfig]
+		public static string RsyncAuthentication = "ssh -i id_rsa";
+
+		/** The authentication used for SSH (probably similar to RsyncAuthentication) */
+		[XmlConfig]
+		public static string SSHAuthentication = "-i id_rsa";
+
+		/** Username on the remote machine to connect to with RSync */
+		[XmlConfig]
+		public static string RSyncUsername = "josh.adams";
+
 		/** The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS) */
 		public static string BranchDirectory = Environment.MachineName + "\\" + Path.GetFullPath(".\\").Substring(3);
 		public static string BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
@@ -45,6 +70,9 @@ namespace UnrealBuildTool
 
 		/** The platform this toolchain is compiling for */
 		protected UnrealTargetPlatform RemoteToolChainPlatform;
+
+		/** The average amound of memory a compile takes, used so that we don't compile too many things at once */
+		public static int MemoryPerCompileMB = 1000;
 
 		static RemoteToolChain()
         {
@@ -200,26 +228,12 @@ namespace UnrealBuildTool
 			{
 				RsyncDirs.Add(Entry);
 			}
-			
-			
-// 			// If not, create it now
-//             string RemoteFilePath = ConvertPath(LocalFileItem.AbsolutePath);
-// 
-//             // add this file to the list of files we will RPCBatchUpload later
-//             string Entry = LocalFileItem.AbsolutePath + " " + RemoteFilePath;
-//             if (!BatchUploadCommands.Contains(Entry))
-//             {
-//                 BatchUploadCommands.Add(Entry);
-//             }
-
-// 			// strip it down to the root (rsync wants it to end in a / for -a to work)
-// 			Entry = Utils.MakePathRelativeTo(Path.GetDirectoryName(LocalFileItem.AbsolutePath), "../..").Replace('\\', '/') + "/";
-// 			if (!RsyncDirs.Contains(Entry))
-// 			{
-// 				RsyncDirs.Add(Entry);
-// 			}
 
 			string Ext = Path.GetExtension(LocalFileItem.AbsolutePath);
+			if (Ext == "")
+			{
+				Ext = Path.GetFileName(LocalFileItem.AbsolutePath);
+			}
 			if (!RsyncExtensions.Contains(Ext))
             {
 				RsyncExtensions.Add(Ext);
@@ -333,7 +347,26 @@ namespace UnrealBuildTool
 				Log.TraceInformation(Line.Data);
 			}
 		}
+
+		private static Dictionary<Object,StringBuilder> SSHOutputMap = new Dictionary<object,StringBuilder>();
+		static public void OutputReceivedForSSH(Object Sender, DataReceivedEventArgs Line)
+		{
+			if ((Line != null) && (Line.Data != null) && (Line.Data != ""))
+			{
+				StringBuilder SSHOutput = SSHOutputMap[Sender];
+				if (SSHOutput.Length != 0)
+				{
+					SSHOutput.Append(Environment.NewLine);
+				}
+				SSHOutput.Append(Line.Data);
+			}
+		}
 		
+		private static string ConvertPathToCygwin(string InPath)
+		{
+			return "/cygdrive/" + Utils.CleanDirectorySeparators(InPath.Replace(":", ""), '/');
+		}
+
 		public override void PreBuildSync()
         {
 			// no need to sync on the Mac!
@@ -342,21 +375,33 @@ namespace UnrealBuildTool
 				return;
 			}
 
-			bool bUseRPCUtil = true;
-
 			if (bUseRPCUtil)
 			{
-				List<string> BatchUploadCommands = new List<string>();
+				string ExtString = "";
 
+				// look only for useful extensions
+				foreach (string Ext in RsyncExtensions)
+				{
+					// for later ls
+					ExtString += Ext.StartsWith(".") ? ("*" + Ext) : Ext;
+					ExtString += " ";
+				}
+
+				List<string> BatchUploadCommands = new List<string>();
 				// for each directory we visited, add all the files in that directory
 				foreach (string Dir in RsyncDirs)
 				{
+					List<string> LocalFilenames = new List<string>();
+
 					// look only for useful extensions
 					foreach (string Ext in RsyncExtensions)
 					{
 						string[] Files = Directory.GetFiles(Dir, "*" + Ext);
 						foreach (string SyncFile in Files)
 						{
+							// remember all local files
+							LocalFilenames.Add(Path.GetFileName(SyncFile));
+
 							string RemoteFilePath = ConvertPath(SyncFile);
 							// an upload command is local name and remote name
 							BatchUploadCommands.Add(SyncFile + ";" + RemoteFilePath);
@@ -376,33 +421,185 @@ namespace UnrealBuildTool
 				}
 
 				// write out directories to copy
-				File.WriteAllLines("D:\\dev\\CarefullyRedist\\DeltaCopy\\RSyncPaths.txt", RelativeRsyncDirs.ToArray());
-				File.WriteAllLines("D:\\dev\\CarefullyRedist\\DeltaCopy\\IncludeFrom.txt", RsyncExtensions);
+				string RSyncPathsFile = Path.GetTempFileName();
+				string IncludeFromFile = Path.GetTempFileName();
+				File.WriteAllLines(RSyncPathsFile, RelativeRsyncDirs.ToArray());
+				File.WriteAllLines(IncludeFromFile, RsyncExtensions);
 
 				// source and destination paths in the format rsync wants
-				string CygPath = "/cygdrive/" + Utils.CleanDirectorySeparators(Path.GetFullPath("../../").Replace(":", ""), '/');
-				string RemotePath = ConvertPath(Path.GetFullPath("../../"));
+				string CygRootPath = ConvertPathToCygwin(Path.GetFullPath("../../"));
+				string RemotePath = ConvertPath(Path.GetFullPath("../../")).Replace(" ", "\\ ");
 
+				// get the executable dir for Rsync
+				string ExeDir = Path.GetDirectoryName(RSyncExe);
+	
 				Process RsyncProcess = new Process();
-				RsyncProcess.StartInfo.WorkingDirectory = Path.GetFullPath("D:\\dev\\CarefullyRedist\\DeltaCopy");
-				RsyncProcess.StartInfo.FileName = "D:\\dev\\CarefullyRedist\\DeltaCopy\\rsync.exe";
+				if (ExeDir != "")
+				{
+					RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+				}
+
+				// --exclude='*'  ??? why???
+				RsyncProcess.StartInfo.FileName = RSyncExe;
 				RsyncProcess.StartInfo.Arguments = string.Format(
-					"-vzae \"ssh -i id_rsa\" --delete --files-from=RsyncPaths.txt " +
-					"--include-from=IncludeFrom.txt --include='*/' --exclude='*' {0} josh.adams@{2}:{1}",
-					CygPath,
+					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' {1} {6}@{3}:'{2}'",
+					RsyncAuthentication,
+					CygRootPath,
 					RemotePath,
-					RemoteServerName);
+					RemoteServerName,
+					ConvertPathToCygwin(RSyncPathsFile),
+					ConvertPathToCygwin(IncludeFromFile),
+					RSyncUsername);
 
 				RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
 				RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
 
 				// run rsync
 				Utils.RunLocalProcess(RsyncProcess);
+
+				File.Delete(IncludeFromFile);
+				File.Delete(RSyncPathsFile);
 			}
 
 			// we can now clear out the set of files
             RsyncDirs.Clear();
 			RsyncExtensions.Clear();
+		}
+
+		static public bool UploadFile(string LocalPath, string RemotePath)
+		{
+			string RemoteDir = Path.GetDirectoryName(RemotePath).Replace("\\", "/");
+			string RemoteFilename = Path.GetFileName(RemotePath);
+
+			// get the executable dir for Rsync
+			string ExeDir = Path.GetDirectoryName(RSyncExe);
+
+			Process RsyncProcess = new Process();
+			if (ExeDir != "")
+			{
+				RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// make simple rsync commandline to send a file
+			RsyncProcess.StartInfo.FileName = RSyncExe;
+			RsyncProcess.StartInfo.Arguments = string.Format(
+				"-zae \"{0}\" --rsync-path=\"mkdir -p '{1}' && rsync\" \"{2}\" {3}@{4}:\"{1}/{5}\"",
+				RsyncAuthentication,
+				RemoteDir,
+				ConvertPathToCygwin(LocalPath),
+				RSyncUsername,
+				RemoteServerName,
+				RemoteFilename
+				);
+
+			RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+
+			// run rsync (0 means success)
+			return Utils.RunLocalProcess(RsyncProcess) == 0;
+		}
+
+		static public bool DownloadFile(string RemotePath, string LocalPath)
+		{
+			// get the executable dir for Rsync
+			string ExeDir = Path.GetDirectoryName(RSyncExe);
+
+			Process RsyncProcess = new Process();
+			if (ExeDir != "")
+			{
+				RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// make sure directory exists to download to
+			Directory.CreateDirectory(Path.GetDirectoryName(LocalPath));
+
+			// make simple rsync commandline to send a file
+			RsyncProcess.StartInfo.FileName = RSyncExe;
+			RsyncProcess.StartInfo.Arguments = string.Format(
+				"-zae \"{0}\" {2}@{3}:\"{4}\" \"{1}\"",
+				RsyncAuthentication,
+				ConvertPathToCygwin(LocalPath),
+				RSyncUsername,
+				RemoteServerName,
+				RemotePath
+				);
+
+			RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+
+			//Console.WriteLine("COPY: {0} {1}", RsyncProcess.StartInfo.FileName, RsyncProcess.StartInfo.Arguments);
+
+			// run rsync (0 means success)
+			return Utils.RunLocalProcess(RsyncProcess) == 0;
+		}
+
+		static public Hashtable SSHCommand(string WorkingDirectory, string Command, string CommandArgs, string RemoteOutputPath)
+		{
+			Console.WriteLine("Doing {0} {1}", Command, CommandArgs);
+
+			// make the commandline for other end
+			string RemoteCommandline = "cd " + WorkingDirectory;
+			if (!string.IsNullOrWhiteSpace(RemoteOutputPath))
+			{
+				RemoteCommandline += " && mkdir -p " + Path.GetDirectoryName(RemoteOutputPath).Replace("\\", "/");
+			}
+
+			// get the executable dir for SSH
+			string ExeDir = Path.GetDirectoryName(SSHExe);
+
+			Process SSHProcess = new Process();
+			if (ExeDir != "")
+			{
+				SSHProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// long commands go as a file
+			if (CommandArgs.Length > 256)
+			{
+				// upload the commandline text file
+				string CommandLineFile = Path.GetTempFileName();
+				File.WriteAllText(CommandLineFile, Command + " " + CommandArgs);
+
+				string RemoteCommandlineDir = "/var/tmp/" + Environment.MachineName;
+				string RemoteCommandlinePath = RemoteCommandlineDir + "/" + Path.GetFileName(CommandLineFile);
+
+				DateTime Now = DateTime.Now;
+				UploadFile(CommandLineFile, RemoteCommandlinePath);
+				Console.WriteLine("Upload took {0}", (DateTime.Now - Now).ToString());
+
+				// execute the file, not a commandline
+				RemoteCommandline += string.Format(" && bash < {0} && rm {0}", RemoteCommandlinePath);
+			}
+			else
+			{
+				RemoteCommandline += " && " + Command + " " + CommandArgs;
+			}
+
+			SSHProcess.StartInfo.FileName = SSHExe;
+			SSHProcess.StartInfo.Arguments = string.Format(
+				"{0} {1}@{2} \"{3}\"",
+				SSHAuthentication,
+				RSyncUsername,
+				RemoteServerName,
+				RemoteCommandline.Replace("\"", "\\\""));
+
+			// add this process to the map
+			SSHOutputMap[SSHProcess] = new StringBuilder("");
+			SSHProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
+			SSHProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
+
+			DateTime Start = DateTime.Now;
+			Int64 ExitCode = Utils.RunLocalProcess(SSHProcess);
+			Console.WriteLine("Execute took {0}", (DateTime.Now - Start).ToString());
+
+			// now we have enough to fill out the HashTable
+			Hashtable Return = new Hashtable();
+			Return["CommandOutput"] = SSHOutputMap[SSHProcess].ToString();
+			Return["ExitCode"] = (object)ExitCode;
+
+			SSHOutputMap.Remove(SSHProcess);
+
+			return Return;
 		}
 
 		public override void PostBuildSync(UEBuildTarget Target)

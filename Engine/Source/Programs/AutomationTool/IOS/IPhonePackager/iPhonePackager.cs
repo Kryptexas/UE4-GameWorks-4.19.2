@@ -443,17 +443,22 @@ namespace iPhonePackager
 			}
 		}
 
+		[STAThread]
+		static int Main(string[] args)
+		{
+			return RealMain(args);
+		}
+		
 		/**
 		 * Main control loop
 		 */
-		[STAThread]
-		static int Main(string[] args)
+		public static int RealMain(string[] args)
 		{
 			// remember the working directory at start, as the game path could be relative to this path
 			string InitialCurrentDirectory = Environment.CurrentDirectory;
 
 			// set the working directory to the location of the application (so relative paths always work)
-			Environment.CurrentDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+//			Environment.CurrentDirectory = Path.GetDirectoryName(Application.ExecutablePath);
 
 			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler( CurrentDomain_AssemblyResolve );
 

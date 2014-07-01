@@ -247,7 +247,7 @@ namespace iPhonePackager
 			/// </summary>
 			public byte[] CustomInfoPList = null;
 
-			protected override byte[] GetMobileProvision(string CFBundleIdentifier)
+			protected override byte[] GetMobileProvision()
 			{
 				return (CustomMobileProvision != null) ? CustomMobileProvision : FileSystem.ReadAllBytes("embedded.mobileprovision");
 			}

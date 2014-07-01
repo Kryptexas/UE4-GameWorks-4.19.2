@@ -376,6 +376,15 @@ namespace AutomationTool
 
 		}
 
+		/// <summary>
+		/// General purpose command to run generic string commands inside the platform interfeace
+		/// </summary>
+		/// <param name="Command"></param>
+		public virtual int RunCommand(string Command)
+		{
+			return 0;
+		}
+
 		public virtual bool ShouldUseManifestForUBTBuilds(string AddArgs)
 		{
 			return true;

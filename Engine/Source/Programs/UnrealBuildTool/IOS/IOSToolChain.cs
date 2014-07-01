@@ -1163,9 +1163,22 @@ namespace UnrealBuildTool
 						UnrealBuildTool.GenerateProjectFiles(new XcodeProjectFileGenerator(), new string[] { "-NoIntellisense", "-iosdeployonly" });
 					}
 
+					// now that 
 					Process StubGenerateProcess = new Process();
-					StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
-					StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
+
+					if (RemoteToolChain.bUseRPCUtil)
+					{
+						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
+						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
+					}
+					else
+					{
+						// UAT wants the working directory to be the root (or does it matter?)
+						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET");
+						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "AutomationTool.exe");
+					}
+
+					string Arguments = "";
 						
 					string PathToApp = RulesCompiler.GetTargetFilename(AppName);
 
@@ -1190,29 +1203,39 @@ namespace UnrealBuildTool
 					if (bUseDangerouslyFastMode)
 					{
 						// the quickness!
-						StubGenerateProcess.StartInfo.Arguments = "DangerouslyFast " + PathToApp;
+						Arguments += "DangerouslyFast " + PathToApp;
 					}
 					else
 					{
-						StubGenerateProcess.StartInfo.Arguments = "PackageIPA \"" + PathToApp + "\" -createstub";
+						Arguments += "PackageIPA \"" + PathToApp + "\" -createstub";
 						// if we are making the dsym, then we can strip the debug info from the executable
 						if (BuildConfiguration.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping))
 						{
-							StubGenerateProcess.StartInfo.Arguments += " -strip";
+							Arguments += " -strip";
 						}
 					}
-					StubGenerateProcess.StartInfo.Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
+					Arguments += " -config " + Target.Configuration + " -mac " + RemoteServerName;
 
 					var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 					string Architecture = BuildPlatform.GetActiveArchitecture();
 					if (Architecture != "")
 					{
 						// pass along the architecture if we need, skipping the initial -, so we have "-architecture simulator"
-						StubGenerateProcess.StartInfo.Arguments += " -architecture " + Architecture.Substring(1);
+						Arguments += " -architecture " + Architecture.Substring(1);
 					}
 
 					// programmers that use Xcode packaging mode should use the following commandline instead, as it will package for Xcode on each compile
-					//				StubGenerateProcess.StartInfo.Arguments = "PackageApp " + GameName + " " + Configuration;
+					//				Arguments = "PackageApp " + GameName + " " + Configuration;
+
+					if (RemoteToolChain.bUseRPCUtil)
+					{
+						StubGenerateProcess.StartInfo.Arguments = Arguments;
+					}
+					else
+					{
+						Arguments = Arguments.Replace("\"", "\\\"");
+						StubGenerateProcess.StartInfo.Arguments = "IPhonePackager -cmd=\"" + Arguments + "\" -nocompile";
+					}
 
 					StubGenerateProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 					StubGenerateProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);

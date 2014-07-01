@@ -615,14 +615,6 @@ namespace UnrealBuildTool
 						}
 					}
 
-					if (ProducedItem.bIsRemoteFile)
-					{
-						DateTime LastWriteTime;
-						long UnusedLength;
-						ProducedItem.bExists = RPCUtilHelper.GetRemoteFileInfo(ProducedItem.AbsolutePath, out LastWriteTime, out UnusedLength);
-						ProducedItem.LastWriteTime = LastWriteTime;
-					}
-
 					// If the produced file doesn't exist or has zero size, consider it outdated.  The zero size check is to detect cases
 					// where aborting an earlier compile produced invalid zero-sized obj files, but that may cause actions where that's
 					// legitimate output to always be considered outdated.
@@ -785,13 +777,17 @@ namespace UnrealBuildTool
 					{
 						if (ProducedItem.bIsRemoteFile)
 						{
-							try
+							// we don't need to do this in the SSH mode, the action will have an output file, and it will use that to make the directory while executing the command
+							if (RemoteToolChain.bUseRPCUtil)
 							{
-								RPCUtilHelper.MakeDirectory(Path.GetDirectoryName(ProducedItem.AbsolutePath).Replace("\\", "/"));
-							}
-							catch (System.Exception Ex)
-							{
-								throw new BuildException( Ex, "Error while creating remote directory for '{0}'.  (Exception: {1})", ProducedItem.AbsolutePath, Ex.Message );
+								try
+								{
+									RPCUtilHelper.MakeDirectory(Path.GetDirectoryName(ProducedItem.AbsolutePath).Replace("\\", "/"));
+								}
+								catch (System.Exception Ex)
+								{
+									throw new BuildException(Ex, "Error while creating remote directory for '{0}'.  (Exception: {1})", ProducedItem.AbsolutePath, Ex.Message);
+								}
 							}
 						}
 						else

@@ -26,6 +26,12 @@ namespace UnrealBuildTool
 		/** A socket per command thread */
 		private static Hashtable CommandThreadSockets = new Hashtable();
 
+		/** Time difference between remote and local idea's of UTC time */
+		private static TimeSpan TimeDifferenceFromRemote = new TimeSpan(0);
+
+		/** The number of commands the remote side should be able to run at once */
+		private static int MaxRemoteCommandsAllowed = 0;
+
 		static RPCUtilHelper()
 		{
 			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
@@ -66,22 +72,88 @@ namespace UnrealBuildTool
 
 			return (null);
 		}
-	
+
+		private static DateTime RemoteToLocalTime(string RemoteTime)
+		{
+			try
+			{
+				// convert string to integer
+				int RemoteTimeSinceEpoch = int.Parse(RemoteTime);
+
+				// convert the seconds into TimeSpan
+				TimeSpan RemoteSpanSinceEpoch = new TimeSpan(0, 0, RemoteTimeSinceEpoch);
+
+				// put the remote time into local time (Jan 1, 1970 was the Epoch for Mac), and adjust it for time difference between machines
+				return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc) + RemoteSpanSinceEpoch + TimeDifferenceFromRemote;
+
+			}
+			catch (Exception)
+			{
+				// use MinValue for any errors
+				return DateTime.MinValue;
+			}
+		}
+
 		static public void Initialize(string InMacName)
 		{
 			MacName = InMacName;
 
-			if (CommandHelper.PingRemoteHost(MacName))
+			// when not using RPCUtil, we do NOT want to ping the host
+			if (!RemoteToolChain.bUseRPCUtil || CommandHelper.PingRemoteHost(MacName))
 			{
-				if (BuildConfiguration.bFlushBuildDirOnRemoteMac)
+				try
 				{
-					Command("/", "rm", "-rf /UE4/Builds/" + Environment.MachineName, null);
+					if (!RemoteToolChain.bUseRPCUtil)
+					{
+						// ask for current time, free memory and num CPUs
+
+						string[] Commands = new string[] 
+						{
+							"+\"%s\"",
+							"vm_stat | grep Statistics | awk '{print $8}'",
+							"vm_stat | grep 'Pages free:' | awk '{print $3}'",
+							"sysctl -a | grep hw.logicalcpu: | awk '{print $2}'",
+						};
+						Hashtable Results = Command("/", "date", string.Join(" && ", Commands), null);
+						string[] Lines = ((string)Results["CommandOutput"]).Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+
+						// convert it to a time, with TimeDifferenceFromRemote as 0
+						DateTime RemoteTimebase = RemoteToLocalTime(Lines[0]);
+						if (RemoteTimebase == DateTime.MinValue)
+						{
+							throw new BuildException("Failed to parse remote time on " + MacName);
+						}
+
+						// calculate the difference
+						TimeDifferenceFromRemote = DateTime.UtcNow - RemoteTimebase;
+
+						// now figure out max number of commands to run at once
+						int PageSize = int.Parse(Lines[1]);
+						Int64 AvailableMem = Int64.Parse(Lines[2].Replace(".", "")) * PageSize;
+						int NumProcesses = (int)Math.Max(1, AvailableMem / (RemoteToolChain.MemoryPerCompileMB * 1024 * 1024));
+
+						// now, combine that with actual number of cores
+						int NumCores = int.Parse(Lines[3]);
+						MaxRemoteCommandsAllowed = Math.Min(NumProcesses, NumCores);
+
+						Console.WriteLine("Remote time is {0}, difference is {1}", RemoteTimebase.ToString(), TimeDifferenceFromRemote.ToString());
+					}
+					
+					if (BuildConfiguration.bFlushBuildDirOnRemoteMac)
+					{
+						Command("/", "rm", "-rf /UE4/Builds/" + Environment.MachineName, null);
+					}
+				}
+				catch(Exception Ex)
+				{
+					Console.WriteLine("Ex {0}", Ex.ToString());
+					throw new BuildException("Failed to run init commands on " + MacName);
 				}
 			}
-			else
-			{
-				throw new BuildException("Failed to ping Mac named " + MacName);
-			}
+ 			else
+ 			{
+ 				throw new BuildException("Failed to ping Mac named " + MacName);
+ 			}
 		}
 
 		/**
@@ -162,12 +234,42 @@ namespace UnrealBuildTool
 		 */
 		public static bool GetRemoteFileInfo(string RemotePath, out DateTime ModificationTime, out long Length)
 		{
-			return RPCUtility.CommandHelper.GetFileInfo(GetSocket(), RemotePath, DateTime.UtcNow, out ModificationTime, out Length);
+			if (RemoteToolChain.bUseRPCUtil)
+			{
+				return RPCUtility.CommandHelper.GetFileInfo(GetSocket(), RemotePath, DateTime.UtcNow, out ModificationTime, out Length);
+			}
+			else
+			{
+				string CommandArgs = string.Format("-c 'if [ -e \"{0}\" ]; then eval $(stat -s \"{0}\") && echo $st_mtime,$st_size; fi'", RemotePath);
+				Hashtable Results = Command("/", "bash", CommandArgs, null);
+
+				string Output = Results["CommandOutput"] as string;
+				string[] Tokens =  Output.Split(",".ToCharArray());
+				if (Tokens.Length == 2)
+				{
+					ModificationTime = RemoteToLocalTime(Tokens[0]);
+					Length = long.Parse(Tokens[1]);
+					return true;
+				}
+
+				// any failures will fall through to here
+				ModificationTime = DateTime.MinValue;
+				Length = 0;
+				return false;
+			
+			}
 		}
 
 		public static void MakeDirectory(string Directory)
 		{
-			RPCUtility.CommandHelper.MakeDirectory(GetSocket(), Directory);
+			if (RemoteToolChain.bUseRPCUtil)
+			{
+				RPCUtility.CommandHelper.MakeDirectory(GetSocket(), Directory);
+			}
+			else
+			{
+				Command("/", "bash", "-c 'mkdir \"" + Directory + "\"'", null);
+			}
 		}
 
 		[Flags]
@@ -181,15 +283,27 @@ namespace UnrealBuildTool
 
 		public static void CopyFile(string Source, string Dest, bool bIsUpload)
 		{
-			if (bIsUpload)
+			if (RemoteToolChain.bUseRPCUtil)
 			{
-//				Hashtable CommandResult = 
-				RPCUtility.CommandHelper.RPCUpload(GetSocket(), Source, Dest);
-//				Log.TraceInformation(CommandResult["CommandOutput"] as string);
+				if (bIsUpload)
+				{
+					RPCUtility.CommandHelper.RPCUpload(GetSocket(), Source, Dest);
+				}
+				else
+				{
+					RPCUtility.CommandHelper.RPCDownload(GetSocket(), Source, Dest);
+				}
 			}
 			else
 			{
-				RPCUtility.CommandHelper.RPCDownload(GetSocket(), Source, Dest);
+				if (bIsUpload)
+				{
+					RemoteToolChain.UploadFile(Source, Dest);
+				}
+				else
+				{
+					RemoteToolChain.DownloadFile(Source, Dest);
+				}
 			}
 		}
 
@@ -279,64 +393,135 @@ namespace UnrealBuildTool
 
 		public static void BatchFileInfo(FileItem[] Files)
 		{
-			// build a list of file paths to get info about
-			StringBuilder FileList = new StringBuilder();
-			foreach (FileItem File in Files)
+			if (RemoteToolChain.bUseRPCUtil)
 			{
-				FileList.AppendFormat("{0}\n", File.AbsolutePath);
+				// build a list of file paths to get info about
+				StringBuilder FileList = new StringBuilder();
+				foreach (FileItem File in Files)
+				{
+					FileList.AppendFormat("{0}\n", File.AbsolutePath);
+				}
+
+				DateTime Now = DateTime.Now;
+
+				// execute the command!
+				Int64[] FileSizeAndDates = RPCUtility.CommandHelper.RPCBatchFileInfo(GetSocket(), FileList.ToString());
+
+				Console.WriteLine("BatchFileInfo version 1 took {0}", (DateTime.Now - Now).ToString());
+
+				// now update the source times
+				for (int Index = 0; Index < Files.Length; Index++)
+				{
+					Files[Index].Length = FileSizeAndDates[Index * 2 + 0];
+					Files[Index].LastWriteTime = new DateTimeOffset(RPCUtility.CommandHelper.FromRemoteTime(FileSizeAndDates[Index * 2 + 1]));
+					Files[Index].bExists = FileSizeAndDates[Index * 2 + 0] >= 0;
+				}
 			}
-
-			// execute the command!
-			Int64[] FileSizeAndDates = RPCUtility.CommandHelper.RPCBatchFileInfo(GetSocket(), FileList.ToString());
-
-			// now update the source times
-			for (int Index = 0; Index < Files.Length; Index++)
+			else
 			{
-				Files[Index].Length = FileSizeAndDates[Index * 2 + 0];
-				Files[Index].LastWriteTime = new DateTimeOffset(RPCUtility.CommandHelper.FromRemoteTime(FileSizeAndDates[Index * 2 + 1]));
-				Files[Index].bExists = FileSizeAndDates[Index * 2 + 0] >= 0;
+				// build a list of file paths to get info about
+				StringBuilder Commands = new StringBuilder();
+				Commands.Append("#!/bin/bash\n");
+				foreach (FileItem File in Files)
+				{
+					Commands.AppendFormat("if [ -e \"{0}\" ]; then eval $(stat -s \"{0}\") && echo $st_mtime && echo $st_size; else echo 0 && echo -1; fi\n", File.AbsolutePath);
+				}
+
+				// write out locally
+				string LocalCommandsFile = Path.GetTempFileName();
+				System.IO.File.WriteAllText(LocalCommandsFile, Commands.ToString());
+
+				string RemoteDir = "/var/tmp/" + Environment.MachineName;
+				string RemoteCommandsFile = Path.GetFileName(LocalCommandsFile) + ".sh";
+
+				DateTime Now = DateTime.Now;
+				RemoteToolChain.UploadFile(LocalCommandsFile, RemoteDir + "/" + RemoteCommandsFile);
+
+				// execute the file, not a commandline
+				Hashtable Results = Command(RemoteDir, "sh", RemoteCommandsFile + " && rm " + RemoteCommandsFile, null);
+				
+				Console.WriteLine("BatchFileInfo took {0}", (DateTime.Now - Now).ToString());
+
+				string[] Lines = ((string)Results["CommandOutput"]).Split("\r\n".ToCharArray(),	StringSplitOptions.RemoveEmptyEntries);
+				if (Lines.Length != Files.Length * 2)
+				{
+					throw new BuildException("Received the wrong number of results from BatchFileInfo");
+				}
+
+				for (int Index = 0; Index < Files.Length; Index++)
+				{
+					Files[Index].LastWriteTime = new DateTimeOffset(RemoteToLocalTime(Lines[Index * 2 + 0]));
+					Files[Index].Length = long.Parse(Lines[Index * 2 + 1]);
+					Files[Index].bExists = Files[Index].Length >= 0;
+				}
 			}
 		}
 
 		public static int GetCommandSlots()
 		{
-			return RPCUtility.CommandHelper.GetCommandSlots(GetSocket());
+			if (RemoteToolChain.bUseRPCUtil)
+			{
+				return RPCUtility.CommandHelper.GetCommandSlots(GetSocket());
+			}
+			else
+			{
+				return MaxRemoteCommandsAllowed;
+			}
+		}
+
+		public static Hashtable Command(string WorkingDirectory, string CommandWithArgs, string RemoteOutputPath)
+		{
+			int FirstSpace = CommandWithArgs.IndexOf(' ');
+			if (FirstSpace == -1)
+			{
+				return Command(WorkingDirectory, CommandWithArgs, " ", RemoteOutputPath);
+			}
+
+			return Command(WorkingDirectory, CommandWithArgs.Substring(0, FirstSpace), CommandWithArgs.Substring(FirstSpace + 1), RemoteOutputPath);
+
 		}
 
 		public static Hashtable Command(string WorkingDirectory, string Command, string CommandArgs, string RemoteOutputPath)
 		{
-	
-			int RetriesRemaining = 6;
-			do
+			if (RemoteToolChain.bUseRPCUtil)
 			{
-				// a $ on the commandline will actually be converted, so we need to quote it
-				CommandArgs = CommandArgs.Replace("$", "\\$");
+				int RetriesRemaining = 6;
+				do
+				{
+					// a $ on the commandline will actually be converted, so we need to quote it
+					CommandArgs = CommandArgs.Replace("$", "\\$");
 
-				try
-				{
-					Hashtable Results = RPCUtility.CommandHelper.RPCCommand(GetSocket(), WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
-					return Results;
-				}
-				catch (Exception Ex)
-				{
-					if (RetriesRemaining > 0)
+					try
 					{
-						Int32 RetryTimeoutMS = 1000;
-						Debug.WriteLine("Retrying command after sleeping for " + RetryTimeoutMS + " milliseconds. Command is:" + Command + " " + CommandArgs);
-						Thread.Sleep(RetryTimeoutMS);
+						Hashtable Results = RPCUtility.CommandHelper.RPCCommand(GetSocket(), WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
+						return Results;
 					}
-					else
+					catch (Exception Ex)
 					{
-						Log.TraceInformation("Out of retries, too many exceptions:" + Ex.ToString());
-						// We've tried enough times, just throw the error
-						throw new Exception("Deep Exception, retries exhausted... ", Ex);
+						if (RetriesRemaining > 0)
+						{
+							Int32 RetryTimeoutMS = 1000;
+							Debug.WriteLine("Retrying command after sleeping for " + RetryTimeoutMS + " milliseconds. Command is:" + Command + " " + CommandArgs);
+							Thread.Sleep(RetryTimeoutMS);
+						}
+						else
+						{
+							Log.TraceInformation("Out of retries, too many exceptions:" + Ex.ToString());
+							// We've tried enough times, just throw the error
+							throw new Exception("Deep Exception, retries exhausted... ", Ex);
+						}
+						RetriesRemaining--;
 					}
-					RetriesRemaining--;
 				}
+				while (RetriesRemaining > 0);
+
+				return null;
+
 			}
-			while (RetriesRemaining > 0);
-
-			return null;
+			else
+			{
+				return RemoteToolChain.SSHCommand(WorkingDirectory, Command, CommandArgs, RemoteOutputPath);
+			}
 		}
 	}
 }

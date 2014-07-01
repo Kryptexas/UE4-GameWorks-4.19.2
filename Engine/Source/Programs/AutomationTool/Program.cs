@@ -16,6 +16,7 @@ namespace AutomationTool
 		// This needs to be static, otherwise SetConsoleCtrlHandler will result in a crash on exit.
 		static ProcessManager.CtrlHandlerDelegate ProgramCtrlHandler = new ProcessManager.CtrlHandlerDelegate(CtrlHandler);
 
+		[STAThread]
 		static int Main()
 		{
 			var CommandLine = SharedUtils.ParseCommandLine();

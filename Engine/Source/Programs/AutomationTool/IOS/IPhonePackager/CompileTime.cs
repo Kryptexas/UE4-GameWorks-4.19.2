@@ -3,6 +3,7 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -12,6 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using Ionic.Zlib;
+using UnrealBuildTool;
 
 namespace iPhonePackager
 {
@@ -102,7 +104,7 @@ namespace iPhonePackager
 			iPhone_SigningDevRootMac = "/UE4/Builds";
 
 			// get the path to mirror into on the Mac
-			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, @"..\.."));
+			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "Engine\\Binaries"));
 			string Root = Path.GetPathRoot(BinariesDir);
 			string BranchPath = MachineName + "/" + BinariesDir.Substring( Root.Length );
 			BranchPath = BranchPath.Replace('\\', '/');
@@ -196,7 +198,7 @@ namespace iPhonePackager
 			// Copy the no sign resource rules file over
 			if (!Config.bForDistribution)
 			{
-				FileOperations.CopyRequiredFile(@"..\..\..\Build\IOS\XcodeSupportFiles\CustomResourceRules.plist", Path.Combine(Config.PCStagingRootDir, "CustomResourceRules.plist"));
+				FileOperations.CopyRequiredFile(Config.RootRelativePath + @"Engine\Build\IOS\XcodeSupportFiles\CustomResourceRules.plist", Path.Combine(Config.PCStagingRootDir, "CustomResourceRules.plist"));
 			}
 
 			// Copy the mobile provision file over
@@ -222,7 +224,7 @@ namespace iPhonePackager
 			FileOperations.CopyRequiredFile(Config.RootRelativePath + @"Engine\Intermediate\IOS\UE4.xcodeproj\project.pbxproj", Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
 			
 			// needs Mac line endings so it can be executed
-			string SrcPath = @"..\..\..\Build\IOS\XcodeSupportFiles\prepackage.sh";
+			string SrcPath = Config.RootRelativePath + @"Engine\Build\IOS\XcodeSupportFiles\prepackage.sh";
 			string DestPath = Path.Combine(Config.PCXcodeStagingDir, @"prepackage.sh");
 			Program.Log(" ... '" + SrcPath + "' -> '" + DestPath + "'");
 			string SHContents = File.ReadAllText(SrcPath);
@@ -248,7 +250,7 @@ namespace iPhonePackager
 			case "deletemacstagingfiles":
 				Program.Log( " ... deleting staging files on the Mac" );
 				DisplayCommandLine = "rm -rf Payload";
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -257,7 +259,7 @@ namespace iPhonePackager
 
 				DisplayCommandLine = String.Format("mkdir -p ~/Library/MobileDevice/Provisioning\\ Profiles");
 
-				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
@@ -267,14 +269,14 @@ namespace iPhonePackager
 
 				DisplayCommandLine = String.Format("cp -f {0} ~/Library/MobileDevice/Provisioning\\ Profiles", MacMobileProvisionFilename);
 
-				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
 			case "removeprovision":
 				Program.Log(" ... removing .mobileprovision");
 				DisplayCommandLine = String.Format("rm -f ~/Library/MobileDevice/Provisioning\\ Profiles/{0}", MacMobileProvisionFilename);
-				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
@@ -282,14 +284,14 @@ namespace iPhonePackager
 				// Note: The executable must have already been copied over
 				Program.Log(" ... setting executable bit");
 				DisplayCommandLine = "chmod a+x \'" + RemoteExecutablePath + "\'";
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "prepackage":
 				Program.Log(" ... running prepackage script remotely ");
 				DisplayCommandLine = String.Format("sh prepackage.sh {0} IOS {1} {2}", Program.GameName, Program.GameConfiguration, Program.Architecture);
-				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacXcodeStagingDir;
 				break;
 
@@ -297,42 +299,42 @@ namespace iPhonePackager
 				Program.Log(" ... making application (codesign, etc...)");
 				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
 				DisplayCommandLine = CurrentBaseXCodeCommandLine;
-				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				break;
 
 			case "validation":
 				Program.Log( " ... validating distribution package" );
 				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/Validation " + RemoteAppDirectory;
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "deleteipa":
 				Program.Log(" ... deleting IPA on Mac");
 				DisplayCommandLine = "rm -f " + Config.IPAFilenameOnMac;
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "kill":
 				Program.Log( " ... killing" );
 				DisplayCommandLine = "killall " + Program.GameName;
-				CommandLine = ". " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = ".";
 				break;
 
 			case "strip":
 				Program.Log( " ... stripping" );
-				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip '" + RemoteExecutablePath + "'";
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip " + RemoteExecutablePath;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
 			case "resign":
 				Program.Log("... resigning");
 				DisplayCommandLine = "bash -c '" + "chmod a+x ResignScript" + ";" + "./ResignScript" + "'";
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -349,7 +351,7 @@ namespace iPhonePackager
 					Config.IPAFilenameOnMac,
 					dSYMName);
 
-				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -360,7 +362,7 @@ namespace iPhonePackager
 				string dSYMPath = Program.GameName + ".app.dSYM";
 				DisplayCommandLine = String.Format("dsymutil -o {0} {1}", dSYMPath, ExePath);
 
-				CommandLine = "\"" + MacStagingRootDir + "\"" + DisplayCommandLine;
+				CommandLine = DisplayCommandLine;
 				WorkingFolder = MacStagingRootDir;
 				break;
 
@@ -373,36 +375,48 @@ namespace iPhonePackager
 			Program.Log( " ... " + DisplayCommandLine );
 			Program.Log(" ... full command: " +  MacName + " " + CommandLine);
 
-			Process RPCUtil = new Process();
-			RPCUtil.StartInfo.FileName = @"..\RPCUtility.exe";
-			RPCUtil.StartInfo.UseShellExecute = false;
-			RPCUtil.StartInfo.Arguments = MacName + " " + CommandLine;
-			RPCUtil.StartInfo.RedirectStandardOutput = true;
-			RPCUtil.StartInfo.RedirectStandardError = true;
-			RPCUtil.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
-			RPCUtil.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
+			Hashtable Results = RPCUtilHelper.Command(WorkingFolder, CommandLine, null);
 
-			RPCUtil.Start();
-			
-			RPCUtil.BeginOutputReadLine();
-			RPCUtil.BeginErrorReadLine();
+			string Output = Results["CommandOutput"] as string;
+			Program.Log("[RPC] " + Output);
 
-			RPCUtil.WaitForExit();
-
-			if (RPCUtil.ExitCode != 0)
+			if (Output.Contains("** BUILD FAILED **"))
 			{
-				Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, RPCUtil.ExitCode);
-				switch (RPCCommand.ToLowerInvariant())
-				{
-					case "installprovision":
-						Program.Error("Ensure your access permissions for '~/Library/MobileDevice/Provisioning Profiles' are set correctly.");
-						break;
-					default:
-						break;
-				}
+				Program.Error("Xcode build failed!");
 			}
 
-			return (RPCUtil.ExitCode == 0);
+			return (Int64)Results["ExitCode"] == 0;
+
+// 			Process RPCUtil = new Process();
+// 			RPCUtil.StartInfo.FileName = @"..\RPCUtility.exe";
+// 			RPCUtil.StartInfo.UseShellExecute = false;
+// 			RPCUtil.StartInfo.Arguments = MacName + " " + CommandLine;
+// 			RPCUtil.StartInfo.RedirectStandardOutput = true;
+// 			RPCUtil.StartInfo.RedirectStandardError = true;
+// 			RPCUtil.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
+// 			RPCUtil.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedRemoteProcessCall);
+// 
+// 			RPCUtil.Start();
+// 			
+// 			RPCUtil.BeginOutputReadLine();
+// 			RPCUtil.BeginErrorReadLine();
+// 
+// 			RPCUtil.WaitForExit();
+// 
+// 			if (RPCUtil.ExitCode != 0)
+// 			{
+// 				Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, RPCUtil.ExitCode);
+// 				switch (RPCCommand.ToLowerInvariant())
+// 				{
+// 					case "installprovision":
+// 						Program.Error("Ensure your access permissions for '~/Library/MobileDevice/Provisioning Profiles' are set correctly.");
+// 						break;
+// 					default:
+// 						break;
+// 				}
+// 			}
+// 
+// 			return (RPCUtil.ExitCode == 0);
 		}
 
 
