@@ -5,8 +5,8 @@
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.generated.h"
 
-UCLASS(MinimalAPI, ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
-class UPaperFlipbookComponent : public UPrimitiveComponent
+UCLASS(ShowCategories=(Mobility), EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
+class PAPER2D_API UPaperFlipbookComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -105,9 +105,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Flipbook")
 	void SetNewTime(float NewTime);
 
-	/** Get length of the flipbook */
+	/** Get length of the flipbook (in seconds) */
 	UFUNCTION(BlueprintCallable, Category="Components|Flipbook")
 	float GetFlipbookLength() const;
+
+	/** Get length of the flipbook (in frames) */
+	UFUNCTION(BlueprintCallable, Category = "Components|Flipbook")
+	int32 GetFlipbookLengthInFrames() const;
+
+	/** Get the nominal framerate that the flipbook will be played back at (ignoring PlayRate), in frames per second */
+	UFUNCTION(BlueprintCallable, Category = "Components|Flipbook")
+	float GetFlipbookFramerate() const;
 
 protected:
 	/** Current position in the timeline */

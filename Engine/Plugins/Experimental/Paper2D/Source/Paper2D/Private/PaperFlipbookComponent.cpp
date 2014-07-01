@@ -431,3 +431,13 @@ float UPaperFlipbookComponent::GetFlipbookLength() const
 {
 	return (SourceFlipbook != nullptr) ? SourceFlipbook->GetTotalDuration() : 0.0f;
 }
+
+int32 UPaperFlipbookComponent::GetFlipbookLengthInFrames() const
+{
+	return (SourceFlipbook != nullptr) ? SourceFlipbook->GetNumFrames() : 0;
+}
+
+float UPaperFlipbookComponent::GetFlipbookFramerate() const
+{
+	return (SourceFlipbook != nullptr) ? SourceFlipbook->GetFramesPerSecond() : 15.0f;
+}
