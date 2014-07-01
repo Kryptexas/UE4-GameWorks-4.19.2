@@ -574,6 +574,10 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 			// greatly reduces shadow mapping artifacts
 			SurfaceShadow *= saturate(dot(N, L) * 6 - 0.2);
 		}
+		else
+		{
+			SurfaceShadow = ScreenSpaceData.AmbientOcclusion;
+		}
 
 		float SurfaceAttenuation	= (DistanceAttenuation * LightRadiusMask * SpotFalloff) * SurfaceShadow;
 		float SubsurfaceAttenuation	= (DistanceAttenuation * LightRadiusMask * SpotFalloff) * SubsurfaceShadow;
