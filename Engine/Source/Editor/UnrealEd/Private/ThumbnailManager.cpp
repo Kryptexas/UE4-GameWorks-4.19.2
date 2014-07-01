@@ -134,13 +134,11 @@ FThumbnailRenderingInfo* UThumbnailManager::GetRenderingInfo(UObject* Object)
 		RenderInfoMap.Add(ClassToCheck, (RenderInfo != nullptr) ? RenderInfo : &NotSupported);
 	}
 
-	if ( RenderInfo && RenderInfo->Renderer && Object->IsA(UBlueprint::StaticClass()) && RenderInfo->Renderer->IsA(UBlueprintThumbnailRenderer::StaticClass()) )
+	if ( RenderInfo && RenderInfo->Renderer )
 	{
-		UBlueprint* BP = Cast<UBlueprint>(Object);
-		UBlueprintThumbnailRenderer* BPRenderer = Cast<UBlueprintThumbnailRenderer>(RenderInfo->Renderer);
-		if ( !BPRenderer->CanVisualizeBlueprint(BP) )
+		if ( !RenderInfo->Renderer->CanVisualizeAsset(Object) )
 		{
-			// This is a blueprint, but it can't visualized (i.e it doesnt contain any visible primitive components)
+			// This is an asset with a thumbnail renderer, but it can't visualized (i.e it is something like a blueprint that doesn't contain any visible primitive components)
 			RenderInfo = nullptr;
 		}
 	}
