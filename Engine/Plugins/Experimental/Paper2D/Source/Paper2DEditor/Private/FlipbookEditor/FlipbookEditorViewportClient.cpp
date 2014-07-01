@@ -46,7 +46,7 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 
 	int32 YPos = 42;
 
-	static const FText FlipbookHelpStr = LOCTEXT("FlipbookEditHelp", "Flipbook editor (currently playing)");
+	static const FText FlipbookHelpStr = LOCTEXT("FlipbookEditHelp", "Flipbook editor");
 
 	// Display tool help
 	{

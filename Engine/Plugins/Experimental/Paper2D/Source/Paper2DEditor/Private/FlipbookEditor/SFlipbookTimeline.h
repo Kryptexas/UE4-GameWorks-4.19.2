@@ -24,6 +24,7 @@ public:
 
 	// SWidget interface
 	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	// End of SWidget interface
 
 private:
@@ -33,4 +34,5 @@ private:
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
+	int32 SlateUnitsPerFrame;
 };
