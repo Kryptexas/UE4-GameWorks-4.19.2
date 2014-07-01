@@ -2348,6 +2348,7 @@ bool FStaticLightingSystem::CalculatePointShadowing(
 		bool bIsShadowed = false;
 		if ((Light->LightFlags & GI_LIGHT_CASTSHADOWS) && (Light->LightFlags & GI_LIGHT_CASTSTATICSHADOWS))
 		{
+			// TODO find best point on light to shadow from
 			// Construct a line segment between the light and the surface point.
 			const FVector4 LightPosition = FVector4(Light->Position.X, Light->Position.Y, Light->Position.Z, 0);
 			const FVector4 LightVector = LightPosition - WorldSurfacePoint * Light->Position.W;

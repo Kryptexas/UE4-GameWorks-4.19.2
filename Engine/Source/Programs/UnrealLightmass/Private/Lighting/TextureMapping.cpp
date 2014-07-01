@@ -1890,7 +1890,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 					// And multiple shadowmaps on the same object may be merged together, but only if each one marks the area that it has valid data
 					CurrentSample.SetMapped(true);
 
-					const FVector4 LightPosition = Light->LightCenterPosition(TexelToVertex.WorldPosition);
+					const FVector4 LightPosition = Light->LightCenterPosition(TexelToVertex.WorldPosition, TexelToVertex.WorldTangentZ);
 					const FVector4 LightVector = (LightPosition - TexelToVertex.WorldPosition).SafeNormal();
 
 					FVector4 NormalForOffset = CurrentSample.GetNormal();
@@ -2121,7 +2121,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 							if ((bLightIsInFrontOfTriangle || bIsTwoSided) 
 								&& Light->AffectsBounds(FBoxSphereBounds(HighResSample.GetPosition(), FVector4(0,0,0),0)))
 							{
-								const FVector4 LightPosition = Light->LightCenterPosition(HighResSample.GetPosition());
+								const FVector4 LightPosition = Light->LightCenterPosition(HighResSample.GetPosition(), HighResSample.GetNormal());
 								const FVector4 LightVector = (LightPosition - HighResSample.GetPosition()).SafeNormal();
 
 								FVector4 NormalForOffset = HighResSample.GetNormal();
@@ -2312,6 +2312,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 											{
 												bool CurrentRegion = false;
 												FVector4 ScatterPosition;
+												FVector4 ScatterNormal;
 												bool bFoundScatterPosition = false;
 												
 												if (LowResScatterSample.NeedsHighResSampling())
@@ -2322,6 +2323,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 													{
 														CurrentRegion = HighResScatterSample.IsVisible();
 														ScatterPosition = HighResScatterSample.GetPosition();
+														ScatterNormal = HighResScatterSample.GetNormal();
 														bFoundScatterPosition = true;
 													}
 													else
@@ -2340,6 +2342,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 																	ClosestMappedSubSampleDistSquared = SubSampleDistanceSquared;
 																	CurrentRegion = SubHighResSample.IsVisible();
 																	ScatterPosition = SubHighResSample.GetPosition();
+																	ScatterNormal = SubHighResSample.GetNormal();
 																	bFoundScatterPosition = true;
 																}
 															}
@@ -2352,6 +2355,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 												{
 													CurrentRegion = LowResScatterSample.IsVisible();
 													ScatterPosition = LowResScatterSample.GetPosition();
+													ScatterNormal = LowResScatterSample.GetNormal();
 												}
 
 												// World space distance from the distance field texel to the nearest shadow transition
@@ -2376,7 +2380,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 													FinalShadowSample.Distance = CurrentRegion ? (NormalizedDistance) * .5f + .5f : .5f - NormalizedDistance * .5f;
 													// Approximate the penumbra size using PenumbraSize = (ReceiverDistanceFromLight - OccluderDistanceFromLight) * LightSize / OccluderDistanceFromLight,
 													// Which is from the paper "Percentage-Closer Soft Shadows" by Randima Fernando
-													const float ReceiverDistanceFromLight = (Light->LightCenterPosition(ScatterPosition) - ScatterPosition).Size3();
+													const float ReceiverDistanceFromLight = (Light->LightCenterPosition(ScatterPosition, ScatterNormal) - ScatterPosition).Size3();
 													// World space distance from center of penumbra to fully shadowed or fully lit transition
 													const float PenumbraSize = HighResSample.GetOccluderDistance() * Light->LightSourceRadius / (ReceiverDistanceFromLight - HighResSample.GetOccluderDistance());
 													// Normalize the penumbra size so it is a fraction of MaxTransitionDistanceWorldSpace

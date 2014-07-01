@@ -785,6 +785,8 @@ struct FLightData
 	float		Brightness;
 	/** The radius of the light's surface, not the light's influence. */
 	float		LightSourceRadius;
+	/** The length of the light source*/
+	float		LightSourceLength;
 	/** Scale factor for the indirect lighting */
 	float		IndirectLightingScale;
 	/** 0 will be completely desaturated, 1 will be unchanged, 2 will be completely saturated */

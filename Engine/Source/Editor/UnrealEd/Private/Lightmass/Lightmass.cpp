@@ -896,6 +896,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = 0;
+		LightData.LightSourceLength = 0;
 		DirectionalData.LightSourceAngle = Light->LightmassSettings.LightSourceAngle * (float)PI / 180.0f;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &DirectionalData, sizeof(DirectionalData) );
@@ -912,6 +913,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
+		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
@@ -930,6 +932,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
+		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
 		SpotData.InnerConeAngle = Light->InnerConeAngle; 
