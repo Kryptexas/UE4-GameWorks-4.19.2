@@ -421,7 +421,7 @@ FCursorReply SScrubWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPo
 
 void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
 {
-	if( SequenceLength.Get() >=  MINIMUM_ANIMATION_LENGTH )
+	if (OnCropAnimSequence.IsBound() && (SequenceLength.Get() >= MINIMUM_ANIMATION_LENGTH))
 	{
 		const bool CloseAfterSelection = true;
 		FMenuBuilder MenuBuilder( CloseAfterSelection, NULL );
