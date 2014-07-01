@@ -224,6 +224,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	// default character can jump and walk
 	NavAgentProps.bCanJump = true;
 	NavAgentProps.bCanWalk = true;
+	NavAgentProps.bCanSwim = true;
 	ResetMoveState();
 
 	ClientPredictionData = NULL;
