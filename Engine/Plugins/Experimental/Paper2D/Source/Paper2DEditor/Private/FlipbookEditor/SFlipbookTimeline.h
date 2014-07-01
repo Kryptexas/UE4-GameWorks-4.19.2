@@ -32,7 +32,7 @@ private:
 	void OnAssetsDropped(const class FAssetDragDropOp& DragDropOp);
 
 	TSharedRef<SWidget> GenerateContextMenu();
-
+	EVisibility NoFramesWarningVisibility() const;
 private:
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
