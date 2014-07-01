@@ -109,6 +109,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
+	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
 	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 	static bool Daemonize();

@@ -978,6 +978,31 @@ FString FWindowsPlatformProcess::ReadPipe( void* ReadPipe )
 	return Output;
 }
 
+bool FWindowsPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	uint32 BytesAvailable = 0;
+	if (::PeekNamedPipe(ReadPipe, NULL, 0, NULL, (::DWORD*)&BytesAvailable, NULL) && (BytesAvailable > 0))
+	{
+		Output.Init(BytesAvailable);
+		uint32 BytesRead = 0;
+		if (::ReadFile(ReadPipe, Output.GetData(), BytesAvailable, (::DWORD*)&BytesRead, NULL))
+		{
+			if (BytesRead < BytesAvailable)
+			{
+				Output.SetNum(BytesRead);
+			}
+
+			return true;
+		}
+		else
+		{
+			Output.Empty();
+		}
+	}
+
+	return false;
+}
+
 #include "AllowWindowsPlatformTypes.h"
 
 FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString & InName, HANDLE InSemaphore)

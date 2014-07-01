@@ -200,6 +200,35 @@ FString FPipeHandle::Read()
 	return Output;
 }
 
+bool FPipeHandle::ReadToArray(TArray<uint8> & Output)
+{
+	int BytesAvailable = 0;
+	if (ioctl(PipeDesc, FIONREAD, &BytesAvailable) == 0)
+	{
+		if (BytesAvailable > 0)
+		{
+			Output.Init(BytesAvailable);
+			int BytesRead = read(PipeDesc, Output.GetData(), BytesAvailable);
+			if (BytesRead > 0)
+			{
+				if (BytesRead < BytesAvailable)
+				{
+					Output.SetNum(BytesRead);
+				}
+
+				return true;
+			}
+			else
+			{
+				Output.Empty();
+			}
+		}
+	}
+
+	return false;
+}
+
+
 void FLinuxPlatformProcess::ClosePipe( void* ReadPipe, void* WritePipe )
 {
 	if (ReadPipe)
@@ -241,6 +270,17 @@ FString FLinuxPlatformProcess::ReadPipe( void* ReadPipe )
 	}
 
 	return FString();
+}
+
+bool FLinuxPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	if (ReadPipe)
+	{
+		FPipeHandle * PipeHandle = reinterpret_cast<FPipeHandle*>(ReadPipe);
+		return PipeHandle->ReadToArray(Output);
+	}
+
+	return false;
 }
 
 FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()

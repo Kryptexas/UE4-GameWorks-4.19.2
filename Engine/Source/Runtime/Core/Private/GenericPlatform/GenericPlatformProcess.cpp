@@ -396,6 +396,12 @@ FString FGenericPlatformProcess::ReadPipe( void* ReadPipe )
 	return FString();
 }
 
+bool FGenericPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ReadPipeToArray not implemented on this platform"));
+	return false;
+}
+
 bool FGenericPlatformProcess::SupportsMultithreading()
 {
 	static bool bSupportsMultithreading = !FParse::Param(FCommandLine::Get(), TEXT("nothreading"));

@@ -871,6 +871,35 @@ FString FMacPlatformProcess::ReadPipe( void* ReadPipe )
 	return Output;
 }
 
+bool FMacPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	const int32 READ_SIZE = 32768;
+
+	if (ReadPipe)
+	{
+		Output.Init(READ_SIZE);
+		int32 BytesRead = 0;
+		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Output.GetData(), READ_SIZE);
+		if (BytesRead > 0)
+		{
+			if (BytesRead < READ_SIZE)
+			{
+				Output.SetNum(BytesRead);
+			}
+
+			return true;
+		}
+		else
+		{
+			Output.Empty();
+		}
+	}
+
+	return false;
+}
+
 #include "MacPlatformRunnableThread.h"
 
 FRunnableThread* FMacPlatformProcess::CreateRunnableThread()
