@@ -17,7 +17,7 @@ class FFlipbookEditorViewportClient : public FPaperEditorViewportClient
 {
 public:
 	/** Constructor */
-	FFlipbookEditorViewportClient(const TAttribute<class UPaperFlipbook*>& InFlipbookBeingEdited, const TAttribute<float>& InPlayTime);
+	FFlipbookEditorViewportClient(const TAttribute<class UPaperFlipbook*>& InFlipbookBeingEdited);
 
 	// FViewportClient interface
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
@@ -33,6 +33,10 @@ public:
 	void ToggleShowPivot() { bShowPivot = !bShowPivot; Invalidate(); }
 	bool IsShowPivotChecked() const { return bShowPivot; }
 
+	UPaperFlipbookComponent* GetPreviewComponent() const
+	{
+		return AnimatedRenderComponent.Get();
+	}
 private:
 
 	// The preview scene
@@ -40,8 +44,6 @@ private:
 
 	// The flipbook being displayed in this client
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
-
-	TAttribute<float> PlayTime;
 
 	// A cached pointer to the flipbook that was being edited last frame. Used for invalidation reasons.
 	TWeakObjectPtr<class UPaperFlipbook> FlipbookBeingEditedLastFrame;

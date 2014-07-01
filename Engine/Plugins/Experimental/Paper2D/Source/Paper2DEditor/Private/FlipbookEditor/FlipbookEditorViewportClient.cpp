@@ -13,11 +13,10 @@
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditorViewportClient
 
-FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UPaperFlipbook*>& InFlipbookBeingEdited, const TAttribute<float>& InPlayTime)
+FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UPaperFlipbook*>& InFlipbookBeingEdited)
 {
 	FlipbookBeingEdited = InFlipbookBeingEdited;
 	FlipbookBeingEditedLastFrame = FlipbookBeingEdited.Get();
-	PlayTime = InPlayTime;
 	PreviewScene = &OwnedPreviewScene;
 
 	SetRealtime(true);
@@ -75,10 +74,10 @@ void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawI
 
 void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 {
-	if ( AnimatedRenderComponent.IsValid() )
+	if (AnimatedRenderComponent.IsValid())
 	{
 		UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-		if ( Flipbook != FlipbookBeingEditedLastFrame.Get() )
+		if (Flipbook != FlipbookBeingEditedLastFrame.Get())
 		{
 			AnimatedRenderComponent->SetFlipbook(Flipbook);
 			AnimatedRenderComponent->UpdateBounds();
@@ -87,7 +86,9 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 
 		// Zoom in on the sprite
 		//@TODO: This doesn't work correctly, only partially zooming in or something
-		if (bDeferZoomToSprite)
+		//@TODO: Fix this properly so it doesn't need to be deferred, or wait for the viewport to initialize
+		FIntPoint Size = Viewport->GetSizeXY();
+		if (bDeferZoomToSprite && (Size.X > 0) && (Size.Y > 0))
 		{
 			FocusViewportOnBox(AnimatedRenderComponent->Bounds.GetBox(), true);
 			bDeferZoomToSprite = false;
