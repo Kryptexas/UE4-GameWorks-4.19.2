@@ -3,10 +3,12 @@
 #include "UnrealEd.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "Dialogs/SMeshMergingDialog.h"
+#include "RawMesh.h"
 #include "MeshUtilities.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+
 
 #define LOCTEXT_NAMESPACE "SMeshMergingDialog"
 
@@ -32,8 +34,6 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 	LevelEditor.OnActorSelectionChanged().AddSP(this, &SMeshMergingDialog::OnActorSelectionChanged);
 
 	GenerateNewPackageName();
-
-	FMeshMergingSettings();
 
 	// Create widget layout
 	this->ChildSlot
@@ -69,7 +69,29 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 							SNew(STextBlock).Text(LOCTEXT("AtlasLightmapUVLabel", "Generate Atlased Lightmap UVs"))
 						]
 					]
-
+					
+					// Target lightmap channel
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					[
+						SNew(SBorder)
+						.Padding(FMargin(8,0,0,0))
+						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						[
+							SNew(SNumericEntryBox<int32>)
+							.IsEnabled( this, &SMeshMergingDialog::IsLightmapChannelEnabled )
+							.MinValue(0)
+							.MaxValue(MAX_MESH_TEXTURE_COORDS-1)
+							.Value(this, &SMeshMergingDialog::GetTargetLightmapChannelValue)
+							.OnValueCommitted(this, &SMeshMergingDialog::OnTargetLightmapChannelValueCommited)
+							.Label()
+							[
+								SNumericEntryBox<int32>::BuildLabel(LOCTEXT("TargetLightMapChannelLabel", "Target LightMap Channel: "), FLinearColor::Black, FLinearColor(.33f,.33f,.33f))
+							]
+						]
+					]
+					
 					// Vertex colors
 					+SVerticalBox::Slot()
 					.AutoHeight()
@@ -220,6 +242,21 @@ ESlateCheckBoxState::Type SMeshMergingDialog::GetAtlasLightmapUV() const
 void SMeshMergingDialog::SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue)
 {
 	MergingSettings.bGnerateAtlasedLightmapUV = (ESlateCheckBoxState::Checked == NewValue);
+}
+
+bool SMeshMergingDialog::IsLightmapChannelEnabled() const
+{
+	return MergingSettings.bGnerateAtlasedLightmapUV;
+}
+
+TOptional<int32> SMeshMergingDialog::GetTargetLightmapChannelValue() const
+{
+	return MergingSettings.TargetLightmapUVChannel;
+}
+
+void SMeshMergingDialog::OnTargetLightmapChannelValueCommited(int32 NewValue, ETextCommit::Type CommitInfo)
+{
+	MergingSettings.TargetLightmapUVChannel = FMath::Clamp(NewValue, 0, MAX_MESH_TEXTURE_COORDS-1);
 }
 
 ESlateCheckBoxState::Type SMeshMergingDialog::GetImportVertexColors() const

@@ -37,6 +37,11 @@ private:
 	ESlateCheckBoxState::Type GetAtlasLightmapUV() const;
 	void SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue);
 
+	/** Target lightmap channel */
+	bool IsLightmapChannelEnabled() const;
+	TOptional<int32> GetTargetLightmapChannelValue() const;
+	void OnTargetLightmapChannelValueCommited(int32 NewValue, ETextCommit::Type CommitInfo);
+	
 	/**  */
 	ESlateCheckBoxState::Type GetImportVertexColors() const;
 	void SetImportVertexColors(ESlateCheckBoxState::Type NewValue);
