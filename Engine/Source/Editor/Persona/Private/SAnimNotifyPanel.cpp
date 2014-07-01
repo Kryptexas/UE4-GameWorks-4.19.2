@@ -1493,7 +1493,7 @@ int32 SAnimNotifyTrack::OnPaint(const FGeometry& AllottedGeometry, const FSlateR
 			LinePoints,
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			FLinearColor(1, 0, 0)
+			FLinearColor::Red
 			);
 	}
 

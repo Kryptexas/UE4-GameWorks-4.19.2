@@ -182,7 +182,7 @@ int32 SAnimCurveEd::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 		LinePoints,
 		MyClippingRect,
 		ESlateDrawEffect::None,
-		FLinearColor(1, 0, 0)
+		FLinearColor::Red
 		);
 
 	// now draw scrub with new layer ID + 1;

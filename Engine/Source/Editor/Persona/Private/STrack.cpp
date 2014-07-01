@@ -412,7 +412,7 @@ int32 STrack::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyCl
 			LinePoints,
 			MyClippingRect,
 			ESlateDrawEffect::None,
-			FLinearColor(1, 0, 0)
+			FLinearColor::Red
 			);
 	}
 
