@@ -3,11 +3,11 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// SFixedSizeCanvas
+// SFixedSizeConstraintCanvas
 
-class SFixedSizeCanvas : public SConstraintCanvas
+class SFixedSizeConstraintCanvas : public SConstraintCanvas
 {
-	SLATE_BEGIN_ARGS( SFixedSizeCanvas )
+	SLATE_BEGIN_ARGS(SFixedSizeConstraintCanvas)
 		{
 			_Visibility = EVisibility::SelfHitTestInvisible;
 		}
@@ -74,7 +74,7 @@ void UCanvasPanel::OnSlotRemoved(UPanelSlot* Slot)
 
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
-	MyCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
+	MyCanvas = SNew(SFixedSizeConstraintCanvas, DesiredCanvasSize);
 
 	for ( UPanelSlot* Slot : Slots )
 	{

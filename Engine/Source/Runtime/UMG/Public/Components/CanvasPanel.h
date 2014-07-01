@@ -42,7 +42,7 @@ protected:
 
 protected:
 
-	TSharedPtr<class SFixedSizeCanvas> MyCanvas;
+	TSharedPtr<class SFixedSizeConstraintCanvas> MyCanvas;
 
 protected:
 	// UWidget interface
