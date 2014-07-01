@@ -1096,7 +1096,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		}
 
 		// If we ever drive this body kinematically, we want to use its target for scene queries, so collision is updated right away, not on the next physics sim
-		PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, true);
+		PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, true);	
 	}
 
 	// Copy geom from template and scale
@@ -1222,6 +1222,40 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
 		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
 		PNewDynamic->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
+
+		//setup constraint based on DOF
+		if (!DOF.IsZero())
+		{
+			DOFConstraint.bSwingLimitSoft = false;
+			DOFConstraint.bTwistLimitSoft = false;
+			DOFConstraint.bLinearLimitSoft = false;
+			//set all rotation to free
+			DOFConstraint.AngularSwing1Motion = EAngularConstraintMotion::ACM_Locked;
+			DOFConstraint.AngularSwing2Motion = EAngularConstraintMotion::ACM_Locked;
+			DOFConstraint.AngularTwistMotion  = EAngularConstraintMotion::ACM_Free;
+
+			DOFConstraint.LinearXMotion = ELinearConstraintMotion::LCM_Locked;
+			DOFConstraint.LinearYMotion = ELinearConstraintMotion::LCM_Free;
+			DOFConstraint.LinearZMotion = ELinearConstraintMotion::LCM_Free;
+			
+			FVector Normal = DOF.SafeNormal();
+			FVector Sec;
+			FVector Garbage;
+			Normal.FindBestAxisVectors(Garbage, Sec);
+
+
+			FTransform TM = GetUnrealWorldTransform();
+
+			DOFConstraint.PriAxis1 = TM.InverseTransformVectorNoScale(Normal);
+			DOFConstraint.SecAxis1 = TM.InverseTransformVectorNoScale(Sec);
+
+			DOFConstraint.PriAxis2 = Normal;
+			DOFConstraint.SecAxis2 = Sec;
+			DOFConstraint.Pos2 = TM.GetLocation();
+
+			// Create constraint instance based on DOF
+			DOFConstraint.InitConstraint(OwnerComponent.Get(), this, nullptr, 1.f);
+		}
 
 		// wakeUp and putToSleep will issue warnings on kinematic actors
 		if (IsRigidDynamicNonKinematic(PNewDynamic))
@@ -2427,6 +2461,7 @@ void FBodyInstance::UpdateMassProperties()
 
 		float MassRatio = NewMass/OldMass;
 		PxVec3 InertiaTensor = PRigidDynamic->getMassSpaceInertiaTensor();
+
 		PRigidDynamic->setMassSpaceInertiaTensor(InertiaTensor * MassRatio);
 		PRigidDynamic->setMass(NewMass);
 

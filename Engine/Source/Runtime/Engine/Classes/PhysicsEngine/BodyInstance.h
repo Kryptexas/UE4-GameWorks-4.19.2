@@ -4,6 +4,7 @@
 
 #include "PhysxUserData.h"
 #include "CollisionQueryParams.h"
+#include "ConstraintInstance.h"
 #include "BodyInstance.generated.h"
 
 
@@ -164,6 +165,12 @@ public:
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
+
+	/** Constrain body to 2d plane with DOF as normal. (0,0,0) uses regular 3D */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Physics)
+	FVector DOF;
+
+	FConstraintInstance DOFConstraint;
 
 protected:
 
