@@ -109,7 +109,7 @@ struct FCompareFGameplayTagNodeByTag
 
 void UGameplayTagsManager::ConstructGameplayTagTree()
 {
-	if (!GameplayRootTag.IsValid() && GameplayTagTables.Num() > 0)
+	if (!GameplayRootTag.IsValid())
 	{
 		GameplayRootTag = MakeShareable(new FGameplayTagNode());
 		
@@ -122,6 +122,8 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)
 {
+	checkf(GameplayRootTag.IsValid(), TEXT("ConstructGameplayTagTree() must be called before PopulateTreeFromDataTable()"));
+
 	TArray< TSharedPtr<FGameplayTagNode> >& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 	static const FString ContextString(TEXT("UNKNOWN"));
 	const int32 NumRows = InTable->RowMap.Num();
