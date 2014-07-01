@@ -1071,8 +1071,8 @@ FBoxSphereBounds UPaperSprite::GetRenderBounds() const
 	
 	// Make the whole thing a single unit 'deep'
 	const FVector HalfThicknessVector = 0.5f * PaperAxisZ;
-	BoundingBox.Min -= HalfThicknessVector;
-	BoundingBox.Max += HalfThicknessVector;
+	BoundingBox += -HalfThicknessVector;
+	BoundingBox += HalfThicknessVector;
 
 	return FBoxSphereBounds(BoundingBox);
 }
