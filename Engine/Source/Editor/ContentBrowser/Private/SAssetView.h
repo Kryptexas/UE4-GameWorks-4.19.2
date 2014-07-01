@@ -184,6 +184,9 @@ public:
 	/** Requests that the asset view refreshes only items that are filtered through frontend sources. This should be used when possible. */
 	void RequestQuickFrontendListRefresh();
 
+	/** Requests that the asset view adds any recently added items in the next update to the filtered asset items */
+	void RequestAddNewAssetsNextFrame();
+
 	/** Saves any settings to config that should be persistent between editor sessions */
 	void SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const;
 
@@ -848,9 +851,6 @@ private:
 
 		/** The string we should be be looking for */
 		FString JumpTerm;
-
-		/** Time delay between performing the last jump, and the jump term being reset */
-		static const double JumpDelaySeconds;
 	};
 
 	/** Data for the asset quick-jump */
