@@ -1210,11 +1210,22 @@ void FAssetThumbnailPool::OnAssetLoaded( UObject* Asset )
 
 void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent )
 {
-	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) && ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
+	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) )
 	{
-		// This is a blueprint modification. Check to see if this thumbnail is the blueprint of the modified CDO
-		ObjectBeingModified = ObjectBeingModified->GetClass()->ClassGeneratedBy;
+		if ( ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
+		{
+			// This is a blueprint modification. Check to see if this thumbnail is the blueprint of the modified CDO
+			ObjectBeingModified = ObjectBeingModified->GetClass()->ClassGeneratedBy;
+		}
+	}
+	else if ( AActor* ActorBeingModified = Cast<AActor>(ObjectBeingModified) )
+	{
+		// This is a non CDO actor getting modified. Update the actor's world's thumbnail.
+		ObjectBeingModified = ActorBeingModified->GetWorld();
 	}
 
-	RefreshThumbnailsFor( FName(*ObjectBeingModified->GetPathName()) );
+	if ( ObjectBeingModified )
+	{
+		RefreshThumbnailsFor( FName(*ObjectBeingModified->GetPathName()) );
+	}
 }

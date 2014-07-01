@@ -35,6 +35,7 @@
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 	#include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+	#include "Editor/UnrealEd/Classes/ThumbnailRendering/WorldThumbnailInfo.h"
 	#include "Slate.h"
 #endif
 
@@ -568,6 +569,12 @@ void UWorld::PostLoad()
 			{
 				Model->Rename(TEXT("Brush"), DefaultBrush->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 			}
+		}
+
+		// Make sure thumbnail info exists
+		if ( !ThumbnailInfo )
+		{
+			ThumbnailInfo = ConstructObject<UWorldThumbnailInfo>(UWorldThumbnailInfo::StaticClass(), this);
 		}
 	}
 #endif

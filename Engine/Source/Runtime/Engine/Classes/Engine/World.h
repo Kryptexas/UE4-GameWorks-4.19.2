@@ -477,6 +477,10 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	// Group actors currently "active"
 	UPROPERTY(transient)
 	TArray<class AActor*> ActiveGroupActors;
+
+	/** Information for thumbnail rendering */
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	class UThumbnailInfo* ThumbnailInfo;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Persistent level containing the world info, default brush and actors spawned during gameplay among other things			*/

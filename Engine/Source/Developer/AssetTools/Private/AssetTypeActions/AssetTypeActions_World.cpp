@@ -29,4 +29,17 @@ void FAssetTypeActions_World::OpenAssetEditor( const TArray<UObject*>& InObjects
 	}
 }
 
+UThumbnailInfo* FAssetTypeActions_World::GetThumbnailInfo(UObject* Asset) const
+{
+	UWorld* World = CastChecked<UWorld>(Asset);
+	UThumbnailInfo* ThumbnailInfo = World->ThumbnailInfo;
+	if (ThumbnailInfo == NULL)
+	{
+		ThumbnailInfo = ConstructObject<UWorldThumbnailInfo>(UWorldThumbnailInfo::StaticClass(), World);
+		World->ThumbnailInfo = ThumbnailInfo;
+	}
+
+	return ThumbnailInfo;
+}
+
 #undef LOCTEXT_NAMESPACE

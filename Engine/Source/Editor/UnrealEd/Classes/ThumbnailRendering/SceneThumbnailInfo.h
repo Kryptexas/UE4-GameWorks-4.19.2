@@ -5,6 +5,8 @@
  */
 
 #pragma once
+
+#include "Runtime/Engine/Classes/EditorFramework/ThumbnailInfo.h"
 #include "SceneThumbnailInfo.generated.h"
 
 
