@@ -73,13 +73,7 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	if (CharacterMovement)
 	{
 		CharacterMovement->UpdatedComponent = CapsuleComponent;
-		CharacterMovement->MaxStepHeight = 45.f;
 		CrouchedEyeHeight = CharacterMovement->CrouchedHalfHeight * 0.80f;
-
-		CharacterMovement->GetNavAgentProperties()->bCanJump = true;
-		CharacterMovement->GetNavAgentProperties()->bCanWalk = true;
-		CharacterMovement->GetNavAgentProperties()->bCanSwim = true;
-		CharacterMovement->SetJumpAllowed(true);
 	}
 
 	Mesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
