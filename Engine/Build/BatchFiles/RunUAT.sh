@@ -11,7 +11,7 @@ echo Running AutomationTool...
 echo
 
 # put ourselves into Engine directory (two up from location of this script)
-SCRIPT_DIR=$(cd `dirname "$0"` && pwd)
+SCRIPT_DIR=$(cd "`dirname "$0"`" && pwd)
 cd "$SCRIPT_DIR/../.."
 
 UATDirectory=Binaries/DotNET/
