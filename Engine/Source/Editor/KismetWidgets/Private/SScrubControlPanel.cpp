@@ -57,9 +57,9 @@ void SScrubControlPanel::Construct( const SScrubControlPanel::FArguments& InArgs
 				.OnCropAnimSequence(InArgs._OnCropAnimSequence)
 				.OnReZeroAnimSequence(InArgs._OnReZeroAnimSequence)
 				.bAllowZoom(InArgs._bAllowZoom)
-				/** Optional, additional values to draw on the timeline **/
 				.DraggableBars(InArgs._DraggableBars)
 				.OnBarDrag(InArgs._OnBarDrag)
+				.bLastFrameIsFirstFrame(InArgs._bLastFrameIsFirstFrame)
 			]
 		]
 

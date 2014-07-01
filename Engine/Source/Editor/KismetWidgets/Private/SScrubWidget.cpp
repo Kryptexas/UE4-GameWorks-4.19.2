@@ -9,20 +9,27 @@
 static const float MinStepLengh=15.f;
 
 /** This function is used by a few random widgets and is mostly arbitrary. It could be moved anywhere. */
-int32 SScrubWidget::GetDivider( float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames )
+int32 SScrubWidget::GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames, bool bLastFrameIsFirstFrame)
 {
-	check (NumFrames!=0);
-
 	FTrackScaleInfo TimeScaleInfo(InputMinX, InputMaxX, 0.f, 0.f, WidgetSize);
 
-	float TimePerKey = (NumFrames>1)? SequenceLength/(float)(NumFrames-1) : 0;
-	float TotalWidgetWidth = TimeScaleInfo.WidgetSize.X;
-	float NumKeys =  TimeScaleInfo.ViewInputRange/TimePerKey;
-	float KeyWidgetWidth = TotalWidgetWidth/ NumKeys;
-	int32 Divider = 1; 
-	if ( KeyWidgetWidth > 0 )
+	float TimePerKey = 0.0f;
+	if (bLastFrameIsFirstFrame)
 	{
-		Divider = FMath::Max<int32>(50/KeyWidgetWidth, 1);
+		TimePerKey = (NumFrames > 1) ? SequenceLength / (float)(NumFrames - 1) : 0.0f;
+	}
+	else
+	{
+		TimePerKey = (NumFrames > 0) ? SequenceLength / (float)(NumFrames) : 0.0f;
+	}
+
+	float TotalWidgetWidth = TimeScaleInfo.WidgetSize.X;
+	float NumKeys = TimeScaleInfo.ViewInputRange / TimePerKey;
+	float KeyWidgetWidth = TotalWidgetWidth / NumKeys;
+	int32 Divider = 1; 
+	if (KeyWidgetWidth > 0)
+	{
+		Divider = FMath::Max<int32>(50 / KeyWidgetWidth, 1);
 	}
 	return Divider;
 }
@@ -53,6 +60,7 @@ void SScrubWidget::Construct( const SScrubWidget::FArguments& InArgs )
 	DraggingBar = false;
 
 	bAllowZoom = InArgs._bAllowZoom;
+	bLastFrameIsFirstFrame = InArgs._bLastFrameIsFirstFrame;
 }
 
 int32 SScrubWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -81,12 +89,22 @@ int32 SScrubWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect
 	if ( NumOfKeys.Get() > 0 && SequenceLength.Get() > 0)
 	{
 		FTrackScaleInfo TimeScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0.f, 0.f, AllottedGeometry.Size);
-		int32 Divider = SScrubWidget::GetDivider( ViewInputMin.Get(), ViewInputMax.Get(), AllottedGeometry.Size, SequenceLength.Get(), NumOfKeys.Get() );
+		int32 Divider = SScrubWidget::GetDivider( ViewInputMin.Get(), ViewInputMax.Get(), AllottedGeometry.Size, SequenceLength.Get(), NumOfKeys.Get(), bLastFrameIsFirstFrame );
 		float HalfDivider = Divider/2.f;
 		
 		int32 TotalNumKeys = NumOfKeys.Get();
-		float TimePerKey = (TotalNumKeys > 1)? SequenceLength.Get()/(float)(TotalNumKeys-1) : 0;
-		for ( float KeyVal=0; KeyVal<TotalNumKeys; KeyVal += HalfDivider )
+
+		float TimePerKey = 0.0f;
+		if (bLastFrameIsFirstFrame)
+		{
+			TimePerKey = (TotalNumKeys > 1) ? SequenceLength.Get() / (float)(TotalNumKeys - 1) : 0.0f;
+		}
+		else
+		{
+			TimePerKey = (TotalNumKeys > 0) ? SequenceLength.Get() / (float)(TotalNumKeys) : 0.0f;
+		}
+
+		for (float KeyVal = 0; KeyVal < TotalNumKeys; KeyVal += HalfDivider)
 		{
 			float CurValue = KeyVal*TimePerKey;
 			float XPos = TimeScaleInfo.InputToLocalX(CurValue);
