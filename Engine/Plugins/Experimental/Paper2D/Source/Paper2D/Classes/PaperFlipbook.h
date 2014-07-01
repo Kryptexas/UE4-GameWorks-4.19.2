@@ -108,9 +108,9 @@ private:
 
 public:
 	FScopedFlipbookMutator(UPaperFlipbook* InFlipbook)
-		: SourceFlipbook(InFlipbook)
-		, FramesPerSecond(InFlipbook->FramesPerSecond)
+		: FramesPerSecond(InFlipbook->FramesPerSecond)
 		, KeyFrames(InFlipbook->KeyFrames)
+		, SourceFlipbook(InFlipbook)
 	{
 	}
 
