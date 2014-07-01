@@ -4,6 +4,7 @@
 #include "PhysicsAssetUtils.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "Editor/UnrealEd/Private/ConvexDecompTool.h"
+#include "MessageLog.h"
 
 
 void FPhysAssetCreateParams::Initialize()
