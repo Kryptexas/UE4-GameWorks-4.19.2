@@ -111,4 +111,16 @@ void UK2Node_CallFunctionOnMember::ExpandNode(class FKismetCompilerContext& Comp
 	}
 }
 
+bool UK2Node_CallFunctionOnMember::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+{
+	UClass* SourceClass = MemberVariableToCallOn.GetMemberParentClass(this);
+	const UBlueprint* SourceBlueprint = GetBlueprint();
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->Add(SourceClass);
+	}
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+}
+
 #undef LOCTEXT_NAMESPACE
