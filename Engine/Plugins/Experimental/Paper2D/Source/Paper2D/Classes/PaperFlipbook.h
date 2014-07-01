@@ -14,7 +14,7 @@ public:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	UPaperSprite* Sprite;
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
+	UPROPERTY(Category=Sprite, EditAnywhere, meta=(ClampMin=1))
 	int32 FrameRun;
 
 	FPaperFlipbookKeyFrame()
