@@ -193,7 +193,8 @@ public class ICU : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.PS4)
 		{
 			// Definitions			
-			Definitions.Add(("ICU_NO_USER_DATA_OVERRIDE=1"));
+            Definitions.Add("ICU_NO_USER_DATA_OVERRIDE=1");
+            Definitions.Add("U_PLATFORM=U_PF_ORBIS");
 		}
 	}
 }

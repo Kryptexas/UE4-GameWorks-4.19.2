@@ -102,6 +102,8 @@
 #define U_PF_SOLARIS 2600
 /** BSD is a UNIX operating system derivative. @internal */
 #define U_PF_BSD 3000
+/** ORBIS is a BSD system derivative. */
+#define U_PF_ORBIS 3001
 /** AIX is based on UNIX System V Releases and 4.3 BSD. @internal */
 #define U_PF_AIX 3100
 /** IRIX is based on UNIX System V with BSD extensions. @internal */

@@ -97,7 +97,7 @@
 #   define ICU_NO_USER_DATA_OVERRIDE 1
 #elif U_PLATFORM == U_PF_OS390
 #   include "unicode/ucnv.h"   /* Needed for UCNV_SWAP_LFNL_OPTION_STRING */
-#elif U_PLATFORM_IS_DARWIN_BASED || U_PLATFORM_IS_LINUX_BASED || U_PLATFORM == U_PF_BSD || U_PLATFORM == U_PF_SOLARIS
+#elif U_PLATFORM_IS_DARWIN_BASED || U_PLATFORM_IS_LINUX_BASED || U_PLATFORM == U_PF_BSD || U_PLATFORM == U_PF_ORBIS || U_PLATFORM == U_PF_SOLARIS
 #   include <limits.h>
 #   include <unistd.h>
 #   if U_PLATFORM == U_PF_SOLARIS
@@ -1013,7 +1013,7 @@ uprv_tzname(int n)
 #endif*/
 
 /* This code can be temporarily disabled to test tzname resolution later on. */
-#ifndef DEBUG_TZNAME
+#if !defined (DEBUG_TZNAME) && (U_PLATFORM != U_PF_ORBIS)
     tzid = getenv("TZ");
     if (tzid != NULL && isValidOlsonID(tzid)
 #if U_PLATFORM == U_PF_SOLARIS
@@ -1438,6 +1438,9 @@ static const char *uprv_getPOSIXIDForCategory(int category)
             || (uprv_strcmp("C", posixID) == 0)
             || (uprv_strcmp("POSIX", posixID) == 0))
         {
+#if U_PLATFORM == U_PF_ORBIS
+
+#else
             /* Maybe we got some garbage.  Try something more reasonable */
             posixID = getenv("LC_ALL");
             if (posixID == 0) {
@@ -1446,6 +1449,7 @@ static const char *uprv_getPOSIXIDForCategory(int category)
                     posixID = getenv("LANG");
                 }
             }
+#endif
         }
     }
     if ((posixID==0)
