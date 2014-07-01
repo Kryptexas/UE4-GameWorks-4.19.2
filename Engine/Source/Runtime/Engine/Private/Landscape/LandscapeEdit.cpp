@@ -2273,23 +2273,14 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 		
 				
 		// Check if there are any holes
-		TArray<uint8> RawVisData;
-		uint8* VisDataMap = NULL;
-		const int32 ChannelOffsets[4] = {
-			(int32)STRUCT_OFFSET(FColor,R),
-			(int32)STRUCT_OFFSET(FColor,G),
-			(int32)STRUCT_OFFSET(FColor,B),
-			(int32)STRUCT_OFFSET(FColor,A)
-		};
+		TArray<uint8> VisDataMap;
 		
 		for (int32 AllocIdx = 0; AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++)
 		{
 			FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
 			if (AllocInfo.LayerInfo == ALandscapeProxy::DataLayer)
 			{
-				int32 TexIndex = AllocInfo.WeightmapTextureIndex;
-				Component->WeightmapTextures[TexIndex]->Source.GetMipData(RawVisData, 0);
-				VisDataMap = RawVisData.GetTypedData() + ChannelOffsets[AllocInfo.WeightmapTextureChannel];
+				CDI.GetWeightmapTextureData(AllocInfo.LayerInfo, VisDataMap);
 			}
 		}
 
@@ -2319,8 +2310,7 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 				{
 					int32 SubNumX, SubNumY, SubX, SubY;
 					CDI.ComponentXYToSubsectionXY(x, y, SubNumX, SubNumY, SubX, SubY);
-					int32 WeightIndex = SubX + SubNumX*(SubsectionSizeQuadsLOD + 1) + (SubY+SubNumY*(SubsectionSizeQuadsLOD + 1))*WeightMapSize;
-					bool bInvisible = VisDataMap && VisDataMap[WeightIndex * sizeof(FColor)] >= VisThreshold;
+					bool bInvisible = VisDataMap[x + y * (ComponentSizeQuadsLOD + 1)] >= VisThreshold;
 
 					// triangulation matches FLandscapeIndexBuffer constructor
 					Faces[0] = VertexIdx;

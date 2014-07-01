@@ -2373,6 +2373,10 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	FbxLayerElementArrayTemplate<FbxVector2>& WeightmapUVs = LayerElementWeightmapUVs->GetDirectArray();
 	WeightmapUVs.Resize(VertexCount);
 
+	TArray<uint8> VisibiltyData;
+	VisibiltyData.Empty(VertexCount);
+	VisibiltyData.AddZeroed(VertexCount);
+
 	for (int32 ComponentIndex = 0, SelectedComponentIndex = 0; ComponentIndex < Landscape->LandscapeComponents.Num(); ComponentIndex++)
 	{
 		ULandscapeComponent* Component = Landscape->LandscapeComponents[ComponentIndex];
@@ -2385,6 +2389,21 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		FLandscapeComponentDataInterface CDI(Component, Landscape->ExportLOD);
 		const int32 BaseVertIndex = SelectedComponentIndex++ * VertexCountPerComponent;
 
+		TArray<uint8> CompVisData;
+		for (int32 AllocIdx = 0; AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++)
+		{
+			FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
+			if (AllocInfo.LayerInfo == ALandscapeProxy::DataLayer)
+			{
+				CDI.GetWeightmapTextureData(AllocInfo.LayerInfo, CompVisData);
+			}
+		}
+
+		for (int32 i = 0; i < CompVisData.Num(); ++i)
+		{
+			VisibiltyData[BaseVertIndex + i] = CompVisData[i];
+		}
+		
 		for (int32 VertIndex = 0; VertIndex < VertexCountPerComponent; VertIndex++)
 		{
 			int32 VertX, VertY;
@@ -2451,6 +2470,7 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	const int32 MaterialIndex = FbxActor->AddMaterial(FbxMaterial);
 	LayerElementMaterials->GetIndexArray().Add(MaterialIndex);
 
+	const int32 VisThreshold = 170;
 	// Copy over the index buffer into the FBX polygons set.
 	for (int32 ComponentIndex = 0; ComponentIndex < NumComponents; ComponentIndex++)
 	{
@@ -2460,17 +2480,20 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		{
 			for (int32 X = 0; X < ComponentSizeQuads; X++)
 			{
-				Mesh->BeginPolygon();
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->EndPolygon();
+				if (VisibiltyData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
+				{
+					Mesh->BeginPolygon();
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->EndPolygon();
 
-				Mesh->BeginPolygon();
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->EndPolygon();
+					Mesh->BeginPolygon();
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->EndPolygon();
+				}
 			}
 		}
 	}
