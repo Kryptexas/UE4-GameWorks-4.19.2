@@ -145,6 +145,11 @@ private:
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
 
+		MenuBuilder.AddMenuSeparator();
+
+		MenuBuilder.AddMenuEntry(FFlipbookEditorCommands::Get().AddNewFrameBefore);
+		MenuBuilder.AddMenuEntry(FFlipbookEditorCommands::Get().AddNewFrameAfter);
+
 		MenuBuilder.EndSection();
 
 		return MenuBuilder.MakeWidget();

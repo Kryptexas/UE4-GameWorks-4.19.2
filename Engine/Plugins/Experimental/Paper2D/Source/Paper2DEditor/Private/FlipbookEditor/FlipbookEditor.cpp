@@ -398,6 +398,16 @@ void FFlipbookEditor::BindCommands()
 	UICommandList->MapAction(FGenericCommands::Get().Duplicate,
 		FExecuteAction::CreateSP(this, &FFlipbookEditor::DuplicateSelection),
 		FCanExecuteAction::CreateSP(this, &FFlipbookEditor::HasValidSelection));
+
+	UICommandList->MapAction(Commands.AddNewFrame,
+		FExecuteAction::CreateSP(this, &FFlipbookEditor::AddNewKeyFrameAtEnd),
+		FCanExecuteAction());
+	UICommandList->MapAction(Commands.AddNewFrameBefore,
+		FExecuteAction::CreateSP(this, &FFlipbookEditor::AddNewKeyFrameBefore),
+		FCanExecuteAction());
+	UICommandList->MapAction(Commands.AddNewFrameAfter,
+		FExecuteAction::CreateSP(this, &FFlipbookEditor::AddNewKeyFrameAfter),
+		FCanExecuteAction());
 }
 
 FName FFlipbookEditor::GetToolkitFName() const
@@ -479,7 +489,6 @@ void FFlipbookEditor::ExtendToolbar()
 
 void FFlipbookEditor::DeleteSelection()
 {
-
 	if (FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("DeleteKeyframe", "Delete Keyframe"));
@@ -507,6 +516,49 @@ void FFlipbookEditor::DuplicateSelection()
 		CurrentSelectedKeyframe = INDEX_NONE;
 	}
 }
+
+void FFlipbookEditor::AddNewKeyFrameAtEnd()
+{
+	const FScopedTransaction Transaction(LOCTEXT("AddKeyFrame", "Add Key Frame"));
+	FlipbookBeingEdited->Modify();
+
+	FScopedFlipbookMutator EditLock(FlipbookBeingEdited);
+
+	FPaperFlipbookKeyFrame& NewFrame = *new (EditLock.KeyFrames) FPaperFlipbookKeyFrame();
+}
+
+void FFlipbookEditor::AddNewKeyFrameBefore()
+{
+	if (FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("InsertKeyFrame", "Insert Key Frame"));
+		FlipbookBeingEdited->Modify();
+
+		FScopedFlipbookMutator EditLock(FlipbookBeingEdited);
+
+		FPaperFlipbookKeyFrame NewFrame;
+		EditLock.KeyFrames.Insert(NewFrame, CurrentSelectedKeyframe);
+
+		CurrentSelectedKeyframe = INDEX_NONE;
+	}
+}
+
+void FFlipbookEditor::AddNewKeyFrameAfter()
+{
+	if (FlipbookBeingEdited->IsValidKeyFrameIndex(CurrentSelectedKeyframe))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("InsertKeyFrame", "Insert Key Frame"));
+		FlipbookBeingEdited->Modify();
+
+		FScopedFlipbookMutator EditLock(FlipbookBeingEdited);
+
+		FPaperFlipbookKeyFrame NewFrame;
+		EditLock.KeyFrames.Insert(NewFrame, CurrentSelectedKeyframe + 1);
+
+		CurrentSelectedKeyframe = INDEX_NONE;
+	}
+}
+
 
 void FFlipbookEditor::SetSelection(int32 NewSelection)
 {
