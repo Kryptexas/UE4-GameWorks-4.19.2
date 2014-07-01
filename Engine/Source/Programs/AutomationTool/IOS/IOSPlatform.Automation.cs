@@ -6,7 +6,6 @@ using System.Text;
 using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
-using System.Text.RegularExpressions;
 using Ionic.Zip;
 using Ionic.Zlib;
 
@@ -21,65 +20,6 @@ public class IOSPlatform : Platform
 	public IOSPlatform()
 		:base(UnrealTargetPlatform.IOS)
 	{
-	}
-
-	// Run the integrated IPP code
-	// @todo ipp: How to log the output in a nice UAT way?
-	protected static int RunIPP(string IPPArguments)
-	{
-		List<string> Args = new List<string>();
-
-		StringBuilder Token = null;
-		int Index = 0;
-		bool bInQuote = false;
-		while (Index < IPPArguments.Length)
-		{
-			if (IPPArguments[Index] == '\"')
-			{
-				bInQuote = !bInQuote;
-			}
-			else if (IPPArguments[Index] == ' ' && !bInQuote)
-			{
-				if (Token != null)
-				{
-					Args.Add(Token.ToString());
-					Token = null;
-				}
-			}
-			else
-			{
-				if (Token == null)
-				{
-					Token = new StringBuilder();
-				}
-				Token.Append(IPPArguments[Index]);
-			}
-			Index++;
-		}
-
-		if (Token != null)
-		{
-			Args.Add(Token.ToString());
-		}
-	
-		return RunIPP(Args.ToArray());
-	}
-
-	protected static int RunIPP(string[] Args)
-	{
-		return iPhonePackager.Program.RealMain(Args);
-	}
-
-	public override int RunCommand(string Command)
-	{
-		// run generic IPP commands through the interface
-		if (Command.StartsWith("IPP:"))
-		{
-			return RunIPP(Command.Substring(4));
-		}
-
-		// non-zero error code
-		return 4;
 	}
 
 	protected string MakeIPAFileName( UnrealTargetConfiguration TargetConfiguration, string ProjectGameExeFilename )
@@ -184,6 +124,33 @@ public class IOSPlatform : Platform
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
 
+			string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
+			IPPArguments += " -config " + TargetConfiguration.ToString();
+
+			if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
+			{
+				IPPArguments += " -compress=best";
+			}
+
+			// Determine if we should sign
+			bool bNeedToSign = GetCodeSignDesirability(Params);
+
+			if (!String.IsNullOrEmpty(Params.BundleName))
+			{
+				// Have to sign when a bundle name is specified
+				bNeedToSign = true;
+				IPPArguments += " -bundlename " + Params.BundleName;
+			}
+
+			if (bNeedToSign)
+			{
+				IPPArguments += " -sign";
+			}
+
+			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
+			IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
+			IPPArguments += " -projectdir \"" + Path.GetDirectoryName(Params.RawProjectPath) + "\"";
+
 			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
@@ -194,83 +161,10 @@ public class IOSPlatform : Platform
 				}
 			}
 
-			// delete the .ipa to make sure it was made
-			DeleteFile(ProjectIPA);
+            // delete the .ipa to make sure it was made
+            DeleteFile(ProjectIPA);
 
-			if (RemoteToolChain.bUseRPCUtil)
-			{
-				string IPPArguments = "RepackageFromStage \"" + (Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine") + "\"";
-				IPPArguments += " -config " + TargetConfiguration.ToString();
-
-				if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
-				{
-					IPPArguments += " -compress=best";
-				}
-
-				// Determine if we should sign
-				bool bNeedToSign = GetCodeSignDesirability(Params);
-
-				if (!String.IsNullOrEmpty(Params.BundleName))
-				{
-					// Have to sign when a bundle name is specified
-					bNeedToSign = true;
-					IPPArguments += " -bundlename " + Params.BundleName;
-				}
-
-				if (bNeedToSign)
-				{
-					IPPArguments += " -sign";
-				}
-
-				IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-				IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
-				IPPArguments += " -projectdir \"" + Path.GetDirectoryName(Params.RawProjectPath) + "\"";
-
-				RunAndLog(CmdEnv, IPPExe, IPPArguments);
-			}
-			else
-			{
-				List<string> IPPArguments = new List<string>();
-				IPPArguments.Add("RepackageFromStage");
-				IPPArguments.Add(Params.IsCodeBasedProject ? Params.RawProjectPath : "Engine");
-				IPPArguments.Add("-config");
-				IPPArguments.Add(TargetConfiguration.ToString());
-
-				if (TargetConfiguration == UnrealTargetConfiguration.Shipping)
-				{
-					IPPArguments.Add("-compress=best");
-				}
-
-				// Determine if we should sign
-				bool bNeedToSign = GetCodeSignDesirability(Params);
-
-				if (!String.IsNullOrEmpty(Params.BundleName))
-				{
-					// Have to sign when a bundle name is specified
-					bNeedToSign = true;
-					IPPArguments.Add("-bundlename");
-					IPPArguments.Add(Params.BundleName);
-				}
-
-				if (bNeedToSign)
-				{
-					IPPArguments.Add("-sign");
-				}
-
-				if (cookonthefly)
-				{
-					IPPArguments.Add(" -cookonthefly");
-				}
-				IPPArguments.Add(" -stagedir");
-				IPPArguments.Add(CombinePaths(Params.BaseStageDirectory, "IOS"));
-				IPPArguments.Add(" -projectdir");
-				IPPArguments.Add(Path.GetDirectoryName(Params.RawProjectPath));
-
-				if (RunIPP(IPPArguments.ToArray()) != 0)
-				{
-					throw new AutomationException("IPP Failed");
-				}
-			}
+			RunAndLog(CmdEnv, IPPExe, IPPArguments);
 
 			// verify the .ipa exists
 			if (!FileExists(ProjectIPA))

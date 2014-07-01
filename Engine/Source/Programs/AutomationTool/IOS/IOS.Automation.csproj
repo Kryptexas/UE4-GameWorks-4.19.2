@@ -34,27 +34,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\..\..\Binaries\ThirdParty\IOS\BouncyCastle.Crypto.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="Ionic.Zip.Reduced">
       <HintPath>..\..\..\..\Binaries\DotNET\Ionic.Zip.Reduced.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="RPCUtility">
-      <HintPath>..\..\..\..\Binaries\DotNET\RPCUtility.exe</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Runtime.Remoting" />
     <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Security" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -66,60 +54,9 @@
       <Link>Properties\MetaData.cs</Link>
     </Compile>
     <Compile Include="IOSPlatform.Automation.cs" />
-    <Compile Include="IPhonePackager\CodeSigning.cs" />
-    <Compile Include="IPhonePackager\CompileTime.cs" />
-    <Compile Include="IPhonePackager\Config.cs" />
-    <Compile Include="IPhonePackager\ConfigureMobileGame.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\ConfigureMobileGame.Designer.cs">
-      <DependentUpon>ConfigureMobileGame.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\CookTime.cs" />
-    <Compile Include="IPhonePackager\DeployTime.cs" />
-    <Compile Include="IPhonePackager\FileOperations.cs" />
-    <Compile Include="IPhonePackager\GenerateSigningRequestDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\GenerateSigningRequestDialog.Designer.cs">
-      <DependentUpon>GenerateSigningRequestDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\GraphicalResignTool.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\GraphicalResignTool.Designer.cs">
-      <DependentUpon>GraphicalResignTool.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\iPhonePackager.cs" />
-    <Compile Include="IPhonePackager\MachObjects.cs" />
-    <Compile Include="IPhonePackager\MobileProvisionUtilities.cs" />
-    <Compile Include="IPhonePackager\PasswordDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\PasswordDialog.Designer.cs">
-      <DependentUpon>PasswordDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\SlowProgressDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\SlowProgressDialog.Designer.cs">
-      <DependentUpon>SlowProgressDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\ToolsHub.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="IPhonePackager\ToolsHub.Designer.cs">
-      <DependentUpon>ToolsHub.cs</DependentUpon>
-    </Compile>
-    <Compile Include="IPhonePackager\Utilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\IOS\DeploymentInterface\DeploymentInterface.csproj">
-      <Project>{2da5397a-f93f-41e0-a1ad-b220d40fd739}</Project>
-      <Name>DeploymentInterface</Name>
-    </ProjectReference>
     <ProjectReference Include="..\AutomationTool.csproj">
       <Project>{a35b0261-d868-475e-a098-eb14ce6dc89f}</Project>
       <Name>AutomationTool</Name>
@@ -130,32 +67,6 @@
       <Name>UnrealBuildTool</Name>
       <Private>False</Private>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="IPhonePackager\ConfigureMobileGame.resx">
-      <DependentUpon>ConfigureMobileGame.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="IPhonePackager\GenerateSigningRequestDialog.resx">
-      <DependentUpon>GenerateSigningRequestDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="IPhonePackager\GraphicalResignTool.resx">
-      <DependentUpon>GraphicalResignTool.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="IPhonePackager\PasswordDialog.resx">
-      <DependentUpon>PasswordDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="IPhonePackager\SlowProgressDialog.resx">
-      <DependentUpon>SlowProgressDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="IPhonePackager\ToolsHub.resx">
-      <DependentUpon>ToolsHub.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Image1.bmp" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
