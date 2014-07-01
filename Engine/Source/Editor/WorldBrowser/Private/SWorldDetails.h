@@ -50,4 +50,5 @@ private:
 	TSharedPtr<FLevelCollectionModel>				WorldModel;
 	TSharedPtr<IDetailsView>						DetailsView;
 	TSharedPtr<SComboBox<TSharedPtr<FLevelModel>>>	SubLevelsComboBox;
+	bool											bUpdatingSelection;	
 };
