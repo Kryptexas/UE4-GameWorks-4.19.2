@@ -58,7 +58,10 @@ public class ECJobPropsUtils
                                                             }
                                                             if (IsMessage && PropertySheetChildDiagSheetElemInner2.Name == "value")
                                                             {
-                                                                if (!PropertySheetChildDiagSheetElemInner2.InnerText.Contains("LogTailsAndChanges"))
+                                                                if (!PropertySheetChildDiagSheetElemInner2.InnerText.Contains("LogTailsAndChanges")
+                                                                    && !PropertySheetChildDiagSheetElemInner2.InnerText.Contains("-MyJobStepId=")
+                                                                    && !PropertySheetChildDiagSheetElemInner2.InnerText.Contains("CommandUtils.Run: Run: Took ")
+                                                                    )
                                                                 {
                                                                     Result.Add(PropertySheetChildDiagSheetElemInner2.InnerText);
                                                                 }
