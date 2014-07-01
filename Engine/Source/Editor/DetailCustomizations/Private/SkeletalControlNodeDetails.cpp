@@ -20,7 +20,9 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 	TSharedRef<IPropertyHandle> AvailablePins = DetailBuilder.GetProperty("ShowPinForProperties");
 
 	//@TODO: Shouldn't show this if the available pins array is empty!
-	TSharedRef<FDetailArrayBuilder> AvailablePinsBuilder = MakeShareable( new FDetailArrayBuilder( AvailablePins ) );
+	const bool bGenerateHeader = true;
+	const bool bDisplayResetToDefault = false;
+	TSharedRef<FDetailArrayBuilder> AvailablePinsBuilder = MakeShareable( new FDetailArrayBuilder( AvailablePins, bGenerateHeader, bDisplayResetToDefault ) );
 	AvailablePinsBuilder->OnGenerateArrayElementWidget( FOnGenerateArrayElementWidget::CreateSP( this, &FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin ) );
 
 	const bool bForAdvanced = false;

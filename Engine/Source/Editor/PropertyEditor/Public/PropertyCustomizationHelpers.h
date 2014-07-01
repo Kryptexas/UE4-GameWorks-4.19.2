@@ -183,10 +183,11 @@ class FDetailArrayBuilder : public IDetailCustomNodeBuilder
 {
 public:
 
-	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true )
+	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true, bool InDisplayResetToDefault = true)
 		: ArrayProperty( InBaseProperty->AsArray() )
 		, BaseProperty( InBaseProperty )
 		, bGenerateHeader( InGenerateHeader)
+		, bDisplayResetToDefault(InDisplayResetToDefault)
 	{
 		check( ArrayProperty.IsValid() );
 
@@ -228,30 +229,34 @@ public:
 	{
 		if (bGenerateHeader)
 		{
-			TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
-			bool bDisplayResetToDefault = false;
+			const bool bDisplayResetToDefaultInNameContent = false;
+			TSharedPtr<SHorizontalBox> ContentHorizontalBox;
 			NodeRow
-				.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
-				.NameContent()
-				[
-					BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefault)
-				]
+			.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
+			.NameContent()
+			[
+				BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefaultInNameContent)
+			]
 			.ValueContent()
+			[
+				SAssignNew(ContentHorizontalBox, SHorizontalBox)
+				+ SHorizontalBox::Slot()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					[
-						BaseProperty->CreatePropertyValueWidget()
-					]
-					+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
-						[
-							SAssignNew(ResetToDefaultMenu, SResetToDefaultMenu)
-						]
-				];
+					BaseProperty->CreatePropertyValueWidget()
+				]
+			];
 
-			ResetToDefaultMenu->AddProperty(BaseProperty);
+			if (bDisplayResetToDefault)
+			{
+				TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
+				ContentHorizontalBox->AddSlot()
+				.AutoWidth()
+				.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+				[
+					SAssignNew(ResetToDefaultMenu, SResetToDefaultMenu)
+				];
+				ResetToDefaultMenu->AddProperty(BaseProperty);
+			}
 		}
 	}
 
@@ -287,6 +292,7 @@ private:
 	TSharedRef<IPropertyHandle> BaseProperty;
 	FSimpleDelegate OnRebuildChildren;
 	bool bGenerateHeader;
+	bool bDisplayResetToDefault;
 };
 
 /**
