@@ -504,7 +504,6 @@ namespace iPhonePackager
 				// Adjust the header and load command to have the correct size for the code sign blob
 				WritingContext OutputExeContext = new WritingContext(new BinaryWriter(OutputExeStream));
 
-				long StartPosition = (CodeSigningBlobLC.BlobFileOffset - (long)LinkEditSegmentLC.FileOffset);
 				long BlobLength = DummyPayload.Length;
 
 				long NonCodeSigSize = (long)LinkEditSegmentLC.FileSize - CodeSigningBlobLC.BlobFileSize;
