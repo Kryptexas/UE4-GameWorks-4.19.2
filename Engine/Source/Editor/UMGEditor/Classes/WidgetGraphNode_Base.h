@@ -48,7 +48,7 @@ class UWidgetGraphNode_Base : public UK2Node
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex) const;
 
 	/** Get the animation blueprint to which this node belongs */
-	UWidgetBlueprint* GetWidgetBlueprint() const { return CastChecked<UWidgetBlueprint>(GetBlueprint()); }
+	class UWidgetBlueprint* GetWidgetBlueprint() const;
 
 	// UWidgetGraphNode_Base
 

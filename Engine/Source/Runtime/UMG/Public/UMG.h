@@ -85,7 +85,6 @@
 #include "WidgetNode_Base.h"
 #include "WidgetNode_Text.h"
 
-#include "WidgetBlueprint.h"
 #include "WidgetBlueprintGeneratedClass.h"
 
 #include "WidgetActor.h"

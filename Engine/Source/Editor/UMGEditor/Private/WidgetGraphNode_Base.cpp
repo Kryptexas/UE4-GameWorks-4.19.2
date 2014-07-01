@@ -228,6 +228,11 @@ void UWidgetGraphNode_Base::CustomizePinData(UEdGraphPin* Pin, FName SourcePrope
 
 }
 
+UWidgetBlueprint* UWidgetGraphNode_Base::GetWidgetBlueprint() const
+{
+	 return CastChecked<UWidgetBlueprint>(GetBlueprint());
+}
+
 FLinearColor UWidgetGraphNode_Base::GetNodeTitleColor() const
 {
 	return FLinearColor::Black;

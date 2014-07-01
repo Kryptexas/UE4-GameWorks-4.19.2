@@ -8,8 +8,10 @@
 
 #include "WidgetBlueprint.generated.h"
 
+class UMovieScene;
+
 USTRUCT()
-struct UMG_API FDelegateEditorBinding
+struct FDelegateEditorBinding
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -32,18 +34,14 @@ struct UMG_API FDelegateEditorBinding
 		return ObjectName == Other.ObjectName && PropertyName == Other.PropertyName;
 	}
 
-#if WITH_EDITOR
 	FDelegateRuntimeBinding ToRuntimeBinding(class UWidgetBlueprint* Blueprint) const;
-#endif
 };
-
-class UMovieScene;
 
 /**
  * The widget blueprint enables extending UUserWidget the user extensible UWidget.
  */
 UCLASS(BlueprintType)
-class UMG_API UWidgetBlueprint : public UBlueprint
+class UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
 
@@ -63,7 +61,6 @@ public:
 
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
 	
-#if WITH_EDITOR
 	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;
 
@@ -74,5 +71,4 @@ public:
 	// End of UBlueprint interface
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
-#endif
 };

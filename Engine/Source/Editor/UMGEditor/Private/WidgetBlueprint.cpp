@@ -1,11 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "UMGPrivatePCH.h"
+#include "UMGEditorPrivatePCH.h"
 #include "Runtime/MovieSceneCore/Classes/MovieScene.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-#if WITH_EDITOR
 FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprint* Blueprint) const
 {
 	FDelegateRuntimeBinding Binding;
@@ -15,7 +14,7 @@ FDelegateRuntimeBinding FDelegateEditorBinding::ToRuntimeBinding(UWidgetBlueprin
 
 	return Binding;
 }
-#endif
+
 
 /////////////////////////////////////////////////////
 // UWidgetBlueprint
@@ -31,14 +30,13 @@ void UWidgetBlueprint::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITOR
 	TArray<UWidget*> Widgets;
 	WidgetTree->GetAllWidgets(Widgets);
 	for ( UWidget* Widget : Widgets )
 	{
 		Widget->ConnectEditorData();
 	}
-#endif
+
 }
 
 UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
@@ -46,7 +44,7 @@ UClass* UWidgetBlueprint::RegenerateClass(UClass* ClassToRegenerate, UObject* Pr
 	return Super::RegenerateClass(ClassToRegenerate, PreviousCDO, ObjLoaded);
 }
 
-#if WITH_EDITOR
+
 UClass* UWidgetBlueprint::GetBlueprintClass() const
 {
 	return UWidgetBlueprintGeneratedClass::StaticClass();
@@ -80,7 +78,6 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 
 	return Result;
 }
-#endif
 
 void UWidgetBlueprint::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 {
