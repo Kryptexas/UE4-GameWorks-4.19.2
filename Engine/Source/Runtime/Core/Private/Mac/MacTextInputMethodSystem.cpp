@@ -42,11 +42,25 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 	}
 }
 
+/** Forward mouse events up to the window rather than through the responder chain - thus avoiding
+ *	the hidden titlebar controls. Normal windows just use the responder chain as usual.
+ */
+- (BOOL)acceptsFirstMouse:(NSEvent *)Event
+{
+	return YES;
+}
+
 - (void)mouseDown:(NSEvent *)theEvent
 {
 	if (IMMContext.IsValid())
 	{
 		[[self inputContext] handleEvent:theEvent];
+	}
+	
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow mouseDown:theEvent];
 	}
 }
 
@@ -63,6 +77,64 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 	if (IMMContext.IsValid())
 	{
 		[[self inputContext] handleEvent:theEvent];
+	}
+	
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow mouseUp:theEvent];
+	}
+}
+
+- (void)rightMouseDown:(NSEvent*)Event
+{
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow rightMouseDown:Event];
+	}
+	else
+	{
+		[super rightMouseDown:Event];
+	}
+}
+
+- (void)otherMouseDown:(NSEvent*)Event
+{
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow otherMouseDown:Event];
+	}
+	else
+	{
+		[super otherMouseDown:Event];
+	}
+}
+
+- (void)rightMouseUp:(NSEvent*)Event
+{
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow rightMouseUp:Event];
+	}
+	else
+	{
+		[super rightMouseUp:Event];
+	}
+}
+
+- (void)otherMouseUp:(NSEvent*)Event
+{
+	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
+	if (SlateCocoaWindow)
+	{
+		[SlateCocoaWindow otherMouseUp:Event];
+	}
+	else
+	{
+		[super otherMouseUp:Event];
 	}
 }
 
