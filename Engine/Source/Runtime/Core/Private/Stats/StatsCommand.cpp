@@ -1380,6 +1380,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		else if ( FParse::Command( &TempCmd, TEXT( "hier" ) ) )
 		{
 		}
+		else if ( FParse::Command( &TempCmd, TEXT( "net" ) ) )
+		{
+		}
 		else
 #endif
 		{
