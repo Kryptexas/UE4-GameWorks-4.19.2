@@ -3795,8 +3795,9 @@ void UCharacterMovementComponent::MoveSmooth(const FVector& InVelocity, const fl
 
 bool UCharacterMovementComponent::IsWalkable(const FHitResult& Hit) const
 {
-	if (!Hit.bBlockingHit)
+	if (!Hit.IsValidBlockingHit())
 	{
+		// No hit, or starting in penetration
 		return false;
 	}
 
