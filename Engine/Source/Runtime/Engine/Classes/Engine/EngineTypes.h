@@ -1394,6 +1394,9 @@ struct ENGINE_API FHitResult
 	/** Utility to return the Actor that owns the Component that was hit */
 	AActor* GetActor() const;
 
+	/** Utility to return the Component that was hit */
+	UPrimitiveComponent* GetComponent() const;
+
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
 	FORCEINLINE bool IsValidBlockingHit() const
 	{
@@ -1455,6 +1458,9 @@ struct ENGINE_API FOverlapResult
 
 	/** Utility to return the Actor that owns the Component that was hit */
 	AActor* GetActor() const;
+
+	/** Utility to return the Component that was hit */
+	UPrimitiveComponent* GetComponent() const;
 
 	/** Indicates if this hit was requesting a block - if false, was requesting a touch instead */
 	UPROPERTY()
