@@ -54,7 +54,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void ClipboardPaste(class FString& Dest);
 	static void CreateGuid(class FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static void PreventScreenSaver();
+	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
