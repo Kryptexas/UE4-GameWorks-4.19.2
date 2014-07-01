@@ -45,8 +45,9 @@ void FWindowsPlatformStackWalkExt::ShutdownStackWalking()
 {
 	Advanced->Release();
 	Symbol->Release();
-	Client->Release();
 	Control->Release();
+	
+	Client->Release();
 
 	FWindowsPlatformMisc::CoUninitialize();
 }
