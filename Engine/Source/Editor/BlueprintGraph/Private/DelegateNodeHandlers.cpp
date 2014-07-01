@@ -35,10 +35,17 @@ struct FKCHandlerDelegateHelper
 		check(NULL != DelegateNode);
 
 		UEdGraphPin* Pin = Schema->FindSelfPin(*DelegateNode, EEdGraphPinDirection::EGPD_Input);
-		check(Pin);
+		UStruct* DelegateScope = Context.GetScopeFromPinType(Pin->PinType, Context.NewClass);
+
+		// Early out if we have no pin.  That means the delegate is no longer valid, and we need to terminate gracefully
+		if (!Pin || !DelegateScope)
+		{
+			MessageLog.Error(*LOCTEXT("NoDelegateProperty", "Event Dispatcher has no property @@").ToString(), DelegateNode);
+			return NULL;
+		}
 
 		// Don't use DelegateNode->GetProperty(), because we don't want any property from skeletal class
-		UClass* PropertyOwnerClass = CastChecked<UClass>(Context.GetScopeFromPinType(Pin->PinType, Context.NewClass));
+		UClass* PropertyOwnerClass = CastChecked<UClass>(DelegateScope);
 		UMulticastDelegateProperty* BoundProperty = NULL;
 		for (TFieldIterator<UMulticastDelegateProperty> It(PropertyOwnerClass); It; ++It)
 		{

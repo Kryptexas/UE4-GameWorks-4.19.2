@@ -55,9 +55,9 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
 	const auto Property = DelegateReference.ResolveMember<UMulticastDelegateProperty>(this);
-	const auto PropertyOwnerClass = Property->GetOwnerClass();
+	const auto PropertyOwnerClass = (Property ? Property->GetOwnerClass() : NULL);
 	const auto Blueprint = GetBlueprint();
-	ensure(PropertyOwnerClass && Blueprint);
+	
 	const bool bUseSelf = Blueprint && (PropertyOwnerClass == Blueprint->GeneratedClass || PropertyOwnerClass == Blueprint->SkeletonGeneratedClass);
 
 	UEdGraphPin* SelfPin = NULL;
