@@ -67,6 +67,9 @@ public:
 	void ToggleShowNormals() { bShowNormals = !bShowNormals; Invalidate(); }
 	bool IsShowNormalsChecked() const { return bShowNormals; }
 
+	void ToggleShowMeshEdges();
+	bool IsShowMeshEdgesChecked() const;
+
 	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; }
 	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; }
 	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; }

@@ -617,6 +617,17 @@ void FSpriteEditorViewportClient::ToggleShowSourceTexture()
 	Invalidate();
 }
 
+void FSpriteEditorViewportClient::ToggleShowMeshEdges()
+{
+	EngineShowFlags.MeshEdges = !EngineShowFlags.MeshEdges;
+	Invalidate();
+}
+
+bool FSpriteEditorViewportClient::IsShowMeshEdgesChecked() const
+{
+	return EngineShowFlags.MeshEdges;
+}
+
 void FSpriteEditorViewportClient::UpdateMouseDelta()
 {
 	FPaperEditorViewportClient::UpdateMouseDelta();

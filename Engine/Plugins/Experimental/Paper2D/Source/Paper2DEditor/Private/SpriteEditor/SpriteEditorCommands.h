@@ -30,6 +30,7 @@ public:
 
 	TSharedPtr<FUICommandInfo> SetShowNormals;
 	TSharedPtr<FUICommandInfo> SetShowPivot;
+	TSharedPtr<FUICommandInfo> SetShowMeshEdges;
 
 	// Editing modes
 	TSharedPtr<FUICommandInfo> EnterViewMode;
