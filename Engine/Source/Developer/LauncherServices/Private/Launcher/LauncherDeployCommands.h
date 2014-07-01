@@ -55,9 +55,13 @@ public:
 			*StagePath,
 			*InitialMap,
 			*TargetPlatform.PlatformName());
-#if !PLATFORM_WINDOWS
-		CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+		
+#if !PLATFORM_MAC
+		if (TargetPlatform.PlatformName() != TEXT("IOS"))
 #endif
+		{
+			CommandLine += FString::Printf(TEXT(" -device=\"%s\""), *DeviceProxy->GetDeviceId());
+		}
 
 		// cook dependency arguments
 		CommandLine += CookCommand.IsValid() ? CookCommand->GetDependencyArguments(ChainState) : TEXT(" -skipcook");
