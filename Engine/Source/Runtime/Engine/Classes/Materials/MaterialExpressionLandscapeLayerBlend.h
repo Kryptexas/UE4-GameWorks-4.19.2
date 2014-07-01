@@ -8,6 +8,7 @@
 UENUM()
 enum ELandscapeLayerBlendType
 {
+	LB_WeightBlend,
 	LB_AlphaBlend,
 	LB_HeightBlend,
 	LB_MAX,
@@ -64,6 +65,7 @@ class UMaterialExpressionLandscapeLayerBlend : public UMaterialExpression
 
 
 	// Begin UObject Interface
+	void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface
