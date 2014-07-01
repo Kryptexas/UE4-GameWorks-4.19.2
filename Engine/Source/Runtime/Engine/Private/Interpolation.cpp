@@ -7865,7 +7865,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 
 		// Check if we're in the audio range, and if we need to start playing the audio,
 		// either because it has never been played, or isn't currently playing.
-		bool bIsInRangeAndNeedsStart = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+		// We only do this when we've jumped position.
+		bool bIsInRangeAndNeedsStart = !bPlaying && NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
 		if ( bIsInRangeAndNeedsStart )
 		{
 			bIsInRangeAndNeedsStart = SoundInst->PlayAudioComp == NULL || !SoundInst->PlayAudioComp->IsPlaying();
@@ -7876,6 +7877,8 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 		// lets start it.
 		if ( StartSoundIndex != EndSoundIndex || bIsInRangeAndNeedsStart )
 		{
+			bPlaying = true;
+
 			USoundBase* NewSound = SoundTrackKey.Sound;
 
 			APawn* Speaker = NULL;
@@ -8061,6 +8064,7 @@ void UInterpTrackSound::PreviewStopPlayback(class UInterpTrackInst* TrInst)
 	{
 		SoundTrInst->PlayAudioComp->Stop();
 	}
+	bPlaying = false;
 }
 
 /*-----------------------------------------------------------------------------
