@@ -159,6 +159,12 @@ private:
 
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 
+	/** Notification center observer for application activation events */
+	id AppActivationObserver;
+
+	/** Notification center observer for application deactivation events */
+	id AppDeactivationObserver;
+
 #if WITH_EDITOR
 	/** Holds the last gesture used to try and capture unique uses for gestures. */
 	EGestureEvent::Type LastGestureUsed;

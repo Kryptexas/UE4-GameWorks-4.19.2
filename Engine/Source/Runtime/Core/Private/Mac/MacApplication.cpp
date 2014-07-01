@@ -77,6 +77,39 @@ FMacApplication::FMacApplication()
 		TextInputMethodSystem.Reset();
 	}
 
+	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+								// If editor thread doesn't have the focus, don't suck up too much CPU time.
+								if( GIsEditor )
+								{
+									// Boost our priority back to normal.
+									struct sched_param Sched;
+									FMemory::Memzero(&Sched, sizeof(struct sched_param));
+									Sched.sched_priority = 15;
+									pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+								}
+
+								// app is active, allow sound
+								GVolumeMultiplier = 1.0f;
+							}];
+
+	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+									// If editor thread doesn't have the focus, don't suck up too much CPU time.
+									if( GIsEditor )
+									{
+										// Drop our priority to speed up whatever is in the foreground.
+										struct sched_param Sched;
+										FMemory::Memzero(&Sched, sizeof(struct sched_param));
+										Sched.sched_priority = 5;
+										pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+
+										// Sleep for a bit to not eat up all CPU time.
+										FPlatformProcess::Sleep(0.005f);
+									}
+
+									// app is inactive, silence it
+									GVolumeMultiplier = 0.0f;
+								}];
+	
 #if WITH_EDITOR
 	FMemory::MemZero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
@@ -85,6 +118,18 @@ FMacApplication::FMacApplication()
 
 FMacApplication::~FMacApplication()
 {
+	if(AppActivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
+		AppActivationObserver = nil;
+	}
+	
+	if(AppDeactivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
+		AppDeactivationObserver = nil;
+	}
+	
 	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 	if (MouseCaptureWindow)
 	{
