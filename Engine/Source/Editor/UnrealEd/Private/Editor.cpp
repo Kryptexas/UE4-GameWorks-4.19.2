@@ -1858,14 +1858,24 @@ void UEditorEngine::CloseEditedWorldAssets(UWorld* InWorld)
 
 	for(int32 i=0; i<AllAssets.Num(); i++)
 	{
-		UWorld* AssetWorld = AllAssets[i]->GetTypedOuter<UWorld>();
+		UObject* Asset = AllAssets[i];
+		UWorld* AssetWorld = Asset->GetTypedOuter<UWorld>();
+
+		if ( !AssetWorld )
+		{
+			// This might be a world, itself
+			AssetWorld = Cast<UWorld>(Asset);
+		}
 
 		if (AssetWorld && ClosingWorlds.Contains(AssetWorld))
-		{		
-			IAssetEditorInstance* EditorInstance = EditorManager.FindEditorForAsset(AllAssets[i], false);
-			if(EditorInstance != NULL)
+		{
+			const TArray<IAssetEditorInstance*> AssetEditors = EditorManager.FindEditorsForAsset(Asset);
+			for (IAssetEditorInstance* EditorInstance : AssetEditors )
 			{
-				EditorInstance->CloseWindow();
+				if (EditorInstance != NULL)
+				{
+					EditorInstance->CloseWindow();
+				}
 			}
 		}
 	}
