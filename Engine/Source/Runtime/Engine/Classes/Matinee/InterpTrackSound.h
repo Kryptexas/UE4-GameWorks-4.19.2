@@ -67,6 +67,9 @@ class UInterpTrackSound : public UInterpTrackVectorBase
 	UPROPERTY(EditAnywhere, Category=InterpTrackSound)
 	uint32 bAttach:1;
 
+	// True if the sound should have been playing at any point
+	uint32 bPlaying:1;
+
 	// Begin UObject Interface
 	virtual void PostLoad() override;
 	// End UObject Interface
