@@ -165,10 +165,10 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			check(bs->BoneName == BoneName);
 
 			// Fill in collision info for this bone.
-			CreateCollisionFromBone(bs, SkelMesh, i, Params, Infos);
+			bool bSuccess = CreateCollisionFromBone(bs, SkelMesh, i, Params, Infos);
 
 			// If not root - create joint to parent body.
-			if(bHitRoot && Params.bCreateJoints)
+			if(bHitRoot && Params.bCreateJoints && bSuccess)
 			{
 				int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, BoneName);
 				UPhysicsConstraintTemplate* CS = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
@@ -197,6 +197,11 @@ bool CreateFromSkeletalMeshInternal(UPhysicsAsset* PhysicsAsset, USkeletalMesh* 
 			}
 
 			bHitRoot = true;
+
+			if (bSuccess == false)
+			{
+				DestroyBody(PhysicsAsset, NewBodyIndex);
+			}
 		}
 	}
 
@@ -301,11 +306,14 @@ FVector ComputeEigenVector(const FMatrix & A)
 }
 
 
-void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos )
+bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 BoneIndex, FPhysAssetCreateParams& Params, const TArray<FBoneVertInfo>& Infos )
 {
 #if WITH_EDITOR
-	// Empty any existing collision.
-	bs->RemoveSimpleCollision();
+	if (Params.GeomType != EFG_MultiConvexHull)	//multi convex hull can fail so wait to clear it
+	{
+		// Empty any existing collision.
+		bs->RemoveSimpleCollision();
+	}
 #endif // WITH_EDITOR
 
 	// Calculate orientation of to use for collision primitive.
@@ -454,8 +462,10 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			if ( bSoftVertex )
 			{
 				// We dont want to support soft verts, only rigid
-				UE_LOG(LogPhysics, Log, TEXT("Unable to create physics asset with a multi convex hull due to the presence of soft vertices!"));
-				return;
+				FMessageLog EditorErrors("EditorErrors");
+				EditorErrors.Warning(NSLOCTEXT("PhysicsAssetUtils", "MultiConvexSoft", "Unable to create physics asset with a multi convex hull due to the presence of soft vertices."));
+				EditorErrors.Open();
+				return false;
 			}
 
 			// Using the same code in GetSkinnedVertexPosition
@@ -480,12 +490,16 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 		if ( Params.GeomType == EFG_MultiConvexHull )
 		{
+#if WITH_EDITOR
+			bs->RemoveSimpleCollision();
+#endif
 			// Create the convex hull from the data we got from the skeletal mesh
 			DecomposeMeshToHulls( bs, Verts, Indices, Params.MaxHullCount, Params.MaxHullVerts );
 		}
 		else
 		{
 			//Support triangle mesh soon
+			return false;
 		}		
 	}
 	else
@@ -500,6 +514,8 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 		bs->AggGeom.SphylElems.Add(SphylElem);
 	}
+
+	return true;
 }
 
 

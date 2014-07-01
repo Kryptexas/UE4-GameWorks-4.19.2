@@ -800,14 +800,21 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
 	
 	BodySetup->Modify();
 
+	bool bCreatedBody = false;
 	// Create a new physics body for this bone.
 	if (NewBodyData.VertWeight == EVW_DominantWeight)
 	{
-		FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, DominantWeightBoneInfos);
 	}
 	else
 	{
-		FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+		bCreatedBody = FPhysicsAssetUtils::CreateCollisionFromBone(BodySetup, EditorSkelMesh, NewBoneIndex, NewBodyData, AnyWeightBoneInfos);
+	}
+
+	if (bCreatedBody == false)
+	{
+		FPhysicsAssetUtils::DestroyBody(PhysicsAsset, NewBodyIndex);
+		return;
 	}
 
 	// Check if the bone of the new body has any physical children bones
