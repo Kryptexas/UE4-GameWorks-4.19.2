@@ -49,6 +49,8 @@ protected:
 
 protected:
 	void CalculateCurrentFrame();
+	UPaperSprite* GetSpriteAtCachedIndex() const;
+
 public:
 	// UActorComponent interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

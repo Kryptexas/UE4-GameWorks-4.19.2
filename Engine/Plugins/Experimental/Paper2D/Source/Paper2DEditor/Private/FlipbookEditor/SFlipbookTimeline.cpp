@@ -94,8 +94,9 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 			else if (UPaperFlipbook* FlipbookAsset = Cast<UPaperFlipbook>(Object))
 			{
 				// Insert all of the keyframes from the other flipbook into this one
-				for (const FPaperFlipbookKeyFrame& OtherFlipbookFrame : FlipbookAsset->KeyFrames)
+				for (int32 KeyIndex = 0; KeyIndex < FlipbookAsset->GetNumKeyFrames(); ++KeyIndex)
 				{
+					const FPaperFlipbookKeyFrame& OtherFlipbookFrame = FlipbookAsset->GetKeyFrameChecked(KeyIndex);
 					FPaperFlipbookKeyFrame& NewFrame = *new (NewFrames) FPaperFlipbookKeyFrame();
 					NewFrame = OtherFlipbookFrame;
 				}
@@ -107,9 +108,10 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 	if (NewFrames.Num() && (ThisFlipbook != nullptr))
 	{
 		const FScopedTransaction Transaction(LOCTEXT("DroppedAssetOntoTimeline", "Insert assets as frames"));
-
 		ThisFlipbook->Modify();
-		ThisFlipbook->KeyFrames.Append(NewFrames);
+
+		FScopedFlipbookMutator EditLock(ThisFlipbook);
+		EditLock.KeyFrames.Append(NewFrames);
 	}
 }
 

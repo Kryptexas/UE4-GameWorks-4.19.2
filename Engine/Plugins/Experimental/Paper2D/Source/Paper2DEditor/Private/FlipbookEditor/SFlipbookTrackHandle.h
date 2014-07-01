@@ -56,9 +56,9 @@ public:
 			if (bDragging && (StartingFrameRun != INDEX_NONE))
 			{
 				UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-				if (Flipbook && Flipbook->KeyFrames.IsValidIndex(KeyFrameIdx))
+				if (Flipbook && Flipbook->IsValidKeyFrameIndex(KeyFrameIdx))
 				{
-					FPaperFlipbookKeyFrame& KeyFrame = Flipbook->KeyFrames[KeyFrameIdx];
+					const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(KeyFrameIdx);
 
 					if (KeyFrame.FrameRun != StartingFrameRun)
 					{
@@ -89,16 +89,15 @@ public:
 		if (this->HasMouseCapture())
 		{
 			UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-			if (Flipbook && Flipbook->KeyFrames.IsValidIndex(KeyFrameIdx))
+			if (Flipbook && Flipbook->IsValidKeyFrameIndex(KeyFrameIdx))
 			{
-				FPaperFlipbookKeyFrame& KeyFrame = Flipbook->KeyFrames[KeyFrameIdx];
-
 				DistanceDragged += MouseEvent.GetCursorDelta().X;
 
 				if (!bDragging)
 				{
 					if (FMath::Abs(DistanceDragged) > SlateDragStartDistance)
 					{
+						const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(KeyFrameIdx);
 						StartingFrameRun = KeyFrame.FrameRun;
 						bDragging = true;
 					}
@@ -108,6 +107,8 @@ public:
 					float LocalSlateUnitsPerFrame = SlateUnitsPerFrame.Get();
 					if (LocalSlateUnitsPerFrame != 0)
 					{
+						FScopedFlipbookMutator EditLock(Flipbook);
+						FPaperFlipbookKeyFrame& KeyFrame = EditLock.KeyFrames[KeyFrameIdx];
 						KeyFrame.FrameRun = StartingFrameRun + (DistanceDragged / LocalSlateUnitsPerFrame);
 						KeyFrame.FrameRun = FMath::Max<int32>(1, KeyFrame.FrameRun);
 					}

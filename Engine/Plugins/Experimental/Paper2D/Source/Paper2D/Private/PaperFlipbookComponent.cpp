@@ -28,16 +28,22 @@ UPaperFlipbookComponent::UPaperFlipbookComponent(const FPostConstructInitializeP
 	PlayRate = 1.0f;
 }
 
+UPaperSprite* UPaperFlipbookComponent::GetSpriteAtCachedIndex() const
+{
+	UPaperSprite* SpriteToSend = nullptr;
+	if ((SourceFlipbook != nullptr) && SourceFlipbook->IsValidKeyFrameIndex(CachedFrameIndex))
+	{
+		SpriteToSend = SourceFlipbook->GetKeyFrameChecked(CachedFrameIndex).Sprite;
+	}
+	return SpriteToSend;
+}
+
 FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 {
 	FPaperFlipbookSceneProxy* NewProxy = new FPaperFlipbookSceneProxy(this);
 
 	CalculateCurrentFrame();
-	UPaperSprite* SpriteToSend = NULL;
-	if ((SourceFlipbook != NULL) && (CachedFrameIndex >= 0) && (CachedFrameIndex < SourceFlipbook->KeyFrames.Num()))
-	{
-		SpriteToSend = SourceFlipbook->KeyFrames[CachedFrameIndex].Sprite;
-	}
+	UPaperSprite* SpriteToSend = GetSpriteAtCachedIndex();
 
 	FSpriteDrawCallRecord DrawCall;
 	DrawCall.BuildFromSprite(SpriteToSend);
@@ -80,61 +86,38 @@ FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform & LocalToW
 
 void UPaperFlipbookComponent::CalculateCurrentFrame()
 {
-	if (SourceFlipbook != NULL && SourceFlipbook->FramesPerSecond > 0)
+	const int32 LastCachedFrame = CachedFrameIndex;
+	CachedFrameIndex = (SourceFlipbook != nullptr) ? SourceFlipbook->GetKeyFrameIndexAtTime(AccumulatedTime) : INDEX_NONE;
+
+	if (CachedFrameIndex != LastCachedFrame)
 	{
-		int32 LastCachedFrame = CachedFrameIndex;
-
-		float SumTime = 0.0f;
-		int32 FrameIndex;
-		for (FrameIndex = 0; FrameIndex < SourceFlipbook->KeyFrames.Num(); ++FrameIndex)
-		{
-			SumTime += SourceFlipbook->KeyFrames[FrameIndex].FrameRun / SourceFlipbook->FramesPerSecond;
-
-			if (AccumulatedTime < SumTime)
-			{
-				break;
-			}
-		}
-
-		if (AccumulatedTime >= SumTime)
-		{
-			AccumulatedTime = FMath::Fmod(AccumulatedTime, SumTime);
-			//@TODO: Could have gone farther than this!!!
-			CachedFrameIndex = 0;
-		}
-		else
-		{
-			CachedFrameIndex = FrameIndex;
-		}
-
-		if (CachedFrameIndex != LastCachedFrame)
-		{
-			// Indicate we need to send new dynamic data.
-			MarkRenderDynamicDataDirty();
-		}
+		// Indicate we need to send new dynamic data.
+		MarkRenderDynamicDataDirty();
 	}
 }
 
 void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	// Indicate we need to send new dynamic data.
-	MarkRenderDynamicDataDirty();
-	
-	AccumulatedTime += DeltaTime * PlayRate;
-	CalculateCurrentFrame();
+	// Advance time
+	const float TotalTime = (SourceFlipbook != nullptr) ? SourceFlipbook->GetTotalDuration() : 0.0f;
+	if (TotalTime > 0.0f)
+	{
+		AccumulatedTime += DeltaTime * PlayRate;
+		AccumulatedTime = FMath::Fmod(AccumulatedTime, TotalTime);
+	}
+	else
+	{
+		AccumulatedTime = 0.0f;
+	}
 
-	//Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	CalculateCurrentFrame();
 }
 
 void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 {
 	if (SceneProxy != NULL)
 	{
-		UPaperSprite* SpriteToSend = NULL;
-		if ((SourceFlipbook != NULL) && (CachedFrameIndex >= 0) && (CachedFrameIndex < SourceFlipbook->KeyFrames.Num()))
-		{
-			SpriteToSend = SourceFlipbook->KeyFrames[CachedFrameIndex].Sprite;
-		}
+		UPaperSprite* SpriteToSend = GetSpriteAtCachedIndex();
 
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SpriteToSend);
@@ -204,8 +187,7 @@ void UPaperFlipbookComponent::SetSpriteColor(FLinearColor NewColor)
 
 void UPaperFlipbookComponent::SetCurrentTime(float NewTime)
 {
-	// Can't set color on a static component
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static)) && (NewTime != AccumulatedTime))
+	if (NewTime != AccumulatedTime)
 	{
 		AccumulatedTime = NewTime;
 		CalculateCurrentFrame();
