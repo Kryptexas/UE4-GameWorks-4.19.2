@@ -26,6 +26,10 @@ class UDecalComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Decal)
 	int32 SortOrder;
 
+	/** Sets the sort order for the decal component. Higher values draw later (on top). This will force the decal to reattach */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")
+	ENGINE_API void SetSortOrder(int32 Value);
+
 	/** setting decal material on decal component. This will force the decal to reattach */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal")
 	ENGINE_API void SetDecalMaterial(class UMaterialInterface* NewDecalMaterial);
