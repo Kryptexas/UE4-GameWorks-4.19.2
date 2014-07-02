@@ -272,7 +272,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 						{
 							// Found the active range, stop enumeration.
 							*bStop = YES;
-							CompositionRange = Range;
+							CompositionRange.location += Range.location;
+							CompositionRange.length = Range.length;
 						}
 					}
 				}];
