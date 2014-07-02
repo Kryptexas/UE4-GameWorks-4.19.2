@@ -798,7 +798,9 @@ namespace UnrealBuildTool
 			{
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
 			}
-			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
+			
+			IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
+			GenDebugAction.WorkingDirectory = Toolchain.GetMacDevSrcRoot();
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command

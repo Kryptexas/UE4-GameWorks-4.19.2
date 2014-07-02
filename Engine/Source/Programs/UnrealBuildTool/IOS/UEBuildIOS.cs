@@ -126,7 +126,7 @@ namespace UnrealBuildTool
 			}
 
 			// needs IOS8 for Metal
-			if (IOSToolChain.IOSSDKVersionFloat >= 8.0)
+			if (IOSToolChain.IOSSDKVersionFloat >= 8.0 && UEBuildConfiguration.bCompileAgainstEngine)
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
 				InBuildTarget.ExtraModuleNames.Add("MetalRHI");

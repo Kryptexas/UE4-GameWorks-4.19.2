@@ -31,7 +31,6 @@ namespace iPhonePackager
 		private static string XcodeDeveloperDir = "";
 
 		private static string iPhone_SigningDevRootMac = "";
-		private static string iPhone_SigningDevRootWin = "";
 
 		/// <summary>
 		/// The file name (no path) of the temporary mobile provision that will be placed on the remote mac for use in makeapp
@@ -98,13 +97,12 @@ namespace iPhonePackager
 
 			// MacName=%ue4.iPhone_SigningServerName%
 			MacName = Config.OverrideMacName != null ? Config.OverrideMacName : Utilities.GetEnvironmentVariable( "ue.IOSSigningServer", "a1487" );
-			iPhone_SigningDevRootWin = "\\\\" + MacName + "\\UE4\\Builds";
 			iPhone_SigningDevRootMac = "/UE4/Builds";
 
 			// get the path to mirror into on the Mac
 			string BinariesDir = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, @"..\.."));
 			string Root = Path.GetPathRoot(BinariesDir);
-			string BranchPath = MachineName + "/" + BinariesDir.Substring( Root.Length );
+			string BranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring( Root.Length );
 			BranchPath = BranchPath.Replace('\\', '/');
 
 			// similar for the game path (strip off the D:\ tpe root)
@@ -118,7 +116,7 @@ namespace iPhonePackager
 			}
 			else
 			{
-				GameBranchPath = MachineName + "/" + BinariesDir.Substring(Root.Length);
+				GameBranchPath = MachineName + "/" + Root[0].ToString() + "/" + BinariesDir.Substring(Root.Length);
 				GameBranchPath = GameBranchPath.Replace('\\', '/');
 			}
 
