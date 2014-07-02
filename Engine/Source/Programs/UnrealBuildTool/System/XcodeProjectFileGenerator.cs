@@ -675,36 +675,19 @@ namespace UnrealBuildTool
 			bool bIsUE4Client = Target.TargetName.Equals("UE4Client", StringComparison.InvariantCultureIgnoreCase);
 			string EngineRelative = "";
 
-			foreach (string GameFolder in GameFolders )
+			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+			foreach (string GameFolder in GameFolders)
 			{
 				if (GameFolder.EndsWith(Target.TargetName))
 				{
 					IsAGame = true;
-					if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
-					{
-						var Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
-						GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
-					}
+					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
 					break;
 				}
 			}
-			if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
-			{
-				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
-			}
-			else if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-			{
-				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../../../../");
-				if (EngineRelative.IndexOf(':') == 1)
-				{
-					EngineRelative = EngineRelative.Substring(2);
-				}
-				if (Target.TargetPlatform == UnrealTargetPlatform.IOS)
-				{
-					var Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
-					EngineRelative = Toolchain.ConvertPath(EngineRelative);
-				}
-			}
+
+			EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
+			EngineRelative = Toolchain.ConvertPath(EngineRelative);
 
 			if (!bGeneratingRocketProjectFiles)
 			{

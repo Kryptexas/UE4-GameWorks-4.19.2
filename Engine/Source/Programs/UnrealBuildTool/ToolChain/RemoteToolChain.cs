@@ -36,8 +36,7 @@ namespace UnrealBuildTool
 		public static string UserDevRootMac = "/UE4/Builds/";
 
 		/** The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS) */
-		public static string BranchDirectory = Environment.MachineName + "\\" + Path.GetFullPath(".\\").Substring(3);
-		public static string BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
+		public static string BranchDirectory = Path.GetFullPath(".\\");
 
 
         /** Substrings that indicate a line contains an error */
@@ -57,7 +56,6 @@ namespace UnrealBuildTool
 
 			BranchDirectory = BranchDirectory.Replace("Engine\\Binaries\\DotNET", "");
 			BranchDirectory = BranchDirectory.Replace("Engine\\Source\\", "");
-			BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
         }
 
         // Do any one-time, global initialization for the tool chain
@@ -138,31 +136,19 @@ namespace UnrealBuildTool
         {
             if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
             {
-                // Path of directory on Mac
-                string MacPath = GetMacDevSrcRoot();
-
-                // In the case of paths from the PC to the Mac over a UNC path, peel off the possible roots
-                string StrippedPath = OriginalPath.Replace(BranchDirectory, "");
-
-                // Now, reduce the path down to just relative to UE4 and add file location
-                MacPath += "../../" + StrippedPath.Substring(RootDirectoryLocation(StrippedPath));
-
-				try
+				if (OriginalPath[1] != ':')
 				{
-					Utils.CollapseRelativeDirectories(ref MacPath);
-				}
-				catch (Exception Ex)
-				{
-					throw new BuildException(Ex, "Error getting full path for: {0} (Exception: {1})", MacPath, Ex.Message);
+					throw new BuildException("Can only convert full paths");
 				}
 
-                // Replace back slashes with forward for the Mac
-                MacPath = MacPath.Replace("\\", "/");
+				string MacPath = string.Format("{0}{1}/{2}/{3}",
+					UserDevRootMac,
+					Environment.MachineName,
+					OriginalPath[0].ToString().ToUpper(),
+					OriginalPath.Substring(3));
 
-				if (MacPath.IndexOf(':') == 1)
-				{
-					MacPath = MacPath.Substring(2);
-				}
+				// clean the path
+				MacPath = MacPath.Replace("\\", "/");
 
 				return MacPath;
             }
@@ -172,21 +158,18 @@ namespace UnrealBuildTool
             }
         }
 
-        static int RootDirectoryLocation(string LocalPath)
-        {
-            // By default, assume the filename is already stripped down and the root is at zero
-            int RootDirLocation = 0;
-
-            string UBTRootPath = Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory + "..\\..\\..\\");
-            if (LocalPath.ToUpperInvariant().Contains(UBTRootPath.ToUpperInvariant()))
-            {
-                // If the file is a full path name and rooted at the same location as UBT,
-                // use that location as the root and simply return the length
-                RootDirLocation = UBTRootPath.Length;
-            }
-
-            return RootDirLocation;
-        }
+		protected string GetMacDevSrcRoot()
+		{
+			if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+			{
+				// figure out the remote version of Engine/Source
+				return ConvertPath(Path.GetFullPath(Path.Combine(BranchDirectory, "Engine/Source/")));
+			}
+			else
+			{
+				return ".";
+			}
+		}
 
 		private static List<string> RsyncDirs = new List<string>();
 		private static List<string> RsyncExtensions = new List<string>();
@@ -532,17 +515,5 @@ namespace UnrealBuildTool
 
             return QueryResult;
         }
-
-        public static string GetMacDevSrcRoot()
-        {
-            if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-            {
-                return UserDevRootMac + BranchDirectoryMac + "Engine/Source/";
-            }
-            else
-            {
-                return ".";
-            }
-        }
-    };
+	};
 }

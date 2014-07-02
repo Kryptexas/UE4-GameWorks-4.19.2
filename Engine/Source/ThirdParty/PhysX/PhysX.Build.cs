@@ -227,7 +227,7 @@ public class PhysX : ModuleRules
 				"PhysX3{0}",
 				"PhysX3CharacterKinematic{0}",
 				"PhysX3Extensions{0}",
-				"PhysX3Cooking{0}",
+				// "PhysX3Cooking{0}", // not needed until Apex
 				"PhysX3Common{0}",
 				"PhysX3Vehicle{0}",
 				"PxTask{0}",
@@ -246,10 +246,7 @@ public class PhysX : ModuleRules
 
 			foreach (string Lib in StaticLibrariesAndroid)
 			{
-                if (!Lib.Contains("Cooking") || Target.IsCooked == false)
-                {
-                    PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
-                }
+				PublicAdditionalLibraries.Add(String.Format(Lib, LibrarySuffix));
 			}
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -302,7 +299,7 @@ public class PhysX : ModuleRules
 					"PhysX3",
 					"PhysX3CharacterKinematic",
 					"PhysX3Common",
-					"PhysX3Cooking",
+					// "PhysX3Cooking", // not needed until Apex
 					"PhysX3Extensions",
 					"PhysX3Vehicle",
 					"PxTask",
@@ -316,11 +313,8 @@ public class PhysX : ModuleRules
 
 			foreach (string PhysXLib in PhysXLibs)
 			{
-                if (!PhysXLib.Contains("Cooking") || Target.IsCooked == false)
-                {
-                    PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
-                    PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
-                }
+				PublicAdditionalLibraries.Add(PhysXLib + LibrarySuffix);
+				PublicAdditionalShadowFiles.Add(Path.Combine(PhysXLibDir, "lib" + PhysXLib + LibrarySuffix + ".a"));
 			}
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5)
