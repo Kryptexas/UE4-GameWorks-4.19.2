@@ -2350,7 +2350,7 @@ bool UMaterial::RemoveExpressionParameter(UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::IsParameter(UMaterialExpression* Expression)
+bool UMaterial::IsParameter(const UMaterialExpression* Expression)
 {
 	bool bRet = false;
 

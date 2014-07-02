@@ -580,7 +580,7 @@ void UMaterialGraphNode::PostPlacedNewNode()
 		NodeComment = MaterialExpression->Desc;
 		NodePosX = MaterialExpression->MaterialExpressionEditorX;
 		NodePosY = MaterialExpression->MaterialExpressionEditorY;
-		bCanRenameNode = UMaterial::IsParameter(MaterialExpression);
+		bCanRenameNode = MaterialExpression->CanRenameNode();
 	}
 }
 
@@ -639,38 +639,14 @@ void UMaterialGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverT
 
 FString UMaterialGraphNode::GetParameterName() const
 {
-	if (const UMaterialExpressionParameter* Parameter = Cast<const UMaterialExpressionParameter>(MaterialExpression))
-	{
-		return Parameter->ParameterName.ToString();
-	}
-	else if (const UMaterialExpressionTextureSampleParameter* TexParameter = Cast<const UMaterialExpressionTextureSampleParameter>(MaterialExpression))
-	{
-		return TexParameter->ParameterName.ToString();
-	}
-	else if (const UMaterialExpressionFontSampleParameter* FontParameter = Cast<const UMaterialExpressionFontSampleParameter>(MaterialExpression))
-	{
-		return FontParameter->ParameterName.ToString();
-	}
-	// Should have been able to get parameter name to edit
-	check(false);
-	return TEXT("");
+	return MaterialExpression->GetEditableName();
 }
 
 void UMaterialGraphNode::SetParameterName(const FString& NewName)
 {
-	if (UMaterialExpressionParameter* Parameter = Cast<UMaterialExpressionParameter>(MaterialExpression))
-	{
-		Parameter->ParameterName = *NewName;
-	}
-	else if (UMaterialExpressionTextureSampleParameter* TexParameter = Cast<UMaterialExpressionTextureSampleParameter>(MaterialExpression))
-	{
-		TexParameter->ParameterName = *NewName;
-	}
-	else if (UMaterialExpressionFontSampleParameter* FontParameter = Cast<UMaterialExpressionFontSampleParameter>(MaterialExpression))
-	{
-		FontParameter->ParameterName = *NewName;
-	}
+	MaterialExpression->SetEditableName(NewName);
 
+	//@TODO: Push into the SetEditableName interface
 	CastChecked<UMaterialGraph>(GetGraph())->Material->UpdateExpressionParameterName(MaterialExpression);
 }
 

@@ -2560,7 +2560,10 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 			if( METextureBase )
 			{
 				FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-				METextureBase->Texture = GEditor->GetSelectedObjects()->GetTop<UTexture>();
+				if( UTexture* SelectedTexture = GEditor->GetSelectedObjects()->GetTop<UTexture>() )
+				{
+					METextureBase->Texture = SelectedTexture;
+				}
 				METextureBase->AutoSetSampleType();
 			}
 
@@ -2596,7 +2599,7 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		NewExpression->UpdateParameterGuid(true, true);
 
 		UMaterialExpressionTextureSampleParameter* TextureParameterExpression = Cast<UMaterialExpressionTextureSampleParameter>( NewExpression );
-		if( TextureParameterExpression )
+		if( (TextureParameterExpression != nullptr) && TextureParameterExpression->CanRenameNode() )
 		{
 			// Change the parameter's name on creation to mirror the object's name; this avoids issues of having colliding parameter
 			// names and having the name left as "None"

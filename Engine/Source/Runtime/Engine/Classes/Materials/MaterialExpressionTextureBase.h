@@ -9,8 +9,8 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionTextureBase.generated.h"
 
-UCLASS(abstract, hidecategories=Object, MinimalAPI)
-class UMaterialExpressionTextureBase : public UMaterialExpression 
+UCLASS(abstract, hidecategories=Object)
+class ENGINE_API UMaterialExpressionTextureBase : public UMaterialExpression 
 {
 	GENERATED_UCLASS_BODY()
 
@@ -49,12 +49,12 @@ class UMaterialExpressionTextureBase : public UMaterialExpression
 	/**
 	 * Automatically determines and set the sampler type for the current texture.
 	 */
-	ENGINE_API void AutoSetSampleType();
+	void AutoSetSampleType();
 
 	/**
 	 * Returns the default sampler type for the specified texture.
 	 * @param Texture - The texture for which the default sampler type will be returned.
 	 * @returns the default sampler type for the specified texture.
 	 */
-	ENGINE_API static EMaterialSamplerType GetSamplerTypeForTexture( const UTexture* Texture );
+	static EMaterialSamplerType GetSamplerTypeForTexture( const UTexture* Texture );
 };

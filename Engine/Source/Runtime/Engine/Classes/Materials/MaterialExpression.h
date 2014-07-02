@@ -77,8 +77,8 @@ struct FExpressionOutput
 };
 #endif
 
-UCLASS(abstract, hidecategories=Object, MinimalAPI)
-class UMaterialExpression : public UObject
+UCLASS(abstract, hidecategories=Object)
+class ENGINE_API UMaterialExpression : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -261,7 +261,7 @@ class UMaterialExpression : public UObject
 	 * Copy the SrcExpressions into the specified material, preserving internal references.
 	 * New material expressions are created within the specified material.
 	 */
-	ENGINE_API static void CopyMaterialExpressions(const TArray<class UMaterialExpression*>& SrcExpressions, const TArray<class UMaterialExpressionComment*>& SrcExpressionComments, 
+	static void CopyMaterialExpressions(const TArray<class UMaterialExpression*>& SrcExpressions, const TArray<class UMaterialExpressionComment*>& SrcExpressionComments, 
 		class UMaterial* Material, class UMaterialFunction* Function, TArray<class UMaterialExpression*>& OutNewExpressions, TArray<class UMaterialExpression*>& OutNewComments);
 
 	/**
@@ -272,22 +272,22 @@ class UMaterialExpression : public UObject
 	/**
 	 * Connects the specified output to the passed material for previewing. 
 	 */
-	ENGINE_API void ConnectToPreviewMaterial(UMaterial* Material, int32 OutputIndex);
+	void ConnectToPreviewMaterial(UMaterial* Material, int32 OutputIndex);
 
 	/**
 	 * Connects the specified input expression to the specified output of this expression.
 	 */
-	ENGINE_API void ConnectExpression(FExpressionInput* Input, int32 OutputIndex);
+	void ConnectExpression(FExpressionInput* Input, int32 OutputIndex);
 
 	/** 
 	* Generates a GUID for this expression if one doesn't already exist. 
 	*
 	* @param bForceGeneration	Whether we should generate a GUID even if it is already valid.
 	*/
-	ENGINE_API void UpdateParameterGuid(bool bForceGeneration, bool bAllowMarkingPackageDirty);
+	void UpdateParameterGuid(bool bForceGeneration, bool bAllowMarkingPackageDirty);
 
 	/** Callback to access derived classes' parameter expression id. */
-	ENGINE_API virtual FGuid& GetParameterExpressionId()
+	virtual FGuid& GetParameterExpressionId()
 	{
 		checkf(!bIsParameterExpression, TEXT("Expressions with bIsParameterExpression==true must implement their own GetParameterExpressionId!"));
 		static FGuid Dummy;
@@ -295,7 +295,7 @@ class UMaterialExpression : public UObject
 	}
 
 	/** Asserts if the expression is not contained by its Material or Function's expressions array. */
-	ENGINE_API void ValidateState();
+	void ValidateState();
 
 #if WITH_EDITOR
 	/** Returns the keywords that should be used when searching for this expression */
@@ -309,12 +309,29 @@ class UMaterialExpression : public UObject
 	 *
 	 * @return Whether a repeat was found while getting expressions
 	 */
-	ENGINE_API bool GetAllInputExpressions(TArray<UMaterialExpression*>& InputExpressions);
+	bool GetAllInputExpressions(TArray<UMaterialExpression*>& InputExpressions);
+
+	/**
+	 * Can this node be renamed?
+	 */
+	virtual bool CanRenameNode() const;
+
+	/**
+	 * Returns the current 'name' of the node (typically a parameter name).
+	 * Only valid to call on a node that previously returned CanRenameNode() = true.
+	 */
+	virtual FString GetEditableName() const;
+
+	/**
+	 * Sets the current 'name' of the node (typically a parameter name)
+	 * Only valid to call on a node that previously returned CanRenameNode() = true.
+	 */
+	virtual void SetEditableName(const FString& NewName);
 
 #endif // WITH_EDITOR
 
 	/** Checks whether any inputs to this expression create a loop */
-	ENGINE_API bool ContainsInputLoop();
+	bool ContainsInputLoop();
 
 protected:
 	/**

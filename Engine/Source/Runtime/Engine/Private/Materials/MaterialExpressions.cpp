@@ -949,6 +949,25 @@ bool UMaterialExpression::GetAllInputExpressions(TArray<UMaterialExpression*>& I
 		return true;
 	}
 }
+
+bool UMaterialExpression::CanRenameNode() const
+{
+	return false;
+}
+
+FString UMaterialExpression::GetEditableName() const
+{
+	// This function is only safe to call in a class that has implemented CanRenameNode() to return true
+	check(false);
+	return TEXT("");
+}
+
+void UMaterialExpression::SetEditableName(const FString& NewName)
+{
+	// This function is only safe to call in a class that has implemented CanRenameNode() to return true
+	check(false);
+}
+
 #endif
 
 bool UMaterialExpression::ContainsInputLoop()
@@ -1717,6 +1736,19 @@ bool UMaterialExpressionTextureSampleParameter::MatchesSearchQuery( const TCHAR*
 
 	return Super::MatchesSearchQuery(SearchQuery);
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionTextureSampleParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionTextureSampleParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
+
 
 //
 //  UMaterialExpressionTextureSampleParameterCube
@@ -3534,6 +3566,18 @@ bool UMaterialExpressionParameter::MatchesSearchQuery( const TCHAR* SearchQuery 
 
 	return Super::MatchesSearchQuery(SearchQuery);
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
 
 void UMaterialExpressionParameter::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
@@ -5486,6 +5530,18 @@ bool UMaterialExpressionFontSampleParameter::MatchesSearchQuery( const TCHAR* Se
 
 	return Super::MatchesSearchQuery(SearchQuery);
 }
+
+#if WITH_EDITOR
+FString UMaterialExpressionFontSampleParameter::GetEditableName() const
+{
+	return ParameterName.ToString();
+}
+
+void UMaterialExpressionFontSampleParameter::SetEditableName(const FString& NewName)
+{
+	ParameterName = *NewName;
+}
+#endif
 
 void UMaterialExpressionFontSampleParameter::GetAllParameterNames(TArray<FName> &OutParameterNames, TArray<FGuid> &OutParameterIds)
 {
