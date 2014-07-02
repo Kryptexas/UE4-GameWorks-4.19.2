@@ -6,7 +6,7 @@
  * The public interface implemented by the UMG Designer to allow extensions to call methods
  * on the designer.
  */
-class IUMGDesigner
+class UMGEDITOR_API IUMGDesigner
 {
 public:
 

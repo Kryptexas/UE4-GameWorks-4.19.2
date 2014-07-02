@@ -12,7 +12,7 @@ class UWidgetBlueprint;
  * The Designer extension allows developers to provide additional widgets and custom painting to the designer surface for
  * specific widgets.  Allowing for a more customized and specific editors for the different widgets.
  */
-class FDesignerExtension : public TSharedFromThis<FDesignerExtension>
+class UMGEDITOR_API FDesignerExtension : public TSharedFromThis<FDesignerExtension>
 {
 public:
 	/** Constructor */

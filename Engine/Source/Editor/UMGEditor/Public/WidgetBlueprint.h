@@ -11,7 +11,7 @@
 class UMovieScene;
 
 USTRUCT()
-struct FDelegateEditorBinding
+struct UMGEDITOR_API FDelegateEditorBinding
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -41,7 +41,7 @@ struct FDelegateEditorBinding
  * The widget blueprint enables extending UUserWidget the user extensible UWidget.
  */
 UCLASS(BlueprintType)
-class UWidgetBlueprint : public UBlueprint
+class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 {
 	GENERATED_UCLASS_BODY()
 

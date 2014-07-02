@@ -10,7 +10,7 @@ class UWidgetBlueprint;
  * The Widget reference is a useful way to hold onto the selection in a way that allows for up to date access to the current preview object.
  * Because the designer could end up rebuilding the preview, it's best to hold onto an FWidgetReference.
  */
-struct FWidgetReference
+struct UMGEDITOR_API FWidgetReference
 {
 public:
 	/**

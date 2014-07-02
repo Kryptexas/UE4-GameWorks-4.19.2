@@ -6,7 +6,7 @@
  * The widget template represents a widget or a set of widgets to create and spawn into the widget tree.
  * More complicated defaults could be created by deriving from this class and registering new templates with the module.
  */
-class FWidgetTemplate : public TSharedFromThis<FWidgetTemplate>
+class UMGEDITOR_API FWidgetTemplate : public TSharedFromThis<FWidgetTemplate>
 {
 public:
 	/** Constructor */
