@@ -15,7 +15,7 @@
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"
-#include "UWidgetBlueprint.h"
+#include "WidgetBlueprint.h"
 
 #include "AssetTypeActions_Base.h"
 
