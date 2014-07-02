@@ -2860,7 +2860,7 @@ public class GUBP : BuildCommand
         }
         public override int CISFrequencyQuantumShift(GUBP bp)
         {
-            return base.CISFrequencyQuantumShift(bp) + 3;
+            return base.CISFrequencyQuantumShift(bp) + 2;
         }
         public override void DoTest(GUBP bp)
         {
