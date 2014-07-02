@@ -3,8 +3,6 @@
 #include "LinuxCursor.h"
 #include "LinuxWindow.h"
 
-#include "ds_extensions.h"
-
 FLinuxCursor::FLinuxCursor() : bHidden(false)
 {
 	//	init the sdl here
@@ -150,12 +148,7 @@ FVector2D FLinuxCursor::GetPosition() const
 {
 	int CursorX, CursorY;
 
-	int DSRetCode = DSEXT_GetAbsoluteMousePosition(&CursorX, &CursorY);
-	if (EDSExtSuccess != DSRetCode)
-	{
-		UE_LOG(LogHAL, Log, TEXT("Could not get absolute mouse position, DSExt returned %d"), DSRetCode);
-		CursorX = CursorY = 0;
-	}
+	SDL_GetGlobalMouseState(&CursorX, &CursorY);
 
 	return FVector2D( CursorX, CursorY );
 }

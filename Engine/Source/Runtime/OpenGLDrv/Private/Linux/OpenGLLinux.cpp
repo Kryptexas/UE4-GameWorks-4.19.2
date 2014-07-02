@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "OpenGLDrvPrivate.h"
-#include "ds_extensions.h"
 #include "ComponentReregisterContext.h"
 
 /*------------------------------------------------------------------------------
@@ -109,12 +108,6 @@ static void _PlatformCreateDummyGLWindow( FPlatformOpenGLContext *OutContext )
 
 	OutContext->hWnd					= h_wnd;
 	OutContext->bReleaseWindowOnDestroy	= true;
-
-	int CacheRet = DSEXT_CacheX11Info(h_wnd);
-	if (EDSExtSuccess != CacheRet)
-	{
-		UE_LOG(LogRHI, Error, TEXT("Could not cache X11 info, DSExt error: %d"), CacheRet);
-	}
 }
 
 /**
@@ -696,6 +689,11 @@ bool PlatformInitOpenGL()
 
 	if (!bInitialized)
 	{
+		if (SDL_GL_LoadLibrary(NULL))
+		{
+			verifyf(false, TEXT("Unable to dynamically load libGL: %s\n."), SDL_GetError());
+		}
+
 		int MajorVersion = 0;
 		int MinorVersion = 0;
 
@@ -710,21 +708,25 @@ bool PlatformInitOpenGL()
 		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, MajorVersion ) )
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
+			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
 		}
 
 		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, MinorVersion ) )
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
+			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
 		}
 
 		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | DebugFlag ) )
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
+			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
 		}
 
 		if	( SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE ) )
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
+			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
 		}
 
 		// Create a dummy context to verify opengl support.
@@ -745,13 +747,13 @@ bool PlatformInitOpenGL()
 		if (bOpenGLSupported)
 		{
 			// Initialize all entry points required by Unreal.
-			#define GET_GL_ENTRYPOINTS(Type,Func) Func = (Type)SDL_GL_GetProcAddress(#Func);
+			#define GET_GL_ENTRYPOINTS(Type,Func) Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func));
 			ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 			ENUM_GL_ENTRYPOINTS_OPTIONAL(GET_GL_ENTRYPOINTS);
 		
 			// Check that all of the entry points have been initialized.
 			bool bFoundAllEntryPoints = true;
-			#define CHECK_GL_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Warning, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
+			#define CHECK_GL_ENTRYPOINTS(Type,Func) if (Func == NULL) { bFoundAllEntryPoints = false; UE_LOG(LogRHI, Fatal, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }
 			ENUM_GL_ENTRYPOINTS(CHECK_GL_ENTRYPOINTS);
 			checkf(bFoundAllEntryPoints, TEXT("Failed to find all OpenGL entry points."));
 		}

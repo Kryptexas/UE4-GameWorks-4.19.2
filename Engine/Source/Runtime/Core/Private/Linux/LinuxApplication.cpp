@@ -8,8 +8,6 @@
 	#include "SteamControllerInterface.h"
 #endif // STEAM_CONTROLLER_SUPPORT
 
-#include "ds_extensions.h"
-
 #if WITH_EDITOR
 #include "ModuleManager.h"
 #endif
@@ -884,35 +882,29 @@ void* FLinuxApplication::GetCapture( void ) const
 void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 {
 	const bool bEnable = bIsMouseCaptureEnabled || bIsMouseCursorLocked;
-	FLinuxCursor *LinuxCursor = static_cast< FLinuxCursor* >(Cursor.Get());
+	FLinuxCursor *LinuxCursor = static_cast<FLinuxCursor*>(Cursor.Get());
 
 	// this is a hacky heuristic which makes QA-ClickHUD work while not ruining SlateViewer...
 	bool bShouldGrab = (IS_PROGRAM != 0 || GIsEditor) && !LinuxCursor->IsHidden();
 
 	if (bEnable)
 	{
-		if( TargetWindow )
+		if (TargetWindow)
 		{
 			MouseCaptureWindow = TargetWindow;
 		}
 		if (bShouldGrab && MouseCaptureWindow)
 		{
-			if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE))
-			{
-				UE_LOG(LogHAL, Log, TEXT("Could not grab cursor for SDL window %p"), TargetWindow);
-			}
+			SDL_CaptureMouse(SDL_TRUE);
 		}
 	}
 	else
 	{
-		if( MouseCaptureWindow )
+		if (MouseCaptureWindow)
 		{
 			if (bShouldGrab)
 			{
-				if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE))
-				{
-					UE_LOG(LogHAL, Log, TEXT("Could not ungrab cursor for SDL window %p"), TargetWindow);
-				}
+				SDL_CaptureMouse(SDL_FALSE);
 			}
 			MouseCaptureWindow = NULL;
 		}
