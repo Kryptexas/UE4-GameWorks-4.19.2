@@ -61,7 +61,7 @@ bool FDeferredShadingSceneRenderer::RenderLightMapDensities(FRHICommandListImmed
 				{
 					// Draw the dynamic non-occluded primitives using a base pass drawing policy.
 					TDynamicPrimitiveDrawer<FLightMapDensityDrawingPolicyFactory> Drawer(
-						&View,FLightMapDensityDrawingPolicyFactory::ContextType(),true);
+						RHICmdList, &View, FLightMapDensityDrawingPolicyFactory::ContextType(), true);
 					for (int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
 					{
 						const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];

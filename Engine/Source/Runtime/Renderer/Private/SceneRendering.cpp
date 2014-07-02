@@ -921,7 +921,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
     FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
-	FDeferredUpdateResource::UpdateResources();
+	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
     for( int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++ )
     {

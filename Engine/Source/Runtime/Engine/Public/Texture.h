@@ -558,7 +558,7 @@ public:
 	 * Iterate over the global list of resources that need to
 	 * be updated and call UpdateResource on each one.
 	 */
-	ENGINE_API static void UpdateResources();
+	ENGINE_API static void UpdateResources(FRHICommandListImmediate& RHICmdList);
 
 	/** 
 	 * This is reset after all viewports have been rendered
@@ -570,12 +570,12 @@ public:
 
 	// FDeferredUpdateResource interface
 
-	/**
-	 * Updates the resource
-	 */
-	virtual void UpdateResource() = 0;
-
 protected:
+
+	/**
+	* Updates the resource
+	*/
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) = 0;
 
 	/**
 	 * Add this resource to deferred update list
@@ -695,11 +695,6 @@ public:
 
 	// FDeferredClearResource interface
 
-	/**
-	 * Clear contents of the render target
-	 */
-	virtual void UpdateResource() override;
-
 	// FRenderTarget interface.
 	virtual FIntPoint GetSizeXY() const;
 
@@ -714,6 +709,12 @@ public:
 	 * @return TextureRHI for rendering 
 	 */
 	FTexture2DRHIRef GetTextureRHI() { return Texture2DRHI; }
+protected:
+	/**
+	* Clear contents of the render target
+	*/
+	friend class UTextureRenderTarget2D;
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
 
 private:
 	/** The UTextureRenderTarget2D which this resource represents. */
@@ -766,12 +767,6 @@ public:
 	 */
 	virtual void ReleaseDynamicRHI() override;
 
-	/**
-	 * Clear contents of the render target. Clears each face of the cube
-	 * This is only called by the rendering thread.
-	 */
-	virtual void UpdateResource() override;
-
 	// FRenderTarget interface.
 
 	/**
@@ -808,6 +803,13 @@ public:
 	* @return true if the read succeeded.
 	*/
 	ENGINE_API bool ReadPixels(TArray<FFloat16Color>& OutImageData, FReadSurfaceDataFlags InFlags, FIntRect InRect = FIntRect(0, 0, 0, 0));
+
+protected:
+	/**
+	* Clear contents of the render target. Clears each face of the cube
+	* This is only called by the rendering thread.
+	*/
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
 
 private:
 	/** The UTextureRenderTargetCube which this resource represents. */
@@ -860,13 +862,16 @@ public:
 
 	// FDeferredClearResource interface
 
-	/**
-	 * Decodes the next frame of the movie stream and renders the result to this movie texture target
-	 */
-	virtual void UpdateResource();
-
 	// FRenderTarget interface.
 	virtual FIntPoint GetSizeXY() const;
+
+protected:
+
+	/**
+	* Decodes the next frame of the movie stream and renders the result to this movie texture target
+	*/
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+
 
 private:
 	/** The UTextureRenderTarget2D which this resource represents. */

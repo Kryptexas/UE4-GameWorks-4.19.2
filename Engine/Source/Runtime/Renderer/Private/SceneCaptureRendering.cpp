@@ -18,7 +18,7 @@ void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHICmdList
 	FMemMark MemStackMark(FMemStack::Get());
 
 	// update any resources that needed a deferred update
-	FDeferredUpdateResource::UpdateResources();
+	FDeferredUpdateResource::UpdateResources(RHICmdList);
 
 	{
 #if WANTS_DRAW_MESH_EVENTS

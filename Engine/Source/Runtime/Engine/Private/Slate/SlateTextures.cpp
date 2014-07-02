@@ -187,7 +187,8 @@ void FSlateTextureRenderTarget2DResource::InitDynamicRHI()
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
 
 		// make sure the texture target gets cleared
-		UpdateResource();
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		UpdateDeferredResource(RHICmdList);
 	}
 
 	// Create the sampler state RHI resource.
@@ -215,10 +216,9 @@ void FSlateTextureRenderTarget2DResource::ReleaseDynamicRHI()
 	RemoveFromDeferredUpdateList();
 }
 
-void FSlateTextureRenderTarget2DResource::UpdateResource()
+void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 	// clear the target surface to green
 	SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());

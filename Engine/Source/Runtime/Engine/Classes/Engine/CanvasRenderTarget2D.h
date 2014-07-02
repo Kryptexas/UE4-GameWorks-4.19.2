@@ -32,7 +32,7 @@ public:
 	 * texture to make it available for rendering.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Canvas Render Target 2D")
-	virtual void UpdateResource();
+	virtual void UpdateResource() override;
 
 	/**
 	 * Creates a new canvas render target and initializes it to the specified dimensions

@@ -86,7 +86,7 @@ void UTextureRenderTarget2D::UpdateResourceImmediate()
 		UpdateResourceImmediate,
 		FRenderResource*,Resource,Resource,
 		{
-			static_cast< FTextureRenderTarget2DResource* >( Resource )->UpdateResource();
+			static_cast<FTextureRenderTarget2DResource*>(Resource)->UpdateDeferredResource(RHICmdList);
 		}
 	);
 }
@@ -363,10 +363,9 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 /**
  * Clear contents of the render target. 
  */
-void FTextureRenderTarget2DResource::UpdateResource()
+void FTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
 {
 	RemoveFromDeferredUpdateList();
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
  	// clear the target surface to green
 	SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());

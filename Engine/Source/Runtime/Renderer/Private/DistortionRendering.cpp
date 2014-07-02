@@ -688,6 +688,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 
 	// Draw the view's elements with the translucent drawing policy.
 	bDirty |= DrawViewElements<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> >(
+		RHICmdList,
 		*ViewInfo,
 		bInitializeOffsets,
 		0,	// DPG Index?
@@ -698,6 +699,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 	{
 		// For drawing scene prims with dynamic relevance.
 		TDynamicPrimitiveDrawer<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> > Drawer(
+			RHICmdList,
 			ViewInfo,
 			bInitializeOffsets,
 			false // Distortion is rendered post fog.

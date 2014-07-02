@@ -41,7 +41,7 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 	if(View.VisibleDynamicPrimitives.Num() && View.Family->EngineShowFlags.Selection)
 	{
-		TDynamicPrimitiveDrawer<FHitProxyDrawingPolicyFactory> Drawer(&View, FHitProxyDrawingPolicyFactory::ContextType(), true, false, false, false, true);
+		TDynamicPrimitiveDrawer<FHitProxyDrawingPolicyFactory> Drawer(Context.RHICmdList, &View, FHitProxyDrawingPolicyFactory::ContextType(), true, false, false, false, true);
 		TMultiMap<FName, const FPrimitiveSceneInfo*> PrimitivesByActor;
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)

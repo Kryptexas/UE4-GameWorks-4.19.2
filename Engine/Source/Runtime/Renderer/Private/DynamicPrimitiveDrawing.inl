@@ -23,8 +23,6 @@ TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::~TDynamicPrimitiveDrawer()
 			DepthTexture = GSceneRenderTargets.GetSceneDepthTexture();
 		}
 		
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
 		// Draw the batched elements.
 		BatchedElements.Draw(
 			RHICmdList,
@@ -108,7 +106,6 @@ int32 TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::DrawMesh(const FMeshBat
 	Mesh.CheckUniformBuffers();
 #endif
 	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 	INC_DWORD_STAT_BY(STAT_DynamicPathMeshDrawCalls,Mesh.Elements.Num());
 	const bool DrawDirty = DrawingPolicyFactoryType::DrawDynamicMesh(
 		RHICmdList,
@@ -217,15 +214,13 @@ void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::DrawPoint(
 
 template<class DrawingPolicyFactoryType>
 bool DrawViewElements(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
 	bool bPreFog
 	)
 {
-	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
 	// Get the correct element list based on dpg index
 	const TIndirectArray<FHitProxyMeshPair>& ViewMeshElementList = ( DPGIndex == SDPG_Foreground ? View.TopViewMeshElements : View.ViewMeshElements );
 	// Draw the view's mesh elements.
@@ -258,6 +253,7 @@ bool DrawViewElements(
 
 template<class DrawingPolicyFactoryType>
 bool DrawDynamicPrimitiveSet(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
 	const TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator>& PrimitiveSet,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
@@ -267,7 +263,7 @@ bool DrawDynamicPrimitiveSet(
 {
 	
 	// Draw the elements of each dynamic primitive.
-	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(&View, DrawingContext, bPreFog, bIsHitTesting);
+	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(RHICmdList, &View, DrawingContext, bPreFog, bIsHitTesting);
 	for(int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveSet.Num(); PrimitiveIndex++)
 	{
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSet[PrimitiveIndex];

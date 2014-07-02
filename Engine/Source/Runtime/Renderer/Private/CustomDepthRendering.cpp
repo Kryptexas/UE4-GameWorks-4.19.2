@@ -16,14 +16,14 @@
 	FCustomDepthPrimSet
 -----------------------------------------------------------------------------*/
 
-bool FCustomDepthPrimSet::DrawPrims(FRHICommandList& RHICmdList, const FViewInfo* ViewInfo,bool bInitializeOffsets)
+bool FCustomDepthPrimSet::DrawPrims(FRHICommandListImmediate& RHICmdList, const FViewInfo* ViewInfo, bool bInitializeOffsets)
 {
 	bool bDirty=false;
 
 	if(Prims.Num())
 	{
 		SCOPED_DRAW_EVENT(DistortionAccum, DEC_SCENE_ITEMS);
-		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(ViewInfo, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
+		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, ViewInfo, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
 
 		for (int32 PrimIdx = 0; PrimIdx < Prims.Num(); PrimIdx++)
 		{

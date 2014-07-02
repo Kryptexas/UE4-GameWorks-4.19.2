@@ -1416,7 +1416,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 			DrawPrimitiveFlags = EDrawDynamicFlags::ForceLowestLOD;
 		}
 
-		TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
+		TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(RHICmdList, FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
 		uint32 PrimitiveCount = SubjectPrimitives.Num();
 		for(uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
 		{
@@ -1653,7 +1653,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			>::GetRHI(), 1);
 
 		// Draw the receiver's dynamic elements.
-		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
+		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < ReceiverPrimitives.Num(); PrimitiveIndex++)
 		{

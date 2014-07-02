@@ -279,10 +279,8 @@ void FTextureRenderTargetCubeResource::ReleaseDynamicRHI()
 /**
  * Clear contents of the render target. Clears each face of the cube
  */
-void FTextureRenderTargetCubeResource::UpdateResource()
+void FTextureRenderTargetCubeResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
 	const FIntPoint Dims = GetSizeXY();
 	for(int32 FaceIdx = CubeFace_PosX; FaceIdx < CubeFace_MAX; FaceIdx++)
 	{

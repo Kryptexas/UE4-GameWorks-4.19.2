@@ -25,6 +25,7 @@ public:
 	* @param bInIsVelocityRendering - rendering is occurring during velocity pass
 	*/
 	TDynamicPrimitiveDrawer(
+		FRHICommandListImmediate& InRHICmdList,
 		const FViewInfo* InView,
 		const typename DrawingPolicyFactoryType::ContextType& InDrawingContext,
 		bool InPreFog,
@@ -34,6 +35,7 @@ public:
 		bool bInIsSelectionOutlineRendering = false
 		):
 		FPrimitiveDrawInterface(InView),
+		RHICmdList(InRHICmdList),
 		View(InView),
 		DrawingContext(InDrawingContext),
 		PrimitiveSceneProxy(NULL),
@@ -106,6 +108,10 @@ public:
 	virtual bool IsRenderingVelocities() const { return bIsVelocityRendering; }
 
 private:
+
+	/** Command list to draw to. */
+	FRHICommandListImmediate& RHICmdList;
+
 	/** The view which is being rendered. */
 	const FViewInfo* const View;
 
@@ -141,6 +147,7 @@ private:
 
 	/** true if we are currently rendering the selection outline */
 	uint32 bIsSelectionOutlineRendering : 1;
+
 };
 
 /**
@@ -152,6 +159,7 @@ private:
  */
 template<class DrawingPolicyFactoryType>
 bool DrawViewElements(
+	FRHICommandListImmediate& RHICmdList,
 	const FViewInfo& View,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,
 	uint8 DPGIndex,
@@ -166,6 +174,7 @@ bool DrawViewElements(
  */
 template<class DrawingPolicyFactoryType>
 bool DrawDynamicPrimitiveSet(
+	FRHICommandListImmediate& RHICmdList, 
 	const FViewInfo& View,
 	const TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator>& PrimitiveSet,
 	const typename DrawingPolicyFactoryType::ContextType& DrawingContext,

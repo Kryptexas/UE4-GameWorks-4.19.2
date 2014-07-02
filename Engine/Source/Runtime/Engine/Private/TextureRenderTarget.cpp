@@ -110,7 +110,7 @@ TLinkedList<FDeferredUpdateResource*>*& FDeferredUpdateResource::GetUpdateList()
 * Iterate over the global list of resources that need to
 * be updated and call UpdateResource on each one.
 */
-void FDeferredUpdateResource::UpdateResources()
+void FDeferredUpdateResource::UpdateResources(FRHICommandListImmediate& RHICmdList)
 {
 	if( bNeedsUpdate )
 	{
@@ -123,7 +123,7 @@ void FDeferredUpdateResource::UpdateResources()
 			if( RTResource )
 			{
 				// update each resource
-				RTResource->UpdateResource();
+				RTResource->UpdateDeferredResource(RHICmdList);
 				if( RTResource->bOnlyUpdateOnce )
 				{
 					// remove from list if only a single update was requested

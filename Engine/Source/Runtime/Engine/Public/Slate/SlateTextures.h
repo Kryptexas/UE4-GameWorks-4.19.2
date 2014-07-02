@@ -160,12 +160,15 @@ public:
 	virtual void InitDynamicRHI() override;
 	virtual void ReleaseDynamicRHI() override;
 
-	// FDeferredUpdateResource implementation
-	virtual void UpdateResource() override;
-
 	// FRenderTarget interface
 	virtual FIntPoint GetSizeXY() const override;
 	virtual float GetDisplayGamma() const override;
+
+protected:
+
+	// FDeferredUpdateResource implementation
+	virtual void UpdateDeferredResource(FRHICommandListImmediate& RHICmdList) override;
+
 
 private:
 	FTexture2DRHIRef Texture2DRHI;

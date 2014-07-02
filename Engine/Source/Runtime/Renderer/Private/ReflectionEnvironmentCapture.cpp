@@ -824,7 +824,7 @@ void CaptureSceneToScratchCubemap(FRHICommandListImmediate& RHICmdList, FSceneRe
 {
 	FMemMark MemStackMark(FMemStack::Get());
 	// update any resources that needed a deferred update
-	FDeferredUpdateResource::UpdateResources();
+	FDeferredUpdateResource::UpdateResources(RHICmdList);
 	
 	{
 		SCOPED_DRAW_EVENT(CubeMapCapture, DEC_SCENE_ITEMS);

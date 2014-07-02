@@ -518,6 +518,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 		if( ViewRelevance.bDynamicRelevance )
 		{
 			TDynamicPrimitiveDrawer<FTranslucencyDrawingPolicyFactory> TranslucencyDrawer(
+				RHICmdList,
 				&View,
 				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, bSeparateTranslucencyPass),
 				false
@@ -641,9 +642,9 @@ void FDeferredShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate&
 			// Draw only translucent prims that don't read from scene color
 			View.TranslucentPrimSet.DrawPrimitives(RHICmdList, View, *this, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyDrawingPolicyFactory>(View,FTranslucencyDrawingPolicyFactory::ContextType(),SDPG_World,false);
+			DrawViewElements<FTranslucencyDrawingPolicyFactory>(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), SDPG_World, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyDrawingPolicyFactory>(View,FTranslucencyDrawingPolicyFactory::ContextType(),SDPG_Foreground,false);
+			DrawViewElements<FTranslucencyDrawingPolicyFactory>(RHICmdList, View, FTranslucencyDrawingPolicyFactory::ContextType(), SDPG_Foreground, false);
 
 			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
 

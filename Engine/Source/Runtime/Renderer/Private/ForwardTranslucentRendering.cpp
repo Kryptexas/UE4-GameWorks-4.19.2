@@ -269,6 +269,7 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 		if( ViewRelevance.bDynamicRelevance )
 		{
 			TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
+				RHICmdList,
 				&View,
 				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
 				false
@@ -343,9 +344,9 @@ void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& 
 			// Draw only translucent prims that don't read from scene color
 			View.TranslucentPrimSet.DrawPrimitivesForForwardShading(RHICmdList, View, *this);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(View,FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),SDPG_World,false);
+			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), SDPG_World, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(View,FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),SDPG_Foreground,false);
+			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), SDPG_Foreground, false);
 		}
 	}
 }
