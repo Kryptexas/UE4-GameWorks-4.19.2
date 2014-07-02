@@ -6,6 +6,7 @@
 
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
+#include "Runtime/Engine/Public/ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
@@ -99,6 +100,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	{
 		if ((SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture()) || (TargetSprite->PixelsPerUnrealUnit != SourceSprite->PixelsPerUnrealUnit))
 		{
+			FComponentReregisterContext ReregisterSprite(SourceTextureViewComponent);
 			TargetSprite->InitializeSprite(SourceSprite->SourceTexture, SourceSprite->PixelsPerUnrealUnit);
 		}
 	}
