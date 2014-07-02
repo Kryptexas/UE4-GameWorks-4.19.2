@@ -292,6 +292,8 @@ void SKismetInspector::ShowDetailsForSingleObject(UObject* Object, const FShowDe
 
 void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options)
 {
+	FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::SetDirectly);
+
 	FKismetSelectionInfo SelectionInfo;
 	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
 }
