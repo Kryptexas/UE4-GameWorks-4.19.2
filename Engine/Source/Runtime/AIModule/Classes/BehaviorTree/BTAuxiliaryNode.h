@@ -8,6 +8,7 @@
 struct FBTAuxiliaryMemory : public FBTInstancedNodeMemory
 {
 	float NextTickRemainingTime;
+	float AccumulatedDeltaTime;
 };
 
 /** 

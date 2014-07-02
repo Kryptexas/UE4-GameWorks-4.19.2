@@ -39,20 +39,27 @@ void UBTAuxiliaryNode::WrappedTickNode(class UBehaviorTreeComponent* OwnerComp, 
 {
 	if (bNotifyTick)
 	{
+		float UseDeltaTime = DeltaSeconds;
+
 		if (bTickIntervals)
 		{
 			FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
 			AuxMemory->NextTickRemainingTime -= DeltaSeconds;
+			AuxMemory->AccumulatedDeltaTime += DeltaSeconds;
+			
 			if (AuxMemory->NextTickRemainingTime > 0.0f)
 			{
 				return;
-			}	
+			}
+
+			UseDeltaTime = AuxMemory->AccumulatedDeltaTime;
+			AuxMemory->AccumulatedDeltaTime = 0.0f;
 		}
 
 		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
 		if (NodeOb)
 		{
-			((UBTAuxiliaryNode*)NodeOb)->TickNode(OwnerComp, NodeMemory, DeltaSeconds);
+			((UBTAuxiliaryNode*)NodeOb)->TickNode(OwnerComp, NodeMemory, UseDeltaTime);
 		}
 	}
 }
