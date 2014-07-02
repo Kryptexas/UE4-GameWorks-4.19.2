@@ -5,8 +5,8 @@
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "MaterialExpressionTextureSampleParameter2D.generated.h"
 
-UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
-class UMaterialExpressionTextureSampleParameter2D : public UMaterialExpressionTextureSampleParameter
+UCLASS(collapsecategories, hidecategories=Object)
+class ENGINE_API UMaterialExpressionTextureSampleParameter2D : public UMaterialExpressionTextureSampleParameter
 {
 	GENERATED_UCLASS_BODY()
 

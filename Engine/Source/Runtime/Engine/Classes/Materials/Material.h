@@ -1055,7 +1055,7 @@ public:
 	 *
 	 * @param	Expression	The expression node to inspect.
 	 */
-	ENGINE_API static bool IsParameter(UMaterialExpression* Expression);
+	ENGINE_API static bool IsParameter(const UMaterialExpression* Expression);
 
 	/**
 	 * Return whether the provided expression node is a dynamic parameter.
