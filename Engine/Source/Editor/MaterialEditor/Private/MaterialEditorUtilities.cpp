@@ -303,14 +303,16 @@ FExpressionInput* FMaterialEditorUtilities::GetMaterialInput(UMaterial* Material
 	case 10: ExpressionInput = &Material->WorldPositionOffset ; break;
 	case 11: ExpressionInput = &Material->WorldDisplacement ; break;
 	case 12: ExpressionInput = &Material->TessellationMultiplier ; break;
-	case 13: ExpressionInput = &Material->SubsurfaceColor ; break;		
-	case 14: ExpressionInput = &Material->AmbientOcclusion ; break;		
-	case 15: ExpressionInput = &Material->Refraction ; break;		
-	case 24: ExpressionInput = &Material->MaterialAttributes ; break;		
+	case 13: ExpressionInput = &Material->SubsurfaceColor ; break;
+	case 14: ExpressionInput = &Material->ClearCoat ; break;
+	case 15: ExpressionInput = &Material->ClearCoatRoughness ; break;
+	case 16: ExpressionInput = &Material->AmbientOcclusion ; break;
+	case 17: ExpressionInput = &Material->Refraction ; break;
+	case 26: ExpressionInput = &Material->MaterialAttributes ; break;
 	default: 
-		if (Index >= 16 && Index <= 23)
+		if (Index >= 18 && Index <= 25)
 		{
-			ExpressionInput = &Material->CustomizedUVs[Index - 16]; break;	
+			ExpressionInput = &Material->CustomizedUVs[Index - 18]; break;	
 		}
 		else
 		{
@@ -325,9 +327,9 @@ bool FMaterialEditorUtilities::IsInputVisible(UMaterial* Material, int32 Index)
 	static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 
 	bool bVisibleUV = true;
-	if (Index >= 16 && Index <= 23)
+	if (Index >= 18 && Index <= 25)
 	{
-		bVisibleUV = Index - 16 < Material->NumCustomizedUVs;
+		bVisibleUV = Index - 18 < Material->NumCustomizedUVs;
 	}
 
 	switch( Index )
@@ -339,7 +341,7 @@ bool FMaterialEditorUtilities::IsInputVisible(UMaterial* Material, int32 Index)
 	case 3:
 	case 4:
 		return (UseDiffuseSpecularMaterialInputs->GetValueOnGameThread() == 0) && !Material->bUseMaterialAttributes;
-	case 24:
+	case 26:
 		return Material->bUseMaterialAttributes;
 	default:
 		return !Material->bUseMaterialAttributes && bVisibleUV;

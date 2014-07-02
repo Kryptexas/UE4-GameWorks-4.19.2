@@ -247,6 +247,8 @@ int32 FMaterialAttributesInput::Compile(class FMaterialCompiler* Compiler, EMate
 		case MP_WorldDisplacement : Ret = Compiler->Constant3(DefaultVector.X,DefaultVector.Y,DefaultVector.Z); break;
 		case MP_TessellationMultiplier: Ret = Compiler->Constant(DefaultFloat); break;
 		case MP_SubsurfaceColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
+		case MP_ClearCoat: Ret = Compiler->Constant(DefaultFloat); break;
+		case MP_ClearCoatRoughness: Ret = Compiler->Constant(DefaultFloat); break;
 		case MP_AmbientOcclusion: Ret = Compiler->Constant(DefaultFloat); break;
 		case MP_Refraction: Ret = Compiler->Constant2(DefaultVector.X,DefaultVector.Y); break;
 		};
@@ -280,6 +282,8 @@ EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 	case MP_WorldDisplacement : return MCT_Float3;
 	case MP_TessellationMultiplier: return MCT_Float;
 	case MP_SubsurfaceColor: return MCT_Float3;
+	case MP_ClearCoat: return MCT_Float;
+	case MP_ClearCoatRoughness: return MCT_Float;
 	case MP_AmbientOcclusion: return MCT_Float;
 	case MP_Refraction: return MCT_Float;
 	case MP_MaterialAttributes: return MCT_MaterialAttributes;
@@ -2140,11 +2144,13 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 	case 9: return MP_WorldDisplacement;
 	case 10: return MP_TessellationMultiplier;
 	case 11: return MP_SubsurfaceColor;
-	case 12: return MP_AmbientOcclusion;
-	case 13: return MP_Refraction;
+	case 12: return MP_ClearCoat;
+	case 13: return MP_ClearCoatRoughness;
+	case 14: return MP_AmbientOcclusion;
+	case 15: return MP_Refraction;
 	};
 
-	const int32 UVStart = 14;
+	const int32 UVStart = 16;
 	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
 
 	if (Index >= UVStart && Index <= UVEnd)
@@ -2176,14 +2182,16 @@ int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 	case MP_WorldDisplacement: return 9;
 	case MP_TessellationMultiplier: return 10;
 	case MP_SubsurfaceColor: return 11;
-	case MP_AmbientOcclusion: return 12;
-	case MP_Refraction: return 13;
+	case MP_ClearCoat: return 12;
+	case MP_ClearCoatRoughness: return 13;
+	case MP_AmbientOcclusion: return 14;
+	case MP_Refraction: return 15;
 	case MP_MaterialAttributes: UE_LOG(LogMaterial, Fatal, TEXT("We should never need the IO index of the MaterialAttriubtes property."));
 	};
 
 	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
-		return 14 + Property - MP_CustomizedUVs0;
+		return 16 + Property - MP_CustomizedUVs0;
 	}
 
 	return -1;
@@ -2203,6 +2211,8 @@ void GetDefaultForMaterialProperty(EMaterialProperty Property, float& OutDefault
 	case MP_Specular:				OutDefaultFloat = 0.5f; break;
 	case MP_Roughness:				OutDefaultFloat = 0.5f; break;
 	case MP_TessellationMultiplier: OutDefaultFloat = 1.0f; break;
+	case MP_ClearCoat:				OutDefaultFloat = 1.0f; break;
+	case MP_ClearCoatRoughness:		OutDefaultFloat = 0.1f; break;
 	case MP_AmbientOcclusion:		OutDefaultFloat = 1.0f; break;
 	case MP_EmissiveColor:			OutDefaultColor = FColor(0,0,0); break;
 	case MP_DiffuseColor:			OutDefaultColor = FColor(0,0,0); break;
@@ -2232,6 +2242,8 @@ FString GetNameOfMaterialProperty(EMaterialProperty Property)
 	case MP_WorldDisplacement:		return TEXT("WorldDisplacement");
 	case MP_TessellationMultiplier: return TEXT("TessellationMultiplier");
 	case MP_SubsurfaceColor:		return TEXT("SubsurfaceColor");
+	case MP_ClearCoat:				return TEXT("ClearCoat");
+	case MP_ClearCoatRoughness:		return TEXT("ClearCoatRoughness");
 	case MP_AmbientOcclusion:		return TEXT("AmbientOcclusion");
 	case MP_Refraction:				return TEXT("Refraction");
 	};
@@ -2283,6 +2295,8 @@ int32 UMaterialInterface::CompileProperty( FMaterialCompiler* Compiler, EMateria
 		case MP_Specular:
 		case MP_Roughness:
 		case MP_TessellationMultiplier:
+		case MP_ClearCoat:
+		case MP_ClearCoatRoughness:
 		case MP_AmbientOcclusion:
 			{
 				return Compiler->Constant(DefaultFloat);

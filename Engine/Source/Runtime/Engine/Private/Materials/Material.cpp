@@ -86,31 +86,14 @@ int32 FMaterialResource::CompileProperty(EMaterialProperty Property,EShaderFrequ
 		{
 			return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3);
 		}
-	case MP_Opacity: return MaterialInterface->CompileProperty(Compiler, MP_Opacity);
-	case MP_OpacityMask: return MaterialInterface->CompileProperty(Compiler, MP_OpacityMask);
 	case MP_DiffuseColor: 
 		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_SpecularColor: return MaterialInterface->CompileProperty(Compiler, MP_SpecularColor);
 	case MP_BaseColor: 
 		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_Metallic: return MaterialInterface->CompileProperty(Compiler, MP_Metallic);
-	case MP_Specular: return MaterialInterface->CompileProperty(Compiler, MP_Specular);
-	case MP_Roughness: return MaterialInterface->CompileProperty(Compiler, MP_Roughness);
-	case MP_Normal: return MaterialInterface->CompileProperty(Compiler, MP_Normal);
-	case MP_WorldPositionOffset: return MaterialInterface->CompileProperty(Compiler, MP_WorldPositionOffset);
-	case MP_WorldDisplacement: return MaterialInterface->CompileProperty(Compiler, MP_WorldDisplacement);
-	case MP_TessellationMultiplier: return MaterialInterface->CompileProperty(Compiler, MP_TessellationMultiplier);
-	case MP_SubsurfaceColor: return MaterialInterface->CompileProperty(Compiler, MP_SubsurfaceColor);
-	case MP_AmbientOcclusion: return MaterialInterface->CompileProperty(Compiler, MP_AmbientOcclusion);
-	case MP_Refraction: return MaterialInterface->CompileProperty(Compiler, MP_Refraction);
-	default:
-
-		if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-		{
-			return MaterialInterface->CompileProperty(Compiler, (EMaterialProperty)Property);
-		}
-
+	case MP_MaterialAttributes:
 		return INDEX_NONE;
+	default:
+		return MaterialInterface->CompileProperty(Compiler, Property);
 	};
 }
 
@@ -3007,6 +2990,10 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		return &TessellationMultiplier;
 	case MP_SubsurfaceColor:
 		return &SubsurfaceColor;
+	case MP_ClearCoat:
+		return &ClearCoat;
+	case MP_ClearCoatRoughness:
+		return &ClearCoatRoughness;
 	case MP_AmbientOcclusion:
 		return &AmbientOcclusion;
 	case MP_Refraction:
@@ -3303,6 +3290,8 @@ int32 UMaterial::CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty
 		case MP_Specular: Ret = Specular.Compile(Compiler,DefaultFloat); break;
 		case MP_Roughness: Ret = Roughness.Compile(Compiler,DefaultFloat); break;
 		case MP_TessellationMultiplier: Ret = TessellationMultiplier.Compile(Compiler,DefaultFloat); break;
+		case MP_ClearCoat: Ret = ClearCoat.Compile(Compiler,DefaultFloat); break;
+		case MP_ClearCoatRoughness: Ret = ClearCoatRoughness.Compile(Compiler,DefaultFloat); break;
 		case MP_AmbientOcclusion: Ret = AmbientOcclusion.Compile(Compiler,DefaultFloat); break;
 		case MP_Refraction: 
 			Ret = Compiler->AppendVector( 
@@ -3549,6 +3538,10 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 		break;
 	case MP_SubsurfaceColor:
 		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin;
+		break;
+	case MP_ClearCoat:
+	case MP_ClearCoatRoughness:
+		Active = ShadingModel == MSM_ClearCoat;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:

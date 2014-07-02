@@ -358,6 +358,14 @@ public:
 	UPROPERTY()
 	FColorMaterialInput SubsurfaceColor;
 
+	/**  */
+	UPROPERTY()
+	FScalarMaterialInput ClearCoat;
+
+	/**  */
+	UPROPERTY()
+	FScalarMaterialInput ClearCoatRoughness;
+
 	/** output ambient occlusion to the GBuffer */
 	UPROPERTY()
 	FScalarMaterialInput AmbientOcclusion;

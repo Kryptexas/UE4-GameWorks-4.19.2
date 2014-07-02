@@ -47,6 +47,12 @@ class UMaterialExpressionMakeMaterialAttributes : public UMaterialExpression
 	FExpressionInput SubsurfaceColor;
 
 	UPROPERTY()
+	FExpressionInput ClearCoat;
+
+	UPROPERTY()
+	FExpressionInput ClearCoatRoughness;
+
+	UPROPERTY()
 	FExpressionInput AmbientOcclusion;
 
 	UPROPERTY()

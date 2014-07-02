@@ -334,6 +334,8 @@ public:
 			}
 			Chunk[MP_TessellationMultiplier]		= ForceCast(Material->CompileProperty(MP_TessellationMultiplier,GetMaterialPropertyShaderFrequency(MP_TessellationMultiplier),this),MCT_Float1);
 			Chunk[MP_SubsurfaceColor]				= ForceCast(Material->CompileProperty(MP_SubsurfaceColor       ,GetMaterialPropertyShaderFrequency(MP_SubsurfaceColor),this),MCT_Float3);
+			Chunk[MP_ClearCoat]						= ForceCast(Material->CompileProperty(MP_ClearCoat		       ,GetMaterialPropertyShaderFrequency(MP_ClearCoat),this),MCT_Float1);
+			Chunk[MP_ClearCoatRoughness]			= ForceCast(Material->CompileProperty(MP_ClearCoatRoughness    ,GetMaterialPropertyShaderFrequency(MP_ClearCoatRoughness),this),MCT_Float1);
 			Chunk[MP_AmbientOcclusion]				= ForceCast(Material->CompileProperty(MP_AmbientOcclusion      ,GetMaterialPropertyShaderFrequency(MP_AmbientOcclusion),this),MCT_Float1);
 			Chunk[MP_Refraction]					= ForceCast(Material->CompileProperty(MP_Refraction            ,GetMaterialPropertyShaderFrequency(MP_Refraction),this),MCT_Float2);
 
@@ -635,6 +637,8 @@ public:
 		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_WorldDisplacement] + TEXT("	return ") + TranslatedCodeChunks[MP_WorldDisplacement] + TEXT(";")));
 		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_TessellationMultiplier] + TEXT("	return ") + TranslatedCodeChunks[MP_TessellationMultiplier] + TEXT(";")));
 		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_SubsurfaceColor] + TEXT("	return ") + TranslatedCodeChunks[MP_SubsurfaceColor] + TEXT(";")));
+		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_ClearCoat] + TEXT("	return ") + TranslatedCodeChunks[MP_ClearCoat] + TEXT(";")));
+		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_ClearCoatRoughness] + TEXT("	return ") + TranslatedCodeChunks[MP_ClearCoatRoughness] + TEXT(";")));
 		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_AmbientOcclusion] + TEXT("	return ") + TranslatedCodeChunks[MP_AmbientOcclusion] + TEXT(";")));
 		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Refraction] + TEXT("	return ") + TranslatedCodeChunks[MP_Refraction] + TEXT(";")));
 

@@ -1125,6 +1125,16 @@ half3 GetMaterialSubsurfaceColor(FMaterialPixelParameters Parameters)
 %s;
 }
 
+half GetMaterialClearCoat(FMaterialPixelParameters Parameters)
+{
+%s;
+}
+
+half GetMaterialClearCoatRoughness(FMaterialPixelParameters Parameters)
+{
+%s;
+}
+
 half GetMaterialAmbientOcclusion(FMaterialPixelParameters Parameters)
 {
 %s;
