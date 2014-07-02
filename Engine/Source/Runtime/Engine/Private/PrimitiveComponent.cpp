@@ -1223,7 +1223,10 @@ void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
 	Super::SetRelativeScale3D(NewScale3D);
 
 	AActor* Actor = GetOwner();
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && OldScale3D != RelativeScale3D && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	if (OldScale3D != RelativeScale3D && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() &&
+		Actor && IsRegistered() && Actor->IsNavigationRelevant() && 
+		ShouldUpdateNavigationOnTransformChange() &&
+		World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
 	{
 		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
 		{
@@ -1531,8 +1534,11 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		}
 	}
 
-	// Update Nav system if relevant.
-	if (bMoved && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	// Update navigation system
+	if (bMoved && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() &&
+		Actor && IsRegistered() && Actor->IsNavigationRelevant() &&
+		ShouldUpdateNavigationOnTransformChange() &&
+		World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
 	{
 		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
 		{
@@ -1598,6 +1604,22 @@ void UPrimitiveComponent::DisableNavigationRelevance()
 	check(!bRegistered);
 	bCanEverAffectNavigation = false;
 }
+
+bool UPrimitiveComponent::ShouldUpdateNavigationOnTransformChange() const
+{
+	bool bResult = CanEverAffectNavigation() && IsNavigationRelevant();
+	for (int32 Idx = 0; Idx < AttachChildren.Num() && !bResult; Idx++)
+	{
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(AttachChildren[Idx]);
+		if (PrimComp)
+		{
+			bResult = PrimComp->ShouldUpdateNavigationOnTransformChange();
+		}
+	}
+
+	return bResult;
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // COLLISION

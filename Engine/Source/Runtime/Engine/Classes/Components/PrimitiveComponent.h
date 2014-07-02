@@ -1427,10 +1427,13 @@ public:
 	bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
 
 	/** Can this component potentially influence navigation */
-	bool CanEverAffectNavigation() const 
+	bool CanEverAffectNavigation() const
 	{
 		return bCanEverAffectNavigation;
 	}
+
+	/** check if navigation system needs to be updated after changing transform of this component (include attached components as well) */
+	bool ShouldUpdateNavigationOnTransformChange() const;
 
 	/** turn off navigation relevance, must be called before component is registered! */
 	void DisableNavigationRelevance();
