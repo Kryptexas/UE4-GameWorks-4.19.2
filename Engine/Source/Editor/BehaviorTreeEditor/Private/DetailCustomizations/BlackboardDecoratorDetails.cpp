@@ -27,6 +27,11 @@ void FBlackboardDecoratorDetails::CustomizeDetails( IDetailLayoutBuilder& Detail
 	const bool bIsEnabled = CachedBlackboardAsset.IsValid();
 	TAttribute<bool> PropertyEditCheck = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBehaviorDecoratorDetails::IsEditingEnabled));
 
+	IDetailCategoryBuilder& FlowCategory = DetailLayout.EditCategory("FlowControl");
+	NotifyObserverProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UBTDecorator_Blackboard, NotifyObserver));
+	IDetailPropertyRow& AbortRow = FlowCategory.AddProperty(NotifyObserverProperty);
+	AbortRow.IsEnabled(PropertyEditCheck);
+
 	IDetailCategoryBuilder& BBCategory = DetailLayout.EditCategory( "Blackboard" );
 	IDetailPropertyRow& KeySelectorRow = BBCategory.AddProperty(DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UBTDecorator_Blackboard, BlackboardKey)));
 	KeySelectorRow.IsEnabled(bIsEnabled);

@@ -35,6 +35,7 @@ private:
 
 	TSharedPtr<IPropertyHandle> IntValueProperty;
 	TSharedPtr<IPropertyHandle> KeyIDProperty;
+	TSharedPtr<IPropertyHandle> NotifyObserverProperty;
 	
 	/** cached type of property selected by KeyName */
 	TSubclassOf<class UBlackboardKeyType> CachedKeyType;

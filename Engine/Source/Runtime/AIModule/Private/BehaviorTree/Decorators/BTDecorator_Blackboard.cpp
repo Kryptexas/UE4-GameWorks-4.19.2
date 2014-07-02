@@ -8,6 +8,7 @@
 UBTDecorator_Blackboard::UBTDecorator_Blackboard(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	NodeName = "Blackboard";
+	NotifyObserver = EBTBlackboardRestart::ResultChange;
 }
 
 bool UBTDecorator_Blackboard::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
@@ -40,20 +41,40 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 void UBTDecorator_Blackboard::OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
-	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID && BehaviorComp)
+	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID &&
+		GetFlowAbortMode() != EBTFlowAbortMode::None &&
+		BehaviorComp)
 	{
-		const bool bIsExecutingBranch = BehaviorComp->IsExecutingBranch(this, GetChildIndex());
-		const bool bPass = EvaluateOnBlackboard(Blackboard);
-
-		UE_VLOG(BehaviorComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s, OnBlackboardChange[%s] pass:%d executing:%d => %s"),
-			*UBehaviorTreeTypes::DescribeNodeHelper(this),
-			*Blackboard->GetKeyName(ChangedKeyID).ToString(), bPass, bIsExecutingBranch,
-			(bIsExecutingBranch && !bPass) || (!bIsExecutingBranch && bPass) ? TEXT("restart") : TEXT("skip"));
-
-		if ((bIsExecutingBranch && !bPass) || 
-			(!bIsExecutingBranch && bPass))
+		if (NotifyObserver == EBTBlackboardRestart::ResultChange)
 		{
-			BehaviorComp->RequestExecution(this);
+			const bool bIsExecutingBranch = BehaviorComp->IsExecutingBranch(this, GetChildIndex());
+			const bool bPass = EvaluateOnBlackboard(Blackboard);
+
+			UE_VLOG(BehaviorComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s, OnBlackboardChange[%s] pass:%d executing:%d => %s"),
+				*UBehaviorTreeTypes::DescribeNodeHelper(this),
+				*Blackboard->GetKeyName(ChangedKeyID).ToString(), bPass, bIsExecutingBranch,
+				(bIsExecutingBranch && !bPass) || (!bIsExecutingBranch && bPass) ? TEXT("restart") : TEXT("skip"));
+
+			if ((bIsExecutingBranch && !bPass) ||
+				(!bIsExecutingBranch && bPass))
+			{
+				BehaviorComp->RequestExecution(this);
+			}
+		}
+		else
+		{
+			UE_VLOG(BehaviorComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s, OnBlackboardChange[%s] => restart"),
+				*UBehaviorTreeTypes::DescribeNodeHelper(this),
+				*Blackboard->GetKeyName(ChangedKeyID).ToString());
+
+			// force result Aborted to restart from this decorator
+			// can't use helper function
+
+			const int32 InstanceIdx = BehaviorComp->FindInstanceContainingNode((UBTNode*)GetParentNode());
+			if (InstanceIdx != INDEX_NONE)
+			{
+				BehaviorComp->RequestExecution(GetParentNode(), InstanceIdx, this, GetChildIndex(), EBTNodeResult::Aborted);
+			}
 		}
 	}
 }
