@@ -8,6 +8,33 @@
 #include "PostProcessCommon.usf"
 #include "DeferredShadingCommon.usf"
 
+/** RGBA8 linear texture containing random normals */
+Texture2D SSProfilesTexture;
+SamplerState SSProfilesTextureSampler;
+
+// ------------------------------------------
+
+// setup for "SeparableSSS.usf"
+
+#define SSSS_HLSL_4 1
+//#define SSSS_STREGTH_SOURCE 1	// todo: masking fom LightingModel or SSSColor
+#define SSSS_STREGTH_SOURCE (GetScreenSpaceData(texcoord).GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE)
+
+// 0:speculars leak into SSS / 1:requires alpha channel for scenecolor
+// #define SSSS_SPECULAR_CORRECTION 1
+
+// 0: faster
+// 1: no color bleeding in z direction
+#define SSSS_FOLLOW_SURFACE 1
+
+// from https://github.com/iryoku/separable-sss/tree/master/Demo
+// Jorge Jimenez http://www.iryoku.com/
+#include "SeparableSSS.usf"
+
+// ------------------------------------------
+
+
+
 #if SSSS_SPECULAR_CORRECTION == 1
 	// requires alpha channel for scenecolor
 #elif SSSS_SPECULAR_CORRECTION == 0
@@ -122,61 +149,31 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float2 UV = UVAndScreenPos.xy;
 
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-	
-	float2 Offset = PostprocessInput0Size.zw;
 
-	const int Count = 20;
-	float AccumSum = 0.0001f;
+	// call into "SeparableSSS.usf"
 
-	// scale in world space, todo: expose scale
-	float Radius = SSSParams.x * saturate(45 / ScreenSpaceData.GBuffer.Depth);
-
-
-	LOOP for(int i = -Count; i <= Count; ++i)
-	{
+	// in world units
+	float sssWidth = SSSParams.x * 0.01f;
 #if METHOD == 0
-		int x = i, y = 0;
+	// first pass
+	float2 Direction = float2(1, 0);
 #else
-		int x = 0, y = i;
+	// second pass
+	float2 Direction = float2(0, 1);
 #endif
+	OutColor = SSSSBlurPS(UV, sssWidth, Direction, false);
 
-		{
-			float2 NormDelta = float2(x, y) / Count;
+	OutColor.a = 1.0f;
 
-			float r = length(NormDelta);
+	// Lighting
 
-			//		float2 LocalUV = UV + float2(x, y) * Offset;
-			float2 LocalUV = UV + NormDelta * Radius * Offset;
+#if METHOD > 0
+	// on second pass we recombine with the scene color
 
-			FScreenSpaceData LocalScreenSpaceData = GetScreenSpaceData(LocalUV);
-
-			// hack
-			//		float Subsurface = ScreenSpaceData.GBuffer.Roughness > 0.4f;
-			//		float Subsurface = (1 - ScreenSpaceData.GBuffer.DecalMask) > 0.5f && ScreenSpaceData.GBuffer.Depth < 1000.0f;
-			FLATTEN if(LocalScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE)
-			{
-				float3 Color = ColorOverDistance(DecodeSubsurfaceColor(LocalScreenSpaceData.GBuffer.CustomData), r);
-				float ColorLum = Luminance(Color);
-
-				OutColor += float4(Color, 1) * float4(SampleDiffuseLighting(LocalUV), 1);	
-				AccumSum += ColorLum;
-			}
-		}
-	}
-
-	OutColor.rgb /= AccumSum;
-	OutColor.a /= (2 * Count + 1);
-
-
-#if METHOD >= 1
-	
 	float4 SceneColor4 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
 	float4 SSSColor = OutColor;
 
-	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE);
-
-	// partly translucent surface (0.9 means 10% of the opaque is blended in)
-	SSSColor.a *= 0.3f;
+	SSSColor.a = (ScreenSpaceData.GBuffer.ShadingModelID >= SHADINGMODELID_SUBSURFACE);
 
 #if METHOD > 1
 	// we took the specular highlights out, now we add them back in

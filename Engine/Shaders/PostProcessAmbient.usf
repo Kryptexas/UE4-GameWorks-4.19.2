@@ -325,14 +325,15 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	Random.x ^= View.Random;
 	Random.y ^= View.Random;
 
-	float3 DiffuseAndSpecular = 0;
+	float3 NonSpecularContribution = 0;
+	float3 SpecularContribution = 0;
 
 	float3 DiffuseLookup =  TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, GBuffer.WorldNormal, AbsoluteDiffuseMip).rgb;
 
 	// Diffuse
 	{
 		// we want to access the mip with the preconvolved diffuse lighting (coneangle=90 degree)
-		DiffuseAndSpecular += GBuffer.DiffuseColor * DiffuseLookup;
+		NonSpecularContribution += GBuffer.DiffuseColor * DiffuseLookup;
 	}
 
 	// Specular
@@ -343,7 +344,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 		//float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rg;
 		//GBuffer.SpecularColor = GBuffer.SpecularColor * AB.x + AB.y * (1 - ClearCoat);
 		
-		DiffuseAndSpecular += SampleColor * EnvBRDF( GBuffer.SpecularColor, GBuffer.Roughness, NoV );
+		SpecularContribution += SampleColor * EnvBRDF(GBuffer.SpecularColor, GBuffer.Roughness, NoV);
 	}
 
 	BRANCH if( GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT )
@@ -362,12 +363,14 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 
 		float LayerAttenuation = (1 - F);
 
-		DiffuseAndSpecular *= LayerAttenuation;
-		DiffuseAndSpecular += SampleColor * F;
+		NonSpecularContribution *= LayerAttenuation;
+		SpecularContribution *= LayerAttenuation;
+		SpecularContribution += SampleColor * F;
 	}
 
 #if IMPORTANCE_SAMPLE
-	DiffuseAndSpecular = ImageBasedLightingMIS( GBuffer, -ScreenVector, GBuffer.WorldNormal, Random );
+	NonSpecularContribution = 0;
+	SpecularContribution = ImageBasedLightingMIS( GBuffer, -ScreenVector, GBuffer.WorldNormal, Random );
 #endif
 	
 	// apply darkening from ambient occlusion (does not use PostprocessInput1 to set white texture if SSAO is off)
@@ -380,17 +383,18 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 		float DependentSplit = 0.5f;
 
 		float3 SubsurfaceColor = DecodeSubsurfaceColor( GBuffer.CustomData );
-		float3 SubsurfaceLighting = 0;
 
 		// view independent (shared lookup for diffuse for better performance
-		SubsurfaceLighting += DiffuseLookup * (DependentSplit);
+		NonSpecularContribution += DiffuseLookup * SubsurfaceColor * (DependentSplit);
 		// view dependent (blurriness is hard coded)
-		SubsurfaceLighting += TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, ScreenVector, AbsoluteDiffuseMip - 2.5f).rgb * AmbientOcclusion * (1.0f - DependentSplit);
-
-		DiffuseAndSpecular += SubsurfaceColor * SubsurfaceLighting;
+		SpecularContribution += TextureCubeSampleLevel(AmbientCubemap, AmbientCubemapSampler, ScreenVector, AbsoluteDiffuseMip - 2.5f).rgb * SubsurfaceColor * (AmbientOcclusion * (1.0f - DependentSplit));
 	}
-	
-	OutColor = float4(DiffuseAndSpecular * AmbientCubemapColor.rgb, 0);
+
+	FLightAccumulator LightAccumulator = (FLightAccumulator)0;
+
+	LightAccumulator_Add(LightAccumulator, NonSpecularContribution, SpecularContribution, AmbientCubemapColor.rgb);
+
+	OutColor = LightAccumulator_GetResult(LightAccumulator);
 
 	OutColor *= AmbientOcclusion;
 }
