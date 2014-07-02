@@ -144,6 +144,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 	{
 		[self unmarkText];
 		[[self inputContext] deactivate];
+		[[self inputContext] discardMarkedText];
 	}
 	IMMContext = InContext;
 	[[self inputContext] activate];
@@ -154,6 +155,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 	[self unmarkText];
 	IMMContext = NULL;
 	[[self inputContext] deactivate];
+	[[self inputContext] discardMarkedText];
 }
 
 //@protocol NSTextInputClient
@@ -302,10 +304,14 @@ DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
  */
 - (void)unmarkText
 {
-	markedRange = {NSNotFound, 0};
-	if (IMMContext.IsValid())
+	if(markedRange.location != NSNotFound)
 	{
-		IMMContext->EndComposition();
+		markedRange = {NSNotFound, 0};
+		if (IMMContext.IsValid())
+		{
+			IMMContext->UpdateCompositionRange(0, 0);
+			IMMContext->EndComposition();
+		}
 	}
 }
 
