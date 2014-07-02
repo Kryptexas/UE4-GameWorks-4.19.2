@@ -782,13 +782,6 @@ private:
 		TWeakPtr<FTabManager> TabManager;
 	};
 
-	struct FFoobar {
-			bool operator()(const FSubTabManager& InItem) const
-			{
-				return !InItem.MajorTab.IsValid();
-			}
-		};
-
 	struct FindByTab
 	{
 		FindByTab(const TSharedRef<SDockTab>& InTabToFind)

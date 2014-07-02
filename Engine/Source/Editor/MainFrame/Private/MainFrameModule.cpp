@@ -114,7 +114,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 				// We persist the positioning of the level editor and the content browser.
 				// The asset editors currently do not get saved.
-				FTabManager::NewLayout( "UnrealEd_Layout_v1.1" )
+				FTabManager::NewLayout( "UnrealEd_Layout_v1.3" )
 				->AddArea
 				(
 					FTabManager::NewPrimaryArea()
@@ -123,6 +123,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 						FTabManager::NewStack()
 						->SetSizeCoefficient(2.0f)
 						->AddTab("LevelEditor", ETabState::OpenedTab)
+						->AddTab("DockedToolkit", ETabState::ClosedTab)
 					)
 				)
 				->AddArea

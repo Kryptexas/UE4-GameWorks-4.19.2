@@ -243,6 +243,16 @@ public:
 	/** Used by the drag/drop operation to signal to this tab what it is dragging over. */
 	void SetDraggedOverDockArea( const TSharedPtr<SDockingArea>& Area );
 
+	/** 
+	 * Check to see whether this tab has a sibling tab with the given tab ID
+	 * 
+	 * @param	SiblingTabId				The ID of the tab we want to find
+	 * @param	TreatIndexNoneAsWildcard	Note that this variable only takes effect if SiblingTabId has an InstanceId of INDEX_NONE.
+	 *										If true, we will consider this a "wildcard" search (matching any tab with the correct TabType, regardless 
+	 *										of its InstanceId). If false, we will explicitly look for a tab with an InstanceId of INDEX_NONE
+	 */
+	bool HasSiblingTab(const FTabId& SiblingTabId, const bool TreatIndexNoneAsWildcard = true) const;
+
 protected:
 
 	/** Gets the dock tab stack this dockable tab resides within, if any */

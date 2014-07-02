@@ -400,6 +400,12 @@ void SDockTab::SetDraggedOverDockArea( const TSharedPtr<SDockingArea>& Area )
 	DraggedOverDockingArea = Area;
 }
 
+bool SDockTab::HasSiblingTab(const FTabId& SiblingTabId, const bool TreatIndexNoneAsWildcard) const
+{
+	TSharedPtr<SDockingTabStack> ParentTabStack = GetParentDockTabStack();
+	return (ParentTabStack.IsValid()) ? ParentTabStack->HasTab(FTabMatcher(SiblingTabId, static_cast<ETabState::Type>(ETabState::ClosedTab | ETabState::OpenedTab), TreatIndexNoneAsWildcard)) : false;
+}
+
 void SDockTab::Construct( const FArguments& InArgs )
 {
 	SpawnAnimCurve = FCurveSequence(0, 0.15f);
