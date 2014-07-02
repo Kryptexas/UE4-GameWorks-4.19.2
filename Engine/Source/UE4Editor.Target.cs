@@ -101,7 +101,7 @@ public class UE4EditorTarget : TargetRules
         }
         else
         {
-            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android };
+            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS };
         }
 
         NonCodeProjectNames.Add("BlackJack", MobilePlats);
@@ -109,7 +109,7 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("TappyChicken", MobilePlats);
         NonCodeProjectNames.Add("SwingNinja", MobilePlats);
         NonCodeProjectNames.Add("MobileTemple", MobilePlats);
-        NonCodeProjectNames.Add("AnimationStarterPack", MobilePlats);
+        NonCodeProjectNames.Add("AnimStarterPack", MobilePlats);
 
         NonCodeProjectNames.Add("StarterContent", MobilePlats);
 		NonCodeProjectNames.Add("TP_2DSideScrollerBP", MobilePlats);
