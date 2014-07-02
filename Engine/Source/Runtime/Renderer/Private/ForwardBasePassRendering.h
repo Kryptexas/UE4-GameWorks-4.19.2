@@ -436,7 +436,7 @@ public:
 		ESceneRenderTargetsMode::Type TextureMode;
 	};
 
-	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh);
+	static void AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
@@ -458,6 +458,7 @@ public:
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
 template<typename ProcessActionType>
 void ProcessBasePassMeshForForwardShading(
+	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
 	const ProcessActionType& Action
 	)
@@ -470,9 +471,6 @@ void ProcessBasePassMeshForForwardShading(
 		: FLightMapInteraction();
 
 	check(!AllowHighQualityLightmaps());
-
-	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 	if (LightMapInteraction.GetType() == LMIT_Texture)
 	{

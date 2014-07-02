@@ -86,7 +86,7 @@ public:
 	}
 };
 
-void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
+void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh)
 {
 	// Determine the mesh's material and blend mode.
 	const auto FeatureLevel = Scene->GetFeatureLevel();
@@ -97,6 +97,7 @@ void FBasePassForwardOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FSt
 	if( !IsTranslucentBlendMode(BlendMode) )
 	{
 		ProcessBasePassMeshForForwardShading(
+			RHICmdList,
 			FProcessBasePassMeshParameters(
 				*StaticMesh,
 				Material,
@@ -221,6 +222,7 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	if(!IsTranslucentBlendMode(BlendMode))
 	{
 		ProcessBasePassMeshForForwardShading(
+			RHICmdList,
 			FProcessBasePassMeshParameters(
 				Mesh,
 				Material,

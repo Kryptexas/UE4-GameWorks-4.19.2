@@ -187,6 +187,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	if (IsTranslucentBlendMode(BlendMode))
 	{
 		ProcessBasePassMeshForForwardShading(
+			RHICmdList,
 			FProcessBasePassMeshParameters(
 				Mesh,
 				Material,
