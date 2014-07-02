@@ -38,6 +38,9 @@ public:
 	/** Category path (dot-separated list of categories) */
 	FString CategoryPath;
 
+	/** Path to plugin directory on disk */
+	FString PluginDirectory;
+
 	/** True if plugin is currently enabled */
 	bool bIsEnabled;
 

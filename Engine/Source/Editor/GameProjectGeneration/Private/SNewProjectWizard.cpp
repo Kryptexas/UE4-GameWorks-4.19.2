@@ -908,6 +908,21 @@ void SNewProjectWizard::FindTemplateProjects()
 	// @todo rocket make template folder locations extensible.
 	TemplateRootFolders.Add( FPaths::RootDir() + TEXT("Templates") );
 
+	// allow plugins to define templates
+	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
+	for (const auto& PluginStatus : PluginStatuses)
+	{
+		if (PluginStatus.bIsEnabled && !PluginStatus.PluginDirectory.IsEmpty())
+		{
+			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginStatus.PluginDirectory, TEXT("Templates"));
+
+			if (IFileManager::Get().DirectoryExists(*PluginTemplatesDirectory))
+			{
+				TemplateRootFolders.Add(PluginTemplatesDirectory);
+			}
+		}
+	}
+
 	// Form a list of all folders that could contain template projects
 	TArray<FString> AllTemplateFolders;
 	for ( auto TemplateRootFolderIt = TemplateRootFolders.CreateConstIterator(); TemplateRootFolderIt; ++TemplateRootFolderIt )
