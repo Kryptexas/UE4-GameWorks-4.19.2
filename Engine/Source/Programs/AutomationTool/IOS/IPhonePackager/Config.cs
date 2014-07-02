@@ -17,7 +17,7 @@ namespace iPhonePackager
 		/// </summary>
 		public static string AppDisplayName = "Unreal iOS Configuration";
 
-		public static string RootRelativePath = @"..\..\..\..\";
+		public static string RootRelativePath = @"";
 
 		public static string GameDirectory = "";		// "..\\..\\..\\..\\Engine\\Source\\UE4";
 		public static string BinariesDirectory = "";	// "..\\..\\..\\..\\Engine\\Binaries\\IOS\\"
