@@ -16,13 +16,6 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	// Overridden to only allow registration with components owned by a Pawn.
 	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 
-	// Overridden to also call StopActiveMovement().
-	virtual void StopMovementImmediately() override;
-
-	/** Stops applying further movement (usually zeros acceleration). */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
-	virtual void StopActiveMovement();
-
 	/** Adds the given vector to the accumulated input in world space. Input vectors are usually between 0 and 1 in magnitude. 
 	 * They are accumulated during a frame then applied as acceleration during the movement update.
 	 * if bForce is true, it bypasses the IsMoveInputIgnored() check. */
@@ -61,16 +54,6 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 // Inlines
-
-inline void UPawnMovementComponent::StopMovementImmediately()
-{
-	Super::StopMovementImmediately();
-	StopActiveMovement();
-}
-
-inline void UPawnMovementComponent::StopActiveMovement()
-{
-}
 
 inline FVector UPawnMovementComponent::GetInputVector() const
 {

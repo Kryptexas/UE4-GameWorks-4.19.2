@@ -259,7 +259,7 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 
 		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
 		{
-			MovementComp->StopMovementImmediately();
+			MovementComp->StopMovementKeepPathing();
 		}
 
 		if (NavComp && FinishResult != EPathFollowingResult::Skipped)
@@ -276,11 +276,6 @@ void UPathFollowingComponent::AbortMove(const FString& Reason, FAIRequestID Requ
 
 		FAIMessage::Send(Cast<AController>(GetOwner()), Msg);
 	}
-	else
-	{
-		UE_VLOG(GetOwner(), LogPathFollowing, Log, TEXT("AbortMove FAILED due to RequestID(%u) != CurrentRequestId()%d")
-			, RequestID, CurrentRequestId);
-	}
 }
 
 void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVelocity)
@@ -295,7 +290,7 @@ void UPathFollowingComponent::PauseMove(FAIRequestID RequestID, bool bResetVeloc
 	{
 		if (bResetVelocity && MovementComp && MovementComp->CanStopPathFollowing())
 		{
-			MovementComp->StopMovementImmediately();
+			MovementComp->StopMovementKeepPathing();
 		}
 
 		LocationWhenPaused = MovementComp ? MovementComp->GetActorFeetLocation() : FVector::ZeroVector;
@@ -381,7 +376,7 @@ void UPathFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 
 	if (MovementComp && MovementComp->CanStopPathFollowing())	
 	{
-		MovementComp->StopMovementImmediately();
+		MovementComp->StopMovementKeepPathing();
 	}
 
 	if (NavComp && Result != EPathFollowingResult::Skipped)

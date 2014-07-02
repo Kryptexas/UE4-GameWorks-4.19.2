@@ -633,7 +633,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		if (MovementMode == MOVE_None)
 		{
 			// Kill velocity and clear queued up events
-			StopMovementImmediately();
+			StopMovementKeepPathing();
 			CharacterOwner->ClearJumpInput();
 		}
 	}
@@ -3424,6 +3424,8 @@ void UCharacterMovementComponent::AdjustFloorHeight()
 
 void UCharacterMovementComponent::StopActiveMovement() 
 { 
+	Super::StopActiveMovement();
+
 	Acceleration = FVector::ZeroVector; 
 	bHasRequestedVelocity = false;
 	RequestedVelocity = FVector::ZeroVector;

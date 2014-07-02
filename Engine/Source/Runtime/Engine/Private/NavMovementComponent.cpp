@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Navigation/PathFollowingComponent.h"
 
 //----------------------------------------------------------------------//
 // FNavAgentProperties
@@ -17,6 +18,7 @@ void FNavAgentProperties::UpdateWithCollisionComponent(UShapeComponent* Collisio
 UNavMovementComponent::UNavMovementComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 	, bUpdateNavAgentWithOwnersCollision(true)
+	, bStopMovementAbortPaths(true)
 {
 }
 
@@ -33,6 +35,14 @@ void UNavMovementComponent::RequestDirectMove(const FVector& MoveVelocity, bool 
 bool UNavMovementComponent::CanStopPathFollowing() const
 {
 	return true;
+}
+
+void UNavMovementComponent::StopActiveMovement()
+{
+	if (PathFollowingComp.IsValid() && bStopMovementAbortPaths)
+	{
+		PathFollowingComp->AbortMove("StopActiveMovement");
+	}
 }
 
 void UNavMovementComponent::UpdateNavAgent(AActor* Owner)
