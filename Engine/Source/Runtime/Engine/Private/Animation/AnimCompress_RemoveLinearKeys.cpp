@@ -328,7 +328,7 @@ void UAnimCompress_RemoveLinearKeys::UpdateWorldBoneTransformTable(
 			float Time = (float)FrameIndex * TimePerFrame;
 			FTransform LocalAtom;
 
-			AnimSeq->GetBoneTransform(LocalAtom, TrackIndex, Time, false, UseRaw);
+			AnimSeq->GetBoneTransform(LocalAtom, TrackIndex, Time, UseRaw);
 
 			FQuat Rot = LocalAtom.GetRotation();
 			LocalAtom.SetRotation(EnforceShortestArc(FQuat::Identity, Rot));
@@ -429,7 +429,7 @@ void UAnimCompress_RemoveLinearKeys::UpdateBoneAtomList(
 	{
 		float Time = (float)FrameIndex * TimePerFrame;
 		FTransform LocalAtom;
-		AnimSeq->GetBoneTransform(LocalAtom, TrackIndex, Time, false, false);
+		AnimSeq->GetBoneTransform(LocalAtom, TrackIndex, Time, false);
 
 		FQuat Rot = LocalAtom.GetRotation();
 		LocalAtom.SetRotation( EnforceShortestArc(FQuat::Identity, Rot) );

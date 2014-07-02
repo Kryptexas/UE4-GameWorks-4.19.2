@@ -45,14 +45,12 @@ public:
 	 * @param	Seq				An Animation Sequence to extract the BoneAtom from.
 	 * @param	TrackIndex		The index of the track desired in the Animation Sequence.
 	 * @param	Time			The time (in seconds) to calculate the BoneAtom for.
-	 * @param	bLooping		true if the animation should be played in a cyclic manner.
 	 */
 	virtual void GetBoneAtom(
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time,
-		bool bLooping);
+		float Time);
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -63,15 +61,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseRotations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping);
+		float Time);
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -80,15 +76,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseTranslations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping);
+		float Time);
 
 	/**
 	 * Decompress all requested Scale components from an Animation Sequence
@@ -97,15 +91,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseScales(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping);
+		float Time);
 #endif
 
 protected:
@@ -135,7 +127,6 @@ protected:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	static void GetBoneAtomRotation(	
@@ -143,8 +134,7 @@ protected:
 		const UAnimSequence& Seq,
 		int32 Offset,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	/**
 	 * Decompress the Translation component of a BoneAtom
@@ -155,7 +145,6 @@ protected:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	static void GetBoneAtomTranslation(	
@@ -163,8 +152,7 @@ protected:
 		const UAnimSequence& Seq,
 		int32 Offset,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	/**
 	 * Decompress the Scale component of a BoneAtom
@@ -175,7 +163,6 @@ protected:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	static void GetBoneAtomScale(	
@@ -183,7 +170,6 @@ protected:
 		const UAnimSequence& Seq,
 		int32 Offset,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 };
 

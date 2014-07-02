@@ -482,6 +482,13 @@ public:
 		OnGenericDelete.RemoveAll(Widget);
 	}
 
+	/** Apply Compression to list of animations */
+	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	/** Export to FBX files of the list of animations */
+	void ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	/** Add looping interpolation to the list of animations */
+	void AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+
 protected:
 	/** Undo Action**/
 	void UndoAction();
@@ -534,6 +541,13 @@ private:
 	bool CanRecordAnimation() const;
 	bool IsRecordAvailable() const;
 	bool IsAnimationBeingRecorded() const;
+
+	/** Animation menu functions **/
+	void OnApplyCompression();
+	void OnExportToFBX();
+	void OnAddLoopingInterpolation();
+	bool HasValidAnimationSequencePlaying() const;
+	bool IsInAnimationMode() const;
 
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();

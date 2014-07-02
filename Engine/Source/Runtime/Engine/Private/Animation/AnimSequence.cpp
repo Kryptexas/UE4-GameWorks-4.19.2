@@ -100,7 +100,6 @@ UAnimSequence::UAnimSequence(const class FPostConstructInitializeProperties& PCI
 {
 
 	RateScale = 1.0;
-	bLoopingInterpolation = true;
 }
 
 SIZE_T UAnimSequence::GetResourceSize(EResourceSizeMode::Type Mode)
@@ -511,14 +510,14 @@ static int32 FindKeyIndex(float Time, const TimeArray& Times)
 	return FoundIndex;
 }
 
-void UAnimSequence::GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bLooping, bool bUseRawData) const
+void UAnimSequence::GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const
 {
 	// If the caller didn't request that raw animation data be used . . .
 	if ( !bUseRawData )
 	{
 		if ( CompressedTrackOffsets.Num() > 0 )
 		{
-			AnimationFormat_GetBoneAtom( OutAtom, *this, TrackIndex, Time, bLooping );
+			AnimationFormat_GetBoneAtom( OutAtom, *this, TrackIndex, Time );
 			return;
 		}
 	}
@@ -544,7 +543,7 @@ void UAnimSequence::GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, floa
 
 	int32 KeyIndex1, KeyIndex2;
 	float Alpha;
-	FAnimationRuntime::GetKeyIndicesFromTime(KeyIndex1, KeyIndex2, Alpha, Time, bLooping, NumFrames, SequenceLength);
+	FAnimationRuntime::GetKeyIndicesFromTime(KeyIndex1, KeyIndex2, Alpha, Time, NumFrames, SequenceLength);
 	// @Todo fix me: this change is not good, it has lots of branches. But we'd like to save memory for not saving scale if no scale change exists
 	const bool bHasScaleKey = (RawTrack.ScaleKeys.Num() > 0);
 	static const FVector DefaultScale3D = FVector(1.f);
@@ -615,7 +614,7 @@ void UAnimSequence::ExtractRootTrack(float Pos, FTransform & RootTransform, cons
 	if ((TrackToSkeletonMapTable.Num() > 0) && (TrackToSkeletonMapTable[0].BoneTreeIndex == 0) )
 	{
 		// if we do have root data, then return root data
-		GetBoneTransform(RootTransform, 0, Pos, false, false );
+		GetBoneTransform(RootTransform, 0, Pos, false );
 		return;
 	}
 
@@ -692,9 +691,6 @@ void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransform
 
 void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContainer & RequiredBones, const FAnimExtractContext & ExtractionContext) const
 {
-	// Allow 'bLoopingInterpolation' flag on the AnimSequence to disable the looping interpolation.
-	bool const bDoLoopingInterpolation = ExtractionContext.bLooping && bLoopingInterpolation;
-
 	USkeleton * MySkeleton = GetSkeleton();
 	if (!MySkeleton)
 	{
@@ -751,7 +747,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 			if( PoseBoneIndex != INDEX_NONE )
 			{
 				// extract animation
-				GetBoneTransform(OutAtoms[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime, bDoLoopingInterpolation, true);
+				GetBoneTransform(OutAtoms[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime, true);
 
 				if (!bDisableRetargeting)
 				{
@@ -821,8 +817,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 			RootAtom,
 			*this,
 			TrackIndex,
-			ExtractionContext.CurrentTime,
-			bDoLoopingInterpolation );
+			ExtractionContext.CurrentTime);
 
 		// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
 		RetargetBoneTransform(RootAtom, 0, 0, RequiredBones);
@@ -835,8 +830,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 		TranslationPairs,
 		RotationScalePairs, 
 		*this,
-		ExtractionContext.CurrentTime,
-		bDoLoopingInterpolation);
+		ExtractionContext.CurrentTime);
 
 	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
 	if( ExtractionContext.bExtractRootMotionTranslation || ExtractionContext.bExtractRootMotionRotation )
@@ -1351,7 +1345,6 @@ bool UAnimSequence::CopyAnimSequenceProperties(UAnimSequence* SourceAnimSeq, UAn
 	DestAnimSeq->SequenceLength				= SourceAnimSeq->SequenceLength;
 	DestAnimSeq->NumFrames					= SourceAnimSeq->NumFrames;
 	DestAnimSeq->RateScale					= SourceAnimSeq->RateScale;
-	DestAnimSeq->bLoopingInterpolation		= SourceAnimSeq->bLoopingInterpolation;
 	DestAnimSeq->bDoNotOverrideCompression	= SourceAnimSeq->bDoNotOverrideCompression;
 
 	// Copy Compression Settings
@@ -1634,12 +1627,9 @@ void UAnimSequence::PostProcessSequence()
 	// initialize notify track
 	InitializeNotifyTrack();
 	//Make sure we dont have any notifies off the end of the sequence
-#if WITH_EDITOR
 	ClampNotifiesAtEndOfSequence();
-#endif
 }
 
-#if WITH_EDITOR
 void UAnimSequence::RemoveNaNTracks()
 {
 	bool bRecompress = false;
@@ -1686,7 +1676,6 @@ void UAnimSequence::RemoveNaNTracks()
 		FAnimationUtils::CompressAnimSequence(this, false, false);
 	}
 }
-#endif // WITH_EDITOR
 
 void UAnimSequence::RemoveTrack(int32 TrackIndex)
 {
@@ -1705,6 +1694,69 @@ bool UAnimSequence::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& Ani
 	AnimationSequences.Add(this);
 
 	return true;
+}
+
+bool UAnimSequence::AddLoopingInterpolation()
+{
+	int32 NumTracks = AnimationTrackNames.Num();
+	int32 NumKeys = NumFrames;
+	int32 SrcKeyIndex = 0; // this is the key index we copy animation from
+	int32 DestKeyIndex = NumFrames; // this is the key index we insert animation to
+	float Interval = (NumKeys)? SequenceLength/NumKeys : 0.f;
+
+	if(Interval > 0.f)
+	{
+		// 2d array of animated time [track index][time key]
+		TArray< TArray<FTransform> > AnimatedLocalSpaces;
+		AnimatedLocalSpaces.AddZeroed(NumTracks);
+
+		for(int32 TrackIndex=0; TrackIndex<NumTracks; ++TrackIndex)
+		{
+			// add one extra for looping interpolation
+			AnimatedLocalSpaces[TrackIndex].AddUninitialized(NumKeys + 1);
+
+			// fill up keys
+			for(int32 Key=0; Key<NumKeys; ++Key)
+			{
+				GetBoneTransform(AnimatedLocalSpaces[TrackIndex][Key], TrackIndex, Interval*Key, false);
+			}
+
+			// now add extra, source should be available all the time since we check interval already
+			AnimatedLocalSpaces[TrackIndex][DestKeyIndex] = AnimatedLocalSpaces[TrackIndex][SrcKeyIndex];
+		}
+
+		// added one more key
+		int32 NewNumKeys = NumKeys +1 ;
+
+		// now I need to calculate back to new animation data
+		TArray<struct FRawAnimSequenceTrack> NewRawAnimationData = RawAnimationData;
+		for(int32 TrackIndex=0; TrackIndex<NumTracks; ++TrackIndex)
+		{
+			auto & RawAnimation = NewRawAnimationData[TrackIndex];
+			RawAnimation.PosKeys.Empty(NewNumKeys);
+			RawAnimation.PosKeys.AddUninitialized(NewNumKeys);
+			RawAnimation.RotKeys.Empty(NewNumKeys);
+			RawAnimation.RotKeys.AddUninitialized(NewNumKeys);
+			RawAnimation.ScaleKeys.Empty(NewNumKeys);
+			RawAnimation.ScaleKeys.AddUninitialized(NewNumKeys);
+
+			for(int32 Key=0; Key<NewNumKeys; ++Key)
+			{
+				RawAnimation.PosKeys[Key] = AnimatedLocalSpaces[TrackIndex][Key].GetLocation();
+				RawAnimation.RotKeys[Key] = AnimatedLocalSpaces[TrackIndex][Key].GetRotation();
+				RawAnimation.ScaleKeys[Key] = AnimatedLocalSpaces[TrackIndex][Key].GetScale3D();
+			}
+		}
+
+		RawAnimationData = NewRawAnimationData;
+		NumFrames += 1;
+		SequenceLength += Interval;
+
+		PostProcessSequence();
+		return true;
+	}
+
+	return false;
 }
 #endif
 /*-----------------------------------------------------------------------------

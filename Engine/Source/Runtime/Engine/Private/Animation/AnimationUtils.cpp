@@ -259,8 +259,8 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, cons
 				}
 				else
 				{
-					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, false, true);
-					AnimSeq->GetBoneTransform(NewAtoms[BoneIndex], TrackIndex, Time, false, false);
+					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, true);
+					AnimSeq->GetBoneTransform(NewAtoms[BoneIndex], TrackIndex, Time, false);
 
 
 					bool bSkipTranslationTrack = false;
@@ -1652,7 +1652,7 @@ void FAnimationUtils::TallyErrorsFromPerturbation(
 				}
 				else
 				{
-					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, false, true);
+					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, true);
 
 					NewAtomsT[BoneIndex] = RawAtoms[BoneIndex];
 					NewAtomsR[BoneIndex] = RawAtoms[BoneIndex];

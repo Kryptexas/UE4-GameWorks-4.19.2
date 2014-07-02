@@ -7,13 +7,9 @@
 #include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetRegistryModule.h"
-#include "AnimationCompressionPanel.h"
 #include "SSkeletonWidget.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "MainFrame.h"
-#include "DesktopPlatformModule.h"
 #include "FeedbackContextEditor.h"
-#include "FbxAnimUtils.h"
 #include "EditorAnimUtils.h"
 #include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
 
@@ -108,6 +104,43 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 		}
 	}
 
+	if(bHasSelectedAnimSequence)
+	{
+		MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabAnimationHeading", "Animation"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RunCompressionOnAnimations", "Apply Compression"),
+				LOCTEXT("RunCompressionOnAnimations_ToolTip", "Apply a compression scheme from the options given to the selected animations"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnApplyCompression, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportAnimationsToFBX", "Export to FBX"),
+				LOCTEXT("ExportAnimationsToFBX_ToolTip", "Export Animation(s) To FBX"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnExportToFBX, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("AddLoopingInterpolation", "Add Looping Interpolation"),
+				LOCTEXT("AddLoopingInterpolation_ToolTip", "Add an extra frame at the end of the animation to create better looping"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnAddLoopingInterpolation, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+
 	MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabOptionsHeading", "Options") );
 	{
 		MenuBuilder.AddMenuEntry(
@@ -129,29 +162,6 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FCanExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::CanSaveSelectedAssets, SelectedAssets)
 				)
 			);
-
-		if(bHasSelectedAnimSequence)
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("RunCompressionOnAnimations", "Apply Compression"),
-				LOCTEXT("RunCompressionOnAnimations_ToolTip", "Apply a compression scheme from the options given to the selected animations"),
-				FSlateIcon(),
-				FUIAction(
-				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnApplyCompression, SelectedAssets ),
-				FCanExecuteAction()
-				)
-				);
-
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("ExportAnimationsToFBX", "Export to FBX"),
-				LOCTEXT("ExportAnimationsToFBX_ToolTip", "Export Animation(s) To FBX"),
-				FSlateIcon(),
-				FUIAction(
-				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnExportToFBX, SelectedAssets ),
-				FCanExecuteAction()
-				)
-				);
-		}
 	}
 	MenuBuilder.EndSection();
 
@@ -224,8 +234,7 @@ void SAnimationSequenceBrowser::OnApplyCompression(TArray<FAssetData> SelectedAs
 			}
 		}
 
-		FDlgAnimCompression AnimCompressionDialog( AnimSequences );
-		AnimCompressionDialog.ShowModal();
+		PersonaPtr.Pin()->ApplyCompression(AnimSequences);
 	}
 }
 
@@ -233,146 +242,35 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 {
 	if (SelectedAssets.Num() > 0)
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
-		if(DesktopPlatform && PersonaPtr.IsValid())
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
 		{
-			USkeletalMesh * PreviewMesh = PersonaPtr.Pin()->GetPreviewMeshComponent()->SkeletalMesh;
-			if (PreviewMesh == NULL)
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingPreviewMesh", "ERROR: Missing preview mesh") );
-				return;
-			}
-
-			TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-			for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
-			{
-				if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()) )
-				{
-					// we only shows anim sequence that belong to this skeleton
-					AnimSequences.Add( TWeakObjectPtr<UAnimSequence>(AnimSequence) );
-				}
-			}
-
-			if(AnimSequences.Num() > 0)
-			{
-				//Get parent window for dialogs
-				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-
-				void* ParentWindowWindowHandle = NULL;
-
-				if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-				{
-					ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-				}
-
-				//Cache anim file names
-				TArray<FString> AnimFileNames;
-				for(auto Iter = AnimSequences.CreateIterator(); Iter; ++Iter)
-				{
-					AnimFileNames.Add( Iter->Get()->GetName() + TEXT(".fbx") );
-				}
-
-				IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-				FString DestinationFolder;
-
-				const FString Title = LOCTEXT("ExportFBXsToFolderTitle", "Choose a destination folder for the FBX file(s)").ToString();
-
-				if(SelectedAssets.Num() > 1)
-				{
-					bool bFolderValid = false;
-					// More than one file, just ask for directory
-					while(!bFolderValid)
-					{
-						const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-							ParentWindowWindowHandle,
-							Title,
-							FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
-							DestinationFolder
-							);
-
-						if ( !bFolderSelected )
-						{
-							// User canceled, return
-							return;
-						}
-
-						FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
-						FPaths::NormalizeFilename(DestinationFolder);
-
-						//Check whether there are any fbx filename conflicts in this folder
-						for(auto Iter = AnimFileNames.CreateIterator(); Iter; ++Iter)
-						{
-							FString& AnimFileName = *Iter;
-							FString FullPath = DestinationFolder + "/" + AnimFileName;
-
-							bFolderValid = true;
-							if(PlatformFile.FileExists(*FullPath))
-							{
-								FFormatNamedArguments Args;
-								Args.Add( TEXT("DestinationFolder"), FText::FromString( DestinationFolder ) );
-								const FText DialogMessage = FText::Format( LOCTEXT("ExportToFBXFileOverwriteMessage", "Exporting to '{DestinationFolder}' will cause one or more existing FBX files to be overwritten. Would you like to continue?"), Args );
-								EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, DialogMessage);
-								bFolderValid = (EAppReturnType::Yes == DialogReturn);
-								break;
-							}
-						}
-					}
-				}
-				else
-				{
-					// One file only, ask for full filename.
-					// Can set bFolderValid from the SaveFileDialog call as the window will handle 
-					// duplicate files for us.
-					TArray<FString> TempDestinationNames;
-					bool bSave = DesktopPlatform->SaveFileDialog(
-						ParentWindowWindowHandle,
-						Title,
-						FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
-						SelectedAssets[0].AssetName.ToString(),
-						"FBX  |*.fbx",
-						EFileDialogFlags::None,
-						TempDestinationNames
-						);
-
-					if(!bSave)
-					{
-						// Canceled
-						return;
-					}
-					check(TempDestinationNames.Num() == 1);
-					check(AnimFileNames.Num() == 1);
-
-					DestinationFolder = FPaths::GetPath(TempDestinationNames[0]);
-					AnimFileNames[0] = FPaths::GetCleanFilename(TempDestinationNames[0]);
-
-					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
-				}
-
-				EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ExportToFBXExportPreviewMeshToo", "Would you like to export the current skeletal mesh with the animation(s)?") );
-				bool bSaveSkeletalMesh = EAppReturnType::Yes == DialogReturn;
-
-				const bool bShowCancel = false;
-				const bool bShowProgressDialog = true;
-				GWarn->BeginSlowTask( LOCTEXT("ExportToFBXProgress", "Exporting Animation(s) to FBX"), bShowProgressDialog, bShowCancel);
-
-				// make sure to use PreviewMesh, when export inside of Persona
-				const int32 NumberOfAnimations = AnimSequences.Num();
-				for(int32 i = 0; i < NumberOfAnimations; ++i)
-				{
-					GWarn->UpdateProgress(i,NumberOfAnimations);
-
-					UAnimSequence* AnimSequence = AnimSequences[i].Get();
-
-					FString FileName = FString::Printf(TEXT("%s/%s"), *DestinationFolder, *AnimFileNames[i]);
-
-					FbxAnimUtils::ExportAnimFbx( *FileName, AnimSequence, PreviewMesh, bSaveSkeletalMesh );
-				}
-
-				GWarn->EndSlowTask( );
+				// we only shows anim sequence that belong to this skeleton
+				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
 			}
 		}
+
+		PersonaPtr.Pin()->ExportToFBX(AnimSequences);
+	}
+}
+
+void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets)
+{
+	if(SelectedAssets.Num() > 0)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		{
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			{
+				// we only shows anim sequence that belong to this skeleton
+				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+			}
+		}
+
+		PersonaPtr.Pin()->AddLoopingInterpolation(AnimSequences);
 	}
 }
 

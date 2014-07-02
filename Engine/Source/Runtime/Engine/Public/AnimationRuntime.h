@@ -196,7 +196,6 @@ public:
 	static void GetPoseFromBlendSpace(
 		UBlendSpaceBase * BlendSpace,
 		TArray<FBlendSampleData>& BlendSampleDataCache,
-		bool bLooping,
 		FBoneContainer & RequiredBones,
 		/*out*/ FTransformArrayA2& ResultAtoms);
 
@@ -216,11 +215,11 @@ public:
 	static void ApplyWeightToTransform(const FBoneContainer & RequiredBones, /*inout*/ FTransformArrayA2& Atoms, float Weight);
 
 	/** 
-	 * Get Key Indices (start/end with alpha from start) with input parameter Time, bLooping, NumFrames
+	 * Get Key Indices (start/end with alpha from start) with input parameter Time, NumFrames
 	 * from % from StartKeyIndex, meaning (CurrentKeyIndex(float)-StartKeyIndex)/(EndKeyIndex-StartKeyIndex)
 	 * by this Start-End, it will be between 0-(NumFrames-1), not number of Pos/Rot key tracks 
 	 **/
-	static void GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutKeyIndex2, float& OutAlpha, const float Time, const bool bLooping, const int32 NumFrames, const float SequenceLength);
+	static void GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutKeyIndex2, float& OutAlpha, const float Time, const int32 NumFrames, const float SequenceLength);
 
 	/** 
 	 *	Utility for taking an array of bone indices and ensuring that all parents are present 

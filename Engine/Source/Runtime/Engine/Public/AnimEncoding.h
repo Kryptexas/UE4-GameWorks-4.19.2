@@ -61,13 +61,11 @@ typedef TArray< FTransform, TMemStackAllocator<> > FTransformArray;
  * @param	Seq				An Animation Sequence to extract the BoneAtom from.
  * @param	TrackIndex		The index of the track desired in the Animation Sequence.
  * @param	Time			The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping		true if the animation should be played in a cyclic manner.
  */
 void AnimationFormat_GetBoneAtom(	FTransform& OutAtom,
 									const UAnimSequence& Seq,
 									int32 TrackIndex,
-									float Time,
-									bool bLooping);
+									float Time);
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -79,7 +77,6 @@ void AnimationFormat_GetBoneAtom(	FTransform& OutAtom,
  * @param	TranslationTracks	A BoneTrackArray element for each bone requesting translation data. 
  * @param	Seq					An Animation Sequence to extract the BoneAtom from.
  * @param	Time				The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping			true if the animation should be played in a cyclic manner.
  */
 void AnimationFormat_GetAnimationPose(	
 	FTransformArray& Atoms, 
@@ -87,8 +84,7 @@ void AnimationFormat_GetAnimationPose(
 	const BoneTrackArray& TranslationTracks,
 	const BoneTrackArray& ScaleTracks,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping);
+	float Time);
 
 #endif
 
@@ -188,14 +184,12 @@ public:
 	 * @param	Seq				An Animation Sequence to extract the BoneAtom from.
 	 * @param	TrackIndex		The index of the track desired in the Animation Sequence.
 	 * @param	Time			The time (in seconds) to calculate the BoneAtom for.
-	 * @param	bLooping		true if the animation should be played in a cyclic manner.
 	 */
 	virtual void GetBoneAtom(
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetBoneAtom,);
+		float Time) PURE_VIRTUAL(AnimEncoding::GetBoneAtom,);
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -206,15 +200,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseRotations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetPoseRotations,);
+		float Time) PURE_VIRTUAL(AnimEncoding::GetPoseRotations,);
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -223,15 +215,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseTranslations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetPoseTranslations,);
+		float Time) PURE_VIRTUAL(AnimEncoding::GetPoseTranslations,);
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -240,15 +230,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetPoseScales(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetPoseScales,);
+		float Time) PURE_VIRTUAL(AnimEncoding::GetPoseScales,);
 #endif
 protected:
 
@@ -257,7 +245,6 @@ protected:
 	 *
 	 * @param	Seq				The UAnimSequence container.
 	 * @param	RelativePos		The relative position to solve in the range [0,1] inclusive.
-	 * @param	bLooping		true if the animation should be consider cyclic (last frame interpolates back to the start)
 	 * @param	NumKeys			The number of keys present in the track being solved.
 	 * @param	PosIndex0Out	Output value for the closest key index before the RelativePos specified.
 	 * @param	PosIndex1Out	Output value for the closest key index after the RelativePos specified.
@@ -266,7 +253,6 @@ protected:
 	static float TimeToIndex(
 		const UAnimSequence& Seq,
 		float RelativePos,
-		bool bLooping,
 		int32 NumKeys,
 		int32 &PosIndex0Out,
 		int32 &PosIndex1Out);
@@ -277,7 +263,6 @@ protected:
 	 * @param	Seq				The UAnimSequence container.
 	 * @param	FrameTable		The frame table containing a frame index for each key.
 	 * @param	RelativePos		The relative position to solve in the range [0,1] inclusive.
-	 * @param	bLooping		true if the animation should be consider cyclic (last frame interpolates back to the start)
 	 * @param	NumKeys			The number of keys present in the track being solved.
 	 * @param	PosIndex0Out	Output value for the closest key index before the RelativePos specified.
 	 * @param	PosIndex1Out	Output value for the closest key index after the RelativePos specified.
@@ -287,7 +272,6 @@ protected:
 		const UAnimSequence& Seq,
 		const uint8* FrameTable,
 		float RelativePos,
-		bool bLooping,
 		int32 NumKeys,
 		int32 &PosIndex0Out,
 		int32 &PosIndex1Out);
@@ -309,14 +293,12 @@ public:
 	 * @param	Seq				An Animation Sequence to extract the BoneAtom from.
 	 * @param	TrackIndex		The index of the track desired in the Animation Sequence.
 	 * @param	Time			The time (in seconds) to calculate the BoneAtom for.
-	 * @param	bLooping		true if the animation should be played in a cyclic manner.
 	 */
 	virtual void GetBoneAtom(
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time,
-		bool bLooping);
+		float Time);
 
 	/**
 	 * Decompress the Rotation component of a BoneAtom
@@ -327,7 +309,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetBoneAtomRotation(	
@@ -336,8 +317,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetBoneAtomRotation,);
+		float RelativePos) PURE_VIRTUAL(AnimEncoding::GetBoneAtomRotation,);
 
 	/**
 	 * Decompress the Translation component of a BoneAtom
@@ -348,7 +328,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetBoneAtomTranslation(	
@@ -357,8 +336,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetBoneAtomTranslation,);
+		float RelativePos) PURE_VIRTUAL(AnimEncoding::GetBoneAtomTranslation,);
 
 	/**
 	 * Decompress the Scale component of a BoneAtom
@@ -369,7 +347,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	virtual void GetBoneAtomScale(	
@@ -378,8 +355,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping) PURE_VIRTUAL(AnimEncoding::GetBoneAtomScale,);
+		float RelativePos) PURE_VIRTUAL(AnimEncoding::GetBoneAtomScale,);
 
 	/**
 	 * Handles Byte-swapping incoming animation data from a MemoryReader
@@ -512,7 +488,6 @@ public:
  *
  * @param	Seq				The UAnimSequence container.
  * @param	RelativePos		The relative position to solve in the range [0,1] inclusive.
- * @param	bLooping		true if the animation should be consider cyclic (last frame interpolates back to the start)
  * @param	NumKeys			The number of keys present in the track being solved.
  * @param	PosIndex0Out	Output value for the closest key index before the RelativePos specified.
  * @param	PosIndex1Out	Output value for the closest key index after the RelativePos specified.
@@ -521,7 +496,6 @@ public:
 FORCEINLINE float AnimEncoding::TimeToIndex(
 	const UAnimSequence& Seq,
 	float RelativePos,
-	bool bLooping,
 	int32 NumKeys,
 	int32 &PosIndex0Out,
 	int32 &PosIndex1Out)
@@ -529,7 +503,6 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 	static int32		NumKeysCache = 0; // this value is guaranteed to not be used for valid data
 	static float	TimeCache;
 	static float	SequenceLengthCache;
-	static bool	LoopingCache;
 	static int32		PosIndex0CacheOut; 
 	static int32		PosIndex1CacheOut; 
 	static float	AlphaCacheOut;
@@ -545,13 +518,11 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 	}
 	if (
 		NumKeysCache		!= NumKeys ||
-		LoopingCache		!= bLooping ||
 		SequenceLengthCache != SequenceLength ||
 		TimeCache			!= RelativePos
 		)
 	{
 		NumKeysCache		= NumKeys;
-		LoopingCache		= bLooping;
 		SequenceLengthCache = SequenceLength;
 		TimeCache			= RelativePos;
 		// Check for before-first-frame case.
@@ -563,74 +534,24 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 		}
 		else
 		{
-			if (!bLooping)
+			NumKeys -= 1; // never used without the minus one in this case
+			// Check for after-last-frame case.
+			if( RelativePos >= 1.0f )
 			{
-				NumKeys -= 1; // never used without the minus one in this case
-				// Check for after-last-frame case.
-				if( RelativePos >= 1.0f )
-				{
-					// If we're not looping, key n-1 is the final key.
-					PosIndex0CacheOut = NumKeys;
-					PosIndex1CacheOut = NumKeys;
-					AlphaCacheOut = 0.0f;
-				}
-				else
-				{
-					// For non-looping animation, the last frame is the ending frame, and has no duration.
-					const float KeyPos = RelativePos * float(NumKeys);
-					checkSlow(KeyPos >= 0.0f);
-					const float KeyPosFloor = floorf(KeyPos);
-					PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys );
-					AlphaCacheOut = KeyPos - KeyPosFloor;
-					PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys );
-				}
+				// If we're not looping, key n-1 is the final key.
+				PosIndex0CacheOut = NumKeys;
+				PosIndex1CacheOut = NumKeys;
+				AlphaCacheOut = 0.0f;
 			}
-			else // we are looping
+			else
 			{
-				// Check for after-last-frame case.
-				if( RelativePos >= 1.0f )
-				{
-					// If we're looping, key 0 is the final key.
-					PosIndex0CacheOut = 0;
-					PosIndex1CacheOut = 0;
-					AlphaCacheOut = 0.0f;
-				}
-				else
-				{
-					// Work with animation total frames, to handle looping last->first
-					// Our track might have a different number of frames, and we handle that below.
-					int32 const NumFrames = Seq.NumFrames;
-
-					{
-						// For looping animation, the last frame has duration, and interpolates back to the first one.
-						const float KeyPos = RelativePos * float(NumFrames);
-						checkSlow(KeyPos >= 0.0f);
-						const float KeyPosFloor = floorf(KeyPos);
-						PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumFrames - 1 );
-						AlphaCacheOut = KeyPos - KeyPosFloor;
-						PosIndex1CacheOut = PosIndex0CacheOut + 1;
-					}
-
-					// Handle Looping
-					if( PosIndex1CacheOut == NumFrames )
-					{
-						PosIndex0CacheOut = NumKeys - 1;
-						PosIndex1CacheOut = 0;
-					}
-					// Non Looping! Special treatment if NumKeys is not the same as NumFrames...
-					else if( NumFrames != NumKeys )
-					{
-						// Since we're not looping first to last, chop off the last chunk
-						// And do a simple non looping interp between those keys.
-						float const AdjustedPosition = (RelativePos * float(NumFrames)) / float(NumFrames-1);
-						float const KeyPos = AdjustedPosition * float(NumKeys-1);
-						checkSlow(KeyPos >= 0.0f);
-						float const KeyPosFloor = floorf(KeyPos);
-						PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys - 1 );
-						AlphaCacheOut = KeyPos - KeyPosFloor;
-						PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys - 1 );
-					}
-				}
+				// For non-looping animation, the last frame is the ending frame, and has no duration.
+				const float KeyPos = RelativePos * float(NumKeys);
+				checkSlow(KeyPos >= 0.0f);
+				const float KeyPosFloor = floorf(KeyPos);
+				PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys );
+				AlphaCacheOut = KeyPos - KeyPosFloor;
+				PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys );
 			}
 		}
 	}
@@ -700,8 +621,7 @@ FORCEINLINE_DEBUGGABLE int32 FindLowKeyIndex(
  * @param	Seq				The UAnimSequence container.
  * @param	FrameTable		The frame table containing a frame index for each key.
  * @param	RelativePos		The relative position to solve in the range [0,1] inclusive.
- * @param	bLooping		true if the animation should be consider cyclic (last frame interpolates back to the start)
- * @param	NumKeys			The number of keys present in the track being solved.
+  * @param	NumKeys			The number of keys present in the track being solved.
  * @param	PosIndex0Out	Output value for the closest key index before the RelativePos specified.
  * @param	PosIndex1Out	Output value for the closest key index after the RelativePos specified.
  * @return	The rate at which to interpolate the two keys returned to obtain the final result.
@@ -710,7 +630,6 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 	const UAnimSequence& Seq,
 	const uint8* FrameTable,
 	float RelativePos,
-	bool bLooping,
 	int32 NumKeys,
 	int32 &PosIndex0Out,
 	int32 &PosIndex1Out)
@@ -723,11 +642,6 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 	
 	int32 TotalFrames = Seq.NumFrames-1;
 	int32 EndingKey = LastKey;
-	if (bLooping)
-	{
-		TotalFrames = Seq.NumFrames;
-		EndingKey = 0;
-	}
 
 	if (NumKeys < 2 || RelativePos <= 0.f)
 	{

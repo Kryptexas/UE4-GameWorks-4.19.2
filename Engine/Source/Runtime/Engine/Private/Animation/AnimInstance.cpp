@@ -825,14 +825,13 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
-void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping)
+void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 
 	FAnimationRuntime::GetPoseFromBlendSpace(
 		BlendSpace,
 		BlendSampleDataCache, 
-		bIsLooping,
 		RequiredBones,
 		/*out*/ Pose.Bones);
 }
@@ -1252,7 +1251,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 
 			// Extract pose from Track
 			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
-			FAnimExtractContext ExtractionContext(MontageInstance->Position, false, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
+			FAnimExtractContext ExtractionContext(MontageInstance->Position, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
 			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
 
 			TotalWeight += MontageInstance->Weight;

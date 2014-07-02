@@ -50,7 +50,7 @@ void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
 {
 	if ((Sequence != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		Output.AnimInstance->SequenceEvaluatePose(Sequence, Output.Pose, FAnimExtractContext(InternalTimeAccumulator, bLoopAnimation));
+		Output.AnimInstance->SequenceEvaluatePose(Sequence, Output.Pose, FAnimExtractContext(InternalTimeAccumulator));
 	}
 	else
 	{

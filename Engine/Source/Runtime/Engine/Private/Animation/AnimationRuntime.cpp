@@ -425,7 +425,6 @@ void FAnimationRuntime::GetPoseFromAnimTrack(
 				// Copy passed in Extraction Context, but override position and looping parameters.
 				FAnimExtractContext SequenceExtractionContext(ExtractionContext);
 				SequenceExtractionContext.CurrentTime = PositionInAnim;
-				SequenceExtractionContext.bLooping = false;
 				FAnimationRuntime::GetPoseFromSequence(Sequence, RequiredBones, SourcePoses[NewIndex], SequenceExtractionContext);
 			}
 		}
@@ -546,7 +545,6 @@ void FAnimationRuntime::ApplyWeightToTransform(const FBoneContainer & RequiredBo
 void FAnimationRuntime::GetPoseFromBlendSpace(
 	UBlendSpaceBase * BlendSpace,
 	TArray<FBlendSampleData>& BlendSampleDataCache,
-	bool bLooping,
 	FBoneContainer & RequiredBones,
 	/*out*/ FTransformArrayA2& ResultAtoms)
 {
@@ -586,7 +584,7 @@ void FAnimationRuntime::GetPoseFromBlendSpace(
 				const float Time = FMath::Clamp<float>(BlendSampleDataCache[I].Time, 0.f, Sample.Animation->SequenceLength);
 
 				// first one always fills up the source one
-				FAnimationRuntime::GetPoseFromSequence(Sample.Animation, RequiredBones, ChildrenTransform[I], FAnimExtractContext(Time, bLooping));
+				FAnimationRuntime::GetPoseFromSequence(Sample.Animation, RequiredBones, ChildrenTransform[I], FAnimExtractContext(Time));
 			}
 			else
 			{
@@ -628,7 +626,7 @@ void FAnimationRuntime::GetPoseFromBlendSpace(
 
 
 /* from % from OutKeyIndex1, meaning (CurrentKeyIndex(float)-OutKeyIndex1)/(OutKeyIndex2-OutKeyIndex1) */
-void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutKeyIndex2, float& OutAlpha, const float Time, const bool bLooping, const int32 NumFrames, const float SequenceLength)
+void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutKeyIndex2, float& OutAlpha, const float Time, const int32 NumFrames, const float SequenceLength)
 {
 	// Check for 1-frame, before-first-frame and after-last-frame cases.
 	if( Time <= 0.f || NumFrames == 1 )
@@ -642,15 +640,14 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutK
 	const int32 LastIndex		= NumFrames - 1;
 	if( Time >= SequenceLength )
 	{
-		OutKeyIndex1 = bLooping ? 0 : LastIndex;
+		OutKeyIndex1 = LastIndex;
 		OutKeyIndex2 = (OutKeyIndex1 + 1) % (NumFrames);
 		OutAlpha = 0.f;
 		return;
 	}
 
 	// This assumes that all keys are equally spaced (ie. won't work if we have dropped unimportant frames etc).
-	// by default, for looping animation, the last frame has a duration, and interpolates back to the first one.
-	const int32 NumKeys = bLooping ? NumFrames : NumFrames - 1;
+	const int32 NumKeys = NumFrames - 1;
 	const float KeyPos = ((float)NumKeys * Time) / SequenceLength;
 
 	// Find the integer part (ensuring within range) and that gives us the 'starting' key index.
@@ -664,16 +661,7 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutK
 	// If we have gone over the end, do different things in case of looping
 	if( KeyIndex2 == NumFrames )
 	{
-		// If looping, interpolate between last and first frame
-		if( bLooping )
-		{
-			KeyIndex2 = 0;
-		}
-		// If not looping - hold the last frame.
-		else
-		{
-			KeyIndex2 = KeyIndex1;
-		}
+		KeyIndex2 = KeyIndex1;
 	}
 
 	OutKeyIndex1 = KeyIndex1;

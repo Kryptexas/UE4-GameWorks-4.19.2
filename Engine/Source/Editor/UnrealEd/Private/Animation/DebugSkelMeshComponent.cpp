@@ -403,7 +403,7 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 			if (Sequence->IsValidAdditive()) 
 			{ 
 				AdditiveBasePoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
-				Sequence->GetAdditiveBasePose(AdditiveBasePoses, PreviewInstance->RequiredBones, FAnimExtractContext(PreviewInstance->CurrentTime, PreviewInstance->bLooping));
+				Sequence->GetAdditiveBasePose(AdditiveBasePoses, PreviewInstance->RequiredBones, FAnimExtractContext(PreviewInstance->CurrentTime));
 				
 				FA2CSPose CSPose;
 				CSPose.AllocateLocalPoses(AnimScriptInstance->RequiredBones, AdditiveBasePoses);

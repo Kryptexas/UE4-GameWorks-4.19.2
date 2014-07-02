@@ -61,7 +61,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;
-	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping);
+	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose);
 	// End UAnimInstance interface
 public:
 

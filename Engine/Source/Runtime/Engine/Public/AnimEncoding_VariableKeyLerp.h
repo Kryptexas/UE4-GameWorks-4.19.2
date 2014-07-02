@@ -120,7 +120,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetBoneAtomRotation(	
@@ -129,8 +128,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	/**
 	 * Decompress the Translation component of a BoneAtom
@@ -140,7 +138,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetBoneAtomTranslation(	
@@ -149,8 +146,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	
 	/**
@@ -161,7 +157,6 @@ public:
 	 * @param	NumKeys			The number of keys present in Stream.
 	 * @param	Time			Current time to solve for.
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetBoneAtomScale(	
@@ -170,8 +165,7 @@ public:
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -182,15 +176,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetPoseRotations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -199,15 +191,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetPoseTranslations(	
 		FTransformArray& Atoms,
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 
 	/**
 	 * Decompress all requested Scale components from an Animation Sequence
@@ -216,15 +206,13 @@ public:
 	 * @param	DesiredPairs	Array of requested bone information
 	 * @param	Seq				The animation sequence to use.
 	 * @param	Time			Current time to solve for.
-	 * @param	bLooping		True when looping the stream in intended.
 	 * @return					None. 
 	 */
 	void GetPoseScales(	
 		FTransformArray& Atoms,
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos,
-		bool bLooping);
+		float RelativePos);
 #endif
 
 };
@@ -238,7 +226,6 @@ public:
  * @param	NumKeys			The number of keys present in Stream.
  * @param	Time			Current time to solve for.
  * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -248,8 +235,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(
 	const uint8* RESTRICT RotStream,
 	int32 NumRotKeys,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	if (NumRotKeys == 1)
 	{
@@ -266,7 +252,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(
 
 		int32 Index0;
 		int32 Index1;
-		float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,bLooping,NumRotKeys,Index0,Index1);
+		float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,NumRotKeys,Index0,Index1);
 
 
 		if (Index0 != Index1)
@@ -309,7 +295,6 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(
  * @param	NumKeys			The number of keys present in Stream.
  * @param	Time			Current time to solve for.
  * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -319,15 +304,14 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomTranslation(
 	const uint8* RESTRICT TransStream,
 	int32 NumTransKeys,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	const uint8* RESTRICT FrameTable= TransStream +(NumTransKeys*CompressedTranslationStrides[FORMAT]*CompressedTranslationNum[FORMAT]);
 	FrameTable= Align(FrameTable, 4);
 
 	int32 Index0;
 	int32 Index1;
-	float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,bLooping,NumTransKeys,Index0,Index1);
+	float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,NumTransKeys,Index0,Index1);
 	const int32 TransStreamOffset = ((FORMAT == ACF_IntervalFixed32NoW) && NumTransKeys > 1) ? (sizeof(float)*6) : 0; // offset past Min and Range data
 
 	if (Index0 != Index1)
@@ -358,7 +342,6 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomTranslation(
  * @param	NumKeys			The number of keys present in Stream.
  * @param	Time			Current time to solve for.
  * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -368,15 +351,14 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomScale(
 	const uint8* RESTRICT ScaleStream,
 	int32 NumScaleKeys,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	const uint8* RESTRICT FrameTable= ScaleStream +(NumScaleKeys*CompressedScaleStrides[FORMAT]*CompressedScaleNum[FORMAT]);
 	FrameTable= Align(FrameTable, 4);
 
 	int32 Index0;
 	int32 Index1;
-	float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,bLooping,NumScaleKeys,Index0,Index1);
+	float Alpha = TimeToIndex(Seq,FrameTable,RelativePos,NumScaleKeys,Index0,Index1);
 	const int32 ScaleStreamOffset = ((FORMAT == ACF_IntervalFixed32NoW) && NumScaleKeys > 1) ? (sizeof(float)*6) : 0; // offset past Min and Range data
 
 	if (Index0 != Index1)
@@ -408,7 +390,6 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetBoneAtomScale(
  * @param	DesiredPairs	Array of requested bone information
  * @param	Seq				The animation sequence to use.
  * @param	Time			Current time to solve for.
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -416,8 +397,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	const int32 PairCount = DesiredPairs.Num();
 	const float RelativePos = Time / (float)Seq.SequenceLength;
@@ -435,7 +415,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(
 		const uint8* RESTRICT RotStream		= Seq.CompressedByteStream.GetTypedData()+RotKeysOffset;
 
 		// call the decoder directly (not through the vtable)
-		AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(BoneAtom, Seq, RotStream, NumRotKeys, Time, RelativePos, bLooping);
+		AEFVariableKeyLerp<FORMAT>::GetBoneAtomRotation(BoneAtom, Seq, RotStream, NumRotKeys, Time, RelativePos);
 	}
 }
 
@@ -446,7 +426,6 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseRotations(
  * @param	DesiredPairs	Array of requested bone information
  * @param	Seq				The animation sequence to use.
  * @param	Time			Current time to solve for.
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -454,8 +433,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	const int32 PairCount= DesiredPairs.Num();
 	const float RelativePos = Time / (float)Seq.SequenceLength;
@@ -473,7 +451,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(
 		const uint8* RESTRICT TransStream = Seq.CompressedByteStream.GetTypedData()+TransKeysOffset;
 
 		// call the decoder directly (not through the vtable)
-		AEFVariableKeyLerp<FORMAT>::GetBoneAtomTranslation(BoneAtom, Seq, TransStream, NumTransKeys, Time, RelativePos, bLooping);
+		AEFVariableKeyLerp<FORMAT>::GetBoneAtomTranslation(BoneAtom, Seq, TransStream, NumTransKeys, Time, RelativePos);
 	}
 }
 
@@ -484,7 +462,6 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseTranslations(
  * @param	DesiredPairs	Array of requested bone information
  * @param	Seq				The animation sequence to use.
  * @param	Time			Current time to solve for.
- * @param	bLooping		True when looping the stream in intended.
  * @return					None. 
  */
 template<int32 FORMAT>
@@ -492,8 +469,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseScales(
 	FTransformArray& Atoms, 
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	check (Seq.CompressedScaleOffsets.IsValid());
 
@@ -512,7 +488,7 @@ FORCEINLINE_DEBUGGABLE void AEFVariableKeyLerp<FORMAT>::GetPoseScales(
 		const uint8* RESTRICT ScaleStream = Seq.CompressedByteStream.GetTypedData()+ScaleKeysOffset;
 
 		// call the decoder directly (not through the vtable)
-		AEFVariableKeyLerp<FORMAT>::GetBoneAtomScale(BoneAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos, bLooping);
+		AEFVariableKeyLerp<FORMAT>::GetBoneAtomScale(BoneAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos);
 	}
 }
 #endif

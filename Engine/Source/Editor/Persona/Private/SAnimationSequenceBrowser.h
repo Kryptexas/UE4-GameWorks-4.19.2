@@ -43,6 +43,9 @@ public:
 	/** Delegate to handle Export FBX context menu option */
 	void OnExportToFBX(TArray<FAssetData> SelectedAssets);
 
+	/** Delegate to handle Add looping interpolation context menu option */
+	void OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets);
+
 	/** This will allow duplicate the current object, and remap to new skeleton 
 	 *	Only allowed for AnimSequence 
 	 */

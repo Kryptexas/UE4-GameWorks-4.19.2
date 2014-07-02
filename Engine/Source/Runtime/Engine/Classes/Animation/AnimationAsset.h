@@ -105,10 +105,6 @@ struct FAnimExtractContext
 	UPROPERTY()
 	bool bExtractRootMotionRotation;
 
-	/** Are we looping this animation? */
-	UPROPERTY()
-	bool bLooping;
-
 	/** Position in animation to extract pose from */
 	UPROPERTY()
 	float CurrentTime;
@@ -120,25 +116,22 @@ struct FAnimExtractContext
 	FAnimExtractContext()
 		: bExtractRootMotionTranslation(false)
 		, bExtractRootMotionRotation(false)
-		, bLooping(false)
 		, CurrentTime(0.f)
 		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
-	FAnimExtractContext(float InCurrentTime, bool InbLooping)
+	FAnimExtractContext(float InCurrentTime)
 		: bExtractRootMotionTranslation(false)
 		, bExtractRootMotionRotation(false)
-		, bLooping(InbLooping)
 		, CurrentTime(InCurrentTime)
 		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
-	FAnimExtractContext(float InCurrentTime, bool InbLooping, bool InbExtractRootMotionTranslation, bool InbExtractRootMotionRotation, ERootMotionRootLock::Type InRootMotionRootLock)
+	FAnimExtractContext(float InCurrentTime, bool InbExtractRootMotionTranslation, bool InbExtractRootMotionRotation, ERootMotionRootLock::Type InRootMotionRootLock)
 		: bExtractRootMotionTranslation(InbExtractRootMotionTranslation)
 		, bExtractRootMotionRotation(InbExtractRootMotionRotation)
-		, bLooping(InbLooping)
 		, CurrentTime(InCurrentTime)
 		, RootMotionRootLock(InRootMotionRootLock)
 	{

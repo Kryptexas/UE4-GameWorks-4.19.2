@@ -54,6 +54,11 @@
 
 #include "Particles/ParticleSystemComponent.h"
 
+#include "DesktopPlatformModule.h"
+#include "MainFrame.h"
+#include "AnimationCompressionPanel.h"
+#include "FbxAnimUtils.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -777,7 +782,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			// View
 			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaEditorMenu", "Animation" ) );
 			{
-				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().RecordAnimation );
+			
 			}
 			MenuBuilder.EndSection();
 		}
@@ -789,6 +794,16 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			{
 				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().ChangeSkeletonPreviewMesh );
 				MenuBuilder.AddMenuEntry( FPersonaCommands::Get().RemoveUnusedBones );
+			}
+			MenuBuilder.EndSection();
+
+			//  Animation menu
+			MenuBuilder.BeginSection("Persona", LOCTEXT("PersonaAssetMenuMenu", "Animation"));
+			{
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ApplyCompression);
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().ExportToFBX);
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().RecordAnimation );
+				MenuBuilder.AddMenuEntry(FPersonaCommands::Get().AddLoopingInterpolation);
 			}
 			MenuBuilder.EndSection();
 		}
@@ -1055,6 +1070,27 @@ void FPersona::CreateDefaultCommands()
 		FCanExecuteAction::CreateSP( this, &FPersona::CanRecordAnimation ),
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP( this, &FPersona::IsRecordAvailable )
+		);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().ApplyCompression,
+		FExecuteAction::CreateSP(this, &FPersona::OnApplyCompression),
+		FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInAnimationMode)
+		);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().ExportToFBX,
+		FExecuteAction::CreateSP(this, &FPersona::OnExportToFBX),
+		FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInAnimationMode)
+		);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().AddLoopingInterpolation,
+		FExecuteAction::CreateSP(this, &FPersona::OnAddLoopingInterpolation),
+		FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInAnimationMode)
 		);
 
 	ToolkitCommands->MapAction( FPersonaCommands::Get().ChangeSkeletonPreviewMesh,
@@ -2338,6 +2374,209 @@ void FPersona::RecordAnimation()
 	}
 }
 
+void FPersona::OnApplyCompression()
+{
+	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
+
+	if (AnimSequence)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		AnimSequences.Add(AnimSequence);
+		ApplyCompression(AnimSequences);
+	}
+}
+
+void FPersona::OnExportToFBX()
+{
+	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+
+	if(AnimSequence)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		AnimSequences.Add(AnimSequence);
+		ExportToFBX(AnimSequences);
+	}
+}
+
+void FPersona::OnAddLoopingInterpolation()
+{
+	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+
+	if(AnimSequence)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		AnimSequences.Add(AnimSequence);
+		AddLoopingInterpolation(AnimSequences);
+	}
+}
+
+void FPersona::ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+{
+	FDlgAnimCompression AnimCompressionDialog(AnimSequences);
+	AnimCompressionDialog.ShowModal();
+}
+
+void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
+	if(DesktopPlatform)
+	{
+		USkeletalMesh * PreviewMesh = GetPreviewMeshComponent()->SkeletalMesh;
+		if(PreviewMesh == NULL)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingPreviewMesh", "ERROR: Missing preview mesh"));
+			return;
+		}
+
+		if(AnimSequences.Num() > 0)
+		{
+			//Get parent window for dialogs
+			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+
+			void* ParentWindowWindowHandle = NULL;
+
+			if(MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
+
+			//Cache anim file names
+			TArray<FString> AnimFileNames;
+			for(auto Iter = AnimSequences.CreateIterator(); Iter; ++Iter)
+			{
+				AnimFileNames.Add(Iter->Get()->GetName() + TEXT(".fbx"));
+			}
+
+			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+			FString DestinationFolder;
+
+			const FString Title = LOCTEXT("ExportFBXsToFolderTitle", "Choose a destination folder for the FBX file(s)").ToString();
+
+			if(AnimSequences.Num() > 1)
+			{
+				bool bFolderValid = false;
+				// More than one file, just ask for directory
+				while(!bFolderValid)
+				{
+					const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
+						ParentWindowWindowHandle,
+						Title,
+						FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
+						DestinationFolder
+						);
+
+					if(!bFolderSelected)
+					{
+						// User canceled, return
+						return;
+					}
+
+					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
+					FPaths::NormalizeFilename(DestinationFolder);
+
+					//Check whether there are any fbx filename conflicts in this folder
+					for(auto Iter = AnimFileNames.CreateIterator(); Iter; ++Iter)
+					{
+						FString& AnimFileName = *Iter;
+						FString FullPath = DestinationFolder + "/" + AnimFileName;
+
+						bFolderValid = true;
+						if(PlatformFile.FileExists(*FullPath))
+						{
+							FFormatNamedArguments Args;
+							Args.Add(TEXT("DestinationFolder"), FText::FromString(DestinationFolder));
+							const FText DialogMessage = FText::Format(LOCTEXT("ExportToFBXFileOverwriteMessage", "Exporting to '{DestinationFolder}' will cause one or more existing FBX files to be overwritten. Would you like to continue?"), Args);
+							EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, DialogMessage);
+							bFolderValid = (EAppReturnType::Yes == DialogReturn);
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// One file only, ask for full filename.
+				// Can set bFolderValid from the SaveFileDialog call as the window will handle 
+				// duplicate files for us.
+				TArray<FString> TempDestinationNames;
+				bool bSave = DesktopPlatform->SaveFileDialog(
+					ParentWindowWindowHandle,
+					Title,
+					FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
+					AnimSequences[0]->GetName(),
+					"FBX  |*.fbx",
+					EFileDialogFlags::None,
+					TempDestinationNames
+					);
+
+				if(!bSave)
+				{
+					// Canceled
+					return;
+				}
+				check(TempDestinationNames.Num() == 1);
+				check(AnimFileNames.Num() == 1);
+
+				DestinationFolder = FPaths::GetPath(TempDestinationNames[0]);
+				AnimFileNames[0] = FPaths::GetCleanFilename(TempDestinationNames[0]);
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
+			}
+
+			EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ExportToFBXExportPreviewMeshToo", "Would you like to export the current skeletal mesh with the animation(s)?"));
+			bool bSaveSkeletalMesh = EAppReturnType::Yes == DialogReturn;
+
+			const bool bShowCancel = false;
+			const bool bShowProgressDialog = true;
+			GWarn->BeginSlowTask(LOCTEXT("ExportToFBXProgress", "Exporting Animation(s) to FBX"), bShowProgressDialog, bShowCancel);
+
+			// make sure to use PreviewMesh, when export inside of Persona
+			const int32 NumberOfAnimations = AnimSequences.Num();
+			for(int32 i = 0; i < NumberOfAnimations; ++i)
+			{
+				GWarn->UpdateProgress(i, NumberOfAnimations);
+
+				UAnimSequence* AnimSequence = AnimSequences[i].Get();
+
+				FString FileName = FString::Printf(TEXT("%s/%s"), *DestinationFolder, *AnimFileNames[i]);
+
+				FbxAnimUtils::ExportAnimFbx(*FileName, AnimSequence, PreviewMesh, bSaveSkeletalMesh);
+			}
+
+			GWarn->EndSlowTask();
+		}
+	}
+}
+
+void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+{
+	FText WarningMessage = LOCTEXT("AddLoopiingInterpolation", "This will add extra frame at the end of the animation with the first frame to create a better looping interpolation. This action isn't undoable. Would you like to proceed?");
+
+	if(FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage) == EAppReturnType::Yes)
+	{
+		for(auto Animation : AnimSequences)
+		{
+			// get first frame and add to the last frame and go through track
+			// now calculating old animated space bases
+			Animation->AddLoopingInterpolation();
+		}
+	}
+}
+
+bool FPersona::HasValidAnimationSequencePlaying() const
+{
+	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	
+	return (AnimSequence != NULL);
+}
+
+bool FPersona::IsInAnimationMode() const
+{
+	return (GetCurrentMode() == FPersonaModes::AnimationEditMode);
+}
+
 void FPersona::ChangeSkeletonPreviewMesh()
 {
 	// Menu option cannot be called unless this is valid
@@ -2513,7 +2752,7 @@ bool FPersona::CanRemoveBones() const
 
 bool FPersona::IsRecordAvailable() const
 {
-	return (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode);
+	return (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode || GetCurrentMode() == FPersonaModes::AnimationEditMode );
 }
 
 bool FPersona::IsEditable(UEdGraph* InGraph) const

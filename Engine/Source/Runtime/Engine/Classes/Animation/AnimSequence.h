@@ -313,12 +313,6 @@ class UAnimSequence : public UAnimSequenceBase
 	int32 NumFrames;
 
 	/**
-	 * if true, enable interpolation between last and first frame when looping.
-	 */
-	UPROPERTY(EditAnywhere, Category=Animation)
-	uint32 bLoopingInterpolation:1;
-
-	/**
 	 * In the future, maybe keeping RawAnimSequenceTrack + TrackMap as one would be good idea to avoid inconsistent array size
 	 * TrackToSkeletonMapTable(i) should contains  track mapping data for RawAnimationData(i). 
 	 */
@@ -585,10 +579,9 @@ public:
 	 * @param	OutAtom			[out] Output bone transform.
 	 * @param	TrackIndex		Index of track to interpolate.
 	 * @param	Time			Time on track to interpolate to.
-	 * @param	bLooping		true if the animation is looping.
 	 * @param	bUseRawData		If true, use raw animation data instead of compressed data.
 	 */
-	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bLooping, bool bUseRawData) const;
+	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
 	
 	// End Transform related functions 
 
@@ -688,6 +681,11 @@ public:
 	 * After imported or any other change is made, call this to apply post process
 	 */
 	ENGINE_API void PostProcessSequence();
+	/** 
+	 * Insert extra frame of the first frame at the end of the frame so that it improves the interpolation when it loops
+	 * This increases framecount + time, so that it requires recompression
+	 */
+	ENGINE_API bool AddLoopingInterpolation();
 #endif
 
 private:
