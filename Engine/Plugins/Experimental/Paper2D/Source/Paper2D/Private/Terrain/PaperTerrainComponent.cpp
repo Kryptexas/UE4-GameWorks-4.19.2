@@ -73,6 +73,9 @@ UPaperTerrainComponent::UPaperTerrainComponent(const FPostConstructInitializePro
 	, ReparamStepsPerSegment(8)
 {
 	TestScaleFactor = 1.0f;
+
+	static ConstructorHelpers::FObjectFinder<UPaperTerrainMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultPaperTerrainMaterial.DefaultPaperTerrainMaterial"));
+	TerrainMaterial = DefaultMaterialRef.Object;
 }
 
 const UObject* UPaperTerrainComponent::AdditionalStatObject() const
