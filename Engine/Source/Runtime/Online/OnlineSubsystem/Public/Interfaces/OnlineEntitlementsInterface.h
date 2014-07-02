@@ -18,6 +18,8 @@ struct FOnlineEntitlement
 	FUniqueEntitlementId Id;
 	/** Display name for the entitlement */
 	FString Name;
+	/** Id for the item that this entitlement is associated with */
+	FString ItemId;
 
 	/**
 	 * @return Any additional data associated with the entitlement
