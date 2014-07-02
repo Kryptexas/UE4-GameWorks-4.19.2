@@ -499,7 +499,10 @@ void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelecte
 			FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
 
 			EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
-
+			
+			// Force a cached level list rebuild
+			PopulateLevelsList();
+			
 			if (bRemoveInvalidSelectedLevelsAfter)
 			{
 				InvalidSelectedLevels = SavedInvalidSelectedLevels;
