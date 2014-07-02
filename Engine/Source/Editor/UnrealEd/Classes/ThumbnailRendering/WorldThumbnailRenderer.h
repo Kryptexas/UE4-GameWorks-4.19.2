@@ -29,5 +29,9 @@ private:
 	/** If true, all world thumbnails will be rendered unlit. This is useful in games that have shared lighting in a common map */
 	UPROPERTY(config)
 	bool bUseUnlitScene;
+
+	/** If false, all world thumbnails rendering will be disabled */
+	UPROPERTY(config)
+	bool bAllowWorldThumbnails;
 };
 

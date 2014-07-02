@@ -7,17 +7,21 @@
 UWorldThumbnailRenderer::UWorldThumbnailRenderer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	bUseUnlitScene = false;
 	GlobalOrbitYawOffset = 0.f;
+	bUseUnlitScene = false;
+	bAllowWorldThumbnails = false;
 }
 
 bool UWorldThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 {
-	UWorld* World = Cast<UWorld>(Object);
-	if (World && World->PersistentLevel)
+	if ( bAllowWorldThumbnails )
 	{
-		// If this is a world, only render the current persistent editor world. Other worlds don't have an initialized scene to render.
-		return World->WorldType == EWorldType::Editor && World->PersistentLevel->OwningWorld == World;
+		UWorld* World = Cast<UWorld>(Object);
+		if (World && World->PersistentLevel)
+		{
+			// If this is a world, only render the current persistent editor world. Other worlds don't have an initialized scene to render.
+			return World->WorldType == EWorldType::Editor && World->PersistentLevel->OwningWorld == World;
+		}
 	}
 
 	return false;
@@ -26,17 +30,38 @@ bool UWorldThumbnailRenderer::CanVisualizeAsset(UObject* Object)
 void UWorldThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget* RenderTarget, FCanvas* Canvas)
 {
 	UWorld* World = Cast<UWorld>(Object);
-	if (World != nullptr)
+	if (World != nullptr && World->Scene)
 	{
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, World->Scene, FEngineShowFlags(ESFIM_Game) )
+		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, World->Scene, FEngineShowFlags(ESFIM_All0) )
 			.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 
-		ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
-		ViewFamily.EngineShowFlags.SetMotionBlur(false);
-		ViewFamily.EngineShowFlags.SetLighting(!bUseUnlitScene);
-		ViewFamily.EngineShowFlags.SetPostProcessing(false);
-		ViewFamily.EngineShowFlags.SetDistanceCulledPrimitives(true);
-		ViewFamily.EngineShowFlags.SetFog(false);
+		ViewFamily.EngineShowFlags.SetDiffuse(true);
+		ViewFamily.EngineShowFlags.SetSkeletalMeshes(true);
+		ViewFamily.EngineShowFlags.SetTranslucency(true);
+		ViewFamily.EngineShowFlags.SetBillboardSprites(true);
+		ViewFamily.EngineShowFlags.SetLOD(true);
+		ViewFamily.EngineShowFlags.SetMaterials(true);
+		ViewFamily.EngineShowFlags.SetStaticMeshes(true);
+		ViewFamily.EngineShowFlags.SetLandscape(true);
+		ViewFamily.EngineShowFlags.SetGame(true);
+		ViewFamily.EngineShowFlags.SetBSP(true);
+		ViewFamily.EngineShowFlags.SetRendering(true);
+		ViewFamily.EngineShowFlags.SetPaper2DSprites(true);
+
+		if ( !bUseUnlitScene )
+		{
+			ViewFamily.EngineShowFlags.SetSpecular(true);
+			ViewFamily.EngineShowFlags.SetLighting(true);
+			ViewFamily.EngineShowFlags.SetDirectLighting(true);
+			ViewFamily.EngineShowFlags.SetIndirectLightingCache(true);
+			ViewFamily.EngineShowFlags.SetDeferredLighting(true);
+			ViewFamily.EngineShowFlags.SetDirectionalLights(true);
+			ViewFamily.EngineShowFlags.SetGlobalIllumination(true);
+			ViewFamily.EngineShowFlags.SetPointLights(true);
+			ViewFamily.EngineShowFlags.SetSpotLights(true);
+			ViewFamily.EngineShowFlags.SetSkyLighting(true);
+			ViewFamily.EngineShowFlags.SetReflectionEnvironment(true);
+		}
 
 		GetView(World, &ViewFamily, X, Y, Width, Height);
 
