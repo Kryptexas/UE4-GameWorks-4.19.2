@@ -3333,7 +3333,7 @@ public:
 	 */ 
 	bool Pack(const TArray<uint32>& LigthmapsList)
 	{
-		// Calculate total ligtmaps area and sort lightmaps list by resolution
+		// Calculate total lightmaps area and sort lightmaps list by resolution
 		TArray<TPair<int32, uint32>> SortedLightmaps;
 		float TotalArea = 0;
 
@@ -3498,34 +3498,36 @@ void FMeshUtilities::MergeActors(
 
 	FRawMeshExt MergedMesh;
 
-	// Pack lightmaps
-	float MergedLightmapScale = 1.f;
-	FLightmapPacker LightmapPacker;	
-					
-	if (InSettings.bGnerateAtlasedLightmapUV)
+	// Attempt to pack lightmaps
+	float MergedLightMapScale = 1.f;
+	bool bCreateLightMapChannel = false;
+	FLightmapPacker LightMapPacker;	
+						
+	if (InSettings.bGenerateAtlasedLightMapUV)
 	{
-		static const uint32 MaxLightmapRes = 2048;
-				
 		// Set target channel for lightmap UV
-		MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightmapUVChannel;
+		MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightMapUVChannel;
 		
 		// Collect lightmap sizes from all meshes
-		TArray<uint32> LightmapResList;
+		TArray<uint32> LightMapResList;
 		for (const FRawMeshExt& SourceMesh : SourceMeshes)
 		{
-			LightmapResList.Add(SourceMesh.LightMapRes);
+			LightMapResList.Add(SourceMesh.LightMapRes);
 		}
 		
 		// Pack them into one atlas
-		LightmapPacker.Pack(LightmapResList);
-		MergedMesh.LightMapRes = LightmapPacker.GetAtlasResolution();
+		LightMapPacker.Pack(LightMapResList);
+		MergedMesh.LightMapRes = LightMapPacker.GetAtlasResolution();
 
-		// Whether we need to scale down UV coordiantes
-		if (MergedMesh.LightMapRes > MaxLightmapRes)
+		// Whether we need to scale down lightUV coordiantes
+		if (MergedMesh.LightMapRes > InSettings.MaxAltlasedLightMapResolution)
 		{
-			MergedLightmapScale = MaxLightmapRes/(float)MergedMesh.LightMapRes;
-			MergedMesh.LightMapRes = MaxLightmapRes;
+			MergedLightMapScale = InSettings.MaxAltlasedLightMapResolution/(float)MergedMesh.LightMapRes;
+			MergedMesh.LightMapRes = InSettings.MaxAltlasedLightMapResolution;
 		}
+
+		// Create lightmap channel in a merged mesh only if we succeed to generate atlas for it
+		bCreateLightMapChannel = (MergedMesh.LightMapRes > 0);
 	}
 
 	// Use first mesh for naming and pivot
@@ -3577,21 +3579,21 @@ void FMeshUtilities::MergeActors(
 		}
 		
 		// Write atlased UVs into user specified TargetLightmapChannel 
-		if (InSettings.bGnerateAtlasedLightmapUV && MergedMesh.LightMapRes)
+		if (bCreateLightMapChannel)
 		{
 			FVector2D	UVOffset = FVector2D::ZeroVector;
-			FIntRect	PackedLightmapRect = LightmapPacker.GetPackedLightmapRect(SourceMeshIdx);
-			if (PackedLightmapRect.Area() != 0)
+			FIntRect	PackedLightMapRect = LightMapPacker.GetPackedLightmapRect(SourceMeshIdx);
+			if (PackedLightMapRect.Area() != 0)
 			{
-				UVOffset = FVector2D(PackedLightmapRect.Min) * MergedLightmapScale / MergedMesh.LightMapRes;
+				UVOffset = FVector2D(PackedLightMapRect.Min) * MergedLightMapScale / MergedMesh.LightMapRes;
 			}
 			
 			const TArray<FVector2D>& SourceWedgeTexCoords = SourceRawMesh.WedgeTexCoords[SourceMeshes[SourceMeshIdx].LightMapCoordinateIndex];
 			
 			for (FVector2D LightMapUV : SourceWedgeTexCoords)
 			{
-				const float SourceMeshLightmapRes = SourceMeshes[SourceMeshIdx].LightMapRes;
-				const float UVScale = (SourceMeshLightmapRes * MergedLightmapScale) / MergedMesh.LightMapRes;
+				const float SourceMeshLightMapRes = SourceMeshes[SourceMeshIdx].LightMapRes;
+				const float UVScale = (SourceMeshLightMapRes * MergedLightMapScale) / MergedMesh.LightMapRes;
 				TargetRawMesh.WedgeTexCoords[MergedMesh.LightMapCoordinateIndex].Add(LightMapUV * UVScale + UVOffset);
 			}
 		}
@@ -3600,7 +3602,7 @@ void FMeshUtilities::MergeActors(
 		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 		{
 			// Skip Lightmap channel if any
-			if (InSettings.bGnerateAtlasedLightmapUV && ChannelIdx == MergedMesh.LightMapCoordinateIndex)
+			if (bCreateLightMapChannel && ChannelIdx == MergedMesh.LightMapCoordinateIndex)
 			{
 				continue;
 			}
@@ -3660,7 +3662,7 @@ void FMeshUtilities::MergeActors(
 		StaticMesh->LightingGuid = FGuid::NewGuid();
 
 		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-		if (InSettings.bGnerateAtlasedLightmapUV)
+		if (bCreateLightMapChannel)
 		{
 			StaticMesh->LightMapResolution = MergedMesh.LightMapRes;
 			StaticMesh->LightMapCoordinateIndex = MergedMesh.LightMapCoordinateIndex;	

@@ -29,9 +29,22 @@ SMeshMergingDialog::~SMeshMergingDialog()
 void SMeshMergingDialog::Construct(const FArguments& InArgs)
 {
 	ParentWindow = InArgs._ParentWindow;
-	
+
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( "LevelEditor" );
 	LevelEditor.OnActorSelectionChanged().AddSP(this, &SMeshMergingDialog::OnActorSelectionChanged);
+	
+	// Setup available resolutions for an atlased lightmap
+	const auto& LightMapGroup = GSystemSettings.TextureLODSettings.GetTextureLODGroup(TEXTUREGROUP_Lightmap);
+	for (int32 Index = LightMapGroup.MinLODMipCount; Index <= LightMapGroup.MaxLODMipCount; Index++)
+	{
+		LightMapResolutionOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(1 << Index))));
+	}
+	
+	// Setup available UV channels for an atlased lightmap
+	for (int32 Index = 0; Index < MAX_MESH_TEXTURE_COORDS; Index++)
+	{
+		LightMapChannelOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(Index))));
+	}
 
 	GenerateNewPackageName();
 
@@ -41,161 +54,180 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 		SNew(SVerticalBox)
 
 		+SVerticalBox::Slot()
-		.Padding(2,2,2,4)
+		.AutoHeight()
+		.Padding(0,2,0,0)
 		[
+			// Lightmap settings
 			SNew(SBorder)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
 				SNew(SVerticalBox)
-
-				//
-				// Merging options
-				//
+									
+				// Enable atlasing
 				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 				[
-					SNew(SVerticalBox)
-				
-					// Lightmaps atlasing
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetAtlasLightmapUV)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetAtlasLightmapUV)
+					.Content()
 					[
-						SNew(SCheckBox)
-						.Type(ESlateCheckBoxType::CheckBox)
-						.IsChecked(this, &SMeshMergingDialog::GetAtlasLightmapUV)
-						.OnCheckStateChanged(this, &SMeshMergingDialog::SetAtlasLightmapUV)
-						.Content()
-						[
-							SNew(STextBlock).Text(LOCTEXT("AtlasLightmapUVLabel", "Generate Atlased Lightmap UVs"))
-						]
+						SNew(STextBlock).Text(LOCTEXT("AtlasLightmapUVLabel", "Generate Atlased Lightmap UVs"))
 					]
+				]
 					
-					// Target lightmap channel
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				// Target lightmap channel / Max lightmap resolution
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SHorizontalBox)
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
-						SNew(SBorder)
-						.Padding(FMargin(8,0,0,0))
-						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-						[
-							SNew(SNumericEntryBox<int32>)
-							.IsEnabled( this, &SMeshMergingDialog::IsLightmapChannelEnabled )
-							.MinValue(0)
-							.MaxValue(MAX_MESH_TEXTURE_COORDS-1)
-							.Value(this, &SMeshMergingDialog::GetTargetLightmapChannelValue)
-							.OnValueCommitted(this, &SMeshMergingDialog::OnTargetLightmapChannelValueCommited)
-							.Label()
-							[
-								SNumericEntryBox<int32>::BuildLabel(LOCTEXT("TargetLightMapChannelLabel", "Target LightMap Channel: "), FLinearColor::Black, FLinearColor(.33f,.33f,.33f))
-							]
-						]
-					]
-					
-					// Vertex colors
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					[
-						SNew(SCheckBox)
-						.Type(ESlateCheckBoxType::CheckBox)
-						.IsChecked(this, &SMeshMergingDialog::GetImportVertexColors)
-						.OnCheckStateChanged(this, &SMeshMergingDialog::SetImportVertexColors)
-						.Content()
-						[
-							SNew(STextBlock).Text(LOCTEXT("ImportVertexColorsLabel", "Import Vertex Colors"))
-						]
+						SNew(STextBlock)
+						.Text(LOCTEXT("TargetLightMapChannelLabel", "Target Channel:"))
 					]
 
-					// Make one section per material
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4,0,4,0)
 					[
-						SNew(SCheckBox)
-						.Type(ESlateCheckBoxType::CheckBox)
-						.IsChecked(this, &SMeshMergingDialog::GetOneSectionPerMaterial)
-						.OnCheckStateChanged(this, &SMeshMergingDialog::SetOneSectionPerMaterial)
-						.Content()
-						[
-							SNew(STextBlock).Text(LOCTEXT("MakeOneSectionPerMaterialLabel", "Make One Section Per Material"))
-						]
+						SNew(STextComboBox)
+						.IsEnabled( this, &SMeshMergingDialog::IsLightmapChannelEnabled )
+						.OptionsSource(&LightMapChannelOptions)
+						.InitiallySelectedItem(LightMapChannelOptions[MergingSettings.TargetLightMapUVChannel])
+						.OnSelectionChanged(this, &SMeshMergingDialog::SetTargetLightMapChannel)
 					]
 
-					// Pivot at zero
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
 					[
-						SNew(SCheckBox)
-						.Type(ESlateCheckBoxType::CheckBox)
-						.IsChecked(this, &SMeshMergingDialog::GetPivotPointAtZero)
-						.OnCheckStateChanged(this, &SMeshMergingDialog::SetPivotPointAtZero)
-						.Content()
-						[
-							SNew(STextBlock).Text(LOCTEXT("PivotPointAtZeroLabel", "Pivot Point At (0,0,0)"))
-						]
+						SNew(STextBlock)
+						.Text(LOCTEXT("MaxLightMapResolutionLabel", "Max Resolution:"))
 					]
-
-					// Place in world
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+												
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4,0,4,0)
 					[
-						SNew(SCheckBox)
-						.Type(ESlateCheckBoxType::CheckBox)
-						.IsChecked(this, &SMeshMergingDialog::GetPlaceInWorld)
-						.OnCheckStateChanged(this, &SMeshMergingDialog::SetPlaceInWorld)
-						.Content()
-						[
-							SNew(STextBlock).Text(LOCTEXT("PlaceInWorldLabel", "Place In World"))
-						]
-					]
-						
-					// Asset name and picker
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					[
-						SNew(STextBlock).Text(LOCTEXT("AssetNameLabel", "Asset Name:"))
-					]
-
-					+SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-					[
-						SNew(SHorizontalBox)
-					
-						+SHorizontalBox::Slot()
-						.FillWidth(1.0)
-						.Padding(0,0,2,0)
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SEditableTextBox)
-							.Text(this, &SMeshMergingDialog::GetMergedMeshPackageName)
-							.OnTextCommitted(this, &SMeshMergingDialog::OnMergedMeshPackageNameTextCommited)
-						]
-					
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Center)
-						[
-							SNew(SButton)
-							.OnClicked(this, &SMeshMergingDialog::OnSelectPackageNameClicked)
-							.Text(LOCTEXT("SelectPackageButton", "..."))
-						]
+						SNew(STextComboBox)
+						.IsEnabled( this, &SMeshMergingDialog::IsLightmapChannelEnabled )
+						.OptionsSource(&LightMapResolutionOptions)
+						.InitiallySelectedItem(LightMapResolutionOptions[FMath::FloorLog2(MergingSettings.MaxAltlasedLightMapResolution)])
+						.OnSelectionChanged(this, &SMeshMergingDialog::SetMaxLightMapResolution)
 					]
 				]
 			]
 		]
 
+		// Other merging settings
+		+SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0,2,0,0)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SNew(SVerticalBox)
+					
+				// Vertex colors
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetImportVertexColors)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetImportVertexColors)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("ImportVertexColorsLabel", "Import Vertex Colors"))
+					]
+				]
+
+				// Pivot at zero
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetPivotPointAtZero)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetPivotPointAtZero)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("PivotPointAtZeroLabel", "Pivot Point At (0,0,0)"))
+					]
+				]
+
+				// Place in world
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SCheckBox)
+					.Type(ESlateCheckBoxType::CheckBox)
+					.IsChecked(this, &SMeshMergingDialog::GetPlaceInWorld)
+					.OnCheckStateChanged(this, &SMeshMergingDialog::SetPlaceInWorld)
+					.Content()
+					[
+						SNew(STextBlock).Text(LOCTEXT("PlaceInWorldLabel", "Place In World"))
+					]
+				]
+						
+				// Asset name and picker
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(STextBlock).Text(LOCTEXT("AssetNameLabel", "Asset Name:"))
+				]
+
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SHorizontalBox)
+					
+					+SHorizontalBox::Slot()
+					.FillWidth(1.0)
+					.Padding(0,0,2,0)
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &SMeshMergingDialog::GetMergedMeshPackageName)
+						.OnTextCommitted(this, &SMeshMergingDialog::OnMergedMeshPackageNameTextCommited)
+					]
+					
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SButton)
+						.OnClicked(this, &SMeshMergingDialog::OnSelectPackageNameClicked)
+						.Text(LOCTEXT("SelectPackageButton", "..."))
+					]
+				]
+			]
+		]
+
+		// Merge, Cancel buttons
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Bottom)
 		.AutoHeight()
+		.Padding(0,4,0,0)
 		[
 			SNew(SUniformGridPanel)
 			.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
@@ -236,27 +268,27 @@ FReply SMeshMergingDialog::OnMergeClicked()
 
 ESlateCheckBoxState::Type SMeshMergingDialog::GetAtlasLightmapUV() const
 {
-	return (MergingSettings.bGnerateAtlasedLightmapUV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
+	return (MergingSettings.bGenerateAtlasedLightMapUV ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked);
 }
 
 void SMeshMergingDialog::SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue)
 {
-	MergingSettings.bGnerateAtlasedLightmapUV = (ESlateCheckBoxState::Checked == NewValue);
+	MergingSettings.bGenerateAtlasedLightMapUV = (ESlateCheckBoxState::Checked == NewValue);
 }
 
 bool SMeshMergingDialog::IsLightmapChannelEnabled() const
 {
-	return MergingSettings.bGnerateAtlasedLightmapUV;
+	return MergingSettings.bGenerateAtlasedLightMapUV;
 }
 
-TOptional<int32> SMeshMergingDialog::GetTargetLightmapChannelValue() const
+void SMeshMergingDialog::SetTargetLightMapChannel(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	return MergingSettings.TargetLightmapUVChannel;
+	TTypeFromString<int32>::FromString(MergingSettings.TargetLightMapUVChannel, **NewSelection);
 }
 
-void SMeshMergingDialog::OnTargetLightmapChannelValueCommited(int32 NewValue, ETextCommit::Type CommitInfo)
+void SMeshMergingDialog::SetMaxLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
 {
-	MergingSettings.TargetLightmapUVChannel = FMath::Clamp(NewValue, 0, MAX_MESH_TEXTURE_COORDS-1);
+	TTypeFromString<int32>::FromString(MergingSettings.MaxAltlasedLightMapResolution, **NewSelection);
 }
 
 ESlateCheckBoxState::Type SMeshMergingDialog::GetImportVertexColors() const
@@ -272,17 +304,6 @@ void SMeshMergingDialog::SetImportVertexColors(ESlateCheckBoxState::Type NewValu
 void SMeshMergingDialog::OnActorSelectionChanged(const TArray<UObject*>& NewSelection)
 {
 	GenerateNewPackageName();
-}
-
-ESlateCheckBoxState::Type SMeshMergingDialog::GetOneSectionPerMaterial() const
-{
-	return ESlateCheckBoxState::Checked;
-}
-
-void SMeshMergingDialog::SetOneSectionPerMaterial(ESlateCheckBoxState::Type NewValue)
-{
-	// TODO: Need to add support for one mesh per material
-	// Default is one mesh with all materials (one section per material)
 }
 
 ESlateCheckBoxState::Type SMeshMergingDialog::GetPivotPointAtZero() const

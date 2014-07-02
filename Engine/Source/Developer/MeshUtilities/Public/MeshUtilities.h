@@ -73,28 +73,27 @@ public:
  */
 struct FMeshMergingSettings
 {
-	/** */
-	bool bGnerateAtlasedLightmapUV;
+	/** Whether to generate atlased lightmap UVs for a merged mesh*/
+	bool bGenerateAtlasedLightMapUV;
 	
-	/** */
+	/** Target UV channel in a merged mesh for an atlased lightmap */
+	int32 TargetLightMapUVChannel;
+
+	/** Upper bounds for an atlased lightmap resolution */
+	int32 MaxAltlasedLightMapResolution;
+		
+	/** Whether we should import vertex colors into merged mesh */
 	bool bImportVertexColors;
-
-	/** */
-	bool bImportAllUVChannels;
-
-	/** */
-	int32 TargetLightmapUVChannel;
-
-	/** */
-	bool bPivotPointAtZero;
-
 	
+	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
+	bool bPivotPointAtZero;
+		
 	/** Default settings. */
 	FMeshMergingSettings()
-		: bGnerateAtlasedLightmapUV(true)
+		: bGenerateAtlasedLightMapUV(true)
+		, TargetLightMapUVChannel(1)
+		, MaxAltlasedLightMapResolution(1024)
 		, bImportVertexColors(false)
-		, bImportAllUVChannels(false)
-		, TargetLightmapUVChannel(1)
 		, bPivotPointAtZero(false)
 	{
 	}
