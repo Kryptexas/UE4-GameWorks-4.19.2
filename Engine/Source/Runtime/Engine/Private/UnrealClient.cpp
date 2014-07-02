@@ -877,7 +877,7 @@ void FViewport::BeginRenderFrame(FRHICommandListImmediate& RHICmdList)
 {
 	check( IsInRenderingThread() );
 	RHICmdList.BeginDrawingViewport(GetViewportRHI(), FTextureRHIRef());
-	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
+	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 }
 
 /**
@@ -1417,10 +1417,7 @@ void FViewport::SetViewportClient( FViewportClient* InViewportClient )
 
 void FViewport::InitDynamicRHI()
 {
-	// Capture the viewport's back buffer surface for use through the FRenderTarget interface.
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
-	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
+	UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 
 	if(bRequiresHitProxyStorage)
 	{
@@ -1447,14 +1444,13 @@ void FViewport::InitRHI()
 
 	if(!IsValidRef(ViewportRHI))
 	{
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		ViewportRHI = RHICmdList.CreateViewport(
+		ViewportRHI = RHICreateViewport(
 			GetWindow(),
 			SizeX,
 			SizeY,
 			IsFullscreen()
 			);
-		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(RHICmdList);
+		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 	}
 }
 
@@ -1568,11 +1564,11 @@ bool FViewport::HasToggleFreezeCommand()
 /**
  * Update the render target surface RHI to the current back buffer 
  */
-void FViewport::UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(FRHICommandListImmediate& RHICmdList)
+void FViewport::UpdateRenderTargetSurfaceRHIToCurrentBackBuffer()
 {
 	if(IsValidRef(ViewportRHI))
 	{
-		RenderTargetTextureRHI = RHICmdList.GetViewportBackBuffer(ViewportRHI);
+		RenderTargetTextureRHI = RHIGetViewportBackBuffer(ViewportRHI);
 	}
 }
 

@@ -437,7 +437,7 @@ public:
 	/**
 	 * Update the render target surface RHI to the current back buffer 
 	 */
-	void UpdateRenderTargetSurfaceRHIToCurrentBackBuffer(FRHICommandListImmediate& RHICmdList);
+	void UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
 
 	/**
 	 * First chance for viewports to render custom stats text

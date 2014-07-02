@@ -1229,7 +1229,7 @@ DEFINE_RHIMETHOD_0(
 	bool,IsDrawingViewport,
 	return,return false;
 	);
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_GLOBALFLUSH_1(
 	FTexture2DRHIRef,GetViewportBackBuffer,
 	FViewportRHIParamRef,Viewport,
 	return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
