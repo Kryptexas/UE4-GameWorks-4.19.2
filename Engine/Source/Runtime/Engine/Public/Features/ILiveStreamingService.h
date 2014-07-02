@@ -37,6 +37,12 @@ struct FLiveStreamingStatus
 
 		/** Web cam texture is no longer valid (GetWebCamTexture() will return null) */
 		WebCamTextureNotReady,
+
+		/** Connected to chat server.  You can now send messages! */
+		ChatConnected,
+
+		/** Disconnected from chat */
+		ChatDisconnected,
 	};
 
 	/** Status type */
@@ -129,12 +135,37 @@ struct FWebCamConfig
 };
 
 
+
+/**
+ * Contains information about an existing live streaming game.  Some services support querying for live broadcasts that
+ * are currently in progress
+ */
+struct FLiveStreamInfo
+{
+	/** Name of the game that is streaming */
+	FString GameName;
+
+	/** The title of the stream itself */
+	FString StreamName;
+
+	/** URL for the stream */
+	FString URL;
+
+
+	/** Default constructor */
+	FLiveStreamInfo()
+	{
+	}
+};
+
+
 /**
  * Generic interface to an implementation of a live streaming system, usually capable of capturing video and audio
  * and streaming live content to the internet
  */
 class ILiveStreamingService : public IModularFeature
 {
+	// @todo livestream: We should replace IDVRStreamingSystem with the new ILiveStreamingService, and update existing use cases (see FPS4PlatformFeaturesModule)
 
 public:
 
@@ -144,6 +175,10 @@ public:
 		login phases, or a web cam becomes active */
 	virtual FOnStatusChanged& OnStatusChanged() = 0;
 
+
+	/**
+	 * Broadcasting
+	 */
 
 	/**
 	 * Called to start broadcasting video and audio.  Note that the actual streaming may not begin immediately.
@@ -196,6 +231,11 @@ public:
 	 */
 	virtual void PushVideoFrame( const FColor* VideoFrameBuffer ) = 0;
 
+
+	/**
+	 * Web cam
+	 */
+
 	/**
 	 * Enables broadcasting from your web camera device
 	 *
@@ -221,4 +261,64 @@ public:
 	 * @return	Current web cam frame as a 2D texture
 	 */
 	virtual class UTexture2D* GetWebCamTexture() = 0;
+
+
+	/**
+	 * Chat
+	 */
+
+	/** Called when a chat message is received and should be displayed in the UI */
+	DECLARE_MULTICAST_DELEGATE_TwoParams( FOnChatMessage, const FText& /* UserName */, const FText& /* ChatMessage */ );
+
+	/** Event to register with to handle incoming chat messages when connected to a chat server */
+	virtual FOnChatMessage& OnChatMessage() = 0;
+
+	/**
+	 * Attempts to connect to the chat server for receiving and sending chat messages.  Make sure to bind a function to
+	 * the OnChatMessage() event so that you find out about incoming chat messages
+	 */
+	virtual void ConnectToChat() = 0;
+
+	/**
+	 * Disconnects from the chat server
+	 */
+	virtual void DisconnectFromChat() = 0;
+
+	/**
+	 * Checks to see if chat is currently enabled.  This doesn't necessarily mean that the user is connected to the chat
+	 * server at this time.  You need to listen for OnStatusChanged events to know for sure whether it is safe to
+	 * send chat messages at any given moment.  This may return true while a connection is still pending!
+	 * 
+	 * @return	True if the chat system is enabled and we're either already connected or a connection attempt is in progress
+	 */
+	virtual bool IsChatEnabled() const = 0;
+
+	/** 
+	 * Sends text to the chat channel, attributed to the currently logged in user.  In order for this to work, you must
+	 * have already successfully connected to a chat server.  You can listen for OnStatusChanged events to find out
+	 * when you are connected and it is possible to send chat messages
+	 *
+	 * @param	ChatMessage	The text to send
+	 */ 
+	virtual void SendChatMessage( const FString& ChatMessage ) = 0;
+
+
+	/**
+	 * Miscellaneous
+	 */
+
+	/** Completion callback for the QueryLiveStreams() function, that passes back the list of live streams along with a boolean
+	    variable that indicates whether the query was successful or not */
+	DECLARE_DELEGATE_TwoParams( FQueryLiveStreamsCallback, const TArray< FLiveStreamInfo >& /* LiveStreams */, bool /* bQueryWasSuccessful */ );
+
+	/**
+	 * Asynchronously queries a list of live streams that are currently in progress for the specified game name.  Note that some
+	 * services may not support this feature.  Your callback function will be called with the list of live streams that were found.
+	 * In the case there was an error or this feature wasn't supported, your callback will still be executed but will contain
+	 * a status variable that indicates failure
+	 *
+	 * @param	GameName				The name of the game to search for
+	 * @param	CompletionCallback		The function to invoke when the query has finished (or if an error occurs)
+	 */
+	virtual void QueryLiveStreams( const FString& GameName, FQueryLiveStreamsCallback CompletionCallback ) = 0;
 };

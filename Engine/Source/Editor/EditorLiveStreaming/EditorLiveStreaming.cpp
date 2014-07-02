@@ -80,14 +80,14 @@ void FEditorLiveStreaming::StartBroadcastingEditor()
 		// Select a live streaming service
 		{
 			static const FName LiveStreamingFeatureName( "LiveStreaming" );
-
-			// @todo livestream: Always using first live streaming plugin we find, but instead this should be a configurable option in the
-			// editor's preferences, based on the enumeration of available features from plugins
-			LiveStreamer = static_cast<ILiveStreamingService*>( IModularFeatures::Get().GetModularFeatureImplementation( LiveStreamingFeatureName, 0 ) );
+			LiveStreamer = &IModularFeatures::Get().GetModularFeature<ILiveStreamingService>( LiveStreamingFeatureName );
 		}
 
 		// Register to find out about status changes
 		LiveStreamer->OnStatusChanged().AddRaw( this, &FEditorLiveStreaming::BroadcastStatusCallback );
+
+		// @todo livestream: Allow connection to chat independently from broadcasting? (see removing delegate too)
+		LiveStreamer->OnChatMessage().AddRaw( this, &FEditorLiveStreaming::OnChatMessage );
 
 
 		// Tell our live streaming plugin to start broadcasting
@@ -196,6 +196,7 @@ void FEditorLiveStreaming::StopBroadcastingEditor()
 
 		// Unregister for status changes
 		LiveStreamer->OnStatusChanged().RemoveAll( this );
+		LiveStreamer->OnChatMessage().RemoveAll( this );
 
 		LiveStreamer = nullptr;
 
@@ -275,7 +276,9 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 			( Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamStarted &&
 			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamStopped &&
 			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureNotReady &&
-			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureReady ) )
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureReady &&
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::ChatConnected &&
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::ChatDisconnected ) )
 		{
 			Notification->SetText( Status.CustomStatusDescription );
 		}
@@ -308,7 +311,8 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 			State = SNotificationItem::CS_Fail;
 		}
 		else if( Status.StatusType == FLiveStreamingStatus::EStatusType::BroadcastStarted ||
-				 Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamStarted )
+				 Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamStarted ||
+				 Status.StatusType == FLiveStreamingStatus::EStatusType::ChatConnected )
 		{
 			State = SNotificationItem::CS_Success;
 		}
@@ -396,6 +400,11 @@ void FEditorLiveStreaming::CloseBroadcastStatusWindow()
 	}
 }
 
+
+void FEditorLiveStreaming::OnChatMessage( const FText& UserName, const FText& ChatMessage )
+{
+	// @todo livestream: Currently no chat UI is supported in the editor
+}
 
 
 #undef LOCTEXT_NAMESPACE

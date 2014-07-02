@@ -93,6 +93,13 @@ public:
 	 */
 	virtual class UTexture2D* GetWebCamTexture() = 0;
 
+	/**
+	 * Gets direct access to the live streaming service we are using, or nullptr if we haven't selected one yet
+	 *
+	 * @return	Live streaming service interface
+	 */
+	virtual class ILiveStreamingService* GetLiveStreamingService() = 0;
+
 
 public:
 

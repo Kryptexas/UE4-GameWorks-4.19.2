@@ -13,17 +13,7 @@ IMPLEMENT_MODULE( FGameLiveStreaming, GameLiveStreaming );
 #define LOCTEXT_NAMESPACE "GameLiveStreaming"
 
 FGameLiveStreaming::FGameLiveStreaming()
-{
-	LiveStreamer = nullptr;
-	ReadbackTextureIndex = 0;
-	ReadbackBufferIndex = 0;
-	ReadbackBuffers[0] = nullptr;
-	ReadbackBuffers[1] = nullptr;
-	bDrawSimpleWebCamVideo = true;
-
-	// Setup some console commands
-	{
-		static FAutoConsoleCommand BroadcastStartCommand
+	: BroadcastStartCommand
 		(
 			TEXT( "Broadcast.Start" ),
 			TEXT( "Starts broadcasting game video and audio using a live internet streaming service\n" )
@@ -54,9 +44,8 @@ FGameLiveStreaming::FGameLiveStreaming()
 					}
 					IGameLiveStreaming::Get().StartBroadcastingGame( Config );
 				} )
-		);
-
-		static FAutoConsoleCommand BroadcastStopCommand
+		),
+	  BroadcastStopCommand
 		(
 			TEXT( "Broadcast.Stop" ),
 			TEXT( "Stops broadcasting game video" ),
@@ -65,8 +54,15 @@ FGameLiveStreaming::FGameLiveStreaming()
 				{
 					IGameLiveStreaming::Get().StopBroadcastingGame();
 				} )
-		);
-	}
+		)
+{
+	bIsBroadcasting = false;
+	LiveStreamer = nullptr;
+	ReadbackTextureIndex = 0;
+	ReadbackBufferIndex = 0;
+	ReadbackBuffers[0] = nullptr;
+	ReadbackBuffers[1] = nullptr;
+	bDrawSimpleWebCamVideo = true;
 }
 
 
@@ -79,21 +75,24 @@ void FGameLiveStreaming::ShutdownModule()
 {
 	// Stop broadcasting at shutdown
 	StopBroadcastingGame();
+
+	if( LiveStreamer != nullptr )
+	{
+		static const FName LiveStreamingFeatureName( "LiveStreaming" );
+		if( IModularFeatures::Get().IsModularFeatureAvailable( LiveStreamingFeatureName ) )	// Make sure the feature hasn't been destroyed before us
+		{
+			LiveStreamer->OnStatusChanged().RemoveAll( this );
+			LiveStreamer->OnChatMessage().RemoveAll( this );
+		}
+		LiveStreamer = nullptr;
+	}
 }
 
 
 
 bool FGameLiveStreaming::IsBroadcastingGame() const
 {
-	bool bAnythingBroadcasting = false;
-	if( LiveStreamer != nullptr )
-	{
-		if( LiveStreamer->IsBroadcasting() )
-		{
-			bAnythingBroadcasting = true;
-		}
-	}
-	return bAnythingBroadcasting;
+	return bIsBroadcasting && LiveStreamer != nullptr && LiveStreamer->IsBroadcasting();
 }
 
 
@@ -101,31 +100,25 @@ void FGameLiveStreaming::StartBroadcastingGame( const FGameBroadcastConfig& Game
 {
 	if( !IsBroadcastingGame() )
 	{
-		if( LiveStreamer != nullptr )
+		if( bIsBroadcasting )
 		{
 			FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
 			SlateRenderer->OnSlateWindowRendered().RemoveAll( this );
-			LiveStreamer->OnStatusChanged().RemoveAll( this );
-			LiveStreamer = nullptr;
+			bIsBroadcasting = false;
 		}
 
-		static const FName LiveStreamingFeatureName( "LiveStreaming" );
-		if( IModularFeatures::Get().IsModularFeatureAvailable( LiveStreamingFeatureName ) )
+		// We can GetLiveStreamingService() here to fill in our LiveStreamer variable lazily, to make sure the service plugin is loaded 
+		// before we try to cache it's interface pointer
+		if( GetLiveStreamingService() != nullptr  )
 		{
 			FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
 			SlateRenderer->OnSlateWindowRendered().AddRaw( this, &FGameLiveStreaming::OnSlateWindowRenderedDuringBroadcasting );
 
 			this->bDrawSimpleWebCamVideo = GameBroadcastConfig.bDrawSimpleWebCamVideo;
 
-			// Select a live streaming service
 			// @todo livestream: This will interfere with editor live streaming if both are running at the same time!  The editor live 
 			// streaming does check to make sure that game isn't already broadcasting, but the game currently doesn't have a good way to
 			// do that, besides asking the LiveStreamer itself.
-			// @todo livestream: Always using first live streaming plugin we find, but instead this should be a configurable option
-			LiveStreamer = static_cast<ILiveStreamingService*>( IModularFeatures::Get().GetModularFeatureImplementation( LiveStreamingFeatureName, 0 ) );
-
-			// Register to find out about status changes
-			LiveStreamer->OnStatusChanged().AddRaw( this, &FGameLiveStreaming::BroadcastStatusCallback );
 
 			UGameViewportClient* GameViewportClient = GEngine->GameViewport;
 			check( GameViewportClient != nullptr );
@@ -187,21 +180,21 @@ void FGameLiveStreaming::StartBroadcastingGame( const FGameBroadcastConfig& Game
 
 void FGameLiveStreaming::StopBroadcastingGame()
 {
-	if( LiveStreamer != nullptr )
+	if( bIsBroadcasting )
 	{
-		LiveStreamer->OnStatusChanged().RemoveAll( this );
-
-		if( LiveStreamer->IsBroadcasting() )
+		if( LiveStreamer != nullptr )
 		{
-			LiveStreamer->StopWebCam();
-			LiveStreamer->StopBroadcasting();
+			if( LiveStreamer->IsBroadcasting() )
+			{
+				LiveStreamer->StopWebCam();
+				LiveStreamer->StopBroadcasting();
+			}
 		}
 		if( FSlateApplication::IsInitialized() )	// During shutdown, Slate may have already been destroyed by the time our viewport gets cleaned up
 		{
 			FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
 			SlateRenderer->OnSlateWindowRendered().RemoveAll( this );
 		}
-		LiveStreamer = nullptr;
 
 		// Cleanup readback buffer textures
 		{
@@ -242,12 +235,8 @@ void FGameLiveStreaming::OnSlateWindowRenderedDuringBroadcasting( SWindow& Slate
 	}
 	else
 	{
-		FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
-
 		// No longer broadcasting.  The live streaming service may have been interrupted.
-		LiveStreamer->OnStatusChanged().RemoveAll( this );
-		LiveStreamer = nullptr;
-		SlateRenderer->OnSlateWindowRendered().RemoveAll( this );
+		StopBroadcastingGame();
 	}
 }
 
@@ -431,12 +420,37 @@ UTexture2D* FGameLiveStreaming::GetWebCamTexture()
 	return WebCamTexture;
 }
 
+
+ILiveStreamingService* FGameLiveStreaming::GetLiveStreamingService()
+{
+	if( LiveStreamer == nullptr )
+	{
+		static const FName LiveStreamingFeatureName( "LiveStreaming" );
+		if( IModularFeatures::Get().IsModularFeatureAvailable( LiveStreamingFeatureName ) )
+		{
+			// Select a live streaming service
+			LiveStreamer = &IModularFeatures::Get().GetModularFeature<ILiveStreamingService>( LiveStreamingFeatureName );
+
+			// Register to find out about status changes
+			LiveStreamer->OnStatusChanged().AddRaw( this, &FGameLiveStreaming::BroadcastStatusCallback );
+			LiveStreamer->OnChatMessage().AddRaw( this, &FGameLiveStreaming::OnChatMessage );
+		}
+	}
+	return LiveStreamer;
+}
+
+
 	
 void FGameLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& Status )
 {
 	// @todo livestream: Hook this up to provide C++ users and Blueprints with status about the live streaming startup/webcam/shutdown
 }
 
+
+void FGameLiveStreaming::OnChatMessage( const FText& UserName, const FText& Text )
+{
+	// @todo livestream: Add support (and also, connecting, disconnecting, sending messages, etc.)
+}
 
 
 #undef LOCTEXT_NAMESPACE
