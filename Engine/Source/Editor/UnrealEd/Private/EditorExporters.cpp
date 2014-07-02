@@ -1310,15 +1310,15 @@ bool GenerateExportMaterialPropertyData(
 		}
 
 		// start drawing to the render target
-		Canvas->SetRenderTarget(RenderTarget->GetRenderTargetResource());
+		Canvas->SetRenderTarget_GameThread(RenderTarget->GetRenderTargetResource());
 		// Freeze time while capturing the material's inputs
 		Canvas->Clear(FLinearColor(0,0,0,0));
 		FCanvasTileItem TileItem( FVector2D( 0.0f, 0.0f ), MaterialProxy, FVector2D( InOutSizeX, InOutSizeY ) );
 		TileItem.bFreezeTime = true;
 		Canvas->DrawItem( TileItem );
-		Canvas->Flush();
+		Canvas->Flush_GameThread();
 		FlushRenderingCommands();
-		Canvas->SetRenderTarget(NULL);
+		Canvas->SetRenderTarget_GameThread(NULL);
 		FlushRenderingCommands();
 
 		// if PF_FloatRGB was used as render target format, the gamma conversion during rendering is deactivated
@@ -2602,9 +2602,9 @@ namespace MaterialExportUtils
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
 			Canvas.DrawItem( TileItem );
-			Canvas.Flush();
+			Canvas.Flush_GameThread();
 			FlushRenderingCommands();
-			Canvas.SetRenderTarget(NULL);
+			Canvas.SetRenderTarget_GameThread(NULL);
 			FlushRenderingCommands();
 		}
 				

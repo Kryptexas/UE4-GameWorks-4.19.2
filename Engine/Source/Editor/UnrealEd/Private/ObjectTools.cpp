@@ -3459,7 +3459,7 @@ namespace ThumbnailTools
 		if( bUseGPUGeneratedThumbnail )
 		{
 			// Tell the rendering thread to draw any remaining batched elements
-			Canvas.Flush();
+			Canvas.Flush_GameThread();
 
 
 			{

@@ -2260,7 +2260,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 
 	// Tell the rendering thread to draw any remaining batched elements
 	{
-		BrushPaintCanvas.Flush(true);
+		BrushPaintCanvas.Flush_GameThread(true);
 
 		TextureData->bIsPaintingTexture2DModified = true;
 	}
@@ -2282,7 +2282,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 
 	if( bEnableSeamPainting )
 	{
-		BrushMaskCanvas->Flush(true);
+		BrushMaskCanvas->Flush_GameThread(true);
 
 		{
 			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
@@ -2380,7 +2380,7 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 			
 
 			// Tell the rendering thread to draw any remaining batched elements
-			Canvas3.Flush(true);
+			Canvas3.Flush_GameThread(true);
 
 		}
 
@@ -3293,7 +3293,7 @@ void FEdModeMeshPaint::CopyTextureToRenderTargetTexture( UTexture* SourceTexture
 		}
 
 		// Tell the rendering thread to draw any remaining batched elements
-		Canvas.Flush(true);
+		Canvas.Flush_GameThread(true);
 	}
 
 
@@ -3504,7 +3504,7 @@ bool FEdModeMeshPaint::GenerateSeamMask(UStaticMeshComponent* StaticMeshComponen
 		// And render it
 		Canvas.DrawItem( TriItem );
 		// Tell the rendering thread to draw any remaining batched elements
-		Canvas.Flush(true);
+		Canvas.Flush_GameThread(true);
 	}
 
 

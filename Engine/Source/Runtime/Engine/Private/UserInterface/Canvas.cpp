@@ -152,8 +152,50 @@ FMatrix FCanvas::CalcProjectionMatrix(uint32 ViewSizeX, uint32 ViewSizeY, float 
 		);
 }
 
+bool FCanvasBatchedElementRenderItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+{
+	checkSlow(Data);
+	bool bDirty = false;
+	if (Data->BatchedElements.HasPrimsToDraw())
+	{
+		bDirty = true;
 
-bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
+		// current render target set for the canvas
+		const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
+		float Gamma = 1.0f / CanvasRenderTarget->GetDisplayGamma();
+		if (Data->Texture && Data->Texture->bIgnoreGammaConversions)
+		{
+			Gamma = 1.0f;
+		}
+
+		const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
+
+
+		// draw batched items
+		Data->BatchedElements.Draw(
+			RHICmdList,
+			bNeedsToSwitchVerticalAxis,
+			Data->Transform.GetMatrix(),
+			CanvasRenderTarget->GetSizeXY().X,
+			CanvasRenderTarget->GetSizeXY().Y,
+			Canvas->IsHitTesting(),
+			Gamma
+			);
+
+		if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
+		{
+			// delete data since we're done rendering it
+			delete Data;
+		}
+	}
+	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
+	{
+		Data = NULL;
+	}
+	return bDirty;
+}
+
+bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas )
 {	
 	checkSlow(Data);
 	bool bDirty=false;		
@@ -169,76 +211,47 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 			Gamma = 1.0f;
 		}
 
-		// this allows us to use FCanvas operations from the rendering thread (ie, render subtitles
-		// on top of a movie that is rendered completely in rendering thread)
-		if (IsInRenderingThread())
+		// Render the batched elements.
+		struct FBatchedDrawParameters
+		{
+			FRenderData* RenderData;
+			uint32 bHitTesting : 1;
+			uint32 ViewportSizeX;
+			uint32 ViewportSizeY;
+			float DisplayGamma;
+			uint32 AllowedCanvasModes;
+		};
+		// all the parameters needed for rendering
+		FBatchedDrawParameters DrawParameters =
+		{
+			Data,
+			Canvas->IsHitTesting(),
+			(uint32)CanvasRenderTarget->GetSizeXY().X,
+			(uint32)CanvasRenderTarget->GetSizeXY().Y,
+			Gamma,
+			Canvas->GetAllowedModes()
+		};
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+			BatchedDrawCommand,
+			FBatchedDrawParameters,Parameters,DrawParameters,
 		{
 			const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-
-			
-			FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-
+				
 			// draw batched items
-			Data->BatchedElements.Draw(
+			Parameters.RenderData->BatchedElements.Draw(
 				RHICmdList,
 				bNeedsToSwitchVerticalAxis,
-				Data->Transform.GetMatrix(),
-				CanvasRenderTarget->GetSizeXY().X,
-				CanvasRenderTarget->GetSizeXY().Y,
-				Canvas->IsHitTesting(),
-				Gamma
+				Parameters.RenderData->Transform.GetMatrix(),
+				Parameters.ViewportSizeX,
+				Parameters.ViewportSizeY,
+				Parameters.bHitTesting,
+				Parameters.DisplayGamma
 				);
-
-			if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
+			if( Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
 			{
-				// delete data since we're done rendering it
-				delete Data;
+				delete Parameters.RenderData;
 			}
-		}
-		else
-		{
-			// Render the batched elements.
-			struct FBatchedDrawParameters
-			{
-				FRenderData* RenderData;
-				uint32 bHitTesting : 1;
-				uint32 ViewportSizeX;
-				uint32 ViewportSizeY;
-				float DisplayGamma;
-				uint32 AllowedCanvasModes;
-			};
-			// all the parameters needed for rendering
-			FBatchedDrawParameters DrawParameters =
-			{
-				Data,
-				Canvas->IsHitTesting(),
-				(uint32)CanvasRenderTarget->GetSizeXY().X,
-				(uint32)CanvasRenderTarget->GetSizeXY().Y,
-				Gamma,
-				Canvas->GetAllowedModes()
-			};
-			ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-				BatchedDrawCommand,
-				FBatchedDrawParameters,Parameters,DrawParameters,
-			{
-				const bool bNeedsToSwitchVerticalAxis = IsES2Platform(GRHIShaderPlatform) && !IsPCPlatform(GRHIShaderPlatform);
-				
-				// draw batched items
-				Parameters.RenderData->BatchedElements.Draw(
-					RHICmdList,
-					bNeedsToSwitchVerticalAxis,
-					Parameters.RenderData->Transform.GetMatrix(),
-					Parameters.ViewportSizeX,
-					Parameters.ViewportSizeY,
-					Parameters.bHitTesting,
-					Parameters.DisplayGamma
-					);
-				if( Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
-				{
-					delete Parameters.RenderData;
-				}
-			});
-		}
+		});
 	}
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
 	{
@@ -248,8 +261,7 @@ bool FCanvasBatchedElementRenderItem::Render( const FCanvas* Canvas )
 }
 
 
-
-bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
+bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
 {
 	float CurrentRealTime = 0.f;
 	float CurrentWorldTime = 0.f;
@@ -285,69 +297,24 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
-	// Render the batched elements.
-	if( IsInRenderingThread() )
+	for( int32 TileIdx=0; TileIdx < Data->Tiles.Num(); TileIdx++ )
 	{
-		for( int32 TileIdx=0; TileIdx < Data->Tiles.Num(); TileIdx++ )
-		{
-			const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
-			FTileRenderer::DrawTile(
-				FRHICommandListExecutor::GetImmediateCommandList(),
-				*View, 
-				Data->MaterialRenderProxy, 
-				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
-				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-				Canvas->IsHitTesting(), Tile.HitProxyId
-				);
-		}
-
-		delete View->Family;
-		delete View;
-		if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
-		{
-			delete Data;
-		}
+		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
+		FTileRenderer::DrawTile(
+			RHICmdList,
+			*View, 
+			Data->MaterialRenderProxy, 
+			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
+			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
+			Canvas->IsHitTesting(), Tile.HitProxyId
+			);
 	}
-	else
-	{
-		struct FDrawTileParameters
-		{
-			FSceneView* View;
-			FRenderData* RenderData;
-			uint32 bIsHitTesting : 1;
-			uint32 AllowedCanvasModes;
-		};
-		FDrawTileParameters DrawTileParameters =
-		{
-			View,
-			Data,
-			Canvas->IsHitTesting(),
-			Canvas->GetAllowedModes()
-		};
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			DrawTileCommand,
-			FDrawTileParameters,Parameters,DrawTileParameters,
-		{
-			for( int32 TileIdx=0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++ )
-			{
-				const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
-				FTileRenderer::DrawTile(
-					RHICmdList,
-					*Parameters.View, 
-					Parameters.RenderData->MaterialRenderProxy, 
-					Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
-					Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-					Parameters.bIsHitTesting, Tile.HitProxyId
-					);
-			}
 
-			delete Parameters.View->Family;
-			delete Parameters.View;
-			if( Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender )
-			{
-				delete Parameters.RenderData;
-			}
-		});
+	delete View->Family;
+	delete View;
+	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
+	{
+		delete Data;
 	}
 	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
 	{
@@ -356,6 +323,86 @@ bool FCanvasTileRendererItem::Render( const FCanvas* Canvas )
 	return true;
 }
 
+bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
+{
+	float CurrentRealTime = 0.f;
+	float CurrentWorldTime = 0.f;
+	float DeltaWorldTime = 0.f;
+
+	if (!bFreezeTime)
+	{
+		CurrentRealTime = Canvas->GetCurrentRealTime();
+		CurrentWorldTime = Canvas->GetCurrentWorldTime();
+		DeltaWorldTime = Canvas->GetCurrentDeltaWorldTime();
+	}
+
+	checkSlow(Data);
+	// current render target set for the canvas
+	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
+	FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
+		CanvasRenderTarget,
+		NULL,
+		FEngineShowFlags(ESFIM_Game))
+		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
+		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
+
+	FIntRect ViewRect(FIntPoint(0, 0), CanvasRenderTarget->GetSizeXY());
+
+	// make a temporary view
+	FSceneViewInitOptions ViewInitOptions;
+	ViewInitOptions.ViewFamily = ViewFamily;
+	ViewInitOptions.SetViewRectangle(ViewRect);
+	ViewInitOptions.ViewMatrix = FMatrix::Identity;
+	ViewInitOptions.ProjectionMatrix = Data->Transform.GetMatrix();
+	ViewInitOptions.BackgroundColor = FLinearColor::Black;
+	ViewInitOptions.OverlayColor = FLinearColor::White;
+
+	FSceneView* View = new FSceneView(ViewInitOptions);
+
+	struct FDrawTileParameters
+	{
+		FSceneView* View;
+		FRenderData* RenderData;
+		uint32 bIsHitTesting : 1;
+		uint32 AllowedCanvasModes;
+	};
+	FDrawTileParameters DrawTileParameters =
+	{
+		View,
+		Data,
+		Canvas->IsHitTesting(),
+		Canvas->GetAllowedModes()
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		DrawTileCommand,
+		FDrawTileParameters, Parameters, DrawTileParameters,
+		{
+		for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
+		{
+			const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
+			FTileRenderer::DrawTile(
+				RHICmdList,
+				*Parameters.View,
+				Parameters.RenderData->MaterialRenderProxy,
+				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
+				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
+				Parameters.bIsHitTesting, Tile.HitProxyId
+				);
+		}
+
+		delete Parameters.View->Family;
+		delete Parameters.View;
+		if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
+		{
+			delete Parameters.RenderData;
+		}
+	});
+	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
+	{
+		Data = NULL;
+	}
+	return true;
+}
 
 FCanvas::FCanvasSortElement& FCanvas::GetSortElement(int32 DepthSortKey)
 {
@@ -465,8 +512,85 @@ FCanvas::~FCanvas()
 	}
 }
 
+void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bForce)
+{
+	SCOPE_CYCLE_COUNTER(STAT_Canvas_FlushTime);
 
-void FCanvas::Flush(bool bForce)
+	if (!(AllowedModes&Allow_Flush) && !bForce)
+	{
+		return;
+	}
+
+	// current render target set for the canvas
+	check(RenderTarget);
+
+	// no need to set the render target if we aren't going to draw anything to it!
+	if (SortedElements.Num() == 0)
+	{
+		return;
+	}
+
+	// FCanvasSortElement compare class
+	struct FCompareFCanvasSortElement
+	{
+		FORCEINLINE bool operator()(const FCanvasSortElement& A, const FCanvasSortElement& B) const
+		{
+			return B.DepthSortKey < A.DepthSortKey;
+		}
+	};
+	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
+	SortedElements.Sort(FCompareFCanvasSortElement());
+
+	SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
+	const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
+
+	check(IsValidRef(RenderTargetTexture));
+
+	// Set the RHI render target.
+	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
+	// disable depth test & writes
+	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+	if (ViewRect.Area() <= 0)
+	{
+		ViewRect = FIntRect(FIntPoint::ZeroValue, RenderTarget->GetSizeXY());
+	}
+
+	// set viewport to RT size
+	RHICmdList.SetViewport(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f);
+
+	// iterate over the FCanvasSortElements in sorted order and render all the batched items for each entry
+	for (int32 Idx = 0; Idx < SortedElements.Num(); Idx++)
+	{
+		FCanvasSortElement& SortElement = SortedElements[Idx];
+		for (int32 BatchIdx = 0; BatchIdx < SortElement.RenderBatchArray.Num(); BatchIdx++)
+		{
+			FCanvasBaseRenderItem* RenderItem = SortElement.RenderBatchArray[BatchIdx];
+			if (RenderItem)
+			{
+				// mark current render target as dirty since we are drawing to it
+				bRenderTargetDirty |= RenderItem->Render_RenderThread(RHICmdList, this);
+				if (AllowedModes & Allow_DeleteOnRender)
+				{
+					delete RenderItem;
+				}
+			}
+		}
+		if (AllowedModes & Allow_DeleteOnRender)
+		{
+			SortElement.RenderBatchArray.Empty();
+		}
+	}
+	if (AllowedModes & Allow_DeleteOnRender)
+	{
+		// empty the array of FCanvasSortElement entries after finished with rendering	
+		SortedElements.Empty();
+		SortedElementLookupMap.Empty();
+		LastElementIndex = INDEX_NONE;
+	}
+}
+
+void FCanvas::Flush_GameThread(bool bForce)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_FlushTime);
 
@@ -494,61 +618,36 @@ void FCanvas::Flush(bool bForce)
 	};
 	// sort the array of FCanvasSortElement entries so that higher sort keys render first (back-to-front)
 	SortedElements.Sort( FCompareFCanvasSortElement() );
-	if( GRenderingThread && IsInRenderingThread() )
+	if( ViewRect.Area() <= 0 )
 	{
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+		ViewRect = FIntRect( FIntPoint::ZeroValue, RenderTarget->GetSizeXY() );
+	}
 
+	struct FCanvasFlushParameters
+	{
+		FIntRect ViewRect;
+		const FRenderTarget* CanvasRenderTarget;
+	};
+	FCanvasFlushParameters FlushParameters =
+	{
+		ViewRect,
+		RenderTarget
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		CanvasFlushSetupCommand,
+		FCanvasFlushParameters,Parameters,FlushParameters,
+	{
 		SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
-		const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
-
-		check(IsValidRef(RenderTargetTexture));
 
 		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
 		// disable depth test & writes
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-		if( ViewRect.Area() <= 0 )
-		{
-			ViewRect = FIntRect( FIntPoint::ZeroValue, RenderTarget->GetSizeXY() );
-		}
-
+		const FIntRect& ViewportRect = Parameters.ViewRect;
 		// set viewport to RT size
-		RHICmdList.SetViewport( ViewRect.Min.X,ViewRect.Min.Y, 0.0f, ViewRect.Max.X, ViewRect.Max.Y, 1.0f );	
-	}
-	else 
-	{
-		if( ViewRect.Area() <= 0 )
-		{
-			ViewRect = FIntRect( FIntPoint::ZeroValue, RenderTarget->GetSizeXY() );
-		}
-
-		struct FCanvasFlushParameters
-		{
-			FIntRect ViewRect;
-			const FRenderTarget* CanvasRenderTarget;
-		};
-		FCanvasFlushParameters FlushParameters =
-		{
-			ViewRect,
-			RenderTarget
-		};
-		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-			CanvasFlushSetupCommand,
-			FCanvasFlushParameters,Parameters,FlushParameters,
-		{
-			SCOPED_DRAW_EVENT(CanvasFlush, DEC_SCENE_ITEMS);
-
-			// Set the RHI render target.
-			::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
-			// disable depth test & writes
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
-
-			const FIntRect& ViewportRect = Parameters.ViewRect;
-			// set viewport to RT size
-			RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
-		});
-	}
+		RHICmdList.SetViewport(ViewportRect.Min.X, ViewportRect.Min.Y, 0.0f, ViewportRect.Max.X, ViewportRect.Max.Y, 1.0f);
+	});
 
 	// iterate over the FCanvasSortElements in sorted order and render all the batched items for each entry
 	for( int32 Idx=0; Idx < SortedElements.Num(); Idx++ )
@@ -560,7 +659,7 @@ void FCanvas::Flush(bool bForce)
 			if( RenderItem )
 			{
 				// mark current render target as dirty since we are drawing to it
-				bRenderTargetDirty |= RenderItem->Render(this);
+				bRenderTargetDirty |= RenderItem->Render_GameThread(this);
 				if( AllowedModes & Allow_DeleteOnRender )
 				{
 					delete RenderItem;
@@ -644,14 +743,14 @@ void FCanvas::CopyTransformStack(const FCanvas& Copy)
 	TransformStack = Copy.TransformStack;
 }
 
-void FCanvas::SetRenderTarget(FRenderTarget* NewRenderTarget)
+void FCanvas::SetRenderTarget_GameThread(FRenderTarget* NewRenderTarget)
 {
 	if( RenderTarget != NewRenderTarget )
 	{
 		// flush whenever we swap render targets
 		if( RenderTarget )
 		{
-			Flush();
+			Flush_GameThread();
 		}
 		// Change the current render target.
 		RenderTarget = NewRenderTarget;
@@ -1410,48 +1509,6 @@ void UCanvas::Deproject(FVector2D ScreenPos, /*out*/ FVector& WorldOrigin, /*out
 	{
 		SceneView->DeprojectFVector2D(ScreenPos, /*out*/ WorldOrigin, /*out*/ WorldDirection);
 	}
-}
-
-
-
-
-void FCanvas::PushMaskRegion( float X, float Y, float SizeX, float SizeY )
-{
-	FMaskRegion NewMask(X, Y, SizeX, SizeY, TransformStack.Top().GetMatrix());
-	if ( !NewMask.IsEqual(GetCurrentMaskRegion()) )
-	{
-		Flush();
-	}
-
-	MaskRegionStack.Push(NewMask);
-}
-
-
-void FCanvas::PopMaskRegion()
-{
-	FMaskRegion NextMaskRegion = MaskRegionStack.Num() > 1 
-		? MaskRegionStack[MaskRegionStack.Num() - 2]
-		: FMaskRegion();
-
-	if ( !NextMaskRegion.IsEqual(GetCurrentMaskRegion()) )
-	{
-		Flush();
-	}
-
-	if ( MaskRegionStack.Num() > 0 )
-	{
-		MaskRegionStack.Pop();
-	}
-}
-
-FCanvas::FMaskRegion FCanvas::GetCurrentMaskRegion() const
-{
-	if ( MaskRegionStack.Num() > 0 )
-	{
-		return MaskRegionStack[MaskRegionStack.Num() - 1];
-	}
-
-	return FMaskRegion();
 }
 
 

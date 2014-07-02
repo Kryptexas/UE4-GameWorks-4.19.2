@@ -610,7 +610,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Blue: NAN or Inf"), GetStatsFont(), FLinearColor(0,0,1));
 	}
 
-	Canvas.Flush();
+	Canvas.Flush_RenderThread(RHICmdList);
 }
 
 

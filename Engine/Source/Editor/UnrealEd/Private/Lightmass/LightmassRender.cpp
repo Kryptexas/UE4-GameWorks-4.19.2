@@ -930,7 +930,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 			else
 			{
 				// At this point, we can't just return false at failure since we have some clean-up to do...
-				Canvas->SetRenderTarget(RenderTarget->GameThread_GetRenderTargetResource());
+				Canvas->SetRenderTarget_GameThread(RenderTarget->GameThread_GetRenderTargetResource());
 
 				// Clear the render target to black
 				// This is necessary because the below DrawTile doesn't write to the first column and first row
@@ -939,9 +939,9 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 				FCanvasTileItem TileItem( FVector2D( 0.0f, 0.0f ), &MaterialProxy, FVector2D( InOutSizeX, InOutSizeY ) );
 				TileItem.bFreezeTime = true;
 				Canvas->DrawItem( TileItem );
-				Canvas->Flush();
+				Canvas->Flush_GameThread();
 				FlushRenderingCommands();
-				Canvas->SetRenderTarget(NULL);
+				Canvas->SetRenderTarget_GameThread(NULL);
 				FlushRenderingCommands();
 
 				// Read in the data

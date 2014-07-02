@@ -967,10 +967,10 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		}
 
 		//ensure canvas has been flushed before rendering UI
-		SceneCanvas->Flush();
+		SceneCanvas->Flush_GameThread();
 		if (DebugCanvas != NULL)
 		{
-			DebugCanvas->Flush();
+			DebugCanvas->Flush_GameThread();
 		}
 		// Allow the viewport to render additional stuff
 		PostRender(DebugCanvasObject);

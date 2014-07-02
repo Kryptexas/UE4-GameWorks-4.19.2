@@ -854,7 +854,7 @@ void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, con
 				}
 			}
 
-			Canvas.Flush();
+			Canvas.Flush_RenderThread(RHICmdList);
 
 			CurrentEventRecordingTime = 0;
 			RenderTargetPoolEvents.Empty();

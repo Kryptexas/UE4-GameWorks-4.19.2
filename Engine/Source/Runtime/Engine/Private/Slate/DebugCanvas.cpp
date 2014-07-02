@@ -172,7 +172,7 @@ void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, 
 		RenderTarget->SetRenderTargetTexture( *(FTexture2DRHIRef*)InWindowBackBuffer );
 		{
 			RenderThreadCanvas->Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );
-			RenderThreadCanvas->Canvas.Flush( true );
+			RenderThreadCanvas->Canvas.Flush_RenderThread(RHICmdList, true);
 		}
 		RenderTarget->ClearRenderTargetTexture();
 	}

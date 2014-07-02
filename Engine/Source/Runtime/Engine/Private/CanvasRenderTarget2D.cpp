@@ -62,7 +62,7 @@ void UCanvasRenderTarget2D::UpdateResource()
 
 	// Clean up and flush the rendering canvas.
 	Canvas->Canvas = nullptr;
-	RenderCanvas.Flush();
+	RenderCanvas.Flush_GameThread();
 
 	// Enqueue the rendering command to copy the freshly rendering texture resource back to the render target RHI 
 	// so that the texture is updated and available for rendering.

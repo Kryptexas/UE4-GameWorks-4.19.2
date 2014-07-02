@@ -46,7 +46,7 @@ namespace CubemapHelpers
 		FRenderTarget* RenderTarget = RenderTargetLongLat->GameThread_GetRenderTargetResource();
 
 		FCanvas* Canvas = new FCanvas(RenderTarget, NULL, 0, 0, 0);
-		Canvas->SetRenderTarget(RenderTarget);
+		Canvas->SetRenderTarget_GameThread(RenderTarget);
 
 		// Clear the render target to black
 		Canvas->Clear(FLinearColor(0, 0, 0, 0));
@@ -56,9 +56,9 @@ namespace CubemapHelpers
 		TileItem.BlendMode = SE_BLEND_Opaque;
 		Canvas->DrawItem(TileItem);
 
-		Canvas->Flush();
+		Canvas->Flush_GameThread();
 		FlushRenderingCommands();
-		Canvas->SetRenderTarget(NULL);
+		Canvas->SetRenderTarget_GameThread(NULL);
 		FlushRenderingCommands();
 		
 		int32 ImageBytes = CalculateImageBytes(LongLatDimensions.X, LongLatDimensions.Y, 0, TargetPixelFormat);

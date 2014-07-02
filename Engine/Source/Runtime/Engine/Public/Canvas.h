@@ -74,9 +74,16 @@ public:
 
 	/** 
 	* Sends a message to the rendering thread to draw the batched elements. 
+	* @param RHICmdList - command list to use
 	* @param bForce - force the flush even if Allow_Flush is not enabled
 	*/
-	ENGINE_API void Flush(bool bForce=false);
+	ENGINE_API void Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bForce = false);
+
+	/**
+	* Sends a message to the rendering thread to draw the batched elements.
+	* @param bForce - force the flush even if Allow_Flush is not enabled
+	*/
+	ENGINE_API void Flush_GameThread(bool bForce = false);
 
 	/**
 	 * Pushes a transform onto the canvas's transform stack, multiplying it with the current top of the stack.
@@ -177,28 +184,10 @@ public:
 	 **/
 	ENGINE_API void CopyTransformStack(const FCanvas& Copy);
 
-	/** 
-	 * Set the current masked region on the canvas
-	 * All rendering from this point on will be masked to this region.
-	 * The region being masked uses the current canvas transform
-	 *
-	 * @param X - x offset in canvas coords
-	 * @param Y - y offset in canvas coords
-	 * @param SizeX - x size in canvas coords
-	 * @param SizeY - y size in canvas coords
-	 */
-	ENGINE_API void PushMaskRegion(float X, float Y, float SizeX, float SizeY);
-
-	/**
-	 * Remove the current masking region; if other masking regions were previously pushed onto the stack,
-	 * the next one down will be activated.
-	 */
-	ENGINE_API void PopMaskRegion();
-
 	/**
 	 * Sets the render target which will be used for subsequent canvas primitives.
 	 */
-	ENGINE_API void SetRenderTarget(FRenderTarget* NewRenderTarget);	
+	ENGINE_API void SetRenderTarget_GameThread(FRenderTarget* NewRenderTarget);
 
 	/**
 	* Get the current render target for the canvas
@@ -370,42 +359,6 @@ private:
 	*/
 	void Construct();
 
-	/** 
-	* Region on the canvas that should be masked
-	*/
-	struct FMaskRegion
-	{
-		FMaskRegion(float InX=-1,float InY=-1,float InSizeX=-1,float InSizeY=-1, const FMatrix& InTransform=FMatrix::Identity) 
-			: X(InX), Y(InY), SizeX(InSizeX), SizeY(InSizeY), Transform(InTransform) 
-		{}
-		FORCEINLINE bool IsEqual(const FMaskRegion& R) const		
-		{ 
-			return(	FMath::Abs(X-R.X) < KINDA_SMALL_NUMBER && 
-					FMath::Abs(Y-R.Y) < KINDA_SMALL_NUMBER && 
-					FMath::Abs(SizeX-R.SizeX) < KINDA_SMALL_NUMBER && 
-					FMath::Abs(SizeY-R.SizeY) < KINDA_SMALL_NUMBER );
-		}
-		bool IsValid() const 
-		{ 
-			return X >= -DELTA && Y >= -DELTA && SizeX >= -DELTA && SizeY >= -DELTA; 
-		}
-		FORCEINLINE bool IsZero(float Tolerance=DELTA) const
-		{
-			//@todo - do we need to check tranform?
-			return FMath::Abs(X) < FMath::Abs(Tolerance)
-				&& FMath::Abs(Y) < FMath::Abs(Tolerance)
-				&& FMath::Abs(SizeX) < FMath::Abs(Tolerance)
-				&& FMath::Abs(SizeY) < FMath::Abs(Tolerance);
-		}
-		float X,Y,SizeX,SizeY;
-		FMatrix Transform;
-	};
-
-	/**
-	 * Stack of mask regions - top of stack (last element) is current canvas mask
-	 */
-	TArray<FMaskRegion> MaskRegionStack;
-
 public:	
 
 	/*
@@ -454,11 +407,6 @@ public:
 	{
 		Item.Draw( this, X, Y );
 	}
-
-	/**
-	 * Get the top-most canvas masking region from the stack.
-	 */
-	ENGINE_API FMaskRegion GetCurrentMaskRegion() const;
 
 	/**
 	* Clear the canvas
@@ -567,9 +515,17 @@ public:
 	* Renders the canvas item
 	*
 	* @param Canvas - canvas currently being rendered
+	* @param RHICmdList - command list to use
 	* @return true if anything rendered
 	*/
-	virtual bool Render( const FCanvas* Canvas ) =0;
+	virtual bool Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas) = 0;
+	/**
+	* Renders the canvas item
+	*
+	* @param Canvas - canvas currently being rendered
+	* @return true if anything rendered
+	*/
+	virtual bool Render_GameThread(const FCanvas* Canvas) = 0;
 	/**
 	* FCanvasBatchedElementRenderItem instance accessor
 	*
@@ -628,9 +584,18 @@ public:
 	* Iterates over all batched elements and draws them with their own transforms
 	*
 	* @param Canvas - canvas currently being rendered
+	* @param RHICmdList - command list to use
 	* @return true if anything rendered
 	*/
-	virtual bool Render( const FCanvas* Canvas );
+	virtual bool Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas) override;
+	/**
+	* Renders the canvas item.
+	* Iterates over all batched elements and draws them with their own transforms
+	*
+	* @param Canvas - canvas currently being rendered
+	* @return true if anything rendered
+	*/
+	virtual bool Render_GameThread(const FCanvas* Canvas) override;
 
 	/**
 	* Determine if this is a matching set by comparing texture,blendmode,elementype,transform. All must match
@@ -748,9 +713,19 @@ public:
 	* Iterates over each tile to be rendered and draws it with its own transforms
 	*
 	* @param Canvas - canvas currently being rendered
+	* @param RHICmdList - command list to use
 	* @return true if anything rendered
 	*/
-	virtual bool Render( const FCanvas* Canvas );
+	virtual bool Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas) override;
+
+	/**
+	* Renders the canvas item.
+	* Iterates over each tile to be rendered and draws it with its own transforms
+	*
+	* @param Canvas - canvas currently being rendered
+	* @return true if anything rendered
+	*/
+	virtual bool Render_GameThread(const FCanvas* Canvas) override;
 
 	/**
 	* Determine if this is a matching set by comparing material,transform. All must match

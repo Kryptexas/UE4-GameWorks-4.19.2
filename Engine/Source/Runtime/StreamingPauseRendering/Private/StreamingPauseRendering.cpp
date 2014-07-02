@@ -81,7 +81,7 @@ void FStreamingPauseRenderingModule::BeginStreamingPause( FViewport* GameViewpor
 		{
 			ViewportClient->Draw(Viewport.Get(), &Canvas);
 		}
-		Canvas.Flush();
+		Canvas.Flush_GameThread();
 
 		//Don't need debug canvas I presume?
 		//Viewport->GetDebugCanvas()->Flush(true);

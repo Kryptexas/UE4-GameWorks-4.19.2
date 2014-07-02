@@ -196,7 +196,7 @@ void FPreviewElement::DrawRenderThread(FRHICommandListImmediate& RHICmdList, con
 			FCanvasTileItem TileItem( FVector2D::ZeroVector, ExpressionPreview , RenderTarget->GetSizeXY());
 			Canvas.DrawItem( TileItem );
 		}
-		Canvas.Flush(true);
+		Canvas.Flush_RenderThread(RHICmdList, true);
 	}
 	RenderTarget->ClearRenderTargetTexture();
 	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);

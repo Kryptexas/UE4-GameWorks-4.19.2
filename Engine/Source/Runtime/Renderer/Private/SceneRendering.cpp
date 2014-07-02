@@ -746,7 +746,7 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(0.8,1.0,0.2,1.0));
 					Y += 14;
 				}
-				Canvas.Flush();
+				Canvas.Flush_RenderThread(RHICmdList);
 			}
 		}
 	}
@@ -987,7 +987,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily)
 {
 	// Flush the canvas first.
-	Canvas->Flush();
+	Canvas->Flush_GameThread();
 
 	// Increment FrameNumber before render the scene. Wrapping around is no problem.
 	// This is the only spot we change GFrameNumber, other places can only read.
