@@ -19,4 +19,12 @@ class PAPER2D_API UPaperRuntimeSettings : public UObject
 	// Enables experimental *incomplete and unsupported* texture atlas groups that sprites can be assigned to
 	UPROPERTY(EditAnywhere, config, Category=Experimental)
 	bool bEnableSpriteAtlasGroups;
+
+	// Enables experimental *incomplete and unsupported* tile map editing. Note: You need to restart the editor when enabling this setting for the change to fully take effect.
+	UPROPERTY(EditAnywhere, config, Category=Experimental)
+	bool bEnableTileMapEditing;
+
+	// Enables experimental *incomplete and unsupported* 2D terrain spline editing. Note: You need to restart the editor when enabling this setting for the change to fully take effect.
+	UPROPERTY(EditAnywhere, config, Category=Experimental)
+	bool bEnableTerrainSplineEditing;
 };
