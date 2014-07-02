@@ -4604,7 +4604,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			Pin->DefaultValue.ParseIntoArray(&OriginalDefaults, TEXT(","), false);
 			for (FString& Default : OriginalDefaults)
 			{
-				Default.Trim();
+				Default = FString::SanitizeFloat(FCString::Atof(*Default));
 			}
 		}
 		else if (StructType == FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector2D")))
