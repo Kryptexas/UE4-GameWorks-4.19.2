@@ -18,7 +18,7 @@ public class SpeedTree : ModuleRules
 			Definitions.Add("WITH_SPEEDTREE=1");
 			Definitions.Add("SPEEDTREE_KEY=INSERT_KEY_HERE");
 
-			string SpeedTreePath = UEBuildConfiguration.UEThirdPartySourceDirectory + "SpeedTree/SpeedTree-v7.0/";
+			string SpeedTreePath = UEBuildConfiguration.UEThirdPartyDirectory + "SpeedTree/SpeedTreeSDK-v7.0/";
 			PublicIncludePaths.Add(SpeedTreePath + "Include");
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
