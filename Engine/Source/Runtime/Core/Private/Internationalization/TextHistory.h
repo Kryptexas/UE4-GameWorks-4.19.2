@@ -29,8 +29,8 @@ public:
 	/** Serializes the history to/from an FArchive */
 	virtual void Serialize(FArchive& Ar) = 0;
 
-	/** Serializes data needed to get the FText's DisplayString, most history classes do not need to do anything here */
-	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString) {};
+	/** Serializes data needed to get the FText's DisplayString */
+	virtual void SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString);
 
 	/** Returns TRUE if the Revision is out of date */
 	virtual bool IsOutOfDate(int32 InRevision);
