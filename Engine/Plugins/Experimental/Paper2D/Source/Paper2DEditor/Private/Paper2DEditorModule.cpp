@@ -115,11 +115,7 @@ public:
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperFlipbook::StaticClass(), UPaperFlipbookThumbnailRenderer::StaticClass());
 
 		// Register the editor modes
-		FEditorModeRegistry::Get().RegisterMode<FEdModeTileMap>(
-			FEdModeTileMap::EM_TileMap,
-			LOCTEXT("TileMapEditMode", "Tile Map Editor"),
-			FSlateIcon(),
-			true);
+		UpdateTileMapEditorModeInstallation();
 
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
@@ -189,6 +185,10 @@ private:
 		{
 			FPaperAtlasGenerator::HandleAssetChangedEvent(Atlas);
 		}
+		else if (UPaperRuntimeSettings* Settings = Cast<UPaperRuntimeSettings>(ObjectBeingModified))
+		{
+			UpdateTileMapEditorModeInstallation();
+		}
 	}
 
 	void RegisterSettings()
@@ -236,6 +236,25 @@ private:
 		{
 			IIntroTutorials::Get().UnregisterTutorialForAssetEditor(UPaperSprite::StaticClass());
 			IIntroTutorials::Get().UnregisterTutorialForAssetEditor(UPaperFlipbook::StaticClass());
+		}
+	}
+
+	// Installs or uninstalls the tile map editing mode depending on settings
+	void UpdateTileMapEditorModeInstallation()
+	{
+		const bool bAlreadyRegistered = FEditorModeRegistry::Get().GetFactoryMap().Contains(FEdModeTileMap::EM_TileMap);
+		const bool bShouldBeRegistered = GetDefault<UPaperRuntimeSettings>()->bEnableTileMapEditing;
+		if (bAlreadyRegistered && !bShouldBeRegistered)
+		{
+			FEditorModeRegistry::Get().UnregisterMode(FEdModeTileMap::EM_TileMap);
+		}
+		else if (!bAlreadyRegistered && bShouldBeRegistered)
+		{
+			FEditorModeRegistry::Get().RegisterMode<FEdModeTileMap>(
+				FEdModeTileMap::EM_TileMap,
+				LOCTEXT("TileMapEditMode", "Tile Map Editor"),
+				FSlateIcon(),
+				true);
 		}
 	}
 };
