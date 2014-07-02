@@ -35,7 +35,6 @@ namespace UnrealBuildTool.Rules
                     "EditorStyle",
                     "InputCore",
 				    "RawMesh",
-				    "SpeedTree",
                     "UnrealEd",
                     "MainFrame"
 				}
@@ -46,6 +45,8 @@ namespace UnrealBuildTool.Rules
 				{
 				}
 				);
+				
+			AddThirdPartyPrivateStaticDependencies(Target, "SpeedTree");
 		}
 	}
 }
