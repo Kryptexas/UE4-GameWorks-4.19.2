@@ -114,6 +114,7 @@ private:
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
 	FSlateCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
+	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 

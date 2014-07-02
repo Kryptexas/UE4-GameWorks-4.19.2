@@ -186,7 +186,6 @@ void FMacApplication::OnWindowDraggingFinished()
 	if( DraggedWindow )
 	{
 		SCOPED_AUTORELEASE_POOL;
-		[DraggedWindow reconnectChildWindows];
 		DraggedWindow = NULL;
 	}
 }
@@ -652,69 +651,70 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		else
 		{
 			const NSPoint CursorPos = [NSEvent mouseLocation];
-
-			// Only the editor needs to handle the space-per-display logic introduced in Mavericks.
-#if WITH_EDITOR
-			NSScreen* MouseScreen = nil;
-			// Only fetch the spans-displays once - it requires a log-out to change.
-			static bool bScreensHaveSeparateSpaces = false;
-			static bool bSettingFetched = false;
-			if(!bSettingFetched)
+			TSharedPtr<FMacWindow> WindowUnderCursor = StaticCastSharedPtr<FMacWindow>(LocateWindowUnderCursor(FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y))));
+			if (WindowUnderCursor.IsValid())
 			{
-				bSettingFetched = true;
-				bScreensHaveSeparateSpaces = [NSScreen screensHaveSeparateSpaces];
-			}
-			if(bScreensHaveSeparateSpaces)
-			{
-				// New default mode which uses a separate Space per display
-				// Find the screen the cursor is currently on so we can ignore invisible window regions.
-				NSEnumerator* ScreenEnumerator = [[NSScreen screens] objectEnumerator];
-				while ((MouseScreen = [ScreenEnumerator nextObject]) && !NSMouseInRect(CursorPos, MouseScreen.frame, NO))
-					;
-			}
-#endif
-			
-			NSArray* AllWindows = [NSApp orderedWindows];
-			for( int32 Index = 0; Index < [AllWindows count]; Index++ )
-			{
-				NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex: Index];
-				if( [Window isMiniaturized] || ![Window isVisible] || ![Window isOnActiveSpace] || ![Window isKindOfClass: [FSlateCocoaWindow class]] )
-				{
-					continue;
-				}
-
-				if( [Window canBecomeKeyWindow] == false )
-				{
-					NSWindow* ParentWindow = [Window parentWindow];
-					while( ParentWindow )
-					{
-						if( [ParentWindow canBecomeKeyWindow] )
-						{
-							Window = ParentWindow;
-							break;
-						}
-						ParentWindow = [ParentWindow parentWindow];
-					}
-				}
-				
-				NSRect VisibleFrame = [Window frame];
-#if WITH_EDITOR
-				if(MouseScreen != nil)
-				{
-					VisibleFrame = NSIntersectionRect([MouseScreen frame], VisibleFrame);
-				}
-#endif
-
-				if( NSPointInRect( CursorPos, VisibleFrame ) )
-				{
-					EventWindow = (FSlateCocoaWindow*)Window;
-					break;
-				}
+				EventWindow = WindowUnderCursor->GetWindowHandle();
 			}
 		}
 	}
 
 	return EventWindow;
+}
+
+TSharedPtr<FGenericWindow> FMacApplication::LocateWindowUnderCursor( const FVector2D& CursorPos )
+{
+	const NSPoint Position = NSMakePoint(CursorPos.X, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.Y));
+
+	NSScreen* MouseScreen = nil;
+	if ([NSScreen screensHaveSeparateSpaces])
+	{
+		// New default mode which uses a separate Space per display
+		// Find the screen the cursor is currently on so we can ignore invisible window regions.
+		NSEnumerator* ScreenEnumerator = [[NSScreen screens] objectEnumerator];
+		while ((MouseScreen = [ScreenEnumerator nextObject]) && !NSMouseInRect(Position, MouseScreen.frame, NO))
+			;
+	}
+
+	NSArray* AllWindows = [NSApp orderedWindows];
+	for (int32 Index = 0; Index < [AllWindows count]; Index++)
+	{
+		NSWindow* NativeWindow = (NSWindow*)[AllWindows objectAtIndex: Index];
+		if ([NativeWindow isMiniaturized] || ![NativeWindow isVisible] || ![NativeWindow isOnActiveSpace] || ![NativeWindow isKindOfClass: [FSlateCocoaWindow class]])
+		{
+			continue;
+		}
+
+        if( [NativeWindow canBecomeKeyWindow] == false )
+        {
+            NSWindow* ParentWindow = [NativeWindow parentWindow];
+            while( ParentWindow )
+            {
+                if( [ParentWindow canBecomeKeyWindow] )
+                {
+                    NativeWindow = ParentWindow;
+                    break;
+                }
+                ParentWindow = [ParentWindow parentWindow];
+            }
+        }
+        
+        NSRect VisibleFrame = [NativeWindow frame];
+#if WITH_EDITOR
+        if(MouseScreen != nil)
+        {
+            VisibleFrame = NSIntersectionRect([MouseScreen frame], VisibleFrame);
+        }
+#endif
+
+		if (NSPointInRect(Position, VisibleFrame))
+		{
+			TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(Windows, (FSlateCocoaWindow*)NativeWindow);
+			return MacWindow;
+		}
+	}
+
+	return NULL;
 }
 
 void FMacApplication::PollGameDeviceState( const float TimeDelta )
@@ -993,7 +993,6 @@ void FMacApplication::OnWindowWillMove( FSlateCocoaWindow* Window )
 	SCOPED_AUTORELEASE_POOL;
 
 	DraggedWindow = Window;
-	[DraggedWindow disconnectChildWindows];
 }
 
 void FMacApplication::OnWindowDidMove( FSlateCocoaWindow* Window )

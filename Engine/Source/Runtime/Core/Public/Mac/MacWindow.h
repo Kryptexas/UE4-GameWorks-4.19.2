@@ -12,9 +12,7 @@
  */
 @interface FSlateCocoaWindow : NSWindow <NSWindowDelegate>
 {
-	NSWindow* Parent;
 	EWindowMode::Type WindowMode;
-	NSMutableArray* ChildWindows;
 	NSRect DeferFrame;
 	CGFloat DeferOpacity;
 	bool bAcceptsInput;
@@ -65,26 +63,8 @@
 /** Mutator that specifies that the display arrangement is being reconfigured when bIsDisplayReconfiguring is true. */
 - (void)setDisplayReconfiguring:(bool)bIsDisplayReconfiguring;
 
-/** Record the parent window separately from Cocoa so that parented windows can still be minimised without hiding the app. */
-- (void)setParent:(NSWindow*)InParent;
-
-/** Cached current child windows & disconnect them so the window can be moved independently. */
-- (void)disconnectChildWindows;
-
-/** Order window to the front, on top of sibling windows if it is a child. */
-- (void)orderFrontEvenIfChildAndMakeMain:(bool)bMain andKey:(bool)bKey;
-
-/** Reattach cached child windows. */
-- (void)reconnectChildWindows;
-
-/** Returns true if it is permissable to add a child window, false if it will start being dragged around with the parent. */
-- (bool)shouldAddChildWindows;
-
-/** Get the cached parent window, regardless of whether it is attached. */
-- (NSWindow*)getParent;
-
-/** Remove InChild from any cached list of children. */
-- (void)removeCachedChild:(NSWindow*)InChild;
+/** Order window to the front. */
+- (void)orderFrontAndMakeMain:(bool)bMain andKey:(bool)bKey;
 
 @end
 
@@ -121,14 +101,6 @@ class CORE_API FMacWindow : public FGenericWindow, public TSharedFromThis<FMacWi
 public:
 	~FMacWindow();
 
-	/** Create a new FMacWindow.
-	 *
-	 * @param SlateWindows		List of all top level Slate windows.  This function will add the owner window to this list.
-	 * @param OwnerWindow		The SlateWindow for which we are crating a backing Win32Window
-	 * @param InHInstance		Win32 application instance handle
-	 * @param InParent			Parent Win32 window; usually NULL.
-	 * @param bShowImmediately	True to show this window as soon as its initialized
-	 */
 	static TSharedRef< FMacWindow > Make();
 
 	FSlateCocoaWindow* GetWindowHandle() const;
