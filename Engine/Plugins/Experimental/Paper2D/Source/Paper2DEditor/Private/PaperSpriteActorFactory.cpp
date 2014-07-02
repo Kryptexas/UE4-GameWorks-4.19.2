@@ -31,7 +31,16 @@ void UPaperSpriteActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 
 void UPaperSpriteActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	checkf(false, TEXT("APaperSpriteActor isn't blueprintable; how did you get here?"));
+	if (UPaperSprite* Sprite = Cast<UPaperSprite>(Asset))
+	{
+		if (APaperSpriteActor* TypedActor = Cast<APaperSpriteActor>(CDO))
+		{
+			UPaperSpriteComponent* RenderComponent = TypedActor->RenderComponent;
+			check(RenderComponent);
+
+			RenderComponent->SetSprite(Sprite);
+		}
+	}
 }
 
 bool UPaperSpriteActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
