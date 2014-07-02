@@ -49,7 +49,7 @@ extern int32						GImportCount;
 /** Forced exports for EndLoad optimization.							*/
 extern int32						GForcedExportCount;
 /** Objects that might need preloading.									*/
-extern COREUOBJECT_API TArray<UObject*>			GObjLoaded;
+extern TArray<UObject*>			GObjLoaded;
 
 #if !IS_MONOLITHIC
 	/** Adds and entry for the UFunction native pointer remap table */
