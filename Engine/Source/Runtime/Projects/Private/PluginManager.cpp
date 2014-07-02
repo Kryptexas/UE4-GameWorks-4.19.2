@@ -27,23 +27,6 @@ FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescrip
 {
 }
 
-void FPluginInstance::RegisterPluginMountPoints( const IPluginManager::FRegisterMountPointDelegate& RegisterMountPointDelegate )
-{
-	// If this plugin has content, mount it before loading the first module it contains
-	// @todo plugin: Should we do this even if there is no Content directory?  Probably, so that we can add content in Content Browser!
-	if( Descriptor.bCanContainContent )
-	{
-		if( ensure( RegisterMountPointDelegate.IsBound() ) )
-		{
-			// @todo plugin content: Consider prefixing path with "Plugins" or more specifically, either "EnginePlugins" or "GamePlugins", etc.
-			// @todo plugin content: We may need the full relative path to the plugin under the respective Plugins directory if we want to fully avoid collisions
-			const FString ContentRootPath( FString::Printf( TEXT( "/%s/" ), *Name ) );
-			const FString PluginContentDirectory( FPaths::GetPath(FileName) / TEXT( "Content" ) );
-
-			RegisterMountPointDelegate.Execute( ContentRootPath, PluginContentDirectory );
-		}
-	}
-}
 
 
 
@@ -291,6 +274,7 @@ void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 	TSet< FString > AllEnabledPlugins;
 	AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
 
+	// Enable all the plugins by name
 	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
 	{
 		if ( AllEnabledPlugins.Contains(Plugin->Name) )
@@ -298,15 +282,27 @@ void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 			Plugin->bEnabled = true;
 		}
 	}
-}
 
-void FPluginManager::RegisterEnabledPluginMountPoints()
-{
-	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
+	// Build the list of content folders
+	ContentFolders.Empty();
+	for(const TSharedRef<FPluginInstance>& Plugin: AllPlugins)
 	{
-		if ( Plugin->bEnabled )
+		if(Plugin->bEnabled && Plugin->Descriptor.bCanContainContent)
 		{
-			Plugin->RegisterPluginMountPoints( RegisterMountPointDelegate );
+			FPluginContentFolder ContentFolder;
+			ContentFolder.Name = Plugin->Name;
+			ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
+			ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
+			ContentFolders.Emplace(ContentFolder);
+		}
+	}
+
+	// Mount all the plugin content folders
+	if( ensure( RegisterMountPointDelegate.IsBound() ) )
+	{
+		for(const FPluginContentFolder& ContentFolder: ContentFolders)
+		{
+			RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
 		}
 	}
 }
@@ -316,7 +312,6 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 	if ( !bEarliestPhaseProcessed )
 	{
 		EnablePluginsThatAreConfiguredToBeEnabled();
-		RegisterEnabledPluginMountPoints();
 		bEarliestPhaseProcessed = true;
 	}
 
@@ -389,7 +384,6 @@ bool FPluginManager::AreEnabledPluginModulesUpToDate()
 	if (!bEarliestPhaseProcessed)
 	{
 		EnablePluginsThatAreConfiguredToBeEnabled();
-		RegisterEnabledPluginMountPoints();
 		bEarliestPhaseProcessed = true;
 	}
 
@@ -438,6 +432,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );
 		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
 		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
+		PluginStatus.bHasContentFolder = PluginInfo.bCanContainContent;
 
 		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 		const FString Icon128FilePath = FPaths::GetPath(Plugin->FileName) / PluginSystemDefs::RelativeIcon128FilePath;
@@ -450,6 +445,11 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	}
 
 	return PluginStatuses;
+}
+
+const TArray<FPluginContentFolder>& FPluginManager::GetPluginContentFolders() const
+{
+	return ContentFolders;
 }
 
 #undef LOCTEXT_NAMESPACE

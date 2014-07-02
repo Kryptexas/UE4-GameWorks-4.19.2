@@ -32,7 +32,8 @@ public class ContentBrowser : ModuleRules
 				"SourceControlWindows",
 				"WorkspaceMenuStructure",
 				"UnrealEd",
-				"EditorWidgets"
+				"EditorWidgets",
+				"Projects"
 			}
 		);
 

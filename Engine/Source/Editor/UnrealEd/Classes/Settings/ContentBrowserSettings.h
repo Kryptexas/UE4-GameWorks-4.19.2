@@ -62,6 +62,17 @@ public:
 		return ( ( bExcludeOverride ? false : OverrideDisplayDevelopersFolder ) | DisplayDevelopersFolder );
 	}
 
+	/** Sets whether we are allowed to display the plugin folders or not, optional flag for setting override instead */
+	void SetDisplayPluginFolders( bool bInDisplayPluginFolders, bool bOverride = false )
+	{ 
+		bOverride ? OverrideDisplayPluginFolders = bInDisplayPluginFolders : DisplayPluginFolders = bInDisplayPluginFolders;
+	}
+	/** Gets whether we are allowed to display the plugin folders or not, optional flag ignoring the override */
+	bool GetDisplayPluginFolders( bool bExcludeOverride = false ) const
+	{ 
+		return ( ( bExcludeOverride ? false : OverrideDisplayPluginFolders ) | DisplayPluginFolders );
+	}
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
@@ -93,6 +104,13 @@ private:
 
 	/** If true, overrides the DisplayDev setting */
 	bool OverrideDisplayDevelopersFolder;
+
+	/** List of plugin folders to display in the content browser. */
+	UPROPERTY(config)
+	bool DisplayPluginFolders;
+
+	/** Temporary override for the DisplayPluginFolders setting */
+	bool OverrideDisplayPluginFolders;
 
 	// Holds an event delegate that is executed when a setting has changed.
 	static FSettingChangedEvent SettingChangedEvent;

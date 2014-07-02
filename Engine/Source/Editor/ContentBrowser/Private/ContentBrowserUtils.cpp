@@ -1001,6 +1001,19 @@ bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 	return InPath.StartsWith(DeveloperPathWithSlash) || InPath == DeveloperPathWithoutSlash;
 }
 
+bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
+{
+	FString PathWithSlash = InPath / TEXT("");
+	for(const FPluginContentFolder& ContentFolder: IPluginManager::Get().GetPluginContentFolders())
+	{
+		if(PathWithSlash.StartsWith(ContentFolder.RootPath) || InPath == ContentFolder.Name)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void ContentBrowserUtils::GetObjectsInAssetData(const TArray<FAssetData>& AssetList, TArray<UObject*>& OutDroppedObjects)
 {	
 	for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)

@@ -361,6 +361,12 @@ private:
 	bool IsShowingRealTimeThumbnails() const;
 
 
+	/** Toggle whether plugin content folders should be shown or not */
+	void ToggleShowPluginFolders();
+
+	/** @return true when we are showing plugin content folders */
+	bool IsShowingPluginFolders() const;
+
 	/** Toggle whether the engine folder should be shown or not */
 	void ToggleShowEngineFolder();
 

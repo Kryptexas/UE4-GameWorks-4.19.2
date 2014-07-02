@@ -12,6 +12,7 @@
 #include "ContentBrowserModule.h"
 #include "ObjectTools.h"
 #include "KismetEditorUtilities.h"
+#include "IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1378,6 +1379,7 @@ void SAssetView::RefreshSourceItems()
 
 	// Remove any assets that should be filtered out any redirectors and non-assets
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+	const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
 	for (int32 AssetIdx = Items.Num() - 1; AssetIdx >= 0; --AssetIdx)
 	{
 		const FAssetData& Item = Items[AssetIdx];
@@ -1389,6 +1391,11 @@ void SAssetView::RefreshSourceItems()
 		else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder(Item.PackagePath.ToString()) )
 		{
 			// If this is an engine folder, and we don't want to show them, remove
+			Items.RemoveAtSwap(AssetIdx);
+		}
+		else if ( !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder(Item.PackagePath.ToString()) )
+		{
+			// If this is a plugin folder, and we don't want to show them, remove
 			Items.RemoveAtSwap(AssetIdx);
 		}
 	}
@@ -2130,140 +2137,156 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 
 	MenuBuilder.BeginSection("AssetViewType", LOCTEXT("ViewTypeHeading", "View Type"));
 	{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("TileViewOption", "Tiles"),
-		LOCTEXT("TileViewOptionToolTip", "View assets as tiles in a grid."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::Tile ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::Tile )
-			),
-		NAME_None,
-		EUserInterfaceActionType::RadioButton
-		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TileViewOption", "Tiles"),
+			LOCTEXT("TileViewOptionToolTip", "View assets as tiles in a grid."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::Tile ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::Tile )
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ListViewOption", "List"),
-		LOCTEXT("ListViewOptionToolTip", "View assets in a list with thumbnails."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::List ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::List )
-			),
-		NAME_None,
-		EUserInterfaceActionType::RadioButton
-		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ListViewOption", "List"),
+			LOCTEXT("ListViewOptionToolTip", "View assets in a list with thumbnails."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::List ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::List )
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ColumnViewOption", "Columns"),
-		LOCTEXT("ColumnViewOptionToolTip", "View assets in a list with columns of details."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::Column ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::Column )
-			),
-		NAME_None,
-		EUserInterfaceActionType::RadioButton
-		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ColumnViewOption", "Columns"),
+			LOCTEXT("ColumnViewOptionToolTip", "View assets in a list with columns of details."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::SetCurrentViewType, EAssetViewType::Column ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsCurrentViewType, EAssetViewType::Column )
+				),
+			NAME_None,
+			EUserInterfaceActionType::RadioButton
+			);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("Folders", LOCTEXT("FoldersHeading", "Folders"));
 	{
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ShowFoldersOption", "Show Folders"),
-		LOCTEXT("ShowFoldersOptionToolTip", "Show folders in the view as well as assets."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowFolders ),
-			FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowFoldersAllowed ),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingFolders )
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowFoldersOption", "Show Folders"),
+			LOCTEXT("ShowFoldersOptionToolTip", "Show folders in the view as well as assets."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowFolders ),
+				FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowFoldersAllowed ),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingFolders )
+				),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowOnlyAssetsInSelectedFolders", "Show Only Assets in Selected Folders"),
+			LOCTEXT("ShowOnlyAssetsInSelectedFoldersToolTip", "Only displays the assets of the selected folders"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowOnlyAssetsInSelectedFolders ),
+				FCanExecuteAction::CreateSP( this, &SAssetView::CanShowOnlyAssetsInSelectedFolders ),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingOnlyAssetsInSelectedFolders )
 			),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ShowOnlyAssetsInSelectedFolders", "Show Only Assets in Selected Folders"),
-		LOCTEXT("ShowOnlyAssetsInSelectedFoldersToolTip", "Only displays the assets of the selected folders"),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowOnlyAssetsInSelectedFolders ),
-			FCanExecuteAction::CreateSP( this, &SAssetView::CanShowOnlyAssetsInSelectedFolders ),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingOnlyAssetsInSelectedFolders )
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowDevelopersFolderOption", "Show Developers Folder"),
+			LOCTEXT("ShowDevelopersFolderOptionToolTip", "Show the developers folder in the view."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowDevelopersFolder ),
+				FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowDevelopersFolderAllowed ),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingDevelopersFolder )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ShowDevelopersFolderOption", "Show Developers Folder"),
-		LOCTEXT("ShowDevelopersFolderOptionToolTip", "Show the developers folder in the view."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowDevelopersFolder ),
-			FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowDevelopersFolderAllowed ),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingDevelopersFolder )
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
+		if(IPluginManager::Get().GetPluginContentFolders().Num() > 0)
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ShowPluginFolderOption", "Show Plugin Content"),
+				LOCTEXT("ShowPluginFolderOptionToolTip", "Shows plugin content in the view."),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP( this, &SAssetView::ToggleShowPluginFolders ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP( this, &SAssetView::IsShowingPluginFolders )
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+				);
+		}
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ShowEngineFolderOption", "Show Engine Content"),
-		LOCTEXT("ShowEngineFolderOptionToolTip", "Show the engine content in the view."),
-		FSlateIcon(),
-		FUIAction(
-		FExecuteAction::CreateSP( this, &SAssetView::ToggleShowEngineFolder ),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SAssetView::IsShowingEngineFolder )
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowEngineFolderOption", "Show Engine Content"),
+			LOCTEXT("ShowEngineFolderOptionToolTip", "Show the engine content in the view."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowEngineFolder ),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingEngineFolder )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("AssetThumbnails", LOCTEXT("ThumbnailsHeading", "Thumbnails"));
 	{
-	MenuBuilder.AddWidget(
-		SNew(SSlider)
-			.ToolTipText( LOCTEXT("ThumbnailScaleToolTip", "Adjust the size of thumbnails.") )
-			.Value( this, &SAssetView::GetThumbnailScale )
-			.OnValueChanged( this, &SAssetView::SetThumbnailScale )
-			.Locked( this, &SAssetView::IsThumbnailScalingLocked ),
-		LOCTEXT("ThumbnailScaleLabel", "Scale"),
-		/*bNoIndent=*/true
-		);
+		MenuBuilder.AddWidget(
+			SNew(SSlider)
+				.ToolTipText( LOCTEXT("ThumbnailScaleToolTip", "Adjust the size of thumbnails.") )
+				.Value( this, &SAssetView::GetThumbnailScale )
+				.OnValueChanged( this, &SAssetView::SetThumbnailScale )
+				.Locked( this, &SAssetView::IsThumbnailScalingLocked ),
+			LOCTEXT("ThumbnailScaleLabel", "Scale"),
+			/*bNoIndent=*/true
+			);
 
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("ThumbnailEditModeOption", "Thumbnail Edit Mode"),
-		LOCTEXT("ThumbnailEditModeOptionToolTip", "Toggle thumbnail editing mode. When in this mode you can rotate the camera on 3D thumbnails by dragging them."),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ToggleThumbnailEditMode ),
-			FCanExecuteAction::CreateSP( this, &SAssetView::IsThumbnailEditModeAllowed ),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsThumbnailEditMode )
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ThumbnailEditModeOption", "Thumbnail Edit Mode"),
+			LOCTEXT("ThumbnailEditModeOptionToolTip", "Toggle thumbnail editing mode. When in this mode you can rotate the camera on 3D thumbnails by dragging them."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleThumbnailEditMode ),
+				FCanExecuteAction::CreateSP( this, &SAssetView::IsThumbnailEditModeAllowed ),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsThumbnailEditMode )
+				),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("RealTimeThumbnailsOption", "Real-Time Thumbnails"),
+			LOCTEXT("RealTimeThumbnailsOptionToolTip", "Renders the assets thumbnails in real-time"),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleRealTimeThumbnails ),
+				FCanExecuteAction::CreateSP( this, &SAssetView::CanShowRealTimeThumbnails ),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingRealTimeThumbnails )
 			),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
-
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("RealTimeThumbnailsOption", "Real-Time Thumbnails"),
-		LOCTEXT("RealTimeThumbnailsOptionToolTip", "Renders the assets thumbnails in real-time"),
-		FSlateIcon(),
-		FUIAction(
-			FExecuteAction::CreateSP( this, &SAssetView::ToggleRealTimeThumbnails ),
-			FCanExecuteAction::CreateSP( this, &SAssetView::CanShowRealTimeThumbnails ),
-			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingRealTimeThumbnails )
-		),
-		NAME_None,
-		EUserInterfaceActionType::ToggleButton
-		);
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -2318,6 +2341,29 @@ bool SAssetView::CanShowRealTimeThumbnails() const
 bool SAssetView::IsShowingRealTimeThumbnails() const
 {
 	return CanShowRealTimeThumbnails() ? GetDefault<UContentBrowserSettings>()->RealTimeThumbnails : false;
+}
+
+void SAssetView::ToggleShowPluginFolders()
+{
+	bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	bool bRawDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders( true );
+
+	// Only if both these flags are false when toggling we want to enable the flag, otherwise we're toggling off
+	if ( !bDisplayPlugins && !bRawDisplayPlugins )
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders( true );
+	}
+	else
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders( false );
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders( false, true );
+	}	
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsShowingPluginFolders() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
 }
 
 void SAssetView::ToggleShowEngineFolder()

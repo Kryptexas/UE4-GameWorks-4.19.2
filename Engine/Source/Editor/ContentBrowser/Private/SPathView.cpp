@@ -712,9 +712,13 @@ TSharedPtr<struct FTreeItem> SPathView::AddRootItem( const FString& InFolderName
 	const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
 	if ( bDisplayEngine || !ContentBrowserUtils::IsEngineFolder(InFolderName) )
 	{
-		NewItem = MakeShareable( new FTreeItem(InFolderName, FString(TEXT("/")) + InFolderName, TSharedPtr<FTreeItem>()));
-		TreeRootItems.Add( NewItem );
-		TreeViewPtr->RequestTreeRefresh();
+		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+		if ( bDisplayPlugins || !ContentBrowserUtils::IsPluginFolder(InFolderName) )
+		{
+			NewItem = MakeShareable( new FTreeItem(InFolderName, FString(TEXT("/")) + InFolderName, TSharedPtr<FTreeItem>()));
+			TreeRootItems.Add( NewItem );
+			TreeViewPtr->RequestTreeRefresh();
+		}
 	}
 
 	return NewItem;

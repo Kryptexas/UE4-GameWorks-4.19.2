@@ -44,13 +44,6 @@ public:
 	 * FPlugin constructor
 	 */
 	FPluginInstance(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom::Type InLoadedFrom);
-
-	/**
-	 * Registers the content mount points for this delegate. This allows content to be created in the root folder for this plugin.
-	 *
-	 * @param	RegisterMountPointDelegate	Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access content path mounting functionality from Core.
-	 */
-	void RegisterPluginMountPoints( const IPluginManager::FRegisterMountPointDelegate& RegisterMountPointDelegate );
 };
 
 /**
@@ -71,6 +64,7 @@ public:
 	virtual bool IsPluginModule( const FName ModuleName ) const override;
 	virtual bool AreEnabledPluginModulesUpToDate() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
+	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
 
 private:
 
@@ -81,15 +75,15 @@ private:
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
 	void EnablePluginsThatAreConfiguredToBeEnabled();
 
-	/** Registers content mount points for all enabled plugins */
-	void RegisterEnabledPluginMountPoints();
-
 private:
 	/** All of the plugins that we know about */
 	TArray< TSharedRef< FPluginInstance > > AllPlugins;
 
 	/** Map from module name to plugin containing that module */
 	TMap< FName, TSharedRef< FPluginInstance > > ModulePluginMap;
+
+	/** All the plugin content folders */
+	TArray<FPluginContentFolder> ContentFolders;
 
 	/** Delegate for mounting content paths.  Bound by FPackageName code in CoreUObject, so that we can access
 	    content path mounting functionality from Core. */
