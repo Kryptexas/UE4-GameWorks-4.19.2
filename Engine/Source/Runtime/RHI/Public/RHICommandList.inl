@@ -8,10 +8,11 @@
 #define __RHICOMMANDLIST_INL__
 #include "RHICommandList.h"
 
-FORCEINLINE void FRHICommandList::Flush()
+FORCEINLINE_DEBUGGABLE void FRHICommandList::Flush()
 {
 	if (HasCommands())
 	{
+		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);
 		GRHICommandList.ExecuteList(*this);
 	}
 }
@@ -29,20 +30,20 @@ public:
 		CmdTail = Page->Current;
 	}
 
-	FORCEINLINE bool HasCommandsLeft() const
+	FORCEINLINE_DEBUGGABLE bool HasCommandsLeft() const
 	{
 		return (CmdPtr < CmdTail);
 	}
 
 	// Current command
-	FORCEINLINE FRHICommand* operator * ()
+	FORCEINLINE_DEBUGGABLE FRHICommand* operator * ()
 	{
 		return (FRHICommand*)CmdPtr;
 	}
 
 	// Get the next RHICommand and advance the iterator
 	template <typename TCmd>
-	FORCEINLINE TCmd* NextCommand()
+	FORCEINLINE_DEBUGGABLE TCmd* NextCommand()
 	{
 		TCmd* RHICmd = (TCmd*)CmdPtr;
 		//::OutputDebugStringW(*FString::Printf(TEXT("Exec %d: %d @ 0x%p, %d bytes\n"), NumCommands, (int32)RHICmd->Type, (void*)RHICmd, sizeof(TCmd) + RHICmd->ExtraSize()));

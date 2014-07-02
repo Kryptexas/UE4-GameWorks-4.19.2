@@ -1784,7 +1784,7 @@ DEFINE_RHIMETHOD_4(
  * @param VertexDataStride Size of each vertex 
  * @param OutVertexData Reference to the allocated vertex memory
  */
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,BeginDrawPrimitiveUP,
 	uint32,PrimitiveType,
 	uint32,NumPrimitives,
@@ -1797,7 +1797,7 @@ DEFINE_RHIMETHOD_5(
 /**
  * Draw a primitive using the vertex data populated since RHIBeginDrawPrimitiveUP and clean up any memory as needed
  */
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,EndDrawPrimitiveUP,
 	,
 	);
@@ -1814,7 +1814,7 @@ DEFINE_RHIMETHOD_0(
  * @param IndexDataStride Size of each index (either 2 or 4 bytes)
  * @param OutIndexData Reference to the allocated index memory
  */
-DEFINE_RHIMETHOD_9(
+DEFINE_RHIMETHOD_CMDLIST_9(
 	void,BeginDrawIndexedPrimitiveUP,
 	uint32,PrimitiveType,
 	uint32,NumPrimitives,
@@ -1831,7 +1831,7 @@ DEFINE_RHIMETHOD_9(
 /**
  * Draw a primitive using the vertex and index data populated since RHIBeginDrawIndexedPrimitiveUP and clean up any memory as needed
  */
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,EndDrawIndexedPrimitiveUP,
 	,
 	);

@@ -198,7 +198,10 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					}
 				}
 				RHICmd->Shader->Release();
-				RHICmd->UAV->Release();
+				if (RHICmd->UAV)
+				{
+					RHICmd->UAV->Release();
+				}
 			}
 			break;
 		case ERCT_SetUAVParameter_IntialCount:
@@ -213,7 +216,10 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					}
 				}
 				RHICmd->Shader->Release();
-				RHICmd->UAV->Release();
+				if (RHICmd->UAV)
+				{
+					RHICmd->UAV->Release();
+				}
 			}
 			break;
 		case ERCT_DrawPrimitive:
@@ -307,15 +313,64 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				}
 				for (uint32 Index = 0; Index < RHICmd->NewNumSimultaneousRenderTargets; Index++)
 				{
-					RHICmd->NewRenderTargetsRHI[Index].Texture->Release();
+					if (RHICmd->NewRenderTargetsRHI[Index].Texture)
+					{
+						RHICmd->NewRenderTargetsRHI[Index].Texture->Release();
+					}
 				}
-				RHICmd->NewDepthStencilTargetRHI->Release();
+				if (RHICmd->NewDepthStencilTargetRHI)
+				{
+					RHICmd->NewDepthStencilTargetRHI->Release();
+				}
 				for (uint32 Index = 0; Index < RHICmd->NewNumUAVs; Index++)
 				{
-					RHICmd->UAVs[Index]->Release();
+					if (RHICmd->UAVs[Index])
+					{
+						RHICmd->UAVs[Index]->Release();
+					}
 				}
 			}
 			break;
+		case ERCT_EndDrawPrimitiveUP:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandEndDrawPrimitiveUP>();
+				if (!bOnlyTestMemAccess)
+				{
+					void* Buffer = NULL;
+					BeginDrawPrimitiveUP_Internal(RHICmd->PrimitiveType, RHICmd->NumPrimitives, RHICmd->NumVertices, RHICmd->VertexDataStride, Buffer);
+					FMemory::Memcpy(Buffer, RHICmd->OutVertexData, RHICmd->NumVertices * RHICmd->VertexDataStride);
+					EndDrawPrimitiveUP_Internal();
+				}
+				FMemory::Free(RHICmd->OutVertexData);
+			}
+			break;
+		case ERCT_EndDrawIndexedPrimitiveUP:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandEndDrawIndexedPrimitiveUP>();
+				if (!bOnlyTestMemAccess)
+				{
+					void* VertexBuffer = NULL;
+					void* IndexBuffer = NULL;
+					BeginDrawIndexedPrimitiveUP_Internal(
+						RHICmd->PrimitiveType,
+						RHICmd->NumPrimitives,
+						RHICmd->NumVertices,
+						RHICmd->VertexDataStride,
+						VertexBuffer,
+						RHICmd->MinVertexIndex,
+						RHICmd->NumIndices,
+						RHICmd->IndexDataStride,
+						IndexBuffer);
+					FMemory::Memcpy(VertexBuffer, RHICmd->OutVertexData, RHICmd->NumVertices * RHICmd->VertexDataStride);
+					FMemory::Memcpy(IndexBuffer, RHICmd->OutIndexData, RHICmd->NumIndices * RHICmd->IndexDataStride);
+					EndDrawIndexedPrimitiveUP_Internal();
+
+				}
+				FMemory::Free(RHICmd->OutVertexData);
+				FMemory::Free(RHICmd->OutIndexData);
+			}
+			break;
+
 		default:
 			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
 		}
@@ -339,7 +394,8 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 
 	if (!bSkipRHICmdList)
 	{
-		if (&CmdList != &GetImmediateCommandList())
+		if (&CmdList != &GetImmediateCommandList() 
+			&& !GetImmediateCommandList().bExecuting) // don't flush if this is a recursive call and we are already executing the immediate command list
 		{
 			GetImmediateCommandList().Flush();
 		}
@@ -362,15 +418,21 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 			}
 		}
 	}
-
 	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList.NumCommands);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (&CmdList == &GetImmediateCommandList())
 	{
-		bLatchedBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+		LatchBypass();
 	}
 #endif
 	CmdList.Reset();
+}
+
+void FRHICommandListExecutor::LatchBypass()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bLatchedBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+#endif
 }
 
 FRHICommandList::FMemManager::FMemManager() :

@@ -368,7 +368,7 @@ inline uint32 GetVertexCountForPrimitiveCount(uint32 NumPrimitives, uint32 Primi
  * @param VertexData A reference to memory preallocate in RHIBeginDrawPrimitiveUP
  * @param VertexDataStride Size of each vertex
  */
-inline void DrawPrimitiveUP(FRHICommandListImmediate& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
+inline void DrawPrimitiveUP(FRHICommandList& RHICmdList, uint32 PrimitiveType, uint32 NumPrimitives, const void* VertexData, uint32 VertexDataStride)
 {
 	void* Buffer = NULL;
 	const uint32 VertexCount = GetVertexCountForPrimitiveCount( NumPrimitives, PrimitiveType );
@@ -389,7 +389,7 @@ inline void DrawPrimitiveUP(FRHICommandListImmediate& RHICmdList, uint32 Primiti
  * @param VertexDataStride The size of one vertex
  */
 inline void DrawIndexedPrimitiveUP(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	uint32 PrimitiveType,
 	uint32 MinVertexIndex,
 	uint32 NumVertices,

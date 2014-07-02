@@ -2006,6 +2006,7 @@ void FEngineLoop::Tick()
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 				BeginFrame,
 			{
+				GRHICommandList.LatchBypass();
 				GFrameNumberRenderThread++;
 				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
 				RHICmdList.BeginFrame();
