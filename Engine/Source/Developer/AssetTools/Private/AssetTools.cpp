@@ -893,7 +893,7 @@ void FAssetTools::DiffAgainstDepot( UObject* InObject, const FString& InPackageP
 					TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
 
 					// Try and load that package
-					UPackage* TempPackage = LoadPackage(NULL, *TempFileName, LOAD_None);
+					UPackage* TempPackage = LoadPackage(NULL, *TempFileName, LOAD_ForDiff);
 					if(TempPackage != NULL)
 					{
 						// Grab the old asset from that old package

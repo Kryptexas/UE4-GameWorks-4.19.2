@@ -307,7 +307,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			if ( ObjIt->IsAsset() )
 			{
 				UPackage* InMemoryPackage = ObjIt->GetOutermost();
-				const FName ObjectPath = FName(*ObjIt->GetPathName());
 
 				static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
 				// Skip assets in map packages... unless we are showing world assets
@@ -316,7 +315,14 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 					continue;
 				}
 
+				// Skip assets that were loaded for diffing
+				if ( InMemoryPackage->PackageFlags & PKG_ForDiffing )
+				{
+					continue;
+				}
+
 				// add it to in-memory object list for later merge
+				const FName ObjectPath = FName(*ObjIt->GetPathName());
 				InMemoryObjectPaths.Add(ObjectPath);
 			
 				// Package name
