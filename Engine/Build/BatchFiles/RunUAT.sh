@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ## Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 ##
 ## Unreal Engine 4 AutomationTool setup script
@@ -9,6 +9,20 @@
 echo
 echo Running AutomationTool...
 echo
+
+# loop over the arguments, quoting spaces to pass to UAT proper
+Args=
+i=0
+for Arg in "$@"
+do
+	# replace all ' ' with '\ '
+	NewArg=${Arg// /\\ }
+	# append it to the array
+	Args[i]=$NewArg
+	# move to next array entry
+	i=$((i+1))
+done
+
 
 # put ourselves into Engine directory (two up from location of this script)
 SCRIPT_DIR=$(cd "`dirname "$0"`" && pwd)
@@ -24,8 +38,7 @@ if [ ! -f Build/BatchFiles/RunUAT.sh ]; then
 fi
 
 # see if we have the no compile arg
-args=“$@“
-if echo $args | grep -q -i "\-nocompile"; then
+if echo "${Args[@]}" | grep -q -i "\-nocompile"; then
 	UATNoCompileArg=-NoCompile
 else
 	UATNoCompileArg=
@@ -81,8 +94,8 @@ else
 fi
 # you can't set a dotted env var nicely in sh, but env will run a command with
 # a list of env vars set, including dotted ones
-echo Start UAT: mono AutomationTool.exe "$@"
-env uebp_LogFolder="$LogDir" mono AutomationTool.exe "$@" $UATNoCompileArg
+echo Start UAT: mono AutomationTool.exe "${Args[@]}"
+env uebp_LogFolder="$LogDir" mono AutomationTool.exe $Args $UATNoCompileArg
 UATReturn=$?
 
 # @todo: Copy log files to somewhere useful

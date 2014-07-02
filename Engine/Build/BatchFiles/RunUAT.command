@@ -7,4 +7,4 @@
 ## in the OSX Finder.  All it does is call RunUAT.sh which does
 ## the real work.
 
-exec "`dirname "$0"`"/RunUAT.sh $@
+exec "`dirname "$0"`"/RunUAT.sh "$@"
