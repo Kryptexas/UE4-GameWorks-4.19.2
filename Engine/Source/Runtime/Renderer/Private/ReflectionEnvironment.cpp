@@ -607,7 +607,8 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM5ForAllViews(FR
 		FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
 		Desc.TargetableFlags |= TexCreate_UAV;
 
-		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColorEnv") );
+		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
+		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
 	}
 
 				// If we are in SM5, use the compute shader gather method
@@ -662,16 +663,6 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 	const bool bSkyLight = Scene->SkyLight
 		&& Scene->SkyLight->ProcessedTexture
 		&& ViewFamily.EngineShowFlags.SkyLighting;
-
-	TRefCountPtr<IPooledRenderTarget> LightAccumulation;
-	{
-		const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
-
-		uint32 LightAccumulationUAVFlag = (FeatureLevel == ERHIFeatureLevel::SM5) ? TexCreate_UAV : 0;
-		FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
-
-		GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
-	}
 
 	static TArray<FReflectionCaptureSortData> SortData;
 
@@ -733,11 +724,22 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 			ScreenSpaceReflections(RHICmdList, View, SSROutput);
 		}
 
+		TRefCountPtr<IPooledRenderTarget> LightAccumulation;
+
 		if (bReflectionEnv)
 		{
 			bRequiresApply = true;
 
 			SCOPED_DRAW_EVENT(StandardDeferredReflectionEnvironment, DEC_SCENE_ITEMS);
+
+			{
+				const ERHIFeatureLevel::Type FeatureLevel = Scene->GetFeatureLevel();
+
+				uint32 LightAccumulationUAVFlag = (FeatureLevel == ERHIFeatureLevel::SM5) ? TexCreate_UAV : 0;
+				FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
+
+				GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
+			}
 
 			SetRenderTarget(RHICmdList, LightAccumulation->GetRenderTargetItem().TargetableTexture, NULL);
 
@@ -814,7 +816,11 @@ void FDeferredShadingSceneRenderer::RenderImageBasedReflectionsSM4ForAllViews(FR
 
 			TShaderMapRef< FPostProcessVS >		VertexShader(GetGlobalShaderMap());
 
-			
+			if (!LightAccumulation)
+			{
+				// should never be used but during debugging it can happen
+				LightAccumulation = GSystemTextures.WhiteDummy;
+			}
 
 #define CASE(A,B,C) \
 			case ((A << 2) | (B << 1) | C) : \
