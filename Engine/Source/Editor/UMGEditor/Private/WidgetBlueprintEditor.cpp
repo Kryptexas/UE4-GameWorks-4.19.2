@@ -28,17 +28,22 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 
 void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
 {
-	SelectedWidgets.Empty();
-
+	TSet<FWidgetReference> TempSelection;
 	for ( const FWidgetReference& Widget : Widgets )
 	{
 		if ( Widget.IsValid() )
 		{
-			SelectedWidgets.Add(Widget);
+			TempSelection.Add(Widget);
 		}
 	}
 
-	RefreshDetails();
+	RefreshDetails(TempSelection);
+
+	// Finally change the selected widgets after we've updated the details panel 
+	// to ensure values that are pending are committed on focus loss, and migrated properly
+	// to the old selected widgets.
+	SelectedWidgets.Empty();
+	SelectedWidgets.Append(TempSelection);
 
 	OnSelectedWidgetsChanged.Broadcast();
 }
@@ -53,9 +58,12 @@ void FWidgetBlueprintEditor::CleanSelection()
 
 	for ( FWidgetReference& WidgetRef : SelectedWidgets )
 	{
-		if ( TreeWidgetSet.Contains(WidgetRef.GetTemplate()) )
+		if ( WidgetRef.IsValid() )
 		{
-			SelectedWidgets.Add(WidgetRef);
+			if ( TreeWidgetSet.Contains(WidgetRef.GetTemplate()) )
+			{
+				TempSelection.Add(WidgetRef);
+			}
 		}
 	}
 
@@ -72,11 +80,16 @@ const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 
 void FWidgetBlueprintEditor::RefreshDetails()
 {
+	RefreshDetails(SelectedWidgets);
+}
+
+void FWidgetBlueprintEditor::RefreshDetails(TSet<FWidgetReference>& Widgets)
+{
 	// Convert the selection set to an array of UObject* pointers
 	FString InspectorTitle = "Widget";// Widget->GetDisplayString();
 
 	TArray<UObject*> InspectorObjects;
-	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	for ( FWidgetReference& WidgetRef : Widgets )
 	{
 		UWidget* PreviewWidget = WidgetRef.GetPreview();
 		if ( PreviewWidget )

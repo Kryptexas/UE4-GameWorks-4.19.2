@@ -232,12 +232,11 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 
 UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
-	for ( auto& Entry : WidgetToComponent )
+	for ( UWidget* Widget : Components )
 	{
-		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
+		if ( Widget->GetName().Equals(Name, ESearchCase::IgnoreCase) )
 		{
-			TWeakObjectPtr<UWidget> VisualWidget = Entry.Value;
-			return VisualWidget.Get();
+			return Widget;
 		}
 	}
 
