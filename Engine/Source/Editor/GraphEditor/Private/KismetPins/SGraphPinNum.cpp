@@ -18,7 +18,7 @@ void SGraphPinNum::SetTypeInValue(const FText& NewTypeInValue, ETextCommit::Type
 	{
 		const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphPinObj->GetSchema());
 
-		if(GraphPinObj->PinType.PinCategory == K2Schema->PC_Int)
+		if (GraphPinObj->PinType.PinCategory == K2Schema->PC_Int || GraphPinObj->PinType.PinCategory == K2Schema->PC_Byte)
 		{
 			int32 IntValue = FCString::Atoi(*TypeValueString);
 			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, FString::FromInt(IntValue));
