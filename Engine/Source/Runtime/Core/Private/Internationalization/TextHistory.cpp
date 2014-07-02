@@ -18,6 +18,17 @@ TSharedPtr< FString, ESPMode::ThreadSafe > FTextHistory::GetSourceString() const
 	return NULL;
 }
 
+void FTextHistory::SerializeForDisplayString(FArchive& Ar, TSharedRef<FString, ESPMode::ThreadSafe>& InOutDisplayString)
+{
+	if(Ar.IsLoading())
+	{
+		//When duplicating, the CDO is used as the template, then values for the instance are assigned.
+		//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
+		//This would result in all subsequently duplicated objects stamping over formerly duplicated ones.
+		InOutDisplayString = MakeShareable(new FString());
+	}
+}
+
 ///////////////////////////////////////
 // FTextHistory_NamedFormat
 
