@@ -56,9 +56,25 @@ public:
 	/** Marks the plugin as beta in the UI */
 	bool bIsBetaVersion;
 
+	/** Whether the plugin has a content folder */
+	bool bHasContentFolder;
+
 };
 
+/**
+ * Structure holding information about a plugin content folder
+ */
+struct FPluginContentFolder
+{
+	/** Name of the plugin */
+	FString Name;
 
+	/** Virtual root path for asset paths */
+	FString RootPath;
+
+	/** Content path on disk */
+	FString ContentPath;
+};
 
 /**
  * PluginManager manages available code and content extensions (both loaded and not loaded.)
@@ -116,4 +132,11 @@ public:
 	 * @return	 Array of plugin status objects
 	 */
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const = 0;
+
+	/**
+	 * Gets a list of plugin content folders
+	 *
+	 * @return	 Array of plugin content folders
+	 */
+	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const = 0;
 };

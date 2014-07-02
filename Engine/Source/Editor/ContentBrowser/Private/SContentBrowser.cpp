@@ -641,25 +641,35 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 	const UContentBrowserSettings* tmp = GetDefault<UContentBrowserSettings>();
 	bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-	if ( !bDisplayDev || !bDisplayEngine )
+	bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+	if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
 	{
-		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine ); --AssetIdx)
+		bool bRepopulate = false;
+		for (int32 AssetIdx = AssetDataList.Num() - 1; AssetIdx >= 0 && ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins ); --AssetIdx)
 		{
 			const FAssetData& Item = AssetDataList[AssetIdx];
 			if ( !bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( Item.PackagePath.ToString() ) )
 			{
 				bDisplayDev = true;
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayDevelopersFolder(true, true);
+				bRepopulate = true;
 			}
 			else if ( !bDisplayEngine && ContentBrowserUtils::IsEngineFolder( Item.PackagePath.ToString() ) )
 			{
 				bDisplayEngine = true;
 				GetMutableDefault<UContentBrowserSettings>()->SetDisplayEngineFolder(true, true);
+				bRepopulate = true;
+			}
+			else if ( !bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( Item.PackagePath.ToString() ) )
+			{
+				bDisplayPlugins = true;
+				GetMutableDefault<UContentBrowserSettings>()->SetDisplayPluginFolders(true, true);
+				bRepopulate = true;
 			}
 		}
 
 		// If we have auto-enabled any flags, force a refresh
-		if ( bDisplayDev || bDisplayEngine )
+		if ( bRepopulate )
 		{
 			PathViewPtr->Populate();
 		}
@@ -1727,32 +1737,34 @@ void SContentBrowser::HandleSettingChanged(FName PropertyName)
 {
 	if ((PropertyName == "DisplayDevelopersFolder") ||
 		(PropertyName == "DisplayEngineFolder") ||
+		(PropertyName == "DisplayPluginFolders") ||
 		(PropertyName == NAME_None))	// @todo: Needed if PostEditChange was called manually, for now
 	{
 		// If the dev or engine folder is no longer visible but we're inside it...
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		const bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
-		if ( !bDisplayDev || !bDisplayEngine )
+		const bool bDisplayPlugins = GetDefault<UContentBrowserSettings>()->GetDisplayPluginFolders();
+		if ( !bDisplayDev || !bDisplayEngine || !bDisplayPlugins )
 		{
-			const FString OldSelectedPath = PathViewPtr->GetSelectedPath();
-			if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( OldSelectedPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( OldSelectedPath )) )
-			{
-				// Set the folder back to the root, and refresh the contents
-				TArray<FString> SelectedPaths;
-				SelectedPaths.Add(TEXT("/Game"));
-				PathViewPtr->SetSelectedPaths(SelectedPaths);
-				SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
-			}
+		    const FString OldSelectedPath = PathViewPtr->GetSelectedPath();
+		    if ( (!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( OldSelectedPath )) || (!bDisplayEngine && ContentBrowserUtils::IsEngineFolder( OldSelectedPath )) || (!bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( OldSelectedPath ) ) )
+		    {
+			    // Set the folder back to the root, and refresh the contents
+			    TArray<FString> SelectedPaths;
+			    SelectedPaths.Add(TEXT("/Game"));
+			    PathViewPtr->SetSelectedPaths(SelectedPaths);
+			    SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
+		    }
 		}
 
 		// Update our path view so that it can include/exclude the dev folder
 		PathViewPtr->Populate();
 
 		// If the dev or engine folder has become visible and we're inside it...
-		if ( bDisplayDev || bDisplayEngine )
+		if ( bDisplayDev || bDisplayEngine || bDisplayPlugins )
 		{
 			const FString NewSelectedPath = PathViewPtr->GetSelectedPath();
-			if ( (bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( NewSelectedPath )) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder( NewSelectedPath )) )
+			if ( (bDisplayDev && ContentBrowserUtils::IsDevelopersFolder( NewSelectedPath )) || (bDisplayEngine && ContentBrowserUtils::IsEngineFolder( NewSelectedPath )) || (bDisplayPlugins && ContentBrowserUtils::IsPluginFolder( NewSelectedPath ) ) )
 			{
 				// Refresh the contents
 				TArray<FString> SelectedPaths;
