@@ -143,6 +143,9 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.h">
       <Filter>Source Files\Metal</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\hlslcc_lib\hlslcc.cpp">
@@ -372,6 +375,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.cpp">
       <Filter>Source Files\Metal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

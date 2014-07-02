@@ -35,10 +35,6 @@
 #include "ir.h"
 #include "ir_visitor.h"
 
-extern "C" {
-#include "symbol_table.h"
-}
-
 extern void _mesa_print_ir(exec_list *instructions,
 			   struct _mesa_glsl_parse_state *state);
 

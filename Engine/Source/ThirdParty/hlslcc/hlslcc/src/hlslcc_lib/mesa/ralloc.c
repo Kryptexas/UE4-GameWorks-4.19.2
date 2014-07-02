@@ -31,6 +31,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
+#if __APPLE__
+#else
+#include <malloc.h>
+#endif
 
 /* Android defines SIZE_MAX in limits.h, instead of the standard stdint.h */
 #ifdef ANDROID
@@ -247,7 +252,7 @@ ralloc_block_resize(ralloc_header *old, size_t size)
 		unused_block = mblock;		
 	}
 
-	new_mem = ralloc_block(parent, size);
+	new_mem = (ralloc_header*)ralloc_block(parent, size);
 	old_size = old->size;
 	memcpy(new_mem, old, old_size);
 	new_mem->size = (unsigned)size;
@@ -315,7 +320,7 @@ resize(void *ptr, size_t size)
 
    old = get_header(ptr);
 #if USE_MEM_BLOCKS
-   info = ralloc_block_resize(old, size + sizeof(ralloc_header));
+   info = (ralloc_header*)ralloc_block_resize(old, size + sizeof(ralloc_header));
 #else
    info = realloc(old, size + sizeof(ralloc_header));
 #endif
@@ -514,7 +519,7 @@ cat(char **dest, const char *str, size_t n)
    check(dest != NULL && *dest != NULL);
 
    existing_length = strlen(*dest);
-   both = resize(*dest, existing_length + n + 1);
+   both = (char*)resize(*dest, existing_length + n + 1);
    if (unlikely(both == NULL))
       return false;
 
@@ -588,7 +593,7 @@ ralloc_vasprintf(const void *ctx, const char *fmt, va_list args)
 {
    size_t size = printf_length(fmt, args) + 1;
 
-   char *ptr = ralloc_size(ctx, size);
+   char *ptr = (char*)ralloc_size(ctx, size);
    if (ptr != NULL)
       vsnprintf(ptr, size, fmt, args);
 
@@ -643,7 +648,7 @@ ralloc_vasprintf_rewrite_tail(char **str, size_t *start, const char *fmt,
 
    new_length = printf_length(fmt, args);
 
-   ptr = resize(*str, *start + new_length + 1);
+   ptr = (char*)resize(*str, *start + new_length + 1);
    if (unlikely(ptr == NULL))
       return false;
 

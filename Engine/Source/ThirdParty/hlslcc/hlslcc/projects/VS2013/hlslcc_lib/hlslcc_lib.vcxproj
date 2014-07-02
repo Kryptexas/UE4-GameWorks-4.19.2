@@ -59,6 +59,7 @@
     <ClInclude Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\OptValueNumbering.h" />
     <ClInclude Include="..\..\..\src\hlslcc_lib\PackUniformBuffers.h" />
+    <ClInclude Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\hlslcc_lib\glsl\ir_gen_glsl.cpp" />
@@ -137,6 +138,7 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\Metal\MetalUtils.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\OptValueNumbering.cpp" />
     <ClCompile Include="..\..\..\src\hlslcc_lib\PackUniformBuffers.cpp" />
+    <ClCompile Include="..\..\..\src\hlslcc_lib\ShaderCompilerCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hlslcc_lib\mesa\glcpp-lex.l" />
@@ -232,6 +234,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -256,6 +259,7 @@
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MinimalRebuild>false</MinimalRebuild>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -281,6 +285,7 @@
       </OmitFramePointers>
       <DisableSpecificWarnings>4291;4996;4018;4244;4800;4065;4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -306,6 +311,7 @@
       <DisableSpecificWarnings>4291;4996;4018;4244;4800;4065;4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

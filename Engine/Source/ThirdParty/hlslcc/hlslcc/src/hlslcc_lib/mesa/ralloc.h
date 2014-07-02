@@ -53,17 +53,6 @@
 #ifndef RALLOC_H
 #define RALLOC_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// Standard boolean types.
-#ifndef __cplusplus
-typedef unsigned char bool;
-#define false 0
-#define true 1
-#endif
-
 /**
  * \def ralloc(ctx, type)
  * Allocate a new object chained off of the given context.
@@ -398,8 +387,5 @@ bool ralloc_asprintf_append (char **str, const char *fmt, ...);
 bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
 
-#ifdef __cplusplus
-} /* end of extern "C" */
-#endif
 
 #endif

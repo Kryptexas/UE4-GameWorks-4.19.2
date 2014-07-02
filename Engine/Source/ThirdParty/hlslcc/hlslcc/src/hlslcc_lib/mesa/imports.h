@@ -44,29 +44,6 @@
 
 #include "compiler.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* Base GL types */
-typedef unsigned int GLenum;
-typedef unsigned char GLboolean;
-typedef unsigned int GLbitfield;
-typedef signed char GLbyte;
-typedef short GLshort;
-typedef int GLint;
-typedef int GLsizei;
-typedef unsigned char GLubyte;
-typedef unsigned short GLushort;
-typedef unsigned int GLuint;
-typedef unsigned short GLhalf;
-typedef float GLfloat;
-typedef float GLclampf;
-typedef double GLdouble;
-typedef double GLclampd;
-typedef void GLvoid;
-
-
 /**********************************************************************/
 /** Memory macros */
 /*@{*/
@@ -103,7 +80,7 @@ typedef void GLvoid;
  * these casts generate warnings.
  * The following union typedef is used to solve that.
  */
-typedef union { GLfloat f; GLint i; } fi_type;
+typedef union { float f; int32_t i; } fi_type;
 
 
 
@@ -142,37 +119,7 @@ typedef union { GLfloat f; GLint i; } fi_type;
  * \name Work-arounds for platforms that lack C99 math functions
  */
 /*@{*/
-#if (!defined(_XOPEN_SOURCE) || (_XOPEN_SOURCE < 600)) && !defined(_ISOC99_SOURCE) \
-   && (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L)) \
-   && (!defined(_MSC_VER) || (_MSC_VER < 1400))
-#define acosf(f) ((float) acos(f))
-#define asinf(f) ((float) asin(f))
-#define atan2f(x,y) ((float) atan2(x,y))
-#define atanf(f) ((float) atan(f))
-#define cielf(f) ((float) ciel(f))
-#define cosf(f) ((float) cos(f))
-#define coshf(f) ((float) cosh(f))
-#define expf(f) ((float) exp(f))
-#define exp2f(f) ((float) exp2(f))
-#define floorf(f) ((float) floor(f))
-#define logf(f) ((float) log(f))
-
-#ifdef ANDROID
-#define log2f(f) (logf(f) * (float) (1.0 / M_LN2))
-#else
-#define log2f(f) ((float) log2(f))
-#endif
-
-#define powf(x,y) ((float) pow(x,y))
-#define sinf(f) ((float) sin(f))
-#define sinhf(f) ((float) sinh(f))
-#define sqrtf(f) ((float) sqrt(f))
-#define tanf(f) ((float) tan(f))
-#define tanhf(f) ((float) tanh(f))
-#define acoshf(f) ((float) acosh(f))
-#define asinhf(f) ((float) asinh(f))
-#define atanhf(f) ((float) atanh(f))
-#endif
+#include <math.h>
 
 #if defined(_MSC_VER)
 static inline float truncf(float x) { return x < 0.0f ? ceilf(x) : floorf(x); }
@@ -190,26 +137,14 @@ static inline int isblank(int ch) { return ch == ' ' || ch == '\t'; }
  *** LOG2: Log base 2 of float
  ***/
 #ifdef USE_IEEE
-#if 0
-/* This is pretty fast, but not accurate enough (only 2 fractional bits).
- * Based on code from http://www.stereopsis.com/log2.html
- */
-static inline GLfloat LOG2(GLfloat x)
-{
-   const GLfloat y = x * x * x * x;
-   const GLuint ix = *((GLuint *) &y);
-   const GLuint exp = (ix >> 23) & 0xFF;
-   const GLint log2 = ((GLint) exp) - 127;
-   return (GLfloat) log2 * (1.0 / 4.0);  /* 4, because of x^4 above */
-}
-#endif
+
 /* Pretty fast, and accurate.
  * Based on code from http://www.flipcode.com/totd/
  */
-static inline GLfloat LOG2(GLfloat val)
+static inline float LOG2(float val)
 {
    fi_type num;
-   GLint log_2;
+   int32_t log_2;
    num.f = val;
    log_2 = ((num.i >> 23) & 255) - 128;
    num.i &= ~(255 << 23);
@@ -222,7 +157,7 @@ static inline GLfloat LOG2(GLfloat val)
  * NOTE: log_base_2(x) = log(x) / log(2)
  * NOTE: 1.442695 = 1/log(2).
  */
-#define LOG2(x)  ((GLfloat) (log(x) * 1.442695F))
+#define LOG2(x)  ((float) (log(x) * 1.442695F))
 #endif
 
 
@@ -448,105 +383,6 @@ static inline int iceil(float f)
 #endif
 
 
-/**
- * Is x a power of two?
- */
-static inline int
-_mesa_is_pow_two(int x)
-{
-   return !(x & (x - 1));
-}
-
-/**
- * Round given integer to next higer power of two
- * If X is zero result is undefined.
- *
- * Source for the fallback implementation is
- * Sean Eron Anderson's webpage "Bit Twiddling Hacks"
- * http://graphics.stanford.edu/~seander/bithacks.html
- *
- * When using builtin function have to do some work
- * for case when passed values 1 to prevent hiting
- * undefined result from __builtin_clz. Undefined
- * results would be different depending on optimization
- * level used for build.
- */
-static inline int32_t
-_mesa_next_pow_two_32(uint32_t x)
-{
-#if defined(__GNUC__) && \
-	((__GNUC__ * 100 + __GNUC_MINOR__) >= 304) /* gcc 3.4 or later */
-	uint32_t y = (x != 1);
-	return (1 + y) << ((__builtin_clz(x - y) ^ 31) );
-#else
-	x--;
-	x |= x >> 1;
-	x |= x >> 2;
-	x |= x >> 4;
-	x |= x >> 8;
-	x |= x >> 16;
-	x++;
-	return x;
-#endif
-}
-
-static inline int64_t
-_mesa_next_pow_two_64(uint64_t x)
-{
-#if defined(__GNUC__) && \
-	((__GNUC__ * 100 + __GNUC_MINOR__) >= 304) /* gcc 3.4 or later */
-	uint64_t y = (x != 1);
-	if (sizeof(x) == sizeof(long))
-		return (1 + y) << ((__builtin_clzl(x - y) ^ 63));
-	else
-		return (1 + y) << ((__builtin_clzll(x - y) ^ 63));
-#else
-	x--;
-	x |= x >> 1;
-	x |= x >> 2;
-	x |= x >> 4;
-	x |= x >> 8;
-	x |= x >> 16;
-	x |= x >> 32;
-	x++;
-	return x;
-#endif
-}
-
-
-/*
- * Returns the floor form of binary logarithm for a 32-bit integer.
- */
-static inline GLuint
-_mesa_logbase2(GLuint n)
-{
-#if defined(__GNUC__) && \
-   ((__GNUC__ * 100 + __GNUC_MINOR__) >= 304) /* gcc 3.4 or later */
-   return (31 - __builtin_clz(n | 1));
-#else
-   GLuint pos = 0;
-   if (n >= 1<<16) { n >>= 16; pos += 16; }
-   if (n >= 1<< 8) { n >>=  8; pos +=  8; }
-   if (n >= 1<< 4) { n >>=  4; pos +=  4; }
-   if (n >= 1<< 2) { n >>=  2; pos +=  2; }
-   if (n >= 1<< 1) {           pos +=  1; }
-   return pos;
-#endif
-}
-
-
-/**
- * Return 1 if this is a little endian machine, 0 if big endian.
- */
-static inline GLboolean
-_mesa_little_endian(void)
-{
-   const GLuint ui = 1; /* intentionally not static */
-   return *((const GLubyte *) &ui);
-}
-
-
-
 /**********************************************************************
  * Functions
  */
@@ -563,12 +399,6 @@ _mesa_align_free( void *ptr );
 extern void *
 _mesa_align_realloc(void *oldBuffer, size_t oldSize, size_t newSize,
                     unsigned long alignment);
-
-extern void *
-_mesa_exec_malloc( GLuint size );
-
-extern void 
-_mesa_exec_free( void *addr );
 
 extern void *
 _mesa_realloc( void *oldBuffer, size_t oldSize, size_t newSize );
@@ -589,24 +419,6 @@ extern void
 _mesa_init_sqrt_table(void);
 
 
-#ifndef FFS_DEFINED
-#define FFS_DEFINED 1
-#ifdef __GNUC__
-
-#if defined(__MINGW32__) || defined(__CYGWIN__) || defined(ANDROID) || defined(__APPLE__)
-#define ffs __builtin_ffs
-#define ffsll __builtin_ffsll
-#endif
-
-#else
-
-extern int ffs(int i);
-extern int ffsll(long long int i);
-
-#endif /*__ GNUC__ */
-#endif /* FFS_DEFINED */
-
-
 #if defined(__GNUC__) && ((__GNUC__ * 100 + __GNUC_MINOR__) >= 304) /* gcc 3.4 or later */
 #define _mesa_bitcount(i) __builtin_popcount(i)
 #define _mesa_bitcount_64(i) __builtin_popcountll(i)
@@ -616,14 +428,6 @@ _mesa_bitcount(unsigned int n);
 extern unsigned int
 _mesa_bitcount_64(uint64_t n);
 #endif
-
-
-extern GLhalf
-_mesa_float_to_half(float f);
-
-extern float
-_mesa_half_to_float(GLhalf h);
-
 
 extern void *
 _mesa_bsearch( const void *key, const void *base, size_t nmemb, size_t size, 
@@ -651,11 +455,5 @@ _mesa_vsnprintf(char *str, size_t size, const char *fmt, va_list arg);
 #if defined(_MSC_VER) && !defined(snprintf)
 #define snprintf _snprintf
 #endif
-
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif /* IMPORTS_H */

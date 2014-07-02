@@ -47,11 +47,6 @@
 #include <stdarg.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 /**
  * Get standard integer types
  */
@@ -122,12 +117,5 @@ extern "C" {
 #ifndef Elements
 #define Elements(x) (sizeof(x)/sizeof(*(x)))
 #endif
-
-
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif /* COMPILER_H */

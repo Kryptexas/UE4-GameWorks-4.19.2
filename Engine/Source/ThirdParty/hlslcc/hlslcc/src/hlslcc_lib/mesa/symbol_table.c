@@ -200,7 +200,7 @@ void _mesa_symbol_table_pop_scope(struct _mesa_symbol_table *table)
 
 void _mesa_symbol_table_push_scope(struct _mesa_symbol_table *table)
 {
-	struct scope_level *const scope = calloc(1, sizeof(*scope));
+	struct scope_level *const scope = (scope_level *const)calloc(1, sizeof(*scope));
 
 	scope->next = table->current_scope;
 	table->current_scope = scope;
@@ -217,7 +217,7 @@ static struct symbol_header * find_symbol(struct _mesa_symbol_table *table, cons
 struct _mesa_symbol_table_iterator * _mesa_symbol_table_iterator_ctor(struct _mesa_symbol_table *table,
 	int name_space, const char *name)
 {
-	struct _mesa_symbol_table_iterator *iter = calloc(1, sizeof(*iter));
+	struct _mesa_symbol_table_iterator *iter = (_mesa_symbol_table_iterator *)calloc(1, sizeof(*iter));
 	struct symbol_header *const hdr = find_symbol(table, name);
 
 	iter->name_space = name_space;
@@ -355,7 +355,7 @@ int _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
 
 	if (hdr == NULL)
 	{
-		hdr = calloc(1, sizeof(*hdr));
+		hdr = (symbol_header*)calloc(1, sizeof(*hdr));
 		hdr->name = strdup(name);
 
 		hash_table_insert(table->ht, hdr, hdr->name);
@@ -380,7 +380,7 @@ int _mesa_symbol_table_add_symbol(struct _mesa_symbol_table *table,
 		return -1;
 	}
 
-	sym = calloc(1, sizeof(*sym));
+	sym = (symbol*)calloc(1, sizeof(*sym));
 	sym->next_with_same_name = hdr->symbols;
 	sym->next_with_same_scope = table->current_scope->symbols;
 	sym->hdr = hdr;
@@ -414,7 +414,7 @@ int _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
 
 	if (hdr == NULL)
 	{
-		hdr = calloc(1, sizeof(*hdr));
+		hdr = (symbol_header*)calloc(1, sizeof(*hdr));
 		hdr->name = strdup(name);
 
 		hash_table_insert(table->ht, hdr, hdr->name);
@@ -447,7 +447,7 @@ int _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
 		/* empty */
 	}
 
-	sym = calloc(1, sizeof(*sym));
+	sym = (symbol*)calloc(1, sizeof(*sym));
 	sym->next_with_same_scope = top_scope->symbols;
 	sym->hdr = hdr;
 	sym->name_space = name_space;
@@ -482,7 +482,7 @@ int _mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
 
 struct _mesa_symbol_table * _mesa_symbol_table_ctor(void)
 {
-	struct _mesa_symbol_table *table = calloc(1, sizeof(*table));
+	struct _mesa_symbol_table *table = (_mesa_symbol_table *)calloc(1, sizeof(*table));
 
 	if (table != NULL)
 	{

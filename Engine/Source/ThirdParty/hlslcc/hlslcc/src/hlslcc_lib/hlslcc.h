@@ -2,10 +2,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Compiler version.
  */
@@ -145,7 +141,3 @@ int HlslCrossCompile(
 	char** OutShaderSource,
 	char** OutErrorLog
 	);
-
-#ifdef __cplusplus
-}
-#endif

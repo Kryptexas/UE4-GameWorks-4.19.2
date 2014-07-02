@@ -44,12 +44,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <limits.h>
+#if __APPLE__
+#else
+#include <malloc.h>
+#endif
 
 struct string_to_uint_map;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 struct hash_table;
 
@@ -198,9 +199,6 @@ void
 string_to_uint_map_dtor(struct string_to_uint_map *);
 
 
-#ifdef __cplusplus
-}
-
 /**
  * Map from a string (name) to an unsigned integer value
  *
@@ -274,14 +272,13 @@ public:
 private:
    static void delete_key(const void *key, void *data, void *closure)
    {
-      (void) data;
-      (void) closure;
+	   (void)data;
+	   (void)closure;
 
-      free((char *)key);
+	   free((char *)key);
    }
 
    struct hash_table *ht;
 };
 
-#endif /* __cplusplus */
 #endif /* HASH_TABLE_H */
