@@ -465,6 +465,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
 			bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
 			bool bInjectedTranslucentVolume = false;
+			bool bUsedLightAttenuation = false;
 			FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
 
 			FString LightNameWithLevel;
@@ -485,6 +486,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
 				// Render non-modulated projected shadows to the attenuation buffer.
 				RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
+				
+				bUsedLightAttenuation = true;
 			}
 
 			// Render any reflective shadow maps (if necessary)
@@ -501,13 +504,13 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			if (bDirectLighting)
 			{
 				const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
+				bUsedLightAttenuation |= bLightFunctionRendered;
 
 				if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
 					&& !LightSceneInfo.bPrecomputedLightingIsValid 
 					&& LightSceneInfo.Proxy->HasStaticShadowing())
 				{
-					const bool bLightAttenuationCleared = bDrawShadows || bLightFunctionRendered;
-					RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bLightAttenuationCleared);
+					RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
 				}
 
 				if (!bDrawShadows)
@@ -515,9 +518,12 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 					INC_DWORD_STAT(STAT_NumLightFunctionOnlyLights);
 				}
 			}
-				
-			// Resolve light attenuation buffer
-			GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
+			
+			if( bUsedLightAttenuation )
+			{
+				// Resolve light attenuation buffer
+				GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
+			}
 			
 			if(bDirectLighting && !bInjectedTranslucentVolume)
 			{
@@ -526,7 +532,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
 			}
 
-			GSceneRenderTargets.SetLightAttenuationMode(true);
+			GSceneRenderTargets.SetLightAttenuationMode(bUsedLightAttenuation);
 			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
 
 			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
