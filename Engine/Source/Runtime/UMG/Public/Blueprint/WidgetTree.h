@@ -11,14 +11,6 @@ class UMG_API UWidgetTree : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** The root widget of the tree */
-	UPROPERTY()
-	UWidget* RootWidget;
-
-	UPROPERTY()
-	TArray< UWidget* > AllWidgets;
-
-public:
 
 	UWidget* FindWidget(const FString& Name) const;
 
@@ -53,4 +45,14 @@ public:
 
 		Super::PreSave();
 	}
+
+public:
+	/** The root widget of the tree */
+	UPROPERTY()
+	UWidget* RootWidget;
+
+protected:
+
+	UPROPERTY()
+	TArray< UWidget* > AllWidgets;
 };

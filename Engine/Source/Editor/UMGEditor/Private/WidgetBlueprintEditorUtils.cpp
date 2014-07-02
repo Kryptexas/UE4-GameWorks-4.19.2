@@ -273,15 +273,23 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 {
 	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 
-	UPanelWidget* ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
-
+	UPanelWidget* ParentWidget = NULL;
+	
+	if ( ParentWidgetRef.IsValid() )
+	{
+		ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
+	}
+	
 	// TODO UMG Find paste parent, may not be the selected widget...  Maybe it should be the parent of the copied widget until,
 	// we do a paste here, from a right click menu.
 
 	if ( !ParentWidget )
 	{
-		// TODO UMG allow pasting into the root slot?
-		return;
+		// If we already have a root widget, then we can't replace the root.
+		if ( BP->WidgetTree->RootWidget )
+		{
+			return;
+		}
 	}
 
 	// Grab the text to paste from the clipboard.
@@ -292,23 +300,51 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 	TSet<UWidget*> PastedWidgets;
 	FWidgetBlueprintEditorUtils::ImportWidgetsFromText(BP, TextToImport, /*out*/ PastedWidgets);
 
-	if ( !ParentWidget->CanHaveMultipleChildren() )
+	// Ignore an empty set of widget paste data.
+	if ( PastedWidgets.Num() == 0 )
 	{
-		if ( ParentWidget->GetChildrenCount() > 0 || PastedWidgets.Num() > 1 )
-		{
-			// We can't paste the widgets into this container, there isn't enough room.
-			return;
-		}
+		return;
 	}
 
-	ParentWidget->Modify();
-
+	TArray<UWidget*> RootPasteWidgets;
 	for ( UWidget* NewWidget : PastedWidgets )
 	{
 		// Widgets with a null parent mean that they were the root most widget of their selection set when
 		// they were copied and thus we need to paste only the root most widgets.  All their children will be added
 		// automatically.
 		if ( NewWidget->GetParent() == NULL )
+		{
+			RootPasteWidgets.Add(NewWidget);
+		}
+
+		NewWidget->SetFlags(RF_Transactional);
+	}
+
+	// If there isn't a root widget and we're copying multiple root widgets, then we need to add a container root
+	// to hold the pasted data since multiple root widgets isn't permitted.
+	if ( !ParentWidget && RootPasteWidgets.Num() > 1 )
+	{
+		ParentWidget = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+		BP->WidgetTree->Modify();
+		BP->WidgetTree->RootWidget = ParentWidget;
+	}
+
+	if ( ParentWidget )
+	{
+		if ( !ParentWidget->CanHaveMultipleChildren() )
+		{
+			if ( ParentWidget->GetChildrenCount() > 0 || RootPasteWidgets.Num() > 1 )
+			{
+				UCanvasPanel* PasteContainer = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+				//TODO UMG The new container could be tiny, unless filling the space.
+				UPanelSlot* Slot = ParentWidget->AddChild(PasteContainer);
+				ParentWidget = PasteContainer;
+			}
+		}
+
+		ParentWidget->Modify();
+
+		for ( UWidget* NewWidget : RootPasteWidgets )
 		{
 			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
 			if ( Slot )
@@ -318,11 +354,23 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 			//TODO UMG - The paste location needs to be relative from the most upper left hand corner of other widgets in their container.
 		}
 
-		NewWidget->SetFlags( RF_Transactional );
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 	}
+	else
+	{
+		check(RootPasteWidgets.Num() == 1)
+		// If we've arrived here, we must be creating the root widget from paste data, and there can only be
+		// one item in the paste data by now.
+		BP->WidgetTree->Modify();
 
-	//TODO UMG Reorder the live slot without rebuilding the structure
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		for ( UWidget* NewWidget : RootPasteWidgets )
+		{
+			BP->WidgetTree->RootWidget = NewWidget;
+			break;
+		}
+		
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	}
 }
 
 void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, const FString& TextToImport, /*out*/ TSet<UWidget*>& ImportedWidgetSet)

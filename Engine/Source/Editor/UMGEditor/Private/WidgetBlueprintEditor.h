@@ -44,6 +44,9 @@ public:
 	/** Sets the currently selected set of widgets */
 	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
 
+	/** Removes removed widgets from the selection set. */
+	void CleanSelection();
+
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
 

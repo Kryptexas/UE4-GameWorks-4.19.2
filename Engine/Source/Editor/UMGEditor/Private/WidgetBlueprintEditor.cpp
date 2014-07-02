@@ -28,11 +28,41 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 
 void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
 {
-	SelectedWidgets = Widgets;
+	SelectedWidgets.Empty();
+
+	for ( const FWidgetReference& Widget : Widgets )
+	{
+		if ( Widget.IsValid() )
+		{
+			SelectedWidgets.Add(Widget);
+		}
+	}
 
 	RefreshDetails();
 
 	OnSelectedWidgetsChanged.Broadcast();
+}
+
+void FWidgetBlueprintEditor::CleanSelection()
+{
+	TSet<FWidgetReference> TempSelection;
+
+	TArray<UWidget*> WidgetsInTree;
+	GetWidgetBlueprintObj()->WidgetTree->GetAllWidgets(WidgetsInTree);
+	TSet<UWidget*> TreeWidgetSet(WidgetsInTree);
+
+	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		if ( TreeWidgetSet.Contains(WidgetRef.GetTemplate()) )
+		{
+			SelectedWidgets.Add(WidgetRef);
+		}
+	}
+
+	if ( TempSelection.Num() != SelectedWidgets.Num() )
+	{
+		SelectWidgets(TempSelection);
+	}
 }
 
 const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
@@ -66,6 +96,8 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
+		CleanSelection();
+
 		UpdatePreview(InBlueprint, true);
 
 		RefreshDetails();
@@ -121,6 +153,10 @@ void FWidgetBlueprintEditor::DeleteSelectedWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetBlueprintEditorUtils::DeleteWidgets(GetWidgetBlueprintObj(), Widgets);
+
+	// Clear the selection now that the widget has been deleted.
+	TSet<FWidgetReference> Empty;
+	SelectWidgets(Empty);
 }
 
 bool FWidgetBlueprintEditor::CanCopySelectedWidgets()
@@ -144,6 +180,13 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != NULL;
 		return bIsPanel;
 	}
+	else if ( Widgets.Num() == 0 )
+	{
+		if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == NULL )
+		{
+			return true;
+		}
+	}
 
 	return false;
 }
@@ -151,9 +194,11 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 void FWidgetBlueprintEditor::PasteWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
-	FWidgetReference Target = *Widgets.CreateIterator();
+	FWidgetReference Target = Widgets.Num() > 0 ? *Widgets.CreateIterator() : FWidgetReference();
 
 	FWidgetBlueprintEditorUtils::PasteWidgets(GetWidgetBlueprintObj(), Target, PasteDropLocation);
+
+	//TODO UMG - Select the newly selected pasted widgets.
 }
 
 void FWidgetBlueprintEditor::Tick(float DeltaTime)
