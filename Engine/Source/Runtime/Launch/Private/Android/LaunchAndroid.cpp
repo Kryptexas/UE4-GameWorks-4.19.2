@@ -383,8 +383,6 @@ static void AndroidProcessEvents(struct android_app* state)
 	while((ident = ALooper_pollAll(-1, &fdesc, &events, (void**)&source)) >= 0)
 	// while((ident = ALooper_pollAll(0, &fdesc, &events, (void**)&source)) >= 0)
 	{
-		FPlatformMisc::LowLevelOutputDebugString(L"AndroidProcessEvents");
-
 		// process this event
 		if (source)
 		{
