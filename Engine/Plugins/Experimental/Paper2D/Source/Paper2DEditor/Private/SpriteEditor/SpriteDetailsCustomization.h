@@ -21,9 +21,9 @@ protected:
 	EVisibility PhysicsModeMatches(TSharedPtr<IPropertyHandle> Property, ESpriteCollisionMode::Type DesiredMode) const;
 	EVisibility AnyPhysicsMode(TSharedPtr<IPropertyHandle> Property) const;
 	EVisibility GetCustomPivotVisibility(TSharedPtr<IPropertyHandle> Property) const;
+	EVisibility Get2DPhysicsNotEnabledWarningVisibility(TSharedPtr<IPropertyHandle> Property) const;
 
 	static EVisibility GetAtlasGroupVisibility();
-	static EVisibility Get2DPhysicsNotEnabledWarningVisibility();
 
 	static FDetailWidgetRow& GenerateWarningRow(IDetailCategoryBuilder& WarningCategory, bool bExperimental, const FText& WarningText, const FText& Tooltip, const FString& ExcerptLink, const FString& ExcerptName);
 
