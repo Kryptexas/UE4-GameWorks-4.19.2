@@ -51,6 +51,12 @@ UClass* UWidgetBlueprint::GetBlueprintClass() const
 }
 
 
+bool UWidgetBlueprint::AllowsDynamicBinding() const
+{
+	return true;
+}
+
+
 bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	bool Result = Super::ValidateGeneratedClass(InClass);
@@ -66,15 +72,39 @@ bool UWidgetBlueprint::ValidateGeneratedClass(const UClass* InClass)
 		return false;
 	}
 
-	//if ( !ensure(Blueprint->WidgetTree && ( Blueprint->WidgetTree->GetOuter() == GeneratedClass )) )
-	//{
-	//	return false;
-	//}
+	if ( !ensure(Blueprint->WidgetTree && ( Blueprint->WidgetTree->GetOuter() == Blueprint )) )
+	{
+		return false;
+	}
+	else
+	{
+		TArray < UWidget* > AllWidgets;
+		Blueprint->WidgetTree->GetAllWidgets(AllWidgets);
+		for ( UWidget* Widget : AllWidgets )
+		{
+			if ( !ensure(Widget->GetOuter() == Blueprint->WidgetTree) )
+			{
+				return false;
+			}
+		}
+	}
 
-	//if ( !ensure(GeneratedClass->WidgetTree && ( GeneratedClass->WidgetTree->GetOuter() == GeneratedClass )) )
-	//{
-	//	return false;
-	//}
+	if ( !ensure(GeneratedClass->WidgetTree && ( GeneratedClass->WidgetTree->GetOuter() == GeneratedClass )) )
+	{
+		return false;
+	}
+	else
+	{
+		TArray < UWidget* > AllWidgets;
+		GeneratedClass->WidgetTree->GetAllWidgets(AllWidgets);
+		for ( UWidget* Widget : AllWidgets )
+		{
+			if ( !ensure(Widget->GetOuter() == GeneratedClass->WidgetTree) )
+			{
+				return false;
+			}
+		}
+	}
 
 	return Result;
 }

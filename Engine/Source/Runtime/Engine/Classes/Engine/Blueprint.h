@@ -498,6 +498,9 @@ public:
 	/** @return the user-friendly name of the blueprint */
 	virtual FString GetFriendlyName() const;
 
+	/** @return true if the blueprint supports event binding for multicast delegates */
+	virtual bool AllowsDynamicBinding() const;
+
 	bool ChangeOwnerOfTemplates();
 
 #endif	//#if WITH_EDITOR

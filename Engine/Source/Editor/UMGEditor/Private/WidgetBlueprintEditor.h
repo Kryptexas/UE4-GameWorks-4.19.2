@@ -103,7 +103,7 @@ private:
 	TSharedPtr<ISequencer> Sequencer;
 
 	/** The Blueprint associated with the current preview */
-	UBlueprint* PreviewBlueprint;
+	UWidgetBlueprint* PreviewBlueprint;
 
 	/** Default movie scene for new animations */
 	UMovieScene* DefaultMovieScene;

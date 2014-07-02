@@ -23,7 +23,10 @@ void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
 
 void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-	return WidgetObject->Tick(AllottedGeometry, InDeltaTime);
+	if ( WidgetObject )
+	{
+		return WidgetObject->Tick(AllottedGeometry, InDeltaTime);
+	}
 }
 
 //bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition)

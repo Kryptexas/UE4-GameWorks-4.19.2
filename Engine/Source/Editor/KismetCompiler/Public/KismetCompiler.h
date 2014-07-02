@@ -155,6 +155,31 @@ protected:
 	 */
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO);
 
+	struct KISMETCOMPILER_API FSubobjectCollection
+	{
+	private:
+		TSet<const UObject*> Collection;
+
+	public:
+		void AddObject(const UObject* const InObject);
+
+		template<typename TOBJ>
+		void AddObjects(const TArray<TOBJ*>& InObjects)
+		{
+			for ( const auto ObjPtr : InObjects )
+			{
+				AddObject(ObjPtr);
+			}
+		}
+
+		bool operator()(const UObject* const RemovalCandidate) const;
+	};
+
+	/**
+	 * Saves any SubObjects on the blueprint that need to survive the clean 
+	 */
+	virtual void SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO);
+
 	/** 
 	 * Checks a connection response, and errors if it didn't succeed (not public, 
 	 * users should be using MovePinLinksToIntermediate/CopyPinLinksToIntermediate 

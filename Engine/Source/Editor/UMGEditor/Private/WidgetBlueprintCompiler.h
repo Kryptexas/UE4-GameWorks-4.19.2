@@ -30,6 +30,7 @@ protected:
 	virtual void MergeUbergraphPagesIn(UEdGraph* Ubergraph) override;
 	virtual void SpawnNewClass(const FString& NewClassName) override;
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;
+	virtual void SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO) override;
 	virtual void EnsureProperGeneratedClass(UClass*& TargetClass) override;
 	virtual void CreateClassVariablesFromBlueprint() override;
 	virtual void FinishCompilingClass(UClass* Class) override;

@@ -137,7 +137,7 @@ static void AddSpawnActorNodeAction(FGraphActionListBuilderBase& ContextMenuBuil
 static void AddGetDataTableRowNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& FunctionCategory)
 {
 	FString const GetDataTableRowCategory = FunctionCategory + K2ActionCategories::SubCategoryDelim + K2ActionCategories::UtilitiesCategory;
-    
+	
 	// Add the new GetDataTableRow node
 	{
 		UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_GetDataTableRow>();
@@ -835,8 +835,8 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 				GetInputNodes(ContextMenuBuilder, true);
 			}
 		}
-        
-        AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+		
+		AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
 
 		// Add struct make/break nodes
 		GetStructActions( ContextMenuBuilder );
@@ -904,13 +904,17 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			GetFunctionCallsOnSelectedActors(ContextMenuBuilder);
 		}
 		// Non level script
-		else if (FBlueprintEditorUtils::IsActorBased(Blueprint))
+		else
 		{
-			GetAddComponentActionsUsingSelectedAssets(ContextMenuBuilder);
-			GetAddComponentClasses(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
+			if ( FBlueprintEditorUtils::IsActorBased(Blueprint) )
+			{
+				GetAddComponentActionsUsingSelectedAssets(ContextMenuBuilder);
+				GetAddComponentClasses(ContextMenuBuilder.Blueprint, ContextMenuBuilder);
+			}
+
 			GetFunctionCallsOnSelectedComponents(ContextMenuBuilder);
 
-			if(bAllowEvents)
+			if ( bAllowEvents && Blueprint->AllowsDynamicBinding() )
 			{
 				GetBoundEventsFromComponentSelection(ContextMenuBuilder);			
 			}
@@ -1138,8 +1142,8 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 					GetInputNodes(ContextMenuBuilder, bIncludeEvents);
 				}
 			}
-            
-            AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
+			
+			AddGetDataTableRowNodeAction(ContextMenuBuilder, K2ActionCategories::GenericFunctionCategory);
 
 			// for output pins, add macro flow control as a connection option
 			if ( FromPin.Direction == EGPD_Output )
@@ -2348,8 +2352,7 @@ void FK2ActionMenuBuilder::GetBoundEventsFromComponentSelection(FBlueprintGraphA
 	{
 		UObjectProperty* CompProperty = Cast<UObjectProperty>(ContextMenuBuilder.SelectedObjects[SelectIdx]);
 		if(	CompProperty != NULL && 
-			CompProperty->PropertyClass != NULL &&
-			CompProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()) )
+			CompProperty->PropertyClass != NULL )
 		{
 			const FString PropertyName = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames ? UEditorEngine::GetFriendlyName(CompProperty) : CompProperty->GetName();
 			const FString CurrentCategory = K2ActionCategories::AddEventForPrefix + PropertyName;
@@ -2369,8 +2372,7 @@ void FK2ActionMenuBuilder::GetFunctionCallsOnSelectedComponents(FBlueprintGraphA
 	{
 		UObjectProperty* CompProperty = Cast<UObjectProperty>(ContextMenuBuilder.SelectedObjects[SelectIdx]);
 		if(	CompProperty != NULL && 
-			CompProperty->PropertyClass != NULL &&
-			CompProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()) )
+			CompProperty->PropertyClass != NULL )
 		{
 			SelectedCompProperty = CompProperty;
 			break;

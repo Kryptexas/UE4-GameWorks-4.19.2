@@ -15,6 +15,9 @@ public:
 	UPROPERTY()
 	UWidget* RootWidget;
 
+	UPROPERTY()
+	TArray< UWidget* > AllWidgets;
+
 public:
 
 	UWidget* FindWidget(const FString& Name) const;
@@ -40,5 +43,14 @@ public:
 		Widget->SetFlags(RF_Transactional);
 
 		return (T*)Widget;
+	}
+
+	virtual void PreSave() override
+	{
+		AllWidgets.Empty();
+
+		GetAllWidgets(AllWidgets);
+
+		Super::PreSave();
 	}
 };

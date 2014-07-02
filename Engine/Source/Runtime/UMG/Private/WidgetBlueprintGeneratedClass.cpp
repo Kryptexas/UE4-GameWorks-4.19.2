@@ -16,14 +16,14 @@ void UWidgetBlueprintGeneratedClass::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	// Create a widget tree if one doesn't already exist.
-	if ( WidgetTree == NULL )
-	{
-		WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
-	}
+	//// Create a widget tree if one doesn't already exist.
+	//if ( WidgetTree == NULL )
+	//{
+	//	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
+	//}
 
-	//WidgetTree->SetFlags(RF_DefaultSubObject);
-	WidgetTree->SetFlags(RF_Transactional);
+	////WidgetTree->SetFlags(RF_DefaultSubObject);
+	//WidgetTree->SetFlags(RF_Transactional);
 }
 
 void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
@@ -49,67 +49,73 @@ void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
+	//check(ClonedTree);
 
-	UserWidget->WidgetTree = ClonedTree;
-
-	UClass* ActorClass = UserWidget->GetClass();
-
-	TArray<UWidget*> ClonedWidgets;
-	ClonedTree->GetAllWidgets(ClonedWidgets);
-
-	for ( UWidget* Widget : ClonedWidgets )
+	if ( ClonedTree )
 	{
-		// Not fatal if NULL, but shouldn't happen
-		if ( !ensure(Widget != NULL) )
+		ClonedTree->SetFlags(RF_Transactional);
+
+		UserWidget->WidgetTree = ClonedTree;
+
+		UClass* WidgetBlueprintClass = UserWidget->GetClass();
+
+		TArray<UWidget*> ClonedWidgets;
+		ClonedTree->GetAllWidgets(ClonedWidgets);
+
+		for ( UWidget* Widget : ClonedWidgets )
 		{
-			continue;
-		}
-
-		//FName NewName = *( FString::Printf(TEXT("WidgetComponent__%d"), UserWidget->Components.Num()) );
-
-		FString VariableName = Widget->GetName();
-
-		Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		UserWidget->Components.Add(Widget); // Add to array so it gets saved
-//		Widget->SetNetAddressable();	// This component has a stable name that can be referenced for replication
-
-		// Find property with the same name as the template and assign the new Timeline to it
-		UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(ActorClass, *VariableName);
-		if ( Prop )
-		{
-			Prop->SetObjectPropertyValue_InContainer(UserWidget, Widget);
-		}
-
-		// Perform binding
-		for ( const FDelegateRuntimeBinding& Binding : Bindings )
-		{
-			//TODO UMG Terrible performance, improve with Maps.
-			if ( Binding.ObjectName == VariableName )
+			// Not fatal if NULL, but shouldn't happen
+			if ( !ensure(Widget != NULL) )
 			{
-				UFunction* BoundFunction = UserWidget->FindFunction(Binding.FunctionName);
+				continue;
+			}
 
-				FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
+			FString VariableName = Widget->GetName();
 
-				for ( TFieldIterator<UProperty> It(Widget->GetClass()); It; ++It )
+			Widget->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+			UserWidget->Components.Add(Widget); // Add to array so it gets saved
+
+			// Find property with the same name as the template and assign the new widget to it.
+			UObjectPropertyBase* Prop = FindField<UObjectPropertyBase>(WidgetBlueprintClass, *VariableName);
+			if ( Prop )
+			{
+				Prop->SetObjectPropertyValue_InContainer(UserWidget, Widget);
+			}
+
+			// Perform binding
+			for ( const FDelegateRuntimeBinding& Binding : Bindings )
+			{
+				//TODO UMG Terrible performance, improve with Maps.
+				if ( Binding.ObjectName == VariableName )
 				{
-					if ( UDelegateProperty* DelegateProp = Cast<UDelegateProperty>(*It) )
+					UFunction* BoundFunction = UserWidget->FindFunction(Binding.FunctionName);
+
+					FString DelegateName = Binding.PropertyName.ToString() + "Delegate";
+
+					for ( TFieldIterator<UProperty> It(Widget->GetClass()); It; ++It )
 					{
-						if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
+						if ( UDelegateProperty* DelegateProp = Cast<UDelegateProperty>(*It) )
 						{
-							FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
-							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
-							break;
+							if ( DelegateProp->GetName() == DelegateName || DelegateProp->GetFName() == Binding.PropertyName )
+							{
+								FScriptDelegate* ScriptDelegate = DelegateProp->GetPropertyValuePtr_InContainer(Widget);
+								ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+								break;
+							}
 						}
 					}
 				}
 			}
+
+	#if WITH_EDITOR
+			Widget->ConnectEditorData();
+	#endif
 		}
 
-//		Widget->RegisterComponent();
+		// Bind any delegates on widgets
+		BindDynamicDelegates(UserWidget);
 
-#if WITH_EDITOR
-		Widget->ConnectEditorData();
-#endif
+		//TODO Add OnWidgetInitialized
 	}
 }
 

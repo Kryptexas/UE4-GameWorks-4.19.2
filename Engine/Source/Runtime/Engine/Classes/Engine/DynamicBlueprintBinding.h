@@ -9,5 +9,5 @@ class ENGINE_API UDynamicBlueprintBinding : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void BindDynamicDelegates(AActor* InInstance) const { }
+	virtual void BindDynamicDelegates(UObject* InInstance) const { }
 };

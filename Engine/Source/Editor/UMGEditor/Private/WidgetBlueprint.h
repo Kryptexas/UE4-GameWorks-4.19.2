@@ -64,6 +64,8 @@ public:
 	// UBlueprint interface
 	virtual UClass* GetBlueprintClass() const override;
 
+	virtual bool AllowsDynamicBinding() const override;
+
 	virtual bool SupportedByDefaultBlueprintFactory() const override
 	{
 		return false;

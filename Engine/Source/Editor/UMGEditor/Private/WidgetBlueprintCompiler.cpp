@@ -578,9 +578,9 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	check(ClassToClean == NewClass);
 	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
 
-	// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
-	TArray<UObject*> ClassSubObjects;
-	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
+	//// Purge all subobjects (properties, functions, params) of the class, as they will be regenerated
+	//TArray<UObject*> ClassSubObjects;
+	//GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
 
 	//UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
@@ -588,6 +588,19 @@ void FWidgetBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	//{
 	//	ClassSubObjects.RemoveAllSwap(FCullTemplateObjectsHelper<UWidget>(Blueprint->WidgetTree->WidgetTemplates));
 	//}
+}
+
+void FWidgetBlueprintCompiler::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+{
+	// Make sure our typed pointer is set
+	check(ClassToClean == NewClass);
+	NewWidgetBlueprintClass = CastChecked<UWidgetBlueprintGeneratedClass>((UObject*)NewClass);
+
+	UWidgetBlueprint* Blueprint = WidgetBlueprint();
+
+	SubObjectsToSave.AddObject(Blueprint->WidgetTree);
+
+	SubObjectsToSave.AddObject( NewWidgetBlueprintClass->WidgetTree );
 }
 
 void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
@@ -629,14 +642,19 @@ void FWidgetBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	UWidgetBlueprint* Blueprint = WidgetBlueprint();
 
 	UWidgetBlueprintGeneratedClass* BPGClass = CastChecked<UWidgetBlueprintGeneratedClass>(Class);
-	BPGClass->WidgetTree = NULL;
 
-	// @todo UMG Possibly need duplication here 
-	BPGClass->WidgetTree = Blueprint->WidgetTree;
-	BPGClass->AnimationData = Blueprint->AnimationData;
+	BPGClass->WidgetTree = DuplicateObject<UWidgetTree>(Blueprint->WidgetTree, BPGClass);
+
+	BPGClass->AnimationData.Reset();
+	for ( UMovieScene* Sequence : Blueprint->AnimationData )
+	{
+		UMovieScene* ClonedSequence = DuplicateObject<UMovieScene>(Sequence, BPGClass);
+		BPGClass->AnimationData.Add( ClonedSequence );
+	}
 
 	BPGClass->Bindings.Reset();
 
+	// @todo UMG Possibly need duplication here 
 	for ( const FDelegateEditorBinding& EditorBinding : Blueprint->Bindings )
 	{
 		BPGClass->Bindings.Add(EditorBinding.ToRuntimeBinding(Blueprint));

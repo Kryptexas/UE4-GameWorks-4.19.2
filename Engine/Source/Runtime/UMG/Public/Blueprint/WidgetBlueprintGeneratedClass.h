@@ -27,6 +27,12 @@ struct FDelegateRuntimeBinding
 
 class UMovieScene;
 
+/**
+ * The widget blueprint generated class allows us to create blueprintable widgets for UMG at runtime.
+ * All WBPGC's are of UUserWidget classes, and they perform special post initialization using this class
+ * to give themselves many of the same capabiltities as AActor blueprints, like dynamic delegate binding for
+ * widgets.
+ */
 UCLASS()
 class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 {
@@ -49,5 +55,10 @@ class UMG_API UWidgetBlueprintGeneratedClass : public UBlueprintGeneratedClass
 
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 
-	void InitializeWidget(class UUserWidget* Actor) const;
+	/**
+	 * This is the function that makes UMG work.  Once a user widget is constructed, it will post load
+	 * call into its generated class and ask to be initialized.  The class will perform all the delegate
+	 * binding and wiring nessesary to have the user's widget perform as desired.
+	 */
+	void InitializeWidget(class UUserWidget* UserWidget) const;
 };

@@ -219,8 +219,7 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(UCla
 	return DynamicBindingObject;
 }
 
-
-void UBlueprintGeneratedClass::BindDynamicDelegates(AActor* InInstance)
+void UBlueprintGeneratedClass::BindDynamicDelegates(UObject* InInstance) const
 {
 	if(!InInstance->IsA(this))
 	{
@@ -232,8 +231,8 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(AActor* InInstance)
 	{
 		if ( ensure(DynamicBindingObjects[Index] != NULL) )
 		{
-		DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
-	}
+			DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
+		}
 	}
 
 	// call on super class, if it's a BlueprintGeneratedClass
@@ -262,7 +261,7 @@ bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClas
 
 UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FName& TemplateName)
 {
-	for(int32 i=0; i<ComponentTemplates.Num(); i++)
+	for(int32 i = 0; i < ComponentTemplates.Num(); i++)
 	{
 		UActorComponent* Template = ComponentTemplates[i];
 		if(Template != NULL && Template->GetFName() == TemplateName)
