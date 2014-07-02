@@ -7,7 +7,7 @@
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
-
+#include "Kismet2/KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "EnvironmentQuerySchema"
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -175,7 +175,8 @@ static void GatherEQSGenerators(TArray<UClass*>& Classes)
 		{
 			UClass* TestClass = *It;
 			if (TestClass->HasAnyClassFlags(CLASS_Abstract) ||
-				!TestClass->HasAnyClassFlags(CLASS_Native) ||
+				// ignore temporary BP classes
+				(!TestClass->HasAnyClassFlags(CLASS_Native) && (FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass) || TestClass->HasAnyClassFlags(CLASS_NewerVersionExists))) || 
 				!TestClass->IsChildOf(UEnvQueryGenerator::StaticClass()) ||
 				TestClass == UEnvQueryGenerator_Composite::StaticClass())
 			{
