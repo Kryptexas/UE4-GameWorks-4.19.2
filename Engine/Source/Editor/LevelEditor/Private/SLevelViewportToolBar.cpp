@@ -790,7 +790,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 	// Camera types
 	CameraMenuBuilder.AddMenuEntry( FEditorViewportCommands::Get().Perspective );
 
-	CameraMenuBuilder.BeginSection("LevelViewportCameraType_Ortho", LOCTEXT("CameraTypeHeader_Ortho", "Othographic") );
+	CameraMenuBuilder.BeginSection("LevelViewportCameraType_Ortho", LOCTEXT("CameraTypeHeader_Ortho", "Orthographic") );
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Top);
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Side);
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Front);
