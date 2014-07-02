@@ -2060,7 +2060,8 @@ namespace AutomationTool
                         if (JustDir.StartsWith(StartString, StringComparison.InvariantCultureIgnoreCase) && (String.IsNullOrEmpty(EndString) || JustDir.EndsWith(EndString, StringComparison.InvariantCultureIgnoreCase)))
                         {
                             string CLPart = JustDir.Substring(StartString.Length, JustDir.Length - StartString.Length - EndString.Length);
-                            if (!CLPart.Contains("-") && !CLPart.Contains("+"))
+                            if (CLPart.Contains("-PF-") || // always delete preflights
+                                (!CLPart.Contains("-") && !CLPart.Contains("+"))) // never delete anything else that is weird, this is probably another branch
                             {
                                 DirectoryInfo ThisDirInfo = new DirectoryInfo(TopLevelDir.FullName);
                                 bool bOld = false;

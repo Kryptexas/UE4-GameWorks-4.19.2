@@ -2615,7 +2615,12 @@ public class GUBP : BuildCommand
         {
             string BaseDir = ResolveSharedBuildDirectory(InGameProj.GameName);
             string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
-            string ArchiveDirectory = CombinePaths(BaseDir, NodeName, P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString);
+            string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString;
+            if (GUBP.bPreflightBuild)
+            {
+                Inner = Inner + PreflightMangleSuffix;
+            }
+            string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
             return ArchiveDirectory;
         }
         public override void DoBuild(GUBP bp)
