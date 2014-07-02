@@ -41,13 +41,6 @@ static TAutoConsoleVariable<int32> CVarTriangleOrderOptimization(
 	TEXT("1: Use Forsyth algorithm (fastest)(default)"),
 	ECVF_ReadOnly);
 
-static TAutoConsoleVariable<int32> CVarAllowMeshDistanceFieldRepresentations (
-	TEXT("r.AllowMeshDistanceFieldRepresentations"),
-	0,
-	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
-	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
-	ECVF_ReadOnly);
-
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 
@@ -266,8 +259,10 @@ static void GenerateSignedDistanceFieldVolumeData(
 	const FBoxSphereBounds& Bounds,
 	float DistanceFieldResolutionScale)
 {
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowMeshDistanceFieldRepresentations"));
+
 	if (DistanceFieldResolutionScale > 0 
-		&& CVarAllowMeshDistanceFieldRepresentations.GetValueOnGameThread() != 0)
+		&& CVar->GetValueOnGameThread() != 0)
 	{
 		const FPositionVertexBuffer& PositionVertexBuffer = LODModel.PositionVertexBuffer;
 		FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();

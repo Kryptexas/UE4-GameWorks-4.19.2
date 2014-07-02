@@ -1575,6 +1575,13 @@ static TAutoConsoleVariable<int32> CVarAllowStaticLighting(
 	TEXT("Games that only use dynamic lighting should set this to 0 to save some static lighting overhead."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarDistField(
+	TEXT("r.AllowMeshDistanceFieldRepresentations"),
+	0,	
+	TEXT("Whether to build distance fields of static meshes, needed for distance field AO, which is used to implement Movable SkyLight shadows.\n")
+	TEXT("Enabling will increase mesh build times and memory usage.  Changing this value will cause a rebuild of all static meshes."),
+	ECVF_ReadOnly);
+
 static TAutoConsoleVariable<int32> CVarMinLogVerbosity(
 	TEXT("con.MinLogVerbosity"),
 	0,
