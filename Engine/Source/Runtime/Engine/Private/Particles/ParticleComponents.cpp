@@ -3969,11 +3969,14 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 			{
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
-				if (EmitterMaterials.IsValidIndex(EmitterIndex))
+				if (!Instance->Tick_MaterialOverrides())
 				{
-					if (EmitterMaterials[EmitterIndex])
+					if (EmitterMaterials.IsValidIndex(EmitterIndex))
 					{
-						Instance->CurrentMaterial = EmitterMaterials[EmitterIndex];
+						if (EmitterMaterials[EmitterIndex])
+						{
+							Instance->CurrentMaterial = EmitterMaterials[EmitterIndex];
+						}
 					}
 				}
 				TotalActiveParticles += Instance->ActiveParticles;
@@ -5843,6 +5846,70 @@ UParticleSystemReplay* UParticleSystemComponent::FindReplayClipForIDNumber( cons
 
 	// Not found
 	return NULL;
+}
+
+UMaterialInstanceDynamic* UParticleSystemComponent::CreateNamedDynamicMaterialInstance(FName Name, class UMaterialInterface* SourceMaterial)
+{
+	int32 Index = GetNamedMaterialIndex(Name);
+	if (INDEX_NONE == Index)
+	{
+		UE_LOG(LogParticles, Warning, TEXT("CreateNamedDynamicMaterialInstance on %s: This material wasn't found. Check the particle system's named material slots in cascade."), *GetPathName(), *Name.ToString());
+		return NULL;
+	}
+
+	if (SourceMaterial)
+	{
+		SetMaterial(Index, SourceMaterial);
+	}
+
+	UMaterialInterface* MaterialInstance = GetMaterial(Index);
+	UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(MaterialInstance);
+
+	if (MaterialInstance && !MID)
+	{
+		// Create and set the dynamic material instance.
+		MID = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		SetMaterial(Index, MID);
+	}
+	else if (!MaterialInstance)
+	{
+		UE_LOG(LogParticles, Warning, TEXT("CreateDynamicMaterialInstance on %s: Material index %d is invalid."), *GetPathName(), Index);
+	}
+
+	return MID;
+}
+
+UMaterialInterface* UParticleSystemComponent::GetNamedMaterial(FName Name) const
+{
+	int32 Index = GetNamedMaterialIndex(Name);
+	if (INDEX_NONE != Index)
+	{
+		if (EmitterMaterials.IsValidIndex(Index) && nullptr == EmitterMaterials[Index])
+		{
+			//Material has been overridden externally
+			return EmitterMaterials[Index];
+		}
+		else
+		{
+			//This slot hasn't been overridden so just used the default.
+			return Template->NamedMaterialSlots[Index].Material;
+		}
+	}
+	//Could not find this named materials slot.
+	return NULL;
+}
+
+int32 UParticleSystemComponent::GetNamedMaterialIndex(FName Name) const
+{
+	TArray<FNamedEmitterMaterial>& Slots = Template->NamedMaterialSlots;
+	for (int32 SlotIdx = 0; SlotIdx < Slots.Num(); ++SlotIdx)
+	{
+		if (Name == Slots[SlotIdx].Name)
+		{
+			return SlotIdx;
+		}
+	}
+	return INDEX_NONE;
 }
 
 UParticleSystemReplay::UParticleSystemReplay(const class FPostConstructInitializeProperties& PCIP)

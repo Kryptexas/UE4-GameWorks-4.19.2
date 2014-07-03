@@ -1142,14 +1142,22 @@ bool UParticleModuleRequired::IsValidForLODLevel(UParticleLODLevel* LODLevel, FS
 {
 	bool bValid = true;
 
-	if (LODLevel->TypeDataModule
-		&& LODLevel->TypeDataModule->IsA(UParticleModuleTypeDataGpu::StaticClass()))
+	if (LODLevel && LODLevel->TypeDataModule)
 	{
-		if (InterpolationMethod == PSUVIM_Random
-			|| InterpolationMethod == PSUVIM_Random_Blend)
+		if( LODLevel->TypeDataModule->IsA(UParticleModuleTypeDataGpu::StaticClass()))
 		{
-			OutErrorString = NSLOCTEXT("UnrealEd", "RandomSubUVForGPUEmitter", "Random SubUV interpolation is not supported with GPU particles.").ToString();
-			bValid = false;
+			if (InterpolationMethod == PSUVIM_Random || InterpolationMethod == PSUVIM_Random_Blend)
+			{
+				OutErrorString = NSLOCTEXT("UnrealEd", "RandomSubUVForGPUEmitter", "Random SubUV interpolation is not supported with GPU particles.").ToString();
+				bValid = false;
+			}
+		}
+		else if (UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule))
+		{
+			if (NamedMaterialOverrides.Num() > 0 && MeshTypeData->bOverrideMaterial)
+			{
+				OutErrorString = NSLOCTEXT("UnrealEd", "NamedMaterialOverriedsAndOverrideMaterialError", "Cannot use Named Material Overrides when using OverrideMaterial in the mesh type data module.").ToString();
+			}
 		}
 	}
 

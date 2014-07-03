@@ -2539,6 +2539,39 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	}
 }
 
+bool FParticleEmitterInstance::Tick_MaterialOverrides()
+{
+	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+	bool bOverridden = false;
+	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	{
+	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+	        if (NamedOverrides.Num() > 0)
+	        {
+		        //If we have named material overrides then get it's index into the emitter materials array.
+		        //Only check for [0] in in the named overrides as most emitter types only need one material. Mesh emitters might use more but they override this function.		
+		        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+		        {
+			        if (NamedOverrides[0] == Slots[CheckIdx].Name)
+			        {
+				        //Default to the default material for that slot.
+				        CurrentMaterial = Slots[CheckIdx].Material;
+				        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+				        {
+					        //This material has been overridden externally, e.g. from a BP so use that one.
+					        CurrentMaterial = EmitterMaterials[CheckIdx];
+				        }
+        
+				        bOverridden = true;
+				        break;
+			        }
+		        }
+	        }
+	}
+	return bOverridden;
+}
 
 /*-----------------------------------------------------------------------------
 	ParticleSpriteEmitterInstance
@@ -2928,6 +2961,43 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 	// Remove from the Sprite count... happens because we use the Super::Tick
 	DEC_DWORD_STAT_BY(STAT_SpriteParticles, ActiveParticles);
 	INC_DWORD_STAT_BY(STAT_MeshParticles, ActiveParticles);
+}
+
+bool FParticleMeshEmitterInstance::Tick_MaterialOverrides()
+{
+	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+	bool bOverridden = false;
+	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	{
+	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+	        if (NamedOverrides.Num() > 0)
+	        {
+		        CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
+		        for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
+		        {		
+			        //If we have named material overrides then get it's index into the emitter materials array.	
+			        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+			        {
+				        if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
+				        {
+					        //Default to the default material for that slot.
+					        CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
+					        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
+					        {
+						        //This material has been overridden externally, e.g. from a BP so use that one.
+						        CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
+					        }
+        
+					        bOverridden = true;
+					        break;
+				        }
+			        }
+		        }
+	        }
+        }
+	return bOverridden;
 }
 
 /**

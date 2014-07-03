@@ -786,6 +786,20 @@ public:
 	/** Decide if this psys can tick in any thread, and set bIsElligibleForAsyncTick */
 	void ComputeCanTickInAnyThread();
 
+	/**
+	* Creates a Dynamic Material Instance for the specified named material override, optionally from the supplied material.
+	* @param Name - The slot name of the material to replace.  If invalid, the material is unchanged and NULL is returned.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
+	virtual class UMaterialInstanceDynamic* CreateNamedDynamicMaterialInstance(FName Name, class UMaterialInterface* SourceMaterial = NULL);
+
+	/** Returns a named material. If this named material is not found, returns NULL. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Material")
+	virtual class UMaterialInterface* GetNamedMaterial(FName Name) const;
+
+	/** Returns the index into the EmitterMaterials array for this named. If there are no named material slots or this material is not found, INDEX_NONE is returned. */
+	virtual int32 GetNamedMaterialIndex(FName Name) const;
+
 protected:
 
 	// @todo document
