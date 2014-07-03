@@ -27,6 +27,16 @@ namespace Scalability
 			SetDefaults();
 		}
 		
+		bool operator==(const FQualityLevels& Other ) const
+		{
+			return FMemory::Memcmp( this, &Other, sizeof(FQualityLevels) ) == 0;
+		}
+
+		bool operator!=(const FQualityLevels& Other ) const
+		{
+			return !(*this == Other);
+		}
+
 		// @param Value 0:low, 1:medium, 2:high, 3:epic
 		void SetFromSingleQualityLevel(int32 Value);
 
@@ -45,11 +55,18 @@ namespace Scalability
 	/**  */
 	ENGINE_API void InitScalabilitySystem();
 
-	/** @parma IniName e.g. GEditorUserSettingsIni or GGameUserSettingsIni */
+	/** @param IniName e.g. GEditorUserSettingsIni or GGameUserSettingsIni */
 	ENGINE_API void LoadState(const FString& IniName);
 	
-	/** @parma IniName e.g. GEditorUserSettingsIni or GGameUserSettingsIni */
+	/** @param IniName e.g. GEditorUserSettingsIni or GGameUserSettingsIni */
 	ENGINE_API void SaveState(const FString& IniName);
+
+	/**
+	 * Sends an analytic event with all quality level data
+	 *
+	 * @param bAutoApplied	Whether or not the quality levels were auto-applied (true) or applied by the user (false).
+	 */
+	ENGINE_API void RecordQualityLevelsAnalytics(bool bAutoApplied);
 
 	/** Run synthbenchmark and configure scalability based on results **/
 	ENGINE_API FQualityLevels BenchmarkQualityLevels();
