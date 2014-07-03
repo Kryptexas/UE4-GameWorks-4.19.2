@@ -136,7 +136,7 @@ public:
 protected:
 
 	/** FTickableEditorObject interface */
-	virtual bool IsTickable() const override { return true; }
+	virtual bool IsTickable() const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FPerformanceMonitor, STATGROUP_Tickables); }
 

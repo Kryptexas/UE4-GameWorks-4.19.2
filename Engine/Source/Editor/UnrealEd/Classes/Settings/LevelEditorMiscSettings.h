@@ -55,7 +55,7 @@ public:
 
 public:	
 
-	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops */
+	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
 	UPROPERTY(EditAnywhere, config, Category=Performance)
 	bool bMonitorEditorPerformance;
 
