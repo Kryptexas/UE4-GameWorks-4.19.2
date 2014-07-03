@@ -308,6 +308,21 @@ void FSlateApplication::Create()
 	PlatformApplication->SetMessageHandler( CurrentApplication.ToSharedRef() );
 }
 
+void FSlateApplication::Shutdown()
+{
+	if (FSlateApplication::IsInitialized())
+	{
+		CurrentApplication->OnShutdown();
+		CurrentApplication->DestroyRenderer();
+		CurrentApplication->Renderer.Reset();
+		PlatformApplication->DestroyApplication();
+		PlatformApplication.Reset();
+		CurrentApplication.Reset();
+		CurrentBaseApplication.Reset();
+	}
+}
+
+
 TSharedPtr<FSlateApplication> FSlateApplication::CurrentApplication = NULL;
 
 FSlateApplication::FSlateApplication()

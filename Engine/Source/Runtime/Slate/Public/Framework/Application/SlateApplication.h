@@ -161,18 +161,7 @@ public:
 		return *CurrentApplication;
 	}
 
-	static void Shutdown()
-	{
-		if ( FSlateApplication::IsInitialized() )
-		{
-			CurrentApplication->OnShutdown();
-			CurrentApplication->DestroyRenderer();
-			CurrentApplication->Renderer.Reset();
-			PlatformApplication.Reset();
-			CurrentApplication.Reset();
-			CurrentBaseApplication.Reset();
-		}
-	}
+	static void Shutdown();
 
 	/** @return the global tab manager */
 	static TSharedRef<class FGlobalTabmanager> GetGlobalTabManager();
