@@ -560,6 +560,8 @@ void FEdMode::Enter()
 		SelectedActor->MarkComponentsRenderStateDirty();
 	}
 
+	bPendingDeletion = false;
+
 	FEditorDelegates::EditorModeEnter.Broadcast( this );
 	const bool bIsEnteringMode = true;
 	Owner->BroadcastEditorModeChanged( this, bIsEnteringMode );
