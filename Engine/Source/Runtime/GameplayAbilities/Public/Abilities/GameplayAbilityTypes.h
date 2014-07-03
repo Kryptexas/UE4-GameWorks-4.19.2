@@ -275,6 +275,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return TArray<AActor*>();
 	}
 
+	// -------------------------------------
+
 	virtual bool HasHitResult() const
 	{
 		return false;
@@ -284,6 +286,20 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 	{
 		return NULL;
 	}
+
+	// -------------------------------------
+
+	virtual bool HasOrigin() const
+	{
+		return false;
+	}
+
+	virtual FTransform* GetOrigin() const
+	{
+		return nullptr;
+	}
+
+	// -------------------------------------
 
 	virtual UScriptStruct * GetScriptStruct()
 	{
@@ -305,6 +321,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	: HitResult(InHitResult)
 	{ }
 
+	// -------------------------------------
+
 	virtual TArray<AActor*>	GetActors() const
 	{
 		TArray<AActor*>	Actors;
@@ -314,6 +332,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		}
 		return Actors;
 	}
+	
+	// -------------------------------------
 
 	virtual bool HasHitResult() const
 	{
@@ -324,6 +344,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	{
 		return &HitResult;
 	}
+
+	// -------------------------------------
 
 	UPROPERTY()
 	FHitResult	HitResult;

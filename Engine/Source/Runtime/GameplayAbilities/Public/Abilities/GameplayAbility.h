@@ -6,6 +6,7 @@
 #include "GameplayTagAssetInterface.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayAbility.generated.h"
 
 /**
@@ -301,8 +302,11 @@ protected:
 		}
 	}
 
-	UFUNCTION(BlueprintPure, Category = Ability)
+	UFUNCTION(BlueprintPure, Category=Ability)
 	FGameplayAbilityActorInfo GetActorInfo();
+
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
 
 	UFUNCTION(Client, Reliable)
 	void ClientActivateAbilitySucceed(int32 PredictionKey);

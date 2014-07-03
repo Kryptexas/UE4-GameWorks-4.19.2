@@ -27,8 +27,12 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	TWeakObjectPtr<UGameplayAbility> Ability;
-
+	
 	bool bDebug;
 
+	UPROPERTY(BlueprintReadOnly, meta=(ExposeOnSpawn=true), Category=Projectile)
 	bool bBindToConfirmCancelInputs;
+
+	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn = true), Category = Projectile)
+	FVector StartingOffset;
 };

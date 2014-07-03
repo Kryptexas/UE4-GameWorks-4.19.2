@@ -19,29 +19,15 @@ UAbilityTask_WaitTargetData* UAbilityTask_WaitTargetData::WaitTargetData(UObject
 	return MyObj;	
 }
 
-void UAbilityTask_WaitTargetData::Activate()
+// ---------------------------------------------------------------------------------------
+
+bool UAbilityTask_WaitTargetData::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
 {
+	SpawnedActor = nullptr;
+
 	if (Ability.IsValid())
 	{
-		if (!Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled())
-		{
-			// If not locally controlled (server for remote client), see if TargetData was already sent
-			// else register callback for when it does get here
-
-			if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
-			{
-				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
-				Cleanup();
-				return;
-			}
-			else
-			{
-				AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
-				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
-				return;
-			}
-		}
-		else
+		if (Ability.Get()->GetCurrentActorInfo()->IsLocallyControlled())
 		{
 			// Locally controlled - spawn the targeting actor.
 			AGameplayAbilityTargetActor* CDO = CastChecked<AGameplayAbilityTargetActor>(TargetClass->GetDefaultObject());
@@ -53,22 +39,59 @@ void UAbilityTask_WaitTargetData::Activate()
 			}
 			else
 			{
-				// This is a latent thing, probably with visuals and other gameplay related stuff. Spawn an actor locally and it will tell us when it has TargetData.
-				AGameplayAbilityTargetActor* SpawnedActor = CastChecked<AGameplayAbilityTargetActor>(Ability->GetWorld()->SpawnActor(TargetClass));
+				UClass* Class = *TargetClass;
+				if (Class != NULL)
+				{
+					UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+					SpawnedActor = World->SpawnActorDeferred<AGameplayAbilityTargetActor>(Class, FVector::ZeroVector, FRotator::ZeroRotator, NULL, NULL, true);
+				}
+
 				SpawnedActor->TargetDataReadyDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReadyCallback);
 				SpawnedActor->CanceledDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback);
-								
-				// User ability activation is inhibited while this is active
-				AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
-				AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
-
-				SpawnedActor->StartTargeting(Ability.Get());
 
 				MySpawnedTargetActor = SpawnedActor;
 			}
 		}
+		else
+		{
+			// If not locally controlled (server for remote client), see if TargetData was already sent
+			// else register callback for when it does get here
+
+			if (AbilitySystemComponent->ReplicatedTargetData.IsValid())
+			{
+				ValidData.Broadcast(AbilitySystemComponent->ReplicatedTargetData);
+				Cleanup();
+			}
+			else
+			{
+				AbilitySystemComponent->ReplicatedTargetDataDelegate.AddUObject(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback);
+				AbilitySystemComponent->ReplicatedTargetDataCancelledDelegate.AddDynamic(this, &UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback);
+			}
+		}
+	}
+	return (SpawnedActor != nullptr);
+}
+
+void UAbilityTask_WaitTargetData::FinishSpawningActor(UObject* WorldContextObject, AGameplayAbilityTargetActor* SpawnedActor)
+{
+	if (SpawnedActor)
+	{
+		check(MySpawnedTargetActor == SpawnedActor);
+
+		FTransform SpawnTransform = AbilitySystemComponent->GetOwner()->GetTransform();
+
+		SpawnedActor->ExecuteConstruction(SpawnTransform, NULL);
+		SpawnedActor->PostActorConstruction();
+
+		// User ability activation is inhibited while this is active
+		AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
+		AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
+
+		SpawnedActor->StartTargeting(Ability.Get());
 	}
 }
+
+// ---------------------------------------------------------------------------------------
 
 /** Valid TargetData was replicated to use (we are server, was sent from client) */
 void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCallback(FGameplayAbilityTargetDataHandle Data)
@@ -127,3 +150,7 @@ void UAbilityTask_WaitTargetData::Cleanup()
 
 	MarkPendingKill();
 }
+
+
+// --------------------------------------------------------------------------------------
+

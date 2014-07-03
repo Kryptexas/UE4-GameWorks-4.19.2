@@ -2,15 +2,14 @@
 
 #pragma once
 
-#include "GameplayTagContainer.h"
 #include "GameplayTagAssetInterface.h"
+#include "AbilitySystemLog.h"
+#include "GameplayTagContainer.h"
 #include "TimerManager.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayEffect.generated.h"
 
 struct FActiveGameplayEffect;
-
-
 
 class UGameplayEffect;
 class UAbilitySystemComponent;
@@ -966,8 +965,9 @@ struct FGameplayEffectSpec
 	float GetPeriod() const;
 	float GetChanceToApplyToTarget() const;
 	float GetChanceToExecuteOnGameplayEffect() const;
-	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 	float GetMagnitude(const FGameplayAttribute &Attribute) const;
+
+	EGameplayEffectStackingPolicy::Type GetStackingType() const;
 
 	// other effects that need to be applied to the target if this effect is successful
 	TArray< TSharedRef< FGameplayEffectSpec > > TargetEffectSpecs;
@@ -985,13 +985,14 @@ struct FGameplayEffectSpec
 	FAggregatorRef	ChanceToExecuteOnGameplayEffect;
 
 	// This should only be true if this is a stacking effect and at the top of its stack
+	// (FIXME: should this be part of the spec or FActiveGameplayEffect?)
 	UPROPERTY()
 	bool bTopOfStack;
 
 	// The spec needs to own these FModifierSpecs so that other people can keep TSharedPtr to it.
 	// The stuff in this array is OWNED by this spec
 
-	TArray<FModifierSpec>	Modifiers;
+	TArray<FModifierSpec> Modifiers;
 
 	void MakeUnique();
 
@@ -999,7 +1000,7 @@ struct FGameplayEffectSpec
 
 	// returns the number of modifiers applied to InSpec by the current GameplayEffect Spec
 	// returns -1 if the current GameplayEffectSpec prevents InSpec from being applied
-	int32 ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
+	int32 ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 
@@ -1146,7 +1147,7 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	// returns true if none of the active effects provide immunity to Spec
 	// returns false if one (or more) of the active effects provides immunity to Spec
-	bool ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	bool ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const;
 
 	void ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 		
@@ -1161,8 +1162,6 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
-
-
 
 	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
 	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
@@ -1249,5 +1248,65 @@ struct TStructOpsTypeTraits< FActiveGameplayEffectsContainer > : public TStructO
 	enum
 	{
 		WithNetDeltaSerializer = true,
+	};
+};
+
+
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectSpecHandle() { }
+	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
+		: Data(DataPtr)
+	{
+
+	}
+
+	TSharedPtr<FGameplayEffectSpec>	Data;
+
+	bool IsValidCache;
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+	{
+		ABILITY_LOG(Fatal, TEXT("FGameplayEffectSpecHandle should not be NetSerialized"));
+		return false;
+	}
+
+	/** Comparison operator */
+	bool operator==(FGameplayEffectSpecHandle const& Other) const
+	{
+		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
+		bool bBothValid = IsValid() && Other.IsValid();
+		bool bBothInvalid = !IsValid() && !Other.IsValid();
+		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayEffectSpecHandle const& Other) const
+	{
+		return !(FGameplayEffectSpecHandle::operator==(Other));
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
 	};
 };

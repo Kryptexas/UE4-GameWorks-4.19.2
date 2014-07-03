@@ -400,6 +400,13 @@ FGameplayAbilityActorInfo UGameplayAbility::GetActorInfo()
 	return *CurrentActorInfo;
 }
 
+/** Convenience method for abilities to get outgoing gameplay effect specs (for example, to pass on to projectiles to apply to whoever they hit) */
+FGameplayEffectSpecHandle UGameplayAbility::GetOutgoingSpec(UGameplayEffect* GameplayEffect) const
+{
+	check(CurrentActorInfo && CurrentActorInfo->AbilitySystemComponent.IsValid());
+	return CurrentActorInfo->AbilitySystemComponent->GetOutgoingSpec(GameplayEffect);
+}
+
 /** Fixme: Naming is confusing here */
 
 bool UGameplayAbility::K2_CommitAbility()

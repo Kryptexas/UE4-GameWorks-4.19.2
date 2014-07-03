@@ -44,6 +44,8 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 
 	FGameplayTagContainer CueTags = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagChildren(RootTag);
 
+	// Fixme: need to check if this function is already defined so that it can be reimplemented
+
 	for (auto It = CueTags.CreateConstIterator(); It; ++It)
 	{
 		FGameplayTag Tag = *It;

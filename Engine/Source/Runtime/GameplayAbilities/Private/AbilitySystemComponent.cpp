@@ -173,12 +173,34 @@ float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Att
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
+FGameplayEffectSpecHandle UAbilitySystemComponent::GetOutgoingSpec(UGameplayEffect* GameplayEffect) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GetOutgoingSpec);
+	// Fixme: we should build a map and cache these off. We can invalidate the map when an OutgoingGE modifier is applied or removed from us.
+
+	FGameplayEffectSpec* NewSpec = new FGameplayEffectSpec(GameplayEffect, GetOwner(), FGameplayEffectLevelSpec::INVALID_LEVEL, GetCurveDataOverride());
+	if (ActiveGameplayEffects.ApplyActiveEffectsTo(*NewSpec, FModifierQualifier().Type(EGameplayMod::OutgoingGE)))
+	{
+		return FGameplayEffectSpecHandle(NewSpec);
+	}
+
+	delete NewSpec;
+	return FGameplayEffectSpecHandle(nullptr);
+}
+
+FGameplayEffectInstigatorContext UAbilitySystemComponent::GetInstigatorContext() const
+{
+	FGameplayEffectInstigatorContext Context;
+	Context.AddInstigator(GetOwner());
+	return Context;
+}
+
 /** This is a helper function used in automated testing, I'm not sure how useful it will be to gamecode or blueprints */
 FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAbilitySystemComponent *Target, float Level, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(),  Level, GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
 	
 	return ApplyGameplayEffectSpecToTarget(Spec, Target, BaseQualifier);
 }

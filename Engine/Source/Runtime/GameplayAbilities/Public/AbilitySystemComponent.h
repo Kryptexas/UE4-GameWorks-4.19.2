@@ -67,7 +67,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	/** Finds existing AttributeSet */
 	template <class T >
-	T*	GetSet()
+	T*	GetSet()	// FIXME: This should be const by default
 	{
 		return (T*)GetAttributeSubobject(T::StaticClass());
 	}
@@ -172,11 +172,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
+
+	/** Get an outgoing GameplayEffectSpec that is ready to be applied to other things. */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
+
+	/** Create an InstigatorContext for the owner of this AbilitySystemComponent */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectInstigatorContext GetInstigatorContext() const;
 
 	/** This only exists so it can be hooked up to a multicast delegate */
 	void RemoveActiveGameplayEffect_NoReturn(FActiveGameplayEffectHandle Handle)
