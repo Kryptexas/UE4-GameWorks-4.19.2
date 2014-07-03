@@ -20,10 +20,8 @@ public:
 	// Widget construction
 	UNREALED_API void Construct( const FArguments& InArgs );
 
+	UNREALED_API ~SScalabilitySettings();
 private:
-
-	// Stores state of scalability settings at the point of opening the menu
-	Scalability::FQualityLevels CachedQualityLevels;
 
 	// Checks cached quality levels to see if the specified group is at the specified quality level
 	ESlateCheckBoxState::Type IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const;
@@ -57,4 +55,12 @@ private:
 
 	// Create a gridslot for the group quality level with all the required formatting
 	SGridPanel::FSlot& MakeGridSlot(int32 InCol, int32 InRow, int32 InColSpan = 1, int32 InRowSpan = 1);
+
+private:
+	/* The state of scalability settings at the point of opening the menu*/
+	Scalability::FQualityLevels InitialQualityLevels;
+
+	/** The state of quality levels as they are changed in this widget */
+	Scalability::FQualityLevels CachedQualityLevels;
+
 };

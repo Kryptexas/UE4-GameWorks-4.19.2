@@ -131,7 +131,7 @@ void SScalabilitySettings::Construct( const FArguments& InArgs )
 	auto TitleFont = FEditorStyle::GetFontStyle( FName( "Scalability.TitleFont" ) );
 	auto GroupFont = FEditorStyle::GetFontStyle( FName( "Scalability.GroupFont" ) );
 
-	CachedQualityLevels = Scalability::GetQualityLevels();
+	InitialQualityLevels = CachedQualityLevels = Scalability::GetQualityLevels();
 	static float Padding = 1.0f;
 	static float QualityColumnCoeff = 1.0f;
 	static float QualityLevelColumnCoeff = 0.2f;
@@ -201,6 +201,16 @@ void SScalabilitySettings::Construct( const FArguments& InArgs )
 				+MakeGridSlot(4,7) [ MakeButtonWidget(NamesEpic, TEXT("EffectsQuality"), 3, LOCTEXT("EffectsQualityEpic", "Set effects quality to epic")) ]
 			]
 		];
+}
+
+SScalabilitySettings::~SScalabilitySettings()
+{
+	// Record any changed quality levels
+	if( InitialQualityLevels != CachedQualityLevels )
+	{
+		const bool bAutoApplied = false;
+		Scalability::RecordQualityLevelsAnalytics(bAutoApplied);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

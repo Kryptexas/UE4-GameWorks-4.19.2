@@ -166,6 +166,9 @@ void FPerformanceMonitor::AutoApplyScalability()
 	Scalability::SetQualityLevels(BenchmarkLevels);
 	Scalability::SaveState(GEditorUserSettingsIni);
 
+	const bool bAutoApplied = true;
+	Scalability::RecordQualityLevelsAnalytics(bAutoApplied);
+
 	GEditor->DisableRealtimeViewports();
 
 	HidePerformanceWarning();
