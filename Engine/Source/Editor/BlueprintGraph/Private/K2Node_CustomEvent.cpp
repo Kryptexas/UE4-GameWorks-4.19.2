@@ -103,13 +103,9 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::EditableTitle)
+	if (TitleType == ENodeTitleType::EditableTitle || TitleType == ENodeTitleType::ListView)
 	{
 		return FText::FromName(CustomFunctionName);
-	}
-	else if(TitleType == ENodeTitleType::ListView)
-	{
-		return NSLOCTEXT("K2Node", "CustomEvent_Title", "Custom Event");
 	}
 	else
 	{
