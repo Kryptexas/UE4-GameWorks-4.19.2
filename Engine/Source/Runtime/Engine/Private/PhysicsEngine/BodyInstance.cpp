@@ -2662,7 +2662,7 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 			NewMaxAngVel += OldMaxAngVel;
 		}
 
-		PRigidDynamic->setMaxAngularVelocity(NewMaxAngVel);
+		PRigidDynamic->setMaxAngularVelocity(RadNewMaxAngVel);
 
 		MaxAngularVelocity = NewMaxAngVel;
 	}
