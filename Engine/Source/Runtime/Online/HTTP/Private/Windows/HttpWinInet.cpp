@@ -737,7 +737,8 @@ void FHttpRequestWinInet::Tick(float DeltaSeconds)
 	// Log verbose once total elapsed time surpasses HttpTimeout
 	const double TotalElapsed = FPlatformTime::Seconds() - StartRequestTime;
 	if (HttpTimeout > 0 &&
-		TotalElapsed > HttpTimeout)
+		TotalElapsed > HttpTimeout &&
+		!bDebugVerbose)
 	{
 		UE_LOG(LogHttp, Warning, TEXT("Http request taking too long! Elapsed %.3f. Enabling verbose logs %p url=%s"),
 			TotalElapsed, this, *GetURL());
