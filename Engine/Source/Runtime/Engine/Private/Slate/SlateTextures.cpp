@@ -185,10 +185,6 @@ void FSlateTextureRenderTarget2DResource::InitDynamicRHI()
 			Texture2DRHI
 			);
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
-
-		// make sure the texture target gets cleared
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		UpdateDeferredResource(RHICmdList);
 	}
 
 	// Create the sampler state RHI resource.
