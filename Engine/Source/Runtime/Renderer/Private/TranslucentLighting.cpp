@@ -1800,7 +1800,18 @@ public:
 		FVector4 PositionAndRadius(SimpleLightPerViewData.Position, SimpleLight.Radius);
 		SetShaderValue(RHICmdList, GetPixelShader(), VolumeCascadeIndex, VolumeCascadeIndexValue);
 		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightPositionAndRadius, PositionAndRadius);
-		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightColorAndExponent, FVector4(SimpleLight.Color, SimpleLight.Exponent));
+
+		FVector4 LightColorAndExponent(SimpleLight.Color, SimpleLight.Exponent);
+
+		if (SimpleLight.Exponent == 0)
+		{
+			// Correction for lumen units
+			LightColorAndExponent.X *= 16.0f;
+			LightColorAndExponent.Y *= 16.0f;
+			LightColorAndExponent.Z *= 16.0f;
+		}
+
+		SetShaderValue(RHICmdList, GetPixelShader(), SimpleLightColorAndExponent, LightColorAndExponent);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
