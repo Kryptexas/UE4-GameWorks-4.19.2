@@ -60,22 +60,6 @@ SamplerState SSProfilesTextureSampler;
 float4 SSSParams;
 
 
-float3 ReconstructDiffuseLighting(float4 SceneColor4)
-{
-	float SceneColorLum = Luminance(SceneColor4.rgb);
-
-	// max to avoid division by 0
-	return SceneColor4.rgb * max(0, SceneColorLum - SceneColor4.a) / max(0.0001f, SceneColorLum);
-}
-
-float3 ReconstructNonDiffuseLighting(float4 SceneColor4)
-{
-	float SceneColorLum = Luminance(SceneColor4.rgb);
-
-	// max to avoid division by 0
-	return SceneColor4.rgb * SceneColor4.a / max(0.0001f, SceneColorLum);
-}
-
 void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -90,7 +74,7 @@ void SetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 
 #if SSSS_SPECULAR_CORRECTION == 1
 		// we take out the specular highlights
-		float3 Lighting = ReconstructDiffuseLighting(SceneColor4);
+		float3 Lighting = LightAccumulator_ReconstructDiffuseLighting(SceneColor4);
 #else
 		float3 Lighting = SceneColor4.rgb;
 #endif
@@ -177,7 +161,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 #if METHOD > 1
 	// we took the specular highlights out, now we add them back in
-	SSSColor.rgb += ReconstructNonDiffuseLighting(SceneColor4);
+	SSSColor.rgb += LightAccumulator_ReconstructNonDiffuseLighting(SceneColor4);
 #endif
 
 	OutColor = float4(lerp(SceneColor4.rgb, SSSColor.rgb, SSSColor.a), 1);

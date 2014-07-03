@@ -95,7 +95,7 @@ void TiledDeferredLightingMain(
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
-	// RGB accumulated RGB HDR color, A: specular luminance for screenspace subsurface scattering
+	// RGB accumulated RGB HDR color, A: luminance for screenspace subsurface scattering
 	float4 CompositedLighting = 0;
 
 #define DO_CULLING_AND_SHADING 1
