@@ -5,9 +5,11 @@
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine//BodyInstance.h"
 #include "Components/DestructibleComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "IDocumentation.h"
+
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponentDetails"
 
@@ -121,6 +123,21 @@ bool FPrimitiveComponentDetails::IsUseAsyncEditable() const
 	return bEnableUseAsyncScene;
 }
 
+EVisibility FPrimitiveComponentDetails::IsCustomLockedAxisSelected() const
+{
+	bool bVisible = false;
+	if (LockedAxisProperty.IsValid())
+	{
+		uint8 LockedAxis;
+		if (LockedAxisProperty->GetValue(LockedAxis) == FPropertyAccess::Success)
+		{
+			bVisible = static_cast<ELockedAxis::Type>(LockedAxis) == ELockedAxis::Custom;
+		}
+	}
+
+	return bVisible ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
 void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	TSharedRef<IPropertyHandle> MobilityHandle = DetailBuilder.GetProperty("Mobility", USceneComponent::StaticClass());
@@ -189,6 +206,16 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					{
 						//we only enable bUseAsyncScene if the project uses an AsyncScene
 						PhysicsCategory.AddProperty(ChildProperty).EditCondition(TAttribute<bool>(this, &FPrimitiveComponentDetails::IsUseAsyncEditable), NULL);
+					}
+					else if (ChildProperty->GetProperty()->GetName() == TEXT("LockedAxisMode"))
+					{
+						LockedAxisProperty = ChildProperty;
+						PhysicsCategory.AddProperty(ChildProperty);
+					}
+					else if (ChildProperty->GetProperty()->GetName() == TEXT("CustomLockedAxis"))
+					{
+						//we only enable bUseAsyncScene if the project uses an AsyncScene
+						PhysicsCategory.AddProperty(ChildProperty).Visibility(TAttribute<EVisibility>(this, &FPrimitiveComponentDetails::IsCustomLockedAxisSelected));
 					}
 					else
 					{
