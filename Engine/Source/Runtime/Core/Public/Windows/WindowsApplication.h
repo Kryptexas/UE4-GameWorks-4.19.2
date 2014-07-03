@@ -251,6 +251,10 @@ private:
 
 	void CheckForShiftUpEvents(const int32 KeyCode);
 
+	void ShutDownAfterError();
+
+	void AllowAccessibilityShortcutKeys(const bool bAllowKeys);
+
 private:
 
 	static const FIntPoint MinimizedWindowPosition;
@@ -283,4 +287,9 @@ private:
 	FDisplayMetrics InitialDisplayMetrics;
 
 	TSharedPtr<FWindowsTextInputMethodSystem> TextInputMethodSystem;
+
+	// Accessibility shortcut keys
+	STICKYKEYS							StartupStickyKeys;
+	TOGGLEKEYS							StartupToggleKeys;
+	FILTERKEYS							StartupFilterKeys;
 };
