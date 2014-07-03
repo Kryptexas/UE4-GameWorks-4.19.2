@@ -173,6 +173,8 @@ void FGameLiveStreaming::StartBroadcastingGame( const FGameBroadcastConfig& Game
 				WebCamConfig.DesiredWebCamHeight = GameBroadcastConfig.DesiredWebCamHeight;
 				LiveStreamer->StartWebCam( WebCamConfig );
 			}
+
+			bIsBroadcasting = true;
 		}
 	}
 }
