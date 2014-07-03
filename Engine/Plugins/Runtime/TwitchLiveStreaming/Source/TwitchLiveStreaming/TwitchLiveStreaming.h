@@ -45,6 +45,9 @@ public:
 
 private:
 
+	/** Initializes Twitch lazily */
+	void InitOnDemand();
+
 	/** Loads the Twitch SDK dynamic library */
 	void LoadTwitchSDK( const FString& TwitchDLLFolder );
 
