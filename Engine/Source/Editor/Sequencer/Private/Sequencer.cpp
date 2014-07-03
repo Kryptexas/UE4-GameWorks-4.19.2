@@ -39,7 +39,12 @@ DEFINE_LOG_CATEGORY(LogSequencer);
 
 bool FSequencer::IsSequencerEnabled()
 {
-	return FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) || FParse::Param( FCommandLine::Get(), TEXT( "umg" ) );
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics )
+	{
+		return true;
+	}
+
+	return FParse::Param(FCommandLine::Get(), TEXT("Sequencer"));
 }
 
 

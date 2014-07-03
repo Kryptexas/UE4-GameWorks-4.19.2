@@ -21,10 +21,7 @@ public:
 
 		// This is done so that the compiler is available in non-cooked builds when the widget blueprint is 
 		// compiled again in the running game.
-		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
-		{
-			FModuleManager::Get().LoadModule(TEXT("UMGEditor"));
-		}
+		FModuleManager::Get().LoadModule(TEXT("UMGEditor"));
 #endif
 	}
 

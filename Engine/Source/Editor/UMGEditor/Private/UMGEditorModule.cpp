@@ -32,23 +32,28 @@ public:
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager());
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager());
 
-		// Register asset types
-		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
-
-		// Register blueprint compiler
+		// Register widget blueprint compiler we do this no matter what.
 		IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
 		FBlueprintCompileDelegate sd;
 		sd.BindRaw(this, &FUMGEditorModule::CompileWidgetBlueprint);
 		KismetCompilerModule.GetCompilers().Add(sd);
-		
-		FUMGBlueprintEditorExtensionHook::InstallHooks();
 
+		bUMGEnabled = GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics;
 
-		// Register with the sequencer module that we provide auto-key handlers.
-		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+		// In the event we were loaded by an uncooked game, we need to check if we actually should be enabled.
+		// Because the UMG runtime will attempt to start our module no matter what, if WITH_EDITOR is enabled.
+		if ( bUMGEnabled )
+		{
+			// Register asset types
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+			RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
 
+			FUMGBlueprintEditorExtensionHook::InstallHooks();
+
+			// Register with the sequencer module that we provide auto-key handlers.
+			ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
+			SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+		}
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -57,21 +62,24 @@ public:
 		MenuExtensibilityManager.Reset();
 		ToolBarExtensibilityManager.Reset();
 
-		if ( UObjectInitialized() )
+		if ( bUMGEnabled )
 		{
-			FUMGBlueprintEditorExtensionHook::InstallHooks();
-		}
-
-		// Unregister all the asset types that we registered
-		if ( FModuleManager::Get().IsModuleLoaded("AssetTools") )
-		{
-			IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
-			for ( int32 Index = 0; Index < CreatedAssetTypeActions.Num(); ++Index )
+			if ( UObjectInitialized() )
 			{
-				AssetTools.UnregisterAssetTypeActions(CreatedAssetTypeActions[Index].ToSharedRef());
+				FUMGBlueprintEditorExtensionHook::RemoveHooks();
 			}
+
+			// Unregister all the asset types that we registered
+			if ( FModuleManager::Get().IsModuleLoaded("AssetTools") )
+			{
+				IAssetTools& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools").Get();
+				for ( int32 Index = 0; Index < CreatedAssetTypeActions.Num(); ++Index )
+				{
+					AssetTools.UnregisterAssetTypeActions(CreatedAssetTypeActions[Index].ToSharedRef());
+				}
+			}
+			CreatedAssetTypeActions.Empty();
 		}
-		CreatedAssetTypeActions.Empty();
 	}
 
 	FReply CompileWidgetBlueprint(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
@@ -89,8 +97,8 @@ public:
 	}
 
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
-	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() {return MenuExtensibilityManager;}
-	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() {return ToolBarExtensibilityManager;}
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() { return MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return ToolBarExtensibilityManager; }
 
 private:
 	void RegisterAssetTypeAction(IAssetTools& AssetTools, TSharedRef<IAssetTypeActions> Action)
@@ -102,6 +110,9 @@ private:
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
+
+	/** We cache the value for UMG being enabled on load so that we can shutdown properly. */
+	bool bUMGEnabled;
 
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
