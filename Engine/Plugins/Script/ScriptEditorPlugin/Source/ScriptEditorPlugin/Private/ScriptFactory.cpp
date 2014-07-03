@@ -1,12 +1,33 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 #include "ScriptEditorPluginPrivatePCH.h"
 
+/**
+ * Class Picker filter
+ */
+class FScriptFactoryFilter : public IClassViewerFilter
+{
+public:
+	TSet< const UClass* > AllowedChildOfClasses;
+
+	bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs)
+	{
+		return AllowedChildOfClasses.Contains(InClass);
+	}
+
+	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
+	{
+		return true;
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
+
 
 UScriptFactory::UScriptFactory(const FPostConstructInitializeProperties& PCIP)
 	: Super( PCIP )
 {
-	SupportedClass = UScriptAsset::StaticClass();
+	SupportedClass = UScriptBlueprint::StaticClass();
+	ParentClass = AScriptActor::StaticClass();
 
 	Formats.Add(TEXT("txt;Script"));
 	Formats.Add(TEXT("lua;Script"));
@@ -14,6 +35,7 @@ UScriptFactory::UScriptFactory(const FPostConstructInitializeProperties& PCIP)
 	bCreateNew = false;
 	bEditorImport = true;
 	bText = true;
+	bEditAfterNew = true;	
 }
 
 void UScriptFactory::PostInitProperties()
@@ -21,23 +43,60 @@ void UScriptFactory::PostInitProperties()
 	Super::PostInitProperties();
 }
 
+bool UScriptFactory::ConfigureProperties()
+{
+	// Null the parent class so we can check for selection later
+	ParentClass = NULL;
+
+	// Load the class viewer module to display a class picker
+	FClassViewerModule& ClassViewerModule = FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer");
+
+	// Fill in options
+	FClassViewerInitializationOptions Options;
+	Options.Mode = EClassViewerMode::ClassPicker;
+	Options.DisplayMode = EClassViewerDisplayMode::ListView;
+	Options.bShowObjectRootClass = false;
+	Options.bIsBlueprintBaseOnly = false;
+	Options.bShowUnloadedBlueprints = false;
+
+	// Only allow script-enabled classes
+	TSharedPtr<FScriptFactoryFilter> Filter = MakeShareable(new FScriptFactoryFilter);
+	Options.ClassFilter = Filter;
+	Filter->AllowedChildOfClasses.Add(AScriptActor::StaticClass());
+	Filter->AllowedChildOfClasses.Add(UScriptComponent::StaticClass());
+
+	const FText TitleText = NSLOCTEXT("EditorFactories", "CreateScriptOptions", "Pick Parent Class");
+	UClass* ChosenClass = NULL;
+	const bool bPressedOk = SClassPickerDialog::PickClass(TitleText, Options, ChosenClass, UScriptBlueprintGeneratedClass::StaticClass());
+	if (bPressedOk)
+	{
+		ParentClass = ChosenClass;
+	}
+
+	return bPressedOk;
+}
+
+
 bool UScriptFactory::DoesSupportClass(UClass* Class)
 {
-	return Class == UScriptAsset::StaticClass();
+	return Class == UScriptBlueprint::StaticClass();
 }
 
 UObject* UScriptFactory::FactoryCreateText(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const TCHAR*& Buffer, const TCHAR* BufferEnd, FFeedbackContext* Warn)
 {
-	UScriptAsset* ScriptAsset = NewNamedObject<UScriptAsset>(InParent, InName, Flags);
-	
-	ScriptAsset->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, ScriptAsset);
-	ScriptAsset->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
-	ScriptAsset->SourceCode = Buffer;
+	GEditor->SelectNone(true, true, false);
 
-	FEditorDelegates::OnAssetPostImport.Broadcast(this, ScriptAsset);
-	ScriptAsset->PostEditChange();
+	UScriptBlueprint* NewBlueprint = CastChecked<UScriptBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, InName, BPTYPE_Normal, UScriptBlueprint::StaticClass(), UScriptBlueprintGeneratedClass::StaticClass(), "UScriptFactory"));
+	NewBlueprint->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewBlueprint);
+	NewBlueprint->SourceCode = Buffer;
+	NewBlueprint->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*NewBlueprint->SourceFilePath).ToString();
 
-	return ScriptAsset;
+	// Need to make sure we compile with the new source code
+	FKismetEditorUtilities::CompileBlueprint(NewBlueprint);
+
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, NewBlueprint);
+
+	return NewBlueprint;
 }
 
 
@@ -48,13 +107,17 @@ UReimportScriptFactory::UReimportScriptFactory(const class FPostConstructInitial
 {
 }
 
+bool UReimportScriptFactory::ConfigureProperties()
+{
+	return UFactory::ConfigureProperties();
+}
 
 bool UReimportScriptFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
 {
-	UScriptAsset* ScriptAsset = Cast<UScriptAsset>(Obj);
-	if (ScriptAsset)
+	UScriptBlueprint* ScriptClass = Cast<UScriptBlueprint>(Obj);
+	if (ScriptClass)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(ScriptAsset->SourceFilePath, ScriptAsset));
+		OutFilenames.Add(FReimportManager::ResolveImportFilename(ScriptClass->SourceFilePath, ScriptClass));
 		return true;
 	}
 	return false;
@@ -62,10 +125,10 @@ bool UReimportScriptFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilen
 
 void UReimportScriptFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
 {
-	UScriptAsset* ScriptAsset = Cast<UScriptAsset>(Obj);
-	if (ScriptAsset && ensure(NewReimportPaths.Num() == 1))
+	UScriptBlueprint* ScriptClass = Cast<UScriptBlueprint>(Obj);
+	if (ScriptClass && ensure(NewReimportPaths.Num() == 1))
 	{
-		ScriptAsset->SourceFilePath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], Obj);
+		ScriptClass->SourceFilePath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], Obj);
 	}
 }
 
@@ -74,15 +137,15 @@ void UReimportScriptFactory::SetReimportPaths(UObject* Obj, const TArray<FString
 */
 EReimportResult::Type UReimportScriptFactory::Reimport(UObject* Obj)
 {
-	UScriptAsset* ScriptAsset = Cast<UScriptAsset>(Obj);
-	if (!ScriptAsset)
+	UScriptBlueprint* ScriptClass = Cast<UScriptBlueprint>(Obj);
+	if (!ScriptClass)
 	{
 		return EReimportResult::Failed;
 	}
 
-	TGuardValue<UScriptAsset*> OriginalScriptGuardValue(OriginalScript, ScriptAsset);
+	TGuardValue<UScriptBlueprint*> OriginalScriptGuardValue(OriginalScript, ScriptClass);
 
-	const FString ResolvedSourceFilePath = FReimportManager::ResolveImportFilename(ScriptAsset->SourceFilePath, ScriptAsset);
+	const FString ResolvedSourceFilePath = FReimportManager::ResolveImportFilename(ScriptClass->SourceFilePath, ScriptClass);
 	if (!ResolvedSourceFilePath.Len())
 	{
 		return EReimportResult::Failed;
@@ -97,17 +160,17 @@ EReimportResult::Type UReimportScriptFactory::Reimport(UObject* Obj)
 		return EReimportResult::Failed;
 	}
 
-	if (UFactory::StaticImportObject(ScriptAsset->GetClass(), ScriptAsset->GetOuter(), *ScriptAsset->GetName(), RF_Public | RF_Standalone, *ResolvedSourceFilePath, NULL, this))
+	if (UFactory::StaticImportObject(ScriptClass->GetClass(), ScriptClass->GetOuter(), *ScriptClass->GetName(), RF_Public | RF_Standalone, *ResolvedSourceFilePath, NULL, this))
 	{
 		UE_LOG(LogScriptEditorPlugin, Log, TEXT("Imported successfully"));
 		// Try to find the outer package so we can dirty it up
-		if (ScriptAsset->GetOuter())
+		if (ScriptClass->GetOuter())
 		{
-			ScriptAsset->GetOuter()->MarkPackageDirty();
+			ScriptClass->GetOuter()->MarkPackageDirty();
 		}
 		else
 		{
-			ScriptAsset->MarkPackageDirty();
+			ScriptClass->MarkPackageDirty();
 		}
 	}
 	else

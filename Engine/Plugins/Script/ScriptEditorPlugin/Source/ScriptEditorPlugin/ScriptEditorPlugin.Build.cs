@@ -27,7 +27,11 @@ namespace UnrealBuildTool.Rules
 					"Engine",
 					"InputCore",
 					"UnrealEd",
-					"ScriptPlugin"
+					"AssetTools",
+					"ScriptPlugin",
+					"ClassViewer",
+					"KismetCompiler",
+					"Kismet"
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);

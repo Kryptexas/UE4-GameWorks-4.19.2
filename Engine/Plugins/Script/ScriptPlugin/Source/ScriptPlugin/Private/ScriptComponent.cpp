@@ -1,12 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 #include "ScriptPluginPrivatePCH.h"
 
-
 //////////////////////////////////////////////////////////////////////////
 
 UScriptComponent::UScriptComponent(const FPostConstructInitializeProperties& PCIP)
-	: Super( PCIP )
-{	
+	: Super(PCIP)
+{
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = false;
 	bAutoActivate = true;
@@ -18,21 +17,20 @@ UScriptComponent::UScriptComponent(const FPostConstructInitializeProperties& PCI
 void UScriptComponent::OnRegister()
 {
 	Super::OnRegister();
-	if (Script && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
-	{
-#if WITH_EDITOR
-		Script->UpdateAndCompile();
-#endif
-#if WITH_LUA
-		Context = new FLuaContext();
-#else
-		// @todo Create context here
-#endif
 
+	UScriptBlueprintGeneratedClass* ScriptClass = NULL;
+	for (UClass* MyClass = GetClass(); MyClass && !ScriptClass; MyClass = MyClass->GetSuperClass())
+	{
+		ScriptClass = Cast<UScriptBlueprintGeneratedClass>(MyClass);
+	}
+
+	if (ScriptClass && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
+	{
+		Context = ScriptClass->CreateContext();
 		if (Context)
 		{
 			bool bDoNotTick = true;
-			if (Context->Initialize(this))
+			if (Context->Initialize(ScriptClass->SourceCode, this))
 			{
 				bDoNotTick = !Context->CanTick();
 			}
@@ -73,4 +71,14 @@ void UScriptComponent::OnUnregister()
 	}
 
 	Super::OnUnregister();
+}
+
+bool UScriptComponent::CallScriptFunction(FString FunctionName)
+{
+	bool bSuccess = false;
+	if (Context)
+	{
+		bSuccess = Context->CallFunction(FunctionName);
+	}
+	return bSuccess;
 }

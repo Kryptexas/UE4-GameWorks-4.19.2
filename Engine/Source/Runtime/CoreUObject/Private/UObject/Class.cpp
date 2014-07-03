@@ -3347,11 +3347,6 @@ bool UClass::HotReloadPrivateStaticClass(
 }
 #endif
 
-/**
-* Add a native function to the internal native function table
-* @param	InName							name of the function
-* @param	InPointer						pointer to the function
-**/
 void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 {
 	FName InFName(InName);
@@ -3666,6 +3661,7 @@ void UFunction::Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL)
 		Obj = (UObject*)Obj->GetInterfaceAddress(OuterClass);
 	}
 
+	TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, this);
 	return (Obj->*Func)(Stack, Result);
 }
 

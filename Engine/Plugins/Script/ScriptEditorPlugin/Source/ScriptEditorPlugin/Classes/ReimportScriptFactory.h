@@ -8,13 +8,18 @@
 #include "ScriptFactory.h"
 #include "ReimportScriptFactory.generated.h"
 
-UCLASS(MinimalApi, collapsecategories)
+/**
+* Script Blueprint re-import factory
+*/
+UCLASS(MinimalApi, collapsecategories, EarlyAccessPreview)
 class UReimportScriptFactory : public UScriptFactory, public FReimportHandler
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	class UScriptAsset* OriginalScript;
+	class UScriptBlueprint* OriginalScript;
+
+	virtual bool ConfigureProperties() override;
 
 	// Begin FReimportHandler interface
 	virtual bool CanReimport(UObject* Obj, TArray<FString>& OutFilenames) override;

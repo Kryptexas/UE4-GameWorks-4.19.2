@@ -27,10 +27,22 @@ namespace UnrealBuildTool.Rules
 					"Core",
 					"CoreUObject",
 					"Engine",
-					"InputCore"
+					"InputCore",
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);
+
+			if (UEBuildConfiguration.bBuildEditor == true)
+			{
+
+				PublicDependencyModuleNames.AddRange(
+					new string[] 
+					{
+						"UnrealEd", 
+					}
+				);
+
+			}
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]

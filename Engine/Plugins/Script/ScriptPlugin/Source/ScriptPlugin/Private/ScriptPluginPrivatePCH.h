@@ -6,8 +6,11 @@
 #include "ModuleManager.h"
 #include "Engine.h"
 #include "ScriptComponent.h"
-#include "ScriptAsset.h"
 #include "ScriptTestActor.h"
+
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
 
 #if WITH_LUA
 #include "LuaIntegration.h"

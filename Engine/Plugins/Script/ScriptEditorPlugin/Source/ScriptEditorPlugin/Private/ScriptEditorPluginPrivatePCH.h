@@ -6,9 +6,16 @@
 #include "ModuleManager.h"
 #include "Engine.h"
 #include "UnrealEd.h"
-#include "ScriptAsset.h"
+#include "ScriptBlueprintGeneratedClass.h"
 #include "ScriptFactory.h"
 #include "ReimportScriptFactory.h"
+#include "AssetTypeActions_Base.h"
+#include "ScriptActor.h"
+#include "ScriptComponent.h"
+#include "ClassViewerModule.h"
+#include "ClassViewerFilter.h"
+#include "Kismet2/KismetEditorUtilities.h"
+#include "Kismet2/SClassPickerDialog.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptEditorPlugin, Log, All);
 

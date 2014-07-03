@@ -1136,9 +1136,9 @@ public:
 //
 // Reflection data for a replicated or Kismet callable function.
 //
-class UFunction : public UStruct
+class COREUOBJECT_API UFunction : public UStruct
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UFunction,UStruct,0,CoreUObject,CASTCLASS_UFunction,COREUOBJECT_API)
+	DECLARE_CASTED_CLASS_INTRINSIC(UFunction, UStruct, 0, CoreUObject, CASTCLASS_UFunction)
 	DECLARE_WITHIN(UClass)
 public:
 	// Persistent variables.
@@ -1191,7 +1191,7 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	COREUOBJECT_API explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
+	explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
 
 	void InitializeDerivedMembers();
 
@@ -1211,7 +1211,7 @@ public:
 		checkSlow(!SuperStruct||SuperStruct->IsA<UFunction>());
 		return (UFunction*)SuperStruct;
 	}
-	COREUOBJECT_API UProperty* GetReturnProperty();
+	UProperty* GetReturnProperty();
 
 	/**
 	 * Used to safely check whether the passed in flag is set.
@@ -1256,7 +1256,7 @@ public:
 	 *
 	 * @return	true if function signatures are compatible.
 	 */
-	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
+	bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
 
 	/**
 	 * Determines if two functions have an identical signature (note: currently doesn't allow
@@ -1268,7 +1268,7 @@ public:
 	 *
 	 * @return	true if function signatures are compatible.
 	 */
-	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
+	bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
 };
 
 /*-----------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 #include "ScriptPluginPrivatePCH.h"
 #include "LuaIntegration.h"
 #include "ScriptObjectReferencer.h"
+#include "ScriptActor.h"
 
 #if WITH_LUA
 
@@ -132,10 +133,18 @@ struct FLuaUObject
 	{
 		ULevel* Level = NULL;
 		UObject* This = (UObject*)lua_touserdata(LuaState, 1);
-		UActorComponent* ThisComponent = Cast<UActorComponent>(This);
-		if (ThisComponent && ThisComponent->GetOwner())
+		AActor* ThisActor = Cast<AActor>(This);
+		if (!ThisActor)
 		{
-			Level = ThisComponent->GetOwner()->GetLevel();
+			UActorComponent* ThisComponent = Cast<UActorComponent>(This);
+			if (ThisComponent)
+			{
+				ThisActor = ThisComponent->GetOwner();
+			}
+		}
+		if (ThisActor)
+		{
+			Level = ThisActor->GetLevel();
 		}
 		lua_pushlightuserdata(LuaState, Level);
 		return 1;
@@ -246,13 +255,43 @@ luaL_Reg FLuaUObject::UObject_Lib[] =
 	{ NULL, NULL }
 };
 
+FVector2D FLuaVector2D::Get(lua_State* LuaState, int ParamIndex)
+{
+	FVector2D Result;
+
+	luaL_checktype(LuaState, ParamIndex, LUA_TTABLE);
+
+	lua_rawgeti(LuaState, ParamIndex, 1);
+	int Top = lua_gettop(LuaState);
+	Result.X = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	lua_rawgeti(LuaState, ParamIndex, 2);
+	Top = lua_gettop(LuaState);
+	Result.Y = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	return Result;
+}
+
+void FLuaVector2D::Return(lua_State *LuaState, const FVector2D& Value)
+{
+	lua_newtable(LuaState);
+
+	lua_pushnumber(LuaState, Value.X);
+	lua_rawseti(LuaState, -2, 1);
+
+	lua_pushnumber(LuaState, Value.Y);
+	lua_rawseti(LuaState, -2, 2);
+}
+
 FVector FLuaVector::Get(lua_State* LuaState, int ParamIndex)
 {
 	FVector Result;
 
 	luaL_checktype(LuaState, ParamIndex, LUA_TTABLE);
 
-	lua_rawgeti(LuaState, ParamIndex, 1); 
+	lua_rawgeti(LuaState, ParamIndex, 1);
 	int Top = lua_gettop(LuaState);
 	Result.X = (float)lua_tonumber(LuaState, Top);
 	lua_pop(LuaState, 1);
@@ -290,7 +329,7 @@ FVector4 FLuaVector4::Get(lua_State *LuaState, int ParamIndex)
 
 	luaL_checktype(LuaState, ParamIndex, LUA_TTABLE);
 
-	lua_rawgeti(LuaState, ParamIndex, 1); 
+	lua_rawgeti(LuaState, ParamIndex, 1);
 	int Top = lua_gettop(LuaState);
 	Result.X = (float)lua_tonumber(LuaState, Top);
 	lua_pop(LuaState, 1);
@@ -336,7 +375,7 @@ FQuat FLuaQuat::Get(lua_State* LuaState, int ParamIndex)
 
 	luaL_checktype(LuaState, ParamIndex, LUA_TTABLE);
 
-	lua_rawgeti(LuaState, ParamIndex, 1); 
+	lua_rawgeti(LuaState, ParamIndex, 1);
 	int Top = lua_gettop(LuaState);
 	Result.X = (float)lua_tonumber(LuaState, Top);
 	lua_pop(LuaState, 1);
@@ -375,6 +414,53 @@ void FLuaQuat::Return(lua_State* LuaState, const FQuat& Quat)
 	lua_pushnumber(LuaState, Quat.W);
 	lua_rawseti(LuaState, -2, 4);
 }
+
+FLinearColor FLuaLinearColor::Get(lua_State *LuaState, int ParamIndex)
+{
+	FLinearColor Result;
+
+	luaL_checktype(LuaState, ParamIndex, LUA_TTABLE);
+
+	lua_rawgeti(LuaState, ParamIndex, 1);
+	int Top = lua_gettop(LuaState);
+	Result.R = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	lua_rawgeti(LuaState, ParamIndex, 2);
+	Top = lua_gettop(LuaState);
+	Result.G = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	lua_rawgeti(LuaState, ParamIndex, 3);
+	Top = lua_gettop(LuaState);
+	Result.B = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	lua_rawgeti(LuaState, ParamIndex, 4);
+	Top = lua_gettop(LuaState);
+	Result.A = (float)lua_tonumber(LuaState, Top);
+	lua_pop(LuaState, 1);
+
+	return Result;
+}
+
+void FLuaLinearColor::Return(lua_State* LuaState, const FLinearColor& Value)
+{
+	lua_newtable(LuaState);
+
+	lua_pushnumber(LuaState, Value.R);
+	lua_rawseti(LuaState, -2, 1);
+
+	lua_pushnumber(LuaState, Value.G);
+	lua_rawseti(LuaState, -2, 2);
+
+	lua_pushnumber(LuaState, Value.B);
+	lua_rawseti(LuaState, -2, 3);
+
+	lua_pushnumber(LuaState, Value.A);
+	lua_rawseti(LuaState, -2, 4);
+}
+
 
 template <typename T, typename R>
 static R GetVectorFromTable(lua_State *LuaState, int Index, const ANSICHAR* Key)
@@ -461,7 +547,7 @@ static void LuaOverridePrint(lua_State* LuaState)
 	lua_pop(LuaState, 1);
 }
 
-static void* LuaAlloc(void *Ud, void *Ptr, size_t OldSize, size_t NewSize) 
+static void* LuaAlloc(void *Ud, void *Ptr, size_t OldSize, size_t NewSize)
 {
 	if (NewSize != 0)
 	{
@@ -481,7 +567,7 @@ static int32 LuaPanic(lua_State *lua_State)
 }
 
 
-static lua_State* LuaNewState() 
+static lua_State* LuaNewState()
 {
 	lua_State* LuaState = lua_newstate(LuaAlloc, NULL);
 	if (LuaState)
@@ -504,17 +590,33 @@ FLuaContext::FLuaContext()
 , bHasBeginPlay(false)
 , LuaState(NULL)
 {
-};
+}
 
-bool FLuaContext::Initialize(UScriptComponent* Owner)
+FLuaContext::~FLuaContext()
 {
+	CloseLua();
+}
+
+void FLuaContext::CloseLua()
+{
+	if (LuaState)
+	{
+		lua_close(LuaState);
+		LuaState = NULL;
+	}
+}
+
+bool FLuaContext::Initialize(const FString& Code, UObject* Owner)
+{
+	CloseLua();
+
 	bool bResult = false;
 	LuaState = LuaNewState();
 	luaL_openlibs(LuaState);
 	LuaRegisterExportedClasses(LuaState);
 	LuaRegisterUnrealUtilities(LuaState);
 
-	if (luaL_loadstring(LuaState, TCHAR_TO_ANSI(*Owner->Script->SourceCode)) == 0)
+	if (luaL_loadstring(LuaState, TCHAR_TO_ANSI(*Code)) == 0)
 	{
 		// Set this pointer
 		lua_pushlightuserdata(LuaState, Owner);
@@ -530,7 +632,7 @@ bool FLuaContext::Initialize(UScriptComponent* Owner)
 	}
 	else
 	{
-		UE_LOG(LogScriptPlugin, Warning, TEXT("Cannot load Lua script %s for %s: %s"), *Owner->Script->GetName(), *Owner->GetPathName(), ANSI_TO_TCHAR(lua_tostring(LuaState, -1)));
+		UE_LOG(LogScriptPlugin, Warning, TEXT("Cannot load Lua script for %s: %s"), *Owner->GetPathName(), ANSI_TO_TCHAR(lua_tostring(LuaState, -1)));
 	}
 	return bResult;
 }
@@ -559,8 +661,7 @@ void FLuaContext::Destroy()
 			FLuaUtils::CallFunction(LuaState, "Destroy");
 		}
 
-		lua_close(LuaState);
-		LuaState = NULL;
+		CloseLua();
 	}
 }
 
@@ -569,5 +670,180 @@ bool FLuaContext::CanTick()
 	return bHasTick;
 }
 
+bool FLuaContext::CallFunction(const FString& FunctionName)
+{
+	check(LuaState);
+
+	bool bSuccess = FLuaUtils::DoesFunctionExist(LuaState, TCHAR_TO_ANSI(*FunctionName));
+	if (bSuccess)
+	{
+		bSuccess = FLuaUtils::CallFunction(LuaState, TCHAR_TO_ANSI(*FunctionName));
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT("Failed to call function '%s' "), *FunctionName);
+	}
+
+	return bSuccess;
+}
+
+bool FLuaContext::SetFloatVariable(const FString& GlobalVariable, float NewValue)
+{
+	check(LuaState);
+
+	bool bExists = false;
+
+	// Does the variable exist, and is it a number?
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	if (lua_isnumber(LuaState, lua_gettop(LuaState)))
+	{
+		bExists = true;
+	}
+
+	// Pop after getglobal, since no other lua function is popping the stack
+	lua_pop(LuaState, 1);
+
+	if (bExists)
+	{
+		lua_pushnumber(LuaState, NewValue);
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable)); // setglobal pops the stack for us
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *GlobalVariable);
+	}
+
+	return bExists;
+}
+
+float FLuaContext::GetFloatVariable(const FString& GlobalVariable)
+{
+	check(LuaState);
+
+	float Results = 0;
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+
+	if (lua_isnumber(LuaState, lua_gettop(LuaState)))
+	{
+		Results = (float)lua_tonumber(LuaState, -1); // -1 = top of stack
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *GlobalVariable);
+	}
+
+	lua_pop(LuaState, 1);
+	return Results;
+}
+
+bool FLuaContext::SetStringVariable(const FString& GlobalVariable, const FString& NewValue)
+{
+	check(LuaState);
+
+	bool bExists = false;
+
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	if (lua_isstring(LuaState, lua_gettop(LuaState)))
+	{
+		bExists = true;
+	}
+
+	lua_pop(LuaState, 1);
+
+	if (bExists)
+	{
+		lua_pushstring(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	}
+
+	UE_CLOG(!bExists, LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *GlobalVariable);
+	return bExists;
+}
+
+FString FLuaContext::GetStringVariable(const FString& GlobalVariable)
+{
+	check(LuaState);
+
+	FString Results = "";
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+
+	if (lua_isstring(LuaState, lua_gettop(LuaState)))
+	{
+		Results = (FString)lua_tostring(LuaState, -1);
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *GlobalVariable);
+	}
+
+	lua_pop(LuaState, 1);
+	return Results;
+}
+
+void FLuaContext::InvokeScriptFunction(FFrame& Stack, RESULT_DECL)
+{
+	P_FINISH;
+	CallFunction(Stack.CurrentNativeFunction->GetName());
+}
+
+#if WITH_EDITOR
+void FLuaContext::GetScriptDefinedFields(TArray<FScriptField>& OutFields)
+{
+	check(LuaState);
+
+	lua_pushglobaltable(LuaState);
+	lua_pushnil(LuaState);
+
+	while (lua_next(LuaState, -2) != 0)
+	{
+		int32 KeyType = lua_type(LuaState, -2);
+		if (KeyType != LUA_TSTRING)
+		{
+			lua_pop(LuaState, 1);
+			continue;
+		}
+
+		int32 ValueType = lua_type(LuaState, -1);
+		FString KeyName(ANSI_TO_TCHAR(lua_tostring(LuaState, -2)));
+		if (KeyName.Len() == 0 || KeyName.StartsWith("_") || KeyName == TEXT("this"))
+		{
+			lua_pop(LuaState, 1);
+			continue;
+		}
+
+		FScriptField PropertyInfo;
+		switch (ValueType)
+		{
+			case LUA_TNUMBER:
+				PropertyInfo.Class = UFloatProperty::StaticClass();
+				break;
+			case LUA_TSTRING:
+				PropertyInfo.Class = UStrProperty::StaticClass();
+				break;
+			case LUA_TBOOLEAN:
+				PropertyInfo.Class = UBoolProperty::StaticClass();
+				break;
+			case LUA_TNIL:
+			case LUA_TUSERDATA:
+				PropertyInfo.Class = UObjectProperty::StaticClass();
+				break;
+			case LUA_TFUNCTION:
+				if (KeyName.StartsWith(TEXT("Event")))
+				{
+					PropertyInfo.Class = UFunction::StaticClass();
+				}
+				break;
+		}
+
+		if (PropertyInfo.Class)
+		{
+			PropertyInfo.Name = FName(*KeyName);
+			OutFields.Add(PropertyInfo);
+		}
+
+		lua_pop(LuaState, 1);
+	}
+}
+#endif
 
 #endif // WITH_LUA
