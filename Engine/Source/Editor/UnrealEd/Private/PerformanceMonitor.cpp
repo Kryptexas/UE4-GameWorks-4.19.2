@@ -92,7 +92,7 @@ public:
 	/** Called to get the "Show notification" check box state */
 	static ESlateCheckBoxState::Type IsMonitoringPerformance()
 	{
-		const bool bMonitorEditorPerformance = GetDefault<ULevelEditorMiscSettings>()->bMonitorEditorPerformance;
+		const bool bMonitorEditorPerformance = GetDefault<UEditorUserSettings>()->bMonitorEditorPerformance;
 		return bMonitorEditorPerformance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
@@ -101,7 +101,7 @@ public:
 	{
 		const bool bNewEnabledState = (NewState == ESlateCheckBoxState::Checked);
 
-		auto* Settings = GetMutableDefault<ULevelEditorMiscSettings>();
+		auto* Settings = GetMutableDefault<UEditorUserSettings>();
 		Settings->bMonitorEditorPerformance = bNewEnabledState;
 		Settings->PostEditChange();
 	}
@@ -258,7 +258,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	FineMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 	CoarseMovingAverage.Tick(FPlatformTime::Seconds(), GAverageFPS);
 
-	const bool bMonitorEditorPerformance = GetDefault<ULevelEditorMiscSettings>()->bMonitorEditorPerformance;
+	const bool bMonitorEditorPerformance = GetDefault<UEditorUserSettings>()->bMonitorEditorPerformance;
 	if( !bMonitorEditorPerformance || !bIsNotificationAllowed )
 	{
 		return;

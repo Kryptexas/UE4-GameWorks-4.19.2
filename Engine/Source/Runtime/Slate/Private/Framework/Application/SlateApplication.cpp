@@ -483,7 +483,7 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
  */
 void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick )
 {
-	if ( WindowToTick->IsVisible() )
+	if ( WindowToTick->IsVisible() && !WindowToTick->IsWindowMinimized() )
 	{
 		// Switch to the appropriate world for ticking
 		FScopedSwitchWorldHack SwitchWorld( WindowToTick );
@@ -633,7 +633,7 @@ void FSlateApplication::DrawPrepass( TSharedPtr<SWindow> DrawOnlyThisWindow )
 		for (TArray< TSharedRef<SWindow> >::TConstIterator CurrentWindowIt(SlateWindows); CurrentWindowIt; ++CurrentWindowIt)
 		{
 			TSharedRef<SWindow> CurrentWindow = *CurrentWindowIt;
-			if (CurrentWindow->IsVisible())
+			if (CurrentWindow->IsVisible() && !CurrentWindow->IsWindowMinimized())
 			{
 				DrawWindowPrepass(CurrentWindow );
 			}
