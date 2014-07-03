@@ -16,17 +16,27 @@ struct FTemplateItem
 {
 	FText Name;
 	FText Description;
+	FString SortKey;
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> TemplateThumbnail;
 	bool bGenerateCode;
 
-	FTemplateItem(const FText& InName, const FText& InDescription, const TSharedPtr<FSlateBrush>& InTemplateThumbnail, bool InGenerateCode, const FString& InProjectFile)
+	FTemplateItem(const FText& InName, const FText& InDescription, const TSharedPtr<FSlateBrush>& InTemplateThumbnail, bool InGenerateCode, const FString& InSortKey, const FString& InProjectFile)
 		: Name(InName)
 		, Description(InDescription)
+		, SortKey(InSortKey)
 		, ProjectFile(InProjectFile)
 		, TemplateThumbnail(InTemplateThumbnail)
 		, bGenerateCode(InGenerateCode)
 	{}
+};
+
+struct FTemplateSortPredicate
+{
+	bool operator()(const TSharedPtr<FTemplateItem>& A, const TSharedPtr<FTemplateItem>& B) const
+	{
+		return A->SortKey < B->SortKey;
+	}
 };
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -891,6 +901,7 @@ void SNewProjectWizard::FindTemplateProjects()
 		LOCTEXT("BlankProjectDescription", "A clean empty project with no code."),
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BlankProjectThumbnail") ) ),
 		false,				// bGenerateCode
+		TEXT("_1"),			// SortKey
 		TEXT("")			// No filename, this is a generation template
 		)) );
 
@@ -899,6 +910,7 @@ void SNewProjectWizard::FindTemplateProjects()
 		LOCTEXT("BasicCodeProjectDescription", "An empty project with some basic game framework code classes created."),
 		MakeShareable( new FSlateBrush( *FEditorStyle::GetBrush("GameProjectDialog.BasicCodeThumbnail") ) ),
 		true,				// bGenerateCode
+		TEXT("_2"),			// SortKey
 		TEXT("")			// No filename, this is a generation template
 		)) );
 
@@ -975,14 +987,18 @@ void SNewProjectWizard::FindTemplateProjects()
 						DynamicBrush = MakeShareable( new FSlateDynamicImageBrush(BrushName , FVector2D(128,128) ) );
 					}
 
+					// Get the sort key
+					FString SortKey = TemplateDefs->SortKey;
+					if(SortKey.Len() == 0)
+					{
+						SortKey = FPaths::GetCleanFilename(ProjectFilename);
+					}
 					if (FPaths::GetCleanFilename(ProjectFilename) == GameProjectUtils::GetDefaultProjectTemplateFilename())
 					{
-						TemplateList.Insert(MakeShareable(new FTemplateItem(TemplateName, TemplateDescription, DynamicBrush, bGenerateCode, ProjectFilename)), 0);
+						SortKey = TEXT("_0");
 					}
-					else
-					{
-						TemplateList.Add(MakeShareable(new FTemplateItem(TemplateName, TemplateDescription, DynamicBrush, bGenerateCode, ProjectFilename)));
-					}
+
+					TemplateList.Add(MakeShareable(new FTemplateItem(TemplateName, TemplateDescription, DynamicBrush, bGenerateCode, SortKey, ProjectFilename)));
 				}
 			}
 			else
@@ -992,6 +1008,9 @@ void SNewProjectWizard::FindTemplateProjects()
 			}
 		}
 	}
+
+	// Sort the template folders
+	TemplateList.Sort(FTemplateSortPredicate());
 }
 
 
