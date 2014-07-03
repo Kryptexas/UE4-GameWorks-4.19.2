@@ -11,7 +11,7 @@ UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializePro
 {
 	//Default to high quality
 	MaterialQualityLevel = 1;
-
+	bMonitorEditorPerformance = true;
 	BlueprintFavorites = ConstructObject<UBlueprintPaletteFavorites>(UBlueprintPaletteFavorites::StaticClass(), this);
 }
 

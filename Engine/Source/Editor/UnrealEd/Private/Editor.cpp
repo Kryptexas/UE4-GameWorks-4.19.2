@@ -1450,34 +1450,40 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothing )
 {
-	const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
-	if( SuperMaxTickRate != 0.0f )
-	{
-		return SuperMaxTickRate;
-	}
-
 	float MaxTickRate = 0.0f;
-
-	// Clamp editor frame rate, even if smoothing is disabled
-	if( !bSmoothFrameRate && GIsEditor && !GIsPlayInEditorWorld )
+	if( !ShouldThrottleCPUUsage() )
 	{
-		MaxTickRate = 1.0f / DeltaTime;
-		if (SmoothedFrameRateRange.HasLowerBound())
+		const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
+		if( SuperMaxTickRate != 0.0f )
 		{
-			MaxTickRate = FMath::Max(MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue());
+			return SuperMaxTickRate;
 		}
-		if (SmoothedFrameRateRange.HasUpperBound())
+
+		// Clamp editor frame rate, even if smoothing is disabled
+		if( !bSmoothFrameRate && GIsEditor && !GIsPlayInEditorWorld )
 		{
-			MaxTickRate = FMath::Min(MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue());
+			MaxTickRate = 1.0f / DeltaTime;
+			if (SmoothedFrameRateRange.HasLowerBound())
+			{
+				MaxTickRate = FMath::Max(MaxTickRate, SmoothedFrameRateRange.GetLowerBoundValue());
+			}
+			if (SmoothedFrameRateRange.HasUpperBound())
+			{
+				MaxTickRate = FMath::Min(MaxTickRate, SmoothedFrameRateRange.GetUpperBoundValue());
+			}
+		}
+
+		// Laptops should throttle to 60 hz in editor to reduce battery drain
+		static const auto CVarDontLimitOnBattery = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DontLimitOnBattery"));
+		const bool bLimitOnBattery = (FPlatformMisc::IsRunningOnBattery() && CVarDontLimitOnBattery->GetValueOnGameThread() == 0);
+		if( bLimitOnBattery )
+		{
+			MaxTickRate = 60.0f;
 		}
 	}
-
-	// TTP 337189 - Laptops should throttle to 60 hz in editor to reduce battery drain
-	static const auto CVarDontLimitOnBattery = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.DontLimitOnBattery"));
-	const bool bLimitOnBattery = (FPlatformMisc::IsRunningOnBattery() && CVarDontLimitOnBattery->GetValueOnGameThread() == 0);
-	if( bLimitOnBattery )
+	else
 	{
-		MaxTickRate = 60.0f;
+		MaxTickRate = 3.0f;
 	}
 
 	return MaxTickRate;

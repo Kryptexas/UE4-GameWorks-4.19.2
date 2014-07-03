@@ -2061,10 +2061,7 @@ void FEngineLoop::Tick()
 
 		// Idle mode prevents ticking and rendering completely
 		const bool bIdleMode = ShouldUseIdleMode();
-
-		// Should we throttle CPU usage based on current state (usually in editor if we are minimized or not in foreground)
-		const bool bShouldThrottleCPU = GEngine->ShouldThrottleCPUUsage(); 
-		if (bIdleMode || bShouldThrottleCPU )
+		if (bIdleMode)
 		{
 			// Yield CPU time
 			FPlatformProcess::Sleep(.1f);

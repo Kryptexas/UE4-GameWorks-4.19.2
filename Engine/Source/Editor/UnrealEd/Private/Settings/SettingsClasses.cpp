@@ -134,7 +134,6 @@ ULevelEditorMiscSettings::ULevelEditorMiscSettings( const class FPostConstructIn
 	: Super(PCIP)
 {
 	bAutoApplyLightingEnable = true;
-	bMonitorEditorPerformance = true;
 }
 
 
