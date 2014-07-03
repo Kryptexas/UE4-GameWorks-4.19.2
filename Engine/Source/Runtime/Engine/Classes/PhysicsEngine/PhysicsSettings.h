@@ -48,6 +48,23 @@ namespace EFrictionCombineMode
 	};
 }
 
+UENUM()
+namespace ESettingsLockedAxis
+{
+	enum Type
+	{
+		/*No axis is locked*/
+		None,
+		/*Lock movement along the x-axis*/
+		X,
+		/*Lock movement along the y-axis*/
+		Y,
+		/*Lock movement along the z-axis*/
+		Z
+	};
+}
+
+
 /**
  * Implements project settings for the physics sub-system.
  */
@@ -72,6 +89,11 @@ class ENGINE_API UPhysicsSettings
 	/** Can 2D physics be used (Box2D)? */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bEnable2DPhysics;
+
+	/** Locks axis of movement for physical objects. (Useful for making 2D games in a 3D setting) */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	TEnumAsByte<ESettingsLockedAxis::Type> LockedAxis;
+	
 
 	/** Friction combine mode, controls how friction is computed for multiple materials. */
 	UPROPERTY(config, EditAnywhere, Category=Simulation)

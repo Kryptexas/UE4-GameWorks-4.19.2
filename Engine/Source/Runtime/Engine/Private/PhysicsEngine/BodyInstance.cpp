@@ -507,7 +507,16 @@ void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bU
 
 FVector FBodyInstance::GetLockedAxis() const
 {
-	ELockedAxis::Type MyLockedAxis = LockedAxisMode == ELockedAxis::Default ? ELockedAxis::None : LockedAxisMode;
+	ELockedAxis::Type MyLockedAxis = LockedAxisMode;
+	if (MyLockedAxis == ELockedAxis::Default)
+	{
+		ESettingsLockedAxis::Type SettingLockedAxis = UPhysicsSettings::Get()->LockedAxis;
+		if (SettingLockedAxis == ESettingsLockedAxis::X) MyLockedAxis = ELockedAxis::X;
+		if (SettingLockedAxis == ESettingsLockedAxis::Y) MyLockedAxis = ELockedAxis::Y;
+		if (SettingLockedAxis == ESettingsLockedAxis::Z) MyLockedAxis = ELockedAxis::Z;
+		if (SettingLockedAxis == ESettingsLockedAxis::None) MyLockedAxis = ELockedAxis::None;
+	}
+
 	switch (MyLockedAxis)
 	{
 	case ELockedAxis::None: return FVector::ZeroVector;
