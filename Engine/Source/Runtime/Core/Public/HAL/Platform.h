@@ -5,41 +5,6 @@
 ==================================================================================*/
 #pragma once
 
-#if PLATFORM_APPLE
-	#include <stddef.h> // needed for size_t
-#endif
-
-#include "GenericPlatform/GenericPlatform.h"
-
-//---------------------------------------------------------
-// Identify the current platform and include that header
-//---------------------------------------------------------
-
-//@port Identify the platform here and include the platform header to setup the platform types, etc
-#if PLATFORM_WINDOWS
-	#include "Windows/WIndowsPlatform.h"
-#elif PLATFORM_PS4
-	#include "PS4/PS4Platform.h"
-#elif PLATFORM_XBOXONE
-	#include "XboxOne/XboxOnePlatform.h"
-#elif PLATFORM_MAC
-	#include "Mac/MacPlatform.h"
-#elif PLATFORM_IOS
-	#include "IOS/IOSPlatform.h"
-#elif PLATFORM_ANDROID
-	#include "Android/AndroidPlatform.h"
-#elif PLATFORM_WINRT_ARM
-	#include "WinRT/WinRTARMPlatform.h"
-#elif PLATFORM_WINRT
-	#include "WinRT/WinRTPlatform.h"
-#elif PLATFORM_HTML5
-	#include "HTML5/HTML5Platform.h"
-#elif PLATFORM_LINUX
-	#include "Linux/LinuxPlatform.h"
-#else
-	#error Unknown Compiler
-#endif
-
 // define all other platforms to be zero
 //@port Define the platform here to be zero when compiling for other platforms
 #if !defined(PLATFORM_WINDOWS)
@@ -74,6 +39,51 @@
 #endif
 #if !defined(PLATFORM_LINUX)
 	#define PLATFORM_LINUX 0
+#endif
+
+// Platform specific compiler pre-setup.
+#if PLATFORM_WINDOWS
+	#include "Windows/WindowsPlatformCompilerPreSetup.h"
+#elif PLATFORM_MAC
+	#include "Mac/MacPlatformCompilerPreSetup.h"
+#endif
+
+// Generic compiler pre-setup.
+#include "GenericPlatform/GenericPlatformCompilerPreSetup.h"
+
+#if PLATFORM_APPLE
+	#include <stddef.h> // needed for size_t
+#endif
+
+#include "GenericPlatform/GenericPlatform.h"
+
+//---------------------------------------------------------
+// Identify the current platform and include that header
+//---------------------------------------------------------
+
+//@port Identify the platform here and include the platform header to setup the platform types, etc
+#if PLATFORM_WINDOWS
+	#include "Windows/WIndowsPlatform.h"
+#elif PLATFORM_PS4
+	#include "PS4/PS4Platform.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOnePlatform.h"
+#elif PLATFORM_MAC
+	#include "Mac/MacPlatform.h"
+#elif PLATFORM_IOS
+	#include "IOS/IOSPlatform.h"
+#elif PLATFORM_ANDROID
+	#include "Android/AndroidPlatform.h"
+#elif PLATFORM_WINRT_ARM
+	#include "WinRT/WinRTARMPlatform.h"
+#elif PLATFORM_WINRT
+	#include "WinRT/WinRTPlatform.h"
+#elif PLATFORM_HTML5
+	#include "HTML5/HTML5Platform.h"
+#elif PLATFORM_LINUX
+	#include "Linux/LinuxPlatform.h"
+#else
+	#error Unknown Compiler
 #endif
 
 //------------------------------------------------------------------
@@ -290,10 +300,6 @@
 // Backwater of the spec. All compilers support this except microsoft, and they will soon
 #ifndef TYPENAME_OUTSIDE_TEMPLATE
 	#define TYPENAME_OUTSIDE_TEMPLATE	typename
-#endif
-
-#ifndef EMIT_DEPRECATED_WARNING_MESSAGE
-	#define EMIT_DEPRECATED_WARNING_MESSAGE(Msg)
 #endif
 
 // Legacy method modifier macros.  You shouldn't use these macros in modern code.  Use the built-in keyword directly.
