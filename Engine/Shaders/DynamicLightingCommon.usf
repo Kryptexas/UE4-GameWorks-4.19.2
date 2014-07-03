@@ -64,9 +64,6 @@ float CalcLightAttenuation(float3 WorldPosition, out float3 WorldLightVector)
 	// Sphere falloff (technically just 1/d2 but this avoids inf)
 	DistanceAttenuation = 1 / ( DistanceSqr + 1 );
 	
-	// Correction for lumen units
-	DistanceAttenuation *= 16;
-	
 	float LightRadiusMask = Square( saturate( 1 - Square( DistanceSqr * DeferredLightUniforms.LightInvRadius * DeferredLightUniforms.LightInvRadius ) ) );
 	DistanceAttenuation *= LightRadiusMask;
 	

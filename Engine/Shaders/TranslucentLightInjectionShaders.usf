@@ -30,9 +30,6 @@ float CalcSimpleLightAttenuation(float3 WorldPosition)
 		// Sphere falloff (technically just 1/d2 but this avoids inf)
 		Attenuation = 1 / ( DistanceSqr + 1 );
 	
-		// Correction for lumen units
-		Attenuation *= 16;
-	
 		float LightRadiusMask = Square(saturate(1 - Square(DistanceSqr / (SimpleLightPositionAndRadius.w * SimpleLightPositionAndRadius.w))));
 		Attenuation *= LightRadiusMask;
 	}
