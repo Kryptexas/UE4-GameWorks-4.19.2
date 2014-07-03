@@ -31,7 +31,16 @@ void UPaperFlipbookActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor
 
 void UPaperFlipbookActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
-	checkf(false, TEXT("APaperFlipbookActor isn't blueprintable; how did you get here?"));
+	if (UPaperFlipbook* Flipbook = Cast<UPaperFlipbook>(Asset))
+	{
+		if (APaperFlipbookActor* TypedActor = Cast<APaperFlipbookActor>(CDO))
+		{
+			UPaperFlipbookComponent* RenderComponent = TypedActor->RenderComponent;
+			check(RenderComponent);
+
+			RenderComponent->SetFlipbook(Flipbook);
+		}
+	}
 }
 
 bool UPaperFlipbookActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
