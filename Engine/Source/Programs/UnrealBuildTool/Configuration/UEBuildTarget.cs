@@ -1111,6 +1111,13 @@ namespace UnrealBuildTool
 				NormalizedFileNames.Add(NormalizedFileName);
 			}
 
+			// Log the file list
+			Log.TraceInformation("Got {0} files", FileNames);
+			foreach(string NormalizedFileName in NormalizedFileNames)
+			{
+				Log.TraceInformation(" ExternalFile: {0}", NormalizedFileName);
+			}
+
 			// Add the existing filenames
 			if(UEBuildConfiguration.bMergeExternalFileList)
 			{
@@ -1125,6 +1132,12 @@ namespace UnrealBuildTool
 			FileList.FileNames.AddRange(NormalizedFileNames);
 			FileList.FileNames.Sort();
 			Utils.WriteClass<ExternalFileList>(FileList, FileListPath, "");
+
+			// Write the saved file list
+			foreach(string Line in File.ReadAllLines(FileListPath))
+			{
+				Log.TraceInformation(" ExternalFileXML: {0}", Line.TrimEnd());
+			}
 		}
 
 		/** Generates a public manifest file for writing out */
