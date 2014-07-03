@@ -3,6 +3,7 @@
 #include "ScriptEditorPluginPrivatePCH.h"
 #include "ScriptBlueprintCompiler.h"
 #include "KismetCompilerModule.h"
+#include "ScriptBlueprintEditor.h"
 
 DEFINE_LOG_CATEGORY(LogScriptEditorPlugin);
 

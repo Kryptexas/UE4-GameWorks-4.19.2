@@ -2,7 +2,7 @@
 #include "GameLiveStreamingModule.h"
 #include "QueryLiveStreamsCallbackProxy.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
-
+#include "IGameLiveStreaming.h"
 
 UQueryLiveStreamsCallbackProxy::UQueryLiveStreamsCallbackProxy( const FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)

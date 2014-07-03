@@ -6,6 +6,7 @@
 #include "WidgetBlueprintCompiler.h"
 #include "Kismet2NameValidators.h"
 #include "KismetReinstanceUtilities.h"
+#include "MovieScene.h"
 
 template<>
 FString FNetNameMapping::MakeBaseName<UWidgetGraphNode_Base>(const UWidgetGraphNode_Base* Net)
