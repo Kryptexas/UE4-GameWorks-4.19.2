@@ -641,7 +641,7 @@ namespace UnrealBuildTool.Linux
                 Writer.WriteLine("};");
             };
 
-            LinkAction.CommandArguments += string.Format(" -Wl,--version-script={0}", LinkerScriptPath);
+            LinkAction.CommandArguments += string.Format(" -Wl,--version-script=\"{0}\"", LinkerScriptPath);
 
             // Only execute linking on the local PC.
             LinkAction.bCanExecuteRemotely = false;
