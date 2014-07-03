@@ -53,7 +53,7 @@ public partial class Project : CommandUtils
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, bool Compressed)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
@@ -80,6 +80,7 @@ public partial class Project : CommandUtils
 		{
 			CmdLine += " -UTF8Output";
 		}
+        CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
 	}
@@ -407,7 +408,7 @@ public partial class Project : CommandUtils
 			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
 		}
 
-		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, Params.Compressed);
+        RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed);
 
 		// add the pak file as needing deployment and convert to lower case again if needed
 		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		

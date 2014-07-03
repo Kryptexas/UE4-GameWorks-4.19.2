@@ -364,6 +364,14 @@ namespace AutomationTool
 			return false;
 		}
 
+        /// <summary>
+        /// Returns platform specific command line options for UnrealPak
+        /// </summary>
+        public virtual string GetPlatformPakCommandLine()
+        {
+            return "";
+        }
+
 		#region Hooks
 
 		public virtual void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
