@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Scalability.h"
 #include "EditorGameAgnosticSettings.generated.h"
 
 UCLASS(config=EditorGameAgnostic)
@@ -28,10 +29,6 @@ class UEditorGameAgnosticSettings : public UObject
 	UPROPERTY(config)
 	bool bCopyStarterContentPreference;
 
-	/** When set this will prompt a benchmark to be ran on startup to determine the best scalability settings */
-	UPROPERTY(config)
-	bool bApplyAutoScalabilityOnStartup;
-
 	/** The id's of the surveys completed */
 	UPROPERTY(config)
 	TArray<FGuid> CompletedSurveys;
@@ -39,6 +36,12 @@ class UEditorGameAgnosticSettings : public UObject
 	/** The id's of the surveys currently in-progress */
 	UPROPERTY(config)
 	TArray<FGuid> InProgressSurveys;
+
+	/** Engine scalability benchmark results */
+	Scalability::FQualityLevels EngineBenchmarkResult;
+
+	/** Load the engine scalability benchmark results. Performs a benchmark if not yet valid. */
+	void LoadScalabilityBenchmark();
 
 	// Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
