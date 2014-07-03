@@ -7,7 +7,7 @@
 #include "IHttpRequest.h"
 #include "IHttpResponse.h"
 
-class FSurveyTitleCdnStorage : public IOnlineTitleFile
+class FSurveyTitleCdnStorage : public TSharedFromThis<FSurveyTitleCdnStorage, ESPMode::ThreadSafe>, public IOnlineTitleFile
 {
 public:
 	static IOnlineTitleFilePtr Create( const FString& IndexUrl );

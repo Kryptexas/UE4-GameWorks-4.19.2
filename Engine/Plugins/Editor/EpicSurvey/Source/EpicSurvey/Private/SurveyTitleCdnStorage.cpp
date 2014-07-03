@@ -88,7 +88,7 @@ bool FSurveyTitleCdnStorage::EnumerateFiles(const FPagedQuery& Page)
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 	EnumerateFilesRequests.Enqueue(&HttpRequest.Get());
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete);
+	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(AsShared(), &FSurveyTitleCdnStorage::EnumerateFiles_HttpRequestComplete);
 	HttpRequest->SetURL( IndexUrl );
 	HttpRequest->SetVerb(TEXT("GET"));
 	HttpRequest->ProcessRequest();
@@ -244,7 +244,7 @@ bool FSurveyTitleCdnStorage::ReadFile(const FString& FileName)
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 	FileRequests.Add(&HttpRequest.Get(), FPendingFileRequest(FileName));
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete);
+	HttpRequest->OnProcessRequestComplete().BindThreadSafeSP(AsShared(), &FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete);
 	HttpRequest->SetURL( FileName );
 	HttpRequest->SetVerb(TEXT("GET"));
 
