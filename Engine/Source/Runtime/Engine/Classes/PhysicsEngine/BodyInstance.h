@@ -195,7 +195,7 @@ public:
 	FVector CustomLockedAxis;
 
 	FVector GetLockedAxis() const;
-	void FBodyInstance::CreateDOFLock();
+	void CreateDOFLock();
 
 	FConstraintInstance DOFConstraint;
 
