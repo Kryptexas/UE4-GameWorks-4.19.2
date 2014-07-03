@@ -92,6 +92,25 @@ FAssetRegistry::FAssetRegistry()
 	// Listen for new content paths being added at runtime.  These are usually plugin-specific asset paths that
 	// will be loaded a bit later on.
 	FPackageName::OnContentPathMounted().AddRaw( this, &FAssetRegistry::OnContentPathMounted );
+
+	// Now collect all code generator classes (currently BlueprintCore-derived ones)
+	CollectCodeGeneratorClasses();
+}
+
+void FAssetRegistry::CollectCodeGeneratorClasses()
+{
+	// Work around the fact we don't reference Engine module directly
+	UClass* BlueprintCoreClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, TEXT("BlueprintCore")));
+	if (BlueprintCoreClass)
+	{
+		for (TObjectIterator<UClass> It; It; ++It)
+		{
+			if (It->IsChildOf(BlueprintCoreClass))
+			{
+				ClassGeneratorNames.Add(It->GetFName());
+			}
+		}
+	}
 }
 
 FAssetRegistry::~FAssetRegistry()
@@ -1548,7 +1567,7 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 	AssetAddedEvent.Broadcast(*AssetData);
 
 	// Populate the class map if adding blueprint
-	if ( AssetData->AssetClass == FName("Blueprint") )
+	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
 		FString* GeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 		FString* ParentClassPtr = AssetData->TagsAndValues.Find("ParentClass");
@@ -1637,7 +1656,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	}
 
 	// Update the class map if updating a blueprint
-	if ( AssetData->AssetClass == FName("Blueprint") )
+	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
 		FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 
@@ -1671,7 +1690,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		AssetRemovedEvent.Broadcast(*AssetData);
 
 		// Remove from the class map if removing a blueprint
-		if ( AssetData->AssetClass == FName("Blueprint") )
+		if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 		{
 			FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 

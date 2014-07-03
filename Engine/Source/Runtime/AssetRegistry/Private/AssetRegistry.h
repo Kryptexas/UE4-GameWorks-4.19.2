@@ -148,6 +148,9 @@ private:
 	void GetSubClasses(const TArray<FName>& InClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& SubClassNames) const;
 	void GetSubClasses_Recursive(FName InClassName, TSet<FName>& SubClassNames, const TMap<FName, TSet<FName>>& ReverseInheritanceMap, const TSet<FName>& ExcludedClassNames) const;	
 
+	/** Finds all class names of classes capable of generating new UClasses */
+	void CollectCodeGeneratorClasses();
+
 private:
 	/** The map of ObjectPath names to asset data for assets saved to disk */
 	TMap<FName, FAssetData*> CachedAssetsByObjectPath;
@@ -234,4 +237,7 @@ private:
 
 	/** A set used to ignore repeated requests to synchronously scan the same folder multiple times */
 	TSet<FString> SynchronouslyScannedPaths;
+
+	/** List of all class names derived from Blueprint (including Blueprint itself) */
+	TSet<FName> ClassGeneratorNames;
 };
