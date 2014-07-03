@@ -71,7 +71,11 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 
 	if (GEngine && GEngine->GetAudioDevice())
 	{
-		CalculatedResourceSize += GetCompressedDataSize(GEngine->GetAudioDevice()->GetRuntimeFormat(this));
+		// Don't add compressed data to size of streaming sounds
+		if (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming())
+		{
+			CalculatedResourceSize += GetCompressedDataSize(GEngine->GetAudioDevice()->GetRuntimeFormat(this));
+		}
 	}
 
 	return CalculatedResourceSize;
@@ -143,24 +147,30 @@ void USoundWave::Serialize( FArchive& Ar )
 
 	if (bCooked)
 	{
-		if (Ar.IsCooking())
+		// Only want to cook/load full data if we don't support streaming
+		if (!IsStreaming() ||
+			(Ar.IsLoading() && !FPlatformProperties::SupportsAudioStreaming()) ||
+			(Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
 		{
-#if WITH_ENGINE
-			TArray<FName> ActualFormatsToSave;
-			if (!Ar.CookingTarget()->IsServerOnly())
+			if (Ar.IsCooking())
 			{
-				// for now we only support one format per wav
-				FName Format = Ar.CookingTarget()->GetWaveFormat(this);
-				GetCompressedData(Format); // Get the data from the DDC or build it
+#if WITH_ENGINE
+				TArray<FName> ActualFormatsToSave;
+				if (!Ar.CookingTarget()->IsServerOnly())
+				{
+					// for now we only support one format per wav
+					FName Format = Ar.CookingTarget()->GetWaveFormat(this);
+					GetCompressedData(Format); // Get the data from the DDC or build it
 
-				ActualFormatsToSave.Add(Format);
-			}
-			CompressedFormatData.Serialize(Ar, this, &ActualFormatsToSave);
+					ActualFormatsToSave.Add(Format);
+				}
+				CompressedFormatData.Serialize(Ar, this, &ActualFormatsToSave);
 #endif
-		}
-		else
-		{
-			CompressedFormatData.Serialize(Ar, this);
+			}
+			else
+			{
+				CompressedFormatData.Serialize(Ar, this);
+			}
 		}
 	}
 	else
@@ -175,7 +185,12 @@ void USoundWave::Serialize( FArchive& Ar )
 	{
 		if (bCooked)
 		{
-			SerializeCookedPlatformData(Ar);
+			// only cook/load streaming data if it's supported
+			if ((Ar.IsLoading() && FPlatformProperties::SupportsAudioStreaming()) ||
+				(Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
+			{
+				SerializeCookedPlatformData(Ar);
+			}
 		}
 
 #if WITH_EDITORONLY_DATA	
@@ -330,7 +345,7 @@ void USoundWave::InitAudioResource( FByteBulkData& CompressedData )
 
 bool USoundWave::InitAudioResource(FName Format)
 {
-	if( !ResourceSize )
+	if( !ResourceSize && (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming()) )
 	{
 		FByteBulkData* Bulk = GetCompressedData(Format);
 		if (Bulk)

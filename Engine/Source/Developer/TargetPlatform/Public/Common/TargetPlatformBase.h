@@ -254,6 +254,9 @@ public:
 	{
 		switch (Feature)
 		{
+		case ETargetPlatformFeatures::AudioStreaming:
+			return TPlatformProperties::SupportsAudioStreaming();
+
 		case ETargetPlatformFeatures::DistanceFieldShadows:
 			return TPlatformProperties::SupportsDistanceFieldShadows();
 

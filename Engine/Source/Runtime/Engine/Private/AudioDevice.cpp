@@ -2291,7 +2291,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		const FSoundGroup& SoundGroup = GetDefault<USoundGroups>()->GetSoundGroup(SoundWave->SoundGroup);
 
 		// handle audio decompression
-		if (SupportsStreaming() && SoundWave->IsStreaming())
+		if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
 		{
 			SoundWave->DecompressionType = DTYPE_Streaming;
 		}

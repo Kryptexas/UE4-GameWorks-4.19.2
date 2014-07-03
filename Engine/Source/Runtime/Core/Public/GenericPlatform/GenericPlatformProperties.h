@@ -200,6 +200,14 @@ struct FGenericPlatformProperties
 		return true;
 	}
 
+	/**
+	 * Whether this platform supports streaming audio
+	 */
+	static FORCEINLINE bool SupportsAudioStreaming()
+	{
+		return false;
+	}
+
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
 		return true;

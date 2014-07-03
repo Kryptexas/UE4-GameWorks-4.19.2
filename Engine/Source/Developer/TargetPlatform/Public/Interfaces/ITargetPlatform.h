@@ -47,6 +47,9 @@ namespace ETargetPlatformFeatures
 	 */
 	enum Type
 	{
+		/** Audio Streaming */
+		AudioStreaming,
+
 		/** Distance field shadows. */
 		DistanceFieldShadows,
 

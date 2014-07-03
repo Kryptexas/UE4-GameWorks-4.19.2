@@ -116,11 +116,6 @@ class FXAudio2Device : public FAudioDevice
 		return true;
 	}
 
-	virtual bool SupportsStreaming() const override
-	{
-		return true;
-	}
-
 	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) override;
 
 	/** 
