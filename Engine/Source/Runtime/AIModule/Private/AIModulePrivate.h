@@ -27,6 +27,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/Engine.h"
 #include "TimerManager.h"					// Game play timers
+#include "EngineUtils.h"
 
 //----------------------------------------------------------------------//
 // AIModule headers
