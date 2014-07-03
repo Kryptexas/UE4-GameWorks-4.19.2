@@ -117,11 +117,15 @@ void FTwitchLiveStreaming::StartupModule()
 	}
 
 	// Register our custom project settings
-	ISettingsModule::Get()->RegisterSettings(
-		"Project", "Plugins", "Twitch",
-		LOCTEXT( "TwitchSettingsName", "Twitch" ),
-		LOCTEXT( "TwitchSettingsDescription", "Twitch game broadcasting settings" ),
-		GetMutableDefault< UTwitchProjectSettings >() );
+	ISettingsModule* SettingsModule = ISettingsModule::Get();
+	if( SettingsModule != nullptr )
+	{
+		SettingsModule->RegisterSettings(
+			"Project", "Plugins", "Twitch",
+			LOCTEXT( "TwitchSettingsName", "Twitch" ),
+			LOCTEXT( "TwitchSettingsDescription", "Twitch game broadcasting settings" ),
+			GetMutableDefault< UTwitchProjectSettings >() );
+	}
 
 	// Register as a modular feature
 	IModularFeatures::Get().RegisterModularFeature( TEXT( "LiveStreaming" ), this );

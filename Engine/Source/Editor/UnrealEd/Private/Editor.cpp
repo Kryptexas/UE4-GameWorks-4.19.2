@@ -551,10 +551,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-		FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 
 		if (!IsRunningCommandlet())
 		{
+			FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		}
 
