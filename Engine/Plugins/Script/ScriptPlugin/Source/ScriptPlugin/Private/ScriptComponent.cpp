@@ -18,12 +18,7 @@ void UScriptComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	UScriptBlueprintGeneratedClass* ScriptClass = NULL;
-	for (UClass* MyClass = GetClass(); MyClass && !ScriptClass; MyClass = MyClass->GetSuperClass())
-	{
-		ScriptClass = Cast<UScriptBlueprintGeneratedClass>(MyClass);
-	}
-
+	auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
 	if (ScriptClass && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
 	{
 		Context = ScriptClass->CreateContext();
@@ -33,7 +28,10 @@ void UScriptComponent::OnRegister()
 			if (Context->Initialize(ScriptClass->SourceCode, this))
 			{
 				bDoNotTick = !Context->CanTick();
+				// Push values set by CDO
+				Context->PushScriptPropertyValues(ScriptClass, this);
 			}
+
 			if (bDoNotTick)
 			{
 				bAutoActivate = false;
@@ -48,7 +46,10 @@ void UScriptComponent::InitializeComponent()
 	Super::InitializeComponent();
 	if (Context)
 	{
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+		Context->PushScriptPropertyValues(ScriptClass, this);
 		Context->BeginPlay();
+		Context->FetchScriptPropertyValues(ScriptClass, this);
 	}
 }
 
@@ -57,7 +58,10 @@ void UScriptComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (Context)
 	{
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+		Context->PushScriptPropertyValues(ScriptClass, this);
 		Context->Tick(DeltaTime);
+		Context->FetchScriptPropertyValues(ScriptClass, this);
 	}
 };
 
@@ -78,7 +82,10 @@ bool UScriptComponent::CallScriptFunction(FString FunctionName)
 	bool bSuccess = false;
 	if (Context)
 	{
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+		Context->PushScriptPropertyValues(ScriptClass, this);
 		bSuccess = Context->CallFunction(FunctionName);
+		Context->FetchScriptPropertyValues(ScriptClass, this);
 	}
 	return bSuccess;
 }

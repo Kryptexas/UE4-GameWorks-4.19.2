@@ -5,6 +5,8 @@
 #include "Engine/BlueprintGeneratedClass.h"
 #include "ScriptBlueprintGeneratedClass.generated.h"
 
+class UScriptBlueprintGeneratedClass;
+
 /**
 * Script-defined field (variable or function)
 */
@@ -30,6 +32,8 @@ struct FScriptField
 class FScriptContextBase
 {
 public:
+	virtual ~FScriptContextBase() {}
+
 	/**
 	 * Initializes script context given script code
 	 * @param Code Script code
@@ -63,10 +67,18 @@ public:
 	*/
 	virtual bool CallFunction(const FString&  FunctionName) = 0;
 
-	virtual bool SetFloatVariable(const FString&  GlobalVariable, float NewValue) = 0;
-	virtual float GetFloatVariable(const FString&  GlobalVariable) = 0;
-	virtual bool SetStringVariable(const FString&  GlobalVariable, const FString& NewValue) = 0;
-	virtual FString GetStringVariable(const FString&  GlobalVariable) = 0;
+	// Property accessors
+
+	virtual bool SetFloatProperty(const FString& PropertyName, float NewValue) = 0;
+	virtual float GetFloatProperty(const FString& PropertyName) = 0;
+	virtual bool SetIntProperty(const FString& PropertyName, int32 NewValue) = 0;
+	virtual int32 GetIntProperty(const FString& PropertyName) = 0;
+	virtual bool SetObjectProperty(const FString& PropertyName, UObject* NewValue) = 0;
+	virtual UObject* GetObjectProperty(const FString& PropertyName) = 0;
+	virtual bool SetBoolProperty(const FString& PropertyName, bool NewValue) = 0;
+	virtual bool GetBoolProperty(const FString& PropertyName) = 0;
+	virtual bool SetStringProperty(const FString& PropertyName, const FString& NewValue) = 0;
+	virtual FString GetStringProperty(const FString& PropertyName) = 0;
 
 	/**
 	* Invokes script function from Blueprint code
@@ -75,12 +87,22 @@ public:
 
 #if WITH_EDITOR
 	/**
-	* Returns a list of exported fields from the script (member variables and functions).
+	* Returns a list of exported fields from script (member variables and functions).
 	*/
 	virtual void GetScriptDefinedFields(TArray<FScriptField>& OutFields) = 0;
 #endif
 
-	virtual ~FScriptContextBase() {}
+	// Utilities
+
+	/**
+	* Pushes all property values from class instance to script.
+	*/
+	virtual void PushScriptPropertyValues(UScriptBlueprintGeneratedClass* Class, const UObject* Obj);
+
+	/**
+	* Fetches all property values from script to class instance.
+	*/
+	virtual void FetchScriptPropertyValues(UScriptBlueprintGeneratedClass* Class, UObject* Obj);	
 };
 
 /**
@@ -99,8 +121,13 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	UPROPERTY()
 	FString SourceCode;
 
+	/** Script-generated properties */
+	UPROPERTY()
+	TArray<UProperty*> ScriptProperties;
+
 	virtual void PostInitProperties() override;
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
 
 	/**
 	 * Creates a script context object
@@ -119,4 +146,18 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	* @param InName Name of the native function
 	*/
 	void RemoveNativeFunction(const FName& InName);
+
+	/**
+	* Gets UScriptBlueprintGeneratedClass from class hierarchy
+	* @return UScriptBlueprintGeneratedClass or NULL
+	*/
+	FORCEINLINE static UScriptBlueprintGeneratedClass* GetScriptGeneratedClass(UClass* InClass)
+	{
+		UScriptBlueprintGeneratedClass* ScriptClass = NULL;
+		for (UClass* MyClass = InClass; MyClass && !ScriptClass; MyClass = MyClass->GetSuperClass())
+		{
+			ScriptClass = Cast<UScriptBlueprintGeneratedClass>(MyClass);
+		}
+		return ScriptClass;
+	}
 };

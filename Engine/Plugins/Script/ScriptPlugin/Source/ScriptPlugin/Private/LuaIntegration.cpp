@@ -687,14 +687,14 @@ bool FLuaContext::CallFunction(const FString& FunctionName)
 	return bSuccess;
 }
 
-bool FLuaContext::SetFloatVariable(const FString& GlobalVariable, float NewValue)
+bool FLuaContext::SetFloatProperty(const FString& PropertyName, float NewValue)
 {
 	check(LuaState);
 
 	bool bExists = false;
 
-	// Does the variable exist, and is it a number?
-	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	// Does the Property exist, and is it a number?
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
 	if (lua_isnumber(LuaState, lua_gettop(LuaState)))
 	{
 		bExists = true;
@@ -706,22 +706,22 @@ bool FLuaContext::SetFloatVariable(const FString& GlobalVariable, float NewValue
 	if (bExists)
 	{
 		lua_pushnumber(LuaState, NewValue);
-		lua_setglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable)); // setglobal pops the stack for us
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*PropertyName)); // setglobal pops the stack for us
 	}
 	else
 	{
-		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *GlobalVariable);
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
 	}
 
 	return bExists;
 }
 
-float FLuaContext::GetFloatVariable(const FString& GlobalVariable)
+float FLuaContext::GetFloatProperty(const FString& PropertyName)
 {
 	check(LuaState);
 
 	float Results = 0;
-	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
 
 	if (lua_isnumber(LuaState, lua_gettop(LuaState)))
 	{
@@ -729,20 +729,128 @@ float FLuaContext::GetFloatVariable(const FString& GlobalVariable)
 	}
 	else
 	{
-		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *GlobalVariable);
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
 	}
 
 	lua_pop(LuaState, 1);
 	return Results;
 }
 
-bool FLuaContext::SetStringVariable(const FString& GlobalVariable, const FString& NewValue)
+bool FLuaContext::SetIntProperty(const FString& PropertyName, int32 NewValue)
+{
+	return SetFloatProperty(PropertyName, (float)NewValue);
+}
+
+int32 FLuaContext::GetIntProperty(const FString& PropertyName)
+{
+	return FMath::TruncToInt(GetFloatProperty(PropertyName));
+}
+
+bool FLuaContext::SetObjectProperty(const FString& PropertyName, UObject* NewValue)
 {
 	check(LuaState);
 
 	bool bExists = false;
 
-	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	// Does the Property exist, and is it a number?
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
+	if (lua_islightuserdata(LuaState, lua_gettop(LuaState)))
+	{
+		bExists = true;
+	}
+
+	// Pop after getglobal, since no other lua function is popping the stack
+	lua_pop(LuaState, 1);
+
+	if (bExists)
+	{
+		lua_pushlightuserdata(LuaState, NewValue);
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*PropertyName)); // setglobal pops the stack for us
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
+	}
+
+	return bExists;
+}
+
+UObject* FLuaContext::GetObjectProperty(const FString& PropertyName)
+{
+	check(LuaState);
+
+	UObject* Results = NULL;
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
+
+	if (lua_islightuserdata(LuaState, lua_gettop(LuaState)))
+	{
+		Results = (UObject*)lua_touserdata(LuaState, -1); // -1 = top of stack
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
+	}
+
+	lua_pop(LuaState, 1);
+	return Results;
+}
+
+bool FLuaContext::SetBoolProperty(const FString& PropertyName, bool NewValue)
+{
+	check(LuaState);
+
+	bool bExists = false;
+
+	// Does the Property exist, and is it a number?
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
+	if (lua_isboolean(LuaState, lua_gettop(LuaState)))
+	{
+		bExists = true;
+	}
+
+	// Pop after getglobal, since no other lua function is popping the stack
+	lua_pop(LuaState, 1);
+
+	if (bExists)
+	{
+		lua_pushboolean(LuaState, (int32)NewValue);
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*PropertyName)); // setglobal pops the stack for us
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
+	}
+
+	return bExists;
+}
+
+bool FLuaContext::GetBoolProperty(const FString& PropertyName)
+{
+	check(LuaState);
+
+	bool Results = false;
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
+
+	if (lua_isboolean(LuaState, lua_gettop(LuaState)))
+	{
+		Results = !!lua_toboolean(LuaState, -1); // -1 = top of stack
+	}
+	else
+	{
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is NaN. "), *PropertyName);
+	}
+
+	lua_pop(LuaState, 1);
+	return Results;
+}
+
+bool FLuaContext::SetStringProperty(const FString& PropertyName, const FString& NewValue)
+{
+	check(LuaState);
+
+	bool bExists = false;
+
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
 	if (lua_isstring(LuaState, lua_gettop(LuaState)))
 	{
 		bExists = true;
@@ -752,20 +860,20 @@ bool FLuaContext::SetStringVariable(const FString& GlobalVariable, const FString
 
 	if (bExists)
 	{
-		lua_pushstring(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
-		lua_setglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+		lua_pushstring(LuaState, TCHAR_TO_ANSI(*PropertyName));
+		lua_setglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
 	}
 
-	UE_CLOG(!bExists, LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *GlobalVariable);
+	UE_CLOG(!bExists, LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *PropertyName);
 	return bExists;
 }
 
-FString FLuaContext::GetStringVariable(const FString& GlobalVariable)
+FString FLuaContext::GetStringProperty(const FString& PropertyName)
 {
 	check(LuaState);
 
 	FString Results = "";
-	lua_getglobal(LuaState, TCHAR_TO_ANSI(*GlobalVariable));
+	lua_getglobal(LuaState, TCHAR_TO_ANSI(*PropertyName));
 
 	if (lua_isstring(LuaState, lua_gettop(LuaState)))
 	{
@@ -773,7 +881,7 @@ FString FLuaContext::GetStringVariable(const FString& GlobalVariable)
 	}
 	else
 	{
-		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *GlobalVariable);
+		UE_LOG(LogScriptPlugin, Warning, TEXT(" [LUA] Global '%s' is not a String. "), *PropertyName);
 	}
 
 	lua_pop(LuaState, 1);

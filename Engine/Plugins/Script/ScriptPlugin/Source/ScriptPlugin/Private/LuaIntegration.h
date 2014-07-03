@@ -31,11 +31,18 @@ public:
 	virtual void Destroy() override;
 	virtual bool CanTick() override;
 
-	virtual bool CallFunction(const FString&  FunctionName) override;
-	virtual bool SetFloatVariable(const FString&  GlobalVariable, float NewValue) override;
-	virtual float GetFloatVariable(const FString&  GlobalVariable) override;
-	virtual bool SetStringVariable(const FString&  GlobalVariable, const FString& NewValue) override;
-	virtual FString GetStringVariable(const FString&  GlobalVariable) override;
+	virtual bool SetFloatProperty(const FString& PropertyName, float NewValue) override;
+	virtual float GetFloatProperty(const FString& PropertyName) override;
+	virtual bool SetIntProperty(const FString& PropertyName, int32 NewValue) override;
+	virtual int32 GetIntProperty(const FString& PropertyName) override;
+	virtual bool SetObjectProperty(const FString& PropertyName, UObject* NewValue) override;
+	virtual UObject* GetObjectProperty(const FString& PropertyName) override;
+	virtual bool SetBoolProperty(const FString& PropertyName, bool NewValue) override;
+	virtual bool GetBoolProperty(const FString& PropertyName) override;
+	virtual bool SetStringProperty(const FString& PropertyName, const FString& NewValue) override;
+	virtual FString GetStringProperty(const FString& PropertyName) override;
+
+	virtual bool CallFunction(const FString& FunctionName) override;
 	virtual void InvokeScriptFunction(FFrame& Stack, RESULT_DECL) override;
 
 #if WITH_EDITOR

@@ -59,3 +59,75 @@ void UScriptBlueprintGeneratedClass::RemoveNativeFunction(const FName& InName)
 		}
 	}
 }
+
+void UScriptBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
+{
+	Super::PurgeClass(bRecompilingOnLoad);
+	ScriptProperties.Empty();
+}
+
+void FScriptContextBase::PushScriptPropertyValues(UScriptBlueprintGeneratedClass* Class, const UObject* Obj)
+{
+	// @todo: optimize this
+	for (auto Property : Class->ScriptProperties)
+	{
+		if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(Property))
+		{
+			float Value = FloatProperty->GetFloatingPointPropertyValue(Property->ContainerPtrToValuePtr<float>(Obj));
+			SetFloatProperty(Property->GetName(), Value);
+		}
+		else if (UIntProperty* IntProperty = Cast<UIntProperty>(Property))
+		{
+			int32 Value = IntProperty->GetSignedIntPropertyValue(Property->ContainerPtrToValuePtr<int32>(Obj));
+			SetIntProperty(Property->GetName(), Value);
+		}
+		else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property))
+		{
+			bool Value = BoolProperty->GetPropertyValue(Property->ContainerPtrToValuePtr<void>(Obj));
+			SetBoolProperty(Property->GetName(), Value);
+		}
+		else if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
+		{
+			UObject* Value = ObjectProperty->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Obj));
+			SetObjectProperty(Property->GetName(), Value);
+		}
+		else if (UStrProperty* StringProperty = Cast<UStrProperty>(Property))
+		{
+			FString Value = StringProperty->GetPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Obj));
+			SetStringProperty(Property->GetName(), Value);
+		}
+	}
+}
+
+void FScriptContextBase::FetchScriptPropertyValues(UScriptBlueprintGeneratedClass* Class, UObject* Obj)
+{
+	// @todo: optimize this
+	for (auto Property : Class->ScriptProperties)
+	{
+		if (UFloatProperty* FloatProperty = Cast<UFloatProperty>(Property))
+		{
+			float Value = GetFloatProperty(Property->GetName());
+			FloatProperty->SetFloatingPointPropertyValue(Property->ContainerPtrToValuePtr<float>(Obj), Value);
+		}
+		else if (UIntProperty* IntProperty = Cast<UIntProperty>(Property))
+		{
+			int32 Value = GetIntProperty(Property->GetName());
+			IntProperty->SetPropertyValue(Property->ContainerPtrToValuePtr<int32>(Obj), Value);
+		}
+		else if (UBoolProperty* BoolProperty = Cast<UBoolProperty>(Property))
+		{
+			bool Value = GetBoolProperty(Property->GetName());
+			BoolProperty->SetPropertyValue(Property->ContainerPtrToValuePtr<float>(Obj), Value);
+		}
+		else if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
+		{
+			UObject* Value = GetObjectProperty(Property->GetName());
+			ObjectProperty->SetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Obj), Value);
+		}
+		else if (UStrProperty* StringProperty = Cast<UStrProperty>(Property))
+		{
+			FString Value = GetStringProperty(Property->GetName());
+			StringProperty->SetPropertyValue(Property->ContainerPtrToValuePtr<FString>(Obj), Value);
+		}
+	}
+}

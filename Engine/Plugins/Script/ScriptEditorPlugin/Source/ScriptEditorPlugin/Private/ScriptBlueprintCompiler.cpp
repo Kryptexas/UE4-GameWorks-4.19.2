@@ -38,6 +38,8 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 	Super::CreateClassVariablesFromBlueprint();
 
 	UScriptBlueprint* Blueprint = ScriptBlueprint();
+	UScriptBlueprintGeneratedClass* NewScripClass = CastChecked<UScriptBlueprintGeneratedClass>(NewClass);
+	NewScripClass->ScriptProperties.Empty();
 
 	for (auto& Field : ScriptDefinedFields)
 	{
@@ -84,7 +86,8 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 				if (ScriptProperty != NULL)
 				{
 					ScriptProperty->SetMetaData(TEXT("Category"), *Blueprint->GetName());
-					ScriptProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_Edit);
+					ScriptProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_Edit);					
+					NewScripClass->ScriptProperties.Add(ScriptProperty);
 				}
 			}
 		}

@@ -34,12 +34,7 @@ void AScriptActor::OnConstruction(const FTransform& Transform)
 
 	if (!ScriptContext)
 	{
-		UScriptBlueprintGeneratedClass* ScriptClass = NULL;
-		for (UClass* MyClass = GetClass(); MyClass && !ScriptClass; MyClass = MyClass->GetSuperClass())
-		{
-			ScriptClass = Cast<UScriptBlueprintGeneratedClass>(MyClass);
-		}
-
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
 		bool Result = true;
 		if (ScriptClass)
 		{
@@ -53,6 +48,11 @@ void AScriptActor::OnConstruction(const FTransform& Transform)
 				delete ScriptContext;
 				ScriptContext = NULL;
 			}
+			else
+			{
+				// Push values set by CDO
+				ScriptContext->PushScriptPropertyValues(ScriptClass, this);
+			}
 		}
 	}
 }
@@ -63,7 +63,10 @@ void AScriptActor::BeginPlay()
 
 	if (ScriptContext && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
 	{
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+		ScriptContext->PushScriptPropertyValues(ScriptClass, this);
 		ScriptContext->BeginPlay();
+		ScriptContext->FetchScriptPropertyValues(ScriptClass, this);
 		SetActorTickEnabled(ScriptContext->CanTick());
 	}
 }
@@ -73,7 +76,10 @@ void AScriptActor::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFun
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
 	if (ScriptContext && ScriptContext->CanTick())
 	{
+		auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+		ScriptContext->PushScriptPropertyValues(ScriptClass, this);
 		ScriptContext->Tick(DeltaTime);
+		ScriptContext->FetchScriptPropertyValues(ScriptClass, this);
 	}
 }
 
@@ -90,5 +96,8 @@ void AScriptActor::ReceiveEndPlay(EEndPlayReason::Type EndPlayReason)
 void AScriptActor::InvokeScriptFunction(FFrame& Stack, RESULT_DECL)
 {
 	check(ScriptContext);
+	auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
+	ScriptContext->PushScriptPropertyValues(ScriptClass, this);
 	ScriptContext->InvokeScriptFunction(Stack, Result);
+	ScriptContext->FetchScriptPropertyValues(ScriptClass, this);
 }
