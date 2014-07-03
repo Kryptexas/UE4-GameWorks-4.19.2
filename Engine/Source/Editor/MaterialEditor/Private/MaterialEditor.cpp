@@ -470,6 +470,7 @@ FMaterialEditor::FMaterialEditor()
 	, ScopedTransaction(NULL)
 	, bAlwaysRefreshAllPreviews(false)
 	, bHideUnusedConnectors(false)
+	, bLivePreview(false)
 	, bIsRealtime(false)
 	, bShowStats(true)
 	, bShowBuiltinStats(false)
@@ -707,7 +708,8 @@ void FMaterialEditor::ExtendToolbar()
 			{
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().CameraHome);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().CleanUnusedExpressions);
-				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ShowHideConnectors);
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ShowHideConnectors); 
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleLivePreview);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleRealtimeExpressions);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().AlwaysRefreshAllPreviews);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMaterialStats);
@@ -993,6 +995,7 @@ void FMaterialEditor::LoadEditorSettings()
 	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
 	
 	if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
+	if (EditorOptions->bLivePreview) {ToggleLivePreview();}
 	if (EditorOptions->bAlwaysRefreshAllPreviews) {OnAlwaysRefreshAllPreviews();}
 	if (EditorOptions->bRealtimeExpressionViewport) {ToggleRealTimeExpressions();}
 
@@ -1044,6 +1047,9 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
 		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
 		EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
+		EditorOptions->bLivePreview			= IsToggleLivePreviewChecked();
+		EditorOptions->bShowBuiltinStats 		= IsToggleBuiltinStatsChecked();
+		EditorOptions->bReleaseStats 			= IsToggleReleaseStatsChecked();
 		EditorOptions->SaveConfig();
 	}
 
@@ -1117,8 +1123,14 @@ void FMaterialEditor::RegenerateCodeView()
 	}
 }
 
-void FMaterialEditor::UpdatePreviewMaterial( )
+void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 {
+	if (!bLivePreview && !bForce)
+	{
+		//Don't update the preview material
+		return;
+	}
+
 	bStatsFromPreviewMaterial = true;
 
 	if( PreviewExpression && ExpressionPreviewMaterial )
@@ -1223,7 +1235,8 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	FlushShaderFileCache();
 
 	//recompile and refresh the preview material so it will be updated if there was a shader change
-	UpdatePreviewMaterial();
+	//Force it even if bLivePreview is false.
+	UpdatePreviewMaterial(true);
 
 	const FScopedBusyCursor BusyCursor;
 
@@ -1672,6 +1685,12 @@ void FMaterialEditor::BindCommands()
 		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnShowConnectorsChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.ToggleLivePreview,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleLivePreview),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleLivePreviewChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleRealtimeExpressions,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleRealTimeExpressions),
 		FCanExecuteAction(),
@@ -1790,6 +1809,20 @@ void FMaterialEditor::OnShowConnectors()
 bool FMaterialEditor::IsOnShowConnectorsChecked() const
 {
 	return bHideUnusedConnectors == false;
+}
+
+void FMaterialEditor::ToggleLivePreview()
+{
+	bLivePreview = !bLivePreview;
+	if (bLivePreview)
+	{
+		UpdatePreviewMaterial();
+	}
+}
+
+bool FMaterialEditor::IsToggleLivePreviewChecked() const
+{
+	return bLivePreview;
 }
 
 void FMaterialEditor::ToggleRealTimeExpressions()

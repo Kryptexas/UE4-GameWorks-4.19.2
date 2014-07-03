@@ -76,6 +76,9 @@ public:
 	/** Shows or hides unused connectors */
 	TSharedPtr< FUICommandInfo > ShowHideConnectors;
 	
+	/** Toggles live updating of the preview material. */
+	TSharedPtr< FUICommandInfo > ToggleLivePreview;
+
 	/** Toggles real time expression nodes */
 	TSharedPtr< FUICommandInfo > ToggleRealtimeExpressions;
 	

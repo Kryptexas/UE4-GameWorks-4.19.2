@@ -501,7 +501,7 @@ void UMaterialExpression::PostEditChangeProperty(FPropertyChangedEvent& Property
 	{
 		// Don't recompile the outer material if we are in the middle of a transaction or interactively changing properties
 		// as there may be many expressions in the transaction buffer and we would just be recompiling over and over again.
-		if (Material)
+		if (Material && !Material->bIsPreviewMaterial)
 		{
 			Material->PreEditChange(NULL);
 			Material->PostEditChange();

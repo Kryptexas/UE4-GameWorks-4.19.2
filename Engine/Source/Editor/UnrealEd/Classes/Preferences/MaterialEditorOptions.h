@@ -38,6 +38,10 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bRealtimeExpressionViewport:1;
 
+	/** If true, always refresh the material preview. */
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	uint32 bLivePreview : 1;
+
 	/** If true, always refresh all expression previews. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bAlwaysRefreshAllPreviews:1;
