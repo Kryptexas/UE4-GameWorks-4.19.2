@@ -298,7 +298,7 @@ void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
 	}
 
 	// Mount all the plugin content folders
-	if( ensure( RegisterMountPointDelegate.IsBound() ) )
+	if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
 	{
 		for(const FPluginContentFolder& ContentFolder: ContentFolders)
 		{
