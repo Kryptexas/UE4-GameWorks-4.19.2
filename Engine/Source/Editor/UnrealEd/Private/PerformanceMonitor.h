@@ -136,7 +136,7 @@ public:
 protected:
 
 	/** FTickableEditorObject interface */
-	virtual bool IsTickable() const override;
+	virtual bool IsTickable() const override { return true; }
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(FPerformanceMonitor, STATGROUP_Tickables); }
 
@@ -154,9 +154,6 @@ private:
 	/** Display the scalability dialog. */
 	void ShowScalabilityDialog();
 
-	/** Dismiss the notification and disable it for this session. */
-	void DismissAndDisableNotification();
-
 	/** Resets the performance warning data and hides the warning */
 	void Reset();
 
@@ -169,11 +166,14 @@ private:
 	/** Tracks the last time the notification was started, used to avoid spamming. */
 	double LastEnableTime;
 
+	double NotificationTimeout;
+
 	/** The notification window ptr */
 	TWeakPtr<SNotificationItem> PerformanceWarningNotificationPtr;
 
 	/** The Scalability Setting window we may be using */
 	TWeakPtr<SWindow> ScalabilitySettingsWindowPtr;
 
+	/** Whether the notification is allowed to pop up this session */
 	bool bIsNotificationAllowed;
 };

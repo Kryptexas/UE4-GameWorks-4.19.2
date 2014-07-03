@@ -90,6 +90,9 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	// Set up the actor folders singleton
 	FActorFolders::Init();
 
+	GEditor->AccessGameAgnosticSettings().LoadScalabilityBenchmark();
+	GEditor->SaveGameAgnosticSettings();
+
 	// =================== CORE EDITOR INIT FINISHED ===================
 
 	// Hide the splash screen now that everything is ready to go

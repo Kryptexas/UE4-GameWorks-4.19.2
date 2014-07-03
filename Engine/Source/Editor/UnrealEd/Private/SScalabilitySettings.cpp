@@ -31,7 +31,7 @@ void SScalabilitySettings::OnGroupQualityLevelChanged(ESlateCheckBoxState::Type 
 	else if (FCString::Strcmp(InGroupName, TEXT("EffectsQuality")) == 0) CachedQualityLevels.EffectsQuality = InQualityLevel;
 
 	Scalability::SetQualityLevels(CachedQualityLevels);
-	Scalability::SaveState(GEditorUserSettingsIni);
+	Scalability::SaveState(GEditorGameAgnosticIni);
 	GEditor->RedrawAllViewports();
 }
 
@@ -40,7 +40,7 @@ void SScalabilitySettings::OnResolutionScaleChanged(float InValue)
 	CachedQualityLevels.ResolutionQuality = (int32)(FMath::Lerp(Scalability::MinResolutionScale, Scalability::MaxResolutionScale, InValue));
 
 	Scalability::SetQualityLevels(CachedQualityLevels);
-	Scalability::SaveState(GEditorUserSettingsIni);
+	Scalability::SaveState(GEditorGameAgnosticIni);
 	GEditor->RedrawAllViewports();
 }
 
@@ -96,16 +96,16 @@ FReply SScalabilitySettings::OnHeaderClicked(int32 InQualityLevel)
 {
 	CachedQualityLevels.SetFromSingleQualityLevel(InQualityLevel);
 	Scalability::SetQualityLevels(CachedQualityLevels);
-	Scalability::SaveState(GEditorUserSettingsIni);
+	Scalability::SaveState(GEditorGameAgnosticIni);
 	GEditor->RedrawAllViewports();
 	return FReply::Handled();
 }
 
 FReply SScalabilitySettings::OnAutoClicked()
 {
-	CachedQualityLevels = Scalability::BenchmarkQualityLevels();
+	CachedQualityLevels = GEditor->GetGameAgnosticSettings().EngineBenchmarkResult;
 	SetQualityLevels(CachedQualityLevels);
-	Scalability::SaveState(GEditorUserSettingsIni);
+	Scalability::SaveState(GEditorGameAgnosticIni);
 	GEditor->RedrawAllViewports();
 	return FReply::Handled();
 }

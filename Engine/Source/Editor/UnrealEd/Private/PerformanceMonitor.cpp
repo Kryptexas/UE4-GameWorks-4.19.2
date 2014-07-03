@@ -92,7 +92,7 @@ public:
 	/** Called to get the "Show notification" check box state */
 	static ESlateCheckBoxState::Type IsMonitoringPerformance()
 	{
-		const bool bMonitorEditorPerformance = GetDefault<UEditorUserSettings>()->bMonitorEditorPerformance;
+		const bool bMonitorEditorPerformance = GEditor->GetEditorUserSettings().bMonitorEditorPerformance;
 		return bMonitorEditorPerformance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 	}
 
@@ -101,25 +101,17 @@ public:
 	{
 		const bool bNewEnabledState = (NewState == ESlateCheckBoxState::Checked);
 
-		auto* Settings = GetMutableDefault<UEditorUserSettings>();
-		Settings->bMonitorEditorPerformance = bNewEnabledState;
-		Settings->PostEditChange();
+		auto& Settings = GEditor->AccessEditorUserSettings();
+		Settings.bMonitorEditorPerformance = bNewEnabledState;
+		Settings.PostEditChange();
 	}
 };
 
 FPerformanceMonitor::FPerformanceMonitor()
 {
 	LastEnableTime = 0;
+	NotificationTimeout = 5;
 	bIsNotificationAllowed = true;
-
-	UEditorGameAgnosticSettings& Settings = GEditor->AccessGameAgnosticSettings();
-	if (Settings.bApplyAutoScalabilityOnStartup && FApp::HasGameName())
-	{
-		Settings.bApplyAutoScalabilityOnStartup = false;
-		Settings.PostEditChange();
-
-		AutoApplyScalability();
-	}
 
 	// Register the console variables we need
 	IConsoleVariable* CVar = nullptr;
@@ -135,7 +127,7 @@ FPerformanceMonitor::FPerformanceMonitor()
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("PerfWarn.FinePercentThreshold"), 80, TEXT("The percentage of samples that fall below min FPS above which we warn for."), ECVF_Default);
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("PerfWarn.CoarsePercentThreshold"), 80, TEXT("The percentage of samples that fall below min FPS above which we warn for."), ECVF_Default);
 
-	// Set up the moving average sasmplers
+	// Set up the moving average samplers
 	UpdateMovingAverageSamplers();
 }
 
@@ -148,78 +140,49 @@ FPerformanceMonitor::~FPerformanceMonitor()
 
 void FPerformanceMonitor::AutoApplyScalability()
 {
-	GWarn->BeginSlowTask(LOCTEXT("RunningBenchmark", "Running benchmark to determine optimum engine settings"), true);
-	//GWarn->UpdateProgress(-1, -1);
-	
-	Scalability::FQualityLevels BenchmarkLevels = Scalability::BenchmarkQualityLevels();
 	const Scalability::FQualityLevels ExistingLevels = Scalability::GetQualityLevels();
+	Scalability::FQualityLevels NewLevels = GEditor->GetGameAgnosticSettings().EngineBenchmarkResult;
 	
 	// Make sure we don't turn settings up if the user has turned them down for any reason
-	BenchmarkLevels.ResolutionQuality		= FMath::Min(BenchmarkLevels.ResolutionQuality,	ExistingLevels.ResolutionQuality);
-	BenchmarkLevels.ViewDistanceQuality	= FMath::Min(BenchmarkLevels.ViewDistanceQuality,	ExistingLevels.ViewDistanceQuality);
-	BenchmarkLevels.AntiAliasingQuality	= FMath::Min(BenchmarkLevels.AntiAliasingQuality,	ExistingLevels.AntiAliasingQuality);
-	BenchmarkLevels.ShadowQuality			= FMath::Min(BenchmarkLevels.ShadowQuality,		ExistingLevels.ShadowQuality);
-	BenchmarkLevels.PostProcessQuality	= FMath::Min(BenchmarkLevels.PostProcessQuality,	ExistingLevels.PostProcessQuality);
-	BenchmarkLevels.TextureQuality		= FMath::Min(BenchmarkLevels.TextureQuality,		ExistingLevels.TextureQuality);
-	BenchmarkLevels.EffectsQuality		= FMath::Min(BenchmarkLevels.EffectsQuality,		ExistingLevels.EffectsQuality);
+	NewLevels.ResolutionQuality	= FMath::Min(NewLevels.ResolutionQuality,		ExistingLevels.ResolutionQuality);
+	NewLevels.ViewDistanceQuality	= FMath::Min(NewLevels.ViewDistanceQuality,	ExistingLevels.ViewDistanceQuality);
+	NewLevels.AntiAliasingQuality	= FMath::Min(NewLevels.AntiAliasingQuality,	ExistingLevels.AntiAliasingQuality);
+	NewLevels.ShadowQuality		= FMath::Min(NewLevels.ShadowQuality,			ExistingLevels.ShadowQuality);
+	NewLevels.PostProcessQuality	= FMath::Min(NewLevels.PostProcessQuality,		ExistingLevels.PostProcessQuality);
+	NewLevels.TextureQuality		= FMath::Min(NewLevels.TextureQuality,			ExistingLevels.TextureQuality);
+	NewLevels.EffectsQuality		= FMath::Min(NewLevels.EffectsQuality,			ExistingLevels.EffectsQuality);
 	
-	Scalability::SetQualityLevels(BenchmarkLevels);
-	Scalability::SaveState(GEditorUserSettingsIni);
+	Scalability::SetQualityLevels(NewLevels);
+	Scalability::SaveState(GEditorGameAgnosticIni);
 
 	const bool bAutoApplied = true;
 	Scalability::RecordQualityLevelsAnalytics(bAutoApplied);
 
 	GEditor->DisableRealtimeViewports();
 
-	HidePerformanceWarning();
-	GWarn->EndSlowTask();
+	// Reset the timers so as not to skew the data with the time it took to do the benchmark	
+	FineMovingAverage.Reset();
+	CoarseMovingAverage.Reset();
 }
 
 void FPerformanceMonitor::ShowPerformanceWarning(FText MessageText)
 {
-	auto AlreadyOpenItem = PerformanceWarningNotificationPtr.Pin();
-	if (AlreadyOpenItem.IsValid())
-	{
-		AlreadyOpenItem->SetText(MessageText);
-	}
-	else if ((FPlatformTime::Seconds() - LastEnableTime) > 30.0)
+	static double MinNotifyTime = 30;
+	if ((FPlatformTime::Seconds() - LastEnableTime) > MinNotifyTime)
 	{
 		// Only show a new one if we've not shown one for a while
 		LastEnableTime = FPlatformTime::Seconds();
+		NotificationTimeout = 5;
 
 		// Create notification item
 		FNotificationInfo Info(MessageText);
 		Info.bFireAndForget = false;
-		Info.FadeOutDuration = 1.0f;
+		Info.FadeOutDuration = 4.0f;
 		Info.ExpireDuration = 0.0f;
 		Info.bUseLargeFont = false;
 
-		Info.ButtonDetails.Add(
-			FNotificationButtonInfo(
-			LOCTEXT("PerformanceWarningScalability", "Tweak Manually"),
-			LOCTEXT("PerformanceWarningScalabilityToolTip", "Opens the Scalability UI for manual adjustment."),
-			FSimpleDelegate::CreateRaw(this, &FPerformanceMonitor::ShowScalabilityDialog),
-			SNotificationItem::CS_None
-			)
-			);
-
-		Info.ButtonDetails.Add(
-			FNotificationButtonInfo(
-			LOCTEXT("PerformanceWarningApplyNow", "Apply Now"),
-			LOCTEXT("PerformanceWarningApplyNowToolTip", "Run a benchmark now and apply settings immediately."),
-			FSimpleDelegate::CreateRaw(this, &FPerformanceMonitor::AutoApplyScalability),
-			SNotificationItem::CS_None
-			)
-			);
-
-		Info.ButtonDetails.Add(
-			FNotificationButtonInfo(
-			LOCTEXT("PerformanceWarningDismiss", "Ok"),
-			LOCTEXT("PerformanceWarningDismissToolTip", "Close this notification and apply settings on restart."),
-			FSimpleDelegate::CreateRaw(this, &FPerformanceMonitor::DismissAndDisableNotification),
-			SNotificationItem::CS_None
-			)
-			);
+		Info.Hyperlink = FSimpleDelegate::CreateRaw(this, &FPerformanceMonitor::ShowScalabilityDialog);
+		Info.HyperlinkText = LOCTEXT("PerformanceWarningScalability", "Tweak Manually");
 
 		PerformanceWarningNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
 	}
@@ -237,17 +200,6 @@ void FPerformanceMonitor::HidePerformanceWarning()
 
 		PerformanceWarningNotificationPtr.Reset();
 	}
-}
-
-
-bool FPerformanceMonitor::IsTickable() const
-{
-#if UE_BUILD_DEBUG
-	// We don't do this in debug
-	return false;
-#else
-	return true;
-#endif
 }
 
 void FPerformanceMonitor::Tick(float DeltaTime)
@@ -307,22 +259,29 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 		}
 	}
 
+	auto AlreadyOpenItem = PerformanceWarningNotificationPtr.Pin();
+
 	if (!bLowFramerate)
 	{
-		HidePerformanceWarning();
+		// Framerate is back up again - just reset everything and hide the timeout
+		if (AlreadyOpenItem.IsValid())
+		{
+			Reset();
+		}
 	}
 	else
 	{
+		// Choose an appropriate message
 		enum MessagesEnum { Seconds, SecondsPercent, Minute, MinutePercent, Minutes, MinutesPercent };
 		const FText Messages[] = {
-			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\nYour graphics settings will be reduced next time you restart the editor."),
-			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\nYour graphics settings will be reduced next time you restart the editor."),
+			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\nApplying optimum engine settings in {TimeRemaining}s."),
 
-			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\nYour graphics settings will be reduced next time you restart the editor."),
-			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\nYour graphics settings will be reduced next time you restart the editor."),
+			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\nApplying optimum engine settings in {TimeRemaining}s."),
 
-			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\nYour graphics settings will be reduced next time you restart the editor."),
-			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\nYour graphics settings will be reduced next time you restart the editor."),
+			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\nApplying optimum engine settings in {TimeRemaining}s."),
 		};
 
 		int32 Message;
@@ -347,21 +306,32 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 			++Message;
 		}
 
-		ShowPerformanceWarning(FText::Format(Messages[Message], Arguments));
+
+		// Now update the notification or create a new one
+		if (AlreadyOpenItem.IsValid())
+		{
+			NotificationTimeout -= DeltaTime;
+			Arguments.Add(TEXT("TimeRemaining"), FMath::Max(1, FMath::CeilToInt(NotificationTimeout)));
+
+			if (NotificationTimeout <= 0)
+			{
+				// Timed-out. Apply the settings.
+				AutoApplyScalability();
+				Reset();
+			}
+			else
+			{
+				AlreadyOpenItem->SetText(FText::Format(Messages[Message], Arguments));
+			}
+		}
+		else
+		{
+			NotificationTimeout = 5;
+			Arguments.Add(TEXT("TimeRemaining"), int(NotificationTimeout));
+
+			ShowPerformanceWarning(FText::Format(Messages[Message], Arguments));
+		}
 	}
-}
-
-void FPerformanceMonitor::DismissAndDisableNotification()
-{
-	bIsNotificationAllowed = false;
-
-	// Set the flag to say we need to run a benchmark on startup
-	GEditor->AccessGameAgnosticSettings().bApplyAutoScalabilityOnStartup = true;
-	GEditor->AccessGameAgnosticSettings().PostEditChange();
-
-	GEditor->DisableRealtimeViewports();
-
-	HidePerformanceWarning();
 }
 
 void FPerformanceMonitor::Reset()
@@ -370,6 +340,7 @@ void FPerformanceMonitor::Reset()
 	CoarseMovingAverage.Reset();
 
 	HidePerformanceWarning();
+	bIsNotificationAllowed = true;
 }
 
 void FPerformanceMonitor::UpdateMovingAverageSamplers(IConsoleVariable* Unused)
@@ -386,6 +357,9 @@ void FPerformanceMonitor::UpdateMovingAverageSamplers(IConsoleVariable* Unused)
 
 void FPerformanceMonitor::ShowScalabilityDialog()
 {
+	Reset();
+	bIsNotificationAllowed = false;
+
 	auto ExistingWindow = ScalabilitySettingsWindowPtr.Pin();
 
 	if (ExistingWindow.IsValid())
@@ -394,10 +368,6 @@ void FPerformanceMonitor::ShowScalabilityDialog()
 	}
 	else
 	{
-		// Turn off the auto-application of settings on start up if the user is manually tweaking them
-		GEditor->AccessGameAgnosticSettings().bApplyAutoScalabilityOnStartup = false;
-		GEditor->AccessGameAgnosticSettings().PostEditChange();
-
 		// Create the window
 		ScalabilitySettingsWindowPtr = ExistingWindow = SNew(SWindow)
 			.Title(LOCTEXT("PerformanceWarningDialogTitle", "Scalability Options"))
