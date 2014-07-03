@@ -847,6 +847,7 @@ void FPDBCache::Init()
 void FPDBCache::InitializePDBCache()
 {
 	const double StartTime = FPlatformTime::Seconds();
+	IFileManager::Get().MakeDirectory( *PDBCachePath, true );
 
 	TArray<FString> PDBCacheEntryDirectories;
 	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *PDBCachePath, false, true );
