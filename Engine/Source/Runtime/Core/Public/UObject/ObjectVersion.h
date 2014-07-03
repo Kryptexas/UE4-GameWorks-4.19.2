@@ -574,6 +574,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_TRANSACTIONAL_TO_DATA_ASSETS,
 	// Change LB_AlphaBlend to LB_WeightBlend in ELandscapeLayerBlendType
 	VER_UE4_ADD_LB_WEIGHTBLEND,
+	// Add root component to an foliage actor, all foliage cluster components will be attached to a root
+	VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
