@@ -4,6 +4,7 @@
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
 #include "EditorSupportDelegates.h"
+#include "Foliage/InstancedFoliageActor.h"
 
 #if WITH_EDITOR
 #include "ScopedTransaction.h"
@@ -377,13 +378,21 @@ void FLevelUtils::ApplyLevelTransform( ULevel* Level, const FTransform& LevelTra
 				{
 					RootComponent->SetRelativeLocationAndRotation( LevelTransform.TransformPosition(RootComponent->RelativeLocation), (FTransform(RootComponent->RelativeRotation) * LevelTransform).Rotator());
 				}			
-			}	
-		}		
+			}
+		}
+
 #if WITH_EDITOR
 		if( bDoPostEditMove )
 		{
 			ApplyPostEditMove( Level );						
-		}	
+		}
+
+		// We need to transform foliage Editor data which is stored in world space
+		AInstancedFoliageActor* FoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+		if (FoliageActor)
+		{
+			FoliageActor->ApplyLevelTransform(LevelTransform);
+		}
 #endif // WITH_EDITOR
 	}
 }

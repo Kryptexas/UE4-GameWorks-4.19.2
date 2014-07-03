@@ -298,8 +298,9 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 
 		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
 
-		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
+		BestCluster->ClusterComponent->AttachTo(InIFA->GetRootComponent());
 		BestCluster->ClusterComponent->RegisterComponent();
+		BestCluster->ClusterComponent->SetWorldTransform(InstanceToWorld);
 	}
 	else
 	{
@@ -330,7 +331,7 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, UFoliageType* 
 	BestCluster->ClusterComponent->CachedMaxDrawDistance = CullDistance;
 
 	CheckValid();
-		}
+}
 
 void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArray<int32>& InInstancesToRemove)
 {
@@ -704,6 +705,10 @@ void FFoliageMeshInfo::SelectInstances(AInstancedFoliageActor* InIFA, bool bSele
 AInstancedFoliageActor::AInstancedFoliageActor(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
+	RootComponent = SceneComponent;
+	RootComponent->Mobility = EComponentMobility::Movable;
+	
 	SetActorEnableCollision(true);
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
@@ -1463,7 +1468,41 @@ void AInstancedFoliageActor::MapRebuild()
 	}
 }
 
-#endif
+void AInstancedFoliageActor::ApplyLevelTransform(const FTransform& LevelTransform)
+{
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+
+		MeshInfo.InstanceHash->Empty();
+		for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
+		{
+			FFoliageInstance& Instance = MeshInfo.Instances[InstanceIdx];
+			FTransform NewTransform = Instance.GetInstanceWorldTransform() * LevelTransform;
+			
+			Instance.Location		= NewTransform.GetLocation();
+			Instance.Rotation		= NewTransform.GetRotation().Rotator();
+			Instance.DrawScale3D	= NewTransform.GetScale3D();
+			// Rehash instance location
+			MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
+		}
+
+		for (auto It = MeshInfo.ComponentHash.CreateIterator(); It; ++It)
+		{
+			// We assume here that component we painted foliage on, was transformed as well
+			FFoliageComponentHashInfo& Info = It.Value();
+			Info.UpdateLocationFromActor(It.Key());
+		}
+
+		// Recalc cluster bounds
+		for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
+		{
+			Cluster.Bounds = Cluster.ClusterComponent->CalcBounds(Cluster.ClusterComponent->ComponentToWorld);
+		}
+	}
+}
+
+#endif // WITH_EDITOR
 
 struct FFoliageMeshInfo_Old
 {
@@ -1536,6 +1575,17 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
 					Cluster.ClusterComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
+		}
+	}
+
+	// Attach cluster components to a root component
+	if (Ar.UE4Ver() < VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR && GIsEditor && Ar.IsLoading())
+	{
+		TArray<UInstancedStaticMeshComponent*> ClusterComponents;
+		GetComponents(ClusterComponents);
+		for (UInstancedStaticMeshComponent* Component : ClusterComponents)
+		{
+			Component->AttachTo(GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
 		}
 	}
 }
@@ -1675,13 +1725,7 @@ void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Col
 
 void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
-	TArray<UActorComponent*> Components;
-	GetComponents(Components);
-
-	for (UActorComponent* Component : Components)
-	{
-		Component->ApplyWorldOffset(InOffset, bWorldShift);
-	}
+	Super::ApplyWorldOffset(InOffset, bWorldShift);
 
 	if (GIsEditor)
 	{

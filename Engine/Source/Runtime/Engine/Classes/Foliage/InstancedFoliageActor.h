@@ -90,6 +90,9 @@ public:
 	// Returns the location for the widget
 	ENGINE_API FVector GetSelectionLocation();
 
+	// Transforms Editor specific data which is stored in world space
+	ENGINE_API void ApplyLevelTransform(const FTransform& LevelTransform);
+
 	/*
 	* Get the instanced foliage actor for the current streaming level.
 	*
