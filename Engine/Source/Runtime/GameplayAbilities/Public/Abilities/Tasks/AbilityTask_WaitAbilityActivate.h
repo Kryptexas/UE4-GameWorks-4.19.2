@@ -25,7 +25,7 @@ class UAbilityTask_WaitAbilityActivate : public UAbilityTask
 	UFUNCTION()
 	void OnAbilityActivate(UGameplayAbility *ActivatedAbility);
 
-	/** Wait until an overlap occurs. This will need to be better fleshed out so we can specify game specific collision requirements */
+	/** Wait until a new ability (of the same or different type) is activated. */
 	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitAbilityActivate* WaitForAbilityActivate(UObject* WorldContextObject, FGameplayTag WithTag, FGameplayTag WithoutTag);
 

@@ -34,6 +34,20 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 		UFunction* PredictiveActivateFunction = GetClass()->FindFunctionByName(FuncName);
 		HasBlueprintPredictiveActivate = PredictiveActivateFunction && PredictiveActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
+
+
+	
+#if WITH_EDITOR
+	/** Autoregister abilities with the blueprint debugger in the editor.*/
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		UBlueprint* BP = Cast<UBlueprint>(GetClass()->ClassGeneratedBy);
+		if (BP && (BP->GetWorldBeingDebugged() == nullptr || BP->GetWorldBeingDebugged() == GetWorld()))
+		{
+			BP->SetObjectBeingDebugged(this);
+		}
+	}
+#endif
 }
 
 void UGameplayAbility::PostNetInit()

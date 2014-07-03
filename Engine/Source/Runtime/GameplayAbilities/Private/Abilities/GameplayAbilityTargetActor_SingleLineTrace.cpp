@@ -89,6 +89,7 @@ void AGameplayAbilityTargetActor_SingleLineTrace::Confirm()
 
 void AGameplayAbilityTargetActor_SingleLineTrace::Cancel()
 {
+	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	Destroy();
 }
 

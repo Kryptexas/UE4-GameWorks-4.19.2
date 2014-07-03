@@ -28,6 +28,7 @@ class UAbilityTask_SpawnActor: public UAbilityTask
 	UPROPERTY(BlueprintAssignable)
 	FSpawnActorDelegate	Success;
 	
+	/** Spawn new Actor on the network authority (server) */
 	UFUNCTION(BlueprintCallable, meta=(HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	static UAbilityTask_SpawnActor* SpawnActor(UObject* WorldContextObject, TSubclassOf<AActor> Class);
 
