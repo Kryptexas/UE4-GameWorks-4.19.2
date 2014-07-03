@@ -826,7 +826,8 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 			if (i == RootBodyIndex)
 			{
-				BodyInst->DOF = BodyInstance.DOF;
+				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
+				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
 			}
 
 #if WITH_PHYSX

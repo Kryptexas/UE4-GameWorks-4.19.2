@@ -24,6 +24,26 @@ namespace physx
 }
 #endif // WITH_PHYSX
 
+UENUM()
+namespace ELockedAxis
+{
+	enum Type
+	{
+		/*Uses the default locked axis as specified in the project settings.*/
+		Default,
+		/*Lock movement along the x-axis*/
+		X,
+		/*Lock movement along the y-axis*/
+		Y,
+		/*Lock movement along the z-axis*/
+		Z,
+		/*Lock movement along custom axis*/
+		Custom,
+		/*No axis is locked.*/
+		None
+	};
+}
+
 USTRUCT()
 struct ENGINE_API FCollisionResponse
 {
@@ -166,9 +186,16 @@ public:
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
 
-	/** Constrain body to 2d plane with DOF as normal. (0,0,0) uses regular 3D */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Physics)
-	FVector DOF;
+	/** Locks physical movement along specified axis.*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName="Locked Axis"))
+	TEnumAsByte<ELockedAxis::Type> LockedAxisMode;
+	
+	/** Locks physical movement along custom axis. (0,0,0) indicates no lock*/
+	UPROPERTY(EditAnywhere, Category = Physics)
+	FVector CustomLockedAxis;
+
+	FVector GetLockedAxis() const;
+	void FBodyInstance::CreateDOFLock();
 
 	FConstraintInstance DOFConstraint;
 
