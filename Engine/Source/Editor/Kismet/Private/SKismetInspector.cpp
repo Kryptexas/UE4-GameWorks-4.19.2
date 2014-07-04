@@ -292,11 +292,17 @@ void SKismetInspector::ShowDetailsForSingleObject(UObject* Object, const FShowDe
 
 void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options)
 {
-	TSharedPtr<SWidget> KeyCaptor = FSlateApplication::Get().GetKeyboardFocusedWidget();
-	// Force any widgets to commit text changes
-	if( KeyCaptor.IsValid() )
+	static bool bIsReentrant = false;
+	if ( !bIsReentrant )
 	{
-		KeyCaptor->OnKeyboardFocusLost( FKeyboardFocusEvent( EKeyboardFocusCause::Mouse ) );
+		bIsReentrant = true;
+		// When the selection is changed, we may be potentially actively editing a property,
+		// if this occurs we need need to immediately clear keyboard focus
+		if ( FSlateApplication::Get().HasFocusedDescendants(AsShared()) )
+		{
+			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+		}
+		bIsReentrant = false;
 	}
 
 	FKismetSelectionInfo SelectionInfo;
