@@ -1490,18 +1490,7 @@ void SNodePanel::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& WidgetSp
 	ZoomLevelFade.Play();
 
 	// Re-center the screen so that it feels like zooming around the cursor.
-	{
-		FSlateRect GraphBounds = ComputeSensibleGraphBounds();
-
-		// Make sure we are not zooming into/out into emptiness; otherwise the user will get lost..
-		const FVector2D ClampedPointToMaintainGraphSpace(
-			FMath::Clamp(PointToMaintainGraphSpace.X, GraphBounds.Left, GraphBounds.Right),
-			FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
-			);
-
-		this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
-	}
-
+	this->ViewOffset = PointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
 }
 
 bool SNodePanel::GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding )
