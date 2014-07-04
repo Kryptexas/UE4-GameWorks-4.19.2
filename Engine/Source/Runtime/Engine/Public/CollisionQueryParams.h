@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "Engine/EngineTypes.h"
+
 /** Macro to convert ECollisionChannels to bit flag **/
 #define ECC_TO_BITFIELD(x)	(1<<(x))
 /** Macro to convert from CollisionResponseContainer to bit flag **/
@@ -47,58 +49,18 @@ struct ENGINE_API FCollisionQueryParams
 		bReturnPhysicalMaterial = false;
 	}
 
-	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL)
-	{
-		bTraceComplex = bInTraceComplex;
-		TraceTag = InTraceTag;
-		bTraceAsyncScene = false;
-		bFindInitialOverlaps = true;
-		bReturnFaceIndex = false;
-		bReturnPhysicalMaterial = false;
-
-		AddIgnoredActor(InIgnoreActor);
-		if(InIgnoreActor != NULL)
-		{
-			OwnerTag = InIgnoreActor->GetFName();
-		}
-	}
+	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL);
 
 	// Utils
 
 	/** Add an actor for this trace to ignore */
-	void AddIgnoredActor(const AActor* InIgnoreActor)
-	{
-		if(InIgnoreActor != NULL)
-		{
-			IgnoreActors.AddUnique(InIgnoreActor->GetUniqueID());
-		}
-	}
+	void AddIgnoredActor(const AActor* InIgnoreActor);
 
 	/** Add a collection of actors for this trace to ignore */
-	void AddIgnoredActors(const TArray<AActor*>& InIgnoreActors)
-	{
-		for (int32 Idx=0; Idx<InIgnoreActors.Num(); ++Idx)
-		{
-			AActor const* const A = InIgnoreActors[Idx];
-			if (A)
-			{
-				IgnoreActors.Add(A->GetUniqueID());
-			}
-		}
-	}
+	void AddIgnoredActors(const TArray<AActor*>& InIgnoreActors);
 
 	/** Variant that uses an array of TWeakObjectPtrs */
-	void AddIgnoredActors(const TArray<TWeakObjectPtr<AActor> >& InIgnoreActors)
-	{
-		for (int32 Idx=0; Idx<InIgnoreActors.Num(); ++Idx)
-		{
-			AActor const* const A = InIgnoreActors[Idx].Get();
-			if (A)
-			{
-				IgnoreActors.Add(A->GetUniqueID());
-			}
-		}
-	}
+	void AddIgnoredActors(const TArray<TWeakObjectPtr<AActor> >& InIgnoreActors);
 
 	FString ToString() const
 	{

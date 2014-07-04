@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "TextureDefines.h"
+#include "Engine/TextureDefines.h"
+#include "TextureResource.h"
 #include "MaterialShared.h"
 #include "Texture.generated.h"
 

@@ -7,9 +7,16 @@
 
 #pragma once
 
-#include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "WorldCollision.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/NetworkPredictionInterface.h"
+#include "Engine/EngineTypes.h"
+#include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "CharacterMovementComponent.generated.h"
+
+struct FVector_NetQuantize100;
+struct FVector_NetQuantizeNormal;
+class FDebugDisplayInfo;
 
 /** Movement modes for Characters.  */
 UENUM(BlueprintType)

@@ -667,54 +667,9 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexAPEXClothBuffer& VertexBu
 	return Ar;
 }
 
-FArchive &operator<<( FArchive& Ar, FMeshBoneInfo& F)
-{
-	Ar << F.Name << F.ParentIndex;
 
-	if( Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_REFERENCE_SKELETON_REFACTOR) )
-	{
-		FColor DummyColor = FColor::White;
-		Ar << DummyColor;
-	}
 
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() >= VER_UE4_STORE_BONE_EXPORT_NAMES)
-	{
-		if(!Ar.IsCooking())
-		{
-			Ar << F.ExportName;
-		}
-	}
-	else
-	{
-		F.ExportName = F.Name.ToString();
-	}
-#endif
 
-	return Ar;
-}
-
-FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
-{
-	Ar << F.RefBoneInfo;
-	Ar << F.RefBonePose;
-
-	if( Ar.UE4Ver() >= VER_UE4_REFERENCE_SKELETON_REFACTOR )
-	{
-		Ar << F.NameToIndexMap;
-	}
-
-	// Fix up any assets that don't have an INDEX_NONE parent for Bone[0]
-	if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_ROOTBONE_PARENT )
-	{
-		if( (F.RefBoneInfo.Num() > 0) && (F.RefBoneInfo[0].ParentIndex != INDEX_NONE) )
-		{
-			F.RefBoneInfo[0].ParentIndex = INDEX_NONE;
-		}
-	}
-
-	return Ar;
-}
 
 
 /**

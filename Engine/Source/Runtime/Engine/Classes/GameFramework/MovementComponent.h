@@ -8,6 +8,10 @@
 #include "Components/SceneComponent.h"
 #include "MovementComponent.generated.h"
 
+struct FCollisionQueryParams;
+struct FCollisionResponseParams;
+struct FCollisionShape;
+
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
 {

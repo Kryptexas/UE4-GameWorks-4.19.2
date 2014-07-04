@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "Controller.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/CharacterMovementComponent.h"
-
+#include "Components/PrimitiveComponent.h"
 #include "Character.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FMovementModeChangedSignature, class ACharacter*, Character, EMovementMode, PrevMovementMode, uint8, PreviousCustomMode);

@@ -4,6 +4,8 @@
 #include "GameFramework/Info.h"
 #include "GameMode.generated.h"
 
+class FDebugDisplayInfo;
+
 //=============================================================================
 //  GameMode defines the rules and mechanics of the game.  It is only 
 //  instanced on the server and will never exist on the client.

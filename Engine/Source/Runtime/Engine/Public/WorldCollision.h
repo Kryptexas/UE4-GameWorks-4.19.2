@@ -6,9 +6,9 @@
 
 #pragma once 
 
-#include "UniquePtr.h"
+#include "Runtime/Core/Public/Templates/UniquePtr.h"
+#include "Runtime/Core/Public/Async/TaskGraphInterfaces.h"
 #include "CollisionQueryParams.h"
-//#include "Engine/World.h"
 
 /**
  * Async Trace Data Structures 
@@ -244,19 +244,7 @@ struct FBaseTraceDatum
 
 	/* Set functions for each Shape type */
 	void Set(UWorld * World, const FCollisionShape & InCollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam, 
-		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter)
-	{
-		ensure (World);
-		CollisionParams.CollisionShape = InCollisionShape;
-		CollisionParams.CollisionQueryParam = Param;
-		CollisionParams.ResponseParam = InResponseParam;
-		CollisionParams.ObjectQueryParam = InObjectQueryParam;
-		TraceChannel = Channel;
-		UserData = InUserData;
-		bIsMultiTrace = bInIsMultiTrace;
-		FrameNumber = FrameCounter;
-		PhysWorld = World;
-	}
+		ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter);
 };
 
 struct FTraceDatum;

@@ -44,6 +44,12 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	}
 }
 
+void FNavigationPath::SetOwner(const class ANavigationData* const NewOwner) 
+{ 
+	Owner = NewOwner; 
+}
+
+
 void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
 {
 	static const FColor Grey(100,100,100);

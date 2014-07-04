@@ -6,6 +6,7 @@
   */
 
 #pragma once
+#include "GameFramework/Actor.h"
 #include "Info.generated.h"
 
 UCLASS(abstract, hidecategories=(Input, Movement, Collision, Rendering, "Utilities|Transformation"), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, NotBlueprintable)

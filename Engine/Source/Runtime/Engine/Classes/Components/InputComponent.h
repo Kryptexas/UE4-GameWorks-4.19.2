@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "ActorComponent.h"
+#include "Components/ActorComponent.h"
+#include "Runtime/InputCore/Classes/InputCoreTypes.h"
 #include "InputComponent.generated.h"
 
 template<class DelegateType, class DynamicDelegateType>

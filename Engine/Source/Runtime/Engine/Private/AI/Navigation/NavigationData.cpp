@@ -8,6 +8,16 @@
 //----------------------------------------------------------------------//
 // FPathFindingQuery
 //----------------------------------------------------------------------//
+
+FPathFindingQuery::FPathFindingQuery()
+: NavData(NULL)
+, Owner(NULL)
+, StartLocation(FVector::ZeroVector)
+, EndLocation(FVector::ZeroVector)
+, NavDataFlags(0)
+{
+}
+
 FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
 : NavData(InNavData)
 , Owner(InOwner)

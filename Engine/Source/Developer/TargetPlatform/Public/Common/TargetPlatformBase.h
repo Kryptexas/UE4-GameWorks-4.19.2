@@ -40,7 +40,7 @@ public:
 	}
 
 
-#ifdef TEXTURE_H_INCLUDED // defined in Texture.h, this way we know if UTexture is available, needed for Clang
+#ifdef TEXTURERESOURCE_H_INCLUDED // defined in TextureResource.h, this way we know if UTexture is available, needed for Clang
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
 	{
 		FName TextureFormatName = NAME_None;
@@ -149,11 +149,11 @@ public:
 
 		return TextureFormatName;
 	}
-#else //TEXTURE_H_INCLUDED
+#else //TEXTURERESOURCE_H_INCLUDED
 
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const;
 
-#endif //TEXTURE_H_INCLUDED
+#endif //TEXTURERESOURCE_H_INCLUDED
 #endif //WITH_ENGINE
 
 	virtual bool PackageBuild( const FString& InPackgeDirectory ) override

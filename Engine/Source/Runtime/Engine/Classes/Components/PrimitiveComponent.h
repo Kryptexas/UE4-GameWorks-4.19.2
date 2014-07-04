@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "StaticArray.h"
+#include "Runtime/Core/Public/Containers/StaticArray.h"
+#include "Runtime/InputCore/Classes/InputCoreTypes.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/LightComponent.h"

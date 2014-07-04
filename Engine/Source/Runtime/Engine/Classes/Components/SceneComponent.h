@@ -19,12 +19,7 @@ struct FOverlapInfo
 	{
 	}
 
-	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE)
-		: bFromSweep(false)
-	{
-		OverlapInfo.Component = InComponent;
-		OverlapInfo.Item = InBodyIndex;
-	}
+	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE);
 	
 	int32 GetBodyIndex() const { return OverlapInfo.Item;  }
 

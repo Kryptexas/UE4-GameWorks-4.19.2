@@ -4,6 +4,7 @@
 #pragma once
 #include "Engine/BlendableInterface.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "Runtime/RenderCore/Public/RenderCommandFence.h"
 #include "SceneTypes.h"
 #include "MaterialInterface.generated.h"
 
@@ -11,6 +12,7 @@ class UMaterial;
 class FMaterialResource;
 class FMaterialCompiler;
 struct FPrimitiveViewRelevance;
+class UTexture;
 
 UENUM()
 enum EMaterialUsage

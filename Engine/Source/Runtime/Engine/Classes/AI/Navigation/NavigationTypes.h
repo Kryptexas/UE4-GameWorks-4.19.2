@@ -216,7 +216,6 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE void GetObserver(FPathObserverDelegate& Observer) const { Observer = ObserverDelegate; }
 
 	FORCEINLINE void MarkReady() { bIsReady = true; }
-	FORCEINLINE void SetOwner(const class ANavigationData* const NewOwner) { Owner = NewOwner; }
 	FORCEINLINE void SetObserver(const FPathObserverDelegate& Observer) { ObserverDelegate = Observer; }
 	FORCEINLINE void SetIsPartial(const bool bPartial) { bIsPartial = bPartial; }
 	FORCEINLINE void SetSearchReachedLimit(const bool bLimited) { bReachedSearchLimit = bLimited; }
@@ -226,6 +225,8 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		bUpToDate = false; 
 		ObserverDelegate.ExecuteIfBound(this); 
 	}
+
+	void SetOwner(const class ANavigationData* const NewOwner);
 
 	virtual void DebugDraw(const class ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
 #if ENABLE_VISUAL_LOG
@@ -459,14 +460,7 @@ struct ENGINE_API FPathFindingQuery
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
 
-	FPathFindingQuery()
-		: NavData(NULL)
-		, Owner(NULL)
-		, StartLocation(FVector::ZeroVector)
-		, EndLocation(FVector::ZeroVector)
-		, NavDataFlags(0)
-	{
-	}
+	FPathFindingQuery();
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 

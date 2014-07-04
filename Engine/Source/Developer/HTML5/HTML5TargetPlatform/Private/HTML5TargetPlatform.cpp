@@ -7,7 +7,7 @@
 #include "HTML5TargetPlatformPrivatePCH.h"
 
 #if WITH_EDITOR
-#include "Texture.h"
+#include "TextureLODSettings.h"
 #endif 
 
  /* FHTML5TargetPlatform structors

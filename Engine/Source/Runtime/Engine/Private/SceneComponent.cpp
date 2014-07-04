@@ -15,6 +15,13 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
+FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
+	: bFromSweep(false)
+{
+	OverlapInfo.Component = InComponent;
+	OverlapInfo.Item = InBodyIndex;
+}
+
 USceneComponent::USceneComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {

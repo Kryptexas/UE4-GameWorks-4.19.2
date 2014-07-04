@@ -8,6 +8,7 @@
 #define _INC_BATCHEDELEMENTS
 
 #include "StaticBoundShaderState.h"
+#include "HitProxies.h"
 
 /** Blend modes supported for simple element rendering */
 enum ESimpleElementBlendMode

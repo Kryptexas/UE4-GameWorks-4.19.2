@@ -1367,16 +1367,7 @@ struct ENGINE_API FHitResult
 	}
 
 	/** Ctor for easily creating "fake" hits from limited data. */
-	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm)
-	{
-		FMemory::Memzero(this, sizeof(FHitResult));
-		Location = HitLoc;
-		ImpactPoint = HitLoc;
-		Normal = HitNorm;
-		ImpactNormal = HitNorm;
-		Actor = InActor;
-		Component = InComponent;
-	}
+	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
 
 	void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
