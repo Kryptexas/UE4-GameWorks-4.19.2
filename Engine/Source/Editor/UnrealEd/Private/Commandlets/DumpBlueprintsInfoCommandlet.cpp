@@ -15,6 +15,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "AssetSelection.h"
 #include "K2Node_CustomEvent.h"
+#include "ScopedTimers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -149,60 +150,6 @@ DumpBlueprintsInfo commandlet params: \n\
 	
 	/** Tracks instantiated blueprints (so we don't have to create more the we have to). */
 	static TMap<UClass*, UBlueprint*> ClassBlueprints;
-
-	/**
-	 * Utility stopwatch class for tracking the duration of some action (tracks 
-	 * time in seconds and adds it to the specified variable on destruction).
-	 */
-	class FDurationTimer
-	{
-	public:
-		FDurationTimer(double& AccumulatorIn)
-			: StartTime(FPlatformTime::Seconds())
-			, Accumulator(AccumulatorIn)
-		{}
-		
-		double Start()
-		{
-			StartTime = FPlatformTime::Seconds();
-			return StartTime;
-		}
-		
-		double Stop()
-		{
-			double StopTime = FPlatformTime::Seconds();
-			Accumulator += (StopTime - StartTime);
-			StartTime = StopTime;
-			
-			return StopTime;
-		}
-
-	private:
-		/** Start time, captured in ctor. */
-		double StartTime;
-		/** Time variable to update. */
-		double& Accumulator;
-	};
-	
-	/**
-	 * Utility class for tracking the duration of a scoped action (the user 
-	 * doesn't have to call Start() and Stop() manually).
-	 */
-	class FScopedDurationTimer : private FDurationTimer
-	{
-	public:
-		FScopedDurationTimer(double& AccumulatorIn)
-			: FDurationTimer(AccumulatorIn)
-		{
-			Start();
-		}
-		
-		/** Dtor, updating seconds with time delta. */
-		~FScopedDurationTimer()
-		{
-			Stop();
-		}
-	};
 
 	/**
 	 * Certain blueprints (like level blueprints) require a level outer, and 
