@@ -1704,7 +1704,8 @@ bool SFoliageEditMeshDisplayItem::IsClusterSettingsEnabled() const
 
 FText SFoliageEditMeshDisplayItem::GetStaticMeshname() const
 {
-	return FText::FromName(FoliageSettingsPtr->GetStaticMesh()->GetFName());
+	UStaticMesh* Mesh = FoliageSettingsPtr->GetStaticMesh();
+	return FText::FromName(Mesh ? Mesh->GetFName() : NAME_None);
 }
 
 FText SFoliageEditMeshDisplayItem::GetSettingsLabelText() const
