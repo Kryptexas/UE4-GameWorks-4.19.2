@@ -313,6 +313,13 @@ void FUnrealEdMisc::OnInit()
 
 	// Send Project Analytics
 	InitEngineAnalytics();
+	
+	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
+	float Seconds = 60.0f;
+	FTimerDelegate Delegate;
+	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
+	GEditor->GetTimerManager()->SetTimer( Delegate, Seconds, true );
+
 }
 
 void FUnrealEdMisc::InitEngineAnalytics()
@@ -381,6 +388,22 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			}
 		}
 	}
+}
+
+void FUnrealEdMisc::EditorAnalyticsHeartbeat()
+{
+	static double LastHeartbeatTime = FPlatformTime::Seconds();
+	
+	double LastInteractionTime = FSlateApplication::Get().GetLastUserInteractionTime();
+	
+	// Did the user interact since the last heartbeat
+	bool bIdle = LastInteractionTime < LastHeartbeatTime;
+	
+	TArray< FAnalyticsEventAttribute > Attributes;
+	Attributes.Add(FAnalyticsEventAttribute(TEXT("Idle"), bIdle));
+	FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Heartbeat"), Attributes);
+	
+	LastHeartbeatTime = FPlatformTime::Seconds();
 }
 
 void FUnrealEdMisc::TickAssetAnalytics()

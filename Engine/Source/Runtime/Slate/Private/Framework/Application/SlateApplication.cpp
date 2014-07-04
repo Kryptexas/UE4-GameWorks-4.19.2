@@ -2909,6 +2909,8 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	if (IsDragDropping() && InKeyboardEvent.GetKey() == EKeys::Escape)
 	{
 		// Pressing ESC while drag and dropping terminates the drag drop.
@@ -2920,7 +2922,7 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 		const int32 EventCount = InKeyboardEvent.IsRepeat() ? SlateApplicationDefs::NumRepeatsPerActualRepeat : 1;
 		for( int32 CurEventIndex = 0; CurEventIndex < EventCount; ++CurEventIndex )
 		{
-			LastUserInteractionTimeForThrottling = this->GetCurrentTime();
+			LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
 			// If we are inspecting, pressing ESC exits inspection mode.
 			if ( InKeyboardEvent.GetKey() == EKeys::Escape )
@@ -3011,10 +3013,12 @@ bool FSlateApplication::ProcessKeyUpEvent( FKeyboardEvent& InKeyboardEvent )
 {
 	FReply Reply = FReply::Unhandled();
 
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	const int32 EventCount = InKeyboardEvent.IsRepeat() ? SlateApplicationDefs::NumRepeatsPerActualRepeat : 1;
 	for( int32 CurEventIndex = 0; CurEventIndex < EventCount; ++CurEventIndex )
 	{
-		LastUserInteractionTimeForThrottling = this->GetCurrentTime();
+		LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 
 		// Bubble the keyboard event
 		FWidgetPath EventPath = FocusedWidgetPath.ToWidgetPath();
@@ -3111,8 +3115,9 @@ bool FSlateApplication::OnMouseDown( const TSharedPtr< FGenericWindow >& Platfor
 
 bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& MouseEvent )
 {
-	LastUserInteractionTimeForThrottling = this->GetCurrentTime();
-
+	LastUserInteractionTime = this->GetCurrentTime();
+	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+	
 	PlatformApplication->SetCapture( PlatformWindow );
 	PressedMouseButtons.Add( MouseEvent.GetEffectingButton() );
 
@@ -3262,8 +3267,9 @@ bool FSlateApplication::OnMouseDoubleClick( const TSharedPtr< FGenericWindow >& 
 
 bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FGenericWindow >& PlatformWindow, FPointerEvent& InMouseEvent )
 {
-	LastUserInteractionTimeForThrottling = this->GetCurrentTime();
-
+	LastUserInteractionTime = this->GetCurrentTime();
+	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
+	
 	PlatformApplication->SetCapture( PlatformWindow );
 	PressedMouseButtons.Add( InMouseEvent.GetEffectingButton() );
 
@@ -3317,7 +3323,8 @@ bool FSlateApplication::OnMouseUp( const EMouseButtons::Type Button )
 
 bool FSlateApplication::ProcessMouseButtonUpEvent( FPointerEvent& MouseEvent )
 {
-	LastUserInteractionTimeForThrottling = this->GetCurrentTime();
+	LastUserInteractionTime = this->GetCurrentTime();
+	LastUserInteractionTimeForThrottling = LastUserInteractionTime;
 	PressedMouseButtons.Remove( MouseEvent.GetEffectingButton() );
 
 	if (DragDetector.DetectDragForWidget.IsValid() && MouseEvent.GetEffectingButton() == DragDetector.DetectDragButton )
@@ -3434,6 +3441,8 @@ bool FSlateApplication::ProcessMouseWheelOrGestureEvent( FPointerEvent& InWheelE
 		return false;
 	}
 
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	// NOTE: We intentionally don't reset LastUserInteractionTimeForThrottling here so that the UI can be responsive while scrolling
 
 	FWidgetPath EventPath = ( MouseCaptor.IsValid() )
@@ -3530,6 +3539,9 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent )
 		// Detecting a mouse move of zero delta is our way of filtering out synthesized move events
 		const bool AllowSpawningOfToolTips = true;
 		UpdateToolTip( AllowSpawningOfToolTips );
+		
+		// Guard against synthesized mouse moves and only track user interaction if the cursor pos changed
+		LastUserInteractionTime = this->GetCurrentTime();
 	}
 
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( MouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
@@ -3844,6 +3856,8 @@ bool FSlateApplication::OnControllerAnalog( EControllerButtons::Type Button, int
 
 void FSlateApplication::ProcessControllerAnalogValueChangedEvent( FControllerEvent& ControllerEvent )
 {
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	CALL_WIDGET_FUNCTION(ControllerEvent, OnControllerAnalogValueChanged);
 }
 
@@ -3871,6 +3885,8 @@ bool FSlateApplication::OnControllerButtonPressed( EControllerButtons::Type Butt
 
 void FSlateApplication::ProcessControllerButtonPressedEvent( FControllerEvent& ControllerEvent )
 {
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	CALL_WIDGET_FUNCTION(ControllerEvent, OnControllerButtonPressed);
 }
 
@@ -3898,6 +3914,8 @@ bool FSlateApplication::OnControllerButtonReleased( EControllerButtons::Type But
 
 void FSlateApplication::ProcessControllerButtonReleasedEvent( FControllerEvent& ControllerEvent )
 {
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	CALL_WIDGET_FUNCTION(ControllerEvent, OnControllerButtonReleased);
 
 }
@@ -3997,6 +4015,8 @@ bool FSlateApplication::OnMotionDetected(const FVector& Tilt, const FVector& Rot
 
 void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 {
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	CALL_WIDGET_FUNCTION(MotionEvent, OnMotionDetected);
 }
 
@@ -4118,6 +4138,9 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 
 	if ( ActivateEvent.GetActivationType() != FWindowActivateEvent::EA_Deactivate )
 	{
+		// Only window activate considered a user interaction
+		LastUserInteractionTime = this->GetCurrentTime();
+		
 		// Do not process activation messages unless we have no modal windows or the current window is modal
 		if( !ActiveModalWindow.IsValid() || ActivateEvent.GetAffectedWindow() == ActiveModalWindow || ActivateEvent.GetAffectedWindow()->IsDescendantOf(ActiveModalWindow) )
 		{
@@ -4354,6 +4377,8 @@ EDropEffect::Type FSlateApplication::OnDragEnter( const TSharedRef< SWindow >& W
 
 bool FSlateApplication::ProcessDragEnterEvent( TSharedRef<SWindow> WindowEntered, FDragDropEvent& DragDropEvent )
 {
+	LastUserInteractionTime = this->GetCurrentTime();
+	
 	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( DragDropEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
 	DragDropEvent.SetEventPath( WidgetsUnderCursor );
 

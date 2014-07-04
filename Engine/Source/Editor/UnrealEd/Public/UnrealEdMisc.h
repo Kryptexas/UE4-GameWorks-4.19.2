@@ -260,6 +260,8 @@ private:
 	/** Initialize engine analytics */
 	void InitEngineAnalytics();
 
+	/** Called when the heartbeat event should be sent to engine analytics */
+	void EditorAnalyticsHeartbeat();
 
 private:
 

@@ -910,6 +910,9 @@ public:
 	/** Sets the handler for otherwise unhandled key down events. This is used by the editor to provide a global action list, if the key was not consumed by any widget. */
 	void SetUnhandledKeyDownEventHandler( const FOnKeyboardEvent& NewHandler );
 
+	/** @return the last time a user interacted with a keyboard, mouse, touch device, or joystick */
+	double GetLastUserInteractionTime() const { return LastUserInteractionTime; }
+	
 public:
 
 	// Begin FSlateApplicationBase interface
@@ -1180,6 +1183,9 @@ private:
 	FThrottleRequest UserInteractionResponsivnessThrottle;
 
 	/** The last real time that the user pressed a key or mouse button */
+	double LastUserInteractionTime;
+
+	/** Subset of LastUserInteractionTime that is used only when consdering when to throttle */
 	double LastUserInteractionTimeForThrottling;
 
 
