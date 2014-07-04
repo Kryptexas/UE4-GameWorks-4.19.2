@@ -1136,8 +1136,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 		AddHighResScreenshotMask(Context, SeparateTranslucency);
 
-		// Do not use upscale if SeparateRenderTarget is in use!
-		if(View.UnscaledViewRect != View.ViewRect && !View.Family->EngineShowFlags.HMDDistortion && View.Family->EngineShowFlags.StereoRendering && !View.Family->bUseSeparateRenderTarget) //!!AB
+		if(View.UnscaledViewRect != View.ViewRect && !bStereoRenderingAndHMD)
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UpsampleQuality")); 
 			int32 UpsampleMethod = CVar->GetValueOnRenderThread();
@@ -1160,6 +1159,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
+
 		{
 			// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
 			TRefCountPtr<IPooledRenderTarget> Temp;
@@ -1169,9 +1169,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 			FPooledRenderTargetDesc Desc;
 
-			// Texture could be bigger than viewport
-			Desc.Extent.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
-			Desc.Extent.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
+			Desc.Extent = View.Family->RenderTarget->GetSizeXY();
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;

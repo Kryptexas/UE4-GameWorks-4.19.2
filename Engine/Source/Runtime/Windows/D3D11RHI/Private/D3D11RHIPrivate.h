@@ -359,6 +359,7 @@ public:
 	{
 		return DXGIFactory;
 	}
+
 private:
 	template <EShaderFrequency ShaderFrequency>
 	void ClearShaderResourceViews(FD3D11BaseShaderResource* Resource);

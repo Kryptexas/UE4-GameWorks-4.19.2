@@ -11,12 +11,11 @@
 /** The vertex data used to filter a texture. */
 struct FDistortionVertex
 {
-	FVector2D	Position;
-	FVector2D	TexR;
-	FVector2D	TexG;
-	FVector2D	TexB;
-	float		VignetteFactor;
-	float		TimewarpFactor;
+	FVector2D Position;
+	FVector2D TexR;
+	FVector2D TexG;
+	FVector2D TexB;
+	FVector4  Color;
 };
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>

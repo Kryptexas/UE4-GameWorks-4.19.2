@@ -707,17 +707,8 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	delete Context;
 }
 
-void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
+void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-	check(Context && Context->WindowHandle);
-
-	return (void*)Context->WindowHandle;
-}
-
-bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
-{
-	FPlatformOpenGLContext* const Context = Viewport.OpenGLContext;
-
 	check(Context && Context->OpenGLView);
 
 	{
@@ -891,7 +882,6 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 			}
 		}
 	}
-	return true;
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)

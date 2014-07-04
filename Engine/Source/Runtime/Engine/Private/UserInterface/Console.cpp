@@ -877,9 +877,9 @@ void UConsole::PostRender_Console_Typing(UCanvas* Canvas)
 
 	if (GEngine->IsStereoscopic3D())
 	{
-		LeftPos = ClipX / 3;
-		ClipX -= LeftPos;
+		ClipX -= 150;
 		ClipY = ClipY * 0.60;
+		LeftPos = 150;
 	}
 
 	PostRender_InputLine(Canvas, FIntPoint(LeftPos, ClipY));
@@ -968,9 +968,8 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	}
 	if (GEngine->IsStereoscopic3D())
 	{
-		LeftPos = ClipX / 3;
-		ClipX -= LeftPos;
 		Height = Canvas->ClipY * 0.60;
+		LeftPos = 150;
 	}
 
 	UFont* Font = GEngine->GetSmallFont();
@@ -980,7 +979,7 @@ void UConsole::PostRender_Console_Open(UCanvas* Canvas)
 	Canvas->StrLen(Font, TEXT("M"),xl,yl);
 
 	// Background
-	FCanvasTileItem ConsoleTile( FVector2D( LeftPos, 0.0f ), DefaultTexture_Black->Resource, FVector2D( ClipX, Height + TopPos - yl), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), FLinearColor::White );
+	FCanvasTileItem ConsoleTile( FVector2D( 0.0f, 0.0f ), DefaultTexture_Black->Resource, FVector2D( ClipX, Height + TopPos - yl), FVector2D( 0.0f, 0.0f), FVector2D( 1.0f, 1.0f ), FLinearColor::White );
 	Canvas->DrawItem( ConsoleTile );
 
 	// figure out which element of the scrollback buffer to should appear first (at the top of the screen)

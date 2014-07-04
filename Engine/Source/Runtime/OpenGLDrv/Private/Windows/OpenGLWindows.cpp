@@ -412,10 +412,8 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
  * Main function for transferring data to on-screen buffers.
  * On Windows it temporarily switches OpenGL context, on Mac only context's output view.
  */
-bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
-
 	check(Context && Context->DeviceContext);
 
 	FScopeLock ScopeLock(Device->ContextUsageGuard);
@@ -427,16 +425,6 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 			TempContext.ViewportFramebuffer = Device->RenderingContext.ViewportFramebuffer;
 		}
 		FScopeContext ScopeContext(&TempContext);
-
-		GLuint vfb = TempContext.ViewportFramebuffer;
-		if (Viewport.GetCustomPresent())
-		{
-			Device->TargetDirty = false;
-			glDisable(GL_FRAMEBUFFER_SRGB);
-			Viewport.GetCustomPresent()->Present(SyncInterval);
-			glEnable(GL_FRAMEBUFFER_SRGB);
-			return false;
-		}
 
 		if (Device->ViewportContexts.Num() == 1 && Device->TargetDirty)
 		{
@@ -475,7 +463,6 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 		}
 	}
-	return true;
 }
 
 void PlatformFlushIfNeeded()
@@ -929,11 +916,3 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 {
 	return NULL;
 }
-
-void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
-{
-	check(Context && Context->WindowHandle);
-
-	return (void*)&Context->WindowHandle;
-}
-

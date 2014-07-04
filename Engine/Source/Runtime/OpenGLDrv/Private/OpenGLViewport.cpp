@@ -119,8 +119,8 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 
 	FOpenGLTexture2D* BackBuffer = Viewport->GetBackBuffer();
 
-	bool bNeedFinishFrame = PlatformBlitToViewport(PlatformDevice,
-		*Viewport, 
+	PlatformBlitToViewport(PlatformDevice,
+		Viewport->OpenGLContext,
 		BackBuffer->GetSizeX(),
 		BackBuffer->GetSizeY(),
 		bPresent,
@@ -136,21 +136,18 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 	// Don't wait on the GPU when using SLI, let the driver determine how many frames behind the GPU should be allowed to get
 	if (GNumActiveGPUsForRendering == 1)
 	{
-		if (bNeedFinishFrame)
+		static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
+		if (!CFinishFrameVar->GetValueOnRenderThread())
 		{
-			static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
-			if (!CFinishFrameVar->GetValueOnRenderThread())
-			{
-				// Wait for the GPU to finish rendering the previous frame before finishing this frame.
-				Viewport->WaitForFrameEventCompletion();
-				Viewport->IssueFrameEvent();
-			}
-			else
-			{
-				// Finish current frame immediately to reduce latency
-				Viewport->IssueFrameEvent();
-				Viewport->WaitForFrameEventCompletion();
-			}
+			// Wait for the GPU to finish rendering the previous frame before finishing this frame.
+			Viewport->WaitForFrameEventCompletion();
+			Viewport->IssueFrameEvent();
+		}
+		else
+		{
+			// Finish current frame immediately to reduce latency
+			Viewport->IssueFrameEvent();
+			Viewport->WaitForFrameEventCompletion();
 		}
 		
 		// If the input latency timer has been triggered, block until the GPU is completely
@@ -241,10 +238,6 @@ void FOpenGLViewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 
 	VERIFY_GL_SCOPE();
 
-	if (IsValidRef(CustomPresent))
-	{
-		CustomPresent->OnBackBufferResize();
-	}
 
 	BackBuffer.SafeRelease();	// when the rest of the engine releases it, its framebuffers will be released too (those the engine knows about)
 
@@ -260,9 +253,3 @@ void FOpenGLViewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 	SizeY = InSizeY;
 	bIsFullscreen = bInIsFullscreen;
 }
-
-void* FOpenGLViewport::GetNativeWindow(void** AddParam) const
-{
-	return PlatformGetWindow(OpenGLContext, AddParam);
-}
-

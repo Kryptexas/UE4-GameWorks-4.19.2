@@ -178,17 +178,9 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	PlatformReleaseOpenGLContext( Device, Context);
 }
 
-void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
-{
-	check(Context);
-
-	return (void*)Context->Context;
-}
-
-bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
 	SDL_GL_SwapBuffers();
-	return true;
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)

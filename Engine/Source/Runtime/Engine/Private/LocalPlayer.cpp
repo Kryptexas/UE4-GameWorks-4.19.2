@@ -758,7 +758,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
 	{
-		ViewFamily->ViewExtensions[ViewExt]->SetupView(*ViewFamily, *View);
+		ViewFamily->ViewExtensions[ViewExt]->SetupView(*ViewFamily, *View); //!!AB
 	}
 	return View;
 }
@@ -937,11 +937,11 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	// scale distances for cull distance purposes by the ratio of our current FOV to the default FOV
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 	
-    FVector StereoViewLocation = ViewInfo.Location;
-    if ((GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL) || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
-    {
-        GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
-    }
+	FVector StereoViewLocation = ViewInfo.Location;
+	if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
+	{
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
+	}
 
 	// Create the view matrix
 	ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);

@@ -326,32 +326,18 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	delete Context;
 }
 
-void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
-{
-	check(Context && Context->hWnd);
-
-	if (AddParam)
-	{
-		*AddParam = &Context->hGLContext;
-	}
-
-	return (void*)&Context->hWnd;
-}
-
 /**
  * Main function for transferring data to on-screen buffers.
  * On Windows it temporarily switches OpenGL context, on Mac only context's output view.
  */
-bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
-							const FOpenGLViewport& Viewport,
+void PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
+							FPlatformOpenGLContext* Context,
 							uint32 BackbufferSizeX,
 							uint32 BackbufferSizeY,
 							bool bPresent,
 							bool bLockToVsync,
 							int32 SyncInterval )
 {
-	FPlatformOpenGLContext* const Context = Viewport.OpenGLContext;
-
 	check( Context && Context->hWnd );
 
 	int32 ret = 0;
@@ -390,7 +376,6 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 		}
 	}
-	return true;
 }
 
 void PlatformFlushIfNeeded()

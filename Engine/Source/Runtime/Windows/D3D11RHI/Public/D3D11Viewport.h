@@ -50,10 +50,8 @@ public:
      */
 	void ConditionalResetSwapChain(bool bIgnoreFocus);
 
-	/** Presents the swap chain. 
-	 * Returns true if Present was done by Engine.
- 	 */
-	bool Present(bool bLockToVsync);
+	/** Presents the swap chain. */
+	void Present(bool bLockToVsync);
 
 	// Accessors.
 	FIntPoint GetSizeXY() const { return FIntPoint(SizeX, SizeY); }
@@ -69,26 +67,13 @@ public:
 		FrameSyncEvent.IssueEvent();
 	}
 
-	IDXGISwapChain* GetSwapChain() const { return SwapChain; } 
-
-	virtual void* GetNativeSwapChain() const override { return GetSwapChain(); }
-	virtual void* GetNativeBackBufferTexture() const override { return BackBuffer->GetResource(); }
-	virtual void* GetNativeBackBufferRT() const override { return BackBuffer->GetRenderTargetView(0, 0); }
-
-	virtual void SetCustomPresent(FRHICustomPresent* InCustomPresent) override
-	{
-		CustomPresent = InCustomPresent;
-	}
 private:
 
 	/** Presents the frame synchronizing with DWM. */
 	void PresentWithVsyncDWM();
 
-	/**
-	 * Presents the swap chain checking the return result. 
-	 * Returns true if Present was done by Engine.
-	 */
-	bool PresentChecked(int32 SyncInterval);
+	/** Presents the swap chain checking the return result. */
+	void PresentChecked(int32 SyncInterval);
 
 	FD3D11DynamicRHI* D3DRHI;
 	uint64 LastFlipTime;
@@ -106,8 +91,6 @@ private:
 
 	/** An event used to track the GPU's progress. */
 	FD3D11EventQuery FrameSyncEvent;
-
-	FCustomPresentRHIRef CustomPresent;
 
 	DXGI_MODE_DESC SetupDXGI_MODE_DESC() const;
 };

@@ -321,13 +321,13 @@ public:
     // and set to the return value if Run function after the thread is finished.
     inline int    GetExitCode() const { return ExitCode; }
     // Returns an OS handle 
-#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
+#if defined(OVR_OS_WIN32)
     void*          GetOSHandle() const { return ThreadHandle; }
 #else
     pthread_t      GetOSHandle() const { return ThreadHandle; }
 #endif
 
-#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
+#if defined(OVR_OS_WIN32)
     ThreadId       GetThreadId() const { return IdValue; }
 #else
     ThreadId       GetThreadId() const { return (ThreadId)GetOSHandle(); }
@@ -343,7 +343,7 @@ public:
 
 
     // *** Debugging functionality
-#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
+#if defined(OVR_OS_WIN32)
     virtual void    SetThreadName( const char* name );
 #else
     virtual void    SetThreadName( const char* name ) { OVR_UNUSED(name); }
@@ -351,9 +351,8 @@ public:
 
 private:
 #if defined(OVR_OS_WIN32)
-    friend unsigned WINAPI Thread_Win32StartFn(void *phandle);
-#elif defined(OVR_OS_XB1)
-    friend DWORD WINAPI Thread_Win32StartFn(void *phandle);
+    friend unsigned WINAPI Thread_Win32StartFn(void *pthread);
+
 #else
     friend void *Thread_PthreadStartFn(void * phandle);
 
@@ -371,7 +370,7 @@ protected:
     int            Processor;
     ThreadPriority Priority;
 
-#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
+#if defined(OVR_OS_WIN32)
     void*               ThreadHandle;
     volatile ThreadId   IdValue;
 

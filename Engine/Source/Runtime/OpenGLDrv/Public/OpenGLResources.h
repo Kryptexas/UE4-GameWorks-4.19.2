@@ -1289,16 +1289,6 @@ public:
 		FrameSyncEvent.IssueEvent();
 	}
 
-	virtual void* GetNativeWindow(void** AddParam) const override;
-
-	struct FPlatformOpenGLContext* GetGLContext() const { return OpenGLContext; }
-	FOpenGLDynamicRHI* GetOpenGLRHI() const { return OpenGLRHI; }
-
-	virtual void SetCustomPresent(FRHICustomPresent* InCustomPresent) override
-	{
-		CustomPresent = InCustomPresent;
-	}
-	FRHICustomPresent* GetCustomPresent() const { return CustomPresent.GetReference(); }
 private:
 
 	friend class FOpenGLDynamicRHI;
@@ -1311,6 +1301,4 @@ private:
 	bool bIsValid;
 	TRefCountPtr<FOpenGLTexture2D> BackBuffer;
 	FOpenGLEventQuery FrameSyncEvent;
-	FCustomPresentRHIRef CustomPresent;
 };
-

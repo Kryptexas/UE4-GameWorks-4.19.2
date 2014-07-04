@@ -13,12 +13,9 @@
 #pragma pack (push,8)
 #endif
 
-#if PLATFORM_WINDOWS
-	#define OVR_VISION_ENABLED
-	#define OVR_DIRECT_RENDERING
-	#define OVR_D3D_VERSION 11
-	#define OVR_GL
-#endif
+#define OVR_VISION_ENABLED
+//#define OVR_DIRECT_RENDERING
+#define OVR_D3D_VERSION 11
 
 #ifdef OVR_VISION_ENABLED
 	#ifndef OVR_CAPI_VISIONSUPPORT
@@ -41,9 +38,6 @@
 	#ifdef OVR_D3D_VERSION
 		#include "../Src/OVR_CAPI_D3D.h"
 	#endif // OVR_D3D_VERSION
-	#ifdef OVR_GL
-		#include "../Src/OVR_CAPI_GL.h"
-	#endif
 #endif // OVR_DIRECT_RENDERING
 
 	using namespace OVR;
@@ -87,6 +81,8 @@ public:
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) override;
 
+	virtual void RecordAnalytics() override;
+
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const override;
 	virtual bool EnableStereo(bool stereo = true) override;
@@ -98,17 +94,6 @@ public:
 	virtual void PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const override;
 	virtual void PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const override;
 	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
-	virtual void GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPass, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const override;
-
-	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport) override;
-
-	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const override;
-	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const override;
-	virtual bool ShouldUseSeparateRenderTarget() const override
-	{
-		check(IsInGameThread());
-		return IsStereoEnabled();
-	}
 
     /** ISceneViewExtension interface */
     virtual void ModifyShowFlags(FEngineShowFlags& ShowFlags) override;
@@ -119,6 +104,9 @@ public:
 	/** Positional tracking control methods */
 	virtual bool IsPositionalTrackingEnabled() const override;
 	virtual bool EnablePositionalTracking(bool enable) override;
+
+	/** A hookup for latency tester (render thread). */
+	virtual bool GetLatencyTesterColor_RenderThread(FColor& color, const FSceneView& view) override;
 
 	virtual bool IsHeadTrackingAllowed() const override;
 
@@ -133,113 +121,59 @@ public:
 	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize) override;
 	virtual void UpdateScreenSettings(const FViewport*) override;
 
-	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) override;
-
 #ifdef OVR_DIRECT_RENDERING
-	class BridgeBaseImpl : public FRHICustomPresent
-	{
-	public:
-		BridgeBaseImpl(FOculusRiftHMD* plugin) :
-			FRHICustomPresent(nullptr),
-			Plugin(plugin), 
-			bNeedReinitRendererAPI(true), 
-			bInitialized(false) 
-		{}
-
-		// Returns true if it is initialized and used.
-		bool IsInitialized() const { return bInitialized; }
-
-		virtual void BeginRendering() = 0;
-		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) = 0;
-		virtual void SetNeedReinitRendererAPI() { bNeedReinitRendererAPI = true; }
-
-		virtual void Reset() = 0;
-		virtual void Shutdown() = 0;
-
-	protected: // data
-		// Data
-		mutable OVR::Lock	ModifyLock;
-		mutable OVR::Lock	ModifyEyeTexturesLock;
-		FOculusRiftHMD*		Plugin;
-		bool				bNeedReinitRendererAPI;
-		bool				bInitialized;
-	};
-
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
-	class D3D11Bridge : public BridgeBaseImpl
+	class D3D11Bridge : public ID3D11Bridge
 	{
 	public:
-		D3D11Bridge(FOculusRiftHMD* plugin);
+		D3D11Bridge(FOculusRiftHMD* plugin):Plugin(plugin), bNeedReinitRendererAPI(true), bReadOnly(false) {}
 
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int SyncInterval) override;
+		virtual void Init(void* InD3DDevice, void* InD3DDeviceContext);
+		virtual void Reset();
 
-		// Implementation of BridgeBaseImpl, called by Plugin itself
-		virtual void BeginRendering() override;
-		void FinishRendering();
-		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) override;
-		virtual void Reset() override;
-		virtual void Shutdown() override
-		{
-			Reset();
-		}
+		virtual void InitViewport(void* InRenderTargetView, void* InSwapChain, int ResX, int ResY);
+		virtual void ResetViewport();
 
-	protected:
-		void Reset_RenderThread();
-	protected: // data
+		virtual bool FinishFrame(int SyncInterval);
+	
+		virtual void SetRenderTargetTexture(void* TargetableTexture, void* ShaderResourceTexture, int SizeX, int SizeY, int NumSamples);
+		virtual FTexture2DRHIRef GetRenderTargetTexture() { return RenderTargetTexture; }
+
+		FOculusRiftHMD*		Plugin;
 		ovrD3D11Config		Cfg;
-		ovrD3D11Texture		EyeTexture[2];				
-		ovrD3D11Texture		EyeTexture_RenderThread[2];
-		bool				bNeedReinitEyeTextures;
+		ovrD3D11Texture		EyeTexture[2];
+		FTexture2DRHIRef	RenderTargetTexture;
+		bool				bNeedReinitRendererAPI;
+		bool				bReadOnly;
 	};
 
+	virtual ID3D11Bridge* GetD3D11Bridge() override 
+	{ 
+		check(IsInGameThread());
+		return &mD3D11Bridge; 
+	} 
+
+	virtual void UpdateRenderTarget(FRHITexture* TargetableTexture, FRHITexture* ShaderResourceTexture, uint32 SizeX, uint32 SizeY, int NumSamples) override;
+	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const override;
+	virtual bool NeedReAllocateRenderTarget(uint32 InSizeX, uint32 InSizeY) const override;
+	virtual bool ShouldUseSeparateRenderTarget() const override 
+	{ 
+		check(IsInGameThread());
+		return IsStereoEnabled(); 
+	}
 #endif
 
-#ifdef OVR_GL
-	class OGLBridge : public BridgeBaseImpl
-	{
-	public:
-		OGLBridge(FOculusRiftHMD* plugin);
-
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific resources.
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int SyncInterval) override;
-
-		// Implementation of BridgeBaseImpl, called by Plugin itself
-		virtual void BeginRendering() override;
-		void FinishRendering();
-		virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI) override;
-		virtual void Reset() override;
-		virtual void Shutdown() override
-		{
-			Reset();
-		}
-
-		virtual void Init();
-
-	protected: // data
-		ovrGLConfig			Cfg;
-		ovrGLTexture		EyeTexture[2];
-		ovrGLTexture		EyeTexture_RenderThread[2];
-		bool				bNeedReinitEyeTextures;
-	};
-#endif // OVR_GL
-	BridgeBaseImpl* GetActiveRHIBridgeImpl();
-
-	void BeginRendering_RenderThread();
-	void FinishRendering_RenderThread();
-	void ShutdownRendering();
-
-#else
-
-	virtual void FinishRenderingFrame_RenderThread() override;
-
+	void BeginRendering_RenderThread(); //!!AB
+	void FinishRendering_RenderThread(); //!!AB
 #endif // #ifdef OVR_DIRECT_RENDERING
+
+	virtual void DrawDebug(UCanvas* Canvas) override;
+
+#if 0 // !UE_BUILD_SHIPPING
+    /** Debugging functionality */
+	virtual bool HandleInputKey(UPlayerInput*, EKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
+	virtual bool HandleInputAxis(UPlayerInput*, EKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+#endif // !UE_BUILD_SHIPPING
 
 	/** Constructor */
 	FOculusRiftHMD();
@@ -269,10 +203,15 @@ private:
 	void UpdateStereoRenderingParams();
 	void UpdateHmdRenderInfo();
 
+	/**
+	 * Calculates the distortion scaling factor used in the distortion postprocess
+	 */
+    //float CalcDistortionScale(float InScale);
+
     /**
      * Updates the view point reflecting the current HMD orientation. 
      */
-	static void UpdatePlayerViewPoint(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FVector& LastHmdPosition, const FQuat& DeltaControlOrientation, const FQuat& BaseViewOrientation, const FVector& BaseViewPosition, FRotator& ViewRotation, FVector& ViewLocation);
+	void UpdatePlayerViewPoint(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FQuat& BaseViewOrientation, const FVector& BaseViewPosition, FRotator& ViewRotation, FVector& ViewLocation);
 
 	/**
 	 * Converts quat from Oculus ref frame to Unreal
@@ -358,6 +297,7 @@ private:
 	/** Restores system values after overrides applied. */
 	void RestoreSystemValues();
 
+	void ProcessLatencyTesterInput() const;
 	void ResetControlRotation() const;
 
 	/** Get/set head model. Units are meters, not UU! 
@@ -379,13 +319,7 @@ private: // data
 	friend class FOculusMessageHandler;
 
 	/** Whether or not the Oculus was successfully initialized */
-	enum EInitStatus
-	{
-		eNotInitialized   = 0x00,
-		eStartupExecuted  = 0x01,
-		eInitialized      = 0x02,
-	};
-	int InitStatus; // see bitmask EInitStatus
+	bool bWasInitialized;
 
 	/** Whether stereo is currently on or off. */
 	bool bStereoEnabled;
@@ -436,8 +370,6 @@ private: // data
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScale;
-	/** Whether world-to-meters scale is overriden or not. */
-	bool bWorldToMetersOverride; 
 
 	/** User-tunable modification to the interpupillary distance */
 	float UserDistanceToScreenModifier;
@@ -499,18 +431,10 @@ private: // data
 
 	/** Show status / statistics on screen. See 'hmd stats' cmd */
 	bool				bShowStats;
-
-	/** Draw lens centered grid */
-	bool				bDrawGrid;
 #endif
 
 	/** Whether timewarp is enabled or not */
 	bool					bTimeWarp;
-
-	/** Optional far clipping plane for projection matrix */
-	float					NearClippingPlane;
-	/** Optional far clipping plane for projection matrix */
-	float					FarClippingPlane;
 
 	/** Player's orientation tracking */
 	FQuat					CurHmdOrientation;
@@ -519,9 +443,7 @@ private: // data
 	FQuat					DeltaControlOrientation; // same as DeltaControlRotation but as quat
 
 	FVector					CurHmdPosition;
-
-	FQuat					LastHmdOrientation; // contains last APPLIED ON GT HMD orientation
-	FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position 
+	FQuat					LastHmdOrientation;
 
 	/** HMD base values, specify forward orientation and zero pos offset */
 	OVR::Vector3f			BaseOffset;      // base position, in Oculus coords
@@ -533,16 +455,12 @@ private: // data
 	ovrMatrix4f				EyeProjectionMatrices[2];	// 0 - left, 1 - right, same as Views
 	ovrFovPort				EyeFov[2];					// 0 - left, 1 - right, same as Views
 	// U,V scale and offset needed for timewarp.
+	ovrVector2f				UVScaleOffset[2][2];		// 0 - left, 1 - right, same as Views
 	ovrRecti				EyeRenderViewport[2];		// 0 - left, 1 - right, same as Views
 	ovrSizei				TextureSize; // texture size (for both eyes)
-
-	unsigned				SensorCaps;
+	unsigned				SensorHmdCaps;
 	unsigned				DistortionCaps;
 	unsigned				HmdCaps;
-
-	unsigned				SupportedSensorCaps;
-	unsigned				SupportedDistortionCaps;
-	unsigned				SupportedHmdCaps;
 
 	FIntPoint				EyeViewportSize; // size of the viewport (for one eye). At the moment it is a half of RT.
 
@@ -559,41 +477,30 @@ private: // data
 		~FDistortionMesh() { Clear(); }
 		void Clear();
 	};
-	ovrVector2f				UVScaleOffset[2][2];	// 0 - left, 1 - right, same as Views
 	Ptr<FDistortionMesh>	pDistortionMesh[2];		// 0 - left, 1 - right, same as Views
 #else // DIRECT_RENDERING
-
-#if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
-	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
-#endif
-#if defined(OVR_GL)
-	TRefCountPtr<OGLBridge>		pOGLBridge;
-#endif
+	FIntPoint				RenderTargetSize; // size of the texture (for both eyes)
+	D3D11Bridge				mD3D11Bridge;
 
 #endif // OVR_DIRECT_RENDERING
 	
-	OVR::Lock					StereoParamsLock;
+	OVR::Lock				StereoParamsLock;
 
 	// Params accessible from rendering thread. Should be filled at the beginning
 	// of the rendering thread under the StereoParamsLock.
 	struct FRenderParams
 	{
-		FVector					LastHmdPosition;	// contains last APPLIED ON GT HMD position 
-		FQuat					DeltaControlOrientation;
-		ovrPosef				EyeRenderPose[2];
-
-#ifndef OVR_DIRECT_RENDERING
+		#ifndef OVR_DIRECT_RENDERING
 		Ptr<FDistortionMesh>	pDistortionMesh[2]; // 0 - left, 1 - right, same as Views
 		ovrVector2f				UVScale[2];			// 0 - left, 1 - right, same as Views
 		ovrVector2f				UVOffset[2];		// 0 - left, 1 - right, same as Views
 		FQuat					CurHmdOrientation;
 		FVector					CurHmdPosition;
-#else
-		ovrEyeRenderDesc		EyeRenderDesc[2];	// 0 - left, 1 - right, same as Views
-		ovrFovPort				EyeFov[2];			// 0 - left, 1 - right, same as Views
-#endif // OVR_DIRECT_RENDERING
+		#else
+		D3D11Bridge				mD3D11Bridge;
+		ovrPosef				EyeRenderPose[2];
+		#endif // OVR_DIRECT_RENDERING
 		bool					bFrameBegun;
-		bool					bTimeWarp;
 		FEngineShowFlags		ShowFlags; // a copy of showflags
 
 		FRenderParams(FOculusRiftHMD* plugin);
@@ -604,12 +511,21 @@ private: // data
 			pDistortionMesh[0] = pDistortionMesh[1] = NULL; 
 			#endif
 		}
-	} RenderParams_RenderThread;
+	}						RenderParams_RenderThread;
 
 
 	/** True, if pos tracking is enabled */
 	bool						bHmdPosTracking;
 	mutable bool				bHaveVisionTracking;
+
+	/** Optional latency tester */
+	OVR::Color					LatencyTestColor;
+	OVR::AtomicInt<uint32>		LatencyTestFrameNumber;
+
+	FVector						RCFCorrection;
+#ifndef OVR_VISION_ENABLED
+	OVR::Vector3f				HeadModel_Meters; // in meters
+#endif // OCULUS_USE_VISION
 };
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMD, Log, All);

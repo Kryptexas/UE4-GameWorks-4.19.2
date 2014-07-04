@@ -430,9 +430,3 @@ void FEmptyDynamicRHI::RHIFlushComputeShaderCache()
 {
 
 }
-
-void* FEmptyDynamicRHI::RHIGetNativeDevice()
-{
-	return nullptr;
-}
-

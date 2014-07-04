@@ -10,6 +10,8 @@ public class LibOVR : ModuleRules
 		string LibOVRVersion = "";
 		Type = ModuleType.External;
 
+        Definitions.Add("OVR_CAPI_VISIONSUPPORT=1");
+
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
@@ -32,14 +34,14 @@ public class LibOVR : ModuleRules
             //PublicAdditionalLibraries.Add(LibraryName + "d.lib");
 			//PublicDelayLoadDLLs.Add(LibraryName + ".dll");
 		}
-//		else if ((Target.Platform == UnrealTargetPlatform.Mac))
-//		{
-//            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
-//
-//          string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
-//			string LibraryName = "libovr";
-//			PublicLibraryPaths.Add(LibraryPath);
-//			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");
-//		}
+		else if ((Target.Platform == UnrealTargetPlatform.Mac))
+		{
+            PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Include");
+
+            string LibraryPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVR" + LibOVRVersion + "/Lib/MacOS/Release/";
+			string LibraryName = "libovr";
+			PublicLibraryPaths.Add(LibraryPath);
+			PublicAdditionalLibraries.Add(LibraryPath + LibraryName + ".a");
+		}
 	}
 }

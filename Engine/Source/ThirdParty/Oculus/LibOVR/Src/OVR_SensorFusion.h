@@ -60,8 +60,6 @@ public:
     typedef typename CompatibleTypes<Transform<T> >::Type CompatibleType;
 
     PoseState() : TimeInSeconds(0.0) { }
-    PoseState(Transform<T> pose, double time) : TimeInSeconds(time), Pose(pose) { }
-
     // float <-> double conversion constructor.
     explicit PoseState(const PoseState<typename Math<T>::OtherFloatType> &src)
         : Pose(src.Pose),
@@ -89,6 +87,7 @@ public:
         result.TimeInSeconds        = TimeInSeconds;
         return result;
     }
+
 
     Transform<T> Pose;
     Vector3<T>  AngularVelocity;
@@ -202,7 +201,7 @@ public:
 	// Critical components for tiny API
 
     SensorFusion(SensorDevice* sensor = 0);
-    virtual ~SensorFusion();
+    ~SensorFusion();
 
     // Attaches this SensorFusion to the IMU sensor device, from which it will receive
     // notification messages. If a sensor is attached, manual message notification
@@ -229,11 +228,8 @@ public:
 	// End tiny API components
     // -------------------------------------------------------------------------------
 
-    // Resets the current orientation to (0, 0, 0)
-	void        Reset();
-
-	// Re-centers on the current orientation and translation
-	void        RecenterPose(bool alsoPitch = false);
+    // Resets the current orientation.
+    void        Reset                        ();
 
     // Configuration
     void        EnableMotionTracking(bool enable = true)    { MotionTrackingEnabled = enable; }
@@ -389,11 +385,15 @@ private:
     LocklessUpdater<LocklessState>	UpdatedState;
 
     // The pose we got from Vision, augmented with velocity information from numerical derivatives
-    // Used to compute tracking predictions and to initialize position components of the state
-    PoseState<double>       CameraFromImu;
-    // The pose from Vision converted to the world frame and updated with the most recent IMU data 
-    // Used for position/yaw corrections
-    PoseState<double>       WorldFromImuVision;
+    PoseState<double>       CameraFromImu;    
+    // Difference between the vision and sensor fusion poses at the time of last exposure adjusted
+    // by all the corrections applied since then
+    // NB: this one is unlike all the other poses/transforms we use, since it's a difference 
+    // between 2 WorldFromImu transforms, but is stored in the world frame, not the IMU frame
+    // (see computeVisionError() for details)
+    // For composition purposes it should be considered a WorldFromWorld transform, where the left
+    // side comes from vision and the right - from sensor fusion
+    PoseState<double>       VisionError;
     // Past exposure records between the last update from vision and now
     // (should only be one record unless vision latency is high)
     CircularBuffer<ExposureRecord> ExposureRecordHistory;
@@ -403,7 +403,7 @@ private:
     // the new MessageExposureFrame is received
     ExposureRecord          NextExposureRecord;
     // Timings of the previous exposure, used to populate ExposureRecordHistory
-    double                  LastExposureTime;
+    MessageExposureFrame    LastMessageExposureFrame;
     // Time of the last vision update
     double                  LastVisionAbsoluteTime;
 
@@ -447,8 +447,6 @@ private:
     Transformd              CpfFromNeck;
     // Last known base of the neck pose used for head model computations
     Transformd              WorldFromNeck;
-	// Transform from real-world coordinates to centered coordinates
-	Transformd				CenteredFromWorld;
 
     //---------------------------------------------    
 
@@ -457,6 +455,8 @@ private:
     void        handleMessage(const MessageBodyFrame& msg);
     void        handleExposure(const MessageExposureFrame& msg);
 
+    // Compute the difference between vision and sensor fusion data
+    PoseStated  computeVisionError();
     // Apply headset yaw correction from magnetometer
 	// for models without camera or when camera isn't available
 	void        applyMagYawCorrection(Vector3d mag, double deltaT);
@@ -527,7 +527,7 @@ inline bool SensorFusion::IsCameraTiltCorrectionEnabled() const
 
 inline double SensorFusion::GetVisionLatency() const
 {
-    return LastVisionAbsoluteTime - WorldFromImuVision.TimeInSeconds;
+    return LastVisionAbsoluteTime - CameraFromImu.TimeInSeconds;
 }
 
 inline double SensorFusion::GetTime() const 
