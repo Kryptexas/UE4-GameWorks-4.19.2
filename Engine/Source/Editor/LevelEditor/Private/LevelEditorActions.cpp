@@ -42,6 +42,7 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
+#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
@@ -1509,8 +1510,15 @@ void FLevelEditorActionCallbacks::MergeActors_Clicked()
 
 bool FLevelEditorActionCallbacks::CanExecuteMergeActors()
 {
-	FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
-	return (Info.bHaveStaticMeshComponent || Info.bHaveLandscape);
+	IMeshUtilities* MeshUtilities = FModuleManager::Get().LoadModulePtr<IMeshUtilities>("MeshUtilities");
+	
+	if (MeshUtilities && MeshUtilities->GetMeshMergingInterface() != nullptr)
+	{
+		FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
+		return (Info.bHaveStaticMeshComponent || Info.bHaveLandscape);
+	}
+	
+	return false;
 }
 
 void FLevelEditorActionCallbacks::MergeActorsByMaterials_Clicked()

@@ -27,7 +27,6 @@
 #include "GlobalEditorCommonCommands.h"
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
-#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -929,17 +928,12 @@ void FLevelEditorContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& MenuB
 {
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActorsByMaterials );
 
-	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
-
-	if (MeshReduction && MeshReduction->IsSupported())
+	// Simplygon ProxyLOD
+	MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon"));
 	{
-		MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon"));
-		{
-			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MergeActors);
-		}
-		MenuBuilder.EndSection();
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MergeActors);
 	}
+	MenuBuilder.EndSection();
 }
 
 void FLevelScriptEventMenuHelper::FillLevelBlueprintEventsMenu(class FMenuBuilder& MenuBuilder, const TArray<AActor*>& SelectedActors)
