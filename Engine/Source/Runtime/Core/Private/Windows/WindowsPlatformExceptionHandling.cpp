@@ -297,78 +297,84 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 	// Flush out the log
 	GLog->Flush();
 
-	// Set the report to force queue
-	FScopedWERQueuing ScopedQueueForcer;
-
-	// Construct the report details
-	WER_REPORT_INFORMATION ReportInformation = { sizeof(WER_REPORT_INFORMATION) };
-
-	StringCchCopy( ReportInformation.wzConsentKey, ARRAYSIZE( ReportInformation.wzConsentKey ), TEXT( "" ) );
-	StringCchCopy( ReportInformation.wzApplicationName, ARRAYSIZE( ReportInformation.wzApplicationName ), FApp::GetGameName() );
-	StringCchCopy( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), FPlatformProcess::BaseDir() );
-	StringCchCat( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), FPlatformProcess::ExecutableName() );
-	StringCchCat( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), TEXT( ".exe" ) );
-
-	GetCrashDescription( ReportInformation, ErrorMessage );
-	
-	// Create a crash event report
-	HREPORT ReportHandle = NULL;
-	if (WerReportCreate(APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle) == S_OK)
+	// Prevent CrashReportClient from spawning another CrashReportClient.
+	const TCHAR* ExecutableName = FPlatformProcess::ExecutableName();
+	const bool bCanRunCrashReportClient = FCString::Stristr( ExecutableName, TEXT( "CrashReportClient" ) ) == nullptr;
+	if( bCanRunCrashReportClient )
 	{
-		// Set the standard set of a crash parameters
-		SetReportParameters(ReportHandle, ExceptionInfo);
+		// Set the report to force queue
+		FScopedWERQueuing ScopedQueueForcer;
 
-		// Add a manually generated minidump
-		AddMiniDump(ReportHandle, ExceptionInfo);
+		// Construct the report details
+		WER_REPORT_INFORMATION ReportInformation = {sizeof( WER_REPORT_INFORMATION )};
 
-		// Add the log and video
-		AddMiscFiles(ReportHandle);
+		StringCchCopy( ReportInformation.wzConsentKey, ARRAYSIZE( ReportInformation.wzConsentKey ), TEXT( "" ) );
+		StringCchCopy( ReportInformation.wzApplicationName, ARRAYSIZE( ReportInformation.wzApplicationName ), FApp::GetGameName() );
+		StringCchCopy( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), FPlatformProcess::BaseDir() );
+		StringCchCat( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), FPlatformProcess::ExecutableName() );
+		StringCchCat( ReportInformation.wzApplicationPath, ARRAYSIZE( ReportInformation.wzApplicationPath ), TEXT( ".exe" ) );
 
-		// Submit
-		WER_SUBMIT_RESULT SubmitResult;
-		WerReportSubmit(ReportHandle, WerConsentAlwaysPrompt, WER_SUBMIT_QUEUE | WER_SUBMIT_BYPASS_DATA_THROTTLING, &SubmitResult);
+		GetCrashDescription( ReportInformation, ErrorMessage );
 
-		// Cleanup
-		WerReportCloseHandle(ReportHandle);
-	}
+		// Create a crash event report
+		HREPORT ReportHandle = NULL;
+		if( WerReportCreate( APPCRASH_EVENT, WerReportApplicationCrash, &ReportInformation, &ReportHandle ) == S_OK )
+		{
+			// Set the standard set of a crash parameters
+			SetReportParameters( ReportHandle, ExceptionInfo );
 
-	// Build machines do not upload these automatically since it is not okay to have lingering processes after the build completes.
-	if (GIsBuildMachine)
-		return EXCEPTION_CONTINUE_EXECUTION;
+			// Add a manually generated minidump
+			AddMiniDump( ReportHandle, ExceptionInfo );
 
-	FString CrashReportClientArguments;
+			// Add the log and video
+			AddMiscFiles( ReportHandle );
 
-	// Suppress the user input dialog if we're running in unattended mode
-	bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode;
-	if (bNoDialog)
-	{
-		CrashReportClientArguments += TEXT(" -Unattended");
-	}
+			// Submit
+			WER_SUBMIT_RESULT SubmitResult;
+			WerReportSubmit( ReportHandle, WerConsentAlwaysPrompt, WER_SUBMIT_QUEUE | WER_SUBMIT_BYPASS_DATA_THROTTLING, &SubmitResult );
 
-	if (FApp::IsInstalled())
-	{
-		// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
-		// following ensures that logs are saved to the user directory when UE4 is installed.
-		CrashReportClientArguments += TEXT(" -Installed");
-	}
+			// Cleanup
+			WerReportCloseHandle( ReportHandle );
+		}
 
-	CrashReportClientArguments += FString(TEXT(" -AppName=")) + ReportInformation.wzApplicationName;
+		// Build machines do not upload these automatically since it is not okay to have lingering processes after the build completes.
+		if( GIsBuildMachine )
+			return EXCEPTION_CONTINUE_EXECUTION;
 
-	static const TCHAR CrashReportClientExeName[] = TEXT("CrashReportClient.exe");
-	FString CrashClientPath = FString(TEXT("..\\..\\..\\Engine\\Binaries")) / FPlatformProcess::GetBinariesSubdirectory() / CrashReportClientExeName;
+		FString CrashReportClientArguments;
 
-	bool bCrashReporterRan = FPlatformProcess::CreateProc(*CrashClientPath, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL).IsValid();
+		// Suppress the user input dialog if we're running in unattended mode
+		bool bNoDialog = FApp::IsUnattended() || ReportUI == EErrorReportUI::ReportInUnattendedMode;
+		if( bNoDialog )
+		{
+			CrashReportClientArguments += TEXT( " -Unattended" );
+		}
 
-	if (!bCrashReporterRan && !bNoDialog)
-	{
-		UE_LOG(LogWindows, Log, TEXT("Could not start %s"), CrashReportClientExeName);
-		FPlatformMemory::DumpStats(*GWarn);
-		FText MessageTitle(FText::Format(
-			NSLOCTEXT("MessageDialog", "AppHasCrashed", "The {0} {1} has crashed and will close"),
-			FText::FromString(ReportInformation.wzApplicationName),
-			FText::FromString(GetEngineMode())
-		));
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(GErrorHist), &MessageTitle);
+		if( FApp::IsInstalled() )
+		{
+			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
+			// following ensures that logs are saved to the user directory when UE4 is installed.
+			CrashReportClientArguments += TEXT( " -Installed" );
+		}
+
+		CrashReportClientArguments += FString( TEXT( " -AppName=" ) ) + ReportInformation.wzApplicationName;
+
+		static const TCHAR CrashReportClientExeName[] = TEXT( "CrashReportClient.exe" );
+		FString CrashClientPath = FString( TEXT( "..\\..\\..\\Engine\\Binaries" ) ) / FPlatformProcess::GetBinariesSubdirectory() / CrashReportClientExeName;
+
+		bool bCrashReporterRan = FPlatformProcess::CreateProc( *CrashClientPath, *CrashReportClientArguments, true, false, false, NULL, 0, NULL, NULL ).IsValid();
+
+		if( !bCrashReporterRan && !bNoDialog )
+		{
+			UE_LOG( LogWindows, Log, TEXT( "Could not start %s" ), CrashReportClientExeName );
+			FPlatformMemory::DumpStats( *GWarn );
+			FText MessageTitle( FText::Format(
+				NSLOCTEXT( "MessageDialog", "AppHasCrashed", "The {0} {1} has crashed and will close" ),
+				FText::FromString( ReportInformation.wzApplicationName ),
+				FText::FromString( GetEngineMode() )
+				) );
+			FMessageDialog::Open( EAppMsgType::Ok, FText::FromString( GErrorHist ), &MessageTitle );
+		}
 	}
 
 	// Let the system take back over (return value only used by NewReportEnsure)
