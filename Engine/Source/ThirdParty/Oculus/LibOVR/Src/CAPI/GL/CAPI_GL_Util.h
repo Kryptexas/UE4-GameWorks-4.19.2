@@ -85,11 +85,15 @@ extern PFNWGLGETSWAPINTERVALEXTPROC             wglGetSwapIntervalEXT;
 extern PFNWGLSWAPINTERVALEXTPROC                wglSwapIntervalEXT;
 
 extern PFNGLENABLEPROC                          glEnable;
+extern PFNGLENABLEIPROC                         glEnablei;
 extern PFNGLDISABLEPROC                         glDisable;
+extern PFNGLDISABLEIPROC                        glDisablei;
 extern PFNGLCOLORMASKPROC                       glColorMask;
+extern PFNGLCOLORMASKIPROC                      glColorMaski;
 extern PFNGLGETFLOATVPROC                       glGetFloatv;
 extern PFNGLGETSTRINGPROC                       glGetString;
 extern PFNGLGETINTEGERVPROC                     glGetIntegerv;
+extern PFNGLGETINTEGERI_VPROC                   glGetIntegeri_v;
 extern PFNGLCLEARPROC                           glClear;
 extern PFNGLCLEARCOLORPROC                      glClearColor;
 extern PFNGLCLEARDEPTHPROC                      glClearDepth;

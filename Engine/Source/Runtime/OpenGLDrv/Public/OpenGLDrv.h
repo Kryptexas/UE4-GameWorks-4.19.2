@@ -305,7 +305,6 @@ public:
 	virtual void PushEvent(const TCHAR* Name);
 	virtual void PopEvent();
 
-
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) virtual Type RHI##Name ParameterTypesAndNames
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD
@@ -425,8 +424,6 @@ private:
 
 	/** A critical section to protect modifications and iteration over Queries list */
 	FCriticalSection TimerQueriesListCriticalSection;
-
-
 
 	FOpenGLGPUProfiler GPUProfilingData;
 	friend FOpenGLGPUProfiler;

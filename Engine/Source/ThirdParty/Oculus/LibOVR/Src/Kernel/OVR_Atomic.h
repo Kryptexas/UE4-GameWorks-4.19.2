@@ -32,7 +32,7 @@ limitations under the License.
 #include "OVR_Types.h"
 
 // Include System thread functionality.
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -93,7 +93,7 @@ class   Lock;
 
 struct AtomicOpsRawBase
 {
-#if !defined(OVR_ENABLE_THREADS) || defined(OVR_CPU_X86) || defined(OVR_OS_WIN32) || defined(OVR_OS_IPHONE)
+#if !defined(OVR_ENABLE_THREADS) || defined(OVR_CPU_X86) || defined(OVR_OS_WIN32) || defined(OVR_OS_XB1) || defined(OVR_OS_IPHONE)
     // Need to have empty constructor to avoid class 'unused' variable warning.
     struct FullSync { inline FullSync() { } };
     struct AcquireSync { inline AcquireSync() { } };
@@ -134,7 +134,7 @@ struct AtomicOpsRaw_4ByteImpl : public AtomicOpsRawBase
 
     // *** Thread - Safe Atomic Versions.
 
-#elif defined(OVR_OS_WIN32)
+#elif defined(OVR_OS_WIN32) || defined(OVR_OS_XB1) 
 
     // Use special defined for VC6, where volatile is not used and
     // InterlockedCompareExchange is declared incorrectly.
@@ -399,7 +399,7 @@ struct AtomicOpsRaw_8ByteImpl : public AtomicOpsRawBase
     typedef UInt64 T;
 
     // *** Thread - Safe OS specific versions.
-#elif defined(OVR_OS_WIN32)
+#elif defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
 
     // This is only for 64-bit systems.
     typedef LONG64      T;
@@ -816,7 +816,7 @@ public:
     inline void Unlock() { }
 
    // Windows.   
-#elif defined(OVR_OS_WIN32)
+#elif defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
 
     CRITICAL_SECTION cs;
 public:   

@@ -68,21 +68,25 @@ protected:
         virtual void Restore();
         
     protected:
-        void ApplyBool(GLenum Name, GLint Value);
+        void ApplyBool(GLenum Name, GLint Value, GLint index = -1);
         
     public:
         GLint GlMajorVersion;
         GLint GlMinorVersion;
         bool SupportsVao;
+        bool SupportsDrawBuffers;
         
         GLint Viewport[4];
         GLfloat ClearColor[4];
         GLint DepthTest;
         GLint CullFace;
+        GLint SRGB;
         GLint Program;
         GLint ActiveTexture;
         GLint TextureBinding;
-        GLint VertexArray;
+        GLint VertexArrayBinding;
+        GLint ElementArrayBufferBinding;
+        GLint ArrayBufferBinding;
         GLint FrameBufferBinding;
         
         GLint Blend;

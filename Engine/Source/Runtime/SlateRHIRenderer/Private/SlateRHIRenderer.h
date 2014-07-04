@@ -93,6 +93,8 @@ private:
 		FViewportRHIRef ViewportRHI;
 		/** The depth buffer texture if any */
 		FTexture2DRHIRef DepthStencil;
+		/** The render target texture (if rendering into a texture */
+		FTexture2DRHIRef RenderTargetTexture;
 		/** The OS Window handle (for recreating the viewport) */
 		void* OSWindow;
 		/** The actual width of the viewport */
@@ -215,6 +217,8 @@ public:
 	virtual void InvalidateAllViewports();
 
 	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) override;
+
+	virtual void SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT) override;
 
 private:
 	/** Loads all known textures from Slate styles */

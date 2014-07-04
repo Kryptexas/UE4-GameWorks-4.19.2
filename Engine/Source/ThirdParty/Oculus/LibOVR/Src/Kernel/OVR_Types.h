@@ -38,6 +38,7 @@ limitations under the License.
 //    LINUX    - Linux
 //    ANDROID  - Android
 //    IPHONE   - iPhone
+//    XB1      - Xbox One/Durango
 
 #if (defined(__APPLE__) && (defined(__GNUC__) ||\
      defined(__xlC__) || defined(__xlc__))) || defined(__MACOS__)
@@ -47,6 +48,8 @@ limitations under the License.
 #    define OVR_OS_DARWIN
 #    define OVR_OS_MAC
 #  endif
+#elif defined(_XBOX_ONE)
+#  define OVR_OS_XB1
 #elif (defined(WIN64) || defined(_WIN64) || defined(__WIN64__))
 #  define OVR_OS_WIN32
 #elif (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__))
@@ -75,7 +78,7 @@ limitations under the License.
 //    OTHER      - CPU for which no special support is present or needed
 
 
-#if defined(__x86_64__) || defined(WIN64) || defined(_WIN64) || defined(__WIN64__)
+#if defined(__x86_64__) || defined(WIN64) || defined(_WIN64) || defined(__WIN64__) || defined(_XBOX_ONE)
 #  define OVR_CPU_X86_64
 #  define OVR_64BIT_POINTERS
 #elif defined(__i386__) || defined(OVR_OS_WIN32)
@@ -101,7 +104,7 @@ limitations under the License.
 //    Altivec    - Available on all modern ppc processors.
 //    Neon       - Available on some armv7+ processors.
 
-#if defined(__SSE__) || defined(OVR_OS_WIN32)
+#if defined(__SSE__) || defined(OVR_OS_WIN32) || defined(_XBOX_ONE)
 #  define  OVR_CPU_SSE
 #endif // __SSE__
 
@@ -140,7 +143,7 @@ limitations under the License.
 // MSVC 8.0 (VC2005)            = 1400
 // MSVC 9.0 (VC2008)            = 1500
 // MSVC 10.0 (VC2010)           = 1600
-// MSVC 11.0 (VC2012)           = 1700
+// MSVC 11.0 (VC2012, incl XB1) = 1700
 // MSVC 12.0 (VC2013)           = 1800
 #  define OVR_CC_MSVC        _MSC_VER
 
@@ -219,7 +222,7 @@ typedef size_t          UPInt;
 typedef ptrdiff_t       SPInt;
 
 
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
 
 typedef char            SByte;  // 8 bit Integer (Byte)
 typedef unsigned char   UByte;
@@ -312,9 +315,9 @@ namespace BaseTypes
 #endif  // OVR_CC_MSVC
 
 
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
     
-    // ***** Win32
+    // ***** Win32 and Xbox One
 
     // Byte order
     #define OVR_BYTE_ORDER    OVR_LITTLE_ENDIAN
@@ -383,7 +386,7 @@ namespace BaseTypes
 #else 
 
 // Microsoft Win32 specific debugging support
-#if defined(OVR_OS_WIN32)
+#if defined(OVR_OS_WIN32) || defined(OVR_OS_XB1)
 #  ifdef OVR_CPU_X86
 #    if defined(__cplusplus_cli)
 #      define OVR_DEBUG_BREAK   do { __debugbreak(); } while(0)

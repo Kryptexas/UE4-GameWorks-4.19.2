@@ -87,9 +87,17 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 {
 }
 
-void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
+{
+	check(Context);
+
+	return (void*)&Context->eglContext;
+}
+
+bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
 	AndroidEGL::GetInstance()->SwapBuffers();
+	return true;
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)

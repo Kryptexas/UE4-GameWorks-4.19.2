@@ -1141,6 +1141,7 @@ public:
     PoseState<T> operator*(const PoseState<T>& poseState) const   
     {
         PoseState<T> result;
+        result.TimeInSeconds       = poseState.TimeInSeconds;
         result.Pose                = (*this) * poseState.Pose;
         result.LinearVelocity      = this->Rotate(poseState.LinearVelocity);
         result.LinearAcceleration  = this->Rotate(poseState.LinearAcceleration);

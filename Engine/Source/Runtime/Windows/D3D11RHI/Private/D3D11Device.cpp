@@ -456,5 +456,7 @@ void FD3D11DynamicRHI::RHIFlushComputeShaderCache()
 
 void* FD3D11DynamicRHI::RHIGetNativeDevice()
 {
-	return Direct3DDevice.GetReference();
+	return (void*)Direct3DDevice.GetReference();
 }
+
+

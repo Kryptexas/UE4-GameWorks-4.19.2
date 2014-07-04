@@ -699,14 +699,22 @@ struct PositionCalibrationReport
         PositionType_IMU     = 1
     };
 
+    enum VersionEnum
+    {
+        Version_None         = 0,
+        Version_Default      = 1,
+        Version_Factory      = 2,
+        Version_User         = 3
+    };
+
     PositionCalibrationReport()
-      :	CommandId(0), Version(0), 
+      :	CommandId(0), Version(Version_None), 
         Position(0), Normal(0), Angle(0),
         PositionIndex(0), NumPositions(0), PositionType(PositionType_LED)
 	{}
 
     PositionCalibrationReport(UInt16 commandId,
-                        UByte version,
+                        VersionEnum version,
                         const Vector3d& position,
 						const Vector3d& normal,
 						double rotation,
@@ -720,7 +728,7 @@ struct PositionCalibrationReport
 	}
 
     UInt16			CommandId;
-	UByte			Version;            // The version of the calibration procedure used to generate the stored positions.
+	VersionEnum		Version;            // The version of the calibration procedure used to generate the stored positions.
     Vector3d        Position;           // Position of the LED or inertial tracker in meters. This is relative to the 
 										// center of the emitter plane of the display at nominal focus.
 	Vector3d        Normal;				// Normal of the LED or inertial tracker. This is a signed integer in 
