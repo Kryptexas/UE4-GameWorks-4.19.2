@@ -206,7 +206,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 				.UseAllottedWidth(true)
 
 				+ SWrapBox::Slot()
-				.Padding(0.0f, 0.0f, 16.0f, 0.0f)
+				.Padding(0, 0, 16, 0)
 				[
 					SNew(SCheckBox)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -219,7 +219,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 				]
 
 				+ SWrapBox::Slot()
-				.Padding(0.0f, 0.0f, 16.0f, 0.0f)
+				.Padding(0, 0, 16, 0)
 				[
 					SNew(SCheckBox)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -232,6 +232,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 				]
 
 				+ SWrapBox::Slot()
+				.Padding(0, 0, 16, 0)
 				[
 					SNew(SCheckBox)
 					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
@@ -240,6 +241,19 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("BSP", "BSP"))
+					]
+				]
+
+				+ SWrapBox::Slot()
+				.Padding(0, 0, 16, 0)
+				[
+					SNew(SCheckBox)
+					.Visibility(this, &SFoliageEdit::GetVisibility_Filters)
+					.OnCheckStateChanged(this, &SFoliageEdit::OnCheckStateChanged_Translucent)
+					.IsChecked(this, &SFoliageEdit::GetCheckState_Translucent)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("Translucent", "Translucent"))
 					]
 				]
 			]
@@ -362,9 +376,9 @@ void SFoliageEdit::AddItemToScrollbox(struct FFoliageMeshUIInfo& InFoliageInfoTo
 	DisplayItemList.Add(DisplayItem);
 
 	ItemScrollBox->AddSlot()
-		[
-			DisplayItem
-		];
+	[
+		DisplayItem
+	];
 }
 
 void SFoliageEdit::RemoveItemFromScrollbox(const TSharedPtr<SFoliageEditMeshDisplayItem> InWidgetToRemove)
@@ -675,6 +689,16 @@ void SFoliageEdit::OnCheckStateChanged_BSP(ESlateCheckBoxState::Type InState)
 ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_BSP() const
 {
 	return FoliageEditMode->UISettings.GetFilterBSP() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SFoliageEdit::OnCheckStateChanged_Translucent(ESlateCheckBoxState::Type InState)
+{
+	FoliageEditMode->UISettings.SetFilterTranslucent(InState == ESlateCheckBoxState::Checked ? true : false);
+}
+
+ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_Translucent() const
+{
+	return FoliageEditMode->UISettings.GetFilterTranslucent() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
 }
 
 EVisibility SFoliageEdit::GetVisibility_Radius() const

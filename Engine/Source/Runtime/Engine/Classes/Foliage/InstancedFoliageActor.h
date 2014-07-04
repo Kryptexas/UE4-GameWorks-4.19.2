@@ -51,7 +51,7 @@ public:
 
 	// Change all instances based on one component to a new component (possible in another level).
 	// The instances keep the same world locations
-	ENGINE_API void MoveInstancesToNewComponent(UActorComponent* InOldComponent, UActorComponent* InNewComponent);
+	ENGINE_API void MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
 
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
