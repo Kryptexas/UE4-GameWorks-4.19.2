@@ -141,6 +141,12 @@ private:
 	/** Retrieves the filter settings for painting on BSPs. */
 	ESlateCheckBoxState::Type GetCheckState_BSP() const;
 
+	/** Sets the filter settings for if painting will occur on translucent meshes. */
+	void OnCheckStateChanged_Translucent(ESlateCheckBoxState::Type InState);
+
+	/** Retrieves the filter settings for painting on translucent meshes. */
+	ESlateCheckBoxState::Type GetCheckState_Translucent() const;
+
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
 

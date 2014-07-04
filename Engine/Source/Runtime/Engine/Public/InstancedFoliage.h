@@ -51,7 +51,7 @@ struct FFoliageInstancePlacementInfo
  */
 struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
-	UActorComponent* Base;
+	UPrimitiveComponent* Base;
 	int32 ClusterIndex;	// -1/INDEX_NONE if this instance is invalid and its array slot can be reused.
 
 	FFoliageInstance()
@@ -85,11 +85,10 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 			{
 				AlignRotation.Pitch = MaxPitch;
 			}
-			else
-				if (AlignRotation.Pitch < -MaxPitch)
-				{
+			else if (AlignRotation.Pitch < -MaxPitch)
+			{
 				AlignRotation.Pitch = -MaxPitch;
-				}
+			}
 		}
 
 		PreAlignRotation = Rotation;

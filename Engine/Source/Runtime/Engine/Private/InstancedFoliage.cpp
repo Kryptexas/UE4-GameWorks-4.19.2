@@ -974,7 +974,7 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorCompo
 	}
 }
 
-void AInstancedFoliageActor::MoveInstancesToNewComponent(UActorComponent* InOldComponent, UActorComponent* InNewComponent)
+void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent)
 {
 	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>());
 	if (!NewIFA)
@@ -1435,7 +1435,7 @@ void AInstancedFoliageActor::MapRebuild()
 
 					if (bHit && Result.Component.IsValid() && Result.Component->IsA(UModelComponent::StaticClass()))
 					{
-						NewInstance.Base = Cast<UActorComponent>(Result.Component.Get());
+						NewInstance.Base = CastChecked<UPrimitiveComponent>(Result.Component.Get());
 					}
 					else
 					{

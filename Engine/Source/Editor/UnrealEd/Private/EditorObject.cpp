@@ -240,7 +240,7 @@ static const TCHAR* ImportProperties(
 				ParseObject<UStaticMesh>(Str, TEXT("StaticMesh="), StaticMesh, ANY_PACKAGE) &&
 				FParse::Value(Str, TEXT("Component="), ComponentName) )
 			{
-				UActorComponent* ActorComponent = FindObjectFast<UActorComponent>(SubobjectRoot, ComponentName);
+				UPrimitiveComponent* ActorComponent = FindObjectFast<UPrimitiveComponent>(SubobjectRoot, ComponentName);
 
 				if (ActorComponent)
 				{

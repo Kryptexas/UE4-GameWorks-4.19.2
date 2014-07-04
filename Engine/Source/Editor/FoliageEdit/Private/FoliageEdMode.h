@@ -52,6 +52,8 @@ struct FFoliageUISettings
 	void SetFilterStaticMesh(bool InbFilterStaticMesh) { bFilterStaticMesh = InbFilterStaticMesh; }
 	bool GetFilterBSP() const { return bFilterBSP ? true : false; }
 	void SetFilterBSP(bool InbFilterBSP) { bFilterBSP = InbFilterBSP; }
+	bool GetFilterTranslucent() const { return bFilterTranslucent; }
+	void SetFilterTranslucent(bool InbFilterTranslucent) { bFilterTranslucent = InbFilterTranslucent; }
 
 	FFoliageUISettings()
 		: WindowX(-1)
@@ -98,6 +100,7 @@ public:
 	bool bFilterLandscape;
 	bool bFilterStaticMesh;
 	bool bFilterBSP;
+	bool bFilterTranslucent;
 };
 
 
