@@ -341,6 +341,12 @@ public:
 	{
 		return ViewRect;
 	}
+
+	FORCEINLINE void SetScaledToRenderTarget(bool scale = true)
+	{
+		bScaledToRenderTarget = scale;
+	}
+	FORCEINLINE bool IsScaledToRenderTarget() const { return bScaledToRenderTarget; }
 private:
 	/** Stack of SortKeys. All rendering is done using the top most sort key */
 	TArray<int32> DepthSortKeyStack;	
@@ -364,7 +370,9 @@ private:
 	float CurrentWorldTime;
 	/** Current world time in seconds */
 	float CurrentDeltaWorldTime;
-	
+	/** true, if Canvas should be scaled to whole render target */
+	bool bScaledToRenderTarget;
+
 	/** 
 	* Shared construction function
 	*/

@@ -54,5 +54,38 @@ public:
 	/**
 	 * Returns eye render params, used from PostProcessHMD, RenderThread.
 	 */
-	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const = 0;
+	virtual void GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const {}
+
+	/**
+	 * Returns timewarp matrices, used from PostProcessHMD, RenderThread.
+	 */
+	virtual void GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPass, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const {}
+
+	// Optional methods to support rendering into a texture.
+	/**
+	 * Updates viewport for direct rendering of distortion. Should be called on a game thread.
+	 */
+	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport) {}
+
+	/**
+	 * Calculates dimensions of the render target texture for direct rendering of distortion.
+	 */
+	virtual void CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const {}
+
+	/**
+	 * Returns true, if render target texture must be re-calculated. 
+	 */
+	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const { return false; }
+
+	// Whether separate render target should be used or not.
+	virtual bool ShouldUseSeparateRenderTarget() const { return false; }
+
+	// Renders texture into a backbuffer. Could be empty if no rendertarget texture is used, or if direct-rendering 
+	// through RHI bridge is implemented. 
+	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const {}
+
+	/**
+	 * Called after Present is called.
+	 */
+	virtual void FinishRenderingFrame_RenderThread() {}
 };

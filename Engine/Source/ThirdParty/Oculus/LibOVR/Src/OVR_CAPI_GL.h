@@ -23,12 +23,14 @@ otherwise accompanies this software in either electronic or hard copy form.
 #if defined(OVR_OS_WIN32)
     #include <Windows.h>
     #include <GL/gl.h>
-    #include <GL/glext.h>
-    #include <GL/wglext.h>
+//    #include <GL/glext.h>
+//    #include <GL/wglext.h>
 #elif defined(OVR_OS_MAC)
     #include <OpenGL/gl3.h>
     #include <OpenGL/gl3ext.h>
     #include <OpenGL/OpenGL.h>
+#elif defined(OVR_OS_XB1)
+    #error No OpenGL on XB1
 #else
     #include <GL/gl.h>
     #include <GL/glext.h>

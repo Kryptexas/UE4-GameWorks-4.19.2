@@ -108,13 +108,23 @@ void PlatformDestroyOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 {
 }
 
-void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 {
+	check(Context);
+
+	return (void*)Context->Context;
+}
+
+bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
+{
+	FPlatformOpenGLContext* const Context = Viewport.OpenGLContext;
+
 	// @todo-mobile
 	check(Device->bSingleContext || Context == &Device->RenderingContext);
 	IOSAppDelegate* AppDelegate = [IOSAppDelegate GetDelegate];
 
 	[AppDelegate.IOSView SwapBuffers];
+	return true;
 }
 
 void PlatformFlushIfNeeded()

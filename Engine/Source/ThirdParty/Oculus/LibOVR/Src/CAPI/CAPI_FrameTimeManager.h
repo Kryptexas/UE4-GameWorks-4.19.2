@@ -223,8 +223,56 @@ private:
 
     double  calcFrameDelta() const;
     double  calcScreenDelay() const;
-    double  calcTimewarpWaitDelta() const;    
+    double  calcTimewarpWaitDelta() const;
+
+    void    updateTimewarpTiming();
+
+
     
+    // TimewarpDelayAdjuster implements a simple state machine that reduces the amount
+    // of time-warp waiting based on skipped frames. 
+    struct TimewarpDelayAdjuster
+    {
+        enum StateInLevel
+        {        
+            // We are ok at this level, and will be waiting for some time before trying to reduce.
+            State_WaitingToReduceLevel,  
+            // After decrementing a level, we are verifying that this won't cause skipped frames.
+            State_VerifyingAfterReduce
+       };
+    
+        enum {
+            MaxDelayLevel          = 5,
+            MaxInfiniteTimingLevel = 3,
+            MaxTimeIndex           = 6
+        };
+
+        StateInLevel State;   
+        // Current level. Higher levels means larger delay reduction (smaller overall time-warp delay).
+        int          DelayLevel;
+        // Index for the amount of time we'd wait in this level. If attempt to decrease level fails,
+        // with is incrementing causing the level to become "sticky". 
+        int          WaitTimeIndexForLevel[MaxTimeIndex + 1];
+        // We skip few frames after each escalation to avoid too rapid of a reduction.
+        int          InitialFrameCounter;
+        // What th currect "reduction" currently is.
+        double       TimewarpDelayReductionSeconds;
+        // When we should try changing the level again.
+        double       DelayLevelFinishTime;
+
+    public:
+        TimewarpDelayAdjuster() { Reset(); }
+
+        void    Reset();
+
+        void    UpdateTimewarpWaitIfSkippedFrames(FrameTimeManager* manager,
+                                                  double measuredFrameDelta,
+                                                  double nextFrameTime);
+
+        double  GetDelayReduction() const { return TimewarpDelayReductionSeconds; }
+    };
+
+
     
     HmdRenderInfo       RenderInfo;
     // Timings are collected through a median filter, to avoid outliers.
@@ -244,6 +292,9 @@ private:
     double              VSyncToScanoutDelay;
     double              NoVSyncToScanoutDelay;
     double              ScreenSwitchingDelay;
+
+    // 
+    TimewarpDelayAdjuster  TimewarpAdjuster;
 
     // Current (or last) frame timing info. Used as a source for LocklessTiming.
     Timing                  FrameTiming;
