@@ -13,7 +13,8 @@
 
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
-#include "AudioDecompress.h"
+#include "OpusAudioInfo.h"
+#include "VorbisAudioInfo.h"
 #include "XAudio2Effects.h"
 #include "Engine.h"
 #include "AllowWindowsPlatformTypes.h"

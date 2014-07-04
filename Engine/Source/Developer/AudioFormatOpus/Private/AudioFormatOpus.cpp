@@ -4,7 +4,7 @@
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
-#include "AudioDecompress.h"
+#include "OpusAudioInfo.h"
 #include "AudioFormatOpus.h"
 
 // Need to define this so that resampler.h compiles - probably a way around this somehow

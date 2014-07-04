@@ -9,7 +9,7 @@
  ------------------------------------------------------------------------------------*/
 
 #include "CoreAudioDevice.h"
-#include "AudioDecompress.h"
+#include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
 #include "CoreAudioEffects.h"
 #include "Engine.h"

@@ -4,7 +4,7 @@
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
-#include "AudioDecompress.h"
+#include "VorbisAudioInfo.h"
 
 
 #if WITH_OGGVORBIS

@@ -11,15 +11,11 @@
 ------------------------------------------------------------------------------------*/
 
 #include "HTML5AudioDevice.h"
-#include "AudioDecompress.h"
+#include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
 #include "Engine.h"
 
 DEFINE_LOG_CATEGORY(LogALAudio);
-
-//     2 UU == 1"
-// <=> 1 UU == 0.0127 m
-#define AUDIO_DISTANCE_FACTOR ( 0.0127f )
 
 ALCdevice* FALAudioDevice::HardwareDevice = NULL;
 ALCcontext*	FALAudioDevice::SoundContext = NULL;

@@ -6,26 +6,10 @@
 
 #pragma once
 
-/**
- * Whether to use OggVorbis audio format.
- **/
-#ifndef WITH_OGGVORBIS
-	#if PLATFORM_DESKTOP
-		#define WITH_OGGVORBIS 1
-	#else
-		#define WITH_OGGVORBIS 0
-	#endif
-#endif
-
 // 186ms of 44.1KHz data
 // 372ms of 22KHz data
 #define MONO_PCM_BUFFER_SAMPLES		8192
 #define MONO_PCM_BUFFER_SIZE		( MONO_PCM_BUFFER_SAMPLES * sizeof( int16 ) )
-
-/**
- * Loads voribs dlls
-*/
-ENGINE_API void LoadVorbisLibraries();
 
 /**
  * Interface class to decompress various types of audio data
@@ -117,150 +101,6 @@ public:
 	 * Gets the offset into the chunk that was last read to (for Streaming Manager priority)
 	 */
 	virtual int32 GetCurrentChunkOffset() const {return -1;}
-};
-
-#if WITH_OGGVORBIS
-/** 
- * Helper class to parse ogg vorbis data
- */
-class FVorbisAudioInfo : public ICompressedAudioInfo
-{
-public:
-	ENGINE_API FVorbisAudioInfo( void );
-	ENGINE_API virtual ~FVorbisAudioInfo( void );
-
-	/** Emulate read from memory functionality */
-	size_t			Read( void *ptr, uint32 size );
-	int				Seek( uint32 offset, int whence );
-	int				Close( void );
-	long			Tell( void );
-
-	/** 
-	 * Reads the header information of an ogg vorbis file
-	 * 
-	 * @param	Resource		Info about vorbis data
-	 */
-	ENGINE_API virtual bool ReadCompressedInfo( const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo );
-
-	/** 
-	 * Decompresses ogg data to raw PCM data. 
-	 * 
-	 * @param	Destination	where to place the decompressed sound
-	 * @param	bLooping	whether to loop the sound by seeking to the start, or pad the buffer with zeroes
-	 * @param	BufferSize	number of bytes of PCM data to create
-	 *
-	 * @return	bool		true if the end of the data was reached (for both single shot and looping sounds)
-	 */
-	ENGINE_API virtual bool ReadCompressedData( uint8* Destination, bool bLooping, uint32 BufferSize );
-
-	ENGINE_API virtual void SeekToTime( const float SeekTime );
-
-	/** 
-	 * Decompress an entire ogg data file to a TArray
-	 */
-	ENGINE_API virtual void ExpandFile( uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo );
-
-	/** 
-	 * Sets ogg to decode to half-rate
-	 * 
-	 * @param	Resource		Info about vorbis data
-	 */
-	ENGINE_API virtual void EnableHalfRate( bool HalfRate );
-
-	virtual uint32 GetSourceBufferSize() const { return SrcBufferDataSize;}
-
-	struct FVorbisFileWrapper* VFWrapper;
-	const uint8*		SrcBufferData;
-	uint32			SrcBufferDataSize;
-	uint32			BufferOffset;
-};
-#endif
-
-#define OPUS_ID_STRING "UE4OPUS"
-
-struct FOpusDecoderWrapper;
-
-/**
-* Helper class to parse opus data
-*/
-class FOpusAudioInfo : public ICompressedAudioInfo
-{
-public:
-	ENGINE_API FOpusAudioInfo(void);
-	ENGINE_API virtual ~FOpusAudioInfo(void);
-
-	// ICompressedAudioInfo Interface
-	ENGINE_API virtual bool ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InSrcBufferDataSize, struct FSoundQualityInfo* QualityInfo) override;
-	ENGINE_API virtual bool ReadCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize) override;
-	ENGINE_API virtual void SeekToTime(const float SeekTime) override {};
-	ENGINE_API virtual void ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo) override;
-	ENGINE_API virtual void EnableHalfRate(bool HalfRate) override {};
-	virtual uint32 GetSourceBufferSize() const override { return SrcBufferDataSize;}
-
-	virtual bool SupportsStreaming() const override {return true;}
-	virtual bool StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo) override;
-	virtual bool StreamCompressedData(uint8* Destination, bool bLooping, uint32 BufferSize) override;
-	virtual int32 GetCurrentChunkIndex() const override {return CurrentChunkIndex;}
-	virtual int32 GetCurrentChunkOffset() const override {return SrcBufferOffset;}
-	// End of ICompressedAudioInfo Interface
-
-protected:
-	/** Emulate read from memory functionality */
-	size_t			Read(void *ptr, uint32 size);
-
-	/**
-	 * Decompresses a frame of Opus data to PCM buffer
-	 *
-	 * @param FrameSize Size of the frame in bytes
-	 * @return The amount of samples that were decompressed (< 0 indicates error)
-	 */
-	int32 DecompressToPCMBuffer(uint16 FrameSize);
-
-	/**
-	 * Adds to the count of samples that have currently been decoded
-	 *
-	 * @param NewSamples	How many samples have been decoded
-	 * @return How many samples were actually part of the true sample count
-	 */
-	uint32 IncrementCurrentSampleCount(uint32 NewSamples);
-
-	/**
-	 * Writes data from decoded PCM buffer, taking into account whether some PCM has been written before
-	 *
-	 * @param Destination	Where to place the decoded sound
-	 * @param BufferSize	Size of the destination buffer in bytes
-	 * @return				How many bytes were written
-	 */
-	uint32	WriteFromDecodedPCM(uint8* Destination, uint32 BufferSize);
-
-	/**
-	 * Zeroes the contents of a buffer
-	 *
-	 * @param Destination	Buffer to zero
-	 * @param BufferSize	Size of the destination buffer in bytes
-	 * @return				How many bytes were zeroed
-	 */
-	uint32	ZeroBuffer(uint8* Destination, uint32 BufferSize);
-
-	FOpusDecoderWrapper*	OpusDecoderWrapper;
-	const uint8*	SrcBufferData;
-	uint32			SrcBufferDataSize;
-	uint32			SrcBufferOffset;
-	uint32			AudioDataOffset;
-
-	uint32			TrueSampleCount;
-	uint32			CurrentSampleCount;
-	uint8			NumChannels;
-	uint32			SampleStride;
-
-	TArray<uint8>	LastDecodedPCM;
-	uint32			LastPCMByteSize;
-	uint32			LastPCMOffset;
-	bool			bStoringEndOfFile;
-
-	// Streaming specific
-	USoundWave*		StreamingSoundWave;
-	int32			CurrentChunkIndex;
 };
 
 /**

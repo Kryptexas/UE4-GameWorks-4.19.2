@@ -353,13 +353,16 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 		{
 			// Request the chunk the source is using and the one after that
 			FWaveRequest& WaveRequest = GetWaveRequest(Wave);
-			uint32 SourceChunk = Source->GetBuffer()->GetCurrentChunkIndex();
-			WaveRequest.RequiredIndices.AddUnique(SourceChunk);
-			WaveRequest.RequiredIndices.AddUnique((SourceChunk+1)%Wave->RunningPlatformData->NumChunks);
-			if (Source->GetBuffer()->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
+			int32 SourceChunk = Source->GetBuffer()->GetCurrentChunkIndex();
+			if (SourceChunk >= 0 && SourceChunk < Wave->RunningPlatformData->NumChunks)
 			{
-				// already read over half, request is high priority
-				WaveRequest.bPrioritiseRequest = true;
+				WaveRequest.RequiredIndices.AddUnique(SourceChunk);
+				WaveRequest.RequiredIndices.AddUnique((SourceChunk+1)%Wave->RunningPlatformData->NumChunks);
+				if (Source->GetBuffer()->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
+				{
+					// already read over half, request is high priority
+					WaveRequest.bPrioritiseRequest = true;
+				}
 			}
 		}
 	}
@@ -406,7 +409,7 @@ void FAudioStreamingManager::RemoveLevel(class ULevel* Level)
 
 void FAudioStreamingManager::AddStreamingSoundWave(USoundWave* SoundWave)
 {
-	if (SoundWave->IsStreaming())
+	if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
 	{
 		check(StreamingSoundWaves.Find(SoundWave) == NULL);
 
@@ -442,10 +445,13 @@ bool FAudioStreamingManager::IsStreamingInProgress(const USoundWave* SoundWave)
 
 void FAudioStreamingManager::AddStreamingSoundSource(FSoundSource* SoundSource)
 {
-	const FWaveInstance* WaveInstance = SoundSource->GetWaveInstance();
-	if (WaveInstance && WaveInstance->WaveData && WaveInstance->WaveData->IsStreaming())
+	if (FPlatformProperties::SupportsAudioStreaming())
 	{
-		StreamingSoundSources.AddUnique(SoundSource);
+		const FWaveInstance* WaveInstance = SoundSource->GetWaveInstance();
+		if (WaveInstance && WaveInstance->WaveData && WaveInstance->WaveData->IsStreaming())
+		{
+			StreamingSoundSources.AddUnique(SoundSource);
+		}
 	}
 }
 
