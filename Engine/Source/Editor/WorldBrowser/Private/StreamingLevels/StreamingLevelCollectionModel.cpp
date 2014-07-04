@@ -242,23 +242,29 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 		}
 	}
 
-	// Adds common commands
+	// Add common commands
 	FLevelCollectionModel::BuildHierarchyMenu(InMenuBuilder);
+}
 
-	InMenuBuilder.BeginSection("LevelsAddChangeStreaming");
+void FStreamingLevelCollectionModel::ExtendHierarchyMenuSection(FName SectionName, FMenuBuilder& InMenuBuilder) const
+{
+	FLevelCollectionModel::ExtendHierarchyMenuSection(SectionName, InMenuBuilder);
+	
+	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
+	// Add more specific streaming levels commands to Levels section
+	if (SectionName == "Levels")
 	{
 		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && GetSelectedLevels()[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry(Commands.World_RemoveSelectedLevels);
-			
+		
 			//
 			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("LevelsChangeStreamingMethod", "Change Streaming Method"),
 				LOCTEXT("LevelsChangeStreamingMethod_Tooltip", "Changes the streaming method for the selected levels"),
-				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodMenu ) );
+				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodMenu ));
 		}
 	}
-	InMenuBuilder.EndSection();
 }
 
 void FStreamingLevelCollectionModel::FillSetStreamingMethodMenu(FMenuBuilder& InMenuBuilder)

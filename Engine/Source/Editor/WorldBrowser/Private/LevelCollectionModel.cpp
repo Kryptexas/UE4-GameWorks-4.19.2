@@ -652,6 +652,8 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 			LOCTEXT("LockHeader", "Lock"),
 			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
 			FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillLockMenu ) );
+
+		ExtendHierarchyMenuSection("Levels", InMenuBuilder);
 	}
 	InMenuBuilder.EndSection();
 
@@ -661,11 +663,13 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
 		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
 		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+
+		ExtendHierarchyMenuSection("LevelsSelection", InMenuBuilder);
 	}
 	InMenuBuilder.EndSection();
 	
 	// Level actors selection commands
-	InMenuBuilder.BeginSection("ActorsSelection", LOCTEXT("ActorsHeader", "Actors") );
+	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
 	{
 		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
 		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
@@ -674,7 +678,10 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 		{
 			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
 		}
+
+		ExtendHierarchyMenuSection("Actors", InMenuBuilder);
 	}
+
 	InMenuBuilder.EndSection();
 }
 

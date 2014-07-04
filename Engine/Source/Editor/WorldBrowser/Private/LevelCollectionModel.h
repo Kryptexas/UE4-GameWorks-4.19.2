@@ -123,6 +123,9 @@ public:
 	
 	/**	Builds 'hierarchy' commands menu for a selected levels */
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const;
+	
+	/**	Allows to extend each section in hierarchy menu*/
+	virtual void ExtendHierarchyMenuSection(FName SectionName, FMenuBuilder& InMenuBuilder) const {};
 
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
