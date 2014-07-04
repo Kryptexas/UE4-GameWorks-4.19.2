@@ -90,8 +90,12 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	// Set up the actor folders singleton
 	FActorFolders::Init();
 
-	GEditor->AccessGameAgnosticSettings().LoadScalabilityBenchmark();
-	GEditor->SaveGameAgnosticSettings();
+	if ( !GEditorGameAgnosticIni.IsEmpty() )
+	{
+		// If we have a game agnostic ini config, ensure that the benchmark has been loaded for it
+		GEditor->AccessGameAgnosticSettings().LoadScalabilityBenchmark();
+		GEditor->SaveGameAgnosticSettings();
+	}
 
 	// =================== CORE EDITOR INIT FINISHED ===================
 

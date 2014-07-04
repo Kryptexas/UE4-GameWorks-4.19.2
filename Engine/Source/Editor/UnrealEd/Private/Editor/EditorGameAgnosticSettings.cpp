@@ -33,6 +33,8 @@ void UEditorGameAgnosticSettings::PostEditChangeProperty( struct FPropertyChange
 
 void UEditorGameAgnosticSettings::LoadScalabilityBenchmark()
 {
+	check(!GEditorGameAgnosticIni.IsEmpty());
+
 	const TCHAR* Section = TEXT("EngineBenchmarkResult");
 
 	bool bIsValid = false;
