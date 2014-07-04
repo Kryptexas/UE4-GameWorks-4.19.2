@@ -1282,16 +1282,9 @@ struct FOffMeshData
 			dtOffMeshLinkCreateParams NewInfo;
 			FMemory::MemZero(NewInfo);
 
-			if (Link.Direction == ENavLinkDirection::LeftToRight || Link.Direction == ENavLinkDirection::BothWays)
-			{
-				StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.Left));
-				StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.Right));
-			}
-			else
-			{
-				StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.Right));
-				StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.Left));
-			}
+			// not doing anything to link's points order - should be already ordered properly by link processor
+			StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.Left));
+			StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.Right));
 
 			NewInfo.type = DT_OFFMESH_CON_POINT | (Link.Direction == ENavLinkDirection::BothWays ? DT_OFFMESH_CON_BIDIR : 0);
 			NewInfo.snapRadius = Link.SnapRadius;
@@ -1326,20 +1319,11 @@ struct FOffMeshData
 			dtOffMeshLinkCreateParams NewInfo;
 			FMemory::MemZero(NewInfo);
 
-			if (Link.Direction == ENavLinkDirection::LeftToRight || Link.Direction == ENavLinkDirection::BothWays)
-			{
-				StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.LeftStart));
-				StoreUnrealPoint(NewInfo.vertsA1, LocalToWorld.TransformPosition(Link.LeftEnd));
-				StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.RightStart));
-				StoreUnrealPoint(NewInfo.vertsB1, LocalToWorld.TransformPosition(Link.RightEnd));
-			}
-			else
-			{
-				StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.RightStart));
-				StoreUnrealPoint(NewInfo.vertsA1, LocalToWorld.TransformPosition(Link.RightEnd));
-				StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.LeftStart));
-				StoreUnrealPoint(NewInfo.vertsB1, LocalToWorld.TransformPosition(Link.LeftEnd));
-			}
+			// not doing anything to link's points order - should be already ordered properly by link processor
+			StoreUnrealPoint(NewInfo.vertsA0, LocalToWorld.TransformPosition(Link.LeftStart));
+			StoreUnrealPoint(NewInfo.vertsA1, LocalToWorld.TransformPosition(Link.LeftEnd));
+			StoreUnrealPoint(NewInfo.vertsB0, LocalToWorld.TransformPosition(Link.RightStart));
+			StoreUnrealPoint(NewInfo.vertsB1, LocalToWorld.TransformPosition(Link.RightEnd));
 
 			NewInfo.type = DT_OFFMESH_CON_SEGMENT | (Link.Direction == ENavLinkDirection::BothWays ? DT_OFFMESH_CON_BIDIR : 0);
 			NewInfo.snapRadius = Link.SnapRadius;
