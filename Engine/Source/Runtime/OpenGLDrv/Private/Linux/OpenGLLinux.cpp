@@ -350,7 +350,7 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 							bool bLockToVsync,
 							int32 SyncInterval )
 {
-	FPlatformOpenGLContext* const Context = Viewport.GetGLContext();
+	FPlatformOpenGLContext* const Context = Viewport.OpenGLContext;
 
 	check( Context && Context->hWnd );
 
