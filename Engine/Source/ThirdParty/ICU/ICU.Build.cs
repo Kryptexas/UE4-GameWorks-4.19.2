@@ -40,12 +40,6 @@ public class ICU : ModuleRules
                 break;
         }
 
-        // link statically on Linux until we figure out so location for deployment/local builds
-        if (Target.Platform == UnrealTargetPlatform.Linux)
-        {
-            ICULinkType = EICULinkType.Static;
-        }
-
         string TargetSpecificPath = ICURootPath + PlatformFolderName + "/";
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
@@ -124,24 +118,34 @@ public class ICU : ModuleRules
                 "d" : string.Empty;
 
             // Library Paths
-			string LibraryNamePrefix = "libicu";
-
             switch (ICULinkType)
             {
                 case EICULinkType.Static:
                     foreach (string Stem in LibraryNameStems)
                     {
-                        string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + "." + StaticLibraryExtension;
+                        string LibraryName = "libicu" + Stem + LibraryNamePostfix + "." + StaticLibraryExtension;
                         PublicAdditionalLibraries.Add(TargetSpecificPath + "lib/" + LibraryName);
                     }
                     break;
                 case EICULinkType.Dynamic:
                     foreach (string Stem in LibraryNameStems)
                     {
-                        string LibraryName = LibraryNamePrefix + Stem + LibraryNamePostfix + ".53.1" + "." + DynamicLibraryExtension;
-                        string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName;
-                        PublicDelayLoadDLLs.Add(LibraryPath);
-                        PublicAdditionalShadowFiles.Add(LibraryPath);
+                        if (Target.Platform == UnrealTargetPlatform.Mac)
+                        {
+                            string LibraryName = "libicu" + Stem + LibraryNamePostfix + ".53.1" + "." + DynamicLibraryExtension;
+                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Mac/" + LibraryName;
+
+                            PublicDelayLoadDLLs.Add(LibraryPath);
+                            PublicAdditionalShadowFiles.Add(LibraryPath);
+                        }
+                        else
+                        {
+                            string LibraryName = "icu" + Stem + LibraryNamePostfix;
+                            string LibraryPath = UEBuildConfiguration.UEThirdPartyBinariesDirectory + "ICU/icu4c-53_1/Linux/" + Target.Architecture + "/";
+
+                            PublicLibraryPaths.Add(LibraryPath);
+                            PublicAdditionalLibraries.Add(LibraryName);
+                        }
                     }
                     break;
             }
