@@ -43,8 +43,15 @@ public class zlib : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicLibraryPaths.Add(zlibPath + "Lib/Linux/" + Target.Architecture);
-            PublicAdditionalLibraries.Add("z");
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(zlibPath + "Lib/Linux/" + Target.Architecture + "/libz.a");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(zlibPath + "Lib/Linux/" + Target.Architecture);
+                PublicAdditionalLibraries.Add("z");
+            }
         }
     }
 }
