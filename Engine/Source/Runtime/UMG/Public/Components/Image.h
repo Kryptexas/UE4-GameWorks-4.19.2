@@ -31,6 +31,10 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetOpacity(float InOpacity);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetImage(USlateBrushAsset* InImage);
 
 	// UWidget interface

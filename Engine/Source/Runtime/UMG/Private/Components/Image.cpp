@@ -37,6 +37,15 @@ void UImage::SetColorAndOpacity(FLinearColor InColorAndOpacity)
 	}
 }
 
+void UImage::SetOpacity(float InOpacity)
+{
+	ColorAndOpacity.A = InOpacity;
+	if ( MyImage.IsValid() )
+	{
+		MyImage->SetColorAndOpacity(ColorAndOpacity);
+	}
+}
+
 void UImage::SetImage(USlateBrushAsset* InImage)
 {
 	Image = InImage;
