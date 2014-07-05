@@ -467,7 +467,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 	if (bNeedCallFinishFrameForStereo)
 	{
-		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread();
+		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread(RHICmdList);
 	}
 	uint32 EndTime		= FPlatformTime::Cycles();
 

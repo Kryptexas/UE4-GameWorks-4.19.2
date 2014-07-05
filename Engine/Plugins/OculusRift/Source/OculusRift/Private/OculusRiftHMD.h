@@ -237,7 +237,7 @@ public:
 
 #else
 
-	virtual void FinishRenderingFrame_RenderThread() override;
+virtual void FinishRenderingFrame_RenderThread(FRHICommandListImmediate& RHICmdList) override;
 
 #endif // #ifdef OVR_DIRECT_RENDERING
 

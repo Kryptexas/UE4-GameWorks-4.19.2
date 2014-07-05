@@ -87,5 +87,5 @@ public:
 	/**
 	 * Called after Present is called.
 	 */
-	virtual void FinishRenderingFrame_RenderThread() {}
+	virtual void FinishRenderingFrame_RenderThread(FRHICommandListImmediate& RHICmdList) {}
 };
