@@ -239,7 +239,7 @@ struct PositionCalibrationImpl
 
 		Buffer[0] = 15;
 		EncodeUInt16(Buffer+1, Settings.CommandId);
-		Buffer[3] = Settings.Version;
+		Buffer[3] = (UByte)Settings.Version;
 
         Vector3d position = Settings.Position * 1e6;
 		EncodeSInt32(Buffer+4,  (SInt32) position.x);
@@ -256,13 +256,13 @@ struct PositionCalibrationImpl
 
 		EncodeUInt16(Buffer+24, Settings.PositionIndex);
 		EncodeUInt16(Buffer+26, Settings.NumPositions);
-		EncodeUInt16(Buffer+28, UInt16(Settings.PositionType));
+		EncodeUInt16(Buffer+28, (UInt16)Settings.PositionType);
 	}
 
 	void Unpack()
 	{
 		Settings.CommandId = DecodeUInt16(Buffer+1);
-		Settings.Version = Buffer[3];
+		Settings.Version = PositionCalibrationReport::VersionEnum(Buffer[3]);
 
 		Settings.Position.x = DecodeSInt32(Buffer + 4) * 1e-6;
 		Settings.Position.y = DecodeSInt32(Buffer + 8) * 1e-6;
@@ -278,62 +278,6 @@ struct PositionCalibrationImpl
 		Settings.NumPositions  = DecodeUInt16(Buffer + 26);
 
 		Settings.PositionType  = PositionCalibrationReport::PositionTypeEnum(DecodeUInt16(Buffer + 28));
-	}
-};
-
-struct PositionCalibrationImpl_Pre5
-{
-	enum  { PacketSize = 22 };
-	UByte   Buffer[PacketSize];
-
-	PositionCalibrationReport Settings;
-
-	PositionCalibrationImpl_Pre5()
-	{
-		for (int i=0; i<PacketSize; i++)
-		{
-			Buffer[i] = 0;
-		}
-
-		Buffer[0] = 15;
-	}
-
-	PositionCalibrationImpl_Pre5(const PositionCalibrationReport& settings)
-		:	Settings(settings)
-	{
-		Pack();
-	}
-
-	void  Pack()
-	{
-
-		Buffer[0] = 15;
-		EncodeUInt16(Buffer+1, Settings.CommandId);
-		Buffer[3] = Settings.Version;
-
-        Vector3d position = Settings.Position * 1e6;
-        EncodeSInt32(Buffer+4 , (SInt32) position.x);
-        EncodeSInt32(Buffer+8 , (SInt32) position.y);
-        EncodeSInt32(Buffer+12, (SInt32) position.z);
-
-		EncodeUInt16(Buffer+16, Settings.PositionIndex);
-		EncodeUInt16(Buffer+18, Settings.NumPositions);
-		EncodeUInt16(Buffer+20, UInt16(Settings.PositionType));
-	}
-
-	void Unpack()
-	{
-
-		Settings.CommandId = DecodeUInt16(Buffer+1);
-		Settings.Version = Buffer[3];
-
-		Settings.Position.x = DecodeSInt32(Buffer + 4) * 1e-6;
-		Settings.Position.y = DecodeSInt32(Buffer + 8) * 1e-6;
-		Settings.Position.z = DecodeSInt32(Buffer + 12) * 1e-6;
-
-		Settings.PositionIndex = DecodeUInt16(Buffer + 16);
-		Settings.NumPositions  = DecodeUInt16(Buffer + 18);
-		Settings.PositionType  = PositionCalibrationReport::PositionTypeEnum(DecodeUInt16(Buffer + 20));
 	}
 };
 

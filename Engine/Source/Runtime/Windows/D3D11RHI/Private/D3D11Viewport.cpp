@@ -173,6 +173,11 @@ void FD3D11Viewport::Resize(uint32 InSizeX,uint32 InSizeY,bool bInIsFullscreen)
 	// Unbind any dangling references to resources
 	D3DRHI->ClearState();
 
+	if (IsValidRef(CustomPresent))
+	{
+		CustomPresent->OnBackBufferResize();
+	}
+
 	// Release our backbuffer reference, as required by DXGI before calling ResizeBuffers.
 	if (IsValidRef(BackBuffer))
 	{
@@ -234,10 +239,19 @@ static bool IsCompositionEnabled()
 }
 
 /** Presents the swap chain checking the return result. */
-void FD3D11Viewport::PresentChecked(int32 SyncInterval)
+bool FD3D11Viewport::PresentChecked(int32 SyncInterval)
 {
-	// Present the back buffer to the viewport window.
-	HRESULT Result = SwapChain->Present(SyncInterval, 0);
+	HRESULT Result = S_OK;
+	bool bNeedNativePresent = true;
+	if (IsValidRef(CustomPresent))
+	{
+		bNeedNativePresent = CustomPresent->Present(SyncInterval);
+	}
+	if (bNeedNativePresent)
+	{
+		// Present the back buffer to the viewport window.
+		Result = SwapChain->Present(SyncInterval, 0);
+	}
 
 	// Detect a lost device.
 	if(Result == DXGI_ERROR_DEVICE_REMOVED || Result == DXGI_ERROR_DEVICE_RESET || Result == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
@@ -249,6 +263,7 @@ void FD3D11Viewport::PresentChecked(int32 SyncInterval)
 	{
 		VERIFYD3D11RESULT(Result);
 	}
+	return bNeedNativePresent;
 }
 
 /** Blocks the CPU to synchronize with vblank by communicating with DWM. */
@@ -381,8 +396,9 @@ void FD3D11Viewport::PresentWithVsyncDWM()
 #endif	//D3D11_WITH_DWMAPI
 }
 
-void FD3D11Viewport::Present(bool bLockToVsync)
+bool FD3D11Viewport::Present(bool bLockToVsync)
 {
+	bool bNativelyPresented = true;
 #if	D3D11_WITH_DWMAPI
 	// We can't call Present if !bIsValid, as it waits a window message to be processed, but the main thread may not be pumping the message handler.
 	if(bIsValid)
@@ -416,8 +432,9 @@ void FD3D11Viewport::Present(bool bLockToVsync)
 #endif	//D3D11_WITH_DWMAPI
 	{
 		// Present the back buffer to the viewport window.
-		PresentChecked(bLockToVsync ? RHIConsoleVariables::SyncInterval : 0);
+		bNativelyPresented = PresentChecked(bLockToVsync ? RHIConsoleVariables::SyncInterval : 0);
 	}
+	return bNativelyPresented;
 }
 
 /*=============================================================================
@@ -531,26 +548,26 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 	SetShaderTextureCalls = 0;
 	SetTextureInTableCalls = 0;
 
-	if(bPresent)
-	{
-		Viewport->Present(bLockToVsync);
-	}
+	bool bNativelyPresented = Viewport->Present(bLockToVsync);
 
 	// Don't wait on the GPU when using SLI, let the driver determine how many frames behind the GPU should be allowed to get
 	if (GNumActiveGPUsForRendering == 1)
 	{
-		static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
-		if (!CFinishFrameVar->GetValueOnRenderThread())
-		{
-			// Wait for the GPU to finish rendering the previous frame before finishing this frame.
-			Viewport->WaitForFrameEventCompletion();
-			Viewport->IssueFrameEvent();
-		}
-		else
-		{
-			// Finish current frame immediately to reduce latency
-			Viewport->IssueFrameEvent();
-			Viewport->WaitForFrameEventCompletion();
+		if (bNativelyPresented)
+		{ 
+			static const auto CFinishFrameVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FinishCurrentFrame"));
+			if (!CFinishFrameVar->GetValueOnRenderThread())
+			{
+				// Wait for the GPU to finish rendering the previous frame before finishing this frame.
+				Viewport->WaitForFrameEventCompletion();
+				Viewport->IssueFrameEvent();
+			}
+			else
+			{
+				// Finish current frame immediately to reduce latency
+				Viewport->IssueFrameEvent();
+				Viewport->WaitForFrameEventCompletion();
+			}
 		}
 
 		// If the input latency timer has been triggered, block until the GPU is completely

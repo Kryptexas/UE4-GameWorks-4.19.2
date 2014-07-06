@@ -73,10 +73,10 @@ public:
                                             unsigned char* latencyTester2DrawColor) = 0;
     
 	// Stores the current graphics pipeline state so it can be restored later.
-	void SaveGraphicsState() { if (!(RState.EnabledHmdCaps & ovrHmdCap_NoRestore)) GfxState->Save(); }
+	void SaveGraphicsState() { if (!(RState.DistortionCaps & ovrDistortionCap_NoRestore)) GfxState->Save(); }
 
 	// Restores the saved graphics pipeline state.
-	void RestoreGraphicsState() { if (!(RState.EnabledHmdCaps & ovrHmdCap_NoRestore)) GfxState->Restore(); }
+	void RestoreGraphicsState() { if (!(RState.DistortionCaps & ovrDistortionCap_NoRestore)) GfxState->Restore(); }
 
     // *** Creation Factory logic
     

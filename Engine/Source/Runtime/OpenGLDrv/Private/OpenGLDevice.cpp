@@ -1149,6 +1149,11 @@ void FOpenGLDynamicRHI::RHIFlushComputeShaderCache()
 	// Nothing to do here...
 }
 
+void* FOpenGLDynamicRHI::RHIGetNativeDevice()
+{
+	return nullptr;
+}
+
 void FOpenGLDynamicRHI::InvalidateQueries( void )
 {
 	{
@@ -1175,7 +1180,3 @@ bool FOpenGLDynamicRHIModule::IsSupported()
 	return PlatformInitOpenGL();
 }
 
-void* FOpenGLDynamicRHI::RHIGetNativeDevice()
-{
-	return NULL;
-}

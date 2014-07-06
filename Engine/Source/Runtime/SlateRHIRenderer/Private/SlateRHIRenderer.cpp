@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
+#include "StereoRendering.h"
 #include "Runtime/Engine/Public/Features/ILiveStreamingService.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
@@ -88,6 +89,7 @@ void FSlateRHIRenderer::FViewportInfo::ReleaseRHI()
 {
 	DepthStencil.SafeRelease();
 	ViewportRHI.SafeRelease();
+	RenderTargetTexture.SafeRelease();
 }
 
 void FSlateRHIRenderer::FViewportInfo::ConditionallyUpdateDepthBuffer(bool bInRequiresStencilTest)
@@ -409,17 +411,21 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
-		RHICmdList.BeginDrawingViewport(ViewportInfo.ViewportRHI, FTextureRHIRef());
-		RHICmdList.SetViewport( 0,0,0,ViewportInfo.Width, ViewportInfo.Height, 0.0f );
+		FTexture2DRHIRef BackBuffer = (ViewportInfo.RenderTargetTexture) ? 
+			ViewportInfo.RenderTargetTexture : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
+		
+		const uint32 ViewportWidth  = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeX() : ViewportInfo.Width;
+		const uint32 ViewportHeight = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeY() : ViewportInfo.Height;
 
-		FTexture2DRHIRef BackBuffer = RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
+		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
+		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 0.0f ); 
 
 		if( ViewportInfo.bRequiresStencilTest )
 		{
 			check(IsValidRef( ViewportInfo.DepthStencil ));
 
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
-			SetRenderTarget(RHICmdList,  BackBuffer, ViewportInfo.DepthStencil );
+			SetRenderTarget(RHICmdList, BackBuffer, ViewportInfo.DepthStencil);
 			// Clear the stencil buffer
 			RHICmdList.Clear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
 		}
@@ -433,12 +439,12 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 #endif
 		if( WindowElementList.GetRenderBatches().Num() > 0 )
 		{
-			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportInfo.Width, ViewportInfo.Height ) );
+			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
 			RenderingPolicy->DrawElements
 			(
 				RHICmdList,
-				FIntPoint(ViewportInfo.Width, ViewportInfo.Height),
+				FIntPoint(ViewportWidth, ViewportHeight),
 				BackBufferTarget,
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
 				WindowElementList.GetRenderBatches()
@@ -446,6 +452,12 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		}
 	}
 
+	bool bNeedCallFinishFrameForStereo = false;
+	if (GEngine && IsValidRef(ViewportInfo.RenderTargetTexture) && GEngine->StereoRenderingDevice.IsValid())
+	{
+		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.RenderTargetTexture);
+		bNeedCallFinishFrameForStereo = true;
+	}
 
 	// Calculate renderthread time (excluding idle time).	
 	uint32 StartTime		= FPlatformTime::Cycles();
@@ -453,6 +465,10 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	// Note - We do not include present time in the slate render thread stat
 	RHICmdList.EndDrawingViewport(ViewportInfo.ViewportRHI, true, bLockToVsync);
 
+	if (bNeedCallFinishFrameForStereo)
+	{
+		GEngine->StereoRenderingDevice->FinishRenderingFrame_RenderThread();
+	}
 	uint32 EndTime		= FPlatformTime::Cycles();
 
 	GSwapBufferTime		= EndTime - StartTime;
@@ -1142,4 +1158,13 @@ void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32
 		ViewInfo->DesiredWidth = NewWidth;
 		ViewInfo->DesiredHeight = NewHeight;
 	}
+}
+
+void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, FTexture2DRHIParamRef RT)
+{
+	FViewportInfo* ViewInfo = WindowToViewportInfo.FindRef(&Window);
+	if (ViewInfo)
+	{
+ 		ViewInfo->RenderTargetTexture = RT;
+ 	}
 }

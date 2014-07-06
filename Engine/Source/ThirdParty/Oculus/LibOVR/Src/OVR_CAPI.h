@@ -144,7 +144,6 @@ typedef enum
     ovrHmdCap_DynamicPrediction = 0x0200,   //  Adjust prediction dynamically based on DK2 Latency.
     // Support rendering without VSync for debugging
     ovrHmdCap_NoVSync           = 0x1000,
-	ovrHmdCap_NoRestore         = 0x4000,
 
     // These bits can be modified by ovrHmd_SetEnabledCaps.
     ovrHmdCap_Writable_Mask     = 0x1380
@@ -167,7 +166,10 @@ typedef enum
 {        
     ovrDistortionCap_Chromatic	= 0x01,		//	Supports chromatic aberration correction.
     ovrDistortionCap_TimeWarp	= 0x02,		//	Supports timewarp.
-    ovrDistortionCap_Vignette	= 0x08		//	Supports vignetting around the edges of the view.
+    ovrDistortionCap_Vignette	= 0x08,		//	Supports vignetting around the edges of the view.
+	ovrDistortionCap_NoRestore  = 0x10,		//  Do not save and restore the graphics state when rendering distortion.
+	ovrDistortionCap_FlipInput  = 0x20,		//  Flip the vertical texture coordinate of input images.
+	ovrDistortionCap_SRGB       = 0x40		//  Assume input images are in SRGB gamma-corrected color space.
 } ovrDistortionCaps;
 
 
@@ -225,6 +227,14 @@ typedef struct ovrHmdDesc_
     const char* DisplayDeviceName;
     // MacOS
     int        DisplayId;
+	
+	//Time in seconds between Vsyncs, ie 1/framerate
+    float               VsyncToNextVsync;                
+
+    //Time in seconds that pixels are lit.  E.g. Full persistence = 1/framerate.
+    float               PixelPersistence;                
+
+
 } ovrHmdDesc;
 
 // Describes the type of positional tracking being done.
@@ -469,8 +479,16 @@ OVR_EXPORT ovrBool  ovrHmd_StartSensor(ovrHmd hmd,	unsigned int supportedSensorC
 													unsigned int requiredSensorCaps);
 // Stops sensor sampling, shutting down internal resources.
 OVR_EXPORT void     ovrHmd_StopSensor(ovrHmd hmd);
-// Resets sensor orientation.
+
+// DEPRECATED: Please switch to ovrHmd_RecenterPose()
 OVR_EXPORT void     ovrHmd_ResetSensor(ovrHmd hmd);
+
+// Re-centers the sensor orientation.
+// Normally it will recenter the (x,y,z) translational components,
+// and it will recenter the yaw component of orientation.
+// When "alsoPitch" is true, it will also recenter pitch,
+// which may be useful for applications where the player is lying down.
+OVR_EXPORT void     ovrHmd_RecenterPose(ovrHmd hmd, bool alsoPitch);
 
 // Returns sensor state reading based on the specified absolute system time.
 // Pass absTime value of 0.0 to request the most recent sensor reading; in this case
@@ -487,7 +505,7 @@ OVR_EXPORT ovrBool     ovrHmd_GetSensorDesc(ovrHmd hmd, ovrSensorDesc* descOut);
 //-------------------------------------------------------------------------------------
 // ***** Graphics Setup
 
-// Fills in description about HMD; this is the same as filled in by ovrHmd_Create.
+// Fills in description about HMD.
 OVR_EXPORT void     ovrHmd_GetDesc(ovrHmd hmd, ovrHmdDesc* desc);
 
 // Calculates texture size recommended for rendering one eye within HMD, given FOV cone.
@@ -609,12 +627,12 @@ OVR_EXPORT ovrEyeRenderDesc ovrHmd_GetRenderDesc(ovrHmd hmd,
 // are not used if chromatic correction is not requested.
 typedef struct ovrDistortionVertex_
 {
-    ovrVector2f Pos;
+    ovrVector2f ScreenPosNDC;    // [-1,+1],[-1,+1] over the entire framebuffer.
     float       TimeWarpFactor;  // Lerp factor between time-warp matrices. Can be encoded in Pos.z.
     float       VignetteFactor;  // Vignette fade factor. Can be encoded in Pos.w.
-    ovrVector2f TexR;
-    ovrVector2f TexG;
-    ovrVector2f TexB;    
+    ovrVector2f TanEyeAnglesR;
+    ovrVector2f TanEyeAnglesG;
+    ovrVector2f TanEyeAnglesB;    
 } ovrDistortionVertex;
 
 // Describes a full set of distortion mesh data, filled in by ovrHmd_CreateDistortionMesh.
@@ -683,6 +701,11 @@ OVR_EXPORT ovrPosef ovrHmd_GetEyePose(ovrHmd hmd, ovrEyeType eye);
 OVR_EXPORT void     ovrHmd_GetEyeTimewarpMatrices(ovrHmd hmd, ovrEyeType eye,
                                                   ovrPosef renderPose, ovrMatrix4f twmOut[2]);
 
+// Used to add an additional correction in time, to reduce latency even further for 
+// applications that are rendering their own distortion,   It works by the application
+// manually calculating the time to perform distortion, and then using this function
+// to inform the SDK.
+OVR_EXPORT void     ovrHmd_AddDistortionTimeMeasurement(ovrHmd hmd, double distortionTimeSeconds);
 
 
 //-------------------------------------------------------------------------------------

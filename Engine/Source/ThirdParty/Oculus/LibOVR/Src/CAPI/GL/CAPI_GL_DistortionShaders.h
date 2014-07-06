@@ -94,7 +94,6 @@ namespace OVR { namespace CAPI { namespace GL {
     // Vertex inputs are in TanEyeAngle space for the R,G,B channels (i.e. after chromatic aberration and distortion).
     // Scale them into the correct [0-1],[0-1] UV lookup space (depending on eye)
     "   oTexCoord0 = TexCoord0 * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
-    "   oTexCoord0.y = 1.0 - oTexCoord0.y;\n"
     "   oColor = Color;\n"              // Used for vignette fade.
     "}\n";
     
@@ -129,8 +128,8 @@ namespace OVR { namespace CAPI { namespace GL {
     "_VS_IN vec4 Color;\n"
     "_VS_IN vec2 TexCoord0;\n"
     
-    "_FS_IN vec4 oColor;\n"
-    "_FS_IN vec2 oTexCoord0;\n"
+    "_VS_OUT vec4 oColor;\n"
+    "_VS_OUT vec2 oTexCoord0;\n"
     
     "void main()\n"
     "{\n"
@@ -163,7 +162,6 @@ namespace OVR { namespace CAPI { namespace GL {
     // Scale them into the correct [0-1],[0-1] UV lookup space (depending on eye)
     "   vec2 SrcCoord = Flattened * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
     "   oTexCoord0 = SrcCoord;\n"
-    "   oTexCoord0.y = 1.0-oTexCoord0.y;\n"
     "   oColor = vec4(Color.r, Color.r, Color.r, Color.r);\n"              // Used for vignette fade.
     "}\n";
 
@@ -199,11 +197,8 @@ namespace OVR { namespace CAPI { namespace GL {
     // Vertex inputs are in TanEyeAngle space for the R,G,B channels (i.e. after chromatic aberration and distortion).
     // Scale them into the correct [0-1],[0-1] UV lookup space (depending on eye)
     "   oTexCoord0 = TexCoord0 * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
-    "   oTexCoord0.y = 1.0-oTexCoord0.y;\n"
     "   oTexCoord1 = TexCoord1 * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
-    "   oTexCoord1.y = 1.0-oTexCoord1.y;\n"
     "   oTexCoord2 = TexCoord2 * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
-    "   oTexCoord2.y = 1.0-oTexCoord2.y;\n"
     
     "   oColor = Color;\n" // Used for vignette fade.
     "}\n";
@@ -303,11 +298,8 @@ namespace OVR { namespace CAPI { namespace GL {
     "   vec2 SrcCoordB = FlattenedB * EyeToSourceUVScale + EyeToSourceUVOffset;\n"
     
     "   oTexCoord0 = SrcCoordR;\n"
-    "   oTexCoord0.y = 1.0-oTexCoord0.y;\n"
     "   oTexCoord1 = SrcCoordG;\n"
-    "   oTexCoord1.y = 1.0-oTexCoord1.y;\n"
     "   oTexCoord2 = SrcCoordB;\n"
-    "   oTexCoord2.y = 1.0-oTexCoord2.y;\n"
     
     "   oColor = vec4(Color.r, Color.r, Color.r, Color.r);\n"              // Used for vignette fade.
     "}\n";

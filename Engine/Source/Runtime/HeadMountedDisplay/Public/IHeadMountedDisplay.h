@@ -1,4 +1,4 @@
-// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -170,11 +170,6 @@ public:
 	virtual bool EnablePositionalTracking(bool enable) = 0;
 
 	/**
-	 * Acquires color info for latency tester rendering. Returns true if rendering should be performed.
-	 */
-	virtual bool GetLatencyTesterColor_RenderThread(FColor& Color, const FSceneView& View) {return false;}
-
-	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
 	 * but some overrides are possible.
 	 */
@@ -212,7 +207,7 @@ public:
 	 * Draw desired debug information related to the HMD system.
 	 * @param Canvas The canvas on which to draw.
 	 */
-	virtual void DrawDebug(UCanvas* Canvas) {}
+	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) {}
 
 	/** 
 	 * Additional optional distorion rendering parameters

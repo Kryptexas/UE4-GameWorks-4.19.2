@@ -127,6 +127,8 @@ private:
 //-------------------------------------------------------------------------------------
 // ***** HMDState
 
+
+
 // Describes a single HMD.
 class HMDState : public ListNode<HMDState>,
                  public ovrHmdStruct, public NewOverrideBase 
@@ -143,6 +145,7 @@ public:
     bool            StartSensor(unsigned supportedCaps, unsigned requiredCaps);
     void            StopSensor();
     void            ResetSensor();
+	void			RecenterPose(bool alsoPitch);
     ovrSensorState  PredictedSensorState(double absTime);
     bool            GetSensorDesc(ovrSensorDesc* descOut);
 
@@ -184,6 +187,8 @@ public:
             AddLatencyTestDisplayCount++;
         }
     }
+
+    void sharedInit ( Profile *profile );
 
     bool checkCreateSensor();
 
@@ -245,16 +250,20 @@ public:
                 t = HmdType_DK2;
             h = CreateDebugHMDInfo(t);
         }
-        HMDInfoWrapper(HMDDevice* device) { if (device) device->GetDeviceInfo(&h); }
+
+        HMDInfoWrapper(HMDDevice* device)
+        {
+            if (device)
+            {
+                device->GetDeviceInfo(&h);
+            }
+        }
+
         OVR::HMDInfo h;
     };
 
     // Note: pHMD can be null if we are representing a virtualized debug HMD.
     Ptr<HMDDevice>          pHMD;
-
-    // HMDInfo shouldn't change, as its string pointers are passed out.
-    const HMDInfoWrapper    HMDInfoW;
-    const OVR::HMDInfo&     HMDInfo;
 
     const char*             pLastError;
 
@@ -308,6 +317,10 @@ public:
     bool                    LatencyTest2Active;
     unsigned char           LatencyTest2DrawColor[3];
     //bool                    ReadbackColor;
+
+    // HMDInfo shouldn't change, as its string pointers are passed out.
+    const HMDInfoWrapper    HMDInfoW;
+    // Looking for HMDInfo? Use either HMDInfoW.h or RenderState.pHMDInfo (they're the same thing).
 
     // Rendering part
     FrameTimeManager        TimeManager;

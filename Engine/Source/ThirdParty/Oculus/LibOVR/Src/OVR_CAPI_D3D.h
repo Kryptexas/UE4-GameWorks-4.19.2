@@ -38,7 +38,9 @@ limitations under the License.
 //-----------------------------------------------------------------------------------
 // ***** D3D11 Specific
 
+#if !defined(OVR_OS_XB1)
 #include <d3d11.h>
+#endif
 
 // Used to configure slave D3D rendering (i.e. for devices created externally).
 struct ovrD3D11ConfigData

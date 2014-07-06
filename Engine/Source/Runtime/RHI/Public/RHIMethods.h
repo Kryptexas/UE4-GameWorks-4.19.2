@@ -1966,7 +1966,7 @@ DEFINE_RHIMETHOD_3(
 /**
  * Provides access to the native device. Generally this should be avoided but is useful for third party plugins.
  */
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_GLOBAL_0(
 	void*,GetNativeDevice,
 	return,return NULL
 	);

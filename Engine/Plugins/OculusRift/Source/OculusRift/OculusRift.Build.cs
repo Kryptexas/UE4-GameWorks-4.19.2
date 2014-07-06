@@ -9,7 +9,9 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"OculusRift/Private",
-					"../../../Source/Runtime/Renderer/Private",
+ 					"../../../Source/Runtime/Renderer/Private",
+// 					"../../../Runtime/Windows/D3D11RHI/Private",
+// 					"Runtime/OpenGLDrv/Private",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -24,7 +26,9 @@ namespace UnrealBuildTool.Rules
 					"RenderCore",
 					"Renderer",
 					"ShaderCore",
-					"HeadMountedDisplay"
+					"HeadMountedDisplay",
+					"D3D11RHI",
+					"OpenGLDrv"
 				}
 				);
 
