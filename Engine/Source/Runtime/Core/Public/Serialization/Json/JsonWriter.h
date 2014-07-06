@@ -296,7 +296,7 @@ protected:
 	}
 
 
-private:
+protected:
 
 	FORCEINLINE bool CanWriteValueWithoutIdentifier() const 
 	{ 
@@ -341,7 +341,7 @@ private:
 		PrintPolicy::WriteString(Stream, TEXT("null"));
 	}
 
-	void WriteStringValue( const FString& String )
+	virtual void WriteStringValue( const FString& String )
 	{
 		FString OutString;
 		OutString += TEXT("\"");
@@ -405,7 +405,7 @@ public:
 	}
 
 
-private:
+protected:
 
 	TJsonStringWriter( FString* const InOutString )
 		: TJsonWriter<TCHAR, PrintPolicy>( new FMemoryWriter(Bytes) )

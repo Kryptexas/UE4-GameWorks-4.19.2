@@ -54,6 +54,13 @@ public:
 		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Object ) );
 		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
 	}
+
+	template <class CharType, class PrintPolicy >
+	static bool Serialize( const TSharedPtr<FJsonValue >& Value, const FString& Identifier, const TSharedRef< TJsonWriter< CharType, PrintPolicy > >& Writer )
+	{
+		TSharedRef< FElement > StartingElement = MakeShareable( new FElement( Identifier, Value ) );
+		return FJsonSerializer::Serialize<CharType, PrintPolicy>( StartingElement, Writer );
+	}
 	
 
 private:
