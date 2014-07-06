@@ -28,4 +28,10 @@ UWidget* FWidgetTemplateClass::Create(UWidgetTree* Tree)
 	return Tree->ConstructWidget<UWidget>(WidgetClass);
 }
 
+const FSlateBrush* FWidgetTemplateClass::GetIcon() const
+{
+	UWidget* DefaultWidget = WidgetClass->GetDefaultObject<UWidget>();
+	return DefaultWidget->GetEditorIcon();
+}
+
 #undef LOCTEXT_NAMESPACE

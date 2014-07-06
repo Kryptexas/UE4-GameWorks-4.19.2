@@ -8,6 +8,13 @@
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "UMGSequencerObjectBindingManager.h"
 
+#include "WidgetBlueprintApplicationModes.h"
+//#include "WidgetDefafaultsApplicationMode.h"
+#include "WidgetDesignerApplicationMode.h"
+#include "WidgetGraphApplicationMode.h"
+
+#include "WidgetBlueprintEditorToolbar.h"
+
 #define LOCTEXT_NAMESPACE "UMG"
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
@@ -23,6 +30,78 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	if ( Blueprint )
 	{
 		Blueprint->OnChanged().RemoveAll(this);
+	}
+}
+
+void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
+	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
+
+	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
+
+	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
+
+	// If this blueprint is empty, add a canvas panel as the root widget.
+	if ( Blueprint->WidgetTree->RootWidget == NULL )
+	{
+		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+		RootWidget->IsDesignTime(true);
+		Blueprint->WidgetTree->RootWidget = RootWidget;
+	}
+
+	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	WidgetCommandList = MakeShareable(new FUICommandList);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Delete,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::DeleteSelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanDeleteSelectedWidgets)
+		);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Copy,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CopySelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
+		);
+
+	//WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+	//	FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedNodes),
+	//	FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutNodes)
+	//	);
+
+	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
+		);
+}
+
+void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	//FBlueprintEditor::RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
+
+	if ( InBlueprints.Num() == 1 )
+	{
+		TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
+
+		// Create the modes and activate one (which will populate with a real layout)
+		TArray< TSharedRef<FApplicationMode> > TempModeList;
+		TempModeList.Add(MakeShareable(new FWidgetDesignerApplicationMode(ThisPtr)));
+		TempModeList.Add(MakeShareable(new FWidgetGraphApplicationMode(ThisPtr)));
+
+		for ( TSharedRef<FApplicationMode>& AppMode : TempModeList )
+		{
+			AddApplicationMode(AppMode->GetModeName(), AppMode);
+		}
+
+		SetCurrentMode(FWidgetBlueprintApplicationModes::DesignerMode);
+	}
+	else
+	{
+		//// We either have no blueprints or many, open in the defaults mode for multi-editing
+		//AddApplicationMode(
+		//	FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+		//	MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+		//SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
 	}
 }
 
@@ -115,45 +194,6 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 
 		RefreshDetails();
 	}
-}
-
-void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
-{
-	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
-
-	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-	// If this blueprint is empty, add a canvas panel as the root widget.
-	if ( Blueprint->WidgetTree->RootWidget == NULL )
-	{
-		 UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		 RootWidget->IsDesignTime(true);
-		 Blueprint->WidgetTree->RootWidget = RootWidget;
-	}
-
-	UpdatePreview(GetWidgetBlueprintObj(), true);
-
-	WidgetCommandList = MakeShareable(new FUICommandList);
-
-	WidgetCommandList->MapAction(FGenericCommands::Get().Delete,
-		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::DeleteSelectedWidgets),
-		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanDeleteSelectedWidgets)
-		);
-
-	WidgetCommandList->MapAction(FGenericCommands::Get().Copy,
-		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CopySelectedWidgets),
-		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
-		);
-
-	//WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
-	//	FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedNodes),
-	//	FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutNodes)
-	//	);
-
-	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
-		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
-		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
-		);
 }
 
 bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()

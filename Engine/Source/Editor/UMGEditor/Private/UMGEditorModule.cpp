@@ -6,7 +6,6 @@
 #include "ModuleManager.h"
 
 #include "AssetToolsModule.h"
-#include "UMGBlueprintEditorExtensionHook.h"
 #include "AssetTypeActions_WidgetBlueprint.h"
 #include "KismetCompilerModule.h"
 #include "WidgetBlueprintCompiler.h"
@@ -48,8 +47,6 @@ public:
 			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 			RegisterAssetTypeAction(AssetTools, MakeShareable(new FAssetTypeActions_WidgetBlueprint()));
 
-			FUMGBlueprintEditorExtensionHook::InstallHooks();
-
 			// Register with the sequencer module that we provide auto-key handlers.
 			ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
 			SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
@@ -64,11 +61,6 @@ public:
 
 		if ( bUMGEnabled )
 		{
-			if ( UObjectInitialized() )
-			{
-				FUMGBlueprintEditorExtensionHook::RemoveHooks();
-			}
-
 			// Unregister all the asset types that we registered
 			if ( FModuleManager::Get().IsModuleLoaded("AssetTools") )
 			{

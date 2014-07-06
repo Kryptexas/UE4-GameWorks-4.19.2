@@ -53,6 +53,8 @@ public:
 	/** @return Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
+	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
+
 public:
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
@@ -64,7 +66,10 @@ public:
 	FVector2D PasteDropLocation;
 
 protected:
+	// Begin FBlueprintEditor
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode) override;
 	virtual FGraphAppearanceInfo GetGraphAppearance() const override;
+	// End FBlueprintEditor
 
 private:
 	bool CanDeleteSelectedWidgets();
@@ -120,6 +125,9 @@ private:
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
 
-	/** Notification for when the preview widget has been updated  */
+	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
+
+	/** The toolbar builder associated with this editor */
+	TSharedPtr<class FWidgetBlueprintEditorToolbar> WidgetToolbar;
 };

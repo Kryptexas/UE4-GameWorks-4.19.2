@@ -18,13 +18,17 @@ public:
 	/** Constructs the widget template. */
 	virtual UWidget* Create(class UWidgetTree* Tree) = 0;
 
+	/** Gets the icon to display in the template palate for this template. */
+	virtual const FSlateBrush* GetIcon() const
+	{
+		static FSlateNoResource NullBrush;
+		return &NullBrush;
+	}
+
 public:
 	/** The name of the widget template. */
 	FText Name;
 
 	/** A tooltip to display for the template. */
 	FText ToolTip;
-
-	/** An icon to display for the template. */
-	FSlateIcon Icon;
 };

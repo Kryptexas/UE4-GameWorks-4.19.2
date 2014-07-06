@@ -473,6 +473,8 @@ public:
 	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
 
 protected:
+	/** Called during initialization of the blueprint editor to register any application modes. */
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 	
 	// Zooming to fit the entire graph
 	void ZoomToWindow_Clicked();

@@ -42,15 +42,17 @@ public:
 
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(2.0f)
+			.VAlign(VAlign_Center)
 			[
 				SNew(SImage)
-				.Image(Template->Icon.GetIcon())
+				.ColorAndOpacity(FLinearColor(1, 1, 1, 0.5))
+				.Image(Template->GetIcon())
 			]
 
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(2.0f)
+			.Padding(2, 0, 0, 0)
+			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
 				.Text(Template->Name)

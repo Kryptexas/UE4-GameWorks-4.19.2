@@ -1096,9 +1096,6 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 {
 	check(InBlueprints.Num() == 1 || bShouldOpenInDefaultsMode);
 
-	// Newly-created Blueprints will open in Components mode rather than Standard mode
-	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
-
 	TArray< UObject* > Objects;
 	for( auto BlueprintIter = InBlueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
 	{
@@ -1134,66 +1131,7 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 	
 	RegenerateMenusAndToolbars();
 
-	// Create the modes and activate one (which will populate with a real layout)
-	if (UBlueprint* SingleBP = GetBlueprintObj())
-	{
-		if (!bShouldOpenInDefaultsMode && FBlueprintEditorUtils::IsInterfaceBlueprint(SingleBP))
-		{
-			// Interfaces are only valid in the Interface mode
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintInterfaceMode, 
-				MakeShareable(new FBlueprintInterfaceApplicationMode( SharedThis(this) )));
-			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode);
-		}
-		else if (SingleBP->BlueprintType == BPTYPE_MacroLibrary)
-		{
-			// Macro libraries are only valid in the Macro mode
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintMacroMode, 
-				MakeShareable(new FBlueprintMacroApplicationMode( SharedThis(this) )));
-			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintMacroMode);
-		}
-		else if (SingleBP->BlueprintType == BPTYPE_FunctionLibrary)
-		{
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
-			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-		}
-		else
-		{
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, 
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintDefaultsMode, 
-				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintComponentsMode, 
-				MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
-
-			if (bShouldOpenInDefaultsMode)
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-			}
-			else if (bShouldOpenInComponentsMode && CanAccessComponentsMode())
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
-			}
-			else
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-			}
-		}
-	}
-	else
-	{
-		// We either have no blueprints or many, open in the defaults mode for multi-editing
-		AddApplicationMode(
-			FBlueprintEditorApplicationModes::BlueprintDefaultsMode, 
-			MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-	}
+	RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
 
 	// Cache the project type ( Blueprint or Code Based )
 	if( FPaths::IsProjectFilePathSet() )
@@ -1210,6 +1148,73 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 
 	// Find and set any instances of this blueprint type if any exists and we are not already editing one
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();	
+}
+
+void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	// Newly-created Blueprints will open in Components mode rather than Standard mode
+	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
+
+	// Create the modes and activate one (which will populate with a real layout)
+	if ( UBlueprint* SingleBP = GetBlueprintObj() )
+	{
+		if ( !bShouldOpenInDefaultsMode && FBlueprintEditorUtils::IsInterfaceBlueprint(SingleBP) )
+		{
+			// Interfaces are only valid in the Interface mode
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintInterfaceMode,
+				MakeShareable(new FBlueprintInterfaceApplicationMode(SharedThis(this))));
+			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode);
+		}
+		else if ( SingleBP->BlueprintType == BPTYPE_MacroLibrary )
+		{
+			// Macro libraries are only valid in the Macro mode
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintMacroMode,
+				MakeShareable(new FBlueprintMacroApplicationMode(SharedThis(this))));
+			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintMacroMode);
+		}
+		else if ( SingleBP->BlueprintType == BPTYPE_FunctionLibrary )
+		{
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		}
+		else
+		{
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintComponentsMode,
+				MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
+
+			if ( bShouldOpenInDefaultsMode )
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+			}
+			else if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
+			}
+			else
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+			}
+		}
+	}
+	else
+	{
+		// We either have no blueprints or many, open in the defaults mode for multi-editing
+		AddApplicationMode(
+			FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+			MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+	}
 }
 
 void FBlueprintEditor::PostRegenerateMenusAndToolbars()

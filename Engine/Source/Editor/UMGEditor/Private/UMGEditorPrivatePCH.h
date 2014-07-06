@@ -5,6 +5,9 @@
 #include "Slate.h"
 #include "SlateCore.h"
 #include "UnrealEd.h"
+
+#include "IDocumentation.h"
+
 #include "BlueprintGraphDefinitions.h"
 
 #include "BlueprintEditorUtils.h"
@@ -16,6 +19,11 @@
 
 #include "UMGEditorClasses.h"
 #include "WidgetBlueprint.h"
+
+#include "BlueprintEditorModes.h"
+#include "WidgetBlueprintApplicationModes.h"
+#include "WidgetBlueprintApplicationMode.h"
+
 
 #include "AssetTypeActions_Base.h"
 

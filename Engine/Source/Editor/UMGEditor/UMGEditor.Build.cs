@@ -10,8 +10,10 @@ public class UMGEditor : ModuleRules
 			new string[] {
 				"Editor/UMGEditor/Private", // For PCH includes (because they don't work with relative paths, yet)
 				"Editor/UMGEditor/Private/Templates",
-                "Editor/UMGEditor/Private/Extensions",
-                "Editor/UMGEditor/Private/Customizations",
+				"Editor/UMGEditor/Private/Extensions",
+				"Editor/UMGEditor/Private/Customizations",
+				"Editor/UMGEditor/Private/BlueprintModes",
+				"Editor/UMGEditor/Private/TabFactory",
 			});
 
 		PrivateIncludePathModuleNames.AddRange(

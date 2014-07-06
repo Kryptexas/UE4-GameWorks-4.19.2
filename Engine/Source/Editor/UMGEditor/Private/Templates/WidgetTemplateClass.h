@@ -13,6 +13,8 @@ public:
 
 	virtual UWidget* Create(UWidgetTree* Tree) override;
 
+	virtual const FSlateBrush* GetIcon() const override;
+
 protected:
 	TSubclassOf<UWidget> WidgetClass;
 };
