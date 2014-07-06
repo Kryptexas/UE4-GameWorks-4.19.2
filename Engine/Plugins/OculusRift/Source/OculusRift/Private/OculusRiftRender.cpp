@@ -332,14 +332,14 @@ bool FOculusRiftHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewpor
 
 #else // no direct rendering
 
-void FOculusRiftHMD::FinishRenderingFrame_RenderThread()
+void FOculusRiftHMD::FinishRenderingFrame_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	if (RenderParams_RenderThread.bFrameBegun)
 	{
 		check(IsInRenderingThread());
 		if (RenderParams_RenderThread.bTimeWarp)
 		{
-			RHIBlockUntilGPUIdle();
+			RHICmdList.BlockUntilGPUIdle();
 		}
 		ovrHmd_EndFrameTiming(Hmd);
 		RenderParams_RenderThread.bFrameBegun = false;
