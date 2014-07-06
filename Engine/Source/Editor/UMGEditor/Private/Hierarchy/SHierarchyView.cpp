@@ -1,10 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "SHierarchyView.h"
+#include "SHierarchyViewItem.h"
 
-#include "SUMGEditorTree.h"
 #include "UMGEditorActions.h"
-#include "SUMGEditorTreeItem.h"
 
 #include "PreviewScene.h"
 #include "SceneViewport.h"
@@ -17,24 +17,24 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
 	bRefreshRequested = false;
 	bIsFilterActive = false;
 
-	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SUMGEditorTree::TransformWidgetToString)));
+	SearchBoxWidgetFilter = MakeShareable(new WidgetTextFilter(WidgetTextFilter::FItemToStringArray::CreateSP(this, &SHierarchyView::TransformWidgetToString)));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	Blueprint->OnChanged().AddSP(this, &SUMGEditorTree::OnBlueprintChanged);
+	Blueprint->OnChanged().AddSP(this, &SHierarchyView::OnBlueprintChanged);
 
 	SAssignNew(WidgetTreeView, STreeView< UWidget* >)
 	.ItemHeight(20.0f)
 	.SelectionMode(ESelectionMode::Single)
-	.OnGetChildren(this, &SUMGEditorTree::WidgetHierarchy_OnGetChildren)
-	.OnGenerateRow(this, &SUMGEditorTree::WidgetHierarchy_OnGenerateRow)
-	.OnSelectionChanged(this, &SUMGEditorTree::WidgetHierarchy_OnSelectionChanged)
-	.OnContextMenuOpening(this, &SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening)
+	.OnGetChildren(this, &SHierarchyView::WidgetHierarchy_OnGetChildren)
+	.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
+	.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
+	.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
 	.TreeItemsSource(&RootWidgets);
 
 	ChildSlot
@@ -50,7 +50,7 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 			[
 				SNew(SSearchBox)
 				.HintText(LOCTEXT("SearchWidgets", "Search Widgets"))
-				.OnTextChanged(this, &SUMGEditorTree::OnSearchChanged)
+				.OnTextChanged(this, &SHierarchyView::OnSearchChanged)
 			]
 
 			+ SVerticalBox::Slot()
@@ -64,12 +64,12 @@ void SUMGEditorTree::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 		]
 	];
 
-	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGEditorTree::OnEditorSelectionChanged);
+	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SHierarchyView::OnEditorSelectionChanged);
 
 	bRefreshRequested = true;
 }
 
-SUMGEditorTree::~SUMGEditorTree()
+SHierarchyView::~SHierarchyView()
 {
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	if ( Blueprint )
@@ -83,7 +83,7 @@ SUMGEditorTree::~SUMGEditorTree()
 	}
 }
 
-void SUMGEditorTree::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	if ( bRefreshRequested )
 	{
@@ -93,7 +93,7 @@ void SUMGEditorTree::Tick(const FGeometry& AllottedGeometry, const double InCurr
 	}
 }
 
-FReply SUMGEditorTree::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SHierarchyView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
 {
 	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
 
@@ -105,23 +105,23 @@ FReply SUMGEditorTree::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEve
 	return FReply::Unhandled();
 }
 
-void SUMGEditorTree::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
+void SHierarchyView::TransformWidgetToString(const UWidget* Widget, OUT TArray< FString >& Array)
 {
 	Array.Add( Widget->GetLabel() );
 }
 
-void SUMGEditorTree::OnSearchChanged(const FText& InFilterText)
+void SHierarchyView::OnSearchChanged(const FText& InFilterText)
 {
 	bRefreshRequested = true;
 	SearchBoxWidgetFilter->SetRawFilterText(InFilterText);
 }
 
-FText SUMGEditorTree::GetSearchText() const
+FText SHierarchyView::GetSearchText() const
 {
 	return SearchBoxWidgetFilter->GetRawFilterText();
 }
 
-void SUMGEditorTree::OnEditorSelectionChanged()
+void SHierarchyView::OnEditorSelectionChanged()
 {
 	WidgetTreeView->ClearSelection();
 
@@ -149,7 +149,7 @@ void SUMGEditorTree::OnEditorSelectionChanged()
 	}
 }
 
-void SUMGEditorTree::ExpandPathToWidget(UWidget* TemplateWidget)
+void SHierarchyView::ExpandPathToWidget(UWidget* TemplateWidget)
 {
 	// Expand the path leading to this widget in the tree.
 	UWidget* Parent = TemplateWidget->GetParent();
@@ -160,7 +160,7 @@ void SUMGEditorTree::ExpandPathToWidget(UWidget* TemplateWidget)
 	}
 }
 
-UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
+UWidgetBlueprint* SHierarchyView::GetBlueprint() const
 {
 	if ( BlueprintEditor.IsValid() )
 	{
@@ -171,7 +171,7 @@ UWidgetBlueprint* SUMGEditorTree::GetBlueprint() const
 	return NULL;
 }
 
-void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
+void SHierarchyView::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
@@ -179,7 +179,7 @@ void SUMGEditorTree::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
+void SHierarchyView::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 {
 	TSet<FWidgetReference> SelectedWidgets;
 	for ( UWidget* TemplateWidget : TemplateWidgets )
@@ -191,7 +191,7 @@ void SUMGEditorTree::ShowDetailsForObjects(TArray<UWidget*> TemplateWidgets)
 	BlueprintEditor.Pin()->SelectWidgets(SelectedWidgets);
 }
 
-TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
+TSharedPtr<SWidget> SHierarchyView::WidgetHierarchy_OnContextMenuOpening()
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
@@ -200,7 +200,7 @@ TSharedPtr<SWidget> SUMGEditorTree::WidgetHierarchy_OnContextMenuOpening()
 	return MenuBuilder.MakeWidget();
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
+void SHierarchyView::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UWidget* >& OutChildren)
 {
 	UPanelWidget* Widget = Cast<UPanelWidget>(InParent);
 	if ( Widget )
@@ -221,13 +221,13 @@ void SUMGEditorTree::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UW
 	}
 }
 
-TSharedRef< ITableRow > SUMGEditorTree::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(SUMGEditorTreeItem, OwnerTable, BlueprintEditor.Pin(), InItem)
-		.HighlightText(this, &SUMGEditorTree::GetSearchText);
+	return SNew(SHierarchyViewItem, OwnerTable, BlueprintEditor.Pin(), InItem)
+		.HighlightText(this, &SHierarchyView::GetSearchText);
 }
 
-void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)
+void SHierarchyView::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, ESelectInfo::Type SelectInfo)
 {
 	if ( SelectInfo != ESelectInfo::Direct )
 	{
@@ -237,7 +237,7 @@ void SUMGEditorTree::WidgetHierarchy_OnSelectionChanged(UWidget* SelectedItem, E
 	}
 }
 
-FReply SUMGEditorTree::HandleDeleteSelected()
+FReply SHierarchyView::HandleDeleteSelected()
 {
 	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
 	//TArray<UWidget*> SelectedWidgets = WidgetTreeView->GetSelectedItems();
@@ -253,7 +253,7 @@ FReply SUMGEditorTree::HandleDeleteSelected()
 	return FReply::Handled();
 }
 
-bool SUMGEditorTree::FilterWidgetHierarchy(UWidget* CurrentWidget)
+bool SHierarchyView::FilterWidgetHierarchy(UWidget* CurrentWidget)
 {
 	bool bAnyChildrenPass = false;
 
@@ -290,7 +290,7 @@ bool SUMGEditorTree::FilterWidgetHierarchy(UWidget* CurrentWidget)
 	return false;
 }
 
-void SUMGEditorTree::RefreshTree()
+void SHierarchyView::RefreshTree()
 {
 	RootWidgets.Reset();
 

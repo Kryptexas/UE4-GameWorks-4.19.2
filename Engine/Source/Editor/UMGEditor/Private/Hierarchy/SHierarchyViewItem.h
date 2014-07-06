@@ -8,10 +8,10 @@
 /**
  * An widget item in the hierarchy tree view.
  */
-class SUMGEditorTreeItem : public STableRow< UWidget* >
+class SHierarchyViewItem : public STableRow< UWidget* >
 {
 public:
-	SLATE_BEGIN_ARGS( SUMGEditorTreeItem ){}
+	SLATE_BEGIN_ARGS( SHierarchyViewItem ){}
 		
 		/** The current text to highlight */
 		SLATE_ATTRIBUTE( FText, HighlightText )

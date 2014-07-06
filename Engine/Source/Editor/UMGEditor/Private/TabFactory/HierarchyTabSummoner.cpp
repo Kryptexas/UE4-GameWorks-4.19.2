@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "HierarchyTabSummoner.h"
+#include "SHierarchyView.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -27,7 +28,7 @@ TSharedRef<SWidget> FHierarchyTabSummoner::CreateTabBody(const FWorkflowTabSpawn
 
 	return SNew(STutorialWrapper, TEXT("Hierarchy"))
 		[
-			SNew(SUMGEditorTree, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
+			SNew(SHierarchyView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
 		];
 }
 

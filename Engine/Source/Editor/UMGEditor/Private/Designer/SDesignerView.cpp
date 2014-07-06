@@ -1,8 +1,8 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "SDesignerView.h"
 
-#include "SUMGDesigner.h"
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
@@ -90,9 +90,9 @@ static bool LocateWidgetsUnderCursor_Helper(FArrangedWidget& Candidate, FVector2
 }
 
 /////////////////////////////////////////////////////
-// SUMGDesigner
+// SDesignerView
 
-void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
+void SDesignerView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor)
 {
 	ScopedTransaction = NULL;
 
@@ -125,7 +125,7 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 	Register(MakeShareable(new FUniformGridSlotExtension()));
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
-	Blueprint->OnChanged().AddSP(this, &SUMGDesigner::OnBlueprintChanged);
+	Blueprint->OnChanged().AddSP(this, &SDesignerView::OnBlueprintChanged);
 
 	SDesignSurface::Construct(SDesignSurface::FArguments()
 		.Content()
@@ -164,10 +164,10 @@ void SUMGDesigner::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluepri
 		]
 	);
 
-	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SUMGDesigner::OnEditorSelectionChanged);
+	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SDesignerView::OnEditorSelectionChanged);
 }
 
-SUMGDesigner::~SUMGDesigner()
+SDesignerView::~SDesignerView()
 {
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	if ( Blueprint )
@@ -181,7 +181,7 @@ SUMGDesigner::~SUMGDesigner()
 	}
 }
 
-void SUMGDesigner::OnEditorSelectionChanged()
+void SDesignerView::OnEditorSelectionChanged()
 {
 	SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
 
@@ -201,7 +201,7 @@ void SUMGDesigner::OnEditorSelectionChanged()
 	CreateExtensionWidgetsForSelection();
 }
 
-void SUMGDesigner::CreateExtensionWidgetsForSelection()
+void SDesignerView::CreateExtensionWidgetsForSelection()
 {
 	// Remove all the current extension widgets
 	ExtensionWidgetCanvas->ClearChildren();
@@ -236,14 +236,14 @@ void SUMGDesigner::CreateExtensionWidgetsForSelection()
 	}
 
 	ExtensionWidgetCanvas->AddSlot()
-		.Position(TAttribute<FVector2D>(this, &SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation))
+		.Position(TAttribute<FVector2D>(this, &SDesignerView::GetCachedSelectionDesignerWidgetsLocation))
 		.Size(FVector2D(100, 25))
 		[
 			ExtensionBox
 		];
 }
 
-UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
+UWidgetBlueprint* SDesignerView::GetBlueprint() const
 {
 	if ( BlueprintEditor.IsValid() )
 	{
@@ -254,13 +254,13 @@ UWidgetBlueprint* SUMGDesigner::GetBlueprint() const
 	return NULL;
 }
 
-void SUMGDesigner::Register(TSharedRef<FDesignerExtension> Extension)
+void SDesignerView::Register(TSharedRef<FDesignerExtension> Extension)
 {
 	Extension->Initialize(GetBlueprint());
 	DesignerExtensions.Add(Extension);
 }
 
-void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
+void SDesignerView::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
@@ -268,7 +268,7 @@ void SUMGDesigner::OnBlueprintChanged(UBlueprint* InBlueprint)
 	}
 }
 
-void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
+void SDesignerView::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{
@@ -278,7 +278,7 @@ void SUMGDesigner::OnObjectPropertyChanged(UObject* ObjectBeingModified, FProper
 	//UpdatePreview(InBlueprint);
 }
 
-FWidgetReference SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
+FWidgetReference SDesignerView::GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget)
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
@@ -323,7 +323,7 @@ FWidgetReference SUMGDesigner::GetWidgetAtCursor(const FGeometry& MyGeometry, co
 	return FWidgetReference();
 }
 
-FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	CurrentHandle = HitTestDragHandles(MyGeometry, MouseEvent);
 
@@ -356,7 +356,7 @@ FReply SUMGDesigner::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoint
 	return FReply::Handled().PreventThrottling().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::Mouse).CaptureMouse(AsShared());
 }
 
-FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SDesignerView::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
@@ -377,7 +377,7 @@ FReply SUMGDesigner::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointer
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
-FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if ( MouseEvent.GetCursorDelta().IsZero() )
 	{
@@ -440,19 +440,19 @@ FReply SUMGDesigner::OnMouseMove(const FGeometry& MyGeometry, const FPointerEven
 	return FReply::Unhandled();
 }
 
-void SUMGDesigner::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+void SDesignerView::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	HoveredWidget = FWidgetReference();
 	HoverTime = 0;
 }
 
-void SUMGDesigner::OnMouseLeave(const FPointerEvent& MouseEvent)
+void SDesignerView::OnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	HoveredWidget = FWidgetReference();
 	HoverTime = 0;
 }
 
-FReply SUMGDesigner::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+FReply SDesignerView::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
 {
 	BlueprintEditor.Pin()->PasteDropLocation = FVector2D(0, 0);
 
@@ -464,7 +464,7 @@ FReply SUMGDesigner::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 	return FReply::Unhandled();
 }
 
-void SUMGDesigner::ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FMenuBuilder MenuBuilder(true, NULL);
 
@@ -479,7 +479,7 @@ void SUMGDesigner::ShowContextMenu(const FGeometry& MyGeometry, const FPointerEv
 	}
 }
 
-bool SUMGDesigner::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
+bool SDesignerView::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
 {
 	// We can't screenshot the widget unless there's a valid window handle to draw it in.
 	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
@@ -500,7 +500,7 @@ bool SUMGDesigner::GetArrangedWidget(TSharedRef<SWidget> Widget, FArrangedWidget
 	return false;
 }
 
-bool SUMGDesigner::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
+bool SDesignerView::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
 {
 	// We can't screenshot the widget unless there's a valid window handle to draw it in.
 	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);
@@ -522,7 +522,7 @@ bool SUMGDesigner::GetArrangedWidgetRelativeToWindow(TSharedRef<SWidget> Widget,
 	return false;
 }
 
-bool SUMGDesigner::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
+bool SDesignerView::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widget, FArrangedWidget& ArrangedWidget) const
 {
 	FWidgetPath WidgetPath;
 	if ( FSlateApplication::Get().GeneratePathToWidgetUnchecked(Widget, WidgetPath) )
@@ -537,12 +537,12 @@ bool SUMGDesigner::GetArrangedWidgetRelativeToDesigner(TSharedRef<SWidget> Widge
 	return false;
 }
 
-FVector2D SUMGDesigner::GetCachedSelectionDesignerWidgetsLocation() const
+FVector2D SDesignerView::GetCachedSelectionDesignerWidgetsLocation() const
 {
 	return CachedDesignerWidgetLocation;
 }
 
-FVector2D SUMGDesigner::GetSelectionDesignerWidgetsLocation() const
+FVector2D SDesignerView::GetSelectionDesignerWidgetsLocation() const
 {
 	if ( SelectedSlateWidget.IsValid() )
 	{
@@ -557,7 +557,7 @@ FVector2D SUMGDesigner::GetSelectionDesignerWidgetsLocation() const
 	return FVector2D(0, 0);
 }
 
-int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SDesignerView::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	SDesignSurface::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
@@ -705,7 +705,7 @@ int32 SUMGDesigner::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect&
 	return LayerId;
 }
 
-void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
+void SDesignerView::DrawDragHandles(const FPaintGeometry& SelectionGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle) const
 {
 	if ( SelectedWidget.IsValid() && SelectedWidget.GetTemplate()->Slot )
 	{
@@ -755,7 +755,7 @@ void SUMGDesigner::DrawDragHandles(const FPaintGeometry& SelectionGeometry, cons
 	}
 }
 
-SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const
+SDesignerView::DragHandle SDesignerView::HitTestDragHandles(const FGeometry& AllottedGeometry, const FPointerEvent& PointerEvent) const
 {
 	FVector2D LocalPointer = AllottedGeometry.AbsoluteToLocal(PointerEvent.GetScreenSpacePosition());
 
@@ -807,7 +807,7 @@ SUMGDesigner::DragHandle SUMGDesigner::HitTestDragHandles(const FGeometry& Allot
 	return DH_NONE;
 }
 
-FCursorReply SUMGDesigner::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+FCursorReply SDesignerView::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
 	// Hit test the drag handles
 	switch ( HitTestDragHandles(MyGeometry, CursorEvent) )
@@ -829,7 +829,7 @@ FCursorReply SUMGDesigner::OnCursorQuery(const FGeometry& MyGeometry, const FPoi
 	return FCursorReply::Unhandled();
 }
 
-void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	HoverTime += InDeltaTime;
 
@@ -893,7 +893,7 @@ void SUMGDesigner::Tick(const FGeometry& AllottedGeometry, const double InCurren
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 }
 
-FReply SUMGDesigner::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SDesignerView::OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if ( SelectedWidget.IsValid() )
 	{
@@ -903,12 +903,12 @@ FReply SUMGDesigner::OnDragDetected(const FGeometry& MyGeometry, const FPointerE
 	return FReply::Unhandled();
 }
 
-void SUMGDesigner::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+void SDesignerView::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	//@TODO UMG Drop Feedback
 }
 
-void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
+void SDesignerView::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
@@ -929,7 +929,7 @@ void SUMGDesigner::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	}
 }
 
-FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+FReply SDesignerView::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	UWidgetBlueprint* BP = GetBlueprint();
 	
@@ -955,7 +955,7 @@ FReply SUMGDesigner::OnDragOver(const FGeometry& MyGeometry, const FDragDropEven
 	return FReply::Unhandled();
 }
 
-UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview)
+UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bIsPreview)
 {
 	// In order to prevent the GetWidgetAtCursor code from picking the widget we're about to move, we need to mark it
 	// as the drop preview widget before any other code can run.
@@ -1144,7 +1144,7 @@ UWidget* SUMGDesigner::ProcessDropAndAddWidget(const FGeometry& MyGeometry, cons
 	return NULL;
 }
 
-FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+FReply SDesignerView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	bMouseDown = false;
 	bMovingExistingWidget = false;
@@ -1174,7 +1174,7 @@ FReply SUMGDesigner::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& D
 	return FReply::Unhandled();
 }
 
-void SUMGDesigner::BeginTransaction(const FText& SessionName)
+void SDesignerView::BeginTransaction(const FText& SessionName)
 {
 	if ( ScopedTransaction == NULL )
 	{
@@ -1188,7 +1188,7 @@ void SUMGDesigner::BeginTransaction(const FText& SessionName)
 	}
 }
 
-void SUMGDesigner::EndTransaction()
+void SDesignerView::EndTransaction()
 {
 	if ( ScopedTransaction != NULL )
 	{

@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "DesignerTabSummoner.h"
+#include "SDesignerView.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -29,7 +30,7 @@ TSharedRef<SWidget> FDesignerTabSummoner::CreateTabBody(const FWorkflowTabSpawnI
 		[
 			SNew(STutorialWrapper, TEXT("Designer"))
 			[
-				SNew(SUMGDesigner, BlueprintEditor.Pin())
+				SNew(SDesignerView, BlueprintEditor.Pin())
 			]
 		];
 }

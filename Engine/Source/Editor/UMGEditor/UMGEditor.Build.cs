@@ -14,6 +14,10 @@ public class UMGEditor : ModuleRules
 				"Editor/UMGEditor/Private/Customizations",
 				"Editor/UMGEditor/Private/BlueprintModes",
 				"Editor/UMGEditor/Private/TabFactory",
+				"Editor/UMGEditor/Private/Designer",
+				"Editor/UMGEditor/Private/Hierarchy",
+				"Editor/UMGEditor/Private/Palette",
+				"Editor/UMGEditor/Private/DragDrop",
 			});
 
 		PrivateIncludePathModuleNames.AddRange(

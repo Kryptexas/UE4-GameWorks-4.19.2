@@ -13,15 +13,15 @@ class FDesignerExtension;
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
  */
-class SUMGDesigner : public SDesignSurface, public IUMGDesigner
+class SDesignerView : public SDesignSurface, public IUMGDesigner
 {
 public:
 
-	SLATE_BEGIN_ARGS( SUMGDesigner ) {}
+	SLATE_BEGIN_ARGS( SDesignerView ) {}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor);
-	virtual ~SUMGDesigner();
+	virtual ~SDesignerView();
 
 	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;

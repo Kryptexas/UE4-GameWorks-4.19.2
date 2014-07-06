@@ -11,18 +11,18 @@
  * The tree view presenting the widget hierarchy.  This allows users to edit the hierarchy of widgets easily by dragging and 
  * dropping them logically, which in some cases may be significantly easier than doing it visually in the widget designer.
  */
-class SUMGEditorTree : public SCompoundWidget
+class SHierarchyView : public SCompoundWidget
 {
 public:
 	typedef TTextFilter< const UWidget* > WidgetTextFilter;
 
 public:
-	SLATE_BEGIN_ARGS( SUMGEditorTree ){}
+	SLATE_BEGIN_ARGS( SHierarchyView ){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
 
-	virtual ~SUMGEditorTree();
+	virtual ~SHierarchyView();
 
 	// Begin SWidget
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);

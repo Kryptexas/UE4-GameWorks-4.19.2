@@ -21,14 +21,14 @@ public:
 };
 
 /**  */
-class SUMGEditorWidgetTemplates : public SCompoundWidget
+class SPaletteView : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SUMGEditorWidgetTemplates ){}
+	SLATE_BEGIN_ARGS( SPaletteView ){}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
-	virtual ~SUMGEditorWidgetTemplates();
+	virtual ~SPaletteView();
 
 private:
 	UWidgetBlueprint* GetBlueprint() const;

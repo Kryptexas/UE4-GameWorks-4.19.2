@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "PaletteTabSummoner.h"
+#include "SPaletteView.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -27,7 +28,7 @@ TSharedRef<SWidget> FPaletteTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 
 	return SNew(STutorialWrapper, TEXT("Palette"))
 		[
-			SNew(SUMGEditorWidgetTemplates, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
+			SNew(SPaletteView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
 		];
 }
 

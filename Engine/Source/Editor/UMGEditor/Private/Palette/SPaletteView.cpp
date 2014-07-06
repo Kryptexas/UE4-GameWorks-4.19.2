@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "SUMGEditorWidgetTemplates.h"
+#include "SPaletteView.h"
 #include "UMGEditorActions.h"
 
 #include "PreviewScene.h"
@@ -122,7 +122,7 @@ public:
 	TArray< TSharedPtr<FWidgetViewModel> > Children;
 };
 
-void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
 {
 	BlueprintEditor = InBlueprintEditor;
 
@@ -130,12 +130,12 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 
 	BuildWidgetList();
 
-	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SUMGEditorWidgetTemplates::OnObjectPropertyChanged);
+	//FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SPaletteView::OnObjectPropertyChanged);
 
 	SAssignNew(WidgetTemplatesView, STreeView< TSharedPtr<FWidgetViewModel> >)
 	.SelectionMode(ESelectionMode::Single)
-	.OnGenerateRow(this, &SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem)
-	.OnGetChildren(this, &SUMGEditorWidgetTemplates::OnGetChildren)
+	.OnGenerateRow(this, &SPaletteView::OnGenerateWidgetTemplateItem)
+	.OnGetChildren(this, &SPaletteView::OnGetChildren)
 	.TreeItemsSource(&WidgetViewModels);
 
 	ChildSlot
@@ -148,7 +148,7 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 		[
 			SNew(SSearchBox)
 			.HintText(LOCTEXT("SearchTemplates", "Search Templates"))
-			.OnTextChanged(this, &SUMGEditorWidgetTemplates::OnSearchChanged)
+			.OnTextChanged(this, &SPaletteView::OnSearchChanged)
 		]
 
 		+ SVerticalBox::Slot()
@@ -164,19 +164,19 @@ void SUMGEditorWidgetTemplates::Construct(const FArguments& InArgs, TSharedPtr<F
 	LoadItemExpanssion();
 }
 
-SUMGEditorWidgetTemplates::~SUMGEditorWidgetTemplates()
+SPaletteView::~SPaletteView()
 {
 	//FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	SaveItemExpansion();
 }
 
-void SUMGEditorWidgetTemplates::OnSearchChanged(const FText& InFilterText)
+void SPaletteView::OnSearchChanged(const FText& InFilterText)
 {
 	bRefreshRequested = true;
 	SearchText = InFilterText;
 }
 
-void SUMGEditorWidgetTemplates::LoadItemExpanssion()
+void SPaletteView::LoadItemExpanssion()
 {
 	// Restore the expansion state of the widget groups.
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
@@ -189,7 +189,7 @@ void SUMGEditorWidgetTemplates::LoadItemExpanssion()
 	}
 }
 
-void SUMGEditorWidgetTemplates::SaveItemExpansion()
+void SPaletteView::SaveItemExpansion()
 {
 	// Restore the expansion state of the widget groups.
 	for ( TSharedPtr<FWidgetViewModel>& ViewModel : WidgetViewModels )
@@ -199,7 +199,7 @@ void SUMGEditorWidgetTemplates::SaveItemExpansion()
 	}
 }
 
-UWidgetBlueprint* SUMGEditorWidgetTemplates::GetBlueprint() const
+UWidgetBlueprint* SPaletteView::GetBlueprint() const
 {
 	if ( BlueprintEditor.IsValid() )
 	{
@@ -210,7 +210,7 @@ UWidgetBlueprint* SUMGEditorWidgetTemplates::GetBlueprint() const
 	return NULL;
 }
 
-void SUMGEditorWidgetTemplates::BuildWidgetList()
+void SPaletteView::BuildWidgetList()
 {
 	WidgetViewModels.Reset();
 	WidgetTemplateCategories.Reset();
@@ -239,7 +239,7 @@ void SUMGEditorWidgetTemplates::BuildWidgetList()
 	WidgetViewModels.Sort([] (TSharedPtr<FWidgetViewModel> L, TSharedPtr<FWidgetViewModel> R) { return R->GetName().CompareTo(L->GetName()) > 0; });
 }
 
-void SUMGEditorWidgetTemplates::BuildClassWidgetList()
+void SPaletteView::BuildClassWidgetList()
 {
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
@@ -263,7 +263,7 @@ void SUMGEditorWidgetTemplates::BuildClassWidgetList()
 	}
 }
 
-void SUMGEditorWidgetTemplates::BuildSpecialWidgetList()
+void SPaletteView::BuildSpecialWidgetList()
 {
 	AddWidgetTemplate(MakeShareable(new FWidgetTemplateButton()));
 	AddWidgetTemplate(MakeShareable(new FWidgetTemplateCheckBox()));
@@ -271,19 +271,19 @@ void SUMGEditorWidgetTemplates::BuildSpecialWidgetList()
 	//TODO Make this pluggable.
 }
 
-void SUMGEditorWidgetTemplates::AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template)
+void SPaletteView::AddWidgetTemplate(TSharedPtr<FWidgetTemplate> Template)
 {
 	FString Category = Template->GetCategory().ToString();
 	WidgetTemplateArray& Group = WidgetTemplateCategories.FindOrAdd(Category);
 	Group.Add(Template);
 }
 
-void SUMGEditorWidgetTemplates::OnGetChildren(TSharedPtr<FWidgetViewModel> Item, TArray< TSharedPtr<FWidgetViewModel> >& Children)
+void SPaletteView::OnGetChildren(TSharedPtr<FWidgetViewModel> Item, TArray< TSharedPtr<FWidgetViewModel> >& Children)
 {
 	return Item->GetChildren(Children);
 }
 
-TSharedRef<ITableRow> SUMGEditorWidgetTemplates::OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SPaletteView::OnGenerateWidgetTemplateItem(TSharedPtr<FWidgetViewModel> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	return Item->BuildRow(OwnerTable);
 }

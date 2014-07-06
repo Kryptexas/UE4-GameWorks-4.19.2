@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "SHierarchyViewItem.h"
 
-#include "SUMGEditorTreeItem.h"
 #include "UMGEditorActions.h"
 #include "WidgetTemplateDragDropOp.h"
 
@@ -19,7 +19,7 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, UWidget* InItem)
+void SHierarchyViewItem::Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, UWidget* InItem)
 {
 	BlueprintEditor = InBlueprintEditor;
 	Item = InItem;
@@ -47,18 +47,18 @@ void SUMGEditorTreeItem::Construct(const FArguments& InArgs, const TSharedRef< S
 			.VAlign(VAlign_Center)
 			[
 				SNew(SInlineEditableTextBlock)
-				.Font(this, &SUMGEditorTreeItem::GetItemFont)
-				.Text(this, &SUMGEditorTreeItem::GetItemText)
+				.Font(this, &SHierarchyViewItem::GetItemFont)
+				.Text(this, &SHierarchyViewItem::GetItemText)
 				.HighlightText(InArgs._HighlightText)
-				.OnVerifyTextChanged(this, &SUMGEditorTreeItem::OnVerifyNameTextChanged)
-				.OnTextCommitted(this, &SUMGEditorTreeItem::OnNameTextCommited)
-				.IsSelected(this, &SUMGEditorTreeItem::IsSelectedExclusively)
+				.OnVerifyTextChanged(this, &SHierarchyViewItem::OnVerifyNameTextChanged)
+				.OnTextCommitted(this, &SHierarchyViewItem::OnNameTextCommited)
+				.IsSelected(this, &SHierarchyViewItem::IsSelectedExclusively)
 			]
 		],
 		InOwnerTableView);
 }
 
-bool SUMGEditorTreeItem::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
+bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
 	FString NewName = InText.ToString();
 
@@ -78,12 +78,12 @@ bool SUMGEditorTreeItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 	return true;
 }
 
-void SUMGEditorTreeItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
+void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
 	FWidgetBlueprintEditorUtils::RenameWidget(BlueprintEditor.Pin().ToSharedRef(), Item->GetFName(), FName(*InText.ToString()));
 }
 
-FSlateFontInfo SUMGEditorTreeItem::GetItemFont() const
+FSlateFontInfo SHierarchyViewItem::GetItemFont() const
 {
 	if ( !Item->IsGeneratedName() && Item->bIsVariable )
 	{
@@ -97,14 +97,14 @@ FSlateFontInfo SUMGEditorTreeItem::GetItemFont() const
 	}
 }
 
-FText SUMGEditorTreeItem::GetItemText() const
+FText SHierarchyViewItem::GetItemText() const
 {
 	return FText::FromString(Item->GetLabel());
 }
 
 //@TODO UMG Allow items in the tree to be dragged, and reordered, and reparented.
 
-void SUMGEditorTreeItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+void SHierarchyViewItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	//TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 	//if ( !Operation.IsValid() )
@@ -119,7 +119,7 @@ void SUMGEditorTreeItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDro
 	//}
 }
 
-void SUMGEditorTreeItem::OnDragLeave(const FDragDropEvent& DragDropEvent)
+void SHierarchyViewItem::OnDragLeave(const FDragDropEvent& DragDropEvent)
 {
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
@@ -128,7 +128,7 @@ void SUMGEditorTreeItem::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	}
 }
 
-FReply SUMGEditorTreeItem::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+FReply SHierarchyViewItem::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
@@ -139,7 +139,7 @@ FReply SUMGEditorTreeItem::OnDragOver(const FGeometry& MyGeometry, const FDragDr
 	return FReply::Unhandled();
 }
 
-FReply SUMGEditorTreeItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+FReply SHierarchyViewItem::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
 	TSharedPtr<FWidgetTemplateDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( DragDropOp.IsValid() )
