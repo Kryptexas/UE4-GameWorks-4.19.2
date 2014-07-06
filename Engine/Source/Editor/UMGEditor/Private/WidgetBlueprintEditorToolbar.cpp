@@ -1,9 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
-
 #include "WidgetBlueprintEditorToolbar.h"
 
+#include "WidgetBlueprintEditor.h"
 #include "SModeWidget.h"
 
 #define LOCTEXT_NAMESPACE "UMG"

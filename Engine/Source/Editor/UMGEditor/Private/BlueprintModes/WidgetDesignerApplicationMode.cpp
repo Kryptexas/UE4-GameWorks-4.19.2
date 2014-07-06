@@ -6,6 +6,7 @@
 #include "Editor/Kismet/Public/BlueprintEditorTabs.h"
 #include "Editor/Kismet/Public/SBlueprintEditorToolbar.h"
 #include "Editor/Kismet/Public/BlueprintEditorModes.h"
+#include "SKismetInspector.h"
 
 #include "WidgetBlueprintEditor.h"
 #include "WidgetDesignerApplicationMode.h"
