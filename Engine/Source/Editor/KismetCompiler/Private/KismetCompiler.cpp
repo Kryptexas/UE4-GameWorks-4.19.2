@@ -1635,7 +1635,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 			(Blueprint->BlueprintType == BPTYPE_Const)  || 
 			(Blueprint->BlueprintType == BPTYPE_Interface))
 		{
-			//Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
+			Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
 		}
 #endif
 
