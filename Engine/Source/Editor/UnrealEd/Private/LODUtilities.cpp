@@ -292,9 +292,16 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 	if ( MeshReduction && MeshReduction->IsSupported() && SkeletalMesh )
 	{
 		// Simplify each LOD
-		for( int32 LODIndex = 0; LODIndex < InSettings.Num(); ++LODIndex)
+		for (int32 SettingIndex = 0; SettingIndex < InSettings.Num(); ++SettingIndex)
 		{
-			uint32 DesiredLOD = LODIndex+1;
+			uint32 DesiredLOD = SettingIndex + 1;
+
+			// check whether reduction settings are same or not
+			if (SkeletalMesh->LODInfo.IsValidIndex(DesiredLOD) 
+			 && SkeletalMesh->LODInfo[DesiredLOD].ReductionSettings == InSettings[SettingIndex])
+			{
+				continue;
+			}
 
 			{
 				FFormatNamedArguments Args;
@@ -304,7 +311,7 @@ void FLODUtilities::SimplifySkeletalMesh( FSkeletalMeshUpdateContext& UpdateCont
 				GWarn->BeginSlowTask( StatusUpdate, true );
 			}
 
-			if ( MeshReduction->ReduceSkeletalMesh( SkeletalMesh, DesiredLOD, InSettings[LODIndex] , true ) )
+			if (MeshReduction->ReduceSkeletalMesh(SkeletalMesh, DesiredLOD, InSettings[SettingIndex], true))
 			{
 				check( SkeletalMesh->LODInfo.Num() >= 2 );
 				SkeletalMesh->MarkPackageDirty();

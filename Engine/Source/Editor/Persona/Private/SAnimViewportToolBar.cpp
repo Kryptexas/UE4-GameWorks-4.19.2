@@ -684,13 +684,6 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateLODMenu() const
 			}
 		}
 		ShowMenuBuilder.EndSection();
-
-		// Commands
-		ShowMenuBuilder.BeginSection("AnimViewportLODSettings");
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowLevelOfDetailSettings);
-		}
-		ShowMenuBuilder.EndSection();
 	}
 
 	return ShowMenuBuilder.MakeWidget();

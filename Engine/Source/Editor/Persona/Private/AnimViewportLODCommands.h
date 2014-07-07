@@ -36,9 +36,6 @@ public:
 	/** LOD 3 */
 	TSharedPtr< FUICommandInfo > LOD3;
 
-	/** Show Level of Detail Settings Dialog */
-	TSharedPtr< FUICommandInfo > ShowLevelOfDetailSettings;
-
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() override;

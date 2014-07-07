@@ -1217,6 +1217,9 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 	SkeletalMesh->LODInfo.Empty();
 	SkeletalMesh->LODInfo.AddZeroed();
 	SkeletalMesh->LODInfo[0].LODHysteresis = 0.02f;
+	FSkeletalMeshOptimizationSettings Settings;
+	// set default reduction settings values
+	SkeletalMesh->LODInfo[0].ReductionSettings = Settings;
 
 	// Create initial bounding box based on expanded version of reference pose for meshes without physics assets. Can be overridden by artist.
 	FBox BoundingBox( SkelMeshImportDataPtr->Points.GetTypedData(), SkelMeshImportDataPtr->Points.Num() );

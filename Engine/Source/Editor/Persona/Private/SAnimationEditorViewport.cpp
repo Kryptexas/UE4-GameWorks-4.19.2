@@ -642,10 +642,6 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_3));
 
-	CommandList.MapAction(
-		ViewportLODMenuCommands.ShowLevelOfDetailSettings,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowLevelOfDetailSettings));
-
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ToggleGrid,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
@@ -1217,20 +1213,6 @@ void SAnimationEditorViewportTabBody::OnSetLODModel(ELODViewSelection LODSelecti
 	{
 		PreviewComponent->ForcedLodModel = LODSelection;
 		PopulateUVChoices();
-	}
-}
-
-void SAnimationEditorViewportTabBody::OnShowLevelOfDetailSettings()
-{
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(TargetSkeleton)
-	{
-		FSkeletalMeshUpdateContext UpdateContext;
-		UpdateContext.SkeletalMesh = PersonaPtr.Pin()->GetMesh();
-		UpdateContext.AssociatedComponents.Push(PreviewComponent);
-		UpdateContext.OnLODChanged.BindSP(this, &SAnimationEditorViewportTabBody::OnLODChanged);
-
-		FLODUtilities::CreateLODSettingsDialog(UpdateContext);
 	}
 }
 

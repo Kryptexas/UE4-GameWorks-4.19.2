@@ -1336,24 +1336,12 @@ private:
 	 */
 	void SetReductionSettings( const FSkeletalMeshOptimizationSettings& Settings, float BoundsRadius, int32 SourceTriCount, SimplygonSDK::spReductionSettings ReductionSettings )
 	{
-		float MaxDeviation = 1.0f;
-		float ReductionRatio = 1.0f;
-		if(Settings.ReductionMethod == SMOT_MaxDeviation)
-		{
-			// Compute max deviation from quality.
-			MaxDeviation =  FMath::Max<float>( 0.0f, Settings.MaxDeviationPercentage * BoundsRadius );
-
-			// Set the reduction ratio such that at least 1 triangle remains.
-			ReductionRatio = FMath::Max<float>( 1.0f / SourceTriCount, 0.05f );
-		}
-		else
-		{
-			MaxDeviation = SimplygonSDK::REAL_MAX;
-
-			// Set the reduction ratio such that at least 1 triangle or 5% of the original triangles remain, whichever is larger.
-			float MinTriCount = FMath::Max<float>( 1.0f / SourceTriCount, 0.05f );
-			ReductionRatio = FMath::Max<float>( Settings.NumOfTrianglesPercentage, MinTriCount );
-		}
+		// Compute max deviation from quality.
+		float MaxDeviation = Settings.MaxDeviationPercentage > 0.0f ? Settings.MaxDeviationPercentage * BoundsRadius : SimplygonSDK::REAL_MAX;
+		// Set the reduction ratio such that at least 1 triangle or 5% of the original triangles remain, whichever is larger.
+		float MinReductionRatio = FMath::Max<float>(1.0f / SourceTriCount, 0.05f);
+		float MaxReductionRatio = (Settings.MaxDeviationPercentage > 0.0f && Settings.NumOfTrianglesPercentage == 1.0f) ? MinReductionRatio : 1.0f;
+		float ReductionRatio = FMath::Clamp(Settings.NumOfTrianglesPercentage, MinReductionRatio, MaxReductionRatio);
 
 		//Enable feature flags for those features where we have set an importance
 		unsigned int FeatureFlagsMask = SimplygonSDK::SG_FEATUREFLAGS_GROUP;

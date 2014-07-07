@@ -247,9 +247,6 @@ private:
 	/** Function to set LOD model selection*/
 	void OnSetLODModel( ELODViewSelection LODSelectionType );
 
-	/** Function to show Level of Detail Settings dialog */
-	void OnShowLevelOfDetailSettings( );
-
 	/** Function to show/hide mesh info*/
 	void OnShowDisplayInfo();
 

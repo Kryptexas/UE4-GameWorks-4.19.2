@@ -36,8 +36,64 @@ struct FClothingComboInfo
 	TArray<int32>							ClothingComboSelectedIndices;
 };
 
-class FPersonaMeshDetails : public IDetailCustomization
 
+class FSkelMeshReductionSettingsLayout : public IDetailCustomNodeBuilder, public TSharedFromThis<FSkelMeshReductionSettingsLayout>
+{
+public:
+	FSkelMeshReductionSettingsLayout(int32 InLODIndex, TSharedRef<class FPersonaMeshDetails> InParentLODSettings, TSharedPtr<IPropertyHandle> InBoneToRemoveProperty);
+	virtual ~FSkelMeshReductionSettingsLayout();
+
+	const FSkeletalMeshOptimizationSettings& GetSettings() const;
+	void UpdateSettings(const FSkeletalMeshOptimizationSettings& InSettings);
+private:
+	/** IDetailCustomNodeBuilder Interface*/
+	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRegenerateChildren) override {}
+	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
+	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
+	virtual void Tick(float DeltaTime) override{}
+	virtual bool RequiresTick() const override { return false; }
+	virtual FName GetName() const override { static FName MeshReductionSettings("MeshReductionSettings"); return MeshReductionSettings; }
+	virtual bool InitiallyCollapsed() const override { return true; }
+
+	FReply OnApplyChanges();
+	float GetPercentTriangles() const;
+	float GetMaxDeviation() const;
+	float GetWeldingThreshold() const;
+	ESlateCheckBoxState::Type ShouldRecalculateNormals() const;
+	float GetHardAngleThreshold() const;
+	int32 GetMaxBonesPerVertex() const;
+
+	void OnPercentTrianglesChanged(float NewValue);
+	void OnMaxDeviationChanged(float NewValue);
+	void OnReductionAmountChanged(float NewValue);
+	void OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue);
+	void OnWeldingThresholdChanged(float NewValue);
+	void OnHardAngleThresholdChanged(float NewValue);
+	void OnMaxBonesPerVertexChanged(int32 NewValue);
+
+	void OnSilhouetteImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+	void OnTextureImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+	void OnShadingImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+	void OnSkinningImportanceChanged(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
+
+	void UpdateBonesToRemoveProperties(int32 LODIndex);
+	void RefreshBonesToRemove();
+
+private:
+	int32 LODIndex;
+	TWeakPtr<class FPersonaMeshDetails> ParentLODSettings;
+	TSharedPtr<IPropertyHandle>	BoneToRemoveProperty;
+	FSkeletalMeshOptimizationSettings ReductionSettings;
+
+	TArray<TSharedPtr<FString> > ImportanceOptions;
+	TArray<TSharedPtr<FString> > SimplificationOptions;
+	TSharedPtr<STextComboBox> SilhouetteCombo;
+	TSharedPtr<STextComboBox> TextureCombo;
+	TSharedPtr<STextComboBox> ShadingCombo;
+	TSharedPtr<STextComboBox> SkinningCombo;
+};
+
+class FPersonaMeshDetails : public IDetailCustomization
 {
 public:
 	FPersonaMeshDetails(TSharedPtr<FPersona> InPersona) : PersonaPtr(InPersona) {}
@@ -133,6 +189,38 @@ private:
 	/** Get a material index from LOD index and section index */
 	int32 GetMaterialIndex(int32 LODIndex, int32 SectionIndex);
 
+	/** for LOD settings category */
+	void CustomizeLODSettingsCategories(IDetailLayoutBuilder& DetailLayout);
+
+	void OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo, IDetailLayoutBuilder* DetailLayout);
+	void UpdateLODNames();
+	int32 GetLODCount() const;
+	void OnLODCountChanged(int32 NewValue);
+	void OnLODCountCommitted(int32 InValue, ETextCommit::Type CommitInfo);
+	FText GetLODCountTooltip() const;
+	/** apply LOD changes if the user modified LOD reduction settings */
+	FReply OnApplyChanges();
+	/** hide properties which don't need to be showed to end users */
+	void HideUnnecessaryProperties(IDetailLayoutBuilder& DetailLayout);
+	/** clear "None" bones and remove already included bones */
+	void RefreshBonesToRemove(TArray<FBoneReference>& BonesToRemove, int32 LODIndex);
+
+public:
+
+	bool IsApplyNeeded() const;
+	void ApplyChanges();
+
+	USkeletalMesh* GetMesh()
+	{ 
+		if (PersonaPtr.IsValid())
+		{
+			return PersonaPtr->GetMesh();
+		}
+		else
+		{
+			return NULL;
+		}
+	}
 private:
 	// Container for the objects to display
 	TArray< TWeakObjectPtr<UObject>> SelectedObjects;
@@ -141,6 +229,14 @@ private:
 	TSharedPtr<FPersona> PersonaPtr;
 
 	IDetailLayoutBuilder* MeshDetailLayout;
+
+	/** LOD import options */
+	TArray<TSharedPtr<FString> > LODNames;
+	/** Helper value that corresponds to the 'Number of LODs' spinbox.*/
+	int32 LODCount;
+
+	/** Simplification options for each LOD level */
+	TArray<TSharedPtr<FSkelMeshReductionSettingsLayout>> ReductionSettingsWidgets;
 
 #if WITH_APEX_CLOTHING
 private:
