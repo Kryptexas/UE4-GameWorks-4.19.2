@@ -10,6 +10,8 @@ class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	UPROPERTY(BlueprintAssignable)
 	FMovementModeChangedDelegate	OnChange;
 
@@ -18,6 +20,8 @@ class UAbilityTask_WaitMovementModeChange : public UAbilityTask
 
 	EMovementMode	RequiredMode;
 
-public:
-	
+	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
+
+	virtual void Activate() override;
 };
