@@ -198,7 +198,7 @@ public:
 	void CreateDOFLock();
 
 	/** Constraint used to allow for easy DOF setup per bodyinstance */
-	UPROPERTY()
+	UPROPERTY(transient)
 	UPhysicsConstraintComponent * DOFConstraint;
 
 protected:
