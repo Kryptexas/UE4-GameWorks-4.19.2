@@ -9446,9 +9446,14 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	// If the new object is an Actor, save the root component reference, to be restored later
 	USceneComponent* SavedRootComponent = NULL;
+	UObjectProperty* RootComponentProperty = NULL;
 	if(NewActor != NULL)
 	{
-		SavedRootComponent = NewActor->GetRootComponent();
+		RootComponentProperty = FindField<UObjectProperty>(NewActor->GetClass(), "RootComponent");
+		if(RootComponentProperty != NULL)
+		{
+			SavedRootComponent = Cast<USceneComponent>(RootComponentProperty->GetObjectPropertyValue_InContainer(NewActor));
+		}
 	}
 
 	// Serialize out the modified properties on the old default object
@@ -9582,7 +9587,11 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Restore the root component reference
 	if(NewActor != NULL)
 	{
-		NewActor->SetRootComponent(SavedRootComponent);
+		if(RootComponentProperty != NULL)
+		{
+			RootComponentProperty->SetObjectPropertyValue_InContainer(NewActor, SavedRootComponent);
+		}
+
 		NewActor->ResetOwnedComponents();
 	}
 
