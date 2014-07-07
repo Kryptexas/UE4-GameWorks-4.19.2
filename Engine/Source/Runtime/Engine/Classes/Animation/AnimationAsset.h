@@ -232,6 +232,56 @@ public:
 	}
 };
 
+/** Utility struct to accumulate root motion. */
+USTRUCT()
+struct FRootMotionMovementParams
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY()
+		bool bHasRootMotion;
+
+	UPROPERTY()
+		FTransform RootMotionTransform;
+
+	FRootMotionMovementParams()
+		: bHasRootMotion(false)
+		, RootMotionTransform(FTransform::Identity)
+	{
+	}
+
+	void Set(const FTransform & InTransform)
+	{
+		bHasRootMotion = true;
+		RootMotionTransform = InTransform;
+	}
+
+	void Accumulate(const FTransform & InTransform)
+	{
+		if (!bHasRootMotion)
+		{
+			Set(InTransform);
+		}
+		else
+		{
+			RootMotionTransform = InTransform * RootMotionTransform;
+		}
+	}
+
+	void Accumulate(const FRootMotionMovementParams & MovementParams)
+	{
+		if (MovementParams.bHasRootMotion)
+		{
+			Accumulate(MovementParams.RootMotionTransform);
+		}
+	}
+
+	void Clear()
+	{
+		bHasRootMotion = false;
+	}
+};
+
 // This structure is used to either advance or synchronize animation players
 struct FAnimAssetTickContext
 {

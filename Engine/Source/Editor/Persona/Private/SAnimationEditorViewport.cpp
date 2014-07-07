@@ -685,6 +685,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnMuteAudio),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioMuted));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ProcessRootMotion,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingRootMotion));
 }
 
 bool SAnimationEditorViewportTabBody::IsPreviewModeOn(int32 PreviewMode) const
@@ -1353,6 +1359,27 @@ void SAnimationEditorViewportTabBody::OnMuteAudio()
 bool SAnimationEditorViewportTabBody::IsAudioMuted()
 {
 	return GetAnimationViewportClient()->IsAudioMuted();
+}
+
+void SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if (PreviewComponent)
+	{
+		PreviewComponent->bPreviewRootMotion = !PreviewComponent->bPreviewRootMotion;
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsPreviewingRootMotion() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if (PreviewComponent)
+	{
+		return PreviewComponent->bPreviewRootMotion;
+	}
+	return false;
 }
 
 #if WITH_APEX_CLOTHING

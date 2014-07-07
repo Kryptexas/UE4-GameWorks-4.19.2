@@ -596,11 +596,17 @@ public:
 	/** Get current RootMotion FAnimMontageInstance if any. NULL otherwise. */
 	FAnimMontageInstance * GetRootMotionMontageInstance() const;
 
+	/** Get current accumulated root motion, removing it from the AnimInstance in the process */
+	FRootMotionMovementParams ConsumeExtractedRootMotion();
+
 private:
 	/** Active Root Motion Montage Instance, if any. */
 	struct FAnimMontageInstance * RootMotionMontageInstance;
 
 	/** Update RootMotionMontageInstance */
 	void UpdateRootMotionMontageInstance();
+
+	// Root motion extracted from animation since the last time ConsumeExtractedRootMotion was called
+	FRootMotionMovementParams ExtractedRootMotion;
 };
 

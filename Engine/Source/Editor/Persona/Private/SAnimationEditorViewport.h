@@ -324,6 +324,12 @@ private:
 	/** Whether audio from the viewport is muted */
 	bool IsAudioMuted();
 
+	/** Function to set whether we are previewing root motion */
+	void OnTogglePreviewRootMotion();
+	
+	/** Whether or not we are previewing root motion */
+	bool IsPreviewingRootMotion() const;
+
 #if WITH_APEX_CLOTHING
 	/** 
 	 * clothing show options 

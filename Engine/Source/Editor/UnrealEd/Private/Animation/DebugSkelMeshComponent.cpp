@@ -146,6 +146,49 @@ bool UDebugSkelMeshComponent::CheckIfBoundsAreCorrrect()
 	return false;
 }
 
+float WrapInRange(float StartVal, float MinVal, float MaxVal)
+{
+	float Size = MaxVal - MinVal;
+	float EndVal = StartVal;
+	while (EndVal < MinVal)
+	{
+		EndVal += Size;
+	}
+
+	while (EndVal > MaxVal)
+	{
+		EndVal -= Size;
+	}
+	return EndVal;
+}
+
+void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const FVector& FloorMax)
+{
+	if (bPreviewRootMotion)
+	{
+		if (UAnimInstance* AnimInst = GetAnimInstance())
+		{
+			FRootMotionMovementParams ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion();
+			if (ExtractedRootMotion.bHasRootMotion)
+			{
+				AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
+
+				//Handle moving component so that it stays within the editor floor
+				FTransform CurrentTransform = GetRelativeTransform();
+				FVector Trans = CurrentTransform.GetTranslation();
+				Trans.X = WrapInRange(Trans.X, FloorMin.X, FloorMax.X);
+				Trans.Y = WrapInRange(Trans.Y, FloorMin.Y, FloorMax.Y);
+				CurrentTransform.SetTranslation(Trans);
+				SetRelativeTransform(CurrentTransform);
+			}
+		}
+	}
+	else
+	{
+		SetWorldTransform(FTransform());
+	}
+}
+
 FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 {
 	FDebugSkelMeshSceneProxy* Result = NULL;

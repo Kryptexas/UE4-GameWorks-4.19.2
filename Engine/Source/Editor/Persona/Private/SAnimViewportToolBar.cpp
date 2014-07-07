@@ -445,6 +445,12 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			}
 			ShowMenuBuilder.EndSection();
 
+			ShowMenuBuilder.BeginSection("AnimViewportRootMotion", LOCTEXT("Viewport_RootMotionLabel", "Root Motion"));
+			{
+				ShowMenuBuilder.AddMenuEntry(Actions.ProcessRootMotion);
+			}
+			ShowMenuBuilder.EndSection();
+
 			ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
 			{
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );

@@ -1534,7 +1534,6 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
 	bool bUpdateRootMotionMontageInstance = false;
-	FRootMotionMovementParams ExtractedRootMotion;
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
@@ -1569,16 +1568,6 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 	if( bUpdateRootMotionMontageInstance )
 	{
 		UpdateRootMotionMontageInstance();
-	}
-
-	// If Root Motion has been extracted, forward it to character physics.
-	if( ExtractedRootMotion.bHasRootMotion )
-	{
-		ACharacter * CharacterOwner = Cast<ACharacter>(GetOwningActor());
-		if( CharacterOwner && CharacterOwner->CharacterMovement )
-		{
-			CharacterOwner->CharacterMovement->RootMotionParams.Accumulate(ExtractedRootMotion);
-		}
 	}
 }
 
@@ -1802,6 +1791,13 @@ void UAnimInstance::UpdateRootMotionMontageInstance()
 FAnimMontageInstance * UAnimInstance::GetRootMotionMontageInstance() const
 {
 	return RootMotionMontageInstance;
+}
+
+FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion()
+{
+	FRootMotionMovementParams RootMotion = ExtractedRootMotion;
+	ExtractedRootMotion.Clear();
+	return RootMotion;
 }
 
 void UAnimInstance::Montage_Stop(float InBlendOutTime)

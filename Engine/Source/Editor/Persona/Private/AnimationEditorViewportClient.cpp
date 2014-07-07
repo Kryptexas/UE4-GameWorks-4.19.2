@@ -592,6 +592,14 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 	{
 		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds*AnimationPlaybackScale);
 	}
+
+	UDebugSkelMeshComponent* PreviewComp = PreviewSkelMeshComp.Get();
+	if (PreviewComp)
+	{
+		// Handle updating the preview component to represent the effects of root motion	
+		FBoxSphereBounds Bounds = EditorFloorComp->CalcBounds(EditorFloorComp->GetRelativeTransform());
+		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
+	}
 }
 
 void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds)

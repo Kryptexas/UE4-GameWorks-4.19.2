@@ -30,7 +30,6 @@
 #include "VisualLog.h"
 #include "LevelUtils.h"
 #include "PhysicsPublic.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "AI/AISystemBase.h"
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"

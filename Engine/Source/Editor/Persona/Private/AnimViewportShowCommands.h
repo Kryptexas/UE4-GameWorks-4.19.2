@@ -36,6 +36,9 @@ public:
 	/** Option to mute audio in the viewport */
 	TSharedPtr< FUICommandInfo > MuteAudio;
 
+	/** Option to show root motion in viewport */
+	TSharedPtr< FUICommandInfo > ProcessRootMotion;
+
 	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowReferencePose;
 	

@@ -98,6 +98,9 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bDisplayBound:1;
 
+	UPROPERTY(transient)
+	uint32 bPreviewRootMotion:1;
+
 	/** Compressed SpaceBases for when bDisplayRawAnimation == true, as raw space bases are stored in SpaceBases **/
 	TArray<FTransform> CompressedSpaceBases;
 
@@ -195,6 +198,11 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 * Test if in-game bounds are as big as preview bounds
 	 */
 	UNREALED_API bool CheckIfBoundsAreCorrrect();
+
+	/** 
+	 * Update components position based on animation root motion
+	 */
+	UNREALED_API void ConsumeRootMotion(const FVector& FloorMin, const FVector& FloorMax);
 
 #if WITH_EDITOR
 	//TODO - This is a really poor way to post errors to the user. Work out a better way.

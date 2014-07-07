@@ -896,7 +896,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		// Tick animations before physics.
 		if( CharacterOwner->Mesh )
 		{
-			CharacterOwner->Mesh->TickPose(DeltaSeconds);
+			TickCharacterPose(DeltaSeconds);
 
 			// Make sure animation didn't trigger an event that destroyed us
 			if (!HasValidData())
@@ -1338,7 +1338,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		// If using RootMotion, tick animations before running physics.
 		if( !CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->Mesh )
 		{
-			CharacterOwner->Mesh->TickPose(DeltaSeconds);
+			TickCharacterPose(DeltaSeconds);
 
 			// Make sure animation didn't trigger an event that destroyed us
 			if (!HasValidData())
@@ -5424,7 +5424,7 @@ void UCharacterMovementComponent::MoveAutonomous
 	// If not playing root motion, tick animations after physics. We do this here to keep events, notifies, states and transitions in sync with client updates.
 	if( !CharacterOwner->bClientUpdating && !CharacterOwner->IsPlayingRootMotion() && CharacterOwner->Mesh )
 	{
-		CharacterOwner->Mesh->TickPose(DeltaTime);
+		TickCharacterPose(DeltaTime);
 	}
 }
 
@@ -5960,6 +5960,19 @@ void UCharacterMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 		{
 			PreClothComponentTick.UnRegisterTickFunction();
 		}
+	}
+}
+
+void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
+{
+	check(CharacterOwner && CharacterOwner->Mesh)
+
+	CharacterOwner->Mesh->TickPose(DeltaTime);
+
+	// Grab root motion now that we have ticked the pose
+	if (UAnimInstance* AnimInstance = CharacterOwner->Mesh->GetAnimInstance())
+	{
+		RootMotionParams.Accumulate(AnimInstance->ConsumeExtractedRootMotion());
 	}
 }
 

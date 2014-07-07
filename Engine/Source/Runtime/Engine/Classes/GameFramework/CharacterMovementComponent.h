@@ -12,6 +12,7 @@
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "Engine/EngineTypes.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "Animation/AnimationAsset.h"
 #include "CharacterMovementComponent.generated.h"
 
 struct FVector_NetQuantize100;
@@ -91,57 +92,6 @@ public:
 
 	void SetFromSweep(const FHitResult& InHit, const float InSweepFloorDist, const bool bIsWalkableFloor);
 	void SetFromLineTrace(const FHitResult& InHit, const float InSweepFloorDist, const float InLineDist, const bool bIsWalkableFloor);
-};
-
-
-/** Utility struct to accumulate root motion. */
-USTRUCT()
-struct FRootMotionMovementParams
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	bool bHasRootMotion;
-
-	UPROPERTY()
-	FTransform RootMotionTransform;
-
-	FRootMotionMovementParams()
-		: bHasRootMotion(false)
-		, RootMotionTransform(FTransform::Identity)
-	{
-	}
-
-	void Set(const FTransform & InTransform)
-	{
-		bHasRootMotion = true;
-		RootMotionTransform = InTransform;
-	}
-
-	void Accumulate(const FTransform & InTransform)
-	{
-		if( !bHasRootMotion )
-		{
-			Set(InTransform);
-		}
-		else
-		{
-			RootMotionTransform = InTransform * RootMotionTransform;
-		}
-	}
-
-	void Accumulate(const FRootMotionMovementParams & MovementParams)
-	{
-		if( MovementParams.bHasRootMotion )
-		{
-			Accumulate(MovementParams.RootMotionTransform);
-		}
-	}
-
-	void Clear()
-	{
-		bHasRootMotion = false;
-	}
 };
 
 /** 
@@ -1367,6 +1317,9 @@ protected:
 
 	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
 	virtual void UpdateFromCompressedFlags(uint8 Flags);
+
+	/** Ticks the characters pose and accumulates root motion */
+	void TickCharacterPose(float DeltaTime);
 
 public:
 
