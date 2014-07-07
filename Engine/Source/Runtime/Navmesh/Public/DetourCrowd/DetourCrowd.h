@@ -359,6 +359,10 @@ public:
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	bool setAgentWaiting(const int idx);
 
+	/// [UE4] Switch to offmesh link state
+	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
+	bool setAgentBackOnLink(const int idx);
+
 	/// [UE4] Resets agent's velocity
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	bool resetAgentVelocity(const int idx);

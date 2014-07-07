@@ -370,6 +370,23 @@ void UCrowdFollowingComponent::OnLanded()
 	}
 }
 
+void UCrowdFollowingComponent::FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink)
+{
+	const bool bPrevCustomLink = CurrentCustomLinkOb.IsValid();
+	Super::FinishUsingCustomLink(CustomNavLink);
+
+	if (bEnableCrowdSimulation)
+	{
+		const bool bCurrentCustomLink = CurrentCustomLinkOb.IsValid();
+		UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());
+		if (bPrevCustomLink && !bCurrentCustomLink && CrowdManager)
+		{
+			const ICrowdAgentInterface* IAgent = InterfaceCast<ICrowdAgentInterface>(this);
+			CrowdManager->OnAgentFinishedCustomLink(IAgent);
+		}
+	}
+}
+
 void UCrowdFollowingComponent::OnPathFinished(EPathFollowingResult::Type Result)
 {
 	UCrowdManager* CrowdManager = UCrowdManager::GetCurrent(GetWorld());

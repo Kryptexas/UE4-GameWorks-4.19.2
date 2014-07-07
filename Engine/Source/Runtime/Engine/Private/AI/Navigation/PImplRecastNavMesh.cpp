@@ -977,6 +977,7 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 						if (OffMeshCon)
 						{
 							CurVert->CustomLinkId = OffMeshCon->userId;
+							Path.CustomLinkIds.Add(OffMeshCon->userId);
 						}
 					}
 
@@ -993,6 +994,16 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 			// make sure at least beginning and end of path are added
 			new(Path.PathPoints) FNavPathPoint(StartLoc, StartPolyID);
 			new(Path.PathPoints) FNavPathPoint(EndLoc, EndPolyID);
+
+			// collect all custom links Ids
+			for (int32 Idx = 0; Idx < Path.PathCorridor.Num(); Idx++)
+			{
+				const dtOffMeshConnection* OffMeshCon = DetourNavMesh->getOffMeshConnectionByRef(Path.PathCorridor[Idx]);
+				if (OffMeshCon)
+				{
+					Path.CustomLinkIds.Add(OffMeshCon->userId);
+				}
+			}
 		}
 
 		if (Path.WantsPathCorridor())

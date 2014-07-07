@@ -235,10 +235,10 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 #endif // ENABLE_VISUAL_LOG
 
 	/** check if path contains specific custom nav link */
-	bool ContainsCustomLink(uint32 UniqueLinkId) const;
+	virtual bool ContainsCustomLink(uint32 UniqueLinkId) const;
 
 	/** check if path contains any custom nav link */
-	bool ContainsAnyCustomLink() const;
+	virtual bool ContainsAnyCustomLink() const;
 
 	/** check if path contains given node */
 	virtual bool ContainsNode(NavNodeRef NodeRef) const;

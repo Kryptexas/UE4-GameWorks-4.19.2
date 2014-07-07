@@ -19,6 +19,8 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	];
 	MenuContent = InArgs._MenuContent;
 	OnGetMenuContent = InArgs._OnGetMenuContent;
+	OnMenuOpened = InArgs._OnMenuOpened;
+	OnMenuClosed = InArgs._OnMenuClosed;
 	Placement = InArgs._Placement;
 	Method = InArgs._Method;
 }
@@ -149,6 +151,10 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 		if (InIsOpen && MenuContentPtr.IsValid() )
 		{
 			// OPEN POPUP
+			if (OnMenuOpened.IsBound())
+			{
+				OnMenuOpened.Execute();
+			}
 			
 			// This can be called at any time so we use the push menu override that explicitly allows us to specify our parent
 
@@ -250,6 +256,11 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				// We no longer have a popup open, so reset all the tracking state associated.
 				PopupLayerSlot = NULL;
 				PopupWindowPtr.Reset();
+			}
+
+			if (OnMenuClosed.IsBound())
+			{
+				OnMenuClosed.Execute();
 			}
 		}
 	}

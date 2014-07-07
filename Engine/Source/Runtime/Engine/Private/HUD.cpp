@@ -395,14 +395,15 @@ void AHUD::DrawDebugTextList()
 				TextItem.Font = GEngine->GetSmallFont();
 			}
 
+			float const Alpha = FMath::IsNearlyZero(DebugTextList[Idx].Duration) ? 0.f : (1.f - (DebugTextList[Idx].TimeRemaining / DebugTextList[Idx].Duration));
 			FVector WorldTextLoc;
 			if (DebugTextList[Idx].bAbsoluteLocation)
 			{
-				WorldTextLoc = FMath::Lerp( DebugTextList[Idx].SrcActorOffset, DebugTextList[Idx].SrcActorDesiredOffset, 1.f - (DebugTextList[Idx].TimeRemaining/DebugTextList[Idx].Duration) );
+				WorldTextLoc = FMath::Lerp(DebugTextList[Idx].SrcActorOffset, DebugTextList[Idx].SrcActorDesiredOffset, Alpha);
 			}
 			else
 			{
-				FVector Offset = FMath::Lerp( DebugTextList[Idx].SrcActorOffset, DebugTextList[Idx].SrcActorDesiredOffset, 1.f - (DebugTextList[Idx].TimeRemaining/DebugTextList[Idx].Duration) );
+				FVector Offset = FMath::Lerp(DebugTextList[Idx].SrcActorOffset, DebugTextList[Idx].SrcActorDesiredOffset, Alpha);
 
 				if( DebugTextList[Idx].bKeepAttachedToActor )
 				{

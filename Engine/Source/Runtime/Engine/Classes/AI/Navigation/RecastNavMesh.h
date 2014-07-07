@@ -132,6 +132,9 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	/** check if path (all polys in corridor) contains given node */
 	virtual bool ContainsNode(NavNodeRef NodeRef) const { return PathCorridor.Contains(NodeRef); }
 
+	virtual bool ContainsCustomLink(uint32 UniqueLinkId) const { return CustomLinkIds.Contains(UniqueLinkId); }
+	virtual bool ContainsAnyCustomLink() const { return CustomLinkIds.Num() > 0; }
+
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
 	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const override;
@@ -164,6 +167,9 @@ public:
 
 	/** for every poly in PathCorridor stores traversal cost from previous navpoly */
 	TArray<float> PathCorridorCost;
+
+	/** set of unique link Ids */
+	TArray<uint32> CustomLinkIds;
 
 private:
 	/** sequence of FVector pairs where each pair represents navmesh portal edge between two polygons navigation corridor.
@@ -767,10 +773,10 @@ public:
 	//----------------------------------------------------------------------//
 
 	/** Starts batch processing and locks access to navmesh from other threads */
-	void BeginBatchQuery() const;
+	virtual void BeginBatchQuery() const override;
 
 	/** Finishes batch processing and release locks */
-	void FinishBatchQuery() const;
+	virtual void FinishBatchQuery() const override;
 
 	//----------------------------------------------------------------------//
 	// Querying                                                                

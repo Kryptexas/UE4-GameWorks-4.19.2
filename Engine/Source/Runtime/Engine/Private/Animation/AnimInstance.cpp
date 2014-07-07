@@ -1534,6 +1534,7 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
 	bool bUpdateRootMotionMontageInstance = false;
+	FRootMotionMovementParams LocalExtractedRootMotion;
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
@@ -1543,7 +1544,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstances[I]);
 		if( MontageInstances[I] )
 		{
-			MontageInstances[I]->Advance(DeltaSeconds, ExtractedRootMotion);
+			MontageInstances[I]->Advance(DeltaSeconds, LocalExtractedRootMotion);
 
 			if( !MontageInstances[I]->IsValid() )
 			{
@@ -1568,6 +1569,12 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 	if( bUpdateRootMotionMontageInstance )
 	{
 		UpdateRootMotionMontageInstance();
+	}
+
+	// If Root Motion has been extracted, store it.
+	if ((GetRootMotionMontageInstance() != NULL) && LocalExtractedRootMotion.bHasRootMotion)
+	{
+		ExtractedRootMotion.Accumulate(LocalExtractedRootMotion);
 	}
 }
 

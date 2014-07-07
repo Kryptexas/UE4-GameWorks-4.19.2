@@ -62,22 +62,25 @@ void UEnvironmentQueryGraph::UpdateAsset()
 			if (OptionNode)
 			{
 				UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(OptionNode->NodeInstance);
-				OptionInstance->Tests.Reset();
-
-				for (int32 iTest = 0; iTest < OptionNode->Tests.Num(); iTest++)
+				if (OptionInstance != NULL)
 				{
-					UEnvironmentQueryGraphNode_Test* TestNode = OptionNode->Tests[iTest];
-					if (TestNode && TestNode->bTestEnabled)
+					OptionInstance->Tests.Reset();
+
+					for (int32 iTest = 0; iTest < OptionNode->Tests.Num(); iTest++)
 					{
-						UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
-						if (TestInstance)
+						UEnvironmentQueryGraphNode_Test* TestNode = OptionNode->Tests[iTest];
+						if (TestNode && TestNode->bTestEnabled)
 						{
-							OptionInstance->Tests.Add(TestInstance);
+							UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
+							if (TestInstance)
+							{
+								OptionInstance->Tests.Add(TestInstance);
+							}
 						}
 					}
-				}
 
-				Query->Options.Add(OptionInstance);
+					Query->Options.Add(OptionInstance);
+				}
 			}
 		}
 	}

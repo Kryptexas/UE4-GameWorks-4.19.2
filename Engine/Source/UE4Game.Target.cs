@@ -93,11 +93,11 @@ public class UE4GameTarget : TargetRules
 			// Tag it as a UE4Game build
 			OutCPPEnvironmentConfiguration.Definitions.Add("UE4GAME=1");
 		}
-		if (Target.Platform == UnrealTargetPlatform.HTML5)
+        if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			// to make Tappy Chicken as small as possible we excluded some items from the engine.
-			// uncomment below to make a smaller HTML5 build
-/*			UEBuildConfiguration.bCompileRecast = false;
+			// to make World Explorers as small as possible we excluded some items from the engine.
+			// uncomment below to make a smaller iOS build
+			/*UEBuildConfiguration.bCompileRecast = false;
 			UEBuildConfiguration.bCompileSpeedTree = false;
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;

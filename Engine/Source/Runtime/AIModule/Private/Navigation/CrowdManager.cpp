@@ -331,6 +331,7 @@ void UCrowdManager::UpdateAgentParams(const ICrowdAgentInterface* Agent) const
 	{
 		dtCrowdAgentParams Params;
 		GetAgentParams(Agent, &Params);
+		Params.linkFilter = AgentData->LinkFilter;
 
 		// store for updating with constant intervals
 		((FCrowdAgentData*)AgentData)->bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
@@ -349,6 +350,17 @@ void UCrowdManager::UpdateAgentState(const class ICrowdAgentInterface* Agent) co
 	if (DetourCrowd && AgentData && AgentData->IsValid())
 	{
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);
+	}
+#endif
+}
+
+void UCrowdManager::OnAgentFinishedCustomLink(const class ICrowdAgentInterface* Agent) const
+{
+#if WITH_RECAST
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+	if (DetourCrowd && AgentData && AgentData->IsValid())
+	{
+		DetourCrowd->setAgentBackOnLink(AgentData->AgentIndex);
 	}
 #endif
 }

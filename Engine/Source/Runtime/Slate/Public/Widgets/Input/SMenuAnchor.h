@@ -2,6 +2,12 @@
 
 #pragma once
 
+/** Notification when popup is opened. */
+DECLARE_DELEGATE(FOnMenuOpened)
+
+/** Notification when popup is closed. */
+DECLARE_DELEGATE(FOnMenuClosed)
+
 /**
  * A PopupAnchor summons a Popup relative to its content.
  * Summoning a popup relative to the cursor is accomplished via the application.
@@ -32,7 +38,11 @@ public:
 
 		SLATE_EVENT( FOnGetContent, OnGetMenuContent )
 		
-		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
+		SLATE_EVENT( FOnMenuOpened, OnMenuOpened )
+
+		SLATE_EVENT( FOnMenuClosed, OnMenuClosed )
+
+		SLATE_ATTRIBUTE(EMenuPlacement, Placement)
 
 		SLATE_ARGUMENT( EMethod, Method )
 
@@ -110,7 +120,13 @@ protected:
 	
 	/** Callback invoked when the popup is being summoned */
 	FOnGetContent OnGetMenuContent;
-	
+
+	/** Callback invoked when the popup is being opened */
+	FOnMenuOpened OnMenuOpened;
+
+	/** Callback invoked when the popup is being closed */
+	FOnMenuClosed OnMenuClosed;
+
 	/** How should the popup be placed relative to the anchor. */
 	TAttribute<EMenuPlacement> Placement;
 

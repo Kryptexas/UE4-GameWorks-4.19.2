@@ -227,7 +227,6 @@ void UEnvQueryManager::Tick(float DeltaTime)
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
 	// @TODO: threads?
 
-	const double StartTime = FPlatformTime::Seconds();
 	const double MaxAllowedSeconds = 0.010;
 	double TimeLeft = MaxAllowedSeconds;
 		
@@ -235,6 +234,8 @@ void UEnvQueryManager::Tick(float DeltaTime)
 	{
 		for (int32 Index = 0; Index < RunningQueries.Num() && TimeLeft > 0.0; Index++)
 		{
+			const double StartTime = FPlatformTime::Seconds();
+
 			TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[Index];
 			QueryInstance->ExecuteOneStep(TimeLeft);
 			
@@ -250,7 +251,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 				Index--;
 			}
 
-			TimeLeft -= FPlatformTime::Seconds() - StartTime;
+			TimeLeft -= (FPlatformTime::Seconds() - StartTime);
 		}
 	}
 }

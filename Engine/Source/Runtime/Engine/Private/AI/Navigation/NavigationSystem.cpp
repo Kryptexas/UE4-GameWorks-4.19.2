@@ -294,9 +294,9 @@ void UNavigationSystem::PostInitProperties()
 		if (World)
 		{
 			if (World->PersistentLevel)
-			{
-				OnLevelAddedToWorld(World->PersistentLevel, World);
-			}
+		{
+			OnLevelAddedToWorld(World->PersistentLevel, World);
+		}
 
 			for (int32 Idx = 0; Idx < World->StreamingLevels.Num(); Idx++)
 			{
@@ -1929,15 +1929,17 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 		Actor->GetComponents(Components);
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
+			// always unregister, otherwise it will skip no longer relevant components
+
 			UPrimitiveComponent* PrimComp = Components[ComponentIndex];
-			if (PrimComp && PrimComp->CanEverAffectNavigation())
+			if (PrimComp)
 			{
 				UnregisterNavOctreeElement(PrimComp, UpdateFlags, PrimComp->Bounds.GetBox());
 			}
 			else
 			{
 				UNavRelevantComponent* NavRelevantComponent = Cast<UNavRelevantComponent>(Components[ComponentIndex]);
-				if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
+				if (NavRelevantComponent)
 				{
 					NavRelevantComponent->OnOwnerUnregistered();
 
@@ -1953,8 +1955,10 @@ void UNavigationSystem::UnregisterNavigationRelevantActor(AActor* Actor, int32 U
 		// notify relevant components about removing owner from octree
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
+			// always unregister, otherwise it will skip no longer relevant components
+
 			UNavRelevantComponent* NavRelevantComponent = Components[ComponentIndex];
-			if (NavRelevantComponent && NavRelevantComponent->IsNavigationRelevant())
+			if (NavRelevantComponent)
 			{
 				NavRelevantComponent->OnOwnerUnregistered();
 				UnregisterNavOctreeElement(NavRelevantComponent, UpdateFlags, NavRelevantComponent->Bounds);

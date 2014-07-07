@@ -662,6 +662,13 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 				return NetGUID;
 			}
 
+			if (Object->IsPendingKill())
+			{
+				UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::InternalLoadObject: Received reference to pending kill object from client: PathName: %s, ObjOuter: %s "), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
+				Object = NULL;
+				return NetGUID;
+			}
+
 			// Assign the guid to the object
 			NetGUID = GuidCache->GetOrAssignNetGUID( Object );
 
