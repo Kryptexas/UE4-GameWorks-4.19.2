@@ -24,10 +24,12 @@ void ALevelStreamingVolume::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		UpdateStreamingLevelsRefs();
 	}
+#endif//WITH_EDITOR
 }
 
 #if WITH_EDITOR
