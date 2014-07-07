@@ -5,8 +5,8 @@
 #include "K2Node_Variable.h"
 #include "K2Node_VariableGet.generated.h"
 
-UCLASS(MinimalAPI)
-class UK2Node_VariableGet : public UK2Node_Variable
+UCLASS()
+class BLUEPRINTGRAPH_API UK2Node_VariableGet : public UK2Node_Variable
 {
 	GENERATED_UCLASS_BODY()
 

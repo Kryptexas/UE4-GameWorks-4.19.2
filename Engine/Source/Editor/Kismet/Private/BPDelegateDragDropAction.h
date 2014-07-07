@@ -6,7 +6,7 @@
 #include "BPVariableDragDropAction.h"
 
 /** DragDropAction class for dropping a Variable onto a graph */
-class FKismetDelegateDragDropAction : public FKismetVariableDragDropAction
+class KISMET_API FKismetDelegateDragDropAction : public FKismetVariableDragDropAction
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FKismetDelegateDragDropAction, FKismetVariableDragDropAction)

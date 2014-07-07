@@ -12,4 +12,5 @@
 
 #include "Core.h"
 #include "Engine.h"
+#include "Editor/BlueprintGraph/Classes/K2Node_Variable.h"
 #include "BlueprintGraphDefinitions.h"

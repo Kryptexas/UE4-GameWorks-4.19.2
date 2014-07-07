@@ -7,6 +7,8 @@
 
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilityBlueprint.h"
+#include "GameplayAbilityGraph.h"
+#include "GameplayAbilityGraphSchema.h"
 
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
 
@@ -268,6 +270,21 @@ UObject* UGameplayAbilitiesBlueprintFactory::FactoryCreateNew(UClass* Class, UOb
 	else
 	{
 		UGameplayAbilityBlueprint* NewBP = CastChecked<UGameplayAbilityBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BlueprintType, UGameplayAbilityBlueprint::StaticClass(), UGameplayAbilityBlueprintGeneratedClass::StaticClass(), CallingContext));
+
+		if (NewBP)
+		{
+			UGameplayAbilityBlueprint* AbilityBP = UGameplayAbilityBlueprint::FindRootGameplayAbilityBlueprint(NewBP);
+			if (AbilityBP == NULL)
+			{
+				const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+				// Only allow a gameplay ability graph if there isn't one in a parent blueprint
+				UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(NewBP, TEXT("Gameplay Ability Graph"), UGameplayAbilityGraph::StaticClass(), UGameplayAbilityGraphSchema::StaticClass());
+				FBlueprintEditorUtils::AddDomainSpecificGraph(NewBP, NewGraph);
+				NewBP->LastEditedDocuments.Add(NewGraph);
+				NewGraph->bAllowDeletion = false;
+			}
+		}
 
 		return NewBP;
 	}

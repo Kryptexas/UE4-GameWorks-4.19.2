@@ -498,6 +498,38 @@ public:
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
 	// End EdGraphSchema Interface
 
+	/**
+	* Configure the supplied variable node based on the supplied info
+	*
+	* @param	InVarNode			The variable node to be configured
+	* @param	InVariableName		The name of the current variable
+	* @param	InVaraiableSource	The source of the variable
+	* @param	InTargetBlueprint	The blueprint this node will be used on
+	*/
+	static void ConfigureVarNode(class UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint);
+
+	/**
+	* Creates a new variable getter node and adds it to ParentGraph
+	*
+	* @param	GraphPosition		The location of the new node inside the graph
+	* @param	ParentGraph			The graph to spawn the new node in
+	* @param	VariableName		The name of the variable
+	* @param	Source				The source of the variable
+	* @return	A pointer to the newly spawned node
+	*/
+	virtual class UK2Node_VariableGet* SpawnVariableGetNode(const FVector2D GraphPosition, class UEdGraph* ParentGraph, FName VariableName, UStruct* Source) const;
+
+	/**
+	* Creates a new variable setter node and adds it to ParentGraph
+	*
+	* @param	GraphPosition		The location of the new node inside the graph
+	* @param	ParentGraph			The graph to spawn the new node in
+	* @param	VariableName		The name of the variable
+	* @param	Source				The source of the variable
+	* @return	A pointer to the newly spawned node
+	*/
+	virtual class UK2Node_VariableSet* SpawnVariableSetNode(const FVector2D GraphPosition, class UEdGraph* ParentGraph, FName VariableName, UStruct* Source) const;
+
 	// Returns whether the supplied Pin is a splittable struct
 	bool PinHasSplittableStructType(const UEdGraphPin* InGraphPin) const;
 

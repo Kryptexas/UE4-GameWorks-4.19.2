@@ -4,7 +4,7 @@
 #ifndef __SGraphNodeK2Var_h__
 #define __SGraphNodeK2Var_h__
 
-class SGraphNodeK2Var : public SGraphNodeK2Base
+class GRAPHEDITOR_API SGraphNodeK2Var : public SGraphNodeK2Base
 {
 public:
 	SLATE_BEGIN_ARGS(SGraphNodeK2Var){}

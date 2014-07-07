@@ -15,8 +15,8 @@ namespace ESelfContextInfo
 	};
 }
 
-UCLASS(MinimalAPI, abstract)
-class UK2Node_Variable : public UK2Node
+UCLASS(abstract)
+class BLUEPRINTGRAPH_API UK2Node_Variable : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
@@ -60,11 +60,11 @@ public:
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual FText GetToolTipHeading() const override;
-	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
+	virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const override;
 	// End K2Node interface
 
 	/** Set up this variable node from the supplied UProperty */
-	BLUEPRINTGRAPH_API void SetFromProperty(const UProperty* Property, bool bSelfContext);
+	void SetFromProperty(const UProperty* Property, bool bSelfContext);
 
 	/** Util to get variable name as a string */
 	FString GetVarNameString() const
@@ -107,13 +107,13 @@ public:
 	bool RecreatePinForVariable(EEdGraphPinDirection Direction, TArray<UEdGraphPin*>& OldPins);
 
 	/** Get the class to look for this variable in */
-	BLUEPRINTGRAPH_API UClass* GetVariableSourceClass() const;
+	UClass* GetVariableSourceClass() const;
 
 	/** Get the UProperty for this variable node */
-	BLUEPRINTGRAPH_API UProperty* GetPropertyForVariable() const;
+	UProperty* GetPropertyForVariable() const;
 
 	/** Accessor for the value output pin of the node */
-	BLUEPRINTGRAPH_API UEdGraphPin* GetValuePin() const;
+	UEdGraphPin* GetValuePin() const;
 
 	/** Validates there are no errors in the node */
 	void CheckForErrors(const class UEdGraphSchema_K2* Schema, class FCompilerResultsLog& MessageLog);
@@ -127,7 +127,7 @@ public:
 	 * @param  IconColorOut	A color out, further discerning the variable's type.
 	 * @return A icon representing the specified variable's type.
 	 */
-	BLUEPRINTGRAPH_API static FName GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut);
+	static FName GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut);
 
 	/**
 	 * Utility method intended to serve as a choke point for various slate 
@@ -137,6 +137,6 @@ public:
 	 * @param  IconColorOut	A color out, further discerning the variable's type.
 	 * @return A icon representing the specified variable's type.
 	 */
-	BLUEPRINTGRAPH_API static FName GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
+	static FName GetVarIconFromPinType(const FEdGraphPinType& InPinType, FLinearColor& IconColorOut);
 };
 

@@ -6,16 +6,16 @@
 #include "Editor/GraphEditor/Public/GraphEditorDragDropAction.h"
 
 /** DragDropAction class for dropping a Variable onto a graph */
-class FKismetVariableDragDropAction : public FGraphEditorDragDropAction
+class KISMET_API FKismetVariableDragDropAction : public FGraphEditorDragDropAction
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FKismetVariableDragDropAction, FGraphEditorDragDropAction)
 
 	// FGraphEditorDragDropAction interface
-	virtual void HoverTargetChanged();
+	virtual void HoverTargetChanged() override;
 	virtual FReply DroppedOnPin(FVector2D ScreenPosition, FVector2D GraphPosition) override;
 	virtual FReply DroppedOnNode(FVector2D ScreenPosition, FVector2D GraphPosition) override;
-	virtual FReply DroppedOnPanel( const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
+	virtual FReply DroppedOnPanel(const TSharedRef< class SWidget >& Panel, FVector2D ScreenPosition, FVector2D GraphPosition, UEdGraph& Graph) override;
 	virtual FReply DroppedOnAction(TSharedRef<struct FEdGraphSchemaAction> Action) override;
 	virtual FReply DroppedOnCategory(FString Category) override;
 	// End of FGraphEditorDragDropAction
@@ -57,9 +57,6 @@ public:
 		check(VariableProperty != NULL);
 		return VariableProperty;
 	}
-
-	/** Configure the supplied variable node based on this action's info */
-	static void ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint);
 
 	/** Set if operation is modified by alt */
 	void SetAltDrag(bool InIsAltDrag) {	bAltDrag = InIsAltDrag;}
