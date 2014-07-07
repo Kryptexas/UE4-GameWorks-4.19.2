@@ -1483,6 +1483,15 @@ void UActorChannel::Tick()
 		{
 			// This guid is now resolved, we can remove it from the pending guid list
 			It.RemoveCurrent();
+			continue;
+		}
+
+		if ( Connection->Driver->GuidCache->IsGUIDBroken( *It, true ) )
+		{
+			// This guid is broken, remove it, and warn
+			UE_LOG( LogNet, Warning, TEXT( "UActorChannel::Tick: Guid is broken. NetGUID: %s, ChIndex: %i, Actor: %s" ), *It->ToString(), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ) );
+			It.RemoveCurrent();
+			continue;
 		}
 	}
 
@@ -1495,7 +1504,7 @@ void UActorChannel::Tick()
 			delete QueuedBunches[i];
 		}
 
-		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 
 		QueuedBunches.Empty();
 	}

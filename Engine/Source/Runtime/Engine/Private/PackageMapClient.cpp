@@ -1215,7 +1215,7 @@ bool UPackageMapClient::ObjectLevelHasFinishedLoading(UObject* Object)
  *  This is ugly but probably better than adding a shadow variable that has to be
  *  set/cleared at the net driver level.
  */
-bool UPackageMapClient::IsNetGUIDAuthority()
+bool UPackageMapClient::IsNetGUIDAuthority() const
 {
 	return GuidCache->IsNetGUIDAuthority();
 }
@@ -1444,7 +1444,7 @@ bool FNetGUIDCache::IsDynamicObject( const UObject * Object )
 	return !Object->IsFullNameStableForNetworking();
 }
 
-bool FNetGUIDCache::IsNetGUIDAuthority()
+bool FNetGUIDCache::IsNetGUIDAuthority() const
 {
 	return Driver == NULL || Driver->IsServer();
 }
@@ -2024,7 +2024,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 	return Object;
 }
 
-bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) const
 {
 	if ( IsNetGUIDAuthority() )
 	{
@@ -2054,7 +2054,7 @@ bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID )
 	return CacheObject->bIgnoreWhenMissing || OutermostCacheObject->bIsPending;
 }
 
-bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -2069,7 +2069,7 @@ bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID )
 	return ObjectLookup.Contains( NetGUID );
 }
 
-bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -2081,7 +2081,7 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
 		return false;
 	}
 
-	FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObjectPtr == NULL )
 	{
@@ -2089,6 +2089,28 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
 	}
 
 	return CacheObjectPtr->Object != NULL;
+}
+
+bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const
+{
+	if ( !NetGUID.IsValid() )
+	{
+		return false;
+	}
+
+	if ( NetGUID.IsDefault() )
+	{
+		return false;
+	}
+
+	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+
+	if ( CacheObjectPtr == NULL )
+	{
+		return bMustBeRegistered;
+	}
+
+	return CacheObjectPtr->bIsBroken;
 }
 
 //------------------------------------------------------

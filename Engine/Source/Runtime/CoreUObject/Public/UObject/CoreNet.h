@@ -143,6 +143,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
 	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual bool		IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 

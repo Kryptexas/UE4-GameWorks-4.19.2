@@ -54,7 +54,7 @@ public:
 	void			CleanReferences();
 	bool			SupportsObject( const UObject * Object );
 	bool			IsDynamicObject( const UObject * Object );
-	bool			IsNetGUIDAuthority();
+	bool			IsNetGUIDAuthority() const;
 	FNetworkGUID	GetOrAssignNetGUID( const UObject * Object );
 	FNetworkGUID	AssignNewNetGUID_Server( const UObject * Object );
 	void			RegisterNetGUID_Internal( const FNetworkGUID & NetGUID, const FNetGuidCacheObject & CacheObject );
@@ -62,9 +62,10 @@ public:
 	void			RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const UObject * Object );
 	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad, const bool bIgnoreWhenMissing );
 	UObject *		GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped );
-	bool			ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID );
-	bool			IsGUIDRegistered( const FNetworkGUID & NetGUID );
-	bool			IsGUIDLoaded( const FNetworkGUID & NetGUID );
+	bool			ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) const;
+	bool			IsGUIDRegistered( const FNetworkGUID & NetGUID ) const;
+	bool			IsGUIDLoaded( const FNetworkGUID & NetGUID ) const;
+	bool			IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const;
 
 	void			AsyncPackageCallback( const FString & PackageName, UPackage * Package );
 	
@@ -138,6 +139,7 @@ class UPackageMapClient : public UPackageMap
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) override;
 	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) override;
+	virtual bool		IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const override { return GuidCache->IsGUIDBroken( NetGUID, bMustBeRegistered ); }
 
 	TArray< FNetworkGUID > & GetMustBeMappedGuidsInLastBunch() { return MustBeMappedGuidsInLastBunch; }
 
@@ -153,7 +155,7 @@ protected:
 
 	bool	ShouldSendFullPath(const UObject* Object, const FNetworkGUID &NetGUID);
 	
-	bool IsNetGUIDAuthority();
+	bool IsNetGUIDAuthority() const;
 
 	class UNetConnection* Connection;
 
