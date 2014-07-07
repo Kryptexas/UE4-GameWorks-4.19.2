@@ -302,13 +302,13 @@ void FComponentTransformDetails::OnCopy( ETransformField::Type TransformField )
 	switch (TransformField)
 	{
 	case ETransformField::Location:
-		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedLocation.X.GetValue(), CachedLocation.Y.GetValue(), CachedLocation.Z.GetValue());
+		CopyStr = FString::Printf(TEXT("(X=%f,Y=%f,Z=%f)"), CachedLocation.X.GetValue(), CachedLocation.Y.GetValue(), CachedLocation.Z.GetValue());
 		break;
 	case ETransformField::Rotation:
-		CopyStr = FString::Printf(TEXT("P=%f Y=%f R=%f"), CachedRotation.Y.GetValue(), CachedRotation.Z.GetValue(), CachedRotation.X.GetValue());
+		CopyStr = FString::Printf(TEXT("(Pitch=%f,Yaw=%f,Roll=%f)"), CachedRotation.Y.GetValue(), CachedRotation.Z.GetValue(), CachedRotation.X.GetValue());
 		break;
 	case ETransformField::Scale:
-		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedScale.X.GetValue(), CachedScale.Y.GetValue(), CachedScale.Z.GetValue());
+		CopyStr = FString::Printf(TEXT("(X=%f,Y=%f,Z=%f)"), CachedScale.X.GetValue(), CachedScale.Y.GetValue(), CachedScale.Z.GetValue());
 		break;
 	default:
 		break;
@@ -342,6 +342,9 @@ void FComponentTransformDetails::OnPaste( ETransformField::Type TransformField )
 	case ETransformField::Rotation:
 		{
 			FRotator Rotation;
+			PastedText.ReplaceInline(TEXT("Pitch="), TEXT("P="));
+			PastedText.ReplaceInline(TEXT("Yaw="), TEXT("Y="));
+			PastedText.ReplaceInline(TEXT("Roll="), TEXT("R="));
 			if (Rotation.InitFromString(PastedText))
 			{
 				FScopedTransaction Transaction(LOCTEXT("PasteRotation", "Paste Rotation"));
