@@ -86,12 +86,6 @@ private:
 	void PasteWidgets();
 
 private:
-	/** Updates the inspector to be viewing the currently selected set of widgets */
-	void RefreshDetails();
-
-	/** Updates the inspector to be viewing a set of widgets */
-	void RefreshDetails(TSet<FWidgetReference>& Widgets);
-
 	/** Called whenever the blueprint is structurally changed. */
 	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
 

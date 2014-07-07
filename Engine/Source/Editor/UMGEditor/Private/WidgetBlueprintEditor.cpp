@@ -116,8 +116,6 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 		}
 	}
 
-	//RefreshDetails(TempSelection);
-
 	OnSelectedWidgetsChanging.Broadcast();
 
 	// Finally change the selected widgets after we've updated the details panel 
@@ -159,42 +157,19 @@ const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 	return SelectedWidgets;
 }
 
-void FWidgetBlueprintEditor::RefreshDetails()
-{
-	RefreshDetails(SelectedWidgets);
-}
-
-void FWidgetBlueprintEditor::RefreshDetails(TSet<FWidgetReference>& Widgets)
-{
-	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle = "Widget";// Widget->GetDisplayString();
-
-	TArray<UObject*> InspectorObjects;
-	for ( FWidgetReference& WidgetRef : Widgets )
-	{
-		UWidget* PreviewWidget = WidgetRef.GetPreview();
-		if ( PreviewWidget )
-		{
-			InspectorObjects.Add(PreviewWidget);
-		}
-	}
-
-	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-	// Update the details panel
-//	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-//	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
-}
-
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
 	if ( InBlueprint )
 	{
+		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
+		OnSelectedWidgetsChanging.Broadcast();
+
 		CleanSelection();
 
 		UpdatePreview(InBlueprint, true);
 
-		RefreshDetails();
+		// Fire the selection updated event to ensure everyone is watching the same widgets.
+		OnSelectedWidgetsChanged.Broadcast();
 	}
 }
 
