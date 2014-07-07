@@ -4,6 +4,8 @@
 
 #include "EditorViewportClient.h"
 
+class SStaticMeshEditorViewport;
+
 /** Viewport Client for the preview viewport */
 class FStaticMeshEditorViewportClient : public FEditorViewportClient, public TSharedFromThis<FStaticMeshEditorViewportClient>
 {
