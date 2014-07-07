@@ -227,6 +227,10 @@ namespace APIDocTool
 					Result += "_";
 				}
 			}
+			if(Result.Equals("CON", StringComparison.CurrentCultureIgnoreCase))
+			{
+				Result += "_";
+			}
 			return Result;
 		}
 
