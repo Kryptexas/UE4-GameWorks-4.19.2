@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 
 #include "SequencerTabSummoner.h"
+#include "WidgetBlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 

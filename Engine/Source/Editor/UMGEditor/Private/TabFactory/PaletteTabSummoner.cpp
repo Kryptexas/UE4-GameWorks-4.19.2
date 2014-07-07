@@ -28,7 +28,7 @@ TSharedRef<SWidget> FPaletteTabSummoner::CreateTabBody(const FWorkflowTabSpawnIn
 
 	return SNew(STutorialWrapper, TEXT("Palette"))
 		[
-			SNew(SPaletteView, BlueprintEditorPtr, BlueprintEditorPtr->GetBlueprintObj()->SimpleConstructionScript)
+			SNew(SPaletteView, BlueprintEditorPtr)
 		];
 }
 

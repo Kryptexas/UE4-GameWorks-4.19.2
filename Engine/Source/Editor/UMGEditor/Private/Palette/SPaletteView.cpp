@@ -122,7 +122,7 @@ public:
 	TArray< TSharedPtr<FWidgetViewModel> > Children;
 };
 
-void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS)
+void SPaletteView::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor)
 {
 	BlueprintEditor = InBlueprintEditor;
 

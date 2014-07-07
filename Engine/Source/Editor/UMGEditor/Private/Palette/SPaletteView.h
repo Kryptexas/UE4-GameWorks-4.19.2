@@ -27,7 +27,7 @@ public:
 	SLATE_BEGIN_ARGS( SPaletteView ){}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor, USimpleConstructionScript* InSCS);
+	void Construct(const FArguments& InArgs, TSharedPtr<FBlueprintEditor> InBlueprintEditor);
 	virtual ~SPaletteView();
 
 private:
