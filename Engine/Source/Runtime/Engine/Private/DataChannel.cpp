@@ -1489,13 +1489,13 @@ void UActorChannel::Tick()
 	// If we don't have any pending guids to resolve, process any queued bunches now
 	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
 	{
-		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
-
 		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
 		{
 			ProcessBunch( *QueuedBunches[i] );
 			delete QueuedBunches[i];
 		}
+
+		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
 
 		QueuedBunches.Empty();
 	}
