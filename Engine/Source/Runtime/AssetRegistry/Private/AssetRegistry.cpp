@@ -1152,6 +1152,12 @@ void FAssetRegistry::AssetDeleted(UObject* DeletedAsset)
 			if ( UPackage::IsEmptyPackage( DeletedObjectPackage, DeletedAsset ) )
 			{
 				AddEmptyPackage( DeletedObjectPackage->GetFName() );
+
+				// If there is a package metadata object, clear the standalone flag so the package can be truly emptied upon GC
+				if ( DeletedObjectPackage->MetaData != nullptr )
+				{
+					DeletedObjectPackage->MetaData->ClearFlags( RF_Standalone );
+				}
 			}
 		}
 
