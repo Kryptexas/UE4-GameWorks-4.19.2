@@ -9,7 +9,6 @@
 #include "CookOnTheFlyServer.generated.h"
 
 
-
 UCLASS()
 class UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
@@ -31,7 +30,7 @@ private:
 	/** Holds the sandbox file wrapper to handle sandbox path conversion. */
 	TAutoPtr<class FSandboxPlatformFile> SandboxFile;
 	/** Cook on the fly server uses the NetworkFileServer */
-	class INetworkFileServer* NetworkFileServer;
+	TArray<class INetworkFileServer*> NetworkFileServers;
 
 	/** We hook this up to a delegate to avoid reloading textures and whatnot */
 	TSet<FString> PackagesToNotReload;

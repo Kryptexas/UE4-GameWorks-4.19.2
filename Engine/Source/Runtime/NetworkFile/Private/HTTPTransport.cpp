@@ -19,9 +19,27 @@ FHTTPTransport::FHTTPTransport()
 {
 }
 
-bool FHTTPTransport::Initialize(const TCHAR* HostIp)
+bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 {
-	FCString::Sprintf( Url, TEXT("http://%s:%d"), HostIp, (int)DEFAULT_FILE_SERVING_PORT); 
+	// parse out the format
+	FString HostIp = InHostIp;
+
+	// make sure that we have the correct protcol
+	ensure( HostIp.RemoveFromStart("http://") );
+
+	// check if we have specified the port also
+	if ( HostIp.Contains(":") == false)
+	{
+		// no port put the default one on
+		HostIp = FString::Printf(TEXT("%s:%d"), *HostIp, (int)(DEFAULT_HTTP_FILE_SERVING_PORT) );
+	}
+	else
+	{
+		// make sure that our string is correctly formated
+		FString::Printf(TEXT("http://%s"),*HostIp);
+	}
+
+	FCString::Sprintf(Url, *HostIp);
 
 #if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest(); 

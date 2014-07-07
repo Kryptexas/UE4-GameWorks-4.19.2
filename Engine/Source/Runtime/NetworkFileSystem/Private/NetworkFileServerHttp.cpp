@@ -47,6 +47,11 @@ FNetworkFileServerHttp::FNetworkFileServerHttp(
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
 	,Port(InPort)
 {
+	if (Port < 0 )
+	{
+		Port = DEFAULT_HTTP_FILE_SERVING_PORT;
+	}
+
 	UE_LOG(LogFileServer, Warning, TEXT("Unreal Network Http File Server starting up..."));
 
 	if (InFileRequestDelegate && InFileRequestDelegate->IsBound())
@@ -107,6 +112,8 @@ bool FNetworkFileServerHttp::Init()
 	
 	context = libwebsocket_create_context(&info);
 
+	Port = info.port;
+
 	if (context == NULL) {
 		UE_LOG(LogFileServer, Fatal, TEXT(" Could not create a libwebsocket content for port : %d"), Port);
 		return false;
@@ -114,6 +121,13 @@ bool FNetworkFileServerHttp::Init()
 
 	Ready.Set(true);
 	return true;
+}
+
+
+
+FString FNetworkFileServerHttp::GetSupportedProtocol() const
+{
+	return FString("http");
 }
 
 
@@ -151,7 +165,7 @@ void FNetworkFileServerHttp::Shutdown()
 
 uint32 FNetworkFileServerHttp::Run()
 {
-	UE_LOG(LogFileServer, Display, TEXT("Unreal Network File Http Server is ready for client connections "));
+	UE_LOG(LogFileServer, Display, TEXT("Unreal Network File Http Server is ready for client connections on port %d"), Port);
 
 	// start servicing. 
 

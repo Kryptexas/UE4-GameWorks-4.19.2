@@ -4,7 +4,8 @@
 
 enum
 { 
-	DEFAULT_FILE_SERVING_PORT=41899 // port that the network file server uses
+	DEFAULT_TCP_FILE_SERVING_PORT=41899, // default port to use when making file server tcp connections (used if no protocol is specified)
+	DEFAULT_HTTP_FILE_SERVING_PORT=41898 // port that the network file server uses
 };
 
 // transitional define. Set to zero to avoid using multichannel TCP for the file server and client.

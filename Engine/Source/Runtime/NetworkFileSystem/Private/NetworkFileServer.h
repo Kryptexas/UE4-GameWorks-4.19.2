@@ -48,14 +48,12 @@ public:
 	// INetworkFileServer interface
 
 	virtual bool IsItReadyToAcceptConnections(void) const; 
-	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const;
+	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const override;
+	virtual FString GetSupportedProtocol() const override;
 	virtual int32 NumConnections() const;
 	virtual void Shutdown();
 
 private:
-
-	// Holds the port to use.
-	int32 FileServerPort;
 
 	// Holds the server (listening) socket.
 	FSocket* Socket;

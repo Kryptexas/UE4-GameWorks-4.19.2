@@ -589,6 +589,7 @@ public partial class Project : CommandUtils
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
 				TempCmdLine += "-filehostip=";
+                bool FirstParam = true;
 				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () == UnrealTargetPlatform.Mac)
 				{
 					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces ();
@@ -601,13 +602,28 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses [Index].IsDnsEligible && IP.UnicastAddresses [Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-									TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty (Params.Port) == false)
-									{
-										TempCmdLine += ":";
-										TempCmdLine += Params.Port;
-									}
-									TempCmdLine += "+";
+                                    if (Params.Port != null)
+                                    {
+                                        foreach (var Port in Params.Port)
+                                        {
+                                            if (!FirstParam)
+                                            {
+                                                TempCmdLine += "+";
+                                                FirstParam = false;
+                                            }
+                                            string[] PortProtocol = Port.Split(new char[] { ':' });
+                                            if (PortProtocol.Length > 1)
+                                            {
+                                                TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+                                            }
+                                            else
+                                            {
+                                                TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
+                                                TempCmdLine += ":";
+                                                TempCmdLine += Params.Port;
+                                            }
+                                        }
+                                    }
 								}
 							}
 						}
@@ -625,24 +641,59 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-									TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
-									{
-										TempCmdLine += ":";
-										TempCmdLine += Params.Port;
-									}
-									TempCmdLine += "+";
+                                    if (Params.Port != null)
+                                    {
+                                        foreach (var Port in Params.Port)
+                                        {
+                                            if (!FirstParam)
+                                            {
+                                                TempCmdLine += "+";
+                                                FirstParam = false;
+                                            }
+                                            string[] PortProtocol = Port.Split(new char[] { ':' });
+                                            if (PortProtocol.Length > 1)
+                                            {
+                                                TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+                                            }
+                                            else
+                                            {
+                                                TempCmdLine += IP.UnicastAddresses[Index].Address.ToString();
+                                                TempCmdLine += ":";
+                                                TempCmdLine += Params.Port;
+                                            }
+                                        }
+                                    }
 								}
 							}
 						}
 					}
 				}
-				TempCmdLine += "127.0.0.1";
-				if (String.IsNullOrEmpty(Params.Port) == false)
-				{
-					TempCmdLine += ":";
-					TempCmdLine += Params.Port;
-				}
+				
+                const string LocalHost = "127.0.0.1";
+
+                if (Params.Port != null)
+                {
+                    foreach (var Port in Params.Port)
+                    {
+                        if (!FirstParam)
+                        {
+                            TempCmdLine += "+";
+                            FirstParam = false;
+                        }
+                        string[] PortProtocol = Port.Split(new char[] { ':' });
+                        if (PortProtocol.Length > 1)
+                        {
+                            TempCmdLine += String.Format("{0}://{1}:{2}", PortProtocol[0], LocalHost, PortProtocol[1]);
+                        }
+                        else
+                        {
+                            TempCmdLine += LocalHost;
+                            TempCmdLine += ":";
+                            TempCmdLine += Params.Port;
+                        }
+
+                    }
+                }
 				TempCmdLine += " ";
 
 				if (!Params.Stage)

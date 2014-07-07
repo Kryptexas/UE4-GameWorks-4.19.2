@@ -294,21 +294,14 @@ namespace UnrealBuildTool
 
                 if (InModule.ToString() == "NetworkFile")
                 {
-                    if (EnableHTTPForNFS)
-                    {   
-                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
-                        if (Target.Architecture == "-win32")
-                        {
-                            InModule.AddPrivateDependencyModule("HTML5Win32");
-                        }
-                        else
-                        {
-                            InModule.AddPrivateDependencyModule("HTML5JS");
-                        }
-                    }
-                    if (UseHTTPForNFS)
+                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                    if (Target.Architecture == "-win32")
                     {
-                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
+                        InModule.AddPrivateDependencyModule("HTML5Win32");
+                    }
+                    else
+                    {
+                        InModule.AddPrivateDependencyModule("HTML5JS");
                     }
                 }
 			}
@@ -319,35 +312,18 @@ namespace UnrealBuildTool
 					&& UEBuildConfiguration.bBuildDeveloperTools)
 					|| UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
-				}
-
-                if (EnableHTTPForNFS)
-                {
-                    if (InModule.ToString() == "NetworkFile") // client
-                    {
-                        InModule.AddPrivateDependencyModule("HTTP");
-                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
-                    }
-                    else if (InModule.ToString() == "NetworkFileSystem") // server 
-                    {
-                        InModule.AddPublicDependencyModule("WebSockets");
-                        InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
-                    }
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
                 }
-                if (UseHTTPForNFS)
+                if (InModule.ToString() == "NetworkFile") // client
                 {
-                    if (InModule.ToString() == "NetworkFile") // client
-                    {
-                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
-                    }
-                    else if (InModule.ToString() == "NetworkFileSystem") // server 
-                    {
-                        InModule.AddPublicDefinition("USE_HTTP_FOR_NFS=1");
-                    }
+                    InModule.AddPrivateDependencyModule("HTTP");
+                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
                 }
-
-
+                else if (InModule.ToString() == "NetworkFileSystem") // server 
+                {
+                    InModule.AddPublicDependencyModule("WebSockets");
+                    InModule.AddPublicDefinition("ENABLE_HTTP_FOR_NFS=1");
+                }
 			}
 		}
 

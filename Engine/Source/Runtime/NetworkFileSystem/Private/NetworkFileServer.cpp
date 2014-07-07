@@ -89,6 +89,10 @@ private:
 FNetworkFileServer::FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate,const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms )
 	:ActiveTargetPlatforms(InActiveTargetPlatforms)
 {
+	if(InPort <0)
+	{
+		InPort = DEFAULT_TCP_FILE_SERVING_PORT;
+	}
 
 	Running.Set(false);
 	StopRequested.Set(false);
@@ -231,6 +235,12 @@ void FNetworkFileServer::Exit( )
 
 /* INetworkFileServer overrides
  *****************************************************************************/
+
+FString FNetworkFileServer::GetSupportedProtocol() const
+{
+	return FString("tcp");
+}
+
 
 bool FNetworkFileServer::GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const
 {

@@ -24,21 +24,32 @@ FNetworkPlatformFile::FNetworkPlatformFile()
 	: bHasLoadedDDCDirectories(false)
 	, InnerPlatformFile(NULL)
 	, bIsUsable(false)
-	, FileServerPort(DEFAULT_FILE_SERVING_PORT)
 	, Transport(NULL)
 {
-#if !USE_HTTP_FOR_NFS
-	Transport = new FTCPTransport(); 
-#else
-	Transport = new FHTTPTransport(); 	
-#endif 
-
 }
 
 bool FNetworkPlatformFile::ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const
 {
 	FString HostIp;
 	return FParse::Value(CmdLine, TEXT("-FileHostIP="), HostIp);
+}
+
+ITransport *CreateTransportForHostAddress(const FString &HostIp )
+{
+	if ( HostIp.StartsWith(TEXT("tcp://")))
+	{
+		return new FTCPTransport();
+	}
+
+	if ( HostIp.StartsWith(TEXT("http://")))
+	{
+#if ENABLE_HTTP_FOR_NFS
+		return new FHTTPTransport();
+#endif
+	}
+
+	// no transport specified assuming tcp
+	return new FTCPTransport();
 }
 
 bool FNetworkPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
@@ -50,13 +61,24 @@ bool FNetworkPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 		TArray<FString> HostIpList;
 		if (HostIpString.ParseIntoArray(&HostIpList, TEXT("+"), true) > 0)
 		{
-			// Try to initialize with each of the IP addresses found in the command line until we 
-			// get a working one.
 			for (int32 HostIpIndex = 0; !bResult && HostIpIndex < HostIpList.Num(); ++HostIpIndex)
 			{
-				bResult = Transport->Initialize( *HostIpList[HostIpIndex] ) && InitializeInternal(Inner, *HostIpList[HostIpIndex]);		
-				if (bResult)
-					break;
+				// Try to initialize with each of the IP addresses found in the command line until we 
+				// get a working one.
+
+				// find the correct transport for this ip address 
+				Transport = CreateTransportForHostAddress( HostIpList[HostIpIndex] );
+
+				if ( Transport )
+				{
+					bResult = Transport->Initialize( *HostIpList[HostIpIndex] ) && InitializeInternal(Inner, *HostIpList[HostIpIndex]);		
+					if (bResult)
+						break;
+
+					// try a different host might be a different protocol
+					delete Transport;
+				}
+				Transport = NULL;
 			}
 		}
 	}

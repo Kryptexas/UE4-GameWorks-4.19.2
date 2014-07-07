@@ -21,7 +21,8 @@ public:
 	// INetworkFileServer Interface.
 
 	virtual bool IsItReadyToAcceptConnections(void) const; 
-	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const;
+	virtual FString GetSupportedProtocol() const override;
+	virtual bool GetAddressList(TArray<TSharedPtr<FInternetAddr> >& OutAddresses) const override;
 	virtual int32 NumConnections() const;
 	virtual void Shutdown();
 
@@ -64,7 +65,7 @@ private:
 	FRunnableThread* WorkerThread;
 
 	// port on which this http server runs. 
-	uint32 Port; 
+	int32 Port; 
 
 	// used to send simple message.
 	FThreadSafeCounter StopRequested; 

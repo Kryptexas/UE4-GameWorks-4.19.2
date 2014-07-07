@@ -545,7 +545,7 @@ public partial class Project : CommandUtils
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
 				FileHostParams += "-filehostip=";
-
+                bool FirstParam = true;
 				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
 				{
 					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
@@ -558,13 +558,30 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-									FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
+									if (Params.Port != null)
 									{
-										FileHostParams += ":";
-										FileHostParams += Params.Port;
+                                        foreach (var Port in Params.Port)
+                                        {
+                                            if (!FirstParam)
+                                            {
+                                                FileHostParams += "+";
+                                                FirstParam = false;
+                                            }
+                                            string[] PortProtocol = Port.Split(new char[] { ':' });
+                                            if (PortProtocol.Length > 1)
+                                            {
+                                                FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+                                            }
+                                            else
+                                            {
+                                                FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                                                FileHostParams += ":";
+                                                FileHostParams += Params.Port;
+                                            }
+                                            
+                                        }
 									}
-									FileHostParams += "+";
+									
 								}
 							}
 						}
@@ -582,24 +599,58 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-									FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
-									{
-										FileHostParams += ":";
-										FileHostParams += Params.Port;
-									}
-									FileHostParams += "+";
+                                    if (Params.Port != null)
+                                    {
+                                        foreach (var Port in Params.Port)
+                                        {
+                                            if (!FirstParam)
+                                            {
+                                                FileHostParams += "+";
+                                                FirstParam = false;
+                                            }
+                                            string[] PortProtocol = Port.Split(new char[] { ':' });
+                                            if (PortProtocol.Length > 1)
+                                            {
+                                                FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+                                            }
+                                            else
+                                            {
+                                                FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+                                                FileHostParams += ":";
+                                                FileHostParams += Params.Port;
+                                            }
+                                        }
+                                    }
+                                    
 								}
 							}
 						}
 					}
 				}
-				FileHostParams += "127.0.0.1";
-				if (String.IsNullOrEmpty(Params.Port) == false)
-				{
-					FileHostParams += ":";
-					FileHostParams += Params.Port;
-				}
+				const string LocalHost = "127.0.0.1";
+                if (Params.Port != null)
+                {
+                    foreach (var Port in Params.Port)
+                    {
+                        if (!FirstParam)
+                        {
+                            FileHostParams += "+";
+                            FirstParam = false;
+                        }
+                        string[] PortProtocol = Port.Split(new char[] { ':' });
+                        if (PortProtocol.Length > 1)
+                        {
+                            FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], LocalHost, PortProtocol[1]);
+                        }
+                        else
+                        {
+                            FileHostParams += LocalHost;
+                            FileHostParams += ":";
+                            FileHostParams += Params.Port;
+                        }
+
+                    }
+                }
 				FileHostParams += " ";
 			}
 

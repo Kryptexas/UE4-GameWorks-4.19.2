@@ -236,13 +236,39 @@ public:
 		CommandLine += TEXT(" -cookonthefly -skipserver");
 
 		// extract the port from the address list string
+		FString Ports;
 		FString Address, Rest;
-		if(ChainState.FileServerAddressListString.Split(TEXT(":"), &Address, &Rest))
+		Rest = ChainState.FileServerAddressListString;
+		TArray<FString> UniquePortArray;
+		while (Rest.Split(TEXT(":"), &Address, &Rest))
 		{
-			if (Rest.Split(TEXT("+"), &Address, &Rest))
+			FString Protocol = "tcp";
+			if ( Address == "http" || Address == "tcp")
 			{
-				CommandLine += FString::Printf(TEXT(" -port=%s"), *Address);
+				Protocol = Address;
+				Rest.Split( TEXT(":"), &Address, &Rest );
+				Address.RemoveFromStart("//");
 			}
+			FString Port;
+			if (Rest.Split(TEXT("+"), &Port, &Rest))
+			{
+				// one port can't support multiple protocols 
+				// only add each port once
+				if ( UniquePortArray.Contains(Port) == false )
+				{
+					UniquePortArray.Add( Port );
+					if ( Ports.Len() > 0)
+					{
+						Ports += "+";
+					}
+					Ports += FString::Printf(TEXT("%s:%s"), *Protocol, *Port);
+					
+				}
+			}
+		}
+		if ( Ports.Len() )
+		{
+			CommandLine += FString::Printf( TEXT(" -port=%s"), *Ports );
 		}
 		return CommandLine;
 	}

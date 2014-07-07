@@ -92,7 +92,7 @@ TStatId UCookOnTheFlyServer::GetStatId() const
 
 
 
-bool UCookOnTheFlyServer::StartNetworkFileServer( bool BindAnyPort )
+bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 {
 	//GetDerivedDataCacheRef().WaitForQuiescence(false);
 
@@ -100,10 +100,19 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( bool BindAnyPort )
 	FFileRequestDelegate FileRequestDelegate(FFileRequestDelegate::CreateUObject(this, &UCookOnTheFlyServer::HandleNetworkFileServerFileRequest));
 	FRecompileShadersDelegate RecompileShadersDelegate(FRecompileShadersDelegate::CreateUObject(this, &UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders));
 
-	NetworkFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer(BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate);
+	INetworkFileServer *TcpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
+		.CreateNetworkFileServer(BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Tcp);
+	if ( TcpFileServer )
+	{
+		NetworkFileServers.Add(TcpFileServer);
+	}
 
-
+	INetworkFileServer *HttpFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
+		.CreateNetworkFileServer(BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate, ENetworkFileServerProtocol::NFSP_Http);
+	if ( HttpFileServer )
+	{
+		NetworkFileServers.Add( HttpFileServer );
+	}
 	// loop while waiting for requests
 	GIsRequestingExit = false;
 	return true;
@@ -112,41 +121,45 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( bool BindAnyPort )
 
 bool UCookOnTheFlyServer::BroadcastFileserverPresence( const FGuid &InstanceId )
 {
-	TArray<TSharedPtr<FInternetAddr> > AddressList;
+	
+	TArray<FString> AddressStringList;
 
-	if ((NetworkFileServer == NULL || !NetworkFileServer->IsItReadyToAcceptConnections() || !NetworkFileServer->GetAddressList(AddressList)))
+	for ( int i = 0; i < NetworkFileServers.Num(); ++i )
 	{
-		UE_LOG(LogCookOnTheFly, Error, TEXT("Failed to create network file server"));
-
-		return false;
-	}
-
-	// broadcast our presence
-	if (InstanceId.IsValid())
-	{
-		TArray<FString> AddressStringList;
-
-		for (int32 AddressIndex = 0; AddressIndex < AddressList.Num(); ++AddressIndex)
+		TArray<TSharedPtr<FInternetAddr> > AddressList;
+		INetworkFileServer *NetworkFileServer = NetworkFileServers[i];
+		if ((NetworkFileServer == NULL || !NetworkFileServer->IsItReadyToAcceptConnections() || !NetworkFileServer->GetAddressList(AddressList)))
 		{
-			AddressStringList.Add(AddressList[AddressIndex]->ToString(true));
+			UE_LOG(LogCookOnTheFly, Error, TEXT("Failed to create network file server"));
+
+			continue;
 		}
 
-		FMessageEndpointPtr MessageEndpoint = FMessageEndpoint::Builder("UCookOnTheFlyServer").Build();
-
-		if (MessageEndpoint.IsValid())
+		// broadcast our presence
+		if (InstanceId.IsValid())
 		{
-			MessageEndpoint->Publish(new FFileServerReady(AddressStringList, InstanceId), EMessageScope::Network);
-		}		
+			for (int32 AddressIndex = 0; AddressIndex < AddressList.Num(); ++AddressIndex)
+			{
+				AddressStringList.Add(FString::Printf( TEXT("%s://%s"), *NetworkFileServer->GetSupportedProtocol(),  *AddressList[AddressIndex]->ToString(true)));
+			}
+
+		}
 	}
+
+
+
+	FMessageEndpointPtr MessageEndpoint = FMessageEndpoint::Builder("UCookOnTheFlyServer").Build();
+
+	if (MessageEndpoint.IsValid())
+	{
+		MessageEndpoint->Publish(new FFileServerReady(AddressStringList, InstanceId), EMessageScope::Network);
+	}		
+	
 	return true;
 }
 
 uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &CookedPackageCount )
 {
-
-	check( NetworkFileServer != NULL );
-
-
 	double StartTime = FPlatformTime::Seconds();
 
 	uint32 Result = 0;
@@ -373,8 +386,9 @@ void UCookOnTheFlyServer::MarkPackageDirtyForCooker( UPackage *Package )
 
 void UCookOnTheFlyServer::EndNetworkFileServer()
 {
-	if ( NetworkFileServer )
+	for ( int i = 0; i < NetworkFileServers.Num(); ++i )
 	{
+		INetworkFileServer *NetworkFileServer = NetworkFileServers[i];
 		// shutdown the server
 		NetworkFileServer->Shutdown();
 		delete NetworkFileServer;
@@ -712,11 +726,16 @@ void UCookOnTheFlyServer::Initialize( bool inCompressed, bool inIterativeCooking
 
 uint32 UCookOnTheFlyServer::NumConnections() const
 {
-	if ( NetworkFileServer )
+	int Result= 0;
+	for ( int i = 0; i < NetworkFileServers.Num(); ++i )
 	{
-		return NetworkFileServer->NumConnections();
+		INetworkFileServer *NetworkFileServer = NetworkFileServers[i];
+		if ( NetworkFileServer )
+		{
+			Result += NetworkFileServer->NumConnections();
+		}
 	}
-	return 0;
+	return Result;
 }
 
 FString UCookOnTheFlyServer::GetOutputDirectoryOverride( const FString &OutputDirectoryOverride ) const
