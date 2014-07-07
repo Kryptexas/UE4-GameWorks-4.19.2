@@ -67,6 +67,7 @@ public:
 
 	bool bIsUbergraph;
 	bool bCannotBeCalledFromOtherKismet;
+	bool bBlueprintInternal;
 	bool bIsInterfaceStub;
 	bool bIsConstFunction;
 	bool bCreateDebugData;
@@ -105,7 +106,7 @@ public:
 		bIsUbergraph = true;
 	}
 
-	void MarkAsInternalOrCppUseOnly()
+	void MarkAsUncallable()
 	{
 		bCannotBeCalledFromOtherKismet = true;
 	}
@@ -113,6 +114,16 @@ public:
 	bool CanBeCalledByKismet() const
 	{
 		return !bCannotBeCalledFromOtherKismet;
+	}
+
+	void MarkAsIntermediate()
+	{
+		bBlueprintInternal = true;
+	}
+
+	bool IsBlueprintInternal() const
+	{
+		return bBlueprintInternal;
 	}
 
 	void MarkAsInterfaceStub()

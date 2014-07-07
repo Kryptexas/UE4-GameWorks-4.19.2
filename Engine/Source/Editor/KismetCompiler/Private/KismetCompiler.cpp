@@ -1442,6 +1442,11 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 		Function->FunctionFlags |= FUNC_BlueprintCallable;
 	}
 
+	if (Context.IsBlueprintInternal())
+	{
+		Function->SetMetaData(*FBlueprintMetadata::MD_BlueprintInternalUseOnly.ToString(), TEXT("true"));
+	}
+
 	if (Context.IsInterfaceStub())
 	{
 		Function->FunctionFlags |= FUNC_BlueprintEvent;
@@ -2186,12 +2191,21 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	if (SrcEventNode->bOverrideFunction || SrcEventNode->bInternalEvent)
 	{
-		StubContext.MarkAsInternalOrCppUseOnly();
+		StubContext.MarkAsUncallable();
 	}
 
 	if ((SrcEventNode->FunctionFlags & FUNC_Net) > 0)
 	{
 		StubContext.MarkAsNetFunction(SrcEventNode->FunctionFlags);
+	}
+
+	UPackage* OuterPackage = SrcEventNode->GetOutermost();
+	check(OuterPackage != nullptr);
+	bool bIsIntermediate = OuterPackage->GetMetaData()->HasValue(SrcEventNode, FBlueprintMetadata::MD_BlueprintInternalUseOnly);
+
+	if (bIsIntermediate)
+	{
+		StubContext.MarkAsIntermediate();
 	}
 
 	// Create an entry point
@@ -2514,7 +2528,8 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		UbergraphContext = new (FunctionList) FKismetFunctionContext(MessageLog, Schema, NewClass, Blueprint);
 		UbergraphContext->SourceGraph = ConsolidatedEventGraph;
 		UbergraphContext->MarkAsEventGraph();
-		UbergraphContext->MarkAsInternalOrCppUseOnly();
+		UbergraphContext->MarkAsUncallable();
+		UbergraphContext->MarkAsIntermediate();
 		UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
 
 		Blueprint->EventGraphs.Empty();
