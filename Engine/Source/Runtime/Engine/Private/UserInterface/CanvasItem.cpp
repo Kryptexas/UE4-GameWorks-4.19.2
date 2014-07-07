@@ -673,7 +673,7 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 {	
 	SCOPE_CYCLE_COUNTER(STAT_Canvas_TextItemTime);
 
-	if(Font == NULL || Text.IsEmpty() )
+	if (InCanvas == NULL || Font == NULL || Text.IsEmpty())
 	{
 		return;
 	}
