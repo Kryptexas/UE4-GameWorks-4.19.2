@@ -4,6 +4,7 @@
 
 #include "SequencerTabSummoner.h"
 #include "WidgetBlueprintEditor.h"
+#include "ISequencer.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
