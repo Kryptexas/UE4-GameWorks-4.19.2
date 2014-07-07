@@ -627,24 +627,24 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 
 		// UObject is an exception, and is always a blueprint-able type
 		if(InClass == UObject::StaticClass())
-{
+		{
 			return true;
-}
+		}
 
 		struct FBlueprintIsNotBlueprintTypeHelper
-	{
+		{
 			bool bNotBlueprintType;
 
 			FBlueprintIsNotBlueprintTypeHelper() : bNotBlueprintType(false)
-{
+			{
 				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bBlueprintIsNotBlueprintType"), bNotBlueprintType, GEditorIni);
-}
+			}
 		};
 		static const FBlueprintIsNotBlueprintTypeHelper BPHelper;
 		if (BPHelper.bNotBlueprintType && InClass->IsChildOf(UBlueprint::StaticClass()))
-{
+		{
 			return false;
-	}
+		}
 	
 		const UClass* ParentClass = InClass;
 		while(ParentClass)
@@ -652,19 +652,19 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			// Climb up the class hierarchy and look for "BlueprintType" and "NotBlueprintType" to see if this class is allowed.
 			if(ParentClass->GetBoolMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType)
 				|| ParentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
-		{
+			{
 				return true;
-		}
-			else if(ParentClass->GetBoolMetaData(FBlueprintMetadata::MD_NotAllowableBlueprintVariableType))
-		{
-				return false;
-				}
-			ParentClass = ParentClass->GetSuperClass();
 			}
+			else if(ParentClass->GetBoolMetaData(FBlueprintMetadata::MD_NotAllowableBlueprintVariableType))
+			{
+				return false;
+			}
+			ParentClass = ParentClass->GetSuperClass();
 		}
+	}
 
 	return false;
-		}
+}
 
 bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UScriptStruct *InStruct)
 		{
