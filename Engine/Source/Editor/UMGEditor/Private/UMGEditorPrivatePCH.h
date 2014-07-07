@@ -24,6 +24,8 @@
 #include "WidgetBlueprintApplicationModes.h"
 #include "WidgetBlueprintApplicationMode.h"
 
+#include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
 
 #include "AssetTypeActions_Base.h"
 

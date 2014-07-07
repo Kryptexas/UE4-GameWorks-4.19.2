@@ -6,8 +6,6 @@
 #include "BlueprintEditor.h"
 #include "SKismetInspector.h"
 #include "BlueprintEditorUtils.h"
-#include "WidgetBlueprint.h"
-#include "WidgetBlueprintEditor.h"
 
 #include "WidgetTemplateDragDropOp.h"
 
