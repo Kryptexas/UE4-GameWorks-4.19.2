@@ -508,7 +508,7 @@ namespace PropertyEditorHelpers
 					if( ObjProp )
 					{
 						UClass* ObjPropClass = ObjProp->PropertyClass;
-						if ( ObjPropClass->IsChildOf( AActor::StaticClass() ) )
+						if ( !ObjPropClass->IsChildOf( AActor::StaticClass() ) )
 						{
 							OutRequiredButtons.Add( EPropertyButton::Use );
 						}

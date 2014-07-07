@@ -181,19 +181,19 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		[
 			PropertyCustomizationHelpers::MakeUseSelectedButton( FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) )
 		];
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding( 2.0f, 0.0f )
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnBrowse ),
+				TAttribute<FText>( this, &SPropertyEditorAsset::GetOnBrowseToolTip )
+				)
+		];
 	}
-
-	ButtonBox->AddSlot()
-	.AutoWidth()
-	.Padding( 2.0f, 0.0f )
-	.VAlign(VAlign_Center)
-	[
-		PropertyCustomizationHelpers::MakeBrowseButton(
-			FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnBrowse ),
-			TAttribute<FText>( this, &SPropertyEditorAsset::GetOnBrowseToolTip )
-			)
-	];
-
+	
 	if(bIsActor)
 	{
 		ButtonBox->AddSlot()
