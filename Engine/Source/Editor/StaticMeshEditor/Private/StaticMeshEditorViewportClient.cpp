@@ -15,6 +15,7 @@
 #include "MeshBuild.h"
 #include "PreviewScene.h"
 #include "ObjectTools.h"
+#include "SStaticMeshEditorViewport.h"
 
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
@@ -35,9 +36,10 @@ namespace {
 	static float AmbientCubemapIntensity = 0.4f;
 }
 
-FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent)
+FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, TWeakPtr<SStaticMeshEditorViewport> InStaticMeshEditorViewport, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent)
 	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 	, StaticMeshEditorPtr(InStaticMeshEditor)
+	, StaticMeshEditorViewportPtr(InStaticMeshEditorViewport)
 {
 	SimplygonLogo = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/SimplygonLogo.SimplygonLogo"), NULL, LOAD_None, NULL);
 
@@ -623,6 +625,12 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 	}
 #endif // #if TODO_STATICMESH
 
+	auto StaticMeshEditor = StaticMeshEditorPtr.Pin();
+	auto StaticMeshEditorViewport = StaticMeshEditorViewportPtr.Pin();
+	if (!StaticMeshEditor.IsValid() || !StaticMeshEditorViewport.IsValid())
+	{
+		return;
+	}
 
 	const int32 HalfX = Viewport->GetSizeXY().X/2;
 	const int32 HalfY = Viewport->GetSizeXY().Y/2;
@@ -647,7 +655,7 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 					FCanvasTextItem TextItem( FVector2D( XPos, YPos ), FText::FromString( Socket->SocketName.ToString() ), GEngine->GetSmallFont(), FLinearColor(FColor(255,196,196)) );
 					Canvas.DrawItem( TextItem );	
 
-					const UStaticMeshSocket* SelectedSocket = StaticMeshEditorPtr.Pin()->GetSelectedSocket();
+					const UStaticMeshSocket* SelectedSocket = StaticMeshEditor->GetSelectedSocket();
 					if (bManipulating && SelectedSocket == Socket)
 					{
 						//Figure out the text height
@@ -666,8 +674,9 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		}
 	}
 
-	int32 YPos = 6;
-	int32 CurrentLODLevel = StaticMeshEditorPtr.Pin()->GetCurrentLODLevel();
+	TArray<SStaticMeshEditorViewport::FOverlayTextItem> TextItems;
+
+	int32 CurrentLODLevel = StaticMeshEditor->GetCurrentLODLevel();
 	if (CurrentLODLevel == 0)
 	{
 		CurrentLODLevel = ComputeStaticMeshLOD(StaticMesh->RenderData, StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View);
@@ -677,55 +686,25 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 		CurrentLODLevel -= 1;
 	}
 
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "LOD_F", "LOD:  {0}"), FText::AsNumber(CurrentLODLevel) ).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "LOD_F", "LOD:  {0}"), FText::AsNumber(CurrentLODLevel))));
 
 	float CurrentScreenSize = ComputeBoundsScreenSize(StaticMeshComponent->Bounds.Origin, StaticMeshComponent->Bounds.SphereRadius, View);
 	FNumberFormattingOptions FormatOptions;
 	FormatOptions.MinimumFractionalDigits = 3;
 	FormatOptions.MaximumFractionalDigits = 6;
 	FormatOptions.MaximumIntegralDigits = 6;
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "ScreenSize_F", "Current Screen Size:  {0}"), FText::AsNumber(CurrentScreenSize, &FormatOptions)).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "ScreenSize_F", "Current Screen Size:  {0}"), FText::AsNumber(CurrentScreenSize, &FormatOptions))));
 
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "Triangles_F", "Triangles:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumTriangles(CurrentLODLevel)) ).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "Triangles_F", "Triangles:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumTriangles(CurrentLODLevel)))));
 
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "Vertices_F", "Vertices:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumVertices(CurrentLODLevel)) ).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "Vertices_F", "Vertices:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumVertices(CurrentLODLevel)))));
 
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "UVChannels_F", "UV Channels:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumUVChannels(CurrentLODLevel)) ).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "UVChannels_F", "UV Channels:  {0}"), FText::AsNumber(StaticMeshEditorPtr.Pin()->GetNumUVChannels(CurrentLODLevel)))));
 
 	const FDistanceFieldVolumeData& VolumeData = StaticMesh->RenderData->LODResources[0].DistanceFieldData;
 
@@ -739,55 +718,34 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 
 		if (VolumeData.bMeshWasClosed)
 		{
-			Canvas.DrawShadowedString(
-				6,
-				YPos,
-				*FText::Format( NSLOCTEXT("UnrealEd", "DistanceFieldRes_F", "Distance Field:  {0}x{1}x{2} = {3}mb"), FText::AsNumber(VolumeData.Size.X), FText::AsNumber(VolumeData.Size.Y), FText::AsNumber(VolumeData.Size.Z), FText::AsNumber(MemoryMb, &NumberOptions) ).ToString(),
-				GEngine->GetSmallFont(),
-				FLinearColor::White
-				);
+			TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+				FText::Format(NSLOCTEXT("UnrealEd", "DistanceFieldRes_F", "Distance Field:  {0}x{1}x{2} = {3}Mb"), FText::AsNumber(VolumeData.Size.X), FText::AsNumber(VolumeData.Size.Y), FText::AsNumber(VolumeData.Size.Z), FText::AsNumber(MemoryMb, &NumberOptions))));
 		}
 		else
 		{
-			Canvas.DrawShadowedString(
-				6,
-				YPos,
-				*NSLOCTEXT("UnrealEd", "DistanceFieldClosed_F", "Distance Field:  Mesh was not closed and material was one-sided").ToString(),
-				GEngine->GetSmallFont(),
-				FLinearColor::Red
-				);
+			TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+				NSLOCTEXT("UnrealEd", "DistanceFieldClosed_F", "Distance Field:  Mesh was not closed and material was one-sided")));
 		}
-		
-		YPos += 18;
 	}
 
-	Canvas.DrawShadowedString(
-		6,
-		YPos,
-		*FText::Format( NSLOCTEXT("UnrealEd", "ApproxSize_F", "Approx Size: {0}x{1}x{2}"),
-			FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.X * 2.0f)), // x2 as artists wanted length not radius
-			FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Y * 2.0f)),
-			FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Z * 2.0f)) ).ToString(),
-		GEngine->GetSmallFont(),
-		FLinearColor::White
-		);
-	YPos += 18;
+	TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+		FText::Format(NSLOCTEXT("UnrealEd", "ApproxSize_F", "Approx Size: {0}x{1}x{2}"),
+		FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.X * 2.0f)), // x2 as artists wanted length not radius
+		FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Y * 2.0f)),
+		FText::AsNumber(int32(StaticMesh->GetBounds().BoxExtent.Z * 2.0f)))));
 
 	// Show the number of collision primitives if we are drawing collision.
 	if(bShowCollision && StaticMesh->BodySetup)
 	{
-		Canvas.DrawShadowedString(
-			6,
-			YPos,
-			*FText::Format( NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()) ).ToString(),
-			GEngine->GetSmallFont(),
-			FLinearColor::White
-			);
-		YPos += 18;
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(
+			FText::Format(NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()))));
 	}
+
+	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
 
 	if(bDrawUVs)
 	{
+		const int32 YPos = 160;
 		DrawUVsForMesh(Viewport, &Canvas, YPos);
 	}
 }

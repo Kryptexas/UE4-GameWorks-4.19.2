@@ -44,6 +44,14 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SetPreviewMesh(StaticMesh);
 
+	ViewportOverlay->AddSlot()
+		.VAlign(VAlign_Top)
+		.HAlign(HAlign_Left)
+		.Padding(10)
+		[
+			SAssignNew(OverlayTextVerticalBox, SVerticalBox)
+		];
+
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
 
 }
@@ -54,6 +62,21 @@ SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 	if (EditorViewportClient.IsValid())
 	{
 		EditorViewportClient->Viewport = NULL;
+	}
+}
+
+void SStaticMeshEditorViewport::PopulateOverlayText(const TArray<FOverlayTextItem>& TextItems)
+{
+	OverlayTextVerticalBox->ClearChildren();
+
+	for (const auto& TextItem : TextItems)
+	{
+		OverlayTextVerticalBox->AddSlot()
+		[
+			SNew(STextBlock)
+			.Text(TextItem.Text)
+			.TextStyle(FEditorStyle::Get(), TextItem.Style)
+		];
 	}
 }
 
@@ -273,7 +296,7 @@ FStaticMeshEditorViewportClient& SStaticMeshEditorViewport::GetViewportClient()
 
 TSharedRef<FEditorViewportClient> SStaticMeshEditorViewport::MakeEditorViewportClient()
 {
-	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, PreviewScene, StaticMesh, NULL) );
+	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, SharedThis(this), PreviewScene, StaticMesh, NULL) );
 
 	EditorViewportClient->bSetListenerPosition = false;
 

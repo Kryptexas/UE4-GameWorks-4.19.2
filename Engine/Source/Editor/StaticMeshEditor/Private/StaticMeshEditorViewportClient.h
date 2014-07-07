@@ -8,7 +8,7 @@
 class FStaticMeshEditorViewportClient : public FEditorViewportClient, public TSharedFromThis<FStaticMeshEditorViewportClient>
 {
 public:
-	FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent);
+	FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, TWeakPtr<SStaticMeshEditorViewport> InStaticMeshEditorViewport, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent);
 
 	// FEditorViewportClient interface
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
@@ -153,4 +153,7 @@ private:
 
 	/** Cached tex coords for the currently selected edges. Used for rendering UV coordinates*/
 	TArray<FVector2D> SelectedEdgeTexCoords[MAX_STATIC_TEXCOORDS];
+
+	/** Pointer back to the StaticMeshEditor viewport control that owns us */
+	TWeakPtr<SStaticMeshEditorViewport> StaticMeshEditorViewportPtr;
 };

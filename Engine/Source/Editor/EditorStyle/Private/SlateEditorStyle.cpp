@@ -181,6 +181,15 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "TextBlock.HighlightShape",  new BOX_BRUSH( "Common/TextBlockHighlightShape", FMargin(3.f/8.f) ));
 		Set( "TextBlock.HighlighColor", FLinearColor( 0.02f, 0.3f, 0.0f ) );
 
+		Set("TextBlock.ShadowedText", FTextBlockStyle(NormalText)
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+
+		Set("TextBlock.ShadowedTextWarning", FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+
 		Set("NormalText", NormalText);
 	}
 
