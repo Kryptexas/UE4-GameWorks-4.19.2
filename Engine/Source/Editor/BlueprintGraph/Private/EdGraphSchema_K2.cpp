@@ -4543,6 +4543,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 {
 	UScriptStruct* StructType = CastChecked<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
 	UEdGraphNode* GraphNode = Pin->GetOwningNode();
+	UK2Node* K2Node = Cast<UK2Node>(GraphNode);
 	UEdGraph* Graph = CastChecked<UEdGraph>(GraphNode->GetOuter());
 
 	const FScopedTransaction Transaction( LOCTEXT("SplitStructPin", "Split Struct Pin") );
@@ -4562,11 +4563,24 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			const FEdGraphPinType& ProtoPinType = ProtoPin->PinType;
 			UEdGraphPin* SubPin = GraphNode->CreatePin(Pin->Direction, ProtoPinType.PinCategory, ProtoPinType.PinSubCategory, ProtoPinType.PinSubCategoryObject.Get(), false, false, PinName);
 
-			if (!Pin->PinFriendlyName.IsEmpty() || !ProtoPin->PinFriendlyName.IsEmpty())
+			if (K2Node != nullptr && K2Node->ShouldDrawCompact())
+			{
+				if (Pin->ParentPin)
+				{
+					SubPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%s %s")
+																, *Pin->PinFriendlyName.ToString()
+																, (ProtoPin->PinFriendlyName.IsEmpty() ? *ProtoPin->PinName : *ProtoPin->PinFriendlyName.ToString())));
+				}
+				else
+				{
+					SubPin->PinFriendlyName = FText::FromString(ProtoPin->PinFriendlyName.IsEmpty() ? ProtoPin->PinName : ProtoPin->PinFriendlyName.ToString());
+				}
+			}
+			else
 			{
 				SubPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%s %s")
-                                                                                            , (Pin->PinFriendlyName.IsEmpty() ? *Pin->PinName : *Pin->PinFriendlyName.ToString())
-                                                                                            , (ProtoPin->PinFriendlyName.IsEmpty() ? *ProtoPin->PinName : *ProtoPin->PinFriendlyName.ToString())));
+                                                            , (Pin->PinFriendlyName.IsEmpty() ? *Pin->PinName : *Pin->PinFriendlyName.ToString())
+                                                            , (ProtoPin->PinFriendlyName.IsEmpty() ? *ProtoPin->PinName : *ProtoPin->PinFriendlyName.ToString())));
 			}
 
 			SubPin->DefaultValue = ProtoPin->DefaultValue;
