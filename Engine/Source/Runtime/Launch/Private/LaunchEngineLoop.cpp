@@ -1196,21 +1196,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformSplash::Show();
 	}
 
-	if ( !IsRunningDedicatedServer() )
+	EKeys::Initialize();
+	FCoreStyle::ResetToDefault();
+
+	if (!IsRunningDedicatedServer() && (bHasEditorToken || bIsRegularClient))
 	{
-		if ( bHasEditorToken || bIsRegularClient )
-		{
-			// Init platform application
-			FSlateApplication::Create();
-		}
-		else
-		{
-			FCoreStyle::ResetToDefault();
-		}
-	}
-	else
-	{
-		FCoreStyle::ResetToDefault();
+		// Init platform application
+		FSlateApplication::Create();
 	}
 
 	{

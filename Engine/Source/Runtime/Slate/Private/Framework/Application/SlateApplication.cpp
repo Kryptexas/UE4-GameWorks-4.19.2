@@ -297,10 +297,6 @@ static bool LocateWidgetsUnderCursor_Helper( FArrangedWidget& Candidate, FVector
 
 void FSlateApplication::Create()
 {
-	EKeys::Initialize();
-
-	FCoreStyle::ResetToDefault();
-
 	CurrentApplication = MakeShareable( new FSlateApplication() );
 	CurrentBaseApplication = CurrentApplication;
 
