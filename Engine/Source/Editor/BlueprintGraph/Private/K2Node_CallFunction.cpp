@@ -540,23 +540,22 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	//@TODO: Can't strictly speaking always hide the self pin for pure and static functions; it'll still be needed if the function belongs to a class not in the blueprint's class hierarchy
 	SelfPin->bHidden = ((bIsPureFunc && !bIsConstFunc) || bIsProtectedFunc || bIsStaticFunc);
 
-	if (bIsStaticFunc)
+	UBlueprint* BP = GetBlueprint();
+	ensure(BP);
+	if (bIsStaticFunc && BP)
 	{
 		// Wire up the self to the CDO of the class if it's not us
-		if (UBlueprint* BP = GetBlueprint())
+		if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
 		{
-			if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
-			{
-				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
-			}
+			SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
 		}
 	}
 
 	// Build a list of the pins that should be hidden for this function (ones that are automagically filled in by the K2 compiler)
 	TSet<FString> PinsToHide;
-	FBlueprintEditorUtils::GetHiddenPinsForFunction(GetBlueprint(), Function, PinsToHide);
+	FBlueprintEditorUtils::GetHiddenPinsForFunction(BP, Function, PinsToHide);
 
-	const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && GetBlueprint()->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
+	const bool bShowHiddenSelfPins = ((PinsToHide.Num() > 0) && BP && BP->ParentClass && BP->ParentClass->HasMetaData(FBlueprintMetadata::MD_ShowHiddenSelfPins));
 
 	// Create the inputs and outputs
 	bool bAllPinsGood = true;

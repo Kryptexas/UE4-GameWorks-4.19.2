@@ -279,6 +279,13 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 {
 	Super::ValidatePin(Pin);
 
+	auto OwningNodeUnchecked = Pin ? Pin->GetOwningNodeUnchecked() : NULL;
+	if (!OwningNodeUnchecked)
+	{
+		//handled by Super::ValidatePin
+		return;
+	}
+
 	// Fixing up references to the skel or the generated classes to be PSC_Self pins
 	if ((Pin->PinType.PinCategory == Schema->PC_Object) || (Pin->PinType.PinCategory == Schema->PC_Interface))
 	{
@@ -295,7 +302,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
 	{
 		// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
-		MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, Pin->GetOwningNode()); 
+		MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, OwningNodeUnchecked);
 	}
 
 	if (Pin->LinkedTo.Num() > 1)
@@ -317,7 +324,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 			else if( Schema->IsSelfPin(*Pin) )
 			{
 				// Pure functions and latent functions cannot have more than one self connection
-				UK2Node_CallFunction* OwningNode = Cast<UK2Node_CallFunction>(Pin->GetOwningNode());
+				UK2Node_CallFunction* OwningNode = Cast<UK2Node_CallFunction>(OwningNodeUnchecked);
 				if( OwningNode )
 				{
 					if( OwningNode->IsNodePure() )
@@ -344,7 +351,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	//function return node exec pin should be connected to something
 	if(Pin->Direction == EGPD_Input && Pin->LinkedTo.Num() == 0 && Schema->IsExecPin(*Pin) )
 	{
-		if(UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(Pin->GetOwningNode()))
+		if (UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(OwningNodeUnchecked))
 		{
 			MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
 		}
