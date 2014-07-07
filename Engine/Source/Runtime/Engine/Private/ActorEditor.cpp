@@ -224,7 +224,7 @@ AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* A
 	if (RootComponent && RootComponent->bCreatedByConstructionScript)
 	{
 		bRootComponentDataCached = true;
-		RootComponentData.Transform = RootComponent->ComponentToWorld;
+		RootComponentData.Transform = RootComponent->GetRelativeTransform();
 
 		if (RootComponent->AttachParent)
 		{

@@ -2238,7 +2238,9 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// After this, we can assume all components are created and assembled.
 	if (!bDeferConstruction)
 	{
-		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation), NULL );
+		// Preserve original root component scale
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation, SpawnScale), NULL );
 		PostActorConstruction();
 	}
 }
