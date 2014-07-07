@@ -27,9 +27,9 @@ class ALevelStreamingVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Levels affected by this level streaming volume. */
+	/** Levels names affected by this level streaming volume. */
 	UPROPERTY(Category=LevelStreamingVolume, VisibleAnywhere, BlueprintReadOnly)
-	TArray<class ULevelStreaming*> StreamingLevels;
+	TArray<FName> StreamingLevelNames;
 
 	/** If true, this streaming volume should only be used for editor streaming level previs. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelStreamingVolume)
@@ -47,11 +47,17 @@ class ALevelStreamingVolume : public AVolume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=LevelStreamingVolume)
 	TEnumAsByte<enum EStreamingVolumeUsage> StreamingUsage;
 
-
+	// Begin UObject interface.
+	void PostLoad() override;
+	// End UObject interface.
+	
 #if WITH_EDITOR
 	// Begin AActor interface.
 	virtual void CheckForErrors() override;
 	// End AActor interface.
+	
+	/** Updates list of streaming levels that are referenced by this streaming volume */
+	void UpdateStreamingLevelsRefs();
 #endif
 };
 

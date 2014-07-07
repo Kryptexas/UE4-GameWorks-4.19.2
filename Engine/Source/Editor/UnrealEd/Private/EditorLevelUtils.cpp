@@ -328,7 +328,7 @@ namespace EditorLevelUtils
 				if ( LevelStreamingVolume )
 				{
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevels.Remove( InLevelStreaming );
+					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->PackageName );
 				}
 			}
 

@@ -824,7 +824,7 @@ void FLevelCollectionViewModel::ClearStreamingLevelVolumes()
 					if ( LevelStreamingVolume )
 					{
 						LevelStreamingVolume->Modify();
-						LevelStreamingVolume->StreamingLevels.Remove( StreamingLevel );
+						LevelStreamingVolume->StreamingLevelNames.Remove( StreamingLevel->PackageName );
 					}
 				}
 
@@ -1795,7 +1795,7 @@ void FLevelCollectionViewModel::AddStreamingLevelVolumes()
 
 					// Associate the level to the volume.
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevels.AddUnique( StreamingLevel );
+					LevelStreamingVolume->StreamingLevelNames.AddUnique( StreamingLevel->PackageName );
 
 					// Associate the volume to the level.
 					StreamingLevel->EditorStreamingVolumes.AddUnique( LevelStreamingVolume );

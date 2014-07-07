@@ -765,6 +765,12 @@ void ULevelStreaming::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 			if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, EditorStreamingVolumes))
 			{
 				RemoveStreamingVolumeDuplicates();
+
+				// Update levels references in each streaming volume 
+				for (TActorIterator<ALevelStreamingVolume> It(GetWorld()); It; ++It)
+				{
+					(*It)->UpdateStreamingLevelsRefs();
+				}
 			}
 
 			else if( PropertyName == TEXT( "DrawColor" ) )
