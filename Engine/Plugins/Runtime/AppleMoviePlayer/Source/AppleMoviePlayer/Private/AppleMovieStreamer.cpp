@@ -102,6 +102,8 @@ bool FAVPlayerMovieStreamer::Tick(float DeltaTime)
         }
     }
 
+	FScopeLock LockVideoTracksLoading(&VideoTracksLoadingLock);
+
     if( bVideoTracksLoaded )
     {
         // Remember that we were active. Used to edge detect active/not-active transitions
@@ -246,6 +248,7 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
             // !!! This block will execute asynchronously !!!
 
             // Once loaded, initialize our reader object to start pulling frames.
+			FScopeLock LockVideoTracksLoading(&VideoTracksLoadingLock);
             bVideoTracksLoaded = FinishLoadingTracks();
             if( bVideoTracksLoaded && AudioPlayer != nil )
             {

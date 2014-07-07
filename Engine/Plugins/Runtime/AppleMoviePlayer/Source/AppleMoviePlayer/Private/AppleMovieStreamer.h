@@ -63,6 +63,8 @@ private:
     bool                        bVideoTracksLoaded;
     bool                        bWasActive;
 
+	FCriticalSection			VideoTracksLoadingLock;
+
 private:
 
     /**
