@@ -268,6 +268,14 @@ namespace EpicGames.MCP.Automation
             /// Matches the corresponding BuildPatchTool command line argument.
             /// </summary>
             public MCPPlatform Platform;
+            /// <summary>
+            /// If specified, BuildPatchTool will run a compactify on this directory.
+            /// </summary>
+            public string CompactifyDirectory;
+            /// <summary>
+            /// Corresponds to the -preview parameter
+            /// </summary>
+            public bool bPreviewCompactify;
         }
 
         static BuildPatchToolBase Handler = null;
