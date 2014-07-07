@@ -252,7 +252,7 @@ void SBehaviorTreeBlackboardView::AddReferencedObjects( FReferenceCollector& Col
 	}
 }
 
-void SBehaviorTreeBlackboardView::Construct(const FArguments& InArgs, UBlackboardData* InBlackboardData)
+void SBehaviorTreeBlackboardView::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InToolkitCommands, UBlackboardData* InBlackboardData)
 {
 	OnEntrySelected = InArgs._OnEntrySelected;
 	OnGetDebugKeyValue = InArgs._OnGetDebugKeyValue;
@@ -265,29 +265,34 @@ void SBehaviorTreeBlackboardView::Construct(const FArguments& InArgs, UBlackboar
 
 	bShowCurrentState = OnGetDisplayCurrentState.IsBound() ? OnGetDisplayCurrentState.Execute() : true;
 
-	TSharedRef<FUICommandList> ToolkitCommands = MakeShareable(new FUICommandList);
+	if(!InToolkitCommands->IsCommandInfoMapped(FBTDebuggerCommands::Get().CurrentValues))
+	{
+		InToolkitCommands->MapAction(
+			FBTDebuggerCommands::Get().CurrentValues,
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::HandleUseCurrentValues),
+				FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerPaused),
+				FIsActionChecked::CreateSP(this, &SBehaviorTreeBlackboardView::IsUsingCurrentValues),
+				FIsActionButtonVisible::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerActive)
+				)
+			);
+	}
 
-	ToolkitCommands->MapAction(
-		FBTDebuggerCommands::Get().CurrentValues,
-		FUIAction(
-			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::HandleUseCurrentValues),
-			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerPaused),
-			FIsActionChecked::CreateSP(this, &SBehaviorTreeBlackboardView::IsUsingCurrentValues),
-			FIsActionButtonVisible::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerActive)
-			)
-		);
-	ToolkitCommands->MapAction(
-		FBTDebuggerCommands::Get().SavedValues, 
-		FUIAction(
-			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::HandleUseSavedValues),
-			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerPaused),
-			FIsActionChecked::CreateSP(this, &SBehaviorTreeBlackboardView::IsUsingSavedValues),
-			FIsActionButtonVisible::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerActive)
-			)
-		);
+	if(!InToolkitCommands->IsCommandInfoMapped(FBTDebuggerCommands::Get().SavedValues))
+	{
+		InToolkitCommands->MapAction(
+			FBTDebuggerCommands::Get().SavedValues, 
+			FUIAction(
+				FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::HandleUseSavedValues),
+				FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerPaused),
+				FIsActionChecked::CreateSP(this, &SBehaviorTreeBlackboardView::IsUsingSavedValues),
+				FIsActionButtonVisible::CreateSP(this, &SBehaviorTreeBlackboardView::IsDebuggerActive)
+				)
+			);
+	}
 
 	// build debug toolbar
-	FToolBarBuilder ToolbarBuilder(ToolkitCommands, FMultiBoxCustomization::None, GetToolbarExtender(ToolkitCommands));
+	FToolBarBuilder ToolbarBuilder(InToolkitCommands, FMultiBoxCustomization::None, GetToolbarExtender(InToolkitCommands));
 	
 	ToolbarBuilder.BeginSection(TEXT("Debugging"));
 	{
@@ -330,7 +335,7 @@ void SBehaviorTreeBlackboardView::Construct(const FArguments& InArgs, UBlackboar
 				.OnCollectAllActions(this, &SBehaviorTreeBlackboardView::HandleCollectAllActions)
 				.OnGetSectionTitle(this, &SBehaviorTreeBlackboardView::HandleGetSectionTitle)
 				.OnActionSelected(this, &SBehaviorTreeBlackboardView::HandleActionSelected)
-				.OnContextMenuOpening(this, &SBehaviorTreeBlackboardView::HandleContextMenuOpening, ToolkitCommands)
+				.OnContextMenuOpening(this, &SBehaviorTreeBlackboardView::HandleContextMenuOpening, InToolkitCommands)
 				.OnActionMatchesName(this, &SBehaviorTreeBlackboardView::HandleActionMatchesName)
 				.AlphaSortItems(false)
 			]
