@@ -4,13 +4,13 @@
 
 #include "PhysxUserData.h"
 #include "CollisionQueryParams.h"
-#include "ConstraintInstance.h"
 #include "BodyInstance.generated.h"
 
 
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
 struct FCollisionShape;
+class UPhysicsConstraintComponent;
 
 #if WITH_PHYSX
 namespace physx
@@ -197,7 +197,9 @@ public:
 	FVector GetLockedAxis() const;
 	void CreateDOFLock();
 
-	FConstraintInstance DOFConstraint;
+	/** Constraint used to allow for easy DOF setup per bodyinstance */
+	UPROPERTY()
+	UPhysicsConstraintComponent * DOFConstraint;
 
 protected:
 

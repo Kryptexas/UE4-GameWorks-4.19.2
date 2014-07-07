@@ -532,24 +532,29 @@ FVector FBodyInstance::GetLockedAxis() const
 
 void FBodyInstance::CreateDOFLock()
 {
-	//TODO: This hasn't been tested with calling the function multiple times. It's really only expected to be used during InitBody
-	if (IsDynamic() == false) return;
-#if WITH_PHYSX
+
+	DOFConstraint = NULL;
 	//setup constraint based on DOF
 	FVector LockedAxis = GetLockedAxis();
-	if (LockedAxis.IsNearlyZero() == false)
-	{
-		DOFConstraint.bSwingLimitSoft = false;
-		DOFConstraint.bTwistLimitSoft = false;
-		DOFConstraint.bLinearLimitSoft = false;
-		//set all rotation to free
-		DOFConstraint.AngularSwing1Motion = EAngularConstraintMotion::ACM_Locked;
-		DOFConstraint.AngularSwing2Motion = EAngularConstraintMotion::ACM_Locked;
-		DOFConstraint.AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
 
-		DOFConstraint.LinearXMotion = ELinearConstraintMotion::LCM_Locked;
-		DOFConstraint.LinearYMotion = ELinearConstraintMotion::LCM_Free;
-		DOFConstraint.LinearZMotion = ELinearConstraintMotion::LCM_Free;
+	if (IsDynamic() == false || LockedAxis.IsNearlyZero())
+	{
+		return;
+	}
+
+	DOFConstraint = ConstructObject<UPhysicsConstraintComponent>(UPhysicsConstraintComponent::StaticClass());
+	{
+		DOFConstraint->ConstraintInstance.bSwingLimitSoft = false;
+		DOFConstraint->ConstraintInstance.bTwistLimitSoft = false;
+		DOFConstraint->ConstraintInstance.bLinearLimitSoft = false;
+		//set all rotation to free
+		DOFConstraint->ConstraintInstance.AngularSwing1Motion = EAngularConstraintMotion::ACM_Locked;
+		DOFConstraint->ConstraintInstance.AngularSwing2Motion = EAngularConstraintMotion::ACM_Locked;
+		DOFConstraint->ConstraintInstance.AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
+
+		DOFConstraint->ConstraintInstance.LinearXMotion = ELinearConstraintMotion::LCM_Locked;
+		DOFConstraint->ConstraintInstance.LinearYMotion = ELinearConstraintMotion::LCM_Free;
+		DOFConstraint->ConstraintInstance.LinearZMotion = ELinearConstraintMotion::LCM_Free;
 
 		FVector Normal = LockedAxis.SafeNormal();
 		FVector Sec;
@@ -559,17 +564,16 @@ void FBodyInstance::CreateDOFLock()
 
 		FTransform TM = GetUnrealWorldTransform();
 
-		DOFConstraint.PriAxis1 = TM.InverseTransformVectorNoScale(Normal);
-		DOFConstraint.SecAxis1 = TM.InverseTransformVectorNoScale(Sec);
+		DOFConstraint->ConstraintInstance.PriAxis1 = TM.InverseTransformVectorNoScale(Normal);
+		DOFConstraint->ConstraintInstance.SecAxis1 = TM.InverseTransformVectorNoScale(Sec);
 
-		DOFConstraint.PriAxis2 = Normal;
-		DOFConstraint.SecAxis2 = Sec;
-		DOFConstraint.Pos2 = TM.GetLocation();
+		DOFConstraint->ConstraintInstance.PriAxis2 = Normal;
+		DOFConstraint->ConstraintInstance.SecAxis2 = Sec;
+		DOFConstraint->ConstraintInstance.Pos2 = TM.GetLocation();
 
 		// Create constraint instance based on DOF
-		DOFConstraint.InitConstraint(OwnerComponent.Get(), this, nullptr, 1.f);
+		DOFConstraint->ConstraintInstance.InitConstraint(OwnerComponent.Get(), this, nullptr, 1.f);
 	}
-#endif
 }
 
 ECollisionEnabled::Type FBodyInstance::GetCollisionEnabled() const
@@ -1402,6 +1406,9 @@ void FBodyInstance::TermBody()
 
 	BodySetup = NULL;
 	OwnerComponent = NULL;
+	DOFConstraint = NULL;
+
+	
 }
 
 #if WITH_BODY_WELDING

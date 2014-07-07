@@ -829,6 +829,10 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
 				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
 			}
+			else
+			{
+				BodyInst->LockedAxisMode = ELockedAxis::None;
+			}
 
 #if WITH_PHYSX
 			// Create physics body instance.
