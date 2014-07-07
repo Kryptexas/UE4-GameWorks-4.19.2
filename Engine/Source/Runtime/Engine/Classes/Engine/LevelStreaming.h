@@ -130,7 +130,7 @@ class ULevelStreaming : public UObject
 	FColor DrawColor;
 
 	/** The level streaming volumes bound to this level.																		*/
-	UPROPERTY(EditAnywhere, Category=LevelStreaming, meta=(DisplayName = "Streaming Volumes"))
+	UPROPERTY(EditAnywhere, Category=LevelStreaming, meta=(DisplayName = "Streaming Volumes", NoElementDuplicate))
 	TArray<class ALevelStreamingVolume*> EditorStreamingVolumes;
 
 	/** Cooldown time in seconds between volume-based unload requests.  Used in preventing spurious unload requests.			*/

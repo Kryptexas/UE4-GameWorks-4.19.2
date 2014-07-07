@@ -798,12 +798,14 @@ void ULevelStreaming::RemoveStreamingVolumeDuplicates()
 	for (int32 VolumeIdx = EditorStreamingVolumes.Num()-1; VolumeIdx >= 0; VolumeIdx--)
 	{
 		ALevelStreamingVolume* Volume = EditorStreamingVolumes[VolumeIdx];
-		
-		int32 DuplicateIdx = EditorStreamingVolumes.Find(Volume);
-		check(DuplicateIdx != INDEX_NONE);
-		if (DuplicateIdx != VolumeIdx)
+		if (Volume) // Allow duplicate null entries, for array editor convenience
 		{
-			EditorStreamingVolumes.RemoveAt(VolumeIdx);
+			int32 DuplicateIdx = EditorStreamingVolumes.Find(Volume);
+			check(DuplicateIdx != INDEX_NONE);
+			if (DuplicateIdx != VolumeIdx)
+			{
+				EditorStreamingVolumes.RemoveAt(VolumeIdx);
+			}
 		}
 	}
 }
