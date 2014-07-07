@@ -234,7 +234,7 @@ void FBehaviorTreeEditor::InitBehaviorTreeEditor( const EToolkitMode::Type Mode,
 		AddApplicationMode(BehaviorTreeMode, MakeShareable(new FBehaviorTreeEditorApplicationMode(SharedThis(this))));
 		AddApplicationMode(BlackboardMode, MakeShareable(new FBlackboardEditorApplicationMode(SharedThis(this))));
 
-		BlackboardView = SNew(SBehaviorTreeBlackboardView, GetBlackboardData())
+		BlackboardView = SNew(SBehaviorTreeBlackboardView, GetToolkitCommands(), GetBlackboardData())
 			.OnGetDebugKeyValue(this, &FBehaviorTreeEditor::HandleGetDebugKeyValue)
 			.OnIsDebuggerReady(this, &FBehaviorTreeEditor::IsDebuggerReady)
 			.OnIsDebuggerPaused(this, &FBehaviorTreeEditor::IsDebuggerPaused)

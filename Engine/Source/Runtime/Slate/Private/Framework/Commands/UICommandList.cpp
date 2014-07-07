@@ -73,6 +73,12 @@ void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICom
 	UICommandBindingMap.Add( InUICommandInfo, InUIAction );
 }
 
+bool FUICommandList::IsCommandInfoMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const
+{
+	check( InUICommandInfo.IsValid() );
+
+	return UICommandBindingMap.Contains( InUICommandInfo );
+}
 
 void FUICommandList::Append( const TSharedRef<FUICommandList>& InCommandsToAppend )
 {

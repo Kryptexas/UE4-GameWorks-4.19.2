@@ -47,7 +47,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, UBlackboardData* InBlackboardData);
+	void Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InToolkitCommands, UBlackboardData* InBlackboardData);
 
 	/** FGCObject implementation */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;

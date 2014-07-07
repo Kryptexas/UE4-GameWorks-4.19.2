@@ -15,7 +15,7 @@
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 
-void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> ToolkitCommands, UBlackboardData* InBlackboardData)
+void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InToolkitCommands, UBlackboardData* InBlackboardData)
 {
 	OnEntrySelected = InArgs._OnEntrySelected;
 	OnGetDebugKeyValue = InArgs._OnGetDebugKeyValue;
@@ -24,17 +24,23 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 	OnGetDebugTimeStamp = InArgs._OnGetDebugTimeStamp;
 	OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
 
-	ToolkitCommands->MapAction(
-		FBTBlackboardCommands::Get().DeleteEntry,
-		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
-		);
+	if(!InToolkitCommands->IsCommandInfoMapped(FBTBlackboardCommands::Get().DeleteEntry))
+	{
+		InToolkitCommands->MapAction(
+			FBTBlackboardCommands::Get().DeleteEntry,
+			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
+			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+			);
+	}
 
-	ToolkitCommands->MapAction(
-		FGenericCommands::Get().Rename,
-		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
-		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
-		);
+	if(!InToolkitCommands->IsCommandInfoMapped(FGenericCommands::Get().Rename))
+	{
+		InToolkitCommands->MapAction(
+			FGenericCommands::Get().Rename,
+			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
+			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+			);
+	}
 
 	SBehaviorTreeBlackboardView::Construct(
 		SBehaviorTreeBlackboardView::FArguments()
@@ -45,6 +51,7 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 		.OnIsDebuggerPaused(InArgs._OnIsDebuggerPaused)
 		.OnGetDebugTimeStamp(InArgs._OnGetDebugTimeStamp)
 		.IsReadOnly(false),
+		InToolkitCommands,
 		InBlackboardData
 	);
 }
