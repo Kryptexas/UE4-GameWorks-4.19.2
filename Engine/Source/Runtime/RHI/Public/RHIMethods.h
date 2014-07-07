@@ -695,8 +695,9 @@ DEFINE_RHIMETHOD_5(
 	return,return false
 	);
 
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_GLOBAL_1(
 	FTextureReferenceRHIRef,CreateTextureReference,
+	FLastRenderTimeContainer*,LastRenderTime,
 	return, return new FRHITextureReferenceNullImpl();
 	);
 
@@ -1046,24 +1047,24 @@ DEFINE_RHIMETHOD_GLOBAL_5(
 	);
 
 
-/**
-* Creates a Cube Array RHI texture resource
-* @param Size - width/height of the texture to create
-* @param ArraySize - number of array elements of the texture to create
-* @param Format - EPixelFormat texture format
-* @param NumMips - number of mips to generate or 0 for full mip pyramid
-* @param Flags - ETextureCreateFlags creation flags
-*/
+	/**
+	* Creates a Cube Array RHI texture resource
+	* @param Size - width/height of the texture to create
+	* @param ArraySize - number of array elements of the texture to create
+	* @param Format - EPixelFormat texture format
+	* @param NumMips - number of mips to generate or 0 for full mip pyramid
+	* @param Flags - ETextureCreateFlags creation flags
+	*/
 DEFINE_RHIMETHOD_GLOBAL_6(
 	FTextureCubeRHIRef,CreateTextureCubeArray,
-	uint32,Size,
-	uint32,ArraySize,
-	uint8,Format,
-	uint32,NumMips,
-	uint32,Flags,
+		uint32,Size,
+		uint32,ArraySize,
+		uint8,Format,
+		uint32,NumMips,
+		uint32,Flags,
 	FRHIResourceCreateInfo&,CreateInfo,
-	return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
-);
+		return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
+	);
 
 
 /**

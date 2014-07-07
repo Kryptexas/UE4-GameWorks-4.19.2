@@ -194,17 +194,30 @@ private:
 // Textures
 //
 
+class RHI_API FLastRenderTimeContainer
+{
+public:
+	FLastRenderTimeContainer() : LastRenderTime(-FLT_MAX) {}
+
+	double GetLastRenderTime() const { return LastRenderTime; }
+	void SetLastRenderTime(double InLastRenderTime) { LastRenderTime = InLastRenderTime; }
+
+private:
+	/** The last time the resource was rendered. */
+	double LastRenderTime;
+};
+
 class RHI_API FRHITexture : public FRHIResource
 {
 public:
 	
 	/** Initialization constructor. */
-	FRHITexture(uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
+	FRHITexture(uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags,FLastRenderTimeContainer* InLastRenderTime)
 	: NumMips(InNumMips)
 	, NumSamples(InNumSamples)
 	, Format(InFormat)
 	, Flags(InFlags)
-	, LastCachedTime(-FLT_MAX)
+	, LastRenderTime(InLastRenderTime ? *InLastRenderTime : DefaultLastRenderTime)
 	{}
 
 	// Dynamic cast methods.
@@ -255,13 +268,20 @@ public:
 
 	FRHIResourceInfo ResourceInfo;
 
-	/** @return the last time this texture was cached in a resource table. */
-	inline float GetLastCachedTime() const { return LastCachedTime; }
-
 	/** sets the last time this texture was cached in a resource table. */
-	void SetLastCachedTime(float InLastCachedTime)
+	void SetLastRenderTime(float InLastRenderTime)
 	{
-		LastCachedTime = InLastCachedTime;
+		LastRenderTime.SetLastRenderTime(InLastRenderTime);
+	}
+
+	/** Returns the last render time container, or NULL if none were specified at creation. */
+	FLastRenderTimeContainer* GetLastRenderTimeContainer()
+	{
+		if (&LastRenderTime == &DefaultLastRenderTime)
+		{
+			return NULL;
+		}
+		return &LastRenderTime;
 	}
 
 private:
@@ -269,7 +289,8 @@ private:
 	uint32 NumSamples;
 	EPixelFormat Format;
 	uint32 Flags;
-	float LastCachedTime;
+	FLastRenderTimeContainer& LastRenderTime;
+	FLastRenderTimeContainer DefaultLastRenderTime;
 };
 
 class RHI_API FRHITexture2D : public FRHITexture
@@ -278,7 +299,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,InNumSamples,InFormat,InFlags)
+	: FRHITexture(InNumMips,InNumSamples,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	{}
@@ -304,7 +325,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture2DArray(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -335,7 +356,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITexture3D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, SizeX(InSizeX)
 	, SizeY(InSizeY)
 	, SizeZ(InSizeZ)
@@ -366,7 +387,7 @@ public:
 	
 	/** Initialization constructor. */
 	FRHITextureCube(uint32 InSize,uint32 InNumMips,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture(InNumMips,1,InFormat,InFlags)
+	: FRHITexture(InNumMips,1,InFormat,InFlags,NULL)
 	, Size(InSize)
 	{}
 	
@@ -384,8 +405,8 @@ private:
 class RHI_API FRHITextureReference : public FRHITexture
 {
 public:
-	explicit FRHITextureReference()
-		: FRHITexture(0,0,PF_Unknown,0)
+	explicit FRHITextureReference(FLastRenderTimeContainer* InLastRenderTime)
+		: FRHITexture(0,0,PF_Unknown,0,InLastRenderTime)
 	{}
 
 	virtual FRHITextureReference* GetTextureReference() override { return this; }
@@ -405,7 +426,7 @@ class RHI_API FRHITextureReferenceNullImpl : public FRHITextureReference
 {
 public:
 	FRHITextureReferenceNullImpl()
-		: FRHITextureReference()
+		: FRHITextureReference(NULL)
 	{}
 
 	void SetReferencedTexture(FRHITexture* InTexture)

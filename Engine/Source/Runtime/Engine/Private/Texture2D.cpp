@@ -318,11 +318,9 @@ float UTexture2D::GetLastRenderTimeForStreaming()
 	float LastRenderTime = -FLT_MAX;
 	if (Resource)
 	{
-		LastRenderTime = Resource->LastRenderTime;
-		if (TextureRefRHI)
-		{
-			LastRenderTime = FMath::Max(LastRenderTime,TextureRefRHI->GetLastCachedTime());
-		}
+		// The last render time is the last time the resource was directly bound or the last
+		// time the texture reference was cached in a resource table, whichever was later.
+		LastRenderTime = FMath::Max<double>(Resource->LastRenderTime,TextureReference.GetLastRenderTime());
 	}
 	return LastRenderTime;
 }
@@ -333,10 +331,7 @@ void UTexture2D::InvalidateLastRenderTimeForStreaming()
 	{
 		Resource->LastRenderTime = -FLT_MAX;
 	}
-	if (TextureRefRHI)
-	{
-		TextureRefRHI->SetLastCachedTime(-FLT_MAX);
-	}
+	TextureReference.InvalidateLastRenderTime();
 }
 
 #if WITH_EDITOR
@@ -1338,7 +1333,7 @@ void FTexture2DResource::InitRHI()
 
 				TextureRHI = Texture2DRHI;
 				RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
-				RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+				RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 				return;
 			}
@@ -1348,7 +1343,7 @@ void FTexture2DResource::InitRHI()
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo);
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
-			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 			check(Owner->RequestedMips == Texture2DRHI->GetNumMips());
 			check(Owner->PlatformData->Mips.Num() == CurrentFirstMip + Owner->RequestedMips);
@@ -1398,7 +1393,7 @@ void FTexture2DResource::InitRHI()
 			Texture2DRHI	= RHICreateTexture2D( SizeX, SizeY, EffectiveFormat, Owner->RequestedMips, 1, TexCreateFlags, CreateInfo );
 			TextureRHI		= Texture2DRHI;
 			RHIBindDebugLabelName(TextureRHI, *Owner->GetName());
-			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 			for( int32 MipIndex=CurrentFirstMip; MipIndex<OwnerMips.Num(); MipIndex++ )
 			{
 				if( MipData[MipIndex] != NULL )
@@ -1439,7 +1434,7 @@ void FTexture2DResource::ReleaseRHI()
 	check( Owner->PendingMipChangeRequestStatus.GetValue() == TexState_ReadyFor_Requests );	
 	FTextureResource::ReleaseRHI();
 	Texture2DRHI.SafeRelease();
-	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 }
 
 void FTexture2DResource::CreateSamplerStates(float MipMapBias)
@@ -1709,7 +1704,7 @@ void FTexture2DResource::UpdateMipCount()
 			}
 
 			TextureRHI = Texture2DRHI;
-			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 		}
 	}
 
@@ -2215,7 +2210,7 @@ void FTexture2DResource::FinalizeMipCount()
 			TextureRHI		= IntermediateTextureRHI;
 			Texture2DRHI	= IntermediateTextureRHI;
 			CurrentFirstMip = PendingFirstMip;
-			RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+			RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 			// Update mip-level fading.
 			EMipFadeSettings MipFadeSetting = (Owner->LODGroup == TEXTUREGROUP_Lightmap || Owner->LODGroup == TEXTUREGROUP_Shadowmap) ? MipFade_Slow : MipFade_Normal;
@@ -2315,7 +2310,7 @@ bool FTexture2DResource::TryReallocate( int32 OldMipCount, int32 NewMipCount )
 
 	Texture2DRHI = NewTextureRHI;
 	TextureRHI = NewTextureRHI;
-	RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 	PendingFirstMip = CurrentFirstMip = MipIndex;
 

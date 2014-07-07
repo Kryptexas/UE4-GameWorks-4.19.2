@@ -294,7 +294,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			Uniform2DTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
 			if(Value && Value->Resource)
 			{
-				*ResourceTable++ = Value->TextureRefRHI;
+				*ResourceTable++ = Value->TextureReference.TextureReferenceRHI;
 				*ResourceTable++ = Value->Resource->SamplerStateRHI;
 			}
 			else
@@ -311,7 +311,7 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 			UniformCubeTextureExpressions[ExpressionIndex]->GetTextureValue(MaterialRenderContext,MaterialRenderContext.Material,Value);
 			if(Value && Value->Resource)
 			{
-				*ResourceTable++ = Value->TextureRefRHI;
+				*ResourceTable++ = Value->TextureReference.TextureReferenceRHI;
 				*ResourceTable++ = Value->Resource->SamplerStateRHI;
 			}
 			else

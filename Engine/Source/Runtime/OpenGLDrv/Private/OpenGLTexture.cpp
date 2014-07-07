@@ -1907,9 +1907,9 @@ void FOpenGLDynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRe
 {
 }
 
-FTextureReferenceRHIRef FOpenGLDynamicRHI::RHICreateTextureReference()
+FTextureReferenceRHIRef FOpenGLDynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* InLastRenderTime)
 {
-	return new FOpenGLTextureReference();
+	return new FOpenGLTextureReference(InLastRenderTime);
 }
 
 void FOpenGLTextureReference::SetReferencedTexture(FRHITexture* InTexture)

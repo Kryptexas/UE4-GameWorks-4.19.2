@@ -1000,8 +1000,9 @@ class FOpenGLTextureReference : public FRHITextureReference
 	FOpenGLTextureBase* TexturePtr;
 
 public:
-	FOpenGLTextureReference()
-		: TexturePtr(NULL)
+	explicit FOpenGLTextureReference(FLastRenderTimeContainer* InLastRenderTime)
+		: FRHITextureReference(InLastRenderTime)
+		, TexturePtr(NULL)
 	{}
 
 	void SetReferencedTexture(FRHITexture* InTexture);

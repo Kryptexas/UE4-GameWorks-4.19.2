@@ -489,8 +489,8 @@ typedef TD3D11Texture2D<FD3D11BaseTextureCube>    FD3D11TextureCube;
 class FD3D11TextureReference : public FRHITextureReference, public FD3D11TextureBase
 {
 public:
-	explicit FD3D11TextureReference(class FD3D11DynamicRHI* InD3DRHI)
-		: FRHITextureReference()
+	FD3D11TextureReference(class FD3D11DynamicRHI* InD3DRHI, FLastRenderTimeContainer* LastRenderTime)
+		: FRHITextureReference(LastRenderTime)
 		, FD3D11TextureBase(InD3DRHI,NULL,NULL, 0, false,TArray<TRefCountPtr<ID3D11RenderTargetView> >(),NULL)
 	{
 		BaseShaderResource = NULL;

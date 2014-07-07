@@ -5,6 +5,7 @@
 #include "Engine/TextureDefines.h"
 #include "TextureResource.h"
 #include "MaterialShared.h"
+#include "RenderResource.h"
 #include "Texture.generated.h"
 
 // This needs to be mirrored in EditorFactories.cpp.
@@ -507,7 +508,7 @@ public:
 	class FTextureResource*	Resource;
 
 	/** Stable RHI texture reference that refers to the current RHI texture. Note this is manually refcounted! */
-	class FRHITextureReference* TextureRefRHI;
+	FTextureReference TextureReference;
 
 	/** Release fence to know when resources have been freed on the rendering thread. */
 	FRenderCommandFence ReleaseFence;

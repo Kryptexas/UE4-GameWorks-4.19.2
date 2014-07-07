@@ -367,7 +367,7 @@ void FTextureMovieResource::InitDynamicRHI()
 			Texture2DRHI
 			);
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
-		RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+		RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 		// add to the list of global deferred updates (updated during scene rendering)
 		// since the latest decoded movie frame is rendered to this movie texture target
@@ -395,7 +395,7 @@ void FTextureMovieResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
-	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 	Texture2DRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
 

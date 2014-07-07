@@ -114,6 +114,47 @@ void ReleaseResourceAndFlush(FRenderResource* Resource)
 	FlushRenderingCommands();
 }
 
+FTextureReference::FTextureReference()
+	: TextureReferenceRHI(NULL)
+{
+}
+
+FTextureReference::~FTextureReference()
+{
+}
+
+void FTextureReference::BeginInit_GameThread()
+{
+	bInitialized_GameThread = true;
+	BeginInitResource(this);
+}
+
+void FTextureReference::BeginRelease_GameThread()
+{
+	BeginReleaseResource(this);
+	bInitialized_GameThread = false;
+}
+
+void FTextureReference::InvalidateLastRenderTime()
+{
+	LastRenderTimeRHI.SetLastRenderTime(-FLT_MAX);
+}
+
+void FTextureReference::InitRHI()
+{
+	TextureReferenceRHI = RHICreateTextureReference(&LastRenderTimeRHI);
+}
+	
+void FTextureReference::ReleaseRHI()
+{
+	TextureReferenceRHI.SafeRelease();
+}
+
+FString FTextureReference::GetFriendlyName() const
+{
+	return TEXT("FTextureReference");
+}
+
 /** The global null color vertex buffer, which is set with a stride of 0 on meshes without a color component. */
 TGlobalResource<FNullColorVertexBuffer> GNullColorVertexBuffer;
 
