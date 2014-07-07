@@ -14,6 +14,7 @@ class ISequencer;
 class FWidgetBlueprintEditor : public FBlueprintEditor
 {
 public:
+	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanging)
 	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanged)
 
 	/** Called after the widget preview has been updated */
@@ -56,6 +57,9 @@ public:
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
 
 public:
+	/** Fires whenever the selected set of widgets changing */
+	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
+
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
 

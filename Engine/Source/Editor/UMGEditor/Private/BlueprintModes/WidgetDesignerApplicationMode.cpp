@@ -19,6 +19,7 @@
 #include "HierarchyTabSummoner.h"
 #include "DesignerTabSummoner.h"
 #include "SequencerTabSummoner.h"
+#include "DetailsTabSummoner.h"
 
 /////////////////////////////////////////////////////
 // FWidgetDesignerApplicationMode
@@ -26,7 +27,7 @@
 FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidgetBlueprintEditor> InWidgetEditor)
 	: FWidgetBlueprintApplicationMode(InWidgetEditor, FWidgetBlueprintApplicationModes::DesignerMode)
 {
-	TabLayout = FTabManager::NewLayout( "WidgetBlueprintEditor_Designer_Layout_v1" )
+	TabLayout = FTabManager::NewLayout( "WidgetBlueprintEditor_Designer_Layout_v2" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea()
@@ -75,7 +76,7 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 				(
 					FTabManager::NewStack()
 					->SetSizeCoefficient( 0.5f )
-					->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )
+					->AddTab( FDetailsTabSummoner::TabID, ETabState::OpenedTab )
 				)
 			)
 		)
@@ -90,7 +91,8 @@ FWidgetDesignerApplicationMode::FWidgetDesignerApplicationMode(TSharedPtr<FWidge
 
 
 	// Add Tab Spawners
-	TabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InWidgetEditor)));
+	//TabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InWidgetEditor)));
+	TabFactories.RegisterFactory(MakeShareable(new FDetailsTabSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FDesignerTabSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FHierarchyTabSummoner(InWidgetEditor)));
 	TabFactories.RegisterFactory(MakeShareable(new FPaletteTabSummoner(InWidgetEditor)));
@@ -118,26 +120,16 @@ void FWidgetDesignerApplicationMode::PreDeactivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PreDeactivateMode();
 
-	GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
+	//GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
 
-	static FName PropertyEditor("PropertyEditor");
-	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-	PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("CanvasPanelSlot"));
+	//static FName PropertyEditor("PropertyEditor");
+	//FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
+	//PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("CanvasPanelSlot"));
 }
 
 void FWidgetDesignerApplicationMode::PostActivateMode()
 {
 	//FWidgetBlueprintApplicationMode::PostActivateMode();
 
-	GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
-
-	TSharedRef<class SKismetInspector> Inspector = MyBlueprintEditor.Pin()->GetInspector();
-	FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintWidgetCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
-	Inspector->GetPropertyView()->RegisterInstancedCustomPropertyLayout(UWidget::StaticClass(), LayoutDelegateDetails);
-
-	FOnGetPropertyTypeCustomizationInstance CanvasSlotCustomization = FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FCanvasSlotCustomization::MakeInstance, MyBlueprintEditor.Pin()->GetBlueprintObj());
-
-	static FName PropertyEditor("PropertyEditor");
-	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(PropertyEditor);
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("PanelSlot"), CanvasSlotCustomization);
+	//GetBlueprintEditor()->GetInspector()->EnableComponentDetailsCustomization(false);
 }

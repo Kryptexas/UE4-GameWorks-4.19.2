@@ -116,7 +116,9 @@ void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets
 		}
 	}
 
-	RefreshDetails(TempSelection);
+	//RefreshDetails(TempSelection);
+
+	OnSelectedWidgetsChanging.Broadcast();
 
 	// Finally change the selected widgets after we've updated the details panel 
 	// to ensure values that are pending are committed on focus loss, and migrated properly
@@ -180,8 +182,8 @@ void FWidgetBlueprintEditor::RefreshDetails(TSet<FWidgetReference>& Widgets)
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
 	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
+//	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
+//	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
 }
 
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)

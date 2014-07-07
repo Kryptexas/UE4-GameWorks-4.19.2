@@ -17,6 +17,7 @@ public class UMGEditor : ModuleRules
 				"Editor/UMGEditor/Private/Designer",
 				"Editor/UMGEditor/Private/Hierarchy",
 				"Editor/UMGEditor/Private/Palette",
+				"Editor/UMGEditor/Private/Details",
 				"Editor/UMGEditor/Private/DragDrop",
 			});
 
