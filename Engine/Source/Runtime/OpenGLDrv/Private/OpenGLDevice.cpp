@@ -916,7 +916,7 @@ void FOpenGLDynamicRHI::Init()
 		ResourceIt->InitRHI();
 	}
 
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 
 	extern int64 GOpenGLDedicatedVideoMemory;
 	extern int64 GOpenGLTotalGraphicsMemory;

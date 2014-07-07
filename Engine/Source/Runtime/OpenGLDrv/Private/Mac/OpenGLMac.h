@@ -203,6 +203,8 @@ struct FMacOpenGL : public FOpenGL3
 	
 	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
 	
+	static uint64 GetVideoMemorySize();
+	
 	static void ProcessQueryGLInt();
 	static void ProcessExtensions(const FString& ExtensionsString);
 	
