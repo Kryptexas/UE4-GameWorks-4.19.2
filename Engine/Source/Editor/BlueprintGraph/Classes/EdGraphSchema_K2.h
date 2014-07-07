@@ -55,6 +55,9 @@ public:
 
 	/** If true, the class will be usable as a base for blueprints */
 	static const FName MD_IsBlueprintBase;
+	
+	/** A listing of classes that this class is accessible from (and only those classes, if present) */
+	static const FName MD_RestrictedToClasses;
 
 	//    function metadata
 	/** Specifies a UFUNCTION as Kismet protected, which can only be called from itself */

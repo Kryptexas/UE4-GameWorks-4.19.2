@@ -406,10 +406,9 @@ static void GetReferenceSetterItems(FBlueprintGraphActionListBuilder& ContextMen
  */
 static bool CanUseLibraryFunctionsForScope(UClass* LibraryClass, const UClass* ScopeClass)
 {
-	static const FName NAME_RestristedToClasses(TEXT("RestrictedToClasses"));
-	if (LibraryClass->HasMetaData(NAME_RestristedToClasses))
+	if (LibraryClass->HasMetaData(FBlueprintMetadata::MD_RestrictedToClasses))
 	{
-		const FString& ClassRestrictions = LibraryClass->GetMetaData(NAME_RestristedToClasses);
+		const FString& ClassRestrictions = LibraryClass->GetMetaData(FBlueprintMetadata::MD_RestrictedToClasses);
 		for (UClass* TestOwnerClass = (UClass*)ScopeClass; TestOwnerClass; TestOwnerClass = TestOwnerClass->GetSuperClass())
 		{
 			const bool bFound = (ClassRestrictions == TestOwnerClass->GetName()) || !!FCString::StrfindDelim(*ClassRestrictions, *ScopeClass->GetName(), TEXT(" "));

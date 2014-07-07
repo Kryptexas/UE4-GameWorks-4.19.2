@@ -42,6 +42,7 @@ const FName FBlueprintMetadata::MD_NotAllowableBlueprintVariableType(TEXT("NotBl
 
 const FName FBlueprintMetadata::MD_BlueprintSpawnableComponent(TEXT("BlueprintSpawnableComponent"));
 const FName FBlueprintMetadata::MD_IsBlueprintBase(TEXT("IsBlueprintBase"));
+const FName FBlueprintMetadata::MD_RestrictedToClasses(TEXT("RestrictedToClasses"));
 
 const FName FBlueprintMetadata::MD_Protected(TEXT("BlueprintProtected"));
 const FName FBlueprintMetadata::MD_Latent(TEXT("Latent"));
@@ -667,24 +668,24 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 }
 
 bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UScriptStruct *InStruct)
-		{
+{
 	if (auto UDStruct = Cast<const UUserDefinedStruct>(InStruct))
-		{
+	{
 		if (EUserDefinedStructureStatus::UDSS_UpToDate != UDStruct->Status.GetValue())
 		{
 			return false;
 		}
-				}
+	}
 	return InStruct && (InStruct->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_AllowableBlueprintVariableType));
-			}
+}
 
 bool UEdGraphSchema_K2::DoesGraphSupportImpureFunctions(const UEdGraph* InGraph) const
-			{
+{
 	const EGraphType GraphType = GetGraphType(InGraph);
 	const bool bAllowImpureFuncs = GraphType != GT_Animation; //@TODO: It's really more nuanced than this (e.g., in a function someone wants to write as pure)
 
 	return bAllowImpureFuncs;
-		}
+}
 
 bool UEdGraphSchema_K2::IsPropertyExposedOnSpawn(const UProperty* Property)
 			{
