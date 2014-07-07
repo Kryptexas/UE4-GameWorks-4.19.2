@@ -1502,9 +1502,9 @@ void FD3D11DynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef
 {
 }
 
-FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference()
+FTextureReferenceRHIRef FD3D11DynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
 {
-	return new FD3D11TextureReference(this);
+	return new FD3D11TextureReference(this,LastRenderTime);
 }
 
 void FD3D11DynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)

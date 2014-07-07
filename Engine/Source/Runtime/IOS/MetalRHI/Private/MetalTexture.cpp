@@ -24,8 +24,8 @@ FORCEINLINE int32 GetMetalCubeFace(ECubeFace Face)
 class FMetalTextureReference : public FRHITextureReference
 {
 public:
-	explicit FMetalTextureReference()
-		: FRHITextureReference()
+	explicit FMetalTextureReference(FLastRenderTimeContainer* InLastRenderTime)
+		: FRHITextureReference(InLastRenderTime)
 	{}
 
 	// IRefCountedObject interface.
@@ -395,9 +395,9 @@ void FMetalDynamicRHI::RHIUnlockTextureCubeFace(FTextureCubeRHIParamRef TextureC
 
 
 
-FTextureReferenceRHIRef FMetalDynamicRHI::RHICreateTextureReference()
+FTextureReferenceRHIRef FMetalDynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* InLastRenderTime)
 {
-	return new FMetalTextureReference();
+	return new FMetalTextureReference(InLastRenderTime);
 }
 
 void FMetalDynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRefRHI, FTextureRHIParamRef NewTextureRHI)

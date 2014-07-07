@@ -284,7 +284,7 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 					// todo: this does multiple virtual function calls to find the right type to cast to
 					// this is due to multiple inheritance nastiness, NEEDS CLEANUP
 					FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
-					TextureRHI->SetLastCachedTime(CurrentTime);
+					TextureRHI->SetLastRenderTime(CurrentTime);
 					FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 					RawResources[i] = &Surface;
 				}

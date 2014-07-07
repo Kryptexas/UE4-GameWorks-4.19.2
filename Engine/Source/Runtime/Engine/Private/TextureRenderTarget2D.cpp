@@ -326,7 +326,7 @@ void FTextureRenderTarget2DResource::InitDynamicRHI()
 			Texture2DRHI
 			);
 		TextureRHI = (FTextureRHIRef&)Texture2DRHI;
-		RHIUpdateTextureReference(Owner->TextureRefRHI,TextureRHI);
+		RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,TextureRHI);
 
 		AddToDeferredUpdateList(true);
 	}
@@ -352,7 +352,7 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 	// release the FTexture RHI resources here as well
 	ReleaseRHI();
 
-	RHIUpdateTextureReference(Owner->TextureRefRHI,FTextureRHIParamRef());
+	RHIUpdateTextureReference(Owner->TextureReference.TextureReferenceRHI,FTextureRHIParamRef());
 	Texture2DRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
 

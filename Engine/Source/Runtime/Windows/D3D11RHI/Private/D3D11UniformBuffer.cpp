@@ -272,7 +272,7 @@ void FD3D11UniformBuffer::CacheResourcesInternal()
 				// todo: this does multiple virtual function calls to find the right type to cast to
 				// this is due to multiple inheritance nastiness, NEEDS CLEANUP
 				FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
-				TextureRHI->SetLastCachedTime(CurrentTime);
+				TextureRHI->SetLastRenderTime(CurrentTime);
 				FD3D11TextureBase* TextureD3D11 = GetD3D11TextureFromRHITexture(TextureRHI);
 				RawResources[i].ShaderResource = TextureD3D11->GetBaseShaderResource();
 				RawResources[i].D3D11Resource = (IUnknown*)TextureD3D11->GetShaderResourceView();

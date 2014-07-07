@@ -409,7 +409,7 @@ void FOpenGLUniformBuffer::CacheResourcesInternal()
 		case UBMT_TEXTURE:
 			{
 				FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
-				TextureRHI->SetLastCachedTime(CurrentTime);
+				TextureRHI->SetLastRenderTime(CurrentTime);
 				// todo: this does multiple virtual function calls to find the right type to cast to
 				// this is due to multiple inheritance nastiness, NEEDS CLEANUP
 				FOpenGLTextureBase* TextureGL = GetOpenGLTextureFromRHITexture(TextureRHI);
