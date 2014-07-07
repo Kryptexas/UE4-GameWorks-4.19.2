@@ -571,6 +571,9 @@ private:
 		return EnabledStats.Num();
 	}
 
+	/** Get the list of visible actors for editor viewport op. It filters out certain actor or component types */
+	bool GetVisibleActors(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params) const;
+
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.

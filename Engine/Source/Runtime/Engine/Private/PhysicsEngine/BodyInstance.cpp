@@ -652,7 +652,6 @@ void FBodyInstance::UpdatePhysicsFilterData()
 			//UE_LOG(LogPhysics, Warning, TEXT("Enabling collision %s : %s"), *GetNameSafe(Owner), *GetNameSafe(OwnerComponent.Get()));
 			// clear all other channel just in case other people using those channels to do something
 			UseResponse.SetAllChannels(ECR_Ignore);
-			UseResponse.SetResponse(ECC_Visibility, ECR_Block);
 			UseCollisionEnabled = ECollisionEnabled::QueryOnly;
 		}
 	}
