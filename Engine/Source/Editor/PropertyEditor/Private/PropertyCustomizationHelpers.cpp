@@ -162,8 +162,12 @@ namespace PropertyCustomizationHelpers
 			FUIAction DeleteAction( OnDeleteClicked );
 			MenuContentBuilder.AddMenuEntry( LOCTEXT( "DeleteButtonLabel", "Delete"), FText::GetEmpty(), FSlateIcon(), DeleteAction );
 
-			FUIAction DuplicateAction( OnDuplicateClicked );
-			MenuContentBuilder.AddMenuEntry( LOCTEXT( "DuplicateButtonLabel", "Duplicate"), FText::GetEmpty(), FSlateIcon(), DuplicateAction );
+			// Duplicate operation is optional
+			if (OnDuplicateClicked.IsBound())
+			{
+				FUIAction DuplicateAction( OnDuplicateClicked );
+				MenuContentBuilder.AddMenuEntry( LOCTEXT( "DuplicateButtonLabel", "Duplicate"), FText::GetEmpty(), FSlateIcon(), DuplicateAction );
+			}
 		}
 
 		return

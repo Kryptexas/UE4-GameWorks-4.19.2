@@ -608,7 +608,14 @@ namespace PropertyEditorHelpers
 		{
 			if( PropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly) && !(OuterArrayProp->PropertyFlags & CPF_EditFixedSize) )
 			{
-				OutRequiredButtons.Add( EPropertyButton::Insert_Delete_Duplicate );
+				if (OuterArrayProp->HasMetaData(TEXT("NoElementDuplicate")))
+				{
+					OutRequiredButtons.Add( EPropertyButton::Insert_Delete );
+				}
+				else
+				{
+					OutRequiredButtons.Add( EPropertyButton::Insert_Delete_Duplicate );
+				}
 			}
 		}
 
@@ -742,11 +749,16 @@ namespace PropertyEditorHelpers
 			NewButton = PropertyCustomizationHelpers::MakeEmptyButton( FSimpleDelegate::CreateSP( PropertyEditor, &FPropertyEditor::EmptyArray ) );
 			break;
 
+		case EPropertyButton::Insert_Delete:
 		case EPropertyButton::Insert_Delete_Duplicate:
 			{
 				FExecuteAction InsertAction = FExecuteAction::CreateSP( PropertyEditor, &FPropertyEditor::InsertItem );
 				FExecuteAction DeleteAction = FExecuteAction::CreateSP( PropertyEditor, &FPropertyEditor::DeleteItem );
-				FExecuteAction DuplicateAction = FExecuteAction::CreateSP( PropertyEditor, &FPropertyEditor::DuplicateItem );
+				FExecuteAction DuplicateAction;
+				if (ButtonType == EPropertyButton::Insert_Delete_Duplicate)
+				{
+					DuplicateAction = FExecuteAction::CreateSP( PropertyEditor, &FPropertyEditor::DuplicateItem );
+				}
 
 				NewButton = PropertyCustomizationHelpers::MakeInsertDeleteDuplicateButton( InsertAction, DeleteAction, DuplicateAction );
 
