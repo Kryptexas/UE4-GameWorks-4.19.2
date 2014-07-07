@@ -1556,6 +1556,8 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 
 		MarkRenderStateDirty();
 	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
 #endif
 
