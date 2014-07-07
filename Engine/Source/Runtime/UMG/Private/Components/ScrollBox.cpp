@@ -52,12 +52,12 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 	if ( BarStylePtr == NULL )
 	{
 		SScrollBox::FArguments Defaults;
-		BarStylePtr = Defaults._BarStyle;
+		BarStylePtr = Defaults._ScrollBarStyle;
 	}
 
 	MyScrollBox = SNew(SScrollBox)
 		.Style(StylePtr)
-		.BarStyle(BarStylePtr);
+		.ScrollBarStyle(BarStylePtr);
 
 	for ( UPanelSlot* Slot : Slots )
 	{

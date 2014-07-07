@@ -139,7 +139,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
-		// An external scroll bar was sepecified by the user
+		// An external scroll bar was specified by the user
 		ScrollBar = InArgs._ExternalScrollbar;
 		ScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SScrollBox::ScrollBar_OnUserScrolled));
 	}
@@ -149,7 +149,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 		ScrollBar = 
 			SNew( SScrollBar)
 			.Thickness(FVector2D(5.0f, 5.0f))
-			.Style( InArgs._BarStyle )
+			.Style( InArgs._ScrollBarStyle )
 			.OnUserScrolled(this, &SScrollBox::ScrollBar_OnUserScrolled);
 
 		PanelAndScrollbar->AddSlot()

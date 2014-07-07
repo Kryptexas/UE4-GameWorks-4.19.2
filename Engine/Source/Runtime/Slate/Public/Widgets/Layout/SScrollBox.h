@@ -27,7 +27,7 @@ public:
 
 	SLATE_BEGIN_ARGS(SScrollBox)
 		: _Style( &FCoreStyle::Get().GetWidgetStyle<FScrollBoxStyle>("ScrollBox") )
-		, _BarStyle( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("ScrollBar") )
+		, _ScrollBarStyle( &FCoreStyle::Get().GetWidgetStyle<FScrollBarStyle>("ScrollBar") )
 		, _ExternalScrollbar()
 		, _OnUserScrolled()
 		{}
@@ -38,7 +38,7 @@ public:
 		SLATE_STYLE_ARGUMENT( FScrollBoxStyle, Style )
 
 		/** Style used to draw this scrollbox's scrollbar */
-		SLATE_STYLE_ARGUMENT( FScrollBarStyle, BarStyle )
+		SLATE_STYLE_ARGUMENT( FScrollBarStyle, ScrollBarStyle )
 
 		/** Custom scroll bar */
 		SLATE_ARGUMENT( TSharedPtr<SScrollBar>, ExternalScrollbar )
