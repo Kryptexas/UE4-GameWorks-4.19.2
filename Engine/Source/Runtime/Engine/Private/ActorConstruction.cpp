@@ -238,7 +238,8 @@ void AActor::RerunConstructionScripts()
 					//detach it to remove any scaling 
 					RootComponent->DetachFromParent(true);
 				}
-				OldTransform = RootComponent->ComponentToWorld;
+
+				OldTransform = RootComponent->GetRelativeTransform();
 			}
 		}
 
