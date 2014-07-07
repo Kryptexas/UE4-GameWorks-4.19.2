@@ -67,6 +67,7 @@
 
 #include "Spacer.h"
 #include "MenuAnchor.h"
+#include "ScrollBar.h"
 
 #include "Throbber.h"
 #include "CircularThrobber.h"
