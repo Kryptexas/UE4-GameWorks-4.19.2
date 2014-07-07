@@ -3277,11 +3277,6 @@ protected:
 
 	virtual int32 BlackBody( int32 Temp ) override
 	{
-		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM3) == INDEX_NONE)
-		{
-			return INDEX_NONE;
-		}
-
 		if( Temp == INDEX_NONE )
 		{
 			return INDEX_NONE;
