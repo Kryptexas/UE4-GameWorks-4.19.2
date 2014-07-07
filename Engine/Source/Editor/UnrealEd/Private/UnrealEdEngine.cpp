@@ -40,7 +40,11 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	PackageAutoSaver->LoadRestoreFile();
 
 #if !UE_BUILD_DEBUG
-	PerformanceMonitor = new FPerformanceMonitor;
+	if( GEditorGameAgnosticIni )
+	{
+		// We need the game agnostic ini for this code
+		PerformanceMonitor = new FPerformanceMonitor;
+	}
 #endif
 
 	// Register for the package dirty state updated callback to catch packages that have been modified and need to be checked out.
