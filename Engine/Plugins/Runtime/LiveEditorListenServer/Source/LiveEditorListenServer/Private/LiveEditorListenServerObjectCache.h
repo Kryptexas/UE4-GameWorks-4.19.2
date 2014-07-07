@@ -15,7 +15,8 @@ namespace nLiveEditorListenServer
 		void EndCache();
 		void OnObjectCreation( const class UObjectBase* ObjectBase );
 		void OnObjectDeletion( const class UObjectBase* ObjectBase );
-		void EvaluatePendingCreations();
+
+		void EvaluatePendingCreations( TArray<UObject*> &NewTrackedObjects );
 
 	private:
 		bool CacheStarted() const;

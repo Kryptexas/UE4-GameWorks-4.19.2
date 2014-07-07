@@ -4,6 +4,8 @@
 
 #include "LiveEditorListenServerObjectCache.h"
 
+class FLiveEditorTransactionHistory;
+
 class FLiveEditorListenServer : public ILiveEditorListenServer
 {
 public:
@@ -38,4 +40,6 @@ private:
 	class FTcpListener *Listener;
 	TQueue<class FSocket*, EQueueMode::Mpsc> PendingClients;
 	TArray<class FSocket*> Clients;
+
+	FLiveEditorTransactionHistory *TransactionHistory;
 };

@@ -127,7 +127,7 @@ void FObjectCache::OnObjectDeletion( const class UObjectBase* ObjectBase )
 	}
 }
 
-void FObjectCache::EvaluatePendingCreations()
+void FObjectCache::EvaluatePendingCreations( TArray<UObject*> &NewTrackedObjects )
 {
 	if ( !CacheStarted() || ObjectLookupCache.Num() <= 0 || GEngine == NULL )
 		return;
@@ -153,6 +153,7 @@ void FObjectCache::EvaluatePendingCreations()
 
 				ObjectLookupCache.AddUnique( Key, AsObject );
 				TrackedObjects.Add( AsObject );
+				NewTrackedObjects.Add( AsObject );
 			}
 		}
 	}
