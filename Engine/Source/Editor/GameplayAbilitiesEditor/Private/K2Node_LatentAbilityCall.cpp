@@ -6,6 +6,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintEditorUtils.h"
 #include "K2Node_LatentAbilityCall.h"
+#include "GameplayAbilityGraphSchema.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -13,6 +14,11 @@ UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const class FPostConstructI
 	: Super(PCIP)
 {
 	ProxyActivateFunctionName = GET_FUNCTION_NAME_CHECKED(UAbilityTask, Activate);
+}
+
+bool UK2Node_LatentAbilityCall::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
+{
+	return DesiredSchema->GetClass()->IsChildOf(UGameplayAbilityGraphSchema::StaticClass());
 }
 
 void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
