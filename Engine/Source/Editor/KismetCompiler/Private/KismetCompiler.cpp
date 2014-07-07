@@ -1631,7 +1631,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 			Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
 		}
 
-		Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
+		if ((Blueprint->BlueprintType == BPTYPE_Normal) || 
+			(Blueprint->BlueprintType == BPTYPE_Const)  || 
+			(Blueprint->BlueprintType == BPTYPE_Interface))
+		{
+			//Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
+		}
 #endif
 
 		// Add in additional flags implied by the blueprint
