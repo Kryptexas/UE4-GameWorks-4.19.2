@@ -2,7 +2,7 @@
 
 #include "UMGEditorPrivatePCH.h"
 
-#include "PaletteTabSummoner.h"
+#include "DetailsTabSummoner.h"
 #include "SWidgetDetailsView.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
