@@ -238,6 +238,7 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	bRequestedMoveUseAcceleration = true;
 	bUseRVOAvoidance = false;
 	bUseRVOPostProcess = false;
+	AvoidanceLockVelocity = FVector::ZeroVector;
 	AvoidanceLockTimer = 0.0f;
 	AvoidanceGroup.bGroup0 = true;
 	GroupsToAvoid.Packed = 0xFFFFFFFF;
@@ -2387,7 +2388,8 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 		return;
 	}
 
-	const	FVector OldVel = Velocity;
+	Friction = FMath::Max(0.f, Friction);
+	const FVector OldVel = Velocity;
 	FVector SumVel = FVector::ZeroVector;
 
 	// subdivide braking to get reasonably consistent results at lower frame rates
@@ -2396,7 +2398,7 @@ void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Fr
 	const float TimeStep = 0.03f;
 
 	// Decelerate to brake to a stop
-	const FVector RevAccel = (-1.f * BrakingDeceleration) * SafeNormalPrecise(Velocity);
+	const FVector RevAccel = (-1.f * FMath::Max(0.f,BrakingDeceleration)) * SafeNormalPrecise(Velocity);
 	while( RemainingTime >= MIN_TICK_TIME )
 	{
 		float dt = ((RemainingTime > TimeStep) ? TimeStep : RemainingTime);
