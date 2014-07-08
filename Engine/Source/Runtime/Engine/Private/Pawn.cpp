@@ -878,10 +878,10 @@ void APawn::PostNetReceiveVelocity(const FVector& NewVelocity)
 	}
 }
 
-void APawn::PostNetReceiveLocation()
+void APawn::PostNetReceiveLocationAndRotation()
 {
 	// always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-	if( (ReplicatedMovement.Location == GetActorLocation()) && (CreationTime != GetWorld()->TimeSeconds) )
+	if( (ReplicatedMovement.Location == GetActorLocation() && ReplicatedMovement.Rotation == GetActorRotation()) && (CreationTime != GetWorld()->TimeSeconds) )
 	{
 		return;
 	}
@@ -891,8 +891,9 @@ void APawn::PostNetReceiveLocation()
 		// Correction to make sure pawn doesn't penetrate floor after replication rounding
 		ReplicatedMovement.Location.Z += 0.01f;
 
-		FVector OldLocation = GetActorLocation();
-		TeleportTo( ReplicatedMovement.Location, GetActorRotation(), false, true );
+		const FVector OldLocation = GetActorLocation();
+		TeleportTo( ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true );
+		// SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
 
 		INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)

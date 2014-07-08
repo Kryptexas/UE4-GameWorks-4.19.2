@@ -357,7 +357,7 @@ void ACharacter::TeleportSucceeded(bool bIsATest)
 
 void ACharacter::ClearCrossLevelReferences()
 {
-	if( MovementBase != NULL && GetOutermost() != MovementBase->GetOutermost() )
+	if( BasedMovement.MovementBase != NULL && GetOutermost() != BasedMovement.MovementBase->GetOutermost() )
 	{
 		SetBase( NULL );
 	}
@@ -366,12 +366,12 @@ void ACharacter::ClearCrossLevelReferences()
 }
 
 
-// Helper to set up tick dependencies on a movement base
+
 namespace MovementBaseUtility
 {
 	void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase)
 	{
-		if (NewBase && MovementBaseUtility::UseRelativePosition(NewBase))
+		if (NewBase && MovementBaseUtility::UseRelativeLocation(NewBase))
 		{
 			BasedObjectTick.AddPrerequisite(NewBase, NewBase->PrimaryComponentTick);
 			AActor* NewBaseOwner = NewBase->GetOwner();
@@ -391,7 +391,7 @@ namespace MovementBaseUtility
 
 	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase)
 	{
-		if (OldBase && MovementBaseUtility::UseRelativePosition(OldBase))
+		if (OldBase && MovementBaseUtility::UseRelativeLocation(OldBase))
 		{
 			BasedObjectTick.RemovePrerequisite(OldBase, OldBase->PrimaryComponentTick);
 			AActor* OldBaseOwner = OldBase->GetOwner();
@@ -409,6 +409,7 @@ namespace MovementBaseUtility
 		}
 	}
 
+	// TODO: GetPhysicsLinearVelocity(BoneName)
 	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase)
 	{
 		FVector BaseVelocity = FVector::ZeroVector;
@@ -454,13 +455,52 @@ namespace MovementBaseUtility
 		
 		return FVector::ZeroVector;
 	}
+
+	bool GetMovementBaseTransform(const UPrimitiveComponent* MovementBase, const FName BoneName, FVector& OutLocation, FQuat& OutQuat)
+	{
+		if (MovementBase)
+		{
+			if (BoneName != NAME_None)
+			{
+				const USkeletalMeshComponent* SkeletalBase = Cast<USkeletalMeshComponent>(MovementBase);
+				if (SkeletalBase)
+				{
+					const int32 BoneIndex = SkeletalBase->GetBoneIndex(BoneName);
+					if (BoneIndex != INDEX_NONE)
+					{
+						const FTransform BoneTransform = SkeletalBase->GetBoneTransform(BoneIndex);
+						OutLocation = BoneTransform.GetLocation();
+						OutQuat = BoneTransform.GetRotation();
+						return true;
+					}
+
+					UE_LOG(LogCharacter, Warning, TEXT("GetMovementBaseTransform(): Invalid bone '%s' for SkeletalMeshComponent base %s"), *BoneName.ToString(), *GetPathNameSafe(MovementBase));
+					return false;
+				}
+				// TODO: warn if not a skeletal mesh but providing bone index.
+			}
+
+			// No bone supplied
+			OutLocation = MovementBase->GetComponentLocation();
+			OutQuat = MovementBase->GetComponentQuat();
+			return true;
+		}
+
+		// NULL MovementBase
+		OutLocation = FVector::ZeroVector;
+		OutQuat = FQuat::Identity;
+		return false;
+	}
 }
 
 
 /**	Change the Pawn's base. */
-void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPawn )
+void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, const FName BoneName, bool bNotifyPawn )
 {
-	if (NewBaseComponent != MovementBase)
+	const bool bBaseChanged = (NewBaseComponent != BasedMovement.MovementBase);
+	const bool bBoneChanged = (BoneName != BasedMovement.BoneName);
+
+	if (bBaseChanged || bBoneChanged)
 	{
 		// Verify no recursion.
 		APawn* Loop = (NewBaseComponent ? Cast<APawn>(NewBaseComponent->GetOwner()) : NULL);
@@ -474,22 +514,48 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		}
 
 		// Set base.
-		UPrimitiveComponent* OldBase = MovementBase;
-		MovementBase = NewBaseComponent;
+		UPrimitiveComponent* OldBase = BasedMovement.MovementBase;
+		BasedMovement.MovementBase = NewBaseComponent;
+		BasedMovement.BoneName = BoneName;
 
-		// Update relative location/rotation
-		// Only do this for non-simulated proxies, because we don't want to overwrite RelativeMovement for those (it could about to be updated by a network update).
-		if ( Role == ROLE_Authority || Role == ROLE_AutonomousProxy )
+		if (CharacterMovement)
 		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
-			RelativeMovement.MovementBase = NewBaseComponent;
-			RelativeMovement.bServerHasBaseComponent = (NewBaseComponent != NULL); // Flag whether the server had a non-null base.
+			if (bBaseChanged)
+			{
+				MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
+				MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, NewBaseComponent);
+			}
 
-			CharacterMovement->SaveBaseLocation();
-		}
-		else
-		{
-			UE_LOG(LogCharacter, Verbose, TEXT("Setting base on Client for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
+			if (NewBaseComponent)
+			{
+				// Update OldBaseLocation/Rotation as those were referring to a different base
+				// ... but not when handling replication for proxies (since they are going to copy this data from the replicated values anyway)
+				if (!bInBaseReplication)
+				{					
+					CharacterMovement->SaveBaseLocation();
+				}
+
+				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use post-physics transforms
+				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(NewBaseComponent->IsSimulatingPhysics());
+			}
+			else
+			{
+				BasedMovement.BoneName = NAME_None; // None, regardless of whether user tried to set a bone name, since we have no base component.
+				BasedMovement.bRelativeRotation = false;
+				CharacterMovement->CurrentFloor.Clear();
+				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(false);
+			}
+
+			if (Role == ROLE_Authority || Role == ROLE_AutonomousProxy)
+			{
+				BasedMovement.bServerHasBaseComponent = (BasedMovement.MovementBase != NULL); // Also set on proxies for nicer debugging.
+				UE_LOG(LogCharacter, Verbose, TEXT("Setting base on %s for '%s' to '%s'"), Role == ROLE_Authority ? TEXT("Server") : TEXT("AutoProxy"), *GetName(), *GetFullNameSafe(NewBaseComponent));
+			}
+			else
+			{
+				UE_LOG(LogCharacter, Verbose, TEXT("Setting base on Client for '%s' to '%s'"), *GetName(), *GetFullNameSafe(NewBaseComponent));
+			}
+
 		}
 
 		// Notify this actor of his new floor.
@@ -497,35 +563,18 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 		{
 			BaseChange();
 		}
-
-		if (CharacterMovement)
-		{
-			MovementBaseUtility::RemoveTickDependency(CharacterMovement->PrimaryComponentTick, OldBase);
-			MovementBaseUtility::AddTickDependency(CharacterMovement->PrimaryComponentTick, MovementBase);			
-
-			if (MovementBase)
-			{
-				// Update OldBaseLocation/Rotation as those were referring to a different base
-				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
-				CharacterMovement->OldBaseQuat = MovementBase->GetComponentQuat();
-
-				// Enable pre-cloth tick if we are standing on a physics object, as we need to to use 
-				// post-physics transforms
-				if(MovementBase->IsSimulatingPhysics())
-				{
-					CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(true);
-				}
-			}
-			else
-			{
-				// Base is NULL, invalidate floor.
-				CharacterMovement->CurrentFloor.Clear();
-
-				CharacterMovement->PreClothComponentTick.SetTickFunctionEnable(false);
-			}
-		}
 	}
 }
+
+
+void ACharacter::SaveRelativeBasedMovement(const FVector& NewRelativeLocation, const FRotator& NewRotation, bool bRelativeRotation)
+{
+	checkSlow(BasedMovement.HasRelativeLocation());
+	BasedMovement.Location = NewRelativeLocation;
+	BasedMovement.Rotation = NewRotation;
+	BasedMovement.bRelativeRotation = bRelativeRotation;
+}
+
 
 void ACharacter::TurnOff()
 {
@@ -617,17 +666,17 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDis
 		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
-		if ( CharacterMovement.Get() == NULL || MovementBase == NULL )
+		if ( CharacterMovement.Get() == NULL || BasedMovement.MovementBase == NULL )
 		{
 			BaseString = "Not Based";
 		}
 		else
 		{
-			BaseString = MovementBase->IsWorldGeometry() ? "World Geometry" : MovementBase->GetName();
+			BaseString = BasedMovement.MovementBase->IsWorldGeometry() ? "World Geometry" : BasedMovement.MovementBase->GetName();
 			BaseString = FString::Printf(TEXT("Based On %s"), *BaseString);
 		}
 		
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s RelativeRot: %s %s"), *RelativeMovement.Location.ToString(), *RelativeMovement.Rotation.ToString(), *BaseString), Indent, YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s Rot: %s %s"), *BasedMovement.Location.ToString(), *BasedMovement.Rotation.ToString(), *BaseString), Indent, YPos);
 		YPos += YL;
 
 		if ( CharacterMovement.Get() != NULL )
@@ -805,16 +854,11 @@ void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, 
 //
 // Static variables for networking.
 //
-static FVector_NetQuantize100	SavedRelativeLocation;
-static FRotator					SavedRelativeRotation;
-static uint8					SavedMovementMode;
+static uint8 SavedMovementMode;
 
 void ACharacter::PreNetReceive()
 {
-	SavedRelativeLocation = RelativeMovement.Location;
-	SavedRelativeRotation = RelativeMovement.Rotation;
 	SavedMovementMode = ReplicatedMovementMode;
-
 	Super::PreNetReceive();
 }
 
@@ -827,43 +871,64 @@ void ACharacter::PostNetReceive()
 	}
 
 	Super::PostNetReceive();
-
-	// Skip base updates while playing root motion, it is handled inside of OnRep_RootMotion
-	if (Role == ROLE_SimulatedProxy && !IsPlayingRootMotion())
-	{
-		PostNetReceiveBase();
-	}
 }
 
-void ACharacter::PostNetReceiveBase()
+void ACharacter::OnRep_ReplicatedBasedMovement()
 {	
 	if (Role != ROLE_SimulatedProxy)
 	{
 		return;
 	}
 
-	const bool bBaseChanged = (RelativeMovement.MovementBase != MovementBase);
-	if (bBaseChanged)
+	// Skip base updates while playing root motion, it is handled inside of OnRep_RootMotion
+	if (IsPlayingRootMotion())
 	{
-		SetBase(RelativeMovement.MovementBase);
+		return;
 	}
 
-	if (RelativeMovement.HasRelativePosition())
-	{
-		if (bBaseChanged || (RelativeMovement.Location != SavedRelativeLocation) || (RelativeMovement.Rotation != SavedRelativeRotation))
-		{
-			const FVector OldLocation = GetActorLocation();
-			const FRotator NewRotation = (FRotationMatrix(RelativeMovement.Rotation) * FRotationMatrix(MovementBase->GetComponentRotation())).Rotator();
-			SetActorLocationAndRotation( MovementBase->GetComponentLocation() + RelativeMovement.Location, NewRotation, false);
-			
-			// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
-			CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
+	TGuardValue<bool> bInBaseReplicationGuard(bInBaseReplication, true);
 
-			INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
-			if (PredictionInterface)
-			{
-				PredictionInterface->SmoothCorrection(OldLocation);
-			}
+	const bool bBaseChanged = (BasedMovement.MovementBase != ReplicatedBasedMovement.MovementBase || BasedMovement.BoneName != ReplicatedBasedMovement.BoneName);
+	if (bBaseChanged)
+	{
+		// Even though we will copy the replicated based movement info, we need to use SetBase() to set up tick dependencies and trigger notifications.
+		SetBase(ReplicatedBasedMovement.MovementBase, ReplicatedBasedMovement.BoneName);
+	}
+
+	// Make sure to use the values of relative location/rotation etc from the server.
+	BasedMovement = ReplicatedBasedMovement;
+
+	if (ReplicatedBasedMovement.HasRelativeLocation())
+	{
+		// Update transform relative to movement base
+		const FVector OldLocation = GetActorLocation();
+		MovementBaseUtility::GetMovementBaseTransform(ReplicatedBasedMovement.MovementBase, ReplicatedBasedMovement.BoneName, CharacterMovement->OldBaseLocation, CharacterMovement->OldBaseQuat);
+		const FVector NewLocation = CharacterMovement->OldBaseLocation + ReplicatedBasedMovement.Location;
+
+		if (ReplicatedBasedMovement.HasRelativeRotation())
+		{
+			// Relative location, relative rotation
+			FRotator NewRotation = (FRotationMatrix(ReplicatedBasedMovement.Rotation) * FQuatRotationTranslationMatrix(CharacterMovement->OldBaseQuat, FVector::ZeroVector)).Rotator();
+			
+			// TODO: need a better way to not assume we only use Yaw.
+			NewRotation.Pitch = 0.f;
+			NewRotation.Roll = 0.f;
+
+			SetActorLocationAndRotation(NewLocation, NewRotation);	
+		}
+		else
+		{
+			// Relative location, absolute rotation
+			SetActorLocationAndRotation(NewLocation, ReplicatedBasedMovement.Rotation);
+		}
+
+		// When position or base changes, movement mode will need to be updated. This assumes rotation changes don't affect that.
+		CharacterMovement->bJustTeleported |= (bBaseChanged || GetActorLocation() != OldLocation);
+
+		INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
+		if (PredictionInterface)
+		{
+			PredictionInterface->SmoothCorrection(OldLocation);
 		}
 	}
 }
@@ -1014,10 +1079,22 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 	if( RootMotionRepMove.RootMotion.bRelativePosition )
 	{
 		bool bSuccess = false;
-		if( MovementBaseUtility::UseRelativePosition(ServerBase) )
+		if( MovementBaseUtility::UseRelativeLocation(ServerBase) )
 		{
 			const FVector ServerLocation = ServerBase->GetComponentLocation() + RootMotionRepMove.RootMotion.Location;
-			const FRotator ServerRotation = (FRotationMatrix(RootMotionRepMove.RootMotion.Rotation) * FRotationMatrix(ServerBase->GetComponentRotation())).Rotator();
+			FRotator ServerRotation;
+			if (RootMotionRepMove.RootMotion.bRelativeRotation)
+			{
+				// Relative rotation
+				// TODO: Bone rotation
+				ServerRotation = (FRotationMatrix(RootMotionRepMove.RootMotion.Rotation) * FRotationMatrix(ServerBase->GetComponentRotation())).Rotator();
+			}
+			else
+			{
+				// Absolute rotation
+				ServerRotation = RootMotionRepMove.RootMotion.Rotation;
+			}
+
 			UpdateSimulatedPosition(ServerLocation, ServerRotation);
 			bSuccess = true;
 		}
@@ -1034,9 +1111,9 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 	}
 
 	// Set base
-	if( MovementBase != ServerBase )
+	if( BasedMovement.MovementBase != ServerBase /* TODO: or bone changes */)
 	{
-		SetBase( ServerBase );
+		SetBase( ServerBase /* TODO: bone */ );
 	}
 
 	return true;
@@ -1067,12 +1144,12 @@ void ACharacter::UpdateSimulatedPosition(const FVector & NewLocation, const FRot
 	}
 }
 
-void ACharacter::PostNetReceiveLocation()
+void ACharacter::PostNetReceiveLocationAndRotation()
 {
 	if( Role == ROLE_SimulatedProxy )
 	{
-		// Don't change position if using relative position (it should be the same anyway)
-		if (!RelativeMovement.HasRelativePosition())
+		// Don't change transform if using relative position (it should be nearly the same anyway, or base may be slightly out of sync)
+		if (!ReplicatedBasedMovement.HasRelativeLocation())
 		{
 			const FVector OldLocation = GetActorLocation();
 			UpdateSimulatedPosition(ReplicatedMovement.Location, ReplicatedMovement.Rotation);
@@ -1095,10 +1172,11 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 	if ( RootMotionMontageInstance )
 	{
 		// Is position stored in local space?
-		RepRootMotion.bRelativePosition = RelativeMovement.HasRelativePosition();
-		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? RelativeMovement.Location : GetActorLocation();
-		RepRootMotion.Rotation			= RepRootMotion.bRelativePosition ? RelativeMovement.Rotation : GetActorRotation();
-		RepRootMotion.MovementBase		= RelativeMovement.MovementBase;
+		RepRootMotion.bRelativePosition = BasedMovement.HasRelativeLocation();
+		RepRootMotion.bRelativeRotation = BasedMovement.HasRelativeRotation();
+		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : GetActorLocation();
+		RepRootMotion.Rotation			= RepRootMotion.bRelativeRotation ? BasedMovement.Rotation : GetActorRotation();
+		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
 		RepRootMotion.AnimMontage		= RootMotionMontageInstance->Montage;
 		RepRootMotion.Position			= RootMotionMontageInstance->Position;
 
@@ -1111,17 +1189,31 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		DOREPLIFETIME_ACTIVE_OVERRIDE( ACharacter, RepRootMotion, false );
 	}
 
-	ReplicatedMovementMode = CharacterMovement->PackNetworkMovementMode();
+	ReplicatedMovementMode = CharacterMovement->PackNetworkMovementMode();	
+	ReplicatedBasedMovement = BasedMovement;
+
+	// Optimization: only update and replicate these values if they are actually going to be used.
+	if (BasedMovement.HasRelativeLocation())
+	{
+		// When velocity becomes zero, force replication so the position is updated to match the server (it may have moved due to simulation on the client).
+		ReplicatedBasedMovement.bServerHasVelocity = !CharacterMovement->Velocity.IsZero();
+
+		// Make sure absolute rotations are updated in case rotation occurred after the base info was saved.
+		if (!BasedMovement.HasRelativeRotation())
+		{
+			ReplicatedBasedMovement.Rotation = GetActorRotation();
+		}
+	}
 }
 
 void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
-	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,		COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, RelativeMovement,	COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode, COND_SimulatedOnly );
-	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,		COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, RepRootMotion,				COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedBasedMovement,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, ReplicatedMovementMode,	COND_SimulatedOnly );
+	DOREPLIFETIME_CONDITION( ACharacter, bIsCrouched,				COND_SimulatedOnly );
 }
 
 bool ACharacter::IsPlayingRootMotion() const

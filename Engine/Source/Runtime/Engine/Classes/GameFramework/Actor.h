@@ -1480,7 +1480,11 @@ public:
 	virtual void OnRep_ReplicatedMovement();
 
 	/** Update and smooth location, not called for simulated physics! */
-	virtual void PostNetReceiveLocation();
+	DEPRECATED(4.4, "PostNetReceiveLocation() has been replaced by PostNetReceiveLocationAndRotation().")
+	virtual void PostNetReceiveLocation() {}
+
+	/** Update location and rotation from ReplicatedMovement. Not called for simulated physics! */
+	virtual void PostNetReceiveLocationAndRotation();
 
 	/** Update velocity - typically from ReplicatedMovement, not called for simulated physics! */
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity);

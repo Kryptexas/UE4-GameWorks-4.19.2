@@ -92,22 +92,17 @@ void AActor::OnRep_ReplicatedMovement()
 		if (Role == ROLE_SimulatedProxy)
 		{
 			PostNetReceiveVelocity(ReplicatedMovement.LinearVelocity);
-			PostNetReceiveLocation();
-
-			if( RootComponent && (ReplicatedMovement.Rotation != GetActorRotation()) )
-			{
-				RootComponent->MoveComponent(FVector::ZeroVector, ReplicatedMovement.Rotation, false);
-			}
+			PostNetReceiveLocationAndRotation();
 		}
 	}
 }
 
-void AActor::PostNetReceiveLocation()
+void AActor::PostNetReceiveLocationAndRotation()
 {
-	USceneComponent* RootSceneComp = Cast<USceneComponent>(RootComponent);
-	if( RootSceneComp && RootSceneComp->IsRegistered() && (ReplicatedMovement.Location != GetActorLocation()) )
+	if( RootComponent && RootComponent->IsRegistered() && (ReplicatedMovement.Location != GetActorLocation() || ReplicatedMovement.Rotation != GetActorRotation()) )
 	{
-		TeleportTo(ReplicatedMovement.Location, GetActorRotation(), false, true);
+		TeleportTo(ReplicatedMovement.Location, ReplicatedMovement.Rotation, false);
+		//SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
 	}
 }
 

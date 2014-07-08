@@ -42,6 +42,10 @@ struct FRepRootMotionMontage
 	UPROPERTY()
 	bool bRelativePosition;
 
+	/** Whether rotation is relative or absolute. */
+	UPROPERTY()
+	bool bRelativeRotation;
+
 	/** Clear the montage */
 	void Clear()
 	{
@@ -70,47 +74,64 @@ struct FSimulatedRootMotionReplicatedMove
 };
 
 
-/** Utility for determining if we should use relative positioning when based on a component (because it may move). */
+/** MovementBaseUtility provides utilities for working with movement bases, for which we may need relative positioning info. */
 namespace MovementBaseUtility
 {
+	/** Determine whether MovementBase can possibly move. */
 	FORCEINLINE bool IsDynamicBase(const class UPrimitiveComponent* MovementBase)
 	{
 		return (MovementBase && MovementBase->Mobility == EComponentMobility::Movable);
 	}
 
-	FORCEINLINE bool UseRelativePosition(const class UPrimitiveComponent* MovementBase)
+	/** Determine if we should use relative positioning when based on a component (because it may move). */
+	FORCEINLINE bool UseRelativeLocation(const class UPrimitiveComponent* MovementBase)
 	{
 		return IsDynamicBase(MovementBase);
 	}
 
 	/** Ensure that BasedObjectTick ticks after NewBase */
-	void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase);
+	ENGINE_API void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase);
 
 	/** Remove tick dependency of BasedObjectTick on OldBase */
-	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
+	ENGINE_API void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
 
 	/** Get the velocity of the given component, first checking the ComponentVelocity and falling back to the physics velocity if necessary. */
-	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase);
+	ENGINE_API FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase);
 
 	/** Get the tangential velocity at WorldLocation for the given component. */
-	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation);
+	ENGINE_API FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation);
+
+	/** Get the transforms for the given MovementBase, optionally at the location of a bone. Returns false if MovementBase is NULL, or if BoneName is not a valid bone. */
+	ENGINE_API bool GetMovementBaseTransform(const UPrimitiveComponent* MovementBase, const FName BoneName, FVector& OutLocation, FQuat& OutQuat);
+
+
+	// Deprecated function
+	DEPRECATED(4.4, "MovementBaseUtility::UseRelativePosition() is deprecated, use MovementBaseUtility::UseRelativeLocation() instead.")
+	FORCEINLINE bool UseRelativePosition(const class UPrimitiveComponent* MovementBase)
+	{
+		return UseRelativeLocation(MovementBase);
+	}
 }
 
-/** Struct to hold relative position information from the server. */
+/** Struct to hold information about the "base" object the character is standing on. */
 USTRUCT()
-struct FRepRelativeMovement
+struct FBasedMovementInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	/** Component we are based on */
 	UPROPERTY()
-	class UPrimitiveComponent* MovementBase;
+	UPrimitiveComponent* MovementBase;
 
-	/** Location relative to MovementBase. Only valid if HasRelativePosition() is true. */
+	/** Bone name on component, for skeletal meshes. NAME_None if not a skeletal mesh or if bone is invalid. */
+	UPROPERTY()
+	FName BoneName;
+
+	/** Location relative to MovementBase. Only valid if HasRelativeLocation() is true. */
 	UPROPERTY()
 	FVector_NetQuantize100 Location;
 
-	/** Rotation relative to MovementBase. Only valid if HasRelativePosition() is true. */
+	/** Rotation: relative to MovementBase if HasRelativeRotation() is true, absolute otherwise. */
 	UPROPERTY()
 	FRotator Rotation;
 
@@ -118,11 +139,24 @@ struct FRepRelativeMovement
 	UPROPERTY()
 	bool bServerHasBaseComponent;
 
+	/** Whether rotation is relative to the base or absolute. It can only be relative if location is also relative. */
+	UPROPERTY()
+	bool bRelativeRotation;
 
-	/** Is position relative? */
-	FORCEINLINE bool HasRelativePosition() const
+	/** Whether there is a velocity on the server. Used for forcing replication when velocity goes to zero. */
+	UPROPERTY()
+	bool bServerHasVelocity;
+
+	/** Is location relative? */
+	FORCEINLINE bool HasRelativeLocation() const
 	{
-		return MovementBaseUtility::UseRelativePosition(MovementBase);
+		return MovementBaseUtility::UseRelativeLocation(MovementBase);
+	}
+
+	/** Is rotation relative or absolute? It can only be relative if location is also relative. */
+	FORCEINLINE bool HasRelativeRotation() const
+	{
+		return bRelativeRotation && HasRelativeLocation();
 	}
 
 	/** Return true if the client should have MovementBase, but it hasn't replicated (possibly component has not streamed in). */
@@ -130,7 +164,20 @@ struct FRepRelativeMovement
 	{
 		return (MovementBase == NULL) && bServerHasBaseComponent;
 	}
+
+
+	// Deprecated function
+	DEPRECATED(4.4, "FBasedMovementInfo::HasRelativePosition() is deprecated, use FBasedMovementInfo::HasRelativeLocation() instead.")
+	FORCEINLINE bool HasRelativePosition() const
+	{
+		return HasRelativeLocation();
+	}
 };
+
+// Allow the old name to continue to work for one release
+DEPRECATED(4.4, "FRepRelativeMovement has been renamed to FBasedMovementInfo")
+typedef FBasedMovementInfo FRepRelativeMovement;
+
 
 //=============================================================================
 // Characters are Pawns that have a mesh, collision, and physics and are responsible for all
@@ -171,15 +218,21 @@ class ENGINE_API ACharacter : public APawn
 	static FName CapsuleComponentName;
 
 	/** Sets the MovementBase used by CharacterMovement walking movement. */
-	virtual void SetBase(UPrimitiveComponent* NewBase, bool bNotifyActor=true);
-
+	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
+	 
 protected:
-	// CharacterMovement basing related variables (here for replication purposes).
-	//
 
-	/** Component we are based on */
+	/** Info about our current movement base (object we are standing on). */
 	UPROPERTY()
-	class UPrimitiveComponent* MovementBase;
+	struct FBasedMovementInfo BasedMovement;
+
+	/** Replicated version of relative movement. Read-only on simulated proxies! */
+	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedBasedMovement)
+	struct FBasedMovementInfo ReplicatedBasedMovement;
+
+	/** Rep notify for ReplicatedBasedMovement */
+	UFUNCTION()
+	virtual void OnRep_ReplicatedBasedMovement();
 
 	/** Desired translation offset of mesh. */
 	UPROPERTY()
@@ -188,24 +241,30 @@ protected:
 	/** Event called after actor's base changes (if SetBase was requested to notify us with bNotifyPawn). */
 	virtual void BaseChange();
 
-	// Always called immediately after properties are received from the remote.
-	virtual void PostNetReceiveBase();
-
 	/** CharacterMovement MovementMode (and custom mode) replicated for simulated proxies. Use CharacterMovementComponent::UnpackNetworkMovementMode() to translate it. */
 	UPROPERTY(Replicated)
 	uint8 ReplicatedMovementMode;
 
+	/** Flag that we are receiving replication of the based movement. */
+	UPROPERTY()
+	bool bInBaseReplication;
+
 public:	
+
+	/** Accessor for BasedMovement */
+	FORCEINLINE const FBasedMovementInfo& GetBasedMovement() const { return BasedMovement; }
+	
+	/** Accessor for ReplicatedBasedMovement */
+	FORCEINLINE const FBasedMovementInfo& GetReplicatedBasedMovement() const { return ReplicatedBasedMovement; }
+
+	/** Save a new relative location in BasedMovement and a new rotation with is either relative or absolute. */
+	void SaveRelativeBasedMovement(const FVector& NewRelativeLocation, const FRotator& NewRotation, bool bRelativeRotation);
 
 	/** Returns ReplicatedMovementMode */
 	uint8 GetReplicatedMovementMode() const { return ReplicatedMovementMode; }
 
 	/** @return Desired translation offset of mesh. */
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
-
-	/** location, rotation and velocity relative to base/bone (valid if base exists) */
-	UPROPERTY(replicated)
-	struct FRepRelativeMovement RelativeMovement;
 
 	/** Default crouched eye height */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
@@ -261,7 +320,7 @@ public:
 	virtual void PreNetReceive() override;
 	virtual void PostNetReceive() override;
 	virtual void OnRep_ReplicatedMovement() override;
-	virtual void PostNetReceiveLocation() override;
+	virtual void PostNetReceiveLocationAndRotation() override;
 	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const override;
@@ -277,7 +336,7 @@ public:
 	// Begin APawn Interface.
 	virtual void PostInitializeComponents() override;
 	virtual class UPawnMovementComponent* GetMovementComponent() const override { return CharacterMovement; }
-	virtual class UPrimitiveComponent* GetMovementBase() const override final { return MovementBase; }
+	virtual class UPrimitiveComponent* GetMovementBase() const override final { return BasedMovement.MovementBase; }
 	virtual float GetDefaultHalfHeight() const override;
 	virtual void TurnOff() override;
 	virtual void Restart() override;

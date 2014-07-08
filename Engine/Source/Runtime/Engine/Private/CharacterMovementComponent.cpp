@@ -615,7 +615,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 		// make sure we update our new floor/base on initial entry of the walking physics
 		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
 		AdjustFloorHeight();
-		SetBase(CurrentFloor.HitResult.Component.Get());
+		SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
 	}
 	else
 	{
@@ -1017,7 +1017,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	}
 
 	// If base is not resolved on the client, we should not try to simulate at all
-	if (CharacterOwner->RelativeMovement.IsBaseUnresolved())
+	if (CharacterOwner->GetBasedMovement().IsBaseUnresolved())
 	{
 		UE_LOG(LogCharacterMovement, Verbose, TEXT("Base for simulated character '%s' is not resolved on client, skipping SimulateMovement"), *CharacterOwner->GetName());
 		return;
@@ -1098,7 +1098,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 				if (MovementMode == MOVE_Walking)
 				{
 					AdjustFloorHeight();
-					SetBase(CurrentFloor.HitResult.Component.Get());
+					SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
 				}
 				else if (MovementMode == MOVE_Falling)
 				{
@@ -1130,11 +1130,12 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	LastUpdateLocation = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
 }
 
-void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, bool bNotifyActor )
+void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, const FName BoneName, bool bNotifyActor )
 {
 	if (CharacterOwner)
 	{
-		CharacterOwner->SetBase(NewBase,bNotifyActor);
+		// TODO: temporarily disabling movement on bone until networking is complete.
+		CharacterOwner->SetBase(NewBase, NAME_None /*BoneName*/, bNotifyActor);
 	}
 }
 
@@ -1143,7 +1144,7 @@ void UCharacterMovementComponent::MaybeUpdateBasedMovement(float DeltaSeconds)
 	bDeferUpdateBasedMovement = false;
 
 	UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-	if(MovementBaseUtility::UseRelativePosition(MovementBase))
+	if (MovementBaseUtility::UseRelativeLocation(MovementBase))
 	{
 		if(!MovementBase->IsSimulatingPhysics())
 		{
@@ -1173,8 +1174,8 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 		return;
 	}
 
-	UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-	if (!MovementBaseUtility::UseRelativePosition(MovementBase))
+	const UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
+	if (!MovementBaseUtility::UseRelativeLocation(MovementBase))
 	{
 		return;
 	}
@@ -1190,40 +1191,55 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 
 	FQuat DeltaQuat = FQuat::Identity;
 	FVector DeltaPosition = FVector::ZeroVector;
-	const bool bRotationChanged = !OldBaseQuat.Equals(MovementBase->GetComponentQuat());
-	if( bRotationChanged )
+
+	FQuat NewBaseQuat;
+	FVector NewBaseLocation;
+	if (!MovementBaseUtility::GetMovementBaseTransform(MovementBase, CharacterOwner->GetBasedMovement().BoneName, NewBaseLocation, NewBaseQuat))
 	{
-		DeltaQuat = OldBaseQuat * MovementBase->GetComponentQuat().Inverse();
+		return;
+	}
+
+	// Find change in rotation
+	const bool bRotationChanged = !OldBaseQuat.Equals(NewBaseQuat);
+	if (bRotationChanged)
+	{
+		DeltaQuat = NewBaseQuat * OldBaseQuat.Inverse();
 	}
 
 	// only if base moved
-	if ( bRotationChanged || (OldBaseLocation != MovementBase->GetComponentLocation()) )
+	if (bRotationChanged || (OldBaseLocation != NewBaseLocation))
 	{
 		// Calculate new transform matrix of base actor (ignoring scale).
 		const FQuatRotationTranslationMatrix OldLocalToWorld(OldBaseQuat, OldBaseLocation);
-		const FQuatRotationTranslationMatrix NewLocalToWorld(MovementBase->GetComponentQuat(), MovementBase->GetComponentLocation());
+		const FQuatRotationTranslationMatrix NewLocalToWorld(NewBaseQuat, NewBaseLocation);
 
-		FVector RotMotion(0.f);
 		if( CharacterOwner->IsMatineeControlled() )
 		{
-			FRotationTranslationMatrix HardRelMatrix(CharacterOwner->RelativeMovement.Rotation, CharacterOwner->RelativeMovement.Location);
+			FRotationTranslationMatrix HardRelMatrix(CharacterOwner->GetBasedMovement().Rotation, CharacterOwner->GetBasedMovement().Location);
 			const FMatrix NewWorldTM = HardRelMatrix * NewLocalToWorld;
 			const FRotator NewWorldRot = bIgnoreBaseRotation ? CharacterOwner->GetActorRotation() : NewWorldTM.Rotator();
 			MoveUpdatedComponent( NewWorldTM.GetOrigin() - CharacterOwner->GetActorLocation(), NewWorldRot, true );
 		}
 		else
 		{
-			FQuat FinalQuat = DeltaQuat * CharacterOwner->GetActorQuat();
-			FQuat PawnOldQuat = CharacterOwner->GetActorQuat();
-			CharacterOwner->FaceRotation(FinalQuat.Rotator(), 0.f);
-			FinalQuat = CharacterOwner->GetActorQuat();
-
-			if( bRotationChanged )
+			FQuat FinalQuat = CharacterOwner->GetActorQuat();
+			
+			if (bRotationChanged && !bIgnoreBaseRotation)
 			{
-				const FQuat PawnDeltaRotation = PawnOldQuat * FinalQuat.Inverse();
-				FRotator FinalRotation = FinalQuat.Rotator();
-				UpdateBasedRotation(FinalRotation, PawnDeltaRotation.Rotator());
-				FinalQuat = FinalRotation.Quaternion();
+				// Apply change in rotation and pipe through FaceRotation to maintain axis restrictions
+				const FQuat PawnOldQuat = CharacterOwner->GetActorQuat();
+				FinalQuat = DeltaQuat * FinalQuat;
+				CharacterOwner->FaceRotation(FinalQuat.Rotator(), 0.f);
+				FinalQuat = CharacterOwner->GetActorQuat();
+
+				// Pipe through ControlRotation, to affect camera.
+				if (CharacterOwner->Controller)
+				{
+					const FQuat PawnDeltaRotation = FinalQuat * PawnOldQuat.Inverse();
+					FRotator FinalRotation = FinalQuat.Rotator();
+					UpdateBasedRotation(FinalRotation, PawnDeltaRotation.Rotator());
+					FinalQuat = FinalRotation.Quaternion();
+				}
 			}
 
 			// We need to offset the base of the character here, not its origin, so offset by half height
@@ -1472,14 +1488,27 @@ void UCharacterMovementComponent::SaveBaseLocation()
 		return;
 	}
 
-	UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-	if (MovementBaseUtility::UseRelativePosition(MovementBase) && !CharacterOwner->IsMatineeControlled() && !Cast<USkeletalMeshComponent>(MovementBase))
+	const UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
+	if (MovementBaseUtility::UseRelativeLocation(MovementBase) && !CharacterOwner->IsMatineeControlled())
 	{
-		OldBaseLocation = MovementBase->GetComponentLocation();
-		CharacterOwner->RelativeMovement.Location = CharacterOwner->GetActorLocation() - OldBaseLocation;
+		// Read transforms into OldBaseLocation, OldBaseQuat
+		MovementBaseUtility::GetMovementBaseTransform(MovementBase, CharacterOwner->GetBasedMovement().BoneName, OldBaseLocation, OldBaseQuat);
 
-		OldBaseQuat = MovementBase->GetComponentQuat();
-		CharacterOwner->RelativeMovement.Rotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FQuatRotationTranslationMatrix(OldBaseQuat, FVector::ZeroVector).GetTransposed()).Rotator();
+		// Location
+		const FVector RelativeLocation = CharacterOwner->GetActorLocation() - OldBaseLocation;
+
+		// Rotation
+		if (bIgnoreBaseRotation)
+		{
+			// Absolute rotation
+			CharacterOwner->SaveRelativeBasedMovement(RelativeLocation, CharacterOwner->GetActorRotation(), false);
+		}
+		else
+		{
+			// Relative rotation
+			const FRotator RelativeRotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FQuatRotationTranslationMatrix(OldBaseQuat, FVector::ZeroVector).GetTransposed()).Rotator();
+			CharacterOwner->SaveRelativeBasedMovement(RelativeLocation, RelativeRotation, true);	
+		}
 	}
 }
 
@@ -3019,7 +3048,7 @@ void UCharacterMovementComponent::RevertMove(const FVector& OldLocation, UPrimit
 	   )
 	{
 		CurrentFloor = OldFloor;
-		SetBase(OldBase);
+		SetBase(OldBase, OldFloor.HitResult.BoneName);
 	}
 	else
 	{
@@ -3302,7 +3331,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 				}
 
 				AdjustFloorHeight();
-				SetBase(CurrentFloor.HitResult.Component.Get());
+				SetBase(CurrentFloor.HitResult.Component.Get(), CurrentFloor.HitResult.BoneName);
 			}
 			else if (CurrentFloor.HitResult.bStartPenetrating && remainingTime <= 0.f)
 			{
@@ -3481,7 +3510,7 @@ void UCharacterMovementComponent::OnTeleported()
 	UPrimitiveComponent* OldBase = CharacterOwner->GetMovementBase();
 	UPrimitiveComponent* NewBase = NULL;
 	
-	if (OldBase && CurrentFloor.IsWalkableFloor() && CurrentFloor.FloorDist <= MAX_FLOOR_DIST)
+	if (OldBase && CurrentFloor.IsWalkableFloor() && CurrentFloor.FloorDist <= MAX_FLOOR_DIST && Velocity.Z <= 0.f)
 	{
 		// Close enough to land or just keep walking.
 		NewBase = CurrentFloor.HitResult.Component.Get();
@@ -4064,14 +4093,13 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 				MutableThis->bForceNextFloorCheck = !MovementBase->IsCollisionEnabled()
 				|| MovementBase->GetCollisionResponseToChannel(CollisionChannel) != ECR_Block
 				|| (MovementBase->Mobility == EComponentMobility::Movable)
+				|| MovementBaseUtility::IsDynamicBase(MovementBase)
 				|| (Cast<const ADestructibleActor>(BaseActor) != NULL);
 			}
 
 			const bool IsActorBasePendingKill = BaseActor && BaseActor->IsPendingKill();
 
-			if ( !bForceNextFloorCheck && !IsActorBasePendingKill && MovementBase &&
-				(!MovementBaseUtility::IsDynamicBase(MovementBase) || (CharacterOwner->RelativeMovement.Location == CharacterOwner->GetActorLocation() - MovementBase->GetComponentLocation()))
-				)
+			if ( !bForceNextFloorCheck && !IsActorBasePendingKill && MovementBase )
 			{
 				//UE_LOG(LogCharacterMovement, Log, TEXT("%s SKIP check for floor"), *CharacterOwner->GetName());
 				OutFloorResult = CurrentFloor;
@@ -5008,8 +5036,8 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 
 			if (ClientData->PendingMove->StartBase != CharacterOwner->GetMovementBase())
 			{
-				SetBase(ClientData->PendingMove->StartBase.Get());
-			}
+				SetBase(ClientData->PendingMove->StartBase.Get() /* TODO: BoneName on saved move */);
+			}			
 			CurrentFloor = ClientData->PendingMove->StartFloor;
 
 			// Now that we have reverted to the old position, prepare a new move from that position,
@@ -5114,7 +5142,7 @@ void UCharacterMovementComponent::CallServerMove
 
 	// Determine if we send absolute or relative location
 	UPrimitiveComponent* ClientMovementBase = NewMove->EndBase.Get();
-	const FVector SendLocation = MovementBaseUtility::UseRelativePosition(ClientMovementBase) ? NewMove->SavedRelativeLocation : NewMove->SavedLocation;
+	const FVector SendLocation = MovementBaseUtility::UseRelativeLocation(ClientMovementBase) ? NewMove->SavedRelativeLocation : NewMove->SavedLocation;
 
 	// send old move if it exists
 	if (OldMove)
@@ -5327,8 +5355,9 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 
 	// Offset may be relative to base component
 	FVector ClientLoc = RelativeClientLoc;
-	if (MovementBaseUtility::UseRelativePosition(ClientMovementBase))
+	if (MovementBaseUtility::UseRelativeLocation(ClientMovementBase))
 	{
+		// TODO: use MovementBaseUtility::GetMovementBaseTransform(ClientMovementBase) instead.
 		ClientLoc += ClientMovementBase->GetComponentLocation();
 	}
 
@@ -5342,9 +5371,10 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
 		ServerData->PendingAdjustment.NewVel = Velocity;
 		ServerData->PendingAdjustment.NewBase = MovementBase;
-		ServerData->PendingAdjustment.bBaseRelativePosition = MovementBaseUtility::UseRelativePosition(MovementBase);
+		ServerData->PendingAdjustment.bBaseRelativePosition = MovementBaseUtility::UseRelativeLocation(MovementBase);
 		if (ServerData->PendingAdjustment.bBaseRelativePosition)
 		{
+			// TODO: use MovementBaseUtility::GetMovementBaseTransform() instead.
 			ServerData->PendingAdjustment.NewLoc = CharacterOwner->GetActorLocation() - MovementBase->GetComponentLocation();
 		}
 		else
@@ -5384,7 +5414,7 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 				ApplyNetworkMovementMode(ClientMovementMode);
 
 				// Update base and floor at new location.
-				SetBase(ClientMovementBase);
+				SetBase(ClientMovementBase /* TODO: client bone? */);
 				UpdateFloorFromAdjustment();
 
 				// Even if base has not changed, we need to recompute the relative offsets (since we've moved).
@@ -5438,7 +5468,7 @@ void UCharacterMovementComponent::UpdateFloorFromAdjustment()
 
 	// If walking, try to update the cached floor so it is current. This is necessary for UpdateBasedMovement() and MoveAlongFloor() to work properly.
 	// If base is now NULL, presumably we are no longer walking. If we had a valid floor but don't find one now, we'll likely start falling.
-	if (CharacterOwner->GetMovementBase() && Velocity.Z <= 0.f)
+	if (CharacterOwner->GetMovementBase())
 	{
 		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
 	}
@@ -5589,6 +5619,7 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 	//  Received Location is relative to non-world geometry (moving) bases
 	if (bBaseRelativePosition)
 	{
+		// TODO: fix if there is a bone
 		NewLocation += NewBase->GetComponentLocation();
 	}
 
@@ -5627,7 +5658,7 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 			FinalBase = CurrentFloor.HitResult.Component.Get();
 		}
 	}
-	SetBase(FinalBase);
+	SetBase(FinalBase /* TODO: bone? */);
 
 	// Update floor at new location
 	UpdateFloorFromAdjustment();
@@ -6169,6 +6200,7 @@ void FSavedMove_Character::Clear()
 	StartFloor = FFindFloorResult();
 	StartRotation = FRotator::ZeroRotator;
 	StartControlRotation = FRotator::ZeroRotator;
+	StartBaseRotation = FQuat::Identity;
 	StartCapsuleRadius = 0.f;
 	StartCapsuleHalfHeight = 0.f;
 
@@ -6213,14 +6245,18 @@ void FSavedMove_Character::SetInitialPosition(ACharacter* Character)
 	StartVelocity = Character->CharacterMovement->Velocity;
 	UPrimitiveComponent* const MovementBase = Character->GetMovementBase();
 	StartBase = MovementBase;
+	StartBaseRotation = FQuat::Identity;
 	StartFloor = Character->CharacterMovement->CurrentFloor;
 	CustomTimeDilation = Character->CustomTimeDilation;
 
 	StartControlRotation = Character->GetControlRotation().Clamp();
 
-	if (MovementBaseUtility::UseRelativePosition(MovementBase))
+	if (MovementBaseUtility::UseRelativeLocation(MovementBase))
 	{
-		StartRelativeLocation = Character->RelativeMovement.Location;
+		StartRelativeLocation = Character->GetBasedMovement().Location;
+		// TODO: bone
+		FVector StartBaseLocation;
+		MovementBaseUtility::GetMovementBaseTransform(MovementBase, NAME_None, StartBaseLocation, StartBaseRotation);
 	}
 
 	Character->CapsuleComponent->GetScaledCapsuleSize(StartCapsuleRadius, StartCapsuleHalfHeight);
@@ -6234,9 +6270,9 @@ void FSavedMove_Character::PostUpdate(ACharacter* Character, FSavedMove_Characte
 		SavedRotation = Character->GetActorRotation();
 		UPrimitiveComponent* const MovementBase = Character->GetMovementBase();
 		EndBase = MovementBase;
-		if (MovementBaseUtility::UseRelativePosition(MovementBase))
+		if (MovementBaseUtility::UseRelativeLocation(MovementBase))
 		{
-			SavedRelativeLocation = Character->RelativeMovement.Location;
+			SavedRelativeLocation = Character->GetBasedMovement().Location;
 		}
 
 		SavedControlRotation = Character->GetControlRotation().Clamp();
@@ -6282,8 +6318,9 @@ bool FSavedMove_Character::IsImportantMove(const FSavedMovePtr& LastAckedMove) c
 
 FVector FSavedMove_Character::GetStartLocation(const class UPrimitiveComponent* MovementBase) const
 {
-	if (MovementBaseUtility::UseRelativePosition(MovementBase))
+	if (MovementBaseUtility::UseRelativeLocation(MovementBase))
 	{
+		// TODO: use MovementBaseUtility::GetMovementBaseTransform() instead.
 		return MovementBase->GetComponentLocation() + StartRelativeLocation;
 	}
 
@@ -6316,6 +6353,7 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 			&& MovementMode == NewMove->MovementMode
 			&& StartCapsuleRadius == NewMove->StartCapsuleRadius
 			&& StartCapsuleHalfHeight == NewMove->StartCapsuleHalfHeight
+			&& StartBaseRotation.Equals(NewMove->StartBaseRotation) // only if base hasn't rotated
 			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
 	}
 	else
@@ -6328,6 +6366,7 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 			&& StartCapsuleRadius == NewMove->StartCapsuleRadius
 			&& StartCapsuleHalfHeight == NewMove->StartCapsuleHalfHeight
 			&& ((AccelNormal | NewMove->AccelNormal) > 0.99f)
+			&& StartBaseRotation.Equals(NewMove->StartBaseRotation) // only if base hasn't rotated
 			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
 	}
 }

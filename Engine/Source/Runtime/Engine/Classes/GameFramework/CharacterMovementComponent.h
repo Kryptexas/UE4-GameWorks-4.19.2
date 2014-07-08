@@ -537,7 +537,7 @@ public:
 	uint32 bCrouchMovesCharacterDown:1;
 
 	/** If true, the pawn ignores the effects of changes in its base's rotation on its rotation. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bIgnoreBaseRotation:1;
 
 	/** 
@@ -735,10 +735,10 @@ public:
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
 
-	/** Update (or defer updating) OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
 	virtual void MaybeSaveBaseLocation();
 
-	/** Update OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base. */
 	virtual void SaveBaseLocation();
 
 	/** changes physics based on MovementMode */
@@ -871,7 +871,7 @@ public:
 	virtual bool StepUp(const FVector& GravDir, const FVector& Delta, const FHitResult &Hit, struct UCharacterMovementComponent::FStepDownResult* OutStepDownResult = NULL);
 
 	/** Update the base of the actor */
-	virtual void SetBase(UPrimitiveComponent* NewBase, bool bNotifyActor=true);
+	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
 
 	/** Applies repulsion force to all touched components */
 	void ApplyRepulsionForce(float DeltaTime);
@@ -1436,6 +1436,7 @@ public:
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
+	FQuat StartBaseRotation; // rotation of the base component, only saved if it can move.
 	float StartCapsuleRadius;
 	float StartCapsuleHalfHeight;
 
