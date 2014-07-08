@@ -27,6 +27,28 @@ FGameplayAbilitiesEditor::~FGameplayAbilitiesEditor()
 void FGameplayAbilitiesEditor::InitGameplayAbilitiesEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
 	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
+
+	for (auto Blueprint : InBlueprints)
+	{
+		EnsureGameplayAbilityBlueprintIsUpToDate(Blueprint);
+	}
+}
+
+void FGameplayAbilitiesEditor::EnsureGameplayAbilityBlueprintIsUpToDate(UBlueprint* Blueprint)
+{
+#if WITH_EDITORONLY_DATA
+	int32 Count = Blueprint->UbergraphPages.Num();
+	for (auto Graph : Blueprint->UbergraphPages)
+	{
+		// remove the default event graph, if it exists, from existing Gameplay Ability Blueprints
+		if (Graph->GetName() == "EventGraph" && Graph->Nodes.Num() == 0)
+		{
+			check(!Graph->Schema->GetClass()->IsChildOf(UGameplayAbilityGraphSchema::StaticClass()));
+			FBlueprintEditorUtils::RemoveGraph(Blueprint, Graph);
+			break;
+		}
+	}
+#endif
 }
 
 FName FGameplayAbilitiesEditor::GetToolkitFName() const

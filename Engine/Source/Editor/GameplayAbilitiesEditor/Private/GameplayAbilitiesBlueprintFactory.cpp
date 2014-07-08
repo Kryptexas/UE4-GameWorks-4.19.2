@@ -280,6 +280,12 @@ UObject* UGameplayAbilitiesBlueprintFactory::FactoryCreateNew(UClass* Class, UOb
 
 				// Only allow a gameplay ability graph if there isn't one in a parent blueprint
 				UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(NewBP, TEXT("Gameplay Ability Graph"), UGameplayAbilityGraph::StaticClass(), UGameplayAbilityGraphSchema::StaticClass());
+#if WITH_EDITORONLY_DATA
+				if (NewBP->UbergraphPages.Num())
+				{
+					FBlueprintEditorUtils::RemoveGraphs(NewBP, NewBP->UbergraphPages);
+				}
+#endif
 				FBlueprintEditorUtils::AddUbergraphPage(NewBP, NewGraph);
 				NewBP->LastEditedDocuments.Add(NewGraph);
 				NewGraph->bAllowDeletion = false;

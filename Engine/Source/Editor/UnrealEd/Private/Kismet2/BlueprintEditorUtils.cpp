@@ -1774,6 +1774,7 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 			Blueprint->DelegateSignatureGraphs.Remove( GraphToRemove );
 			Blueprint->FunctionGraphs.Remove( GraphToRemove );
 			Blueprint->UbergraphPages.Remove( GraphToRemove );
+			Blueprint->LastEditedDocuments.Remove( GraphToRemove );
 			if(Blueprint->MacroGraphs.Remove( GraphToRemove ) > 0 ) 
 			{
 				//removes all macro nodes using this macro graph
