@@ -1072,6 +1072,34 @@ void DrawDirectionalArrow(FPrimitiveDrawInterface* PDI,const FMatrix& ArrowToWor
 }
 
 /**
+ * Draws a directional arrow with connected spokes.
+ *
+ * @param	PDI				Draw interface.
+ * @param	ArrowToWorld	Transform matrix for the arrow.
+ * @param	Color			Color of the arrow.
+ * @param	ArrowHeight		Height of the the arrow head.
+ * @param	ArrowWidth		Width of the arrow head.
+ * @param	DepthPriority	Depth priority for the arrow.
+ * @param	Thickness		Thickness of the lines used to draw the arrow.
+ * @param	NumSpokes		Number of spokes used to make the arrow head.
+ */
+void DrawConnectedArrow(class FPrimitiveDrawInterface* PDI, const FMatrix& ArrowToWorld, const FLinearColor& Color, float ArrowHeight, float ArrowWidth, uint8 DepthPriority, float Thickness, int32 NumSpokes)
+{
+	float RotPerSpoke = (2.0f * PI) / (float)NumSpokes;
+	FQuat Rotator(FVector(1.0f, 0.0f, 0.0f), RotPerSpoke);
+
+	FVector Origin = ArrowToWorld.GetOrigin();
+	FVector SpokePoint = FVector(-ArrowHeight, ArrowWidth, 0);
+	for(int32 CurrSpoke = 0 ; CurrSpoke < NumSpokes ; ++CurrSpoke)
+	{
+		PDI->DrawLine(Origin, ArrowToWorld.TransformPosition(SpokePoint), Color, DepthPriority, Thickness);
+		FVector PrevPoint = SpokePoint;
+		SpokePoint = Rotator.RotateVector(SpokePoint);
+		PDI->DrawLine(ArrowToWorld.TransformPosition(PrevPoint), ArrowToWorld.TransformPosition(SpokePoint), Color, DepthPriority, Thickness);
+	}
+}
+
+/**
  * Draws a axis-aligned 3 line star.
  *
  * @param	PDI				Draw interface.
