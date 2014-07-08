@@ -12,6 +12,7 @@ class UAbilityTask_WaitMovementModeChange;
 class UAbilityTask_WaitOverlap;
 class UAbilityTask_WaitConfirmCancel;
 
+// meta =(RestrictedToClasses="GameplayAbility")
 UCLASS(MinimalAPI)
 class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {

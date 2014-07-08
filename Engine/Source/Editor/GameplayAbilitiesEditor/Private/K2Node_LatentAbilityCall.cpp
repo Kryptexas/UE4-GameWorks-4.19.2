@@ -7,6 +7,7 @@
 #include "BlueprintEditorUtils.h"
 #include "K2Node_LatentAbilityCall.h"
 #include "GameplayAbilityGraphSchema.h"
+#include "K2Node_EnumLiteral.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -132,6 +133,21 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 
 	SpawnParmPins.Empty();
 
+	// Tasks can hide spawn parameters by doing meta = (HideSpawnParms="PropertyA,PropertyB")
+	// (For example, hide Instigator in situations where instigator is not relevant to your task)
+	
+	TArray<FString> IgnorePropertyList;
+	{
+		UFunction* ProxyFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
+
+		FString IgnorePropertyListStr = ProxyFunction->GetMetaData(FName(TEXT("HideSpawnParms")));
+	
+		if (!IgnorePropertyListStr.IsEmpty())
+		{
+			IgnorePropertyListStr.ParseIntoArray(&IgnorePropertyList, TEXT(","), true);
+		}
+	}
+
 	for (TFieldIterator<UProperty> PropertyIt(InClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 	{
 		UProperty* Property = *PropertyIt;
@@ -144,11 +160,13 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 			!Property->HasAnyPropertyFlags(CPF_Parm) &&
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
-			!bIsDelegate)
+			!bIsDelegate && 
+			!IgnorePropertyList.Contains(Property->GetName()))
 		{
+
+
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
-			Pin->bDefaultValueIsIgnored = true;
 			SpawnParmPins.Add(Pin);
 		}
 	}
@@ -417,10 +435,10 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 	// -------------------------------------------
 	// Set spawn variables
 	// -------------------------------------------
-
+	
 	for (auto SpawnVarPin : SpawnParmPins)
 	{
-		if (SpawnVarPin->LinkedTo.Num() > 0)
+		if (SpawnVarPin->LinkedTo.Num() > 0 || SpawnVarPin->DefaultValue != FString())
 		{
 			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(SpawnVarPin->PinType);
 			if (SetByNameFunction)
@@ -452,14 +470,32 @@ void UK2Node_LatentAbilityCall::ExpandNode(class FKismetCompilerContext& Compile
 				// Fill in literal for 'property name' pin - name of pin is property name
 				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
 				PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
-
-				// Move connection from the variable pin on the spawn node to the 'value' pin
+				
 				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-				CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
-				SetVarNode->PinConnectionListChanged(ValuePin);
+				if (SpawnVarPin->LinkedTo.Num() == 0 &&
+					SpawnVarPin->DefaultValue != FString() &&
+					SpawnVarPin->PinType.PinCategory == Schema->PC_Byte &&
+					SpawnVarPin->PinType.PinSubCategoryObject.IsValid() &&
+					SpawnVarPin->PinType.PinSubCategoryObject->IsA<UEnum>())
+				{
+					// Pin is an enum, we need to alias the enum value to an int:
+					UK2Node_EnumLiteral* EnumLiteralNode = CompilerContext.SpawnIntermediateNode<UK2Node_EnumLiteral>(this, SourceGraph);
+					EnumLiteralNode->Enum = CastChecked<UEnum>(SpawnVarPin->PinType.PinSubCategoryObject.Get());
+					EnumLiteralNode->AllocateDefaultPins();
+					EnumLiteralNode->FindPinChecked(Schema->PN_ReturnValue)->MakeLinkTo(ValuePin);
+
+					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *EnumLiteralNode->FindPin(TEXT("Enum")));
+					SetVarNode->PinConnectionListChanged(ValuePin);					
+				}
+				else
+				{
+					// Move connection from the variable pin on the spawn node to the 'value' pin
+					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
+					SetVarNode->PinConnectionListChanged(ValuePin);
+				}
 			}
 		}
-	}
+	}	
 		
 
 	// -------------------------------------------
