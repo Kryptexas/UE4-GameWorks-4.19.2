@@ -23,6 +23,7 @@ public class Perforce : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
+			P4APIPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Perforce/p4api-2014.1/";
 			LibFolder += "mac";
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -54,7 +55,7 @@ public class Perforce : ModuleRules
 		PublicSystemIncludePaths.Add(P4APIPath + "include");
 		PublicAdditionalLibraries.Add(LibPrefix + "libclient" + LibPostfixAndExt);
 
-		if (Target.Platform != UnrealTargetPlatform.Win64)
+		if (Target.Platform != UnrealTargetPlatform.Win64 && Target.Platform != UnrealTargetPlatform.Mac)
 		{
 			PublicAdditionalLibraries.Add(LibPrefix + "libp4sslstub" + LibPostfixAndExt);
 		}
