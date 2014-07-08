@@ -164,9 +164,9 @@ void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
 		OnSelectedWidgetsChanging.Broadcast();
 
-		CleanSelection();
-
 		UpdatePreview(InBlueprint, true);
+
+		CleanSelection();
 
 		// Fire the selection updated event to ensure everyone is watching the same widgets.
 		OnSelectedWidgetsChanged.Broadcast();
