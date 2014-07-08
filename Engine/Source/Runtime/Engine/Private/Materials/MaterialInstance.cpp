@@ -1582,23 +1582,39 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES )
 	{
-		Ar << bOverrideBaseProperties;
-		bool bHasPropertyOverrides = NULL != BasePropertyOverrides;
-		Ar << bHasPropertyOverrides;
-		if( bHasPropertyOverrides )
+		if( Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_PROPERTY_OVERRIDE_SERIALIZE )
 		{
-			if( !BasePropertyOverrides )
+			// awful old native serialize of FMaterialInstanceBasePropertyOverrides UStruct
+			Ar << bOverrideBaseProperties;
+			bool bHasPropertyOverrides = false;
+			Ar << bHasPropertyOverrides;
+			if( bHasPropertyOverrides )
 			{
-				BasePropertyOverrides = new FMaterialInstanceBasePropertyOverrides();
-				BasePropertyOverrides->Init(*this);
+				Ar << BasePropertyOverrides.bOverride_OpacityMaskClipValue << BasePropertyOverrides.OpacityMaskClipValue;
+
+				if( Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_PHASE_2 )
+				{
+					Ar	<< BasePropertyOverrides.bOverride_BlendMode << BasePropertyOverrides.BlendMode
+						<< BasePropertyOverrides.bOverride_ShadingModel << BasePropertyOverrides.ShadingModel
+						<< BasePropertyOverrides.bOverride_TwoSided;
+
+					bool bTwoSided;
+					Ar << bTwoSided;
+					BasePropertyOverrides.TwoSided = bTwoSided;
+
+					// unrelated but closest change to bug
+					if( Ar.UE4Ver() < VER_UE4_STATIC_SHADOW_DEPTH_MAPS )
+					{
+						// switched enum order
+						switch( BasePropertyOverrides.ShadingModel )
+						{
+							case MSM_Unlit:			BasePropertyOverrides.ShadingModel = MSM_DefaultLit; break;
+							case MSM_DefaultLit:	BasePropertyOverrides.ShadingModel = MSM_Unlit; break;
+						}
+					}
+				}
 			}
-			Ar << *BasePropertyOverrides;
 		}
-	}
-	else
-	{
-		bOverrideBaseProperties = false;
-		BasePropertyOverrides = NULL;
 	}
 }
 
@@ -1639,7 +1655,7 @@ void UMaterialInstance::PostLoad()
 	}
 
 	// Update bHasStaticPermutationResource in case the parent was not found
-	bHasStaticPermutationResource = (!StaticParameters.IsEmpty() || (bOverrideBaseProperties && BasePropertyOverrides)) && Parent;
+	bHasStaticPermutationResource = (!StaticParameters.IsEmpty() || bOverrideBaseProperties) && Parent;
 
 	STAT(double MaterialLoadTime = 0);
 	{
@@ -1733,12 +1749,6 @@ void UMaterialInstance::FinishDestroy()
 	}
 
 	ClearAllCachedCookedPlatformData();
-
-	if( BasePropertyOverrides )
-	{
-		delete BasePropertyOverrides;
-		BasePropertyOverrides = NULL;
-	}
 
 	Super::FinishDestroy();
 }
@@ -1935,7 +1945,7 @@ void UMaterialInstance::UpdateStaticPermutation(const FStaticParameterSet& NewPa
 	TrimToOverriddenOnly(CompareParameters.StaticComponentMaskParameters);
 	TrimToOverriddenOnly(CompareParameters.TerrainLayerWeightParameters);
 
-	const bool bWantsStaticPermutationResource = (!CompareParameters.IsEmpty() || (BasePropertyOverrides && bOverrideBaseProperties) || bForceRecompile) && Parent;
+	const bool bWantsStaticPermutationResource = (!CompareParameters.IsEmpty() || bOverrideBaseProperties || bForceRecompile) && Parent;
 
 	if (bForceRecompile || bHasStaticPermutationResource != bWantsStaticPermutationResource || StaticParameters != CompareParameters)
 	{
@@ -2315,9 +2325,9 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 {
 	FSHA1 HashState;
 
-	if( bOverrideBaseProperties && BasePropertyOverrides )
+	if( bOverrideBaseProperties )
 	{
-		BasePropertyOverrides->UpdateHash(HashState);
+		BasePropertyOverrides.UpdateHash(HashState);
 	}
 	
 	HashState.Final();
@@ -2327,18 +2337,18 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 float UMaterialInstance::GetOpacityMaskClipValue_Internal() const
 {
 	checkSlow(IsInGameThread());
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_OpacityMaskClipValue )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_OpacityMaskClipValue )
 	{
-		return BasePropertyOverrides->OpacityMaskClipValue;
+		return BasePropertyOverrides.OpacityMaskClipValue;
 	}
 	return GetMaterial()->GetOpacityMaskClipValue();
 }
 EBlendMode UMaterialInstance::GetBlendMode_Internal() const
 {
 	checkSlow(IsInGameThread());
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_BlendMode )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_BlendMode )
 	{
-		return BasePropertyOverrides->BlendMode;
+		return BasePropertyOverrides.BlendMode;
 	}
 	return GetMaterial()->GetBlendMode();
 }
@@ -2346,9 +2356,9 @@ EBlendMode UMaterialInstance::GetBlendMode_Internal() const
 EMaterialShadingModel UMaterialInstance::GetShadingModel_Internal() const
 {
 	checkSlow(IsInGameThread());
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_ShadingModel )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_ShadingModel )
 	{
-		return BasePropertyOverrides->ShadingModel;
+		return BasePropertyOverrides.ShadingModel;
 	}
 	return GetMaterial()->GetShadingModel();
 }
@@ -2356,18 +2366,18 @@ EMaterialShadingModel UMaterialInstance::GetShadingModel_Internal() const
 bool UMaterialInstance::IsTwoSided_Internal() const
 {
 	checkSlow(IsInGameThread());
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_TwoSided )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_TwoSided )
 	{
-		return BasePropertyOverrides->TwoSided != 0;
+		return BasePropertyOverrides.TwoSided != 0;
 	}
 	return GetMaterial()->IsTwoSided();
 }
 
 bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const
 {
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_OpacityMaskClipValue )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_OpacityMaskClipValue )
 	{
-		OutResult = BasePropertyOverrides->OpacityMaskClipValue;
+		OutResult = BasePropertyOverrides.OpacityMaskClipValue;
 		return true;
 	}
 	return false;
@@ -2375,9 +2385,9 @@ bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const
 
 bool UMaterialInstance::GetBlendModeOverride(EBlendMode& OutResult) const
 {
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_BlendMode )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_BlendMode )
 	{
-		OutResult = BasePropertyOverrides->BlendMode;
+		OutResult = BasePropertyOverrides.BlendMode;
 		return true;
 	}
 	return false;
@@ -2385,9 +2395,9 @@ bool UMaterialInstance::GetBlendModeOverride(EBlendMode& OutResult) const
 
 bool UMaterialInstance::GetShadingModelOverride(EMaterialShadingModel& OutResult) const
 {
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_ShadingModel )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_ShadingModel )
 	{
-		OutResult = BasePropertyOverrides->ShadingModel;
+		OutResult = BasePropertyOverrides.ShadingModel;
 		return true;
 	}
 	return false;
@@ -2395,9 +2405,9 @@ bool UMaterialInstance::GetShadingModelOverride(EMaterialShadingModel& OutResult
 
 bool UMaterialInstance::IsTwoSidedOverride(bool& OutResult) const
 {
-	if( bOverrideBaseProperties && BasePropertyOverrides && BasePropertyOverrides->bOverride_TwoSided )
+	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_TwoSided )
 	{
-		OutResult = BasePropertyOverrides->TwoSided != 0;
+		OutResult = BasePropertyOverrides.TwoSided != 0;
 		return true;
 	}
 	return false;

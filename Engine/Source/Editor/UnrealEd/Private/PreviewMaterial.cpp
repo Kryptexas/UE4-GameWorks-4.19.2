@@ -574,14 +574,8 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 			}
 		}
 
-		//Create the source instance base overrides too. The source instance owns this from this point on.
-		if( !SourceInstance->BasePropertyOverrides )
-		{
-			SourceInstance->BasePropertyOverrides = new FMaterialInstanceBasePropertyOverrides();
-			SourceInstance->BasePropertyOverrides->Init(*SourceInstance);
-		}
 		//Check for changes to see if we need to force a recompile
-		bool bForceRecompile = SourceInstance->BasePropertyOverrides->Update(BasePropertyOverrides);
+		bool bForceRecompile = SourceInstance->BasePropertyOverrides.Update(BasePropertyOverrides);
 		bForceRecompile |= SourceInstance->bOverrideBaseProperties != bOverrideBaseProperties;
 		SourceInstance->bOverrideBaseProperties = bOverrideBaseProperties;
 		
@@ -680,10 +674,7 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	//Init the base property overrides.
 	BasePropertyOverrides.Init(*SourceInstance);
 	bOverrideBaseProperties = SourceInstance->bOverrideBaseProperties;
-	if( SourceInstance->BasePropertyOverrides )
-	{
-		BasePropertyOverrides = *SourceInstance->BasePropertyOverrides;
-	}
+	BasePropertyOverrides = SourceInstance->BasePropertyOverrides;
 
 	// Copy the Lightmass settings...
 	LightmassSettings.CastShadowAsMasked.bOverride = SourceInstance->GetOverrideCastShadowAsMasked();

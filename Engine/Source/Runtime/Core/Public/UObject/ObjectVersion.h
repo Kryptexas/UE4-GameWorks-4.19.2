@@ -576,6 +576,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_LB_WEIGHTBLEND,
 	// Add root component to an foliage actor, all foliage cluster components will be attached to a root
 	VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR,
+	// FMaterialInstanceBasePropertyOverrides didn't use proper UObject serialize
+	VER_UE4_FIX_MATERIAL_PROPERTY_OVERRIDE_SERIALIZE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

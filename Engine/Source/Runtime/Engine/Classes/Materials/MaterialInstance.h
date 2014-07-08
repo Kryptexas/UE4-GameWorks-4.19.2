@@ -1,15 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
+
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceBasePropertyOverrides.h"
 #include "StaticParameterSet.h"
 #include "MaterialInstance.generated.h"
 
 //
 // Forward declarations.
 //
-struct FMaterialInstanceBasePropertyOverrides;
 class FMaterialShaderMap;
 class FMaterialShaderMapId;
 class FSHAHash;
@@ -169,7 +169,8 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	bool bOverrideBaseProperties;
 
-	FMaterialInstanceBasePropertyOverrides* BasePropertyOverrides;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance, meta=(editcondition = "bOverrideBaseProperties"))
+	struct FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	/** 
 	 * FMaterialRenderProxy derivatives that represent this material instance to the renderer, when the renderer needs to fetch parameter values. 

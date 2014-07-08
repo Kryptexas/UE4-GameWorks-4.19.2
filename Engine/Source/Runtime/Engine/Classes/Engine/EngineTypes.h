@@ -65,6 +65,7 @@ enum ESceneDepthPriorityGroup
 };
 
 /** Note: This is mirrored in Lightmass, be sure to update the blend mode structure and logic there if this changes. */
+// Note: Check UMaterialInstance::Serialize if changed!!
 UENUM(BlueprintType)
 enum EBlendMode
 {
@@ -108,6 +109,7 @@ enum ETrailWidthMode
 	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
 };
 
+// Note: Check UMaterialInstance::Serialize if changed!!
 UENUM()
 enum EMaterialShadingModel
 {

@@ -51,25 +51,4 @@ struct ENGINE_API FMaterialInstanceBasePropertyOverrides
 
 	bool operator==(const FMaterialInstanceBasePropertyOverrides& Other)const;
 	bool operator!=(const FMaterialInstanceBasePropertyOverrides& Other)const;
-
-	friend FArchive& operator<<(FArchive& Ar, FMaterialInstanceBasePropertyOverrides& Ref)
-	{
-		Ar	<< Ref.bOverride_OpacityMaskClipValue << Ref.OpacityMaskClipValue;
-
-		if( Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_PHASE_2 )
-		{
-			Ar	<< Ref.bOverride_BlendMode << Ref.BlendMode
-				<< Ref.bOverride_ShadingModel << Ref.ShadingModel
-				<< Ref.bOverride_TwoSided;
-
-			bool bTwoSided = Ref.TwoSided != 0;
-			Ar << bTwoSided;
-			if( Ar.IsLoading() )
-			{
-				Ref.TwoSided = bTwoSided;
-			}
-		}
-
-		return Ar;
-	}
 };
