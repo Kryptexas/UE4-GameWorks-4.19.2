@@ -2,6 +2,7 @@
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "MacNativeFeedbackContext.h"
+#include "MacApplication.h"
 
 @implementation FMacNativeFeedbackContextWindowController
 
