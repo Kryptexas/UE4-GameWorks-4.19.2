@@ -4,7 +4,8 @@
 
 #include "Slate.h"
 
-class FUMGStyle
+/**  */
+class UMG_API FUMGStyle
 {
 public:
 
