@@ -2338,7 +2338,7 @@ bool ALandscapeProxy::ExportToRawMesh(int32 InExportLOD, FRawMesh& OutRawMesh) c
 					FVector LocalVertexPos = CDI.GetWorldVertex(VertexX, VertexY);
 
 					FVector LocalTangentX, LocalTangentY, LocalTangentZ;
-					CDI.GetWorldTangentVectors(VertexX, VertexY, LocalTangentX, LocalTangentY, LocalTangentZ);
+					CDI.GetLocalTangentVectors(VertexX, VertexY, LocalTangentX, LocalTangentY, LocalTangentZ);
 
 					OutRawMesh.VertexPositions[VertexIdx] = LocalVertexPos;
 					OutRawMesh.WedgeTangentX[VertexIdx] = LocalTangentX;
