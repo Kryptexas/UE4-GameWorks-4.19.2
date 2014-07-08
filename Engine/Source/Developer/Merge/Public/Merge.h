@@ -48,6 +48,6 @@ public:
 	 *
 	 * @return The merge view widget
 	 */
-	virtual TSharedPtr<SWidget> GenerateMergeWidget( const UBlueprint& Object, FBlueprintEditor& Editor ) = 0;
+	virtual TSharedPtr<class SWidget> GenerateMergeWidget( const UBlueprint& Object, FBlueprintEditor& Editor ) = 0;
 };
 
