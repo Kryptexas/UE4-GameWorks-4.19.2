@@ -254,6 +254,11 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				throw new AutomationException("{0} and {1} can't be set simultaneously.", GlobalCommandLine.NoSubmit.Name, GlobalCommandLine.Submit.Name);
 			}
+
+			if (GlobalCommandLine.Rocket)
+			{
+				UnrealBuildTool.UnrealBuildTool.bRunningRocket = true;
+			}
 		}
 
 		#endregion

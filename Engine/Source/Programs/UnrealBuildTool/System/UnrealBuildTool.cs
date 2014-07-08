@@ -51,7 +51,7 @@ namespace UnrealBuildTool
         static UnrealTargetPlatform OnlyPlatformSpecificFor = UnrealTargetPlatform.Unknown;
 
         /** Are we running for Rocket */
-		static bool bRunningRocket = false;
+		static public bool bRunningRocket = false;
 
 		/** Are we building Rocket */
 		static bool bBuildingRocket = false;
