@@ -1196,13 +1196,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformSplash::Show();
 	}
 
-	EKeys::Initialize();
-	FCoreStyle::ResetToDefault();
-
 	if (!IsRunningDedicatedServer() && (bHasEditorToken || bIsRegularClient))
 	{
 		// Init platform application
 		FSlateApplication::Create();
+	}
+	else
+	{
+		// If we're not creating the slate application there is some basic initialization
+		// that it does that still must be done
+		EKeys::Initialize();
+		FCoreStyle::ResetToDefault();
 	}
 
 	{
