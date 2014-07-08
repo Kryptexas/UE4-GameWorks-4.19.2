@@ -355,6 +355,7 @@ public:
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 
 	// End of SWidget interface
 public:
@@ -568,6 +569,9 @@ protected:
 
 	/** Offset in the panel the user started the LMB+RMB zoom from */
 	FVector2D ZoomStartOffset;
+
+	/** Cumulative magnify delta from trackpad gesture */
+	float TotalGestureMagnify;
 public:
 	/** Nodes selected in this instance of the editor; the selection is per-instance of the GraphEditor */
 	FGraphSelectionManager SelectionManager;

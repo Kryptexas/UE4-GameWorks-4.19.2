@@ -306,6 +306,7 @@ void SNodePanel::Construct()
 	OldViewOffset = ViewOffset;
 	OldZoomAmount = GetZoomAmount();
 	ZoomStartOffset = FVector2D::ZeroVector;
+	TotalGestureMagnify = 0.0f;
 
 	ScopedTransactionPtr.Reset();
 }
@@ -920,10 +921,15 @@ FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEv
 	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
 	if (GestureType == EGestureEvent::Magnify)
 	{
-		// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
-		const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
-		const int32 ZoomLevelDelta = FMath::FloorToInt(GestureDelta.X * 10);
-		ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+		TotalGestureMagnify += GestureDelta.X;
+		if (FMath::Abs(TotalGestureMagnify) > 0.07f)
+		{
+			// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
+			const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
+			const int32 ZoomLevelDelta = TotalGestureMagnify > 0.0f ? 1 : -1;
+			ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+			TotalGestureMagnify = 0.0f;
+		}
 		return FReply::Handled();
 	}
 	else if (GestureType == EGestureEvent::Scroll)
@@ -932,6 +938,12 @@ FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEv
 		ViewOffset -= GestureDelta / GetZoomAmount();
 		return FReply::Handled();
 	}
+	return FReply::Unhandled();
+}
+
+FReply SNodePanel::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
+{
+	TotalGestureMagnify = 0.0f;
 	return FReply::Unhandled();
 }
 
