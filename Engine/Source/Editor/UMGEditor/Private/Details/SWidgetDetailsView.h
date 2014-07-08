@@ -7,7 +7,9 @@
 
 #include "WidgetTemplate.h"
 
-/**  */
+/**
+ * The details view used in the designer section of the widget blueprint editor.
+ */
 class SWidgetDetailsView : public SCompoundWidget
 {
 public:
@@ -27,9 +29,26 @@ private:
 
 	void ClearFocusIfOwned();
 
+	EVisibility GetNameAreaVisibility() const;
+
+	const FSlateBrush* GetNameIcon() const;
+
+	FText GetNameText() const;
+
+	bool HandleVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
+
+	void HandleNameTextChanged(const FText& Text);
+	void HandleNameTextCommitted(const FText& Text, ETextCommit::Type CommitType);
+
+	ESlateCheckBoxState::Type GetIsVariable() const;
+
+	void HandleIsVariableChanged(ESlateCheckBoxState::Type CheckState);
+
 private:
 	/** The editor that owns this details view */
 	TWeakPtr<class FWidgetBlueprintEditor> BlueprintEditor;
+
+	TSharedPtr<SEditableTextBox> NameTextBox;
 	
 	/** Property viewing widget */
 	TSharedPtr<class IDetailsView> PropertyView;

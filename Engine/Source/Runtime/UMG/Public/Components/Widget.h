@@ -54,7 +54,7 @@ public:
 	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
 	 * as variables, so this allows only the most useful ones to end up being exposed.
 	 */
-	UPROPERTY(EditDefaultsOnly, Category=Variable)
+	UPROPERTY()
 	bool bIsVariable;
 
 	/** Flag if the Widget was created from a blueprint */
