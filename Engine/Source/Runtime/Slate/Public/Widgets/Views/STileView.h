@@ -269,7 +269,7 @@ protected:
 		}
 		else if ( AllowOverscroll == EAllowOverscroll::Yes && S::Overscroll.ShouldApplyOverscroll( S::ScrollOffset == 0, S::bWasAtEndOfList, ScrollByAmountInSlateUnits ) )
 		{
-			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / (10 * GetNumItemsWide());
+			const float UnclampedScrollDelta = ScrollByAmountInSlateUnits / GetNumItemsWide();
 			const float ActuallyScrolledBy = S::Overscroll.ScrollBy( UnclampedScrollDelta );
 			if (ActuallyScrolledBy != 0.0f)
 			{

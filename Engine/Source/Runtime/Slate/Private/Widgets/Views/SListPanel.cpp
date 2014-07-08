@@ -15,6 +15,7 @@ void SListPanel::Construct( const FArguments& InArgs )
 {
 	PreferredRowNum = 0;
 	SmoothScrollOffsetInItems = 0;
+	OverscrollAmount = 0;
 	ItemWidth = InArgs._ItemWidth;
 	ItemHeight = InArgs._ItemHeight;
 	NumDesiredItems = InArgs._NumDesiredItems;
@@ -57,7 +58,7 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		float WidthSoFar = 0;
 		float LocalItemWidth = ItemWidth.Get();
 		float LocalItemHeight = ItemHeight.Get();
-		float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * LocalItemHeight);
+		float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * LocalItemHeight) - OverscrollAmount;
 
 		for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 		{
@@ -79,7 +80,7 @@ void SListPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArranged
 		if (Children.Num() > 0)
 		{
 			// This is a normal list, arrange items vertically
-			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].Widget->GetDesiredSize().Y);
+			float HeightSoFar = -FMath::FloorToInt(SmoothScrollOffsetInItems * Children[0].Widget->GetDesiredSize().Y)-OverscrollAmount;
 			for( int32 ItemIndex = 0; ItemIndex < Children.Num(); ++ItemIndex )
 			{
 					const FVector2D ItemDesiredSize = Children[ItemIndex].Widget->GetDesiredSize();
@@ -176,6 +177,11 @@ FChildren* SListPanel::GetChildren()
 void SListPanel::SmoothScrollOffset(float InOffsetInItems)
 {
 	SmoothScrollOffsetInItems = InOffsetInItems;
+}
+
+void SListPanel::SetOverscrollAmount( float InOverscrollAmount )
+{
+	OverscrollAmount = InOverscrollAmount;
 }
 
 /** Remove all the children from this panel */

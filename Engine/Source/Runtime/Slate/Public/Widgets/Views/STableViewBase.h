@@ -253,7 +253,7 @@ protected:
 	{
 	public:
 
-		FOverscroll( const float InMaxOverscroll );
+		FOverscroll();
 
 		/** @return The Amount actually scrolled */
 		float ScrollBy( float Delta );
@@ -278,9 +278,6 @@ protected:
 	private:
 		/** How much we've over-scrolled above/below the beginning/end of the list. */
 		float OverscrollAmount;
-
-		/** The maximum amount that we can scroll past the edge. */
-		const float MaxOverscroll;
 	} Overscroll;
 
 private:

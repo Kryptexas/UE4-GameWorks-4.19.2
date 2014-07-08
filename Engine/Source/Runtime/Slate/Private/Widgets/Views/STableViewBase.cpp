@@ -5,8 +5,8 @@
 
 namespace ListConstants
 {
-	static const float OvershootMax = 50.0f;
-	static const float OvershootBounceRate = 350.0f;
+	static const float OvershootMax = 150.0f;
+	static const float OvershootBounceRate = 250.0f;
 }
 
 void STableViewBase::ConstructChildren( const TAttribute<float>& InItemWidth, const TAttribute<float>& InItemHeight, const TSharedPtr<SHeaderRow>& InHeaderRow, const TSharedPtr<SScrollBar>& InScrollBar )
@@ -198,8 +198,9 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			
 			
 			ScrollOffset = FMath::Max(0.0, ScrollOffset);
+			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) );
 			const float OverscrollAmount = Overscroll.GetOverscroll();
-			ItemsPanel->SmoothScrollOffset( FMath::Fractional(ScrollOffset / GetNumItemsWide()) +  OverscrollAmount );
+			ItemsPanel->SetOverscrollAmount( OverscrollAmount );
 			
 
 			UpdateSelectionSet();
@@ -525,7 +526,7 @@ STableViewBase::STableViewBase( ETableViewMode::Type InTableViewMode )
 	, SelectionMode( ESelectionMode::Multi )
 	, SoftwareCursorPosition( ForceInitToZero )
 	, bShowSoftwareCursor( false )
-	, Overscroll( ListConstants::OvershootMax )
+	, Overscroll()
 	, bItemsNeedRefresh( true )	
 {
 }
@@ -669,17 +670,15 @@ TSharedRef<class SWidget> STableViewBase::GetScrollWidget()
 }
 
 
-STableViewBase::FOverscroll::FOverscroll( const float InMaxOverscroll )
+STableViewBase::FOverscroll::FOverscroll()
 : OverscrollAmount( 0.0f )
-, MaxOverscroll( InMaxOverscroll )
 {
 }
 
 float STableViewBase::FOverscroll::ScrollBy( float Delta )
 {
 	const float ValueBeforeDeltaApplied = OverscrollAmount;
-	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount + 1.0f;
-	const float EasedDelta = Delta / OverscrollMagnitude;
+	const float EasedDelta = Delta / (FMath::Abs(OverscrollAmount/ListConstants::OvershootMax)+1.0f);
 	OverscrollAmount = FMath::Clamp(OverscrollAmount + EasedDelta, -ListConstants::OvershootMax, ListConstants::OvershootMax);
 
 	return ValueBeforeDeltaApplied - OverscrollAmount;
@@ -692,8 +691,7 @@ float STableViewBase::FOverscroll::GetOverscroll() const
 
 void STableViewBase::FOverscroll::UpdateOverscroll( float InDeltaTime )
 {
-	const float OverscrollMagnitude = OverscrollAmount*OverscrollAmount;
-	const float PullForce = OverscrollMagnitude + 1.0f;
+	const float PullForce = FMath::Abs(OverscrollAmount) + 1.0f;
 	const float EasedDelta = ListConstants::OvershootBounceRate * InDeltaTime * PullForce;
 
 	if ( OverscrollAmount > 0 )
