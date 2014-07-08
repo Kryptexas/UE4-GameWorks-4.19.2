@@ -88,6 +88,8 @@ void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 			OnlineSessionInt->ClearOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
 		}
 	}
+
+	SessionInt = NULL;
 }
 
 /**

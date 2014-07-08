@@ -1426,6 +1426,7 @@ void UEngine::CleanupGameViewport()
 					Player->PlayerController->CleanupGameViewport();
 				}
 				Player->ViewportClient = NULL;
+				Player->PlayerRemoved();
 				Context.GamePlayers.RemoveAt(idx);
 			}
 		}
