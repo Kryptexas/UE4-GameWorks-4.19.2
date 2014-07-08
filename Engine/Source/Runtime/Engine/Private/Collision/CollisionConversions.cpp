@@ -462,30 +462,65 @@ FVector FindBestOverlappingNormal(const PxGeometry& Geom, const PxTransform& Que
 	return BestPlaneNormal;
 }
 
-// Compute depenetration vector and distance if possible with a slightly larger geometry
-static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PHit, FHitResult& OutResult, const PxTransform& QueryTM, const PxGeometry& Geom, const PxTransform& PShapeWorldPose)
-{
-	if (Geom.getType() == PxGeometryType::eCAPSULE)
-	{
-		const PxCapsuleGeometry* InCapsule = static_cast<const PxCapsuleGeometry*>(&Geom);
-		PxCapsuleGeometry InflatedCapsule(InCapsule->radius + MtdInflation, InCapsule->halfHeight + MtdInflation);
 
-		PxVec3 PxMtdNormal(0.f);
-		PxF32 PxMtdDepth = 0.f;
-		const PxGeometry& POtherGeom = PHit.shape->getGeometry().any();
-		const bool bMtdResult = PxGeometryQuery::computePenetration(PxMtdNormal, PxMtdDepth, InflatedCapsule, QueryTM, POtherGeom, PShapeWorldPose);
-		if (bMtdResult)
+
+static bool ComputeInflatedMTD_Internal(const float MtdInflation, const PxLocationHit& PHit, FHitResult& OutResult, const PxTransform& QueryTM, const PxGeometry& Geom, const PxTransform& PShapeWorldPose)
+{
+	PxGeometry* InflatedGeom = NULL;
+
+	PxVec3 PxMtdNormal(0.f);
+	PxF32 PxMtdDepth = 0.f;
+	const PxGeometry& POtherGeom = PHit.shape->getGeometry().any();
+	const bool bMtdResult = PxGeometryQuery::computePenetration(PxMtdNormal, PxMtdDepth, Geom, QueryTM, POtherGeom, PShapeWorldPose);
+	if (bMtdResult)
+	{
+		if (PxMtdNormal.isFinite())
 		{
-			if (PxMtdNormal.isFinite())
-			{
-				OutResult.ImpactNormal = P2UVector(PxMtdNormal);
-				OutResult.PenetrationDepth = FMath::Max(FMath::Abs(PxMtdDepth) - MtdInflation, 0.f) + KINDA_SMALL_NUMBER;
-				return true;
-			}
+			OutResult.ImpactNormal = P2UVector(PxMtdNormal);
+			OutResult.PenetrationDepth = FMath::Max(FMath::Abs(PxMtdDepth) - MtdInflation, 0.f) + KINDA_SMALL_NUMBER;
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogPhysics, Warning, TEXT("ComputeInflatedMTD_Internal: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), PxMtdNormal.x, PxMtdNormal.y, PxMtdNormal.z);
 		}
 	}
 
 	return false;
+}
+
+
+// Compute depenetration vector and distance if possible with a slightly larger geometry
+static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PHit, FHitResult& OutResult, const PxTransform& QueryTM, const PxGeometry& Geom, const PxTransform& PShapeWorldPose)
+{
+	switch(Geom.getType())
+	{
+		case PxGeometryType::eCAPSULE:
+		{
+			const PxCapsuleGeometry* InCapsule = static_cast<const PxCapsuleGeometry*>(&Geom);
+			PxCapsuleGeometry InflatedCapsule(InCapsule->radius + MtdInflation, InCapsule->halfHeight); // don't inflate halfHeight, radius is added all around.
+			return ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, QueryTM, InflatedCapsule, PShapeWorldPose);
+		}
+
+		case PxGeometryType::eBOX:
+		{
+			const PxBoxGeometry* InBox = static_cast<const PxBoxGeometry*>(&Geom);
+			PxBoxGeometry InflatedBox(InBox->halfExtents + PxVec3(MtdInflation));
+			return ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, QueryTM, InflatedBox, PShapeWorldPose);
+		}
+
+		case PxGeometryType::eSPHERE:
+		{
+			const PxSphereGeometry* InSphere = static_cast<const PxSphereGeometry*>(&Geom);
+			PxSphereGeometry InflatedSphere(InSphere->radius + MtdInflation);
+			return ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, QueryTM, InflatedSphere, PShapeWorldPose);
+		}
+
+		default:
+		{
+			return false;
+		}
+	}
 }
 
 
@@ -531,7 +566,7 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 		OutResult.PenetrationDepth = 0.f;
 		if (!bFiniteNormal)
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("ConvertOverlappedShapeToImpactHit, MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
+			UE_LOG(LogPhysics, Warning, TEXT("ConvertOverlappedShapeToImpactHit: MTD returned NaN :( normal: (X:%f, Y:%f, Z:%f)"), PHit.normal.x, PHit.normal.y, PHit.normal.z);
 		}
 	}
 
