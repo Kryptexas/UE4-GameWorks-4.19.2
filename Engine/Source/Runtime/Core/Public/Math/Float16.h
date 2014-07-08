@@ -59,6 +59,16 @@ public:
 
 	/** Convert from Fp32 to Fp16. */
 	void Set( float FP32Value );
+	
+	/**
+	 * Convert from Fp32 to Fp16 without doing any checks if
+	 * the Fp32 exponent is too large or too small. This is a
+	 * faster alternative to Set() when you know the values
+	 * within the single precision float don't need the checks.
+	 *
+	 * @param FP32Value Single precision float to be set as half precision.
+	 */
+	void SetWithoutBoundsChecks( const float FP32Value );
 
 	/** Convert from Fp16 to Fp32. */
 	float GetFloat() const;
@@ -136,6 +146,19 @@ FORCEINLINE void FFloat16::Set( float FP32Value )
 		Components.Exponent = int32(FP32.Components.Exponent) - 127 + 15;
 		Components.Mantissa = uint16(FP32.Components.Mantissa >> 13);
 	}
+}
+
+FORCEINLINE void FFloat16::SetWithoutBoundsChecks( const float FP32Value )
+{
+	const FFloat32 FP32(FP32Value);
+
+	// Make absolutely sure that you never pass in a single precision floating
+	// point value that may actually need the checks. If you are not 100% sure
+	// of that just use Set().
+
+	Components.Sign = FP32.Components.Sign;
+	Components.Exponent = int32(FP32.Components.Exponent) - 127 + 15;
+	Components.Mantissa = uint16(FP32.Components.Mantissa >> 13);
 }
 
 FORCEINLINE float FFloat16::GetFloat() const

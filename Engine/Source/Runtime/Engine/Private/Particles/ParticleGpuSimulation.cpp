@@ -1119,20 +1119,18 @@ FORCEINLINE int32 ComputeAlignedTileCount(int32 TileCount)
  */
 static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const uint32* Tiles, int32 TileCount )
 {
-	int32 Index;
 	const int32 AlignedTileCount = ComputeAlignedTileCount(TileCount);
 	FVector2D* TileOffset = (FVector2D*)RHILockVertexBuffer( TileOffsetsRef, 0, AlignedTileCount * sizeof(FVector2D), RLM_WriteOnly );
-	for ( Index = 0; Index < TileCount; ++Index )
+	for ( int32 Index = 0; Index < TileCount; ++Index )
 	{
 		const uint32 TileIndex = Tiles[Index];
-		TileOffset[Index] = FVector2D(
-			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
-									  );
+		TileOffset[Index].X = FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX );
+		TileOffset[Index].Y = FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY );
 	}
-	for ( ; Index < AlignedTileCount; ++Index )
+	for ( int32 Index = TileCount; Index < AlignedTileCount; ++Index )
 	{
-		TileOffset[Index] = FVector2D(100.0f, 100.0f);
+		TileOffset[Index].X = 100.0f;
+		TileOffset[Index].Y = 100.0f;
 	}
 	RHIUnlockVertexBuffer( TileOffsetsRef );
 }
@@ -1827,8 +1825,9 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 				// on some platforms, union and/or bitfield writes to Locked memory are really slow, so use a forced int write instead
 				// and in fact one 32-bit write is faster than two uint16 writes (i.e. using .Encoded)
 				FParticleIndex Temp;
-				Temp.X = IndexX;
-				Temp.Y = IndexY;
+				// We use the unsafe version of FP32 -> FP16 conversion because we know all values are in [0,1].
+				Temp.X.SetWithoutBoundsChecks(IndexX);
+				Temp.Y.SetWithoutBoundsChecks(IndexY);
 				*(uint32*)ParticleIndices = *(uint32*)&Temp;
 
 				// move to next particle
