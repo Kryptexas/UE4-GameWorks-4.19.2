@@ -722,6 +722,13 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		}
 	}
 
+	// Optionally queue automation tests
+	FString AutomationCmds;
+	if (FParse::Value(FCommandLine::Get(), TEXT("AutomationTests="), AutomationCmds, false))
+	{
+		new(GEngine->DeferredCommands) FString(FString(TEXT("Automation CommandLineTests ")) + AutomationCmds);
+	}
+
 	// optionally set the vsync console variable
 	if( FParse::Param(FCommandLine::Get(), TEXT("vsync")) )
 	{

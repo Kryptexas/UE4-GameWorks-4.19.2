@@ -144,6 +144,13 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			OutOperationCanceled = true;
 		}
 	}
+	else if (GIsAutomationTesting)
+	{
+		//Automation tests set ImportUI settings directly.  Just copy them over
+		UnFbx::FBXImportOptions* ImportOptions = FbxImporter->GetImportOptions();
+		ApplyImportUIToImportOptions(ImportUI, *ImportOptions);
+		return ImportOptions;
+	}
 	else
 	{
 		return FbxImporter->GetImportOptions();

@@ -62,6 +62,49 @@ struct FExternalToolDefinition
 };
 
 /**
+ * Holds UProperty names and values to customize factory settings
+ */
+USTRUCT()
+struct FImportFactorySettingValues
+{
+	GENERATED_USTRUCT_BODY()
+
+	/* The name of the UProperty to change */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "Name of the property to change.  Nested settings can be modified using \"Outer.Property\""))
+	FString SettingName;
+
+	/* The value to apply to the UProperty */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "Value to import for the specified property."))
+	FString Value;
+};
+
+
+/**
+ * Holds settings for the asset import / export automation test
+ */
+USTRUCT()
+struct FEditorImportExportTestDefinition
+{
+	GENERATED_USTRUCT_BODY()
+
+	/* The file to import */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "*"))
+	FFilePath ImportFilePath;
+
+	/* The file extension to use when exporting */
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "The file extension to use when exporting this asset.  Used to find a supporting exporter"))
+	FString ExportFileExtension;
+
+	/* If true, the export step will be skipped */
+	UPROPERTY(config, EditAnywhere, Category = Automation)
+	bool bSkipExport;
+
+	/* Settings for the import factory */
+	UPROPERTY(config, EditAnywhere, Category=Automation)
+	TArray<FImportFactorySettingValues> FactorySettings;
+};
+
+/**
  * Implements the Editor's user settings.
  */
 UCLASS(config=Engine)
@@ -106,4 +149,10 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, config, Category=ExternalTools)
 	TArray<FExternalToolDefinition> ExternalTools;
+
+	/**
+	 * Asset import / Export test settings
+	 */
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	TArray<FEditorImportExportTestDefinition> ImportExportTestDefinitions;
 };

@@ -26,6 +26,39 @@ namespace
 
 		return GEngine->GetWorldContexts()[0].World();
 	}
+
+	/**
+	* Populates the test names and commands for complex tests that are ran on all available maps
+	*
+	* @param OutBeautifiedNames - The list of map names
+	* @param OutTestCommands - The list of commands for each test (The file names in this case)
+	*/
+	void PopulateTestsForAllAvailableMaps(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands)
+	{
+		TArray<FString> FileList;
+#if WITH_EDITOR
+		FEditorFileUtils::FindAllPackageFiles(FileList);
+#else
+		// Look directly on disk. Very slow!
+		FPackageName::FindPackagesInDirectory(FileList, *FPaths::GameContentDir());
+#endif
+
+		// Iterate over all files, adding the ones with the map extension..
+		for (int32 FileIndex = 0; FileIndex < FileList.Num(); FileIndex++)
+		{
+			const FString& Filename = FileList[FileIndex];
+
+			// Disregard filenames that don't have the map extension if we're in MAPSONLY mode.
+			if (FPaths::GetExtension(Filename, true) == FPackageName::GetMapPackageExtension())
+			{
+				if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+				{
+					OutBeautifiedNames.Add(FPaths::GetBaseFilename(Filename));
+					OutTestCommands.Add(Filename);
+				}
+			}
+		}
+	}
 }
 
 /**
@@ -143,29 +176,7 @@ IMPLEMENT_COMPLEX_AUTOMATION_TEST( FLoadAllMapsInGameTest, "Maps.Load All In Gam
  */
 void FLoadAllMapsInGameTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 {
-	TArray<FString> FileList;
-#if WITH_EDITOR
-	FEditorFileUtils::FindAllPackageFiles(FileList);
-#else
-	// Look directly on disk. Very slow!
-	FPackageName::FindPackagesInDirectory(FileList, *FPaths::GameContentDir());
-#endif
-
-	// Iterate over all files, adding the ones with the map extension..
-	for( int32 FileIndex=0; FileIndex< FileList.Num(); FileIndex++ )
-	{
-		const FString& Filename = FileList[FileIndex];
-
-		// Disregard filenames that don't have the map extension if we're in MAPSONLY mode.
-		if ( FPaths::GetExtension(Filename, true) == FPackageName::GetMapPackageExtension() ) 
-		{
-			if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
-			{
-				OutBeautifiedNames.Add(FPaths::GetBaseFilename(Filename));
-				OutTestCommands.Add(Filename);
-			}
-		}
-	}
+	PopulateTestsForAllAvailableMaps(OutBeautifiedNames, OutTestCommands);
 }
 
 /** 
@@ -266,6 +277,70 @@ bool FLoadGameMapCommand::Update()
 	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
 
 	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
+	return true;
+}
+
+/**
+ * Latent command to run an exec command that also requires a UWorld.
+ */
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FExecWorldStringLatentCommand, FString, ExecCommand);
+
+bool FExecWorldStringLatentCommand::Update()
+{
+	check(GEngine->GetWorldContexts().Num() == 1);
+	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
+
+	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *ExecCommand);
+	return true;
+}
+
+/**
+ * Automation test to load a map and capture FPS performance charts
+ */
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FCinematicFPSPerfTest, "Engine.Cinematic FPS Perf Capture", EAutomationTestFlags::ATF_Game);
+
+void FCinematicFPSPerfTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+{
+	PopulateTestsForAllAvailableMaps(OutBeautifiedNames, OutTestCommands);
+}
+
+bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
+{
+	//Check we are running from commandline
+	const FString CommandLine(FCommandLine::Get());
+	if( CommandLine.Contains(TEXT("AutomationTests")) )
+	{
+		//Get the name of the console event to trigger the cinematic
+		FString CinematicEventCommand;
+		if( !FParse::Value(*CommandLine, TEXT("CE="), CinematicEventCommand) )
+		{
+			CinematicEventCommand = TEXT("CE Start");
+		}
+
+		//Get the length of time to let the cinematic run
+		float RunTime;
+		if( !FParse::Value(*CommandLine, TEXT("RunTime="), RunTime) )
+		{
+			RunTime=5.f;
+		}
+
+		//Load map
+		const FString MapName = Parameters;
+		ADD_LATENT_AUTOMATION_COMMAND(FLoadGameMapCommand(MapName));
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+
+		//Start the matinee and perform the FPS Chart
+		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(CinematicEventCommand));
+		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StartFPSChart")));
+		ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(RunTime));
+		ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
+	}
+	else
+	{
+		UE_LOG(LogEngineAutomationTests, Warning, TEXT("FCinematicFPSPerfTest is a Commandline test.  Please use -AutomationTests=\"Engine.Cinematic FPS Perf Capture\""));
+		return false;
+	}
+
 	return true;
 }
 
