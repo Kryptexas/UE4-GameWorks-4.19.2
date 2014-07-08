@@ -36,8 +36,14 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 	return EBuildConfigurations::Debug;
 
 #elif UE_BUILD_DEVELOPMENT
-	static bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-	return bUsingDebugGame ? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+	// Detect DebugGame using an extern variable in monolithic configurations, or a command line argument in modular configurations.
+	#if IS_MONOLITHIC
+		extern const bool GIsDebugGame;
+		return GIsDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+	#else
+		static const bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+		return bUsingDebugGame? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+	#endif
 
 #elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
 	return EBuildConfigurations::Shipping;

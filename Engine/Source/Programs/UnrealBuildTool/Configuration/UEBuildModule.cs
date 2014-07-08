@@ -1596,10 +1596,11 @@ namespace UnrealBuildTool
 			Result.Config.bEnableExceptions                      = bEnableExceptions;
 			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
 
-			// Switch the optimization flag if we're building a game module
+			// Switch the optimization flag if we're building a game module. Also pass the definition for building in DebugGame along (see ModuleManager.h for notes).
 			if (Target.Configuration == UnrealTargetConfiguration.DebugGame && Type == UEBuildModuleType.Game)
 			{
 				Result.Config.Target.Configuration = CPPTargetConfiguration.Debug;
+				Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
 			}
 
 			// Add the module's private definitions.

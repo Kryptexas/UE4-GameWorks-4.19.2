@@ -945,6 +945,20 @@ class FDefaultGameModuleImpl
 	#define IMPLEMENT_FOREIGN_ENGINE_DIR() 
 #endif
 
+/**
+ * Macro for declaring the GIsDebugGame variable for monolithic development builds. NB: This define, and the UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME defines like it, should NEVER be 
+ * directly used or defined for engine code, because it prevents sharing the same build products with the development build (important for Rocket build sizes). In modular builds, 
+ * DebugGame modules will be loaded by specifying the -debug parameter on the command-line.
+ */
+#if IS_MONOLITHIC && UE_BUILD_DEVELOPMENT
+	#if UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME
+		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = true;
+	#else
+		#define IMPLEMENT_DEBUGGAME() extern const bool GIsDebugGame = false;
+	#endif
+#else
+	#define IMPLEMENT_DEBUGGAME()
+#endif 
 
 #if IS_PROGRAM
 
@@ -952,6 +966,7 @@ class FDefaultGameModuleImpl
 		#define IMPLEMENT_APPLICATION( ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \
+			IMPLEMENT_DEBUGGAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, ModuleName) \
 			PER_MODULE_BOILERPLATE \
@@ -985,6 +1000,7 @@ class FDefaultGameModuleImpl
 			TCHAR GGameName[64] = TEXT( GameName ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
+			IMPLEMENT_DEBUGGAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			PER_MODULE_BOILERPLATE \
@@ -999,6 +1015,7 @@ class FDefaultGameModuleImpl
 		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \
+			IMPLEMENT_DEBUGGAME() \
 			PER_MODULE_BOILERPLATE \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \

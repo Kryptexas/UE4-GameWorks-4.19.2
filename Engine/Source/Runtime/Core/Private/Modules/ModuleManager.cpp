@@ -1138,18 +1138,28 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Get the module configuration for this directory type
-	#if UE_BUILD_DEBUG
-		const TCHAR *ConfigSuffix = TEXT("-Debug");
-	#elif UE_BUILD_DEVELOPMENT
-		static bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-		const TCHAR *ConfigSuffix = (bIsGameDirectory && bUsingDebugGame) ? TEXT("-DebugGame") : NULL;
-	#elif UE_BUILD_TEST
-		const TCHAR *ConfigSuffix = TEXT("-Test");
-	#elif UE_BUILD_SHIPPING
-		const TCHAR *ConfigSuffix = TEXT("-Shipping");
-	#else
-		#error "Unknown configuration type"
-	#endif
+	const TCHAR* ConfigSuffix = NULL;
+	switch(FApp::GetBuildConfiguration())
+	{
+	case EBuildConfigurations::Debug:
+		ConfigSuffix = TEXT("-Debug");
+		break;
+	case EBuildConfigurations::DebugGame:
+		ConfigSuffix = bIsGameDirectory? TEXT("-DebugGame") : NULL;
+		break;
+	case EBuildConfigurations::Development:
+		ConfigSuffix = NULL;
+		break;
+	case EBuildConfigurations::Test:
+		ConfigSuffix = TEXT("-Test");
+		break;
+	case EBuildConfigurations::Shipping:
+		ConfigSuffix = TEXT("-Shipping");
+		break;
+	default:
+		check(false);
+		break;
+	}
 
 	// Get the base name for modules of this application
 	FString ModulePrefix = FPaths::GetBaseFilename(FPlatformProcess::ExecutableName());
@@ -1462,14 +1472,7 @@ void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString
 
 const TCHAR *FModuleManager::GetUBTConfiguration()
 {
-#if UE_BUILD_DEBUG
-	return TEXT("Debug");
-#elif UE_BUILD_SHIPPING
-	return TEXT("Shipping");
-#else
-	static bool bIsDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-	return bIsDebugGame? TEXT("DebugGame") : TEXT("Development");
-#endif
+	return EBuildConfigurations::ToString(FApp::GetBuildConfiguration());
 }
 
 
