@@ -9,8 +9,17 @@
 class FMetalLanguageSpec : public ILanguageSpec
 {
 public:
-	virtual bool SupportsDeterminantIntrinsic() const { return true; }
-	virtual bool SupportsTransposeIntrinsic() const { return true; }
+	virtual bool SupportsDeterminantIntrinsic() const
+	{
+		//@todo-rco: Temp workaround for Seed 2 & 3
+		return false;// true;
+	}
+
+	virtual bool SupportsTransposeIntrinsic() const
+	{
+		//@todo-rco: Temp workaround for Seed 2 & 3
+		return false;// true;
+	}
 	virtual bool SupportsIntegerModulo() const { return true; }
 
 	virtual bool SupportsMatrixConversions() const { return false; }

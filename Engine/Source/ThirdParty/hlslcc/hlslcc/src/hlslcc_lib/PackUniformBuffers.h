@@ -81,6 +81,9 @@ bool ExpandArrayAssignments(exec_list* ir, _mesa_glsl_parse_state* State);
 // Removes the SamplerStates from hlsl while making a map for the textures it references
 bool ExtractSamplerStatesNameInformation(exec_list* Instructions, _mesa_glsl_parse_state* ParseState);
 
+// Expands matrices to arrays to help on some cases (e.g., non-square matrices on ES 2)
+bool ExpandMatricesIntoArrays(exec_list* Instructions, _mesa_glsl_parse_state* ParseState);
+
 #endif
 
 

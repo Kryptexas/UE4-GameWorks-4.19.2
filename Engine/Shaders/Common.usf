@@ -56,8 +56,9 @@
 	#define MaterialFloat4x4 float4x4 
 	#define MaterialFloat4x3 float4x3 
 #endif
- 
-#if COMPILER_GLSL_ES2
+
+//@todo-rco: Temp workaround for Seed 2 & 3
+#if COMPILER_GLSL_ES2 || METAL_PROFILE
 
 	float determinant(float3x3 M)
 	{    

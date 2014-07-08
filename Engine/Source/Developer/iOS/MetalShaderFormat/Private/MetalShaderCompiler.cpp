@@ -1,5 +1,5 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-//
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
+// 
 
 #include "MetalShaderFormat.h"
 #include "Core.h"
@@ -807,7 +807,7 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	}
 
 	const TCHAR* VersionSwitch = TEXT("-metal");
-	const TCHAR* FlattenUB = (CCFlags & HLSLCC_FlattenUniformBuffers) ? TEXT("-flattenub") : TEXT("");
+	const TCHAR* FlattenUB = ((CCFlags & HLSLCC_FlattenUniformBuffers) == HLSLCC_FlattenUniformBuffers) ? TEXT("-flattenub") : TEXT("");
 
 	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, FlattenUB);
 }
@@ -894,15 +894,15 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 			&ErrorLog
 			);
 
+		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
 		if (bDumpDebugInfo)
 		{
-			int32 MetalSourceLen = FCStringAnsi::Strlen(MetalShaderSource);
-			if (MetalSourceLen > 0)
+			if (SourceLen > 0)
 			{
 				FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".metal")));
 				if (FileWriter)
 				{
-					FileWriter->Serialize(MetalShaderSource,MetalSourceLen+1);
+					FileWriter->Serialize(MetalShaderSource, SourceLen + 1);
 					FileWriter->Close();
 					delete FileWriter;
 				}
@@ -911,7 +911,6 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 		if (Result != 0)
 		{
-			int32 SourceLen = FCStringAnsi::Strlen(MetalShaderSource);
 			Output.Target = Input.Target;
 			BuildMetalShaderOutput(Output, Input, MetalShaderSource, SourceLen, Output.Errors);
 		}
