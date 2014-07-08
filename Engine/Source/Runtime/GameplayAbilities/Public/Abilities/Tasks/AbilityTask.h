@@ -55,6 +55,8 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGenericAbilityTaskDelegate);
+
 	// Called to trigger the actual task once the delegates have been set up
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"), Category = "Abilities")
 	virtual void Activate();

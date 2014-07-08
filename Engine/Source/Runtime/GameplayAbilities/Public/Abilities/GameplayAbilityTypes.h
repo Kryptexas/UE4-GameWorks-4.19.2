@@ -15,9 +15,9 @@ UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
 {
 	/**
-	*	How the ability is instanced when executed. This limits what an ability can do in its implementation. For example, a NonInstanced
-	*	Ability cannot have state. It is probably unsafe for an InstancedPerActor ability to have latent actions, etc.
-	*/
+	 *	How the ability is instanced when executed. This limits what an ability can do in its implementation. For example, a NonInstanced
+	 *	Ability cannot have state. It is probably unsafe for an InstancedPerActor ability to have latent actions, etc.
+	 */
 
 	enum Type
 	{

@@ -30,11 +30,6 @@ void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilityActor
 	}
 }
 
-void UGameplayAbility_CharacterJump::PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
-{
-	CallActivateAbility(ActorInfo, ActivationInfo);
-}
-
 void UGameplayAbility_CharacterJump::InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo)
 {
 	// This is the 'top' of the ability execution code path. We don't have an ActivationInfo yet.

@@ -309,6 +309,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	UPROPERTY(Replicated)
 	TArray<UGameplayAbility*>	ReplicatedInstancedAbilities;
 
+	void NotifyAbilityEnded(UGameplayAbility* Ability);
+
 	/**
 	 *	The abilities we can activate. 
 	 *		-This will include CDOs for non instanced abilities and per-execution instanced abilities. 
@@ -436,19 +438,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 private:
 
-	// --------------------------------------------
-	// Important internal functions
-	// --------------------------------------------
-
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
 	void ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
 	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
-
-	// --------------------------------------------
-	// Internal Utility / helper functions
-	// --------------------------------------------
 
 	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const;
 

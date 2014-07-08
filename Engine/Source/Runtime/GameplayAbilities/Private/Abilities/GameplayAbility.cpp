@@ -29,13 +29,6 @@ UGameplayAbility::UGameplayAbility(const class FPostConstructInitializePropertie
 		UFunction* ActivateFunction = GetClass()->FindFunctionByName(FuncName);
 		HasBlueprintActivate = ActivateFunction && ActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 	}
-	{
-		static FName FuncName = FName(TEXT("K2_PredictiveActivateAbility"));
-		UFunction* PredictiveActivateFunction = GetClass()->FindFunctionByName(FuncName);
-		HasBlueprintPredictiveActivate = PredictiveActivateFunction && PredictiveActivateFunction->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
-	}
-
-
 	
 #if WITH_EDITOR
 	/** Autoregister abilities with the blueprint debugger in the editor.*/
@@ -231,7 +224,7 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 			if(GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNone)
 			{
 				UGameplayAbility * Ability = ActorInfo->AbilitySystemComponent->CreateNewInstanceOfAbility(this);
-				Ability->CallPredictiveActivateAbility(ActorInfo, ActivationInfo);
+				Ability->CallActivateAbility(ActorInfo, ActivationInfo);
 				if (OutInstancedAbility)
 				{
 					*OutInstancedAbility = Ability;
@@ -244,7 +237,7 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 		}
 		else
 		{
-			CallPredictiveActivateAbility(ActorInfo, ActivationInfo);
+			CallActivateAbility(ActorInfo, ActivationInfo);
 		}
 		
 		ServerTryActivateAbility(ActorInfo, ActivationInfo);
@@ -255,18 +248,9 @@ bool UGameplayAbility::TryActivateAbility(const FGameplayAbilityActorInfo* Actor
 
 void UGameplayAbility::EndAbility(const FGameplayAbilityActorInfo* ActorInfo)
 {
-	// MarkPending kill if we are instance per execution
-	if (InstancingPolicy == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
-	{
-		// If not replicated, or if authority (clients should not delete subobjects on their own)
-		if (ReplicationPolicy == EGameplayAbilityReplicationPolicy::ReplicateNone || ActorInfo->IsNetAuthority())
-		{
-			MarkPendingKill();
-		}
-	}
-
-	// -Remove from owning AbilitySystemComponent
-	// -generic way of releasing all callbacks
+	ActorInfo->AbilitySystemComponent->NotifyAbilityEnded(this);
+	
+	// TODO: generic way of releasing all callbacks?
 }
 
 void UGameplayAbility::ActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -310,23 +294,12 @@ void UGameplayAbility::CallActivateAbility(const FGameplayAbilityActorInfo* Acto
 	ActivateAbility(ActorInfo, ActivationInfo);
 }
 
-void UGameplayAbility::CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::ConfirmActivateSucceed()
 {
-	PreActivate(ActorInfo, ActivationInfo);
-	PredictiveActivateAbility(ActorInfo, ActivationInfo);
-}
+	CurrentActivationInfo.SetActivationConfirmed();
 
-void UGameplayAbility::PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
-{
-	SetCurrentInfo(ActorInfo, ActivationInfo);
-	
-	check(ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting);
-
-	if (HasBlueprintPredictiveActivate)
-	{
-		K2_PredictiveActivateAbility();
-	}
-	
+	OnConfirmDelegate.Broadcast(this);
+	OnConfirmDelegate.Clear();
 }
 
 void UGameplayAbility::ServerTryActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)

@@ -179,6 +179,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer AbilityTags;
 
+	FGenericAbilityDelegate	OnConfirmDelegate;
+
 protected:
 		
 	// --------------------------------------
@@ -208,6 +210,9 @@ protected:
 	bool HasBlueprintActivate;
 
 	void CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+
+	/** Called on a predictive ability when the server confirms its execution */
+	void ConfirmActivateSucceed();
 
 	// --------------------------------------
 	//	CommitAbility
@@ -247,19 +252,6 @@ protected:
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) { }
-
-	// -------------------------------------
-	//	PredictiveActivate
-	// -------------------------------------
-
-	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName="PredictiveActivateAbility")
-	virtual void K2_PredictiveActivateAbility();
-
-	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
-	void CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
-	bool HasBlueprintPredictiveActivate;
 
 	// -------------------------------------
 	//	EndAbility
