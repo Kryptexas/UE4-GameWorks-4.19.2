@@ -258,7 +258,7 @@ public:
 	void RefreshPreviewViewport();
 	
 	/** Regenerates the code view widget with new text */
-	void RegenerateCodeView();
+	void RegenerateCodeView(bool bForce=false);
 	
 	/**
 	 * Recompiles the material used in the preview window.
