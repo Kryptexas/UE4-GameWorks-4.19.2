@@ -24,7 +24,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Textures)
 	int32 DefaultPVRTCQuality;
 
-	/** Whether or not to compile shaders for Metal on IOS (in beta 8). */
+	/** Whether or not to add support for Metal API (requires IOS8 and A7 processors) */
 	UPROPERTY(config, EditAnywhere, Category=IOS)
-	bool bGenerateMetalShaders;
+	bool bSupportMetal;
+
+	/** Whether or not to add support for OpenGL ES2 (if this is false, then your game should specify minimum IOS8 version and A7, in the plist) */
+	UPROPERTY(config, EditAnywhere, Category = IOS)
+	bool bSupportOpenGLES2;
 };
