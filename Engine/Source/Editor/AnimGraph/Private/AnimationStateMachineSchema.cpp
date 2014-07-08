@@ -207,15 +207,15 @@ bool UAnimationStateMachineSchema::TryCreateConnection(UEdGraphPin* PinA, UEdGra
 {
 	if (PinB->Direction == PinA->Direction)
 	{
-		if (UAnimStateNodeBase* Node = Cast<UAnimStateNodeBase>(PinA->GetOwningNode()))
+		if (UAnimStateNodeBase* Node = Cast<UAnimStateNodeBase>(PinB->GetOwningNode()))
 		{
-			if (PinB->Direction == EGPD_Input)
+			if (PinA->Direction == EGPD_Input)
 			{
-				PinA = Node->GetOutputPin();
+				PinB = Node->GetOutputPin();
 			}
 			else
 			{
-				PinA = Node->GetInputPin();
+				PinB = Node->GetInputPin();
 			}
 		}
 	}
