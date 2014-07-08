@@ -3241,8 +3241,6 @@ bool FMeshUtilities::ConstructRawMesh(
 
 	//Transform the raw mesh to world space
 	FTransform CtoM = InMeshComponent->ComponentToWorld;
-	FMatrix InvTransCToM = CtoM.ToMatrixWithScale().Inverse().GetTransposed();
-
 	for (FVector& Vertex : OutRawMesh.VertexPositions)
 	{
 		Vertex = CtoM.TransformFVector4(Vertex);
@@ -3260,13 +3258,6 @@ bool FMeshUtilities::ConstructRawMesh(
 	TMultiMap<int32,int32> OverlappingCorners;
 	FindOverlappingCorners(OverlappingCorners, OutRawMesh, 0.1f);
 	ComputeTangents(OutRawMesh, OverlappingCorners, ETangentOptions::BlendOverlappingNormals);
-
-	for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-	{
-		OutRawMesh.WedgeTangentX[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentX[WedgeIndex]).SafeNormal();
-		OutRawMesh.WedgeTangentY[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentY[WedgeIndex]).SafeNormal();
-		OutRawMesh.WedgeTangentZ[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
-	}
 
 	//Need to store the unique material indices in order to re-map the material indices in each rawmesh
 	//Only using the base mesh
