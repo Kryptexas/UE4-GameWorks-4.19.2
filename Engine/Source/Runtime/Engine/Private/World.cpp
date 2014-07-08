@@ -4196,7 +4196,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 	UNetDriver* NetDriver = CurrentWorld->GetNetDriver();
 
-	if ( ( LoadedPackage != NULL || LoadedWorld != NULL ) && CurrentWorld->NextURL == TEXT( "" ) && ( NetDriver == NULL || NetDriver->IsServer() ) )
+	if ( ( LoadedPackage != NULL || LoadedWorld != NULL ) && CurrentWorld->NextURL == TEXT( "" ) )
 	{
 		// First some validity checks		
 		if( CurrentWorld == LoadedWorld )
