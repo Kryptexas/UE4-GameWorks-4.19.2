@@ -166,6 +166,37 @@ public class HTML5Platform : Platform
 	{
 	}
 
+	public override void GetFilesToArchive(ProjectParams Params, DeploymentContext SC)
+	{
+		if (SC.StageTargetConfigurations.Count != 1)
+		{
+			throw new AutomationException("iOS is currently only able to package one target configuration at a time, but StageTargetConfigurations contained {0} configurations", SC.StageTargetConfigurations.Count);
+		}
+
+		string PackagePath = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "HTML5");
+		string FinalDataLocation = Path.Combine(PackagePath, Params.ShortProjectName) + ".data";
+
+		// copy the "Executable" to the archive directory
+		string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
+		if (Params.ClientConfigsToBuild[0].ToString() != "Development")
+		{
+			GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
+		}
+		GameExe += ".js";
+
+		// put the HTML file to the package directory
+		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
+
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation+".js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe+".mem"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("jstorage.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
+	}
+
 	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
 	{
 		// look for firefox
