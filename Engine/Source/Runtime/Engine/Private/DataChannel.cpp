@@ -900,13 +900,10 @@ IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Challenge);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Netspeed);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Login);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Failure);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Uses);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Have);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Join);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(JoinSplit);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Skip);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Abort);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Unload);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(PCSwap);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(ActorChannelFailure);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(DebugText);
@@ -1062,12 +1059,6 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 				case NMT_Failure:
 					FNetControlMessage<NMT_Failure>::Discard(Bunch);
 					break;
-				case NMT_Uses:
-					FNetControlMessage<NMT_Uses>::Discard(Bunch);
-					break;
-				case NMT_Have:
-					FNetControlMessage<NMT_Have>::Discard(Bunch);
-					break;
 				case NMT_Join:
 					//FNetControlMessage<NMT_Join>::Discard(Bunch);
 					break;
@@ -1079,9 +1070,6 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 					break;
 				case NMT_Abort:
 					FNetControlMessage<NMT_Abort>::Discard(Bunch);
-					break;
-				case NMT_Unload:
-					FNetControlMessage<NMT_Unload>::Discard(Bunch);
 					break;
 				case NMT_PCSwap:
 					FNetControlMessage<NMT_PCSwap>::Discard(Bunch);

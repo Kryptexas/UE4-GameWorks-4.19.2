@@ -94,7 +94,6 @@ class FCompactIndex;
 class FExec;
 class FGuid;
 class FMemStack;
-class FPackageInfo;
 class ITransaction;
 class FUnknown;
 class FRepLink;

@@ -262,12 +262,6 @@ public:
 	 */
 	TSet<FNetworkGUID>	DestroyedStartupOrDormantActors;
 
-	/** 
-	 * list of packages the client has received info from the server on via "USES" but can't verify until async loading has completed
-	 * @see UWorld::NotifyReceivedText() and UNetDriver::VerifyPackageInfo()
-	 */
-	TArray<FPackageInfo> PendingPackageInfos;
-
 	/**
 	 * on the server, the world the client has told us it has loaded
 	 * used to make sure the client has traveled correctly, prevent replicating actors before level transitions are done, etc
@@ -481,19 +475,6 @@ public:
 
 	/** Returns number of bits left in current packet that can be used without causing a flush.  */
 	int64 GetFreeSendBufferBits();
-
-	/** 
-	 * parses the passed in control channel bunch and fills the given package info struct with that data
-	 * @param Bunch network data bunch received on control channel
-	 * @param Info (out) FPackageInfo that receives the parsed data
-	 */
-	void ParsePackageInfo(FInBunch& Bunch, FPackageInfo& Info);
-
-	/**
-	 * sends text describing the given package info to the client via the control channel
-	 * @note: parameter lacks const due to FArchive/FOutBunch interface; it won't be modified
-	 */
-	void SendPackageInfo(FPackageInfo& Info);
 
 	/** 
 	 * returns whether the client has initialized the level required for the given object

@@ -3393,26 +3393,6 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				}
 				break;
 			}
-			case NMT_Uses:
-			{
-				// Dependency information.
-				FPackageInfo Info(NULL);
-				Connection->ParsePackageInfo(Bunch, Info);
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				UE_LOG(LogNet, Verbose, TEXT(" ---> Package: %s, GUID: %s, Generation: %i, BasePkg: %s"), *Info.PackageName.ToString(), *Info.Guid.ToString(), Info.RemoteGeneration, *Info.ForcedExportBasePackageName.ToString());
-#endif
-				// it's important to verify packages in order so that we're not reshuffling replicated indices during gameplay, so don't try if there are already others pending
-				if (Connection->PendingPackageInfos.Num() > 0 || !NetDriver->VerifyPackageInfo(Info))
-				{
-					// we can't verify the package until we have finished async loading
-					Connection->PendingPackageInfos.Add(Info);
-				}
-				break;
-			}
-			case NMT_Unload:
-			{
-				break;
-			}
 			case NMT_DebugText:
 			{
 				// debug text message
@@ -3496,33 +3476,12 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 				UE_LOG(LogNet, Log, TEXT("Client netspeed is %i"), Connection->CurrentNetSpeed);
 				break;
 			}
-			case NMT_Have:
-			{
-				// Client specifying his generation.
-				FGuid Guid;
-				int32 RemoteGeneration;
-				FNetControlMessage<NMT_Have>::Receive(Bunch, Guid, RemoteGeneration);
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				UE_LOG(LogNet, Verbose, TEXT(" ---> GUID: %s, Generation: %i"), *Guid.ToString(), RemoteGeneration);
-#endif
-				bool bFound = true;
-				if (!bFound)
-				{
-					UE_LOG(LogNet, Log, TEXT("NOT FOUND GUID: %s, Generation: %i"), *Guid.ToString(), RemoteGeneration);
-					// the client specified a package with an incorrect GUID or one that it should not be using; kick it out
-					FString ErrorMsg = NSLOCTEXT("NetworkErrors", "IncompatiblePackage", "Incompatible package.").ToString();
-					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
-					Connection->Close();
-				}
-				break;
-			}
 			case NMT_Abort:
 			{
 				break;
 			}
 			case NMT_Skip:
 			{
-				
 				break;
 			}
 			case NMT_Login:
@@ -4237,9 +4196,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 	UNetDriver* NetDriver = CurrentWorld->GetNetDriver();
 
-	if ( (LoadedPackage != NULL || LoadedWorld != NULL) && CurrentWorld->NextURL == TEXT("") &&
-		( NetDriver == NULL || NetDriver->ServerConnection == NULL || NetDriver->ServerConnection->PendingPackageInfos.Num() == 0 ||
-		(!bSwitchedToDefaultMap && NetDriver->ServerConnection->PendingPackageInfos[0].LoadingPhase == 1) ) )
+	if ( ( LoadedPackage != NULL || LoadedWorld != NULL ) && CurrentWorld->NextURL == TEXT( "" ) && ( NetDriver == NULL || NetDriver->IsServer() ) )
 	{
 		// First some validity checks		
 		if( CurrentWorld == LoadedWorld )

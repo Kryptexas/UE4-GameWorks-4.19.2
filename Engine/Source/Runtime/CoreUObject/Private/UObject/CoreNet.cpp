@@ -11,44 +11,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogCoreNet, Log, All);
 DEFINE_STAT(STAT_NetSerializeFast_Array);
 
 /*-----------------------------------------------------------------------------
-	FPackageInfo implementation.
------------------------------------------------------------------------------*/
-
-//
-// FPackageInfo constructor.
-//
-FPackageInfo::FPackageInfo(UPackage* Package)
-:	PackageName		(Package != NULL ? Package->GetFName() : NAME_None)
-,	Parent			(Package)
-,	Guid			(Package != NULL ? Package->GetGuid() : FGuid(0,0,0,0))
-,	ObjectBase		( INDEX_NONE )
-,	ObjectCount		( 0 )
-,	LocalGeneration	( 0)
-,	RemoteGeneration( 0 )
-,	PackageFlags	(Package != NULL ? Package->PackageFlags : 0)
-,	ForcedExportBasePackageName(NAME_None)
-,	FileName		(Package != NULL ? Package->FileName : NAME_None)
-{
-	// if we have a pacakge, find it's source file so that we can send the extension of the file
-	if (Package != NULL)
-	{
-		FString PackageFile;
-		if (FPackageName::DoesPackageExist(Package->GetName(), NULL, &PackageFile))
-		{
-			Extension = FPaths::GetExtension(PackageFile);
-		}
-	}
-}
-
-//
-// FPackageInfo serializer.
-//
-FArchive& operator<<( FArchive& Ar, FPackageInfo& I )
-{
-	return Ar << I.Parent;
-}
-
-/*-----------------------------------------------------------------------------
 	FClassNetCache implementation.
 -----------------------------------------------------------------------------*/
 

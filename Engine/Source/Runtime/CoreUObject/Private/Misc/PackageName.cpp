@@ -720,30 +720,6 @@ bool FPackageName::SearchForPackageOnDisk(const FString& PackageName, FString* O
 	return bResult;
 }
 
-// A map from specific package names to a package's file (possibly a short package name)
-static TMap<FName, FName> PackageNameToPackageFileMapping;				
-
-/**
- * Add a mapping from a package's object name to a package file name, used for making aliases at runtime
- */
-void FPackageName::AddPackageNameMapping(FName PackageName, FName FileName)
-{
-	PackageNameToPackageFileMapping.Add(PackageName, FileName);
-}
-
-/**
- * Returns a mapped package file name, returns the passed in name if not in map
- */
-FName FPackageName::GetMappedPackageName(FName PackageName)
-{
-	FName *MappedName = PackageNameToPackageFileMapping.Find(PackageName);
-	if (MappedName != NULL)
-	{
-		return *MappedName;
-	}
-	return PackageName;
-}
-
 FString FPackageName::PackageFromPath( const TCHAR* InPathName )
 {
 	FString PackageName;
