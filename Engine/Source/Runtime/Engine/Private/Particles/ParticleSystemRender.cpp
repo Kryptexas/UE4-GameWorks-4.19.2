@@ -87,6 +87,7 @@ void DumpParticleRenderingStats(FOutputDevice& Ar)
 #if STATS
 	if (GTrackParticleRenderingStats)
 	{
+#if ALLOW_DEBUG_FILES
 		{
 			// Have to keep this filename short enough to be valid for Xbox 360
 			const FString TemplateFileName = FString::Printf(TEXT("%sPT-%s.csv"), *FPaths::ProfilingDir(), *FDateTime::Now().ToString());
@@ -137,7 +138,7 @@ void DumpParticleRenderingStats(FOutputDevice& Ar)
 			}
 			Ar.Logf(TEXT("Component stats saved to %s"), *ComponentFileName);
 		}
-
+#endif
 		GTemplateRenderStats.Empty();
 		GComponentRenderStats.Empty();
 	}
@@ -190,6 +191,7 @@ void ENGINE_API FinishOneFrameParticleStats()
 
 		UE_LOG(LogParticles, Warning, TEXT("IFileManager::MakeDirectory %s %u"), *WritePath, bDirSuccess);
 
+#if ALLOW_DEBUG_FILES
 		// Have to keep this filename short enough to be valid for Xbox 360
 		const FString TemplateFileName = WritePath / TEXT("ParticleTemplates.csv");
 		FDiagnosticTableViewer ParticleTemplateViewer(*TemplateFileName);
@@ -240,6 +242,7 @@ void ENGINE_API FinishOneFrameParticleStats()
 		ParticleTemplateViewer.CycleRow();
 
 		UE_LOG(LogParticles, Warning, TEXT("One frame stats saved to %s"), *TemplateFileName);
+#endif
 
 		// Request a screenshot to be saved next frame
 		FScreenshotRequest::RequestScreenshot( PathFromScreenshots / TEXT("Shot.bmp"), false );
