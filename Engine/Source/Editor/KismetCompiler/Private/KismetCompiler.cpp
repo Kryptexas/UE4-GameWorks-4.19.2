@@ -1589,6 +1589,8 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 {
 	UClass* ParentClass = Class->GetSuperClass();
 
+	TArray<FString> AllHideCategories;
+
 	if (ParentClass != NULL)
 	{
 		// Propagate the new parent's inheritable class flags
@@ -1604,10 +1606,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
-		if (ParentClass->HasMetaData(TEXT("HideCategories")))
-		{
-			Class->SetMetaData(TEXT("HideCategories"), *ParentClass->GetMetaData("HideCategories"));
-		}
+		ParentClass->GetHideCategories(AllHideCategories);
 		if (ParentClass->HasMetaData(TEXT("ShowCategories")))
 		{
 			Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
@@ -1651,6 +1650,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		}
 
 		//@TODO: Might want to be able to specify some of these here too
+	}
+
+	AllHideCategories.Append(Blueprint->HideCategories);
+	if (AllHideCategories.Num())
+	{
+		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
 	}
 
 	// Add in any other needed flags

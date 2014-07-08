@@ -299,6 +299,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintCategory;
 
+	/** Additional HideCategories. The are added to HideCategories from parent. */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	TArray<FString> HideCategories;
+
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
 	bool bDisplayCompilePIEWarning;
