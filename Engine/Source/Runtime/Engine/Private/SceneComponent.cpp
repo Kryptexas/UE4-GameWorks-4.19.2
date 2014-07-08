@@ -307,7 +307,7 @@ void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep)
 
 void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep)
 {
-	if( NewLocation != RelativeLocation || NewRotation != RelativeRotation )
+	if(!NewLocation.Equals(RelativeLocation) || !NewRotation.Equals(RelativeRotation))
 	{
 		if (!bWorldToComponentUpdated)
 		{
@@ -1184,7 +1184,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, F
 	}
 
 	bool bUpdated = false;
-	if ( (RelativeLocation != NewLocation) || (RelativeRotation != NewRotation) )
+	if (!NewLocation.Equals(RelativeLocation) || !NewRotation.Equals(RelativeRotation))
 	{
 		RelativeLocation = NewLocation;
 		RelativeRotation = NewRotation;
@@ -1223,7 +1223,10 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 	// make sure mobility is movable, otherwise you shouldn't try to move
 	if ( UWorld * World = GetWorld() )
 	{
-		if (World->HasBegunPlay() && IsRegistered() && Mobility != EComponentMobility::Movable )
+		ULevel* Level = GetComponentLevel();
+
+		// It's only a problem if we're in gameplay, and the owning level is visible
+		if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible && Mobility != EComponentMobility::Movable)
 		{
 			FMessageLog("Performance").Warning( FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "), 
 				FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
