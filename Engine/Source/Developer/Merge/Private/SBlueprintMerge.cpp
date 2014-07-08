@@ -5,6 +5,7 @@
 #include "DiffResults.h"
 #include "GraphDiffControl.h"
 #include "ISourceControlModule.h"
+#include "BlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
@@ -14,16 +15,6 @@ static UPackage* CreateTempPackage(FString Name)
 	static uint32 TempUid = 0;
 	FString TempPackageName = FString::Printf(TEXT("/Temp/BpMerge-%u-%s"), TempUid++, *Name);
 	return CreatePackage(NULL, *TempPackageName);
-}
-
-static UBlueprint* DuplicateBlueprint( const UBlueprint* const BlueprintToClone)
-{
-	UPackage* TempPackage = CreateTempPackage(BlueprintToClone->GetName());
-	TArray<UObject*> Subobjects;
-	GetObjectsWithOuter(TempPackage, Subobjects, true);
-	check(Subobjects.Num() == 0);
-	EObjectFlags FlagMask = RF_AllFlags & ~RF_Transient & ~RF_PendingKill;
-	return Cast<UBlueprint>(StaticDuplicateObject(BlueprintToClone, TempPackage, *BlueprintToClone->GetName(), FlagMask));
 }
 
 template< class Predicate >
@@ -120,15 +111,19 @@ public:
 	}
 };
 
+SBlueprintMerge::SBlueprintMerge()
+	: SBlueprintDiff()
+	, OwningEditor()
+{
+}
+
 void SBlueprintMerge::Construct(const FArguments& InArgs)
 {
 	FMergeDifferencesListCommands::Register();
 
 	PanelLocal.Blueprint = InArgs._BlueprintLocal;
-	BlueprintResult = DuplicateBlueprint(InArgs._BlueprintLocal);
-	(void)PackagesAppearEquivalent( BlueprintResult->GetOutermost(), PanelLocal.Blueprint->GetOutermost() );
-	//check( PackagesAppearEquivalent( BlueprintResult->GetOutermost(), PanelLocal.Blueprint->GetOutermost() ) );
-	OwningWindow = InArgs._OwningWindow;
+
+	OwningEditor = InArgs._OwningEditor;
 
 	return SBlueprintDiff::Construct( InArgs._BaseArgs );
 }
@@ -275,11 +270,6 @@ TSharedRef<SWidget> SBlueprintMerge::GenerateDiffWindow()
 					]
 				]
 			]
-			+ SSplitter::Slot()
-			.Value(.3f)
-			[
-				SAssignNew(EditorBorder, SBorder)
-			]
 		]
 	;
 }
@@ -364,7 +354,6 @@ TSharedRef<SWidget> SBlueprintMerge::GenerateToolbar()
 		];
 }
 
-// @cr doc const shallowness
 static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
 {
 	TArray<UEdGraph*> Graphs;
@@ -383,45 +372,10 @@ void SBlueprintMerge::HandleGraphChanged(const FString& GraphName)
 	UEdGraph* GraphOld = FindGraphByName(*PanelOld.Blueprint, GraphName);
 	UEdGraph* GraphNew = FindGraphByName(*PanelNew.Blueprint, GraphName);
 	UEdGraph* GraphLocal = FindGraphByName(*PanelLocal.Blueprint, GraphName);
-	UEdGraph* GraphResult = FindGraphByName(*BlueprintResult, GraphName);
 
 	PanelOld.GeneratePanel(GraphOld, NULL);
 	PanelNew.GeneratePanel(GraphNew, GraphOld);
 	PanelLocal.GeneratePanel(GraphLocal, GraphOld);
-
-	{
-		// Set up a normal editor window so that the user can tweak the result of the merge:
-		// @todo doc: need to copy the target blueprint and destructively edit that one, not 
-		// the base blueprint..
-		if (GraphResult)
-		{
-			SGraphEditor::FGraphEditorEvents InEvents;
-
-			//FGraphAppearanceInfo AppearanceInfo;
-			//AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_BlueprintDif", "DIFF").ToString();
-
-			/*if (!GraphEditorCommands.IsValid())
-			{
-				GraphEditorCommands = MakeShareable(new FUICommandList());
-
-				GraphEditorCommands->MapAction(FGenericCommands::Get().Copy,
-					FExecuteAction::CreateRaw(this, &FDiffPanel::CopySelectedNodes),
-					FCanExecuteAction::CreateRaw(this, &FDiffPanel::CanCopyNodes)
-					);
-			}*/
-
-			auto Editor = SNew(SGraphEditor)
-				.GraphToEdit(GraphResult)
-				.TitleBarEnabledOnly(false)
-				//.Appearance(AppearanceInfo)
-				.GraphEvents(InEvents);
-			EditorBorder->SetContent(Editor);
-		}
-		else
-		{
-			EditorBorder->ClearContent();
-		}
-	}
 }
 
 template< typename T >
@@ -577,12 +531,10 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 
 	// cr doc: this is too simple to be correct..
 	PanelLocal.Blueprint->RemoveGeneratedClasses();
-	StaticDuplicateObject( BlueprintResult, Package, *PanelLocal.Blueprint->GetName() );
 
-	auto OwningWindowPinned = OwningWindow.Pin();
-	if (OwningWindowPinned.IsValid())
+	if (OwningEditor.IsValid())
 	{
-		OwningWindowPinned->RequestDestroyWindow();
+		OwningEditor->CloseWindow();
 	}
 
 	const auto Result = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
@@ -600,10 +552,9 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 
 FReply SBlueprintMerge::OnCancelClicked()
 {
-	auto OwningWindowPinned = OwningWindow.Pin();
-	if( OwningWindowPinned.IsValid() )
+	if (OwningEditor.IsValid())
 	{
-		OwningWindowPinned->RequestDestroyWindow();
+		OwningEditor->CloseWindow();
 	}
 	return FReply::Handled();
 }
@@ -628,42 +579,18 @@ FReply SBlueprintMerge::OnTakeBaseClicked()
 
 void SBlueprintMerge::StageBlueprint(UBlueprint const* DesiredBP)
 {
-	// User has decided to discard the remote changes, update the result window
-	// with this result:
-	if (BlueprintResult)
-	{
-		//delete BlueprintResult;... yeah.. i have no idea what's keeping this stuff alive, best not to delete it
-	}
+	// Take the DesiredBP and applies its changes to the result blueprint:
+	UBlueprint* BlueprintResult = OwningEditor->GetBlueprintObj();
 
-	BlueprintResult = DuplicateBlueprint(DesiredBP);
+	// I want everything in the package... components, CDO, etc:
+
 
 	(void)PackagesAppearEquivalent(BlueprintResult->GetOutermost(), DesiredBP->GetOutermost());
-	//check( PackagesAppearEquivalent( BlueprintResult->GetOutermost(), DesiredBP->GetOutermost() ) );
+	check( PackagesAppearEquivalent( BlueprintResult->GetOutermost(), DesiredBP->GetOutermost() ) );
 
 	SGraphEditor::FGraphEditorEvents InEvents;
 	TArray< FGraphToDiff>  Selected = GraphsToDiff->GetSelectedItems();
 	check(Selected.Num() <= 1); // We set this control up to not support multiselect
-
-	UEdGraph* GraphResult = NULL;
-
-	if (Selected.Num() == 1)
-	{
-		GraphResult = FindGraphByName(*BlueprintResult, Selected[0]->GetGraphNew()->GetName());
-	}
-
-	if( GraphResult )
-	{
-		auto Editor = SNew(SGraphEditor)
-			.GraphToEdit(GraphResult)
-			.TitleBarEnabledOnly(false)
-			//.Appearance(AppearanceInfo)
-			.GraphEvents(InEvents);
-		EditorBorder->SetContent(Editor);
-	}
-	else
-	{
-		EditorBorder->ClearContent();
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -191,6 +191,7 @@ public:
 	TSharedRef<class SBlueprintPalette> GetPalette() const {return Palette.ToSharedRef();}
 	TSharedRef<class SWidget> GetCompilerResults() const {return CompilerResults.ToSharedRef();}
 	TSharedRef<class SFindInBlueprints> GetFindResults() const {return FindResults.ToSharedRef();}
+	TSharedRef<class SWidget> GetMergeTool() const { return MergeTool.ToSharedRef(); }
 	TSharedRef<class SSCSEditor> GetSCSEditor() const {return SCSEditor.ToSharedRef();}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
@@ -704,6 +705,8 @@ protected:
 	void OnListObjectsReferencedByBlueprint();
 	void OnRepairCorruptedBlueprint();
 
+	void OnBeginBlueprintMerge();
+
 	void OnNodeDoubleClicked(class UEdGraphNode* Node);
 
 	virtual void OnEditTabClosed(TSharedRef<SDockTab> Tab);
@@ -911,6 +914,9 @@ protected:
 	
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInBlueprints> FindResults;
+
+	/** Merge tool */
+	TSharedPtr<class SHorizontalBox> MergeTool;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;

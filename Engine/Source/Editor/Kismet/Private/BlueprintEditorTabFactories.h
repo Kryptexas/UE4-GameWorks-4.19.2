@@ -488,4 +488,31 @@ public:
 	}
 };
 
+//////////////////////////////////////////////////////////////////////////
+// FMergeToolSummoner
+
+struct FMergeToolSummoner : public FWorkflowTabFactory
+{
+	FMergeToolSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+		: FWorkflowTabFactory(FBlueprintEditorTabs::MergeToolID, InHostingApp)
+	{
+		TabLabel = LOCTEXT("MergeToolTabTitle", "Merge Tool");
+		bIsSingleton = true;
+
+		ViewMenuDescription = LOCTEXT("MergeToolView", "Merge Tool");
+		ViewMenuTooltip = LOCTEXT("MergeToolView_ToolTip", "Displays three revisions of a blueprint for merging purposes, provides access to SSC merge operations");
+	}
+
+	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
+	{
+		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+		return BlueprintEditorPtr->GetMergeTool();
+	}
+
+	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
+	{
+		return LOCTEXT("MergeToolTooltip", "The merge tool allows users to merge two blueprints that diverged from a common base blueprint");
+	}
+};
+
 #undef LOCTEXT_NAMESPACE

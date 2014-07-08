@@ -3,13 +3,17 @@
 
 #include "SBlueprintDiff.h"
 
+class FBlueprintEditor;
+
 class MERGE_API SBlueprintMerge : public SBlueprintDiff
 {
 public:
+	SBlueprintMerge();
+
 	SLATE_BEGIN_ARGS(SBlueprintMerge){}
 	SLATE_ARGUMENT(class UBlueprint*, BlueprintLocal)
 	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
-	SLATE_ARGUMENT( TWeakPtr<SWindow>, OwningWindow )
+	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
 	SLATE_END_ARGS()
 	
 	void Construct(const FArguments& InArgs);
@@ -17,7 +21,7 @@ public:
 	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
 
 protected:
-	/** Overrides, see base class for documentation */
+	/** SBlueprintDiff overrides, see base class for documentation */
 	virtual void ResetGraphEditors() override;
 	virtual TSharedRef<SWidget> GenerateDiffWindow() override;
 	virtual TSharedRef<SWidget> GenerateToolbar() override;
@@ -36,10 +40,8 @@ protected:
 	FReply OnTakeBaseClicked();
 	void StageBlueprint(UBlueprint const* DesiredBP);
 
-	// Raw pointer?!
-	UBlueprint* BlueprintResult;
+	TSharedPtr<FBlueprintEditor> OwningEditor;
 	FDiffPanel PanelLocal;
-	TSharedPtr<SBorder>		 EditorBorder;
 	TWeakPtr<SWindow>		OwningWindow;
 
 	// This has to be allocated here because SListView cannot own the list

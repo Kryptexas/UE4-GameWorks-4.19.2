@@ -109,7 +109,7 @@ class FMerge : public IMerge
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	virtual void Merge(const UBlueprint& Object) override;
+	virtual TSharedPtr<SWidget> GenerateMergeWidget(const UBlueprint& Object, FBlueprintEditor& Editor) override;
 };
 IMPLEMENT_MODULE( FMerge, Merge )
 
@@ -124,55 +124,8 @@ void FMerge::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-void FMerge::Merge( const UBlueprint& Object )
+TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, FBlueprintEditor& Editor)
 {
-	// Verify that the object is not open in some other editor:
-	TSharedPtr< IToolkit > FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(&Object);
-	if (FoundAssetEditor.IsValid())
-	{
-		FText ToolkitName = FoundAssetEditor->GetBaseToolkitName();
-		FText ErrorMessage = FText::Format(LOCTEXT("CloseOpenEditors", "{0} must be closed before merging {1}. Would you like to close {0} and continue?"), ToolkitName, FText::FromString(Object.GetName()));
-		EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, ErrorMessage);
-		if (Result == EAppReturnType::Cancel)
-		{
-			return;
-		}
-		else
-		{
-			FToolkitManager::Get().CloseToolkit(FoundAssetEditor.ToSharedRef());
-			FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(&Object);
-			if (FoundAssetEditor.IsValid())
-			{
-				ErrorMessage = FText::Format(LOCTEXT("MergeAborted", "Aborted Merge of {0} because {1} failed to close"), FText::FromString(Object.GetName()), ToolkitName);
-				FNotificationInfo Info(ErrorMessage);
-				Info.ExpireDuration = 5.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
-				return;
-			}
-		}
-	}
-
-	// verify that the object is not dirty:
-	if (Object.GetOutermost()->IsDirty())
-	{
-		FText RequestSave = FText::Format(LOCTEXT("RequestSaveForMerge", "{0} must be saved before it can be merged. Would you like to save and continue?"), FText::FromString(Object.GetName()));
-		EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, RequestSave);
-		if (Result == EAppReturnType::Cancel)
-		{
-			return;
-		}
-		else
-		{
-			TArray<UPackage*> PackagesToSave;
-			PackagesToSave.Add(Object.GetOutermost());
-			const auto Result = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
-			if (Result != FEditorFileUtils::PR_Success)
-			{
-				return;
-			}
-		}
-	}
-
 	// merge the local asset with the depot, SCC provides us with the last common revision as
 	// a basis for the merge:
 
@@ -189,33 +142,15 @@ void FMerge::Merge( const UBlueprint& Object )
 	{
 		FMergeDisplayArgs DisplayArgs = { CurrentRevInfo, BaseRevInfo };
 
-		FText WindowTitle = FText::Format(LOCTEXT("BlueprintMerge", "{0} - Blueprint Merge"), FText::FromString(AssetName));
-
-		const TSharedPtr<SWindow> Window = SNew(SWindow)
-			.Title(WindowTitle)
-			.ClientSize(FVector2D(1000, 800));
-
 		SBlueprintDiff::FArguments BaseArgs;
 		BaseArgs.BlueprintOld(BaseBlueprint)
 			.OldRevision(CurrentRevInfo)
 			.BlueprintNew(RemoteBlueprint)
 			.NewRevision(BaseRevInfo);
 
-		Window->SetContent(SNew(SBlueprintMerge)
+		return SNew(SBlueprintMerge)
 			.BlueprintLocal(const_cast<UBlueprint*>(&Object))
-			.OwningWindow(Window)
-			.BaseArgs(BaseArgs));
-
-		// Make this window a child of the modal window if we've been spawned while one is active.
-		TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
-		if (ActiveModal.IsValid())
-		{
-			FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), ActiveModal.ToSharedRef());
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(Window.ToSharedRef());
-		}
+			.BaseArgs(BaseArgs);
 	}
 	else
 	{
@@ -237,6 +172,7 @@ void FMerge::Merge( const UBlueprint& Object )
 		FNotificationInfo Info(ErrorMessage);
 		Info.ExpireDuration = 3.0f;
 		FSlateNotificationManager::Get().AddNotification(Info);
+		return TSharedPtr<SWidget>();
 	}
 }
 

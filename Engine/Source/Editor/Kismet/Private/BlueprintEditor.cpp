@@ -74,7 +74,8 @@
 #include "ISCSEditorCustomization.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
-
+// Blueprint merging
+#include "Merge.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -1591,7 +1592,8 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		];
 
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
-
+	MergeTool = SNew(SHorizontalBox);
+	
 	this->Inspector = 
 		SNew(SKismetInspector)
 		. HideNameArea(true)
@@ -1846,6 +1848,10 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FIsActionButtonVisible::CreateSP(this, &FBlueprintEditor::NewDocument_IsVisibleForType, CGT_NewAnimationGraph));
 	*/
 
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().SaveIntermediateBuildProducts,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileGraphEditor,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileGraphEditor_OnClicked ),
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
@@ -1859,10 +1865,9 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompilePersona_OnClicked ),
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
 
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().SaveIntermediateBuildProducts,
-		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts) );
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnBeginBlueprintMerge),
+		FCanExecuteAction());
 }
 
 void FBlueprintEditor::FindInBlueprint_Clicked()
@@ -5445,6 +5450,16 @@ void FBlueprintEditor::OnRepairCorruptedBlueprint()
 {
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 	Compiler.RecoverCorruptedBlueprint(GetBlueprintObj());
+}
+
+void FBlueprintEditor::OnBeginBlueprintMerge()
+{
+	// @cr doc: any way to show this in all of the subviews (defaults + components + graph view, rather than just the active one?)
+	//if( MergeTool->Slots().Num() == 0 && GetBlueprintObj() )
+	{
+		MergeTool->AddSlot()[ IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), *this).ToSharedRef() ];
+	}
+	TabManager->InvokeTab(FBlueprintEditorTabs::MergeToolID);
 }
 
 void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)

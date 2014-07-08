@@ -52,6 +52,7 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FMyBlueprintSummoner(InBlueprintEditor)));
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FCompilerResultsSummoner(InBlueprintEditor)));
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
+	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FMergeToolSummoner(InBlueprintEditor)));
 	if( bRegisterViewport )
 	{
 		BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FSCSViewportSummoner(InBlueprintEditor)));
@@ -120,6 +121,16 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 					)
 				)
 			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
+				)
+			)
 		);
 	
 	// setup toolbar
@@ -173,7 +184,8 @@ FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<
 	
 	BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 	BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
-	
+	BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FMergeToolSummoner(InBlueprintEditor)));
+
 	TabLayout = FTabManager::NewLayout( "Standalone_BlueprintDefaults_Layout_v4" )
 		->AddArea
 		(
@@ -191,6 +203,16 @@ FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<
 				FTabManager::NewStack()
 				->SetHideTabWell(true)
 				->AddTab( FBlueprintEditorTabs::DefaultEditorID, ETabState::OpenedTab )
+			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
+				)
 			)
 		);
 
@@ -231,7 +253,8 @@ FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TShared
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InBlueprintEditor)));
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
-	
+	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FMergeToolSummoner(InBlueprintEditor)));
+
 	TabLayout = FTabManager::NewLayout( "Standalone_BlueprintComponents_Layout_v5" )
 		->AddArea
 		(
@@ -272,6 +295,16 @@ FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TShared
 					->SetSizeCoefficient( 0.85f )
 					->SetHideTabWell(true)
 					->AddTab( FBlueprintEditorTabs::SCSViewportID, ETabState::OpenedTab )
+				)
+			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
 				)
 			)
 		);
