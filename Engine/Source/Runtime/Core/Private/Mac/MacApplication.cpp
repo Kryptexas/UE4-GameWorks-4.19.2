@@ -24,7 +24,7 @@ static int MTContactCallback(int32 Device, void* Data, int32 NumFingers, double 
 {
 	if (MacApplication)
 	{
-		MacApplication->SetIsUsingTrackpad(NumFingers > 0);
+		MacApplication->SetIsUsingTrackpad(NumFingers > 1);
 	}
 	return 1;
 }
