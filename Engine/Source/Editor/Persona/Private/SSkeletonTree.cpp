@@ -1386,25 +1386,6 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 					);
 			}
 			MenuBuilder.EndSection();
-
-			if (bMeshReductionSupported)
-			{
-				MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT( "BoneReductionHeader", "LOD Bone Reduction" ) );
-				{
-					MenuBuilder.AddSubMenu(
-						LOCTEXT( "SkeletonTreeBoneReductionForLOD_RemoveBonesFromLOD", "Remove Selected Bone from..." ),
-						FText::GetEmpty(),
-						FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, TargetSkeleton, false)
-						);
-
-					MenuBuilder.AddSubMenu(
-						LOCTEXT( "SkeletonTreeBoneReductionForLOD_AddBonesToLOD", "Add Remove Selected Bone to..." ),
-						FText::GetEmpty(),
-						FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, TargetSkeleton, true)
-						);
-				}
-				MenuBuilder.EndSection();
-			}
 		}
 
 		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
@@ -1468,6 +1449,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 	return MenuBuilder.MakeWidget();
 }
 
+/*
 void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd)
 {
 	if (bMeshReductionSupported)
@@ -1513,6 +1495,7 @@ void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkele
 		}
 	}
 }
+*/
 
 void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode)
 {

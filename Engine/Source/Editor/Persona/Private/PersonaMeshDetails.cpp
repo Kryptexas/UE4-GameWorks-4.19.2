@@ -641,6 +641,15 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 	USkeletalMesh* SkelMesh = PersonaPtr->GetMesh();
 	USkeleton* Skeleton = SkelMesh->Skeleton;
 
+	// index for accessing to BoneReductionSettingsForLODs because it doesn't have for LOD 0
+	int32 LODSettingIndex = LODIndex - 1;
+
+	// remove all previous data before setting new bones to remove
+	if (Skeleton->BoneReductionSettingsForLODs.IsValidIndex(LODSettingIndex))
+	{
+		Skeleton->BoneReductionSettingsForLODs[LODSettingIndex].BonesToRemove.Empty();
+	}
+
 	for (int32 Index = 0; Index < InOutBonesToRemove.Num(); Index++)
 	{
 		int32 BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(InOutBonesToRemove[Index].BoneName);
@@ -651,9 +660,6 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 	}
 
 	InOutBonesToRemove.Empty();
-
-	// index for accessing to BoneReductionSettingsForLODs because it doesn't have for LOD 0
-	int32 LODSettingIndex = LODIndex - 1;
 
 	if (Skeleton->BoneReductionSettingsForLODs.Num() > LODSettingIndex)
 	{
@@ -683,7 +689,7 @@ void FPersonaMeshDetails::RefreshBonesToRemove(TArray<FBoneReference>& InOutBone
 			{
 				FBoneReference BoneRef;
 				BoneRef.BoneName = BoneName;
-				InOutBonesToRemove.AddUnique(BoneRef);
+				InOutBonesToRemove.Add(BoneRef);
 			}
 		}
 	}
