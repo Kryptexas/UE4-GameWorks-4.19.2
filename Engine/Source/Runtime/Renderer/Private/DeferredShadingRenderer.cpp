@@ -123,7 +123,7 @@ extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 /** 
 * Clears view where Z is still at the maximum value (ie no geometry rendered)
 */
-void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdList)
 {
 	// Assumes BeginRenderingSceneColor() has been called before this function
 	SCOPED_DRAW_EVENT(ClearGBufferAtMaxZ, DEC_SCENE_ITEMS);
@@ -1055,7 +1055,7 @@ IMPLEMENT_SHADER_TYPE(,FDownsampleSceneDepthPS,TEXT("DownsampleDepthPixelShader"
 FGlobalBoundShaderState DownsampleDepthBoundShaderState;
 
 /** Updates the downsized depth buffer with the current full resolution depth buffer. */
-void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList)
 {
 	if (GSceneRenderTargets.UseDownsizedOcclusionQueries() && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
 	{

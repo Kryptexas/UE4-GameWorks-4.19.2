@@ -1208,7 +1208,7 @@ struct FSimulationCommandGPU
  */
 template <bool bUseDepthBufferCollision>
 void ExecuteSimulationCommands(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	const FParticleStateTextures& TextureResources,
 	const FParticleAttributesTexture& AttributeTexture,
@@ -1259,7 +1259,7 @@ void ExecuteSimulationCommands(
  * Invokes the clear simulation shader for each particle in each tile.
  * @param Tiles - The list of tiles to clear.
  */
-void ClearTiles(FRHICommandListImmediate& RHICmdList, const TArray<uint32>& Tiles)
+void ClearTiles(FRHICommandList& RHICmdList, const TArray<uint32>& Tiles)
 {
 	SCOPED_DRAW_EVENT(ClearTiles, DEC_PARTICLE);
 
@@ -1500,7 +1500,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  * Injects new particles in to the GPU simulation.
  * @param NewParticles - A list of particles to inject in to the simulation.
  */
-void InjectNewParticles(FRHICommandListImmediate& RHICmdList, const TArray<FNewParticle>& NewParticles)
+void InjectNewParticles(FRHICommandList& RHICmdList, const TArray<FNewParticle>& NewParticles)
 {
 	const int32 MaxParticlesPerDrawCall = GParticleScratchVertexBufferSize / sizeof(FNewParticle);
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
@@ -1723,7 +1723,7 @@ TGlobalResource<FParticleSimVisualizeVertexDeclaration> GParticleSimVisualizeVer
  * @param RenderTarget - The render target on which to draw the visualization.
  */
 static void VisualizeGPUSimulation(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	int32 VisualizationMode,
 	FRenderTarget* RenderTarget,
 	const FParticleStateTextures& StateTextures,

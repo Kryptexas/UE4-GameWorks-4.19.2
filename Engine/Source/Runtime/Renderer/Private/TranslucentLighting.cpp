@@ -348,13 +348,10 @@ public:
 		}
 	}
 
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIParamRef BoundShaderState) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 	{
 		// Set the shared mesh resources.
 		FMeshDrawingPolicy::DrawShared(RHICmdList, View);
-
-		// Set the actual shader & vertex declaration state
-		RHICmdList.SetBoundShaderState(BoundShaderState);
 
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
 		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *View, PolicyShadowInfo);
@@ -365,9 +362,9 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		return RHICreateBoundShaderState(
+		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
 			VertexShader->GetVertexShader(),
 			NULL, 
@@ -439,7 +436,8 @@ public:
 			if (IsTranslucentBlendMode(BlendMode))
 			{
 				FTranslucencyShadowDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory, MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(FeatureLevel), DrawingContext.bDirectionalLight);
-				DrawingPolicy.DrawShared(RHICmdList, &View, DrawingPolicy.CreateBoundShaderState(FeatureLevel));
+				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+				DrawingPolicy.SetSharedState(RHICmdList, &View);
 
 				for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 				{
@@ -1557,7 +1555,8 @@ void SetInjectionShader(
 	if (!IsValidRef(BoundShaderState) || CachedShaderMap != MaterialShaderMap)
 	{
 		CachedShaderMap = MaterialShaderMap;
-		BoundShaderState = RHICreateBoundShaderState(GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader->GetGeometryShader());
+		check(IsInRenderingThread()); // I didn't know quite how to deal with this caching. It won't work with threads.
+		BoundShaderState = CreateBoundShaderState_Internal(GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader->GetGeometryShader());
 	}
 
 	RHICmdList.SetBoundShaderState(BoundShaderState);

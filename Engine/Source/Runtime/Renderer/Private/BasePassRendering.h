@@ -549,10 +549,8 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 	{
-		RHICmdList.SetBoundShaderState(BoundShaderState);
-
 		// Set the light-map policy.
 		LightMapPolicy.Set(RHICmdList, VertexShader,bOverrideWithShaderComplexity ? NULL : PixelShader,VertexShader,PixelShader,VertexFactory,MaterialRenderProxy,View);
 
@@ -620,7 +618,7 @@ public:
 	* @param DynamicStride - optional stride for dynamic vertex data
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
@@ -631,17 +629,14 @@ public:
 			PixelShaderRHIRef = ShaderComplexityAccumulatePixelShader->GetPixelShader();
 		}
 #endif
-		FBoundShaderStateRHIRef BoundShaderState;
 
-		BoundShaderState = RHICreateBoundShaderState(
+		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
 			VertexShader->GetVertexShader(),
 			GETSAFERHISHADER_HULL(HullShader), 
 			GETSAFERHISHADER_DOMAIN(DomainShader), 
 			PixelShaderRHIRef,
 			FGeometryShaderRHIRef());
-
-		return BoundShaderState;
 	}
 
 	void SetMeshRenderState(

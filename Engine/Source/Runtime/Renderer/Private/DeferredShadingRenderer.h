@@ -42,7 +42,7 @@ public:
 	void ClearView(FRHICommandListImmediate& RHICmdList);
 
 	/** Clears gbuffer where Z is still at the maximum value (ie no geometry rendered) */
-	void ClearGBufferAtMaxZ(FRHICommandListImmediate& RHICmdList);
+	void ClearGBufferAtMaxZ(FRHICommandList& RHICmdList);
 
 	/** Clears LPVs for all views */
 	void ClearLPVs(FRHICommandListImmediate& RHICmdList);
@@ -222,7 +222,7 @@ private:
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
-	void UpdateDownsampledDepthSurface(FRHICommandListImmediate& RHICmdList);
+	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/**
 	 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.

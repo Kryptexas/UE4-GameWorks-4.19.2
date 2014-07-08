@@ -275,7 +275,7 @@ void FSceneRenderer::InitFogConstants()
 FGlobalBoundShaderState ExponentialBoundShaderState;
 
 /** Sets the bound shader state for either the per-pixel or per-sample fog pass. */
-void SetFogShaders(FRHICommandListImmediate& RHICmdList, FScene* Scene, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
+void SetFogShaders(FRHICommandList& RHICmdList, FScene* Scene, const FViewInfo& View, FLightShaftsOutput LightShaftsOutput)
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{

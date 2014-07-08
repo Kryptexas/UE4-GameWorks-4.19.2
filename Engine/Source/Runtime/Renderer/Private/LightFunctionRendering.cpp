@@ -249,12 +249,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 		FLightFunctionVS* VertexShader = MaterialShaderMap->GetShader<FLightFunctionVS>();
 		FLightFunctionPS* PixelShader = MaterialShaderMap->GetShader<FLightFunctionPS>();
 
-		// This was cached but when changing the material (e.g. editor) it wasn't updated.
-		// This will change with upcoming multi threaded rendering changes.
-		FBoundShaderStateRHIRef LightFunctionBoundShaderState;
-		{
-			LightFunctionBoundShaderState = RHICreateBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
-		}
+		FLocalBoundShaderState LightFunctionBoundShaderState = RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector4(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
 
 		FSphere LightBounds = LightSceneInfo->Proxy->GetBoundingSphere();
 
@@ -327,7 +322,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 					LightSceneInfo->Proxy->SetScissorRect(RHICmdList, View);
 
 					// Render a bounding light sphere.
-					RHICmdList.SetBoundShaderState(LightFunctionBoundShaderState);
+					RHICmdList.SetLocalBoundShaderState(LightFunctionBoundShaderState);
 					VertexShader->SetParameters(RHICmdList, &View, LightSceneInfo);
 					PixelShader->SetParameters(RHICmdList, &View, LightSceneInfo, MaterialProxy, bRenderingPreviewShadowsIndicator, FadeAlpha);
 

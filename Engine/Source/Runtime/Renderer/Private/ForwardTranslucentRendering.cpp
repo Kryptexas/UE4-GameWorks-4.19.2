@@ -139,11 +139,8 @@ public:
 			View.Family->EngineShowFlags.ShaderComplexity
 			);
 
-		DrawingPolicy.DrawShared(
-			RHICmdList, 
-			&View,
-			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
-			);
+		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, &View);
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{

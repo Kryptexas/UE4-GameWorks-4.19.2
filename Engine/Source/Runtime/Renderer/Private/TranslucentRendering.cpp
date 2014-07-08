@@ -273,11 +273,8 @@ public:
 			View.Family->EngineShowFlags.ShaderComplexity,
 			Parameters.bAllowFog
 			);
-		DrawingPolicy.DrawShared(
-			RHICmdList, 
-			&View,
-			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
-			);
+		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, &View);
 
 		int32 BatchElementIndex = 0;
 		uint64 BatchElementMask = Parameters.BatchElementMask;

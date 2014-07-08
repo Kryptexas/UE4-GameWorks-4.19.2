@@ -197,7 +197,15 @@ private:
 
 		void CreateBoundShaderState()
 		{
-			BoundShaderState = DrawingPolicy.CreateBoundShaderState(FeatureLevel);
+			check(IsInRenderingThread());
+			FBoundShaderStateInput BoundShaderStateInput = DrawingPolicy.GetBoundShaderStateInput(FeatureLevel);
+			BoundShaderState = CreateBoundShaderState_Internal(
+				BoundShaderStateInput.VertexDeclarationRHI,
+				BoundShaderStateInput.VertexShaderRHI,
+				BoundShaderStateInput.HullShaderRHI,
+				BoundShaderStateInput.DomainShaderRHI,
+				BoundShaderStateInput.PixelShaderRHI,
+				BoundShaderStateInput.GeometryShaderRHI);
 		}
 	};
 

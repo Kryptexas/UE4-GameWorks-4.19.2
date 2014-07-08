@@ -264,11 +264,8 @@ public:
 			SceneTextureMode == Other.SceneTextureMode;
 	}
 
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 	{
-		// Set the actual shader & vertex declaration state
-		RHICmdList.SetBoundShaderState(BoundShaderState);
-
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -326,7 +323,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
@@ -338,15 +335,13 @@ public:
 		}
 #endif
 
-		FBoundShaderStateRHIRef BoundShaderState = RHICreateBoundShaderState(
+		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
 			VertexShader->GetVertexShader(),
 			FHullShaderRHIRef(), 
 			FDomainShaderRHIRef(), 
 			PixelShaderRHIRef,
 			FGeometryShaderRHIRef());
-
-		return BoundShaderState;
 	}
 
 	void SetMeshRenderState(

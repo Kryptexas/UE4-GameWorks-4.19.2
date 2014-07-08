@@ -247,7 +247,7 @@ IMPLEMENT_SHADER_TYPE(,FLpvVisualiseVS,TEXT("LPVVisualise"),TEXT("VShader"),SF_V
 IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_Pixel);
 
 
-void FLightPropagationVolume::Visualise(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const
+void FLightPropagationVolume::Visualise(FRHICommandList& RHICmdList, const FSceneView& View) const
 {
 	SCOPED_DRAW_EVENT(LpvVisualise, DEC_LIGHT);
 	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);

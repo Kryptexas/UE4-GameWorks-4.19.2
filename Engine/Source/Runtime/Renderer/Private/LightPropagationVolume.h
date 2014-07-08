@@ -144,7 +144,7 @@ public:
 
 	void Propagate(FRHICommandListImmediate& RHICmdList);
 
-	void Visualise(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const;
+	void Visualise(FRHICommandList& RHICmdList, const FSceneView& View) const;
 
 	const FIntVector& GetGridOffset() const { return mGridOffset; }
 

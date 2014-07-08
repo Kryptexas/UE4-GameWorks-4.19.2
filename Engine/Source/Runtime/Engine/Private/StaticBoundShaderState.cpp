@@ -56,7 +56,7 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Create the bound shader state if it hasn't been cached yet.
 	if(!IsValidRef(BoundShaderState))
 	{
-		BoundShaderState = RHICreateBoundShaderState(
+		BoundShaderState = CreateBoundShaderState_Internal(
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(), 
@@ -68,7 +68,7 @@ FBoundShaderStateRHIParamRef FGlobalBoundShaderStateResource::GetInitializedRHI(
 	// Only people working on shaders (and therefore have LogShaders unsuppressed) will want to see these errors
 	else if (!GUsingNullRHI && UE_LOG_ACTIVE(LogShaders, Warning))
 	{
-		FBoundShaderStateRHIRef TempBoundShaderState = RHICreateBoundShaderState(
+		FBoundShaderStateRHIRef TempBoundShaderState = CreateBoundShaderState_Internal(
 			VertexDeclaration,
 			VertexShader,
 			FHullShaderRHIRef(),
@@ -92,26 +92,26 @@ void FGlobalBoundShaderStateResource::ReleaseRHI()
 	BoundShaderState.SafeRelease();
 }
 
-void SetGlobalBoundShaderState(
-	FRHICommandListImmediate& RHICmdList,
-	FGlobalBoundShaderState& GlobalBoundShaderState,
-	FVertexDeclarationRHIParamRef VertexDeclaration,
-	FShader* VertexShader,
-	FShader* PixelShader,
-	FShader* GeometryShader
-	)
+void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState GlobalBoundShaderState)
 {
 	// Check for unset uniform buffer parameters
 	// Technically you can set uniform buffer parameters after calling RHISetBoundShaderState, but this is the most global place to check for unset parameters
-	VertexShader->VerifyBoundUniformBufferParameters();
-	PixelShader->VerifyBoundUniformBufferParameters();
-	GeometryShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState->Args.VertexShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState->Args.PixelShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState->Args.GeometryShader->VerifyBoundUniformBufferParameters();
 
-	RHICmdList.SetBoundShaderState(
-		GlobalBoundShaderState.GetInitializedRHI(
-			VertexDeclaration,
-			GETSAFERHISHADER_VERTEX(VertexShader),
-			GETSAFERHISHADER_PIXEL(PixelShader),
-			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GeometryShader))
+	FGlobalBoundShaderState_Internal* BSS = GlobalBoundShaderState->BSS;
+	if (!BSS)
+	{
+		BSS = new FGlobalBoundShaderState_Internal(); // these are simply leaked and never freed
+		GlobalBoundShaderState->BSS = BSS;
+	}
+
+	SetBoundShaderState_Internal(
+		BSS->GetInitializedRHI(
+			GlobalBoundShaderState->Args.VertexDeclarationRHI,
+			GETSAFERHISHADER_VERTEX(GlobalBoundShaderState->Args.VertexShader),
+			GETSAFERHISHADER_PIXEL(GlobalBoundShaderState->Args.PixelShader),
+			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState->Args.GeometryShader))
 		);
 }

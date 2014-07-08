@@ -173,11 +173,8 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	PixelShader = MaterialResource->GetShader<FHitProxyPS>(InVertexFactory->GetType());
 }
 
-void FHitProxyDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIParamRef BoundShaderState) const
+void FHitProxyDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 {
-	// Set the actual shader & vertex declaration state
-	RHICmdList.SetBoundShaderState(BoundShaderState);
-
 	// Set the depth-only shader parameters for the material.
 	VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 	PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
@@ -197,19 +194,15 @@ void FHitProxyDrawingPolicy::DrawShared(FRHICommandList& RHICmdList, const FScen
 * as well as the shaders needed to draw the mesh
 * @return new bound shader state object
 */
-FBoundShaderStateRHIRef FHitProxyDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput FHitProxyDrawingPolicy::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FBoundShaderStateRHIRef BoundShaderState;
-
-	BoundShaderState = RHICreateBoundShaderState(
+	return FBoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
 		VertexShader->GetVertexShader(),
 		GETSAFERHISHADER_HULL(HullShader), 
 		GETSAFERHISHADER_DOMAIN(DomainShader), 
 		PixelShader->GetPixelShader(),
 		FGeometryShaderRHIRef());
-
-	return BoundShaderState;
 }
 
 void FHitProxyDrawingPolicy::SetMeshRenderState(
@@ -316,8 +309,9 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			}
 			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy, View.GetFeatureLevel() );
-			DrawingPolicy.DrawShared(RHICmdList, &View, DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
-			for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++ )
+			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+			DrawingPolicy.SetSharedState(RHICmdList, &View);
+			for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 			{
 				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId);
 				DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);

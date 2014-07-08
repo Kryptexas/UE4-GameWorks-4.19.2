@@ -34,6 +34,19 @@ enum ERHICommandType
 	ERCT_SetRenderTargets,
 	ERCT_EndDrawPrimitiveUP,
 	ERCT_EndDrawIndexedPrimitiveUP,
+	ERCT_BuildLocalBoundShaderState,
+	ERCT_SetLocalBoundShaderState,
+	ERCT_SetGlobalBoundShaderState,
+	ERCT_SetComputeShader,
+	ERCT_DispatchComputeShader,
+	ERCT_DispatchIndirectComputeShader,
+	ERCT_AutomaticCacheFlushAfterComputeShader,
+	ERCT_FlushComputeShaderCache,
+	ERCT_DrawPrimitiveIndirect,
+	ERCT_DrawIndexedIndirect,
+	ERCT_DrawIndexedPrimitiveIndirect,
+	ERCT_EnableDepthBoundsTest,
+
 	ERCT_,
 };
 
@@ -428,6 +441,261 @@ struct FRHICommandEndDrawIndexedPrimitiveUP : public FRHICommand
 	}
 };
 
+struct FRHICommandSetComputeShader : public FRHICommand
+{
+	FComputeShaderRHIParamRef ComputeShader;
+	FORCEINLINE_DEBUGGABLE void Set(FComputeShaderRHIParamRef InComputeShader)
+	{
+		Type = ERCT_SetComputeShader;
+		ComputeShader = InComputeShader;
+	}
+};
+
+struct FRHICommandDispatchComputeShader : public FRHICommand
+{
+	uint32 ThreadGroupCountX;
+	uint32 ThreadGroupCountY;
+	uint32 ThreadGroupCountZ;
+	FORCEINLINE_DEBUGGABLE void Set(uint32 InThreadGroupCountX, uint32 InThreadGroupCountY, uint32 InThreadGroupCountZ)
+	{
+		Type = ERCT_DispatchComputeShader;
+		ThreadGroupCountX = InThreadGroupCountX;
+		ThreadGroupCountY = InThreadGroupCountY;
+		ThreadGroupCountZ = InThreadGroupCountZ;
+	}
+};
+
+struct FRHICommandDispatchIndirectComputeShader : public FRHICommand
+{
+	FVertexBufferRHIParamRef ArgumentBuffer;
+	uint32 ArgumentOffset;
+	FORCEINLINE_DEBUGGABLE void Set(FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+	{
+		Type = ERCT_DispatchIndirectComputeShader;
+		ArgumentBuffer = InArgumentBuffer;
+		ArgumentOffset = InArgumentOffset;
+
+	}
+};
+
+struct FRHICommandAutomaticCacheFlushAfterComputeShader : public FRHICommand
+{
+	bool bEnable;
+	FORCEINLINE_DEBUGGABLE void Set(bool InbEnable)
+	{
+		Type = ERCT_AutomaticCacheFlushAfterComputeShader;
+		bEnable = InbEnable;
+	}
+};
+
+struct FRHICommandFlushComputeShaderCache : public FRHICommand
+{
+	FORCEINLINE_DEBUGGABLE void Set()
+	{
+		Type = ERCT_FlushComputeShaderCache;
+	}
+};
+
+struct FRHICommandDrawPrimitiveIndirect : public FRHICommand
+{
+	uint32 PrimitiveType;
+	FVertexBufferRHIParamRef ArgumentBuffer;
+	uint32 ArgumentOffset;
+	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, FVertexBufferRHIParamRef InArgumentBuffer, uint32 InArgumentOffset)
+	{
+		Type = ERCT_DrawPrimitiveIndirect;
+		PrimitiveType = InPrimitiveType;
+		ArgumentBuffer = InArgumentBuffer;
+		ArgumentOffset = InArgumentOffset;
+
+	}
+};
+
+struct FRHICommandDrawIndexedIndirect : public FRHICommand
+{
+	FIndexBufferRHIParamRef IndexBufferRHI;
+	uint32 PrimitiveType;
+	FStructuredBufferRHIParamRef ArgumentsBufferRHI;
+	uint32 DrawArgumentsIndex;
+	uint32 NumInstances;
+
+	FORCEINLINE_DEBUGGABLE void Set(FIndexBufferRHIParamRef InIndexBufferRHI, uint32 InPrimitiveType, FStructuredBufferRHIParamRef InArgumentsBufferRHI, uint32 InDrawArgumentsIndex, uint32 InNumInstances)
+	{
+		Type = ERCT_DrawIndexedIndirect;
+		IndexBufferRHI = InIndexBufferRHI;
+		PrimitiveType = InPrimitiveType;
+		ArgumentsBufferRHI = InArgumentsBufferRHI;
+		DrawArgumentsIndex = InDrawArgumentsIndex;
+		NumInstances = InNumInstances;
+	}
+};
+
+struct FRHICommandDrawIndexedPrimitiveIndirect : public FRHICommand
+{
+	uint32 PrimitiveType;
+	FIndexBufferRHIParamRef IndexBuffer;
+	FVertexBufferRHIParamRef ArgumentsBuffer;
+	uint32 ArgumentOffset;
+
+	FORCEINLINE_DEBUGGABLE void Set(uint32 InPrimitiveType, FIndexBufferRHIParamRef InIndexBuffer, FVertexBufferRHIParamRef InArgumentsBuffer, uint32 InArgumentOffset)
+	{
+		Type = ERCT_DrawIndexedPrimitiveIndirect;
+		PrimitiveType = InPrimitiveType;
+		IndexBuffer = InIndexBuffer;
+		ArgumentsBuffer = InArgumentsBuffer;
+		ArgumentOffset = InArgumentOffset;
+	}
+};
+
+struct FRHICommandEnableDepthBoundsTest : public FRHICommand
+{
+	bool bEnable;
+	float MinDepth;
+	float MaxDepth;
+
+	FORCEINLINE_DEBUGGABLE void Set(bool InbEnable, float InMinDepth, float InMaxDepth)
+	{
+		Type = ERCT_EnableDepthBoundsTest;
+		bEnable = InbEnable;
+		MinDepth = InMinDepth;
+		MaxDepth = InMaxDepth;
+	}
+};
+
+struct FBoundShaderStateInput
+{
+	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
+	FVertexShaderRHIParamRef VertexShaderRHI;
+	FHullShaderRHIParamRef HullShaderRHI;
+	FDomainShaderRHIParamRef DomainShaderRHI;
+	FPixelShaderRHIParamRef PixelShaderRHI;
+	FGeometryShaderRHIParamRef GeometryShaderRHI;
+
+	FORCEINLINE FBoundShaderStateInput()
+	{
+	}
+
+	FORCEINLINE FBoundShaderStateInput(FVertexDeclarationRHIParamRef InVertexDeclarationRHI,
+		FVertexShaderRHIParamRef InVertexShaderRHI,
+		FHullShaderRHIParamRef InHullShaderRHI,
+		FDomainShaderRHIParamRef InDomainShaderRHI,
+		FPixelShaderRHIParamRef InPixelShaderRHI,
+		FGeometryShaderRHIParamRef InGeometryShaderRHI
+		)
+		: VertexDeclarationRHI(InVertexDeclarationRHI)
+		, VertexShaderRHI(InVertexShaderRHI)
+		, HullShaderRHI(InHullShaderRHI)
+		, DomainShaderRHI(InDomainShaderRHI)
+		, PixelShaderRHI(InPixelShaderRHI)
+		, GeometryShaderRHI(InGeometryShaderRHI)
+	{
+	}
+};
+
+
+struct FLocalBoundShaderStateWorkArea
+{
+	FBoundShaderStateInput Args;
+	FBoundShaderStateRHIRef BSS;
+	int32 UseCount;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	class FRHICommandList* CheckCmdList;
+	int32 UID;
+#endif
+};
+
+struct FLocalBoundShaderState
+{
+	FLocalBoundShaderStateWorkArea* WorkArea;
+	FBoundShaderStateRHIRef BypassBSS; // this is only used in the case of Bypass, should eventually be deleted
+	FLocalBoundShaderState()
+		: WorkArea(nullptr)
+	{
+	}
+};
+
+struct FRHICommandBuildLocalBoundShaderState : public FRHICommand
+{
+	FLocalBoundShaderStateWorkArea WorkArea;
+	FORCEINLINE_DEBUGGABLE void Set(
+		class FRHICommandList* CheckCmdList,
+		int32 UID,
+		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
+		FVertexShaderRHIParamRef VertexShaderRHI,
+		FHullShaderRHIParamRef HullShaderRHI,
+		FDomainShaderRHIParamRef DomainShaderRHI,
+		FPixelShaderRHIParamRef PixelShaderRHI,
+		FGeometryShaderRHIParamRef GeometryShaderRHI
+		)
+	{
+		Type = ERCT_BuildLocalBoundShaderState;
+		WorkArea.Args.VertexDeclarationRHI = VertexDeclarationRHI;
+		WorkArea.Args.VertexShaderRHI = VertexShaderRHI;
+		WorkArea.Args.HullShaderRHI = HullShaderRHI;
+		WorkArea.Args.DomainShaderRHI = DomainShaderRHI;
+		WorkArea.Args.PixelShaderRHI = PixelShaderRHI;
+		WorkArea.Args.GeometryShaderRHI = GeometryShaderRHI;
+
+		// these RHI commands are bad, no constructor! we construct this in place
+		new ((void*)&WorkArea.BSS) FBoundShaderStateRHIRef();
+		WorkArea.UseCount = 0;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		WorkArea.CheckCmdList = CheckCmdList;
+		WorkArea.UID = UID;
+#endif
+	}
+};
+
+struct FRHICommandSetLocalBoundShaderState : public FRHICommand
+{
+	FLocalBoundShaderState LocalBoundShaderState;
+	FORCEINLINE_DEBUGGABLE void Set(class FRHICommandList* CheckCmdList, int32 UID, FLocalBoundShaderState& InLocalBoundShaderState)
+	{
+		Type = ERCT_SetLocalBoundShaderState;
+		LocalBoundShaderState.WorkArea = InLocalBoundShaderState.WorkArea;
+		check(CheckCmdList == LocalBoundShaderState.WorkArea->CheckCmdList && UID == LocalBoundShaderState.WorkArea->UID); // this BSS was not built for this particular commandlist
+		LocalBoundShaderState.WorkArea->UseCount++;
+	}
+};
+
+
+class FShader;
+
+struct FGlobalBoundShaderStateArgs
+{
+	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
+	FShader* VertexShader;
+	FShader* PixelShader;
+	FShader* GeometryShader;
+};
+
+class FGlobalBoundShaderStateResource;
+template<class ResourceType> class TGlobalResource;
+
+
+struct FGlobalBoundShaderStateWorkArea
+{
+	FGlobalBoundShaderStateArgs Args;
+	TGlobalResource<FGlobalBoundShaderStateResource>* BSS; //ideally this would be part of this memory block and not a separate allocation...that is doable, if a little tedious. The point is we need to delay the construction until we get back to the render thread.
+
+	FGlobalBoundShaderStateWorkArea()
+		: BSS(nullptr)
+	{
+	}
+};
+
+typedef FGlobalBoundShaderStateWorkArea* FGlobalBoundShaderState;
+
+struct FRHICommandSetGlobalBoundShaderState : public FRHICommand
+{
+	FGlobalBoundShaderState GlobalBoundShaderState;
+	FORCEINLINE_DEBUGGABLE void Set(FGlobalBoundShaderState InGlobalBoundShaderState)
+	{
+		Type = ERCT_SetGlobalBoundShaderState;
+		GlobalBoundShaderState = InGlobalBoundShaderState;
+	}
+};
+
 class RHI_API FRHICommandList : public FNoncopyable
 {
 private:
@@ -583,6 +851,143 @@ public:
 	}
 	inline void Flush();
 
+	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
+	{
+		return BuildLocalBoundShaderState(
+			BoundShaderStateInput.VertexDeclarationRHI,
+			BoundShaderStateInput.VertexShaderRHI,
+			BoundShaderStateInput.HullShaderRHI,
+			BoundShaderStateInput.DomainShaderRHI,
+			BoundShaderStateInput.PixelShaderRHI,
+			BoundShaderStateInput.GeometryShaderRHI
+			);
+	}
+
+	FORCEINLINE_DEBUGGABLE void BuildAndSetLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
+	{
+		SetLocalBoundShaderState(BuildLocalBoundShaderState(
+			BoundShaderStateInput.VertexDeclarationRHI,
+			BoundShaderStateInput.VertexShaderRHI,
+			BoundShaderStateInput.HullShaderRHI,
+			BoundShaderStateInput.DomainShaderRHI,
+			BoundShaderStateInput.PixelShaderRHI,
+			BoundShaderStateInput.GeometryShaderRHI
+			));
+	}
+
+	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(
+		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
+		FVertexShaderRHIParamRef VertexShaderRHI,
+		FHullShaderRHIParamRef HullShaderRHI,
+		FDomainShaderRHIParamRef DomainShaderRHI,
+		FPixelShaderRHIParamRef PixelShaderRHI,
+		FGeometryShaderRHIParamRef GeometryShaderRHI
+		)
+	{
+		FLocalBoundShaderState Result;
+		if (Bypass())
+		{
+			Result.BypassBSS = CreateBoundShaderState_Internal(VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
+		}
+		else
+		{
+			auto* Cmd = AddCommand<FRHICommandBuildLocalBoundShaderState>();
+			Cmd->Set(this, this->UID, VertexDeclarationRHI, VertexShaderRHI, HullShaderRHI, DomainShaderRHI, PixelShaderRHI, GeometryShaderRHI);
+			Result.WorkArea = &Cmd->WorkArea;
+
+			if (VertexDeclarationRHI)
+			{
+				VertexDeclarationRHI->AddRef();
+			}
+			if (VertexShaderRHI)
+			{
+				VertexShaderRHI->AddRef();
+			}
+			if (HullShaderRHI)
+			{
+				HullShaderRHI->AddRef();
+			}
+			if (DomainShaderRHI)
+			{
+				DomainShaderRHI->AddRef();
+			}
+			if (PixelShaderRHI)
+			{
+				PixelShaderRHI->AddRef();
+			}
+			if (GeometryShaderRHI)
+			{
+				GeometryShaderRHI->AddRef();
+			}
+		}
+		return Result;
+	}
+
+	FORCEINLINE_DEBUGGABLE void SetLocalBoundShaderState(FLocalBoundShaderState LocalBoundShaderState)
+	{
+		if (Bypass())
+		{
+			SetBoundShaderState_Internal(LocalBoundShaderState.BypassBSS);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetLocalBoundShaderState>();
+		Cmd->Set(this, this->UID, LocalBoundShaderState);
+	}
+
+	FORCEINLINE_DEBUGGABLE void BuildAndSetGlobalBoundShaderState(
+		void(*InSetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState BoundShaderState),
+		FGlobalBoundShaderState& GlobalBoundShaderState,
+		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
+		FShader* VertexShader,
+		FShader* PixelShader,
+		FShader* GeometryShader
+		)
+	{
+		SetGlobalBoundShaderState_InternalPtr = InSetGlobalBoundShaderState_InternalPtr; // total hack to work around module issues
+		if (!GlobalBoundShaderState)
+		{
+			FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
+			NewGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
+			NewGlobalBoundShaderState->Args.VertexShader = VertexShader;
+			NewGlobalBoundShaderState->Args.PixelShader = PixelShader;
+			NewGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
+			FPlatformMisc::MemoryBarrier();
+
+			FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&GlobalBoundShaderState, NewGlobalBoundShaderState, nullptr);
+
+			if (OldGlobalBoundShaderState != nullptr)
+			{
+				//we lost
+				delete NewGlobalBoundShaderState;
+				check(OldGlobalBoundShaderState == GlobalBoundShaderState);
+			}
+			else
+			{
+				// we won
+
+				// this is not even slightly threadsafe, a "loser" might destroy the resource before we get here, and besides this is global; we are never going to destory these anyway.
+
+				if (VertexDeclarationRHI)
+				{
+					VertexDeclarationRHI->AddRef();
+				}
+			}
+		}
+		check(
+			VertexDeclarationRHI == GlobalBoundShaderState->Args.VertexDeclarationRHI &&
+			VertexShader == GlobalBoundShaderState->Args.VertexShader &&
+			PixelShader == GlobalBoundShaderState->Args.PixelShader &&
+			GeometryShader == GlobalBoundShaderState->Args.GeometryShader
+			);
+		if (Bypass())
+		{
+			InSetGlobalBoundShaderState_InternalPtr(GlobalBoundShaderState);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetGlobalBoundShaderState>();
+		Cmd->Set(GlobalBoundShaderState);
+	}
+
 	template <typename TShaderRHIParamRef>
 	FORCEINLINE_DEBUGGABLE void SetShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, FUniformBufferRHIParamRef UniformBuffer)
 	{
@@ -643,7 +1048,10 @@ public:
 		auto* Cmd = AddCommand<FRHICommandSetShaderResourceViewParameter>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, SRV);
 		Shader->AddRef();
-		SRV->AddRef();
+		if (SRV)
+		{
+			SRV->AddRef();
+		}
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -767,7 +1175,10 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetStreamSource>();
 		Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
-		VertexBuffer->AddRef();
+		if (VertexBuffer)
+		{
+			VertexBuffer->AddRef();
+		}
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
@@ -925,6 +1336,113 @@ public:
 		DrawUPData.NumVertices = 0;
 	}
 
+	void SetComputeShader(FComputeShaderRHIParamRef ComputeShader)
+	{
+		if (Bypass())
+		{
+			SetComputeShader_Internal(ComputeShader);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetComputeShader>();
+		Cmd->Set(ComputeShader);
+		ComputeShader->AddRef();
+	}
+
+	void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
+	{
+		if (Bypass())
+		{
+			DispatchComputeShader_Internal(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandDispatchComputeShader>();
+		Cmd->Set(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+	}
+
+	void DispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
+	{
+		if (Bypass())
+		{
+			DispatchIndirectComputeShader_Internal(ArgumentBuffer, ArgumentOffset);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandDispatchIndirectComputeShader>();
+		Cmd->Set(ArgumentBuffer, ArgumentOffset);
+		ArgumentBuffer->AddRef();
+	}
+
+	void AutomaticCacheFlushAfterComputeShader(bool bEnable)
+	{
+		if (Bypass())
+		{
+			AutomaticCacheFlushAfterComputeShader_Internal(bEnable);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandAutomaticCacheFlushAfterComputeShader>();
+		Cmd->Set(bEnable);
+	}
+
+	void FlushComputeShaderCache()
+	{
+		if (Bypass())
+		{
+			FlushComputeShaderCache_Internal();
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandFlushComputeShaderCache>();
+		Cmd->Set();
+	}
+
+	void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
+	{
+		if (Bypass())
+		{
+			DrawPrimitiveIndirect_Internal(PrimitiveType, ArgumentBuffer, ArgumentOffset);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandDrawPrimitiveIndirect>();
+		Cmd->Set(PrimitiveType, ArgumentBuffer, ArgumentOffset);
+		ArgumentBuffer->AddRef();
+	}
+
+	void DrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, uint32 DrawArgumentsIndex, uint32 NumInstances)
+	{
+		if (Bypass())
+		{
+			DrawIndexedIndirect_Internal(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandDrawIndexedIndirect>();
+		Cmd->Set(IndexBufferRHI, PrimitiveType, ArgumentsBufferRHI, DrawArgumentsIndex, NumInstances);
+		IndexBufferRHI->AddRef();
+		ArgumentsBufferRHI->AddRef();
+	}
+
+	void DrawIndexedPrimitiveIndirect(uint32 PrimitiveType, FIndexBufferRHIParamRef IndexBuffer, FVertexBufferRHIParamRef ArgumentsBuffer, uint32 ArgumentOffset)
+	{
+		if (Bypass())
+		{
+			DrawIndexedPrimitiveIndirect_Internal(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandDrawIndexedPrimitiveIndirect>();
+		Cmd->Set(PrimitiveType, IndexBuffer, ArgumentsBuffer, ArgumentOffset);
+		IndexBuffer->AddRef();
+		ArgumentsBuffer->AddRef();
+	}
+
+	void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
+	{
+		if (Bypass())
+		{
+			EnableDepthBoundsTest_Internal(bEnable, MinDepth, MaxDepth);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandEnableDepthBoundsTest>();
+		Cmd->Set(bEnable, MinDepth, MaxDepth);
+
+	}
+
 
 
 	const SIZE_T GetUsedMemory() const;
@@ -932,6 +1450,10 @@ public:
 private:
 	bool bExecuting;
 	uint32 NumCommands;
+	uint32 UID;
+	static FThreadSafeCounter UIDCounter;
+	void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState BoundShaderState);
+
 
 	FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)
 	{
@@ -958,6 +1480,7 @@ private:
 		bExecuting = false;
 		NumCommands = 0;
 		MemManager.Reset();
+		UID = UIDCounter.Increment();
 	}
 
 	inline bool Bypass();

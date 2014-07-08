@@ -324,17 +324,15 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			if( !ShaderResource || ShaderResource->GetType() == ESlateShaderResource::Texture ) 
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
-				FBoundShaderStateRHIRef BoundShaderState;
 
-				BoundShaderState = RHICreateBoundShaderState(
+				RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 					GSlateVertexDeclaration.VertexDeclarationRHI,
 					VertexShader->GetVertexShader(),
 					nullptr,
 					nullptr,
 					PixelShader->GetPixelShader(),
-					FGeometryShaderRHIRef());
+					FGeometryShaderRHIRef()));
 
-				RHICmdList.SetBoundShaderState(BoundShaderState);
 
 				VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix);
 				VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
@@ -449,17 +447,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				if( PixelShader )
 				{
-					FBoundShaderStateRHIRef BoundShaderState;
-
-					BoundShaderState = RHICreateBoundShaderState(
+					RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 						GSlateVertexDeclaration.VertexDeclarationRHI,
 						VertexShader->GetVertexShader(),
 						nullptr,
 						nullptr,
 						PixelShader->GetPixelShader(),
-						FGeometryShaderRHIRef());
-
-					RHICmdList.SetBoundShaderState(BoundShaderState);
+						FGeometryShaderRHIRef()));
 
 					VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, 1.0f / DisplayGamma, ShaderParams.PixelParams);

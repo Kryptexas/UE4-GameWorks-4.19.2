@@ -402,7 +402,7 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param GeometryShader - existing geometry shader
  * @param PixelShader - existing pixel shader
  */
-DEFINE_RHIMETHOD_GLOBAL_6(
+DEFINE_RHIMETHOD_CMDLIST_6(
 	FBoundShaderStateRHIRef,CreateBoundShaderState,
 	FVertexDeclarationRHIParamRef,VertexDeclaration,
 	FVertexShaderRHIParamRef,VertexShader,
@@ -417,13 +417,13 @@ DEFINE_RHIMETHOD_GLOBAL_6(
  *Sets the current compute shader.  Mostly for compliance with platforms
  *that require shader setting before resource binding.
  */
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,SetComputeShader,
 	FComputeShaderRHIParamRef,ComputeShader,
 	,
 	);
 
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,DispatchComputeShader,	
 	uint32,ThreadGroupCountX,
 	uint32,ThreadGroupCountY,
@@ -431,20 +431,20 @@ DEFINE_RHIMETHOD_3(
 	,
 	);
 
-DEFINE_RHIMETHOD_2(
+DEFINE_RHIMETHOD_CMDLIST_2(
 	void,DispatchIndirectComputeShader,	
 	FVertexBufferRHIParamRef,ArgumentBuffer,
 	uint32,ArgumentOffset,
 	,
 	);
 
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,AutomaticCacheFlushAfterComputeShader,
 	bool,bEnable,
 	,
 	);
 
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,FlushComputeShaderCache,
 	,
 	);
@@ -1736,7 +1736,7 @@ DEFINE_RHIMETHOD_CMDLIST_4(
 	uint32,NumInstances,
 	,
 	);
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,DrawPrimitiveIndirect,
 	uint32,PrimitiveType,
 	FVertexBufferRHIParamRef,ArgumentBuffer,
@@ -1744,7 +1744,7 @@ DEFINE_RHIMETHOD_3(
 	,
 	);
 
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,DrawIndexedIndirect,
 	FIndexBufferRHIParamRef,IndexBufferRHI,
 	uint32,PrimitiveType,
@@ -1767,7 +1767,7 @@ DEFINE_RHIMETHOD_CMDLIST_8(
 	uint32,NumInstances,
 	,
 	);
-DEFINE_RHIMETHOD_4(
+DEFINE_RHIMETHOD_CMDLIST_4(
 	void,DrawIndexedPrimitiveIndirect,
 	uint32,PrimitiveType,
 	FIndexBufferRHIParamRef,IndexBuffer,
@@ -1956,7 +1956,7 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param MaxDepth	The maximum depth for depth bounds test.
  *					The valid values for fMinDepth and fMaxDepth are such that 0 <= fMinDepth <= fMaxDepth <= 1
  */
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,EnableDepthBoundsTest,
 	bool,bEnable,
 	float,MinDepth,

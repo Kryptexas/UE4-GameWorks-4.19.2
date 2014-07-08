@@ -51,6 +51,7 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 	);
 
 RHI_API FRHICommandListExecutor GRHICommandList;
+RHI_API FThreadSafeCounter FRHICommandList::UIDCounter;
 //RHI_API FGlobalRHI GRHI;
 
 static_assert(sizeof(FRHICommand) == sizeof(FRHICommandNopEndOfPage), "These should match for filling in the end of a page when a new allocation won't fit");
@@ -183,7 +184,10 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					}
 				}
 				RHICmd->Shader->Release();
-				RHICmd->SRV->Release();
+				if (RHICmd->SRV)
+				{
+					RHICmd->SRV->Release();
+				}
 			}
 			break;
 		case ERCT_SetUAVParameter:
@@ -268,7 +272,10 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetStreamSource_Internal(RHICmd->StreamIndex, RHICmd->VertexBuffer, RHICmd->Stride, RHICmd->Offset);
 				}
-				RHICmd->VertexBuffer->Release();
+				if (RHICmd->VertexBuffer)
+				{
+					RHICmd->VertexBuffer->Release();
+				}
 			}
 			break;
 		case ERCT_SetDepthStencilState:
@@ -370,6 +377,160 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				FMemory::Free(RHICmd->OutIndexData);
 			}
 			break;
+		case ERCT_BuildLocalBoundShaderState:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandBuildLocalBoundShaderState>();
+				if (!bOnlyTestMemAccess)
+				{
+					check(RHICmd->WorkArea.CheckCmdList == &CmdList && RHICmd->WorkArea.UID == CmdList.UID // this BSS was not built for this particular commandlist
+						&& !IsValidRef(RHICmd->WorkArea.BSS)); // should not already have been created
+					if (RHICmd->WorkArea.UseCount)
+					{
+						RHICmd->WorkArea.BSS = CreateBoundShaderState_Internal(RHICmd->WorkArea.Args.VertexDeclarationRHI, RHICmd->WorkArea.Args.VertexShaderRHI, RHICmd->WorkArea.Args.HullShaderRHI, RHICmd->WorkArea.Args.DomainShaderRHI, RHICmd->WorkArea.Args.PixelShaderRHI, RHICmd->WorkArea.Args.GeometryShaderRHI);
+					}
+				}
+			}
+			break;
+		case ERCT_SetLocalBoundShaderState:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetLocalBoundShaderState>();
+				if (!bOnlyTestMemAccess)
+				{
+					check(RHICmd->LocalBoundShaderState.WorkArea->CheckCmdList == &CmdList && RHICmd->LocalBoundShaderState.WorkArea->UID == CmdList.UID // this BSS was not built for this particular commandlist
+						&& RHICmd->LocalBoundShaderState.WorkArea->UseCount > 0 && IsValidRef(RHICmd->LocalBoundShaderState.WorkArea->BSS)); // this should have been created and should have uses outstanding
+
+					SetBoundShaderState_Internal(RHICmd->LocalBoundShaderState.WorkArea->BSS);
+
+					if (--RHICmd->LocalBoundShaderState.WorkArea->UseCount == 0)
+					{
+						RHICmd->LocalBoundShaderState.WorkArea->BSS = nullptr; // this also releases the ref, which wouldn't otherwise happen because RHICommands are unsafe and don't do constructors or destructors
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.VertexDeclarationRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.VertexDeclarationRHI->Release();
+						}
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.VertexShaderRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.VertexShaderRHI->Release();
+						}
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.HullShaderRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.HullShaderRHI->Release();
+						}
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.DomainShaderRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.DomainShaderRHI->Release();
+						}
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.PixelShaderRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.PixelShaderRHI->Release();
+						}
+						if (RHICmd->LocalBoundShaderState.WorkArea->Args.GeometryShaderRHI)
+						{
+							RHICmd->LocalBoundShaderState.WorkArea->Args.GeometryShaderRHI->Release();
+						}
+					}
+				}
+			}
+			break;
+		case ERCT_SetGlobalBoundShaderState:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetGlobalBoundShaderState>();
+				if (!bOnlyTestMemAccess)
+				{
+					CmdList.SetGlobalBoundShaderState_InternalPtr(RHICmd->GlobalBoundShaderState);
+				}
+			}
+			break;
+
+		case ERCT_SetComputeShader:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetComputeShader>();
+				if (!bOnlyTestMemAccess)
+				{
+					SetComputeShader_Internal(RHICmd->ComputeShader);
+				}
+				RHICmd->ComputeShader->Release();
+			}
+			break;
+		case ERCT_DispatchComputeShader:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandDispatchComputeShader>();
+				if (!bOnlyTestMemAccess)
+				{
+					DispatchComputeShader_Internal(RHICmd->ThreadGroupCountX, RHICmd->ThreadGroupCountY, RHICmd->ThreadGroupCountZ);
+				}
+			}
+			break;
+		case ERCT_DispatchIndirectComputeShader:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandDispatchIndirectComputeShader>();
+				if (!bOnlyTestMemAccess)
+				{
+					DispatchIndirectComputeShader_Internal(RHICmd->ArgumentBuffer, RHICmd->ArgumentOffset);
+				}
+				RHICmd->ArgumentBuffer->Release();
+			}
+			break;
+		case ERCT_AutomaticCacheFlushAfterComputeShader:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandAutomaticCacheFlushAfterComputeShader>();
+				if (!bOnlyTestMemAccess)
+				{
+					AutomaticCacheFlushAfterComputeShader_Internal(RHICmd->bEnable);
+				}
+			}
+			break;
+		case ERCT_FlushComputeShaderCache:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandFlushComputeShaderCache>();
+				if (!bOnlyTestMemAccess)
+				{
+					FlushComputeShaderCache_Internal();
+				}
+			}
+			break;
+		case ERCT_DrawPrimitiveIndirect:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandDrawPrimitiveIndirect>();
+				if (!bOnlyTestMemAccess)
+				{
+					DrawPrimitiveIndirect_Internal(RHICmd->PrimitiveType, RHICmd->ArgumentBuffer, RHICmd->ArgumentOffset);
+				}
+				RHICmd->ArgumentBuffer->Release();
+			}
+			break;
+		case ERCT_DrawIndexedIndirect:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandDrawIndexedIndirect>();
+				if (!bOnlyTestMemAccess)
+				{
+					DrawIndexedIndirect_Internal(RHICmd->IndexBufferRHI, RHICmd->PrimitiveType, RHICmd->ArgumentsBufferRHI, RHICmd->DrawArgumentsIndex, RHICmd->NumInstances);
+				}
+				RHICmd->IndexBufferRHI->Release();
+				RHICmd->ArgumentsBufferRHI->Release();
+			}
+			break;
+		case ERCT_DrawIndexedPrimitiveIndirect:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandDrawIndexedPrimitiveIndirect>();
+				if (!bOnlyTestMemAccess)
+				{
+					DrawIndexedPrimitiveIndirect_Internal(RHICmd->PrimitiveType, RHICmd->IndexBuffer, RHICmd->ArgumentsBuffer, RHICmd->ArgumentOffset);
+				}
+				RHICmd->IndexBuffer->Release();
+				RHICmd->ArgumentsBuffer->Release();
+			}
+			break;
+		case ERCT_EnableDepthBoundsTest:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandEnableDepthBoundsTest>();
+				if (!bOnlyTestMemAccess)
+				{
+					EnableDepthBoundsTest_Internal(RHICmd->bEnable, RHICmd->MinDepth, RHICmd->MaxDepth);
+				}
+			}
+			break;
+
 
 		default:
 			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
@@ -486,3 +647,7 @@ const SIZE_T FRHICommandList::GetUsedMemory() const
 {
 	return MemManager.GetUsedMemory();
 }
+
+
+
+

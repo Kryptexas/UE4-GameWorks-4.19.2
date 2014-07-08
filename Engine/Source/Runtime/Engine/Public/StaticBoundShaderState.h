@@ -48,7 +48,17 @@ private:
 	ENGINE_API virtual void ReleaseRHI();
 };
 
-typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState;
+typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState_Internal;
+
+
+/**
+* SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
+*
+* @param BoundShaderState			- global bound shader state to initialize and set
+*/
+
+extern ENGINE_API void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState BoundShaderState);
+
 
 /**
  * SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
@@ -61,13 +71,16 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
  * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
  */
 
-extern ENGINE_API void SetGlobalBoundShaderState(
-	FRHICommandListImmediate& RHICmdList,
+FORCEINLINE void SetGlobalBoundShaderState(
+	FRHICommandList& RHICmdList,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,
 	FShader* PixelShader,
-	FShader* GeometryShader = 0
-	);
+	FShader* GeometryShader = nullptr
+	)
+{
+	RHICmdList.BuildAndSetGlobalBoundShaderState(&SetGlobalBoundShaderState_Internal, BoundShaderState, VertexDeclaration, VertexShader, PixelShader, GeometryShader);
+}
 
 #endif

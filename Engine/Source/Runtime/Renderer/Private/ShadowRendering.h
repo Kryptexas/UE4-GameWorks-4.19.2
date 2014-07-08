@@ -333,14 +333,14 @@ public:
 			&& bUsePositionOnlyVS == Other.bUsePositionOnlyVS
 			&& bPreShadow == Other.bPreShadow;
 	}
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
 
 	/** 
 	 * Create bound shader state using the vertex decl from the mesh draw policy
 	 * as well as the shaders needed to draw the mesh
 	 * @return new bound shader state object
 	 */
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
 
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 

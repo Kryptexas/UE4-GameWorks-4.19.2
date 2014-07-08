@@ -72,11 +72,15 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 
 	if (!bDrawnShared)
 	{
-		if (!IsValidRef(DrawingPolicyLink->BoundShaderState))
+		if (ensure(IsValidRef(DrawingPolicyLink->BoundShaderState)))
 		{
-			DrawingPolicyLink->CreateBoundShaderState();
+			RHICmdList.SetBoundShaderState(DrawingPolicyLink->BoundShaderState);
 		}
-		DrawingPolicyLink->DrawingPolicy.DrawShared(RHICmdList, &View,DrawingPolicyLink->BoundShaderState);
+		else
+		{
+			RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicyLink->DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		}
+		DrawingPolicyLink->DrawingPolicy.SetSharedState(RHICmdList, &View);
 		bDrawnShared = true;
 	}
 	
