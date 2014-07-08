@@ -5,6 +5,8 @@
 #include "GameplayEffect.h"
 #include "GameplayAbilityGraphSchema.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "BlueprintEditorUtils.h"
+
 
 UGameplayAbilityGraphSchema::UGameplayAbilityGraphSchema(const FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)

@@ -11,6 +11,7 @@
 #include "GameplayEffectTypes.h"
 #include "ClassIconFinder.h"
 #include "IDocumentation.h"
+#include "AssetEditorManager.h"
 
 #define LOCTEXT_NAMESPACE "GraphNodeGameplayEffectVar"
 
