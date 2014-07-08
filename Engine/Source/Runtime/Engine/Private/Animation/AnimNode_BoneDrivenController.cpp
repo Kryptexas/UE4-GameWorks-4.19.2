@@ -98,7 +98,7 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 
 	// Build final transform difference
 	FTransform FinalDiff(FQuat::MakeFromEuler(NewRotDiff), NewTransDiff, FVector(NewScaleDiff));
-	NewLocal.AccumulateWithAdditiveScale(FinalDiff);
+	NewLocal.AccumulateWithAdditiveScale3D(FinalDiff);
 
 	// If we have a parent, concatenate the transform, otherwise just take the new transform
 	int32 PIdx = RequiredBones.GetParentBoneIndex(TargetBone.BoneIndex);
