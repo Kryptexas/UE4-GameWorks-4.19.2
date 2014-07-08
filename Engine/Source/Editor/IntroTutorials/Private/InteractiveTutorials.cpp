@@ -99,6 +99,10 @@ void FInteractiveTutorials::SetCurrentTutorial(const FString& InUDNPath)
 	{
 		CurrentTutorial = *Tutorial;
 	}
+	else
+	{
+		CurrentTutorial = nullptr;
+	}
 }
 
 ETutorialStyle::Type FInteractiveTutorials::GetCurrentTutorialStyle()

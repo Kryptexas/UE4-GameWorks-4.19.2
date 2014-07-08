@@ -448,7 +448,7 @@ void ULandscapeComponent::PostLoad()
 					if (Obj && Obj->GetOuter() == MyPackage)
 					{
 						Obj->ClearFlags(RF_Public);
-						Obj->Rename(*Obj->GetName(), Level, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+						Obj->Rename(NULL, Level, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 					}
 				}
 			}

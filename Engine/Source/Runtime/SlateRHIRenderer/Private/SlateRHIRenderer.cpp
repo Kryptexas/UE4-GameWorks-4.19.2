@@ -412,7 +412,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
 		FTexture2DRHIRef BackBuffer = (ViewportInfo.RenderTargetTexture) ? 
-			ViewportInfo.RenderTargetTexture : RHIGetViewportBackBuffer(ViewportInfo.ViewportRHI);
+			ViewportInfo.RenderTargetTexture : RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI);
 		
 		const uint32 ViewportWidth  = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeX() : ViewportInfo.Width;
 		const uint32 ViewportHeight = (ViewportInfo.RenderTargetTexture) ? ViewportInfo.RenderTargetTexture->GetSizeY() : ViewportInfo.Height;
@@ -455,7 +455,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	bool bNeedCallFinishFrameForStereo = false;
 	if (GEngine && IsValidRef(ViewportInfo.RenderTargetTexture) && GEngine->StereoRenderingDevice.IsValid())
 	{
-		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHIGetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.RenderTargetTexture);
+		GEngine->StereoRenderingDevice->RenderTexture_RenderThread(RHICmdList, RHICmdList.GetViewportBackBuffer(ViewportInfo.ViewportRHI), ViewportInfo.RenderTargetTexture);
 		bNeedCallFinishFrameForStereo = true;
 	}
 

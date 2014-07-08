@@ -166,7 +166,7 @@ namespace UnrealBuildTool
             {
 				if (OriginalPath[1] != ':')
 				{
-					throw new BuildException("Can only convert full paths");
+					throw new BuildException("Can only convert full paths ({0})", OriginalPath);
 				}
 
 				string MacPath = string.Format("{0}{1}/{2}/{3}",
