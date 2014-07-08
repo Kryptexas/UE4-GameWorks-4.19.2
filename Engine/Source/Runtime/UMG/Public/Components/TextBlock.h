@@ -98,7 +98,7 @@ public:
 
 	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
 
-	virtual void OnDesignerDoubleClicked() override;
+	virtual void OnBeginEdit() override;
 #endif
 
 protected:

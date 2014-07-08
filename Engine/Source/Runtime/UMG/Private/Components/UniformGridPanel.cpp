@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UUniformGridPanel
 
@@ -62,3 +64,16 @@ void UUniformGridPanel::SyncronizeProperties()
 
 	MyUniformGridPanel->SetSlotPadding(SlotPadding);
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UUniformGridPanel::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.UniformGrid");
+}
+
+#endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

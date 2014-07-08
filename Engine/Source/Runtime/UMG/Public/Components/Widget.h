@@ -171,12 +171,6 @@ public:
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
 
-	//TODO UMG These are not used yet, and may never be.
-	virtual void OnDesignerSelected() { }
-	virtual void OnDesignerDeselected() { }
-	virtual void OnDesignerClicked() { }
-	virtual void OnDesignerDoubleClicked() { }
-
 	/** Gets a widget representing the tiny preview of the toolbox */
 	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
 	
@@ -186,6 +180,20 @@ public:
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
+
+	// Begin Designer contextual events
+	void Select();
+	void Deselect();
+
+	virtual void OnSelected() { }
+	virtual void OnDeselected() { }
+
+	virtual void OnDescendantSelected(UWidget* DescendantWidget) { }
+	virtual void OnDescendantDeselected(UWidget* DescendantWidget) { }
+
+	virtual void OnBeginEdit() { }
+	virtual void OnEndEdit() { }
+	// End Designer contextual events
 #endif
 
 	// Utility methods
@@ -197,6 +205,7 @@ public:
 
 	static void GatherChildren(UWidget* Root, TSet<UWidget*>& Children);
 	static void GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children);
+	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
 protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */

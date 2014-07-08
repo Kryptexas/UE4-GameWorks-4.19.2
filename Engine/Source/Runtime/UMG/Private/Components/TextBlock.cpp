@@ -123,7 +123,7 @@ void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type Comm
 	//     Need a way to recognize one particular widget and forward things to them!
 }
 
-void UTextBlock::OnDesignerDoubleClicked()
+void UTextBlock::OnBeginEdit()
 {
 	MyEditorTextBlock->EnterEditingMode();
 }

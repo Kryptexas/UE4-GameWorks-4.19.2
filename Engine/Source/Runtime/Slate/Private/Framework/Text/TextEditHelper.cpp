@@ -372,12 +372,12 @@ FReply FTextEditHelper::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoi
 				{
 					if( TextEditor->SelectAllTextWhenFocused() )
 					{
+						// Move the cursor to the end of the string
+						TextEditor->JumpTo(ETextLocation::EndOfDocument, ECursorAction::MoveCursor);
+
 						// User wasn't dragging the mouse, so go ahead and select all of the text now
 						// that we've become focused
 						TextEditor->SelectAllText();
-
-						// Move the cursor to the end of the string
-						TextEditor->JumpTo( ETextLocation::EndOfDocument, ECursorAction::MoveCursor );
 
 						// @todo Slate: In this state, the caret should actually stay hidden (until the user interacts again), and we should not move the caret
 					}

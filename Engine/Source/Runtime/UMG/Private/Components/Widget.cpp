@@ -202,6 +202,30 @@ void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 	}
 }
 
+void UWidget::Select()
+{
+	OnSelected();
+
+	UWidget* Parent = GetParent();
+	while ( Parent != NULL )
+	{
+		Parent->OnDescendantSelected(this);
+		Parent = Parent->GetParent();
+	}
+}
+
+void UWidget::Deselect()
+{
+	OnDeselected();
+
+	UWidget* Parent = GetParent();
+	while ( Parent != NULL )
+	{
+		Parent->OnDescendantDeselected(this);
+		Parent = Parent->GetParent();
+	}
+}
+
 #endif
 
 bool UWidget::Modify(bool bAlwaysMarkDirty)
@@ -329,4 +353,23 @@ void UWidget::GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children)
 			GatherAllChildren(ChildWidget, Children);
 		}
 	}
+}
+
+UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descendant)
+{
+	UWidget* Parent = Descendant->GetParent();
+
+	while ( Parent != NULL )
+	{
+		// If the Descendant's parent is the root, then the child containing the descendant is the descendant.
+		if ( Parent == Root )
+		{
+			return Descendant;
+		}
+
+		Descendant = Parent;
+		Parent = Parent->GetParent();
+	}
+
+	return NULL;
 }

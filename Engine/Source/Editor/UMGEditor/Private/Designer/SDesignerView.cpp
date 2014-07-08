@@ -181,7 +181,27 @@ SDesignerView::~SDesignerView()
 
 void SDesignerView::OnEditorSelectionChanged()
 {
-	SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+	TSet<FWidgetReference> PendingSelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
+
+	// Notify all widgets that are no longer selected.
+	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		if ( WidgetRef.IsValid() && !PendingSelectedWidgets.Contains(WidgetRef) )
+		{
+			WidgetRef.GetPreview()->Deselect();
+		}
+	}
+
+	// Notify all widgets that are now selected.
+	for ( FWidgetReference& WidgetRef : PendingSelectedWidgets )
+	{
+		if ( WidgetRef.IsValid() && !SelectedWidgets.Contains(WidgetRef) )
+		{
+			WidgetRef.GetPreview()->Select();
+		}
+	}
+
+	SelectedWidgets = PendingSelectedWidgets;
 
 	if ( SelectedWidgets.Num() > 0 )
 	{
@@ -845,6 +865,17 @@ void SDesignerView::Tick(const FGeometry& AllottedGeometry, const double InCurre
 			{
 				PreviewSlateWidget = CurrentWidget;
 				PreviewSurface->SetContent(CurrentWidget);
+			}
+
+			// Notify all selected widgets that they are selected, because there are new preview objects
+			// state may have been lost so this will recreate it if the widget does something special when
+			// selected.
+			for ( FWidgetReference& WidgetRef : SelectedWidgets )
+			{
+				if ( WidgetRef.IsValid() )
+				{
+					WidgetRef.GetPreview()->Select();
+				}
 			}
 		}
 		else

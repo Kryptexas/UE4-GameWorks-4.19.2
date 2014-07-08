@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UWidgetSwitcher
 
@@ -90,3 +92,39 @@ void UWidgetSwitcher::SyncronizeProperties()
 
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
+}
+
+void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
+{
+	// Temporarily sets the active child to the selected child to make
+	// dragging and dropping easier in the editor.
+	UWidget* SelectedChild = UWidget::FindChildContainingDescendant(this, DescendantWidget);
+	if ( SelectedChild )
+	{
+		int32 OverrideIndex = GetChildIndex(SelectedChild);
+		if ( OverrideIndex != -1 && MyWidgetSwitcher.IsValid() )
+		{
+			MyWidgetSwitcher->SetActiveWidgetIndex(OverrideIndex);
+		}
+	}
+}
+
+void UWidgetSwitcher::OnDescendantDeselected(UWidget* DescendantWidget)
+{
+	if ( MyWidgetSwitcher.IsValid() )
+	{
+		MyWidgetSwitcher->SetActiveWidgetIndex(ActiveWidgetIndex);
+	}
+}
+
+#endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

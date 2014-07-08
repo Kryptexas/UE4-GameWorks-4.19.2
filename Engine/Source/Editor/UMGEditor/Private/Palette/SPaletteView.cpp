@@ -20,11 +20,11 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
-class SWidgetTemplateItem : public SCompoundWidget
+class SPaletteViewItem : public SCompoundWidget
 {
 public:
 
-	SLATE_BEGIN_ARGS(SWidgetTemplateItem) {}
+	SLATE_BEGIN_ARGS(SPaletteViewItem) {}
 	SLATE_END_ARGS()
 
 	/**
@@ -78,7 +78,7 @@ public:
 			.Padding(2.0f)
 			.OnDragDetected(this, &FWidgetTemplateViewModel::OnDraggingWidgetTemplateItem)
 			[
-				SNew(SWidgetTemplateItem, Template)
+				SNew(SPaletteViewItem, Template)
 			];
 	}
 

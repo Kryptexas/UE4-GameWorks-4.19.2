@@ -26,6 +26,10 @@ class UMG_API UUniformGridPanel : public UPanelWidget
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+#endif
+
 protected:
 
 	// UPanelWidget

@@ -31,6 +31,12 @@ class UMG_API UWidgetSwitcher : public UPanelWidget
 	
 	void SyncronizeProperties();
 
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual void OnDescendantSelected(UWidget* DescendantWidget) override;
+	virtual void OnDescendantDeselected(UWidget* DescendantWidget) override;
+#endif
+
 protected:
 
 	// UPanelWidget
