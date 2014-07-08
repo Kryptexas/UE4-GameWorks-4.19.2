@@ -24,14 +24,20 @@ UK2Node_VariableGet* UGameplayAbilityGraphSchema::SpawnVariableGetNode(const FVe
 		UObject* ActiveObject = GenClass->GetDefaultObject();
 
 		// If the variable is a GameplayEffect create a custom node to show it
-		UGameplayEffect* GameplayEffect = Cast<UGameplayEffect>(ObjProp->GetObjectPropertyValue_InContainer(ActiveObject));
-		if (GameplayEffect)
+		FString PropType;
+		ObjProp->GetCPPMacroType(PropType);
+		if (PropType == "UGameplayEffect")
 		{
 			UK2Node_GameplayEffectVariable* NodeTemplate = NewObject<UK2Node_GameplayEffectVariable>();
 			UEdGraphSchema_K2::ConfigureVarNode(NodeTemplate, VariableName, Source, Blueprint);
 
 			UK2Node_GameplayEffectVariable* VariableNode = FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_GameplayEffectVariable>(ParentGraph, NodeTemplate, GraphPosition);
-			VariableNode->GameplayEffectInfo.Init(*GameplayEffect);
+
+			UGameplayEffect* GameplayEffect = Cast<UGameplayEffect>(ObjProp->GetObjectPropertyValue_InContainer(ActiveObject));
+			if (GameplayEffect)
+			{
+				VariableNode->GameplayEffectInfo.Init(*GameplayEffect);
+			}
 
 			return VariableNode;
 		}

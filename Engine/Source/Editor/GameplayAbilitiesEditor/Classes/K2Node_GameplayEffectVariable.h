@@ -24,14 +24,16 @@ public:
 			EGameplayModOp::Type ModOp;
 		};
 
-		FGameplayEffectDisplayInfo() {}
+		FGameplayEffectDisplayInfo() : GameplayEffect(NULL)
+		{}
 
-		void Init(const UGameplayEffect& GameplayEffect);
+		void Init(UGameplayEffect& GameplayEffect);
 
 		float Duration;
 		float Period;
 		float ChanceToApplyToTarget;
 		float ChanceToExecuteOnGameplayEffect;
+		UGameplayEffect* GameplayEffect;
 
 		TArray<ModifierDisplayInfo> AttributeModifiers;
 	};

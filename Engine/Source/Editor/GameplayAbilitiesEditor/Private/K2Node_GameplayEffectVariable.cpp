@@ -11,8 +11,9 @@ UK2Node_GameplayEffectVariable::UK2Node_GameplayEffectVariable(const class FPost
 {
 }
 
-void UK2Node_GameplayEffectVariable::FGameplayEffectDisplayInfo::Init(const UGameplayEffect& GameplayEffect)
+void UK2Node_GameplayEffectVariable::FGameplayEffectDisplayInfo::Init(UGameplayEffect& GameplayEffect)
 {
+	this->GameplayEffect = &GameplayEffect;
 	Duration = GameplayEffect.Duration.Value;
 	Period = GameplayEffect.Period.Value;
 	ChanceToApplyToTarget = GameplayEffect.ChanceToApplyToTarget.Value;

@@ -77,6 +77,52 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			SNew(SSpacer)
 		];
 
+	if (GameplayEffectNode->GameplayEffectInfo.ChanceToApplyToTarget < 1.f || GameplayEffectNode->GameplayEffectInfo.ChanceToExecuteOnGameplayEffect < 1.f)
+	{
+		FString ApplyToTargetString = FString::Printf(TEXT("%d"), GameplayEffectNode->GameplayEffectInfo.ChanceToApplyToTarget);
+		FString ExecuteOnGEString = FString::Printf(TEXT("%d"), GameplayEffectNode->GameplayEffectInfo.ChanceToExecuteOnGameplayEffect);
+
+		RightNodeBox->AddSlot()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				[
+					SNew(STextBlock)
+					.Text(FString("Chance to Apply to Target:"))
+				]
+				+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(ApplyToTargetString)
+					]
+			];
+
+		RightNodeBox->AddSlot()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				[
+					SNew(STextBlock)
+					.Text(FString("Chance to Execute on GE:"))
+				]
+				+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(ExecuteOnGEString)
+					]
+			];
+
+		RightNodeBox->AddSlot()
+			.FillHeight(0.3f)
+			[
+				SNew(SSpacer)
+			];
+	}
+
 	for (int ModIdx = 0; ModIdx < GameplayEffectNode->GameplayEffectInfo.AttributeModifiers.Num(); ++ModIdx)
 	{
 		RightNodeBox->AddSlot()
@@ -120,17 +166,17 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			];
 	}
 
-// 	TSharedRef<SWidget> OpenGameplayEffectButton = OpenGameplayEffectButtonContent(
-// 		LOCTEXT("FormatTextNodeOpenGameplayEffectButton", "Open Gameplay Effect"),
-// 		LOCTEXT("FormatTextNodeOpenGameplayEffectButton_Tooltip", "Opens this gameplay effect so that it can be edited."));
-// 
-// 	LeftNodeBox->AddSlot()
-// 		.AutoHeight()
-// 		.VAlign(VAlign_Center)
-// 		.Padding(10, 10, 10, 4)
-// 		[
-// 			OpenGameplayEffectButton
-// 		];
+	TSharedRef<SWidget> OpenGameplayEffectButton = OpenGameplayEffectButtonContent(
+		LOCTEXT("FormatTextNodeOpenGameplayEffectButton", "Open Gameplay Effect"),
+		LOCTEXT("FormatTextNodeOpenGameplayEffectButton_Tooltip", "Opens this gameplay effect so that it can be edited."));
+
+	LeftNodeBox->AddSlot()
+		.AutoHeight()
+		.VAlign(VAlign_Center)
+		.Padding(10, 10, 10, 4)
+		[
+			OpenGameplayEffectButton
+		];
 }
 
 TSharedRef<SWidget> SGraphNodeK2GameplayEffectVar::OpenGameplayEffectButtonContent(FText ButtonText, FText ButtonTooltipText, FString DocumentationExcerpt)
@@ -181,12 +227,11 @@ TSharedRef<SWidget> SGraphNodeK2GameplayEffectVar::OpenGameplayEffectButtonConte
 
 FReply SGraphNodeK2GameplayEffectVar::OnOpenGameplayEffect()
 {
+	UK2Node_GameplayEffectVariable* GameplayEffectNode = Cast<UK2Node_GameplayEffectVariable>(GraphNode);
 
-	TArray<UObject*> ObjectsForPropertiesMenu;
-
-	if (ObjectsForPropertiesMenu.Num() > 0)
+	if (GameplayEffectNode && GameplayEffectNode->GameplayEffectInfo.GameplayEffect)
 	{
-		FAssetEditorManager::Get().OpenEditorForAssets(ObjectsForPropertiesMenu);
+		FAssetEditorManager::Get().OpenEditorForAsset(GameplayEffectNode->GameplayEffectInfo.GameplayEffect);
 	}
 
 	return FReply::Handled(); 

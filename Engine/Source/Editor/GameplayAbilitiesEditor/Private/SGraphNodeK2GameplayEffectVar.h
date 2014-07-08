@@ -23,8 +23,6 @@ public:
 
 protected:
 	TSharedRef<SWidget> OpenGameplayEffectButtonContent(FText ButtonText, FText ButtonTooltipText, FString DocumentationExcerpt = FString());
-
-//	void OnOpenGameplayEffectButtonClicked();
 	
 	FReply OnOpenGameplayEffect();
 	EVisibility IsOpenGameplayEffectButtonVisible() const;
