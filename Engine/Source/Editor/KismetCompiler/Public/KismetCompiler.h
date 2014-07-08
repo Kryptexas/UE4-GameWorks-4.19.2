@@ -110,10 +110,6 @@ public:
 
 		AutoAssignNodePosition(Result);
 
-		UPackage* OuterPackage = Result->GetOutermost();
-		check(OuterPackage != nullptr);
-		OuterPackage->GetMetaData()->SetValue(Result, *FBlueprintMetadata::MD_BlueprintInternalUseOnly.ToString(), TEXT("true"));
-
 		return Result;
 	}
 

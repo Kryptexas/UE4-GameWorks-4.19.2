@@ -946,7 +946,6 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, Schema(InSchema)
 	, bIsUbergraph(false)
 	, bCannotBeCalledFromOtherKismet(false)
-	, bBlueprintInternal(false)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
 	// only need debug-data when running in the editor app:
