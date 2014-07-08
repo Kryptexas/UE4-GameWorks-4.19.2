@@ -609,8 +609,8 @@ public partial class Project : CommandUtils
                                             if (!FirstParam)
                                             {
                                                 TempCmdLine += "+";
-                                                FirstParam = false;
                                             }
+                                            FirstParam = false;
                                             string[] PortProtocol = Port.Split(new char[] { ':' });
                                             if (PortProtocol.Length > 1)
                                             {
@@ -648,8 +648,8 @@ public partial class Project : CommandUtils
                                             if (!FirstParam)
                                             {
                                                 TempCmdLine += "+";
-                                                FirstParam = false;
                                             }
+                                            FirstParam = false;
                                             string[] PortProtocol = Port.Split(new char[] { ':' });
                                             if (PortProtocol.Length > 1)
                                             {
@@ -678,8 +678,8 @@ public partial class Project : CommandUtils
                         if (!FirstParam)
                         {
                             TempCmdLine += "+";
-                            FirstParam = false;
                         }
+                        FirstParam = false;
                         string[] PortProtocol = Port.Split(new char[] { ':' });
                         if (PortProtocol.Length > 1)
                         {
