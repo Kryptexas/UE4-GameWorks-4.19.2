@@ -53,6 +53,8 @@ protected:
 		FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
 #if PLATFORM_MAC
 		FString Executable = TEXT("RunUAT.command");
+#elif PLATFORM_LINUX
+		FString Executable = TEXT("RunUAT.sh");
 #else
 		FString Executable = TEXT("RunUAT.bat");
 #endif

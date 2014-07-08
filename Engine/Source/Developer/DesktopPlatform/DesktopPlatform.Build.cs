@@ -9,5 +9,10 @@ public class DesktopPlatform : ModuleRules
 		PrivateIncludePaths.Add("Developer/DesktopPlatform/Private");
 
 		PrivateDependencyModuleNames.Add("Core");
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+            AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+		}
 	}
 }

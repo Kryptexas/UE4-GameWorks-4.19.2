@@ -54,7 +54,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintVertexShader, TEXT( "meshpaintvertexshader" ), TEXT( "Main" ), SF_Vertex);
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintVertexShader, TEXT( "MeshPaintVertexShader" ), TEXT( "Main" ), SF_Vertex);
 
 
 
@@ -326,7 +326,7 @@ namespace MeshPaintRendering
 	};
 
 
-	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilatePixelShader, TEXT( "MeshPaintDilatePixelShader" ), TEXT( "Main" ), SF_Pixel );
+	IMPLEMENT_SHADER_TYPE( , TMeshPaintDilatePixelShader, TEXT( "meshpaintdilatepixelshader" ), TEXT( "Main" ), SF_Pixel );
 
 
 	/** Mesh paint vertex format */
@@ -388,3 +388,4 @@ namespace MeshPaintRendering
 	}
 
 }
+

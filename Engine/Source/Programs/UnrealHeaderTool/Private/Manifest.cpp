@@ -4,6 +4,7 @@
 #include "IScriptGeneratorPluginInterface.h"
 #include "Manifest.h"
 #include "Json.h"
+#include "Manifest.h"
 
 namespace
 {

@@ -1574,13 +1574,13 @@ FAtmosphericFogSceneInfo::FAtmosphericFogSceneInfo(UAtmosphericFogComponent* InC
 	, RenderFlag(EAtmosphereRenderFlag::E_EnableAll)
 	, InscatterAltitudeSampleNum(InComponent->PrecomputeParams.InscatterAltitudeSampleNum)
 #if WITH_EDITOR
+	, PrecomputeCounter(InComponent->PrecomputeCounter)
 	, bNeedRecompute(false)
 	, MaxScatteringOrder(InComponent->PrecomputeParams.MaxScatteringOrder)
 	, AtmospherePhase(0)
 	, Atmosphere3DTextureIndex(0)
 	, AtmoshpereOrder(2)
 	, AtmosphereTextures(NULL)
-	, PrecomputeCounter(InComponent->PrecomputeCounter)
 #endif
 {
 	StartDistance *= DistanceScale * 0.00001f; // Convert to km in Atmospheric fog shader

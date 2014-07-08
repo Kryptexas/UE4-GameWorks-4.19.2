@@ -643,8 +643,8 @@ const TCHAR* FMacPlatformProcess::UserDir()
 	if (!Result[0])
 	{
 		SCOPED_AUTORELEASE_POOL;
-		NSString *ApplicationSupportFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
-		FPlatformString::CFStringToTCHAR((CFStringRef)ApplicationSupportFolder, Result);
+		NSString *DocumentsFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)DocumentsFolder, Result);
 		FCString::Strcat(Result, TEXT("/"));
 	}
 	return Result;

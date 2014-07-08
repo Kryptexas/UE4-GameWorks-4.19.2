@@ -2464,15 +2464,26 @@ bool FLightmassProcessor::BeginRun()
 	};
 #endif
 #elif PLATFORM_LINUX
+#if UE_BUILD_DEBUG
 	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass-Linux-Debug");
 	const TCHAR* RequiredDependencyPaths64[] =
 	{
 		TEXT("../DotNET/Linux/AgentInterface.dll"),
-		TEXT("../Linux/UnrealLightmass-Core-Linux-Debug.so"),
-		TEXT("../Linux/UnrealLightmass-Projects-Linux-Debug.so"),
-		TEXT("../Linux/UnrealLightmass-SwarmInterface-Linux-Debug.so")
+		TEXT("../Linux/libUnrealLightmass-Core-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-Projects-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface-Linux-Debug.so")
 	};
 #else
+	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass");
+	const TCHAR* RequiredDependencyPaths64[] =
+	{
+		TEXT("../DotNET/Linux/AgentInterface.dll"),
+		TEXT("../Linux/libUnrealLightmass-Core.so"),
+		TEXT("../Linux/libUnrealLightmass-Projects.so"),
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface.so")
+	};
+#endif
+#else // platform
 #error "Unknown Lightmass platform"
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);

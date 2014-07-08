@@ -56,6 +56,22 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
 				}
 			}
+            else if (Target.Platform == UnrealTargetPlatform.Linux)
+            {
+                if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+                {
+                    DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
+                    DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+                }
+
+                DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
+
+                if (UEBuildConfiguration.bCompileAgainstEngine)
+                {
+                    DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
+                    DynamicallyLoadedModuleNames.Add("AudioFormatOpus");
+                }
+            }
 
 			if (UEBuildConfiguration.bCompileAgainstEngine && UEBuildConfiguration.bCompilePhysX)
 			{

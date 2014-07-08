@@ -1,0 +1,5 @@
+5a8490d5de3681d9579127866e25696ff0d2e7ac https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Optional.zip  1
+f5458c00a15ccdf3ca42d4cc3f8d4ff938299537 https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Required_1of2.zip  1
+f334c28795760d4c235f49a1436bb523c1ac539a https://github.com/EpicGames/UnrealEngine/releases/download/latest-preview/Required_2of2.zip  1
+7a3d986efda677060a616a23e12c09445d3e0dca http://ftp.perforce.com/perforce/r12.1/bin.linux26x86_64/p4api.tgz  0
+4f0fdaf5ce8ee2bfbe4dfd7e58ffb25963c840f1 https://partner.steamgames.com/downloads/steamworks_sdk_129a.zip  1
