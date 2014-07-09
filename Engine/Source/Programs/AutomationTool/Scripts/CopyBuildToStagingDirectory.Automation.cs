@@ -57,7 +57,7 @@ public partial class Project : CommandUtils
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
-			throw new AutomationException("items to pak");
+            return;
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
