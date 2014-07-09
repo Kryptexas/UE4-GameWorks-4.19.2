@@ -13,10 +13,10 @@ void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAtt
 	NumericProperty->SetFloatingPointPropertyValue(ValuePtr, NewValue);
 }
 
-float FGameplayAttribute::GetNumericValueChecked(class UAttributeSet* Src) const
+float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 {
-	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
-	void * ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Src);
+	UNumericProperty* NumericProperty = CastChecked<UNumericProperty>(Attribute);
+	const void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Src);
 	return NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
 }
 
@@ -32,7 +32,7 @@ void UAttributeSet::InitFromMetaDataTable(const UDataTable* DataTable)
 
 	for( TFieldIterator<UProperty> It(GetClass(), EFieldIteratorFlags::IncludeSuper) ; It ; ++It )
 	{
-		UProperty *Property = *It;
+		UProperty* Property = *It;
 		UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property);
 		if (NumericProperty)
 		{

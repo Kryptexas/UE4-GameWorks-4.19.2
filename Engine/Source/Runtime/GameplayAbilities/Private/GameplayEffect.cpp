@@ -1284,7 +1284,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(const FGameplayEf
 	{
 		if (Mod.Info.ModifierType == EGameplayMod::Attribute)
 		{
-			UAttributeSet * AttributeSet = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
+			UAttributeSet* AttributeSet = const_cast<UAttributeSet*>(Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass()));
 			if (AttributeSet == NULL)
 			{
 				// Our owner doesn't have this attribute, so we can't do anything
@@ -1982,7 +1982,7 @@ bool FActiveGameplayEffectsContainer::CanApplyAttributeModifiers(const UGameplay
 		// It only makes sense to check additive operators
 		if (Mod.Info.ModifierOp == EGameplayModOp::Additive)
 		{
-			UAttributeSet * Set = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
+			const UAttributeSet* Set = Owner->GetAttributeSubobject(Mod.Info.Attribute.GetAttributeSetClass());
 			float CurrentValue = Mod.Info.Attribute.GetNumericValueChecked(Set);
 			float CostValue = Mod.Aggregator.Get()->Evaluate().Magnitude;
 

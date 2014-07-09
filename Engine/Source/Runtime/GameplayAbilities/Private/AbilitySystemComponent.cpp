@@ -52,37 +52,31 @@ UAbilitySystemComponent::~UAbilitySystemComponent()
 	ActiveGameplayEffects.PreDestroy();
 }
 
-UAttributeSet* UAbilitySystemComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
+const UAttributeSet* UAbilitySystemComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
 {
-	UAttributeSet* AttributeObj = NULL;
+	const UAttributeSet* AttributeObj = NULL;
 	if (Attributes)
 	{
 		AttributeObj = GetOrCreateAttributeSubobject(Attributes);
 		if (AttributeObj && DataTable)
 		{
-			AttributeObj->InitFromMetaDataTable(DataTable);
+			// This const_cast is OK - this is one of the few places we want to directly modify our AttributeSet properties rather
+			// than go through a gameplay effect
+			const_cast<UAttributeSet*>(AttributeObj)->InitFromMetaDataTable(DataTable);
 		}
 	}
 	return AttributeObj;
 }
 
-void UAbilitySystemComponent::ModifyStats(TSubclassOf<class UAttributeSet> AttributeClass, FDataTableRowHandle ModifierHandle)
+void UAbilitySystemComponent::K2_InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
 {
-	UAttributeSet *Attributes = Cast<UAttributeSet>(GetAttributeSubobject(AttributeClass));
-	if (Attributes)
-	{
-		FAttributeModifierTest *ModifierData = ModifierHandle.GetRow<FAttributeModifierTest>();
-		if (ModifierData)
-		{
-			ModifierData->ApplyModifier(Attributes);
-		}
-	}
+	InitStats(Attributes, DataTable);
 }
 
-UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
+const UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass)
 {
 	AActor *OwningActor = GetOwner();
-	UAttributeSet *MyAttributes  = NULL;
+	const UAttributeSet *MyAttributes  = NULL;
 	if (OwningActor && AttributeClass)
 	{
 		MyAttributes = GetAttributeSubobject(AttributeClass);
@@ -96,16 +90,16 @@ UAttributeSet*	UAbilitySystemComponent::GetOrCreateAttributeSubobject(const TSub
 	return MyAttributes;
 }
 
-UAttributeSet* UAbilitySystemComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
+const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
-	UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
+	const UAttributeSet *Set = GetAttributeSubobject(AttributeClass);
 	check(Set);
 	return Set;
 }
 
-UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const
+const UAttributeSet* UAbilitySystemComponent::GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const
 {
-	for (UAttributeSet * Set : SpawnedAttributes)
+	for (const UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set && Set->IsA(AttributeClass))
 		{
@@ -124,7 +118,7 @@ void UAbilitySystemComponent::OnRegister()
 	{
 		if (DefaultStartingData[i].Attributes && DefaultStartingData[i].DefaultStartingTable)
 		{
-			UAttributeSet* Attributes = GetOrCreateAttributeSubobject(DefaultStartingData[i].Attributes);
+			UAttributeSet* Attributes = const_cast<UAttributeSet*>(GetOrCreateAttributeSubobject(DefaultStartingData[i].Attributes));
 			Attributes->InitFromMetaDataTable(DefaultStartingData[i].DefaultStartingTable);
 		}
 	}
@@ -163,13 +157,13 @@ bool UAbilitySystemComponent::IsOwnerActorAuthoritative() const
 
 void UAbilitySystemComponent::SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue)
 {
-	UAttributeSet * AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
-	Attribute.SetNumericValueChecked(NewFloatValue, AttributeSet);
+	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
+	Attribute.SetNumericValueChecked(NewFloatValue, const_cast<UAttributeSet*>(AttributeSet));
 }
 
 float UAbilitySystemComponent::GetNumericAttribute(const FGameplayAttribute &Attribute)
 {
-	UAttributeSet * AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
+	const UAttributeSet* AttributeSet = GetAttributeSubobjectChecked(Attribute.GetAttributeSetClass());
 	return Attribute.GetNumericValueChecked(AttributeSet);
 }
 
@@ -512,11 +506,11 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
-	for (UAttributeSet* Set : SpawnedAttributes)
+	for (const UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set)
 		{
-			WroteSomething |= Channel->ReplicateSubobject(Set, *Bunch, *RepFlags);
+			WroteSomething |= Channel->ReplicateSubobject(const_cast<UAttributeSet*>(Set), *Bunch, *RepFlags);
 		}
 	}
 
@@ -533,11 +527,11 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 
 void UAbilitySystemComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& Objs)
 {
-	for (UAttributeSet* Set : SpawnedAttributes)
+	for (const UAttributeSet* Set : SpawnedAttributes)
 	{
 		if (Set && Set->IsNameStableForNetworking())
 		{
-			Objs.Add(Set);
+			Objs.Add(const_cast<UAttributeSet*>(Set));
 		}
 	}
 }

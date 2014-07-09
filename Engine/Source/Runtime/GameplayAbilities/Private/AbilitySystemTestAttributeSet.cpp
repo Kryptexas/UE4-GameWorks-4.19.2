@@ -56,7 +56,7 @@ void UAbilitySystemTestAttributeSet::PreAttributeModify(struct FGameplayEffectMo
 		if (Data.EvaluatedData.Magnitude > 0.f)
 		{
 			// Check the source - does he have Crit?
-			UAbilitySystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent()->GetSet<UAbilitySystemTestAttributeSet>();
+			const UAbilitySystemTestAttributeSet * SourceAttributes = Data.EffectSpec.InstigatorContext.GetOriginalInstigatorAbilitySystemComponent()->GetSet<UAbilitySystemTestAttributeSet>();
 			if (SourceAttributes && SourceAttributes->CritChance > 0.f)
 			{
 				if (FMath::FRand() <= SourceAttributes->CritChance)

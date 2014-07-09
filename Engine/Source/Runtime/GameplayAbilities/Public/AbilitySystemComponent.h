@@ -67,44 +67,44 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	/** Finds existing AttributeSet */
 	template <class T >
-	T*	GetSet()	// FIXME: This should be const by default
+	const T*	GetSet()
 	{
 		return (T*)GetAttributeSubobject(T::StaticClass());
 	}
 
 	template <class T >
-	T*	GetSetChecked()
+	const T*	GetSetChecked()
 	{
 		return (T*)GetAttributeSubobjectChecked(T::StaticClass());
 	}
 
 	/** Adds a new AttributeSet (initialized to default values) */
 	template <class T >
-	T*  AddSet()
+	const T*  AddSet()
 	{
 		return (T*)GetOrCreateAttributeSubobject(T::StaticClass());
 	}
 
 	/** Adds a new AttributeSet that is a DSO (created by called in their CStor) */
 	template <class T>
-	T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
+	const T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
 	{
-		T* Set = Subobject.Get();
+		const T* Set = Subobject.Get();
 		SpawnedAttributes.Add(Set);
 		return Set;
 	}
 
-	UFUNCTION(BlueprintCallable, Category="Skills")
-	UAttributeSet * InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
+	const UAttributeSet* InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 
-	UFUNCTION(BlueprintCallable, Category="Skills")
-	void ModifyStats(TSubclassOf<class UAttributeSet> Attributes, FDataTableRowHandle ModifierHandle);
+	UFUNCTION(BlueprintCallable, Category="Skills", meta=(FriendlyName="InitStats"))
+	void K2_InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
+		
 
 	UPROPERTY(EditAnywhere, Category="AttributeTest")
 	TArray<FAttributeDefaults>	DefaultStartingData;
 
 	UPROPERTY(Replicated)
-	TArray<UAttributeSet*>	SpawnedAttributes;
+	TArray<const UAttributeSet*>	SpawnedAttributes;
 
 	void SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue);
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
@@ -482,9 +482,9 @@ protected:
 
 	virtual void OnRegister() override;
 
-	UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
+	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
+	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
+	const UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
 
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;

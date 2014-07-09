@@ -9,56 +9,65 @@ class GAMEPLAYABILITIES_API UAbilitySystemTestAttributeSet : public UAttributeSe
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modify Health Directly (go through)
-	float	MaxHealth;
+
+
+	/**
+	 *	NOTE ON MUTABLE:
+	 *	This is only done so that UAbilitySystemTestAttributeSet can be initialized directly in GameplayEffectsTest.cpp without doing a const_cast in 100+ places.
+	 *	Mutable is not required and should never be used on normal attribute sets.
+	 */
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modify Health Directly (go through)
-	float	Health;
+	mutable float	MaxHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest", meta = (HideFromModifiers))			// You can't make a GameplayEffect modify Health Directly (go through)
+	mutable float	Health;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	Mana;
+	mutable float	Mana;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	MaxMana;
+	mutable float	MaxMana;
 
 	/** This Damage is just used for applying negative health mods. Its not a 'persistent' attribute. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest", meta = (HideFromLevelInfos))		// You can't make a GameplayEffect 'powered' by Damage (Its transient)
-	float	Damage;
+	mutable float	Damage;
 
 	/** This Attribute is the actual spell damage for this actor. It will power spell based GameplayEffects */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	SpellDamage;
+	mutable float	SpellDamage;
 
 	/** This Attribute is the actual physical damage for this actor. It will power physical based GameplayEffects */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	PhysicalDamage;
+	mutable float	PhysicalDamage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	CritChance;
+	mutable float	CritChance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	CritMultiplier;
+	mutable float	CritMultiplier;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	ArmorDamageReduction;
+	mutable float	ArmorDamageReduction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	DodgeChance;
+	mutable float	DodgeChance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	LifeSteal;
+	mutable float	LifeSteal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "AttributeTest")
-	float	Strength;
+	mutable float	Strength;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
-	float	StackingAttribute1;
+	mutable float	StackingAttribute1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
-	float	StackingAttribute2;
+	mutable float	StackingAttribute2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AttributeTest")
-	float	NoStackAttribute;
+	mutable float	NoStackAttribute;
 
 	virtual void PreAttributeModify(struct FGameplayEffectModCallbackData &Data) override;
 	virtual void PostAttributeModify(const struct FGameplayEffectModCallbackData &Data) override;
