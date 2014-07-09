@@ -56,6 +56,12 @@ private:
 	// Create a gridslot for the group quality level with all the required formatting
 	SGridPanel::FSlot& MakeGridSlot(int32 InCol, int32 InRow, int32 InColSpan = 1, int32 InRowSpan = 1);
 
+	/** Called to get the "Show notification" check box state */
+	ESlateCheckBoxState::Type IsMonitoringPerformance() const;
+
+	/** Called when the state of the "Show notification" check box changes */
+	void OnMonitorPerformanceChanged(ESlateCheckBoxState::Type NewState);
+
 private:
 	/* The state of scalability settings at the point of opening the menu*/
 	Scalability::FQualityLevels InitialQualityLevels;

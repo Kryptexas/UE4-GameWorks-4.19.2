@@ -145,8 +145,17 @@ private:
 	/** Starts the notification. */
 	void ShowPerformanceWarning(FText MessageText);
 
+	/** Gets the quality levels that would be applied with auto-scalability. */
+	Scalability::FQualityLevels GetAutoScalabilityQualityLevels() const;
+
+	/** Returns true if the quality settings match the ones that would be applied with auto scalability. */
+	bool WillAutoScalabilityHelp() const;
+
 	/** Run a benchmark and auto apply scalability settings */
 	void AutoApplyScalability();
+
+	/** Adjusts the performance monitor settings to stop monitoring. */
+	void CancelPerformanceNotification();
 
 	/** Ends the notification. */
 	void HidePerformanceWarning();
@@ -166,6 +175,7 @@ private:
 	/** Tracks the last time the notification was started, used to avoid spamming. */
 	double LastEnableTime;
 
+	/** The time remaining before the auto scalability settings are automatically applied. */
 	double NotificationTimeout;
 
 	/** The notification window ptr */
