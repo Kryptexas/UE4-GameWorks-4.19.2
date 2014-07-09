@@ -1651,8 +1651,8 @@ public:
 
 		// Set the correct biased texture size so that the compressor understands the original source image size
 		// This is requires for platforms that may need to tile based on the original source texture size
-		BuildSettings.OriginalTextureSize.X = IntermediateMipChain[0].SizeX;
-		BuildSettings.OriginalTextureSize.Y = IntermediateMipChain[0].SizeY;
+		BuildSettings.TopMipSize.X = IntermediateMipChain[0].SizeX;
+		BuildSettings.TopMipSize.Y = IntermediateMipChain[0].SizeY;
 
 		return CompressMipChain(IntermediateMipChain, BuildSettings, OutTextureMips);
 	}
