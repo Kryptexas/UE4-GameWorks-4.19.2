@@ -1668,7 +1668,7 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 				{
 					TSharedRef<SWindow> NewChildWindow = SNew(SWindow)
 					.AutoCenter(EAutoCenter::None)
-					.ScreenPosition(OldChildWindow->GetPositionInScreen() + FVector2D(50,50))
+					.ScreenPosition(OldChildWindow->GetPositionInScreen())
 					.ClientSize(OldChildWindow->GetSizeInScreen())
 					.SupportsMinimize(false) .SupportsMaximize(false)
 					.CreateTitleBar(false)
