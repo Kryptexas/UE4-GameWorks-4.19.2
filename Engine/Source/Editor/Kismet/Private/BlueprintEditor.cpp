@@ -1521,7 +1521,7 @@ FBlueprintEditor::~FBlueprintEditor()
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "PastedNodesCreated" ), AnalyticsStats.NodePasteCreateCount ));
 
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "ProjectId" ), ProjectID ) );
-		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor" ), BPEditorAttribs );
+		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditorSummary" ), BPEditorAttribs );
 
 		for (auto Iter = AnalyticsStats.GraphDisallowedPinConnections.CreateConstIterator(); Iter; ++Iter)
 		{
