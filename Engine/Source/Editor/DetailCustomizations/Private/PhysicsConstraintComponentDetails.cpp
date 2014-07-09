@@ -212,7 +212,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 
 		uint8 AngularLimitEnum[LCM_MAX] = { ACM_Free, LCM_Limited, LCM_Locked };
-		TSharedPtr<IPropertyHandle> AngularLimitProperties[] = { AngularSwing1MotionProperty, AngularSwing2MotionProperty, AngularTwistMotionProperty };
+		TSharedPtr<IPropertyHandle> AngularLimitProperties[] = { AngularSwing1MotionProperty, AngularTwistMotionProperty, AngularSwing2MotionProperty};
 
 		for (int32 PropertyIdx=0; PropertyIdx < 3; ++PropertyIdx)
 		{
@@ -273,8 +273,12 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("Swing1LimitAngle").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwing1Limit)));
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitAngle").ToSharedRef())
+			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("Swing2LimitAngle").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwing2Limit)));
+
+
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bSwingLimitSoft").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwingLimit)));
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("SwingLimitStiffness").ToSharedRef())
@@ -283,8 +287,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwingLimit)));
 
 		
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitAngle").ToSharedRef())
-			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
+
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bTwistLimitSoft").ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitStiffness").ToSharedRef())
@@ -298,7 +301,12 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularAnyLimit)));
 
 		}
-		
+		else
+		{
+			AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularRotationOffset").ToSharedRef())
+				.Visibility(EVisibility::Collapsed);
+		}
+
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bAngularBreakable").ToSharedRef());
 		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularBreakThreshold").ToSharedRef());
 	}

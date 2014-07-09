@@ -185,20 +185,21 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY()
 	uint32 bTwistLimited_DEPRECATED:1;
 
-	/** Indicates whether angular swing motion along the y axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
+	/** Indicates whether rotation about the Z axis is allowed, blocked, or limited. If limited, the 
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
 	UPROPERTY(EditAnywhere, Category=Angular)
 	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing1Motion;
-
-	/** Indicates whether angular swing motion along the z axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
-	UPROPERTY(EditAnywhere, Category=Angular)
-	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing2Motion;
-
-	/** Indicates whether angular twist motion along the x axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
+		
+	/** Indicates whether rotation about the the X axis is allowed, blocked, or limited. If limited, the
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
 	UPROPERTY(EditAnywhere, Category=Angular)
 	TEnumAsByte<enum EAngularConstraintMotion> AngularTwistMotion;
+
+	/** Indicates whether rotation about the Y axis is allowed, blocked, or limited. If limited, the
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
+	UPROPERTY(EditAnywhere, Category = Angular)
+	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing2Motion;
+
 
 	/** Whether we want to use soft limits for swing motions instead of hard limits. With enabled 
 		soft limit, a constraint is used instead of hard-capping the motion. */
@@ -214,16 +215,16 @@ struct ENGINE_API FConstraintInstance
 		between 0 and 180. */
 	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
 	float Swing1LimitAngle;
-
-	/** Used if swing motion along the z axis is limited. The limit angle is specified in degrees and should be
-		between 0 and 180. */
-	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
-	float Swing2LimitAngle;
-
+	
 	/** Used if twist motion along the x axis is limited. The limit angle is specified in degrees and should be
 		between 0 and 180. */
 	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
 	float TwistLimitAngle;
+
+	/** Used if swing motion along the z axis is limited. The limit angle is specified in degrees and should be
+	between 0 and 180. */
+	UPROPERTY(EditAnywhere, Category = Angular, meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float Swing2LimitAngle;
 
 	/** Stiffness of the swing limit constraint if soft limit is used for swing motions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bSwingLimitSoft", ClampMin = "0.0"))
