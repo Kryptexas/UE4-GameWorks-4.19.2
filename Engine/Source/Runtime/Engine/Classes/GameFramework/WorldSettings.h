@@ -4,7 +4,6 @@
 
 #include "Sound/ReverbVolume.h"
 #include "Engine/PostProcessVolume.h"
-#include "MusicTrackDataStructures.h"
 
 #include "WorldSettings.generated.h"
 
@@ -396,17 +395,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY()
 	TArray<struct FNetViewer> ReplicationViewers;
 
-	/** Version of a new music track request replicated to clients */
-	UPROPERTY(transient, replicatedUsing=OnRep_ReplicatedMusicTrack)
-	struct FMusicTrackStruct ReplicatedMusicTrack;
-
 	// ************************************
-
-	//
-	// Replication Notification Callbacks.
-	//
-	UFUNCTION()
-	virtual void OnRep_ReplicatedMusicTrack();
 
 	/** Maximum number of bookmarks	*/
 	static const int32 MAX_BOOKMARK_NUMBER = 10;

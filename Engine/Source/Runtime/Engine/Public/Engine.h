@@ -71,7 +71,6 @@
 #include "GameFramework/PlayerState.h"
 #include "Engine/SkyLight.h"
 #include "Engine/WindDirectionalSource.h"
-#include "GameFramework/MusicTrackDataStructures.h"
 #include "GameFramework/WorldSettings.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"

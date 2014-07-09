@@ -9,7 +9,6 @@
 #include "CollisionQueryParams.h"
 #include "WorldCollision.h"
 #include "PendingNetGame.h"
-#include "GameFramework/MusicTrackDataStructures.h"
 #include "EngineDefines.h"
 #include "Engine/LatentActionManager.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
@@ -519,10 +518,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY(Transient)
 	class UPhysicsCollisionHandler*				PhysicsCollisionHandler;
 
-	/** Audio component used for playing music tracks via SeqAct_PlayMusicTrack */
-	UPROPERTY(Transient)
-	class UAudioComponent*						MusicComp;
-
 	/** Array of any additional objects that need to be referenced by this world, to make sure they aren't GC'd */
 	UPROPERTY(Transient)
 	TArray<UObject*>							ExtraReferencedObjects;
@@ -881,9 +876,6 @@ public:
 	/** @todo document */
 	FName CommittedPersistentLevelName;
 
-	/** Param information for the currently playing MusicComp */
-	struct FMusicTrackStruct CurrentMusicTrack;
-	
 #if WITH_EDITORONLY_DATA
 	/** Map of LandscapeInfos for all loaded levels, valid in the editor only */
 	TMap< FGuid, class ULandscapeInfo* > LandscapeInfoMap;
@@ -2244,8 +2236,6 @@ public:
 	 * @return							If the settings came from a reverb volume, the reverb volume's object index is returned.
 	 */
 	class AReverbVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
-
-	void UpdateMusicTrack(FMusicTrackStruct NewMusicTrack);
 
 	/** Return the URL of this level on the local machine. */
 	virtual FString GetLocalURL() const;

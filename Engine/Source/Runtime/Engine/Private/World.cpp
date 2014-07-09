@@ -121,7 +121,6 @@ void UWorld::Serialize( FArchive& Ar )
 		Ar << ForegroundLineBatcher;
 
 		Ar << MyParticleEventManager;
-		Ar << MusicComp;
 		Ar << GameState;
 		Ar << AuthorityGameMode;
 		Ar << NetworkManager;
@@ -184,7 +183,6 @@ void UWorld::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		Collector.AddReferencedObject( This->PersistentLineBatcher, This );
 		Collector.AddReferencedObject( This->ForegroundLineBatcher, This );
 		Collector.AddReferencedObject( This->MyParticleEventManager, This );
-		Collector.AddReferencedObject( This->MusicComp, This );
 		Collector.AddReferencedObject( This->GameState, This );
 		Collector.AddReferencedObject( This->AuthorityGameMode, This );
 		Collector.AddReferencedObject( This->NetworkManager, This );
@@ -4580,45 +4578,6 @@ void UWorld::SetSeamlessTravelMidpointPause(bool bNowPaused)
 int32 UWorld::GetDetailMode()
 {
 	return GetCachedScalabilityCVars().DetailMode;
-}
-
-void UWorld::UpdateMusicTrack(FMusicTrackStruct NewMusicTrack)
-{
-	if (MusicComp != NULL)
-	{
-		// If attempting to play same track, don't.
-		if (NewMusicTrack.Sound == CurrentMusicTrack.Sound)
-		{
-			return;
-		}
-		else
-		{
-			// otherwise fade out the current track
-			MusicComp->FadeOut(CurrentMusicTrack.FadeOutTime,CurrentMusicTrack.FadeOutVolumeLevel);
-			MusicComp = NULL;
-		}
-	}
-
-	{
-		// create a new audio component to play music
-		MusicComp = FAudioDevice::CreateComponent( NewMusicTrack.Sound, this, NULL, false );
-		if (MusicComp != NULL)
-		{
-			// update the new component with the correct settings
-			MusicComp->bAutoDestroy = true;
-			MusicComp->bShouldRemainActiveIfDropped = true;
-			MusicComp->bIsMusic = true;
-			MusicComp->bAutoActivate = NewMusicTrack.bAutoPlay;
-			MusicComp->bIgnoreForFlushing = NewMusicTrack.bPersistentAcrossLevels;
-
-			// and finally fade in the new track
-			MusicComp->FadeIn( NewMusicTrack.FadeInTime, NewMusicTrack.FadeInVolumeLevel );
-		}
-	}
-
-	// set the properties for future fades as well as replication to clients
-	CurrentMusicTrack = NewMusicTrack;
-	GetWorldSettings()->ReplicatedMusicTrack = NewMusicTrack;
 }
 
 /**
