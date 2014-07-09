@@ -13,7 +13,7 @@ public:
 	SLATE_BEGIN_ARGS(SBlueprintMerge){}
 	SLATE_ARGUMENT(class UBlueprint*, BlueprintLocal)
 	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
-	SLATE_ARGUMENT( TWeakPtr<FBlueprintEditor>, OwningEditor )
+	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
 	SLATE_END_ARGS()
 	
 	void Construct(const FArguments& InArgs);
@@ -31,16 +31,13 @@ protected:
 	
 	/** Helper functions */
 	TSharedRef< SWidget > GenerateDiffView(TArray<FDiffSingleResult>& Diffs, TSharedPtr< const FUICommandInfo > CommandNext, TSharedPtr< const FUICommandInfo > CommandPrev, TArray< TSharedPtr<FDiffSingleResult> >& SharedResults);
+	UBlueprint* GetTargetBlueprint();
 
 	/** Event handlers */
 	FReply OnAcceptResultClicked();
 	FReply OnCancelClicked();
-	FReply OnTakeLocalClicked();
-	FReply OnTakeRemoteClicked();
-	FReply OnTakeBaseClicked();
-	void StageBlueprint(UBlueprint const* DesiredBP);
 
-	TWeakPtr<FBlueprintEditor> OwningEditor;
+	TSharedPtr<FBlueprintEditor> OwningEditor;
 	FDiffPanel PanelLocal;
 	TWeakPtr<SWindow>		OwningWindow;
 
