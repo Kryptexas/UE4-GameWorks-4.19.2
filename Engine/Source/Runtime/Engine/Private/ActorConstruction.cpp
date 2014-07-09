@@ -239,7 +239,8 @@ void AActor::RerunConstructionScripts()
 					RootComponent->DetachFromParent(true);
 				}
 
-				OldTransform = RootComponent->GetRelativeTransform();
+				OldTransform = RootComponent->ComponentToWorld;
+				OldTransform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
 			}
 		}
 
