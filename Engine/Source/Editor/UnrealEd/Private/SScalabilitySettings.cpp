@@ -120,6 +120,22 @@ SGridPanel::FSlot& SScalabilitySettings::MakeGridSlot(int32 InCol, int32 InRow, 
 		.ColumnSpan(InColSpan);
 }
 
+ESlateCheckBoxState::Type SScalabilitySettings::IsMonitoringPerformance() const
+{
+	const bool bMonitorEditorPerformance = GEditor->GetEditorUserSettings().bMonitorEditorPerformance;
+	return bMonitorEditorPerformance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+void SScalabilitySettings::OnMonitorPerformanceChanged(ESlateCheckBoxState::Type NewState)
+{
+	const bool bNewEnabledState = ( NewState == ESlateCheckBoxState::Checked );
+
+	auto& Settings = GEditor->AccessEditorUserSettings();
+	Settings.bMonitorEditorPerformance = bNewEnabledState;
+	Settings.PostEditChange();
+	Settings.SaveConfig();
+}
+
 void SScalabilitySettings::Construct( const FArguments& InArgs )
 {
 	const FText NamesLow(LOCTEXT("QualityLowLabel", "Low"));
@@ -199,6 +215,20 @@ void SScalabilitySettings::Construct( const FArguments& InArgs )
 				+MakeGridSlot(2,7) [ MakeButtonWidget(NamesMedium, TEXT("EffectsQuality"), 1, LOCTEXT("EffectsQualityMed", "Set effects quality to medium")) ]
 				+MakeGridSlot(3,7) [ MakeButtonWidget(NamesHigh, TEXT("EffectsQuality"), 2, LOCTEXT("EffectsQualityHigh", "Set effects quality to high")) ]
 				+MakeGridSlot(4,7) [ MakeButtonWidget(NamesEpic, TEXT("EffectsQuality"), 3, LOCTEXT("EffectsQualityEpic", "Set effects quality to epic")) ]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(5.f)
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged(this, &SScalabilitySettings::OnMonitorPerformanceChanged)
+				.IsChecked(this, &SScalabilitySettings::IsMonitoringPerformance)
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("PerformanceWarningEnableDisableCheckbox", "Monitor Editor Performance?"))
+				]
 			]
 		];
 }
