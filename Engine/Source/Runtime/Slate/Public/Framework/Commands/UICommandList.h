@@ -62,14 +62,6 @@ public:
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
 
 	/**
-	 * Checks to see whether a command info is already mapped to an action
-	 * 
-	 * @param InUICommandInfo	The command info to check
-	 * @return true if the command info is mapped to an action
-	 */
-	bool IsCommandInfoMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const;
-
-	/**
 	 * Append commands in InCommandsToAppend to this command list.
 	 */
 	void Append( const TSharedRef<FUICommandList>& InCommandsToAppend );
