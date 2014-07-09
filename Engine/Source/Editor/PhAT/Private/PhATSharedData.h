@@ -116,7 +116,7 @@ public:
 	void HitConstraint(int32 ConstraintIndex, bool bGroupSelect = false);
 
 	/** Undo/Redo */
-	void Undo();
+	void PostUndo();
 	void Redo();
 	void SetCollisionBetweenSelected(bool bEnableCollision);
 

@@ -586,8 +586,7 @@ void FPhAT::CycleTransformMode()
 
 void FPhAT::PostUndo(bool bSuccess)
 {
-	SharedData->SetSelectedBody(NULL);
-	SharedData->SetSelectedConstraint(INDEX_NONE);
+	SharedData->PostUndo();
 	RefreshHierachyTree();
 
 	SharedData->RefreshPhysicsAssetChange(SharedData->PhysicsAsset);
