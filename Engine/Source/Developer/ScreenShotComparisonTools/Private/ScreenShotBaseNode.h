@@ -22,8 +22,8 @@ public:
 	* @param InName  The Name of this test data item.
 	*/
 	FScreenShotBaseNode( const FString& InName, const FString& InAssetName = "" )
-		: ItemName(InName)
-		, AssetName(InAssetName)
+		: AssetName(InAssetName)
+		, ItemName(InName)
 	{ }
 
 public:
