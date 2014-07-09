@@ -1604,6 +1604,15 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		Class->ClassWithin = ParentClass->ClassWithin ? ParentClass->ClassWithin : UObject::StaticClass();
 		Class->ClassConfigName = ParentClass->ClassConfigName;
 
+		// If the Blueprint was marked as deprecated, then flag the class as deprecated.
+		if(Blueprint->bDeprecate)
+		{
+			Class->ClassFlags |= CLASS_Deprecated;
+		}
+
+		// If the flag is inherited, this will keep the bool up-to-date
+		Blueprint->bDeprecate = (Class->ClassFlags & CLASS_Deprecated) == CLASS_Deprecated;
+
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
 		ParentClass->GetHideCategories(AllHideCategories);

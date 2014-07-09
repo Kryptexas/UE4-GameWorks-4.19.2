@@ -1619,8 +1619,9 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 		.FillWidth(1)
 		.VAlign(VAlign_Center)
 		[
-			SNew(SEditableTextBox)
+			SAssignNew(ArgumentNameWidget, SEditableTextBox)
 				.Text( this, &FBlueprintGraphArgumentLayout::OnGetArgNameText )
+				.OnTextChanged(this, &FBlueprintGraphArgumentLayout::OnArgNameChange)
 				.OnTextCommitted( this, &FBlueprintGraphArgumentLayout::OnArgNameTextCommitted )
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 				.IsEnabled(!ShouldPinBeReadOnly())
@@ -1799,6 +1800,33 @@ FText FBlueprintGraphArgumentLayout::OnGetArgNameText() const
 		return FText::FromString(ParamItemPtr.Pin()->PinName);
 	}
 	return FText();
+}
+
+void FBlueprintGraphArgumentLayout::OnArgNameChange(const FText& InNewText)
+{
+	bool bVerified = true;
+
+	FText ErrorMessage;
+
+	if (InNewText.IsEmpty())
+	{
+		ErrorMessage = LOCTEXT("EmptyArgument", "Name cannot be empty!");
+		bVerified = false;
+	}
+	else
+	{
+		const FString& OldName = ParamItemPtr.Pin()->PinName;
+		bVerified = GraphActionDetailsPtr.Pin()->OnVerifyPinRename(TargetNode, OldName, InNewText.ToString(), ErrorMessage);
+	}
+
+	if(!bVerified)
+	{
+		ArgumentNameWidget.Pin()->SetError(ErrorMessage);
+	}
+	else
+	{
+		ArgumentNameWidget.Pin()->SetError(FText::GetEmpty());
+	}
 }
 
 void FBlueprintGraphArgumentLayout::OnArgNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
@@ -2834,8 +2862,37 @@ struct FPinRenamedHelper : public FBasePinChangeHelper
 	}
 };
 
+bool FBaseBlueprintGraphActionDetails::OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FString& InOldName, const FString& InNewName, FText& OutErrorMessage)
+{
+	// If the name is unchanged, allow the name
+	if(InOldName == InNewName)
+	{
+		return true;
+	}
+
+	if (InTargetNode)
+	{
+		// Check if the name conflicts with any of the other internal UFunction's property names (local variables and parameters).
+		const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(InTargetNode);
+		const auto ExistingProperty = FindField<const UProperty>(FoundFunction, *InNewName);
+		if (ExistingProperty)
+		{
+			OutErrorMessage = LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!");
+			return false;
+		}
+	}
+	return true;
+}
+
 bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FString& OldName, const FString& NewName)
 {
+	// Before changing the name, verify the name
+	FText ErrorMessage;
+	if(!OnVerifyPinRename(TargetNode, OldName, NewName, ErrorMessage))
+	{
+		return false;
+	}
+
 	UEdGraph* Graph = GetGraph();
 
 	if (TargetNode)
@@ -3350,9 +3407,15 @@ bool FBaseBlueprintGraphActionDetails::IsPinNameUnique(const FString& TestName) 
 
 void FBaseBlueprintGraphActionDetails::GenerateUniqueParameterName( const FString &BaseName, FString &Result ) const
 {
+	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
+	check(FunctionEntryNode);
+
+	const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(FunctionEntryNode);
+
 	Result = BaseName;
 	int UniqueNum = 0;
-	while(!IsPinNameUnique(Result))
+	// Prevent the unique name from being the same as another of the UFunction's properties
+	while(!IsPinNameUnique(Result) || FindField<const UProperty>(FoundFunction, *Result) != NULL)
 	{
 		Result = FString::Printf(TEXT("%s%d"), *BaseName, ++UniqueNum);
 	}
@@ -3743,6 +3806,38 @@ void FBlueprintGlobalOptionsDetails::OnClassPicked(UClass* PickedClass)
 	}
 }
 
+bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
+{
+	// If the parent is deprecated, we cannot modify deprecation on this Blueprint
+	if(GetBlueprintObj()->ParentClass->HasAnyClassFlags(CLASS_Deprecated))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ESlateCheckBoxState::Type InCheckState)
+{
+	GetBlueprintObj()->bDeprecate = InCheckState == ESlateCheckBoxState::Checked? true : false;
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+}
+
+ESlateCheckBoxState::Type FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint() const
+{
+	return GetBlueprintObj()->bDeprecate? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+}
+
+FText FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip() const
+{
+	if(CanDeprecateBlueprint())
+	{
+		return LOCTEXT("DeprecateBlueprintTooltip", "Deprecate the Blueprint and all child Blueprints to make it no longer placeable in the World nor child classes created from it.");
+	}
+	
+	return LOCTEXT("DisabledDeprecateBlueprintTooltip", "This Blueprint is deprecated because of a parent, it is not possible to remove deprecation from it!");
+}
+
 void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	const UBlueprint* Blueprint = GetBlueprintObj();
@@ -3798,11 +3893,35 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 			InterfacesCategory.AddCustomBuilder(InheritedInterfaceLayout);
 		}
 
+		// Hide the bDeprecate, we override the functionality.
+		static FName DeprecatePropName(TEXT("bDeprecate"));
+		DetailLayout.HideProperty(DetailLayout.GetProperty(DeprecatePropName));
+
 		// Hide 'run on drag' for LevelBP
 		if (bIsLevelScriptBP)
 		{
 			static FName RunOnDragPropName(TEXT("bRunConstructionScriptOnDrag"));
 			DetailLayout.HideProperty(DetailLayout.GetProperty(RunOnDragPropName));
+		}
+		else
+		{
+			// Only display the ability to deprecate a Blueprint on non-level Blueprints.
+			Category.AddCustomRow( TEXT("Deprecate") )
+				.NameContent()
+				[
+					SNew(STextBlock)
+					.Text( LOCTEXT("DeprecateLabel", "Deprecate") )
+					.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+				.ValueContent()
+				[
+					SNew(SCheckBox)
+						.IsEnabled( this, &FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint )
+						.IsChecked( this, &FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint )
+						.OnCheckStateChanged( this, &FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint )
+						.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
+				];
 		}
 	}
 }

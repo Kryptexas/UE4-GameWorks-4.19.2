@@ -314,7 +314,18 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				SpawnInfo.Template = NewArchetype;
 				SpawnInfo.bNoCollisionFail = true;
 				SpawnInfo.bDeferConstruction = true;
+
+				// Temporarily remove the deprecated flag so we can respawn the Blueprint in the level
+				bool bIsClassDeprecated = SpawnClass->HasAnyClassFlags(CLASS_Deprecated);
+				SpawnClass->ClassFlags &= ~CLASS_Deprecated;
+
 				AActor* NewActor = World->SpawnActor(SpawnClass, LocationPtr, RotationPtr, SpawnInfo );
+
+				// Reassign the deprecated flag if it was previously assigned
+				if(bIsClassDeprecated)
+				{
+					SpawnClass->ClassFlags |= CLASS_Deprecated;
+				}
 
 				check(NewActor);
 				NewObject = NewActor;

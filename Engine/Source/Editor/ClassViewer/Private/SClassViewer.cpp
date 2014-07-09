@@ -443,6 +443,28 @@ namespace ClassViewer
 		static UBlueprint* GetBlueprint( UClass* InClass );
 		static void UpdateClassInNode(const FString& InGeneratedClassPackageName, UClass* InNewClass, UBlueprint* InNewBluePrint );
 
+		/** Util class to checks if a particular class can be made into a Blueprint, ignores deprecation
+		 *
+		 * @param InClass					The class to verify can be made into a Blueprint
+		 * @return							TRUE if the class can be made into a Blueprint
+		 */
+		bool CanCreateBlueprintOfClass_IgnoreDeprecation(UClass* InClass)
+		{
+			// Temporarily remove the deprecated flag so we can check if it is valid for
+			bool bIsClassDeprecated = InClass->HasAnyClassFlags(CLASS_Deprecated);
+			InClass->ClassFlags &= ~CLASS_Deprecated;
+
+			bool bCanCreateBlueprintOfClass = FKismetEditorUtilities::CanCreateBlueprintOfClass( InClass );
+
+			// Reassign the deprecated flag if it was previously assigned
+			if(bIsClassDeprecated)
+			{
+				InClass->ClassFlags |= CLASS_Deprecated;
+			}
+
+			return bCanCreateBlueprintOfClass;
+		}
+
 		/** Checks if a particular class is a brush.
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is a brush.
@@ -786,7 +808,7 @@ namespace ClassViewer
 		{
 			if (UClass* Class = InClass.Get())
 			{
-				bInOutIsBlueprintBase = FKismetEditorUtilities::CanCreateBlueprintOfClass( Class );
+				bInOutIsBlueprintBase = CanCreateBlueprintOfClass_IgnoreDeprecation( Class );
 				bInOutHasBlueprint = Class->ClassGeneratedBy != NULL;
 			}
 			else
@@ -806,7 +828,7 @@ namespace ClassViewer
 			// If there is no class, it may be an unloaded blueprint.
 			if(UClass* Class = InNode->Class.Get())
 			{
-				return FKismetEditorUtilities::CanCreateBlueprintOfClass( Class );
+				return CanCreateBlueprintOfClass_IgnoreDeprecation(Class);
 			}
 			else if(InNode->bIsBPNormalType)
 			{
@@ -1026,7 +1048,7 @@ namespace ClassViewer
 		 */
 		static void OpenCreateBlueprintMenu(FMenuBuilder& MenuBuilder, UClass* InCreationClass)
 		{
-			if(InCreationClass == NULL || !FKismetEditorUtilities::CanCreateBlueprintOfClass(InCreationClass))
+			if(InCreationClass == NULL || !CanCreateBlueprintOfClass_IgnoreDeprecation(InCreationClass))
 			{
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeErrorWarningWidget(), FText::GetEmpty() );
 			}
@@ -1062,6 +1084,25 @@ namespace ClassViewer
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintPathWidget(), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 			}
+		}
+
+		/** Returns the tooltip to display when attempting to derive a Blueprint */
+		FText GetCreateBlueprintTooltip(UClass* InCreationClass)
+		{
+			if(InCreationClass->HasAnyClassFlags(CLASS_Deprecated))
+			{
+				return LOCTEXT("ClassViewerMenuCreateDeprecatedBlueprint_Tooltip", "Blueprint class is deprecated!");
+			}
+			else
+			{
+				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base.");
+			}
+		}
+
+		/** Returns TRUE if you can derive a Blueprint */
+		bool CanOpenCreateBlueprintMenu(UClass* InCreationClass)
+		{
+			return !InCreationClass->HasAnyClassFlags(CLASS_Deprecated);
 		}
 
 		/**
@@ -1432,7 +1473,21 @@ private:
 				{
 					MenuBuilder.BeginSection("ClassViewerIsBlueprint");
 					{
-						MenuBuilder.AddSubMenu( LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base."), FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ) );
+						TAttribute<FText>::FGetter DynamicTooltipGetter;
+						DynamicTooltipGetter.BindStatic(&ClassViewer::Helpers::GetCreateBlueprintTooltip, Class);
+						TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
+						MenuBuilder.AddSubMenu(
+							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+							DynamicTooltipAttribute, 
+							FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ),
+							FUIAction(
+								FExecuteAction(),
+								FCanExecuteAction::CreateStatic( &ClassViewer::Helpers::CanOpenCreateBlueprintMenu, Class )
+								),
+							FName(),
+							EUserInterfaceActionType::Button
+							);
 					}
 					MenuBuilder.EndSection();
 				}
@@ -2278,7 +2333,21 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 	{ 
 		if (bIsBlueprint)
 		{
-			MenuBuilder.AddSubMenu( LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base."), FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ) );
+			TAttribute<FText>::FGetter DynamicTooltipGetter;
+			DynamicTooltipGetter.BindStatic(&ClassViewer::Helpers::GetCreateBlueprintTooltip, RightClickClass);
+			TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+				DynamicTooltipAttribute, 
+				FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ),
+				FUIAction(
+					FExecuteAction(),
+					FCanExecuteAction::CreateStatic( &ClassViewer::Helpers::CanOpenCreateBlueprintMenu, RightClickClass )
+					),
+				FName(),
+				EUserInterfaceActionType::Button
+				);
 		}
 	
 		if(bHasBlueprint)

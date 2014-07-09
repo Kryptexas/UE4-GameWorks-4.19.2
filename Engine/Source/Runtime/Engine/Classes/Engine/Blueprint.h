@@ -311,6 +311,9 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	FGuid  SearchGuid;
 
+	/** Deprecates the Blueprint, marking the generated class with the CLASS_Deprecated flag */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	bool bDeprecate;
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */
