@@ -1206,7 +1206,6 @@ static void SerializePlatformData(
 		if (Ar.IsLoading())
 		{
 			check(Texture);
-			Texture->LODBias -= FirstMipToSerialize;
 			FirstMipToSerialize = 0;
 		}
 	}
