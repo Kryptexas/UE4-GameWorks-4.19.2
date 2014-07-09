@@ -4,6 +4,8 @@
 #include "GameplayAbilitiesEditor.h"
 
 #include "GameplayAbilityBlueprint.h"
+#include "GameplayAbilityGraphSchema.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "FGameplayAbilitiesEditor"
 
