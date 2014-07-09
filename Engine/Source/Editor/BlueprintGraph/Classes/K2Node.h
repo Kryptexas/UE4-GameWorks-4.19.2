@@ -4,6 +4,8 @@
 #include "EdGraph/EdGraphNode.h"
 #include "K2Node.generated.h"
 
+class UBlueprintNodeSpawner;
+
 /** Helper struct to allow us to redirect properties and functions through renames and additionally between classes if necessary */
 struct FFieldRemapInfo
 {
@@ -283,6 +285,28 @@ class UK2Node : public UEdGraphNode
 
 	/** This function returns an arbitrary number of attributes that describe this node for analytics events */
 	BLUEPRINTGRAPH_API virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const;
+
+	/** 
+	 * Replacement for GetMenuEntries(). Override to add specific 
+	 * UBlueprintNodeSpawners pertaining to the sub-class type. Serves as an 
+	 * extensible way for new nodes, and game module nodes to add themselves to
+	 * context menus.
+	 *
+	 * @TODO: Not operational yet (stubbed in to prep for blueprint action menu refactor).
+	 *
+	 * @param  ActionListOut	The list to be populated with new spawners.
+	 */
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const {}
+
+	/**
+	 * Override to provide a default category for specific node types to be 
+	 * listed under.
+	 *
+	 * @TODO: Not operational yet (stubbed in to prep for blueprint action menu refactor).
+	 *
+	 * @return A localized category string (or an empty string if you want this node listed at the menu's root).
+	 */
+	virtual FText GetMenuCategory() const { return FText::GetEmpty(); }
 
 protected:
 	/** 
