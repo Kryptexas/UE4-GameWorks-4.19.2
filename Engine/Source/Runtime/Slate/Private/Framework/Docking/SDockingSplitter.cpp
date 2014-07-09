@@ -282,42 +282,12 @@ TArray< TSharedRef<SDockTab> > SDockingSplitter::GetAllChildTabs() const
 	return ChildTabs;
 }
 
+
 EOrientation SDockingSplitter::GetOrientation() const
 {
 	return Splitter->GetOrientation();
 }
 
-
-bool SDockingSplitter::ClearRedundantNodes( const TSharedRef<SDockingSplitter>& ParentNode )
-{
-	for (int32 ChildIndex=0; ChildIndex < ParentNode->Children.Num(); ++ChildIndex)
-	{
-		const TSharedRef<SDockingNode> ChildNode = ParentNode->Children[ChildIndex];
-		if (ChildNode->GetNodeType() == SDockingNode::DockSplitter || ChildNode->GetNodeType() == SDockingNode::DockArea)
-		{
-			const TSharedRef<SDockingSplitter>& ChildSplitter = StaticCastSharedRef<SDockingSplitter>(ChildNode);
-			if ( ChildSplitter->GetOrientation() == ParentNode->GetOrientation() || ChildSplitter->Children.Num() == 1 )
-			{
-				// We found a child splitter with the same orientation as ours.
-				// Clean up by bumping children up to our level.
-				ParentNode->RemoveChildAt( ChildIndex );
-				
-				for (int32 GrandchildIndex=0; GrandchildIndex < ChildSplitter->Children.Num(); ++GrandchildIndex)
-				{
-					ParentNode->AddChildNode(ChildSplitter->Children[GrandchildIndex], ChildIndex + GrandchildIndex);
-				}
-
-				// We fixed some stuff up, and we need to re-run this routine
-				return true;
-			}
-		}
-	}
-
-	// There were no redundant splitters.
-	return false;
-
-
-}
 
 TSharedPtr<FTabManager::FLayoutNode> SDockingSplitter::GatherPersistentLayout() const
 {

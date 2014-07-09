@@ -89,13 +89,6 @@ protected:
 
 	float ComputeChildCoefficientTotal() const;
 
-	/**
-	 * @param ParentNode    DockSplitter node whose children might be redundant
-	 *
-	 * @return true if we found some redundant splitters and need to do another pass on this list; false if we found no redundancies.
-	 */
-	static bool ClearRedundantNodes( const TSharedRef<SDockingSplitter>& ParentNode );
-
 	/** The SSplitter widget that SDockingSplitter wraps. */
 	TSharedPtr<SSplitter> Splitter;
 	
