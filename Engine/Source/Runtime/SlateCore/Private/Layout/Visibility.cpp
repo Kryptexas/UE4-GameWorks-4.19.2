@@ -29,29 +29,29 @@ FString EVisibility::ToString( ) const
 	static const FString HitTestInvisibleString("HitTestInvisible");
 	static const FString SelfHitTestInvisibleString("SelfHitTestInvisible");
 
-	if ((Value & VISPRIVATE_ChildrenHitTestVisible) == 0)
-	{
-		return HitTestInvisibleString;
-	}
-
-	if ((Value & VISPRIVATE_SelfHitTestVisible) == 0)
-	{
-		return SelfHitTestInvisibleString;
-	}
-
-	if ((Value & VISPRIVATE_Visible) != 0)
+	if (Value == VIS_Visible)
 	{
 		return VisibleString;
 	}
 
-	if ((Value & VISPRIVATE_Hidden) != 0)
+	if (Value == VIS_Collapsed)
+	{
+		return CollapsedString;
+	}
+
+	if (Value == VIS_Hidden)
 	{
 		return HiddenString;
 	}
 
-	if ((Value & VISPRIVATE_Collapsed) != 0)
+	if (Value == VIS_HitTestInvisible)
 	{
-		return CollapsedString;
+		return HitTestInvisibleString;
+	}
+
+	if (Value == VIS_SelfHitTestInvisible)
+	{
+		return SelfHitTestInvisibleString;
 	}
 
 	return FString();
