@@ -1517,6 +1517,10 @@ namespace AutomationTool
 					{
 						Request.Worker.Join();
 					}
+					if (Request.Result != null)
+					{
+						throw new AutomationException(String.Format("Failed to thread-copy files: {0}", Request.Result.Message), Request.Result);
+					}
 				}
 			}
 			else
