@@ -514,9 +514,15 @@ public:
 	/** Set modal window related flags - called by Slate app code during FSlateApplication::AddModalWindow() */
 	void SetAsModalWindow()
 	{
+        bIsModalWindow = true;
 		bHasMaximizeButton = false;
 		bHasMinimizeButton = false;
 	}
+
+	bool IsModalWindow()
+    {
+        return bIsModalWindow;
+    }
 
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
@@ -694,6 +700,9 @@ protected:
 
 	/** True if this window displays thick edge that can be used to resize the window */
 	bool bHasSizingFrame : 1;
+    
+    /** True if the window is modal */
+    bool bIsModalWindow : 1;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;

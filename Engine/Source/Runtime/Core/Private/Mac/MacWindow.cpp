@@ -854,7 +854,10 @@ void FMacWindow::Destroy()
 		// This makes it possible to correctly handle any NSEvent's sent to the window during destruction
 		// as the WindowHandle is still a valid NSWindow. Unlike HWNDs accessing a destructed NSWindow* is fatal.
 		FSlateCocoaWindow* Window = [WindowHandle retain];
-		GRunningModalWindows.Remove(WindowHandle);
+		if(Definition->IsModalWindow)
+		{
+			GRunningModalWindows.Remove(WindowHandle);
+		}
 		Window.bForwardEvents = false;
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
@@ -917,7 +920,7 @@ void FMacWindow::Show()
 	SCOPED_AUTORELEASE_POOL;
 	if (!bIsVisible)
 	{
-		if(!Definition->SupportsMinimize && !Definition->SupportsMaximize && Definition->IsRegularWindow && !GRunningModalWindows.Contains(WindowHandle))
+		if(Definition->IsModalWindow && !GRunningModalWindows.Contains(WindowHandle))
 		{
 			GRunningModalWindows.Add(WindowHandle);
 		}
@@ -949,7 +952,7 @@ void FMacWindow::Hide()
 	{
 		SCOPED_AUTORELEASE_POOL;
 		bIsVisible = false;
-		if(!Definition->SupportsMinimize && !Definition->SupportsMaximize)
+		if(Definition->IsModalWindow)
 		{
 			GRunningModalWindows.Remove(WindowHandle);
 		}

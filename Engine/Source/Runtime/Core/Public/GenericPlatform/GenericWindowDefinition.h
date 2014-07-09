@@ -22,6 +22,7 @@ struct CORE_API FGenericWindowDefinition
 	bool SupportsMinimize;
 	bool SupportsMaximize;
 
+    bool IsModalWindow;
 	bool IsRegularWindow;
 	bool HasSizingFrame;
 	bool SizeWillChangeOften;
