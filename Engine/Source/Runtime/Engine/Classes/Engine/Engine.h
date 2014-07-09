@@ -886,6 +886,15 @@ public:
 	UPROPERTY()
 	class UMaterial* ConstraintLimitMaterial;
 
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialX;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialY;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialZ;
+
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference ConstraintLimitMaterialName;

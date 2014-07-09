@@ -1209,6 +1209,13 @@ void UEngine::InitializeObjectReferences()
 		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.AssetLongPathname, PreviewShadowsIndicatorMaterial, false);
 		LoadSpecialMaterial(ConstraintLimitMaterialName.AssetLongPathname, ConstraintLimitMaterial, false);
 
+		ConstraintLimitMaterialX = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialX->SetVectorParameterValue(FName("Color"), FLinearColor::Red);
+		ConstraintLimitMaterialY = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialY->SetVectorParameterValue(FName("Color"), FLinearColor::Green);
+		ConstraintLimitMaterialZ = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialZ->SetVectorParameterValue(FName("Color"), FLinearColor::Blue);
+
 		//@TODO: This should move into the editor (used in editor modes exclusively)
 		if (DefaultBSPVertexTexture == NULL)
 		{
