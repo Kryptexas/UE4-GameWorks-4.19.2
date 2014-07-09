@@ -48,7 +48,9 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GMaxShadowDepthBufferSizeX = 4096;
 	GMaxShadowDepthBufferSizeY = 4096;
 // 	GReadTexturePoolSizeFromIni = true;
- 
+
+	GRHISupportsBaseVertexIndex = false;
+
 	GMaxTextureDimensions = 4096;
 	GMaxTextureMipCount = FPlatformMath::CeilLogTwo( GMaxTextureDimensions ) + 1;
 	GMaxTextureMipCount = FPlatformMath::Min<int32>( MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount );

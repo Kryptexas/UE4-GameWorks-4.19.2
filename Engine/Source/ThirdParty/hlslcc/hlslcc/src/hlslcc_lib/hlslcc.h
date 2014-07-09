@@ -2,17 +2,13 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Compiler version.
  */
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 54,
+	HLSLCC_VersionMinor = 55,
 };
 
 /**
@@ -145,7 +141,3 @@ int HlslCrossCompile(
 	char** OutShaderSource,
 	char** OutErrorLog
 	);
-
-#ifdef __cplusplus
-}
-#endif

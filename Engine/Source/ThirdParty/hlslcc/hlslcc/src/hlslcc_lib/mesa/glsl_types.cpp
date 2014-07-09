@@ -32,10 +32,7 @@
 #include "glsl_parser_extras.h"
 #include "glsl_types.h"
 #include "builtin_types.h"
-extern "C"
-{
 #include "hash_table.h"
-}
 
 static const char * const sampler_type_prefix[] = { "u", "i", "", "" };
 

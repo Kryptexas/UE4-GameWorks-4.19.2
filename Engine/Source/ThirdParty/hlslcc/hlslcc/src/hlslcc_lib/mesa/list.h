@@ -70,11 +70,6 @@
 #ifndef LIST_CONTAINER_H
 #define LIST_CONTAINER_H
 
-//@todo-rco: Remove STL!
-#ifndef __cplusplus
-#include <stddef.h>
-#endif
-
 #include "../ShaderCompilerCommon.h"
 
 #include "ralloc.h"

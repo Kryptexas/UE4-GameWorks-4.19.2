@@ -29,10 +29,7 @@
 
 #include "../ShaderCompilerCommon.h"
 #include "ast.h"
-extern "C"
-{
 #include "symbol_table.h"
-}
 
 void ast_type_specifier::print(void) const
 {

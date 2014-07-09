@@ -29,6 +29,8 @@ UCookerSettings::UCookerSettings(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	DefaultPVRTCQuality = 0;
+	bSupportMetal = false;
+	bSupportOpenGLES2 = true;
 }
 
 

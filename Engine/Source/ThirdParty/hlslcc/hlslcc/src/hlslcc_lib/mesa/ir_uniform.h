@@ -37,10 +37,6 @@
 #include "program/prog_parameter.h"  /* For union gl_constant_value. */
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 enum gl_uniform_driver_format {
    uniform_native = 0,          /**< Store data in the native format. */
    uniform_int_float,           /**< Store integer data as floats. */
@@ -124,9 +120,5 @@ struct gl_uniform_storage {
     */
    union gl_constant_value *storage;
 };
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* IR_UNIFORM_H */

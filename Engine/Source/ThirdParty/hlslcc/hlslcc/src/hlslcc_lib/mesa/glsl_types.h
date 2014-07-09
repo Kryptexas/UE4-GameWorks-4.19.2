@@ -35,11 +35,6 @@
 #include "../ShaderCompilerCommon.h"
 #include <string>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 	struct _mesa_glsl_parse_state;
 	struct glsl_symbol_table;
 
@@ -48,10 +43,6 @@ extern "C"
 
 	extern void
 		_mesa_glsl_release_types(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 enum glsl_base_type
 {

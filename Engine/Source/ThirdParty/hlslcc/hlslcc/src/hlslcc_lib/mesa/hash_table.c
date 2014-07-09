@@ -73,7 +73,7 @@ struct hash_table *
 			num_buckets = 16;
 		}
 
-		ht = malloc(sizeof(*ht) + ((num_buckets - 1)
+		ht = (hash_table*)malloc(sizeof(*ht) + ((num_buckets - 1)
 			* sizeof(ht->buckets[0])));
 		if (ht != NULL) {
 			ht->hash = hash;
@@ -149,7 +149,7 @@ hash_table_insert(struct hash_table *ht, void *data, const void *key)
 	const unsigned bucket = hash_value % ht->num_buckets;
 	struct hash_node *node;
 
-	node = calloc(1, sizeof(*node));
+	node = (hash_node*)calloc(1, sizeof(*node));
 
 	node->data = data;
 	node->key = key;
@@ -174,7 +174,7 @@ hash_table_replace(struct hash_table *ht, void *data, const void *key)
 		}
 	}
 
-	hn = calloc(1, sizeof(*hn));
+	hn = (hash_node*)calloc(1, sizeof(*hn));
 
 	hn->data = data;
 	hn->key = key;

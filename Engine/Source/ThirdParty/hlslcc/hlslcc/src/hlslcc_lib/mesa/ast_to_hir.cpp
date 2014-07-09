@@ -66,8 +66,6 @@
 #include "macros.h"
 #include "../IRDump.h"
 #include "../LanguageSpec.h"
-//@todo-rco: Remove STL!
-#include <stack>
 
 static void remove_matrix_swizzles(exec_list *instructions);
 
@@ -300,21 +298,21 @@ static ir_rvalue* access_value_at_offset(
 
 static unsigned intialize_struct(
 	exec_list *instructions,
-struct _mesa_glsl_parse_state *state,
+	struct _mesa_glsl_parse_state *state,
 	ir_dereference *struct_dref,
 	ir_rvalue *value,
 	unsigned value_offset);
 
 static unsigned intialize_array(
 	exec_list *instructions,
-struct _mesa_glsl_parse_state *state,
+	struct _mesa_glsl_parse_state *state,
 	ir_dereference *array_dref,
 	ir_rvalue *value,
 	unsigned value_offset);
 
 static unsigned do_initialize(
 	exec_list *instructions,
-struct _mesa_glsl_parse_state *state,
+	struct _mesa_glsl_parse_state *state,
 	ir_dereference *dref,
 	ir_rvalue *value,
 	unsigned value_offset)
@@ -4673,7 +4671,12 @@ void ast_switch_statement::test_to_hir(exec_list *instructions, struct _mesa_gls
 		test_expression->hir(instructions,
 		state);
 
-	state->switch_state.test_var = new(ctx)ir_variable(glsl_type::int_type,
+	auto* TestVarType = glsl_type::int_type;
+	if (test_val->type == glsl_type::uint_type)
+	{
+		TestVarType = glsl_type::uint_type;
+	}
+	state->switch_state.test_var = new(ctx)ir_variable(TestVarType,
 		"switch_test_tmp",
 		ir_var_temporary);
 	ir_dereference_variable *deref_test_var =
@@ -4689,7 +4692,9 @@ void ast_switch_statement::test_to_hir(exec_list *instructions, struct _mesa_gls
 ir_rvalue * ast_switch_body::hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
 	if (stmts != NULL)
+	{
 		stmts->hir(instructions, state);
+	}
 
 	/* Switch bodies do not have r-values.
 	*/
@@ -4700,7 +4705,9 @@ ir_rvalue * ast_switch_body::hir(exec_list *instructions, struct _mesa_glsl_pars
 ir_rvalue * ast_case_statement_list::hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
 	foreach_list_typed(ast_case_statement, case_stmt, link, &this->cases)
+	{
 		case_stmt->hir(instructions, state);
+	}
 
 	/* Case statements do not have r-values.
 	*/
@@ -4715,24 +4722,22 @@ ir_rvalue * ast_case_statement::hir(exec_list *instructions, struct _mesa_glsl_p
 	/* Conditionally set fallthru state based on break state.
 	*/
 	ir_constant *const false_val = new(state)ir_constant(false);
-	ir_dereference_variable *const deref_is_fallthru_var =
-		new(state)ir_dereference_variable(state->switch_state.is_fallthru_var);
-	ir_dereference_variable *const deref_is_break_var =
-		new(state)ir_dereference_variable(state->switch_state.is_break_var);
-	ir_assignment *const reset_fallthru_on_break =
-		new(state)ir_assignment(deref_is_fallthru_var,
+	ir_dereference_variable *const deref_is_fallthru_var =	new(state)ir_dereference_variable(state->switch_state.is_fallthru_var);
+	ir_dereference_variable *const deref_is_break_var = new(state)ir_dereference_variable(state->switch_state.is_break_var);
+	ir_assignment *const reset_fallthru_on_break = new(state)ir_assignment(deref_is_fallthru_var,
 		false_val,
 		deref_is_break_var);
 	instructions->push_tail(reset_fallthru_on_break);
 
 	/* Guard case statements depending on fallthru state.
 	*/
-	ir_dereference_variable *const deref_fallthru_guard =
-		new(state)ir_dereference_variable(state->switch_state.is_fallthru_var);
+	ir_dereference_variable *const deref_fallthru_guard = new(state)ir_dereference_variable(state->switch_state.is_fallthru_var);
 	ir_if *const test_fallthru = new(state)ir_if(deref_fallthru_guard);
 
 	foreach_list_typed(ast_node, stmt, link, &this->stmts)
+	{
 		stmt->hir(&test_fallthru->then_instructions, state);
+	}
 
 	instructions->push_tail(test_fallthru);
 
@@ -4742,11 +4747,12 @@ ir_rvalue * ast_case_statement::hir(exec_list *instructions, struct _mesa_glsl_p
 }
 
 
-ir_rvalue* ast_case_label_list::hir(exec_list *instructions,
-struct _mesa_glsl_parse_state *state)
+ir_rvalue* ast_case_label_list::hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
 	foreach_list_typed(ast_case_label, label, link, &this->labels)
+	{
 		label->hir(instructions, state);
+	}
 
 	/* Case labels do not have r-values.
 	*/
@@ -4754,8 +4760,7 @@ struct _mesa_glsl_parse_state *state)
 }
 
 
-ir_rvalue* ast_case_label::hir(exec_list *instructions,
-struct _mesa_glsl_parse_state *state)
+ir_rvalue* ast_case_label::hir(exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
 	void *ctx = state;
 
@@ -4773,7 +4778,6 @@ struct _mesa_glsl_parse_state *state)
 		*/
 		ir_rvalue *const label_rval = this->test_value->hir(instructions, state);
 		ir_constant *label_const = label_rval->constant_expression_value();
-
 		if (!label_const)
 		{
 			YYLTYPE loc = this->test_value->get_location();
@@ -4811,6 +4815,15 @@ struct _mesa_glsl_parse_state *state)
 
 		ir_dereference_variable *deref_test_var =
 			new(ctx)ir_dereference_variable(state->switch_state.test_var);
+
+		if (label_const->type != deref_test_var->type)
+		{
+			// Handle the case of { uint A; switch(A) { case 1: [...] }} as the ir_constant 1 will be int but the A is uint.
+			auto* ConvertedValue = convert_component(label_const, deref_test_var->type);
+			label_const = ConvertedValue->constant_expression_value();
+			// Should NEVER fail!
+			check(label_const);
+		}
 
 		ir_rvalue *const test_cond = new(ctx)ir_expression(ir_binop_all_equal,
 			glsl_type::bool_type,
@@ -4902,7 +4915,9 @@ ir_rvalue * ast_iteration_statement::hir(exec_list *instructions, struct _mesa_g
 	/* For-loops and while-loops start a new scope, but do-while loops do not.
 	*/
 	if (mode != ast_do_while)
+	{
 		state->symbols->push_scope();
+	}
 
 	if (init_statement != NULL)
 	{
@@ -4941,19 +4956,29 @@ ir_rvalue * ast_iteration_statement::hir(exec_list *instructions, struct _mesa_g
 	state->switch_state.is_switch_innermost = false;
 
 	if (mode != ast_do_while)
+	{
 		condition_to_hir(stmt, state);
+	}
 
 	if (body != NULL)
+	{
 		body->hir(&stmt->body_instructions, state);
+	}
 
 	if (rest_expression != NULL)
+	{
 		rest_expression->hir(&stmt->body_instructions, state);
+	}
 
 	if (mode == ast_do_while)
+	{
 		condition_to_hir(stmt, state);
+	}
 
 	if (mode != ast_do_while)
+	{
 		state->symbols->pop_scope();
+	}
 
 	/* Restore previous nesting before returning.
 	*/

@@ -607,10 +607,7 @@ goto find_rule; \
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
+#include "../ShaderCompilerCommon.h"
 #include "glcpp.h"
 #include "glcpp-parse.h"
 
@@ -645,7 +642,7 @@ match longer strings take priority over those matching shorter
 strings, we have to be careful to avoid OTHER matching and hiding
 something that CPP does care about. So we simply exclude all
 characters that appear in any other expressions. */
-#line 649 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
+#line 646 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
 
 #define INITIAL 0
 #define DONE 1
@@ -900,7 +897,7 @@ YY_DECL
 	register int yy_act;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
-#line 94 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 91 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 
 	/* Implicitly switch between SKIP and INITIAL (non-skipping);
 	 * don't switch if some other state was explicitly set.
@@ -915,7 +912,7 @@ YY_DECL
 	}
 
 	/* Single-line comments */
-#line 919 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
+#line 916 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
 
     yylval = yylval_param;
 
@@ -1034,41 +1031,41 @@ do_action:	/* This label is used only to access EOF actions. */
 	{ /* beginning of action switch */
 case 1:
 YY_RULE_SETUP
-#line 108 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 105 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 }
 	YY_BREAK
 /* Multi-line comments */
 case 2:
 YY_RULE_SETUP
-#line 112 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 109 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 { yy_push_state(COMMENT, yyscanner); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 113 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 110 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 114 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 111 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 { yylineno++; yycolumn = 0; return NEWLINE; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 115 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 112 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 116 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 113 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 { yylineno++; yycolumn = 0; return NEWLINE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 117 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 114 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yy_pop_state(yyscanner);
 	if (yyextra->space_tokens)
@@ -1077,7 +1074,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 123 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 120 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	yyextra->space_tokens = 0;
@@ -1088,7 +1085,7 @@ YY_RULE_SETUP
 	 * Simply pass them through to the main compiler's lexer/parser. */
 case 9:
 YY_RULE_SETUP
-#line 131 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 128 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	yylineno++;
@@ -1099,7 +1096,7 @@ YY_RULE_SETUP
 
 case 10:
 YY_RULE_SETUP
-#line 139 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 136 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->lexing_if = 1;
 	yyextra->space_tokens = 0;
@@ -1108,7 +1105,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 145 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 142 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->lexing_if = 1;
 	yyextra->space_tokens = 0;
@@ -1121,7 +1118,7 @@ case 12:
 yyg->yy_c_buf_p = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up yytext again */
 YY_RULE_SETUP
-#line 151 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 148 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->lexing_if = 1;
 	yyextra->space_tokens = 0;
@@ -1130,7 +1127,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 157 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 154 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->lexing_if = 1;
 	yyextra->space_tokens = 0;
@@ -1139,7 +1136,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 163 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 160 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH_ELSE;
@@ -1147,7 +1144,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 168 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 165 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH_ENDIF;
@@ -1156,12 +1153,12 @@ YY_RULE_SETUP
 
 case 16:
 YY_RULE_SETUP
-#line 174 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 171 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 ;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 176 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 173 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	char *p;
 	for (p = yytext; !isalpha(p[0]); p++); /* skip "  #   " */
@@ -1171,7 +1168,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 183 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 180 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH_DEFINE_FUNC;
@@ -1179,7 +1176,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 188 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 185 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH_DEFINE_OBJ;
@@ -1187,7 +1184,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 193 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 190 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH_UNDEF;
@@ -1195,7 +1192,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 198 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 195 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->space_tokens = 0;
 	return HASH;
@@ -1203,7 +1200,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 203 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 200 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	return INTEGER_STRING;
@@ -1211,7 +1208,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 208 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 205 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	return INTEGER_STRING;
@@ -1219,7 +1216,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 213 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 210 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	return INTEGER_STRING;
@@ -1227,77 +1224,77 @@ YY_RULE_SETUP
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 218 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 215 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return LEFT_SHIFT;
 }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 222 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 219 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return RIGHT_SHIFT;
 }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 226 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 223 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return LESS_OR_EQUAL;
 }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 230 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 227 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return GREATER_OR_EQUAL;
 }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 234 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 231 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return EQUAL;
 }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 238 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 235 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return NOT_EQUAL;
 }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 242 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 239 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return AND;
 }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 246 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 243 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return OR;
 }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 250 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 247 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return PASTE;
 }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 254 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 251 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return DEFINED;
 }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 258 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 255 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	return IDENTIFIER;
@@ -1305,14 +1302,14 @@ YY_RULE_SETUP
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 263 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 260 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	return yytext[0];
 }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 267 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 264 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yylval->str = ralloc_strdup (yyextra, yytext);
 	return OTHER;
@@ -1320,7 +1317,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 272 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 269 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	if (yyextra->space_tokens) {
 		return SPACE;
@@ -1330,7 +1327,7 @@ YY_RULE_SETUP
 case 39:
 /* rule 39 can match eol */
 YY_RULE_SETUP
-#line 278 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 275 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	yyextra->lexing_if = 0;
 	yylineno++;
@@ -1340,7 +1337,7 @@ YY_RULE_SETUP
 	YY_BREAK
 /* Handle missing newline at EOF. */
 case YY_STATE_EOF(INITIAL):
-#line 286 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 283 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	BEGIN DONE; /* Don't keep matching this rule forever. */
 	yyextra->lexing_if = 0;
@@ -1353,7 +1350,7 @@ case YY_STATE_EOF(INITIAL):
 	warnings. */
 case 40:
 YY_RULE_SETUP
-#line 296 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 293 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 {
 	unput('.');
 	yy_top_state(yyextra);
@@ -1361,10 +1358,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 301 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 298 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 ECHO;
 	YY_BREAK
-#line 1368 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
+#line 1365 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.c"
 			case YY_STATE_EOF(DONE):
 			case YY_STATE_EOF(COMMENT):
 			case YY_STATE_EOF(UNREACHABLE):
@@ -2559,7 +2556,7 @@ void glcpp_free (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 301 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
+#line 298 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-lex.l"
 
 
 

@@ -31,8 +31,6 @@
 
 #include "ShaderCompilerCommon.h"
 //@todo-rco: Remove STL!
-#include <map>
-#include <set>
 #include <sstream>
 
 #include "mesa/glsl_parser_extras.h"
@@ -368,6 +366,13 @@ void DebugPrintVisitor::visit(ir_assignment* ir)
 {
 	PrintID(ir);
 
+	if (ir->condition)
+	{
+		irdump_printf("if (");
+		ir->condition->accept(this);
+		irdump_printf(") ");
+	}
+
 	char mask[5];
 	unsigned j = 0;
 	for (unsigned i = 0; i < 4; i++)
@@ -388,14 +393,8 @@ void DebugPrintVisitor::visit(ir_assignment* ir)
 
 	irdump_printf(" = ");
 
-	if (ir->condition)
-	{
-		irdump_printf("[");
-		ir->condition->accept(this);
-		irdump_printf("]");
-	}
-
 	ir->rhs->accept(this);
+
 	irdump_printf(";\n");
 }
 

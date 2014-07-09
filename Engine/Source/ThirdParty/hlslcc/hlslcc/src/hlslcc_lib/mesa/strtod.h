@@ -33,17 +33,6 @@
 #ifndef STRTOD_H
 #define STRTOD_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern double
-glsl_strtod(const char *s, char **end);
-
-
-#ifdef __cplusplus
-}
-#endif
-
+extern double glsl_strtod(const char *s, char **end);
 
 #endif

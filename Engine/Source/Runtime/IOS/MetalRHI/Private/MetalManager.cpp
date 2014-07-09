@@ -282,13 +282,6 @@ FMetalManager::FMetalManager()
 
 	AutoReleasePoolTLSSlot = FPlatformTLS::AllocTlsSlot();
 
-#if GPU_TIMINGS
-	// start at start of GPUTimers
-	TimerIndex = 0;
-	FirstIndexToDump = 0;
-	LastIndexToDump = 0;
-#endif
-	
 	// Create display link thread
 	FramePacer = [[MetalFramePacer alloc] init];
 	[NSThread detachNewThreadSelector:@selector(run:) toTarget:FramePacer withObject:nil];
@@ -338,19 +331,9 @@ void FMetalManager::InitFrame()
 	[CurrentCommandBuffer retain];
 	TRACK_OBJECT(CurrentCommandBuffer);
 	
-#if GPU_TIMINGS
-	uint8 LocalTimerIndex = TimerIndex++;
-	FirstIndexThisFrame = LocalTimerIndex;
-#endif
-
 	uint64 LocalCommandBufferIndex = CommandBufferIndex++;
 	[CurrentCommandBuffer addScheduledHandler : ^ (id <MTLCommandBuffer> Buffer)
 	{
-#if GPU_TIMINGS
-		// timer stuff
-		GPUTimers[LocalTimerIndex] = FPlatformTime::Seconds();
-#endif
-
 		FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
 	}];
 
@@ -393,21 +376,10 @@ void FMetalManager::EndFrame(bool bPresent)
 	ReleaseObject(CurrentContext);
 	CurrentContext = nil;
 
-#if GPU_TIMINGS
-	// set up timer
-	uint8 LocalTimerIndex = TimerIndex++;
-	uint8 LocalFirstIndex = FirstIndexThisFrame;
-#endif
-
 	// kick the whole buffer
 	[CurrentCommandBuffer addCompletedHandler:^(id <MTLCommandBuffer> Buffer)
 	 {
-#if GPU_TIMINGS
-	 GPUTimers[LocalTimerIndex] = FPlatformTime::Seconds();
-	 FirstIndexToDump = LocalFirstIndex;
-	 LastIndexToDump = LocalTimerIndex;
-#endif
-	 dispatch_semaphore_signal(CommandBufferSemaphore);
+		 dispatch_semaphore_signal(CommandBufferSemaphore);
 	 }];
 
 	// Wait until at least 2 VBlanks has passed since last time
@@ -438,23 +410,6 @@ void FMetalManager::EndFrame(bool bPresent)
 
 	UNTRACK_OBJECT(CurrentCommandBuffer);
 	[CurrentCommandBuffer release];
-
-#if GPU_TIMINGS
-	// print out timings
-	bool bDone = false;
-	uint8 Index = FirstIndexToDump;
-	uint8 RTIndex = 0;
-	while (Index != LastIndexToDump)
-	{
-		// this can wrap around at 256
-		uint8 NextIndex = Index + 1;
-		double Time = (GPUTimers[NextIndex] - GPUTimers[Index]) * 1000.0;
-		NSLog(@"Rende40rTarget %d took %.3fms", RTIndex, (float)Time);
-
-		Index = NextIndex;
-		RTIndex++;
-	}
-#endif
 
 	// xcode helper function
 	[CommandQueue insertDebugCaptureBoundary];
@@ -497,10 +452,6 @@ FMetalTexture2D* FMetalManager::GetBackBuffer()
 
 void FMetalManager::PrepareToDraw(uint32 NumVertices)
 {
-#if NO_MEMORY
-	return;
-#endif
-
 	SCOPE_CYCLE_COUNTER(STAT_MetalPrepareDrawTime);
 
 	NumDrawCalls++;
@@ -606,7 +557,7 @@ void FMetalManager::SetCurrentDepthStencilTarget(FMetalSurface* RenderSurface)
 {
 	if (RenderSurface)
 	{
-		// @todo urban: Handle stencil
+		// @todo metal stencil: track stencil here
 		CurrentDepthRenderTexture = RenderSurface->Texture;
 	}
 	else
@@ -644,7 +595,7 @@ void FMetalManager::UpdateContext()
 
 	MTLRenderPassAttachmentDescriptor* ColorAttachment = nil;
 	MTLRenderPassAttachmentDescriptor* DepthAttachment = nil;
-	// @todo urban: Handle stencil
+	// @todo metal stencil: handle stencil
 	MTLRenderPassAttachmentDescriptor* StencilAttachment = nil;
 
 	Pipeline.SampleCount = 0;
@@ -735,18 +686,10 @@ void FMetalManager::UpdateContext()
 		[CurrentCommandBuffer retain];
 		TRACK_OBJECT(CurrentCommandBuffer);
 
-#if GPU_TIMINGS
-		uint8 LocalTimerIndex = TimerIndex++;
-#endif
-
 		uint64 LocalCommandBufferIndex = CommandBufferIndex++;
 
 		[CurrentCommandBuffer addCompletedHandler : ^ (id <MTLCommandBuffer> Buffer)
 		{
-#if GPU_TIMINGS
-			// timer stuff
-			GPUTimers[LocalTimerIndex] = FPlatformTime::Seconds();
-#endif
 			FMetalManager::Get()->SetCompletedCommandBufferIndex(LocalCommandBufferIndex);
 		}];
 	}
@@ -842,9 +785,6 @@ inline int32 SetShaderResourcesFromBuffer(uint32 ShaderStage, FMetalUniformBuffe
 			const uint16 ResourceIndex = FRHIResourceTableEntry::GetResourceIndex(ResourceInfo);
 			const uint8 BindIndex = FRHIResourceTableEntry::GetBindIndex(ResourceInfo);
 
-			// @todo metal log: remove
-//			NSLog(@"Binding a resource at BindIndex %d, Resource Index %d", BindIndex, ResourceIndex);
-
 			// todo: could coalesce adjacent bound resources.
 			MetalResourceType* ResourcePtr = (MetalResourceType*)Buffer->RawResourceTable[ResourceIndex];
 			SetResource(ShaderStage, BindIndex, ResourcePtr);
@@ -862,9 +802,6 @@ void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage, uint32 Resour
 {
 	checkSlow(Shader);
 
-	// @todo metal log: remove
-//	NSLog(@"Resource Bits %x, DirtyBits: %llx", Shader->Bindings.ShaderResourceTable.ResourceTableBits, Shader->DirtyUniformBuffers);
-
 	// Mask the dirty bits by those buffers from which the shader has bound resources.
 	uint32 DirtyBits = Shader->Bindings.ShaderResourceTable.ResourceTableBits & Shader->DirtyUniformBuffers;
 	uint32 NumSetCalls = 0;
@@ -879,9 +816,6 @@ void SetResourcesFromTables(ShaderType Shader, uint32 ShaderStage, uint32 Resour
 		check(BufferIndex < Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes.Num());
 		check(Buffer->GetLayout().GetHash() == Shader->Bindings.ShaderResourceTable.ResourceTableLayoutHashes[BufferIndex]);
 		Buffer->CacheResources(ResourceTableFrameCounter);
-
-		// @todo metal log: remove
-//		NSLog(@"Setting BufferIndex %d", BufferIndex);
 
 		// todo: could make this two pass: gather then set
 //		NumSetCalls += SetShaderResourcesFromBuffer<FMetalSurface>(ShaderStage, Buffer, Shader->Bindings.ShaderResourceTable.ShaderResourceViewMap.GetData(), BufferIndex);
@@ -911,9 +845,6 @@ void FMetalManager::CommitGraphicsResourceTables()
 
 void FMetalManager::CommitNonComputeShaderConstants()
 {
-#if NO_MEMORY
-	return;
-#endif
 	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(CurrentBoundShaderState, METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->BoundUniformBuffers, CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
 	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedGlobals(METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
 	
@@ -976,15 +907,15 @@ void FMetalManager::SetRasterizerState(const FRasterizerStateInitializerRHI& Sta
 		ShadowRasterizerState.CullMode = State.CullMode;
 	}
 
-	// @todo urban: Shoud the clamp be FLT_MAX or 0 for "don't bother"
 	if (bFirstRasterizerState || ShadowRasterizerState.DepthBias != State.DepthBias || ShadowRasterizerState.SlopeScaleDepthBias != State.SlopeScaleDepthBias)
 	{
-		[CurrentContext setDepthBias:State.DepthBias slopeScale:State.SlopeScaleDepthBias clamp : FLT_MAX];
+		// no clamping
+		[CurrentContext setDepthBias:State.DepthBias slopeScale:State.SlopeScaleDepthBias clamp:FLT_MAX];
 		ShadowRasterizerState.DepthBias = State.DepthBias;
 		ShadowRasterizerState.SlopeScaleDepthBias = State.SlopeScaleDepthBias;
 	}
 
-	// @todo urban: Would we ever need this in a shipping app?
+	// @todo metal: Would we ever need this in a shipping app?
 #if !UE_BUILD_SHIPPING
 	if (bFirstRasterizerState || ShadowRasterizerState.FillMode != State.FillMode)
 	{

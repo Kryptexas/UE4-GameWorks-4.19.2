@@ -32,9 +32,7 @@
 #ifndef GLSL_SYMBOL_TABLE
 #define GLSL_SYMBOL_TABLE
 
-extern "C" {
 #include "symbol_table.h"
-}
 #include "ir.h"
 #include "glsl_types.h"
 

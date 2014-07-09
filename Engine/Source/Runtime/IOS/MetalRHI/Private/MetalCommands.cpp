@@ -6,8 +6,6 @@
 
 #include "MetalRHIPrivate.h"
 
-#define NO_DRAW 0
-
 static MTLPrimitiveType TranslatePrimitiveType(uint32 PrimitiveType)
 {
 	switch (PrimitiveType)
@@ -254,9 +252,6 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 	DYNAMIC_CAST_METGALRESOURCE(VertexShader, VertexShader);
 	VertexShader->BoundUniformBuffers[BufferIndex] = BufferRHI;
 	VertexShader->DirtyUniformBuffers |= 1 << BufferIndex;
-
-	// @todo metal log: remove
-//	NSLog(@"Setting Vertex UB at index %d", BufferIndex);
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -279,9 +274,6 @@ void FMetalDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelSh
 	DYNAMIC_CAST_METGALRESOURCE(PixelShader, PixelShader);
 	PixelShader->BoundUniformBuffers[BufferIndex] = BufferRHI;
 	PixelShader->DirtyUniformBuffers |= 1 << BufferIndex;
-
-	// @todo metal log: remove
-//	NSLog(@"Setting Pixel UB at index %d", BufferIndex);
 }
 
 void FMetalDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader, uint32 BufferIndex, FUniformBufferRHIParamRef BufferRHI)
@@ -371,12 +363,6 @@ void FMetalDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexI
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 	checkf(NumInstances == 1, TEXT("Currently only 1 instance is supported"));
 	
-	if (BaseVertexIndex > 0)
-	{
-		UE_LOG(LogMetal, Log, TEXT("Attempted to render with BaseVertexIndex - skipping..."));
-		return;
-	}
-
 	// how many verts to render
 	uint32 NumVertices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
 
@@ -384,12 +370,10 @@ void FMetalDynamicRHI::RHIDrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexI
 	FMetalManager::Get()->PrepareToDraw(NumVertices);
 
 	// draw!
-#if !NO_DRAW
 	[FMetalManager::GetContext() drawPrimitives:TranslatePrimitiveType(PrimitiveType)
 									vertexStart:BaseVertexIndex
 									vertexCount:NumVertices
 								  instanceCount:NumInstances];
-#endif
 }
 
 void FMetalDynamicRHI::RHIDrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBufferRHI, uint32 ArgumentOffset)
@@ -403,11 +387,7 @@ void FMetalDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 {
 	SCOPE_CYCLE_COUNTER(STAT_MetalDrawCallTime);
 	checkf(NumInstances == 1, TEXT("Currently only 1 instance is supported"));
-	if (BaseVertexIndex > 0)
-	{
-		UE_LOG(LogMetal, Log, TEXT("Attempted to render with BaseVertexIndex - skipping..."));
-		return;
-	}
+	checkf(BaseVertexIndex  == 0, TEXT("BaseVertexIndex must be 0, see GRHISupportsBaseVertexIndex"));
 
 	DYNAMIC_CAST_METGALRESOURCE(IndexBuffer,IndexBuffer);
 
@@ -415,14 +395,13 @@ void FMetalDynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	FMetalManager::Get()->PrepareToDraw(NumVertices);
 	
 	uint32 NumIndices = GetVertexCountForPrimitiveCount(NumPrimitives, PrimitiveType);
-#if !NO_DRAW
+
 	[FMetalManager::GetContext() drawIndexedPrimitives:TranslatePrimitiveType(PrimitiveType)
 											indexCount:NumIndices
 											 indexType:IndexBuffer->IndexType
 										   indexBuffer:IndexBuffer->Buffer
 									 indexBufferOffset:IndexBuffer->Offset + StartIndex * IndexBuffer->GetStride()
 										 instanceCount:NumInstances];
-#endif
 }
 
 void FMetalDynamicRHI::RHIDrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, int32 DrawArgumentsIndex, uint32 NumInstances)
@@ -476,12 +455,10 @@ void FMetalDynamicRHI::RHIEndDrawPrimitiveUP()
 	// last minute draw setup
 	FMetalManager::Get()->PrepareToDraw(0);
 	
-#if !NO_DRAW
 	[FMetalManager::GetContext() drawPrimitives:TranslatePrimitiveType(GPendingPrimitiveType)
 									vertexStart:0
 									vertexCount:NumVertices
 								  instanceCount:1];
-#endif
 	
 	// mark temp memory as usable
 	GPendingVertexBufferOffset = 0xFFFFFFFF;
@@ -521,14 +498,12 @@ void FMetalDynamicRHI::RHIEndDrawIndexedPrimitiveUP()
 	// last minute draw setup
 	FMetalManager::Get()->PrepareToDraw(0);
 	
-#if !NO_DRAW
 	[FMetalManager::GetContext() drawIndexedPrimitives:TranslatePrimitiveType(GPendingPrimitiveType)
 											indexCount:NumIndices
 											 indexType:(GPendingIndexDataStride == 2) ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32
 										   indexBuffer:FMetalManager::Get()->GetRingBuffer()
 									 indexBufferOffset:GPendingIndexBufferOffset
 										 instanceCount:1];
-#endif
 	
 	// mark temp memory as usable
 	GPendingVertexBufferOffset = 0xFFFFFFFF;

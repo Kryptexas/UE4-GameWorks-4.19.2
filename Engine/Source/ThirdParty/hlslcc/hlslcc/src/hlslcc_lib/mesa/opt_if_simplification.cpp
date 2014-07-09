@@ -36,6 +36,7 @@
 
 #include "../ShaderCompilerCommon.h"
 #include "ir.h"
+#include "../IRDump.h"
 
 class ir_if_simplification_visitor : public ir_hierarchical_visitor
 {
@@ -106,18 +107,22 @@ ir_visitor_status ir_if_simplification_visitor::visit_leave(ir_if *ir)
 	// Remove if statements that do nothing.
 	if (ir->then_instructions.is_empty() && ir->else_instructions.is_empty())
 	{
-		// It's possible that the condition has side-effects. So declare a
-		// temporary, and assign the result of the condition to it in place of
-		// the if statement. If the condition statement has no side-effects
-		// further optimization passes will remove it.
-		void* ctx = ralloc_parent(ir);
-		ir_variable* tmp = new(ctx)ir_variable(ir->condition->type, NULL, ir_var_temporary);
-		ir_assignment* assign = new(ctx)ir_assignment(
-			new(ctx)ir_dereference_variable(tmp), ir->condition);
-		ir->insert_before(tmp);
-		ir->insert_before(assign);
-		ir->remove();
-		this->made_progress = true;
+		// This node might have been removed by the block above!
+		if (!ir->check_invariants())
+		{
+			// It's possible that the condition has side-effects. So declare a
+			// temporary, and assign the result of the condition to it in place of
+			// the if statement. If the condition statement has no side-effects
+			// further optimization passes will remove it.
+			void* ctx = ralloc_parent(ir);
+			ir_variable* tmp = new(ctx)ir_variable(ir->condition->type, NULL, ir_var_temporary);
+			ir_assignment* assign = new(ctx)ir_assignment(
+				new(ctx)ir_dereference_variable(tmp), ir->condition);
+			ir->insert_before(tmp);
+			ir->insert_before(assign);
+			ir->remove();
+			this->made_progress = true;
+		}
 	}
 
 	return visit_continue;

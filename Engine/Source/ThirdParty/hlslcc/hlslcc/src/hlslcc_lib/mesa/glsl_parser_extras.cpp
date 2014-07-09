@@ -1162,9 +1162,6 @@ void _mesa_ast_print(struct _mesa_glsl_parse_state *state)
 	}
 }
 
-extern "C"
-{
-
 	/**
 	* To be called at GL teardown time, this frees compiler datastructures.
 	*
@@ -1187,7 +1184,6 @@ extern "C"
 	{
 		_mesa_glsl_release_functions();
 	}
-}
 
 void SCBuffer::AddMember(const struct glsl_type * field_type, ir_variable* var)
 {
