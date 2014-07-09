@@ -506,7 +506,7 @@ struct FMergeToolSummoner : public FWorkflowTabFactory
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
-		return BlueprintEditorPtr->GetMergeTool();
+		return BlueprintEditorPtr->ShowMergeTool();
 	}
 
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override

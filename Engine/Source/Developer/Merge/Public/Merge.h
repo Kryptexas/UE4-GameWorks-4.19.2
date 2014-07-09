@@ -48,6 +48,12 @@ public:
 	 *
 	 * @return The merge view widget
 	 */
-	virtual TSharedPtr<class SWidget> GenerateMergeWidget( const UBlueprint& Object, FBlueprintEditor& Editor ) = 0;
+	virtual TSharedPtr<class SWidget> GenerateMergeWidget( const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor ) = 0;
+
+	/** 
+	 * @return whether the blueprint is in a conflicted state, and can therefore be merged.
+	 */
+	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const = 0;
+
 };
 

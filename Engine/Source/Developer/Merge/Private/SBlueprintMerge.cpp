@@ -532,9 +532,10 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 	// cr doc: this is too simple to be correct..
 	PanelLocal.Blueprint->RemoveGeneratedClasses();
 
-	if (OwningEditor.IsValid())
+	auto Editor = OwningEditor.Pin();
+	if (Editor.IsValid())
 	{
-		OwningEditor->CloseWindow();
+		Editor->CloseWindow();
 	}
 
 	const auto Result = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
@@ -552,9 +553,10 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 
 FReply SBlueprintMerge::OnCancelClicked()
 {
-	if (OwningEditor.IsValid())
+	auto Editor = OwningEditor.Pin();
+	if (Editor.IsValid())
 	{
-		OwningEditor->CloseWindow();
+		Editor->CloseMergeTool();
 	}
 	return FReply::Handled();
 }
@@ -580,7 +582,13 @@ FReply SBlueprintMerge::OnTakeBaseClicked()
 void SBlueprintMerge::StageBlueprint(UBlueprint const* DesiredBP)
 {
 	// Take the DesiredBP and applies its changes to the result blueprint:
-	UBlueprint* BlueprintResult = OwningEditor->GetBlueprintObj();
+	auto Editor = OwningEditor.Pin();
+	if( !Editor.IsValid() )
+	{
+		return;
+	}
+
+	UBlueprint* BlueprintResult = Editor->GetBlueprintObj();
 
 	// I want everything in the package... components, CDO, etc:
 

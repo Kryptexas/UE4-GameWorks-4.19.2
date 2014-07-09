@@ -1592,7 +1592,6 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		];
 
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
-	MergeTool = SNew(SHorizontalBox);
 	
 	this->Inspector = 
 		SNew(SKismetInspector)
@@ -4653,6 +4652,44 @@ void FBlueprintEditor::UnregisterSCSEditorCustomization(const FName& InComponent
 	SCSEditorCustomizations.Remove(InComponentName);
 }
 
+TSharedRef<SWidget> FBlueprintEditor::ShowMergeTool()
+{
+	/** 
+	 * This function has to handle three case:
+	 *	1. The merge tool is already created, return it
+	 *	2. The merge tool is being restored, if we have a pending merge display the merge tool, otherwise display an empty widget
+	 *  3. The merge tool is being invoked, display the merge tool 
+	 */
+	auto MergeToolPtr = MergeTool.Pin();
+	if( !MergeToolPtr.IsValid() )
+	{
+		if( IMerge::Get().PendingMerge(*GetBlueprintObj()) )
+		{
+			MergeToolPtr = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this) ).ToSharedRef();
+		}
+		else
+		{
+			// We *have* to return a valid reference to a widget, so return an empty box. This is arguabla a deficiency in
+			// our controlling widgets that we can't 'restore' with nothing.
+			MergeToolPtr = SNew(SHorizontalBox);
+		}
+
+		// Keep a weak reference to the widget we've created, widget will be owned by the docktab:
+		MergeTool = MergeToolPtr;
+	}
+
+	return MergeToolPtr.ToSharedRef();
+}
+
+void FBlueprintEditor::CloseMergeTool()
+{
+	auto MergeToolDockTabPtr = MergeToolDockTab.Pin();
+	if( MergeToolDockTabPtr.IsValid() )
+	{
+		MergeToolDockTabPtr->RequestCloseTab();
+	}
+}
+
 TArray<FSCSEditorTreeNodePtrType>  FBlueprintEditor::GetSelectedSCSEditorTreeNodes() const
 {
 	TArray<FSCSEditorTreeNodePtrType>  Nodes;
@@ -5451,12 +5488,7 @@ void FBlueprintEditor::OnRepairCorruptedBlueprint()
 
 void FBlueprintEditor::OnBeginBlueprintMerge()
 {
-	// @cr doc: any way to show this in all of the subviews (defaults + components + graph view, rather than just the active one?)
-	//if( MergeTool->Slots().Num() == 0 && GetBlueprintObj() )
-	{
-		MergeTool->AddSlot()[ IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), *this).ToSharedRef() ];
-	}
-	TabManager->InvokeTab(FBlueprintEditorTabs::MergeToolID);
+	MergeToolDockTab = TabManager->InvokeTab(FBlueprintEditorTabs::MergeToolID);
 }
 
 void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)

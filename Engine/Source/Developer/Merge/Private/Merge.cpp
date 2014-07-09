@@ -1,10 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
+
+#include "BlueprintEditor.h"
+#include "ISourceControlModule.h"
 #include "SBlueprintMerge.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Toolkits/IToolkit.h"
-#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "Merge"
 
@@ -109,7 +111,8 @@ class FMerge : public IMerge
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	virtual TSharedPtr<SWidget> GenerateMergeWidget(const UBlueprint& Object, FBlueprintEditor& Editor) override;
+	virtual TSharedPtr<SWidget> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
+	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const override;
 };
 IMPLEMENT_MODULE( FMerge, Merge )
 
@@ -124,7 +127,7 @@ void FMerge::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, FBlueprintEditor& Editor)
+TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor)
 {
 	// merge the local asset with the depot, SCC provides us with the last common revision as
 	// a basis for the merge:
@@ -150,6 +153,7 @@ TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, FBluep
 
 		return SNew(SBlueprintMerge)
 			.BlueprintLocal(const_cast<UBlueprint*>(&Object))
+			.OwningEditor(Editor)
 			.BaseArgs(BaseArgs);
 	}
 	else
@@ -174,6 +178,21 @@ TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, FBluep
 		FSlateNotificationManager::Get().AddNotification(Info);
 		return TSharedPtr<SWidget>();
 	}
+}
+
+bool FMerge::PendingMerge(const UBlueprint& BlueprintObj) const
+{
+	bool bIsMergeEnabled = false;
+	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bIsMergeEnabled, GEngineIni);
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	bool bPendingMerge = false;
+	if( bIsMergeEnabled && SourceControlProvider.IsEnabled() )
+	{
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(BlueprintObj.GetOutermost(), EStateCacheUsage::Use);
+		bPendingMerge = SourceControlState.IsValid() && SourceControlState->IsConflicted();
+	}
+	return bPendingMerge;
 }
 
 #undef LOCTEXT_NAMESPACE

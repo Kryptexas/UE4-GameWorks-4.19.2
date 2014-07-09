@@ -22,6 +22,7 @@
 #include "STutorialWrapper.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Merge.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -53,15 +54,6 @@ public:
 	// End of SWidget interface
 };
 
-static bool PendingMerge( const UBlueprint& BlueprintObj )
-{
-	bool bEnableMerge = false;
-	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bEnableMerge, GEngineIni);
-	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(BlueprintObj.GetOutermost(), EStateCacheUsage::Use);
-	return bEnableMerge && SourceControlState.IsValid() && SourceControlState->IsConflicted();
-}
-
 //////////////////////////////////////////////////////////////////////////
 // FKismet2Menu
 
@@ -79,7 +71,7 @@ void FKismet2Menu::FillFileMenuBlueprintSection( FMenuBuilder& MenuBuilder, FBlu
 			FSlateIcon());
 
 		UBlueprint* BlueprintObj = Kismet.GetBlueprintObj();
-		if (BlueprintObj && PendingMerge( *BlueprintObj ) )
+		if (BlueprintObj && IMerge::Get().PendingMerge( *BlueprintObj ) )
 		{
 			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().BeginBlueprintMerge);
 		}

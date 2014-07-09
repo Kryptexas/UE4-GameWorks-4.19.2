@@ -191,7 +191,6 @@ public:
 	TSharedRef<class SBlueprintPalette> GetPalette() const {return Palette.ToSharedRef();}
 	TSharedRef<class SWidget> GetCompilerResults() const {return CompilerResults.ToSharedRef();}
 	TSharedRef<class SFindInBlueprints> GetFindResults() const {return FindResults.ToSharedRef();}
-	TSharedRef<class SWidget> GetMergeTool() const { return MergeTool.ToSharedRef(); }
 	TSharedRef<class SSCSEditor> GetSCSEditor() const {return SCSEditor.ToSharedRef();}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
@@ -448,6 +447,16 @@ public:
 	 * @param	InComponentName			The name of the component to customize behavior for
 	 */
 	void UnregisterSCSEditorCustomization(const FName& InComponentName);
+
+	/** 
+	 * Forces the merge tool to be shown, if no merge is possible, returns an empty widget:
+	 */
+	TSharedRef<SWidget> ShowMergeTool();
+	
+	/** 
+	 * Closes the merge tool, rather than simply hiding it.
+	 */
+	void CloseMergeTool();
 
 	/** 
 	 * Check to see if we can customize the SCS editor for the passed-in scene component 
@@ -916,7 +925,10 @@ protected:
 	TSharedPtr<class SFindInBlueprints> FindResults;
 
 	/** Merge tool */
-	TSharedPtr<class SHorizontalBox> MergeTool;
+	TWeakPtr<class SWidget> MergeTool;
+
+	/** Docktab that contains the merge tool */
+	TWeakPtr<class SDockTab> MergeToolDockTab;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;

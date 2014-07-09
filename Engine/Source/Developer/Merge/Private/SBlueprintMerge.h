@@ -13,7 +13,7 @@ public:
 	SLATE_BEGIN_ARGS(SBlueprintMerge){}
 	SLATE_ARGUMENT(class UBlueprint*, BlueprintLocal)
 	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
-	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
+	SLATE_ARGUMENT( TWeakPtr<FBlueprintEditor>, OwningEditor )
 	SLATE_END_ARGS()
 	
 	void Construct(const FArguments& InArgs);
@@ -40,7 +40,7 @@ protected:
 	FReply OnTakeBaseClicked();
 	void StageBlueprint(UBlueprint const* DesiredBP);
 
-	TSharedPtr<FBlueprintEditor> OwningEditor;
+	TWeakPtr<FBlueprintEditor> OwningEditor;
 	FDiffPanel PanelLocal;
 	TWeakPtr<SWindow>		OwningWindow;
 
