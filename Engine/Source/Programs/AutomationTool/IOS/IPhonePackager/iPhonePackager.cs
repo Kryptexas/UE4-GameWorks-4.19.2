@@ -11,7 +11,6 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Windows.Forms;
 using Ionic.Zlib;
 using System.ComponentModel;
 
@@ -27,7 +26,6 @@ namespace iPhonePackager
 		static public string GameConfiguration = "";
 		static public string Architecture = "";
 
-		static public SlowProgressDialog ProgressDialog = null;
 		static public BackgroundWorker BGWorker = null;
 		static public int ProgressIndex = 0;
 
@@ -266,15 +264,8 @@ namespace iPhonePackager
 				string CWD = Directory.GetCurrentDirectory();
 				if (!CodeSignatureBuilder.DoRequiredFilesExist())
 				{
-					StartVisuals();
-
-					Form DisplayForm = new ToolsHub();
-					Application.Run(DisplayForm);
-					if (DisplayForm.DialogResult != DialogResult.OK)
-					{
-						Error("One or more files necessary for packaging are missing and configuration was cancelled");
-						return false;
-					}
+					Error("One or more files necessary for packaging are missing - please use Project Settings in the editor to set up");
+					return false;
 				}
 				Directory.SetCurrentDirectory(CWD);
 			}
@@ -309,28 +300,6 @@ namespace iPhonePackager
 				if (!bHandledCommand)
 				{
 					bHandledCommand = DeploymentHelper.ExecuteDeployCommand(Command, GamePath, RPCCommand);
-				}
-
-				if (!bHandledCommand)
-				{
-					bHandledCommand = true;
-					switch (Command)
-					{
-						case "configure":
-							if (Config.bForDistribution)
-							{
-								Error("configure cannot be used with -distribution");
-							}
-							else
-							{
-								RunInVisualMode(delegate { return new ConfigureMobileGame(); });
-							}
-							break;
-
-						default:
-							bHandledCommand = false;
-							break;
-					}
 				}
 
 				if (!bHandledCommand)
@@ -407,24 +376,6 @@ namespace iPhonePackager
 			}
 
 			return ( null );
-		}
-
-		delegate Form CreateFormDelegate();
-
-		static void StartVisuals()
-		{
-			Application.EnableVisualStyles();
-			Application.SetCompatibleTextRenderingDefault(false);
-
-			ProgressDialog = new SlowProgressDialog();
-		}
-
-		static void RunInVisualMode(CreateFormDelegate Work)
-		{
-			StartVisuals();
-
-			Form DisplayForm = Work.Invoke();
-			Application.Run(DisplayForm);
 		}
 
 		static void ListDevices()
@@ -572,18 +523,6 @@ namespace iPhonePackager
 						{
 							CompileTime.PackageIPAOnMac();
 						}
-						break;
-
-					case "resigntool":
-						RunInVisualMode(delegate { return new GraphicalResignTool(); });
-						break;
-
-					case "certrequest":
-						RunInVisualMode(delegate { return new GenerateSigningRequestDialog(); });
-						break;
-
-					case "gui":
-						RunInVisualMode(delegate { return ToolsHub.CreateShowingTools(); });
 						break;
 
 					case "devices":
