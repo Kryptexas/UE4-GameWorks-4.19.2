@@ -682,7 +682,8 @@ struct FRegenerationHelper
 		for (FBPInterfaceDescription const& InterfaceDesc : Blueprint->ImplementedInterfaces)
 		{
 			UClass* InterfaceClass = InterfaceDesc.Interface;
-			if (UBlueprint* InterfaceBlueprint = Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy))
+			UBlueprint* InterfaceBlueprint = InterfaceClass ? Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy) : NULL;
+			if (InterfaceBlueprint)
 			{
 				ForcedLoadMembers(InterfaceBlueprint);
 				if (InterfaceBlueprint->HasAnyFlags(RF_BeingRegenerated))
