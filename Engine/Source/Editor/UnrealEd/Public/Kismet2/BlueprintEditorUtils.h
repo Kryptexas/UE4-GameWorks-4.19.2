@@ -365,6 +365,9 @@ public:
 	/** Returns whether or not the blueprint supports implementing interfaces */
 	static bool DoesSupportImplementingInterfaces(const UBlueprint* Blueprint);
 
+	/** Returns whether or not the blueprint supports components */
+	static bool DoesSupportComponents(UBlueprint const* Blueprint);
+
 	// Returns a descriptive name of the type of blueprint passed in
 	static FString GetBlueprintTypeDescription(const UBlueprint* Blueprint);
 

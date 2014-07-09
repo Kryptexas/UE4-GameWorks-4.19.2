@@ -2618,10 +2618,7 @@ bool FBlueprintEditor::CanAccessComponentsMode() const
 	if(IsEditingSingleBlueprint())
 	{
 		UBlueprint* Blueprint = GetBlueprintObj();
-		bCanAccess = Blueprint->SimpleConstructionScript != NULL		// An SCS must be present (otherwise there is nothing valid to edit)
-			&& FBlueprintEditorUtils::IsActorBased(Blueprint)			// Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
-			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary			// Must not be a macro-type Blueprint
-			&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;		// Must not be a function library
+		bCanAccess = FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
 	}
 	
 	return bCanAccess;

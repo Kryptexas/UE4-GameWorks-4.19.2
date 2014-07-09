@@ -2350,6 +2350,14 @@ bool FBlueprintEditorUtils::DoesSupportImplementingInterfaces(const UBlueprint* 
 		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
+bool FBlueprintEditorUtils::DoesSupportComponents(UBlueprint const* Blueprint)
+{
+	return (Blueprint->SimpleConstructionScript != nullptr)      // An SCS must be present (otherwise there is nothing valid to edit)
+		&& FBlueprintEditorUtils::IsActorBased(Blueprint)        // Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
+		&& (Blueprint->BlueprintType != BPTYPE_MacroLibrary)     // Must not be a macro-type Blueprint
+		&& (Blueprint->BlueprintType != BPTYPE_FunctionLibrary); // Must not be a function library
+}
+
 // Returns a descriptive name of the type of blueprint passed in
 FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blueprint)
 {
