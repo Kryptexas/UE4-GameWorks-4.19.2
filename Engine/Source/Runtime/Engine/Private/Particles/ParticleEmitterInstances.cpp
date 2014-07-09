@@ -2937,26 +2937,23 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 				PayloadData->Rotation.X	= PayloadData->InitialOrientation.X + Euler.X;
 				PayloadData->Rotation.Y = PayloadData->InitialOrientation.Y + Euler.Y;
 				PayloadData->Rotation.Z = PayloadData->InitialOrientation.Z + Euler.Z;
+				PayloadData->Rotation += PayloadData->CurContinuousRotation;
 			}
-	    }
+			else // not PSA_Velocity or PSA_AwayfromCenter, so rotation is not reset every tick
+			{
+				if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
+				{
+					PayloadData->Rotation = PayloadData->CurContinuousRotation;
+				}
+			}
+
+			PayloadData->CurContinuousRotation += DeltaTime * PayloadData->RotationRate;
+		}
 	}
+
 
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
-
-	// Apply rotation if it is active
-	if (MeshRotationActive)
-	{
-		for (int32 i = 0; i < ActiveParticles; i++)
-		{
-			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
-			if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
-			{
-				FMeshRotationPayloadData* PayloadData	 = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				PayloadData->Rotation					+= Particle.RelativeTime * PayloadData->RotationRate;
-			}
-		}
-	}
 
 	// Remove from the Sprite count... happens because we use the Super::Tick
 	DEC_DWORD_STAT_BY(STAT_SpriteParticles, ActiveParticles);

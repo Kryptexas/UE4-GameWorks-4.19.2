@@ -752,6 +752,7 @@ struct FMeshRotationPayloadData
 {
 	FVector	 InitialOrientation;
 	FVector  Rotation;
+	FVector	 CurContinuousRotation;
 	FVector  RotationRate;
 	FVector  RotationRateBase;
 };
