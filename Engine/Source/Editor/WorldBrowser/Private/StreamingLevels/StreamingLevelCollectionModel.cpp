@@ -219,55 +219,82 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	if (IsOneLevelSelected())
+	// We show the "level missing" commands, when missing level is selected solely
+	if (IsOneLevelSelected() && InvalidSelectedLevels.Num() == 1)
 	{
-		// We only show the level missing level commands if only 1 invalid level and no valid levels
-		if (InvalidSelectedLevels.Num() == 1)
+		InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
 		{
-			InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
-			{
-				InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
-				InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
-			}
-			InMenuBuilder.EndSection();
+			InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
+			InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
 		}
-		else
-		{
-			InMenuBuilder.BeginSection("Level", FText::FromName(GetSelectedLevels()[0]->GetLongPackageName()));
-			{
-				InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
-				InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
-			}
-			InMenuBuilder.EndSection();
-		}
+		InMenuBuilder.EndSection();
 	}
 
 	// Add common commands
-	FLevelCollectionModel::BuildHierarchyMenu(InMenuBuilder);
-}
-
-void FStreamingLevelCollectionModel::ExtendHierarchyMenuSection(FName SectionName, FMenuBuilder& InMenuBuilder) const
-{
-	FLevelCollectionModel::ExtendHierarchyMenuSection(SectionName, InMenuBuilder);
-	
-	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
-	// Add more specific streaming levels commands to Levels section
-	if (SectionName == "Levels")
+	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
 	{
+		// Make level current
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
+		}
+		
+		// Visibility commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("VisibilityHeader", "Visibility"),
+			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
+			FNewMenuDelegate::CreateSP(this, &FStreamingLevelCollectionModel::FillVisibilitySubMenu ) );
+
+		// Lock commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("LockHeader", "Lock"),
+			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
+			FNewMenuDelegate::CreateSP(this, &FStreamingLevelCollectionModel::FillLockSubMenu ) );
+		
+		// Level streaming specific commands
 		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && GetSelectedLevels()[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry(Commands.World_RemoveSelectedLevels);
-		
 			//
 			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("LevelsChangeStreamingMethod", "Change Streaming Method"),
 				LOCTEXT("LevelsChangeStreamingMethod_Tooltip", "Changes the streaming method for the selected levels"),
-				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodMenu ));
+				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu ));
 		}
 	}
+	InMenuBuilder.EndSection();
+	
+
+	// Level selection commands
+	InMenuBuilder.BeginSection("LevelsSelection", LOCTEXT("SelectionHeader", "Selection") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+	}
+	InMenuBuilder.EndSection();
+	
+	// Level actors selection commands
+	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
+		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
+
+		// Move selected actors to a selected level
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+		}
+
+		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
+		{
+			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
+		}
+	}
+	InMenuBuilder.EndSection();
 }
 
-void FStreamingLevelCollectionModel::FillSetStreamingMethodMenu(FMenuBuilder& InMenuBuilder)
+void FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	InMenuBuilder.AddMenuEntry( Commands.SetStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetStreamingMethodBlueprintOverride", "Blueprint") );
@@ -285,7 +312,7 @@ void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuB
 		InMenuBuilder.AddSubMenu( 
 			LOCTEXT("LevelsStreamingMethod", "Default Streaming Method"),
 			LOCTEXT("LevelsStreamingMethod_Tooltip", "Changes the default streaming method for a new levels"),
-			FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillDefaultStreamingMethodMenu ) );
+			FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillDefaultStreamingMethodSubMenu ) );
 		
 		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
 		InMenuBuilder.AddMenuEntry( Commands.World_AddExistingLevel );
@@ -295,7 +322,7 @@ void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuB
 	InMenuBuilder.EndSection();
 }
 
-void FStreamingLevelCollectionModel::FillDefaultStreamingMethodMenu(FMenuBuilder& InMenuBuilder)
+void FStreamingLevelCollectionModel::FillDefaultStreamingMethodSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	InMenuBuilder.AddMenuEntry( Commands.SetAddStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetAddStreamingMethodBlueprintOverride", "Blueprint") );

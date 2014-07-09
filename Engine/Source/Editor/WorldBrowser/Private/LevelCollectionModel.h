@@ -117,16 +117,10 @@ public:
 	
 	/**	@return	Whether specified level passes all filters */
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const;
-
-	/**	Builds 'minimap' commands menu for a selected levels */
-	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const;
 	
 	/**	Builds 'hierarchy' commands menu for a selected levels */
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const;
 	
-	/**	Allows to extend each section in hierarchy menu*/
-	virtual void ExtendHierarchyMenuSection(FName SectionName, FMenuBuilder& InMenuBuilder) const {};
-
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
 
@@ -407,13 +401,13 @@ protected:
 	}
 	
 	/** Fills MenuBulder with Lock level related commands */
-	void FillLockMenu(class FMenuBuilder& MenuBuilder);
+	void FillLockSubMenu(class FMenuBuilder& MenuBuilder);
 	
 	/** Fills MenuBulder with level visisbility related commands */
-	void FillVisibilityMenu(class FMenuBuilder& MenuBuilder);
+	void FillVisibilitySubMenu(class FMenuBuilder& MenuBuilder);
 
 	/** Fills MenuBulder with SCC related commands */
-	void FillSourceControlMenu(class FMenuBuilder& MenuBuilder);
+	void FillSourceControlSubMenu(class FMenuBuilder& MenuBuilder);
 				
 protected:
 	/**  */

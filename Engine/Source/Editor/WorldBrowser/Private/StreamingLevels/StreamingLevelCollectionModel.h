@@ -31,7 +31,6 @@ public:
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) override;
 	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
-	virtual void ExtendHierarchyMenuSection(FName SectionName, FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  override;
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;
@@ -114,10 +113,10 @@ private:
 	void SelectStreamingVolumes_Executed();
 
 	/**  */
-	void FillSetStreamingMethodMenu(class FMenuBuilder& MenuBuilder);
+	void FillSetStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 	/**  */
-	void FillDefaultStreamingMethodMenu(class FMenuBuilder& MenuBuilder);
+	void FillDefaultStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 private:
 	/** Currently selected NULL Levels */

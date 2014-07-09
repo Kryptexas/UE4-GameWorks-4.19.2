@@ -630,59 +630,8 @@ bool FLevelCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
 	return false;
 }
 
-void FLevelCollectionModel::BuildGridMenu(FMenuBuilder& InMenuBuilder) const
-{
-	CacheCanExecuteSourceControlVars();
-}
-
 void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const
 {
-	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
-	
-	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
-	{
-		// Visibility commands
-		InMenuBuilder.AddSubMenu( 
-			LOCTEXT("VisibilityHeader", "Visibility"),
-			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
-			FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillVisibilityMenu ) );
-
-		// Lock commands
-		InMenuBuilder.AddSubMenu( 
-			LOCTEXT("LockHeader", "Lock"),
-			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
-			FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillLockMenu ) );
-
-		ExtendHierarchyMenuSection("Levels", InMenuBuilder);
-	}
-	InMenuBuilder.EndSection();
-
-	// Level selection commands
-	InMenuBuilder.BeginSection("LevelsSelection", LOCTEXT("SelectionHeader", "Selection") );
-	{
-		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
-		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
-		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
-
-		ExtendHierarchyMenuSection("LevelsSelection", InMenuBuilder);
-	}
-	InMenuBuilder.EndSection();
-	
-	// Level actors selection commands
-	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
-	{
-		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
-		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
-
-		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
-		{
-			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
-		}
-
-		ExtendHierarchyMenuSection("Actors", InMenuBuilder);
-	}
-
-	InMenuBuilder.EndSection();
 }
 
 void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const
@@ -695,7 +644,7 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	InMenuBuilder.AddSubMenu( 
 		LOCTEXT("SourceControl", "Source Control"),
 		LOCTEXT("SourceControl_ToolTip", "Source Control Options"),
-		FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillSourceControlMenu));
+		FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillSourceControlSubMenu));
 		
 	if (AreAnyLevelsSelected())
 	{
@@ -1529,7 +1478,7 @@ void FLevelCollectionModel::ExpandSelectedItems_Executed()
 }
 
 
-void FLevelCollectionModel::FillLockMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillLockSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
@@ -1548,7 +1497,7 @@ void FLevelCollectionModel::FillLockMenu(FMenuBuilder& InMenuBuilder)
 	}
 }
 
-void FLevelCollectionModel::FillVisibilityMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillVisibilitySubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
@@ -1559,7 +1508,7 @@ void FLevelCollectionModel::FillVisibilityMenu(FMenuBuilder& InMenuBuilder)
 	InMenuBuilder.AddMenuEntry( Commands.World_HideAllLevels );
 }
 
-void FLevelCollectionModel::FillSourceControlMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillSourceControlSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	

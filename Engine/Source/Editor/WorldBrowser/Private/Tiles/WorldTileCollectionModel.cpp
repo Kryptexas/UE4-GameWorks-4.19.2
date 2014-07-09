@@ -270,157 +270,205 @@ bool FWorldTileCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) c
 	return FLevelCollectionModel::PassesAllFilters(Item);
 }
 
-void FWorldTileCollectionModel::BuildGridMenu(FMenuBuilder& MenuBuilder) const
+void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBuilder) const
 {
-	FLevelCollectionModel::BuildGridMenu(MenuBuilder);
-	
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	
-	if (!AreAnyLevelsSelected() && GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+	// No selection, option to reset world origin
+	if (!AreAnyLevelsSelected())
 	{
-		MenuBuilder.AddMenuEntry(Commands.ResetWorldOrigin);
-		return;
-	}
-		
-	MenuBuilder.BeginSection("WorldGridTemLoadUnload");
-	{
-		MenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
-		MenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
-		MenuBuilder.AddMenuEntry(Commands.World_SaveSelectedLevels);
-	}
-	MenuBuilder.EndSection();
-
-	MenuBuilder.BeginSection("WorldGridItemActors");
-	{
-		MenuBuilder.AddMenuEntry(Commands.AddsActors);
-		MenuBuilder.AddMenuEntry(Commands.RemovesActors);
-		MenuBuilder.AddMenuEntry(Commands.ResetLevelOrigin);
-	}
-	MenuBuilder.EndSection();
-
-	if (IsOneLevelSelected())
-	{
-		MenuBuilder.BeginSection("WorldGridItemActors");
-		{
-			MenuBuilder.AddMenuEntry(Commands.MoveActorsToSelected);
-		}
-		MenuBuilder.EndSection();
-
 		if (GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
 		{
-			MenuBuilder.BeginSection("WorldGridItemsWorldOrigin");
-			{
-				MenuBuilder.AddMenuEntry(Commands.MoveWorldOrigin);
-			}
-			MenuBuilder.EndSection();
+			InMenuBuilder.AddMenuEntry(Commands.ResetWorldOrigin);
 		}
+		
+		return;
 	}
-	else
+	
+	// General Levels commands
+	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
 	{
-		MenuBuilder.BeginSection("WorldGridItemMergeLevels");
+		// Make level current
+		if (IsOneLevelSelected())
 		{
-			MenuBuilder.AddMenuEntry(Commands.World_MergeSelectedLevels);
+			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
 		}
-		MenuBuilder.EndSection();
+
+		// Load/Unload/Save
+		InMenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
+		InMenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
+		InMenuBuilder.AddMenuEntry(Commands.World_SaveSelectedLevels);
+		
+		// Visibility commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("VisibilityHeader", "Visibility"),
+			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
+			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillVisibilitySubMenu ) );
+
+		// Lock commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("LockHeader", "Lock"),
+			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
+			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
 	}
+	InMenuBuilder.EndSection();
+
+	// Assign to layer
+	if (AreAnySelectedLevelsEditable())
+	{
+		InMenuBuilder.BeginSection("Menu_LayersSection");
+		{
+			InMenuBuilder.AddSubMenu( 
+				LOCTEXT("Layer_Assign", "Assign to Layer"),
+				FText::GetEmpty(),
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLayersSubMenu));
+		}
+		InMenuBuilder.EndSection();
+	}
+
+	// Origin
+	InMenuBuilder.BeginSection("Menu_LevelOriginSection");
+	{
+		// Reset level position
+		InMenuBuilder.AddMenuEntry(Commands.ResetLevelOrigin);
+		
+		// Move world orign to level position
+		if (IsOneLevelSelected() && GetWorld()->GetWorldSettings()->bEnableWorldOriginRebasing)
+		{
+			InMenuBuilder.AddMenuEntry(Commands.MoveWorldOrigin);
+		}
+	}
+	InMenuBuilder.EndSection();
+
+	// Level actors selection commands
+	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
+		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
+
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry(Commands.MoveActorsToSelected);
+		}
+	}
+	InMenuBuilder.EndSection();
 
 	// Landscape specific stuff
 	const bool bCanReimportTiledLandscape = CanReimportTiledlandscape();
 	const bool bCanAddAdjacentLandscape = CanAddLandscapeProxy(FWorldTileModel::EWorldDirections::Any);
 	if (bCanReimportTiledLandscape || bCanAddAdjacentLandscape)
 	{
-		MenuBuilder.BeginSection("Menu_LandscapeSection", LOCTEXT("Menu_LandscapeSectionTitle", "Landscape"));
+		InMenuBuilder.BeginSection("Menu_LandscapeSection", LOCTEXT("Menu_LandscapeSectionTitle", "Landscape"));
 		
 		// Adjacent landscape
 		if (bCanAddAdjacentLandscape)
 		{
-			MenuBuilder.AddSubMenu( 
+			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("AddLandscapeLevel", "Add Adjacent Landscape Level"),
 				FText::GetEmpty(),
-				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildAdjacentLandscapeMenu));
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillAdjacentLandscapeSubMenu));
 		}
 
 		// Tiled landscape
 		if (bCanReimportTiledLandscape)
 		{
-			MenuBuilder.AddSubMenu( 
+			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("ReimportTiledLandscape", "Reimport Tiled Landscape"),
 				FText::GetEmpty(),
-				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu));
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillReimportTiledLandscapeSubMenu));
 		}
 		
-		MenuBuilder.EndSection();
-	}
-
-	if (AreAnySelectedLevelsEditable())
-	{
-		MenuBuilder.BeginSection("WorldGridItemLayers");
-		{
-			MenuBuilder.AddSubMenu( 
-				LOCTEXT("Layer_Assign", "Assign to Layer"),
-				FText::GetEmpty(),
-				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildLayersMenu));
-		}
-		MenuBuilder.EndSection();
+		InMenuBuilder.EndSection();
 	}
 }
 
-void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& MenuBuilder) const
+void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 		
-	if (IsOneLevelSelected() && SelectedLevelsList[0]->IsLoaded())
+	// Add common commands
+	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
 	{
-		MenuBuilder.BeginSection("Level", FText::FromName(SelectedLevelsList[0]->GetLongPackageName()));
+		// Make level current
+		if (IsOneLevelSelected())
 		{
-			MenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
-			MenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
 		}
-		MenuBuilder.EndSection();
-	}
-	
-	if (AreAnyLevelsSelected())
-	{
-		MenuBuilder.BeginSection("Menu_LoadUnload");
-		{
-			MenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
-			MenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
-		}
-		MenuBuilder.EndSection();
-	}
 
-	// default commands
-	FLevelCollectionModel::BuildHierarchyMenu(MenuBuilder);
+		// Load/Unload/Save
+		InMenuBuilder.AddMenuEntry(Commands.World_LoadLevel);
+		InMenuBuilder.AddMenuEntry(Commands.World_UnloadLevel);
+		InMenuBuilder.AddMenuEntry(Commands.World_SaveSelectedLevels);
+				
+		// Visibility commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("VisibilityHeader", "Visibility"),
+			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
+			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillVisibilitySubMenu ) );
+
+		// Lock commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("LockHeader", "Lock"),
+			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
+			FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLockSubMenu ) );
 	
-	if (AreAnyLevelsSelected())
-	{
-		MenuBuilder.BeginSection("Menu_Hierarchy");
-		{
-			MenuBuilder.AddMenuEntry(Commands.ExpandSelectedItems);
-			MenuBuilder.AddMenuEntry(Commands.ClearParentLink);
-		}
-		MenuBuilder.EndSection();
 	}
-	
+	InMenuBuilder.EndSection();
+
+	// Assign to layer
 	if (AreAnySelectedLevelsEditable())
 	{
-		MenuBuilder.BeginSection("Menu_Layers");
+		InMenuBuilder.BeginSection("Menu_LayersSection");
 		{
-			MenuBuilder.AddSubMenu( 
+			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("WorldLayers", "Assign to Layer"),
 				FText::GetEmpty(),
-				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildLayersMenu)
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillLayersSubMenu)
 			);
 		}
-		MenuBuilder.EndSection();
+		InMenuBuilder.EndSection();
 	}
+
+	// Hierarchy management
+	if (AreAnyLevelsSelected())
+	{
+		InMenuBuilder.BeginSection("Menu_HierarchySection");
+		{
+			InMenuBuilder.AddMenuEntry(Commands.ExpandSelectedItems);
+			InMenuBuilder.AddMenuEntry(Commands.ClearParentLink);
+		}
+		InMenuBuilder.EndSection();
+	}
+		
+	// Level selection commands
+	InMenuBuilder.BeginSection("LevelsSelection", LOCTEXT("SelectionHeader", "Selection") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+	}
+	InMenuBuilder.EndSection();
+
+	// Level actors selection commands
+	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
+		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
+
+		// Move selected actors to a selected level
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+		}
+	}
+	InMenuBuilder.EndSection();
 }
 
-void FWorldTileCollectionModel::BuildLayersMenu(FMenuBuilder& MenuBuilder) const
+void FWorldTileCollectionModel::FillLayersSubMenu(FMenuBuilder& InMenuBuilder) const
 {
 	for (auto It = AllLayers.CreateConstIterator(); It; ++It)
 	{
-		MenuBuilder.AddMenuEntry(
+		InMenuBuilder.AddMenuEntry(
 			FText::FromString((*It).Name), 
 			FText(), FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(
@@ -431,17 +479,17 @@ void FWorldTileCollectionModel::BuildLayersMenu(FMenuBuilder& MenuBuilder) const
 	}
 }
 
-void FWorldTileCollectionModel::BuildAdjacentLandscapeMenu(FMenuBuilder& MenuBuilder) const
+void FWorldTileCollectionModel::FillAdjacentLandscapeSubMenu(FMenuBuilder& InMenuBuilder) const
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelXNegative, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionXNegative"));
-	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelXPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionXPositive"));
-	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYNegative, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYNegative"));
-	MenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYPositive"));
+	InMenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelXNegative, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionXNegative"));
+	InMenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelXPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionXPositive"));
+	InMenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYNegative, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYNegative"));
+	InMenuBuilder.AddMenuEntry(Commands.AddLandscapeLevelYPositive, NAME_None, TAttribute<FText>(), TAttribute<FText>(), FSlateIcon(FEditorStyle::GetStyleSetName(), "WorldBrowser.DirectionYPositive"));
 }
 
-void FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu(FMenuBuilder& InMenuBuilder) const
+void FWorldTileCollectionModel::FillReimportTiledLandscapeSubMenu(FMenuBuilder& InMenuBuilder) const
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
@@ -459,11 +507,11 @@ void FWorldTileCollectionModel::BuildReimportTiledLandscapeMenu(FMenuBuilder& In
 	InMenuBuilder.AddSubMenu( 
 				LOCTEXT("Menu_WeightmapsTitle", "Weightmaps"),
 				FText::GetEmpty(),
-				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::BuildWeightmapsMenu)
+				FNewMenuDelegate::CreateSP(this, &FWorldTileCollectionModel::FillWeightmapsSubMenu)
 			);
 }
 
-void FWorldTileCollectionModel::BuildWeightmapsMenu(FMenuBuilder& InMenuBuilder) const
+void FWorldTileCollectionModel::FillWeightmapsSubMenu(FMenuBuilder& InMenuBuilder) const
 {
 	// Add "All Weighmaps" menu entry
 	InMenuBuilder.AddMenuEntry(

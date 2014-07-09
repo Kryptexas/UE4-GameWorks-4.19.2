@@ -627,7 +627,7 @@ protected:
 	
 		// Summon context menu
 		FMenuBuilder MenuBuilder(true, WorldModel->GetCommandList());
-		WorldModel->BuildGridMenu(MenuBuilder);
+		WorldModel->BuildWorldCompositionMenu(MenuBuilder);
 		TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
 
 		FSlateApplication::Get().PushMenu(
