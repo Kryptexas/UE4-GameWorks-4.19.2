@@ -994,6 +994,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 			
 			// Propagate package file size
 			LinkerRootPackage->FileSize = TotalSize();
+
+			// Propagate package Guid
+			LinkerRootPackage->SetGuid( Summary.Guid );
 		}
 		
 		// Propagate fact that package cannot use lazy loading to archive (aka this).
