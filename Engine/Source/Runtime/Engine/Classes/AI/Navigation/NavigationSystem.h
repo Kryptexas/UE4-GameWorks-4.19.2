@@ -589,8 +589,10 @@ protected:
 
 	/** delegate handler for PostLoadMap event */
 	void OnPostLoadMap();
+#if WITH_EDITOR
 	/** delegate handler for ActorMoved events */
 	void OnActorMoved(AActor* Actor);
+#endif
 	/** delegate handler called when navigation is dirtied*/
 	void OnNavigationDirtied(const FBox& Bounds);
 	

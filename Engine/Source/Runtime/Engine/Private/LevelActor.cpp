@@ -333,10 +333,12 @@ AActor* UWorld::SpawnActor( UClass* Class, FVector const* Location, FRotator con
 	// Broadcast notification of spawn
 	OnActorSpawned.Broadcast(Actor);
 
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		GEngine->BroadcastLevelActorAdded(Actor);
 	}
+#endif
 
 	return Actor;
 }
@@ -468,11 +470,12 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 				{
 					ChildActor->DetachSceneComponentsFromParent(*SceneCompIter, true);
 				}
-
+#if WITH_EDITOR
 				if( GIsEditor )
 				{
 					GEngine->BroadcastLevelActorDetached(ChildActor, ThisActor);
 				}
+#endif
 			}
 		}
 	}
@@ -489,10 +492,12 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 
 		ThisActor->DetachRootComponentFromParent(false);
 
+#if WITH_EDITOR
 		if( GIsEditor )
 		{
 			GEngine->BroadcastLevelActorDetached(ThisActor, OldParentActor);
 		}
+#endif
 	}
 
 	if( ThisActor->IsPendingKill() )
@@ -562,7 +567,9 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	if( GIsEditor )
 	{
 		ThisActor->InvalidateLightingCache();
+#if WITH_EDITOR
 		GEngine->BroadcastLevelActorDeleted(ThisActor);
+#endif
 	}
 
 	// Return success.

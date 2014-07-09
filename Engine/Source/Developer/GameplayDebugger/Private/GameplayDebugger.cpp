@@ -23,8 +23,10 @@ public:
 
 	void WorldAdded(UWorld* InWorld);
 	void WorldDestroyed(UWorld* InWorld);
+#if WITH_EDITOR
 	void OnLevelActorAdded(AActor* InActor);
 	void OnLevelActorDeleted(AActor* InActor);
+#endif
 };
 
 IMPLEMENT_MODULE(FGameplayDebugger, GameplayDebugger)
@@ -37,8 +39,10 @@ void FGameplayDebugger::StartupModule()
 	{
 		GEngine->OnWorldAdded().AddRaw(this, &FGameplayDebugger::WorldAdded);
 		GEngine->OnWorldDestroyed().AddRaw(this, &FGameplayDebugger::WorldDestroyed);
+#if WITH_EDITOR
 		GEngine->OnLevelActorAdded().AddRaw(this, &FGameplayDebugger::OnLevelActorAdded);
 		GEngine->OnLevelActorDeleted().AddRaw(this, &FGameplayDebugger::OnLevelActorDeleted);
+#endif
 	}
 #endif
 }
@@ -52,8 +56,10 @@ void FGameplayDebugger::ShutdownModule()
 	{
 		GEngine->OnWorldAdded().RemoveAll(this);
 		GEngine->OnWorldDestroyed().RemoveAll(this);
+#if WITH_EDITOR
 		GEngine->OnLevelActorAdded().RemoveAll(this);
 		GEngine->OnLevelActorDeleted().RemoveAll(this);
+#endif
 	}
 #endif
 }
@@ -68,6 +74,7 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 
 }
 
+#if WITH_EDITOR
 void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -89,3 +96,4 @@ void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 {
 
 }
+#endif

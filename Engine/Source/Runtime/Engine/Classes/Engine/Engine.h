@@ -1505,10 +1505,11 @@ public:
 
 	virtual bool IsInitialized() const { return bIsInitialized; }
 
+#if WITH_EDITOR
+
 	/** Editor-only event triggered when the actor list of the world has changed */
 	DECLARE_EVENT( UEngine, FLevelActorListChangedEvent );
 	FLevelActorListChangedEvent& OnLevelActorListChanged() { return LevelActorListChangedEvent; }
-
 
 	/** Called by internal engine systems after a world's actor list changes in a way not specifiable through other LevelActor__Events to notify other subsystems */
 	void BroadcastLevelActorListChanged() { LevelActorListChangedEvent.Broadcast(); }
@@ -1561,6 +1562,8 @@ public:
 
 	/** Called by internal engine systems after a level actor has been requested to be renamed */
 	void BroadcastLevelActorRequestRename(const AActor* InActor) { LevelActorRequestRenameEvent.Broadcast(InActor); }
+
+#endif // #if WITH_EDITOR
 
 	/** Event triggered after a server travel failure of any kind has occurred */
 	FOnTravelFailure& OnTravelFailure() { return TravelFailureEvent; }
@@ -2163,6 +2166,8 @@ protected:
 	FWorldDestroyedEvent		WorldDestroyedEvent;
 private:
 
+#if WITH_EDITOR
+
 	/** Broadcasts whenever a world's actor list changes in a way not specifiable through other LevelActor__Events */
 	FLevelActorListChangedEvent LevelActorListChangedEvent;
 
@@ -2186,6 +2191,8 @@ private:
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
+
+#endif // #if WITH_EDITOR
 
 	/** Thread preventing screen saver from kicking. Suspend most of the time. */
 	FRunnableThread*		ScreenSaverInhibitor;

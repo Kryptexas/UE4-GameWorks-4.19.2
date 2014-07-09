@@ -310,7 +310,12 @@ void UNavigationSystem::PostInitProperties()
 #endif
 
 		// register for any actor move change
-		GEngine->OnActorMoved().AddUObject(this, &UNavigationSystem::OnActorMoved);
+#if WITH_EDITOR
+		if ( GIsEditor )
+		{
+			GEngine->OnActorMoved().AddUObject(this, &UNavigationSystem::OnActorMoved);
+		}
+#endif
 		FCoreDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 #if WITH_NAVIGATION_GENERATOR
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
@@ -2617,6 +2622,7 @@ void UNavigationSystem::OnPostLoadMap()
 	}
 }
 
+#if WITH_EDITOR
 void UNavigationSystem::OnActorMoved(AActor* Actor)
 {
 #if WITH_NAVIGATION_GENERATOR
@@ -2626,6 +2632,7 @@ void UNavigationSystem::OnActorMoved(AActor* Actor)
 	}
 #endif // WITH_NAVIGATION_GENERATOR
 }
+#endif // WITH_EDITOR
 
 void UNavigationSystem::OnNavigationDirtied(const FBox& Bounds)
 {
@@ -2638,10 +2645,13 @@ void UNavigationSystem::CleanUp()
 {
 	UE_LOG(LogNavigation, Log, TEXT("UNavigationSystem::CleanUp"));
 
-	if (GEngine)
+#if WITH_EDITOR
+	if (GIsEditor && GEngine)
 	{
 		GEngine->OnActorMoved().RemoveAll(this);
 	}
+#endif // WITH_EDITOR
+
 	FCoreDelegates::PostLoadMap.RemoveAll(this);
 #if WITH_NAVIGATION_GENERATOR
 	UNavigationSystem::NavigationDirtyEvent.RemoveAll(this);
