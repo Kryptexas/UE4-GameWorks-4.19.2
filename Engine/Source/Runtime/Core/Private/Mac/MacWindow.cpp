@@ -251,9 +251,12 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 - (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
 {
-	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	NSSize Size = [self frame].size;
+	NSSize NewSize = FrameRect.size;
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
 	{
 		[super setFrame:FrameRect display:Flag];
+		bDeferSetFrame = false;
 	}
 	else
 	{
@@ -268,9 +271,11 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 - (void)setFrameOrigin:(NSPoint)Point
 {
-	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	NSSize Size = [self frame].size;
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1)))
 	{
 		[super setFrameOrigin:Point];
+		bDeferSetOrigin = false;
 	}
 	else
 	{
