@@ -45,13 +45,19 @@ namespace ContentBrowserUtils
 	/** Renames a folder */
 	void RenameFolder(const FString& FolderPath, const FString& NewName, FText& ErrorMessage);
 
+	/** 
+	 * Copies assets to a new path 
+	 * @param Assets The assets to copy
+	 * @param DestPath The destination folder in which to copy the assets
+	 */
+	void CopyAssets(const TArray<UObject*>& Assets, const FString& DestPath);
+
 	/**
 	  * Moves assets to a new path
 	  * 
 	  * @param Assets The assets to move
 	  * @param DestPath The destination folder in which to move the assets
 	  * @param SourcePath If non-empty, this will specify the base folder which will cause the move to maintain folder structure
-	  * @return false if the move was not successful
 	  */
 	void MoveAssets(const TArray<UObject*>& Assets, const FString& DestPath, const FString& SourcePath = FString());
 

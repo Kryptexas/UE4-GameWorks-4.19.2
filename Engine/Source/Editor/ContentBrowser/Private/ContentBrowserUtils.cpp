@@ -425,6 +425,30 @@ void ContentBrowserUtils::RenameAsset(UObject* Asset, const FString& NewName, FT
 	AssetToolsModule.Get().RenameAssets(AssetsAndNames);
 }
 
+void ContentBrowserUtils::CopyAssets(const TArray<UObject*>& Assets, const FString& DestPath)
+{
+	TArray<UObject*> NewObjects;
+	ObjectTools::DuplicateObjects(Assets, TEXT(""), DestPath, /*bOpenDialog=*/false, &NewObjects);
+
+	// If any objects were duplicated, report the success
+	if ( NewObjects.Num() )
+	{
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("Number"), NewObjects.Num() );
+		const FText Message = FText::Format( LOCTEXT("AssetsDroppedCopy", "{Number} asset(s) copied"), Args );
+		FSlateNotificationManager::Get().AddNotification(FNotificationInfo(Message));
+
+		// Now branch the files in source control if possible
+		check(Assets.Num() == NewObjects.Num());
+		for(int32 ObjectIndex = 0; ObjectIndex < Assets.Num(); ObjectIndex++)
+		{
+			UObject* SourceAsset = Assets[ObjectIndex];
+			UObject* DestAsset = NewObjects[ObjectIndex];
+			SourceControlHelpers::BranchPackage(DestAsset->GetOutermost(), SourceAsset->GetOutermost());
+		}
+	}
+}
+
 void ContentBrowserUtils::MoveAssets(const TArray<UObject*>& Assets, const FString& DestPath, const FString& SourcePath)
 {
 	check(DestPath.Len() > 0);
@@ -475,6 +499,17 @@ void ContentBrowserUtils::MoveAssets(const TArray<UObject*>& Assets, const FStri
 	if ( AssetsAndNames.Num() > 0 )
 	{
 		AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+	}
+
+	// Now branch the files in source control if possible
+	for(const auto& AssetAndName : AssetsAndNames)
+	{
+		check(AssetAndName.Asset.Get());
+		UPackage* DestPackage = FindPackage(nullptr, *(AssetAndName.PackagePath / AssetAndName.NewName));
+		UPackage* SourcePackage = FindPackage(nullptr, *AssetAndName.OriginalAssetPath);
+		check(DestPackage);
+		check(SourcePackage);
+		SourceControlHelpers::BranchPackage(DestPackage, SourcePackage);
 	}
 }
 

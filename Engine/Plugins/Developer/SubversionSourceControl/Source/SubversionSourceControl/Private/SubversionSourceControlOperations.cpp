@@ -605,7 +605,30 @@ bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
 
 	FString Destination = FPaths::ConvertRelativePathToFull(Operation->GetDestination());
 
+	// perform svn revert if the dest file already exists in the working copy (this is usually the case
+	// as files that are copied in the editor are already marked for add when the package is created
+	// in the new location)
+	{
+		TArray<FString> Files;
+		Files.Add(Destination);
+
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("revert"), Files, TArray<FString>(), InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
+	}
+
+	// Now we need to move the file out of directory, copy then restore over the top, as SVN wont allow us 
+	// to 'svn copy' over an existing file, even if it is not already added to the working copy.
+	// This will be OK as far as the asset registry/directory watcher goes as it will just see the file being modified several times
+	const FString TempFileName = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("SVN-CopyTemp"), TEXT(".uasset"));
+	const bool bReplace = true;
+	const bool bEvenIfReadOnly = true;
+	
+	if (InCommand.bCommandSuccessful)
+	{
+		InCommand.bCommandSuccessful = IFileManager::Get().Move(*TempFileName, *Destination, bReplace, bEvenIfReadOnly);
+	}
+
 	// copy from source files to destination parameter
+	if(InCommand.bCommandSuccessful)
 	{
 		TArray<FString> Files;
 		Files.Append(InCommand.Files);
@@ -616,6 +639,12 @@ bool FSubversionCopyWorker::Execute(FSubversionSourceControlCommand& InCommand)
 		Parameters.Add(TEXT("--parents"));
 
 		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("copy"), Files, Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
+	}
+
+	// now move the file back
+	if (InCommand.bCommandSuccessful)
+	{
+		InCommand.bCommandSuccessful = IFileManager::Get().Move(*Destination, *TempFileName, bReplace, bEvenIfReadOnly);
 	}
 
 	// now update the status of our files

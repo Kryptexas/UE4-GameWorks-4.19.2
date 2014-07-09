@@ -282,7 +282,22 @@ UObject* FAssetTools::DuplicateAsset(const FString& AssetName, const FString& Pa
 	PGN.ObjectName = AssetName;
 
 	TSet<UPackage*> ObjectsUserRefusedToFullyLoad;
-	return ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad);
+	UObject* NewObject = ObjectTools::DuplicateSingleObject(OriginalObject, PGN, ObjectsUserRefusedToFullyLoad);
+	if(NewObject != nullptr && ISourceControlModule::Get().IsEnabled())
+	{
+		// Save package here if SCC is enabled because the user can use SCC to revert a change
+		TArray<UPackage*> OutermostPackagesToSave;
+		OutermostPackagesToSave.Add(NewObject->GetOutermost());
+
+		const bool bCheckDirty = false;
+		const bool bPromptToSave = false;
+		FEditorFileUtils::PromptForCheckoutAndSave(OutermostPackagesToSave, bCheckDirty, bPromptToSave);
+
+		// now attempt to branch, we can do this now as we should have a file on disk
+		SourceControlHelpers::BranchPackage(NewObject->GetOutermost(), OriginalObject->GetOutermost());
+	}
+
+	return NewObject;
 }
 
 void FAssetTools::RenameAssets(const TArray<FAssetRenameData>& AssetsAndNames) const

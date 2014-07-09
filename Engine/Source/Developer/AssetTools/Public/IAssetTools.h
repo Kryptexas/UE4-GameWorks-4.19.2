@@ -11,12 +11,18 @@ struct FAssetRenameData
 	TWeakObjectPtr<UObject> Asset;
 	FString PackagePath;
 	FString NewName;
+	FString OriginalAssetPath;
 
 	FAssetRenameData(const TWeakObjectPtr<UObject>& InAsset, const FString& InPackagePath, const FString& InNewName)
 		: Asset(InAsset)
 		, PackagePath(InPackagePath)
 		, NewName(InNewName)
-	{}
+	{
+		if(InAsset.IsValid())
+		{
+			OriginalAssetPath = InAsset.Get()->GetOutermost()->GetName();
+		}
+	}
 };
 
 class IAssetTools
