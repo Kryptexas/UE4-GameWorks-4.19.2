@@ -294,6 +294,14 @@ void UActorComponent::BeginDestroy()
 
 	ExecuteUnregisterEvents();
 	World = NULL;
+
+	// Remove from the parent's OwnedComponents list
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		Owner->RemoveOwnedComponent(this);
+	}
+
 	Super::BeginDestroy();
 }
 

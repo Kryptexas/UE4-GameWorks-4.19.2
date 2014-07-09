@@ -1366,6 +1366,22 @@ public:
 	}
 
 	/**
+	* Adds references to an array of objects.
+	*
+	* @param ObjectArray Referenced objects array.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template<class UObjectType>
+	void AddReferencedObject(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		for (auto& Object : ObjectArray)
+		{
+			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+		}
+	}
+
+	/**
 	 * If true archetype references should not be added to this collector.
 	 */
 	virtual bool IsIgnoringArchetypeRef() const = 0;
