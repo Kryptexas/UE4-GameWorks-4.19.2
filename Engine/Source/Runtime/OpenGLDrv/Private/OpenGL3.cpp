@@ -8,6 +8,8 @@
 
 #if OPENGL_GL3
 
+bool FOpenGL3::bSupportsTessellation = false;
+
 GLsizei FOpenGL3::NextTextureName = OPENGL_NAME_CACHE_SIZE;
 GLuint FOpenGL3::TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
 GLsizei FOpenGL3::NextBufferName= OPENGL_NAME_CACHE_SIZE;
@@ -24,6 +26,12 @@ void FOpenGL3::ProcessQueryGLInt()
 
 	GET_GL_INT(GL_MAX_GEOMETRY_TEXTURE_IMAGE_UNITS, 0, MaxGeometryTextureImageUnits);
 
+	if (bSupportsTessellation)
+	{
+		GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
+		GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
+	}
+
 #ifndef __GNUC__
 #define LOG_AND_GET_GL_QUERY_INT(IntEnum, Default, Dest) do { if (IntEnum) {glGetQueryiv(IntEnum, GL_QUERY_COUNTER_BITS, &Dest);} else {Dest = Default;} /*FPlatformMisc::LowLevelOutputDebugStringf(TEXT(" GL_QUERY_COUNTER_BITS: ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest);*/ } while(0)
 #else
@@ -32,10 +40,28 @@ void FOpenGL3::ProcessQueryGLInt()
 	LOG_AND_GET_GL_QUERY_INT(GL_TIMESTAMP, 0, TimestampQueryBits);
 	
 #undef LOG_AND_GET_GL_QUERY_INT
+
+    MaxHullTextureImageUnits = 0;
 }
 
 void FOpenGL3::ProcessExtensions( const FString& ExtensionsString )
 {
+	int32 MajorVersion = 0;
+	int32 MinorVersion = 0;
+
+	FString Version = ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION));
+	FString MajorString, MinorString;
+	if (Version.Split(TEXT("."), &MajorString, &MinorString))
+	{
+		MajorVersion = FCString::Atoi(*MajorString);
+		MinorVersion = FCString::Atoi(*MinorString);
+	}
+	check(MajorVersion!=0);
+
+	// 3.3+ may expose this as an extension, 4.0+ should have this. 
+	// https://www.opengl.org/registry/specs/ARB/tessellation_shader.txt
+	bSupportsTessellation = ExtensionsString.Contains(TEXT("GL_ARB_tessellation_shader")) || ((MajorVersion >= 4));
+
 	ProcessQueryGLInt();
 	FOpenGLBase::ProcessExtensions(ExtensionsString);
 

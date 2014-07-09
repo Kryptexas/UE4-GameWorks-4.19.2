@@ -14,7 +14,6 @@
 struct FOpenGL4 : public FOpenGL3
 {
 	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return true; }
-	static FORCEINLINE bool SupportsTessellation()						{ return bSupportsTessellation; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return bSupportsComputeShaders; }
 	static FORCEINLINE bool SupportsDrawIndirect()						{ return true; }
 	static FORCEINLINE bool SupportsVertexAttribBinding()				{ return bSupportsVertexAttribBinding; }
@@ -107,10 +106,7 @@ protected:
 
 	static bool bSupportsComputeShaders;
 	static bool bSupportsGPUMemoryInfo;
-	static bool bSupportsTessellation;
 	static bool bSupportsVertexAttribBinding;
 	static bool bSupportsTextureView;
 
-	static int32 MajorVersion;
-	static int32 MinorVersion;
 };

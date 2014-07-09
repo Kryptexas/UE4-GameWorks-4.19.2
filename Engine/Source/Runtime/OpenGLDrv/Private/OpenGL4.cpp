@@ -8,13 +8,10 @@
 
 #if OPENGL_GL4
 
-int32 FOpenGL4::MajorVersion = 0;
-int32 FOpenGL4::MinorVersion = 0;
 GLint FOpenGL4::MaxComputeTextureImageUnits = -1;
 GLint FOpenGL4::MaxComputeUniformComponents = -1;
 bool FOpenGL4::bSupportsComputeShaders = true;
 bool FOpenGL4::bSupportsGPUMemoryInfo = false;
-bool FOpenGL4::bSupportsTessellation = true;
 bool FOpenGL4::bSupportsVertexAttribBinding = true;
 bool FOpenGL4::bSupportsTextureView = true;
 
@@ -26,15 +23,13 @@ void FOpenGL4::ProcessQueryGLInt()
 		GET_GL_INT(GL_MAX_COMPUTE_UNIFORM_COMPONENTS, 0, MaxComputeUniformComponents);
 	}
 
-	if (bSupportsTessellation)
-	{
-		GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
-		GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
-	}
 }
 
 void FOpenGL4::ProcessExtensions( const FString& ExtensionsString )
 {
+    int32 MajorVersion =0;
+    int32 MinorVersion =0;
+ 
 	FString Version = ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VERSION));
 	FString MajorString, MinorString;
 	if (Version.Split(TEXT("."), &MajorString, &MinorString))
@@ -42,10 +37,11 @@ void FOpenGL4::ProcessExtensions( const FString& ExtensionsString )
 		MajorVersion = FCString::Atoi(*MajorString);
 		MinorVersion = FCString::Atoi(*MinorString);
 	}
+	check(MajorVersion!=0);
+
 
 	bSupportsGPUMemoryInfo = ExtensionsString.Contains(TEXT("GL_NVX_gpu_memory_info"));
 	bSupportsComputeShaders = ExtensionsString.Contains(TEXT("GL_ARB_compute_shader")) || (MajorVersion ==4 && MinorVersion >= 3) || (MajorVersion > 4);
-	bSupportsTessellation = ExtensionsString.Contains(TEXT("GL_ARB_tessellation_shader")) || (MajorVersion == 4 && MinorVersion >= 1) || (MajorVersion > 4);
 	bSupportsVertexAttribBinding = ExtensionsString.Contains(TEXT("GL_ARB_vertex_attrib_binding")) || (MajorVersion == 4 && MinorVersion >= 3) || (MajorVersion > 4);
 	bSupportsTextureView = ExtensionsString.Contains(TEXT("GL_ARB_texture_view")) || (MajorVersion == 4 && MinorVersion >= 3) || (MajorVersion > 4);
 
