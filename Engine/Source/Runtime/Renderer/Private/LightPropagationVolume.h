@@ -124,7 +124,7 @@ public:
 	FLightPropagationVolume();
 	virtual ~FLightPropagationVolume();
 
-	void InitSettings( const FSceneView& View );
+	void InitSettings(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	void Clear(FRHICommandListImmediate& RHICmdList);
 

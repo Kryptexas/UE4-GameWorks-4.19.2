@@ -386,7 +386,6 @@ static FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FOpenGLDynamicRHI::IssueLongGPUTask()
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
 	int32 LargestViewportIndex = INDEX_NONE;
 	int32 LargestViewportPixels = 0;
 
@@ -405,6 +404,7 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 	{
 		FOpenGLViewport* Viewport = Viewports[LargestViewportIndex];
 
+		FRHICommandList_RecursiveHazardous RHICmdList;
 		SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
@@ -422,8 +422,9 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 		Vertices[2].Set( -1.0f, -1.0f, 0, 1.0f );
 		Vertices[3].Set(  1.0f, -1.0f, 0, 1.0f );
 		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+
+		// RHICmdList flushes on destruction
 	}
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 }
 
 void FOpenGLDynamicRHI::InitializeStateResources()

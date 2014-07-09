@@ -1620,8 +1620,6 @@ void FD3D11DynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool 
 
 void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
-
 	GRHICommandList.Verify();
 
 	// Helper struct to record and restore device states RHIClearMRT modifies.
@@ -1941,65 +1939,68 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(GetGlobalShaderMap());
 			PixelShader = *MRTPixelShader;
 		}
-		
-		SetGlobalBoundShaderState(RHICmdList, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
-		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-		FMemory::MemZero(ShaderClearColors);
 
-		for (int32 i = 0; i < NumClearColors; i++)
 		{
-			ShaderClearColors[i] = ClearColorArray[i];
-		}
+			FRHICommandList_RecursiveHazardous RHICmdList;
+			SetGlobalBoundShaderState(RHICmdList, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
+			FMemory::MemZero(ShaderClearColors);
 
-		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
-		
-		{
-			// Draw a fullscreen quad
-			if(ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+			for (int32 i = 0; i < NumClearColors; i++)
 			{
-				// with a hole in it (optimization in case the hardware has non constant clear performance)
-				FVector4 OuterVertices[4];
-				OuterVertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-				OuterVertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-				OuterVertices[2].Set(  1.0f, -1.0f, Depth, 1.0f );
-				OuterVertices[3].Set( -1.0f, -1.0f, Depth, 1.0f );
-
-				float InvViewWidth = 1.0f / Viewport.Width;
-				float InvViewHeight = 1.0f / Viewport.Height;
-				FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
-
-				FVector4 InnerVertices[4];
-				InnerVertices[0].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-				InnerVertices[1].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-				InnerVertices[2].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-				InnerVertices[3].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-				
-				FVector4 Vertices[10];
-				Vertices[0] = OuterVertices[0];
-				Vertices[1] = InnerVertices[0];
-				Vertices[2] = OuterVertices[1];
-				Vertices[3] = InnerVertices[1];
-				Vertices[4] = OuterVertices[2];
-				Vertices[5] = InnerVertices[2];
-				Vertices[6] = OuterVertices[3];
-				Vertices[7] = InnerVertices[3];
-				Vertices[8] = OuterVertices[0];
-				Vertices[9] = InnerVertices[0];
-
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
+				ShaderClearColors[i] = ClearColorArray[i];
 			}
-			else
+
+			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumClearColors);
+
 			{
-				// without a hole
-				FVector4 Vertices[4];
-				Vertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-				Vertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-				Vertices[2].Set( -1.0f, -1.0f, Depth, 1.0f );
-				Vertices[3].Set(  1.0f, -1.0f, Depth, 1.0f );
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+				// Draw a fullscreen quad
+				if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+				{
+					// with a hole in it (optimization in case the hardware has non constant clear performance)
+					FVector4 OuterVertices[4];
+					OuterVertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[2].Set(1.0f, -1.0f, Depth, 1.0f);
+					OuterVertices[3].Set(-1.0f, -1.0f, Depth, 1.0f);
+
+					float InvViewWidth = 1.0f / Viewport.Width;
+					float InvViewHeight = 1.0f / Viewport.Height;
+					FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
+
+					FVector4 InnerVertices[4];
+					InnerVertices[0].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[1].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[2].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+					InnerVertices[3].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+
+					FVector4 Vertices[10];
+					Vertices[0] = OuterVertices[0];
+					Vertices[1] = InnerVertices[0];
+					Vertices[2] = OuterVertices[1];
+					Vertices[3] = InnerVertices[1];
+					Vertices[4] = OuterVertices[2];
+					Vertices[5] = InnerVertices[2];
+					Vertices[6] = OuterVertices[3];
+					Vertices[7] = InnerVertices[3];
+					Vertices[8] = OuterVertices[0];
+					Vertices[9] = InnerVertices[0];
+
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
+				}
+				else
+				{
+					// without a hole
+					FVector4 Vertices[4];
+					Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+					Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+				}
 			}
+			// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 		}
-		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 		if (bChangedDepthStencilTarget)
 		{

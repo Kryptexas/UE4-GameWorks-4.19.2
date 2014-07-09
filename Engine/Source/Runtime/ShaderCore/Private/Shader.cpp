@@ -1034,7 +1034,7 @@ FShaderType* FindShaderTypeByName(const TCHAR* ShaderTypeName)
 
 
 void DispatchComputeShader(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	FShader* Shader,
 	uint32 ThreadGroupCountX,
 	uint32 ThreadGroupCountY,
@@ -1046,7 +1046,7 @@ void DispatchComputeShader(
 
 
 void DispatchIndirectComputeShader(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	FShader* Shader,
 	FVertexBufferRHIParamRef ArgumentBuffer,
 	uint32 ArgumentOffset)

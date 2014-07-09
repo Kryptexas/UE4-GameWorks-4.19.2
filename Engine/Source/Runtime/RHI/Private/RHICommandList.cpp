@@ -52,6 +52,7 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 
 RHI_API FRHICommandListExecutor GRHICommandList;
 RHI_API FThreadSafeCounter FRHICommandList::UIDCounter;
+RHI_API TLockFreeFixedSizeAllocator<FRHICommandList::FMemManager::FPage::PageSize> FRHICommandList::FMemManager::FPage::TheAllocator;
 //RHI_API FGlobalRHI GRHI;
 
 static_assert(sizeof(FRHICommand) == sizeof(FRHICommandNopEndOfPage), "These should match for filling in the end of a page when a new allocation won't fit");
@@ -527,6 +528,45 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				if (!bOnlyTestMemAccess)
 				{
 					EnableDepthBoundsTest_Internal(RHICmd->bEnable, RHICmd->MinDepth, RHICmd->MaxDepth);
+				}
+			}
+			break;
+		case ERCT_ClearUAV:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandClearUAV>();
+				if (!bOnlyTestMemAccess)
+				{
+					ClearUAV_Internal(RHICmd->UnorderedAccessViewRHI, RHICmd->Values);
+				}
+				RHICmd->UnorderedAccessViewRHI->Release();
+			}
+			break;
+		case ERCT_CopyToResolveTarget:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandCopyToResolveTarget>();
+				if (!bOnlyTestMemAccess)
+				{
+					CopyToResolveTarget_Internal(RHICmd->SourceTexture, RHICmd->DestTexture, RHICmd->bKeepOriginalSurface, RHICmd->ResolveParams);
+				}
+				RHICmd->SourceTexture->Release();
+				RHICmd->DestTexture->Release();
+			}
+			break;
+		case ERCT_Clear:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandClear>();
+				if (!bOnlyTestMemAccess)
+				{
+					Clear_Internal(RHICmd->bClearColor, RHICmd->Color, RHICmd->bClearDepth, RHICmd->Depth, RHICmd->bClearStencil, RHICmd->Stencil, RHICmd->ExcludeRect);
+				}
+			}
+			break;
+		case ERCT_ClearMRT:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandClearMRT>();
+				if (!bOnlyTestMemAccess)
+				{
+					ClearMRT_Internal(RHICmd->bClearColor, RHICmd->NumClearColors, RHICmd->ColorArray, RHICmd->bClearDepth, RHICmd->Depth, RHICmd->bClearStencil, RHICmd->Stencil, RHICmd->ExcludeRect);
 				}
 			}
 			break;

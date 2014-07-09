@@ -182,9 +182,6 @@ FGlobalBoundShaderState LongGPUTaskBoundShaderState;
 
 void FD3D11DynamicRHI::IssueLongGPUTask()
 {
-	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
-
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		int32 LargestViewportIndex = INDEX_NONE;
@@ -205,6 +202,8 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 		{
 			FD3D11Viewport* Viewport = Viewports[LargestViewportIndex];
 
+			FRHICommandList_RecursiveHazardous RHICmdList;
+
 			SetRenderTarget(RHICmdList, Viewport->GetBackBuffer(), FTextureRHIRef());
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One>::GetRHI(), FLinearColor::Black);
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI(), 0);
@@ -222,9 +221,9 @@ void FD3D11DynamicRHI::IssueLongGPUTask()
 			Vertices[2].Set( -1.0f, -1.0f, 0, 1.0f );
 			Vertices[3].Set(  1.0f, -1.0f, 0, 1.0f );
 			DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+			// Implicit fluish. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 		}
 	}
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 }
 
 void FD3DGPUProfiler::BeginFrame(FD3D11DynamicRHI* InRHI)

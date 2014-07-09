@@ -98,7 +98,7 @@ void FDeferredShadingSceneRenderer::FinishRenderViewTarget(FRHICommandListImmedi
 }
 
 // TODO: REMOVE if no longer needed:
-void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, float OverrideGamma)
+void FSceneRenderer::GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma)
 {
 	// Set the view family's render target/viewport.
 	SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), FTextureRHIRef());

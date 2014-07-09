@@ -161,6 +161,7 @@ static FResolveRect GetDefaultRect(const FResolveRect& Rect,uint32 DefaultWidth,
 
 template<typename TPixelShader>
 void FD3D11DynamicRHI::ResolveTextureUsingShader(
+	FRHICommandList_RecursiveHazardous& RHICmdList,
 	FD3D11Texture2D* SourceTexture,
 	FD3D11Texture2D* DestTexture,
 	ID3D11RenderTargetView* DestTextureRTV,
@@ -172,9 +173,6 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	typename TPixelShader::FParameter PixelShaderParameter
 	)
 {
-	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
-
 	// Save the current viewport so that it can be restored
 	D3D11_VIEWPORT SavedViewport;
 	uint32 NumSavedViewports = 1;
@@ -183,7 +181,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	// No alpha blending, no depth tests or writes, no stencil tests or writes, no backface culling.
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI(),FLinearColor::White);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
+	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 	// Make sure the destination is not bound as a shader resource.
 	if (DestTexture)
@@ -211,7 +209,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 		}
 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true,CF_Always>::GetRHI(),0);
-		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
+		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 		// Write to the dest texture as a depth-stencil target.
 		ID3D11RenderTargetView* NullRTV = NULL;
@@ -229,7 +227,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 		}
 
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(),0);
-		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
+		RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 		// Write to the dest surface as a render target.
 		Direct3DDeviceContext->OMSetRenderTargets(1,&DestTextureRTV,NULL);
@@ -256,7 +254,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	SetGlobalBoundShaderState(RHICmdList, ResolveBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *ResolveVertexShader, *ResolvePixelShader);
 
 	ResolvePixelShader->SetParameters(RHICmdList, Direct3DDeviceContext,PixelShaderParameter);
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
+	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 	// Set the source texture.
 	const uint32 TextureIndex = ResolvePixelShader->UnresolvedSurface.GetBaseIndex();
@@ -286,7 +284,7 @@ void FD3D11DynamicRHI::ResolveTextureUsingShader(
 	Vertices[3].UV.Y       = MaxV;
 
 	DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
+	RHICmdList.Flush(); // always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 
 	if (SourceTexture)
 	{
@@ -314,6 +312,9 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 		return;
 	}
 
+	FRHICommandList_RecursiveHazardous RHICmdList;
+
+
 	FD3D11Texture2D* SourceTexture2D = static_cast<FD3D11Texture2D*>(SourceTextureRHI->GetTexture2D());
 	FD3D11Texture2D* DestTexture2D = static_cast<FD3D11Texture2D*>(DestTextureRHI->GetTexture2D());
 
@@ -338,6 +339,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 				DestTexture2D->GetResource()->GetDesc(&ResolveTargetDesc);
 
 				ResolveTextureUsingShader<FResolveDepthPS>(
+					RHICmdList,
 					SourceTexture2D,
 					DestTexture2D,
 					DestTexture2D->GetRenderTargetView(0, -1),
@@ -357,6 +359,7 @@ void FD3D11DynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureR
 				DestTexture2D->GetResource()->GetDesc(&ResolveTargetDesc);
 
 				ResolveTextureUsingShader<FResolveDepthNonMSPS>(
+					RHICmdList,
 					SourceTexture2D,
 					DestTexture2D,
 					NULL,
@@ -994,7 +997,8 @@ void FD3D11DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRec
 	}
 	else
 	{
-		ReadSurfaceDataMSAARaw(TextureRHI, InRect, OutDataRaw, InFlags);
+		FRHICommandList_RecursiveHazardous RHICmdList;
+		ReadSurfaceDataMSAARaw(RHICmdList, TextureRHI, InRect, OutDataRaw, InFlags);
 	}
 
 	const uint32 SizeX = InRect.Width() * TextureDesc.SampleDesc.Count;
@@ -1010,7 +1014,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRec
 	ConvertRAWSurfaceDataToFColor(TextureDesc.Format, SizeX, SizeY, OutDataRaw.GetTypedData(), SrcPitch, OutData.GetTypedData(), InFlags);
 }
 
-void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIntRect InRect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags)
+void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous& RHICmdList, FTextureRHIParamRef TextureRHI,FIntRect InRect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags)
 {
 	FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(TextureRHI);
 
@@ -1096,6 +1100,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIn
 	{
 		// Resolve the sample to the non-MSAA render target.
 		ResolveTextureUsingShader<FResolveSingleSamplePS>(
+			RHICmdList,
 			(FD3D11Texture2D*)TextureRHI->GetTexture2D(),
 			NULL,
 			NonMSAARTV,

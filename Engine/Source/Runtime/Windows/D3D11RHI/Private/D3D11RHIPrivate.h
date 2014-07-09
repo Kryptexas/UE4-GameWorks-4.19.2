@@ -564,6 +564,7 @@ protected:
 
 	template<typename TPixelShader>
 	void ResolveTextureUsingShader(
+		FRHICommandList_RecursiveHazardous& RHICmdList,
 		FD3D11Texture2D* SourceTexture,
 		FD3D11Texture2D* DestTexture,
 		ID3D11RenderTargetView* DestSurfaceRTV,
@@ -593,7 +594,7 @@ protected:
 
 	void ReadSurfaceDataNoMSAARaw(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
-	void ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
+	void ReadSurfaceDataMSAARaw(FRHICommandList_RecursiveHazardous& RHICmdList, FTextureRHIParamRef TextureRHI, FIntRect Rect, TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags);
 
 	friend struct FD3DGPUProfiler;
 };

@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "LockFreeFixedSizeAllocator.h"
 
 enum ERHICommandType
 {
@@ -46,6 +47,12 @@ enum ERHICommandType
 	ERCT_DrawIndexedIndirect,
 	ERCT_DrawIndexedPrimitiveIndirect,
 	ERCT_EnableDepthBoundsTest,
+	ERCT_ClearUAV,
+	ERCT_CopyToResolveTarget,
+	ERCT_ClearMRT,
+	ERCT_Clear,
+
+
 
 	ERCT_,
 };
@@ -562,6 +569,107 @@ struct FRHICommandEnableDepthBoundsTest : public FRHICommand
 	}
 };
 
+struct FRHICommandClearUAV : public FRHICommand
+{
+	FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI;
+	uint32 Values[4];
+
+	FORCEINLINE_DEBUGGABLE void Set(FUnorderedAccessViewRHIParamRef InUnorderedAccessViewRHI, const uint32* InValues)
+	{
+		Type = ERCT_ClearUAV;
+		UnorderedAccessViewRHI = InUnorderedAccessViewRHI;
+		Values[0] = InValues[0];
+		Values[1] = InValues[1];
+		Values[2] = InValues[2];
+		Values[3] = InValues[3];
+	}
+};
+
+struct FRHICommandCopyToResolveTarget : public FRHICommand
+{
+	FTextureRHIParamRef SourceTexture;
+	FTextureRHIParamRef DestTexture;
+	bool bKeepOriginalSurface;
+	FResolveParams ResolveParams;
+
+	FORCEINLINE_DEBUGGABLE void Set(FTextureRHIParamRef InSourceTexture, FTextureRHIParamRef InDestTexture, bool InbKeepOriginalSurface, const FResolveParams& InResolveParams)
+	{
+		Type = ERCT_CopyToResolveTarget;
+		SourceTexture = InSourceTexture;
+		DestTexture = InDestTexture;
+		bKeepOriginalSurface = InbKeepOriginalSurface;
+		ResolveParams = InResolveParams;
+	}
+};
+
+struct FRHICommandClear : public FRHICommand
+{
+	FLinearColor Color;
+	FIntRect ExcludeRect;
+	float Depth;
+	uint32 Stencil;
+	bool bClearColor;
+	bool bClearDepth;
+	bool bClearStencil;
+	FORCEINLINE_DEBUGGABLE void Set(
+		bool InbClearColor,
+		const FLinearColor& InColor,
+		bool InbClearDepth,
+		float InDepth,
+		bool InbClearStencil,
+		uint32 InStencil,
+		FIntRect InExcludeRect
+		)
+	{
+		Type = ERCT_Clear;
+		Color = InColor;
+		ExcludeRect = InExcludeRect;
+		Depth = InDepth;
+		Stencil = InStencil;
+		bClearColor = InbClearColor;
+		bClearDepth = InbClearDepth;
+		bClearStencil = InbClearStencil;
+	}
+};
+
+struct FRHICommandClearMRT : public FRHICommand
+{
+	FLinearColor ColorArray[MaxSimultaneousRenderTargets];
+	FIntRect ExcludeRect;
+	float Depth;
+	uint32 Stencil;
+	int32 NumClearColors;
+	bool bClearColor;
+	bool bClearDepth;
+	bool bClearStencil;
+	FORCEINLINE_DEBUGGABLE void Set(
+		bool InbClearColor,
+		int32 InNumClearColors,
+		const FLinearColor* InColorArray,
+		bool InbClearDepth,
+		float InDepth,
+		bool InbClearStencil,
+		uint32 InStencil,
+		FIntRect InExcludeRect
+		)
+	{
+		Type = ERCT_ClearMRT;
+		check(InNumClearColors < MaxSimultaneousRenderTargets);
+		for (int32 Index = 0; Index < InNumClearColors; Index++)
+		{
+			ColorArray[Index] = InColorArray[Index];
+		}
+		ExcludeRect = InExcludeRect;
+		Depth = InDepth;
+		Stencil = InStencil;
+		NumClearColors = InNumClearColors;
+		bClearColor = InbClearColor;
+		bClearDepth = InbClearDepth;
+		bClearStencil = InbClearStencil;
+	}
+};
+
+
 struct FBoundShaderStateInput
 {
 	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
@@ -709,10 +817,13 @@ private:
 				PageSize = 64 * 1024
 			};
 
+			RHI_API static TLockFreeFixedSizeAllocator<PageSize> TheAllocator;
+
 			FPage() :
 				NextPage(nullptr)
 			{
-				Head = (uint8*)FMemory::Malloc(PageSize, Alignment);
+				Head = (uint8*)TheAllocator.Allocate();
+				check((UPTRINT(Head) & (Alignment - 1)) == 0);
 				Current = Head;
 				Tail = Head + PageSize;
 				//::OutputDebugStringW(*FString::Printf(TEXT("PAGE %p, %p - %p\n"), this, Head, Tail));
@@ -720,7 +831,7 @@ private:
 
 			~FPage()
 			{
-				FMemory::Free(Head);
+				TheAllocator.Free(Head);
 				Head = Current = Tail = nullptr;
 
 				// Caller/owner is responsible for freeing the linked list
@@ -1262,7 +1373,7 @@ public:
 
 	}
 
-	void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
+	FORCEINLINE_DEBUGGABLE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
 	{
 		if (Bypass())
 		{
@@ -1280,7 +1391,7 @@ public:
 		DrawUPData.OutVertexData = OutVertexData;
 	}
 
-	void EndDrawPrimitiveUP()
+	FORCEINLINE_DEBUGGABLE void EndDrawPrimitiveUP()
 	{
 		if (Bypass())
 		{
@@ -1295,7 +1406,7 @@ public:
 		DrawUPData.NumVertices = 0;
 	}
 
-	void BeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData)
+	FORCEINLINE_DEBUGGABLE void BeginDrawIndexedPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData, uint32 MinVertexIndex, uint32 NumIndices, uint32 IndexDataStride, void*& OutIndexData)
 	{
 		if (Bypass())
 		{
@@ -1318,7 +1429,8 @@ public:
 		DrawUPData.OutIndexData = OutIndexData;
 
 	}
-	void EndDrawIndexedPrimitiveUP()
+
+	FORCEINLINE_DEBUGGABLE void EndDrawIndexedPrimitiveUP()
 	{
 		if (Bypass())
 		{
@@ -1336,7 +1448,7 @@ public:
 		DrawUPData.NumVertices = 0;
 	}
 
-	void SetComputeShader(FComputeShaderRHIParamRef ComputeShader)
+	FORCEINLINE_DEBUGGABLE void SetComputeShader(FComputeShaderRHIParamRef ComputeShader)
 	{
 		if (Bypass())
 		{
@@ -1348,7 +1460,7 @@ public:
 		ComputeShader->AddRef();
 	}
 
-	void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
+	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
 	{
 		if (Bypass())
 		{
@@ -1359,7 +1471,7 @@ public:
 		Cmd->Set(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 	}
 
-	void DispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
+	FORCEINLINE_DEBUGGABLE void DispatchIndirectComputeShader(FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
 	{
 		if (Bypass())
 		{
@@ -1371,7 +1483,7 @@ public:
 		ArgumentBuffer->AddRef();
 	}
 
-	void AutomaticCacheFlushAfterComputeShader(bool bEnable)
+	FORCEINLINE_DEBUGGABLE void AutomaticCacheFlushAfterComputeShader(bool bEnable)
 	{
 		if (Bypass())
 		{
@@ -1382,7 +1494,7 @@ public:
 		Cmd->Set(bEnable);
 	}
 
-	void FlushComputeShaderCache()
+	FORCEINLINE_DEBUGGABLE void FlushComputeShaderCache()
 	{
 		if (Bypass())
 		{
@@ -1393,7 +1505,7 @@ public:
 		Cmd->Set();
 	}
 
-	void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
+	FORCEINLINE_DEBUGGABLE void DrawPrimitiveIndirect(uint32 PrimitiveType, FVertexBufferRHIParamRef ArgumentBuffer, uint32 ArgumentOffset)
 	{
 		if (Bypass())
 		{
@@ -1405,7 +1517,7 @@ public:
 		ArgumentBuffer->AddRef();
 	}
 
-	void DrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, uint32 DrawArgumentsIndex, uint32 NumInstances)
+	FORCEINLINE_DEBUGGABLE void DrawIndexedIndirect(FIndexBufferRHIParamRef IndexBufferRHI, uint32 PrimitiveType, FStructuredBufferRHIParamRef ArgumentsBufferRHI, uint32 DrawArgumentsIndex, uint32 NumInstances)
 	{
 		if (Bypass())
 		{
@@ -1418,7 +1530,7 @@ public:
 		ArgumentsBufferRHI->AddRef();
 	}
 
-	void DrawIndexedPrimitiveIndirect(uint32 PrimitiveType, FIndexBufferRHIParamRef IndexBuffer, FVertexBufferRHIParamRef ArgumentsBuffer, uint32 ArgumentOffset)
+	FORCEINLINE_DEBUGGABLE void DrawIndexedPrimitiveIndirect(uint32 PrimitiveType, FIndexBufferRHIParamRef IndexBuffer, FVertexBufferRHIParamRef ArgumentsBuffer, uint32 ArgumentOffset)
 	{
 		if (Bypass())
 		{
@@ -1431,7 +1543,7 @@ public:
 		ArgumentsBuffer->AddRef();
 	}
 
-	void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
+	FORCEINLINE_DEBUGGABLE void EnableDepthBoundsTest(bool bEnable, float MinDepth, float MaxDepth)
 	{
 		if (Bypass())
 		{
@@ -1443,7 +1555,52 @@ public:
 
 	}
 
+	FORCEINLINE_DEBUGGABLE void ClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32(&Values)[4])
+	{
+		if (Bypass())
+		{
+			ClearUAV_Internal(UnorderedAccessViewRHI, Values);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandClearUAV>();
+		Cmd->Set(UnorderedAccessViewRHI, Values);
+		UnorderedAccessViewRHI->AddRef();
+	}
 
+	FORCEINLINE_DEBUGGABLE void CopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
+	{
+		if (Bypass())
+		{
+			CopyToResolveTarget_Internal(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandCopyToResolveTarget>();
+		Cmd->Set(SourceTextureRHI, DestTextureRHI, bKeepOriginalSurface, ResolveParams);
+		SourceTextureRHI->AddRef();
+		DestTextureRHI->AddRef();
+	}
+
+	FORCEINLINE_DEBUGGABLE void Clear(bool bClearColor, const FLinearColor& Color, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	{
+		if (Bypass())
+		{
+			Clear_Internal(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandClear>();
+		Cmd->Set(bClearColor, Color, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	}
+
+	FORCEINLINE_DEBUGGABLE void ClearMRT(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil, FIntRect ExcludeRect)
+	{
+		if (Bypass())
+		{
+			ClearMRT_Internal(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandClearMRT>();
+		Cmd->Set(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
+	}
 
 	const SIZE_T GetUsedMemory() const;
 
@@ -1561,6 +1718,9 @@ public:
 };
 #endif
 
+// typedef to mark the recursive use of commandlists in the RHI implmentations
+typedef FRHICommandList FRHICommandList_RecursiveHazardous;
+
 class RHI_API FRHICommandListExecutor
 {
 public:
@@ -1573,7 +1733,6 @@ public:
 	{
 	}
 	static inline FRHICommandListImmediate& GetImmediateCommandList();
-	static inline FRHICommandListImmediate& GetRecursiveRHICommandList(); // Only for use by RHI implementations
 
 	void ExecuteList(FRHICommandList& CmdList);
 	void LatchBypass();
@@ -1607,12 +1766,6 @@ FORCEINLINE_DEBUGGABLE bool FRHICommandList::Bypass()
 
 FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImmediateCommandList()
 {
-	return GRHICommandList.CommandListImmediate;
-}
-FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetRecursiveRHICommandList()
-{
-	check(!GRHICommandList.CommandListImmediate.bExecuting); // queued RHI commands must not be implemented by calling other queued RHI commands
-	GRHICommandList.CommandListImmediate.Flush(); // if for some reason this is called non-recursively, this flushes everything to get us in a reasonable state for the recursive, hazardous calls
 	return GRHICommandList.CommandListImmediate;
 }
 

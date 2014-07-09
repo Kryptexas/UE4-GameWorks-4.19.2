@@ -597,7 +597,7 @@ DEFINE_RHIMETHOD_GLOBAL_3(
 	);
 
 /** Clears a UAV to the multi-component value provided. */
-DEFINE_RHIMETHOD_2(
+	DEFINE_RHIMETHOD_CMDLIST_2(
 	void,ClearUAV,
 	FUnorderedAccessViewRHIParamRef,UnorderedAccessViewRHI,
 	const uint32*,Values,
@@ -1111,7 +1111,7 @@ DEFINE_RHIMETHOD_GLOBALFLUSH_5(
 * @param bKeepOriginalSurface - true if the original surface will still be used after this function so must remain valid
 * @param ResolveParams - optional resolve params
 */
-DEFINE_RHIMETHOD_4(
+DEFINE_RHIMETHOD_CMDLIST_4(
 	void,CopyToResolveTarget,
 	FTextureRHIParamRef,SourceTexture,
 	FTextureRHIParamRef,DestTexture,
@@ -1842,7 +1842,7 @@ DEFINE_RHIMETHOD_CMDLIST_0(
  * This method clears all MRT's, but to only one color value
  * @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
  */
-DEFINE_RHIMETHOD_7(
+DEFINE_RHIMETHOD_CMDLIST_7(
 	void,Clear,
 	bool,bClearColor,
 	const FLinearColor&,Color,
@@ -1858,7 +1858,7 @@ DEFINE_RHIMETHOD_7(
  * This method clears all MRT's to potentially different color values
  * @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
  */
-DEFINE_RHIMETHOD_8(
+DEFINE_RHIMETHOD_CMDLIST_8(
 	void,ClearMRT,
 	bool,bClearColor,
 	int32,NumClearColors,

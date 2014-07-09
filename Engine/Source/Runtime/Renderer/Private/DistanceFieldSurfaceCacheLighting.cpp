@@ -2584,7 +2584,7 @@ FIntPoint BuildTileObjectLists(FRHICommandListImmediate& RHICmdList, FScene* Sce
 			}
 
 			// Indicates the clear value for each channel of the UAV format
-			uint32 ClearValues[4] = {0};
+			uint32 ClearValues[4] = { 0 };
 			RHICmdList.ClearUAV(TileIntersectionResources->TileArrayNextAllocation.UAV, ClearValues);
 			RHICmdList.ClearUAV(TileIntersectionResources->TileHeadData.UAV, ClearValues);
 

@@ -804,7 +804,7 @@ FLightPropagationVolume::~FLightPropagationVolume()
 /**
 * Sets up the LPV at the beginning of the frame
 */
-void FLightPropagationVolume::InitSettings( const FSceneView& View )
+void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FSceneView& View)
 	{
 	check(View.GetFeatureLevel() >= ERHIFeatureLevel::SM5);
 
@@ -879,8 +879,8 @@ void FLightPropagationVolume::InitSettings( const FSceneView& View )
 	if ( bNeedsBufferClear )
 	{
 #if !LPV_VOLUME_TEXTURE
-		uint32 Zero = 0;
-		RHIClearUAV( mVplListHeadBuffer->UAV, &Zero );
+		uint32 ClearValues[4] = {0};
+		RHICmdList.ClearUAV( mVplListHeadBuffer->UAV, ClearValues );
 #endif
 
 		ClearMultiplier = 0.0f;
