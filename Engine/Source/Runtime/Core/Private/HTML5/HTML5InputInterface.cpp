@@ -93,6 +93,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 		{
 			Cursor->SetPosition(Event.motion.x, Event.motion.y);
 			MessageHandler->OnRawMouseMove(Event.motion.xrel, -Event.motion.yrel);
+			MessageHandler->OnMouseMove(); 
 		}
 #if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
 		else if (Event.type == SDL_ACTIVEEVENT)
