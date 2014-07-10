@@ -1503,6 +1503,27 @@ public:
 		::Sort( GetTypedData(), Num(), Predicate );
 	}
 
+	/**
+	 * Stable sorts the array assuming < operator is defined for the item type.
+	 * Stable sort is slower than non-stable algorithm.
+	 */
+	void StableSort()
+	{
+		::StableSort(GetTypedData(), Num());
+	}
+
+	/**
+	 * Stable sorts the array using user defined predicate class. Stable sort
+	 * is slower than non-stable algorithm.
+	 *
+	 * @param Predicate Predicate class instance
+	 */
+	template <class PREDICATE_CLASS>
+	void StableSort(const PREDICATE_CLASS& Predicate)
+	{
+		::StableSort(GetTypedData(), Num(), Predicate);
+	}
+
 #if defined(_MSC_VER)
 private:
 	/**
