@@ -108,8 +108,12 @@ public:
 
 	virtual bool ShouldUseSeparateRenderTarget() const override
 	{
+#ifdef OVR_DIRECT_RENDERING
 		check(IsInGameThread());
 		return IsStereoEnabled();
+#else
+		return false;
+#endif//OVR_DIRECT_RENDERING
 	}
 
     /** ISceneViewExtension interface */
