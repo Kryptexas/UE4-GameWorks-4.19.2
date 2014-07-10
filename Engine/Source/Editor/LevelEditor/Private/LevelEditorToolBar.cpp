@@ -17,11 +17,6 @@
 #include "Matinee/MatineeActor.h"
 #include "Engine/LevelScriptBlueprint.h"
 
-static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
-	TEXT("r.FeatureLevelPreview"),
-	0,
-	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
-	ECVF_RenderThreadSafe);
 
 /**
  * Static: Creates a widget for the level editor tool bar
@@ -478,9 +473,7 @@ static void MakeShaderModelPreviewMenu(FMenuBuilder& MenuBuilder)
 {
 	MenuBuilder.BeginSection("LevelEditorShaderModelPreview", NSLOCTEXT("LevelToolBarViewMenu", "FeatureLevelPreviewHeading", "Feature Level Preview"));
 	{
-		static const ERHIFeatureLevel::Type MaxFeatureLevel = GMaxRHIFeatureLevel;
-
-		for (int32 i = MaxFeatureLevel; i >= 0; --i)
+		for (int32 i = GMaxRHIFeatureLevel; i >= 0; --i)
 		{
 			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().FeatureLevelPreview[i]);
 		}
@@ -548,7 +541,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 			LOCTEXT( "MaterialQualityLevelSubMenu_ToolTip", "Sets the value of the CVar \"r.MaterialQualityLevel\" (low=0, high=1). This affects materials via the QualitySwitch material expression." ),
 			FNewMenuDelegate::CreateStatic( &MakeMaterialQualityLevelMenu ) );
 
-		if (CVarFeatureLevelPreview.GetValueOnGameThread() != 0)
+		static const auto CVarFeatureLevelPreview = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FeatureLevelPreview"));
+		if (CVarFeatureLevelPreview->GetValueOnGameThread() != 0)
 		{
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("FeatureLevelPreviewSubMenu", "Feature Level Preview"),

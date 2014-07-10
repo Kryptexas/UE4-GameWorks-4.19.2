@@ -468,6 +468,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.SceneTextureMinMax = SceneTexMinMax;
 
 	FScene* Scene = (FScene*)Family->Scene;
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	if (Scene && Scene->SkyLight)
 	{
@@ -481,16 +482,25 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 			&& SkyLight->bPrecomputedLightingIsValid;
 
 		ViewUniformShaderParameters.SkyLightParameters = bApplyPrecomputedBentNormalShadowing ? 1 : 0;
+
+		FeatureLevel = Scene->GetFeatureLevel();
 	}
 	else
 	{
 		ViewUniformShaderParameters.SkyLightColor = FLinearColor::Black;
 		ViewUniformShaderParameters.SkyLightParameters = 0;
+
+		FeatureLevel = GMaxRHIFeatureLevel;
 	}
 
 	// Make sure there's no padding since we're going to cast to FVector4*
 	checkSlow(sizeof(ViewUniformShaderParameters.SkyIrradianceEnvironmentMap) == sizeof(FVector4) * 7);
 	SetupSkyIrradianceEnvironmentMapConstants((FVector4*)&ViewUniformShaderParameters.SkyIrradianceEnvironmentMap);
+
+	ViewUniformShaderParameters.ES2PreviewMode =
+		(GIsEditor &&
+		FeatureLevel == ERHIFeatureLevel::ES2 &&
+		GMaxRHIFeatureLevel > ERHIFeatureLevel::ES2) ? 1.0f : 0.0f;
 
 	return TUniformBufferRef<FViewUniformShaderParameters>::CreateUniformBufferImmediate(ViewUniformShaderParameters, UniformBuffer_SingleFrame);
 }

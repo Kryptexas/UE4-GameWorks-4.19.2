@@ -175,29 +175,64 @@ void SLevelViewport::ConstructViewportOverlayContent()
 	.HAlign( HAlign_Right )
 	.Padding( 5.0f )
 	[
-		SNew( SHorizontalBox )
-		.Visibility( this, &SLevelViewport::GetCurrentLevelTextVisibility )
-		// Current level label
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding( 2.0f, 1.0f, 2.0f, 1.0f )
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		[
-			SNew( STextBlock )
-			.Text( this, &SLevelViewport::GetCurrentLevelText, true )
-			.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
-			.ShadowOffset( FVector2D(1,1) )
-		]
+			SNew(SHorizontalBox)
+			.Visibility(this, &SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility)
+			// Current level label
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+			[
+				SNew(STextBlock)
+				.Text(this, &SLevelViewport::GetCurrentFeatureLevelPreviewText, true)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.ShadowOffset(FVector2D(1, 1))
+			]
 
-		// Current level
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding( 4.0f, 1.0f, 2.0f, 1.0f )
+			// Current level
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4.0f, 1.0f, 2.0f, 1.0f)
+				[
+					SNew(STextBlock)
+					.Text(this, &SLevelViewport::GetCurrentFeatureLevelPreviewText, false)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ColorAndOpacity(FLinearColor(0.4f, 1.0f, 1.0f))
+					.ShadowOffset(FVector2D(1, 1))
+				]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2.0f, 1.0f, 2.0f, 1.0f)
 		[
-			SNew( STextBlock )
-			.Text( this, &SLevelViewport::GetCurrentLevelText, false )
-			.Font( FEditorStyle::GetFontStyle( TEXT( "MenuItem.Font" ) ) )
-			.ColorAndOpacity( FLinearColor( 0.4f, 1.0f, 1.0f ) )
-			.ShadowOffset( FVector2D(1,1) )
+			SNew(SHorizontalBox)
+			.Visibility(this, &SLevelViewport::GetCurrentLevelTextVisibility)
+			// Current level label
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 1.0f, 2.0f, 1.0f)
+			[
+				SNew(STextBlock)
+				.Text(this, &SLevelViewport::GetCurrentLevelText, true)
+				.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+				.ShadowOffset(FVector2D(1, 1))
+			]
+
+			// Current level
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4.0f, 1.0f, 2.0f, 1.0f)
+				[
+					SNew(STextBlock)
+					.Text(this, &SLevelViewport::GetCurrentLevelText, false)
+					.Font(FEditorStyle::GetFontStyle(TEXT("MenuItem.Font")))
+					.ColorAndOpacity(FLinearColor(0.4f, 1.0f, 1.0f))
+					.ShadowOffset(FVector2D(1, 1))
+				]
 		]
 	];
 
@@ -2953,6 +2988,32 @@ FString SLevelViewport::GetDeviceProfileString( ) const
 	return DeviceProfile;
 }
 
+FText SLevelViewport::GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const
+{
+	FText LabelName;
+	FText FeatureLevelText;
+
+	if (bDrawOnlyLabel)
+	{
+		LabelName = LOCTEXT("FeatureLevelLabel", "Feature Level:");
+	}
+	else
+	{
+		if (GRHIFeatureLevel != GMaxRHIFeatureLevel)
+		{
+			FName FeatureLevelName;
+			GetFeatureLevelName(GRHIFeatureLevel, FeatureLevelName);
+			FeatureLevelText = FText::Format(LOCTEXT("FeatureLevel", "{0}"), FText::FromName(FeatureLevelName));
+		}
+	}
+	
+	if (bDrawOnlyLabel)
+	{
+		return LabelName;
+	}
+
+	return FeatureLevelText;
+}
 
 FText SLevelViewport::GetCurrentLevelText( bool bDrawOnlyLabel ) const
 {
@@ -3000,6 +3061,11 @@ EVisibility SLevelViewport::GetCurrentLevelTextVisibility() const
 		ContentVisibility = EVisibility::SelfHitTestInvisible;
 	}
 	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) ? ContentVisibility : EVisibility::Collapsed;
+}
+
+EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
+{
+	return (GRHIFeatureLevel != GMaxRHIFeatureLevel) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)

@@ -81,17 +81,17 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	// ES2 feature level emulation in D3D11
 	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::ES2);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::ES2;
 		GRHIShaderPlatform = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM5);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GRHIShaderPlatform = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM4);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GRHIShaderPlatform = SP_PCD3D_SM4;
 	}
 

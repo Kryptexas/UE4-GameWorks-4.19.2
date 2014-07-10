@@ -598,6 +598,9 @@ public:
 	/** The interface to the scene manager for this world. */
 	class FSceneInterface*						Scene;
 
+	/** The current renderer feature level of this world */
+	ERHIFeatureLevel::Type						FeatureLevel;
+
 	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
 	FLevelViewportInfo							EditorViews[4];
 
@@ -622,7 +625,7 @@ public:
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
 
-	static void ForceFeatureLevelUpdate(ERHIFeatureLevel::Type InFeatureLevel);
+	static void ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
 	/** List of all the controllers in the world. */

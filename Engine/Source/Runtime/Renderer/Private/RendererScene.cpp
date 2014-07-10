@@ -192,7 +192,8 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	SkyLight(NULL)
 ,	SimpleDirectionalLight(NULL)
 ,	SunLight(NULL)
-,	IndirectLightingCache()
+,	ReflectionSceneData(InFeatureLevel)
+,	IndirectLightingCache(InFeatureLevel)
 ,	SurfaceCacheResources(NULL)
 ,	PreshadowCacheLayout(0, 0, 0, 0, false, false)
 ,	AtmosphericFog(NULL)
@@ -206,7 +207,6 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	NumVisibleLights(0)
 ,	bHasSkyLight(false)
-,	FeatureLevel(InFeatureLevel)
 {
 	check(World);
 
@@ -1525,6 +1525,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 		MaterialArray.Add(Material);
 	}
 
+	const auto FeatureLevel = GetFeatureLevel();
 	bool bFoundAnyInitializedMaterials = false;
 
 	// Iterate through all loaded material render proxies and recache their uniform expressions if needed
@@ -1989,13 +1990,6 @@ void FScene::OnLevelAddedToWorld_RenderThread(FName InLevelName)
 			Proxy->bIsComponentLevelVisible = true;
 		}
 	}
-}
-
-void FScene::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
-{
-	FeatureLevel = InFeatureLevel;
-	GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
-	SetMaxRHIFeatureLevel(InFeatureLevel);
 }
 
 /**

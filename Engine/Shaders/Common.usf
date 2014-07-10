@@ -128,10 +128,11 @@
 		#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 	#else 
 		#define FCOLOR_COMPONENT_SWIZZLE 
-
-		// A8 textures when sampled have their component in R.
-		#undef A8_SAMPLE_MASK
-		#define A8_SAMPLE_MASK .r
+		#if COMPILER_GLSL
+			// A8 textures when sampled have their component in R
+			#undef A8_SAMPLE_MASK
+			#define A8_SAMPLE_MASK .r
+		#endif
 	#endif
 #else
 

@@ -9709,10 +9709,17 @@ static void SetNearClipPlane(const TArray<FString>& Args)
 }
 FAutoConsoleCommand GSetNearClipPlaneCmd(TEXT("r.SetNearClipPlane"),TEXT("Set the near clipping plane (in cm)"),FConsoleCommandWithArgsDelegate::CreateStatic(SetNearClipPlane));
 
+static TAutoConsoleVariable<int32> CVarAllowHighQualityLightMaps(
+	TEXT("r.HighQualityLightMaps"),
+	1,
+	TEXT("If set to 1, allow high quality lightmaps which don't bake in direct lighting of stationary lights"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
 bool AllowHighQualityLightmaps()
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighQualityLightMaps"));
-	return CVar->GetValueOnAnyThread() != 0;
+	return FPlatformProperties::SupportsHighQualityLightmaps()
+		&& (GRHIFeatureLevel > ERHIFeatureLevel::ES2)
+		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0);
 }
 
 // Helper function for changing system resolution via the r.setres console command

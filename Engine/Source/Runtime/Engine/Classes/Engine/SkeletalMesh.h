@@ -781,7 +781,7 @@ public:
 	FORCEINLINE FSkeletalMeshResource* GetImportedResource() const { return ImportedResource.Get(); }
 
 	/** Get the resource to use for rendering. */
-	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering(ERHIFeatureLevel::Type FeatureLevel) const { return GetImportedResource(); }
+	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering() const { return GetImportedResource(); }
 
 	/** Skeleton of this skeletal mesh **/
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)

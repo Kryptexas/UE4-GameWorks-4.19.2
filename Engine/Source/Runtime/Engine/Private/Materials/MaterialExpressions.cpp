@@ -154,6 +154,7 @@ if( ExpressionInput.Expression == ToBeRemovedExpression )										\
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCoordinateCheck;
 FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedCommentFix;
+FUObjectAnnotationSparseBool GMaterialFunctionsThatNeedSamplerFixup;
 #endif // #if WITH_EDITOR
 
 /** Returns whether the given expression class is allowed. */
@@ -1081,13 +1082,13 @@ EMaterialSamplerType UMaterialExpressionTextureBase::GetSamplerTypeForTexture(co
 			case TC_Normalmap:
 				return SAMPLERTYPE_Normal;
 			case TC_Grayscale:
-				return SAMPLERTYPE_Grayscale;
+				return Texture->SRGB ? SAMPLERTYPE_Grayscale : SAMPLERTYPE_LinearGrayscale;
 			case TC_Alpha:
 				return SAMPLERTYPE_Alpha;
 			case TC_Masks:
 				return SAMPLERTYPE_Masks;
 			default:
-				return SAMPLERTYPE_Color;
+				return Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
 		}
 	}
 	return SAMPLERTYPE_Color;
@@ -5399,8 +5400,8 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 				Texture = Texture = GEngine->DefaultTexture;
 			}
 			check(Texture);
-
-			if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSample")), Texture, SAMPLERTYPE_Color))
+			EMaterialSamplerType ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+			if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSample")), Texture, ExpectedSamplerType))
 			{
 				return INDEX_NONE;
 			}
@@ -5409,7 +5410,7 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 			Result = Compiler->TextureSample(
 				TextureCodeIndex,
 				Compiler->TextureCoordinate(0, false, false),
-				SAMPLERTYPE_Color
+				ExpectedSamplerType
 			);
 		}
 		else
@@ -5499,7 +5500,8 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 			Texture = Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
-		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSampleParameter")), Texture, SAMPLERTYPE_Color))
+		EMaterialSamplerType ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSampleParameter")), Texture, ExpectedSamplerType))
 		{
 			return INDEX_NONE;
 		}
@@ -5507,7 +5509,7 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 		Result = Compiler->TextureSample(
 			TextureCodeIndex,
 			Compiler->TextureCoordinate(0, false, false),
-			SAMPLERTYPE_Color
+			ExpectedSamplerType
 		);
 	}
 	return Result;
@@ -6219,6 +6221,11 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 	{
 		GMaterialFunctionsThatNeedCommentFix.Set(this);
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_ADD_LINEAR_COLOR_SAMPLER)
+	{
+		GMaterialFunctionsThatNeedSamplerFixup.Set(this);
+	}
 #endif // #if WITH_EDITOR
 }
 
@@ -6277,6 +6284,40 @@ void UMaterialFunction::PostLoad()
 	{
 		GMaterialFunctionsThatNeedCommentFix.Clear(this);
 		UMaterial::FixCommentPositions(FunctionEditorComments);
+	}
+
+	if (GMaterialFunctionsThatNeedSamplerFixup.Get(this))
+	{
+		GMaterialFunctionsThatNeedSamplerFixup.Clear(this);
+		const int32 ExpressionCount = FunctionExpressions.Num();
+		for (int32 ExpressionIndex = 0; ExpressionIndex < ExpressionCount; ++ExpressionIndex)
+		{
+			UMaterialExpressionTextureBase* TextureExpression = Cast<UMaterialExpressionTextureBase>(FunctionExpressions[ExpressionIndex]);
+			if (TextureExpression && TextureExpression->Texture)
+			{
+				switch (TextureExpression->Texture->CompressionSettings)
+				{
+				case TC_Normalmap:
+					TextureExpression->SamplerType = SAMPLERTYPE_Normal;
+					break;
+
+				case TC_Grayscale:
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Grayscale : SAMPLERTYPE_LinearGrayscale;
+					break;
+
+				case TC_Masks:
+					TextureExpression->SamplerType = SAMPLERTYPE_Masks;
+					break;
+
+				case TC_Alpha:
+					TextureExpression->SamplerType = SAMPLERTYPE_Alpha;
+					break;
+				default:
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+					break;
+				}
+			}
+		}
 	}
 #endif // #if WITH_EDITOR
 }

@@ -21,7 +21,9 @@ UTextureRenderTarget2D::UTextureRenderTarget2D(const class FPostConstructInitial
 
 FTextureResource* UTextureRenderTarget2D::CreateResource()
 {
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	UWorld* World = GetWorld();
+	ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
+	if (FeatureLevel <= ERHIFeatureLevel::ES2)
 	{
 		EPixelFormat Format = GetFormat();
 		if ((!GSupportsRenderTargetFormat_PF_FloatRGBA && (Format == PF_FloatRGBA || Format == PF_FloatRGB))

@@ -1122,7 +1122,7 @@ void UInstancedStaticMeshComponent::ApplyComponentInstanceData(TSharedPtr<FCompo
 FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 {
 	// We don't support instancing on ES2
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (GetWorld()->FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		return NULL;
 	}

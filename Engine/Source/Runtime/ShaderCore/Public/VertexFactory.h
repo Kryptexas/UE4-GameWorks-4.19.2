@@ -332,6 +332,19 @@ public:
 	};
 
 	/**
+	 * Default constructor 
+	 */
+	FVertexFactory() {}
+
+	/**
+	* Constructor specifiying feature level
+	*/
+	FVertexFactory(ERHIFeatureLevel::Type InFeatureLevel) 
+		: FRenderResource(InFeatureLevel)
+	{
+	}
+
+	/**
 	 * @return The vertex factory's type.
 	 */
 	virtual FVertexFactoryType* GetType() const = 0;

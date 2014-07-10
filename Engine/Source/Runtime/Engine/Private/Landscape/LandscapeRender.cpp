@@ -653,7 +653,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	}
 #endif
 
-	bRequiresAdjacencyInformation = RequiresAdjacencyInformation( MaterialInterface, XYOffsetmapTexture == NULL ? &FLandscapeVertexFactory::StaticType : &FLandscapeXYOffsetVertexFactory::StaticType );
+	bRequiresAdjacencyInformation = RequiresAdjacencyInformation(MaterialInterface, XYOffsetmapTexture == NULL ? &FLandscapeVertexFactory::StaticType : &FLandscapeXYOffsetVertexFactory::StaticType, InComponent->GetWorld()->FeatureLevel);
 	SharedBuffersKey = SubsectionSizeQuads | (NumSubsections << 16) | ( XYOffsetmapTexture == NULL ? 0 : 0x80000000);
 
 	DynamicMesh.LCI = ComponentLightInfo; 
@@ -698,7 +698,7 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	SharedBuffers = FLandscapeComponentSceneProxy::SharedBuffersMap.FindRef(SharedBuffersKey);
 	if( SharedBuffers == NULL )
 	{
-		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections);
+		SharedBuffers = new FLandscapeSharedBuffers(SharedBuffersKey, SubsectionSizeQuads, NumSubsections, GetScene()->GetFeatureLevel());
 		FLandscapeComponentSceneProxy::SharedBuffersMap.Add(SharedBuffersKey, SharedBuffers);
 
 		if (!XYOffsetmapTexture)
@@ -1610,9 +1610,9 @@ void FLandscapeVertexBuffer::InitRHI()
 //
 
 template <typename INDEX_TYPE>
-void FLandscapeSharedBuffers::CreateIndexBuffers()
+void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (InFeatureLevel == ERHIFeatureLevel::ES2)
 {
 		if (!bVertexScoresComputed)
 		{
@@ -1639,7 +1639,7 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 		MaxIndexFull = 0;
 		MinIndexFull = MAX_int32;
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+		if (InFeatureLevel == ERHIFeatureLevel::ES2)
 		{
 			// ES2 version
 			float MipRatio = (float)SubsectionSizeQuads / (float)LodSubsectionSizeQuads; // Morph current MIP to base MIP
@@ -1816,15 +1816,16 @@ void FLandscapeSharedBuffers::CreateIndexBuffers()
 	}
 }
 
-FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32 InSubsectionSizeQuads, int32 InNumSubsections)
+FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32 InSubsectionSizeQuads, int32 InNumSubsections, ERHIFeatureLevel::Type InFeatureLevel)
 :	SharedBuffersKey(InSharedBuffersKey)
 ,	NumIndexBuffers(FMath::CeilLogTwo(InSubsectionSizeQuads+1))
 ,	SubsectionSizeVerts(InSubsectionSizeQuads+1)
 ,	NumSubsections(InNumSubsections)
 ,	VertexFactory(NULL)
+,	VertexBuffer(NULL)
 ,	AdjacencyIndexBuffers(NULL)
 {
-	if (GRHIFeatureLevel > ERHIFeatureLevel::ES2)
+	if (InFeatureLevel > ERHIFeatureLevel::ES2)
 	{
 		// Vertex Buffer cannot be shared
 		VertexBuffer = new FLandscapeVertexBuffer(SubsectionSizeVerts, NumSubsections);
@@ -1835,20 +1836,18 @@ FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32
 	// See if we need to use 16 or 32-bit index buffers
 	if( FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) > 65535 )
 	{
-		CreateIndexBuffers<uint32>();
+		CreateIndexBuffers<uint32>(InFeatureLevel);
 	}
 	else
 	{
-		CreateIndexBuffers<uint16>();
+		CreateIndexBuffers<uint16>(InFeatureLevel);
 	}
 }
 
 FLandscapeSharedBuffers::~FLandscapeSharedBuffers()
 {
-	if (GRHIFeatureLevel > ERHIFeatureLevel::ES2)
-	{
-		delete VertexBuffer;
-	}
+	delete VertexBuffer;
+	
 	for( int32 i=0;i<NumIndexBuffers;i++ )
 	{
 		IndexBuffers[i]->ReleaseResource();

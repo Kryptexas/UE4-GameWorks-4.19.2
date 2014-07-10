@@ -607,8 +607,10 @@ void FStaticMeshLODResources::InitVertexFactory(
 
 void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 {
+	const auto MaxShaderPlatform = GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel];
+
 	// Initialize the vertex and index buffers.
-	if (IsES2Platform(GRHIShaderPlatform))
+	if (IsES2Platform(MaxShaderPlatform))
 	{
 		if (IndexBuffer.Is32Bit())
 		{
@@ -636,7 +638,7 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		BeginInitResource(&DepthOnlyIndexBuffer);
 	}
 
-	if( RHISupportsTessellation(GRHIShaderPlatform) ) 
+	if (RHISupportsTessellation(MaxShaderPlatform))
 	{
 		BeginInitResource(&AdjacencyIndexBuffer);
 	}
@@ -651,7 +653,7 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		PositionVertexBuffer.GetStride() * PositionVertexBuffer.GetNumVertices();
 	const uint32 StaticMeshIndexMemory = IndexBuffer.GetAllocatedSize()
 		+ WireframeIndexBuffer.GetAllocatedSize()
-		+ (RHISupportsTessellation(GRHIShaderPlatform) ? AdjacencyIndexBuffer.GetAllocatedSize() : 0);
+		+ (AdjacencyIndexBuffer.IsInitialized() ? AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 	const uint32 ResourceVertexColorMemory = ColorVertexBuffer.GetStride() * ColorVertexBuffer.GetNumVertices();
 
 	INC_DWORD_STAT_BY( STAT_StaticMeshVertexMemory, StaticMeshVertexMemory );
@@ -667,7 +669,7 @@ void FStaticMeshLODResources::ReleaseResources()
 		PositionVertexBuffer.GetStride() * PositionVertexBuffer.GetNumVertices();
 	const uint32 StaticMeshIndexMemory = IndexBuffer.GetAllocatedSize()
 		+ WireframeIndexBuffer.GetAllocatedSize()
-		+ (RHISupportsTessellation(GRHIShaderPlatform) ? AdjacencyIndexBuffer.GetAllocatedSize() : 0);
+		+ (AdjacencyIndexBuffer.IsInitialized() ? AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 	const uint32 ResourceVertexColorMemory = ColorVertexBuffer.GetStride() * ColorVertexBuffer.GetNumVertices();
 
 	DEC_DWORD_STAT_BY( STAT_StaticMeshVertexMemory, StaticMeshVertexMemory );
@@ -675,7 +677,7 @@ void FStaticMeshLODResources::ReleaseResources()
 	DEC_DWORD_STAT_BY( STAT_StaticMeshIndexMemory, StaticMeshIndexMemory );
 
 	// Release the vertex and index buffers.
-	if( RHISupportsTessellation(GRHIShaderPlatform) ) 
+	if (AdjacencyIndexBuffer.IsInitialized())
 	{
 		BeginReleaseResource(&AdjacencyIndexBuffer);
 	}
@@ -1323,7 +1325,7 @@ SIZE_T FStaticMeshRenderData::GetResourceSize() const
 			LODRenderData.ColorVertexBuffer.GetStride()				* LODRenderData.ColorVertexBuffer.GetNumVertices();
 		const int32 IBSize = LODRenderData.IndexBuffer.GetAllocatedSize()
 			+ LODRenderData.WireframeIndexBuffer.GetAllocatedSize()
-			+ (RHISupportsTessellation(GRHIShaderPlatform) ? LODRenderData.AdjacencyIndexBuffer.GetAllocatedSize() : 0);
+			+ (RHISupportsTessellation(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? LODRenderData.AdjacencyIndexBuffer.GetAllocatedSize() : 0);
 
 		ResourceSize += VBSize + IBSize;
 		ResourceSize += LODRenderData.Sections.GetAllocatedSize();

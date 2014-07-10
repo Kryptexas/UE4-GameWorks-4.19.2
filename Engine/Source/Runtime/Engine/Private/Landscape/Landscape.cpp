@@ -646,8 +646,9 @@ void ULandscapeComponent::BeginDestroy()
 
 FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 {
+	const auto FeatureLevel = GetWorld()->FeatureLevel;
 	FPrimitiveSceneProxy* Proxy = NULL;
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 #if WITH_EDITOR
 		if( EditToolRenderData == NULL )
@@ -659,7 +660,7 @@ FPrimitiveSceneProxy* ULandscapeComponent::CreateSceneProxy()
 		Proxy = new FLandscapeComponentSceneProxy(this, NULL);
 #endif
 	}
-	else if (GRHIFeatureLevel >= ERHIFeatureLevel::ES2)
+	else if (FeatureLevel >= ERHIFeatureLevel::ES2)
 	{
 #if WITH_EDITOR
 		if( !PlatformData.HasValidPlatformData() ) // Deferred generation

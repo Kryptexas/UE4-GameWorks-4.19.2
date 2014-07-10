@@ -2112,7 +2112,11 @@ protected:
 			case SAMPLERTYPE_Color:
 				SampleCode = FString::Printf( TEXT("ProcessMaterialColorTextureLookup(%s)"), *SampleCode );
 				break;
-			
+
+			case SAMPLERTYPE_LinearColor:
+				SampleCode = FString::Printf(TEXT("ProcessMaterialLinearColorTextureLookup(%s)"), *SampleCode);
+			break;
+
 			case SAMPLERTYPE_Alpha:
 				// Sampling a single channel texture in D3D9 gives: (G,G,G)
 				// Sampling a single channel texture in D3D11 gives: (G,0,0)
@@ -2125,6 +2129,13 @@ protected:
 				// Sampling a greyscale texture in D3D11 gives: (G,0,0)
 				// This replication reproduces the D3D9 behavior in all cases.
 				SampleCode = FString::Printf( TEXT("ProcessMaterialGreyscaleTextureLookup((%s).r).rrrr"), *SampleCode );
+				break;
+
+			case SAMPLERTYPE_LinearGrayscale:
+				// Sampling a greyscale texture in D3D9 gives: (G,G,G)
+				// Sampling a greyscale texture in D3D11 gives: (G,0,0)
+				// This replication reproduces the D3D9 behavior in all cases.
+				SampleCode = FString::Printf(TEXT("ProcessMaterialLinearGreyscaleTextureLookup((%s).r).rrrr"), *SampleCode);
 				break;
 
 			case SAMPLERTYPE_Normal:

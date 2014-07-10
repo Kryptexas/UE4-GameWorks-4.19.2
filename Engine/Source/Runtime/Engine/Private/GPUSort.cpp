@@ -81,11 +81,11 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		const int32 OffsetsCount = DIGIT_COUNT * MAX_GROUP_COUNT;
-		const int32 OffsetsBufferSize = OffsetsCount * sizeof(uint32);
-
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
+			const int32 OffsetsCount = DIGIT_COUNT * MAX_GROUP_COUNT;
+			const int32 OffsetsBufferSize = OffsetsCount * sizeof(uint32);
+		
 			for (int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex)
 			{
 				FRHIResourceCreateInfo CreateInfo;
@@ -182,7 +182,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
 			FRHIResourceCreateInfo CreateInfo;
 			SortParametersBufferRHI = RHICreateVertexBuffer(

@@ -8,6 +8,6 @@
 #define __TESSELLATIONRENDERING_H__
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
-extern bool RequiresAdjacencyInformation( UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType );
+extern bool RequiresAdjacencyInformation(UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel);
 
 #endif

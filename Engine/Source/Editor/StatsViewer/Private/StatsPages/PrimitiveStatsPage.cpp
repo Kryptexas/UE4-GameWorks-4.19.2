@@ -145,7 +145,7 @@ struct PrimitiveStatsGenerator
 			// Calculate vertex color usage for skeletal meshes
 			if( Mesh )
 			{
-				FSkeletalMeshResource* SkelMeshResource = Mesh->GetResourceForRendering(GRHIFeatureLevel);
+				FSkeletalMeshResource* SkelMeshResource = Mesh->GetResourceForRendering();
 				for( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); ++LODIndex )
 				{
 					const FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
@@ -313,7 +313,7 @@ struct PrimitiveStatsGenerator
 					USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->SkeletalMesh;
 					if( SkeletalMesh )
 					{
-						FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering(GRHIFeatureLevel);
+						FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
 						if (SkelMeshResource->LODModels.Num())
 						{
 							const FStaticLODModel& BaseLOD = SkelMeshResource->LODModels[0];

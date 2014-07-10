@@ -166,7 +166,7 @@ class FLightmassMaterialProxy : public FMaterial, public FMaterialRenderProxy
 public:
 	FLightmassMaterialProxy(): FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
 	/** Initializes the material proxy and kicks off async shader compiling. */
@@ -194,7 +194,7 @@ public:
 		// Special path for a MI with static parameters
 		if (MaterialInstance && MaterialInstance->bHasStaticPermutationResource && MaterialInstance->Parent)
 		{
-			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GRHIFeatureLevel);
+			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GMaxRHIFeatureLevel);
 
 			// Use the shader map Id from the static permutation
 			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
@@ -209,7 +209,7 @@ public:
 		}
 		else
 		{
-			FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+			FMaterialResource* MaterialResource = Material->GetMaterialResource(GMaxRHIFeatureLevel);
 
 			// Copy the material resource Id
 			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map

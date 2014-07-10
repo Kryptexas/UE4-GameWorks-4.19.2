@@ -192,8 +192,8 @@ void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const F
 FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 {
 	FDebugSkelMeshSceneProxy* Result = NULL;
-	ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
-	FSkeletalMeshResource* SkelMeshResource = SkeletalMesh ? SkeletalMesh->GetResourceForRendering(SceneFeatureLevel) : NULL;
+	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
+	FSkeletalMeshResource* SkelMeshResource = SkeletalMesh ? SkeletalMesh->GetResourceForRendering() : NULL;
 
 	// only create a scene proxy for rendering if
 	// properly initialized

@@ -294,10 +294,10 @@ public:
 	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
 
-	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections);
+	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections, ERHIFeatureLevel::Type InFeatureLevel);
 
 	template <typename INDEX_TYPE>
-	void CreateIndexBuffers();
+	void CreateIndexBuffers(ERHIFeatureLevel::Type InFeatureLevel);
 
 	virtual ~FLandscapeSharedBuffers();
 };

@@ -38,7 +38,7 @@ class FPostProcessCompositeEditorPrimitivesPS : public FGlobalShader
 			}
 		}
 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+		return IsPCPlatform(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)

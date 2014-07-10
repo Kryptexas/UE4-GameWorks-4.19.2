@@ -60,7 +60,7 @@ bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel)
 
 void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
 		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
 

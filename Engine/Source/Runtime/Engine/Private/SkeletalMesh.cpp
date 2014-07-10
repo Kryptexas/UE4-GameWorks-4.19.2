@@ -3860,7 +3860,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 				MaterialRelevance |= Material->GetRelevance();
 			}
 
-			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType );
+			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
 			if ( bRequiresAdjacencyInformation && LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() == false )
 			{
 				UE_LOG(LogSkeletalMesh, Warning, 
@@ -4208,7 +4208,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 
 	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType() );
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), View->GetFeatureLevel());
 	if ( bRequiresAdjacencyInformation )
 	{
 		check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
@@ -4582,7 +4582,7 @@ SIZE_T USkinnedMeshComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 {
-	ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
+	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
 	FSkeletalMeshSceneProxy* Result = NULL;
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 
@@ -4594,7 +4594,7 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 	{
 		// Only create a scene proxy if the bone count being used is supported, or if we don't have a skeleton (this is the case with destructibles)
 		int32 MaxBonesPerChunk = SkelMeshResource->GetMaxBonesPerChunk();
-		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(GRHIFeatureLevel))
+		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(SceneFeatureLevel))
 		{
 			Result = ::new FSkeletalMeshSceneProxy(this,SkelMeshResource);
 		}

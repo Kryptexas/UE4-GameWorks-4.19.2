@@ -72,8 +72,8 @@ public:
 	};
 
 	/** Default constructor. */
-	FMeshParticleVertexFactory( EParticleVertexFactoryType InType = PVFT_Mesh )
-		: FParticleVertexFactoryBase(InType)
+	FMeshParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
+		: FParticleVertexFactoryBase(InType, InFeatureLevel)
 	{
 	}
 

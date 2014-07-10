@@ -1859,3 +1859,9 @@ static TAutoConsoleVariable<int32> CVarPrecomputedVisibilityWarning(
 	0,
 	TEXT("If set to 1, a warning will be displayed when rendering a scene from a view point without precomputed visibility."),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarFeatureLevelPreview(
+	TEXT("r.FeatureLevelPreview"),
+	0,
+	TEXT("If 1 the quick settings menu will contain an option to enable feature level preview modes"),
+	ECVF_RenderThreadSafe);

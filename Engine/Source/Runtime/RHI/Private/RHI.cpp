@@ -177,14 +177,12 @@ RHI_API EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM5;
 /** The maximum feature level supported on this machine */
 ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
-RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel()
-{
-	return GMaxRHIFeatureLevel;
-}
+/** The current feature level being used on this machine - This is only temporary and will go away when feature level becomes dynamic */
+ERHIFeatureLevel::Type GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
-RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType)
+RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel()
 {
-	GMaxRHIFeatureLevel = InType;
+	return GCurrentRHIFeatureLevel;
 }
 
 FName FeatureLevelNames[] = 

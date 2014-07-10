@@ -126,7 +126,8 @@ protected:
 		CurrentMaxShadowResolution(0),
 		CurrentTranslucencyLightingVolumeDim(64),
 		CurrentMobile32bpp(0),
-		bCurrentLightPropagationVolume(false)
+		bCurrentLightPropagationVolume(false),
+		CurrentFeatureLevel(ERHIFeatureLevel::Num)
 		{}
 public:
 
@@ -257,7 +258,7 @@ public:
 	const FTexture2DRHIRef* GetActualDepthTexture() const
 	{
 		const FTexture2DRHIRef* DepthTexture = NULL;
-		if((GRHIFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GRHIShaderPlatform))
+		if((CurrentFeatureLevel >= ERHIFeatureLevel::SM4) || IsPCPlatform(GRHIShaderPlatform))
 		{
 			if(GSupportsDepthFetchDuringDepthTest)
 			{
@@ -514,7 +515,10 @@ private:
 	void AllocLightAttenuation();
 
 	// internal method, used by AdjustGBufferRefCount()
-	void FreeGBufferTargets();
+	void ReleaseGBufferTargets();
+
+	// release all allocated targets to the pool
+	void ReleaseAllTargets();
 
 	EPixelFormat GetSceneColorFormat() const;
 
@@ -547,6 +551,8 @@ private:
 	int32 CurrentMinShadowResolution;
 	/** To detect a change of the CVar r.LightPropagationVolume */
 	bool bCurrentLightPropagationVolume;
+	/** Feature level we were initialized for */
+	ERHIFeatureLevel::Type CurrentFeatureLevel;
 };
 
 /** The global render targets used for scene rendering. */

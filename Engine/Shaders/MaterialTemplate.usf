@@ -541,21 +541,48 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 	return (Parameters.ScreenPosition.xy / Parameters.ScreenPosition.w - Parameters.Particle.MacroUV.xy) * Parameters.Particle.MacroUV.zw + MaterialFloat2(.5, .5);
 }
 
+#define ES2_EMULATION (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT)
+
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
 #if ES2_PROFILE
+	#if ES2_EMULATION
+	if( View.ES2PreviewMode > 0.5f)
+	{
+		// undo HW srgb->lin
+		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
+	}
+	#endif
+
 	// sRGB read approximation
 	TextureValue.rgb *= TextureValue.rgb;
 #endif 
 	return TextureValue;
 }
 
+MaterialFloat4 ProcessMaterialLinearColorTextureLookup(MaterialFloat4 TextureValue)
+{
+	return TextureValue;
+}
+
 MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
 #if ES2_PROFILE
+	#if ES2_EMULATION
+	if( View.ES2PreviewMode > 0.5f )
+	{
+		// undo HW srgb->lin
+		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
+	}
+	#endif
 	// sRGB read approximation
 	TextureValue *= TextureValue;
 #endif 
+	return TextureValue;
+}
+
+MaterialFloat ProcessMaterialLinearGreyscaleTextureLookup(MaterialFloat TextureValue)
+{
 	return TextureValue;
 }
 

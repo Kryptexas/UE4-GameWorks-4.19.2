@@ -728,8 +728,9 @@ class FReflectionEnvironmentCubemapArray : public FRenderResource
 {
 public:
 
-	FReflectionEnvironmentCubemapArray() : 
-		MaxCubemaps(0)
+	FReflectionEnvironmentCubemapArray(ERHIFeatureLevel::Type InFeatureLevel) : 
+		FRenderResource(InFeatureLevel)
+	,	MaxCubemaps(0)
 	{}
 
 	virtual void InitDynamicRHI() override;
@@ -801,8 +802,9 @@ public:
 	/** Game thread tracking of what size this scene has allocated for the cubemap array. */
 	int32 MaxAllocatedReflectionCubemapsGameThread;
 
-	FReflectionEnvironmentSceneData() :
+	FReflectionEnvironmentSceneData(ERHIFeatureLevel::Type InFeatureLevel) :
 		bRegisteredReflectionCapturesHasChanged(true),
+		CubemapArray(InFeatureLevel),
 		MaxAllocatedReflectionCubemapsGameThread(0)
 	{}
 };
@@ -850,7 +852,7 @@ class FIndirectLightingCache : public FRenderResource
 public:
 
 	/** true for the editor case where we want a better preview for object that have no valid lightmaps */
-	FIndirectLightingCache();
+	FIndirectLightingCache(ERHIFeatureLevel::Type InFeatureLevel);
 
 	// FRenderResource interface
 	virtual void InitDynamicRHI();
@@ -1402,8 +1404,7 @@ public:
 
 	virtual bool IsEditorScene() const override { return bIsEditorScene; }
 
-	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return FeatureLevel; }
-	virtual void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel) override;
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const override { return GetWorld()->FeatureLevel; }
 
 private:
 
@@ -1516,11 +1517,6 @@ private:
 	 * Note: This is tracked on the game thread!
 	 */
 	bool bHasSkyLight;
-
-	/** 
-	 * Feature level that this scene should render using
-	 */
-	ERHIFeatureLevel::Type FeatureLevel;
 };
 
 #endif // __SCENEPRIVATE_H__

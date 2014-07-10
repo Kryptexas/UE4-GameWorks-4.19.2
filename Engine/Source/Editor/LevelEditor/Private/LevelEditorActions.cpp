@@ -450,14 +450,7 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// try iterating over all worlds here
-	for (TObjectIterator<UWorld> It; It; ++It)
-	{
-		UWorld* World = *It;
-		World->ChangeFeatureLevel(InPreviewFeatureLevel);
-	}
-	
-	UWorld::ForceFeatureLevelUpdate(InPreviewFeatureLevel);
+	UWorld::ChangeAllWorldFeatureLevels(InPreviewFeatureLevel);
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
@@ -2835,10 +2828,9 @@ void FLevelEditorCommands::RegisterCommands()
 			FUICommandInfoDecl(
 			this->AsShared(),
 			Name,
-			//FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreview", "Preview scenes using feature level {0}"), TEXT("Thing")),
 			FText::FromName(Name),
 			FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip", "Preview scenes using feature level {0}"), FText::FromName(Name)))
-			.UserInterfaceType(EUserInterfaceActionType::Button)
+			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultGesture(FInputGesture());
 	}
 }

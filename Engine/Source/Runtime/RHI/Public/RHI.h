@@ -232,15 +232,19 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
 extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
+extern RHI_API ERHIFeatureLevel::Type GCurrentRHIFeatureLevel;
 
-/** The current feature level supported by the RHI. */
-extern RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel();
+/** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
+extern RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel();
 
-//#define GRHIFeatureLevel GetRHIFeatureLevel()
-#define GRHIFeatureLevel GMaxRHIFeatureLevel
+/** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
+#define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
-/** Set the current feature level supported by the RHI. */
-extern RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType);
+#if RHI_FEATURE_LEVEL_AS_FUNCTION
+	#define GRHIFeatureLevel GetCurrentRHIFeatureLevel()
+#else
+	#define GRHIFeatureLevel GCurrentRHIFeatureLevel
+#endif
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];

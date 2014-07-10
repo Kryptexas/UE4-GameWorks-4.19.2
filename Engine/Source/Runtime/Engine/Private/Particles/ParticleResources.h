@@ -46,14 +46,17 @@ typedef FVertexBufferRHIParamRef FParticleBufferParamRef;
 class FParticleScratchVertexBuffer : public FVertexBuffer
 {
 public:
-	/** SRV in to the buffer as an array of FVector2D values. */
-	FShaderResourceViewRHIRef VertexBufferSRV_G32R32F;
-	
+
 	FParticleShaderParamRef GetShaderParam();
 	FParticleBufferParamRef GetBufferParam();
 
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
+
+private:
+
+	/** SRV in to the buffer as an array of FVector2D values. */
+	FShaderResourceViewRHIRef VertexBufferSRV_G32R32F;
 };
 
 /** The global scratch vertex buffer. */

@@ -353,14 +353,6 @@ void FSystemSettings::Initialize( bool bSetupForEditor )
 void FSystemSettings::CVarSink()
 {
 	ApplyOverrides();
-
-	auto CVarAllowHighQualityLightMaps = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighQualityLightMaps"));
-	if (bInitialUseHighQualityLightmaps != (CVarAllowHighQualityLightMaps->GetInt() != 0))
-	{
-		// This setting can't be changed at runtime, so put it back to what it was originally
-		CVarAllowHighQualityLightMaps->Set(bInitialUseHighQualityLightmaps);
-		UE_LOG(LogSystemSettings, Warning, TEXT("r.HighQualityLightMaps cannot be changed at runtime. Ignoring setting change"));
-	}
 }
 
 bool FSystemSettings::HandleLowendCommand( const TCHAR* Cmd , FOutputDevice& Ar )
@@ -490,14 +482,6 @@ void FSystemSettings::SetTextureLODGroup(TextureGroup TextureGroupID, int32 MinL
 void FSystemSettings::LoadFromIni()
 {
 	FSystemSettingsData::LoadFromIni(GetSectionName(bIsEditor));
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) || !FPlatformProperties::SupportsHighQualityLightmaps())
-	{
-		// Hack: disable high quality lightmaps with feature level ES2
-		//@todo-mobile - replace this with a system where feature levels can clamp misc features
-		static auto CVarAllowHighQualityLightMaps = IConsoleManager::Get().FindConsoleVariable(TEXT("r.HighQualityLightMaps"));
-		CVarAllowHighQualityLightMaps->Set(0);
-	}
 }
 
 void FSystemSettings::SaveToIni()

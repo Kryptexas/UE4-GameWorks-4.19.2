@@ -22,7 +22,14 @@ public:
 
 	/** Default constructor. */
 	FRenderResource()
-	: bInitialized(false)
+		: FeatureLevel(ERHIFeatureLevel::Num)
+		, bInitialized(false)
+	{}
+
+	/** Constructor when we know what feature level this resource should support */
+	FRenderResource(ERHIFeatureLevel::Type InFeatureLevel)
+		: FeatureLevel(InFeatureLevel)
+		, bInitialized(false)
 	{}
 
 	/** Destructor used to catch unreleased resources. */
@@ -82,7 +89,11 @@ public:
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
+	FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
+
 private:
+
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	/** This resource's link in the global resource list. */
 	TLinkedList<FRenderResource*> ResourceLink;

@@ -1626,6 +1626,11 @@ void UMaterial::Serialize(FArchive& Ar)
 	{
 		GMaterialsThatNeedCommentFix.Set(this);
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_ADD_LINEAR_COLOR_SAMPLER)
+	{
+		GMaterialsThatNeedSamplerFixup.Set(this);
+	}
 #endif // #if WITH_EDITOR
 
 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
@@ -1932,7 +1937,7 @@ void UMaterial::PostLoad()
 		const int32 ExpressionCount = Expressions.Num();
 		for ( int32 ExpressionIndex = 0; ExpressionIndex < ExpressionCount; ++ExpressionIndex )
 		{
-			UMaterialExpressionTextureSample* TextureExpression = Cast<UMaterialExpressionTextureSample>( Expressions[ ExpressionIndex ] );
+			UMaterialExpressionTextureBase* TextureExpression = Cast<UMaterialExpressionTextureBase>(Expressions[ExpressionIndex]);
 			if ( TextureExpression && TextureExpression->Texture )
 			{
 				switch( TextureExpression->Texture->CompressionSettings )
@@ -1942,7 +1947,7 @@ void UMaterial::PostLoad()
 					break;
 					
 				case TC_Grayscale:
-					TextureExpression->SamplerType = SAMPLERTYPE_Grayscale;
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Grayscale : SAMPLERTYPE_LinearGrayscale;
 					break;
 
 				case TC_Masks:
@@ -1953,7 +1958,7 @@ void UMaterial::PostLoad()
 					TextureExpression->SamplerType = SAMPLERTYPE_Alpha;
 					break;
 				default:
-					TextureExpression->SamplerType = SAMPLERTYPE_Color;
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
 					break;
 				}
 			}

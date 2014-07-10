@@ -2209,7 +2209,7 @@ public:
 	/** Initialize RHI resources. */
 	virtual void InitRHI() override
 	{
-		if ( ParticleCount > 0 && CurrentRHISupportsGPUParticles() )
+		if ( ParticleCount > 0 && RHISupportsGPUParticles(GetFeatureLevel()) )
 		{
 			const int32 BufferStride = sizeof(FParticleIndex);
 			const int32 BufferSize = ParticleCount * BufferStride;
@@ -3904,7 +3904,7 @@ void FFXSystem::RemoveGPUSimulation(FParticleSimulationGPU* Simulation)
 
 int32 FFXSystem::AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin)
 {
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 	const int32 BufferOffset = ParticleSimulationResources->SortedParticleCount;
 	ParticleSimulationResources->SortedParticleCount += Simulation->VertexBuffer.ParticleCount;
 	FParticleSimulationSortInfo* SortInfo = new(ParticleSimulationResources->SimulationsToSort) FParticleSimulationSortInfo();
@@ -4384,7 +4384,7 @@ static void ClearGPUSpriteResourceData( FGPUSpriteResources* Resources )
 FGPUSpriteResources* BeginCreateGPUSpriteResources( const FGPUSpriteResourceData& InResourceData )
 {
 	FGPUSpriteResources* Resources = NULL;
-	if (CurrentRHISupportsGPUParticles())
+	if (RHISupportsGPUParticles(GMaxRHIFeatureLevel))
 	{
 		Resources = new FGPUSpriteResources;
 		SetGPUSpriteResourceData( Resources, InResourceData );

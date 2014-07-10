@@ -578,6 +578,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_ROOTCOMPONENT_TO_FOLIAGEACTOR,
 	// FMaterialInstanceBasePropertyOverrides didn't use proper UObject serialize
 	VER_UE4_FIX_MATERIAL_PROPERTY_OVERRIDE_SERIALIZE,
+	// Addition of linear color sampler. color sample type is changed to linear sampler if source texture !sRGB
+	VER_UE4_ADD_LINEAR_COLOR_SAMPLER,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

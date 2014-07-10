@@ -1480,6 +1480,16 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 			}
 		}
 
+		// Composite editor primitives if we had any to draw and compositing is enabled
+		// TODO: Move FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives somewhere more generic
+		if (FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		{
+			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives());
+			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
+			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
+		}
+
 		// Must run to blit to back buffer even if post processing is off.
 		FRenderingCompositePass* PostProcessTonemap = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTonemapES2(bUsedFramebufferFetch));
 		PostProcessTonemap->SetInput(ePId_Input0, Context.FinalOutput);

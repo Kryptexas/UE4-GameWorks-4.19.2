@@ -182,7 +182,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (VolumeData && GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
@@ -714,7 +714,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			check(SizeX > 0);
 			check(SizeY > 0);
@@ -722,7 +722,7 @@ public:
 			UE_LOG(LogVectorField,Verbose,TEXT("InitRHI for 0x%016x %dx%dx%d"),(PTRINT)this,SizeX,SizeY,SizeZ);
 
 			uint32 TexCreateFlags = 0;
-			if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+			if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 			{
 				TexCreateFlags = TexCreate_ShaderResource | TexCreate_UAV;
 			}
@@ -735,7 +735,7 @@ public:
 				TexCreateFlags,
 				CreateInfo);
 
-			if (GRHIFeatureLevel == ERHIFeatureLevel::SM5)
+			if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 			{
 				VolumeTextureUAV = RHICreateUnorderedAccessView(VolumeTextureRHI);
 			}

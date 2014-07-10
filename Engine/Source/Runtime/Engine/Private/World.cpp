@@ -69,6 +69,7 @@ FWorldDelegates::FOnLevelChanged FWorldDelegates::LevelRemovedFromWorld;
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 :	UObject(PCIP)
+,	FeatureLevel(GRHIFeatureLevel)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
 ,	NextTravelType(TRAVEL_Relative)
@@ -82,6 +83,7 @@ UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP )
 
 UWorld::UWorld( const class FPostConstructInitializeProperties& PCIP,const FURL& InURL )
 :	UObject(PCIP)
+,	FeatureLevel(GRHIFeatureLevel)
 ,	URL(InURL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
@@ -758,10 +760,10 @@ void UWorld::InitWorld(const InitializationValues IVS)
 		
 		// Save off the value used to create the scene, so this UWorld can recreate its scene later
 		bRequiresHitProxies = IVS.bRequiresHitProxies;
-		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies, GRHIFeatureLevel );
+		Scene = GetRendererModule().AllocateScene( this, bRequiresHitProxies, FeatureLevel );
 		if ( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
 		{
-			FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
+			FXSystem = FFXSystemInterface::Create(FeatureLevel);
 			Scene->SetFXSystem( FXSystem );
 		}
 		else
@@ -5014,23 +5016,70 @@ void UWorld::GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLi
 
 void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	if (InFeatureLevel != Scene->GetFeatureLevel())
+	if (InFeatureLevel != FeatureLevel)
 	{
-		Scene->ChangeFeatureLevel(InFeatureLevel);
-		
-		FFXSystemInterface::Destroy(FXSystem);
-		FXSystem = FFXSystemInterface::Create(InFeatureLevel);
-		Scene->SetFXSystem(FXSystem);
+		Scene->Release();
+		GetRendererModule().RemoveScene(Scene);
+
+		FeatureLevel = InFeatureLevel;
+
+		Scene = GetRendererModule().AllocateScene(this, bRequiresHitProxies, InFeatureLevel);
+
+ 		FFXSystemInterface::Destroy(FXSystem);
+ 		FXSystem = FFXSystemInterface::Create(InFeatureLevel);
+ 		Scene->SetFXSystem(FXSystem);
 	}
 }
 
-void UWorld::ForceFeatureLevelUpdate(ERHIFeatureLevel::Type InFeatureLevel)
+void UWorld::ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	FGlobalComponentReregisterContext RecreateComponents;
-	UMaterial::AllMaterialsCacheResourceShadersForRendering();
-	UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
-	GetGlobalShaderMap(GShaderPlatformForFeatureLevel[InFeatureLevel], true);
-	RecompileGlobalShaders();
+	bool bSomethingChanged = false;
+
+	// try iterating over all worlds here
+	for (TObjectIterator<UWorld> It; It; ++It)
+	{
+		UWorld* World = *It;
+
+		if (World->FeatureLevel != InFeatureLevel)
+		{
+			bSomethingChanged = true;
+		}
+	}
+
+	if (bSomethingChanged)
+	{
+		FlushRenderingCommands();
+
+		FGlobalComponentReregisterContext RecreateComponents;
+
+		GCurrentRHIFeatureLevel = InFeatureLevel;
+		GRHIShaderPlatform = GShaderPlatformForFeatureLevel[InFeatureLevel];
+
+		UMaterial::AllMaterialsCacheResourceShadersForRendering();
+		UMaterialInstance::AllMaterialsCacheResourceShadersForRendering();
+		GetGlobalShaderMap(GRHIShaderPlatform, false);
+		GShaderCompilingManager->ProcessAsyncResults(false, true);
+		
+		//invalidate global bound shader states so they will be created with the new shaders the next time they are set (in SetGlobalBoundShaderState)
+		for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
+		{
+			BeginUpdateResourceRHI(*It);
+		}
+
+		// try iterating over all worlds here
+		for (TObjectIterator<UWorld> It; It; ++It)
+		{
+			UWorld* World = *It;
+
+			if (World->FeatureLevel != InFeatureLevel)
+			{
+				World->ChangeFeatureLevel(InFeatureLevel);
+			}
+		}
+
+		FOutputDeviceNull Ar;
+		RecompileShaders(TEXT("CHANGED"), Ar);
+	}
 }
 
 /**

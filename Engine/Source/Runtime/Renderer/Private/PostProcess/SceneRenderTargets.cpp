@@ -189,6 +189,9 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		MinShadowResolution = CVar->GetValueOnRenderThread();
 	}
 
+	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
+	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+
 	if( (BufferSize.X != DesiredBufferSize.X) ||
 		(BufferSize.Y != DesiredBufferSize.Y) ||
 		(CurrentGBufferFormat != GBufferFormat) ||
@@ -200,7 +203,8 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		(CurrentMobile32bpp != Mobile32bpp) ||
 		(CurrentMobileMSAA != MobileMSAA) ||
 		(bCurrentLightPropagationVolume != bLightPropagationVolume) ||
-		(CurrentMinShadowResolution != MinShadowResolution))
+		(CurrentMinShadowResolution != MinShadowResolution) ||
+		(NewFeatureLevel != CurrentFeatureLevel))
 	{
 		CurrentGBufferFormat = GBufferFormat;
 		CurrentSceneColorFormat = SceneColorFormat;
@@ -212,6 +216,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		CurrentMobileMSAA = MobileMSAA;
 		CurrentMinShadowResolution = MinShadowResolution;
 		bCurrentLightPropagationVolume = bLightPropagationVolume;
+		CurrentFeatureLevel = NewFeatureLevel;
 		
 		// Reinitialize the render targets for the given size.
 		SetBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
@@ -258,7 +263,7 @@ void FSceneRenderTargets::BeginRenderingSceneColor(FRHICommandListImmediate& RHI
 	AllocSceneColor();
 	
 	// Set the scene color surface as the render target, and the scene depth surface as the depth-stencil target.
-	if (bGBufferPass && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (bGBufferPass && CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		FTextureRHIParamRef RenderTargets[6] = {0};
 		RenderTargets[0] = GetSceneColorSurface();
@@ -290,7 +295,7 @@ int32 FSceneRenderTargets::GetNumGBufferTargets() const
 {
 	int32 NumGBufferTargets = 1;
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleDynamicLightingEnabled())
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4 && !IsSimpleDynamicLightingEnabled())
 	{
 		NumGBufferTargets = bAllowStaticLighting ? 6 : 5;
 	}
@@ -319,17 +324,20 @@ void FSceneRenderTargets::AllocSceneColor()
 
 		// with TexCreate_UAV it would allow better sharing with later elements but it might come at a high cost:
 		// GCNPerformanceTweets.pdf Tip 37: Warning: Causes additional synchronization between draw calls when using a render target allocated with this flag, use sparingly
-		if(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 && !OptimizeForUAVPerformance)
+		if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5 && !OptimizeForUAVPerformance)
 		{
 			Desc.TargetableFlags |= TexCreate_UAV;
 		}
 
-	    uint16 NumSamples = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
-        if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+		if (CurrentFeatureLevel == ERHIFeatureLevel::ES2)
 		{
-            NumSamples = 1;
+		    uint16 NumSamples = GRHIShaderPlatform == SP_OPENGL_ES2_IOS ? 1 : CVarMobileMSAA.GetValueOnRenderThread();
+	        if (NumSamples != 1 && NumSamples != 2 && NumSamples != 4)
+			{
+	            NumSamples = 1;
+			}
+			Desc.NumSamples = NumSamples;
 		}
-		Desc.NumSamples = NumSamples;
 
 		GRenderTargetPool.FindFreeElement(Desc, SceneColor, TEXT("SceneColor"));
 	}
@@ -361,7 +369,7 @@ void FSceneRenderTargets::AllocLightAttenuation()
 	check(LightAttenuation);
 }
 
-void FSceneRenderTargets::FreeGBufferTargets()
+void FSceneRenderTargets::ReleaseGBufferTargets()
 {
 	GBufferResourcesUniformBuffer.SafeRelease();
 	GBufferA.SafeRelease();
@@ -440,7 +448,7 @@ void FSceneRenderTargets::AllocGBufferTargets()
 	check(GBufferA);
 
 	// Create the required render targets if running Highend.
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 
 		// Allocate the Gbuffer resource uniform buffer.
@@ -583,7 +591,7 @@ void FSceneRenderTargets::AdjustGBufferRefCount(int Delta)
 	}
 	else if(GBufferRefCount == 0)
 	{
-		FreeGBufferTargets(); 
+		ReleaseGBufferTargets();
 	}
 }
 
@@ -635,7 +643,7 @@ void FSceneRenderTargets::ResolveSceneColor(FRHICommandList& RHICmdList, const F
 /** Resolves the GBuffer targets so that their resolved textures can be sampled. */
 void FSceneRenderTargets::ResolveGBufferSurfaces(FRHICommandList& RHICmdList, const FResolveRect& ResolveRect)
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		SCOPED_DRAW_EVENT(ResolveGBufferSurfaces, DEC_SCENE_ITEMS);
 
@@ -841,7 +849,7 @@ int32 FSceneRenderTargets::GetEditorMSAACompositingSampleCount() const
 	int32 Value = 1;
 
 	// only supported on SM5 yet (SM4 doesn't have MSAA sample load functionality which makes it harder to implement)
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MSAA.CompositingSampleCount"));
 
@@ -909,7 +917,7 @@ bool FSceneRenderTargets::IsSeparateTranslucencyActive(const FViewInfo& View) co
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SeparateTranslucency"));
 	int32 Value = CVar->GetValueOnRenderThread();
 
-	return (Value != 0) && GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+	return (Value != 0) && CurrentFeatureLevel >= ERHIFeatureLevel::SM4
 		&& View.Family->EngineShowFlags.PostProcessing
 		&& View.Family->EngineShowFlags.SeparateTranslucency
 		&& View.State != NULL;	// We require a ViewState in order for separate translucency to work (it keeps track of our SeparateTranslucencyRT)
@@ -1073,7 +1081,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 
 	const FIntPoint TranslucentShadowBufferResolution = GetTranslucentShadowDepthTextureResolution();
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		for (int32 SurfaceIndex = 0; SurfaceIndex < NumTranslucencyShadowSurfaces; SurfaceIndex++)
 		{
@@ -1086,7 +1094,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		}
 	}
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// Create several shadow depth cube maps with different resolutions, to handle different sized shadows on the screen
 		for (int32 SurfaceIndex = 0; SurfaceIndex < NumCubeShadowDepthSurfaces; SurfaceIndex++)
@@ -1112,7 +1120,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 	}
 
 	// Create the required render targets if running Highend.
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		// Create the screen space ambient occlusion buffer
 		{
@@ -1204,7 +1212,7 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		GRenderTargetPool.FindFreeElement(Desc, SkySHIrradianceMap, TEXT("SkySHIrradianceMap"));
 	}
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
 	{
 		// Create the reflective shadow map textures for LightPropagationVolume feature
 		if(bCurrentLightPropagationVolume)
@@ -1231,7 +1239,7 @@ EPixelFormat FSceneRenderTargets::GetSceneColorFormat() const
 {
 	EPixelFormat SceneColorBufferFormat = PF_FloatRGBA;
 
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (CurrentFeatureLevel <= ERHIFeatureLevel::ES2)
 	{
 		// Potentially allocate an alpha channel in th -fe scene color texture to store the resolved scene depth.
 		SceneColorBufferFormat = GSupportsRenderTargetFormat_PF_FloatRGBA ? PF_FloatRGBA : PF_B8G8R8A8;
@@ -1272,7 +1280,7 @@ void FSceneRenderTargets::InitDynamicRHI()
 		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+		if (CurrentFeatureLevel == ERHIFeatureLevel::ES2)
 		{
 			AllocateForwardShadingPathRenderTargets();
 		}
@@ -1283,9 +1291,9 @@ void FSceneRenderTargets::InitDynamicRHI()
 	}
 }
 
-void FSceneRenderTargets::ReleaseDynamicRHI()
+void FSceneRenderTargets::ReleaseAllTargets()
 {
-	FreeGBufferTargets();
+	ReleaseGBufferTargets();
 
 	SceneColor.SafeRelease();
 	SceneAlphaCopy.SafeRelease();
@@ -1339,7 +1347,11 @@ void FSceneRenderTargets::ReleaseDynamicRHI()
 	
 	EditorPrimitivesColor.SafeRelease();
 	EditorPrimitivesDepth.SafeRelease();
+}
 
+void FSceneRenderTargets::ReleaseDynamicRHI()
+{
+	ReleaseAllTargets();
 	GRenderTargetPool.FreeUnusedResources();
 }
 
@@ -1555,11 +1567,13 @@ void FSceneTextureShaderParameters::Set(
 				);
 		}
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		const auto FeatureLevel = View.GetFeatureLevel();
+
+		if (FeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, GSceneRenderTargets.GetSceneColorSurface());
 		}
-		if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			if(GSupportsDepthFetchDuringDepthTest)
 			{
@@ -1697,7 +1711,9 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 		SetTextureParameter(RHICmdList, ShaderRHI, DBufferCTextureNonMS, DBufferC->GetRenderTargetItem().ShaderResourceTexture);
 	}
 
-	if (TextureMode == ESceneRenderTargetsMode::SetTextures && GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	const auto FeatureLevel = View.GetFeatureLevel();
+
+	if (TextureMode == ESceneRenderTargetsMode::SetTextures && FeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 		// if there is no ambient occlusion it's better to have white there
 		IPooledRenderTarget* ScreenSpaceAO = GSceneRenderTargets.ScreenSpaceAO;
@@ -1713,7 +1729,7 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 			CustomDepth = GSystemTextures.BlackDummy;
 		}
 
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			//gilmerge
 			if (GBufferResources.IsBound())

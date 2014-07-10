@@ -144,16 +144,17 @@ bool CanIndirectLightingCacheUseVolumeTexture(ERHIFeatureLevel::Type InFeatureLe
 	return InFeatureLevel >= ERHIFeatureLevel::SM3 && GSupportsVolumeTextureRendering;
 }
 
-FIndirectLightingCache::FIndirectLightingCache()
-	:	bUpdateAllCacheEntries(true)
-	,	BlockAllocator(0, 0, 0, GLightingCacheDimension, GLightingCacheDimension, GLightingCacheDimension, false, false)
+FIndirectLightingCache::FIndirectLightingCache(ERHIFeatureLevel::Type InFeatureLevel)
+	: FRenderResource(InFeatureLevel)
+	, bUpdateAllCacheEntries(true)
+	, BlockAllocator(0, 0, 0, GLightingCacheDimension, GLightingCacheDimension, GLightingCacheDimension, false, false)
 {
 	CacheSize = GLightingCacheDimension;
 }
 
 void FIndirectLightingCache::InitDynamicRHI()
 {
-	if (CanIndirectLightingCacheUseVolumeTexture(GRHIFeatureLevel))
+	if (CanIndirectLightingCacheUseVolumeTexture(GetFeatureLevel()))
 	{
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_NoTiling;
 
@@ -344,7 +345,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 
 void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
 {
-	if (IsIndirectLightingCacheAllowed(Scene->GetFeatureLevel()))
+	if (IsIndirectLightingCacheAllowed(GetFeatureLevel()))
 	{
 		bool bAnyViewAllowsIndirectLightingCache = false;
 
@@ -608,7 +609,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	float DirectionalShadowing = 1;
 	FVector SkyBentNormal(0, 0, 1);
 
-	if (CanIndirectLightingCacheUseVolumeTexture(Scene->GetFeatureLevel()) && BlockInfo.Allocation->bOpaqueRelevance)
+	if (CanIndirectLightingCacheUseVolumeTexture(GetFeatureLevel()) && BlockInfo.Allocation->bOpaqueRelevance)
 	{
 		static TArray<float> AccumulatedWeight;
 		AccumulatedWeight.Reset(NumSamplesPerBlock);

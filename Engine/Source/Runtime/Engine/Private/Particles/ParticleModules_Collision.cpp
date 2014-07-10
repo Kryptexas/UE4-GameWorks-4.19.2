@@ -658,7 +658,7 @@ bool UParticleModuleCollisionGPU::IsValidForLODLevel(UParticleLODLevel* LODLevel
 	check(Material);
 
 	EBlendMode BlendMode = BLEND_Opaque;
-	const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+	const FMaterialResource* MaterialResource = Material->GetMaterialResource(GetWorld()->FeatureLevel);
 	if(MaterialResource)
 	{
 		BlendMode = MaterialResource->GetBlendMode();

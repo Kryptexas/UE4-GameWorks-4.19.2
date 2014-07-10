@@ -75,7 +75,7 @@ void FMeshParticleVertexFactory::InitRHI()
 {
 	FVertexDeclarationElementList Elements;
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 
 	if (Data.bInitialized)
 	{

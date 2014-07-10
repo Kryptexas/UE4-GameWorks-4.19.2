@@ -28,8 +28,9 @@ class FParticleVertexFactoryBase : public FVertexFactory
 public:
 
 	/** Default constructor. */
-	explicit FParticleVertexFactoryBase( EParticleVertexFactoryType Type )
-		: ParticleFactoryType(Type)
+	explicit FParticleVertexFactoryBase( EParticleVertexFactoryType Type, ERHIFeatureLevel::Type InFeatureLevel )
+		: FVertexFactory(InFeatureLevel)
+		, ParticleFactoryType(Type)
 		, bInUse(false)
 	{
 	}
@@ -96,8 +97,8 @@ class FParticleSpriteVertexFactory : public FParticleVertexFactoryBase
 public:
 
 	/** Default constructor. */
-	FParticleSpriteVertexFactory( EParticleVertexFactoryType InType = PVFT_Sprite )
-		: FParticleVertexFactoryBase(InType)
+	FParticleSpriteVertexFactory( EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel )
+		: FParticleVertexFactoryBase(InType, InFeatureLevel)
 	{
 	}
 

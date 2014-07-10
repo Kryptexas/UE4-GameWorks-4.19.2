@@ -213,7 +213,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex,int32 SectionIndex,uin
 	}
 
 	const bool bWireframe = false;
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshElement.VertexFactory->GetType() );
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshElement.VertexFactory->GetType(), GetScene()->GetFeatureLevel() );
 
 	SetIndexSource(LODIndex, SectionIndex, OutMeshElement, bWireframe, bRequiresAdjacencyInformation );
 
@@ -466,7 +466,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 					bool bAnySectionCastsShadow = false;
 					for (int32 SectionIndex = 0; bSafeToUseShadowOnlyMesh && SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 					{
-						const FMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material->GetRenderProxy(false)->GetMaterial(GRHIFeatureLevel);
+						const FMaterial* Material = ProxyLODInfo.Sections[SectionIndex].Material->GetRenderProxy(false)->GetMaterial(GetScene()->GetFeatureLevel());
 						const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
 						bSafeToUseShadowOnlyMesh =
 							Section.bCastShadow
@@ -946,6 +946,8 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	ShadowMap(NULL),
 	bUsesMeshModifyingMaterials(false)
 {
+	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
+
 	FStaticMeshRenderData* RenderData = InComponent->StaticMesh->RenderData;
 	if(LODIndex < InComponent->LODData.Num())
 	{
@@ -1004,7 +1006,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 			SectionInfo.Material = UMaterial::GetDefaultMaterial(MD_Surface);
 		}
 
-		const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionInfo.Material, LODModel.VertexFactory.GetType() );
+		const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionInfo.Material, LODModel.VertexFactory.GetType(), FeatureLevel);
 		if ( bRequiresAdjacencyInformation && !LODModel.bHasAdjacencyInfo )
 		{
 			UE_LOG(LogStaticMesh, Warning, TEXT("Adjacency information not built for static mesh with a material that requires it. Using default material instead.\n\tMaterial: %s\n\tStaticMesh: %s"),
@@ -1026,7 +1028,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 
 		// Flag the entire LOD if any material modifies its mesh
 		UMaterialInterface::TMicRecursionGuard RecursionGuard;
-		FMaterialResource const* MaterialResource = const_cast<UMaterialInterface const*>(SectionInfo.Material)->GetMaterial_Concurrent(RecursionGuard)->GetMaterialResource(GRHIFeatureLevel);
+		FMaterialResource const* MaterialResource = const_cast<UMaterialInterface const*>(SectionInfo.Material)->GetMaterial_Concurrent(RecursionGuard)->GetMaterialResource(FeatureLevel);
 		if(MaterialResource)
 		{
 			if(MaterialResource->MaterialModifiesMeshPosition())

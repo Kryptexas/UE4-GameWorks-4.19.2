@@ -83,14 +83,6 @@ inline bool RHISupportsGPUParticles(ERHIFeatureLevel::Type InFeatureLevel)
 	return InFeatureLevel >= ERHIFeatureLevel::SM4;
 }
 
-/**
- * Returns true if the current RHI supports GPU particles.
- */
-inline bool CurrentRHISupportsGPUParticles()
-{
-	return RHISupportsGPUParticles(GRHIFeatureLevel);
-}
-
 /*-----------------------------------------------------------------------------
 	The interface to the FX system runtime.
 -----------------------------------------------------------------------------*/
