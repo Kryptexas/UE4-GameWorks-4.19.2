@@ -894,19 +894,31 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		FString Obj;
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 	}
 
