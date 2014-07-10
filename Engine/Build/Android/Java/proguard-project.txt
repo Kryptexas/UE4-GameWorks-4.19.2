@@ -13,7 +13,13 @@
 # Add any project specific keep options here:
 
 # Needed to keep the JNI functions around
--keepclassmembers class com.epicgames.ue4.GameActivity {
+-keepattributes InnerClasses
+ -keepclassmembers class com.epicgames.ue4.GameActivity {
+    public *;
+ }
+
+# Needed...
+-keep class com.epicgames.ue4.GameActivity$JavaAchievement {
    public *;
 }
 
