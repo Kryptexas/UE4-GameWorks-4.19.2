@@ -448,8 +448,6 @@ namespace iPhonePackager
 			/// </summary>
 			public bool HasKey(string KeyName)
 			{
-				XmlNode DictionaryNode = Doc.DocumentElement.SelectSingleNode("/plist/dict");
-
 				string PathToKey = String.Format("/plist/dict/key[.='{0}']", KeyName);
 
 				XmlNode KeyNode = Doc.DocumentElement.SelectSingleNode(PathToKey);
