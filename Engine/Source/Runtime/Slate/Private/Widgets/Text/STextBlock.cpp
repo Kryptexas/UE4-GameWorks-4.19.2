@@ -272,7 +272,9 @@ void STextBlock::CacheDesiredSize()
 			TextMeasurement.X = FMath::Min(TextMeasurement.X, WrappingWidth);
 		}
 
-		this->Advanced_SetDesiredSize(TextMeasurement + GetShadowOffset());
+		const FVector2D CurrentShadowOffset = GetShadowOffset();
+		const FVector2D AbsoluteShadowOffset(FMath::Abs(CurrentShadowOffset.X), FMath::Abs(CurrentShadowOffset.Y));
+		this->Advanced_SetDesiredSize(TextMeasurement + AbsoluteShadowOffset);
 
 		// Update cached values
 		CachedWrapTextWidth = WrappingWidth;
