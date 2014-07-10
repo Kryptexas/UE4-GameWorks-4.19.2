@@ -68,6 +68,30 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNI
 	});
 }
 
+
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz )
+{
+	auto AchievementsInterface = FOnlineAchievementsGooglePlay::PendingAchievementQuery.AchievementsInterface;
+
+	if(!AchievementsInterface ||
+		!AchievementsInterface->AndroidSubsystem ||
+		!AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager())
+	{
+		// We should call the delegate with a false parameter here, but if we don't have
+		// the async task manager we're not going to call it on the game thread.
+		return;
+	}
+
+	AchievementsInterface->AndroidSubsystem->GetAsyncTaskManager()->AddGenericToOutQueue([]()
+	{
+		auto& PendingQuery = FOnlineAchievementsGooglePlay::PendingAchievementQuery;
+
+		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, false );
+		PendingQuery.IsQueryPending = false;
+	});
+}
+
 FOnlineAchievementsGooglePlay::FOnlineAchievementsGooglePlay( FOnlineSubsystemGooglePlay* InSubsystem )
 	: AndroidSubsystem(InSubsystem)
 {
