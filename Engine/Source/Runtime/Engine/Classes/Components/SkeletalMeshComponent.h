@@ -1050,10 +1050,6 @@ private:
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
 
-	// Reference to our animation evaluation tick event
-	FGraphEventRef EvaluationTickEvent;
-	FGraphEventRef TickCompletionEvent;
-
 	//Handle parallel evaluation of animation
 	TArray<FTransform> PTSpaceBases;
 	TArray<FTransform> PTLocalAtoms;
@@ -1062,10 +1058,7 @@ private:
 	bool bPTDoInterpolation;
 	bool bPTDuplicateToCacheBones;
 
-	//Parallel Task Delegates
-	FSimpleDelegateGraphTask::FDelegate ParallelEvaluationDelegate;
-	FSimpleDelegateGraphTask::FDelegate ParallelCompletionDelegate;
-
+public:
 	// Parallel evaluation wrappers
 	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(PTSpaceBases, PTLocalAtoms, PTVertexAnims, PTRootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()
