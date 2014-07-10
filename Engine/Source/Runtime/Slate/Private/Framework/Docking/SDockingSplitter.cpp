@@ -103,7 +103,7 @@ SDockingNode::ECleanupRetVal SDockingSplitter::CleanUpNodes()
 				TSharedRef<SDockingTabStack> ChildAsStack = StaticCastSharedRef<SDockingTabStack>(ChildNode);
 				if (ChildNodePurpose == NoTabsUnderNode)
 				{
-					// This child node presents no tabs and keeps no tab hisotry.
+					// This child node presents no tabs and keeps no tab history.
 					RemoveChildAt(ChildIndex);
 				}
 				else
@@ -314,3 +314,71 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingSplitter::GatherPersistentLayout() 
 	
 }
 
+
+TSharedRef<SDockingTabStack> SDockingSplitter::FindTabStackToHouseWindowControls() const
+{
+#if PLATFORM_MAC
+	return StaticCastSharedRef<SDockingTabStack>(this->FindTabStack(ETabStackToFind::UpperLeft));
+#else
+	return StaticCastSharedRef<SDockingTabStack>(this->FindTabStack(ETabStackToFind::UpperRight));
+#endif
+}
+
+TSharedRef<SDockingTabStack> SDockingSplitter::FindTabStackToHouseWindowIcon() const
+{
+	return StaticCastSharedRef<SDockingTabStack>(this->FindTabStack(ETabStackToFind::UpperLeft));
+}
+
+TSharedRef<SDockingNode> SDockingSplitter::FindTabStack(ETabStackToFind FindMe) const
+{
+	auto FindFirstVisibleChild = [=]() -> TSharedRef<SDockingNode>
+	{
+		for (auto ChildNode : Children)
+		{
+			if (ChildNode->GetVisibility() == EVisibility::Visible)
+			{
+				return ChildNode;
+			}
+		}
+
+		// We might find and modify some invisible nodes. Not a problem.
+		return Children[0];
+	};
+
+	auto FindLastVisibleChild = [=]() -> TSharedRef<SDockingNode>
+	{
+		for (int32 i = Children.Num() - 1; i >= 0; --i)
+		{
+			const TSharedRef<SDockingNode>& ChildNode = Children[i];
+			if (ChildNode->GetVisibility() == EVisibility::Visible)
+			{
+				return ChildNode;
+			}
+		}
+
+		// We might find and modify some invisible nodes. Not a problem.
+		return Children.Last();
+	};
+
+	// We want the top-most node that is on the left-most or the right-most.
+	// In the case of left-most, just grab the first element until we hit a leaf.
+	// In the case of right-most grab the first element for vertical splits and the last for horizontal.
+	TSharedRef<SDockingNode> Candidate = (FindMe == ETabStackToFind::UpperLeft || this->GetOrientation() == Orient_Vertical)
+		? FindFirstVisibleChild()
+		: Children.Last();
+
+	const SDockingNode::Type CandidateType = Candidate->GetNodeType();
+	if (CandidateType == DockTabStack)
+	{
+		return Candidate;
+	}
+	else if ( ensure(CandidateType == DockArea || CandidateType == DockSplitter) )
+	{
+		return StaticCastSharedRef<SDockingSplitter>(Candidate)->FindTabStack(FindMe);
+	}
+	else
+	{
+		return Candidate;
+	}
+
+}

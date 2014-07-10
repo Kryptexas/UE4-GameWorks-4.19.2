@@ -89,11 +89,24 @@ private:
 
 	virtual void OnLiveTabAdded() override;
 
+	/**
+	 * If this dock area controls a window, then we need
+	 * to reserve some room in the upper left and upper right tab wells
+	 * so that there is no overlap with the window chrome.
+	 */
+	void MakeRoomForWindowChrome();
+
 private:	
 	
 	/** The window this dock area is embedded within.  If bIsManagingParentWindow is true, the dock area will also
 	    destroy the window when the last tab goes away. */
 	TWeakPtr<SWindow> ParentWindowPtr;
+
+	/**
+	 * We don't want to waste a lot of space for the minimize, restore, close buttons and other windows controls.
+	 * DockAreas that manage a parent window will use this slot to house those controls.
+	 */
+	SOverlay::FOverlaySlot* WindowControlsArea;
 
 	/** True if this docking area should close the parent window when the last tab in this docking area goes away */
 	bool bManageParentWindow;

@@ -67,6 +67,24 @@ public:
 
 	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
+	/** Elements for which we might want to reserve space. */
+	enum class EChromeElement
+	{
+		Icon,
+		Controls
+	};
+
+	/**
+	 * Remove all the space that might have been reserved for
+	 * various window chrome elements (app icons, minimize, close, etc.)
+	 */
+	void ClearReservedSpace();
+	/**
+	 * Add some extra padding so that the corresponding window chrome element
+	 * does not overlap our tabs.
+	 */
+	void ReserveSpaceForWindowChrome(EChromeElement);
+
 public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
