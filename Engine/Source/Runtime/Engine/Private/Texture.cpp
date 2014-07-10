@@ -49,6 +49,7 @@ UTexture::UTexture(const class FPostConstructInitializeProperties& PCIP)
 	AdjustHue = 0.0f;
 	AdjustMinAlpha = 0.0f;
 	AdjustMaxAlpha = 1.0f;
+	MaxTextureSize = 0; // means no limitation
 	MipGenSettings = TMGS_FromTextureGroup;
 	SourceArtType_DEPRECATED = TSAT_PNGCompressed;
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
@@ -114,6 +115,9 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 	{
 		static const FName CompressionSettingsName("CompressionSettings");
 		static const FName DeferCompressionName("DeferCompression");
+#if WITH_EDITORONLY_DATA
+		static const FName MaxTextureSizeName("MaxTextureSize");
+#endif // #if WITH_EDITORONLY_DATA
 
 		const FName PropertyName = PropertyThatChanged->GetFName();
 		if (PropertyName == CompressionSettingsName)
@@ -124,6 +128,19 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 		{
 			DeferCompressionWasEnabled = DeferCompression;
 		}
+#if WITH_EDITORONLY_DATA
+		else if (PropertyName == MaxTextureSizeName)
+		{
+			if (MaxTextureSize <= 0)
+			{
+				MaxTextureSize = 0;
+			}
+			else
+			{
+				MaxTextureSize = FMath::Min<int32>(FMath::RoundUpToPowerOfTwo(MaxTextureSize), GetMaximumDimension());
+			}
+		}
+#endif // #if WITH_EDITORONLY_DATA
 
 		bool bPreventSRGB = (CompressionSettings == TC_Alpha || CompressionSettings == TC_Normalmap || CompressionSettings == TC_Masks || CompressionSettings == TC_HDR);		
 		if(bPreventSRGB && SRGB == true)
@@ -911,4 +928,8 @@ void FTextureSource::UseHashAsGuid()
 	}
 }
 
+uint32 UTexture::GetMaximumDimension() const
+{
+	return GetMax2DTextureDimension();
+}
 #endif // #if WITH_EDITORONLY_DATA

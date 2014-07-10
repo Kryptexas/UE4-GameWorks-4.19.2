@@ -141,6 +141,18 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	TempByte = Settings.bApplyKernelToTopMip; Ar << TempByte;
 	TempByte = Settings.CompositeTextureMode; Ar << TempByte;
 	TempFloat = Settings.CompositePower; Ar << TempFloat;
+	// Preserve DDC key for existing content without customized MaxTextureResolution 
+	if (Settings.bLongLatSource)
+	{
+		if (Settings.MaxTextureResolution != 512) // default value for long/lat source
+		{
+			TempUint32 = Settings.MaxTextureResolution; Ar << TempUint32;
+		}
+	}
+	else if (Settings.MaxTextureResolution != TNumericLimits<uint32>::Max())
+	{
+		TempUint32 = Settings.MaxTextureResolution; Ar << TempUint32;
+	}
 }
 
 /**
@@ -288,16 +300,28 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.bComputeBokehAlpha = (Texture.LODGroup == TEXTUREGROUP_Bokeh);
 	OutBuildSettings.bReplicateAlpha = false;
 	OutBuildSettings.bReplicateRed = false;
+	if (Texture.MaxTextureSize > 0)
+	{
+		OutBuildSettings.MaxTextureResolution = Texture.MaxTextureSize;
+	}
 
 	if (Texture.IsA(UTextureCube::StaticClass()))
 	{
 		OutBuildSettings.bCubemap = true;
 		OutBuildSettings.DiffuseConvolveMipLevel = GDiffuseConvolveMipLevel;
+		const UTextureCube* Cube = CastChecked<UTextureCube>(&Texture);
+		OutBuildSettings.bLongLatSource = (Cube->Source.GetNumSlices() == 1);
+		if (OutBuildSettings.bLongLatSource && Texture.MaxTextureSize <= 0)
+		{
+			// long/lat source use 512 as default
+			OutBuildSettings.MaxTextureResolution = 512;
+		}
 	}
 	else
 	{
 		OutBuildSettings.bCubemap = false;
 		OutBuildSettings.DiffuseConvolveMipLevel = 0;
+		OutBuildSettings.bLongLatSource = false;
 	}
 
 	if (Texture.CompressionSettings == TC_Displacementmap)

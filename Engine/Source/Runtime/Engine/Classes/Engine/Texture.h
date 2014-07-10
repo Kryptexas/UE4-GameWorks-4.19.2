@@ -396,6 +396,10 @@ public:
 	UPROPERTY()
 	uint32 CompressionNoMipmaps_DEPRECATED:1;
 
+	/** The maximum resolution for generated textures. A value of 0 means the maximum size for the format on each platform, except HDR long/lat cubemaps, which default to a resolution of 512. */ 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Compression, meta=(DisplayName="Maximum Texture Size", ClampMin = "0.0"), AdvancedDisplay)
+	int32 MaxTextureSize;
+
 	/** When true, the alpha channel of mip-maps and the base image are dithered for smooth LOD transitions. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, AdvancedDisplay)
 	uint32 bDitherMipMapAlpha:1;
@@ -617,6 +621,11 @@ public:
 	 * Marks platform data as transient. This optionally removes persistent or cached data associated with the platform.
 	 */
 	ENGINE_API void MarkPlatformDataTransient();
+
+	/**
+	* Return maximum dimension for this texture type.
+	*/
+	virtual uint32 GetMaximumDimension() const;
 #endif
 
 	/** @return the width of the surface represented by the texture. */

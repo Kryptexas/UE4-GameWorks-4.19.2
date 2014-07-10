@@ -71,12 +71,16 @@ struct FTextureBuildSettings
 	uint32 DiffuseConvolveMipLevel;
 	/** The size of the kernel with which mips should be sharpened. 2 for 2x2, 4 for 4x4, 6 for 6x6, 8 for 8x8 */
 	uint32 SharpenMipKernelSize;
+	/** For maximum resolution. */
+	uint32 MaxTextureResolution;
 	/** Format of the compressed texture, used to choose a compression DLL. */
 	FName TextureFormatName;
 	/** Mipmap generation settings. */
 	uint8 MipGenSettings; // TextureMipGenSettings, opaque to avoid dependencies on engine headers.
 	/** Whether the texture being built is a cubemap. */
 	uint32 bCubemap : 1;
+	/** Whether the texture being built from long/lat source to cubemap. */
+	uint32 bLongLatSource : 1;
 	/** Whether the texture contains color data in the sRGB colorspace. */
 	uint32 bSRGB : 1;
 	/** Whether the border of the image should be maintained during mipmap generation. */
@@ -117,8 +121,10 @@ struct FTextureBuildSettings
 		: MipSharpening( 0.0f )
 		, DiffuseConvolveMipLevel( 0 )
 		, SharpenMipKernelSize( 2 )
+		, MaxTextureResolution(TNumericLimits<uint32>::Max())
 		, MipGenSettings( 1 /*TMGS_SimpleAverage*/ )
 		, bCubemap( false )
+		, bLongLatSource(false)
 		, bSRGB( false )
 		, bPreserveBorder( false )
 		, bDitherMipMapAlpha( false )
