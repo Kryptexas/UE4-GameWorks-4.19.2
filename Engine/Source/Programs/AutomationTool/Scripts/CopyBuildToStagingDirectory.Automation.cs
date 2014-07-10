@@ -49,7 +49,7 @@ public partial class Project : CommandUtils
 	private static HashSet<string> ReadPakChunkManifest(string Filename)
 	{		
 		var ResponseFile = ReadAllLines(Filename);
-		var Result = new HashSet<string>(ResponseFile);
+		var Result = new HashSet<string>(ResponseFile, StringComparer.InvariantCultureIgnoreCase);
 		return Result;
 	}
 
