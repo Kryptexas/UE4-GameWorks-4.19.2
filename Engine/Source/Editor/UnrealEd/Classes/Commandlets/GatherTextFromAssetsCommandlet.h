@@ -6,13 +6,18 @@
 
 namespace EAssetTextGatherStatus
 {
+	enum 
+	{
+		BadBitMask = 1
+	};
 	enum Type
 	{
-		None,
-		MissingKey,
-		MissingKey_Resolved,
-		IdentityConflict,
-		IdentityConflict_Resolved,
+		//							ErrorType << 1 + BadBit
+		None						= (0 << 1) + 0,
+		MissingKey					= (1 << 1) + 1,
+		MissingKey_Resolved			= (1 << 1) + 0,
+		IdentityConflict			= (2 << 1) + 1,
+		IdentityConflict_Resolved	= (2 << 1) + 0,
 	};
 }
 
@@ -28,7 +33,7 @@ class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 
 	void ProcessPackages( const TArray< UPackage* >& PackagesToProcess );
 	void ProcessDialogueWave( const UDialogueWave* DialogueWave );
-	bool ProcessTextProperty( UTextProperty* TextProp, FText* Data, UObject* Object, bool& OutRepaired );
+	void ProcessTextProperty( UTextProperty* TextProp, FText* Data, UObject* Object, bool& OutRepaired );
 
 public:
 	// Begin UCommandlet Interface

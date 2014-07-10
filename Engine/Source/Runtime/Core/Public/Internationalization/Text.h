@@ -295,6 +295,8 @@ private:
 	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
 
+	bool ShouldGatherForLocalization() const;
+
 private:
 	template<typename T1, typename T2>
 	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
@@ -353,6 +355,7 @@ private:
 	~FTextInspector() {}
 
 public:
+	static bool ShouldGatherForLocalization(const FText& Text);
 	static const FString* GetNamespace(const FText& Text);
 	static const FString* GetKey(const FText& Text);
 	static const FString* GetSourceString(const FText& Text);
