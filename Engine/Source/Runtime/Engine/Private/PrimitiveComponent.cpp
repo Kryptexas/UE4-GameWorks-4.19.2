@@ -1159,7 +1159,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 	
 	// If we started penetrating, we may want to ignore it if we are moving out of penetration.
 	// This helps prevent getting stuck in walls.
-	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit )
+	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit && !(MoveFlags & MOVECOMP_NeverIgnoreBlockingOverlaps) )
 	{
 		const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
 

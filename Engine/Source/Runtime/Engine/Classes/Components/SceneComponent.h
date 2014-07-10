@@ -59,6 +59,7 @@ enum EMoveComponentFlags
 	MOVECOMP_NoFlags					= 0x0000,	// no flags
 	MOVECOMP_IgnoreBases				= 0x0001,	// ignore collisions with things the Actor is based on
 	MOVECOMP_SkipPhysicsMove			= 0x0002,	// when moving this component, do not move the physics representation. Used internally to avoid looping updates when syncing with physics.
+	MOVECOMP_NeverIgnoreBlockingOverlaps= 0x0004,	// never ignore initial blocking overlaps during movement, which are usually ignored when moving out of an object. MOVECOMP_IgnoreBases is still respected.
 };
 
 FORCEINLINE EMoveComponentFlags operator|(EMoveComponentFlags Arg1,EMoveComponentFlags Arg2)	{ return EMoveComponentFlags(uint32(Arg1) | uint32(Arg2)); }

@@ -340,6 +340,9 @@ bool UMovementComponent::ResolvePenetration(const FVector& ProposedAdjustment, c
 		}
 		else
 		{
+			// Disable MOVECOMP_NeverIgnoreBlockingOverlaps if it is enabled, otherwise we wouldn't be able to sweep out of the object to fix the penetration.
+			TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, EMoveComponentFlags(MoveComponentFlags & (~MOVECOMP_NeverIgnoreBlockingOverlaps)));
+
 			// Try sweeping as far as possible...
 			bool bMoved = MoveUpdatedComponent(Adjustment, NewRotation, true);
 			UE_LOG(LogMovement, Verbose, TEXT("ResolvePenetration: sweep %s by %s (success = %d)"), *ActorOwner->GetName(), *Adjustment.ToString(), bMoved);
