@@ -19,7 +19,9 @@ UDestructibleComponent::UDestructibleComponent(const class FPostConstructInitial
 	, PhysxUserData(this)
 #endif
 {
-	PostPhysicsComponentTick.bCanEverTick = true;
+
+	PrimaryComponentTick.bCanEverTick = false;
+	PostPhysicsComponentTick.bCanEverTick = false;
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
 
