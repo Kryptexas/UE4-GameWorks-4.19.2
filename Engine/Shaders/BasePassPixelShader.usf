@@ -13,6 +13,7 @@
 #include "ReflectionEnvironmentShared.usf"
 #include "BRDF.usf"
 #include "Random.usf"
+#include "LightAccumulator.usf"
 
 #include "DeferredShadingCommon.usf"
 
@@ -685,8 +686,13 @@ void Main(
 		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
 		OutColor = half4(FoggedColor, Opacity);
 	#else
-		// Scene color alpha is used to specify how much specular is in the color, for efficiency we approximate with 0
-		OutColor = RETURN_COLOR(float4(Color, 0)); 
+		// Scene color alpha is used for ScreenSpaceSubsurfaceScattering (if that is not needed it can be disabled with SUBSURFACE_CHANNEL_MODE)
+		{
+			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
+
+			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
+			OutColor = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+		}
 	#endif
 
 	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);

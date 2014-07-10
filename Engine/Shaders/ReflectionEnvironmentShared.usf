@@ -73,5 +73,6 @@ float3 GetSkySHDiffuse(float3 Normal)
 	float vC = NormalVector.x * NormalVector.x - NormalVector.y * NormalVector.y;
 	Intermediate2 = View.SkyIrradianceEnvironmentMap[6].xyz * vC;
 
-	return Intermediate0 + Intermediate1 + Intermediate2;
+	// max to not get negative colors, maybe we can optimize to use saturate() and scale later or clamp this way: saturate(A/100)*100
+	return max(0, Intermediate0 + Intermediate1 + Intermediate2);
 }

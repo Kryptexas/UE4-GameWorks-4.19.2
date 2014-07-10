@@ -83,7 +83,7 @@ float4 LightAccumulator_GetResult(FLightAccumulator In)
 		}
 		else if (SUBSURFACE_CHANNEL_MODE == 2)
 		{
-			// RGB accumulated RGB HDR color, A: specular luminance for screenspace subsurface scattering
+			// RGB accumulated RGB HDR color, A: view independent (diffuse) luminance for screenspace subsurface scattering
 			// 3 add,  1 mul, 2 mad, can be optimized to use 2 less temporary during accumulation and remove the 3 add
 			Ret.a = Luminance(In.ViewIndependentLightingSum);
 			// todo, need second MRT for SUBSURFACE_CHANNEL_MODE==2
