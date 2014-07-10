@@ -112,14 +112,6 @@ public:
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) = 0;
 
 	/** 
-	 * Queries whether a module is provided by a plugin
-	 *
-	 * @param	ModuleName	The name of the module to check
-	 * @returns true if the module is supplied by a plugin
-	 */
-	virtual bool IsPluginModule( const FName ModuleName ) const = 0;
-
-	/** 
 	 * Checks whether modules for the enabled plugins are up to date
 	 *
 	 * @returns true if the enabled plugin modules are up to date

@@ -61,7 +61,6 @@ public:
 	/** IPluginManager interface */
 	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
-	virtual bool IsPluginModule( const FName ModuleName ) const override;
 	virtual bool AreEnabledPluginModulesUpToDate() override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
@@ -73,14 +72,11 @@ private:
 	void DiscoverAllPlugins();
 
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
-	void EnablePluginsThatAreConfiguredToBeEnabled();
+	void ConfigureEnabledPlugins();
 
 private:
 	/** All of the plugins that we know about */
 	TArray< TSharedRef< FPluginInstance > > AllPlugins;
-
-	/** Map from module name to plugin containing that module */
-	TMap< FName, TSharedRef< FPluginInstance > > ModulePluginMap;
 
 	/** All the plugin content folders */
 	TArray<FPluginContentFolder> ContentFolders;
@@ -89,8 +85,8 @@ private:
 	    content path mounting functionality from Core. */
 	FRegisterMountPointDelegate RegisterMountPointDelegate;
 
-	/** The earliest phase that modules are loaded requires some additional initialization */
-	bool bEarliestPhaseProcessed;
+	/** Set when all the appropriate plugins have been marked as enabled */
+	bool bHaveConfiguredEnabledPlugins;
 };
 
 
