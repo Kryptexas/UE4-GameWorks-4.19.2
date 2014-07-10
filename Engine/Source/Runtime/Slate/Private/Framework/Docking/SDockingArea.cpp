@@ -239,13 +239,17 @@ void SDockingArea::SetParentWindow( const TSharedRef<SWindow>& NewParentWindow )
 	if( bManageParentWindow )
 	{
 		NewParentWindow->SetRequestDestroyWindowOverride( FRequestDestroyWindowOverride::CreateSP( this, &SDockingArea::OnOwningWindowBeingDestroyed ) );
+	}
 
+	// Even thought we don't manage the parent window's lifetime, we are still responsible for making its window chrome.
+	{
 		TSharedPtr<IWindowTitleBar> TitleBar;
 		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(NewParentWindow, SNullWidget::NullWidget, HAlign_Fill, TitleBar);
 
 		(*WindowControlsArea)[TitleBarWidget];
 		NewParentWindow->SetTitleBar(TitleBar);
 	}
+
 	ParentWindowPtr = NewParentWindow;
 }
 
