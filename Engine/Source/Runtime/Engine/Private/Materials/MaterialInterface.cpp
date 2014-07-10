@@ -46,7 +46,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		// Determine the material's view relevance.
 		FMaterialRelevance MaterialRelevance;
 		MaterialRelevance.bOpaque = !bIsTranslucent;
-		MaterialRelevance.bMasked = Material->bIsMasked;
+		MaterialRelevance.bMasked = IsMasked();
 		MaterialRelevance.bDistortion = Material->bUsesDistortion && bIsTranslucent;
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
@@ -261,6 +261,17 @@ bool UMaterialInterface::IsTwoSided()const
 	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->IsTwoSided();
 }
 
+bool UMaterialInterface::IsMasked() const
+{
+	if (IsInGameThread())
+	{
+		return IsMasked_Internal();
+	}
+
+	//We're on the render thread so get it from the proxy.
+	return GetRenderProxy(0)->GetMaterial(GRHIFeatureLevel)->IsMasked();
+}
+
 EMaterialShadingModel UMaterialInterface::GetShadingModel()const
 {
 	if( IsInGameThread() )
@@ -283,6 +294,11 @@ EBlendMode UMaterialInterface::GetBlendMode_Internal()const
 }
 
 bool UMaterialInterface::IsTwoSided_Internal()const
+{
+	return false;
+}
+
+bool UMaterialInterface::IsMasked_Internal() const
 {
 	return false;
 }

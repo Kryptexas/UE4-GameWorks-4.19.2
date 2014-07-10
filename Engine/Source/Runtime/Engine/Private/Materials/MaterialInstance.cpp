@@ -2373,6 +2373,16 @@ bool UMaterialInstance::IsTwoSided_Internal() const
 	return GetMaterial()->IsTwoSided();
 }
 
+bool UMaterialInstance::IsMasked_Internal() const
+{
+	checkSlow(IsInGameThread());
+	if (bOverrideBaseProperties && BasePropertyOverrides.bOverride_BlendMode)
+	{
+		return BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
+	}
+	return GetMaterial()->IsMasked();
+}
+
 bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const
 {
 	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_OpacityMaskClipValue )
@@ -2408,6 +2418,16 @@ bool UMaterialInstance::IsTwoSidedOverride(bool& OutResult) const
 	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_TwoSided )
 	{
 		OutResult = BasePropertyOverrides.TwoSided != 0;
+		return true;
+	}
+	return false;
+}
+
+bool UMaterialInstance::IsMaskedOverride(bool& OutResult) const
+{
+	if (bOverrideBaseProperties && BasePropertyOverrides.BlendMode)
+	{
+		OutResult = BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
 		return true;
 	}
 	return false;

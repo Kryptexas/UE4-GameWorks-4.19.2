@@ -3417,6 +3417,11 @@ bool UMaterial::IsTwoSided_Internal() const
 	return TwoSided != 0;
 }
 
+bool UMaterial::IsMasked_Internal() const
+{
+	return bIsMasked != 0;
+}
+
 bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const 
 {
 	if(MaterialDomain == MD_PostProcess)

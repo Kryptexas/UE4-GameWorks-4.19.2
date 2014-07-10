@@ -858,6 +858,16 @@ bool FMaterialResource::IsTwoSided() const
 	return Ret;
 }
 
+bool FMaterialResource::IsMasked() const 
+{ 
+	bool Ret;
+	if (!(MaterialInstance && MaterialInstance->IsMaskedOverride(Ret)))
+	{
+		Ret = Material->bIsMasked != 0;
+	}
+	return Ret;
+}
+
 bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion; }
 float FMaterialResource::GetTranslucencyDirectionalLightingIntensity() const { return Material->TranslucencyDirectionalLightingIntensity; }
 float FMaterialResource::GetTranslucentShadowDensityScale() const { return Material->TranslucentShadowDensityScale; }
@@ -869,12 +879,6 @@ FLinearColor FMaterialResource::GetTranslucentMultipleScatteringExtinction() con
 float FMaterialResource::GetTranslucentShadowStartOffset() const { return Material->TranslucentShadowStartOffset; }
 float FMaterialResource::GetRefractionDepthBiasValue() const { return Material->RefractionDepthBias; }
 bool FMaterialResource::UseTranslucencyVertexFog() const {return Material->bUseTranslucencyVertexFog;}
-/**
- * Check if the material is masked and uses an expression or a constant that's not 1.0f for opacity.
- * @return true if the material uses opacity
- */
-bool FMaterialResource::IsMasked() const { return Material->bIsMasked; }
-
 FString FMaterialResource::GetFriendlyName() const { return *GetNameSafe(Material); }
 
 uint32 FMaterialResource::GetDecalBlendMode() const

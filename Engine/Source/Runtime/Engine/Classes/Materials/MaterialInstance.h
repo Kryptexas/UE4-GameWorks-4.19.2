@@ -244,6 +244,7 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 
 	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
 	ENGINE_API virtual bool GetOpacityMaskClipValueOverride(float& OutResult) const;
@@ -253,6 +254,8 @@ public:
 	ENGINE_API virtual bool GetShadingModelOverride(EMaterialShadingModel& OutResult) const;
 	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
 	ENGINE_API virtual bool IsTwoSidedOverride(bool& OutResult) const;
+	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
+	ENGINE_API virtual bool IsMaskedOverride(bool& OutResult) const;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;

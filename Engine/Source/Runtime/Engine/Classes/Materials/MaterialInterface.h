@@ -509,12 +509,14 @@ public:
 	ENGINE_API EBlendMode GetBlendMode() const;
 	ENGINE_API EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API bool IsTwoSided() const;
+	ENGINE_API bool IsMasked() const;
 
 	/** Game thread versions of the accessors. On the render thread there are equivelant getters in FMaterial. */
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and
 	 * instead always load all mip-levels for all textures used by this material.

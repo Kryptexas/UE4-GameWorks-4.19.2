@@ -770,6 +770,7 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
