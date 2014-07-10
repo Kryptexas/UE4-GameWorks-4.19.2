@@ -21,6 +21,7 @@ public:
 
 	void SetStructure(TSharedPtr<FStructOnScope> InStructData)
 	{
+		ClearCachedReadAddresses(true);
 		DestroyTree();
 		StructData = InStructData;
 	}
