@@ -273,7 +273,7 @@ public:
 	}
 	
 	/** returns our Guid */
-	FORCEINLINE FGuid GetGuid()
+	FORCEINLINE FGuid GetGuid() const
 	{
 		return Guid;
 	}

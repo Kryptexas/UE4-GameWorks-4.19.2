@@ -37,6 +37,7 @@ public:
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
 	int32						GuidSequence;				// We remember the guid sequence this net guid was generated on so we can tell how old it is
+	FGuid						PackageGuid;				// If this is a package, this is the guid to expect
 
 	float						InitialQueryTime;
 
@@ -60,7 +61,7 @@ public:
 	void			RegisterNetGUID_Internal( const FNetworkGUID & NetGUID, const FNetGuidCacheObject & CacheObject );
 	void			RegisterNetGUID_Server( const FNetworkGUID & NetGUID, const UObject * Object );
 	void			RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const UObject * Object );
-	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad, const bool bIgnoreWhenMissing );
+	void			RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const FGuid & PackageGuid, const bool bNoLoad, const bool bIgnoreWhenMissing );
 	UObject *		GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped );
 	bool			ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) const;
 	bool			IsGUIDRegistered( const FNetworkGUID & NetGUID ) const;
