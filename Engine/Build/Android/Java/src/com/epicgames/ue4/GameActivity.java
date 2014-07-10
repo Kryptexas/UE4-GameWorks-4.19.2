@@ -320,6 +320,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		 .addOnConnectionFailedListener(this)
 		 .build();
 
+		// Now okay for event handler to be set up on native side
+		nativeResumeMainInit();
+		
 		// Try to establish a connection to Google Play
 		AndroidThunkJava_GooglePlayConnect();
 	}
@@ -490,9 +493,9 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		if (requestCode == GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR)
 		{
 			Log.debug("Google Play Services connection resolution finished with resultCode " + resultCode);
-			bResolvingGoogleServicesError = false;
 			if (resultCode == RESULT_OK)
 			{
+				bResolvingGoogleServicesError = false;
 				// Make sure the app is not already connected or attempting to connect
 				if (!googleClient.isConnecting() &&	!googleClient.isConnected())
 				{
@@ -592,7 +595,10 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 			return;
 		}
 
-		googleClient.connect();
+		if ( !googleClient.isConnected() && !googleClient.isConnecting() )
+		{
+			googleClient.connect();
+		}
 	}
 
 	public void AndroidThunkJava_ShowLeaderboard(String LeaderboardID)
@@ -679,8 +685,16 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 	public void AndroidThunkJava_QueryAchievements()
 	{
-		PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
-		loadAchievementsResult.setResultCallback(new QueryAchievementsResultCallback());		
+		//Log.debug("Incremental achievement ID " + AchievementID + ": not setting progress to " + RoundedSteps);
+		if ( googleClient.isConnected() )
+		{
+			PendingResult<Achievements.LoadAchievementsResult> loadAchievementsResult = Games.Achievements.load(googleClient, false);
+			loadAchievementsResult.setResultCallback(new QueryAchievementsResultCallback());		
+		}
+		else
+		{
+			nativeFailedUpdateAchievements();
+		}
 	}
 
 	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
@@ -842,11 +856,14 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetWindowInfo(boolean bIsPortrait, int DepthBufferPreference);
 	public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);
 	public native void nativeUpdateAchievements(JavaAchievement[] Achievements);
+	public native void nativeFailedUpdateAchievements();
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel );
 
 	public native void nativeConsoleCommand(String commandString);
 	
 	public native boolean nativeIsGooglePlayEnabled();
+
+	public native void nativeResumeMainInit();
 	
 	static
 	{

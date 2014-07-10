@@ -8,6 +8,7 @@
 #include <jni.h>
 
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
 
 /**
  *	IOnlineAchievements - Interface class for Achievements
@@ -52,6 +53,7 @@ private:
 	 * @param Achievements an array of JavaAchievement objects holding the data just queried from the backend
 	 */
 	friend void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz, jobjectArray Achievements);
+	friend void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievements(JNIEnv* LocalJNIEnv, jobject LocalThiz );
 
 public:
 

@@ -102,6 +102,20 @@ static const float SampleDecayRate = 0.85f;
 // Event for coordinating pausing of the main and event handling threads to prevent background spinning
 static FEvent* EventHandlerEvent = NULL;
 
+// Wait for Java onCreate to complete before resume main init
+static volatile bool GResumeMainInit = false;
+static volatile bool GEventHandlerInitialized = false;
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeResumeMainInit(JNIEnv* jenv, jobject thiz)
+{
+	GResumeMainInit = true;
+
+	// now wait for event handler to be set up before returning
+	while (!GEventHandlerInitialized)
+	{
+		FPlatformProcess::Sleep(0.01f);
+		FPlatformMisc::MemoryBarrier();
+	}
+}
 
 
 void UpdateGameInterruptions()
@@ -246,8 +260,12 @@ int32 AndroidMain(struct android_app* state)
 		IgnoredGamepadKeyCodes.Add(IgnoredGamepadKeyCodesList[i]);
 	}
 
-	// wait a moment for the data from the activity to be set
-	FPlatformProcess::Sleep(1.0f);
+	// wait for java activity onCreate to finish
+	while (!GResumeMainInit)
+	{
+		FPlatformProcess::Sleep(0.01f);
+		FPlatformMisc::MemoryBarrier();
+	}
 
 	// read the command line file
 	InitCommandLine();
@@ -256,6 +274,9 @@ int32 AndroidMain(struct android_app* state)
 	EventHandlerEvent = FPlatformProcess::CreateSynchEvent();
 	FPlatformMisc::LowLevelOutputDebugString(L"Created sync event");
 	FAppEventManager::GetInstance()->SetEventHandlerEvent(EventHandlerEvent);
+
+	// ready for onCreate to complete
+	GEventHandlerInitialized = true;
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
@@ -381,7 +402,6 @@ static void AndroidProcessEvents(struct android_app* state)
 	static FVector last_accelerometer(0, 0, 0);
 
 	while((ident = ALooper_pollAll(-1, &fdesc, &events, (void**)&source)) >= 0)
-	// while((ident = ALooper_pollAll(0, &fdesc, &events, (void**)&source)) >= 0)
 	{
 		// process this event
 		if (source)
