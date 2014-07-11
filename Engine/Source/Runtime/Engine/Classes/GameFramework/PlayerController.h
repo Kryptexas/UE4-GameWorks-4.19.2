@@ -860,9 +860,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	void GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const;
 
-	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if the touch index is not down */
+	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if there is no associated mouse device */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
-	void GetMousePosition(float& LocationX, float& LocationY) const;
+	bool GetMousePosition(float& LocationX, float& LocationY) const;
 
 	/** Returns how long the given key/button has been down.  Returns 0 if it's up or it just went down this frame. */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")

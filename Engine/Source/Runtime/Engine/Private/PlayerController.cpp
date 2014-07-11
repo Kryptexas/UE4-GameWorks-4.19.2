@@ -3860,11 +3860,19 @@ float APlayerController::GetInputKeyTimeDown(const FKey Key) const
 	return (PlayerInput ? PlayerInput->GetTimeDown(Key) : 0.f);
 }
 
-void APlayerController::GetMousePosition(float& LocationX, float& LocationY) const
+bool APlayerController::GetMousePosition(float& LocationX, float& LocationY) const
 {
+	// TODO: Return false if there is no mouse attached
+	if (Player == nullptr)
+	{
+		return false;
+	}
+
 	const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
 	LocationX = MousePosition.X;
 	LocationY = MousePosition.Y;
+
+	return true;
 }
 
 void APlayerController::GetInputMouseDelta(float& DeltaX, float& DeltaY) const
