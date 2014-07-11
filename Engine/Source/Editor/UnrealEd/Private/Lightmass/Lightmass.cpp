@@ -3575,6 +3575,9 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 		Lightmass::FStaticShadowDepthMapData ShadowMapData;
 		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
 
+		BeginReleaseResource(&DepthMap);
+		DepthMap.Empty();
+
 		DepthMap.WorldToLight = ShadowMapData.WorldToLight;
 		DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
 		DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
@@ -3582,8 +3585,7 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 		ReadArray(Channel, DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
 
-		BeginReleaseResource(&DepthMap);
-		BeginInitResource(&DepthMap);
+		DepthMap.InitializeAfterImport();
 	}
 	else
 	{

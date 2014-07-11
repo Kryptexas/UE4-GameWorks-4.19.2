@@ -43,6 +43,12 @@ void FStaticShadowDepthMap::Empty()
 	DepthSamples.Empty();
 }
 
+void FStaticShadowDepthMap::InitializeAfterImport()
+{
+	INC_DWORD_STAT_BY(STAT_PrecomputedShadowDepthMapMemory, DepthSamples.GetAllocatedSize());
+	BeginInitResource(this);
+}
+
 FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
 {
 	Ar << ShadowMap.WorldToLight;
@@ -526,8 +532,8 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, OcclusionDepthRange) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightShaftOverrideDirection) &&
 		// Properties that should only unbuild lighting for a Static light (can be changed dynamically on a Stationary light)
-		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomScale) || Mobility == EComponentMobility::Static) &&
-		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, BloomScale) || Mobility == EComponentMobility::Static))
+		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Intensity) || Mobility == EComponentMobility::Static) &&
+		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightColor) || Mobility == EComponentMobility::Static))
 	{
 		InvalidateLightingCache();
 	}

@@ -30,7 +30,11 @@ public:
 
 	virtual void InitRHI();
 
-	void Empty();
+	/** Frees the CPU backing of the shadowmap. */
+	ENGINE_API void Empty();
+
+	/** Called after being imported during a lighting build. */
+	ENGINE_API void InitializeAfterImport();
 
 	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap);
 };
