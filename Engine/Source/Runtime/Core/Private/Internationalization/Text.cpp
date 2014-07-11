@@ -740,7 +740,7 @@ bool FText::ShouldGatherForLocalization() const
 	{
 		for(int32 i = 0; i < String.Len(); ++i)
 		{
-			if( !FChar::IsWhitespace( String[i] ) )
+			if( !FText::IsWhitespace( String[i] ) )
 			{
 				return false;
 			}
