@@ -79,6 +79,11 @@ bool UK2Node_Knot::IsNodeSafeToIgnore() const
 	return true;
 }
 
+bool UK2Node_Knot::AllowSplitPins() const
+{
+	return false;
+}
+
 void UK2Node_Knot::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

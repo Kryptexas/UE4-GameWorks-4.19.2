@@ -813,7 +813,7 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				    MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteToVariable );
 			    }
     
-				if (PinHasSplittableStructType(InGraphPin))
+				if (PinHasSplittableStructType(InGraphPin) && InGraphNode->AllowSplitPins())
 				{
 					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().SplitStructPin );
 				}
@@ -3283,7 +3283,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 
 bool UEdGraphSchema_K2::CanSplitStructPin( const UEdGraphPin& Pin ) const
 {
-	return (Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin));
+	return (Pin.LinkedTo.Num() == 0 && PinHasSplittableStructType(&Pin) && Pin.GetOwningNode()->AllowSplitPins());
 }
 
 bool UEdGraphSchema_K2::CanRecombineStructPin( const UEdGraphPin& Pin ) const
