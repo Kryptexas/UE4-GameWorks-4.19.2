@@ -479,7 +479,7 @@ FPersona::~FPersona()
 	// NOTE: Any tabs that we still have hanging out when destroyed will be cleaned up by FBaseToolkit's destructor
 }
 
-TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimAsset)
+TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimAsset, FString& DocumentLink)
 {
 	TSharedPtr<SWidget> Result;
 	if (InAnimAsset)
@@ -489,30 +489,55 @@ TSharedPtr<SWidget> FPersona::CreateEditorWidgetForAnimDocument(UObject* InAnimA
 			Result = SNew(SSequenceEditor)
 				.Persona(SharedThis(this))
 				.Sequence(Sequence);
+
+			DocumentLink = TEXT("Engine/Animation/Sequences");
 		}
 		else if (UAnimComposite* Composite = Cast<UAnimComposite>(InAnimAsset))
 		{
 			Result = SNew(SAnimCompositeEditor)
 				.Persona(SharedThis(this))
 				.Composite(Composite);
+
+			DocumentLink = TEXT("Engine/Animation/AnimationComposite");
 		}
 		else if (UAnimMontage* Montage = Cast<UAnimMontage>(InAnimAsset))
 		{
 			Result = SNew(SMontageEditor)
 				.Persona(SharedThis(this))
 				.Montage(Montage);
+
+			DocumentLink = TEXT("Engine/Animation/AnimMontage");
 		}
 		else if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(InAnimAsset))
 		{
 			Result = SNew(SBlendSpaceEditor)
 				.Persona(SharedThis(this))
 				.BlendSpace(BlendSpace);
+
+			if (Cast<UAimOffsetBlendSpace>(InAnimAsset))
+			{
+				DocumentLink = TEXT("Engine/Animation/AimOffset");
+			}
+			else
+			{
+				DocumentLink = TEXT("Engine/Animation/Blendspaces");
+			}
 		}
 		else if (UBlendSpace1D* BlendSpace1D = Cast<UBlendSpace1D>(InAnimAsset))
 		{
 			Result = SNew(SBlendSpaceEditor1D)
 				.Persona(SharedThis(this))
 				.BlendSpace1D(BlendSpace1D);
+
+
+			if (Cast<UAimOffsetBlendSpace1D>(InAnimAsset))
+			{
+				DocumentLink = TEXT("Engine/Animation/AimOffset");
+			}
+			else
+			{
+				DocumentLink = TEXT("Engine/Animation/Blendspaces");
+			}
 		}
 	}
 
@@ -552,7 +577,8 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 
 	if (InAnimAsset != NULL)
 	{
-		TSharedPtr<SWidget> TabContents = CreateEditorWidgetForAnimDocument(InAnimAsset);
+		FString	DocumentLink;
+		TSharedPtr<SWidget> TabContents = CreateEditorWidgetForAnimDocument(InAnimAsset, DocumentLink);
 		if (TabContents.IsValid())
 		{
 			if ( SharedAnimAssetBeingEdited.IsValid() )
@@ -574,6 +600,7 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 				OpenedTab->SetContent(TabContents.ToSharedRef());
 				OpenedTab->ActivateInParent(ETabActivationCause::SetDirectly);
 				OpenedTab->SetLabel(NameAttribute);
+				OpenedTab->SetLeftContent(IDocumentation::Get()->CreateAnchor(DocumentLink));
 			}
 			else
 			{
@@ -585,6 +612,8 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 					[
 						TabContents.ToSharedRef()
 					];
+
+				OpenedTab->SetLeftContent(IDocumentation::Get()->CreateAnchor(DocumentLink));
 			
 				TabManager->InsertNewDocumentTab("Document", FTabManager::ESearchPreference::RequireClosedTab, OpenedTab.ToSharedRef());
 

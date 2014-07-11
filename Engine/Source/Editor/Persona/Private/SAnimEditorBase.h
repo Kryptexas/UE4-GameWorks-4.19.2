@@ -65,6 +65,9 @@ public:
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 	// FGCObject interface end
 
+	/** Creates a anchor widget for each animation editor type */
+	virtual TSharedRef<SWidget> CreateDocumentAnchor();
+
 protected:
 	/** Persona reference **/
 	TWeakPtr<FPersona> PersonaPtr;

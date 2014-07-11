@@ -142,4 +142,8 @@ public:
 	// SWidget interface start
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// SWidget interface end
+
+	// Begin SAnimEditorBase interface
+	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
+	// End SAnimEditorBase interface
 };

@@ -17,6 +17,11 @@
 //////////////////////////////////////////////////////////////////////////
 // SAnimEditorBase
 
+TSharedRef<SWidget> SAnimEditorBase::CreateDocumentAnchor()
+{
+	return IDocumentation::Get()->CreateAnchor(TEXT("Engine/Animation/Sequences"));
+}
+
 void SAnimEditorBase::Construct(const FArguments& InArgs)
 {
 	PersonaPtr = InArgs._Persona;
@@ -44,6 +49,12 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
 					.Text( this, &SAnimEditorBase::GetEditorObjectName )
 				]
+				+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					[
+						CreateDocumentAnchor()
+					]
 			]
 		]
 

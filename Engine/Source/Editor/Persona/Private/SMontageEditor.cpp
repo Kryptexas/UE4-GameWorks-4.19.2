@@ -20,6 +20,11 @@
 //////////////////////////////////////////////////////////////////////////
 // SMontageEditor
 
+TSharedRef<SWidget> SMontageEditor::CreateDocumentAnchor()
+{
+	return IDocumentation::Get()->CreateAnchor(TEXT("Engine/Animation/AnimMontage"));
+}
+
 void SMontageEditor::Construct(const FArguments& InArgs)
 {
 	MontageObj = InArgs._Montage;

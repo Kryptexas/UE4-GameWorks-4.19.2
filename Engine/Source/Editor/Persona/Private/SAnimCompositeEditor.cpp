@@ -15,6 +15,11 @@
 //////////////////////////////////////////////////////////////////////////
 // SAnimCompositeEditor
 
+TSharedRef<SWidget> SAnimCompositeEditor::CreateDocumentAnchor()
+{
+	return IDocumentation::Get()->CreateAnchor(TEXT("Engine/Animation/AnimationComposite"));
+}
+
 void SAnimCompositeEditor::Construct(const FArguments& InArgs)
 {
 	bRebuildPanel = false;

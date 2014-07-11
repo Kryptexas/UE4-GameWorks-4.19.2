@@ -265,8 +265,8 @@ protected:
 	// 
 	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UObject* InAnimAsset);
 
-	// Creates an editor widget for a specified animation document
-	TSharedPtr<SWidget> CreateEditorWidgetForAnimDocument(UObject* InAnimAsset);
+	// Creates an editor widget for a specified animation document and returns the document link 
+	TSharedPtr<SWidget> CreateEditorWidgetForAnimDocument(UObject* InAnimAsset, FString& OutDocumentLink);
 
 	/** Callback when an object has been reimported, and whether it worked */
 	void OnPostReimport(UObject* InObject, bool bSuccess);

@@ -1201,6 +1201,17 @@ void SBlendSpaceEditorBase::PostUndo()
 
 TSharedRef<SWidget> SBlendSpaceEditorBase::MakeEditorHeader() const
 {
+	FString DocumentLink;
+
+	if (Cast<UAimOffsetBlendSpace>(BlendSpace) || Cast<UAimOffsetBlendSpace1D>(BlendSpace))
+	{
+		DocumentLink = TEXT("Engine/Animation/AimOffset");
+	}
+	else
+	{
+		DocumentLink = TEXT("Engine/Animation/Blendspaces");
+	}
+	
 	return SNew(SBorder)
 	. BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
 	. HAlign(HAlign_Center)
@@ -1214,6 +1225,12 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeEditorHeader() const
 			.Font( FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 14 ) )
 			.ColorAndOpacity( FLinearColor(1,1,1,0.5) )
 			.Text( this, &SBlendSpaceEditorBase::GetBlendSpaceDisplayName )
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		[
+			IDocumentation::Get()->CreateAnchor(DocumentLink)
 		]
 	];
 }
