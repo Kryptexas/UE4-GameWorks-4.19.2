@@ -448,6 +448,8 @@ public:
 	void SetAngularVelocityTarget(const FVector& InVelTarget);
 	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
 
+	void SetDisableCollision(bool InDisableCollision);
+
 	void UpdateLinearLimit();
 	void UpdateAngularLimit();
 

@@ -425,6 +425,11 @@ void UPhysicsConstraintComponent::GetConstraintForce(FVector& OutLinearForce, FV
 	ConstraintInstance.GetConstraintForce(OutLinearForce, OutAngularForce);
 }
 
+void UPhysicsConstraintComponent::SetDisableCollision(bool bDisableCollision)
+{
+	ConstraintInstance.SetDisableCollision(bDisableCollision);
+}
+
 
 #if WITH_EDITOR
 void UPhysicsConstraintComponent::UpdateSpriteTexture()

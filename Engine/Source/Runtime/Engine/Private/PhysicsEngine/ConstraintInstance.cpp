@@ -197,6 +197,28 @@ FConstraintInstance::FConstraintInstance()
 	ProjectionAngularTolerance = 10.f;// Angular projection when error > 10 degrees
 }
 
+void FConstraintInstance::SetDisableCollision(bool InDisableCollision)
+{
+	bDisableCollision = InDisableCollision;
+#if WITH_PHYSX
+	PxD6Joint* Joint = ConstraintData;
+	if (Joint && !(Joint->getConstraintFlags()&PxConstraintFlag::eBROKEN))
+	{
+		PxConstraintFlags Flags = Joint->getConstraintFlags();
+		if (bDisableCollision)
+		{
+			Flags &= ~PxConstraintFlag::eCOLLISION_ENABLED;
+		}
+		else
+		{
+			Flags |= PxConstraintFlag::eCOLLISION_ENABLED;
+		}
+
+		Joint->setConstraintFlags(Flags);
+	}
+#endif
+}
+
 /** 
  *	Create physics engine constraint.
  */
