@@ -20,7 +20,7 @@ public:
 
 	// The math expression to evaluate
 	UPROPERTY(EditAnywhere, Category = Expression)
-		FString Expression;
+	FString Expression;
 
 public:
 	// UObject interface
