@@ -77,7 +77,7 @@ TMetalBaseShader<BaseResourceType>::TMetalBaseShader(const TArray<uint8>& InCode
 	}
 	else
 	{
-		NSLog(@"Loaded an offline shader");
+		UE_LOG(LogMetal, Display, TEXT("Loaded a non-offline compiled shader (will be slower to load)"));
 
 		CodeLength = InCode.Num() - CodeOffset - 1;
 

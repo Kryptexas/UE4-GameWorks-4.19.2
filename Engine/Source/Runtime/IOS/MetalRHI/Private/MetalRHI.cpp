@@ -92,7 +92,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_G16R16F			].PlatformFormat	= MTLPixelFormatRG16Float;
 	GPixelFormats[PF_G16R16F_FILTER		].PlatformFormat	= MTLPixelFormatRG16Float;
 	GPixelFormats[PF_G32R32F			].PlatformFormat	= MTLPixelFormatRG32Float;
-	GPixelFormats[PF_A2B10G10R10		].PlatformFormat    = MTLPixelFormatA2BGR10Unorm;
+	GPixelFormats[PF_A2B10G10R10		].PlatformFormat    = MTLPixelFormatRGB10A2Unorm;
 	GPixelFormats[PF_A16B16G16R16		].PlatformFormat    = MTLPixelFormatRGBA16Float;
 	GPixelFormats[PF_D24				].PlatformFormat	= MTLPixelFormatInvalid;
 	GPixelFormats[PF_R16F				].PlatformFormat	= MTLPixelFormatR16Float;
@@ -100,14 +100,14 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_BC5				].PlatformFormat	= MTLPixelFormatInvalid;
 	GPixelFormats[PF_V8U8				].PlatformFormat	= 
 	GPixelFormats[PF_A1					].PlatformFormat	= MTLPixelFormatInvalid;
-	GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatB10GR11Float;
+	GPixelFormats[PF_FloatR11G11B10		].PlatformFormat	= MTLPixelFormatRG11B10Float;
 	GPixelFormats[PF_FloatR11G11B10		].BlockBytes		= 4;
 	GPixelFormats[PF_A8					].PlatformFormat	= MTLPixelFormatR8Unorm;
 	GPixelFormats[PF_R32_UINT			].PlatformFormat	= MTLPixelFormatR32Uint;
 	GPixelFormats[PF_R32_SINT			].PlatformFormat	= MTLPixelFormatR32Sint;
 	GPixelFormats[PF_R16G16B16A16_UINT	].PlatformFormat	= MTLPixelFormatRGBA16Uint;
 	GPixelFormats[PF_R16G16B16A16_SINT	].PlatformFormat	= MTLPixelFormatRGBA16Sint;
-	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatRGB565Unorm;
+	GPixelFormats[PF_R5G6B5_UNORM		].PlatformFormat	= MTLPixelFormatB5G6R5Unorm;
 	GPixelFormats[PF_R8G8B8A8			].PlatformFormat	= MTLPixelFormatRGBA8Unorm;
 	GPixelFormats[PF_R8G8				].PlatformFormat	= MTLPixelFormatRG8Unorm;
 
@@ -205,11 +205,12 @@ void FMetalDynamicRHI::RHIFlushResources()
 
 void FMetalDynamicRHI::RHIAcquireThreadOwnership()
 {
-
+	FMetalManager::Get()->CreateAutoreleasePool();
 }
+
 void FMetalDynamicRHI::RHIReleaseThreadOwnership()
 {
-
+	FMetalManager::Get()->DrainAutoreleasePool();
 }
 
 void FMetalDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)

@@ -114,7 +114,9 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 			}
 
 			// set the stride once per buffer
-			[Layout setStride:Stride stepFunction:Function stepRate:StepRate atVertexBufferIndex:ShaderBufferIndex];
+			Layout.layouts[ShaderBufferIndex].stride = Stride;
+			Layout.layouts[ShaderBufferIndex].stepFunction = Function;
+			Layout.layouts[ShaderBufferIndex].stepRate = StepRate;
 
 			// track this buffer and stride
 			BufferStrides.Add(ShaderBufferIndex, Element.Stride);
@@ -126,6 +128,8 @@ void FMetalVertexDeclaration::GenerateLayout(const FVertexDeclarationElementList
 		}
 
 		// set the format for each element
-		[Layout setVertexFormat:TranslateElementTypeToMTLType(Element.Type) offset:Element.Offset vertexBufferIndex:ShaderBufferIndex atAttributeIndex:Element.AttributeIndex];
+		Layout.attributes[Element.AttributeIndex].format = TranslateElementTypeToMTLType(Element.Type);
+		Layout.attributes[Element.AttributeIndex].offset = Element.Offset;
+		Layout.attributes[Element.AttributeIndex].bufferIndex = ShaderBufferIndex;
 	}
 }
