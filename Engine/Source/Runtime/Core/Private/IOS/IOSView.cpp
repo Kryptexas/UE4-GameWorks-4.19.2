@@ -203,7 +203,7 @@ id<MTLDevice> GMetalDevice = nil;
 #if HAS_METAL
 - (id<CAMetalDrawable>)MakeDrawable
 {
-	return [(CAMetalLayer*)self.layer newDrawable];
+	return [(CAMetalLayer*)self.layer nextDrawable];
 }
 #endif
 
