@@ -213,7 +213,7 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 
 
 /* Line 268 of yacc.c  */
-#line 217 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 217 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.cpp"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -301,7 +301,7 @@ typedef struct YYLTYPE
 
 
 /* Line 343 of yacc.c  */
-#line 305 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 305 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.cpp"
 
 #ifdef short
 # undef short
@@ -1647,7 +1647,7 @@ YYLTYPE yylloc;
 }
 
 /* Line 1590 of yacc.c  */
-#line 1651 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 1651 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.cpp"
   yylsp[0] = yylloc;
 
   goto yysetstate;
@@ -2691,7 +2691,7 @@ yyreduce:
 
 
 /* Line 1806 of yacc.c  */
-#line 2695 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.c"
+#line 2695 "../../../Source/ThirdParty/hlslcc/hlslcc/src/hlslcc_lib/mesa/glcpp-parse.cpp"
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
