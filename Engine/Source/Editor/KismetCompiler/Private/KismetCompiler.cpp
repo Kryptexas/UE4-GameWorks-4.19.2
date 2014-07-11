@@ -16,6 +16,7 @@
 #include "MovieSceneBindings.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "UserDefinedStructureCompilerUtils.h"
+#include "EditorCategoryUtils.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -1615,7 +1616,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
-		ParentClass->GetHideCategories(AllHideCategories);
+		FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
 		if (ParentClass->HasMetaData(TEXT("ShowCategories")))
 		{
 			Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));

@@ -27,6 +27,7 @@
 #include "IDocumentation.h"
 #include "Runtime/Engine/Classes/Engine/BrushShape.h"
 #include "ActorDetailsDelegates.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "ActorDetails"
 
@@ -104,7 +105,7 @@ void FActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 		// Get the list of hidden categories
 		TArray<FString> HideCategories;
-		DetailLayout.GetDetailsView().GetBaseClass()->GetHideCategories(HideCategories);
+		FEditorCategoryUtils::GetClassHideCategories(DetailLayout.GetDetailsView().GetBaseClass(), HideCategories);
 
 		// Add Blueprint category, if not being hidden
 		if (!HideCategories.Contains(TEXT("Blueprint")))

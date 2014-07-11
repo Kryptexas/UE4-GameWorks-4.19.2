@@ -1,5 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
+
 /**
  * Utility stopwatch class for tracking the duration of some action (tracks 
  * time in seconds and adds it to the specified variable on destruction).

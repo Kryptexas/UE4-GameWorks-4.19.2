@@ -4,6 +4,8 @@
 #include "ObjectEditorUtils.h"
 
 #if WITH_EDITOR
+#include "EditorCategoryUtils.h"
+
 namespace FObjectEditorUtils
 {
 
@@ -41,8 +43,8 @@ namespace FObjectEditorUtils
 			static const FName FunctionCategory(TEXT("Category")); // FBlueprintMetadata::MD_FunctionCategory
 			if( !bResult && InFunction->HasMetaData( FunctionCategory ) )
 			{
-				const FString& ClassCategory = InFunction->GetMetaData(FunctionCategory);				
-				bResult = Class->IsCategoryHidden( ClassCategory );
+				FString const& FuncCategory = InFunction->GetMetaData(FunctionCategory);
+				bResult = FEditorCategoryUtils::IsCategoryHiddenFromClass(Class, FuncCategory);
 			}
 		}
 		return bResult;
@@ -53,7 +55,7 @@ namespace FObjectEditorUtils
 		bool bResult = false;
 		if( InVariable && Class )
 		{
-			bResult = Class->IsCategoryHidden( GetCategory(InVariable) );
+			bResult = FEditorCategoryUtils::IsCategoryHiddenFromClass(Class, GetCategory(InVariable));
 		}
 		return bResult;
 	}

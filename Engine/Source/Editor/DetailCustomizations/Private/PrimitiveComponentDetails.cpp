@@ -9,6 +9,7 @@
 #include "Components/DestructibleComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "IDocumentation.h"
+#include "EditorCategoryUtils.h"
 
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponentDetails"
@@ -151,7 +152,7 @@ void FPrimitiveComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 		// See if we are hiding Physics category
 		TArray<FString> HideCategories;
-		DetailBuilder.GetDetailsView().GetBaseClass()->GetHideCategories(HideCategories);
+		FEditorCategoryUtils::GetClassHideCategories(DetailBuilder.GetDetailsView().GetBaseClass(), HideCategories);
 		if (!HideCategories.Contains(TEXT("Physics")))
 		{
 			IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics");

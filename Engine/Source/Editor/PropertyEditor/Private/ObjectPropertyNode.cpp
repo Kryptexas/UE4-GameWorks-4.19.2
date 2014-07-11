@@ -7,6 +7,7 @@
 #include "CategoryPropertyNode.h"
 #include "ItemPropertyNode.h"
 #include "ObjectEditorUtils.h"
+#include "EditorCategoryUtils.h"
 
 FObjectPropertyNode::FObjectPropertyNode(void)
 	: FComplexPropertyNode()
@@ -324,7 +325,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		{
 			UClass* Class = ClassesToConsider[ ClassIndex ];
 		
-			if( Class->IsCategoryHidden( CategoryName.ToString() ) )
+			if( FEditorCategoryUtils::IsCategoryHiddenFromClass(Class, CategoryName.ToString()) )
 			{
 				HiddenCategories.Add( CategoryName );
 
@@ -454,7 +455,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		for( TFieldIterator<UProperty> It(BaseClass.Get()); It; ++It )
 		{
 			if( bShouldShowHiddenProperties ||
-				( ( It->PropertyFlags&CPF_Edit ) && ( BaseClass->IsCategoryHidden(FObjectEditorUtils::GetCategory(*It)) == false ) ) )
+				( ( It->PropertyFlags&CPF_Edit ) && ( FEditorCategoryUtils::IsCategoryHiddenFromClass(BaseClass.Get(), FObjectEditorUtils::GetCategory(*It)) == false ) ) )
 			{
 				UProperty* CurProp = *It;
 				if( SinglePropertyName == NAME_None || CurProp->GetFName() == SinglePropertyName )
