@@ -40,11 +40,6 @@ struct FCommonEditorCategory
 		Enum,
 		Struct,
 		Macro,
-
-		Components,
-		Events,
-		Variables,
-		Functions,
 	};
 };
 
