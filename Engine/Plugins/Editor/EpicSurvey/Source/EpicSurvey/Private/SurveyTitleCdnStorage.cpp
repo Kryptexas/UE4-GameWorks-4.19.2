@@ -7,8 +7,6 @@
 #include "SecureHash.h"
 #include "HttpModule.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEpicSurvey, Display, All);
-
 IOnlineTitleFilePtr FSurveyTitleCdnStorage::Create( const FString& IndexUrl )
 {
 	return MakeShareable( new FSurveyTitleCdnStorage( IndexUrl ) );

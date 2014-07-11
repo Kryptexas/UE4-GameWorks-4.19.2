@@ -18,7 +18,7 @@ public:
 		Survey = InSurvey;
 
 		Color = FSlateColor( FLinearColor( 1, 1, 1, 0 ) );
-		Sequence.AddCurve( 0, 1.0f, ECurveEaseFunction::QuadIn );
+		Sequence.AddCurve( 0, 1, ECurveEaseFunction::QuadOut );
 
 		ChildSlot
 		[
@@ -48,7 +48,17 @@ public:
 			float Opacity = 1.0f;
 			if ( EpicSurvey->ShouldPulseSurveyIcon( Survey.ToSharedRef() ) )
 			{
-				Opacity = Sequence.GetLerp();
+				// When pulsing starts jump to the start of the animation.
+				if (!bIsPulsing)
+				{
+					const_cast<SSurveyNotification*>(this)->Sequence.JumpToStart();
+					bIsPulsing = true;
+				}
+				Opacity = 1 - (Sequence.GetLerp() * .8f);
+			}
+			else
+			{
+				bIsPulsing = false;
 			}
 
 			if ( !Sequence.IsPlaying() )
@@ -95,6 +105,7 @@ private:
 	/** Animation sequence to pulse the image */
 	FCurveSequence Sequence;
 	FSlateColor Color;
+	bool bIsPulsing;
 
 };
 
