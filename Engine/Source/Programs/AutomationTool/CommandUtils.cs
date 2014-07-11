@@ -2355,9 +2355,9 @@ namespace AutomationTool
 				}
 				else
 				{
-					foreach (var File in Files)
+					foreach (string File in Files)
 					{
-						if (!Path.GetDirectoryName().Contains("XboxOne"))
+						if (!(Path.GetDirectoryName(File).Replace("\\", "/")).Contains("Binaries/XboxOne"))
 						{
 							SignSingleExecutableIfEXEOrDLL(File);
 						}
