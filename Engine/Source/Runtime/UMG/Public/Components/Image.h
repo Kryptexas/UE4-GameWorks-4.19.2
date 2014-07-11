@@ -37,6 +37,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetImage(USlateBrushAsset* InImage);
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	UMaterialInstanceDynamic* GetDynamicMaterial();
+
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
@@ -58,4 +62,6 @@ protected:
 
 protected:
 	TSharedPtr<SImage> MyImage;
+
+	TOptional<FSlateBrush> DynamicBrush;
 };

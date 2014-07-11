@@ -160,6 +160,14 @@ public:
 	}
 
 	/**
+	* Sets the UObject that represents the brush resource.
+	*/
+	void SetResourceObject(class UObject* InResourceObject)
+	{
+		ResourceObject = InResourceObject;
+	}
+
+	/**
 	 * Gets the brush's tint color.
 	 *
 	 * @param InWidgetStyle The widget style to get the tint for.

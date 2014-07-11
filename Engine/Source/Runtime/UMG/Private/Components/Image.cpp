@@ -55,8 +55,48 @@ void UImage::SetImage(USlateBrushAsset* InImage)
 	}
 }
 
+UMaterialInstanceDynamic* UImage::GetDynamicMaterial()
+{
+	if ( !DynamicBrush.IsSet() )
+	{
+		const FSlateBrush* Brush = UImage::GetImageBrush();
+		FSlateBrush ClonedBrush = *Brush;
+		UObject* Resource = ClonedBrush.GetResourceObject();
+		UMaterialInterface* Material = Cast<UMaterialInterface>(Resource);
+
+		if ( Material )
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, this);
+			ClonedBrush.SetResourceObject(DynamicMaterial);
+			
+			DynamicBrush = ClonedBrush;
+
+			if ( MyImage.IsValid() )
+			{
+				MyImage->SetImage(&DynamicBrush.GetValue());
+			}
+		}
+		else
+		{
+			//TODO UMG Log error for debugging.
+		}
+	}
+	else
+	{
+		UObject* Resource = DynamicBrush.GetValue().GetResourceObject();
+		return Cast<UMaterialInstanceDynamic>(Resource);
+	}
+
+	return NULL;
+}
+
 const FSlateBrush* UImage::GetImageBrush() const
 {
+	if ( DynamicBrush.IsSet() )
+	{
+		return &DynamicBrush.GetValue();
+	}
+
 	if ( Image == NULL )
 	{
 		SImage::FArguments ImageDefaults;
