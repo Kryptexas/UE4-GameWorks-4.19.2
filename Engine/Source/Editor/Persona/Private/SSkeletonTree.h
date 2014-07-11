@@ -401,6 +401,9 @@ public:
 	/** Callback for when the user double-clicks on an item in the tree */
 	void OnTreeDoubleClick( FDisplayedTreeRowInfoPtr InItem );
 
+	/** Handle recursive expansion/contraction of the tree */
+	void SetTreeItemExpansionRecursive(TSharedPtr< FDisplayedTreeRowInfo > TreeItem, bool bInExpansionState) const;
+
 	/** Called when a socket has been renamed */
 	void RenameSocketAttachments(FName& OldSocketName, FName& NewSocketName);
 
@@ -541,6 +544,9 @@ private:
 
 	/** Deletes a set of attached objects from a FPreviewAssetAttachContainer and notifies Persona*/
 	void DeleteAttachedObjects( FPreviewAssetAttachContainer& AttachedAssets );
+
+	// Is Persona currently in Skeleton Mode
+	bool IsInSkeletonMode() const;
 
 private:
 	/** Pointer back to the kismet 2 tool that owns us */

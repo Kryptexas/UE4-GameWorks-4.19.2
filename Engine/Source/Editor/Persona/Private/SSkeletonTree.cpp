@@ -804,7 +804,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
 		.FillWidth(0.75f);
 
-	if (PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::SkeletonDisplayMode))
+	if (IsInSkeletonMode())
 	{
 		TreeHeaderRow->AddColumn(
 			SHeaderRow::Column(ColumnID_RetargetingLabel)
@@ -876,6 +876,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 			.OnSelectionChanged( this, &SSkeletonTree::OnSelectionChanged )
 			.OnItemScrolledIntoView( this, &SSkeletonTree::OnItemScrolledIntoView )
 			.OnMouseButtonDoubleClick( this, &SSkeletonTree::OnTreeDoubleClick)
+			.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
 			.ItemHeight( 24 )
 			.HeaderRow
 			(
@@ -1364,34 +1365,37 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 			MenuBuilder.EndSection();
 
-			MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT( "BoneTranslationRetargetingHeader", "Bone Translation Retargeting" ) );
+			if(IsInSkeletonMode())
 			{
-				FUIAction RecursiveRetargetingSkeletonAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
-				FUIAction RecursiveRetargetingAnimationAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
-				FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
+				MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
+				{
+					FUIAction RecursiveRetargetingSkeletonAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
+					FUIAction RecursiveRetargetingAnimationAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
+					FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
 
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton" )
-					, LOCTEXT( "BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton." )
-					, FSlateIcon()
-					, RecursiveRetargetingSkeletonAction 
-					);
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton")
+						, LOCTEXT("BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton.")
+						, FSlateIcon()
+						, RecursiveRetargetingSkeletonAction
+						);
 
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation" )
-					, LOCTEXT( "BoneTranslationRetargetingAnimationToolTip", "Use translation from animation." )
-					, FSlateIcon()
-					, RecursiveRetargetingAnimationAction 
-					);
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation")
+						, LOCTEXT("BoneTranslationRetargetingAnimationToolTip", "Use translation from animation.")
+						, FSlateIcon()
+						, RecursiveRetargetingAnimationAction
+						);
 
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled" )
-					, LOCTEXT( "BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions." )
-					, FSlateIcon()
-					, RecursiveRetargetingAnimationScaledAction
-					);
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled")
+						, LOCTEXT("BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions.")
+						, FSlateIcon()
+						, RecursiveRetargetingAnimationScaledAction
+						);
+				}
+				MenuBuilder.EndSection();
 			}
-			MenuBuilder.EndSection();
 		}
 
 		if(BoneTreeSelection.HasSelectedOfType(ESkeletonTreeRowType::Socket))
@@ -2043,6 +2047,17 @@ void SSkeletonTree::OnTreeDoubleClick( FDisplayedTreeRowInfoPtr InItem )
 	InItem->OnItemDoubleClicked();
 }
 
+void SSkeletonTree::SetTreeItemExpansionRecursive(TSharedPtr< FDisplayedTreeRowInfo > TreeItem, bool bInExpansionState) const
+{
+	SkeletonTreeView->SetItemExpansion(TreeItem, bInExpansionState);
+
+	// Recursively go through the children.
+	for (auto It = TreeItem->Children.CreateIterator(); It; ++It)
+	{
+		SetTreeItemExpansionRecursive(*It, bInExpansionState);
+	}
+}
+
 void SSkeletonTree::PostUndo()
 {
 	// Rebuild the tree view whenever we undo a change to the skeleton
@@ -2463,6 +2478,11 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 			SkeletonRowList.Add( DisplayInfo );
 		}
 	}
+}
+
+bool SSkeletonTree::IsInSkeletonMode() const
+{
+	return PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::SkeletonDisplayMode);
 }
 
 
