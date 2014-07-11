@@ -934,6 +934,8 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 {
 	BlueprintEditorPtr = InBlueprintEditor;
 
+	RegisterCommands();
+
 	bIsInFindWithinBlueprintMode = true;
 	
 	this->ChildSlot
@@ -978,6 +980,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 					.OnGetChildren( this, &SFindInBlueprints::OnGetChildren )
 					.OnMouseButtonDoubleClick(this,&SFindInBlueprints::OnTreeSelectionDoubleClicked)
 					.SelectionMode( ESelectionMode::Multi )
+					.OnContextMenuOpening(this, &SFindInBlueprints::OnContextMenuOpening)
 				]
 			]
 
@@ -1176,6 +1179,17 @@ void SFindInBlueprints::Tick( const FGeometry& AllottedGeometry, const double In
 			StreamSearch.Reset();
 		}
 	}
+}
+
+void SFindInBlueprints::RegisterCommands()
+{
+	TSharedPtr<FUICommandList> ToolKitCommandList = BlueprintEditorPtr.Pin()->GetToolkitCommands();
+
+	ToolKitCommandList->MapAction( FGenericCommands::Get().Copy,
+		FExecuteAction::CreateSP(this, &SFindInBlueprints::OnCopyAction) );
+
+	ToolKitCommandList->MapAction( FGenericCommands::Get().SelectAll,
+		FExecuteAction::CreateSP(this, &SFindInBlueprints::OnSelectAllAction) );
 }
 
 void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSearchTerms, bool bSelectFirstResult)
@@ -1527,6 +1541,71 @@ void SFindInBlueprints::OnCacheComplete()
 {
 	// Resubmit the last search, which will also remove the bar if needed
 	OnSearchTextCommitted(SearchTextField->GetText(), ETextCommit::OnEnter);
+}
+
+TSharedPtr<SWidget> SFindInBlueprints::OnContextMenuOpening()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection,BlueprintEditorPtr.Pin()->GetToolkitCommands());
+
+	MenuBuilder.BeginSection("BasicOperations");
+	{
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().SelectAll);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+	}
+
+	return MenuBuilder.MakeWidget();
+}
+
+void SFindInBlueprints::SelectAllItemsHelper(FSearchResult InItemToSelect)
+{
+	// Iterates over all children and recursively selects all items in the results
+	TreeView->SetItemSelection(InItemToSelect, true);
+
+	for( const auto Child : InItemToSelect->Children )
+	{
+		SelectAllItemsHelper(Child);
+	}
+}
+
+void SFindInBlueprints::OnSelectAllAction()
+{
+	for( const auto Item : ItemsFound )
+	{
+		SelectAllItemsHelper(Item);
+	}
+}
+
+void SFindInBlueprints::OnCopyAction()
+{
+	TArray< FSearchResult > SelectedItems = TreeView->GetSelectedItems();
+
+	FString SelectedText;
+
+	for( const auto SelectedItem : SelectedItems)
+	{
+		// Add indents for each layer into the tree the item is
+		for(auto ParentItem = SelectedItem->Parent; ParentItem.IsValid(); ParentItem = ParentItem.Pin()->Parent)
+		{
+			SelectedText += TEXT("\t");
+		}
+
+		// Add the display string
+		SelectedText += SelectedItem->GetDisplayString();
+
+		// If there is a comment, add two indents and then the comment
+		FString CommentText = SelectedItem->GetCommentText();
+		if(!CommentText.IsEmpty())
+		{
+			SelectedText += TEXT("\t\t") + CommentText;
+		}
+		
+		// Line terminator so the next item will be on a new line
+		SelectedText += LINE_TERMINATOR;
+	}
+
+	// Copy text to clipboard
+	FPlatformMisc::ClipboardCopy( *SelectedText );
 }
 
 #undef LOCTEXT_NAMESPACE
