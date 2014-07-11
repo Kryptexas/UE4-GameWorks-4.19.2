@@ -37,6 +37,9 @@ const TCHAR* ELoadingPhase::ToString( const ELoadingPhase::Type Value )
 	case PreLoadingScreen:
 		return TEXT( "PreLoadingScreen" );
 
+	case PostEngineInit:
+		return TEXT( "PostEngineInit" );
+
 	default:
 		ensureMsgf( false, TEXT( "Unrecognized ELoadingPhase value: %i" ), Value );
 		return NULL;

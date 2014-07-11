@@ -1866,6 +1866,14 @@ int32 FEngineLoop::Init()
 
 	GEngine->Init(this);
 
+	// Load all the post-engine init modules
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit))
+	{
+		GIsRequestingExit = true;
+		return 1;
+	}
+	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit);
+
 	GetMoviePlayer()->WaitForMovieToFinish();
 
 	// initialize automation worker

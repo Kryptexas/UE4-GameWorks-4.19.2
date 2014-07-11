@@ -27,8 +27,11 @@ namespace ELoadingPhase
 
 		/** Loaded before the engine is fully initialized for modules that need to hook into the loading screen before it triggers */
 		PreLoadingScreen,
-		// NOTE: If you add a new value, make sure to update the ToString() method below!
 
+		/** After the engine has been initialized */
+		PostEngineInit,
+
+		// NOTE: If you add a new value, make sure to update the ToString() method below!
 		Max
 	};
 
