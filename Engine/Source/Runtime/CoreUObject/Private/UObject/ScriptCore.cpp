@@ -541,7 +541,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		MS_ALIGN(16) uint8 Buffer[MAX_SIMPLE_RETURN_VALUE_SIZE] GCC_ALIGN(16);
 
 #if DO_GUARD
-		if (++Recurse > RECURSE_LIMIT)
+		if (++Recurse == RECURSE_LIMIT)
 		{
 			// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
 			UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
@@ -554,6 +554,9 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 			const FString Desc = FString::Printf(TEXT("Infinite script recursion (%i calls) detected"), RECURSE_LIMIT);
 			FBlueprintExceptionInfo InfiniteRecursionExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, InfiniteRecursionExceptionInfo);
+
+			// Bump the recursion so we don't re-enter after we've thrown an exception
+			++Recurse;
 
 			return;
 		}
