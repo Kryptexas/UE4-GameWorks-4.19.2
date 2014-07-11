@@ -8,7 +8,7 @@ class UBlackboardKeyType_Enum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly)
+	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
 	UEnum* EnumType;
 
 	static uint8 GetValue(const uint8* RawData);

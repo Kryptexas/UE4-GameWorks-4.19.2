@@ -8,7 +8,7 @@ class UBlackboardKeyType_Object : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly, meta=(AllowAbstract="1"))
+	UPROPERTY(Category=Blackboard, EditDefaultsOnly, meta=(AllowAbstract="1"))
 	UClass* BaseClass;
 
 	static UObject* GetValue(const uint8* RawData);

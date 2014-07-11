@@ -9,10 +9,10 @@ class UBlackboardKeyType_NativeEnum : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Category=Blackboard, EditInline, EditDefaultsOnly)
+	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
 	FString EnumName;
 
-	UPROPERTY(Category=Blackboard, EditInline, VisibleDefaultsOnly)
+	UPROPERTY(Category=Blackboard, VisibleDefaultsOnly)
 	bool bIsEnumNameValid;
 
 	UPROPERTY()
