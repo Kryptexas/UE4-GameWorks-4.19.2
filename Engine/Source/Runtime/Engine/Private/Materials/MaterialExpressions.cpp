@@ -3317,11 +3317,8 @@ int32 UMaterialExpressionBreakMaterialAttributes::Compile(class FMaterialCompile
 	//Here we don't care about any multiplex index coming in.
 	//We pass through our output index as the multiplex index so the MakeMaterialAttriubtes node at the other end can send us the right data.
 	EMaterialProperty Property = GetMaterialPropertyFromInputOutputIndex(OutputIndex);
-	float DefaultFloat;
-	FColor DefaultColor;
-	FVector DefaultVector;
-	GetDefaultForMaterialProperty(Property, DefaultFloat, DefaultColor, DefaultVector);
-	return MaterialAttributes.Compile(Compiler, Property, DefaultFloat, DefaultColor, DefaultVector);
+
+	return MaterialAttributes.CompileWithDefault(Compiler, Property);
 }
 
 void UMaterialExpressionBreakMaterialAttributes::GetCaption(TArray<FString>& OutCaptions) const

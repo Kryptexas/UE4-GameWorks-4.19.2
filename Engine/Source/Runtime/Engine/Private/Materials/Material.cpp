@@ -3194,6 +3194,9 @@ void UMaterial::AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const
 		}
 		else
 		{
+			// should never be 0 but there is a bug, see TTP 340934
+			check(Expression);
+
 			UTexture* ReferencedTexture = Expression->GetReferencedTexture();
 
 			if (ReferencedTexture)
@@ -3277,59 +3280,54 @@ void UMaterial::GetReferencedParameterCollectionIds(TArray<FGuid>& Ids) const
 	}
 }
 
-int32 UMaterial::CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector )
+int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
-	int32 Ret = INDEX_NONE;
-
 	if( bUseMaterialAttributes && MP_DiffuseColor != Property && MP_SpecularColor != Property )
 	{
-		Ret = MaterialAttributes.Compile(Compiler,Property, DefaultFloat, DefaultColor, DefaultVector);
+		return MaterialAttributes.CompileWithDefault(Compiler, Property);
 	}
-	else
-	{
-		switch(Property)
-		{
-		case MP_Opacity: Ret = Opacity.Compile(Compiler,DefaultFloat); break;
-		case MP_OpacityMask: Ret = OpacityMask.Compile(Compiler,DefaultFloat); break;
-		case MP_Metallic: Ret = Metallic.Compile(Compiler,DefaultFloat); break;
-		case MP_Specular: Ret = Specular.Compile(Compiler,DefaultFloat); break;
-		case MP_Roughness: Ret = Roughness.Compile(Compiler,DefaultFloat); break;
-		case MP_TessellationMultiplier: Ret = TessellationMultiplier.Compile(Compiler,DefaultFloat); break;
-		case MP_ClearCoat: Ret = ClearCoat.Compile(Compiler,DefaultFloat); break;
-		case MP_ClearCoatRoughness: Ret = ClearCoatRoughness.Compile(Compiler,DefaultFloat); break;
-		case MP_AmbientOcclusion: Ret = AmbientOcclusion.Compile(Compiler,DefaultFloat); break;
-		case MP_Refraction: 
-			Ret = Compiler->AppendVector( 
-					Compiler->ForceCast(Refraction.Compile(Compiler,DefaultFloat), MCT_Float1), 
-					Compiler->ForceCast(Compiler->ScalarParameter(FName(TEXT("RefractionDepthBias")), Compiler->GetRefractionDepthBiasValue()), MCT_Float1) 
-					);
-			break;
-		case MP_EmissiveColor: Ret = EmissiveColor.Compile(Compiler,DefaultColor); break;
-		case MP_DiffuseColor: Ret = DiffuseColor.Compile(Compiler,DefaultColor); break;
-		case MP_SpecularColor: Ret = SpecularColor.Compile(Compiler,DefaultColor); break;
-		case MP_BaseColor: Ret = BaseColor.Compile(Compiler,DefaultColor); break;
-		case MP_SubsurfaceColor: Ret = SubsurfaceColor.Compile(Compiler,DefaultColor); break;
-		case MP_Normal: Ret = Normal.Compile(Compiler,DefaultVector); break;
-		case MP_WorldPositionOffset: Ret = WorldPositionOffset.Compile(Compiler,DefaultVector); break;
-		case MP_WorldDisplacement: Ret = WorldDisplacement.Compile(Compiler,DefaultVector); break;
-		};
 
+	switch (Property)
+	{
+		case MP_Opacity:				return Opacity.CompileWithDefault(Compiler, Property);
+		case MP_OpacityMask:			return OpacityMask.CompileWithDefault(Compiler, Property);
+		case MP_Metallic:				return Metallic.CompileWithDefault(Compiler, Property);
+		case MP_Specular:				return Specular.CompileWithDefault(Compiler, Property);
+		case MP_Roughness:				return Roughness.CompileWithDefault(Compiler, Property);
+		case MP_TessellationMultiplier:	return TessellationMultiplier.CompileWithDefault(Compiler, Property);
+		case MP_ClearCoat:				return ClearCoat.CompileWithDefault(Compiler, Property);
+		case MP_ClearCoatRoughness:		return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
+		case MP_AmbientOcclusion:		return AmbientOcclusion.CompileWithDefault(Compiler, Property);
+		case MP_Refraction:				return Refraction.CompileWithDefault(Compiler, Property);
+		case MP_EmissiveColor:			return EmissiveColor.CompileWithDefault(Compiler, Property);
+		case MP_DiffuseColor:			return DiffuseColor.CompileWithDefault(Compiler, Property);
+		case MP_SpecularColor:			return SpecularColor.CompileWithDefault(Compiler, Property);
+		case MP_BaseColor:				return BaseColor.CompileWithDefault(Compiler, Property);
+		case MP_SubsurfaceColor:		return SubsurfaceColor.CompileWithDefault(Compiler, Property);
+		case MP_Normal:					return Normal.CompileWithDefault(Compiler, Property);
+		case MP_WorldPositionOffset:	return WorldPositionOffset.CompileWithDefault(Compiler, Property);
+		case MP_WorldDisplacement:		return WorldDisplacement.CompileWithDefault(Compiler, Property);
+
+		default:
 			if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 			{
 				const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
 
 				if (CustomizedUVs[TextureCoordinateIndex].Expression && TextureCoordinateIndex < NumCustomizedUVs)
 				{
-					Ret = CustomizedUVs[TextureCoordinateIndex].Compile(Compiler,FVector2D(DefaultVector.X, DefaultVector.Y));
+					return CustomizedUVs[TextureCoordinateIndex].CompileWithDefault(Compiler, Property);
 				}
 				else
 				{
 					// The user did not customize this UV, pass through the vertex texture coordinates
-					Ret = Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
+					return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
 				}
 			}
+		
 	}
-	return Ret;
+
+	check(0);
+	return INDEX_NONE;
 }
 
 void UMaterial::NotifyCompilationFinished(FMaterialResource* CompiledResource)

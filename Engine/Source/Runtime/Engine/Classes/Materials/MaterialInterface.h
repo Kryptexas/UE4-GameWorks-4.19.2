@@ -563,7 +563,7 @@ public:
 	ENGINE_API int32 CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property );
 
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector );
+	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
 
 protected:
 	/** Returns a bitfield indicating which feature levels should be compiled for rendering. */

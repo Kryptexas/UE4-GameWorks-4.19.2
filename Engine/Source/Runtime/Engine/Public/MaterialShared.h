@@ -1583,9 +1583,9 @@ ENGINE_API EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index
 ENGINE_API int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property);
 
 /**
- * @return Gets the default value for a material property
+ * @return Gets the default (usually constant) for a material property
  */
-ENGINE_API void GetDefaultForMaterialProperty(EMaterialProperty Property, float& OutDefaultFloat, FColor& OutDefaultColor, FVector& OutDefaultVector);
+ENGINE_API int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property);
 
 /**
  * @return Gets the name of a property.

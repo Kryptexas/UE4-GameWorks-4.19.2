@@ -337,7 +337,13 @@ public:
 			Chunk[MP_ClearCoat]						= ForceCast(Material->CompileProperty(MP_ClearCoat		       ,GetMaterialPropertyShaderFrequency(MP_ClearCoat),this),MCT_Float1);
 			Chunk[MP_ClearCoatRoughness]			= ForceCast(Material->CompileProperty(MP_ClearCoatRoughness    ,GetMaterialPropertyShaderFrequency(MP_ClearCoatRoughness),this),MCT_Float1);
 			Chunk[MP_AmbientOcclusion]				= ForceCast(Material->CompileProperty(MP_AmbientOcclusion      ,GetMaterialPropertyShaderFrequency(MP_AmbientOcclusion),this),MCT_Float1);
-			Chunk[MP_Refraction]					= ForceCast(Material->CompileProperty(MP_Refraction            ,GetMaterialPropertyShaderFrequency(MP_Refraction),this),MCT_Float2);
+
+			{
+				int32 UserRefraction = ForceCast(Material->CompileProperty(MP_Refraction, GetMaterialPropertyShaderFrequency(MP_Refraction), this), MCT_Float2);
+				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), GetRefractionDepthBiasValue()), MCT_Float1);
+
+				Chunk[MP_Refraction] = AppendVector(ForceCast(UserRefraction, MCT_Float1), RefractionDepthBias);
+			}
 
 			if (bCompileForComputeShader)
 			{
@@ -376,14 +382,9 @@ public:
 				MaterialCompilationOutput.bModifiesMeshPosition = true;
 				if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
 				{
-					float DummyFloat;
-					FColor DummyColor;
-					FVector DefaultVector;
-					GetDefaultForMaterialProperty(MP_WorldPositionOffset, DummyFloat,DummyColor,DefaultVector);
-
 					FLinearColor WPOValue;
 					WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
-					if( FVector(WPOValue) == DefaultVector)
+					if (FVector(WPOValue) == FVector::ZeroVector)
 					{
 						MaterialCompilationOutput.bModifiesMeshPosition = false;
 					}

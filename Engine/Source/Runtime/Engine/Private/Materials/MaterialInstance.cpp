@@ -2439,7 +2439,7 @@ bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 	return true;
 }
 
-int32 UMaterialInstance::CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector )
+int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
-	return Parent ? Parent->CompileProperty(Compiler,Property,DefaultFloat,DefaultColor,DefaultVector) : INDEX_NONE;
+	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
 }
