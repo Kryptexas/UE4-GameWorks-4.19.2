@@ -19,11 +19,26 @@ UK2Node_LatentAbilityCall::UK2Node_LatentAbilityCall(const class FPostConstructI
 
 bool UK2Node_LatentAbilityCall::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const
 {
-	return DesiredSchema->GetClass()->IsChildOf(UGameplayAbilityGraphSchema::StaticClass());
+	return Super::CanCreateUnderSpecifiedSchema(DesiredSchema);
 }
 
 void UK2Node_LatentAbilityCall::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
+	bool bValidClass = false;
+	UBlueprint* MyBlueprint = Cast<UBlueprint>(ContextMenuBuilder.CurrentGraph->GetOuter());
+	if (MyBlueprint && MyBlueprint->GeneratedClass)
+	{
+		if (MyBlueprint->GeneratedClass->IsChildOf(UGameplayAbility::StaticClass()))
+		{
+			bValidClass = true;
+		}
+	}
+
+	if (!bValidClass)
+	{
+		return;
+	}
+
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	EGraphType GraphType = K2Schema->GetGraphType(ContextMenuBuilder.CurrentGraph);
 	const bool bAllowLatentFuncs = (GraphType == GT_Ubergraph || GraphType == GT_Macro);
