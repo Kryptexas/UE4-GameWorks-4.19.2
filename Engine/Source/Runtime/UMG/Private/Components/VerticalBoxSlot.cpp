@@ -9,8 +9,9 @@ UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 	, Slot(NULL)
 {
-	HorizontalAlignment = HAlign_Left;
-	VerticalAlignment = VAlign_Top;
+	HorizontalAlignment = HAlign_Fill;
+	VerticalAlignment = VAlign_Fill;
+	Size = FSlateChildSize(ESlateSizeRule::Automatic);
 }
 
 void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
