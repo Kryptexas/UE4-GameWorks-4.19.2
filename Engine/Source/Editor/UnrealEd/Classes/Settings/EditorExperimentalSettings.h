@@ -63,6 +63,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Draw midpoint arrows in Blueprints"))
 	bool bDrawMidpointArrowsInBlueprints;
 
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Allow splitting of struct pins"))
+	bool bAllowSplitStructPins;
+
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *
