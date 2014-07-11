@@ -389,6 +389,8 @@ struct INPUTCORE_API EKeys
 	static const FKey Global_Play;
 	static const FKey Global_Back;
 
+	static const FKey Android_Back;
+
 	static const FKey Invalid;
 
 	static const int32 NUM_TOUCH_KEYS = 10;

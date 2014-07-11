@@ -369,6 +369,9 @@ uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxM
 		ADDKEYMAP( AKEYCODE_ALT_RIGHT, TEXT("RightAlt") );
 		//ADDKEYMAP( VK_LWIN, TEXT("LeftCommand") );
 		//ADDKEYMAP( VK_RWIN, TEXT("RightCommand") );
+
+		ADDKEYMAP(AKEYCODE_BACK, TEXT("Android_Back"));
+
 	}
 
 	check(NumMappings < MaxMappings);
