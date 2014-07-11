@@ -1063,7 +1063,7 @@ namespace UnrealBuildTool
 				}
 
 				bool CreateStub = Utils.ParseCommandLineFlag(Arguments, "-nocreatestub", out ArgumentIndex);
-				if (CreateStub)
+				if (CreateStub || (String.IsNullOrEmpty(Environment.GetEnvironmentVariable("uebp_LOCAL_ROOT")) && ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac))
 				{
 					BuildConfiguration.bCreateStubIPA = false;
 				}
