@@ -20,8 +20,8 @@
 
 //------------------------------------------------------------------------------
 
-RWByteAddressBuffer								gVplListHeadBufferRW; 
-RWByteAddressBuffer								gGvListHeadBufferRW; 
+RWByteAddressBuffer								RWVplListHeadBuffer;
+RWByteAddressBuffer								RWGvListHeadBuffer;
 
 //------------------------------------------------------------------------------
 [numthreads(4,4,4)]
@@ -29,8 +29,8 @@ void CSClearLists(uint3 DTid : SV_DispatchThreadID)
 {
 	uint i = GetGridAddress( DTid );
 
-	gVplListHeadBufferRW.Store( i*4, -1 );
-	gGvListHeadBufferRW.Store( i*4, -1 );
+	RWVplListHeadBuffer.Store( i*4, -1 );
+	RWGvListHeadBuffer.Store( i*4, -1 );
 }
 
 //------------------------------------------------------------------------------
