@@ -405,6 +405,27 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WOrth));
 }
 
+void UPhysicsConstraintComponent::SetConstraintReferenceFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame)
+{
+	ConstraintInstance.SetRefFrame(Frame, RefFrame);
+}
+
+void UPhysicsConstraintComponent::SetConstraintReferencePosition(EConstraintFrame::Type Frame, const FVector& RefPosition)
+{
+	ConstraintInstance.SetRefPosition(Frame, RefPosition);
+}
+
+void UPhysicsConstraintComponent::SetConstraintReferenceOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis)
+{
+	ConstraintInstance.SetRefOrientation(Frame, PriAxis, SecAxis);
+}
+
+void UPhysicsConstraintComponent::GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce)
+{
+	ConstraintInstance.GetConstraintForce(OutLinearForce, OutAngularForce);
+}
+
+
 #if WITH_EDITOR
 void UPhysicsConstraintComponent::UpdateSpriteTexture()
 {

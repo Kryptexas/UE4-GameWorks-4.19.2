@@ -520,8 +520,20 @@ FTransform FConstraintInstance::GetRefFrame(EConstraintFrame::Type Frame) const
 	return Result;
 }
 
+#if WITH_PHYSX
+FORCEINLINE physx::PxJointActorIndex::Enum U2PConstraintFrame(EConstraintFrame::Type Frame)
+{
+	// Swap frame order, since Unreal reverses physx order
+	return (Frame == EConstraintFrame::Frame1) ? physx::PxJointActorIndex::eACTOR1 : physx::PxJointActorIndex::eACTOR0;
+}
+#endif
+
+
 void FConstraintInstance::SetRefFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame)
 {
+#if WITH_PHYSX
+	PxJointActorIndex::Enum PxFrame = U2PConstraintFrame(Frame);
+#endif
 	if(Frame == EConstraintFrame::Frame1)
 	{
 		Pos1 = RefFrame.GetTranslation();
@@ -534,6 +546,70 @@ void FConstraintInstance::SetRefFrame(EConstraintFrame::Type Frame, const FTrans
 		PriAxis2 = RefFrame.GetScaledAxis( EAxis::X );
 		SecAxis2 = RefFrame.GetScaledAxis( EAxis::Y );
 	}
+
+#if WITH_PHYSX
+	if (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN))
+	{
+	PxTransform PxRefFrame = U2PTransform(RefFrame);
+	ConstraintData->setLocalPose(PxFrame, PxRefFrame);
+	}
+#endif
+
+}
+
+void FConstraintInstance::SetRefPosition(EConstraintFrame::Type Frame, const FVector& RefPosition)
+{
+#if WITH_PHYSX
+	PxJointActorIndex::Enum PxFrame = U2PConstraintFrame(Frame);
+#endif
+
+	if (Frame == EConstraintFrame::Frame1)
+	{
+		Pos1 = RefPosition;
+	}
+	else
+	{
+		Pos2 = RefPosition;
+	}
+
+#if WITH_PHYSX
+	if (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN))
+	{
+		PxTransform PxRefFrame = ConstraintData->getLocalPose(PxFrame);
+		PxRefFrame.p = U2PVector(RefPosition);
+		ConstraintData->setLocalPose(PxFrame, PxRefFrame);
+	}
+#endif
+}
+
+void FConstraintInstance::SetRefOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis)
+{
+#if WITH_PHYSX
+	PxJointActorIndex::Enum PxFrame = U2PConstraintFrame(Frame);
+	FVector RefPos;
+#endif
+		
+	if (Frame == EConstraintFrame::Frame1)
+	{
+		RefPos = Pos1;
+		PriAxis1 = PriAxis;
+		SecAxis1 = SecAxis;
+	}
+	else
+	{
+		RefPos = Pos2;
+		PriAxis2 = PriAxis;
+		SecAxis2 = SecAxis;
+	}
+	
+#if WITH_PHYSX
+	if (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN))
+	{
+		FTransform URefTransform = FTransform(PriAxis1, SecAxis, PriAxis ^ SecAxis, RefPos);
+		PxTransform PxRefFrame = U2PTransform(URefTransform);
+		ConstraintData->setLocalPose(PxFrame, PxRefFrame);
+		}
+#endif
 }
 
 /** Get the position of this constraint in world space. */
@@ -571,6 +647,32 @@ FVector FConstraintInstance::GetConstraintLocation()
 	return FVector::ZeroVector;
 #endif
 }
+
+void FConstraintInstance::GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce)
+{
+#if WITH_PHYSX
+	if (ConstraintData && !(ConstraintData->getConstraintFlags()&PxConstraintFlag::eBROKEN))
+	{
+		PxVec3 PxOutLinearForce;
+		PxVec3 PxOutAngularForce;
+		ConstraintData->getConstraint()->getForce(PxOutLinearForce, PxOutAngularForce);
+
+		OutLinearForce = P2UVector(PxOutLinearForce);
+		OutAngularForce = P2UVector(PxOutAngularForce);
+	}
+	else
+	{
+		OutLinearForce = FVector::ZeroVector;
+		OutAngularForce = FVector::ZeroVector;
+	}
+
+#else
+	OutLinearForce = FVector::ZeroVector;
+	OutAngularForce = FVector::ZeroVector;
+#endif
+}
+
+
 
 /** Function for turning linear position drive on and off. */
 void FConstraintInstance::SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive)

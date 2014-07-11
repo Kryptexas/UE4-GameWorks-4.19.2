@@ -25,6 +25,7 @@ enum ELinearConstraintMotion
 };
 
 /** Enum to indicate which frame we want */
+UENUM()
 namespace EConstraintFrame
 {
 	enum Type
@@ -409,8 +410,15 @@ public:
 	/** See if this constraint is valid. */
 	bool IsValidConstraintInstance() const;
 
-	// Pass in reference frame in
+	// Pass in reference frame in. If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint. 
 	void SetRefFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame);
+
+	// Pass in reference position in (maintains reference orientation). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
+	void SetRefPosition(EConstraintFrame::Type Frame, const FVector& RefPosition);
+	
+	// Pass in reference orientation in (maintains reference position). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
+	void SetRefOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis);
+	
 
 	// Get component ref frame
 	FTransform GetRefFrame(EConstraintFrame::Type Frame) const;
@@ -423,6 +431,9 @@ public:
 
 	/** Get the position of this constraint in world space. */
 	FVector GetConstraintLocation();
+
+	// Retrieve the constraint force most recently applied to maintain this constraint. Returns 0 forces if the constraint is not initialized or broken.
+	void GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce);
 
 	void SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
 	void SetLinearVelocityDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
