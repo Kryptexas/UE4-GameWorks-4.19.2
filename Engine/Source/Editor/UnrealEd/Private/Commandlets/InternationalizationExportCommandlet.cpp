@@ -806,13 +806,9 @@ bool FPortableObjectFormatDOM::AddEntry( const TSharedRef< FPortableObjectEntry>
 	if( ExistingEntry.IsValid()  )
 	{
 		ExistingEntry->AddReferences( LocEntry->ReferenceComments );
-		
-		// Checks for a situation that we don't know how to handle yet.  ex. What happens when we match all the IDs for an entry but the other params differ?
-		check( LocEntry->MsgId == ExistingEntry->MsgId );
-		check( LocEntry->MsgCtxt == ExistingEntry->MsgCtxt );
-		check( LocEntry->MsgIdPlural == ExistingEntry->MsgIdPlural );
-		check( LocEntry->ExtractedComments == ExistingEntry->ExtractedComments );
-		check( LocEntry->Flags == ExistingEntry->Flags );
+		ExistingEntry->AddExtractedComments( LocEntry->ExtractedComments );
+
+		// Checks for a situation that we don't know how to handle yet.  ex. What happens when we match all the IDs for an entry but another param differs?
 		check( LocEntry->TranslatorComments == ExistingEntry->TranslatorComments );
 	}
 	else
@@ -847,6 +843,21 @@ TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const FStr
 	return FindEntry( TempEntry );
 }
 
+void FPortableObjectEntry::AddExtractedComment( const FString& InComment )
+{
+	if(!InComment.IsEmpty())
+	{
+		ExtractedComments.AddUnique(InComment);
+	}
+
+	//// Extracted comments can contain multiple references in a single line so we parse those out.
+	//TArray<FString> CommentsToProcess;
+	//InComment.ParseIntoArray( &CommentsToProcess, TEXT(" "), true );
+	//for( const FString& ExtractedComment : CommentsToProcess )
+	//{
+	//	ExtractedComments.AddUnique( ExtractedComment );
+	//}
+}
 
 void FPortableObjectEntry::AddReference( const FString& InReference )
 {
@@ -862,6 +873,14 @@ void FPortableObjectEntry::AddReference( const FString& InReference )
 	//{
 	//	ReferenceComments.AddUnique( Reference );
 	//}
+}
+
+void FPortableObjectEntry::AddExtractedComments( const TArray<FString>& InComments )
+{
+	for( const FString& ExtractedComment : InComments )
+	{
+		AddExtractedComment( ExtractedComment );
+	}
 }
 
 void FPortableObjectEntry::AddReferences( const TArray<FString>& InReferences )
@@ -1032,7 +1051,9 @@ bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath,
 								PoEntry->MsgCtxt = Namespace;
 								PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
 
-								PoEntry->AddReference( ConvertSrcLocationToPORef( ContextIter->SourceLocation ) );
+								FString PORefString = ConvertSrcLocationToPORef( ContextIter->SourceLocation );
+								PoEntry->AddReference( PORefString ); // The appropriate comment type.
+								PoEntry->AddExtractedComment( PORefString ); // Added to extracted comments to workaround what seems to be an issue with OneSky.
 								PortableObj.AddEntry( PoEntry );
 							}
 						}
