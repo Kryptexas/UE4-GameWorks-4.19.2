@@ -7,7 +7,7 @@
 #include "ScriptBlueprint.generated.h"
 
 /**
- * The Script blueprint enables extending AScriptActor and UScriptComponent classes
+ * The Script blueprint generates script-defined classes
  */
 UCLASS(BlueprintType, EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptBlueprint : public UBlueprint

@@ -31,7 +31,8 @@ namespace UnrealBuildTool.Rules
 					"ScriptPlugin",
 					"ClassViewer",
 					"KismetCompiler",
-					"Kismet"
+					"Kismet",
+					"BlueprintGraph"
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);

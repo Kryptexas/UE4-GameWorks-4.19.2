@@ -1,33 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 #include "ScriptEditorPluginPrivatePCH.h"
 
-/**
- * Class Picker filter
- */
-class FScriptFactoryFilter : public IClassViewerFilter
-{
-public:
-	TSet< const UClass* > AllowedChildOfClasses;
-
-	bool IsClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const UClass* InClass, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs)
-	{
-		return AllowedChildOfClasses.Contains(InClass);
-	}
-
-	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
-	{
-		return true;
-	}
-};
-
-//////////////////////////////////////////////////////////////////////////
-
-
 UScriptFactory::UScriptFactory(const FPostConstructInitializeProperties& PCIP)
 	: Super( PCIP )
 {
 	SupportedClass = UScriptBlueprint::StaticClass();
-	ParentClass = AScriptActor::StaticClass();
+	ParentClass = AActor::StaticClass();
 
 	Formats.Add(TEXT("txt;Script"));
 	Formats.Add(TEXT("lua;Script"));
@@ -54,16 +32,10 @@ bool UScriptFactory::ConfigureProperties()
 	// Fill in options
 	FClassViewerInitializationOptions Options;
 	Options.Mode = EClassViewerMode::ClassPicker;
-	Options.DisplayMode = EClassViewerDisplayMode::ListView;
-	Options.bShowObjectRootClass = false;
-	Options.bIsBlueprintBaseOnly = false;
-	Options.bShowUnloadedBlueprints = false;
-
-	// Only allow script-enabled classes
-	TSharedPtr<FScriptFactoryFilter> Filter = MakeShareable(new FScriptFactoryFilter);
-	Options.ClassFilter = Filter;
-	Filter->AllowedChildOfClasses.Add(AScriptActor::StaticClass());
-	Filter->AllowedChildOfClasses.Add(UScriptComponent::StaticClass());
+	Options.DisplayMode = EClassViewerDisplayMode::TreeView;
+	Options.bShowObjectRootClass = true;
+	Options.bIsBlueprintBaseOnly = true;
+	Options.bShowUnloadedBlueprints = true;
 
 	const FText TitleText = NSLOCTEXT("EditorFactories", "CreateScriptOptions", "Pick Parent Class");
 	UClass* ChosenClass = NULL;

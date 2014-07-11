@@ -3,7 +3,6 @@
 #include "ScriptPluginPrivatePCH.h"
 #include "LuaIntegration.h"
 #include "ScriptObjectReferencer.h"
-#include "ScriptActor.h"
 
 #if WITH_LUA
 

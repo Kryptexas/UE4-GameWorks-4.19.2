@@ -23,15 +23,6 @@ void UScriptBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProp
 	Super::Link(Ar, bRelinkExistingProperties);
 }
 
-FScriptContextBase* UScriptBlueprintGeneratedClass::CreateContext()
-{
-	FScriptContextBase* NewContext = NULL;
-#if WITH_LUA
-	NewContext = new FLuaContext();
-#endif
-	return NewContext;
-}
-
 void UScriptBlueprintGeneratedClass::AddUniqueNativeFunction(const FName& InName, Native InPointer)
 {
 	// Find the function in the class's native function lookup table.
@@ -130,4 +121,29 @@ void FScriptContextBase::FetchScriptPropertyValues(UScriptBlueprintGeneratedClas
 			StringProperty->SetPropertyValue(Property->ContainerPtrToValuePtr<FString>(Obj), Value);
 		}
 	}
+}
+
+FScriptContextBase* FScriptContextBase::CreateContext(const FString& SourceCode, UScriptBlueprintGeneratedClass* Class, UObject* Owner)
+{
+	FScriptContextBase* NewContext = NULL;
+#if WITH_LUA
+	NewContext = new FLuaContext();
+#endif
+	if (NewContext)
+	{
+		if (NewContext->Initialize(SourceCode, Owner))
+		{
+			// Push values set by CDO
+			if (Class && Owner)
+			{
+				NewContext->PushScriptPropertyValues(Class, Owner);
+			}
+		}
+		else
+		{
+			delete NewContext;
+			NewContext = NULL;
+		}
+	}
+	return NewContext;
 }

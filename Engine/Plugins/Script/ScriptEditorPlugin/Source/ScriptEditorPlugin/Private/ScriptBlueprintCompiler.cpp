@@ -6,12 +6,15 @@
 #include "ScriptBlueprintCompiler.h"
 #include "Kismet2NameValidators.h"
 #include "KismetReinstanceUtilities.h"
-#include "ScriptFunction.h"
+#include "ScriptContext.h"
+#include "ScriptContextComponent.h"
 
 ///-------------------------------------------------------------
 
 FScriptBlueprintCompiler::FScriptBlueprintCompiler(UScriptBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: Super(SourceSketch, InMessageLog, InCompilerOptions, InObjLoaded)
+	, NewScriptBlueprintClass(NULL)
+	, ContextProperty(NULL)
 {
 }
 
@@ -29,8 +32,9 @@ void FScriptBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* C
 	Super::CleanAndSanitizeClass(ClassToClean, OldCDO);
 
 	// Make sure our typed pointer is set
-	check(ClassToClean == NewClass);
+	check(ClassToClean == NewClass);	
 	NewScriptBlueprintClass = CastChecked<UScriptBlueprintGeneratedClass>((UObject*)NewClass);
+	ContextProperty = NULL;
 }
 
 void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
@@ -43,20 +47,8 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 
 	for (auto& Field : ScriptDefinedFields)
 	{
-		if (Field.Class->IsChildOf(UFunction::StaticClass()))
-		{
-			// Functions are currently only supported for AScriptActors
-			if (Blueprint->ParentClass->IsChildOf(AScriptActor::StaticClass()))
-			{
-				UFunction* NewFunction = new(NewClass, Field.Name, RF_Public) UScriptFunction(FPostConstructInitializeProperties());
-				NewFunction->Bind();
-				NewFunction->StaticLink();
-				NewClass->AddFunctionToFunctionMap(NewFunction);
-				NewFunction->Next = NewClass->Children;
-				NewClass->Children = NewFunction;
-			}
-		}
-		else if (Field.Class->IsChildOf(UProperty::StaticClass()))
+		UClass* InnerType = Field.Class;
+		if (Field.Class->IsChildOf(UProperty::StaticClass()))
 		{
 			FString PinCategory;
 			if (Field.Class->IsChildOf(UStrProperty::StaticClass()))
@@ -78,20 +70,103 @@ void FScriptBlueprintCompiler::CreateClassVariablesFromBlueprint()
 			else if (Field.Class->IsChildOf(UObjectProperty::StaticClass()))
 			{
 				PinCategory = Schema->PC_Object;
+				// @todo: some scripting extensions (that are strongly typed) can handle this better
+				InnerType = UObject::StaticClass();
 			}
 			if (!PinCategory.IsEmpty())
-			{			
-				FEdGraphPinType ScriptPinType(PinCategory, TEXT(""), Field.Class, false, false);
+			{
+				FEdGraphPinType ScriptPinType(PinCategory, TEXT(""), InnerType, false, false);
 				UProperty* ScriptProperty = CreateVariable(Field.Name, ScriptPinType);
 				if (ScriptProperty != NULL)
 				{
 					ScriptProperty->SetMetaData(TEXT("Category"), *Blueprint->GetName());
-					ScriptProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_Edit);					
+					ScriptProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_Edit);
 					NewScripClass->ScriptProperties.Add(ScriptProperty);
 				}
 			}
 		}
 	}
+
+	CreateScriptContextProperty();
+}
+
+void FScriptBlueprintCompiler::CreateScriptContextProperty()
+{
+	// The only case we don't need a script context is if the script class derives form UScriptComponent
+	UClass* ContextClass = nullptr;
+	if (Blueprint->ParentClass->IsChildOf(AActor::StaticClass()))
+	{
+		ContextClass = UScriptContextComponent::StaticClass();
+	}
+	else if (!Blueprint->ParentClass->IsChildOf(UScriptComponent::StaticClass()))
+	{
+		ContextClass = UScriptContext::StaticClass();
+	}
+
+	if (ContextClass)
+	{
+		FEdGraphPinType ScriptContextPinType(Schema->PC_Object, TEXT(""), ContextClass, false, false);
+		ContextProperty = CastChecked<UObjectProperty>(CreateVariable(TEXT("Generated_ScriptContext"), ScriptContextPinType));
+		ContextProperty->SetPropertyFlags(CPF_ContainsInstancedReference | CPF_InstancedReference);
+	}
+}
+
+void FScriptBlueprintCompiler::CreateFunctionList()
+{
+	Super::CreateFunctionList();
+
+	if (!Blueprint->ParentClass->IsChildOf(UScriptComponent::StaticClass()))
+	{
+		for (auto& Field : ScriptDefinedFields)
+		{
+			if (Field.Class->IsChildOf(UFunction::StaticClass()))
+			{
+				CreateScriptDefinedFunction(Field);
+			}
+		}
+	}
+}
+
+void FScriptBlueprintCompiler::CreateScriptDefinedFunction(FScriptField& Field)
+{
+	check(ContextProperty);
+	
+	UScriptBlueprint* Blueprint = ScriptBlueprint();
+	const FString FunctionName = Field.Name.ToString();
+
+	// Create Blueprint Graph which consists of 3 nodes: 'Entry', 'Get Script Context' and 'Call Function'
+	// @todo: once we figure out how to get parameter lists for functions we can add suport for that here
+
+	UEdGraph* ScriptFunctionGraph = NewNamedObject<UEdGraph>(Blueprint, *FString::Printf(TEXT("%s_Graph"), *FunctionName));
+	ScriptFunctionGraph->Schema = UEdGraphSchema_K2::StaticClass();
+	ScriptFunctionGraph->SetFlags(RF_Transient);
+	
+	FKismetFunctionContext* FunctionContext = CreateFunctionContext();
+	FunctionContext->SourceGraph = ScriptFunctionGraph;
+	FunctionContext->bCreateDebugData = false;
+
+	UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(NULL, ScriptFunctionGraph);
+	EntryNode->CustomGeneratedFunctionName = Field.Name;
+	EntryNode->AllocateDefaultPins();
+
+	UK2Node_VariableGet* GetVariableNode = SpawnIntermediateNode<UK2Node_VariableGet>(NULL, ScriptFunctionGraph);
+	GetVariableNode->VariableReference.SetSelfMember(ContextProperty->GetFName());
+	GetVariableNode->AllocateDefaultPins();
+
+	
+	UK2Node_CallFunction* CallFunctionNode = SpawnIntermediateNode<UK2Node_CallFunction>(NULL, ScriptFunctionGraph);
+	CallFunctionNode->FunctionReference.SetExternalMember(TEXT("CallScriptFunction"), ContextProperty->PropertyClass);
+	CallFunctionNode->AllocateDefaultPins();
+	UEdGraphPin* FunctionNamePin = CallFunctionNode->FindPinChecked(TEXT("FunctionName"));
+	FunctionNamePin->DefaultValue = FunctionName;
+
+	// Link nodes together
+	UEdGraphPin* ExecPin = Schema->FindExecutionPin(*EntryNode, EGPD_Output);
+	UEdGraphPin* GetVariableOutPin = GetVariableNode->FindPinChecked(ContextProperty->GetName());
+	UEdGraphPin* CallFunctionPin = Schema->FindExecutionPin(*CallFunctionNode, EGPD_Input);
+	UEdGraphPin* FunctionTargetPin = CallFunctionNode->FindPinChecked(TEXT("self"));
+	ExecPin->MakeLinkTo(CallFunctionPin);
+	GetVariableOutPin->MakeLinkTo(FunctionTargetPin);
 }
 
 void FScriptBlueprintCompiler::FinishCompilingClass(UClass* Class)
@@ -102,33 +177,34 @@ void FScriptBlueprintCompiler::FinishCompilingClass(UClass* Class)
 	ScriptClass->SourceCode = Blueprint->SourceCode;
 	ScriptClass->ByteCode = Blueprint->ByteCode;
 
-	Super::FinishCompilingClass(Class);
-
 	// Allow Blueprint Components to be used in Blueprints
 	if (Blueprint->ParentClass->IsChildOf(UScriptComponent::StaticClass()) && Class != Blueprint->SkeletonGeneratedClass)
 	{
 		Class->SetMetaData(TEXT("BlueprintSpawnableComponent"), TEXT("true"));
 	}
+
+	Super::FinishCompilingClass(Class);
+
+	// Ff context property has been created, create a DSO and set it on the CDO
+	if (ContextProperty)
+	{
+		UObject* CDO = Class->GetDefaultObject();
+		UObject* ContextDefaultSubobject = StaticConstructObject(ContextProperty->PropertyClass, CDO, "ScriptContext", RF_DefaultSubObject);
+		ContextProperty->SetObjectPropertyValue(ContextProperty->ContainerPtrToValuePtr<UObject*>(CDO), ContextDefaultSubobject);
+	}
 }
 
 void FScriptBlueprintCompiler::Compile()
 {
-	ScriptContext = NewScriptBlueprintClass->CreateContext();
+	ScriptBlueprint()->UpdateSourceCodeIfChanged();
+	ScriptContext = FScriptContextBase::CreateContext(ScriptBlueprint()->SourceCode, NULL, NULL);
 	bool Result = true;
 	if (ScriptContext.IsValid())
-	{
-		ScriptBlueprint()->UpdateSourceCodeIfChanged();
-		Result = ScriptContext->Initialize(ScriptBlueprint()->SourceCode, NULL);
-		if (!Result)
-		{
-			ScriptContext.Reset();
-		}
-	}
-	if (Result)
 	{
 		ScriptDefinedFields.Empty();
 		ScriptContext->GetScriptDefinedFields(ScriptDefinedFields);
 	}
+	ContextProperty = NULL;
 
 	Super::Compile();
 }

@@ -10,7 +10,7 @@ class UScriptBlueprintGeneratedClass;
 /**
 * Script-defined field (variable or function)
 */
-struct FScriptField
+struct SCRIPTPLUGIN_API FScriptField
 {
 	/** Field name */
 	FName Name;
@@ -29,10 +29,16 @@ struct FScriptField
 };
 
 /** Script context for this component */
-class FScriptContextBase
+class SCRIPTPLUGIN_API FScriptContextBase
 {
 public:
+	
 	virtual ~FScriptContextBase() {}
+
+	/**
+	* Creates a script context object
+	*/
+	static FScriptContextBase* CreateContext(const FString& SourceCode, UScriptBlueprintGeneratedClass* Class, UObject* Owner);
 
 	/**
 	 * Initializes script context given script code
@@ -128,11 +134,6 @@ class SCRIPTPLUGIN_API UScriptBlueprintGeneratedClass : public UBlueprintGenerat
 	virtual void PostInitProperties() override;
 	virtual void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
 	virtual void PurgeClass(bool bRecompilingOnLoad) override;
-
-	/**
-	 * Creates a script context object
-	 */
-	FScriptContextBase* CreateContext();
 
 	/**
 	* Adds a unique native function mapping

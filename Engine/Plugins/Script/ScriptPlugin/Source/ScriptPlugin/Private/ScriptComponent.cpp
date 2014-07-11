@@ -21,22 +21,11 @@ void UScriptComponent::OnRegister()
 	auto ScriptClass = UScriptBlueprintGeneratedClass::GetScriptGeneratedClass(GetClass());
 	if (ScriptClass && GetWorld() && GetWorld()->WorldType != EWorldType::Editor)
 	{
-		Context = ScriptClass->CreateContext();
-		if (Context)
+		Context = FScriptContextBase::CreateContext(ScriptClass->SourceCode, ScriptClass, this);
+		if (!Context || !Context->CanTick())
 		{
-			bool bDoNotTick = true;
-			if (Context->Initialize(ScriptClass->SourceCode, this))
-			{
-				bDoNotTick = !Context->CanTick();
-				// Push values set by CDO
-				Context->PushScriptPropertyValues(ScriptClass, this);
-			}
-
-			if (bDoNotTick)
-			{
-				bAutoActivate = false;
-				PrimaryComponentTick.bCanEverTick = false;
-			}
+			bAutoActivate = false;
+			PrimaryComponentTick.bCanEverTick = false;
 		}
 	}
 }

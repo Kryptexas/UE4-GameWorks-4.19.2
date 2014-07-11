@@ -10,7 +10,6 @@
 #include "ScriptFactory.h"
 #include "ReimportScriptFactory.h"
 #include "AssetTypeActions_Base.h"
-#include "ScriptActor.h"
 #include "ScriptComponent.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
