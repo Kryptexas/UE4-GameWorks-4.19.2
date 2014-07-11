@@ -17,7 +17,7 @@ struct FPipelineShadow
 
 		for (int Index = 0; Index < MaxMetalRenderTargets; Index++)
 		{
-			RenderTargets[Index] = [[MTLRenderPipelineAttachmentDescriptor alloc] init];
+			RenderTargets[Index] = [[MTLRenderPipelineColorAttachmentDescriptor alloc] init];
 		}
 	}
 
@@ -41,7 +41,7 @@ struct FPipelineShadow
 
 	bool bIsDepthWriteEnabled;
 	bool bIsStencilWriteEnabled;
-	MTLRenderPipelineAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
+	MTLRenderPipelineColorAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
     uint32 SampleCount;
 
@@ -144,6 +144,12 @@ public:
 		return ShaderParameters[Stage];
 	}
 
+	/**
+	 * Handle rendering thread starting/stopping
+	 */
+	void CreateAutoreleasePool();
+	void DrainAutoreleasePool();
+
 protected:
 	FMetalManager();
 	void InitFrame();
@@ -159,7 +165,6 @@ protected:
 
 	dispatch_semaphore_t CommandBufferSemaphore;
 
-	MTLRenderPassDescriptor* CurrentRenderPass;
 	id<MTLRenderCommandEncoder> CurrentContext;
 	
 	id<MTLTexture> CurrentColorRenderTexture, PreviousColorRenderTexture;

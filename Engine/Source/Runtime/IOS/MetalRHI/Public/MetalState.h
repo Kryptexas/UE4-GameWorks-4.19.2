@@ -75,5 +75,5 @@ public:
 	 */
 	void Set();
 	
-	FBlendStateInitializerRHI RenderTargetStates;
+	TStaticArray<MTLRenderPipelineColorAttachmentDescriptor*, MaxSimultaneousRenderTargets> RenderTargetStates;
 };
