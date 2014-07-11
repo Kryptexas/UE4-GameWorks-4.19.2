@@ -7,6 +7,8 @@
 #include "IHttpRequest.h"
 #include "IHttpResponse.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogEpicSurvey, Display, All);
+
 class FSurveyTitleCdnStorage : public TSharedFromThis<FSurveyTitleCdnStorage, ESPMode::ThreadSafe>, public IOnlineTitleFile
 {
 public:
