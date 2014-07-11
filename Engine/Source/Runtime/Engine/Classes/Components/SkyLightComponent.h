@@ -113,6 +113,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 	// Begin UObject Interface
 	virtual void PostInitProperties();	
 	virtual void PostLoad() override;
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual bool CanEditChange(const UProperty* InProperty) const override;

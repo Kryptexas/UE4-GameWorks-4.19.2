@@ -1268,7 +1268,7 @@ void CalcMaterialParameters(
 		float2 PixelPos = (NDC * float2(0.5f, -0.5f) + float2(0.5f, 0.5f)) * View.ViewSizeAndSceneTexelSize.xy;
 		
 		// Pixel position relative to left top of screen (not viewport), center of pixel
-		Parameters.SVPosition.xy = PixelPos + View.ScreenTexelBias.xy;
+		Parameters.SVPosition.xy = PixelPos + View.ViewRectMin.xy;
 		// z: DeviceZ
 		Parameters.SVPosition.z = ConvertToDeviceZ(Parameters.ScreenPosition.w);
 		// w: SceneDepth

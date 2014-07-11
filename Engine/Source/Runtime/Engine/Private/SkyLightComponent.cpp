@@ -181,6 +181,30 @@ void USkyLightComponent::PostLoad()
 	}
 }
 
+/** 
+* This is called when property is modified by InterpPropertyTracks
+*
+* @param PropertyThatChanged	Property that changed
+*/
+void USkyLightComponent::PostInterpChange(UProperty* PropertyThatChanged)
+{
+	static FName LightColorName(TEXT("LightColor"));
+	static FName IntensityName(TEXT("Intensity"));
+	static FName IndirectLightingIntensityName(TEXT("IndirectLightingIntensity"));
+
+	FName PropertyName = PropertyThatChanged->GetFName();
+	if (PropertyName == LightColorName
+		|| PropertyName == IntensityName
+		|| PropertyName == IndirectLightingIntensityName)
+	{
+		MarkRenderStateDirty();
+	}
+	else
+	{
+		Super::PostInterpChange(PropertyThatChanged);
+	}
+}
+
 void USkyLightComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
@@ -340,16 +364,18 @@ void USkyLightComponent::ApplyComponentInstanceData(TSharedPtr<FComponentInstanc
 
 void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 {
-	if (WorldToUpdate->Scene
-		// Don't process any sky capture requests until async shader compiling completes
-		&& (GShaderCompilingManager == NULL || !GShaderCompilingManager->IsCompiling()))
+	if (WorldToUpdate->Scene)
 	{
+		const bool bIsCompilingShaders = GShaderCompilingManager != NULL && GShaderCompilingManager->IsCompiling();
+
 		// Iterate backwards so we can remove elements without changing the index
 		for (int32 CaptureIndex = SkyCapturesToUpdate.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
 		{
 			USkyLightComponent* CaptureComponent = SkyCapturesToUpdate[CaptureIndex];
 
-			if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+			if ((!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
+				// Only process sky capture requests once async shader compiling completes, otherwise we will capture the scene with temporary shaders
+				&& (!bIsCompilingShaders || CaptureComponent->SourceType == SLS_SpecifiedCubemap))
 			{
 				// Only capture valid sky light components
 				if (CaptureComponent->SourceType != SLS_SpecifiedCubemap || CaptureComponent->Cubemap)

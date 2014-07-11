@@ -316,7 +316,7 @@ public:
 	 *
 	 * @param PropertyThatChanged	Property that changed
 	 */
-	virtual void PostInterpChange(UProperty* PropertyThatChanged);
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 
 	/** 
 	 * Iterates over ALL stationary light components in the target world and assigns their preview shadowmap channel, and updates light icons accordingly.

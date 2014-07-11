@@ -976,7 +976,7 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 
 			SCOPED_DRAW_EVENT(ComputeNormal, DEC_SCENE_ITEMS);
 
-			RHICmdList.SetViewport(View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 0.0f, View.ViewRect.Max.X / GAODownsampleFactor, View.ViewRect.Max.Y / GAODownsampleFactor, 1.0f);
+			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -994,7 +994,7 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 				RHICmdList,
 				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
-				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+				0, 0, 
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
 				GSceneRenderTargets.GetBufferSizeXY(),
@@ -2076,7 +2076,7 @@ void UpdateHistory(
 				SCOPED_DRAW_EVENT(UpdateHistory, DEC_SCENE_ITEMS);
 				SetRenderTarget(RHICmdList, NewHistory->GetRenderTargetItem().TargetableTexture, NULL);
 
-				RHICmdList.SetViewport(View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 0.0f, View.ViewRect.Max.X / GAODownsampleFactor, View.ViewRect.Max.Y / GAODownsampleFactor, 1.0f);
+				RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
 				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -2094,7 +2094,7 @@ void UpdateHistory(
 					RHICmdList,
 					0, 0, 
 					View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
-					View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 
+					View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor,
 					View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
 					FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
 					GSceneRenderTargets.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor),
@@ -2143,7 +2143,8 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
 			FViewInfo& View = Views[ViewIndex];
-			RHICmdList.SetViewport(View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 0.0f, View.ViewRect.Max.X / GAODownsampleFactor, View.ViewRect.Max.Y / GAODownsampleFactor, 1.0f);
+
+			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -2157,12 +2158,11 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 
 			PixelShader->SetParameters(RHICmdList, View, IrradianceCacheInterpolation);
 
-			//@todo - get the round up correct
 			DrawRectangle( 
 				RHICmdList,
 				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
-				View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 
+				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
 				GetBufferSizeForAO() / GAODownsampleFactor,
@@ -2179,7 +2179,7 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 		{
 			const FViewInfo& View = Views[ViewIndex];
 
-			RHICmdList.SetViewport(View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 0.0f, View.ViewRect.Max.X / GAODownsampleFactor, View.ViewRect.Max.Y / GAODownsampleFactor, 1.0f);
+			RHICmdList.SetViewport(0, 0, 0.0f, View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -2198,7 +2198,7 @@ void PostProcessBentNormalAO(FRHICommandList& RHICmdList, TArray<FViewInfo>& Vie
 				RHICmdList,
 				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
-				View.ViewRect.Min.X / GAODownsampleFactor, View.ViewRect.Min.Y / GAODownsampleFactor, 
+				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
 				GSceneRenderTargets.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor),
@@ -2619,16 +2619,15 @@ void RenderIrradianceCacheInterpolation(FRHICommandListImmediate& RHICmdList, TA
 			const FScene* Scene = (const FScene*)View.Family->Scene;
 			FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
 
-			RHICmdList.SetViewport(View.ViewRect.Min.X / DestLevelDownsampleFactor, View.ViewRect.Min.Y / DestLevelDownsampleFactor, 0.0f, FMath::DivideAndRoundUp(View.ViewRect.Max.X, DestLevelDownsampleFactor), FMath::DivideAndRoundUp(View.ViewRect.Max.Y, DestLevelDownsampleFactor), 1.0f);
+			const uint32 DownsampledViewSizeX = FMath::DivideAndRoundUp(View.ViewRect.Width(), DestLevelDownsampleFactor);
+			const uint32 DownsampledViewSizeY = FMath::DivideAndRoundUp(View.ViewRect.Height(), DestLevelDownsampleFactor);
 
+			RHICmdList.SetViewport(0, 0, 0.0f, DownsampledViewSizeX, DownsampledViewSizeY, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 			//@todo - render front faces with depth testing, requires depth buffer
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
-			//FVector2D NormalizedOffsetToPixelCenter(-(-DestLevelDownsampleFactor / 2 + .5f) / (float)View.ViewRect.Width(), -(-DestLevelDownsampleFactor / 2 + .5f) / (float)View.ViewRect.Height());
-			uint32 DownsampledViewSizeX = FMath::DivideAndRoundUp(View.ViewRect.Width(), DestLevelDownsampleFactor);
-			uint32 DownsampledViewSizeY = FMath::DivideAndRoundUp(View.ViewRect.Height(), DestLevelDownsampleFactor);
 			FVector2D NormalizedOffsetToPixelCenter2(.5f / DownsampledViewSizeX - .5f / (DownsampledViewSizeX * DestLevelDownsampleFactor), .5f / DownsampledViewSizeY - .5f / (DownsampledViewSizeY * DestLevelDownsampleFactor));
 
 			// Convert to NDC 
@@ -2643,8 +2642,8 @@ void RenderIrradianceCacheInterpolation(FRHICommandListImmediate& RHICmdList, TA
 				View.ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY));
 
 			const FVector2D ScreenPositionBias(
-				(View.ViewRect.Width() / 2.0f + GPixelCenterOffset + View.ViewRect.Min.X) * InvBufferSizeX,
-				(View.ViewRect.Height() / 2.0f + GPixelCenterOffset + View.ViewRect.Min.Y) * InvBufferSizeY);
+				(View.ViewRect.Width() / 2.0f + GPixelCenterOffset) * InvBufferSizeX,
+				(View.ViewRect.Height() / 2.0f + GPixelCenterOffset) * InvBufferSizeY);
 
 			FVector2D OffsetToLowResCorner = (FVector2D(.5f, .5f) / FVector2D(DownsampledViewSizeX, DownsampledViewSizeY) - FVector2D(.5f, .5f)) * FVector2D(2, -2);
 			FVector2D OffsetToTopResPixel = (FVector2D(.5f, .5f) / BufferSize - ScreenPositionBias) / ScreenPositionScale;
@@ -3008,9 +3007,13 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(FRHIComman
 					RenderIrradianceCacheInterpolation(RHICmdList, Views, IrradianceCacheAccumulation, DistanceFieldNormal->GetRenderTargetItem(), 0, GAODownsampleFactor, true);
 				}
 
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, IrradianceCacheAccumulation);
+
 				// Post process the AO to cover over artifacts
 				TRefCountPtr<IPooledRenderTarget> AOOutput;
 				PostProcessBentNormalAO(RHICmdList, Views, IrradianceCacheAccumulation->GetRenderTargetItem(), AOOutput);
+
+				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, AOOutput);
 
 				if (bApplyToSceneColor)
 				{

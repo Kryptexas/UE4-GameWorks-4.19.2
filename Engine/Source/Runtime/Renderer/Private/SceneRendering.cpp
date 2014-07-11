@@ -239,7 +239,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.ViewRight = EffectiveTranslatedViewMatrix.GetColumn(0);
 	ViewUniformShaderParameters.InvDeviceZToWorldZTransform = InvDeviceZToWorldZTransform;
 	ViewUniformShaderParameters.ScreenPositionScaleBias = ScreenPositionScaleBias;
-	ViewUniformShaderParameters.ScreenTexelBias = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
+	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
 	ViewUniformShaderParameters.ViewSizeAndSceneTexelSize = FVector4(ViewRect.Width(), ViewRect.Height(), InvBufferSizeX, InvBufferSizeY);
 	ViewUniformShaderParameters.ViewOrigin = ViewMatrices.ViewOrigin;
 	ViewUniformShaderParameters.TranslatedViewOrigin = ViewMatrices.ViewOrigin + ViewMatrices.PreViewTranslation;

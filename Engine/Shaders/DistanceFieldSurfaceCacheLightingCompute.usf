@@ -38,7 +38,7 @@ void BuildTileConesMain(
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
     uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
-	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 
 	// Initialize per-tile variables
@@ -155,7 +155,7 @@ void DistanceFieldAOBuildTileListMain(
     uint3 GroupThreadId : SV_GroupThreadID) 
 {
     uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
-	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float2 ScreenUV = (DispatchThreadId.xy * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 
 	// Initialize per-tile variables
@@ -374,7 +374,7 @@ void PopulateCacheCS(
 
 	GroupMemoryBarrierWithGroupSync();
 
-	float2 ScreenUV = (DispatchThreadId.xy * CurrentLevelDownsampleFactor + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	float2 ScreenUV = (DispatchThreadId.xy * CurrentLevelDownsampleFactor + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 	float2 DownsampledScreenUV = (DispatchThreadId.xy + float2(.5f, .5f)) / AOBufferSize;
 
@@ -410,6 +410,7 @@ void PopulateCacheCS(
 				// Allocate a new record and store off attributes of the created record
 				int NextSampleIndex;
 				InterlockedAdd(NumQueuedIrradianceCacheRecords, 1, NextSampleIndex);
+				// W stores max allowed radius, used to limit overdraw from nearby samples placed in the high resolution passes
 				CachedIrradianceCachePositionRadius[NextSampleIndex] = float4(WorldShadingPosition, SceneDepth * CurrentLevelDownsampleFactor * .005f);
 				CachedIrradianceCacheNormal[NextSampleIndex] = float4(WorldNormal, .01f * CurrentLevelDownsampleFactor / 2);
 				CachedIrradianceCacheTileCoordinate[NextSampleIndex] = TileCoordinate;
