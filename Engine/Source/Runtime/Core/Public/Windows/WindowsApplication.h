@@ -17,7 +17,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogWindowsDesktop, Log, All);
 class FWindowsWindow;
 class FGenericApplicationMessageHandler;
 
-namespace TaskbarProgressState
+namespace ETaskbarProgressState
 {
 	enum Type
 	{
@@ -56,7 +56,7 @@ public:
 
 	static TSharedRef<FTaskbarList> Create();
 
-	void SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, TaskbarProgressState::Type State);
+	void SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, ETaskbarProgressState::Type State);
 
 	void SetProgressValue(const TSharedRef<FGenericWindow>& NativeWindow, uint64 Current, uint64 Total);
 

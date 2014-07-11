@@ -1825,7 +1825,7 @@ void FTaskbarList::SetProgressValue(const TSharedRef<FGenericWindow>& NativeWind
 	}
 }
 
-void FTaskbarList::SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, TaskbarProgressState::Type State)
+void FTaskbarList::SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, ETaskbarProgressState::Type State)
 {
 	if (TaskBarList3)
 	{
