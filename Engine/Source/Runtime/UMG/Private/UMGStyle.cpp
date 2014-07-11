@@ -43,6 +43,8 @@ TSharedRef< FSlateStyleSet > FUMGStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("UMGStyle"));
 	Style->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate/UMG"));
 	
+	Style->Set("MarchingAnts", new BORDER_BRUSH( TEXT("NonMarchingAnts"), FMargin(0.25f), FLinearColor(1,1,1,0.5) ));
+
 	Style->Set("Widget", new IMAGE_BRUSH(TEXT("Widget"), Icon16x16));
 	Style->Set("Widget.CheckBox", new IMAGE_BRUSH(TEXT("CheckBox"), Icon16x16));
 	Style->Set("Widget.Button", new IMAGE_BRUSH(TEXT("Button"), Icon16x16));

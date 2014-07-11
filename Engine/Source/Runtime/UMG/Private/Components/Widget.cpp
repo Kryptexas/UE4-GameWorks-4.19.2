@@ -140,7 +140,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 		[
 			SNew(SBorder)
 			.Visibility( EVisibility::HitTestInvisible )
-			.BorderImage( FCoreStyle::Get().GetBrush("FocusRectangle") )
+			.BorderImage(FUMGStyle::Get().GetBrush("MarchingAnts"))
 		];
 	}
 	else
