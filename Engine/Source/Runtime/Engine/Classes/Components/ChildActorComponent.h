@@ -29,6 +29,7 @@ class UChildActorComponent : public USceneComponent
 	// Begin ActorComponent interface.
 	virtual void OnComponentCreated() override;
 	virtual void OnComponentDestroyed() override;
+	virtual void OnRegister() override;
 	virtual TSharedPtr<FComponentInstanceDataBase> GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
 	virtual void ApplyComponentInstanceData(TSharedPtr<FComponentInstanceDataBase> ComponentInstanceData) override;

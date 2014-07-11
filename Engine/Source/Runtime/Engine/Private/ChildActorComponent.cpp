@@ -10,6 +10,16 @@ UChildActorComponent::UChildActorComponent(const class FPostConstructInitializeP
 {
 }
 
+void UChildActorComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	if (ChildActor)
+	{
+		ChildActorName = ChildActor->GetFName();
+	}
+}
+
 void UChildActorComponent::OnComponentCreated()
 {
 	Super::OnComponentCreated();
