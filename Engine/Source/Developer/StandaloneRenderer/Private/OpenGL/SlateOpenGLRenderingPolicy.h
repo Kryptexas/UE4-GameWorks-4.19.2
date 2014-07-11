@@ -28,7 +28,7 @@ public:
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
 
-	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return TextureManager.ToSharedRef(); }
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;
 	/**
 	 * Returns the font cache used when the OpenGL rendering policy is active
  	 */

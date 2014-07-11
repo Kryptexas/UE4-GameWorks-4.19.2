@@ -283,3 +283,8 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	glUseProgram(0);
 
 }
+
+TSharedRef<FSlateShaderResourceManager> FSlateOpenGLRenderingPolicy::GetResourceManager()
+{
+	return TextureManager.ToSharedRef();
+}
