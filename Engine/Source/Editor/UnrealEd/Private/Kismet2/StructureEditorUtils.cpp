@@ -414,16 +414,8 @@ FString FStructureEditorUtils::GetVariableDisplayName(const UUserDefinedStruct* 
 
 bool FStructureEditorUtils::UserDefinedStructEnabled()
 {
-	struct FUserDefinedStructEnabled
-	{
-		bool bUseUserDefinedStructure;
-		FUserDefinedStructEnabled() : bUseUserDefinedStructure(false)
-		{
-			GConfig->GetBool(TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"), bUseUserDefinedStructure, GEditorIni);
-		}
-	};
-	static FUserDefinedStructEnabled Helper;
-	return Helper.bUseUserDefinedStructure;
+	static FBoolConfigValueHelper UseUserDefinedStructure(TEXT("UserDefinedStructure"), TEXT("bUseUserDefinedStructure"));
+	return UseUserDefinedStructure;
 }
 
 bool FStructureEditorUtils::Fill_MakeStructureDefaultValue(const UUserDefinedStruct* Struct, uint8* StructData)

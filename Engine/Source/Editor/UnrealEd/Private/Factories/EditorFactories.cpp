@@ -6281,16 +6281,8 @@ BlueprintFunctionLibraryFactory implementation.
 UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
-	struct FCanCreateNewHelper
-	{
-		bool bCanCreateNew;
-		FCanCreateNewHelper() : bCanCreateNew(false)
-		{
-			GConfig->GetBool(TEXT("CustomBlueprintFunctionLibrary"), TEXT("bCanCreateNew"), bCanCreateNew, GEditorIni);
-		}
-	};
-	static const FCanCreateNewHelper Helper;
-	bCreateNew = Helper.bCanCreateNew;
+	static FBoolConfigValueHelper CanCreateNewHelper(TEXT("CustomBlueprintFunctionLibrary"), TEXT("bCanCreateNew"));
+	bCreateNew = CanCreateNewHelper;
 	bEditAfterNew = true;
 	SupportedClass = UBlueprint::StaticClass();
 	ParentClass = UBlueprintFunctionLibrary::StaticClass();

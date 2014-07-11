@@ -1055,19 +1055,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
 
-		struct FReplaceBlueprintWithClassHelper
-		{
-			bool bShouldReplace;
-
-			FReplaceBlueprintWithClassHelper() : bShouldReplace(false)
-			{
-				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"), bShouldReplace, GEditorIni);
-			}
-		};
-		static FReplaceBlueprintWithClassHelper ReplaceBlueprintWithClassHelper;
-		const bool bReplaceBlueprintWithClass = ReplaceBlueprintWithClassHelper.bShouldReplace;
-
-		if (bReplaceBlueprintWithClass)
+		static FBoolConfigValueHelper ReplaceBlueprintWithClass(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"));
+		if (ReplaceBlueprintWithClass)
 		{
 			FEditoronlyBlueprintHelper::ChangeBlueprint(Blueprint);
 		}
@@ -1125,7 +1114,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		}
 #endif
 
-		if (bReplaceBlueprintWithClass)
+		if (ReplaceBlueprintWithClass)
 		{
 			FEditoronlyBlueprintHelper::ShouldBeFixed(Blueprint, true);
 		}

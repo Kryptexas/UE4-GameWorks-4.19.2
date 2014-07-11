@@ -952,3 +952,12 @@ void GenerateConvenientWindowedResolutions(const FDisplayMetrics& InDisplayMetri
 		}
 	}
 }
+
+/*----------------------------------------------------------------------------
+FBoolConfigValueHelper
+----------------------------------------------------------------------------*/
+FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR* Key, const FString& Filename)
+	: bValue(false)
+{
+	GConfig->GetBool(Section, Key, bValue, Filename);
+}

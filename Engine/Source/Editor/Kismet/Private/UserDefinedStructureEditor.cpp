@@ -275,16 +275,9 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 	}
 
 	DefaultValueView = NULL;
-	struct FShowDefaultValuePropertyEditor
-	{
-		bool bShowDefaultValuePropertyEditor;
-		FShowDefaultValuePropertyEditor() : bShowDefaultValuePropertyEditor(false)
-		{
-			GConfig->GetBool(TEXT("UserDefinedStructure"), TEXT("bShowDefaultValuePropertyEditor"), bShowDefaultValuePropertyEditor, GEditorIni);
-		}
-	};
-	static FShowDefaultValuePropertyEditor Helper;
-	if (Helper.bShowDefaultValuePropertyEditor)
+
+	static FBoolConfigValueHelper ShowDefaultValuePropertyEditor(TEXT("UserDefinedStructure"), TEXT("bShowDefaultValuePropertyEditor"));
+	if (ShowDefaultValuePropertyEditor)
 	{
 		DefaultValueView = MakeShareable(new FStructureDefaultValueView(EditedStruct));
 		DefaultValueView->Initialize();

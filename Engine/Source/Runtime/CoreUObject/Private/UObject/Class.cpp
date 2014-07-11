@@ -1244,16 +1244,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 				bool bSkipByteCodeSerialization = false;
 #if WITH_EDITOR
-				struct FSkipByteCodeSerializationHelper
-				{
-					bool bValue;
-					FSkipByteCodeSerializationHelper() : bValue(false)
-					{
-						GConfig->GetBool(TEXT("StructSerialization"), TEXT("SkipByteCodeSerialization"), bValue, GEditorIni);
-					}
-				};
-				static FSkipByteCodeSerializationHelper SkipByteCodeHelper;
-				bSkipByteCodeSerialization = SkipByteCodeHelper.bValue;
+				static const FBoolConfigValueHelper SkipByteCodeHelper(TEXT("StructSerialization"), TEXT("SkipByteCodeSerialization"));
+				bSkipByteCodeSerialization = SkipByteCodeHelper;
 #endif // WITH_EDITOR
 				if (bSkipByteCodeSerialization || (Ar.UE4Ver() < VER_MIN_SCRIPTVM_UE4) || (Ar.LicenseeUE4Ver() < VER_MIN_SCRIPTVM_LICENSEEUE4))
 				{
