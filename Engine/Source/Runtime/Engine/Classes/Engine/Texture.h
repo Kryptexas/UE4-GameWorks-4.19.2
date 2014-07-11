@@ -587,7 +587,7 @@ public:
 	/**
 	 * Begins caching platform data in the background for the platform requested
 	 */
-	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
+	ENGINE_API virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
 
 
 	/**
