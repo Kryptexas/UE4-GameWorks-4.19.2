@@ -505,7 +505,7 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 			}
 
 			// apply Pre rotations only on bones / end of chains
-			if(Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eSkeleton
+			if((Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eSkeleton)
 				|| (Node->GetMarker() && Node->GetMarker()->GetType() == FbxMarker::eEffectorFK)
 				|| (Node->GetMarker() && Node->GetMarker()->GetType() == FbxMarker::eEffectorIK))
 			{

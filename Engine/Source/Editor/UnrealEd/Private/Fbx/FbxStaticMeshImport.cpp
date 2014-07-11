@@ -394,7 +394,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	// build collision
 	//
 	bool bEnableCollision = ImportCollisionModels(StaticMesh, GetNodeNameWithoutNamespace( Node ) )
-		|| GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates;
+		|| (GBuildStaticMeshCollision && LODIndex == 0 && ImportOptions->bRemoveDegenerates);
 	for(int32 SectionIndex=MaterialIndexOffset; SectionIndex<MaterialIndexOffset+MaterialCount; SectionIndex++)
 	{
 		FMeshSectionInfo Info = StaticMesh->SectionInfoMap.Get(LODIndex, SectionIndex);

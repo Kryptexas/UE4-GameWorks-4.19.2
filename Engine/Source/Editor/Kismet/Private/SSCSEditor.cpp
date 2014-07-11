@@ -620,7 +620,7 @@ FSCSEditorTreeNodePtrType FSCSEditorTreeNode::FindChild(const USCS_Node* InSCSNo
 
 	if(OutDepth && Result.IsValid())
 	{
-		*OutDepth++;
+		*OutDepth += 1;
 	}
 
 	return Result;
@@ -649,7 +649,7 @@ FSCSEditorTreeNodePtrType FSCSEditorTreeNode::FindChild(const UActorComponent* I
 
 	if(OutDepth && Result.IsValid())
 	{
-		*OutDepth++;
+		*OutDepth += 1;
 	}
 
 	return Result;
