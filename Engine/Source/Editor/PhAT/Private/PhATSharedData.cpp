@@ -1061,16 +1061,45 @@ void FPhATSharedData::DeleteBody(int32 DelBodyIndex, bool bRefreshComponent)
 	PhysicsAsset->Modify();
 
 	// .. the body..
-	PhysicsAsset->BodySetup[DelBodyIndex]->Modify();	
+	UBodySetup * BodySetup = PhysicsAsset->BodySetup[DelBodyIndex];
+	BodySetup->Modify();	
 
 	// .. and any constraints to the body.
 	TArray<int32>	Constraints;
 	PhysicsAsset->BodyFindConstraints(DelBodyIndex, Constraints);
 
+	//we want to fixup constraints so that nearest child bodies get constraint with parent body
+	TArray<int32> NearestBodiesBelow;
+	PhysicsAsset->GetNearestBodyIndicesBelow(NearestBodiesBelow, BodySetup->BoneName, EditorSkelMesh);
+	
+	int32 BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+	check(BoneIndex != INDEX_NONE);
+	int32 ParentBodyIndex = PhysicsAsset->FindParentBodyIndex(EditorSkelMesh, BoneIndex);
+
+	UBodySetup * ParentBody = ParentBodyIndex != INDEX_NONE ? PhysicsAsset->BodySetup[ParentBodyIndex] : NULL;
+
 	for (int32 i = 0; i <Constraints.Num(); ++i)
 	{
 		int32 ConstraintIndex = Constraints[i];
-		PhysicsAsset->ConstraintSetup[ConstraintIndex]->Modify();
+		UPhysicsConstraintTemplate * Constraint = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+		Constraint->Modify();
+
+		if (ParentBody)
+		{
+			//for all constraints that contain a nearest child of this body, create a copy of the constraint between the child and parent
+			for (int32 i = 0; i < NearestBodiesBelow.Num(); ++i)
+			{
+				int32 BodyBelowIndex = NearestBodiesBelow[i];
+				UBodySetup * BodyBelow = PhysicsAsset->BodySetup[BodyBelowIndex];
+
+				if (Constraint->DefaultInstance.ConstraintBone1 == BodyBelow->BoneName)
+				{
+					int32 NewConstraintIndex = FPhysicsAssetUtils::CreateNewConstraint(PhysicsAsset, BodyBelow->BoneName, Constraint);
+					UPhysicsConstraintTemplate * NewConstraint = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
+					InitConstraintSetup(NewConstraint, BodyBelowIndex, ParentBodyIndex);
+				}
+			}
+		}
 	}
 
 	// Now actually destroy body. This will destroy any constraints associated with the body as well.

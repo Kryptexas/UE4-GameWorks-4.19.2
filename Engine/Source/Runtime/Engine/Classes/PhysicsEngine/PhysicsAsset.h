@@ -127,11 +127,14 @@ public:
 
 	// Find the index of the physics bone that is controlling this graphics bone.
 	ENGINE_API int32		FindControllingBodyIndex(class USkeletalMesh* skelMesh, int32 BoneIndex);
+	ENGINE_API int32		FindParentBodyIndex(class USkeletalMesh * skelMesh, int32 StartBoneIndex) const;
 	ENGINE_API int32		FindConstraintIndex(FName ConstraintName);
 	FName					FindConstraintBoneName(int32 ConstraintIndex);
 
 	/** Utility for getting indices of all bodies below (and including) the one with the supplied name. */
-	ENGINE_API void			GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InBoneName, USkeletalMesh* InSkelMesh);
+	ENGINE_API void			GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InBoneName, USkeletalMesh* InSkelMesh, bool bIncludeParent = true);
+
+	ENGINE_API void			GetNearestBodyIndicesBelow(TArray<int32> & OutBodyIndices, FName InBoneName, USkeletalMesh * InSkelMesh);
 
 	ENGINE_API FBox			CalcAABB(const class USkinnedMeshComponent* MeshComponent) const;
 
@@ -164,7 +167,7 @@ public:
 
 
 	// @todo document
-	ENGINE_API int32 FindBodyIndex(FName BodyName);
+	ENGINE_API int32 FindBodyIndex(FName BodyName) const;
 
 	/** Find all the constraints that are connected to a particular body.
 	 * 

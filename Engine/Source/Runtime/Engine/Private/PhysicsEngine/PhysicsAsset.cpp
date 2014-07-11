@@ -208,10 +208,25 @@ int32	UPhysicsAsset::FindControllingBodyIndex(class USkeletalMesh* skelMesh, int
 	return INDEX_NONE; // Shouldn't reach here.
 }
 
-
-int32 UPhysicsAsset::FindBodyIndex(FName bodyName)
+int32 UPhysicsAsset::FindParentBodyIndex(class USkeletalMesh * skelMesh, int32 StartBoneIndex) const
 {
-	int32 * IdxData = BodySetupIndexMap.Find(bodyName);
+	int32 BoneIndex = StartBoneIndex;
+	while ((BoneIndex = skelMesh->RefSkeleton.GetParentIndex(BoneIndex)) != 0)
+	{
+		FName BoneName = skelMesh->RefSkeleton.GetBoneName(BoneIndex);
+		int32 BodyIndex = FindBodyIndex(BoneName);
+
+		if (BodyIndex != INDEX_NONE)
+			return BodyIndex;
+	}
+
+	return INDEX_NONE;
+}
+
+
+int32 UPhysicsAsset::FindBodyIndex(FName bodyName) const
+{
+	const int32 * IdxData = BodySetupIndexMap.Find(bodyName);
 	if (IdxData)
 	{
 		return *IdxData;
@@ -243,7 +258,7 @@ FName UPhysicsAsset::FindConstraintBoneName(int32 ConstraintIndex)
 	return ConstraintSetup[ConstraintIndex]->DefaultInstance.JointName;
 }
 
-void UPhysicsAsset::GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InBoneName, USkeletalMesh* SkelMesh)
+void UPhysicsAsset::GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InBoneName, USkeletalMesh* SkelMesh, bool bIncludeParent /*= true*/)
 {
 	int32 BaseIndex = SkelMesh->RefSkeleton.FindBoneIndex(InBoneName);
 
@@ -254,10 +269,47 @@ void UPhysicsAsset::GetBodyIndicesBelow(TArray<int32>& OutBodyIndices, FName InB
 		FName TestName = BS->BoneName;
 		int32 TestIndex = SkelMesh->RefSkeleton.FindBoneIndex(TestName);
 
-		// We want to return this body as well.
-		if(TestIndex == BaseIndex || SkelMesh->RefSkeleton.BoneIsChildOf(TestIndex, BaseIndex))
+		if( (bIncludeParent && TestIndex == BaseIndex) || SkelMesh->RefSkeleton.BoneIsChildOf(TestIndex, BaseIndex))
 		{
 			OutBodyIndices.Add(i);
+		}
+	}
+}
+
+void UPhysicsAsset::GetNearestBodyIndicesBelow(TArray<int32> & OutBodyIndices, FName InBoneName, USkeletalMesh * InSkelMesh)
+{
+	TArray<int32> AllBodiesBelow;
+	GetBodyIndicesBelow(AllBodiesBelow, InBoneName, InSkelMesh, false);
+
+	//we need to filter all bodies below to first in the chain
+	TArray<bool> Nearest;
+	Nearest.AddUninitialized(BodySetup.Num());
+	for (int32 i = 0; i < Nearest.Num(); ++i)
+	{
+		Nearest[i] = true;
+	}
+
+	for (int32 i = 0; i < AllBodiesBelow.Num(); i++)
+	{
+		int32 BodyIndex = AllBodiesBelow[i];
+		if (Nearest[BodyIndex] == false) continue;
+
+		UBodySetup * Body = BodySetup[BodyIndex];
+		TArray<int32> BodiesBelowMe;
+		GetBodyIndicesBelow(BodiesBelowMe, Body->BoneName, InSkelMesh, false);
+		
+		for (int j = 0; j < BodiesBelowMe.Num(); ++j)
+		{
+			Nearest[BodiesBelowMe[j]] = false;	
+		}
+	}
+
+	for (int32 i = 0; i < AllBodiesBelow.Num(); i++)
+	{
+		int32 BodyIndex = AllBodiesBelow[i];
+		if (Nearest[BodyIndex])
+		{
+			OutBodyIndices.Add(BodyIndex);
 		}
 	}
 }
