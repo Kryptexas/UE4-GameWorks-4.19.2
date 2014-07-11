@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "CorePrivate.h"
+#include <sys/stat.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)
 const FDateTime MacEpoch(1970, 1, 1);
@@ -503,7 +504,19 @@ bool FApplePlatformFile::IterateDirectory(const TCHAR* Directory, FDirectoryVisi
 				{
                     // Normalize any unicode forms so we match correctly
                     FString NormalizedFilename = UTF8_TO_TCHAR(([[[NSString stringWithUTF8String:Entry->d_name] precomposedStringWithCanonicalMapping] cStringUsingEncoding:NSUTF8StringEncoding]));
-                    Result = Visitor.Visit(*(FString(Directory) / NormalizedFilename), Entry->d_type == DT_DIR);
+					
+                    // Figure out whether it's a directory. Some protocols (like NFS) do not voluntairily return this as part of the directory entry, and need to be queried manually.
+                    bool bIsDirectory = (Entry->d_type == DT_DIR);
+                    if(Entry->d_type == DT_UNKNOWN)
+                    {
+                        struct stat StatInfo;
+                        if(stat(TCHAR_TO_UTF8(*(FString(Directory) / Entry->d_name)), &StatInfo) == 0)
+                        {
+                            bIsDirectory = S_ISDIR(StatInfo.st_mode);
+                        }
+                    }
+					
+                    Result = Visitor.Visit(*(FString(Directory) / NormalizedFilename), bIsDirectory);
 				}
 			}
 			closedir(Handle);
