@@ -42,5 +42,16 @@ public:
 	 * Sync a path/filename to this label
 	 * @param	InFilename	The path or filename to sync
 	 */
-	virtual bool Sync( const FString& InFilename ) const = 0;
+	virtual bool Sync( const FString& InFilename ) const
+	{
+		TArray<FString> Files;
+		Files.Add(InFilename);
+		return Sync( Files );
+	}
+
+	/**
+	 * Sync a list of paths/filenames to this label
+	 * @param	InFilenames	The paths or filenames to sync
+	 */
+	virtual bool Sync( const TArray<FString>& InFilenames ) const = 0;
 };

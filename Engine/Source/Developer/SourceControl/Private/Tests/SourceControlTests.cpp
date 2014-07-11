@@ -812,39 +812,39 @@ bool FUpdateStatusTest::RunTest(const FString& Parameters)
 /**
  * Helper struct for FGetLabelLatentCommand
  */
-struct FLabelAndFilename
+struct FLabelAndFilenames
 {
-	FLabelAndFilename( const FString& InLabel, const FString& InFilename )
+	FLabelAndFilenames( const FString& InLabel, const TArray<FString>& InFilenames )
 		: Label(InLabel)
-		, Filename(InFilename)
+		, Filenames(InFilenames)
 	{
 	}
 
 	/** Label to use */
 	FString Label;
 
-	/** Filename to use */
-	FString Filename;
+	/** Filenames to use */
+	TArray<FString> Filenames;
 };
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGetLabelLatentCommand, FLabelAndFilename, LabelAndFilename);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FGetLabelLatentCommand, FLabelAndFilenames, LabelAndFilenames);
 
 bool FGetLabelLatentCommand::Update()
 {
 	// @todo: for the moment, getting labels etc. is synchronous.
 
-	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels(LabelAndFilename.Label);
+	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels(LabelAndFilenames.Label);
 	if(Labels.Num() == 0)
 	{
-		UE_LOG(LogSourceControl, Error, TEXT("No labels available that use the spec '%s'"), *LabelAndFilename.Label);
+		UE_LOG(LogSourceControl, Error, TEXT("No labels available that use the spec '%s'"), *LabelAndFilenames.Label);
 	}
 	else
 	{
 		TArray< TSharedRef<ISourceControlRevision, ESPMode::ThreadSafe> > Revisions;
-		Labels[0]->GetFileRevisions(FPaths::ConvertRelativePathToFull(LabelAndFilename.Filename), Revisions);
+		Labels[0]->GetFileRevisions(LabelAndFilenames.Filenames[0], Revisions);
 		if(Revisions.Num() == 0)
 		{
-			UE_LOG(LogSourceControl, Error, TEXT("No revisions of file '%s' found at label '%s'"), *LabelAndFilename.Filename, *LabelAndFilename.Label);
+			UE_LOG(LogSourceControl, Error, TEXT("No revisions of file '%s' found at label '%s'"), *LabelAndFilenames.Filenames[0], *LabelAndFilenames.Label);
 		}
 		else
 		{
@@ -852,14 +852,14 @@ bool FGetLabelLatentCommand::Update()
 			Revisions[0]->Get(TempGetFilename);
 			if(TempGetFilename.Len() == 0 || !FPaths::FileExists(TempGetFilename))
 			{
-				UE_LOG(LogSourceControl, Error, TEXT("Could not get revision of file '%s' using label '%s'"), *LabelAndFilename.Filename, *LabelAndFilename.Label);
+				UE_LOG(LogSourceControl, Error, TEXT("Could not get revision of file '%s' using label '%s'"), *LabelAndFilenames.Filenames[0], *LabelAndFilenames.Label);
 			}
 
 			FString TempGetAnnotatedFilename;
 			Revisions[0]->GetAnnotated(TempGetAnnotatedFilename);
 			if(TempGetAnnotatedFilename.Len() == 0 || !FPaths::FileExists(TempGetAnnotatedFilename))
 			{
-				UE_LOG(LogSourceControl, Error, TEXT("Could not get annotated revision of file '%s' using label '%s'"), *LabelAndFilename.Filename, *LabelAndFilename.Label);
+				UE_LOG(LogSourceControl, Error, TEXT("Could not get annotated revision of file '%s' using label '%s'"), *LabelAndFilenames.Filenames[0], *LabelAndFilenames.Label);
 			}
 		}
 	}
@@ -883,9 +883,58 @@ bool FGetLabelTest::RunTest(const FString& Parameters)
 	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
+	TArray<FString> FilesToGet;
+	FilesToGet.Add(FPaths::ConvertRelativePathToFull(TEXT("../../../Engine/Source/Developer/SourceControl/SourceControl.Build.cs")));
+
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
 	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
-	ADD_LATENT_AUTOMATION_COMMAND(FGetLabelLatentCommand(FLabelAndFilename(ParamArray[1], TEXT("../../../Engine/Source/Developer/SourceControl/SourceControl.Build.cs"))));
+	ADD_LATENT_AUTOMATION_COMMAND(FGetLabelLatentCommand(FLabelAndFilenames(ParamArray[1], FilesToGet)));
+
+	return true;
+}
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FSyncLabelLatentCommand, FLabelAndFilenames, LabelAndFilenames);
+
+bool FSyncLabelLatentCommand::Update()
+{
+	// @todo: for the moment, getting labels etc. is synchronous.
+
+	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels(LabelAndFilenames.Label);
+	if(Labels.Num() == 0)
+	{
+		UE_LOG(LogSourceControl, Error, TEXT("No labels available that use the spec '%s'"), *LabelAndFilenames.Label);
+	}
+	else
+	{
+		Labels[0]->Sync(LabelAndFilenames.Filenames);
+	}
+
+	return true;
+}
+
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FSyncLabelTest, "Editor.Source Control.Sync Label", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
+
+void FSyncLabelTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	GetProviders(OutBeautifiedNames, OutTestCommands);
+	AppendFilename(TEXT("SourceControlAutomationLabel"), OutBeautifiedNames, OutTestCommands);
+}
+
+bool FSyncLabelTest::RunTest(const FString& Parameters)
+{
+	// parameter is the provider we want to use followed by the label
+	const FString Delimiter(TEXT(" "));
+	TArray<FString> ParamArray;
+	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	ensure(ParamArray.Num() == 2);
+
+	TArray<FString> FilesToGet;
+	FilesToGet.Add(FPaths::ConvertRelativePathToFull(TEXT("../../../Engine/Source/Developer/SourceControl/SourceControl.Build.cs")));
+	FilesToGet.Add(FPaths::ConvertRelativePathToFull(TEXT("../../../Engine/Source/Developer/SourceControl/Public/ISourceControlModule.h")));
+
+	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
+	ADD_LATENT_AUTOMATION_COMMAND(FConnectLatentCommand(FAsyncCommandHelper()));
+	ADD_LATENT_AUTOMATION_COMMAND(FSyncLabelLatentCommand(FLabelAndFilenames(ParamArray[1], FilesToGet)));
 
 	return true;
 }

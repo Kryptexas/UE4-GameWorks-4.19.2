@@ -59,22 +59,19 @@ bool FSubversionSourceControlLabel::GetFileRevisions( const TArray<FString>& InF
 	return bCommandOK;
 }
 
-bool FSubversionSourceControlLabel::Sync( const FString& InFilename ) const
+bool FSubversionSourceControlLabel::Sync( const TArray<FString>& InFilenames ) const
 {
-	SubversionSourceControlUtils::CheckFilename(InFilename);
+	SubversionSourceControlUtils::CheckFilenames(InFilenames);
 
 	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
 	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
-
-	TArray<FString> Files;
-	Files.Add(InFilename);
 
 	TArray<FString> Results;
 	TArray<FString> Parameters;
 	TArray<FString> ErrorMessages;
 	Parameters.Add(FString::Printf(TEXT("--revision %i"), Revision));
 
-	bool bCommandOK = SubversionSourceControlUtils::RunCommand(TEXT("update"), Files, Parameters, Results, ErrorMessages, Provider.GetUserName());
+	bool bCommandOK = SubversionSourceControlUtils::RunCommand(TEXT("update"), InFilenames, Parameters, Results, ErrorMessages, Provider.GetUserName());
 
 	// also update cached state
 	{
@@ -84,7 +81,7 @@ bool FSubversionSourceControlLabel::Sync( const FString& InFilename ) const
 		StatusParameters.Add(TEXT("--verbose"));
 		StatusParameters.Add(TEXT("--show-updates"));
 
-		bCommandOK &= SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, ErrorMessages, Provider.GetUserName());
+		bCommandOK &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InFilenames, StatusParameters, ResultsXml, ErrorMessages, Provider.GetUserName());
 		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, Provider.GetUserName(), Provider.GetWorkingCopyRoot(), OutStates);
 		SubversionSourceControlUtils::UpdateCachedStates(OutStates);
 	}
