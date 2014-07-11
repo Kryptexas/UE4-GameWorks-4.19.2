@@ -165,6 +165,9 @@ public:
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
 
+	/** Whether or not struct pins belonging to this node should be allowed to be split or not. */
+	virtual bool AllowSplitPins() const { return false; }
+
 	/** Gets the overridden name for the specified pin, if any */
 	virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const { return FString(TEXT("")); }
 

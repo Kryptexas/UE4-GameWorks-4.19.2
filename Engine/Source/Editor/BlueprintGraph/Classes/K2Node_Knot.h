@@ -19,6 +19,7 @@ public:
 	virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
+	virtual bool AllowSplitPins() const override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
