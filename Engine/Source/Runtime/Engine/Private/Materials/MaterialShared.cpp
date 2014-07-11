@@ -2057,8 +2057,14 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 		);
 }
 
+uint32 Global1 = 0;
+uint32 Global2 = 0;
+
 EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 {
+	++Global1;
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> %d %d\n"), Global1, Global2);
+
 	switch(Index)
 	{
 	case 0: return MP_BaseColor;
@@ -2097,6 +2103,9 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 
 int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 {
+	++Global2;
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT(">>>> %d %d\n"), Global1, Global2);
+
 	switch(Property)
 	{
 	case MP_BaseColor: return 0;
@@ -2214,10 +2223,8 @@ int32 UMaterialInterface::CompilePropertyEx( class FMaterialCompiler* Compiler, 
 	return INDEX_NONE;
 }
 
-int32 UMaterialInterface::CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property )
+int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	int32 Ret = INDEX_NONE;
-
 	if (IsPropertyActive(Property))
 	{
 		return CompilePropertyEx(Compiler, Property);
@@ -2226,7 +2233,6 @@ int32 UMaterialInterface::CompileProperty( FMaterialCompiler* Compiler, EMateria
 	{
 		return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 	}
-	return Ret;
 }
 
 /** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */

@@ -1065,8 +1065,12 @@ protected:
 	*/
 	void GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds);
 
-	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const = 0;
+	/**
+	 * Entry point for compiling a specific material property.  This must call SetMaterialProperty. 
+	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
+	 * @return cases to the proper type e.g. Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	 */
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies) const = 0;
 
 	/** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 	int32 FindExpression(const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression);
@@ -1508,7 +1512,7 @@ protected:
 	UMaterialInstance* MaterialInstance;
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	ENGINE_API virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const;
+	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const;
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const;
 	/** Useful for debugging. */

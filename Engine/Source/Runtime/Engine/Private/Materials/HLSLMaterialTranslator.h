@@ -312,34 +312,37 @@ public:
 			// Generate code
 			int32 Chunk[CompiledMP_MAX];
 
-			Chunk[MP_Normal]						= ForceCast(Material->CompileProperty(MP_Normal                ,GetMaterialPropertyShaderFrequency(MP_Normal),this),MCT_Float3);
-			Chunk[MP_EmissiveColor]					= ForceCast(Material->CompileProperty(MP_EmissiveColor         ,GetMaterialPropertyShaderFrequency(MP_EmissiveColor),this),MCT_Float3);
-			Chunk[MP_DiffuseColor]					= ForceCast(Material->CompileProperty(MP_DiffuseColor          ,GetMaterialPropertyShaderFrequency(MP_DiffuseColor),this),MCT_Float3);
-			Chunk[MP_SpecularColor]					= ForceCast(Material->CompileProperty(MP_SpecularColor         ,GetMaterialPropertyShaderFrequency(MP_SpecularColor),this),MCT_Float3);
-			Chunk[MP_BaseColor]						= ForceCast(Material->CompileProperty(MP_BaseColor             ,GetMaterialPropertyShaderFrequency(MP_BaseColor),this),MCT_Float3);
-			Chunk[MP_Metallic]						= ForceCast(Material->CompileProperty(MP_Metallic              ,GetMaterialPropertyShaderFrequency(MP_Metallic),this),MCT_Float1);
-			Chunk[MP_Specular]						= ForceCast(Material->CompileProperty(MP_Specular              ,GetMaterialPropertyShaderFrequency(MP_Specular),this),MCT_Float1);
-			Chunk[MP_Roughness]						= ForceCast(Material->CompileProperty(MP_Roughness             ,GetMaterialPropertyShaderFrequency(MP_Roughness),this),MCT_Float1);
-			Chunk[MP_Opacity]						= ForceCast(Material->CompileProperty(MP_Opacity               ,GetMaterialPropertyShaderFrequency(MP_Opacity),this),MCT_Float1);
-			Chunk[MP_OpacityMask]					= ForceCast(Material->CompileProperty(MP_OpacityMask           ,GetMaterialPropertyShaderFrequency(MP_OpacityMask),this),MCT_Float1);
-			Chunk[MP_WorldPositionOffset]			= ForceCast(Material->CompileProperty(MP_WorldPositionOffset   ,GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset),this),MCT_Float3);
+			memset(Chunk, -1, sizeof(Chunk));
+
+			Chunk[MP_Normal]						= Material->CompilePropertyAndSetMaterialProperty(MP_Normal                ,this);
+			Chunk[MP_EmissiveColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_EmissiveColor         ,this);
+			Chunk[MP_DiffuseColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_DiffuseColor          ,this);
+			Chunk[MP_SpecularColor]					= Material->CompilePropertyAndSetMaterialProperty(MP_SpecularColor         ,this);
+			Chunk[MP_BaseColor]						= Material->CompilePropertyAndSetMaterialProperty(MP_BaseColor             ,this);
+			Chunk[MP_Metallic]						= Material->CompilePropertyAndSetMaterialProperty(MP_Metallic              ,this);
+			Chunk[MP_Specular]						= Material->CompilePropertyAndSetMaterialProperty(MP_Specular              ,this);
+			Chunk[MP_Roughness]						= Material->CompilePropertyAndSetMaterialProperty(MP_Roughness             ,this);
+			Chunk[MP_Opacity]						= Material->CompilePropertyAndSetMaterialProperty(MP_Opacity               ,this);
+			Chunk[MP_OpacityMask]					= Material->CompilePropertyAndSetMaterialProperty(MP_OpacityMask           ,this);
+			Chunk[MP_WorldPositionOffset]			= Material->CompilePropertyAndSetMaterialProperty(MP_WorldPositionOffset   ,this);
 			if (FeatureLevel >= ERHIFeatureLevel::SM5)
 			{
-				Chunk[MP_WorldDisplacement]			= ForceCast(Material->CompileProperty(MP_WorldDisplacement     ,GetMaterialPropertyShaderFrequency(MP_WorldDisplacement),this),MCT_Float3);
+				Chunk[MP_WorldDisplacement]			= Material->CompilePropertyAndSetMaterialProperty(MP_WorldDisplacement     ,this);
 			}
 			else
 			{
-				SetMaterialProperty(MP_WorldDisplacement, GetMaterialPropertyShaderFrequency(MP_WorldDisplacement));
-				Chunk[MP_WorldDisplacement]			= ForceCast(Constant3(0.0f,0.0f,0.0f),MCT_Float3);
+				// normally called in CompilePropertyAndSetMaterialProperty, needs to be called!!
+				SetMaterialProperty(MP_WorldDisplacement);
+				Chunk[MP_WorldDisplacement]			= Constant3(0.0f, 0.0f, 0.0f);
 			}
-			Chunk[MP_TessellationMultiplier]		= ForceCast(Material->CompileProperty(MP_TessellationMultiplier,GetMaterialPropertyShaderFrequency(MP_TessellationMultiplier),this),MCT_Float1);
-			Chunk[MP_SubsurfaceColor]				= ForceCast(Material->CompileProperty(MP_SubsurfaceColor       ,GetMaterialPropertyShaderFrequency(MP_SubsurfaceColor),this),MCT_Float3);
-			Chunk[MP_ClearCoat]						= ForceCast(Material->CompileProperty(MP_ClearCoat		       ,GetMaterialPropertyShaderFrequency(MP_ClearCoat),this),MCT_Float1);
-			Chunk[MP_ClearCoatRoughness]			= ForceCast(Material->CompileProperty(MP_ClearCoatRoughness    ,GetMaterialPropertyShaderFrequency(MP_ClearCoatRoughness),this),MCT_Float1);
-			Chunk[MP_AmbientOcclusion]				= ForceCast(Material->CompileProperty(MP_AmbientOcclusion      ,GetMaterialPropertyShaderFrequency(MP_AmbientOcclusion),this),MCT_Float1);
+			Chunk[MP_TessellationMultiplier]		= Material->CompilePropertyAndSetMaterialProperty(MP_TessellationMultiplier,this);
+			Chunk[MP_SubsurfaceColor]				= Material->CompilePropertyAndSetMaterialProperty(MP_SubsurfaceColor       ,this);
+			Chunk[MP_ClearCoat]						= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoat			   ,this);
+			Chunk[MP_ClearCoatRoughness]			= Material->CompilePropertyAndSetMaterialProperty(MP_ClearCoatRoughness    ,this);
+			Chunk[MP_AmbientOcclusion]				= Material->CompilePropertyAndSetMaterialProperty(MP_AmbientOcclusion      ,this);
 
 			{
-				int32 UserRefraction = ForceCast(Material->CompileProperty(MP_Refraction, GetMaterialPropertyShaderFrequency(MP_Refraction), this), MCT_Float2);
+				int32 UserRefraction = ForceCast(Material->CompilePropertyAndSetMaterialProperty(MP_Refraction, this), MCT_Float2);
 				int32 RefractionDepthBias = ForceCast(ScalarParameter(FName(TEXT("RefractionDepthBias")), GetRefractionDepthBiasValue()), MCT_Float1);
 
 				Chunk[MP_Refraction] = AppendVector(ForceCast(UserRefraction, MCT_Float1), RefractionDepthBias);
@@ -347,7 +350,7 @@ public:
 
 			if (bCompileForComputeShader)
 			{
-				Chunk[CompiledMP_EmissiveColorCS]		= ForceCast(Material->CompileProperty(MP_EmissiveColor     ,SF_Compute,this),MCT_Float3);
+				Chunk[CompiledMP_EmissiveColorCS]		= Material->CompilePropertyAndSetMaterialProperty(MP_EmissiveColor,this, SF_Compute);
 			}
 
 			for (uint32 CustomUVIndex = MP_CustomizedUVs0; CustomUVIndex <= MP_CustomizedUVs7; CustomUVIndex++)
@@ -357,7 +360,7 @@ public:
 				// Note: this is using NumUserTexCoords, which is set by translating all the pixel properties above
 				if (CustomUVIndex - MP_CustomizedUVs0 < NumUserTexCoords)
 				{
-					Chunk[CustomUVIndex] = ForceCast(Material->CompileProperty((EMaterialProperty)CustomUVIndex, GetMaterialPropertyShaderFrequency((EMaterialProperty)CustomUVIndex), this), MCT_Float2);
+					Chunk[CustomUVIndex] = Material->CompilePropertyAndSetMaterialProperty((EMaterialProperty)CustomUVIndex, this);
 				}
 				else
 				{
@@ -606,15 +609,26 @@ public:
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserVertexTexCoords));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("%u"),NumUserTexCoords));
 		LazyPrintf.PushParam(*ResourcesString);
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Normal] + TEXT("	return ") + TranslatedCodeChunks[MP_Normal] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_EmissiveColor] + TEXT("	return ") + TranslatedCodeChunks[MP_EmissiveColor] + TEXT(";")));
-		LazyPrintf.PushParam(bCompileForComputeShader ? *(TranslatedCodeChunkDefinitions[CompiledMP_EmissiveColorCS] + TEXT("	return ") + TranslatedCodeChunks[CompiledMP_EmissiveColorCS] + TEXT(";")) : TEXT("return 0"));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_DiffuseColor] + TEXT("	return ") + TranslatedCodeChunks[MP_DiffuseColor] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_SpecularColor] + TEXT("	return ") + TranslatedCodeChunks[MP_SpecularColor] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_BaseColor] + TEXT("	return ") + TranslatedCodeChunks[MP_BaseColor] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Metallic] + TEXT("	return ") + TranslatedCodeChunks[MP_Metallic] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Specular] + TEXT("	return ") + TranslatedCodeChunks[MP_Specular] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Roughness] + TEXT("	return ") + TranslatedCodeChunks[MP_Roughness] + TEXT(";")));
+
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Normal));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_EmissiveColor));
+
+		if(bCompileForComputeShader)
+		{
+			LazyPrintf.PushParam(*GenerateFunctionCode(CompiledMP_EmissiveColorCS));
+		}
+		else
+		{
+			LazyPrintf.PushParam(TEXT("return 0"));
+		}
+
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_DiffuseColor));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SpecularColor));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_BaseColor));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Metallic));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Specular));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Roughness));
+
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucencyDirectionalLightingIntensity()));
 		
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucentShadowDensityScale()));
@@ -622,26 +636,25 @@ public:
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucentSelfShadowSecondDensityScale()));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucentSelfShadowSecondOpacity()));
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetTranslucentBackscatteringExponent()));
-		LazyPrintf.PushParam(*FString::Printf(TEXT("return MaterialFloat3(%.5f, %.5f, %.5f)"),
-			Material->GetTranslucentMultipleScatteringExtinction().R,
-			Material->GetTranslucentMultipleScatteringExtinction().G,
-			Material->GetTranslucentMultipleScatteringExtinction().B));
+
+		{
+			FLinearColor Extinction = Material->GetTranslucentMultipleScatteringExtinction();
+
+			LazyPrintf.PushParam(*FString::Printf(TEXT("return MaterialFloat3(%.5f, %.5f, %.5f)"), Extinction.R, Extinction.G, Extinction.B));
+		}
+
 		LazyPrintf.PushParam(*FString::Printf(TEXT("return %.5f"),Material->GetOpacityMaskClipValue()));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Opacity] + TEXT("	return ") + TranslatedCodeChunks[MP_Opacity] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_OpacityMask] + TEXT("	return ") + TranslatedCodeChunks[MP_OpacityMask] + TEXT(";")));
-		/*
-		LazyPrintf.PushParam(*FString::Printf(TEXT("%s return %s"),
-			*GetDefinitions(MP_OpacityMask, GetMaterialPropertyShaderFrequency(MP_OpacityMask)),
-			*CodeChunk[MP_OpacityMask]));
-		*/
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_WorldPositionOffset] + TEXT("	return ") + TranslatedCodeChunks[MP_WorldPositionOffset] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_WorldDisplacement] + TEXT("	return ") + TranslatedCodeChunks[MP_WorldDisplacement] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_TessellationMultiplier] + TEXT("	return ") + TranslatedCodeChunks[MP_TessellationMultiplier] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_SubsurfaceColor] + TEXT("	return ") + TranslatedCodeChunks[MP_SubsurfaceColor] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_ClearCoat] + TEXT("	return ") + TranslatedCodeChunks[MP_ClearCoat] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_ClearCoatRoughness] + TEXT("	return ") + TranslatedCodeChunks[MP_ClearCoatRoughness] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_AmbientOcclusion] + TEXT("	return ") + TranslatedCodeChunks[MP_AmbientOcclusion] + TEXT(";")));
-		LazyPrintf.PushParam(*(TranslatedCodeChunkDefinitions[MP_Refraction] + TEXT("	return ") + TranslatedCodeChunks[MP_Refraction] + TEXT(";")));
+
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Opacity));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_OpacityMask));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldPositionOffset));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_WorldDisplacement));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_TessellationMultiplier));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_SubsurfaceColor));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_ClearCoat));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_ClearCoatRoughness));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_AmbientOcclusion));
+		LazyPrintf.PushParam(*GenerateFunctionCode(MP_Refraction));
 
 		FString CustomUVAssignments;
 
@@ -658,6 +671,14 @@ public:
 	}
 
 protected:
+
+	// only used by GetMaterialShaderCode()
+	// @param Index ECompiledMaterialProperty or EMaterialProperty
+	FString GenerateFunctionCode(uint32 Index) const
+	{
+		check(Index < CompiledMP_MAX);
+		return TranslatedCodeChunkDefinitions[Index] + TEXT("	return ") + TranslatedCodeChunks[Index] + TEXT(";");
+	}
 
 	// GetParameterCode
 	virtual FString GetParameterCode(int32 Index, const TCHAR* Default = 0)
@@ -718,7 +739,7 @@ protected:
 	{
 		if(Index != INDEX_NONE)
 		{
-			checkf(Index >= 0 && Index < CodeChunks[InProperty][InFrequency].Num(), TEXT("Index out of range %d/%d [%s]"), Index, CodeChunks[InProperty][InFrequency].Num(), *this->Material->GetFriendlyName());
+			checkf(Index >= 0 && Index < CodeChunks[InProperty][InFrequency].Num(), TEXT("Index out of range %d/%d [%s]"), Index, CodeChunks[InProperty][InFrequency].Num(), *Material->GetFriendlyName());
 			check(!CodeChunks[InProperty][InFrequency][Index].UniformExpression || CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant());
 			if (CodeChunks[InProperty][InFrequency][Index].UniformExpression && CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant())
 			{
@@ -1149,11 +1170,24 @@ protected:
 	/** 
 	 * Sets the current material property being compiled.  
 	 * This affects the internal state of the compiler and the results of all functions except GetFixedParameterCode.
+	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
 	 */
-	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency InShaderFrequency)
+	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies)
 	{
 		MaterialProperty = InProperty;
-		ShaderFrequency = InShaderFrequency;
+
+		if(OverrideShaderFrequency != SF_NumFrequencies)
+		{
+			ShaderFrequency = OverrideShaderFrequency;
+		}
+		else
+		{
+			ShaderFrequency = GetMaterialPropertyShaderFrequency(InProperty);
+		}
+	}
+	virtual EShaderFrequency GetCurrentShaderFrequency() const
+	{
+		return ShaderFrequency;
 	}
 
 	virtual int32 Error(const TCHAR* Text)

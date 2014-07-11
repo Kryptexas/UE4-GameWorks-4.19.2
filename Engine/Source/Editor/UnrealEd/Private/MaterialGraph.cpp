@@ -30,32 +30,32 @@ void UMaterialGraph::RebuildGraph()
 	if (!MaterialFunction)
 	{
 		// Initialize the material input list.
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("DiffuseColor", "Diffuse Color"), &Material->DiffuseColor, MP_DiffuseColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SpecularColor", "Specular Color"), &Material->SpecularColor, MP_SpecularColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("BaseColor", "Base Color"), &Material->BaseColor, MP_BaseColor ) );	
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Metallic", "Metallic"), &Material->Metallic, MP_Metallic ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), &Material->Specular, MP_Specular ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Roughness", "Roughness"), &Material->Roughness, MP_Roughness ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("EmissiveColor", "Emissive Color"), &Material->EmissiveColor, MP_EmissiveColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), &Material->Opacity, MP_Opacity ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), &Material->OpacityMask, MP_OpacityMask ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Normal", "Normal"), &Material->Normal, MP_Normal ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldPositionOffset", "World Position Offset"), &Material->WorldPositionOffset, MP_WorldPositionOffset ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldDisplacement", "World Displacement"), &Material->WorldDisplacement, MP_WorldDisplacement ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("TessellationMultiplier", "Tessellation Multiplier"), &Material->TessellationMultiplier, MP_TessellationMultiplier ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SubsurfaceColor", "Subsurface Color"), &Material->SubsurfaceColor, MP_SubsurfaceColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoat", "Clear Coat"), &Material->ClearCoat, MP_ClearCoat ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness"), &Material->ClearCoatRoughness, MP_ClearCoatRoughness ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("AmbientOcclusion", "Ambient Occlusion"), &Material->AmbientOcclusion, MP_AmbientOcclusion ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Refraction", "Refraction"), &Material->Refraction, MP_Refraction) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("DiffuseColor", "Diffuse Color"), MP_DiffuseColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SpecularColor", "Specular Color"), MP_SpecularColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("BaseColor", "Base Color"), MP_BaseColor ) );	
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Metallic", "Metallic"), MP_Metallic ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), MP_Specular ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Roughness", "Roughness"), MP_Roughness ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("EmissiveColor", "Emissive Color"), MP_EmissiveColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), MP_Opacity ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), MP_OpacityMask ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Normal", "Normal"), MP_Normal ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldPositionOffset", "World Position Offset"), MP_WorldPositionOffset ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldDisplacement", "World Displacement"), MP_WorldDisplacement ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("TessellationMultiplier", "Tessellation Multiplier"), MP_TessellationMultiplier ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SubsurfaceColor", "Subsurface Color"), MP_SubsurfaceColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoat", "Clear Coat"), MP_ClearCoat ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness"), MP_ClearCoatRoughness ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("AmbientOcclusion", "Ambient Occlusion"), MP_AmbientOcclusion ) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Refraction", "Refraction"), MP_Refraction) );
 
 		for (int32 UVIndex = 0; UVIndex < ARRAY_COUNT(Material->CustomizedUVs); UVIndex++)
 		{
 			//@todo - localize
-			MaterialInputs.Add( FMaterialInputInfo( FText::FromString(FString::Printf(TEXT("Customized UV%u"), UVIndex)), &Material->CustomizedUVs[UVIndex], (EMaterialProperty)(MP_CustomizedUVs0 + UVIndex)) );
+			MaterialInputs.Add( FMaterialInputInfo( FText::FromString(FString::Printf(TEXT("Customized UV%u"), UVIndex)), (EMaterialProperty)(MP_CustomizedUVs0 + UVIndex)) );
 		}
 
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("MaterialAttributes", "Material Attributes"), &Material->MaterialAttributes, MP_MaterialAttributes) );
+		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("MaterialAttributes", "Material Attributes"), MP_MaterialAttributes) );
 
 		// Add Root Node
 		FGraphNodeCreator<UMaterialGraphNode_Root> NodeCreator(*this);
@@ -125,11 +125,12 @@ void UMaterialGraph::LinkGraphNodesFromMaterial()
 		for (int32 Index = 0; Index < MaterialInputs.Num(); ++Index)
 		{
 			UEdGraphPin* InputPin = RootNode->GetInputPin(Index);
+			auto ExpressionInput = MaterialInputs[Index].GetInput(Material);
 
-			if (MaterialInputs[Index].Input->Expression)
+			if (ExpressionInput->Expression)
 			{
-				UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(MaterialInputs[Index].Input->Expression->GraphNode);
-				InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(MaterialInputs[Index].Input)));
+				UMaterialGraphNode* GraphNode = CastChecked<UMaterialGraphNode>(ExpressionInput->Expression->GraphNode);
+				InputPin->MakeLinkTo(GraphNode->GetOutputPin(GetValidOutputIndex(ExpressionInput)));
 			}
 		}
 	}
@@ -175,7 +176,7 @@ void UMaterialGraph::LinkMaterialExpressionsFromGraph() const
 			check(InputPins.Num() == MaterialInputs.Num());
 			for (int32 PinIndex = 0; PinIndex < InputPins.Num() && PinIndex < MaterialInputs.Num(); ++PinIndex)
 			{
-				FExpressionInput* MaterialInput = MaterialInputs[PinIndex].Input;
+				FExpressionInput* MaterialInput = MaterialInputs[PinIndex].GetInput(Material);
 				if (InputPins[PinIndex]->LinkedTo.Num() > 0)
 				{
 					UMaterialGraphNode* ConnectedNode = CastChecked<UMaterialGraphNode>(InputPins[PinIndex]->LinkedTo[0]->GetOwningNode());

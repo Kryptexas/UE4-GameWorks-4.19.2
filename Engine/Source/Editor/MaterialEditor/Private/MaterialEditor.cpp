@@ -111,32 +111,37 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 	return false;
 }
 
-// Material properties.
-/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-int32 FMatExpressionPreview::CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
 {
-	Compiler->SetMaterialProperty(Property, InShaderFrequency);
+	// needs to be called in this function!!
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+	int32 Ret = INDEX_NONE;
+
 	if( Property == MP_EmissiveColor && Expression.IsValid())
 	{
 		// Hardcoding output 0 as we don't have the UI to specify any other output
 		const int32 OutputIndex = 0;
 		// Get back into gamma corrected space, as DrawTile does not do this adjustment.
-		return Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f/2.2f));
+		Ret = Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f / 2.2f));
 	}
 	else if ( Property == MP_WorldPositionOffset)
 	{
 		//set to 0 to prevent off by 1 pixel errors
-		return Compiler->Constant(0.0f);
+		Ret = Compiler->Constant(0.0f);
 	}
 	else if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
 		const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
-		return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
+		Ret = Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
 	}
 	else
 	{
-		return Compiler->Constant(1.0f);
+		Ret = Compiler->Constant(1.0f);
 	}
+
+	// output should always be the right type for this property
+	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
 }
 
 void FMatExpressionPreview::NotifyCompilationFinished()

@@ -64,37 +64,54 @@ FMaterialResource::FMaterialResource()
 {
 }
 
-int32 FMaterialResource::CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
 {
-	Compiler->SetMaterialProperty(Property, InShaderFrequency);
+	// needs to be called in this function!!
+	// sets CurrentShaderFrequency
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+	EShaderFrequency ShaderFrequency = Compiler->GetCurrentShaderFrequency();
+
 	int32 SelectionColorIndex = INDEX_NONE;
-	if (InShaderFrequency == SF_Pixel)
+
+	if (ShaderFrequency == SF_Pixel)
 	{
 		SelectionColorIndex = Compiler->ComponentMask(Compiler->VectorParameter(NAME_SelectionColor,FLinearColor::Black),1,1,1,0);
 	}
 	
 	//Compile the material instance if we have one.
 	UMaterialInterface* MaterialInterface = MaterialInstance ? Cast<UMaterialInterface>(MaterialInstance) : Cast<UMaterialInterface>(Material);
+
+	int32 Ret = INDEX_NONE;
+
 	switch(Property)
 	{
-	case MP_EmissiveColor:
-		if (SelectionColorIndex != INDEX_NONE)
-		{
-			return Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3),SelectionColorIndex);
-		}
-		else
-		{
-			return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3);
-		}
-	case MP_DiffuseColor: 
-		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_BaseColor: 
-		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_MaterialAttributes:
-		return INDEX_NONE;
-	default:
-		return MaterialInterface->CompileProperty(Compiler, Property);
+		case MP_EmissiveColor:
+			if (SelectionColorIndex != INDEX_NONE)
+			{
+				Ret = Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3), SelectionColorIndex);
+			}
+			else
+			{
+				Ret = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3);
+			}
+			break;
+
+		case MP_DiffuseColor: 
+			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor), MCT_Float3), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			break;
+		case MP_BaseColor: 
+			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
+			break;
+		case MP_MaterialAttributes:
+			Ret = INDEX_NONE;
+			break;
+		default:
+			Ret = MaterialInterface->CompileProperty(Compiler, Property);
 	};
+
+	// output should always be the right type for this property
+	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -2967,44 +2984,25 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 {
 	switch (InProperty)
 	{
-	case MP_EmissiveColor:
-		return &EmissiveColor;
-	case MP_Opacity:
-		return &Opacity;
-	case MP_OpacityMask:
-		return &OpacityMask;
-	case MP_DiffuseColor:
-		return &DiffuseColor;
-	case MP_SpecularColor:
-		return &SpecularColor;
-	case MP_BaseColor:
-		return &BaseColor;
-	case MP_Metallic:
-		return &Metallic;
-	case MP_Specular:
-		return &Specular;
-	case MP_Roughness:
-		return &Roughness;
-	case MP_Normal:
-		return &Normal;
-	case MP_WorldPositionOffset:
-		return &WorldPositionOffset;
-	case MP_WorldDisplacement:
-		return &WorldDisplacement;
-	case MP_TessellationMultiplier:
-		return &TessellationMultiplier;
-	case MP_SubsurfaceColor:
-		return &SubsurfaceColor;
-	case MP_ClearCoat:
-		return &ClearCoat;
-	case MP_ClearCoatRoughness:
-		return &ClearCoatRoughness;
-	case MP_AmbientOcclusion:
-		return &AmbientOcclusion;
-	case MP_Refraction:
-		return &Refraction;
-	case MP_MaterialAttributes: 
-		return &MaterialAttributes;
+		case MP_EmissiveColor:			return &EmissiveColor;
+		case MP_Opacity:				return &Opacity;
+		case MP_OpacityMask:			return &OpacityMask;
+		case MP_DiffuseColor:			return &DiffuseColor;
+		case MP_SpecularColor:			return &SpecularColor;
+		case MP_BaseColor:				return &BaseColor;
+		case MP_Metallic:				return &Metallic;
+		case MP_Specular:				return &Specular;
+		case MP_Roughness:				return &Roughness;
+		case MP_Normal:					return &Normal;
+		case MP_WorldPositionOffset:	return &WorldPositionOffset;
+		case MP_WorldDisplacement:		return &WorldDisplacement;
+		case MP_TessellationMultiplier:	return &TessellationMultiplier;
+		case MP_SubsurfaceColor:		return &SubsurfaceColor;
+		case MP_ClearCoat:				return &ClearCoat;
+		case MP_ClearCoatRoughness:		return &ClearCoatRoughness;
+		case MP_AmbientOcclusion:		return &AmbientOcclusion;
+		case MP_Refraction:				return &Refraction;
+		case MP_MaterialAttributes:		return &MaterialAttributes;
 	}
 
 	if (InProperty >= MP_CustomizedUVs0 && InProperty <= MP_CustomizedUVs7)

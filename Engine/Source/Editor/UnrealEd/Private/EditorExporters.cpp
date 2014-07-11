@@ -808,11 +808,21 @@ public:
 
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+	{
+		// needs to be called in this function!!
+		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
+
+		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	}
+
+	/** helper for CompilePropertyAndSetMaterialProperty() */
+	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
 		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 				
-		Compiler->SetMaterialProperty(Property, InShaderFrequency);
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
 		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
