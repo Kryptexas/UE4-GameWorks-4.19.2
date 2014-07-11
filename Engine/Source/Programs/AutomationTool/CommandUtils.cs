@@ -2352,11 +2352,14 @@ namespace AutomationTool
 						SignMacFileOrFolder(File);
 					}
 				}
-				else if(TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.WinRT || TargetPlatform == UnrealTargetPlatform.WinRT_ARM)
+				else
 				{
 					foreach (var File in Files)
 					{
-						SignSingleExecutableIfEXEOrDLL(File);
+						if (!Path.GetDirectoryName().Contains("XboxOne"))
+						{
+							SignSingleExecutableIfEXEOrDLL(File);
+						}
 					}
 				}
 			}
