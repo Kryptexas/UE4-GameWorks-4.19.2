@@ -166,10 +166,10 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\builtin_stubs.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glcpp-lex.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glcpp-lex.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glcpp-parse.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glcpp-parse.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glsl_parser_extras.cpp">
@@ -181,7 +181,7 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\glsl_types.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\hash_table.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\hash_table.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\hir_field_selection.cpp">
@@ -343,16 +343,16 @@
     <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\opt_tree_grafting.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\pp.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\pp.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\ralloc.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\ralloc.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\strtod.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\strtod.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\symbol_table.c">
+    <ClCompile Include="..\..\..\src\hlslcc_lib\mesa\symbol_table.cpp">
       <Filter>Source Files\mesa</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hlslcc_lib\ir_track_image_access.cpp">
