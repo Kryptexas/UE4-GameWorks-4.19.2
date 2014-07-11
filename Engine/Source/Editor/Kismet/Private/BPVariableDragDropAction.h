@@ -109,6 +109,10 @@ protected:
 	 */
 	bool CanVariableBeDropped(const UProperty* InVariableProperty, const UEdGraph& InGraph) const;
 
+
+	/** Returns the local variable's scope, if any */
+	UStruct* GetLocalVariableScope() const;
+
 protected:
 	/** Name of variable being dragged */
 	FName VariableName;

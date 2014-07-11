@@ -5586,7 +5586,7 @@ void FBlueprintEditor::OnAddNewLocalVariable()
 		// Now create new variable
 		FBPVariableDescription NewVar;
 
-		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
+		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"), FindField<UFunction>(GetBlueprintObj()->SkeletonGeneratedClass, TargetGraph->GetFName()));
 		NewVar.VarGuid = FGuid::NewGuid();
 		NewVar.VarType = GetMyBlueprintWidget()->GetLastPinTypeUsed();
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
@@ -5691,12 +5691,7 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 	FName DocumentName = FName(*DocumentNameText.ToString());
 
 	// Make sure the new name is valid
-	int32 Index = 0;
-	while (!FBlueprintEditorUtils::IsGraphNameUnique(GetBlueprintObj(), DocumentName))
-	{
-		DocumentName = FName(*FString::Printf(TEXT("%s%i"), *DocumentNameText.ToString(), Index));
-		++Index;
-	}
+	DocumentName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), DocumentNameText.ToString());
 
 	check(IsEditingSingleBlueprint());
 

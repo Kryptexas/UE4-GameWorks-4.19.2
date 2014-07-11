@@ -24,7 +24,9 @@ enum EValidatorResult
 	/* The entered name matches the current name */
 	ExistingName,
 	/* The entered name is too long */
-	TooLong
+	TooLong,
+	/** The entered is in use locally */
+	LocallyInUse
 };
 
 
@@ -64,7 +66,7 @@ public:
 class UNREALED_API FKismetNameValidator : public INameValidatorInterface
 {
 public:
-	FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName = NAME_None);
+	FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName = NAME_None, UStruct* InScope = NULL);
 	~FKismetNameValidator() {}
 
 	/** Return the name validator maximum string length */
@@ -81,6 +83,8 @@ private:
 	const UBlueprint* BlueprintObject;
 	/** The current name of the object being validated */
 	FName ExistingName;
+	/** Scope to check against local variables (or other members) */
+	UStruct* Scope;
 };
 
 /////////////////////////////////////////////////////

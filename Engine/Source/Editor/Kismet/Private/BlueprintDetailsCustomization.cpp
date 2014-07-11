@@ -640,6 +640,16 @@ bool FBlueprintVarActionDetails::IsALocalVariable(UProperty* VariableProperty) c
 	return VariableProperty && (Cast<UFunction>(VariableProperty->GetOuter()) != NULL);
 }
 
+UStruct* FBlueprintVarActionDetails::GetLocalVariableScope(UProperty* VariableProperty) const
+{
+	if(IsALocalVariable(VariableProperty))
+	{
+		return Cast<UFunction>(VariableProperty->GetOuter());
+	}
+
+	return NULL;
+}
+
 bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
 {
 	bool bIsReadOnly = true;
@@ -707,7 +717,7 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 		}
 	}
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint, GetVariableName()));
+	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint, GetVariableName(), GetLocalVariableScope(VariableProperty)));
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
 	if(ValidatorResult == EValidatorResult::AlreadyInUse)
@@ -721,6 +731,10 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 	else if(ValidatorResult == EValidatorResult::TooLong)
 	{
 		VarNameEditableTextBox->SetError(LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!"));
+	}
+	else if(ValidatorResult == EValidatorResult::LocallyInUse)
+	{
+		VarNameEditableTextBox->SetError(LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!"));
 	}
 	else
 	{
@@ -757,7 +771,8 @@ void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETex
 		}
 		else if(IsALocalVariable(VariableProperty))
 		{
-			FBlueprintEditorUtils::RenameLocalVariable(GetBlueprintObj(), GetVariableName(), NewVarName);
+			UFunction* LocalVarScope = Cast<UFunction>(VariableProperty->GetOuter());
+			FBlueprintEditorUtils::RenameLocalVariable(GetBlueprintObj(), LocalVarScope, GetVariableName(), NewVarName);
 		}
 		else
 		{
@@ -812,7 +827,7 @@ bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 			}
 		}
 
-		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableName()) != NULL;
+		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName()) != NULL;
 		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
 	}
 	FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
@@ -877,7 +892,7 @@ void FBlueprintVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinT
 			FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
 			if(VarLocalAction)
 			{
-				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), VarName, NewPinType);
+				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), VarLocalAction->GetVariableScope(), VarName, NewPinType);
 			}
 		}
 	}
@@ -889,7 +904,7 @@ FText FBlueprintVarActionDetails::OnGetTooltipText() const
 	if (VarName != NAME_None)
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("tooltip"), Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), TEXT("tooltip"), Result);
 		return FText::FromString(Result);
 	}
 	return FText();
@@ -897,7 +912,7 @@ FText FBlueprintVarActionDetails::OnGetTooltipText() const
 
 void FBlueprintVarActionDetails::OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, FName VarName)
 {
-	FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("tooltip"), NewText.ToString() );
+	FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), TEXT("tooltip"), NewText.ToString() );
 }
 
 void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, TArray<TSharedPtr<FString>>& CategorySource)
@@ -926,7 +941,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 	CategorySource.Add(MakeShareable(new FString(TEXT("Default"))));
 	for (int32 i = 0; i < VisibleVariables.Num(); ++i)
 	{
-		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i]);
+		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i], NULL);
 		if (Category != NAME_None && Category != Blueprint->GetFName())
 		{
 			bool bNewCategory = true;
@@ -1032,7 +1047,7 @@ FText FBlueprintVarActionDetails::OnGetCategoryText() const
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName);
+		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()));
 
 		// Older blueprints will have their name as the default category
 		if( Category == GetBlueprintObj()->GetFName() )
@@ -1055,7 +1070,7 @@ void FBlueprintVarActionDetails::OnCategoryTextCommitted(const FText& NewText, E
 		FString NewCategory = NewText.ToString();
 		if(NewCategory.Len() <= NAME_SIZE)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, FName( *NewCategory ));
+			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FName( *NewCategory ));
 			check(MyBlueprint.IsValid());
 			PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
 			MyBlueprint.Pin()->ExpandCategory(NewCategory);
@@ -1078,7 +1093,7 @@ void FBlueprintVarActionDetails::OnCategorySelectionChanged( TSharedPtr<FString>
 	{
 		FString NewCategory = *ProposedSelection.Get();
 
-		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, FName( *NewCategory ));
+		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FName( *NewCategory ));
 		CategoryListView.Pin()->ClearSelection();
 		CategoryComboButton.Pin()->SetIsOpen(false);
 		MyBlueprint.Pin()->ExpandCategory(NewCategory);
@@ -1138,11 +1153,11 @@ void FBlueprintVarActionDetails::OnCreateWidgetChanged(ESlateCheckBoxState::Type
 	{
 		if (InNewState == ESlateCheckBoxState::Checked)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, FEdMode::MD_MakeEditWidget, TEXT("true"));
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FEdMode::MD_MakeEditWidget, TEXT("true"));
 		}
 		else
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, FEdMode::MD_MakeEditWidget);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FEdMode::MD_MakeEditWidget);
 		}
 	}
 }
@@ -1188,11 +1203,11 @@ void FBlueprintVarActionDetails::OnExposedToSpawnChanged(ESlateCheckBoxState::Ty
 		const bool bExposeOnSpawn = (InNewState == ESlateCheckBoxState::Checked);
 		if(bExposeOnSpawn)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, FBlueprintMetadata::MD_ExposeOnSpawn, TEXT("true"));
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_ExposeOnSpawn, TEXT("true"));
 		}
 		else
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, FBlueprintMetadata::MD_ExposeOnSpawn);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_ExposeOnSpawn);
 		} 
 	}
 }
@@ -1233,11 +1248,11 @@ void FBlueprintVarActionDetails::OnPrivateChanged(ESlateCheckBoxState::Type InNe
 		const bool bExposeOnSpawn = (InNewState == ESlateCheckBoxState::Checked);
 		if(bExposeOnSpawn)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, FBlueprintMetadata::MD_Private, TEXT("true"));
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_Private, TEXT("true"));
 		}
 		else
 		{
-			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, FBlueprintMetadata::MD_Private);
+			FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_Private);
 		}
 	}
 }
@@ -1304,7 +1319,7 @@ FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
 	if (VarName != NAME_None)
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, /*out*/ Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), Key, /*out*/ Result);
 
 		return FText::FromString(Result);
 	}
@@ -1318,7 +1333,7 @@ void FBlueprintVarActionDetails::OnMetaKeyValueChanged(const FText& NewMinValue,
 	{
 		if ((CommitInfo == ETextCommit::OnEnter) || (CommitInfo == ETextCommit::OnUserMovedFocus))
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, NewMinValue.ToString());
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), Key, NewMinValue.ToString());
 		}
 	}
 }
@@ -2389,7 +2404,7 @@ FText FBlueprintDelegateActionDetails::OnGetTooltipText() const
 	if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), TEXT("tooltip"), Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, TEXT("tooltip"), Result);
 		return FText::FromString(Result);
 	}
 	return FText();
@@ -2399,7 +2414,7 @@ void FBlueprintDelegateActionDetails::OnTooltipTextCommitted(const FText& NewTex
 {
 	if (UMulticastDelegateProperty* DelegateProperty = GetDelegatePoperty())
 	{
-		FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), TEXT("tooltip"), NewText.ToString() );
+		FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, TEXT("tooltip"), NewText.ToString() );
 	}
 }
 
@@ -2409,7 +2424,7 @@ FText FBlueprintDelegateActionDetails::OnGetCategoryText() const
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		FName DelegateName = DelegateProperty->GetFName();
-		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), DelegateName);
+		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), DelegateName, NULL);
 
 		// Older blueprints will have their name as the default category
 		if( Category == GetBlueprintObj()->GetFName() )
@@ -2433,7 +2448,7 @@ void FBlueprintDelegateActionDetails::OnCategoryTextCommitted(const FText& NewTe
 		{
 			FString NewCategory = NewText.ToString();
 			
-			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateProperty->GetFName(), FName( *NewCategory ));
+			FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, FName( *NewCategory ));
 			check(MyBlueprint.IsValid());
 			FBlueprintVarActionDetails::PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
 			MyBlueprint.Pin()->ExpandCategory(NewCategory);
@@ -2456,7 +2471,7 @@ void FBlueprintDelegateActionDetails::OnCategorySelectionChanged( TSharedPtr<FSt
 	{
 		FString NewCategory = *ProposedSelection.Get();
 
-		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateProperty->GetFName(), FName( *NewCategory ));
+		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), DelegateProperty->GetFName(), NULL, FName( *NewCategory ));
 		CategoryListView.Pin()->ClearSelection();
 		CategoryComboButton.Pin()->SetIsOpen(false);
 		MyBlueprint.Pin()->ExpandCategory(NewCategory);
@@ -4224,7 +4239,7 @@ FText FBlueprintComponentDetails::OnGetTooltipText() const
 	if (VarName != NAME_None)
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("tooltip"), Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, TEXT("tooltip"), Result);
 		return FText::FromString(Result);
 	}
 
@@ -4233,7 +4248,7 @@ FText FBlueprintComponentDetails::OnGetTooltipText() const
 
 void FBlueprintComponentDetails::OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, FName VarName)
 {
-	FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("tooltip"), NewText.ToString() );
+	FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, TEXT("tooltip"), NewText.ToString() );
 }
 
 bool FBlueprintComponentDetails::OnVariableCategoryChangeEnabled() const
@@ -4252,7 +4267,7 @@ FText FBlueprintComponentDetails::OnGetVariableCategoryText() const
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
-		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName);
+		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(GetBlueprintObj(), VarName, NULL);
 
 		// Older blueprints will have their name as the default category
 		if( Category == GetBlueprintObj()->GetFName() )
@@ -4276,7 +4291,7 @@ void FBlueprintComponentDetails::OnVariableCategoryTextCommitted(const FText& Ne
 	{
 		FString NewCategory = NewText.ToString();
 
-		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), CachedNodePtr->GetVariableName(), FName( *NewCategory ));
+		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), CachedNodePtr->GetVariableName(), NULL, FName( *NewCategory ));
 		PopulateVariableCategories();
 	}
 }
@@ -4289,7 +4304,7 @@ void FBlueprintComponentDetails::OnVariableCategorySelectionChanged( TSharedPtr<
 	if (ProposedSelection.IsValid() && VarName != NAME_None)
 	{
 		FString NewCategory = *ProposedSelection.Get();
-		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, FName( *NewCategory ));
+		FBlueprintEditorUtils::SetBlueprintVariableCategory(GetBlueprintObj(), VarName, NULL, FName( *NewCategory ));
 
 		check(VariableCategoryListView.IsValid());
 		check(VariableCategoryComboButton.IsValid());
@@ -4332,7 +4347,7 @@ void FBlueprintComponentDetails::PopulateVariableCategories()
 	VariableCategorySource.Add(MakeShareable(new FString(TEXT("Default"))));
 	for (int32 i = 0; i < VisibleVariables.Num(); ++i)
 	{
-		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i]);
+		FName Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VisibleVariables[i], NULL);
 		if (Category != NAME_None && Category != Blueprint->GetFName())
 		{
 			bool bNewCategory = true;

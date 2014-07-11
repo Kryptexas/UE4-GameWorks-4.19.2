@@ -509,27 +509,38 @@ public:
 	static void ChangeMemberVariableType(UBlueprint* Blueprint, const FName& VariableName, const FEdGraphPinType& NewPinType);
 
 	/**
+	 * Finds the scope's associated graph for local variables (or any passed UFunction)
+	 *
+	 * @param	InBlueprint			The Blueprint the local variable can be found in
+	 * @param	InScope				Local variable's scope
+	 */
+	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
+
+	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
 	 *
 	 * @param	InBlueprint			The Blueprint the local variable can be found in
+	 * @param	InScope				Local variable's scope
 	 * @param	InVarName			Name of the variable to be removed.
 	 */
-	static void RemoveLocalVariable(UBlueprint* InBlueprint, const FName& InVarName);
+	static void RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName);
 
 	/**
 	 * Returns a local variable
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScope			Local variable's scope
 	 * @param InVariableName	Name of the variable to search for
 	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Finds a local variable name using the variable's Guid
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScope			Local variable's scope
 	 * @param InVariableGuid	Guid to identify the local variable with
 	 * @return					Local variable's name
 	 */
@@ -539,28 +550,31 @@ public:
 	 * Finds a local variable Guid using the variable's name
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScope			Local variable's scope
 	 * @param InVariableGuid	Local variable's name to search for
 	 * @return					The Guid associated with the local variable
 	 */
-	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName);
+	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName);
 
 	/**
 	 * Rename a local variable
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
-	 * @param InOldName The name of the local variable to change
-	 * @param InNewName	The new name of the local variable
+	 * @param InScope			Local variable's scope
+	 * @param InOldName			The name of the local variable to change
+	 * @param InNewName			The new name of the local variable
 	 */
-	static void RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName);
+	static void RenameLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InOldName, const FName& InNewName);
 
 	/**
 	 * Changes the type of a local variable
 	 *
 	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InScope			Local variable's scope
 	 * @param InVariableName	Name of the local variable to change the type of
 	 * @param InNewPinType		The pin type to change the local variable type to
 	 */
-	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const FName& InVariableName, const FEdGraphPinType& InNewPinType);
+	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, const FEdGraphPinType& InNewPinType);
 
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
@@ -606,32 +620,54 @@ public:
 	 */
 	static void SetVariableSaveGameFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsSaveGame);
 
-	/** Sets a metadata key/value on the specified variable */
-	static void SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, const FString& MetaDataValue);
+	/** Sets a metadata key/value on the specified variable
+	 *
+	 * @param Blueprint				The Blueprint to find the variable in
+	 * @param VarName				Name of the variable
+	 * @param InLocalVarScope		Local variable's scope, if looking to modify a local variable
+	 * @param MetaDataKey			Key name for the metadata to change
+	 * @param MetaDataValue			Value to change the metadata to
+	 */
+	static void SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey, const FString& MetaDataValue);
 
-	/** Get a metadata key/value on the specified variable, or timeline if it exists, returning false if it does not exist */
-	static bool GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue);
+	/** Get a metadata key/value on the specified variable, or timeline if it exists, returning false if it does not exist
+	 *
+	 * @param Blueprint				The Blueprint to find the variable in
+	 * @param VarName				Name of the variable
+	 * @param InLocalVarScope		Local variable's scope, if looking to modify a local variable
+	 * @param MetaDataKey			Key name for the metadata to change
+	 * @param OutMetaDataValue		Value of the metadata
+	 * @return						TRUE if finding the metadata was successful
+	 */
+	static bool GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey, FString& OutMetaDataValue);
 
-	/** Clear metadata key on specified variable, or timeline */
-	static void RemoveBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey);
+	/** Clear metadata key on specified variable, or timeline
+	 * @param Blueprint				The Blueprint to find the variable in
+	 * @param VarName				Name of the variable
+	 * @param InLocalVarScope		Local variable's scope, if looking to modify a local variable
+	 * @param MetaDataKey			Key name for the metadata to change
+	 */
+	static void RemoveBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey);
 
 	/**
 	 * Sets the custom category on the variable with the specified name.
 	 * @note: Will not change the category for variables defined via native classes.
 	 *
-	 * @param	VarName			Name of the variable
-	 * @param	VarCategory		The new value of the custom category for the variable
-	 * @param	bDontRecompile	If true, the blueprint will not be marked as modified, and will not be recompiled.  
+	 * @param	VarName				Name of the variable
+	 * @param	InLocalVarScope		Local variable's scope, if looking to modify a local variable
+	 * @param	VarCategory			The new value of the custom category for the variable
+	 * @param	bDontRecompile		If true, the blueprint will not be marked as modified, and will not be recompiled.  
 	 */
-	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const FName& NewCategory, bool bDontRecompile=false);
+	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& NewCategory, bool bDontRecompile=false);
 
 	/**
 	 * Gets the custom category on the variable with the specified name.
 	 *
-	 * @param	VarName			Name of the variable
-	 * @return	The custom category (None indicates the name will be the same as the blueprint)
+	 * @param	VarName				Name of the variable
+	 * @param	InLocalVarScope		Local variable's scope, if looking to modify a local variable
+	 * @return						The custom category (None indicates the name will be the same as the blueprint)
 	 */
-	static FName GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName);
+	static FName GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope);
 
 	/** Gets pointer to PropertyFlags of variable */
 	static uint64* GetBlueprintVariablePropertyFlags(UBlueprint* Blueprint, const FName& VarName);
@@ -779,10 +815,11 @@ public:
 	 *
 	 * @param InBlueprint		The blueprint the kismet object's name needs to be unique in
 	 * @param InBaseName		The base name to use
+	 * @param InScope			Scope, if any, of the unique kismet name to generate, used for locals
 	 *
 	 * @return					A unique name that will not conflict in the Blueprint
 	 */
-	static FName FindUniqueKismetName(const UBlueprint* InBlueprint, const FString& InBaseName);
+	static FName FindUniqueKismetName(const UBlueprint* InBlueprint, const FString& InBaseName, UStruct* InScope = NULL);
 
 	/** Finds a unique and valid name for a custom event */
 	static FName FindUniqueCustomEventName(const UBlueprint* Blueprint);

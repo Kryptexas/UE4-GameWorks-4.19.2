@@ -198,7 +198,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 		if(Blueprint != NULL)
 		{
-			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName() );
+			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName(), GetLocalVariableScope() );
 		}
 
 		FName NewCategory = FName(*HoveredCategoryName,  FNAME_Find);
@@ -505,11 +505,11 @@ FReply FKismetVariableDragDropAction::DroppedOnAction(TSharedRef<FEdGraphSchemaA
 			if(bMoved)
 			{
 				// Change category of var to match the one we dragged on to as well
-				FName MovedVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName);
-				FName TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName);
+				FName MovedVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
+				FName TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName, GetLocalVariableScope());
 				if(MovedVarCategory != TargetVarCategory)
 				{
-					FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, TargetVarCategory, true);
+					FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), TargetVarCategory, true);
 				}
 
 				// Update Blueprint after changes so they reflect in My Blueprint tab.
@@ -539,10 +539,10 @@ FReply FKismetVariableDragDropAction::DroppedOnCategory(FString Category)
 	if(BP != NULL)
 	{
 		// Check this is actually a different category
-		FName CurrentCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName);
+		FName CurrentCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
 		if(FName(*Category) != CurrentCategory)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, FName(*Category), false);
+			FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), FName(*Category), false);
 		}
 	}
 
@@ -564,6 +564,15 @@ bool FKismetVariableDragDropAction::CanVariableBeDropped(const UProperty* InVari
 		}
 	}
 	return bCanVariableBeDropped;
+}
+
+UStruct* FKismetVariableDragDropAction::GetLocalVariableScope() const
+{
+	if( VariableSource->IsA(UFunction::StaticClass()) )
+	{
+		return VariableSource.Get();
+	}
+	return NULL;
 }
 
 #undef LOCTEXT_NAMESPACE

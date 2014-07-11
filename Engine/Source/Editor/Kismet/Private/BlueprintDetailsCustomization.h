@@ -48,6 +48,7 @@ private:
 	bool IsAComponentVariable(UProperty* VariableProperty) const;
 	bool IsABlueprintVariable(UProperty* VariableProperty) const;
 	bool IsALocalVariable(UProperty* VariableProperty) const;
+	UStruct* GetLocalVariableScope(UProperty* VariableProperty) const;
 
 	// Callbacks for uproperty details customization
 	bool GetVariableNameChangeEnabled() const;

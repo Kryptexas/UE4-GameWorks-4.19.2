@@ -87,7 +87,7 @@ namespace BlueprintNameConstants
 	 int32 NameMaxLength = 100;
 }
 
-FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName/* = NAME_None*/)
+FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName/* = NAME_None*/, UStruct* InScope/* = NULL*/)
 {
 	ExistingName = InExistingName;
 	BlueprintObject = Blueprint;
@@ -95,6 +95,8 @@ FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FN
 	FBlueprintEditorUtils::GetAllGraphNames(BlueprintObject, Names);
 	FBlueprintEditorUtils::GetSCSVariableNameList(Blueprint, Names);
 	FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(Blueprint, Names);
+
+	Scope = InScope;
 }
 
 int32 FKismetNameValidator::GetMaximumNameLength()
@@ -141,23 +143,33 @@ EValidatorResult FKismetNameValidator::IsValid(const FName& Name, bool /* bOrigi
 
 		if(ValidatorResult == EValidatorResult::Ok)
 		{
-			// Search through all functions for their local variables and prevent duplicate names
-			TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-			FBlueprintEditorUtils::GetAllNodesOfClass(BlueprintObject, FunctionEntryNodes);
-			for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+			if(Scope == NULL)
 			{
-				for( const FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+				// Search through all functions for their local variables and prevent duplicate names
+				TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+				FBlueprintEditorUtils::GetAllNodesOfClass(BlueprintObject, FunctionEntryNodes);
+				for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
 				{
-					if(Variable.VarName == Name)
+					for( const FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
 					{
-						ValidatorResult = EValidatorResult::AlreadyInUse;
+						if(Variable.VarName == Name)
+						{
+							ValidatorResult = EValidatorResult::AlreadyInUse;
+							break;
+						}
+					}
+
+					if(ValidatorResult != EValidatorResult::Ok)
+					{
 						break;
 					}
 				}
-
-				if(ValidatorResult != EValidatorResult::Ok)
+			}
+			else
+			{
+				if(FindField<const UProperty>(Scope, *Name.ToString()) != NULL)
 				{
-					break;
+					ValidatorResult = EValidatorResult::LocallyInUse;
 				}
 			}
 		}

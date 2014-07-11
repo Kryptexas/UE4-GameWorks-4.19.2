@@ -290,7 +290,11 @@ namespace BlueprintSearchMetaDataHelpers
 
 		// Find the variable's tooltip
 		FString TooltipResult;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, InVariableDescription.VarName, FBlueprintMetadata::MD_Tooltip, TooltipResult);
+		
+		if(InVariableDescription.HasMetaData(FBlueprintMetadata::MD_Tooltip))
+		{
+			TooltipResult = InVariableDescription.GetMetaData(FBlueprintMetadata::MD_Tooltip);
+		}
 		InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Tooltip, TooltipResult);
 
 		// Save the variable's pin type
