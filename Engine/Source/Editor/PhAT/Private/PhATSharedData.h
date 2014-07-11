@@ -80,8 +80,13 @@ public:
 	/** Constraint editing */
 	void SetSelectedConstraint(int32 ConstraintIndex, bool bGroupSelect = false);
 	FTransform GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const;
+	FTransform GetConstraintWorldTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame, float Scale = 1.f) const;
+	FTransform GetConstraintMatrix(int32 ConstraintIndex, EConstraintFrame::Type Frame, float Scale) const;
+	
+	FTransform GetConstraintBodyTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame) const;
+
 	void SetSelectedConstraintRelTM(const FTransform& RelTM);	
-	FTransform GetConstraintMatrix(int32 ConstraintIndex, EConstraintFrame::Type Frame, float Scale);
+	
 	void DeleteCurrentConstraint();
 	void PasteConstraintProperties();
 	
