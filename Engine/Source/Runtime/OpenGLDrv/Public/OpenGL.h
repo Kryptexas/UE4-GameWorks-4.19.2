@@ -123,7 +123,7 @@ public:
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return true; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return false; }
 	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return true; }
-	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return false; }
+	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
 	static FORCEINLINE bool SupportsTessellation()						{ return false; }
 	static FORCEINLINE bool SupportsComputeShaders()					{ return false; }
 	static FORCEINLINE bool SupportsTextureView()						{ return false; }
@@ -334,6 +334,9 @@ protected:
 	
 	/** GL_EXT_texture_filter_anisotropic Can we use anisotropic filtering? */
 	static bool bSupportsTextureFilterAnisotropic;
+
+	/** GL_ARB_draw_buffers_blend */
+	static bool bSupportsDrawBuffersBlend;
 
 	/** Workaround AMD driver issues. */
 	static bool bAmdWorkaround;
