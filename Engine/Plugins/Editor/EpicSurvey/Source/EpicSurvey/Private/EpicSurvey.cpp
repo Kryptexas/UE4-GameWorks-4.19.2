@@ -18,7 +18,7 @@
 
 #define LOCTEXT_NAMESPACE "EpicSurvey"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEpicSurvey, Display, All);
+DEFINE_LOG_CATEGORY(LogEpicSurvey);
 
 const FString FEpicSurvey::SurveyIndexFilename( TEXT("survey_index.json") );
 
