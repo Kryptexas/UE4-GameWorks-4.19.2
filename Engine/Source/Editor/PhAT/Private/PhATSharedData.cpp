@@ -868,7 +868,7 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
 				UPhysicsConstraintTemplate* ChildConstraintSetup = PhysicsAsset->ConstraintSetup[ ConstraintIndex ];
 				check(ChildConstraintSetup);
 
-				InitConstraintSetup(ChildConstraintSetup, NewBodyIndex, ChildBodyIndex);
+				InitConstraintSetup(ChildConstraintSetup, ChildBodyIndex, NewBodyIndex);
 			}
 		}
 	}
