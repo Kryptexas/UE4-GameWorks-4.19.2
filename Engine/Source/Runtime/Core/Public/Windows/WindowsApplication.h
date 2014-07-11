@@ -7,6 +7,7 @@
 #include "AllowWindowsPlatformTypes.h"
 	#include "Ole2.h"
 	#include "OleIdl.h"
+	#include <ShObjIdl.h>
 #include "HideWindowsPlatformTypes.h"
 #include "IForceFeedbackSystem.h"
 #include "WindowsTextInputMethodSystem.h"
@@ -15,6 +16,62 @@ DECLARE_LOG_CATEGORY_EXTERN(LogWindowsDesktop, Log, All);
 
 class FWindowsWindow;
 class FGenericApplicationMessageHandler;
+
+namespace TaskbarProgressState
+{
+	enum Type
+	{
+		//Stops displaying progress and returns the button to its normal state.
+		NoProgress = 0x0,
+
+		//The progress indicator does not grow in size, but cycles repeatedly along the 
+		//length of the taskbar button. This indicates activity without specifying what 
+		//proportion of the progress is complete. Progress is taking place, but there is 
+		//no prediction as to how long the operation will take.
+		Indeterminate = 0x1,
+
+		//The progress indicator grows in size from left to right in proportion to the 
+		//estimated amount of the operation completed. This is a determinate progress 
+		//indicator; a prediction is being made as to the duration of the operation.
+		Normal = 0x2,
+
+		//The progress indicator turns red to show that an error has occurred in one of 
+		//the windows that is broadcasting progress. This is a determinate state. If the 
+		//progress indicator is in the indeterminate state, it switches to a red determinate 
+		//display of a generic percentage not indicative of actual progress.
+		Error = 0x4,
+
+		//The progress indicator turns yellow to show that progress is currently stopped in 
+		//one of the windows but can be resumed by the user. No error condition exists and 
+		//nothing is preventing the progress from continuing. This is a determinate state. 
+		//If the progress indicator is in the indeterminate state, it switches to a yellow 
+		//determinate display of a generic percentage not indicative of actual progress.
+		Paused = 0x8,
+	};
+}
+
+class FTaskbarList
+{
+public:
+
+	static TSharedRef<FTaskbarList> Create();
+
+	void SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, TaskbarProgressState::Type State);
+
+	void SetProgressValue(const TSharedRef<FGenericWindow>& NativeWindow, uint64 Current, uint64 Total);
+
+	~FTaskbarList();
+
+private:
+
+	FTaskbarList();
+
+	void Initialize();
+
+private:
+
+	ITaskbarList3* TaskBarList3;
+};
 
 struct FDeferredWindowsMessage
 {
@@ -209,6 +266,9 @@ public:
 
 	virtual void AddExternalInputDevice(TSharedPtr<class IInputDevice> InputDevice);
 
+	TSharedPtr<FTaskbarList> GetTaskbarList();
+
+
 protected:
 
 	static LRESULT CALLBACK AppWndProc(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
@@ -287,6 +347,8 @@ private:
 	FDisplayMetrics InitialDisplayMetrics;
 
 	TSharedPtr<FWindowsTextInputMethodSystem> TextInputMethodSystem;
+
+	TSharedPtr<FTaskbarList> TaskbarList;
 
 	// Accessibility shortcut keys
 	STICKYKEYS							StartupStickyKeys;

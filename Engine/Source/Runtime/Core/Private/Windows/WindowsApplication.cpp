@@ -595,6 +595,10 @@ LRESULT CALLBACK FWindowsApplication::AppWndProc(HWND hwnd, uint32 msg, WPARAM w
 
 int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam )
 {
+	//The message id for when the taskbar button becoems created.
+	//This is set to s proper id once a WM_CREATE message is received.
+	static DWORD wmTaskbarButtonCreate = (DWORD)-1; 
+
 	TSharedPtr< FWindowsWindow > CurrentNativeEventWindowPtr = FindWindowByHWND( Windows, hwnd );
 
 	if( Windows.Num() && CurrentNativeEventWindowPtr.IsValid() )
@@ -1021,6 +1025,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		
 		case WM_CREATE:
 			{
+				wmTaskbarButtonCreate = RegisterWindowMessage(TEXT("TaskbarButtonCreated"));
 				return 0;
 			}
 			break;
@@ -1029,6 +1034,11 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				XInput->SetNeedsControllerStateUpdate(); 
 			}
+		}
+
+		if (wmTaskbarButtonCreate)
+		{
+			TaskbarList = FTaskbarList::Create();
 		}
 	}
 
@@ -1709,6 +1719,11 @@ void FWindowsApplication::AddExternalInputDevice(TSharedPtr<IInputDevice> InputD
 	}
 }
 
+TSharedPtr<FTaskbarList> FWindowsApplication::GetTaskbarList()
+{
+	return TaskbarList;
+}
+
 void FWindowsApplication::DeferDragDropOperation(const FDeferredWindowsDragDropOperation& DeferredDragDropOperation)
 {
 	DeferredDragDropOperations.Add(DeferredDragDropOperation);
@@ -1775,6 +1790,56 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 	}
 
 	return 0;
+}
+
+void FTaskbarList::Initialize()
+{
+	if (FWindowsPlatformMisc::CoInitialize())
+	{
+		CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3);
+	}
+}
+
+FTaskbarList::FTaskbarList() 
+	: TaskBarList3(NULL)
+{
+
+}
+
+FTaskbarList::~FTaskbarList()
+{
+	if (FWindowsPlatformMisc::CoInitialize() && TaskBarList3)
+	{
+		TaskBarList3->Release();
+	}
+
+	TaskBarList3 = NULL;
+}
+
+void FTaskbarList::SetProgressValue(const TSharedRef<FGenericWindow>& NativeWindow, uint64 Current, uint64 Total)
+{
+	if (TaskBarList3)
+	{
+		const TSharedRef< FWindowsWindow > Window = StaticCastSharedRef< FWindowsWindow >(NativeWindow);
+		TaskBarList3->SetProgressValue(Window->GetHWnd(), (ULONGLONG)Current, (ULONGLONG)Total);
+	}
+}
+
+void FTaskbarList::SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, TaskbarProgressState::Type State)
+{
+	if (TaskBarList3)
+	{
+		const TSharedRef< FWindowsWindow > Window = StaticCastSharedRef< FWindowsWindow >(NativeWindow);
+		TaskBarList3->SetProgressState(Window->GetHWnd(), (TBPFLAG)State);
+	}
+}
+
+TSharedRef<FTaskbarList> FTaskbarList::Create()
+{
+	TSharedRef<FTaskbarList> TaskbarList = MakeShareable(new FTaskbarList());
+	TaskbarList->Initialize();
+
+	return TaskbarList;
 }
 
 #include "HideWindowsPlatformTypes.h"
