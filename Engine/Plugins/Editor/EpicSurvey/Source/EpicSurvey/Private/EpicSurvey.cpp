@@ -18,6 +18,8 @@
 
 #define LOCTEXT_NAMESPACE "EpicSurvey"
 
+DEFINE_LOG_CATEGORY_STATIC(LogEpicSurvey, Display, All);
+
 const FString FEpicSurvey::SurveyIndexFilename( TEXT("survey_index.json") );
 
 TSharedRef< FEpicSurvey > FEpicSurvey::Create()
@@ -107,8 +109,6 @@ void FEpicSurvey::Initialize()
 
 	if ( !IsRunningCommandlet() )
 	{
-		InitializeTitleCloud();
-
 		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("NotificationDelayTime"), SurveyNotificationDelayTime, GEditorIni) )
 		{
 			// if the Notification is 0, then it will be displayed during SetActiveSurvey
@@ -121,14 +121,16 @@ void FEpicSurvey::Initialize()
 		}
 
 		GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseDuration"), SurveyPulseDuration, GEditorIni);
-	
+
 		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseTimeInterval"), SurveyPulseTimeInterval, GEditorIni) )
 		{
 			StartPulseSurveyIconDelegate.BindRaw( this, &FEpicSurvey::StartPulseSurveyIcon );
 			EndPulseSurveyIconDelegate.BindRaw( this, &FEpicSurvey::EndPulseSurveyIcon );
 		}
 
-		GConfig->GetFloat(TEXT("EpicSurvey"),TEXT("SurveyNotificationDuration"), SurveyNotificationDuration, GEditorIni);
+		GConfig->GetFloat(TEXT("EpicSurvey"),TEXT("NotificationDuration"), SurveyNotificationDuration, GEditorIni);
+
+		InitializeTitleCloud();
 	}
 
 	if ( TitleCloud.IsValid() )
@@ -335,6 +337,10 @@ void FEpicSurvey::OnReadFileComplete( bool bSuccess, const FString& DLName )
 							}
 						}
 					}
+					else
+					{
+						UE_LOG(LogEpicSurvey, Warning, TEXT("Parsing JSON survey failed. Filename: %s Message: %s"), *FileHeader.FileName, *Reader->GetErrorMessage());
+					}
 				}
 				else if ( FileExtension == TEXT("png") )
 				{
@@ -382,8 +388,7 @@ void FEpicSurvey::DisplayToolbarNotification()
 
 		if( StartPulseSurveyIconDelegate.IsBound() && EndPulseSurveyIconDelegate.IsBound() )
 		{
-			bSurveyIconPulsing = true;
-			GEditor->GetTimerManager()->SetTimer( StartPulseSurveyIconDelegate, SurveyPulseTimeInterval, false );
+			StartPulseSurveyIcon();
 		}
 	}
 }
@@ -443,18 +448,14 @@ void FEpicSurvey::CancelSurveyNotification()
 
 void FEpicSurvey::StartPulseSurveyIcon()
 {
-	GEditor->GetTimerManager()->SetTimer( StartPulseSurveyIconDelegate, 0, false );
 	GEditor->GetTimerManager()->SetTimer( EndPulseSurveyIconDelegate, SurveyPulseDuration, false );
-
 	bSurveyIconPulsing = true;
 }
 
 void FEpicSurvey::EndPulseSurveyIcon()
 {
 	bSurveyIconPulsing = false;
-
 	GEditor->GetTimerManager()->SetTimer( StartPulseSurveyIconDelegate, SurveyPulseTimeInterval, false );
-	GEditor->GetTimerManager()->SetTimer( EndPulseSurveyIconDelegate, 0, false );
 }
 
 bool FEpicSurvey::PromptSurvey( const FGuid& SurveyIdentifier )
