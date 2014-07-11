@@ -40,7 +40,7 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 
 	/** If true, always refresh the material preview. */
 	UPROPERTY(EditAnywhere, config, Category = Options)
-	uint32 bLivePreview : 1;
+	uint32 bLivePreviewUpdate : 1;
 
 	/** If true, always refresh all expression previews. */
 	UPROPERTY(EditAnywhere, config, Category=Options)

@@ -1011,7 +1011,7 @@ void FMaterialEditor::LoadEditorSettings()
 	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
 	
 	if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
-	if (bLivePreview != EditorOptions->bLivePreview)
+	if (bLivePreview != EditorOptions->bLivePreviewUpdate)
 	{
 		ToggleLivePreview();
 	}
@@ -1066,7 +1066,7 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
 		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
 		EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
-		EditorOptions->bLivePreview			= IsToggleLivePreviewChecked();
+		EditorOptions->bLivePreviewUpdate		= IsToggleLivePreviewChecked();
 		EditorOptions->bShowBuiltinStats 		= IsToggleBuiltinStatsChecked();
 		EditorOptions->bReleaseStats 			= IsToggleReleaseStatsChecked();
 		EditorOptions->SaveConfig();
