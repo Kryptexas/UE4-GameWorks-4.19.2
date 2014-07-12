@@ -38,6 +38,10 @@ struct FRepRootMotionMontage
 	UPROPERTY()
 	UPrimitiveComponent* MovementBase;
 
+	/** Bone on the MovementBase, if a skeletal mesh. */
+	UPROPERTY()
+	FName MovementBaseBoneName;
+
 	/** Additional replicated flag, if MovementBase can't be resolved on the client. So we don't use wrong data. */
 	UPROPERTY()
 	bool bRelativePosition;
@@ -78,28 +82,28 @@ struct FSimulatedRootMotionReplicatedMove
 namespace MovementBaseUtility
 {
 	/** Determine whether MovementBase can possibly move. */
-	FORCEINLINE bool IsDynamicBase(const class UPrimitiveComponent* MovementBase)
+	FORCEINLINE bool IsDynamicBase(const UPrimitiveComponent* MovementBase)
 	{
 		return (MovementBase && MovementBase->Mobility == EComponentMobility::Movable);
 	}
 
 	/** Determine if we should use relative positioning when based on a component (because it may move). */
-	FORCEINLINE bool UseRelativeLocation(const class UPrimitiveComponent* MovementBase)
+	FORCEINLINE bool UseRelativeLocation(const UPrimitiveComponent* MovementBase)
 	{
 		return IsDynamicBase(MovementBase);
 	}
 
 	/** Ensure that BasedObjectTick ticks after NewBase */
-	ENGINE_API void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase);
+	ENGINE_API void AddTickDependency(FTickFunction& BasedObjectTick, UPrimitiveComponent* NewBase);
 
 	/** Remove tick dependency of BasedObjectTick on OldBase */
-	ENGINE_API void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
+	ENGINE_API void RemoveTickDependency(FTickFunction& BasedObjectTick, UPrimitiveComponent* OldBase);
 
 	/** Get the velocity of the given component, first checking the ComponentVelocity and falling back to the physics velocity if necessary. */
-	ENGINE_API FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase);
+	ENGINE_API FVector GetMovementBaseVelocity(const UPrimitiveComponent* MovementBase, const FName BoneName);
 
 	/** Get the tangential velocity at WorldLocation for the given component. */
-	ENGINE_API FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation);
+	ENGINE_API FVector GetMovementBaseTangentialVelocity(const UPrimitiveComponent* MovementBase, const FName BoneName, const FVector& WorldLocation);
 
 	/** Get the transforms for the given MovementBase, optionally at the location of a bone. Returns false if MovementBase is NULL, or if BoneName is not a valid bone. */
 	ENGINE_API bool GetMovementBaseTransform(const UPrimitiveComponent* MovementBase, const FName BoneName, FVector& OutLocation, FQuat& OutQuat);
@@ -107,7 +111,7 @@ namespace MovementBaseUtility
 
 	// Deprecated function
 	DEPRECATED(4.4, "MovementBaseUtility::UseRelativePosition() is deprecated, use MovementBaseUtility::UseRelativeLocation() instead.")
-	FORCEINLINE bool UseRelativePosition(const class UPrimitiveComponent* MovementBase)
+	FORCEINLINE bool UseRelativePosition(const UPrimitiveComponent* MovementBase)
 	{
 		return UseRelativeLocation(MovementBase);
 	}
@@ -336,7 +340,7 @@ public:
 	// Begin APawn Interface.
 	virtual void PostInitializeComponents() override;
 	virtual class UPawnMovementComponent* GetMovementComponent() const override { return CharacterMovement; }
-	virtual class UPrimitiveComponent* GetMovementBase() const override final { return BasedMovement.MovementBase; }
+	virtual UPrimitiveComponent* GetMovementBase() const override final { return BasedMovement.MovementBase; }
 	virtual float GetDefaultHalfHeight() const override;
 	virtual void TurnOff() override;
 	virtual void Restart() override;
@@ -569,35 +573,6 @@ public:
 	virtual void UpdateFromCompressedFlags(uint8 Flags) { }
 
 public:
-	// Note: these network functions should be moved to the Character movement component. They are currently just wrappers that pass the calls to CharacterMovement.
-
-	/** Replicated function sent by client to server - contains client movement and view info. */
-	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-
-	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
-	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-
-	/* Resending an (important) old move.  Process it if not already processed. */
-	UFUNCTION(unreliable, server, WithValidation)
-	void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
-
-	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
-	UFUNCTION(unreliable, client)
-	void ClientAckGoodMove(float TimeStamp);
-
-	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
-	UFUNCTION(unreliable, client)
-	void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-
-	/* Bandwidth saving version, when velocity is zeroed */
-	UFUNCTION(unreliable, client)
-	void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-
-	/** Replicate position correction to client when using root motion for mevement. */
-	UFUNCTION(unreliable, client)
-	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent* ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
 
 	UFUNCTION(reliable, client)
 	void ClientCheatWalk();

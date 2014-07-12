@@ -327,7 +327,7 @@ public:
 
 	/** What to update CharacterOwner and UpdatedComponent after movement ends */
 	UPROPERTY()
-	class UPrimitiveComponent* DeferredUpdatedMoveComponent;
+	UPrimitiveComponent* DeferredUpdatedMoveComponent;
 
 	/** Maximum step height for getting out of water */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
@@ -743,9 +743,10 @@ public:
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
 
 	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
+	DEPRECATED(4.4, "CharacterMovementComponent::MaybeSaveBaseLocation() will be removed, call SaveBaseLocation().")
 	virtual void MaybeSaveBaseLocation();
 
-	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base. */
+	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base, and store the relative location/rotation if necessary. */
 	virtual void SaveBaseLocation();
 
 	/** changes physics based on MovementMode */
@@ -967,7 +968,7 @@ public:
 	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL );
 
 	
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
+	virtual void SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
@@ -1317,7 +1318,7 @@ protected:
 	virtual void CallServerMove(const class FSavedMove_Character* NewMove, const class FSavedMove_Character* OldMove);
 	
 	/** Have the server check if the client is outside an error tolerance, and set a client adjustment if so. ClientLoc will be a relative location if MovementBaseUtility::UseRelativePosition(ClientMovementBase) is true. */
-	virtual void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
+	virtual void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/* Process a move at the given time stamp, given the compressed flags representing various events that occurred (ie jump). */
 	virtual void MoveAutonomous( float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel);
@@ -1347,14 +1348,38 @@ public:
 		@returns true if TimeStamp is valid, or false if it has expired. */
 	bool VerifyClientTimeStamp(float TimeStamp, FNetworkPredictionData_Server_Character & ServerData);
 
-	// Callbacks for RPCs on Character
-	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-	virtual void ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
-	virtual void ClientAckGoodMove_Implementation(float TimeStamp);
-	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	virtual void ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent* ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	////////////////////////////////////
+	// Network RPCs for movement
+	////////////////////////////////////
+
+	/** Replicated function sent by client to server - contains client movement and view info. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	
+	/* Resending an (important) old move. Process it if not already processed. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
+	
+	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
+	UFUNCTION(unreliable, client)
+	virtual void ClientAckGoodMove(float TimeStamp);
+
+	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
+	UFUNCTION(unreliable, client)
+	virtual void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+	/* Bandwidth saving version, when velocity is zeroed */
+	UFUNCTION(unreliable, client)
+	virtual void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	
+	/** Replicate position correction to client when using root motion for movement. */
+	UFUNCTION(unreliable, client)
+	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
 
 	// Root Motion
 public:
@@ -1443,9 +1468,11 @@ public:
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
-	FQuat StartBaseRotation; // rotation of the base component, only saved if it can move.
+	FQuat StartBaseRotation;	// rotation of the base component (or bone), only saved if it can move.
 	float StartCapsuleRadius;
 	float StartCapsuleHalfHeight;
+	TWeakObjectPtr<UPrimitiveComponent> StartBase;
+	FName StartBoneName;
 
 	// Information after the move has been performed
 	FVector SavedLocation;
@@ -1453,15 +1480,14 @@ public:
 	FVector SavedVelocity;
 	FVector SavedRelativeLocation;
 	FRotator SavedControlRotation;
+	TWeakObjectPtr<UPrimitiveComponent> EndBase;
+	FName EndBoneName;
 
 	FVector Acceleration;
 
 	// Cached to speed up iteration over IsImportantMove().
 	FVector AccelNormal;
 	float AccelMag;
-	
-	TWeakObjectPtr<UPrimitiveComponent> StartBase;
-	TWeakObjectPtr<UPrimitiveComponent> EndBase;
 
 	TWeakObjectPtr<class UAnimMontage> RootMotionMontage;
 	float RootMotionTrackPosition;
@@ -1484,8 +1510,8 @@ public:
 	/** @Return true if this move is an "important" move that should be sent again if not acked by the server */
 	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const;
 	
-	/** Returns starting position of move, either absolute StartLocation, or StartRelativeLocation offset from MovementBase. */
-	virtual FVector GetStartLocation(const class UPrimitiveComponent* MovementBase) const;
+	/** Returns starting position if we were to revert the move, either absolute StartLocation, or StartRelativeLocation offset from MovementBase's current location (since we want to try to move forward at this time). */
+	virtual FVector GetRevertedLocation() const;
 
 	enum EPostUpdateMode
 	{
@@ -1532,6 +1558,7 @@ public:
 	, NewVel(ForceInitToZero)
 	, NewRot(ForceInitToZero)
 	, NewBase(NULL)
+	, NewBaseBoneName(NAME_None)
 	, bAckGoodMove(false)
 	, bBaseRelativePosition(false)
 	, MovementMode(0)
@@ -1543,7 +1570,8 @@ public:
 	FVector NewLoc;
 	FVector NewVel;
 	FRotator NewRot;
-	class UPrimitiveComponent* NewBase;
+	UPrimitiveComponent* NewBase;
+	FName NewBaseBoneName;
 	bool bAckGoodMove;
 	bool bBaseRelativePosition;
 	uint8 MovementMode;

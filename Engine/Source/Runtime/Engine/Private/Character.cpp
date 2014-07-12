@@ -369,7 +369,7 @@ void ACharacter::ClearCrossLevelReferences()
 
 namespace MovementBaseUtility
 {
-	void AddTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* NewBase)
+	void AddTickDependency(FTickFunction& BasedObjectTick, UPrimitiveComponent* NewBase)
 	{
 		if (NewBase && MovementBaseUtility::UseRelativeLocation(NewBase))
 		{
@@ -389,7 +389,7 @@ namespace MovementBaseUtility
 		}
 	}
 
-	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase)
+	void RemoveTickDependency(FTickFunction& BasedObjectTick, UPrimitiveComponent* OldBase)
 	{
 		if (OldBase && MovementBaseUtility::UseRelativeLocation(OldBase))
 		{
@@ -409,12 +409,21 @@ namespace MovementBaseUtility
 		}
 	}
 
-	// TODO: GetPhysicsLinearVelocity(BoneName)
-	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase)
+	FVector GetMovementBaseVelocity(const UPrimitiveComponent* MovementBase, const FName BoneName)
 	{
 		FVector BaseVelocity = FVector::ZeroVector;
 		if (MovementBaseUtility::IsDynamicBase(MovementBase))
 		{
+			if (BoneName != NAME_None)
+			{
+				const FBodyInstance* BodyInstance = MovementBase->GetBodyInstance(BoneName);
+				if (BodyInstance)
+				{
+					BaseVelocity = BodyInstance->GetUnrealWorldVelocity();
+					return BaseVelocity;
+				}
+			}
+
 			BaseVelocity = MovementBase->GetComponentVelocity();
 			if (BaseVelocity.IsZero())
 			{
@@ -437,18 +446,23 @@ namespace MovementBaseUtility
 		return BaseVelocity;
 	}
 
-	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation)
+	FVector GetMovementBaseTangentialVelocity(const UPrimitiveComponent* MovementBase, const FName BoneName, const FVector& WorldLocation)
 	{
 		if (MovementBaseUtility::IsDynamicBase(MovementBase))
 		{
-			if (MovementBase->GetBodyInstance())
+			if (const FBodyInstance* BodyInstance = MovementBase->GetBodyInstance(BoneName))
 			{
-				const FVector BaseAngVel = MovementBase->GetBodyInstance()->GetUnrealWorldAngularVelocity();
-				if (!BaseAngVel.IsZero())
+				const FVector BaseAngVel = BodyInstance->GetUnrealWorldAngularVelocity();
+				if (!BaseAngVel.IsNearlyZero())
 				{
-					const FVector RadialDistanceToBase = WorldLocation - MovementBase->GetComponentLocation();
-					const FVector TangentialVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
-					return TangentialVel;
+					FVector BaseLocation;
+					FQuat BaseRotation;
+					if (MovementBaseUtility::GetMovementBaseTransform(MovementBase, BoneName, BaseLocation, BaseRotation))
+					{
+						const FVector RadialDistanceToBase = WorldLocation - BaseLocation;
+						const FVector TangentialVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+						return TangentialVel;
+					}
 				}
 			}			
 		}
@@ -780,77 +794,6 @@ float ACharacter::GetJumpMaxHoldTime() const
 	return JumpMaxHoldTime;
 }
 
-bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
-{
-	return true;
-}
-
-void ACharacter::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, MoveFlags, ClientRoll, View, ClientMovementBase, ClientMovementMode);
-	}
-}
-
-bool ACharacter::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
-{
-	return true;
-}
-
-void ACharacter::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ServerMoveDual_Implementation(TimeStamp0, InAccel0, PendingFlags, View0, TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientMovementMode);
-	}
-}
-
-bool ACharacter::ServerMoveOld_Validate(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags)
-{
-	return true;
-}
-
-void ACharacter::ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ServerMoveOld_Implementation(OldTimeStamp, OldAccel, OldMoveFlags);
-	}
-}
-
-void ACharacter::ClientAckGoodMove_Implementation(float TimeStamp)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ClientAckGoodMove_Implementation(TimeStamp);
-	}
-}
-
-void ACharacter::ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ClientAdjustPosition_Implementation(TimeStamp, NewLoc, NewVel, NewBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
-	}
-}
-
-void ACharacter::ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
-{
-	if (CharacterMovement)
-	{
-		CharacterMovement->ClientVeryShortAdjustPosition_Implementation(TimeStamp, NewLoc, NewBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
-	}
-}
-
-void ACharacter::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
-{
-	if( CharacterMovement )
-	{
-		CharacterMovement->ClientAdjustRootMotionPosition_Implementation(TimeStamp, ServerMontageTrackPosition, ServerLoc, ServerRotation, ServerVelZ, ServerBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
-	}
-}
-
 //
 // Static variables for networking.
 //
@@ -1073,7 +1016,8 @@ bool ACharacter::CanUseRootMotionRepMove(const FSimulatedRootMotionReplicatedMov
 
 bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove & RootMotionRepMove)
 {
-	UPrimitiveComponent * ServerBase = RootMotionRepMove.RootMotion.MovementBase;
+	UPrimitiveComponent* ServerBase = RootMotionRepMove.RootMotion.MovementBase;
+	const FName ServerBaseBoneName = RootMotionRepMove.RootMotion.MovementBaseBoneName;
 
 	// Relative Position
 	if( RootMotionRepMove.RootMotion.bRelativePosition )
@@ -1081,13 +1025,16 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 		bool bSuccess = false;
 		if( MovementBaseUtility::UseRelativeLocation(ServerBase) )
 		{
-			const FVector ServerLocation = ServerBase->GetComponentLocation() + RootMotionRepMove.RootMotion.Location;
+			FVector BaseLocation;
+			FQuat BaseRotation;
+			MovementBaseUtility::GetMovementBaseTransform(ServerBase, ServerBaseBoneName, BaseLocation, BaseRotation);
+
+			const FVector ServerLocation = BaseLocation + RootMotionRepMove.RootMotion.Location;
 			FRotator ServerRotation;
 			if (RootMotionRepMove.RootMotion.bRelativeRotation)
 			{
 				// Relative rotation
-				// TODO: Bone rotation
-				ServerRotation = (FRotationMatrix(RootMotionRepMove.RootMotion.Rotation) * FRotationMatrix(ServerBase->GetComponentRotation())).Rotator();
+				ServerRotation = (FRotationMatrix(RootMotionRepMove.RootMotion.Rotation) * FQuatRotationTranslationMatrix(BaseRotation, FVector::ZeroVector)).Rotator();
 			}
 			else
 			{
@@ -1110,11 +1057,7 @@ bool ACharacter::RestoreReplicatedMove(const FSimulatedRootMotionReplicatedMove 
 		UpdateSimulatedPosition(RootMotionRepMove.RootMotion.Location, RootMotionRepMove.RootMotion.Rotation);
 	}
 
-	// Set base
-	if( BasedMovement.MovementBase != ServerBase /* TODO: or bone changes */)
-	{
-		SetBase( ServerBase /* TODO: bone */ );
-	}
+	SetBase( ServerBase, ServerBaseBoneName );
 
 	return true;
 }
@@ -1177,6 +1120,7 @@ void ACharacter::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTra
 		RepRootMotion.Location			= RepRootMotion.bRelativePosition ? BasedMovement.Location : GetActorLocation();
 		RepRootMotion.Rotation			= RepRootMotion.bRelativeRotation ? BasedMovement.Rotation : GetActorRotation();
 		RepRootMotion.MovementBase		= BasedMovement.MovementBase;
+		RepRootMotion.MovementBaseBoneName = BasedMovement.BoneName;
 		RepRootMotion.AnimMontage		= RootMotionMontageInstance->Montage;
 		RepRootMotion.Position			= RootMotionMontageInstance->Position;
 
