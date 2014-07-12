@@ -945,6 +945,20 @@ class FDefaultGameModuleImpl
 	#define IMPLEMENT_FOREIGN_ENGINE_DIR() 
 #endif
 
+/**
+ * Macro for declaring the project name variable in monolithic builds
+ */
+#if IS_MONOLITHIC
+	#ifdef UE_PROJECT_NAME
+		#define IMPLEMENT_PROJECT_NAME() const TCHAR *GProjectName = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) );
+	#else
+		#define IMPLEMENT_PROJECT_NAME() const TCHAR *GProjectName = nullptr;
+	#endif
+#else
+	#define IMPLEMENT_PROJECT_NAME() 
+#endif
+
+
 
 #if IS_PROGRAM
 
@@ -985,6 +999,7 @@ class FDefaultGameModuleImpl
 			TCHAR GGameName[64] = TEXT( GameName ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
+			IMPLEMENT_PROJECT_NAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			PER_MODULE_BOILERPLATE \
@@ -1000,6 +1015,7 @@ class FDefaultGameModuleImpl
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
 			TCHAR GGameName[64] = TEXT( GameName ); \
 			PER_MODULE_BOILERPLATE \
+			IMPLEMENT_PROJECT_NAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \

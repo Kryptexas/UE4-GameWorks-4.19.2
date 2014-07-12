@@ -1439,6 +1439,13 @@ namespace UnrealBuildTool
 					GlobalCompileEnvironment.Config.Definitions.Add("UE_ENGINE_DIRECTORY=" + EnginePath);
 				}
 
+				// Set the define for the project name. This allows the executable to locate the correct project file to use, which may not be the same as the game name or target.
+				if(UnrealBuildTool.HasUProjectFile())
+				{
+					string ProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectPath());
+					GlobalCompileEnvironment.Config.Definitions.Add(String.Format("UE_PROJECT_NAME={0}", ProjectName));
+				}
+
 				// Generate static libraries for monolithic games in Rocket
 				if ((UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket()) && TargetRules.IsAGame(Rules.Type))
 				{
