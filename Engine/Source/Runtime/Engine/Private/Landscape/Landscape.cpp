@@ -430,30 +430,30 @@ void ULandscapeComponent::PostLoad()
 #if WITH_EDITOR
 	if (GIsEditor && !HasAnyFlags(RF_ClassDefaultObject))
 	{
-		if (GetLinkerUE4Version() < VER_UE4_MOVE_LANDSCAPE_MICS_AND_TEXTURES_WITHIN_LEVEL)
+		// Move the MICs and Textures back to the Package if they're currently in the level
 		{
 			ULevel* Level = GetLevel();
 			if (ensure(Level))
 			{
-				TArray<UObject*> ObjectsToMoveFromPackgeToLevel;
+				TArray<UObject*> ObjectsToMoveFromLevelToPackage;
 				for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
 				{
-					ObjectsToMoveFromPackgeToLevel.Add(CurrentMIC);
+					ObjectsToMoveFromLevelToPackage.Add(CurrentMIC);
 				}
-				ObjectsToMoveFromPackgeToLevel.Add(HeightmapTexture);
+				ObjectsToMoveFromLevelToPackage.Add(HeightmapTexture);
 				for (auto* Tex : WeightmapTextures)
 				{
-					ObjectsToMoveFromPackgeToLevel.Add(Tex);
+					ObjectsToMoveFromLevelToPackage.Add(Tex);
 				}
-				ObjectsToMoveFromPackgeToLevel.Add(XYOffsetmapTexture);
+				ObjectsToMoveFromLevelToPackage.Add(XYOffsetmapTexture);
 
 				UPackage* MyPackage = GetOutermost();
-				for (auto* Obj : ObjectsToMoveFromPackgeToLevel)
+				for (auto* Obj : ObjectsToMoveFromLevelToPackage)
 				{
-					if (Obj && Obj->GetOuter() == MyPackage)
+					if (Obj && Obj->GetOuter() == Level)
 					{
 						Obj->ClearFlags(RF_Public);
-						Obj->Rename(NULL, Level, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
+						Obj->Rename(NULL, MyPackage, REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional);
 					}
 				}
 			}
@@ -1233,7 +1233,7 @@ void ALandscapeProxy::PostLoad()
 		if( Comp )
 		{
 			ComponentSizeQuads = Comp->ComponentSizeQuads;
-			SubsectionSizeQuads = Comp->SubsectionSizeQuads;	
+			SubsectionSizeQuads = Comp->SubsectionSizeQuads;
 			NumSubsections = Comp->NumSubsections;
 		}
 	}
