@@ -901,15 +901,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif	//UE_EDITOR
 
 #if !IS_PROGRAM
-#if IS_MONOLITHIC
-	extern const TCHAR* GProjectName;
-	if ( !GIsGameAgnosticExe && GProjectName != nullptr && !FPaths::IsProjectFilePathSet() )
+	if ( !GIsGameAgnosticExe && FApp::HasGameName() && !FPaths::IsProjectFilePathSet() )
 	{
-		// If we are using a non-agnostic exe, assemble a project path based on the compiled-in project name.
-		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), GProjectName, *IProjectManager::GetProjectFileExtension()));
+		// If we are using a non-agnostic exe where a name was specified but we did not specify a project path. Assemble one based on the game name.
+		const FString ProjectFilePath = FPaths::Combine(*FPaths::GameDir(), *FString::Printf(TEXT("%s.%s"), FApp::GetGameName(), *IProjectManager::GetProjectFileExtension()));
 		FPaths::SetProjectFilePath(ProjectFilePath);
 	}
-#endif
 
 	// Now verify the project file if we have one
 	if ( FPaths::IsProjectFilePathSet() )

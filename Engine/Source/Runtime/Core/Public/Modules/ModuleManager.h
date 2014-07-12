@@ -945,21 +945,6 @@ class FDefaultGameModuleImpl
 	#define IMPLEMENT_FOREIGN_ENGINE_DIR() 
 #endif
 
-/**
- * Macro for declaring the project name variable in monolithic builds
- */
-#if IS_MONOLITHIC
-	#ifdef UE_PROJECT_NAME
-		#define IMPLEMENT_PROJECT_NAME() const TCHAR *GProjectName = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) );
-	#else
-		#define IMPLEMENT_PROJECT_NAME() const TCHAR *GProjectName = nullptr;
-	#endif
-#else
-	#define IMPLEMENT_PROJECT_NAME() 
-#endif
-
-
-
 #if IS_PROGRAM
 
 	#if IS_MONOLITHIC
@@ -990,16 +975,16 @@ class FDefaultGameModuleImpl
 #else
 
 /** IMPLEMENT_PRIMARY_GAME_MODULE must be used for at least one game module in your game.  It sets the "name"
-    your game when compiling in monolithic mode. */
+    your game when compiling in monolithic mode. This is passed in by UBT from the .uproject name, and manually specifying a 
+	name is no longer necessary. */
 #if IS_MONOLITHIC
 	#if PLATFORM_DESKTOP
 
-		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, GameName ) \
+		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GGameName[64] = TEXT( GameName ); \
+			TCHAR GGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
 			bool GIsGameAgnosticExe = false; \
-			IMPLEMENT_PROJECT_NAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			PER_MODULE_BOILERPLATE \
@@ -1011,11 +996,10 @@ class FDefaultGameModuleImpl
 
 	#else	//PLATFORM_DESKTOP
 
-		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, GameName ) \
+		#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, DEPRECATED_GameName ) \
 			/* For monolithic builds, we must statically define the game's name string (See Core.h) */ \
-			TCHAR GGameName[64] = TEXT( GameName ); \
+			TCHAR GGameName[64] = TEXT( PREPROCESSOR_TO_STRING(UE_PROJECT_NAME) ); \
 			PER_MODULE_BOILERPLATE \
-			IMPLEMENT_PROJECT_NAME() \
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
