@@ -77,8 +77,15 @@ public class Vorbis : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
-			PublicAdditionalLibraries.Add("vorbis");
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbis.a");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
+                PublicAdditionalLibraries.Add("vorbis");
+            }
 		}
 	}
 }

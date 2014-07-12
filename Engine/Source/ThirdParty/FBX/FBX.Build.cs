@@ -45,7 +45,7 @@ public class FBX : ModuleRules
 				throw new BuildException(Err);
 			}
 
-			PublicAdditionalLibraries.Add(LibDir + "libfbxsdk.a");
+			PublicAdditionalLibraries.Add(LibDir + "/libfbxsdk.a");
 			/* There is a bug in fbxarch.h where is doesn't do the check
 			 * for clang under linux */
 			Definitions.Add("FBXSDK_COMPILER_CLANG");
