@@ -187,6 +187,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bThumbnailEditMode = false;
 	bUserSearching = false;
 	bPendingFocusOnSync = false;
+	bWereItemsRecursivelyFiltered = false;
 
 	TagColumnRenames.Add("ResourceSize", TEXT("Size (kb)"));
 
@@ -1294,6 +1295,7 @@ void SAssetView::RefreshSourceItems()
 	{
 		AssetRegistryModule.Get().GetAllAssets(Items);
 		bWantToShowShowClasses = true;
+		bWereItemsRecursivelyFiltered = true;
 	}
 	else
 	{
@@ -1302,6 +1304,8 @@ void SAssetView::RefreshSourceItems()
 		const bool bRecurse = ShouldFilterRecursively();
 		const bool bUsingFolders = GetDefault<UContentBrowserSettings>()->ShowOnlyAssetsInSelectedFolders || IsShowingFolders();
 		FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
+
+		bWereItemsRecursivelyFiltered = bRecurse;
 
 		// Remove the classes path if it is in the list. We will add classes to the results later
 		bWantToShowShowClasses = Filter.PackagePaths.Remove(TEXT("/Classes")) > 0;
@@ -2017,6 +2021,13 @@ void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& 
 void SAssetView::OnFrontendFiltersChanged()
 {
 	RequestQuickFrontendListRefresh();
+
+	// If we're not operating on recursively filtered data, we need to ensure a full slow
+	// refresh is performed.
+	if ( ShouldFilterRecursively() && !bWereItemsRecursivelyFiltered )
+	{
+		RequestSlowFullListRefresh();
+	}
 }
 
 bool SAssetView::IsFrontendFilterActive() const

@@ -643,6 +643,9 @@ private:
 	/** Should we take focus when the PendingSyncAssets are processed? */
 	bool bPendingFocusOnSync;
 
+	/** Was recursive filtering enabled the last time a full slow refresh performed? */
+	bool bWereItemsRecursivelyFiltered;
+
 	/** Called to check if an asset should be filtered out by external code */
 	FOnShouldFilterAsset OnShouldFilterAsset;
 
