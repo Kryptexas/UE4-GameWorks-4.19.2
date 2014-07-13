@@ -464,12 +464,17 @@ bool FMaterial::NeedsGBuffer() const
 {
 	checkSlow(IsInRenderingThread());
 
+	if (IsOpenGLPlatform(GRHIShaderPlatform)) // @todo: TTP #341211
+	{
+		return true;
+	}
+
 	if (RenderingThreadShaderMap)
 	{
 		return RenderingThreadShaderMap->NeedsGBuffer();
 	}
 
-	return 0;
+	return false;
 }
 
 
