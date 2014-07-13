@@ -34,10 +34,9 @@ namespace iPhonePackager
 			string GameName = Program.GameName;
 			if (GameName == "UE4Game")
 			{
-				string[] project = Directory.GetFiles(Config.ProjectRootDirectory, "*.uproject");
-				if (project.Length == 1)
+				if(Config.ProjectFile.Length > 0)
 				{
-					GameName = Path.GetFileNameWithoutExtension(project[0]);
+					GameName = Path.GetFileNameWithoutExtension(Config.ProjectFile);
 				}
 			}
 
@@ -49,7 +48,7 @@ namespace iPhonePackager
 
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
-			foreach (string Provision in Directory.EnumerateFiles(Config.ProjectRootDirectory + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
+			foreach (string Provision in Directory.EnumerateFiles(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
 			{
 				if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
 				{

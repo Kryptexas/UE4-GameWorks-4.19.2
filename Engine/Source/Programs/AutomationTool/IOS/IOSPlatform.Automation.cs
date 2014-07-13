@@ -149,7 +149,7 @@ public class IOSPlatform : Platform
 
 			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
 			IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
-			IPPArguments += " -projectdir \"" + Path.GetDirectoryName(Params.RawProjectPath) + "\"";
+			IPPArguments += " -project \"" + Params.RawProjectPath + "\"";
 
 			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
