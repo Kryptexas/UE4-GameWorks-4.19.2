@@ -3,7 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
-#include "BlueprintActionFilter.h"
+#include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 
 class FKCHandler_TemporaryVariable : public FNodeHandlingFunctor

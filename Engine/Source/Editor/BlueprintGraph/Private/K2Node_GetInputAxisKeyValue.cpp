@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_GetInputAxisKeyValue.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetInputAxisKeyValue"
 
