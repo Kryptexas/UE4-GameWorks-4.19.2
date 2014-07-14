@@ -2,8 +2,6 @@
 
 #pragma once
 
-//#define DO_LOCAL_TESTING 1
-
 struct FPDBCacheEntry;
 typedef TSharedRef<FPDBCacheEntry> FPDBCacheEntryRef;
 typedef TSharedPtr<FPDBCacheEntry> FPDBCacheEntryPtr;
@@ -30,7 +28,7 @@ public:
 	uint32 SizeOfImage;
 	uint16 Major;
 	uint16 Minor;
-	uint16 Build;
+	uint16 Patch;
 	uint16 Revision;
 
 	FCrashModuleInfo()
@@ -38,7 +36,7 @@ public:
 		, SizeOfImage( 0 )
 		, Major( 0 )
 		, Minor( 0 )
-		, Build( 0 )
+		, Patch( 0 )
 		, Revision( 0 )
 	{
 	}
@@ -126,15 +124,36 @@ public:
 class CRASHDEBUGHELPER_API FCrashInfo
 {
 public:
+	enum
+	{
+		/** An invalid changelist, something went wrong. */
+		INVALID_CHANGELIST = -1,
+	};
+
+	/** Report log. */
 	FString Report;
 
-	TArray<FString> ModuleNames;
+	/** The depot name, indicate where the executables and symbols are stored. */
+	FString DepotName;
+
+	/** Product version, based on FEngineVersion. */
+	FString ProductVersion;
+
+	/** CL built from. */
 	int32 ChangelistBuiltFrom;
+
+	/** The label the describes the executables and symbols. */
 	FString LabelName;
+
+	/** The network path where the executables are stored. */
+	FString NetworkPath;
 
 	FString SourceFile;
 	uint64 SourceLineNumber;
 	TArray<FString> SourceContext;
+
+	/** Only modules names, retrieved from the minidump file. */
+	TArray<FString> ModuleNames;
 
 	FCrashSystemInfo SystemInfo;
 	FCrashExceptionInfo Exception;
@@ -145,7 +164,7 @@ public:
 	FPDBCacheEntryPtr PDBCacheEntry;
 
 	FCrashInfo()
-		: ChangelistBuiltFrom( -1 )
+		: ChangelistBuiltFrom( INVALID_CHANGELIST )
 		, SourceLineNumber( 0 )
 	{
 	}
@@ -187,8 +206,8 @@ struct CRASHDEBUGHELPER_API FCrashDebugInfo
 struct FPDBCacheEntry
 {
 	/** Initialization constructor. */
-	FPDBCacheEntry( const FString& InLabel, const int32 InSizeGB )
-		: Label( InLabel )
+	FPDBCacheEntry( const FString& InDirectory, const int32 InSizeGB )
+		: Directory( InDirectory )
 		, SizeGB( InSizeGB )
 	{}
 
@@ -200,8 +219,8 @@ struct FPDBCacheEntry
 	/** Paths to files associated with this PDB Cache entry. */
 	TArray<FString> Files;
 
-	/** P4 Label associated with this PDB Cache entry. */
-	const FString Label;
+	/** The path associated with this PDB Cache entry. */
+	const FString Directory;
 	
 	/** Last access time, changed every time this PDB cache entry is used. */
 	FDateTime LastAccessTime;
@@ -221,7 +240,6 @@ struct FPDBCacheEntryByAccessTime
 /** Implements PDB cache. */
 struct FPDBCache
 {
-	//friend class ICrashDebugHelper;
 protected:
 
 	// Defaults for the PDB cache.
@@ -252,9 +270,6 @@ protected:
 	/** Path to the folder where the PDB cache is stored. */
 	FString PDBCachePath;
 
-	/** The builtFromCL to use instead of extracting from the minidump */
-	int32 BuiltFromCL;
-
 	/** Age of file when it should be deleted from the PDB cache. */
 	int32 DaysToDeleteUnusedFilesFromPDBCache;
 
@@ -274,8 +289,7 @@ protected:
 public:
 	/** Default constructor. */
 	FPDBCache()
-		: BuiltFromCL( 0 )
-		, DaysToDeleteUnusedFilesFromPDBCache( DAYS_TO_DELETE_UNUSED_FILES )
+		: DaysToDeleteUnusedFilesFromPDBCache( DAYS_TO_DELETE_UNUSED_FILES )
 		, PDBCacheSizeGB( PDB_CACHE_SIZE_GB )
 		, MinDiskFreeSpaceGB( MIN_FREESPACE_GB )
 		, bUsePDBCache( false )
@@ -295,28 +309,30 @@ public:
 	/**
 	 * @return true, if the PDB Cache contains the specified label.
 	 */
-	bool ContainsPDBCacheEntry( const FString& InLabel ) const
+	bool ContainsPDBCacheEntry( const FString& PathOrLabel ) const
 	{
-		return PDBCacheEntries.Contains( CleanLabelName( InLabel ) );
+		return PDBCacheEntries.Contains( EscapePath( PathOrLabel ) );
 	}
 
 	/**
 	 *	Touches a PDB Cache entry by updating the timestamp.
 	 */
-	void TouchPDBCacheEntry( const FString& InLabel );
+	void TouchPDBCacheEntry( const FString& Directory );
 
 	/**
-	 * @return a PDB Cache entry for the specified label.
+	 * @return a PDB Cache entry for the specified label and touches it at the same time
 	 */
-	FPDBCacheEntryRef FindPDBCacheEntry( const FString& InLabel )
-	{
-		return PDBCacheEntries.FindChecked( CleanLabelName( InLabel ) );
-	}
+	FPDBCacheEntryRef FindAndTouchPDBCacheEntry( const FString& PathOrLabel );
 
 	/**
 	 *	Creates a new PDB Cache entry, initializes it and adds to the database.
 	 */
-	FPDBCacheEntryRef CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& SyncedFiles );
+	FPDBCacheEntryRef CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotRoot, const FString& DepotName, const TArray<FString>& FilesToBeCached );
+
+	/**
+	 *	Creates a new PDB Cache entry, initializes it and adds to the database.
+	 */
+	FPDBCacheEntryRef CreateAndAddPDBCacheEntryMixed( const FString& ProductVersion, const TMap<FString,FString>& FilesToBeCached );
 
 protected:
 	/** Initializes the PDB Cache. */
@@ -325,9 +341,9 @@ protected:
 	/**
 	 * @return the size of the PDB cache entry, in GBs.
 	 */
-	int32 GetPDBCacheEntrySizeGB( const FString& InLabel ) const
+	int32 GetPDBCacheEntrySizeGB( const FString& PathOrLabel ) const
 	{
-		return PDBCacheEntries.FindChecked( InLabel )->SizeGB;
+		return PDBCacheEntries.FindChecked( PathOrLabel )->SizeGB;
 	}
 
 	/**
@@ -360,7 +376,7 @@ protected:
 	/**
 	 *	Reads an existing PDB Cache entry.
 	 */
-	FPDBCacheEntryRef ReadPDBCacheEntry( const FString& InLabel );
+	FPDBCacheEntryRef ReadPDBCacheEntry( const FString& Directory );
 
 	/**
 	 *	Sort PDB Cache entries by last access time.
@@ -374,12 +390,13 @@ protected:
 	 *	Removes a PDB Cache entry from the database.
 	 *	Also removes all external files associated with this PDB Cache entry.
 	 */
-	void RemovePDBCacheEntry( const FString& InLabel );
+	void RemovePDBCacheEntry( const FString& Directory );
 
-	/** Replaces all / chars with _ for the specified label name. */
-	FString CleanLabelName( const FString& InLabel ) const
+	/** Replaces all invalid chars with + for the specified name. */
+	FString EscapePath( const FString& PathOrLabel ) const
 	{
-		return InLabel.Replace( TEXT( "/" ), TEXT( "_" ) );
+		// @see AutomationTool.CommandUtils.EscapePath 
+		return PathOrLabel.Replace( TEXT( ":" ), TEXT( "" ) ).Replace( TEXT( "/" ), TEXT( "+" ) ).Replace( TEXT( "\\" ), TEXT( "+" ) ).Replace( TEXT( " " ), TEXT( "+" ) );
 	}
 };
 
@@ -389,12 +406,27 @@ class CRASHDEBUGHELPER_API ICrashDebugHelper
 protected:
 	/** The depot name that the handler is using to sync from */
 	FString DepotName;
+
+	/** Depot root, only used in conjunction with the PDB Cache. */
+	FString DepotRoot;
+
 	/** The local folder where symbol files should be stored */
 	FString LocalSymbolStore;
-	/** In the event that a database query for a label fails, use this pattern to search in source control for the label */
+
+	/**
+	 *	Pattern to search in source control for the label.
+	 *	This somehow works for older crashes, before 4.2 and for the newest one,
+	 *	bur for the newest we also need to look for the executables on the network drive.
+	 *	This may change in future.
+	 */
 	FString SourceControlBuildLabelPattern;
-	/** The builtFromCL to use instead of extracting from the minidump */
-	int32 BuiltFromCL;
+	
+	/**
+	 * Pattern to search in the network driver for the executables.
+	 * Valid from 4.2 UE builds. (CL-2068994)
+	 * This may change in future.
+	 */
+	FString ExecutablePathPattern;
 	
 	/** Indicates that the crash handler is ready to do work */
 	bool bInitialized;
@@ -416,18 +448,6 @@ public:
 	 *	@return	bool		true if successful, false if not
 	 */
 	virtual bool Init();
-
-	/** Get the depot name */
-	const FString& GetDepotName() const
-	{
-		return DepotName;
-	}
-
-	/** Set the depot name */
-	void SetDepotName(const FString& InDepotName)
-	{
-		DepotName = InDepotName;
-	}
 
 	/**
 	 *	Parse the given crash dump, determining EngineVersion of the build that produced it - if possible. 
@@ -455,18 +475,6 @@ public:
 	}
 
 	/**
-	 *	Get the source control label for the given engine version
-	 *
-	 *	@param	InEngineVersion		The engine version to retrieve the label for
-	 *
-	 *	@return	FString				The label containing that engine version build, empty if not found
-	 */
-	virtual FString GetLabelFromEngineVersion(int32 InEngineVersion)
-	{
-		return RetrieveBuildLabel(InEngineVersion, -1);
-	}
-
-	/**
 	 *	Get the source control label for the given changelist number
 	 *
 	 *	@param	InChangelistNumber	The changelist number to retrieve the label for
@@ -475,7 +483,7 @@ public:
 	 */
 	virtual FString GetLabelFromChangelistNumber(int32 InChangelistNumber)
 	{
-		return RetrieveBuildLabel(-1, InChangelistNumber);
+		return RetrieveBuildLabel(InChangelistNumber);
 	}
 
 	/**
@@ -516,45 +524,42 @@ public:
 	/**
 	 *	Sync the binaries and associated pdbs to the requested label.
 	 *
-	 *	@params	InLabel			The name of the crash dump file to debug
-	 *	@params	InModuleNames	An array of modules to sync
-	 *
 	 *	@return	bool		true if successful, false if not
 	 */
-	virtual bool SyncModules( FCrashInfo* CrashInfo );
+	virtual bool SyncModules();
 
 	/**
 	 *	Sync a single source file to the requested label.
 	 *
-	 *	@params	CrashInfo	A description of a crash
-	 *
 	 *	@return	bool		true if successful, false if not
 	 */
-	virtual bool SyncSourceFile( FCrashInfo* CrashInfo );
+	virtual bool SyncSourceFile();
 
 	/**
 	 *	Extract lines from a source file, and add to the crash report.
-	 *
-	 *	@params	CrashInfo	A description of a crash
 	 */
-	virtual void AddSourceToReport( FCrashInfo* CrashInfo );
+	virtual void AddSourceToReport();
 
 	/**
 	 *	Extract annotated lines from a source file stored in Perforce, and add to the crash report.
-	 *
-	 *	@params	CrashInfo	A description of a crash
 	 */
-	virtual bool AddAnnotatedSourceToReport( FCrashInfo* CrashInfo );
+	virtual bool AddAnnotatedSourceToReport();
 
 protected:
 	/**
-	 *	Retrieve the build label for the given engine version or changelist number.
+	 *	Retrieve the build label for the given changelist number.
 	 *
-	 *	@param	InEngineVersion		The engine version to retrieve the label for. If -1, then will use InChangelistNumber
 	 *	@param	InChangelistNumber	The changelist number to retrieve the label for
 	 *	@return	FString				The label if successful, empty if it wasn't found or another error
 	 */
-	virtual FString RetrieveBuildLabel(int32 InEngineVersion, int32 InChangelistNumber);
+	FString RetrieveBuildLabel(int32 InChangelistNumber);
+
+	/**
+	 *	Retrieve the build label and the network path for the given changelist number.
+	 *
+	 *	@param	InChangelistNumber	The changelist number to retrieve the label for
+	 */
+	void RetrieveBuildLabelAndNetworkPath( int32 InChangelistNumber );
 
 	bool ReadSourceFile( const TCHAR* InFilename, TArray<FString>& OutStrings );
 

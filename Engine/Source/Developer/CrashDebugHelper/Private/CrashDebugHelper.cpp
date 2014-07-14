@@ -13,6 +13,8 @@
 	#define MINIDUMPDIAGNOSTICS	0
 #endif
 
+static const TCHAR* P4_DEPOT_PREFIX = TEXT( "//depot/" );
+
 /** 
  * Global initialisation of this module
  */
@@ -25,7 +27,7 @@ bool ICrashDebugHelper::Init()
 	FString CmdLineBranchName;
 	if ( FParse::Value(FCommandLine::Get(), TEXT("BranchName="), CmdLineBranchName) )
 	{
-		DepotName = FString::Printf( TEXT( "//depot/%s" ), *CmdLineBranchName );
+		DepotName = FString::Printf( TEXT( "%s%s" ), P4_DEPOT_PREFIX, *CmdLineBranchName );
 	}
 	// Try to use what is configured in ini
 	else if (GConfig->GetString(TEXT("Engine.CrashDebugHelper"), TEXT("DepotName"), DepotName, GEngineIni) == true)
@@ -36,12 +38,14 @@ bool ICrashDebugHelper::Init()
 	// Default to BRANCH_NAME
 	else
 	{
-		DepotName = FString::Printf( TEXT( "//depot/%s" ), TEXT( BRANCH_NAME ) );
+		DepotName = FString::Printf( TEXT( "%s%s" ), P4_DEPOT_PREFIX, TEXT( BRANCH_NAME ) );
 	}
+
+	CrashInfo.DepotName = DepotName;
 
 	// Try to get the BuiltFromCL from command line to use this instead of attempting to locate the CL in the minidump
 	FString CmdLineBuiltFromCL;
-	BuiltFromCL = -1;
+	int32 BuiltFromCL = -1;
 	if (FParse::Value(FCommandLine::Get(), TEXT("BuiltFromCL="), CmdLineBuiltFromCL))
 	{
 		if ( !CmdLineBuiltFromCL.IsEmpty() )
@@ -49,12 +53,16 @@ bool ICrashDebugHelper::Init()
 			BuiltFromCL = FCString::Atoi(*CmdLineBuiltFromCL);
 		}
 	}
-
-	// Look up the source control search pattern. This pattern is used to identify a build label in the event that it was not already found in the database.
-	if (GConfig->GetString(TEXT("Engine.CrashDebugHelper"), TEXT("SourceControlBuildLabelPattern"), SourceControlBuildLabelPattern, GEngineIni) == true)
+	// Default to BUILT_FROM_CHANGELIST.
+	else
 	{
-		// Using a build label pattern to search in P4 if we don't find the label in the database
+		BuiltFromCL = int32(BUILT_FROM_CHANGELIST);
 	}
+
+	CrashInfo.ChangelistBuiltFrom = BuiltFromCL;
+
+	GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "SourceControlBuildLabelPattern" ), SourceControlBuildLabelPattern, GEngineIni );
+	GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "ExecutablePathPattern" ), ExecutablePathPattern, GEngineIni );
 
 	// Look up the local symbol store - fail if not found
 	if (GConfig->GetString(TEXT("Engine.CrashDebugHelper"), TEXT("LocalSymbolStore"), LocalSymbolStore, GEngineIni) == false)
@@ -63,7 +71,14 @@ bool ICrashDebugHelper::Init()
 		bInitialized = false;
 	}
 
-	PDBCache.Init();
+	if( !GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "DepotRoot" ), DepotRoot, GEngineIni ) )
+	{
+		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get DepotRoot from ini file... PDB Cache disabled" ) );
+	}
+	else
+	{
+		PDBCache.Init();
+	}
 
 	return bInitialized;
 }
@@ -117,9 +132,9 @@ void ICrashDebugHelper::ShutdownSourceControl()
 /** 
  * Sync the branch root relative file names to the requested label
  */
-bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
+bool ICrashDebugHelper::SyncModules()
 {
-	if( CrashInfo->LabelName.Len() <= 0 )
+	if( CrashInfo.LabelName.Len() <= 0 )
 	{
 		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "SyncModules: Invalid Label parameter." ) );
 		return false;
@@ -131,43 +146,116 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 		return false;
 	}
 
+	const TCHAR* UESymbols = TEXT( "Rocket/Symbols/" );
+	const bool bUseNetworkPathExecutables = !CrashInfo.NetworkPath.IsEmpty();
+
 	// Get all labels associated with the crash info's label.
-	// It should return one unique label because the crash info's label looks like this //depot/UE4-Releases/4.0/Rocket-CL-2047835 @see RetrieveBuildLabel
+	// It should return one unique label because the crash info's label looks like this //depot/UE4-Releases/4.0/UE-CL-2047835 @see RetrieveBuildLabel
 	// We can assume that the label name is unique.
 	// 
-	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo->LabelName );
+	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo.LabelName );
 	if( Labels.Num() == 1 )
 	{
-		const bool bContains = PDBCache.UsePDBCache() && PDBCache.ContainsPDBCacheEntry( CrashInfo->LabelName );
-		if( bContains )
-		{
-			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Label %s found in the PDB Cache, using it" ), *CrashInfo->LabelName );
-			CrashInfo->PDBCacheEntry = PDBCache.FindPDBCacheEntry( CrashInfo->LabelName );
-			PDBCache.TouchPDBCacheEntry( CrashInfo->LabelName );
-			return true;
-		}
-		else
-		{
-			TArray<FString> SyncedFiles;	
-			TSharedRef<ISourceControlLabel> Label = Labels[0];
+		TSharedRef<ISourceControlLabel> Label = Labels[0];
+		TSet<FString> FilesToSync;
 
-			//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
-			if( Label->GetName().Contains( TEXT( "Mac" ) ) )
+		if( bUseNetworkPathExecutables )
+		{
+			// Use product version instead of label name to make a distinguish between chosen methods.
+			const bool bContains = PDBCache.UsePDBCache() && PDBCache.ContainsPDBCacheEntry( CrashInfo.ProductVersion );
+			if( bContains )
 			{
-				UE_LOG( LogCrashDebugHelper, Log, TEXT( " Skipping Mac label '%s' when syncing modules." ), *Label->GetName() );
+				UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Label %s found in the PDB Cache, using it" ), *CrashInfo.ProductVersion );
+				CrashInfo.PDBCacheEntry = PDBCache.FindAndTouchPDBCacheEntry( CrashInfo.ProductVersion );
+				return true;
 			}
 			else
 			{
-				// Sync all the dll, exes, and related symbol files
-				UE_LOG( LogCrashDebugHelper, Log, TEXT( " Syncing modules with label '%s'." ), *Label->GetName() );
+				SCOPE_LOG_TIME_IN_SECONDS( TEXT( "SyncModulesAndNetwork" ), nullptr );
 
-				TSet<FString> FilesToSync;
+				// This is a bit hacky, probably will be valid until next build system change.
+				const FString ProductNetworkPath = ExecutablePathPattern.Replace( TEXT( "%PRODUCT_VERSION%" ), *CrashInfo.ProductVersion );
 
-				const bool bUseNewSyncModule = true;
-
-				if( bUseNewSyncModule )
+				// Grab information about symbols.
+				TArray< TSharedRef<class ISourceControlRevision, ESPMode::ThreadSafe> > PDBSourceControlRevisions;
+				const FString PDBsPath = FString::Printf( TEXT( "%s/%s....pdb" ), *DepotName, UESymbols );
+				Label->GetFileRevisions( PDBsPath, PDBSourceControlRevisions );
+				
+				TSet<FString> PDBPaths;
+				for( const auto& PDBSrc : PDBSourceControlRevisions )
 				{
-					SCOPE_LOG_TIME_IN_SECONDS( TEXT( "SyncModules_NEW" ), nullptr );
+					PDBPaths.Add( PDBSrc->GetFilename() );
+				}
+
+				// Now, sync symbols.
+				for( const auto& PDBPath : PDBPaths )
+				{
+					if( Label->Sync( PDBPath ) )
+					{
+						UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Synced PDB '%s'" ), *PDBPath );
+					}
+				}
+
+				// Find all the executables in the product network path.
+				TArray<FString> NetworkExecutables;
+				IFileManager::Get().FindFilesRecursive( NetworkExecutables, *ProductNetworkPath, TEXT( "*.dll" ), true, false, false );
+				IFileManager::Get().FindFilesRecursive( NetworkExecutables, *ProductNetworkPath, TEXT( "*.exe" ), true, false, false );
+
+				// From=Full pathname
+				// To=Relative pathname
+				TMap<FString, FString> FilesToBeCached;
+
+				// If a symbol matches an executable, add the pair to the list of files that should be cached.
+				for( const auto& NetworkExecutableFullpath : NetworkExecutables )
+				{
+					for( const auto& PDBPath : PDBPaths )
+					{
+						const FString PDBRelativePath = PDBPath.Replace( *DepotName, TEXT( "" ) ).Replace( UESymbols, TEXT( "" ) );
+						const FString PDBFullpath = DepotRoot / PDBPath.Replace( P4_DEPOT_PREFIX, TEXT( "" ) );
+
+						const FString PDBMatch = PDBRelativePath.Replace( TEXT( "pdb" ), TEXT( "" ) );
+						const FString NetworkRelativePath = NetworkExecutableFullpath.Replace( *ProductNetworkPath, TEXT( "" ) );
+						const bool bMatch = NetworkExecutableFullpath.Contains( PDBMatch );
+						if( bMatch )
+						{
+							// From -> Where ?
+							FilesToBeCached.Add( NetworkExecutableFullpath, NetworkRelativePath );
+							FilesToBeCached.Add( PDBFullpath, PDBRelativePath );
+							break;
+						}
+					}
+				}
+
+				if( PDBCache.UsePDBCache() )
+				{
+					// Initialize and add a new PDB Cache entry to the database.
+					CrashInfo.PDBCacheEntry = PDBCache.CreateAndAddPDBCacheEntryMixed( CrashInfo.ProductVersion, FilesToBeCached );
+				}
+			}
+		}
+		else
+		{
+			TArray<FString> FilesToBeCached;
+			const bool bContains = PDBCache.UsePDBCache() && PDBCache.ContainsPDBCacheEntry( CrashInfo.LabelName );
+			if( bContains )
+			{
+				UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Label '%s' found in the PDB Cache, using it" ), *CrashInfo.LabelName );
+				CrashInfo.PDBCacheEntry = PDBCache.FindAndTouchPDBCacheEntry( CrashInfo.LabelName );
+				return true;
+			}
+			else
+			{
+				//@TODO: MAC: Excluding labels for Mac since we are only syncing windows binaries here...
+				if( Label->GetName().Contains( TEXT( "Mac" ) ) )
+				{
+					UE_LOG( LogCrashDebugHelper, Log, TEXT( " Skipping Mac label '%s' when syncing modules." ), *Label->GetName() );
+				}
+				else
+				{
+					// Sync all the dll, exes, and related symbol files
+					UE_LOG( LogCrashDebugHelper, Log, TEXT( " Syncing modules with label '%s'." ), *Label->GetName() );
+
+					SCOPE_LOG_TIME_IN_SECONDS( TEXT( "SyncModules" ), nullptr );
 
 					// Grab all dll and pdb files for the specified label.
 					TArray< TSharedRef<class ISourceControlRevision, ESPMode::ThreadSafe> > DLLSourceControlRevisions;
@@ -180,26 +268,26 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 
 					TArray< TSharedRef<class ISourceControlRevision, ESPMode::ThreadSafe> > PDBSourceControlRevisions;
 					const FString PDBsPath = FString::Printf( TEXT( "%s/....pdb" ), *DepotName );
-					Label->GetFileRevisions( PDBsPath, PDBSourceControlRevisions );		
-			
+					Label->GetFileRevisions( PDBsPath, PDBSourceControlRevisions );
+
 					TSet<FString> ModulesPaths;
 					for( const auto& DLLSrc : DLLSourceControlRevisions )
 					{
-						ModulesPaths.Add( DLLSrc->GetFilename().Replace( *(DepotName + TEXT( "/" )), TEXT( "" ) ) );
+						ModulesPaths.Add( DLLSrc->GetFilename().Replace( *DepotName, TEXT( "" ) ) );
 					}
 					for( const auto& EXESrc : EXESourceControlRevisions )
 					{
-						ModulesPaths.Add( EXESrc->GetFilename().Replace( *(DepotName + TEXT( "/" )), TEXT( "" ) ) );
+						ModulesPaths.Add( EXESrc->GetFilename().Replace( *DepotName, TEXT( "" ) ) );
 					}
 
 					TSet<FString> PDBPaths;
 					for( const auto& PDBSrc : PDBSourceControlRevisions )
 					{
-						PDBPaths.Add( PDBSrc->GetFilename().Replace( *(DepotName + TEXT( "/" )), TEXT( "" ) ) );
+						PDBPaths.Add( PDBSrc->GetFilename().Replace( *DepotName, TEXT( "" ) ) );
 					}
 
 					// Iterate through all module and see if we have dll and pdb associated with the module, if so add it to the files to sync.
-					for( const auto& ModuleName : CrashInfo->ModuleNames )
+					for( const auto& ModuleName : CrashInfo.ModuleNames )
 					{
 						const FString ModuleNamePDB = ModuleName.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
 
@@ -221,91 +309,30 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 							}
 						}
 					}
-					
+
 					// Now, sync all files.
 					for( const auto& Filename : FilesToSync )
 					{
-						const FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *Filename );
+						const FString DepotPath = DepotName + Filename;
 						if( Label->Sync( DepotPath ) )
 						{
 							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
 						}
-						SyncedFiles.Add( DepotPath );
+						FilesToBeCached.Add( DepotPath );
 					}
 				}
-				else
+
+				if( PDBCache.UsePDBCache() )
 				{
-					SCOPE_LOG_TIME_IN_SECONDS( TEXT( "SyncModules_OLD" ), nullptr );
-
-					for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
-					{
-						// Sometimes P4 may hang due to spamming the server with the commands, if so try uncommenting the line below.
-						//FPlatformProcess::Sleep( 0.1f );
-						FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-						DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
-
-						if( Label->Sync( DepotPath ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
-						}
-						SyncedFiles.Add( DepotPath );
-
-						FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-						if( Label->Sync( PDBName ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );
-						}
-						SyncedFiles.Add( PDBName );
-
-						//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-						DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
-						if( Label->Sync( DepotPath ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
-						}
-						SyncedFiles.Add( DepotPath );
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
-						if( Label->Sync( PDBName ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );
-						}
-						SyncedFiles.Add( PDBName );
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						// Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
-						DepotPath = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.dll" ) ).Replace( TEXT( ".exe" ), TEXT( "*.exe" ) );
-						if( Label->Sync( DepotPath ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'." ), *DepotPath );
-						}
-						SyncedFiles.Add( DepotPath );
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
-						if( Label->Sync( PDBName ) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'." ), *PDBName );
-						}
-						SyncedFiles.Add( PDBName );
-					}
+					// Initialize and add a new PDB Cache entry to the database.
+					CrashInfo.PDBCacheEntry = PDBCache.CreateAndAddPDBCacheEntry( CrashInfo.LabelName, DepotRoot, DepotName, FilesToBeCached );
 				}
 			}
-			
-			if( PDBCache.UsePDBCache() )
-			{
-				// Initialize and add a new PDB Cache entry to the database.
-				CrashInfo->PDBCacheEntry = PDBCache.CreateAndAddPDBCacheEntry( CrashInfo->LabelName, DepotName, SyncedFiles );
-			}
-		}		
+		}
 	}
 	else
 	{
-		UE_LOG( LogCrashDebugHelper, Error, TEXT( "Could not find label '%s'."), *CrashInfo->LabelName );
+		UE_LOG( LogCrashDebugHelper, Error, TEXT( "Could not find label '%s'."), *CrashInfo.LabelName );
 	}
 
 	return true;
@@ -314,9 +341,9 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 /** 
  * Sync a single source file to the requested label
  */
-bool ICrashDebugHelper::SyncSourceFile( FCrashInfo* CrashInfo )
+bool ICrashDebugHelper::SyncSourceFile()
 {
-	if (CrashInfo->LabelName.Len() <= 0)
+	if (CrashInfo.LabelName.Len() <= 0)
 	{
 		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "SyncSourceFile: Invalid Label parameter." ) );
 		return false;
@@ -329,8 +356,8 @@ bool ICrashDebugHelper::SyncSourceFile( FCrashInfo* CrashInfo )
 	}
 
 	// Sync all the dll, exes, and related symbol files
-	FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->SourceFile );
-	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo->LabelName );
+	FString DepotPath = DepotName / CrashInfo.SourceFile;
+	TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( CrashInfo.LabelName );
 	if(Labels.Num() > 0)
 	{
 		TSharedRef<ISourceControlLabel> Label = Labels[0];
@@ -341,7 +368,7 @@ bool ICrashDebugHelper::SyncSourceFile( FCrashInfo* CrashInfo )
 	}
 	else
 	{
-		UE_LOG( LogCrashDebugHelper, Error, TEXT( "Could not find label '%s'."), *CrashInfo->LabelName );
+		UE_LOG( LogCrashDebugHelper, Error, TEXT( "Could not find label '%s'."), *CrashInfo.LabelName );
 	}
 
 	return true;
@@ -376,26 +403,26 @@ bool ICrashDebugHelper::ReadSourceFile( const TCHAR* InFilename, TArray<FString>
 /** 
  * Add adjacent lines of the source file the crash occurred in the crash report
  */
-void ICrashDebugHelper::AddSourceToReport( FCrashInfo* CrashInfo )
+void ICrashDebugHelper::AddSourceToReport()
 {
-	if( CrashInfo->SourceFile.Len() > 0 && CrashInfo->SourceLineNumber != 0 )
+	if( CrashInfo.SourceFile.Len() > 0 && CrashInfo.SourceLineNumber != 0 )
 	{
 		TArray<FString> Lines;
-		FString FullPath = FString( TEXT( "../../../" ) ) + CrashInfo->SourceFile;
+		FString FullPath = FString( TEXT( "../../../" ) ) + CrashInfo.SourceFile;
 		ReadSourceFile( *FullPath, Lines );
 
-		uint64 MinLine = FMath::Clamp( CrashInfo->SourceLineNumber - 15, ( uint64 )1, ( uint64 )Lines.Num() );
-		uint64 MaxLine = FMath::Clamp( CrashInfo->SourceLineNumber + 15, ( uint64 )1, ( uint64 )Lines.Num() );
+		uint64 MinLine = FMath::Clamp( CrashInfo.SourceLineNumber - 15, ( uint64 )1, ( uint64 )Lines.Num() );
+		uint64 MaxLine = FMath::Clamp( CrashInfo.SourceLineNumber + 15, ( uint64 )1, ( uint64 )Lines.Num() );
 
 		for( int32 Line = MinLine; Line < MaxLine; Line++ )
 		{
-			if( Line == CrashInfo->SourceLineNumber - 1 )
+			if( Line == CrashInfo.SourceLineNumber - 1 )
 			{
-				CrashInfo->SourceContext.Add( FString( TEXT( "*****" ) ) + Lines[Line] );
+				CrashInfo.SourceContext.Add( FString( TEXT( "*****" ) ) + Lines[Line] );
 			}
 			else
 			{
-				CrashInfo->SourceContext.Add( FString( TEXT( "     " ) ) + Lines[Line] );
+				CrashInfo.SourceContext.Add( FString( TEXT( "     " ) ) + Lines[Line] );
 			}
 		}
 	}
@@ -404,10 +431,10 @@ void ICrashDebugHelper::AddSourceToReport( FCrashInfo* CrashInfo )
 /** 
  * Add source control annotated adjacent lines of the source file the crash occurred in the crash report
  */
-bool ICrashDebugHelper::AddAnnotatedSourceToReport( FCrashInfo* CrashInfo )
+bool ICrashDebugHelper::AddAnnotatedSourceToReport()
 {
 	// Make sure we have a source file to interrogate
-	if( CrashInfo->SourceFile.Len() > 0 && CrashInfo->SourceLineNumber != 0 )
+	if( CrashInfo.SourceFile.Len() > 0 && CrashInfo.SourceLineNumber != 0 )
 	{
 		// Check source control
 		if( !ISourceControlModule::Get().IsEnabled() )
@@ -416,24 +443,24 @@ bool ICrashDebugHelper::AddAnnotatedSourceToReport( FCrashInfo* CrashInfo )
 		}
 
 		// Ask source control to annotate the file for us
-		FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->SourceFile );
+		FString DepotPath = DepotName / CrashInfo.SourceFile;
 
 		TArray<FAnnotationLine> Lines;
-		SourceControlHelpers::AnnotateFile( ISourceControlModule::Get().GetProvider(), CrashInfo->LabelName, DepotPath, Lines );
+		SourceControlHelpers::AnnotateFile( ISourceControlModule::Get().GetProvider(), CrashInfo.LabelName, DepotPath, Lines );
 
-		uint64 MinLine = FMath::Clamp( CrashInfo->SourceLineNumber - 15, ( uint64 )1, ( uint64 )Lines.Num() );
-		uint64 MaxLine = FMath::Clamp( CrashInfo->SourceLineNumber + 15, ( uint64 )1, ( uint64 )Lines.Num() );
+		uint64 MinLine = FMath::Clamp( CrashInfo.SourceLineNumber - 15, ( uint64 )1, ( uint64 )Lines.Num() );
+		uint64 MaxLine = FMath::Clamp( CrashInfo.SourceLineNumber + 15, ( uint64 )1, ( uint64 )Lines.Num() );
 
 		// Display a source context in the report, and decorate each line with the last editor of the line
 		for( int32 Line = MinLine; Line < MaxLine; Line++ )
 		{			
-			if( Line == CrashInfo->SourceLineNumber )
+			if( Line == CrashInfo.SourceLineNumber )
 			{
-				CrashInfo->SourceContext.Add( FString::Printf( TEXT( "*****%20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
+				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "*****%20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
 			}
 			else
 			{
-				CrashInfo->SourceContext.Add( FString::Printf( TEXT( "     %20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
+				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "     %20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
 			}
 		}
 		return true;
@@ -514,7 +541,7 @@ void FCrashInfo::GenerateReport( const FString& DiagnosticsPath )
 
 		if( Modules.Num() > 0 )
 		{
-			Line = FString::Printf( TEXT( "Application version %d.%d.%d.%d" ), Modules[0].Major, Modules[0].Minor, Modules[0].Build, Modules[0].Revision );
+			Line = FString::Printf( TEXT( "Application version %d.%d.%d" ), Modules[0].Major, Modules[0].Minor, Modules[0].Patch );
 			WriteLine( ReportFile, TCHAR_TO_UTF8( *Line ) );
 		}
 
@@ -576,7 +603,7 @@ void FCrashInfo::GenerateReport( const FString& DiagnosticsPath )
 			FString ModuleName = FPaths::GetBaseFilename( Module.Name, true ) + FPaths::GetExtension( Module.Name, true );
 
 			FString ModuleDetail = FString::Printf( TEXT( "%40s" ), *ModuleName );
-			FString Version = FString::Printf( TEXT( " (%d.%d.%d.%d)" ), Module.Major, Module.Minor, Module.Build, Module.Revision );
+			FString Version = FString::Printf( TEXT( " (%d.%d.%d.%d)" ), Module.Major, Module.Minor, Module.Patch, Module.Revision );
 			ModuleDetail += FString::Printf( TEXT( " %22s" ), *Version );
 			ModuleDetail += FString::Printf( TEXT( " 0x%016x 0x%08x" ), Module.BaseOfImage, Module.SizeOfImage );
 			ModuleDetail += FString::Printf( TEXT( " %s" ), *ModuleDirectory );
@@ -675,7 +702,7 @@ bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromLabel(const FString& In
 
 				// Copy the files to a flat directory.
 				// This will have problems if there are any files named the same!!!!
-				FString LocalStoreFolder = FString::Printf(TEXT("%s/%s/"), *LocalSymbolStore, *InPlatform);
+				FString LocalStoreFolder = LocalSymbolStore / InPlatform;
 				FString CopyFilename = LocalStoreFolder / FPaths::GetCleanFilename(Revision->GetFilename());
 
 //				UE_LOG(LogCrashDebugHelper, Display, TEXT("Copying engine file: %s to %s"), *Filename, *CopyFilename);
@@ -704,7 +731,7 @@ bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromChangelist(int32 InChan
 	// Not really useful as the source indexed pdbs will be tied to labeled builds.
 	// For now, we will not support this
 
-	FString BuildLabel = RetrieveBuildLabel(-1, InChangelistNumber);
+	const FString BuildLabel = RetrieveBuildLabel(InChangelistNumber);
 	if (BuildLabel.Len() > 0)
 	{
 		return SyncRequiredFilesForDebuggingFromLabel(BuildLabel, InPlatform);
@@ -718,21 +745,20 @@ bool ICrashDebugHelper::SyncRequiredFilesForDebuggingFromChangelist(int32 InChan
 /**
  *	Retrieve the build label for the given engine version or changelist number.
  *
- *	@param	InEngineVersion		The engine version to retrieve the label for. If -1, then will use InChangelistNumber
  *	@param	InChangelistNumber	The changelist number to retrieve the label for
  *	@return	FString				The label if successful, empty if it wasn't found or another error
  */
-FString ICrashDebugHelper::RetrieveBuildLabel(int32 InEngineVersion, int32 InChangelistNumber)
+FString ICrashDebugHelper::RetrieveBuildLabel(int32 InChangelistNumber)
 {
 	FString FoundLabelString;
 
-	if ((InEngineVersion < 0) && (InChangelistNumber < 0))
+	if( InChangelistNumber < 0 )
 	{
 		UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: Invalid parameters."));
 		return FoundLabelString;
 	}
 
-	// If we failed to find the label, try to find the label directly in source control by using the pattern supplied via ini
+	// Try to find the label directly in source control by using the pattern supplied via ini
 	if ( FoundLabelString.IsEmpty() && InChangelistNumber >= 0 && !SourceControlBuildLabelPattern.IsEmpty() )
 	{
 		const FString ChangelistString = FString::Printf(TEXT("%d"), InChangelistNumber);
@@ -754,6 +780,64 @@ FString ICrashDebugHelper::RetrieveBuildLabel(int32 InEngineVersion, int32 InCha
 	return FoundLabelString;
 }
 
+void ICrashDebugHelper::RetrieveBuildLabelAndNetworkPath( int32 InChangelistNumber )
+{
+	if( InChangelistNumber < 0 )
+	{
+		UE_LOG( LogCrashDebugHelper, Warning, TEXT( "RetrieveBuildLabelAndNetworkPath: Invalid parameters." ) );
+		CrashInfo.LabelName.Empty();
+		CrashInfo.NetworkPath.Empty();
+	}
+
+	// Try to find the label directly in source control by using the pattern supplied via ini.
+	if( InChangelistNumber >= 0 && !SourceControlBuildLabelPattern.IsEmpty() )
+	{
+		const FString ChangelistString = FString::Printf( TEXT( "%d" ), InChangelistNumber );
+		const FString TestLabelWithCL = SourceControlBuildLabelPattern.Replace( TEXT( "%CHANGELISTNUMBER%" ), *ChangelistString, ESearchCase::CaseSensitive );
+		TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( TestLabelWithCL );
+		if( Labels.Num() > 0 )
+		{
+			// If we found more than one label, warn about it and just use the first one
+			if( Labels.Num() > 1 )
+			{
+				UE_LOG( LogCrashDebugHelper, Warning, TEXT( "RetrieveBuildLabelAndNetworkPath: More than one build label found with pattern '%s' - Using label '%s'" ), *TestLabelWithCL, *Labels[0]->GetName() );
+			}
+
+			CrashInfo.LabelName = Labels[0]->GetName();
+			UE_LOG( LogCrashDebugHelper, Log, TEXT( "RetrieveBuildLabelAndNetworkPath: Found label '%s' matching pattern '%s' in source control." ), *CrashInfo.LabelName, *TestLabelWithCL );
+		}
+	}
+	else
+	{
+		CrashInfo.LabelName.Empty();
+	}
+
+	// Try to find the network path by using the pattern supplied via ini.
+	// If this step successes, we will grab the executable from the network path instead of P4.
+	// At this moment we only care about UE4 releases.
+	const bool bCanUseNetworkPath = DepotName.Contains( TEXT( "UE4-Releases" ) );
+	if( bCanUseNetworkPath && InChangelistNumber >= 0 && !ExecutablePathPattern.IsEmpty() )
+	{
+		const FString TestNetworkPath = ExecutablePathPattern.Replace( TEXT( "%PRODUCT_VERSION%" ), *CrashInfo.ProductVersion );
+		const bool bIsValidPath = IFileManager::Get().DirectoryExists( *TestNetworkPath );
+
+		if( bIsValidPath )
+		{
+			CrashInfo.NetworkPath = TestNetworkPath;
+			UE_LOG( LogCrashDebugHelper, Log, TEXT( "RetrieveBuildLabelAndNetworkPath: Found network path '%s'." ), *CrashInfo.NetworkPath );
+		}
+		else
+		{
+			CrashInfo.NetworkPath.Empty();
+			UE_LOG( LogCrashDebugHelper, Log, TEXT( "RetrieveBuildLabelAndNetworkPath: Network path '%s' not found." ), *TestNetworkPath );
+		}
+	}
+	else
+	{
+		CrashInfo.NetworkPath.Empty();
+	}
+}
+
 /*-----------------------------------------------------------------------------
 	PDB Cache implementation
 -----------------------------------------------------------------------------*/
@@ -764,14 +848,14 @@ void FPDBCache::Init()
 {
 	// PDB Cache
 	// Default configuration
-	// PDBCachePath=U:/CrashReport/PDBCache
+	// PDBCachePath=F:/CrashReportPDBCache
 	// DaysToDeleteUnusedFilesFromPDBCache=14
 	// PDBCacheSizeGB=128
 	// MinFreeSizeGB=64
-	// bUsePDBCache=true
 
-	// Look up whether we want to use the PDB cache.
-	GConfig->GetBool( TEXT( "Engine.CrashDebugHelper" ), TEXT( "bUsePDBCache" ), bUsePDBCache, GEngineIni );
+	// Can be enabled only through the command line.
+	FParse::Bool( FCommandLine::Get(), TEXT( "bUsePDBCache=" ), bUsePDBCache );
+
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "bUsePDBCache is %s" ), bUsePDBCache ? TEXT( "enabled" ) : TEXT( "disabled" ) );
 
 	// Get the rest of the PDB cache configuration.
@@ -852,10 +936,10 @@ void FPDBCache::InitializePDBCache()
 	TArray<FString> PDBCacheEntryDirectories;
 	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *PDBCachePath, false, true );
 
-	for( const auto& DirPath : PDBCacheEntryDirectories )
+	for( const auto& Directory : PDBCacheEntryDirectories )
 	{
-		FPDBCacheEntryRef Entry = ReadPDBCacheEntry( DirPath );
-		PDBCacheEntries.Add( DirPath, Entry );
+		FPDBCacheEntryRef Entry = ReadPDBCacheEntry( Directory );
+		PDBCacheEntries.Add( Directory, Entry );
 	}
 
 	SortPDBCache();
@@ -879,13 +963,13 @@ void FPDBCache::CleanPDBCache( int32 DaysToDelete, int32 NumberOfGBsToBeCleaned 
 	for( const auto& It : PDBCacheEntries )
 	{
 		const FPDBCacheEntryRef& Entry = It.Value;
-		const FString EntryDirectory = PDBCachePath / Entry->Label;
+		const FString EntryDirectory = PDBCachePath / Entry->Directory;
 		const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
 		const double EntryFileAge = IFileManager::Get().GetFileAgeSeconds( *EntryTimeStampFilename );
 		if( EntryFileAge > DaysToDeleteAsSeconds )
 		{
-			EntriesToBeRemoved.Add( Entry->Label );
+			EntriesToBeRemoved.Add( Entry->Directory );
 			NumGBsCleaned += Entry->SizeGB;
 		}
 	}
@@ -897,9 +981,9 @@ void FPDBCache::CleanPDBCache( int32 DaysToDelete, int32 NumberOfGBsToBeCleaned 
 		{
 			const FPDBCacheEntryRef& Entry = It.Value;
 
-			if( !EntriesToBeRemoved.Contains(Entry->Label) )
+			if( !EntriesToBeRemoved.Contains( Entry->Directory ) )
 			{
-				EntriesToBeRemoved.Add( Entry->Label );
+				EntriesToBeRemoved.Add( Entry->Directory );
 				NumGBsCleaned += Entry->SizeGB;
 
 				if( NumGBsCleaned > NumberOfGBsToBeCleaned )
@@ -912,36 +996,32 @@ void FPDBCache::CleanPDBCache( int32 DaysToDelete, int32 NumberOfGBsToBeCleaned 
 	}
 
 	// Remove all marked PDB Cache entries.
-	for( const auto& EntryLabel : EntriesToBeRemoved )
+	for( const auto& EntryDirectory : EntriesToBeRemoved )
 	{
-		RemovePDBCacheEntry( EntryLabel );
+		RemovePDBCacheEntry( EntryDirectory );
 	}
 
 	const double TotalTime = FPlatformTime::Seconds() - StartTime;
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDB Cache cleaned in %.2f ms" ), TotalTime*1000.0f );
 }
 
-FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& SyncedFiles )
+FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotRoot, const FString& DepotName, const TArray<FString>& FilesToBeCached )
 {
-	const FString CleanedLabelName = CleanLabelName( OriginalLabelName );
+	const FString CleanedLabelName = EscapePath( OriginalLabelName );
 	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	// Verify there is a entry timestamp file.
+	// Verify there is an entry timestamp file.
 	const bool bSaved = FFileHelper::SaveStringToFile( EntryTimeStampFilename, *EntryTimeStampFilename );
 	UE_CLOG( !bSaved, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
 	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
 
-#if	DO_LOCAL_TESTING
-	const FString RootDir = FString( TEXT( "U:/P4EPIC" ) ) / DepotName.Replace( TEXT( "//depot/" ), TEXT( "" ) );
-#else
-	const FString RootDir = FPaths::RootDir();
-#endif // DO_LOCAL_TESTING
+	const FString LocalDepotDir = DepotRoot / DepotName.Replace( P4_DEPOT_PREFIX, TEXT( "" ) );
 
-	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry %s is being copied from %s, it will take some time" ), *CleanedLabelName, *OriginalLabelName );
-	for( const auto& Filename : SyncedFiles )
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry '%s' is being copied from '%s', it will take some time" ), *CleanedLabelName, *OriginalLabelName );
+	for( const auto& Filename : FilesToBeCached )
 	{
-		const FString SourceDirectoryWithSearch = Filename.Replace( *DepotName, *RootDir );
+		const FString SourceDirectoryWithSearch = Filename.Replace( *DepotName, *LocalDepotDir );
 
 		TArray<FString> MatchedFiles;
 		IFileManager::Get().FindFiles( MatchedFiles, *SourceDirectoryWithSearch, true, false );
@@ -949,7 +1029,7 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 		for( const auto& MatchedFilename : MatchedFiles )
 		{
 			const FString SrcFilename = FPaths::GetPath( SourceDirectoryWithSearch ) / MatchedFilename;
-			const FString DestFilename = EntryDirectory / SrcFilename.Replace( *RootDir, TEXT("") );
+			const FString DestFilename = EntryDirectory / SrcFilename.Replace( *LocalDepotDir, TEXT("") );
 			IFileManager::Get().Copy( *DestFilename, *SrcFilename );
 		}
 	}
@@ -979,12 +1059,55 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	return NewCacheEntry;
 }
 
-FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& InLabel )
+FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& ProductVersion, const TMap<FString, FString>& FilesToBeCached )
 {
-	const FString EntryDirectory = PDBCachePath / InLabel;
+	// Enable MDD to parse all minidumps regardless the branch, to fix the issue with the missing executables on the P4 due to the build system changes.
+	const FString EntryDirectory = PDBCachePath / ProductVersion;
+	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
+ 
+	// Verify there is an entry timestamp file.
+	const bool bSaved = FFileHelper::SaveStringToFile( EntryTimeStampFilename, *EntryTimeStampFilename );
+	UE_CLOG( !bSaved, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
+	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
+ 
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry '%s' is being created from %i files, it will take some time" ), *ProductVersion, FilesToBeCached.Num() );
+	for( const auto& It : FilesToBeCached )
+	{
+		const FString& SrcFilename = It.Key;
+		const FString DestFilename = EntryDirectory / It.Value;
+		IFileManager::Get().Copy( *DestFilename, *SrcFilename );
+	}
+
+	TArray<FString> CachedFiles;
+	IFileManager::Get().FindFilesRecursive( CachedFiles, *EntryDirectory, TEXT( "*.*" ), true, false );
+ 
+	// Calculate the size of this PDB Cache entry.
+	int64 TotalSize = 0;
+	for( const auto& Filename : CachedFiles )
+	{
+		const int64 FileSize = IFileManager::Get().FileSize( *Filename );
+		TotalSize += FileSize;
+	}
+ 
+	// Round-up the size.
+	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+ 
+	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( ProductVersion, SizeGB ) );
+	NewCacheEntry->LastAccessTime = LastAccessTime;
+	NewCacheEntry->Files = CachedFiles;
+ 
+	PDBCacheEntries.Add( ProductVersion, NewCacheEntry );
+	SortPDBCache();
+	
+	return NewCacheEntry;
+}
+
+FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
+{
+	const FString EntryDirectory = PDBCachePath / Directory;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	// Verify there is a entry timestamp file.
+	// Verify there is an entry timestamp file.
 	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
 
 	TArray<FString> PDBFiles;
@@ -1001,37 +1124,43 @@ FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& InLabel )
 	// Round-up the size.
 	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
 
-	FPDBCacheEntryRef NewEntry = MakeShareable( new FPDBCacheEntry( InLabel, SizeGB ) );
+	FPDBCacheEntryRef NewEntry = MakeShareable( new FPDBCacheEntry( Directory, SizeGB ) );
 	NewEntry->LastAccessTime = LastAccessTime;
 	NewEntry->Files = PDBFiles;
 	return NewEntry;
 }
 
-void FPDBCache::TouchPDBCacheEntry( const FString& InLabel )
+void FPDBCache::TouchPDBCacheEntry( const FString& Directory )
 {
-	const FString CleanedLabelName = CleanLabelName( InLabel );
-	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
+	const FString EntryDirectory = PDBCachePath / Directory;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	FPDBCacheEntryRef Entry = PDBCacheEntries.FindChecked( CleanedLabelName );
+	FPDBCacheEntryRef Entry = PDBCacheEntries.FindChecked( Directory );
 	Entry->SetLastAccessTimeToNow();
 
 	const bool bResult = IFileManager::Get().SetTimeStamp( *EntryTimeStampFilename, Entry->LastAccessTime );
 	SortPDBCache();
 }
 
-void FPDBCache::RemovePDBCacheEntry( const FString& InLabel )
+void FPDBCache::RemovePDBCacheEntry( const FString& Directory )
 {
 	const double StartTime = FPlatformTime::Seconds();
 
-	const FString EntryDirectory = PDBCachePath / InLabel;
+	const FString EntryDirectory = PDBCachePath / Directory;
 
-	FPDBCacheEntryRef& Entry = PDBCacheEntries.FindChecked( InLabel );
+	FPDBCacheEntryRef& Entry = PDBCacheEntries.FindChecked( Directory );
 	IFileManager::Get().DeleteDirectory( *EntryDirectory, true, true );
-	PDBCacheEntries.Remove( InLabel );
+	PDBCacheEntries.Remove( Directory );
 
 	const double TotalTime = FPlatformTime::Seconds() - StartTime;
-	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry %s removed in %.2f ms, restored %i GBs" ), *InLabel, TotalTime*1000.0f, Entry->SizeGB );
+	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry %s removed in %.2f ms, restored %i GBs" ), *Directory, TotalTime*1000.0f, Entry->SizeGB );
+}
+
+FPDBCacheEntryRef FPDBCache::FindAndTouchPDBCacheEntry( const FString& PathOrLabel )
+{
+	FPDBCacheEntryRef CacheEntry = PDBCacheEntries.FindChecked( EscapePath( PathOrLabel ) );
+	TouchPDBCacheEntry( CacheEntry->Directory );
+	return CacheEntry;
 }
 
 

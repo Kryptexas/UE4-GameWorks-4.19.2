@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
-#include "Database.h"
-
+#include "EngineVersion.h"
 #include "Windows/WindowsPlatformStackWalkExt.h"
 #include "ISourceControlModule.h"
 
@@ -20,54 +19,51 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 		InitSourceControl(false);
 	}
 
-	FWindowsPlatformStackWalkExt::InitStackWalking();
+	FWindowsPlatformStackWalkExt WindowsStackWalkExt( CrashInfo );
+
+	const bool bReady = WindowsStackWalkExt.InitStackWalking();
 
 	bool bAtLeastOneFunctionNameFoundInCallstack = false;
-	if( FWindowsPlatformStackWalkExt::OpenDumpFile( &CrashInfo, InCrashDumpFilename ) )
+	if( bReady && WindowsStackWalkExt.OpenDumpFile( InCrashDumpFilename ) )
 	{
-		// Get a list of modules, and the version of the executable
-		FWindowsPlatformStackWalkExt::GetModuleList( &CrashInfo );
-
-		// If a BuiltFromCL was specified, use that instead of the one parsed from the executable
-		if (BuiltFromCL > 0)
+		if( CrashInfo.ChangelistBuiltFrom != FCrashInfo::INVALID_CHANGELIST )
 		{
-			CrashInfo.ChangelistBuiltFrom = BuiltFromCL;
-		}
+			// Get the build version from the crash info.
+			FCrashModuleInfo ExeFileVersion;
+			WindowsStackWalkExt.GetExeFileVersionAndModuleList( ExeFileVersion );
 
-		if( CrashInfo.ChangelistBuiltFrom != -1 )
-		{
+			// @see AutomationTool.CommandUtils.EscapePath 
+			const FString CleanedDepotName = CrashInfo.DepotName.Replace( TEXT( ":" ), TEXT( "" ) ).Replace( TEXT( "/" ), TEXT( "+" ) ).Replace( TEXT( "\\" ), TEXT( "+" ) ).Replace( TEXT( " " ), TEXT( "+" ) );
+			const FEngineVersion EngineVersion( ExeFileVersion.Major, ExeFileVersion.Minor, ExeFileVersion.Patch, CrashInfo.ChangelistBuiltFrom, CleanedDepotName );
+			CrashInfo.ProductVersion = EngineVersion.ToString();
+
 			// CrashInfo now contains a changelist to lookup a label for
 			if( bSyncSymbols )
 			{
-				CrashInfo.LabelName = RetrieveBuildLabel( -1, CrashInfo.ChangelistBuiltFrom );
-				if( CrashInfo.LabelName.Len() > 0 )
-				{
-					// Sync all the modules, and their associated pdbs
-					CrashInfo.Log( FString::Printf( TEXT( " ... found label '%s'; syncing all modules to this label" ), *CrashInfo.LabelName ) );
-					SyncModules( &CrashInfo );
-				}
+				RetrieveBuildLabelAndNetworkPath( CrashInfo.ChangelistBuiltFrom );
+				SyncModules();
 			}
 
 			// Initialise the symbol options
-			FWindowsPlatformStackWalkExt::InitSymbols( &CrashInfo );
+			WindowsStackWalkExt.InitSymbols();
 
 			// Set the symbol path based on the loaded modules
-			FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules( &CrashInfo );
+			WindowsStackWalkExt.SetSymbolPathsFromModules();
 
 			// Get all the info we should ever need about the modules
-			FWindowsPlatformStackWalkExt::GetModuleInfoDetailed( &CrashInfo );
+			WindowsStackWalkExt.GetModuleInfoDetailed();
 
 			// Get info about the system that created the minidump
-			FWindowsPlatformStackWalkExt::GetSystemInfo( &CrashInfo );
+			WindowsStackWalkExt.GetSystemInfo();
 
 			// Get all the thread info
-			FWindowsPlatformStackWalkExt::GetThreadInfo( &CrashInfo );
+			WindowsStackWalkExt.GetThreadInfo();
 
 			// Get exception info
-			FWindowsPlatformStackWalkExt::GetExceptionInfo( &CrashInfo );
+			WindowsStackWalkExt.GetExceptionInfo();
 
 			// Get the callstacks for each thread
-			bAtLeastOneFunctionNameFoundInCallstack = FWindowsPlatformStackWalkExt::GetCallstacks(&CrashInfo);
+			bAtLeastOneFunctionNameFoundInCallstack = WindowsStackWalkExt.GetCallstacks();
 
 			// Sync the source file where the crash occurred
 			if( CrashInfo.SourceFile.Len() > 0 )
@@ -75,20 +71,20 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 				if( bSyncSymbols )
 				{
 					CrashInfo.Log( FString::Printf( TEXT( " ... using label '%s' to sync crash source file" ), *CrashInfo.LabelName ) );
-					SyncSourceFile( &CrashInfo );
+					SyncSourceFile();
 				}
 
 				// Try to annotate the file if requested
 				bool bAnnotationSuccessful = false;
 				if( bAnnotate )
 				{
-					bAnnotationSuccessful = AddAnnotatedSourceToReport( &CrashInfo );
+					bAnnotationSuccessful = AddAnnotatedSourceToReport();
 				}
 				
 				// If annotation is not requested, or failed, add the standard source context
 				if( !bAnnotationSuccessful )
 				{
-					AddSourceToReport( &CrashInfo );
+					AddSourceToReport();
 				}
 			}
 		}
@@ -101,8 +97,6 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 	{
 		CrashInfo.Log( FString::Printf( TEXT( "CreateMinidumpDiagnosticReport: Failed to open crash dump file: %s" ), *InCrashDumpFilename ) );
 	}
-
-	FWindowsPlatformStackWalkExt::ShutdownStackWalking();
 
 	if( bUseSCC )
 	{

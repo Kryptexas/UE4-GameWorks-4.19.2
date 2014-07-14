@@ -1,32 +1,42 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#ifndef __WindowsPlatformStackWalkExt_h__
-#define __WindowsPlatformStackWalkExt_h__
 #pragma once
 
 #undef PLATFORM_SUPPORTS_STACK_SYMBOLS
 #define PLATFORM_SUPPORTS_STACK_SYMBOLS 1
 
+class FCrashInfo;
+class FCrashModuleInfo;
+
 /**
- * Windows implementation of stackwalking
- **/
-struct CORE_API FWindowsPlatformStackWalkExt : public FGenericPlatformStackWalk
+ *	Windows implementation of stack walking using the COM interface IDebugClient5. 
+ */
+struct FWindowsPlatformStackWalkExt
 {
-	static bool InitStackWalking();
-	static void ShutdownStackWalking();
+	/** Default constructor. */
+	FWindowsPlatformStackWalkExt( FCrashInfo& InCrashInfo );
 
-	static void InitSymbols( class FCrashInfo* CrashInfo );
-	static bool OpenDumpFile( FCrashInfo* CrashInfo, const FString& DumpFileName );
-	static void GetModuleList( FCrashInfo* CrashInfo );
-	static void SetSymbolPathsFromModules( FCrashInfo* CrashInfo );
-	static void GetModuleInfoDetailed( FCrashInfo* CrashInfo );
-	static void GetSystemInfo( FCrashInfo* CrashInfo );
-	static void GetThreadInfo( FCrashInfo* CrashInfo );
-	static void GetExceptionInfo( FCrashInfo* CrashInfo );
-	static bool GetCallstacks( FCrashInfo* CrashInfo );
+	/** Destructor. */
+	~FWindowsPlatformStackWalkExt();
 
-	static bool IsOffsetWithinModules( FCrashInfo* CrashInfo, uint64 Offset );
+	bool InitStackWalking();
+	void ShutdownStackWalking();
+
+	void GetExeFileVersionAndModuleList( FCrashModuleInfo& out_ExeFileVersion );
+	void InitSymbols();
+	bool OpenDumpFile( const FString& DumpFileName );
+	void SetSymbolPathsFromModules();
+	void GetModuleInfoDetailed();
+	void GetSystemInfo();
+	void GetThreadInfo();
+	void GetExceptionInfo();
+	bool GetCallstacks();
+
+	bool IsOffsetWithinModules( uint64 Offset );
+
 	static FString ExtractRelativePath( const TCHAR* BaseName, TCHAR* FullName );
-};
 
-#endif
+protected:
+	/** Reference to the crash info. */
+	FCrashInfo& CrashInfo;
+};
