@@ -32,6 +32,15 @@ private:
 	/** Gets the currently selected parent class name */
 	FString GetSelectedParentClassName() const;
 
+	/** Gets the currently selected parent class's filename */
+	FString GetSelectedParentClassFilename() const;
+
+	/** Whether the hyper link to go to source should be visible */
+	EVisibility GetSourceHyperlinkVisibility() const;
+
+	/** Handler for when the seleted parent class's filename is clicked */
+	void OnEditCodeClicked();
+
 	/** Handler for when a parent class item is double clicked */
 	void OnParentClassItemDoubleClicked( TSharedPtr<FParentClassItem> TemplateItem );
 
