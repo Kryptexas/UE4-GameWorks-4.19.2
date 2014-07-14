@@ -480,8 +480,8 @@ void ULevel::SortActorList()
 	TArray<AActor*> NewActors;
 	NewActors.Reserve(Actors.Num());
 
-	// The world info and default brush have fixed actor indices.
-	NewActors.Add(Actors[StartIndex++]);
+	// The WorldSettings has fixed actor index.
+	check(Actors.Num() && Actors[StartIndex] == GetWorldSettings());
 	NewActors.Add(Actors[StartIndex++]);
 
 	// Static not net relevant actors.
@@ -1527,7 +1527,7 @@ ABrush* ULevel::GetDefaultBrush() const
 
 AWorldSettings* ULevel::GetWorldSettings() const
 {
-	checkf( Actors.Num() >= 2, *GetPathName() );
+	checkf( Actors.Num() >= 1, *GetPathName() );
 	AWorldSettings* WorldSettings = Cast<AWorldSettings>( Actors[0] );
 	checkf( WorldSettings != NULL, *GetPathName() );
 	return WorldSettings;
