@@ -32,8 +32,9 @@ struct FCommonEditorCategory
 		Rendering,
 		Transformation,
 		Utilities,
+		FlowControl,
 
-		// Type categories:
+		// Type library categories:
 		String,
 		Text,
 		Name,

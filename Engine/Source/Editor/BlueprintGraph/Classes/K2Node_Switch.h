@@ -35,6 +35,7 @@ class UK2Node_Switch : public UK2Node
 	// UK2Node interface
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual FText GetMenuCategory() const override;
 	// End of UK2Node interface
 
 	// UK2Node_Switch interface

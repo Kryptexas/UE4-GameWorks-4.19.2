@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "K2Node_SwitchEnum.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -59,6 +60,41 @@ FText UK2Node_SwitchEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 FString UK2Node_SwitchEnum::GetTooltip() const
 {
 	return NSLOCTEXT("K2Node", "SwitchEnum_ToolTip", "Selects an output that matches the input value").ToString();
+}
+
+void UK2Node_SwitchEnum::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
+	{
+		UEnum const* Enum = (*EnumIt);
+		// we only want to add global "standalone" enums here; those belonging to a 
+		// certain class should instead be associated with that class (so when 
+		// the class is modified we can easily handle any enums that were changed).
+		//
+		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
+		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
+
+		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		{
+			continue;
+		}
+
+		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		{
+			UK2Node_SwitchEnum* EnumNode = CastChecked<UK2Node_SwitchEnum>(NewNode);
+			if (EnumPtr.IsValid())
+			{
+				EnumNode->SetEnum(EnumPtr.Get());
+			}
+		};
+
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+		ActionListOut.Add(NodeSpawner);
+
+		TWeakObjectPtr<UEnum> EnumPtr = Enum;
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+	}
 }
 
 void UK2Node_SwitchEnum::CreateSelectionPin()

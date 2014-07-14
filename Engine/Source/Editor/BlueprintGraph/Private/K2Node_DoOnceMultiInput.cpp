@@ -6,7 +6,8 @@
 #include "ScopedTransaction.h"
 #include "K2ActionMenuBuilder.h"
 #include "KismetCompiler.h"
-
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -372,6 +373,19 @@ void UK2Node_DoOnceMultiInput::ExpandNode(FKismetCompilerContext& CompilerContex
 		// Break all links to the Select node so it goes away for at scheduling time
 		BreakAllNodeLinks();
 	}
+}
+
+void UK2Node_DoOnceMultiInput::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+	
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_DoOnceMultiInput::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::FlowControl);
 }
 
 #undef LOCTEXT_NAMESPACE

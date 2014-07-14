@@ -2,6 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "BlueprintNodeSpawner.h"
 
 UK2Node_SwitchInteger::UK2Node_SwitchInteger(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -20,6 +21,14 @@ FText UK2Node_SwitchInteger::GetNodeTitle(ENodeTitleType::Type TitleType) const
 FString UK2Node_SwitchInteger::GetTooltip() const
 {
 	return NSLOCTEXT("K2Node", "SwitchInt_ToolTip", "Selects an output that matches the input value").ToString();
+}
+
+void UK2Node_SwitchInteger::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
 }
 
 void UK2Node_SwitchInteger::CreateSelectionPin()

@@ -6,6 +6,8 @@
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_MultiGate.h"
+#include "BlueprintNodeSpawner.h"
+
 #define LOCTEXT_NAMESPACE "K2Node_MultiGate"
 
 //////////////////////////////////////////////////////////////////////////
@@ -652,6 +654,14 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 			CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
 		}
 	}
+}
+
+void UK2Node_MultiGate::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
 }
 
 #undef LOCTEXT_NAMESPACE

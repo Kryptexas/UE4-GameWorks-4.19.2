@@ -52,7 +52,7 @@ static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
 		FEditorCategoryUtils::RegisterCategoryKey(ENUM_STRING(EnumVal), LOCTEXT(#EnumVal L"Category", Text))
 #define REGISTER_ROOT_CATEGORY(EnumVal) ASSIGN_ROOT_CATEGORY(EnumVal, #EnumVal)
 
-		REGISTER_ROOT_CATEGORY(Ai);
+		ASSIGN_ROOT_CATEGORY(Ai, "AI");
 		REGISTER_ROOT_CATEGORY(Animation);
 		REGISTER_ROOT_CATEGORY(Audio);
 		REGISTER_ROOT_CATEGORY(Development);
@@ -73,6 +73,7 @@ static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
 		FText EnumVal##_Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::RootId, LOCTEXT(#EnumVal L"Category", #EnumVal)); \
 		FEditorCategoryUtils::RegisterCategoryKey(ENUM_STRING(EnumVal), EnumVal##_Category)
 
+		REGISTER_SUB_CATEGORY(Utilities, FlowControl);
 		REGISTER_SUB_CATEGORY(Utilities, Transformation);
 		REGISTER_SUB_CATEGORY(Utilities, String);
 		REGISTER_SUB_CATEGORY(Utilities, Text);
@@ -130,6 +131,7 @@ FText const& FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::EVal
 		REGISTER_COMMON_CATEGORY(Rendering);
 		REGISTER_COMMON_CATEGORY(Utilities);
 
+		REGISTER_COMMON_CATEGORY(FlowControl);
 		REGISTER_COMMON_CATEGORY(Transformation);
 		REGISTER_COMMON_CATEGORY(String);
 		REGISTER_COMMON_CATEGORY(Text);

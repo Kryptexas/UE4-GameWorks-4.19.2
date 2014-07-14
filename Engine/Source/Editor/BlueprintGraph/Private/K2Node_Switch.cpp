@@ -5,6 +5,7 @@
 #include "KismetCompiler.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "K2Node_SwitchEnum.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Switch"
 
@@ -323,6 +324,11 @@ UEdGraphPin* UK2Node_Switch::GetDefaultPin()
 FNodeHandlingFunctor* UK2Node_Switch::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_Switch(CompilerContext, GetPinType(CompilerContext.GetSchema()));
+}
+
+FText UK2Node_Switch::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::FlowControl, LOCTEXT("ActionMenuCategory", "Switch"));
 }
 
 #undef LOCTEXT_NAMESPACE
