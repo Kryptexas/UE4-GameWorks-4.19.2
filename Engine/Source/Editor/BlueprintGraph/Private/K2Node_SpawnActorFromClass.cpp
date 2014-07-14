@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 struct FK2Node_SpawnActorFromClassHelper
 {
@@ -260,25 +262,30 @@ FLinearColor UK2Node_SpawnActorFromClass::GetNodeTitleColor() const
 
 FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UEdGraphPin* ClassPin = GetClassPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(ClassPin != NULL)
+	FText NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_BaseTitle", "Spawn Actor from Class");
+	if (TitleType != ENodeTitleType::ListView)
 	{
-		if(ClassPin->LinkedTo.Num() > 0)
+		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+		if (UEdGraphPin* ClassPin = GetClassPin())
 		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = FText::GetEmpty();
+			if(ClassPin->LinkedTo.Num() > 0)
+			{
+				// Blueprint will be determined dynamically, so we don't have the name in this case
+				SpawnString = FText::GetEmpty();
+			}
+			else if(ClassPin->DefaultObject != NULL)
+			{
+				SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
+			}
 		}
-		else if(ClassPin->DefaultObject != NULL)
-		{
-			SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
-		}
+		
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ClassName"), SpawnString);
+		
+		NodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ClassName"), SpawnString);
-	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+	return NodeTitle;
 }
 
 bool UK2Node_SpawnActorFromClass::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
@@ -295,6 +302,19 @@ void UK2Node_SpawnActorFromClass::GetNodeAttributes( TArray<TKeyValuePair<FStrin
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ActorClass" ), ClassToSpawnStr ));
+}
+
+void UK2Node_SpawnActorFromClass::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_SpawnActorFromClass::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Gameplay);
 }
 
 void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

@@ -2281,6 +2281,15 @@ void UK2Node_MathExpression::GetMenuEntries(FGraphContextMenuBuilder& ContextMen
 }
 
 //------------------------------------------------------------------------------
+void UK2Node_MathExpression::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+	
+	ActionListOut.Add(NodeSpawner);
+}
+
+//------------------------------------------------------------------------------
 TSharedPtr<class INameValidatorInterface> UK2Node_MathExpression::MakeNameValidator() const
 {
 	// we'll let our parser mark the node for errors after the face (once the 
@@ -2410,7 +2419,7 @@ void UK2Node_MathExpression::ValidateNodeDuringCompilation(FCompilerResultsLog& 
 //------------------------------------------------------------------------------
 FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString Result = Expression;
+	FText Result = FText::FromString(Expression);
 	if (Expression.IsEmpty())
 	{
 		//Result = LOCTEXT("NoExpressionTitle", "[Empty]").ToString();
@@ -2418,9 +2427,13 @@ FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	
 	if (TitleType == ENodeTitleType::FullTitle)
 	{
-		Result = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), FText::FromString(Result)).ToString();
+		Result = FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), Result);
 	}
-	return FText::FromString(Result);
+	else if ((TitleType == ENodeTitleType::ListView) && Expression.IsEmpty())
+	{
+		Result = LOCTEXT("AddMathExprMenuOption", "Add Math Expression...");
+	}
+	return Result;
 }
 
 //------------------------------------------------------------------------------

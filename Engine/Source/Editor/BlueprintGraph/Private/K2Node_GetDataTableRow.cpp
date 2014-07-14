@@ -4,6 +4,7 @@
 #include "KismetCompiler.h"
 //#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Kismet/DataTableFunctionLibrary.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetDataTableRow"
 
@@ -102,6 +103,19 @@ void UK2Node_GetDataTableRow::ReallocatePinsDuringReconstruction(TArray<UEdGraph
 	{
 		SetReturnTypeForStruct(RowStruct);
 	}
+}
+
+void UK2Node_GetDataTableRow::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_GetDataTableRow::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Utilities);
 }
 
 bool UK2Node_GetDataTableRow::IsDataTablePin(UEdGraphPin* Pin)
@@ -215,7 +229,7 @@ FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 	UEdGraphPin* DataTablePin = GetDataTablePin();
 
 	FText DataTableString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(DataTablePin != NULL)
+	if (DataTablePin != NULL)
 	{
 		if(DataTablePin->LinkedTo.Num() > 0)
 		{
@@ -228,9 +242,16 @@ FText UK2Node_GetDataTableRow::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 		}
 	}
 
+	FText LocFormat = NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		LocFormat = LOCTEXT("ListViewTitle", "Get Data Table Row");
+	}
+
+
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("DataTableName"), DataTableString);
-	return FText::Format(NSLOCTEXT("K2Node", "DataTable", "Get Data Table Row {DataTableName}"), Args);
+	return FText::Format(LocFormat, Args);
 }
 
 void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

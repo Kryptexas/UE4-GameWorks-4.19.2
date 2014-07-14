@@ -4,6 +4,10 @@
 #include "KismetCompiler.h"
 #include "GameplayTags.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "GameplayTagsK2Node_LiteralGameplayTag"
 
 UGameplayTagsK2Node_LiteralGameplayTag::UGameplayTagsK2Node_LiteralGameplayTag(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -143,3 +147,18 @@ void UGameplayTagsK2Node_LiteralGameplayTag::ExpandNode(class FKismetCompilerCon
 		BreakAllNodeLinks();
 	}
 }
+
+void UGameplayTagsK2Node_LiteralGameplayTag::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+	
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UGameplayTagsK2Node_LiteralGameplayTag::GetMenuCategory() const
+{
+	return LOCTEXT("ActionMenuCategory", "Gameplay Tags");
+}
+
+#undef LOCTEXT_NAMESPACE

@@ -4,9 +4,10 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "Kismet2NameValidators.h"
-
 #include "KismetCompiler.h"
 #include "ScopedTransaction.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FormatText"
 
@@ -361,6 +362,19 @@ UEdGraphPin* UK2Node_FormatText::GetFormatPin() const
 		const_cast<UK2Node_FormatText*>(this)->CachedFormatPin = FindPinChecked(FFormatTextNodeHelper::GetFormatPinName());
 	}
 	return CachedFormatPin;
+}
+
+void UK2Node_FormatText::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_FormatText::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Text);
 }
 
 #undef LOCTEXT_NAMESPACE

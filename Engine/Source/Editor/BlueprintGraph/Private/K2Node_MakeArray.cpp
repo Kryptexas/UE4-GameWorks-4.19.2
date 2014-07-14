@@ -6,8 +6,9 @@
 #include "Slate.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetArrayLibrary.h"
 #include "ScopedTransaction.h"
-
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 static const FString OutputPinName = FString(TEXT("Array"));
 
@@ -400,6 +401,19 @@ bool UK2Node_MakeArray::IsConnectionDisallowed(const UEdGraphPin* MyPin, const U
 	}
 
 	return false;
+}
+
+void UK2Node_MakeArray::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_MakeArray::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Array"));
 }
 
 #undef LOCTEXT_NAMESPACE

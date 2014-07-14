@@ -7,19 +7,16 @@
 #include "K2ActionMenuBuilder.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionMenuBuilder.h" // for AddEventCategory
 
-#define LOCTEXT_NAMESPACE "K2Node_PlayMontageAndWait"
+#define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
 UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	EventSignatureName = GAMEPLAYABILITIES_BlueprintCustomHandler;
 	EventSignatureClass = UGameplayCueInterface::StaticClass();
-}
-
-FString UK2Node_GameplayCueEvent::GetCategoryName()
-{
-	return TEXT("GameplayCueEvent");
 }
 
 FString UK2Node_GameplayCueEvent::GetTooltip() const
@@ -47,7 +44,7 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 		}
 	}
 
-	if (!bValidClass)
+	if (!bValidClass) 
 	{
 		return;
 	}
@@ -83,6 +80,34 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(Context, Category, MenuDesc, Tooltip, 0, Keywords);
 		NodeAction->NodeTemplate = NodeTemplate;
 	}	
+}
+
+void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	auto CustomizeCueNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName TagName)
+	{
+		UK2Node_GameplayCueEvent* EventNode = CastChecked<UK2Node_GameplayCueEvent>(NewNode);
+		EventNode->CustomFunctionName = TagName;
+	};
+	
+	IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+	FGameplayTag RootTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(TEXT("GameplayCue")));
+	
+	FGameplayTagContainer CueTags = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTagChildren(RootTag);
+	for (auto TagIt = CueTags.CreateConstIterator(); TagIt; ++TagIt)
+	{
+		UBlueprintNodeSpawner::FCustomizeNodeDelegate PostSpawnDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeCueNodeLambda, TagIt->GetTagName());
+		
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass(), PostSpawnDelegate);
+		check(NodeSpawner != nullptr);
+		
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_GameplayCueEvent::GetMenuCategory() const
+{
+	return FText::Format(LOCTEXT("ActionMenuCategory", "{0}|GameplayCue"), FBlueprintActionMenuBuilder::AddEventCategory);
 }
 
 #undef LOCTEXT_NAMESPACE

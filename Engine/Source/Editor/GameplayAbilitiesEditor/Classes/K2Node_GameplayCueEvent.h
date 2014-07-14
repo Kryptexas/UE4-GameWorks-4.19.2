@@ -13,9 +13,11 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 	// Begin UEdGraphNode interface
 	virtual FString GetTooltip() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	// End UEdGraphNode interface
-
-	virtual FString GetCategoryName();
-
 	virtual void GetMenuEntries(struct FGraphContextMenuBuilder& ContextMenuBuilder) const override;
+	// End UEdGraphNode interface
+	
+	// Begin UK2Node interface
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual FText GetMenuCategory() const override;
+	// End UK2Node interface
 };

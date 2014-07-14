@@ -103,7 +103,11 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::EditableTitle || TitleType == ENodeTitleType::ListView)
+	if (CustomFunctionName.IsNone() && (TitleType == ENodeTitleType::ListView))
+	{
+		return LOCTEXT("ActionMenuTitle", "Custom Event...");
+	}
+	else if ((TitleType == ENodeTitleType::EditableTitle) || (TitleType == ENodeTitleType::ListView))
 	{
 		return FText::FromName(CustomFunctionName);
 	}
@@ -221,6 +225,28 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 			// the signitures could still be off, but FKismetCompilerContext::PrecompileFunction() should catch that
 		}		
 	}
+}
+
+void UK2Node_CustomEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	auto SetupCustomEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	{
+		UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
+		UBlueprint* Blueprint = EventNode->GetBlueprint();
+
+		// in GetNodeTitle(), we use an empty CustomFunctionName to identify a menu entry
+		if (!bIsTemplateNode)
+		{
+			EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueCustomEventName(Blueprint);
+		}
+		EventNode->bIsEditable = true;
+	};
+
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupCustomEventNodeLambda);
+	ActionListOut.Add(NodeSpawner);
 }
 
 void UK2Node_CustomEvent::ReconstructNode()

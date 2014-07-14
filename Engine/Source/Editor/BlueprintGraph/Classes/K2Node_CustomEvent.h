@@ -25,6 +25,7 @@ class UK2Node_CustomEvent : public UK2Node_Event
 
 	// Begin UK2Node interface
 	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface
