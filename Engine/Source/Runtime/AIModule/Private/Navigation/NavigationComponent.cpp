@@ -31,7 +31,7 @@ void UNavigationComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	// setting up delegate here in case function used has virtual overrides
-	PathObserverDelegate = FNavigationPath::FPathObserverDelegate::CreateUObject(this, &UNavigationComponent::OnPathInvalid);
+	PathObserverDelegate = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UNavigationComponent::OnPathEvent);
 	
 	UpdateCachedComponents();
 }
@@ -89,39 +89,63 @@ void UNavigationComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 	}
 }
 
-void UNavigationComponent::OnPathInvalid(FNavigationPath* InvalidatedPath)
+void UNavigationComponent::OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event)
 {
 	if (InvalidatedPath == NULL || InvalidatedPath != Path.Get())
     {
 		return;
     }
 
-	// try to repath automatically
-	if (!bIsPaused && bRepathWhenInvalid)
+	switch (Event)
 	{
-		RepathData.GoalActor = GoalActor;
-		RepathData.GoalLocation = CurrentGoal;
-		RepathData.bSimplePath = bUseSimplePath;
-		RepathData.StoredQueryFilter = StoredQueryFilter;
-		bIsWaitingForRepath = true;
+		case ENavPathEvent::Invalidated:
+		{
+			// try to repath automatically
+			if (!bIsPaused && bRepathWhenInvalid)
+			{
+				RepathData.GoalActor = GoalActor;
+				RepathData.GoalLocation = CurrentGoal;
+				RepathData.bSimplePath = bUseSimplePath;
+				RepathData.StoredQueryFilter = StoredQueryFilter;
+				bIsWaitingForRepath = true;
 
-		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal)
-			, TEXT("Deferred restore path")
-			, NULL
-			, ENamedThreads::GameThread
-			);
-	}
+				Path->EnableRecalculationOnInvalidation(true);
 
-	// reset state
-	const bool bWasPaused = bIsPaused;
-	ResetTransientData();
-	bIsPaused = bWasPaused;
+				/*FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+					FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &UNavigationComponent::DeferredRepathToGoal)
+					, TEXT("Deferred restore path")
+					, NULL
+					, ENamedThreads::GameThread
+					);*/
+			}
 
-	// and notify observer
-	if (MyPathObserver && !bRepathWhenInvalid)
-	{
-		MyPathObserver->OnPathInvalid(this);
+			// reset state
+			const bool bWasPaused = bIsPaused;
+			//ResetTransientData();
+			bIsPaused = bWasPaused;
+
+			// and notify observer
+			if (MyPathObserver && !bRepathWhenInvalid)
+			{
+				MyPathObserver->OnPathInvalid(this);
+			}
+
+			break;
+		}
+		case ENavPathEvent::RePathFailed:
+			FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+			break;
+		case ENavPathEvent::UpdatedDueToGoalMoved:
+		case ENavPathEvent::UpdatedDueToNavigationChanged:
+		{
+			GoalActor = Path->GetGoalActor();
+			CurrentGoal = Path->GetGoalLocation();
+			StoredQueryFilter = Path->GetFilter();
+			//bUseSimplePath = RepathData.bSimplePath;
+
+			NotifyPathUpdate();
+		}
+			break;
 	}
 }
 
@@ -258,11 +282,12 @@ bool UNavigationComponent::ResumePath()
 		if (IsFollowing() == true)
 		{
 			// make sure ticking is enabled (and it shouldn't be enabled before _first_ async path finding)
-			SetComponentTickEnabledAsync(true);
+			//SetComponentTickEnabledAsync(true);
+			Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
 		}
 
 		// don't notify about path update, it's the same path...
-		CurrentGoal = Path->PathPoints[ Path->PathPoints.Num() - 1 ].Location;
+		CurrentGoal = Path->GetPathPoints()[Path->GetPathPoints().Num() - 1].Location;
 		return true;
 	}
 
@@ -289,11 +314,12 @@ void UNavigationComponent::AsyncGeneratePath_OnCompleteCallback(uint32 QueryID, 
 			if (IsFollowing() == true)
 			{
 				// make sure ticking is enabled (and it shouldn't be enabled before _first_ async path finding)
-				SetComponentTickEnabledAsync(true);
+				//SetComponentTickEnabledAsync(true);
+				Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
 			}
 
 			SetPath(ResultPath);
-			CurrentGoal = ResultPath->PathPoints[ ResultPath->PathPoints.Num() - 1 ].Location;
+			CurrentGoal = ResultPath->GetPathPoints()[ResultPath->GetPathPoints().Num() - 1].Location;
 			NotifyPathUpdate();
 		}
 		else
@@ -327,7 +353,9 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 	// make sure that nav data is updated
 	GetNavData();
 
-	const FNavAgentProperties* NavAgentProps = MyNavAgent ? MyNavAgent->GetNavAgentProperties() : NULL;
+	check(MyNavAgent);
+
+	const FNavAgentProperties* NavAgentProps = MyNavAgent->GetNavAgentProperties();
 	if (NavAgentProps != NULL)
 	{
 		FVector NavMeshGoalLocation;
@@ -386,10 +414,11 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 				if (IsFollowing() == true)
 				{
 					// make sure ticking is enabled (and it shouldn't be enabled before _first_ async path finding)
-					SetComponentTickEnabledAsync(true);
+					//SetComponentTickEnabledAsync(true);
+					Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
 				}
 
-				NotifyPathUpdate();
+				// NotifyPathUpdate();
 				return true;
 			}
 			else
@@ -454,9 +483,9 @@ bool UNavigationComponent::GenerateSimplePath(const FVector& Destination)
 
 bool UNavigationComponent::GetPathPoint(uint32 PathVertIdx, FNavPathPoint& PathPoint) const
 {
-	if (Path.IsValid() && Path->IsValid() && (int32)PathVertIdx < Path->PathPoints.Num())
+	if (Path.IsValid() && Path->IsValid() && (int32)PathVertIdx < Path->GetPathPoints().Num())
 	{
-		PathPoint = Path->PathPoints[PathVertIdx];
+		PathPoint = Path->GetPathPoints()[PathVertIdx];
 		return true;
 	}
 
@@ -473,7 +502,7 @@ bool UNavigationComponent::FindSimplePathToActor(const AActor* NewGoalActor, flo
 	bool bPathGenerationSucceeded = false;
 
 	if (bIsPaused && NewGoalActor != NULL && GoalActor == NewGoalActor
-		&& Path.IsValid() && Path->IsValid() && Path->GetOwner() == NULL)
+		&& Path.IsValid() && Path->IsValid() && Path->GetNavigationDataUsed() == NULL)
 	{
 		RepathDistanceSq = FMath::Square(RepathDistance);
 		OriginalGoalActorLocation = GetCurrentMoveGoal(NewGoalActor, GetOwner());
@@ -495,7 +524,8 @@ bool UNavigationComponent::FindSimplePathToActor(const AActor* NewGoalActor, flo
 				bUseSimplePath = true;
 
 				// if doing sync pathfinding enabling component's ticking needs to be done now
-				SetComponentTickEnabledAsync(true);
+				//SetComponentTickEnabledAsync(true);
+				Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
 			}
 		}
 
@@ -570,7 +600,8 @@ bool UNavigationComponent::FindPathToActor(const AActor* NewGoalActor, TSharedPt
 				if (bDoAsyncPathfinding == false)
 				{
 					// if doing sync pathfinding enabling component's ticking needs to be done now
-					SetComponentTickEnabledAsync(true);
+					//SetComponentTickEnabledAsync(true);
+					Path->SetGoalActorObservation(*GoalActor, FMath::Sqrt(RepathDistanceSq));
 				}
 			}
 		}
@@ -593,7 +624,7 @@ bool UNavigationComponent::FindSimplePathToLocation(const FVector& DestLocation)
 {
 	bool bPathGenerationSucceeded = false;
 
-	if (bIsPaused && Path.IsValid() && Path->IsValid() && Path->GetOwner() == NULL
+	if (bIsPaused && Path.IsValid() && Path->IsValid() && Path->GetNavigationDataUsed() == NULL
 		&& FVector::DistSquared(CurrentGoal, DestLocation) < SMALL_NUMBER)
 	{
 		bPathGenerationSucceeded = ResumePath();
@@ -665,9 +696,13 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 void UNavigationComponent::SetPath(const FNavPathSharedPtr& ResultPath)
 {
 	check(ResultPath.Get() != NULL);
+	check(MyNavAgent);
 
 	Path = ResultPath;
-	Path->SetObserver(PathObserverDelegate);
+	Path->AddObserver(PathObserverDelegate);
+	AActor* Owner = GetOwner();
+	check(Owner);
+	Path->SetSourceActor(*Owner);
 	bIsPathPartial = Path->IsPartial();
 }
 
@@ -716,7 +751,7 @@ void UNavigationComponent::NotifyPathUpdate()
 	{
 		UE_VLOG(GetOwner(), LogAINavigation, Warning
 			, TEXT("NotifyPathUpdate fetched invalid NavPath!  NavPath has %d points, is%sready, and is%sup-to-date")
-			, Path->PathPoints.Num(), Path->IsReady() ? TEXT(" ") : TEXT(" NOT "), Path->IsUpToDate() ? TEXT(" ") : TEXT(" NOT ")	);
+			, Path->GetPathPoints().Num(), Path->IsReady() ? TEXT(" ") : TEXT(" NOT "), Path->IsUpToDate() ? TEXT(" ") : TEXT(" NOT "));
 
 		ResetTransientData();
 	}
@@ -763,8 +798,8 @@ void UNavigationComponent::SetRepathWhenInvalid(bool bEnabled)
 
 void UNavigationComponent::SetComponentTickEnabledAsync(bool bEnabled)
 {
-	bShoudTick = bEnabled;
-	Super::SetComponentTickEnabledAsync(bEnabled);
+	/*bShoudTick = bEnabled;
+	Super::SetComponentTickEnabledAsync(bEnabled);*/
 }
 
 void UNavigationComponent::OnNavAgentChanged()
@@ -882,7 +917,7 @@ void UNavigationComponent::OnCustomLinkBroadcast(class UNavLinkCustomComponent* 
 	}
 
 	const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-	const FVector GoalLocation = Path->PathPoints.Last().Location;
+	const FVector GoalLocation = Path->GetPathPoints().Last().Location;
 	FPathFindingQuery Query(GetOwner(), GetNavData(), MyNavAgent->GetNavAgentLocation(), GoalLocation, StoredQueryFilter);
 	Query.NavDataFlags = NavDataFlags;
 

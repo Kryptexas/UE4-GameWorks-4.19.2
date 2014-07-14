@@ -10,7 +10,7 @@ public:
 		, _AllowClear(true)
 		, _AllowedClasses(NULL)
 	{}
-		SLATE_ARGUMENT( UObject*, InitialObject )
+		SLATE_ARGUMENT( FAssetData, InitialObject )
 		SLATE_ARGUMENT( bool, AllowClear )
 		SLATE_ARGUMENT( const TArray<const UClass*>*, AllowedClasses )
 		SLATE_EVENT( FOnShouldFilterAsset, OnShouldFilterAsset )
@@ -60,12 +60,12 @@ private:
 	/** 
 	 * Set the value of the asset referenced by this property editor.
 	 * Will set the underlying property handle if there is one.
-	 * @param	InObject	The object to set the reference to
+	 * @param	AssetData	The asset data for the object to set the reference to
 	 */
-	void SetValue( UObject* InObject );
+	void SetValue( const FAssetData& AssetData );
 
 private:
-	UObject* CurrentObject;
+	FAssetData CurrentObject;
 
 	/** Whether the asset can be 'None' in this case */
 	bool bAllowClear;

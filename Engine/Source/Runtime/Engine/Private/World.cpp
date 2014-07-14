@@ -234,6 +234,8 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 		return false;
 	}
 
+	const bool bTestRename = (Flags & REN_Test) != 0;
+
 	// Rename the level script blueprint now, unless we are in PostLoad. ULevel::PostLoad should handle renaming this at load time.
 	if ( !GIsRoutingPostLoad )
 	{
@@ -241,17 +243,28 @@ bool UWorld::Rename(const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags)
 		UBlueprint* LevelScriptBlueprint = PersistentLevel ? PersistentLevel->GetLevelScriptBlueprint(bDontCreate) : NULL;
 		if ( LevelScriptBlueprint )
 		{
-			// Use LevelScriptBlueprint->GetOuter() instead of NULL to make sure the generated top level objects are moved appropriately
-			if ( !LevelScriptBlueprint->Rename(InName, LevelScriptBlueprint->GetOuter(), Flags) )
+			// See if we are just testing for a rename. When testing, the world hasn't actually changed outers, so we need to test for name collisions at the target outer.
+			if ( bTestRename )
 			{
-				return false;
+				// We are just testing. Check for name collisions in the new package. This is only needed because these objects use the supplied outer's Outermost() instead of the outer itself
+				if (!LevelScriptBlueprint->RenameGeneratedClasses(InName, NewOuter, Flags))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				// This is a normal rename. Use LevelScriptBlueprint->GetOuter() instead of NULL to make sure the generated top level objects are moved appropriately
+				if ( !LevelScriptBlueprint->Rename(InName, LevelScriptBlueprint->GetOuter(), Flags) )
+				{
+					return false;
+				}
 			}
 		}
 	}
 
 	// Update the PKG_ContainsMap package flag
 	UPackage* NewPackage = GetOutermost();
-	const bool bTestRename = (Flags & REN_Test) != 0;
 	if ( !bTestRename && NewPackage != OldPackage )
 	{
 		// If this is the last world removed from a package, clear the PKG_ContainsMap flag
@@ -2053,7 +2066,8 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 	GPlayInEditorID = WorldContext.PIEInstance;
 
 	FString PrefixedLevelName = ConvertToPIEPackageName(PackageName, WorldContext.PIEInstance);
-	UWorld::WorldTypePreLoadMap.FindOrAdd(FName(*PrefixedLevelName)) = EWorldType::PIE;
+	const FName PrefixedLevelFName = FName(*PrefixedLevelName);
+	UWorld::WorldTypePreLoadMap.FindOrAdd(PrefixedLevelFName) = EWorldType::PIE;
 	UPackage* PIELevelPackage = CastChecked<UPackage>(CreatePackage(NULL,*PrefixedLevelName));
 	PIELevelPackage->PackageFlags |= PKG_PlayInEditor;
 #if WITH_EDITOR
@@ -2085,6 +2099,9 @@ UWorld* UWorld::DuplicateWorldForPIE(const FString& PackageName, UWorld* OwningW
 
 	// Clean up string asset reference fixups
 	FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE();
+
+	// Clean up the world type list now that PostLoad has occurred
+	UWorld::WorldTypePreLoadMap.Remove(PrefixedLevelFName);
 	
 	PIELevelWorld->StreamingLevelsPrefix = BuildPIEPackagePrefix(WorldContext.PIEInstance);
 	{
@@ -4770,6 +4787,13 @@ UWorld* UWorld::FollowWorldRedirectorInPackage(UPackage* Package, UObjectRedirec
 			RetVal = Cast<UWorld>(Redirector->DestinationObject);
 			if ( RetVal )
 			{
+				// Patch up the WorldType if found in the PreLoad map
+				EWorldType::Type* PreLoadWorldType = UWorld::WorldTypePreLoadMap.Find(Redirector->GetOuter()->GetFName());
+				if (PreLoadWorldType)
+				{
+					RetVal->WorldType = *PreLoadWorldType;
+				}
+
 				if ( OptionalOutRedirector )
 				{
 					(*OptionalOutRedirector) = Redirector;

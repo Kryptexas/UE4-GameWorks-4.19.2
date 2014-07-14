@@ -208,7 +208,7 @@ void SGameplayTagWidget::OnTagCheckStatusChanged(ESlateCheckBoxState::Type NewCh
 	}
 	else if (NewCheckState == ESlateCheckBoxState::Unchecked)
 	{
-		OnTagUnchecked(NodeChanged, true);
+		OnTagUnchecked(NodeChanged);
 	}
 }
 
@@ -255,9 +255,9 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 	}
 }
 
-void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUnchecked, bool bTransact)
+void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUnchecked)
 {
-	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_RemoveTags", "Remove Gameplay Tags"), bTransact);
+	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_RemoveTags", "Remove Gameplay Tags"));
 	if (NodeUnchecked.IsValid())
 	{
 		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
@@ -273,40 +273,51 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 			{
 				EditableContainer.RemoveTag(Tag);
 
-				// Check if we need to add parent to the container
-				if (bTransact)
+				TWeakPtr<FGameplayTagNode> ParentNode = NodeUnchecked->GetParentTagNode();
+				if (ParentNode.IsValid())
 				{
-					TWeakPtr<FGameplayTagNode> ParentNode = NodeUnchecked->GetParentTagNode();
-					if (ParentNode.IsValid())
+					// Check if there are other siblings before adding parent
+					bool bOtherSiblings = false;
+					for (auto It = ParentNode.Pin()->GetChildTagNodes().CreateConstIterator(); It; ++It)
 					{
-						// Check if there are other siblings before adding parent
-						bool bOtherSiblings = false;
-						for (auto It = ParentNode.Pin()->GetChildTagNodes().CreateConstIterator(); It; ++It)
+						Tag = TagsManager.RequestGameplayTag(It->Get()->GetCompleteTag());
+						if (EditableContainer.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
 						{
-							Tag = TagsManager.RequestGameplayTag(It->Get()->GetCompleteTag());
-							if (EditableContainer.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
-							{
-								bOtherSiblings = true;
-								break;
-							}
-						}
-						// Add Parent
-						if (!bOtherSiblings)
-						{
-							Tag = TagsManager.RequestGameplayTag(ParentNode.Pin()->GetCompleteTag());
-							EditableContainer.AddTag(Tag);
+							bOtherSiblings = true;
+							break;
 						}
 					}
+					// Add Parent
+					if (!bOtherSiblings)
+					{
+						Tag = TagsManager.RequestGameplayTag(ParentNode.Pin()->GetCompleteTag());
+						EditableContainer.AddTag(Tag);
+					}
 				}
-				SetContainer(Container, &EditableContainer, OwnerObj);
-			}
-		}
 
-		const TArray< TSharedPtr<FGameplayTagNode> >& ChildNodes = NodeUnchecked->GetChildTagNodes();
-		for (int32 ChildIdx = 0; ChildIdx < ChildNodes.Num(); ++ChildIdx)
-		{
-			OnTagUnchecked(ChildNodes[ChildIdx], false);
+				// Uncheck Children
+				for (const auto& ChildNode : NodeUnchecked->GetChildTagNodes())
+				{
+					UncheckChildren(ChildNode, EditableContainer);
+				}
+
+			}
+			SetContainer(Container, &EditableContainer, OwnerObj);
 		}
+	}
+}
+
+void SGameplayTagWidget::UncheckChildren(TSharedPtr<FGameplayTagNode> NodeUnchecked, FGameplayTagContainer& EditableContainer)
+{
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+
+	FGameplayTag Tag = TagsManager.RequestGameplayTag(NodeUnchecked->GetCompleteTag());
+	EditableContainer.RemoveTag(Tag);
+
+	// Uncheck Children
+	for (const auto& ChildNode : NodeUnchecked->GetChildTagNodes())
+	{
+		UncheckChildren(ChildNode, EditableContainer);
 	}
 }
 

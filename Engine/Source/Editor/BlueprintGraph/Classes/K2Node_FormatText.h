@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_FormatText.generated.h"
@@ -9,6 +9,7 @@ class UK2Node_FormatText : public UK2Node
 	GENERATED_UCLASS_BODY()
 
 	// UObject interface
+	virtual void PostLoad() override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 

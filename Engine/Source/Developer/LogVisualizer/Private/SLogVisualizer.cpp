@@ -1176,7 +1176,7 @@ void SLogVisualizer::AddOrUpdateLog(int32 LogIndex, const FActorsVisLog* Log)
 	int32 LogListNum = LogsList.Num();
 	for (int32 ListIndex = 0; ListIndex < LogListNum; ++ListIndex)
 	{
-		if (LogsList[LogIndex]->LogIndex == LogIndex)
+		if (LogsList[ListIndex]->LogIndex == LogIndex)
 		{
 			CurrentIndex = ListIndex;
 			break;

@@ -1472,6 +1472,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
 IMPLEMENT_PROPERTY_ACCESSOR( FQuat )
 IMPLEMENT_PROPERTY_ACCESSOR( FRotator )
 IMPLEMENT_PROPERTY_ACCESSOR( UObject* )
+IMPLEMENT_PROPERTY_ACCESSOR( FAssetData )
 
 FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities )
 	: Implementation( MakeShareable( new FPropertyValueImpl( PropertyNode, NotifyHook, PropertyUtilities ) ) )
@@ -2277,6 +2278,40 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject*& NewValu
 	{
 		FString ObjectPathName = NewValue ? NewValue->GetPathName() : TEXT("None");
 		bResult = Implementation->SendTextToObjectProperty( ObjectPathName, Flags );
+	}
+
+	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
+}
+
+FPropertyAccess::Result FPropertyHandleObject::GetValue(FAssetData& OutValue) const
+{
+	UObject* ObjectValue = nullptr;
+	FPropertyAccess::Result	Result = GetValue(ObjectValue);
+	
+	if ( Result == FPropertyAccess::Success )
+	{
+		OutValue = FAssetData(ObjectValue);
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+
+	bool bResult = false;
+	// Instanced references can not be set this way (most likely editinlinenew )
+	if (!Property->HasAnyPropertyFlags(CPF_InstancedReference))
+	{
+		if ( !Property->IsA( UAssetObjectProperty::StaticClass() ) )
+		{
+			// Make sure the asset is loaded if we are not a string asset reference.
+			NewValue.GetAsset();
+		}
+
+		FString ObjectPathName = NewValue.IsValid() ? NewValue.ObjectPath.ToString() : TEXT("None");
+		bResult = Implementation->SendTextToObjectProperty(ObjectPathName, Flags);
 	}
 
 	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;

@@ -331,7 +331,14 @@ void UEdGraphSchema::TrySetDefaultText(UEdGraphPin& InPin, const FText& InNewDef
 	else
 	{
 #if WITH_EDITOR
-		InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), InPin.GetOwningNode()->NodeGuid.ToString() + TEXT("_") + InPin.PinName, InNewDefaultText);
+		if(InNewDefaultText.IsCultureInvariant())
+		{
+			InPin.DefaultTextValue = InNewDefaultText;
+		}
+		else
+		{
+			InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), InPin.GetOwningNode()->NodeGuid.ToString() + TEXT("_") + InPin.PinName, InNewDefaultText);
+		}
 #endif
 	}
 

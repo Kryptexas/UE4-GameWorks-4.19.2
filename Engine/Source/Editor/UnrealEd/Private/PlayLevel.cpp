@@ -2990,10 +2990,15 @@ UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext,
 	// Before loading the map, we need to set these flags to true so that postload will work properly
 	GIsPlayInEditorWorld = true;
 
-	UWorld::WorldTypePreLoadMap.FindOrAdd(FName(*SavedMapNames[0])) = EWorldType::PIE;
+	const FName SavedMapFName = FName(*SavedMapNames[0]);
+	UWorld::WorldTypePreLoadMap.FindOrAdd(SavedMapFName) = EWorldType::PIE;
 
 	// Load the package we saved
 	UPackage* EditorLevelPackage = LoadPackage(NULL, *SavedMapNames[0], LOAD_PackageForPIE);
+
+	// Clean up the world type list now that PostLoad has occurred
+	UWorld::WorldTypePreLoadMap.Remove(SavedMapFName);
+
 	if( EditorLevelPackage )
 	{
 		// Find world object and use its PersistentLevel pointer.
@@ -3036,7 +3041,8 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	// Before loading the map, we need to set these flags to true so that postload will work properly
 	GIsPlayInEditorWorld = true;
 
-	UWorld::WorldTypePreLoadMap.FindOrAdd(FName(*PlayWorldMapName)) = EWorldType::PIE;
+	const FName PlayWorldMapFName = FName(*PlayWorldMapName);
+	UWorld::WorldTypePreLoadMap.FindOrAdd(PlayWorldMapFName) = EWorldType::PIE;
 
 	// Create a package for the PIE world
 	UPackage* PlayWorldPackage = CastChecked<UPackage>(CreatePackage(NULL,*PlayWorldMapName));
@@ -3103,6 +3109,9 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 
 		UE_LOG(LogPlayLevel, Log, TEXT("PIE: StaticDuplicateObject took: (%fs)"),  float(FPlatformTime::Seconds() - SDOStart));		
 	}
+
+	// Clean up the world type list now that PostLoad has occurred
+	UWorld::WorldTypePreLoadMap.Remove(PlayWorldMapFName);
 
 	GPlayInEditorID = -1;
 	check( NewPIEWorld );

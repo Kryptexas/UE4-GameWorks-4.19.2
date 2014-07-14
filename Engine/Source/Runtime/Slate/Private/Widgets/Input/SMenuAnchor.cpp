@@ -19,8 +19,7 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	];
 	MenuContent = InArgs._MenuContent;
 	OnGetMenuContent = InArgs._OnGetMenuContent;
-	OnMenuOpened = InArgs._OnMenuOpened;
-	OnMenuClosed = InArgs._OnMenuClosed;
+	OnMenuOpenChanged = InArgs._OnMenuOpenChanged;
 	Placement = InArgs._Placement;
 	Method = InArgs._Method;
 }
@@ -151,9 +150,9 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 		if (InIsOpen && MenuContentPtr.IsValid() )
 		{
 			// OPEN POPUP
-			if (OnMenuOpened.IsBound())
+			if (OnMenuOpenChanged.IsBound())
 			{
-				OnMenuOpened.Execute();
+				OnMenuOpenChanged.Execute(true);
 			}
 			
 			// This can be called at any time so we use the push menu override that explicitly allows us to specify our parent
@@ -258,9 +257,9 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				PopupWindowPtr.Reset();
 			}
 
-			if (OnMenuClosed.IsBound())
+			if (OnMenuOpenChanged.IsBound())
 			{
-				OnMenuClosed.Execute();
+				OnMenuOpenChanged.Execute(false);
 			}
 		}
 	}

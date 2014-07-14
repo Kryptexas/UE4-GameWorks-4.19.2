@@ -363,6 +363,7 @@ public:
 	DECLARE_PROPERTY_ACCESSOR( FQuat )
 	DECLARE_PROPERTY_ACCESSOR( FRotator )
 	DECLARE_PROPERTY_ACCESSOR( UObject* )
+	DECLARE_PROPERTY_ACCESSOR( FAssetData )
 
 	/** IPropertyHandle interface */
 	virtual bool IsValidHandle() const override;
@@ -473,6 +474,8 @@ public:
 	static bool Supports( TSharedRef<FPropertyNode> PropertyNode );
 	virtual FPropertyAccess::Result GetValue( UObject*& OutValue ) const override;
 	virtual FPropertyAccess::Result SetValue( const UObject*& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+	virtual FPropertyAccess::Result GetValue( FAssetData& OutValue ) const override;
+	virtual FPropertyAccess::Result SetValue( const FAssetData& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
 
 };
 

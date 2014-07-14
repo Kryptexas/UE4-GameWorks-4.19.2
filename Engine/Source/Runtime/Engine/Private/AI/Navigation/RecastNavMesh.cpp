@@ -1499,16 +1499,16 @@ FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProp
 	}
 		
 	FPathFindingResult Result;
-	Result.Path = Self->CreatePathInstance<FNavMeshPath>();
+	Result.Path = Query.PathInstanceToFill.IsValid() ? Query.PathInstanceToFill : Self->CreatePathInstance<FNavMeshPath>(Query.Owner.Get());
 
 	FNavMeshPath* NavMeshPath = (FNavMeshPath*)Result.Path.Get();
-	NavMeshPath->Filter = Query.QueryFilter;
+	NavMeshPath->SetFilter(Query.QueryFilter);
 	NavMeshPath->ApplyFlags(Query.NavDataFlags);
 
 	if ((Query.StartLocation - Query.EndLocation).IsNearlyZero() == true)
 	{
-		Result.Path->PathPoints.Reset();
-		Result.Path->PathPoints.Add(FNavPathPoint(Query.EndLocation));
+		Result.Path->GetPathPoints().Reset();
+		Result.Path->GetPathPoints().Add(FNavPathPoint(Query.EndLocation));
 		Result.Result = ENavigationQueryResult::Success;
 	}
 	else

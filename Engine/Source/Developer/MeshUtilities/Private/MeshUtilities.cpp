@@ -28,7 +28,7 @@
 // causes meshes to be rebuilt you MUST generate a new GUID and replace this
 // string with it.
 
-#define MESH_UTILITIES_VER TEXT("359a039847e84730ba516769d0f19427")
+#define MESH_UTILITIES_VER TEXT("0db5412b27ab480f844cc7f0be5abaff")
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities,Verbose,All);
 

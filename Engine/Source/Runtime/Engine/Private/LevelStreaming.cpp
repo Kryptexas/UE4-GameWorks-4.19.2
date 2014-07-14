@@ -472,6 +472,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPackage* InLoadedPackage ) 
 {
 	bHasLoadRequestPending = false;
+
+	const FName PackageFName = FName(*InPackageName);
 	
 	if( InLoadedPackage )
 	{
@@ -533,7 +535,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 				//    If the package name to load was different...
 				//         ... it means the specified package name was explicit and we will just load from another file.
 
-				FName OldDesiredPackageName = FName(*InPackageName);
+				FName OldDesiredPackageName = PackageFName;
 				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
 				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
 				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
@@ -598,6 +600,9 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	{
 		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName );
 	}
+
+	// Clean up the world type list now that PostLoad has occurred
+	UWorld::WorldTypePreLoadMap.Remove(PackageFName);
 }
 
 bool ULevelStreaming::IsLevelVisible() const

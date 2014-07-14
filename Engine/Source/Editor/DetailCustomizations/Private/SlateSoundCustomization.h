@@ -14,7 +14,7 @@ public:
 
 protected:
 	/** Called when the resource object used by this FSlateSound has been changed */
-	void OnObjectChanged(const UObject*);
+	void OnObjectChanged(const FAssetData&);
 
 	/** Array of FSlateSound instances this customization is currently editing */
 	TArray<FSlateSound*> SlateSoundStructs;

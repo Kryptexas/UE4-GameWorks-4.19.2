@@ -12,6 +12,16 @@ UPawnAction_Move::UPawnAction_Move(const class FPostConstructInitializePropertie
 	, bUpdatePathToGoal(true)
 	, bAbortChildActionOnPathChange(false)
 {
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UPawnAction_Move::OnPathUpdated);
+	}
+}
+
+void UPawnAction_Move::BeginDestroy()
+{
+	ClearPath();
+	Super::BeginDestroy();
 }
 
 UPawnAction_Move* UPawnAction_Move::CreateAction(UWorld* World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode)
@@ -172,6 +182,8 @@ bool UPawnAction_Move::Resume()
 
 EPawnActionAbortState::Type UPawnAction_Move::PerformAbort(EAIForceParam::Type ShouldForce)
 {
+	ClearPath();
+
 	AAIController* MyController = Cast<AAIController>(GetController());
 
 	if (MyController && MyController->PathFollowingComponent)
@@ -196,21 +208,35 @@ void UPawnAction_Move::HandleAIMessage(UBrainComponent*, const FAIMessage& Messa
 	Finish(bFail ? EPawnActionResult::Failed : EPawnActionResult::Success);
 }
 
-void UPawnAction_Move::SetPath(FNavPathSharedPtr InPath)
+void UPawnAction_Move::OnFinished(EPawnActionResult::Type WithResult)
 {
-	Path = InPath;
-	Path->GetObserver(PathObserver);
-	Path->SetObserver(FNavigationPath::FPathObserverDelegate::CreateUObject(this, &UPawnAction_Move::OnPathUpdated));
+	ClearPath();
+	Super::OnFinished(WithResult);
 }
 
-void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath)
+void UPawnAction_Move::ClearPath()
+{
+	if (Path.IsValid())
+	{
+		Path->RemoveObserver(PathObserver);
+		Path = NULL;
+	}
+}
+
+void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
+{
+	if (InPath != Path)
+	{
+		ClearPath();
+		Path = InPath;
+		Path->AddObserver(PathObserver);
+	}
+}
+
+void UPawnAction_Move::OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event)
 {
 	UE_VLOG(GetController(), LogPawnAction, Log, TEXT("%s> Path updated!"), *GetName());
-	if (PathObserver.IsBound() && PathObserver.GetUObject() != this)
-	{
-		PathObserver.ExecuteIfBound(UpdatedPath);
-	}
-
+	
 	if (bAbortChildActionOnPathChange && GetChildAction())
 	{
 		UE_VLOG(GetController(), LogPawnAction, Log, TEXT(">> aborting child action: %s"), *GetNameSafe(GetChildAction()));

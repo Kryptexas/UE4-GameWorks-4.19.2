@@ -570,8 +570,8 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 
 	for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 	{
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		// This is known to happen in X3DAudioCalculate in channel 0 and the cause is unknown.
 		if ( !FMath::IsFinite(ChannelVolumes[i]) )
 		{
 			const FString NaNorINF = FMath::IsNaN(ChannelVolumes[i]) ? TEXT("NaN") : TEXT("INF");
@@ -583,7 +583,6 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 		{
 			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
 		}
-#endif
 
 		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * GVolumeMultiplier, 0.0f, MAX_VOLUME);
 	}
@@ -1418,7 +1417,7 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
 			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
 				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
-			DumpSpatializationState();
+			//DumpSpatializationState();
 		}
 #endif
 	}

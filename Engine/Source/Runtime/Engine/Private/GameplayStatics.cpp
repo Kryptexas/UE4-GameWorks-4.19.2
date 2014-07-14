@@ -1008,6 +1008,16 @@ bool UGameplayStatics::DoesSaveGameExist(const FString& SlotName, const int32 Us
 	return bExists;
 }
 
+//static 
+bool UGameplayStatics::DeleteGameInSlot(const FString& SlotName, const int32 UserIndex)
+{
+	ISaveGameSystem* SaveSystem = IPlatformFeaturesModule::Get().GetSaveGameSystem();
+	if (SaveSystem != NULL)
+	{
+		return SaveSystem->DeleteGame(false, *SlotName, UserIndex);
+	}
+	return false;
+}
 
 USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int32 UserIndex)
 {

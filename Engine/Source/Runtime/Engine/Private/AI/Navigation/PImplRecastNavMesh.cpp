@@ -221,8 +221,8 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 
 bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 {
-	INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
-	return CustomLink ? CustomLink->IsLinkPathfindingAllowed(SearchOwner) : true;
+	const INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
+	return (CustomLink != NULL) && CustomLink->IsLinkPathfindingAllowed(SearchOwner);
 }
 
 
@@ -705,7 +705,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 
 	// initialize output
 	// @todo this should be moved into a FNavMeshPath function 
-	Path.PathPoints.Reset();
+	Path.GetPathPoints().Reset();
 	Path.PathCorridor.Reset();
 	Path.PathCorridorCost.Reset();
 
@@ -728,8 +728,8 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		FVector RecastHandPlacedPathEnd;
 		NavQuery.closestPointOnPolyBoundary(StartPolyID, &RecastEndPos.X, &RecastHandPlacedPathEnd.X);
 
-		new(Path.PathPoints) FNavPathPoint(StartLoc, StartPolyID);
-		new(Path.PathPoints) FNavPathPoint(Recast2UnrVector(&RecastHandPlacedPathEnd.X), StartPolyID);
+		new(Path.GetPathPoints()) FNavPathPoint(StartLoc, StartPolyID);
+		new(Path.GetPathPoints()) FNavPathPoint(Recast2UnrVector(&RecastHandPlacedPathEnd.X), StartPolyID);
 
 		Path.PathCorridor.Add(PathCorridorPolys[0]);
 		Path.PathCorridorCost.Add(CalcSegmentCostOnPoly(StartPolyID, QueryFilter, RecastHandPlacedPathEnd, RecastStartPos));
@@ -937,10 +937,10 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 			if (dtStatusSucceed(StringPullStatus))
 			{
-				Path.PathPoints.AddZeroed(NumPathVerts);
+				Path.GetPathPoints().AddZeroed(NumPathVerts);
 
 				// convert to desired format
-				FNavPathPoint* CurVert = Path.PathPoints.GetTypedData();
+				FNavPathPoint* CurVert = Path.GetPathPoints().GetTypedData();
 				float* CurRecastVert = RecastPathVerts;
 				uint8* CurFlag = RecastPathFlags;
 				NavNodeRef* CurPoly = RecastPolyRefs;
@@ -986,14 +986,14 @@ void FPImplRecastNavMesh::PostProcessPath(dtStatus FindPathStatus, FNavMeshPath&
 
 				// findStraightPath returns 0 for polyId of last point for some reason, even though it knows the poly id.  We will fill that in correctly with the last poly id of the corridor.
 				// @TODO shouldn't it be the same as EndPolyID? (nope, it could be partial path)
-				Path.PathPoints[NumPathVerts-1].NodeRef = PathCorridorPolys[NumPathCorridorPolys-1];
+				Path.GetPathPoints()[NumPathVerts - 1].NodeRef = PathCorridorPolys[NumPathCorridorPolys - 1];
 			}
 		}
 		else
 		{
 			// make sure at least beginning and end of path are added
-			new(Path.PathPoints) FNavPathPoint(StartLoc, StartPolyID);
-			new(Path.PathPoints) FNavPathPoint(EndLoc, EndPolyID);
+			new(Path.GetPathPoints()) FNavPathPoint(StartLoc, StartPolyID);
+			new(Path.GetPathPoints()) FNavPathPoint(EndLoc, EndPolyID);
 
 			// collect all custom links Ids
 			for (int32 Idx = 0; Idx < Path.PathCorridor.Num(); Idx++)

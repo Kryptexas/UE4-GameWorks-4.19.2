@@ -21,6 +21,10 @@
 /** uniform identifier type for navigation data elements may it be a polygon or graph node */
 typedef uint64 NavNodeRef;
 
+struct FNavigationQueryFilter;
+class AActor;
+class ANavigationData;
+
 namespace FNavigationSystem
 {
 	/** used as a fallback value for navigation agent radius, when none specified via UNavigationSystem::SupportedAgents */
@@ -31,11 +35,31 @@ namespace FNavigationSystem
 
 	static const FBox InvalidBoundingBox(0);
 
+	static const FVector InvalidLocation = FVector(FLT_MAX);
+
+	FORCEINLINE bool IsValidLocation(const FVector& TestLocation)
+	{
+		return TestLocation != InvalidLocation;
+	}
+
 	enum ECreateIfEmpty
 	{
 		Invalid = -1,
 		DontCreate = 0,
 		Create = 1,
+	};
+}
+
+UENUM()
+namespace ENavigationOptionFlag
+{
+	enum Type
+	{
+		Default,
+		Enable UMETA(DisplayName = "Yes"),	// UHT was complaining when tried to use True as value instead of Enable
+		Disable UMETA(DisplayName = "No"),
+
+		MAX UMETA(Hidden)
 	};
 }
 
@@ -194,12 +218,49 @@ private:
 	uint32 Id;
 };
 
+UENUM()
+namespace ENavPathEvent
+{
+	enum Type
+	{
+		Cleared,
+		NewPath,
+		UpdatedDueToGoalMoved,
+		UpdatedDueToNavigationChanged,
+		Invalidated,
+		RePathFailed,
+		Custom,
+	};
+}
+
+namespace ENavPathUpdateType
+{
+	enum Type
+	{
+		GoalMoved,
+		NavigationChanged,
+		Custom,
+	};
+}
+
+namespace EPathObservationResult
+{
+	enum Type
+	{
+		NoLongerObserving,
+		NoChange,
+		RequestRepath,
+	};
+}
+
+typedef TSharedRef<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedRef;
 typedef TSharedPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedPtr;
 typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 
 struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::ThreadSafe>
 {
-	DECLARE_DELEGATE_OneParam(FPathObserverDelegate, FNavigationPath*);
+	//DECLARE_DELEGATE_OneParam(FPathObserverDelegate, FNavigationPath*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FPathObserverDelegate, FNavigationPath*, ENavPathEvent::Type);
 
 	FNavigationPath();
 	FNavigationPath(const TArray<FVector>& Points, AActor* Base = NULL);
@@ -209,26 +270,35 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	FORCEINLINE bool IsUpToDate() const { return bUpToDate; }
 	FORCEINLINE bool IsReady() const { return bIsReady; }
 	FORCEINLINE bool IsPartial() const { return bIsPartial; }
-	FORCEINLINE bool DidSearchReachedLimit() const { return bReachedSearchLimit; }
-	FORCEINLINE class ANavigationData *GetOwner() const { return Owner.Get(); }
-	FORCEINLINE bool IsDirect() const { return Owner.Get() == NULL; }
+	FORCEINLINE bool DidSearchReachedLimit() const { return bReachedSearchLimit; }	
+	FORCEINLINE bool IsDirect() const { return NavigationDataUsed.Get() == NULL; }
 	FORCEINLINE FVector GetDestinationLocation() const { return IsValid() ? PathPoints.Last().Location : INVALID_NAVEXTENT; }
-	FORCEINLINE void GetObserver(FPathObserverDelegate& Observer) const { Observer = ObserverDelegate; }
+	FORCEINLINE FPathObserverDelegate& GetObserver() { return ObserverDelegate; }
+	FORCEINLINE void AddObserver(FPathObserverDelegate::FDelegate& NewObserver) { ObserverDelegate.Add(NewObserver); }
+	FORCEINLINE void RemoveObserver(FPathObserverDelegate::FDelegate& ObserverToRemove) { ObserverDelegate.Remove(ObserverToRemove); }
 
 	FORCEINLINE void MarkReady() { bIsReady = true; }
-	FORCEINLINE void SetObserver(const FPathObserverDelegate& Observer) { ObserverDelegate = Observer; }
+
+	FORCEINLINE void SetNavigationDataUsed(const ANavigationData* const NewData) { NavigationDataUsed = NewData; }
+	FORCEINLINE ANavigationData* GetNavigationDataUsed() const { return NavigationDataUsed.Get(); }
+	FORCEINLINE void SetQuerier(const UObject* InQuerier) { return Querier = InQuerier; }
+	FORCEINLINE const UObject* GetQuerier() const { return Querier.Get(); }
+	//FORCEINLINE void SetObserver(const FPathObserverDelegate& Observer) { ObserverDelegate = Observer; }
 	FORCEINLINE void SetIsPartial(const bool bPartial) { bIsPartial = bPartial; }
 	FORCEINLINE void SetSearchReachedLimit(const bool bLimited) { bReachedSearchLimit = bLimited; }
+
+	FORCEINLINE void SetFilter(TSharedPtr<const FNavigationQueryFilter> InFilter) { Filter = InFilter; }
+	FORCEINLINE TSharedPtr<const FNavigationQueryFilter> GetFilter() const { return Filter; }
+	FORCEINLINE AActor* GetBaseActor() const { return Base.Get(); }
+
+	FVector GetStartLocation() const { return PathPoints.Num() > 0 ? PathPoints[0].Location : FNavigationSystem::InvalidLocation; }
+	FVector GetEndLocation() const { return PathPoints.Num() > 0 ? PathPoints.Last().Location : FNavigationSystem::InvalidLocation; }
 	
-	FORCEINLINE void Invalidate() 
-	{ 
-		bUpToDate = false; 
-		ObserverDelegate.ExecuteIfBound(this); 
-	}
+	FORCEINLINE void DoneUpdating(ENavPathUpdateType::Type UpdateType) { bUpToDate = true; ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged); }
+	void Invalidate();
+	void RePathFailed();
 
-	void SetOwner(const class ANavigationData* const NewOwner);
-
-	virtual void DebugDraw(const class ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
+	virtual void DebugDraw(const ANavigationData* NavData, FColor PathColor, class UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex = 0) const;
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;
 	virtual FString GetDescription() const;
@@ -258,7 +328,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	static bool GetPathPoint(const FNavigationPath* Path, uint32 PathVertIdx, FNavPathPoint& PathPoint)
 	{
-		if (Path && Path->PathPoints.IsValidIndex((int32)PathVertIdx))
+		if (Path && Path->GetPathPoints().IsValidIndex((int32)PathVertIdx))
 		{
 			PathPoint = Path->PathPoints[PathVertIdx];
 			return true;
@@ -268,6 +338,7 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	}
 
 	FORCEINLINE const TArray<FNavPathPoint>& GetPathPoints() const { return PathPoints; }
+	FORCEINLINE TArray<FNavPathPoint>& GetPathPoints() { return PathPoints; }
 
 	virtual bool DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex = NULL) const;
 
@@ -284,27 +355,67 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		return PathType == PathClass::Type ? static_cast<PathClass*>(this) : NULL;
 	}
 
-public:
+	/** enables path observing specified AActor's location and update itself if actor changes location */
+	void SetGoalActorObservation(const AActor& ActorToObserve, float TetherDistance);
+	/** turns goal actor location's observation */
+	void DisableGoalActorObservation();
+	/** set's up the path to use SourceActor's location in case of recalculation */
+	void SetSourceActor(const AActor& InSourceActor);
 
+	/** if enabled path will request recalculation if it gets invalidated due to a change to underlying navigation */
+	void EnableRecalculationOnInvalidation(bool bShouldAutoUpdate) { bDoAutoUpdateOnInvalidation = bShouldAutoUpdate; }
+	bool WillRecalculateOnInvalidation() const { return bDoAutoUpdateOnInvalidation; }
+	
+	EPathObservationResult::Type TickPathObservation();
+
+	/** If GoalActor is set it retrieved its navigation location, if not retrieved last path point location */
+	FVector GetGoalLocation() const;
+
+	/** retrieved location to start path finding from (in case of path recalculation) */
+	FVector GetPathFindingStartLocation() const;
+
+	const AActor* GetGoalActor() const { return GoalActor.Get();  }	
+	const INavAgentInterface* GetGoalActorAsNavAgent() const { return GoalActor.IsValid() ? GoalActorAsNavAgent : NULL; }
+
+	// @todo this is navigation-type specific and should not be implemented here.
+	/** additional node refs used during path following shortcuts */
+	TArray<NavNodeRef> ShortcutNodeRefs;
+
+protected:
 	/** 
 	 * IMPORTANT: path is assumed to be valid if it contains _MORE_ than _ONE_ point 
 	 *	point 0 is path's starting point - if it's the only point on the path then there's no path per se
 	 */
 	TArray<FNavPathPoint> PathPoints;
-
-	/** additional node refs used during path following shortcuts */
-	TArray<NavNodeRef> ShortcutNodeRefs;
-
+	
 	/** base actor, if exist path points locations will be relative to it */
 	TWeakObjectPtr<AActor> Base;
 
+private:
+	/** if set path will observe GoalActor's location and update itself if goal moves more then
+	 *	@note only actual navigation paths can use this feature, meaning the ones associated with
+	 *	a NavigationData instance (meaning NavigationDataUsed != NULL) */
+	TWeakObjectPtr<const AActor> GoalActor;
+
+	/** cached result of GoalActor casting to INavAgentInterface */
+	const INavAgentInterface* GoalActorAsNavAgent;
+
+	/** if set will be queried for location in case of path's recalculation */
+	TWeakObjectPtr<const AActor> SourceActor;
+
+	/** cached result of PathSource casting to INavAgentInterface */
+	const INavAgentInterface* SourceActorAsNavAgent;
+
+	/** path's querier is an object that was used (depending on navigation used) for supplying additional path-finding details
+	 *	and will be reused when re-calculating the path*/
+	TWeakObjectPtr<const UObject> Querier;
+
+protected:
 	/** filter used to build this path */
 	TSharedPtr<const struct FNavigationQueryFilter> Filter;
 
 	/** type of path */
 	static const FNavPathType Type;
-
-protected:
 
 	FNavPathType PathType;
 
@@ -325,8 +436,16 @@ protected:
 	 *	although it might lead closer to destination. */
 	uint32 bReachedSearchLimit : 1;
 
-	/** Identifier of navigation data used to generate this path */
-	TWeakObjectPtr<class ANavigationData> Owner;
+	/** if true path will request re-pathing if it gets invalidated due to underlying navigation changed */
+	uint32 bDoAutoUpdateOnInvalidation : 1;
+
+	/** navigation data used to generate this path */
+	TWeakObjectPtr<ANavigationData> NavigationDataUsed;
+
+private:
+	/* if GoalActor is set this is the distance we'll try to keep GoalActor from end of path. If GoalActor
+	* moves more then this from the end of the path we'll recalculate the path */
+	float GoalActorLocationTetherDistanceSq;
 };
 
 USTRUCT()
@@ -451,11 +570,12 @@ struct FPathFindingResult
 
 struct ENGINE_API FPathFindingQuery
 {
-	TWeakObjectPtr<const class ANavigationData> NavData;
+	TWeakObjectPtr<const ANavigationData> NavData;
 	TWeakObjectPtr<const UObject> Owner;
 	FVector StartLocation;
 	FVector EndLocation;
 	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
+	FNavPathSharedPtr PathInstanceToFill;
 
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
@@ -464,7 +584,11 @@ struct ENGINE_API FPathFindingQuery
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
-	FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL);
+	FPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL, FNavPathSharedPtr InPathInstanceToFill = NULL);
+
+	explicit FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride = NULL);
+
+	FPathFindingQuery& SetPathInstanceToUpdate(FNavPathSharedPtr InPathInstanceToFill) { PathInstanceToFill = InPathInstanceToFill; return *this; }
 };
 
 namespace EPathFindingMode
@@ -498,7 +622,7 @@ struct FAsyncPathFindingQuery : public FPathFindingQuery
 	{
 	}
 
-	FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
+	FAsyncPathFindingQuery(const UObject* InOwner, const ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
 	FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode);
 
 protected:

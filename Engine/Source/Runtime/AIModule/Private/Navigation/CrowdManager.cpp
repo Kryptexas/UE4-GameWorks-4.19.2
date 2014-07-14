@@ -422,10 +422,10 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 	ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
 	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && 
 		DetourCrowd && RecastNavData &&
-		Path && (Path->PathPoints.Num() > 1) &&
+		Path && (Path->GetPathPoints().Num() > 1) &&
 		Path->PathCorridor.IsValidIndex(PathSectionStart) && Path->PathCorridor.IsValidIndex(PathSectionEnd))
 	{
-		FVector TargetPos = Path->PathPoints.Last().Location;
+		FVector TargetPos = Path->GetPathPoints().Last().Location;
 		if (PathSectionEnd < (Path->PathCorridor.Num() - 1))
 		{
 			RecastNavData->GetPolyCenter(Path->PathCorridor[PathSectionEnd], TargetPos);
@@ -437,7 +437,7 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 			PathRefs.Add(Path->PathCorridor[Idx]);
 		}
 
-		const INavigationQueryFilterInterface* NavFilter = Path->Filter.IsValid() ? Path->Filter->GetImplementation() : MyNavData->GetDefaultQueryFilterImpl();
+		const INavigationQueryFilterInterface* NavFilter = Path->GetFilter().IsValid() ? Path->GetFilter()->GetImplementation() : MyNavData->GetDefaultQueryFilterImpl();
 		const dtQueryFilter* DetourFilter = ((const FRecastQueryFilter*)NavFilter)->GetAsDetourQueryFilter();
 		DetourCrowd->updateAgentFilter(AgentData->AgentIndex, DetourFilter);
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);

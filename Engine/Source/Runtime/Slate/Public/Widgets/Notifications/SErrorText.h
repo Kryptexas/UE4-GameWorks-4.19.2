@@ -27,6 +27,8 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
+	
+	inline const TSharedPtr<class STextBlock>& GetTextBlock() const { return TextBlock; }
 
 	// IErrorReportingWidget interface
 

@@ -32,7 +32,7 @@ namespace SlateApplicationDefs
 }
 
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
-class FPopupSupport
+class SLATE_API FPopupSupport
 {
 	public:
 
@@ -42,10 +42,23 @@ class FPopupSupport
 	 */
 	void SendNotifications( const FWidgetPath& WidgetsUnderCursor );
 
-	private:
+	/**
+	* Register for a notification when the user clicks outside a specific widget.
+	*
+	* @param NotifyWhenClickedOutsideMe    When the user clicks outside this widget, fire a notification.
+	* @param InNotification                The notification to invoke.
+	*/
+	void RegisterClickNotification(const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification);
 
-	/** Only menu anchors currently need this service */
-	friend class SMenuAnchor;
+	/**
+	* NOTE: Only necessary if notification no longer desired.
+	*       Stale notifications are cleaned up automatically.
+	*
+	* Unregister the notification because it is no longer desired.
+	*/
+	void UnregisterClickNotification(const FOnClickedOutside& InNotification);
+
+	private:
 
 	/** A single subscription about clicks happening outside the widget. */
 	struct FClickSubscriber
@@ -65,22 +78,6 @@ class FPopupSupport
 		/** Notification to send */
 		FOnClickedOutside Notification;
 	};
-
-	/**
-	 * Register for a notification when the user clicks outside a specific widget.
-	 * 
-	 * @param NotifyWhenClickedOutsideMe    When the user clicks outside this widget, fire a notification.
-	 * @param InNotification                The notification to invoke.
-	 */
-	void RegisterClickNotification( const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification );
-
-	/**
-	 * NOTE: Only necessary if notification no longer desired.
-	 *       Stale notifications are cleaned up automatically.
-	 *       
-	 * Unregister the notification because it is no longer desired.
-	 */
-	void UnregisterClickNotification( const FOnClickedOutside& InNotification );
 
 	/** List of subscriptions that want to be notified when the user clicks outside a certain widget. */
 	TArray<FClickSubscriber> ClickZoneNotifications;

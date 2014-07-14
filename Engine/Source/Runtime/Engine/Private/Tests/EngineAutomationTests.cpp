@@ -263,6 +263,16 @@ bool FSaveGameTest::RunTest(const FString& Parameters)
 	uint32 LoadedData;
 	ReadAr << LoadedData;
 
+	// try to delete it (not all platforms can)
+	if (Save->DeleteGame(false, SaveName, 0))
+	{
+		// make sure it's no longer there
+		if (Save->DoesSaveGameExist(SaveName, 0) == true)
+		{
+			return false;
+		}
+	}
+
 	return LoadedData == SavedData;
 }
 

@@ -73,6 +73,7 @@ protected:
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
 
+	const float KeyPressActivationTime;
 	float ControlKeyPressedTime;
 	float PlayersComponentRequestTime;
 	uint32 bToolActivated : 1;

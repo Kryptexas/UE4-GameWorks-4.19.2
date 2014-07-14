@@ -20,11 +20,9 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 
 	FMenuBuilder MenuBuilder(true, NULL);
 
-	FAssetData CurrentAssetData( CurrentObject );
-
 	MenuBuilder.BeginSection(NAME_None, LOCTEXT("CurrentAssetOperationsHeader", "Current Asset"));
 	{
-		if( CurrentAssetData.IsValid() )
+		if( CurrentObject.IsValid() )
 		{
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("EditAsset", "Edit"), 
@@ -81,7 +79,7 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		// Use the list view by default
 		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 		// The initial selection should be the current value
-		AssetPickerConfig.InitialAssetSelection = CurrentAssetData;
+		AssetPickerConfig.InitialAssetSelection = CurrentObject;
 		// We'll do clearing ourselves
 		AssetPickerConfig.bAllowNullSelection = false;
 		// Focus search box
@@ -111,20 +109,22 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 
 void SPropertyMenuAssetPicker::OnEdit()
 {
-	if( CurrentObject )
+	if( CurrentObject.IsValid() )
 	{
-		GEditor->EditObject( CurrentObject );
+		UObject* Asset = CurrentObject.GetAsset();
+		if ( Asset )
+		{
+			GEditor->EditObject( Asset );
+		}
 	}
 	OnClose.ExecuteIfBound();
 }
 
 void SPropertyMenuAssetPicker::OnCopy()
 {
-	FAssetData CurrentAssetData( CurrentObject );
-
-	if( CurrentAssetData.IsValid() )
+	if( CurrentObject.IsValid() )
 	{
-		FPlatformMisc::ClipboardCopy(*CurrentAssetData.GetExportTextName());
+		FPlatformMisc::ClipboardCopy(*CurrentObject.GetExportTextName());
 	}
 	OnClose.ExecuteIfBound();
 }
@@ -156,11 +156,13 @@ void SPropertyMenuAssetPicker::OnPaste()
 		}
 		if( Object && PassesAllowedClassesFilter )
 		{
+			FAssetData ObjectAssetData(Object);
+
 			// Check against custom asset filter
 			if (!OnShouldFilterAsset.IsBound()
-				|| !OnShouldFilterAsset.Execute(FAssetData(Object)))
+				|| !OnShouldFilterAsset.Execute(ObjectAssetData))
 			{
-				SetValue(Object);
+				SetValue(ObjectAssetData);
 			}
 		}
 	}
@@ -203,13 +205,13 @@ void SPropertyMenuAssetPicker::OnClear()
 
 void SPropertyMenuAssetPicker::OnAssetSelected( const FAssetData& AssetData )
 {
-	SetValue(AssetData.GetAsset());
+	SetValue(AssetData);
 	OnClose.ExecuteIfBound();
 }
 
-void SPropertyMenuAssetPicker::SetValue( UObject* InObject )
+void SPropertyMenuAssetPicker::SetValue( const FAssetData& AssetData )
 {
-	OnSet.ExecuteIfBound(InObject);
+	OnSet.ExecuteIfBound(AssetData);
 }
 
 #undef LOCTEXT_NAMESPACE

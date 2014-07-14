@@ -457,17 +457,17 @@ int32 UCrowdFollowingComponent::DetermineStartingPathPoint(const FNavigationPath
 void LogPathPartHelper(AActor* LogOwner, FNavMeshPath* NavMeshPath, int32 StartIdx, int32 EndIdx)
 {
 #if ENABLE_VISUAL_LOG && WITH_RECAST
-	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(NavMeshPath->GetOwner());
+	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(NavMeshPath->GetNavigationDataUsed());
 	if (NavMesh == NULL ||
 		!NavMeshPath->PathCorridor.IsValidIndex(StartIdx) ||
 		!NavMeshPath->PathCorridor.IsValidIndex(EndIdx))
 	{
 		return;
-	}
+	}	
 
 	NavMesh->BeginBatchQuery();
 	
-	FVector SegmentStart = NavMeshPath->PathPoints[0].Location;
+	FVector SegmentStart = NavMeshPath->GetPathPoints()[0].Location;
 	FVector SegmentEnd(FVector::ZeroVector);
 
 	if (StartIdx > 0)
@@ -485,7 +485,7 @@ void LogPathPartHelper(AActor* LogOwner, FNavMeshPath* NavMeshPath, int32 StartI
 
 	if (EndIdx == (NavMeshPath->PathCorridor.Num() - 1))
 	{
-		SegmentEnd = NavMeshPath->PathPoints[1].Location;
+		SegmentEnd = NavMeshPath->GetPathPoints()[1].Location;
 	}
 	else
 	{
@@ -507,17 +507,25 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 	PathStartIndex = SegmentStartIndex;
 	LastPathPolyIndex = PathStartIndex;
-	if (!Path.IsValid() || GetOwner() == NULL)
+	if (Path.IsValid() == false || Path->IsValid() == false || GetOwner() == NULL)
 	{
 		return;
 	}
-
-	FVector CurrentTargetPt = Path->PathPoints[1].Location;
+	
+	FVector CurrentTargetPt = Path->GetPathPoints()[1].Location;
 
 	FNavMeshPath* NavMeshPath = Path->CastPath<FNavMeshPath>();
 	if (NavMeshPath)
 	{
 #if WITH_RECAST
+		if (NavMeshPath->PathCorridor.IsValidIndex(PathStartIndex) == false)
+		{
+			// this should never matter, but just in case
+			UE_VLOG(GetOwner(), LogCrowdFollowing, Error, TEXT("SegmentStartIndex in call to UCrowdFollowingComponent::SetMoveSegment is out of path corridor array's bounds (index: %d, array size %d)")
+				, PathStartIndex, NavMeshPath->PathCorridor.Num());
+			PathStartIndex = FMath::Clamp<int32>(PathStartIndex, 0, NavMeshPath->PathCorridor.Num() - 1);
+		}
+
 		// cut paths into parts to avoid problems with crowds getting into local minimum
 		// due to using only first 10 steps of A*
 
@@ -541,7 +549,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		CrowdAgentMoveDirection = FVector::ZeroVector;
 		MoveSegmentDirection = FVector::ZeroVector;
 
-		CurrentDestination.Set(Path->Base.Get(), CurrentTargetPt);
+		CurrentDestination.Set(Path->GetBaseActor(), CurrentTargetPt);
 		SuspendCrowdSteering(false);
 
 		LogPathPartHelper(GetOwner(), NavMeshPath, PathStartIndex, PathPartEndIdx);
@@ -566,7 +574,7 @@ void UCrowdFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 		bFinalPathPart = true;
 		bCheckMovementAngle = true;
 		bUpdateDirectMoveVelocity = DestinationActor.IsValid();
-		CurrentDestination.Set(Path->Base.Get(), CurrentTargetPt);
+		CurrentDestination.Set(Path->GetBaseActor(), CurrentTargetPt);
 		CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).SafeNormal();
 		MoveSegmentDirection = CrowdAgentMoveDirection;
 		SuspendCrowdSteering(true);
@@ -669,7 +677,7 @@ void UCrowdFollowingComponent::FollowPathSegment(float DeltaTime)
 			UCrowdManager* Manager = UCrowdManager::GetCurrent(GetWorld());
 			const FVector AgentLoc = GetCrowdAgentLocation();
 
-			CurrentDestination.Set(Path->Base.Get(), CurrentTargetPt);
+			CurrentDestination.Set(Path->GetBaseActor(), CurrentTargetPt);
 			CrowdAgentMoveDirection = (CurrentTargetPt - AgentLoc).SafeNormal();
 			MoveSegmentDirection = CrowdAgentMoveDirection;
 

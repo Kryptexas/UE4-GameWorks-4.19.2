@@ -8,22 +8,14 @@
 //----------------------------------------------------------------------//
 // FPathFindingQuery
 //----------------------------------------------------------------------//
-
-FPathFindingQuery::FPathFindingQuery()
-: NavData(NULL)
-, Owner(NULL)
-, StartLocation(FVector::ZeroVector)
-, EndLocation(FVector::ZeroVector)
-, NavDataFlags(0)
-{
-}
-
-FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter)
+FPathFindingQuery::FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter, FNavPathSharedPtr InPathInstanceToFill)
 : NavData(InNavData)
 , Owner(InOwner)
 , StartLocation(Start)
 , EndLocation(End)
 , QueryFilter(SourceQueryFilter)
+, PathInstanceToFill(InPathInstanceToFill)
+, NavDataFlags(0)
 {
 	if (SourceQueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
@@ -37,9 +29,25 @@ FPathFindingQuery::FPathFindingQuery(const FPathFindingQuery& Source)
 , StartLocation(Source.StartLocation)
 , EndLocation(Source.EndLocation)
 , QueryFilter(Source.QueryFilter)
+, PathInstanceToFill(Source.PathInstanceToFill)
 , NavDataFlags(Source.NavDataFlags)
 {
 	if (Source.QueryFilter.IsValid() == false && NavData.IsValid() == true)
+	{
+		QueryFilter = NavData->GetDefaultQueryFilter();
+	}
+}
+
+FPathFindingQuery::FPathFindingQuery(FNavPathSharedRef PathToRecalculate, const ANavigationData* NavDataOverride)
+: NavData(NavDataOverride != NULL ? NavDataOverride : PathToRecalculate->GetNavigationDataUsed())
+, Owner(PathToRecalculate->GetQuerier())
+, StartLocation(PathToRecalculate->GetPathFindingStartLocation())
+, EndLocation(PathToRecalculate->GetGoalLocation())
+, QueryFilter(PathToRecalculate->GetFilter())
+, PathInstanceToFill(PathToRecalculate)
+, NavDataFlags(0)
+{
+	if (QueryFilter.IsValid() == false && NavData.IsValid() == true)
 	{
 		QueryFilter = NavData->GetDefaultQueryFilter();
 	}
@@ -106,6 +114,7 @@ ANavigationData::ANavigationData(const class FPostConstructInitializeProperties&
 	bNetLoadOnClient = false;
 	bCanBeDamaged = false;
 	DefaultQueryFilter = MakeShareable(new FNavigationQueryFilter());
+	ObservedPathsTickInterval = 0.5;
 }
 
 ANavigationData::~ANavigationData()
@@ -175,6 +184,77 @@ void ANavigationData::PostLoad()
 void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
 	PurgeUnusedPaths();
+	if (NextObservedPathsTickInSeconds >= 0.f)
+	{
+		NextObservedPathsTickInSeconds -= DeltaTime;
+		if (NextObservedPathsTickInSeconds <= 0.f)
+		{
+			RepathRequests.Reserve(ObservedPaths.Num());
+
+			for (int32 PathIndex = ObservedPaths.Num() - 1; PathIndex >= 0; --PathIndex)
+			{
+				if (ObservedPaths[PathIndex].IsValid())
+				{
+					FNavPathSharedPtr SharedPath = ObservedPaths[PathIndex].Pin();
+					FNavigationPath* Path = SharedPath.Get();
+					EPathObservationResult::Type Result = Path->TickPathObservation();
+					switch (Result)
+					{
+					case EPathObservationResult::NoLongerObserving:
+						ObservedPaths.RemoveAtSwap(PathIndex, 1, /*bAllowShrinking=*/false);
+						break;
+
+					case EPathObservationResult::NoChange:
+						// do nothing
+						break;
+
+					case EPathObservationResult::RequestRepath:
+						RepathRequests.Add(FNavPathRecalculationRequest(SharedPath, ENavPathUpdateType::GoalMoved));
+						break;
+					
+					default:
+						check(false && "unhandled EPathObservationResult::Type in ANavigationData::TickActor");
+						break;
+					}
+				}
+				else
+				{
+					ObservedPaths.RemoveAtSwap(PathIndex, 1, /*bAllowShrinking=*/false);
+				}
+			}
+
+			if (ObservedPaths.Num() > 0)
+			{
+				NextObservedPathsTickInSeconds = ObservedPathsTickInterval;
+			}
+		}
+	}
+
+	if (RepathRequests.Num() > 0)
+	{
+		// @todo batch-process it!
+		for (auto RecalcRequest : RepathRequests)
+		{
+			FPathFindingQuery Query(RecalcRequest.Path);
+			// @todo consider supplying NavAgentPropertied from path's querier
+			const FPathFindingResult Result = FindPath(FNavAgentProperties(), Query.SetPathInstanceToUpdate(RecalcRequest.Path));
+
+			if (Result.IsSuccessful())
+			{
+				RecalcRequest.Path->DoneUpdating(RecalcRequest.Reason);
+				if (RecalcRequest.Reason == ENavPathUpdateType::NavigationChanged)
+				{
+					RegisterActivePath(RecalcRequest.Path);
+				}
+			}
+			else
+			{
+				RecalcRequest.Path->RePathFailed();
+			}
+		}
+
+		RepathRequests.Reset();
+	}
 }
 
 void ANavigationData::RerunConstructionScripts()

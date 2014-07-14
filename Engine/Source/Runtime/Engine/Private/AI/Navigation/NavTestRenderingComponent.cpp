@@ -178,10 +178,10 @@ public:
 	{
 		if (NavTestActor && NavTestActor->LastPath.IsValid())
 		{
-			for (int32 PointIndex = 0; PointIndex < NavTestActor->LastPath->PathPoints.Num(); PointIndex++)
+			for (int32 PointIndex = 0; PointIndex < NavTestActor->LastPath->GetPathPoints().Num(); PointIndex++)
 			{
-				PathPoints.Add(NavTestActor->LastPath->PathPoints[PointIndex].Location); 
-				PathPointFlags.Add(FString::Printf(TEXT("%d-%d"), PointIndex , FNavMeshNodeFlags(NavTestActor->LastPath->PathPoints[PointIndex].Flags).AreaFlags)); 
+				PathPoints.Add(NavTestActor->LastPath->GetPathPoints()[PointIndex].Location);
+				PathPointFlags.Add(FString::Printf(TEXT("%d-%d"), PointIndex, FNavMeshNodeFlags(NavTestActor->LastPath->GetPathPoints()[PointIndex].Flags).AreaFlags));
 			}
 		}
 	}
@@ -417,9 +417,9 @@ FBoxSphereBounds UNavTestRenderingComponent::CalcBounds(const FTransform & Local
 	
 		if (TestActor->LastPath.IsValid())
 		{
-			for (int32 PointIndex = 0; PointIndex < TestActor->LastPath->PathPoints.Num(); PointIndex++)
+			for (int32 PointIndex = 0; PointIndex < TestActor->LastPath->GetPathPoints().Num(); PointIndex++)
 			{
-				BoundingBox += TestActor->LastPath->PathPoints[PointIndex].Location;
+				BoundingBox += TestActor->LastPath->GetPathPoints()[PointIndex].Location;
 			}
 		}
 #if WITH_EDITORONLY_DATA && WITH_RECAST

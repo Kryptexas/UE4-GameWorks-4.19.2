@@ -24,6 +24,7 @@
 #include "AI/Navigation/NavLinkCustomInterface.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "AI/Navigation/NavRelevantComponent.h"
+#include "AI/Navigation/NavigationPath.h"
 
 static const uint32 INITIAL_ASYNC_QUERIES_SIZE = 32;
 static const uint32 REGISTRATION_QUEUE_SIZE = 16;	// and we'll not reallocate
@@ -877,6 +878,86 @@ void UNavigationSystem::SimpleMoveToLocation(AController* Controller, const FVec
 	}
 }
 
+UNavigationPath* UNavigationSystem::FindPathToActorSynchronously(UObject* WorldContext, const FVector& PathStart, AActor* GoalActor, float TetherDistance, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	if (GoalActor == NULL)
+	{
+		return NULL; 
+	}
+
+	INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(GoalActor);
+	UNavigationPath* GeneratedPath = FindPathToLocationSynchronously(WorldContext, PathStart, NavAgent ? NavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation(), PathfindingContext, FilterClass);
+	if (GeneratedPath != NULL && GeneratedPath->GetPath().IsValid() == true)
+	{
+		GeneratedPath->GetPath()->SetGoalActorObservation(*GoalActor, TetherDistance);
+	}
+
+	return GeneratedPath;
+}
+
+UNavigationPath* UNavigationSystem::FindPathToLocationSynchronously(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	UWorld* World = NULL;
+
+	if (WorldContext != NULL)
+	{
+		World = GEngine->GetWorldFromContextObject(WorldContext);
+	}
+	if (World == NULL && PathfindingContext != NULL)
+	{
+		World = GEngine->GetWorldFromContextObject(PathfindingContext);
+	}
+
+	UNavigationPath* ResultPath = NULL;
+
+	if (World != NULL && World->GetNavigationSystem() != NULL)
+	{
+		UNavigationSystem* NavSys = World->GetNavigationSystem();
+
+		ResultPath = NewObject<UNavigationPath>(NavSys);
+		FPathFindingQuery Query(PathfindingContext, NULL, PathStart, PathEnd);
+		bool bValidPathContext = false;
+		const ANavigationData* NavigationData = NULL;
+
+		if (PathfindingContext != NULL)
+		{
+			INavAgentInterface* NavAgent = InterfaceCast<INavAgentInterface>(PathfindingContext);
+			
+			if (NavAgent != NULL)
+			{
+				const FNavAgentProperties* AgentProps = NavAgent->GetNavAgentProperties();
+				if (AgentProps)
+				{
+					NavigationData = NavSys->GetNavDataForProps(*AgentProps);
+					bValidPathContext = true;
+				}
+			}
+			else if (Cast<ANavigationData>(PathfindingContext))
+			{
+				NavigationData = (ANavigationData*)PathfindingContext;
+				bValidPathContext = true;
+			}
+		}
+		if (bValidPathContext == false)
+		{
+			// just use default
+			NavigationData = NavSys->GetMainNavData();
+		}
+
+		check(NavigationData);
+		Query.NavData = NavigationData;		
+		Query.QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavigationData, FilterClass);
+
+		FPathFindingResult Result = NavSys->FindPathSync(Query, EPathFindingMode::Regular);
+		if (Result.IsSuccessful())
+		{
+			ResultPath->SetPath(Result.Path);
+		}
+	}
+
+	return ResultPath;
+}
+
 bool UNavigationSystem::NavigationRaycast(UObject* WorldContextObject, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass, AController* Querier)
 {
 	UWorld* World = NULL;
@@ -931,6 +1012,7 @@ ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProperties
 	return const_cast<ANavigationData*>(ConstThis->GetNavDataForProps(AgentProperties));
 }
 
+// @todo could optimize this by having "SupportedAgentIndex" in FNavAgentProperties
 const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProperties& AgentProperties) const
 {
 	if (SupportedAgents.Num() <= 1)

@@ -569,9 +569,10 @@ bool FLandscapeEditorCustomNodeBuilder_TargetLayers::ShouldFilterLayerInfo(const
 	return LayerInfo->LayerName != LayerName;
 }
 
-void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject(const UObject* Object, const TSharedRef<FLandscapeTargetListInfo> Target)
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnTargetLayerSetObject(const FAssetData& AssetData, const TSharedRef<FLandscapeTargetListInfo> Target)
 {
 	// Can't assign null to a layer
+	UObject* Object = AssetData.GetAsset();
 	if (Object == NULL)
 	{
 		return;

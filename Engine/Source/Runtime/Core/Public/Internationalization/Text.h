@@ -185,6 +185,16 @@ public:
 	 */
 	static FText FromString( FString String );
 
+	/**
+	 * Generate a culture invariant FText representing the passed in string
+	 */
+	static FText AsCultureInvariant( FString String );
+
+	/**
+	 * Generate a culture invariant FText representing the passed in FText
+	 */
+	static FText AsCultureInvariant( FText Text );
+
 	const FString& ToString() const;
 
 	/** Deep build of the source string for this FText, climbing the history hierarchy */

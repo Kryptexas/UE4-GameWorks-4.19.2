@@ -155,7 +155,7 @@ class AIMODULE_API UNavigationComponent : public UActorComponent, public INaviga
 	 *	Called when given path becomes invalid (via @see PathObserverDelegate)
 	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path
 	 */
-	void OnPathInvalid(FNavigationPath* InvalidatedPath);
+	void OnPathEvent(FNavigationPath* InvalidatedPath, ENavPathEvent::Type Event);
 
 	/** Called when nearby custom link changes its state */
 	virtual void OnCustomLinkBroadcast(class UNavLinkCustomComponent* NearbyLink);
@@ -261,7 +261,7 @@ protected:
 	/** if GoalActor moves move than this away from last point of Path Navigation Component will re-run path finding */
 	float RepathDistanceSq;
 
-	FNavigationPath::FPathObserverDelegate PathObserverDelegate;
+	FNavigationPath::FPathObserverDelegate::FDelegate PathObserverDelegate;
 
 	struct FDeferredRepath
 	{

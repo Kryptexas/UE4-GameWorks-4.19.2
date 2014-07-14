@@ -432,6 +432,15 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game")
 	static USaveGame* LoadGameFromSlot(const FString& SlotName, const int32 UserIndex);
 
+	/**
+	 * Delete a save game in a particular slot.
+	 *	@param SlotName			Name of save game slot to save to.
+	 *  @param UserIndex		For some platforms, master user index to identify the user doing the saving.
+	 *  @return True if a file was actually able to be deleted. use DoesSaveGameExist to distinguish between delete failures and failure due to file not existing.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game")
+	static bool DeleteGameInSlot(const FString& SlotName, const int32 UserIndex);
+
 	/** Returns the frame delta time in seconds adjusted by e.g. time dilation. */
 	UFUNCTION(BlueprintPure, Category = "Utilities|Time", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	static float GetWorldDeltaSeconds(UObject* WorldContextObject);

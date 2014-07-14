@@ -191,7 +191,7 @@ namespace PropertyCustomizationHelpers
 			.OnAssetSelected( OnAssetSelectedFromPicker );
 	}
 
-	TSharedRef<SWidget> MakeAssetPickerWithMenu( UObject* const InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose )
+	TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose )
 	{
 		return 
 			SNew( SPropertyMenuAssetPicker )
@@ -295,20 +295,20 @@ FString SObjectPropertyEntryBox::OnGetObjectPath() const
 	return StringReference;
 }
 
-void SObjectPropertyEntryBox::OnSetObject(const UObject* InObject)
+void SObjectPropertyEntryBox::OnSetObject(const FAssetData& AssetData)
 {
 	if( PropertyHandle.IsValid() && PropertyHandle->IsValidHandle() )
 	{
 		FString ObjectPathName = TEXT("None");
-		if(InObject)
+		if(AssetData.IsValid())
 		{
-			ObjectPathName = InObject->GetPathName();
+			ObjectPathName = AssetData.ObjectPath.ToString();
 		}
 
 		PropertyHandle->SetValueFromFormattedString(ObjectPathName);
 	}
 
-	OnObjectChanged.ExecuteIfBound(InObject);
+	OnObjectChanged.ExecuteIfBound(AssetData);
 }
 
 void SClassPropertyEntryBox::Construct(const FArguments& InArgs)
@@ -664,11 +664,11 @@ private:
 		}
 	}
 
-	void OnSetObject( const UObject* InAsset )
+	void OnSetObject( const FAssetData& AssetData )
 	{
 		const bool bReplaceAll = false;
 
-		UMaterialInterface* NewMaterial = Cast<UMaterialInterface>(const_cast<UObject*>(InAsset));
+		UMaterialInterface* NewMaterial = Cast<UMaterialInterface>(AssetData.GetAsset());
 		ReplaceMaterial( NewMaterial, bReplaceAll );
 	}
 

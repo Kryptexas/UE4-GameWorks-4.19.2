@@ -40,7 +40,7 @@ void FSlateSoundStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandl
 {
 }
 
-void FSlateSoundStructCustomization::OnObjectChanged(const UObject*)
+void FSlateSoundStructCustomization::OnObjectChanged(const FAssetData&)
 {
 	// The object has been updated in the editor, so strip out the legacy data now so that the two don't conflict
 	for(auto It = SlateSoundStructs.CreateConstIterator(); It; ++It)

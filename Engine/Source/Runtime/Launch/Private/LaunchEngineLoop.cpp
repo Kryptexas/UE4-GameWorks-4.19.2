@@ -589,8 +589,17 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 	}
 	else
 	{
-		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-		World = GameEngine->GetGameWorld();
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+
+		if (GameEngine)
+		{
+			World = GameEngine->GetGameWorld();
+		}
+		else
+		{
+			UE_LOG(LogInit, Error, TEXT("Failed to determine if OSS is server in PIE, OSS requests will fail"));
+			return false;
+		}
 	}
 
 	ENetMode NetMode = World ? World->GetNetMode() : NM_Standalone;

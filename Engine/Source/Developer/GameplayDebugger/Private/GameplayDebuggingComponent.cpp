@@ -270,7 +270,7 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		if (MyPC->GetViewTarget() != NULL && MyPC->GetViewTarget() != MyPC->GetPawn())
 		{
 			BestTarget = Cast<APawn>(MyPC->GetViewTarget());
-			if ((BestTarget && BestTarget->PlayerState && !BestTarget->PlayerState->bIsABot) || BestTarget->GetActorEnableCollision() == false)
+			if (BestTarget && ((BestTarget->PlayerState != NULL && BestTarget->PlayerState->bIsABot == false) || BestTarget->GetActorEnableCollision() == false))
 			{
 				BestTarget = NULL;
 			}
@@ -290,12 +290,14 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 		{
 			APawn* NewTarget = *Iterator;
 			//  NewTarget->GetActorEnableCollision() == false - HACK to get rid of pawns not relevant for us 
-			if (!NewTarget || NewTarget == MyPC->GetPawn() || (NewTarget->PlayerState && !NewTarget->PlayerState->bIsABot) || NewTarget->GetActorEnableCollision() == false)
+			if (NewTarget == NULL || NewTarget == MyPC->GetPawn() 
+				|| (NewTarget->PlayerState != NULL && NewTarget->PlayerState->bIsABot == false) 
+				|| NewTarget->GetActorEnableCollision() == false)
 			{
 				continue;
 			}
 			
-			if (BestTarget == NULL && NewTarget && (NewTarget != MyPC->GetPawn()))
+			if (BestTarget == NULL && (NewTarget != MyPC->GetPawn()))
 			{
 				// look for best controlled pawn target
 				const FVector AimDir = NewTarget->GetActorLocation() - CamLocation;
@@ -418,9 +420,9 @@ void UGameplayDebuggingComponent::CollectPathData()
 			if (!CurrentPath.HasSameObject(NewPath.Get()))
 			{
 				PathPoints.Reset();
-				for (int32 Index=0; Index < NewPath->PathPoints.Num(); ++Index)
+				for (int32 Index=0; Index < NewPath->GetPathPoints().Num(); ++Index)
 				{
-					PathPoints.Add( NewPath->PathPoints[Index].Location );
+					PathPoints.Add(NewPath->GetPathPoints()[Index].Location);
 				}
 				CurrentPath = NewPath;
 			}

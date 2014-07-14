@@ -705,6 +705,21 @@ FText FText::FromString( FString String )
 	return NewText;
 }
 
+FText FText::AsCultureInvariant( FString String )
+{
+	FText NewText = FText( String );
+	NewText.Flags |= ETextFlag::CultureInvariant;
+
+	return NewText;
+}
+
+FText FText::AsCultureInvariant( FText Text )
+{
+	FText NewText = FText( Text );
+	NewText.Flags |= ETextFlag::CultureInvariant;
+
+	return NewText;
+}
 
 const FString& FText::ToString() const
 {

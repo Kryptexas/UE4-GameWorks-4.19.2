@@ -60,13 +60,24 @@ FText UK2Node_FormatText::GetUniquePinName()
 	int32 i = 0;
 	while (true)
 	{
-		NewPinName = FText::FromString(FString::FromInt(i++));
+		NewPinName = FText::AsCultureInvariant(FString::FromInt(i++));
 		if (!FindPin(NewPinName.ToString()))
 		{
 			break;
 		}
 	}
 	return NewPinName;
+}
+
+void UK2Node_FormatText::PostLoad()
+{
+	// Pin Names must not be localized - they are provided to the format message as is.
+	for(FText& PinName : PinNames)
+	{
+		PinName = FText::AsCultureInvariant(PinName);
+	}
+
+	Super::PostLoad();
 }
 
 void UK2Node_FormatText::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
@@ -123,7 +134,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 			{
 				CreatePin(EGPD_Input, K2Schema->PC_Text, TEXT(""), NULL, false, false, *It);
 			}
-			PinNames.Add(FText::FromString(*It));
+			PinNames.Add(FText::AsCultureInvariant(*It));
 		}
 
 		for(auto It = Pins.CreateConstIterator(); It; ++It)
@@ -204,12 +215,12 @@ void UK2Node_FormatText::ExpandNode(class FKismetCompilerContext& CompilerContex
 			UEdGraphPin* ArgumentPin = FindArgumentPin(PinNames[ArgIdx]);
 
 			// Spawn a "Make Struct" node to create the struct needed for formatting the text.
-			UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph); //SourceGraph->CreateBlankNode<UK2Node_CallFunction>();
+			UK2Node_MakeStruct* PinMakeStruct = CompilerContext.SpawnIntermediateNode<UK2Node_MakeStruct>(this, SourceGraph);
 			PinMakeStruct->StructType = FFormatTextArgument::StaticStruct();
 			PinMakeStruct->AllocateDefaultPins();
 
 			// Set the struct's "ArgumentName" pin literal to be the argument pin's name.
-			PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::FromString(ArgumentPin->PinName));
+			PinMakeStruct->GetSchema()->TrySetDefaultText(*PinMakeStruct->FindPin("ArgumentName"), FText::AsCultureInvariant(ArgumentPin->PinName));
 
 			// Move the connection of the argument pin to the struct's "TextValue" pin, this will move the literal value if present.
 			CompilerContext.MovePinLinksToIntermediate(*ArgumentPin, *PinMakeStruct->FindPin("TextValue"));

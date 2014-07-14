@@ -490,6 +490,8 @@ public:
 
 	virtual class UWorld* GetWorldBeingDebugged();
 
+	/** Renames only the generated classes. Should only be used internally or when testing for rename. */
+	virtual bool RenameGeneratedClasses(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None);
 
 	// Begin UObject interface (WITH_EDITOR)
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;

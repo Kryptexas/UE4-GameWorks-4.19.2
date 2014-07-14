@@ -133,6 +133,17 @@ void UBehaviorTreeComponent::StopTree()
 	// clear current state, don't touch debugger data
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
+		FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
+
+		// notify active nodes
+		for (int32 AuxIndex = 0; AuxIndex < InstanceInfo.ActiveAuxNodes.Num(); AuxIndex++)
+		{
+			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
+			uint8* NodeMemory = AuxNode->GetNodeMemory<uint8>(InstanceInfo);
+			AuxNode->WrappedOnCeaseRelevant(this, NodeMemory);
+		}
+
+		// clear instance
 		InstanceStack[InstanceIndex].Cleanup(this);
 	}
 

@@ -824,9 +824,9 @@ bool SParentPlayerTreeRow::OnShouldFilterAsset(const FAssetData& AssetData)
 	return true;
 }
 
-void SParentPlayerTreeRow::OnAssetSelected(const UObject* Obj)
+void SParentPlayerTreeRow::OnAssetSelected(const FAssetData& AssetData)
 {
-	Item->Override->NewAsset = Cast<UAnimationAsset>(const_cast<UObject*>(Obj));
+	Item->Override->NewAsset = Cast<UAnimationAsset>(AssetData.GetAsset());
 	EditorObject->ApplyOverrideToBlueprint(*Item->Override);
 }
 

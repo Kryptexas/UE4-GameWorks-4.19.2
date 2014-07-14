@@ -255,30 +255,40 @@ void UBlueprint::Serialize(FArchive& Ar)
 
 #if WITH_EDITOR
 
-bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+bool UBlueprint::RenameGeneratedClasses( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	// Move generated class to the new package, to create redirector
 	FName SkelClassName, GenClassName;
 	GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
 
 	UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
-	if(GeneratedClass != NULL)
+	if (GeneratedClass != NULL)
 	{
 		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if(!bMovedOK)
+		if (!bMovedOK)
 		{
 			return false;
 		}
 	}
 
 	// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
-	if(SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
+	if (SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
 	{
 		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if(!bMovedOK)
+		if (!bMovedOK)
 		{
 			return false;
 		}
+	}
+
+	return true;
+}
+
+bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+{
+	// Move generated class to the new package, to create redirector
+	if ( !RenameGeneratedClasses(InName, NewOuter, Flags) )
+	{
+		return false;
 	}
 
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );

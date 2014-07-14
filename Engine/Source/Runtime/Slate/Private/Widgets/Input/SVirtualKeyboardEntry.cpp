@@ -206,6 +206,10 @@ int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const F
 	else
 	{
 		// Draw the text
+#if 0
+		// NOTE: this code is causing the text to not be visible at all once entered on device.
+		// I've replaced it with the (working) hint-text version for now (without scrolling support)
+		// until a real fix can be found. -dnikdel
 
 		// Only draw the text that's potentially visible
 		const float ScrollAreaLeft = ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
@@ -229,6 +233,19 @@ int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const F
 			DrawEffects,                     // Effects to use
 			ColorAndOpacitySRGB              // Color
 		);
+#else
+		// Draw the whole text for now
+		FSlateDrawElement::MakeText(
+			OutDrawElements,
+			LayerId + TextLayer,
+			AllottedGeometry.ToPaintGeometry(FVector2D(0, DrawPositionY), AllottedGeometry.Size),
+			VisibleText,           // Text
+			FontInfo,              // Font information (font name, size)
+			MyClippingRect,        // Clipping rect
+			DrawEffects,           // Effects to use
+			ColorAndOpacitySRGB    // Color
+			);
+#endif
 	}
 	
 	return LayerId + TextLayer;

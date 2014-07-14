@@ -18,13 +18,19 @@
 
 #define NAV_USE_MAIN_NAVIGATION_DATA NULL
 
+class UNavigationPath;
+class ANavigationData;
+class UNavigationQueryFilter;
+class UWorld;
+class UCrowdManager;
+
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 
 /** delegate to let interested parties know that new nav area class has been registered */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const class UClass* /*AreaClass*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const UClass* /*AreaClass*/);
 
 /** Delegate to let interested parties know that Nav Data has been registered */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, class ANavigationData*, NavData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, ANavigationData*, NavData);
 
 namespace NavigationDebugDrawing
 {
@@ -43,14 +49,11 @@ namespace FNavigationSystem
 		SimulationMode,
 		PIEMode,
 	};
-}
-
-namespace FNavigationSystem
-{
+	
 	/** 
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
 	 */
-	typedef class ANavigationData* (*FNavigationDataInstanceCreator)(class UWorld*, const FNavDataConfig&);
+	typedef ANavigationData* (*FNavigationDataInstanceCreator)(UWorld*, const FNavDataConfig&);
 }
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
@@ -131,10 +134,10 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	float DirtyAreasUpdateFreq;
 
 	UPROPERTY()
-	TArray<class ANavigationData*> NavDataSet;
+	TArray<ANavigationData*> NavDataSet;
 
 	UPROPERTY(transient)
-	TArray<class ANavigationData*> NavDataRegistrationQueue;
+	TArray<ANavigationData*> NavDataRegistrationQueue;
 
 	TSet<FNavigationDirtyElement> PendingOctreeUpdates;
 
@@ -142,7 +145,7 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	FOnNavDataRegistered OnNavDataRegisteredEvent;
 
 private:
-	TWeakObjectPtr<class UCrowdManager> CrowdManager;
+	TWeakObjectPtr<UCrowdManager> CrowdManager;
 
 	// required navigation data 
 	UPROPERTY(config)
@@ -157,21 +160,21 @@ public:
 	//----------------------------------------------------------------------//
 	/** Project a point onto the NavigationData */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, class ANavigationData* NavData = NULL, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 	
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector GetRandomPoint(UObject* WorldContext, class ANavigationData* NavData = NULL, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	static FVector GetRandomPoint(UObject* WorldContext, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, class ANavigationData* NavData = NULL, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution. Consider using UPathFollowingComponent::GetRemainingPathCost instead */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static ENavigationQueryResult::Type GetPathCost(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathCost, class ANavigationData* NavData = NULL, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	static ENavigationQueryResult::Type GetPathCost(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathCost, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	/** Potentially expensive. Use with caution */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
-	static ENavigationQueryResult::Type GetPathLength(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathLength, class ANavigationData* NavData = NULL, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL);
+	static ENavigationQueryResult::Type GetPathLength(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, float& PathLength, class ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
 	static bool IsNavigationBeingBuilt(UObject* WorldContext);
@@ -182,12 +185,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	static void SimpleMoveToLocation(class AController* Controller, const FVector& Goal);
 
+	/** Finds path instantly, in a FindPath Synchronously. 
+	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	static UNavigationPath* FindPathToLocationSynchronously(UObject* WorldContext, const FVector& PathStart, const FVector& PathEnd, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+
+	/** Finds path instantly, in a FindPath Synchronously. Main advantage over FindPathToLocationSynchronously is that 
+	 *	the resulting path with automatically get updated if goal actor moves more then TetherDistance away from last path node
+	 *	@param PathfindingContext could be one of following: NavigationData (like Navmesh actor), Pawn or Controller. This parameter determines parameters of specific pathfinding query */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
+	static UNavigationPath* FindPathToActorSynchronously(UObject* WorldContext, const FVector& PathStart, AActor* GoalActor, float TetherDistance = 50.f, AActor* PathfindingContext = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
+
 	/** Performs navigation raycast on NavigationData appropriate for given Querier.
 	 *	@param Querier if not passed default navigation data will be used
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
 	 *	@return true if line from RayStart to RayEnd was obstructed. Also, true when no navigation data present */
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ))
-	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<class UNavigationQueryFilter> FilterClass = NULL, class AController* Querier = NULL);
+	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, class AController* Querier = NULL);
 
 	/** delegate type for events that dirty the navigation data ( Params: const FBox& DirtyBounds ) */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavigationDirty, const FBox&);

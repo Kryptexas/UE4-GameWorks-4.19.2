@@ -8338,9 +8338,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(SourceWorldPackage, WorldContext.PIEInstance);
 
 				// Set the world type in the static map, so that UWorld::PostLoad can set the world type
-				UWorld::WorldTypePreLoadMap.FindOrAdd( FName(*PIEPackageName) ) = WorldContext.WorldType;
+				const FName PIEPackageFName = FName(*PIEPackageName);
+				UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
 
 				WorldPackage = LoadPackage(CreatePackage(NULL, *PIEPackageName), *SourceWorldPackage, LOAD_None);
+
+				// Clean up the world type list now that PostLoad has occurred
+				UWorld::WorldTypePreLoadMap.Remove( PIEPackageFName );
+
 				if (WorldPackage == nullptr)
 				{
 					Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
@@ -8385,7 +8390,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	if (NewWorld == NULL)
 	{
 		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
-		UWorld::WorldTypePreLoadMap.FindOrAdd( FName(*URL.Map) ) = WorldContext.WorldType;
+		const FName URLMapFName = FName(*URL.Map);
+		UWorld::WorldTypePreLoadMap.FindOrAdd( URLMapFName ) = WorldContext.WorldType;
 
 		// See if the level is already in memory
 		WorldPackage = FindPackage(MapOuter, *URL.Map);
@@ -8395,6 +8401,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			WorldPackage = LoadPackage(MapOuter, *URL.Map, (WorldContext.WorldType == EWorldType::PIE ? LOAD_PackageForPIE : LOAD_None));
 		}
+
+		// Clean up the world type list now that PostLoad has occurred
+		UWorld::WorldTypePreLoadMap.Remove( URLMapFName );
 
 		if( WorldPackage == NULL )
 		{
