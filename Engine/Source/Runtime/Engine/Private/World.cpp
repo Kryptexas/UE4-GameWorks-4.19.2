@@ -5018,16 +5018,19 @@ void UWorld::ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel != FeatureLevel)
 	{
-		Scene->Release();
-		GetRendererModule().RemoveScene(Scene);
-
 		FeatureLevel = InFeatureLevel;
 
-		Scene = GetRendererModule().AllocateScene(this, bRequiresHitProxies, InFeatureLevel);
+		if (Scene)
+		{
+			Scene->Release();
+			GetRendererModule().RemoveScene(Scene);
 
- 		FFXSystemInterface::Destroy(FXSystem);
- 		FXSystem = FFXSystemInterface::Create(InFeatureLevel);
- 		Scene->SetFXSystem(FXSystem);
+			Scene = GetRendererModule().AllocateScene(this, bRequiresHitProxies, InFeatureLevel);
+
+			FFXSystemInterface::Destroy(FXSystem);
+			FXSystem = FFXSystemInterface::Create(InFeatureLevel);
+			Scene->SetFXSystem(FXSystem);
+		}
 	}
 }
 

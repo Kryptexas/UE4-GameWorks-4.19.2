@@ -792,12 +792,22 @@ struct FGlobalBoundShaderStateWorkArea
 	}
 };
 
-typedef FGlobalBoundShaderStateWorkArea* FGlobalBoundShaderState;
+struct FGlobalBoundShaderState
+{
+public:
+
+	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
+	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
+
+private:
+
+	FGlobalBoundShaderStateWorkArea* WorkAreas[ERHIFeatureLevel::Num];
+};
 
 struct FRHICommandSetGlobalBoundShaderState : public FRHICommand
 {
 	FGlobalBoundShaderState GlobalBoundShaderState;
-	FORCEINLINE_DEBUGGABLE void Set(FGlobalBoundShaderState InGlobalBoundShaderState)
+	FORCEINLINE_DEBUGGABLE void Set(FGlobalBoundShaderState& InGlobalBoundShaderState)
 	{
 		Type = ERCT_SetGlobalBoundShaderState;
 		GlobalBoundShaderState = InGlobalBoundShaderState;
@@ -1046,7 +1056,7 @@ public:
 	}
 
 	FORCEINLINE_DEBUGGABLE void BuildAndSetGlobalBoundShaderState(
-		void(*InSetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState BoundShaderState),
+		void(*InSetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState),
 		FGlobalBoundShaderState& GlobalBoundShaderState,
 		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
 		FShader* VertexShader,
@@ -1055,7 +1065,7 @@ public:
 		)
 	{
 		SetGlobalBoundShaderState_InternalPtr = InSetGlobalBoundShaderState_InternalPtr; // total hack to work around module issues
-		if (!GlobalBoundShaderState)
+		if (!GlobalBoundShaderState.Get())
 		{
 			FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
 			NewGlobalBoundShaderState->Args.VertexDeclarationRHI = VertexDeclarationRHI;
@@ -1064,13 +1074,13 @@ public:
 			NewGlobalBoundShaderState->Args.GeometryShader = GeometryShader;
 			FPlatformMisc::MemoryBarrier();
 
-			FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&GlobalBoundShaderState, NewGlobalBoundShaderState, nullptr);
+			FGlobalBoundShaderStateWorkArea* OldGlobalBoundShaderState = (FGlobalBoundShaderStateWorkArea*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)GlobalBoundShaderState.GetPtr(), NewGlobalBoundShaderState, nullptr);
 
 			if (OldGlobalBoundShaderState != nullptr)
 			{
 				//we lost
 				delete NewGlobalBoundShaderState;
-				check(OldGlobalBoundShaderState == GlobalBoundShaderState);
+				check(OldGlobalBoundShaderState == GlobalBoundShaderState.Get());
 			}
 			else
 			{
@@ -1085,10 +1095,10 @@ public:
 			}
 		}
 		check(
-			VertexDeclarationRHI == GlobalBoundShaderState->Args.VertexDeclarationRHI &&
-			VertexShader == GlobalBoundShaderState->Args.VertexShader &&
-			PixelShader == GlobalBoundShaderState->Args.PixelShader &&
-			GeometryShader == GlobalBoundShaderState->Args.GeometryShader
+			VertexDeclarationRHI == GlobalBoundShaderState.Get()->Args.VertexDeclarationRHI &&
+			VertexShader == GlobalBoundShaderState.Get()->Args.VertexShader &&
+			PixelShader == GlobalBoundShaderState.Get()->Args.PixelShader &&
+			GeometryShader == GlobalBoundShaderState.Get()->Args.GeometryShader
 			);
 		if (Bypass())
 		{
@@ -1609,7 +1619,7 @@ private:
 	uint32 NumCommands;
 	uint32 UID;
 	static FThreadSafeCounter UIDCounter;
-	void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState BoundShaderState);
+	void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState);
 
 
 	FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)

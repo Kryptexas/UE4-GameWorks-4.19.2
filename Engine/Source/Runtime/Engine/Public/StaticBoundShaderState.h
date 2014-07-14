@@ -57,7 +57,7 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
 * @param BoundShaderState			- global bound shader state to initialize and set
 */
 
-extern ENGINE_API void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState BoundShaderState);
+extern ENGINE_API void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& BoundShaderState);
 
 
 /**

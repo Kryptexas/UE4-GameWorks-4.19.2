@@ -92,26 +92,26 @@ void FGlobalBoundShaderStateResource::ReleaseRHI()
 	BoundShaderState.SafeRelease();
 }
 
-void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState GlobalBoundShaderState)
+void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShaderState)
 {
 	// Check for unset uniform buffer parameters
 	// Technically you can set uniform buffer parameters after calling RHISetBoundShaderState, but this is the most global place to check for unset parameters
-	GlobalBoundShaderState->Args.VertexShader->VerifyBoundUniformBufferParameters();
-	GlobalBoundShaderState->Args.PixelShader->VerifyBoundUniformBufferParameters();
-	GlobalBoundShaderState->Args.GeometryShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState.Get()->Args.VertexShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState.Get()->Args.PixelShader->VerifyBoundUniformBufferParameters();
+	GlobalBoundShaderState.Get()->Args.GeometryShader->VerifyBoundUniformBufferParameters();
 
-	FGlobalBoundShaderState_Internal* BSS = GlobalBoundShaderState->BSS;
+	FGlobalBoundShaderState_Internal* BSS = GlobalBoundShaderState.Get()->BSS;
 	if (!BSS)
 	{
 		BSS = new FGlobalBoundShaderState_Internal(); // these are simply leaked and never freed
-		GlobalBoundShaderState->BSS = BSS;
+		GlobalBoundShaderState.Get()->BSS = BSS;
 	}
 
 	SetBoundShaderState_Internal(
 		BSS->GetInitializedRHI(
-			GlobalBoundShaderState->Args.VertexDeclarationRHI,
-			GETSAFERHISHADER_VERTEX(GlobalBoundShaderState->Args.VertexShader),
-			GETSAFERHISHADER_PIXEL(GlobalBoundShaderState->Args.PixelShader),
-			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState->Args.GeometryShader))
+			GlobalBoundShaderState.Get()->Args.VertexDeclarationRHI,
+			GETSAFERHISHADER_VERTEX(GlobalBoundShaderState.Get()->Args.VertexShader),
+			GETSAFERHISHADER_PIXEL(GlobalBoundShaderState.Get()->Args.PixelShader),
+			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState.Get()->Args.GeometryShader))
 		);
 }
