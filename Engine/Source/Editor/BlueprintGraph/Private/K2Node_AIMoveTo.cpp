@@ -6,6 +6,7 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "Blueprint/AIAsyncTaskBlueprintProxy.h"
 #include "K2Node_AIMoveTo.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"
 
@@ -17,9 +18,9 @@ UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializePropertie
 	ProxyClass = UAIAsyncTaskBlueprintProxy::StaticClass();
 }
 
-FString UK2Node_AIMoveTo::GetCategoryName()
+FText UK2Node_AIMoveTo::GetMenuCategory() const
 {
-	return TEXT("AI");
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Ai);
 }
 
 FString UK2Node_AIMoveTo::GetTooltip() const

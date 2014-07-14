@@ -6,6 +6,7 @@
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 #include "K2ActionMenuBuilder.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
@@ -30,12 +31,6 @@ FText UK2Node_BaseAsyncTask::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(FunctionToolTipText);
 }
 
-FString UK2Node_BaseAsyncTask::GetCategoryName()
-{
-	const FString GenericFunctionCategory = LOCTEXT("FunctionCategory", "Call Function").ToString();
-	return UK2Node_CallFunction::GetDefaultCategoryForFunction(GetFactoryFunction(), GenericFunctionCategory);
-}
-
 void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -50,7 +45,7 @@ void UK2Node_BaseAsyncTask::GetMenuEntries(FGraphContextMenuBuilder& ContextMenu
 
 TSharedPtr<FEdGraphSchemaAction_K2NewNode> UK2Node_BaseAsyncTask::CreateDefaultMenuEntry(UK2Node_BaseAsyncTask* NodeTemplate, FGraphContextMenuBuilder& ContextMenuBuilder) const
 {
-	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, NodeTemplate->GetCategoryName(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, NodeTemplate->GetMenuCategory().ToString(), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
 	
 	NodeAction->NodeTemplate = NodeTemplate;
 
@@ -358,9 +353,23 @@ bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruc
 }
 
 FName UK2Node_BaseAsyncTask::GetCornerIcon() const
-	{
+{
 	return TEXT("Graph.Latent.LatentIcon");
-	}
+}
+
+FText UK2Node_BaseAsyncTask::GetMenuCategory() const
+{	
+	UFunction* TargetFunction = GetFactoryFunction();
+	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, TEXT("Call Function")));
+}
+
+void UK2Node_BaseAsyncTask::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+	
+	ActionListOut.Add(NodeSpawner);
+}
 
 UFunction* UK2Node_BaseAsyncTask::GetFactoryFunction() const
 {

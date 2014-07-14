@@ -55,8 +55,13 @@ UBlueprintFunctionNodeSpawner::UBlueprintFunctionNodeSpawner(class FPostConstruc
 //------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintFunctionNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 {
-	UK2Node_CallFunction* NewNode = CastChecked<UK2Node_CallFunction>(Super::Invoke(ParentGraph));
-	NewNode->SetFromFunction(Function);
+	UEdGraphNode* NewNode = Super::Invoke(ParentGraph);
+	// user could have changed the node class (to something like
+	// UK2Node_BaseAsyncTask, which also wraps a function)
+	if (UK2Node_CallFunction* FuncNode = Cast<UK2Node_CallFunction>(NewNode))
+	{
+		FuncNode->SetFromFunction(Function);
+	}
 	
 	bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
 	if (CustomizeNodeDelegate.IsBound())

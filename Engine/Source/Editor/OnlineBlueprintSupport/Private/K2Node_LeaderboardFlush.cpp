@@ -25,9 +25,9 @@ FText UK2Node_LeaderboardFlush::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	return LOCTEXT("FlushLeaderboards", "Flush Leaderboards");
 }
 
-FString UK2Node_LeaderboardFlush::GetCategoryName()
+FText UK2Node_LeaderboardFlush::GetMenuCategory() const
 {
-	return TEXT("Online|Leaderboard");
+	return LOCTEXT("LeaderboardFlushCategory", "Online|Leaderboard");
 }
 
 #undef LOCTEXT_NAMESPACE

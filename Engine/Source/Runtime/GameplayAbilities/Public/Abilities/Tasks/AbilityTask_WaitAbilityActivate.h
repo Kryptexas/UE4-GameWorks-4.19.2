@@ -26,7 +26,7 @@ class UAbilityTask_WaitAbilityActivate : public UAbilityTask
 	void OnAbilityActivate(UGameplayAbility *ActivatedAbility);
 
 	/** Wait until a new ability (of the same or different type) is activated. */
-	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
+	UFUNCTION(BlueprintCallable, Category=Abilities, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitAbilityActivate* WaitForAbilityActivate(UObject* WorldContextObject, FGameplayTag WithTag, FGameplayTag WithoutTag);
 
 	FGameplayTag WithTag;
