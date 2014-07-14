@@ -1420,15 +1420,19 @@ void FLevelEditorActionCallbacks::OnApplyMaterialToSurface()
 
 void FLevelEditorActionCallbacks::OnSelectAllLights()
 {
+	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	// Select all light actors.
 	for( FActorIterator It(GetWorld()); It; ++It )
 	{
 		ALight* Light = Cast<ALight>(*It);
 		if( Light )
 		{
-			GUnrealEd->SelectActor( Light, true, true, false );
+			GUnrealEd->SelectActor( Light, true, false, false );
 		}
 	}
+
+	GEditor->GetSelectedActors()->EndBatchSelectOperation();
+
 }
 
 void FLevelEditorActionCallbacks::OnSelectStationaryLightsExceedingOverlap()
