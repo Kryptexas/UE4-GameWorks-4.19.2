@@ -80,6 +80,7 @@ public class Vorbis : ModuleRules
             if (Target.IsMonolithic)
             {
                 PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbis.a");
+                PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisfile.a");
             }
             else
             {
