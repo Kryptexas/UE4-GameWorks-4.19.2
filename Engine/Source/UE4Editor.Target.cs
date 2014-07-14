@@ -106,7 +106,7 @@ public class UE4EditorTarget : TargetRules
 
         NonCodeProjectNames.Add("BlackJack", MobilePlats);
         NonCodeProjectNames.Add("MemoryGame", MobilePlats);
-        NonCodeProjectNames.Add("TappyChicken", MobilePlats);
+		NonCodeProjectNames.Add("TappyChicken", MobilePlats);
         NonCodeProjectNames.Add("SwingNinja", MobilePlats);
         NonCodeProjectNames.Add("MobileTemple", MobilePlats);
         NonCodeProjectNames.Add("AnimStarterPack", MobilePlats);

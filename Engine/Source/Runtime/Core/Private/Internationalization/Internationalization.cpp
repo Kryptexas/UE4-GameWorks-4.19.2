@@ -272,7 +272,7 @@ void FInternationalization::Initialize()
 	}
 	if( !FileManager.DirectoryExists(*DataDirectory) )
 	{
-		FString DataDirectory = FPaths::EngineContentDir() / DataDirectoryRelativeToContent; // Try engine content directory.
+		DataDirectory = FPaths::EngineContentDir() / DataDirectoryRelativeToContent; // Try engine content directory.
 	}
 	if( !FileManager.DirectoryExists(*DataDirectory) )
 	{
