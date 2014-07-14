@@ -4,6 +4,10 @@
 #include "K2Node_InputKeyEvent.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "UK2Node_InputKey"
 
 UK2Node_InputKey::UK2Node_InputKey(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -247,3 +251,52 @@ void UK2Node_InputKey::ExpandNode(FKismetCompilerContext& CompilerContext, UEdGr
 		CreateInputKeyEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
 	}
 }
+
+void UK2Node_InputKey::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FKey> AllKeys;
+	EKeys::GetAllKeys(AllKeys);
+
+	for (FKey const Key : AllKeys)
+	{
+		// these will be handled by UK2Node_GetInputAxisKeyValue and UK2Node_GetInputVectorAxisValue respectively
+		if (!Key.IsBindableInBlueprints() || Key.IsFloatAxis() || Key.IsVectorAxis())
+		{
+			continue;
+		}
+
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+		{
+			UK2Node_InputKey* InputNode = CastChecked<UK2Node_InputKey>(NewNode);
+			InputNode->InputKey = Key;
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_InputKey::GetMenuCategory() const
+{
+	FText SubCategory;
+	if (InputKey.IsGamepadKey())
+	{
+		SubCategory = LOCTEXT("GamepadCategory", "Gamepad Events");
+	}
+	else if (InputKey.IsMouseButton())
+	{
+		SubCategory = LOCTEXT("MouseCategory", "Mouse Events");
+	}
+	else
+	{
+		SubCategory = LOCTEXT("KeyEventsCategory", "Key Events");
+	}
+
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+
+}
+
+#undef LOCTEXT_NAMESPACE

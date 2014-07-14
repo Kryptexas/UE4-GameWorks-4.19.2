@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_InputVectorAxisEvent.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
 
 UK2Node_InputVectorAxisEvent::UK2Node_InputVectorAxisEvent(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -46,4 +47,30 @@ void UK2Node_InputVectorAxisEvent::RegisterDynamicBinding(UDynamicBlueprintBindi
 	Binding.FunctionNameToBind = CustomFunctionName;
 
 	InputVectorAxisBindingObject->InputAxisKeyDelegateBindings.Add(Binding);
+}
+
+void UK2Node_InputVectorAxisEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FKey> AllKeys;
+	EKeys::GetAllKeys(AllKeys);
+	
+	for (FKey const Key : AllKeys)
+	{
+		if (!Key.IsBindableInBlueprints() || !Key.IsVectorAxis())
+		{
+			continue;
+		}
+		
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+		
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+		{
+			UK2Node_InputAxisKeyEvent* InputNode = CastChecked<UK2Node_InputAxisKeyEvent>(NewNode);
+			InputNode->Initialize(Key);
+		};
+		
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
+		ActionListOut.Add(NodeSpawner);
+	}
 }

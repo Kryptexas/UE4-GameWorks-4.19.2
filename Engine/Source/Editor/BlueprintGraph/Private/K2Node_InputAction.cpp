@@ -4,6 +4,10 @@
 #include "K2Node_InputActionEvent.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_InputAction"
 
 UK2Node_InputAction::UK2Node_InputAction(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -42,7 +46,14 @@ FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("InputActionName"), FText::FromName(InputActionName));
-	return FText::Format(NSLOCTEXT("K2Node", "InputAction_Name", "InputAction {InputActionName}"), Args);
+
+	FText LocFormat = NSLOCTEXT("K2Node", "InputAction_Name", "InputAction {InputActionName}");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		LocFormat = NSLOCTEXT("K2Node", "InputAction_ListTitle", "{InputActionName}");
+	}
+
+	return FText::Format(LocFormat, Args);
 }
 
 FString UK2Node_InputAction::GetTooltip() const
@@ -109,3 +120,31 @@ void UK2Node_InputAction::ExpandNode(FKismetCompilerContext& CompilerContext, UE
 		CreateInputActionEvent(CompilerContext, SourceGraph, GetReleasedPin(), IE_Released);
 	}
 }
+
+void UK2Node_InputAction::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FName> ActionNames;
+	GetDefault<UInputSettings>()->GetActionNames(ActionNames);
+
+	for (FName const InputActionName : ActionNames)
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName ActionName)
+		{
+			UK2Node_InputAction* InputNode = CastChecked<UK2Node_InputAction>(NewNode);
+			InputNode->InputActionName = ActionName;
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputActionName);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_InputAction::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Action Events"));
+}
+
+#undef LOCTEXT_NAMESPACE

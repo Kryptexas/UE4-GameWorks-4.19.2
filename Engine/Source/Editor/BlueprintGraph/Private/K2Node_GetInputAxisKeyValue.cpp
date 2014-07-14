@@ -4,6 +4,8 @@
 #include "K2Node_GetInputAxisKeyValue.h"
 #include "CompilerResultsLog.h"
 
+#define LOCTEXT_NAMESPACE "K2Node_GetInputAxisKeyValue"
+
 UK2Node_GetInputAxisKeyValue::UK2Node_GetInputAxisKeyValue(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -28,7 +30,13 @@ FText UK2Node_GetInputAxisKeyValue::GetNodeTitle(ENodeTitleType::Type TitleType)
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("AxisKey"), InputAxisKey.GetDisplayName());
-	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}"), Args);
+	
+	FText TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_Name", "Get {AxisKey}");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		TitleFormat = NSLOCTEXT("K2Node", "GetInputAxisKey_ListTitle", "{AxisKey}");
+	}
+	return FText::Format(TitleFormat, Args);
 }
 
 FString UK2Node_GetInputAxisKeyValue::GetTooltip() const
@@ -88,3 +96,51 @@ FName UK2Node_GetInputAxisKeyValue::GetPaletteIcon(FLinearColor& OutColor) const
 		return TEXT("GraphEditor.KeyEvent_16x");
 	}
 }
+
+
+void UK2Node_GetInputAxisKeyValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FKey> AllKeys;
+	EKeys::GetAllKeys(AllKeys);
+	
+	for (FKey const Key : AllKeys)
+	{
+		if (!Key.IsBindableInBlueprints() || !Key.IsFloatAxis())
+		{
+			continue;
+		}
+		
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+		
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+		{
+			UK2Node_GetInputAxisKeyValue* InputNode = CastChecked<UK2Node_GetInputAxisKeyValue>(NewNode);
+			InputNode->Initialize(Key);
+		};
+		
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_GetInputAxisKeyValue::GetMenuCategory() const
+{
+	FText SubCategory;
+	if (InputAxisKey.IsGamepadKey())
+	{
+		SubCategory = LOCTEXT("GamepadSubCategory", "Gamepad Values");
+	}
+	else if (InputAxisKey.IsMouseButton())
+	{
+		SubCategory = LOCTEXT("MouseSubCategory", "Mouse Values");
+	}
+	else
+	{
+		SubCategory = LOCTEXT("KeySubCategory", "Key Values");
+	}
+	
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+}
+
+#undef LOCTEXT_NAMESPACE
