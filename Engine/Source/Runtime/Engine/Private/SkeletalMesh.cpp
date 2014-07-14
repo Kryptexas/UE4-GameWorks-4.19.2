@@ -1708,13 +1708,12 @@ FreeSkeletalMeshBuffersSinkCallback
 
 void FreeSkeletalMeshBuffersSinkCallback()
 {
-	FlushRenderingCommands();
-
 	// If r.FreeSkeletalMeshBuffers==1 then CPU buffer copies are to be released.
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FreeSkeletalMeshBuffers"));
 	bool bFreeSkeletalMeshBuffers = CVar->GetValueOnGameThread() == 1;
 	if(bFreeSkeletalMeshBuffers)
 	{
+		FlushRenderingCommands();
 		for (TObjectIterator<USkeletalMesh> It;It;++It)
 		{
 			It->ReleaseCPUResources();
