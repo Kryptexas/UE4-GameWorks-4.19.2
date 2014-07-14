@@ -6,6 +6,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
 #include "K2Node_EnumEquality.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 UK2Node_EnumEquality::UK2Node_EnumEquality(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -235,4 +237,17 @@ void UK2Node_EnumEquality::ExpandNode(class FKismetCompilerContext& CompilerCont
 		// Break all links to the Select node so it goes away for at scheduling time
 		BreakAllNodeLinks();
 	}
+}
+
+void UK2Node_EnumEquality::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+	
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_EnumEquality::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Enum);
 }

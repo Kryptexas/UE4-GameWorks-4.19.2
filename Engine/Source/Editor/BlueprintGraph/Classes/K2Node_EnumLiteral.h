@@ -25,6 +25,8 @@ class UK2Node_EnumLiteral : public UK2Node, public INodeDependingOnEnumInterface
 	// Begin UK2Node interface
 	virtual bool IsNodePure() const override { return true; }
 	virtual FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const override;
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual FText GetMenuCategory() const override;
 	// End UK2Node interface
 
 	// INodeDependingOnEnumInterface

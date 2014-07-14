@@ -5,6 +5,8 @@
 #include "KismetCompiler.h"
 #include "../../../Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
 #include "K2Node_GetNumEnumEntries.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 UK2Node_GetNumEnumEntries::UK2Node_GetNumEnumEntries(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -73,3 +75,44 @@ void UK2Node_GetNumEnumEntries::ExpandNode(class FKismetCompilerContext& Compile
 		BreakAllNodeLinks();
 	}
 }
+
+void UK2Node_GetNumEnumEntries::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	for (TObjectIterator<UEnum> EnumIt; EnumIt; ++EnumIt)
+	{
+		UEnum const* Enum = (*EnumIt);
+		// we only want to add global "standalone" enums here; those belonging to a 
+		// certain class should instead be associated with that class (so when 
+		// the class is modified we can easily handle any enums that were changed).
+		//
+		// @TODO: don't love how this code is essentially duplicated in BlueprintActionDatabase.cpp, for class enums
+		bool bIsStandaloneEnum = Enum->GetOuter()->IsA(UPackage::StaticClass());
+
+		if (!bIsStandaloneEnum || !UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum))
+		{
+			continue;
+		}
+
+		auto CustomizeEnumNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEnum> EnumPtr)
+		{
+			UK2Node_GetNumEnumEntries* EnumNode = CastChecked<UK2Node_GetNumEnumEntries>(NewNode);
+			if (EnumPtr.IsValid())
+			{
+				EnumNode->Enum = EnumPtr.Get();
+			}
+		};
+
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+		ActionListOut.Add(NodeSpawner);
+
+		TWeakObjectPtr<UEnum> EnumPtr = Enum;
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeEnumNodeLambda, EnumPtr);
+	}
+}
+
+FText UK2Node_GetNumEnumEntries::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Enum);
+}
+

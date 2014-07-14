@@ -6,6 +6,8 @@
 #include "Kismet/KismetNodeHelperLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_GetEnumeratorName.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 FString UK2Node_GetEnumeratorName::EnumeratorPinName = TEXT("Enumerator");
 
@@ -180,4 +182,17 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 
 		BreakAllNodeLinks();
 	}
+}
+
+void UK2Node_GetEnumeratorName::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_GetEnumeratorName::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Name);
 }
