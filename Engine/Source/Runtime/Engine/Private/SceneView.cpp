@@ -912,6 +912,12 @@ void FSceneView::EndFinalPostprocessSettings()
 				FinalPostProcessSettings.ScreenPercentage = Value;
 			}
 		}
+
+		// Not supported in ES2.
+		if(Family->Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2)
+		{
+			FinalPostProcessSettings.ScreenPercentage = 100.0f;
+		}
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
