@@ -21,6 +21,10 @@ class UMG_API USlider : public UWidget
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	float Value;
 
+	/** A bindable delegate to allow logic to drive the value of the widget */
+	UPROPERTY()
+	FGetFloat ValueDelegate;
+
 	/** The slider's orientation. */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	TEnumAsByte<EOrientation> Orientation;
