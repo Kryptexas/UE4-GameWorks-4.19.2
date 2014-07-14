@@ -2,7 +2,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "EdGraphSchema_K2.h"	// for GetFriendlySignitureName()
+#include "EdGraphSchema_K2.h"			// for GetFriendlySignitureName()
+#include "BlueprintActionMenuBuilder.h"	// for AddEventCategory
 
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 
@@ -75,8 +76,24 @@ FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
 //------------------------------------------------------------------------------
 FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
 {
-	// @TODO: 
-	return Super::GetDefaultMenuCategory();
+	check(EventFunc != nullptr);
+	
+	FString RootCategory = FBlueprintActionMenuBuilder::AddEventCategory.ToString();
+	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, RootCategory));
+}
+
+//------------------------------------------------------------------------------
+FText UBlueprintEventNodeSpawner::GetDefaultMenuTooltip() const
+{
+	check(EventFunc != nullptr);
+	return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(EventFunc));
+}
+
+//------------------------------------------------------------------------------
+FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
+{
+	check(EventFunc != nullptr);
+	return FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(EventFunc));
 }
 
 //------------------------------------------------------------------------------
