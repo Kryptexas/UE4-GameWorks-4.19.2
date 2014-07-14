@@ -12,7 +12,7 @@ UAnimNotifyState_TimedParticleEffect::UAnimNotifyState_TimedParticleEffect(const
 	RotationOffset = FRotator(0.0f, 0.0f, 0.0f);
 }
 
-void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
 	// Only spawn if we've got valid params
 	if(ValidateParameters(MeshComp))
@@ -20,15 +20,15 @@ void UAnimNotifyState_TimedParticleEffect::NotifyBegin(USkeletalMeshComponent * 
 		UParticleSystemComponent* NewComponent = UGameplayStatics::SpawnEmitterAttached(PSTemplate, MeshComp, SocketName, LocationOffset, RotationOffset);
 	}
 
-	Received_NotifyBegin(MeshComp, AnimSeq);
+	Received_NotifyBegin(MeshComp, Animation);
 }
 
-void UAnimNotifyState_TimedParticleEffect::NotifyTick(USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime)
+void UAnimNotifyState_TimedParticleEffect::NotifyTick(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime)
 {
-	Received_NotifyTick(MeshComp, AnimSeq, FrameDeltaTime);
+	Received_NotifyTick(MeshComp, Animation, FrameDeltaTime);
 }
 
-void UAnimNotifyState_TimedParticleEffect::NotifyEnd(USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState_TimedParticleEffect::NotifyEnd(USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
@@ -73,7 +73,7 @@ void UAnimNotifyState_TimedParticleEffect::NotifyEnd(USkeletalMeshComponent * Me
 		}
 	}
 
-	Received_NotifyEnd(MeshComp, AnimSeq);
+	Received_NotifyEnd(MeshComp, Animation);
 }
 
 bool UAnimNotifyState_TimedParticleEffect::ValidateParameters(USkeletalMeshComponent* MeshComp)

@@ -12,7 +12,7 @@ class ENGINE_API UAnimNotify : public UObject
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool Received_Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq) const;
+	virtual bool Received_Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation) const;
 
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
@@ -21,7 +21,7 @@ class ENGINE_API UAnimNotify : public UObject
 
 #endif // WITH_EDITORONLY_DATA
 
-	virtual void Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq);
+	virtual void Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation);
 
 	// @todo document 
 	virtual FString GetEditorComment() 
@@ -45,7 +45,7 @@ class ENGINE_API UAnimNotify : public UObject
 	 *	@param	AnimSeq			The animation sequence this notify is associated with.
 	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
 	 */
-	virtual void AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq, FAnimNotifyEvent* OwnerEvent) {}
+	virtual void AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, FAnimNotifyEvent* OwnerEvent) {}
 
 	/**
 	 * We don't instance UAnimNotify objects along with the animations they belong to, but

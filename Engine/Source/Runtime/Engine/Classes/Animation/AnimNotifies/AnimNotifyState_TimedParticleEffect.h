@@ -49,9 +49,9 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) override;
-	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime) override;
-	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) override;
+	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
+	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime) override;
+	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
 
 private:
 	bool ValidateParameters(USkeletalMeshComponent* MeshComp);

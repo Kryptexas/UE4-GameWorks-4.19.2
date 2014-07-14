@@ -36,6 +36,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	// Begin UK2Node interface
 	virtual bool DrawNodeAsEntry() const override { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface

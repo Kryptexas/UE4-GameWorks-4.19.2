@@ -55,9 +55,9 @@ class UAnimNotifyState_Trail : public UAnimNotifyState
 	uint32 bRenderTessellation : 1;
 #endif // WITH_EDITORONLY_DATA
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq);
-	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime);
-	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq);
+	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
+	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime) override;
+	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) override;
 
 	bool ValidateInput(class USkeletalMeshComponent * MeshComp, bool bReportErrors = false);
 
@@ -67,7 +67,7 @@ class UAnimNotifyState_Trail : public UAnimNotifyState
 	 *	@param	AnimSeq			The animation sequence this notify is associated with.
 	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
 	 */
-	virtual void AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq, FAnimNotifyEvent * OwnerEvent);
+	virtual void AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent) override;
 };
 
 

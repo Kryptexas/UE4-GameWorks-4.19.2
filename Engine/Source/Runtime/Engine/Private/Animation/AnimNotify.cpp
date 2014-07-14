@@ -17,11 +17,11 @@ UAnimNotify::UAnimNotify(const class FPostConstructInitializeProperties& PCIP)
 }
 
 
-void UAnimNotify::Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq)
+void UAnimNotify::Notify(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation)
 {
 	USkeletalMeshComponent* PrevContext = MeshContext;
 	MeshContext = MeshComp;
-	Received_Notify(MeshComp, AnimSeq);
+	Received_Notify(MeshComp, Animation);
 	MeshContext = PrevContext;
 }
 

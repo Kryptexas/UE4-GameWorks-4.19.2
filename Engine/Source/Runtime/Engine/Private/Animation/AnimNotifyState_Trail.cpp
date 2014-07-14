@@ -34,11 +34,11 @@ UAnimNotifyState_Trail::UAnimNotifyState_Trail(const class FPostConstructInitial
 #endif // WITH_EDITORONLY_DATA
 }
 
-void UAnimNotifyState_Trail::AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq, FAnimNotifyEvent * OwnerEvent)
+void UAnimNotifyState_Trail::AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent)
 {
 }
 
-void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
 	bool bError = ValidateInput(MeshComp);
 
@@ -120,10 +120,10 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 		}
 	}
 
-	Received_NotifyBegin(MeshComp, AnimSeq);
+	Received_NotifyBegin(MeshComp, Animation);
 }
 
-void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime)
+void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime)
 {
 	bool bError = ValidateInput(MeshComp, true);
 
@@ -162,10 +162,10 @@ void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp,
 		}
 	}
 
-	Received_NotifyTick(MeshComp, AnimSeq, FrameDeltaTime);
+	Received_NotifyTick(MeshComp, Animation, FrameDeltaTime);
 }
 
-void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
@@ -184,7 +184,7 @@ void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, 
 		}
 	}
 
-	Received_NotifyEnd(MeshComp, AnimSeq);
+	Received_NotifyEnd(MeshComp, Animation);
 }
 
 bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshComp, bool bReportErrors/* =false */)

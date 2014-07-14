@@ -1087,7 +1087,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 		if(AnimNotifyEvent->Notify != NULL)
 		{
 			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
-			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->Notify->GetOuter()));
+			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->Notify->GetOuter()));
 		}
 		else if( AnimNotifyEvent->NotifyName != NAME_None )
 		{
@@ -1128,14 +1128,14 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
 		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()));
+		AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent.NotifyStateClass->GetOuter()));
 	}
 
 	// Call 'NotifyBegin' event on freshly added AnimNotifyState.
 	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
 	{
 		const FAnimNotifyEvent * AnimNotifyEvent = NotifyStateBeginEvent[Index];
-		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
 	}
 
 	// Switch our arrays.
@@ -1145,7 +1145,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
 		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
+		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
 	}
 }
 
