@@ -3,6 +3,10 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionMenuBuilder.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_Self"
 
 class FKCHandler_Self : public FNodeHandlingFunctor
 {
@@ -54,7 +58,12 @@ FString UK2Node_Self::GetKeywords() const
 
 FText UK2Node_Self::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference");
+	FText NodeTitle = NSLOCTEXT("K2Node", "SelfReferenceName", "Self-Reference");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		NodeTitle = LOCTEXT("ListTitle", "Get a reference to self");
+	}
+	return NodeTitle;	
 }
 
 FNodeHandlingFunctor* UK2Node_Self::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -73,3 +82,18 @@ void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mess
 		MessageLog.Warning(*NSLOCTEXT("K2Node", "InvalidSelfNode", "Self node @@ cannot be used in static library.").ToString(), this);
 	}
 }
+
+void UK2Node_Self::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_Self::GetMenuCategory() const
+{
+	return FBlueprintActionMenuBuilder::VariablesCategory;
+}
+
+#undef LOCTEXT_NAMESPACE

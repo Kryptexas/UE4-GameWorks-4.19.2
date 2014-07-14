@@ -197,7 +197,7 @@ FText FBlueprintActionMenuItemFactory::GetCategoryForAction(FBlueprintActionMenu
 				{
 					MenuCategory = FText::FromName(FuncOwner->GetFName());
 				}
-				MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Funtions|{0}"), MenuCategory);
+				MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Funtion|{0}"), MenuCategory);
 			}
 		}
 	}
@@ -364,6 +364,9 @@ void FBlueprintActionMenuBuilderImpl::AppendLegacyActions(TArray< TSharedRef<FMe
 /*******************************************************************************
  * FBlueprintActionMenuBuilder
  ******************************************************************************/
+
+FText const FBlueprintActionMenuBuilder::AddEventCategory  = LOCTEXT("AddEventCategory",  "Add Event");
+FText const FBlueprintActionMenuBuilder::VariablesCategory = LOCTEXT("VariablesCategory", "Variables");
 
 //------------------------------------------------------------------------------
 FBlueprintActionMenuBuilder::FBlueprintActionMenuBuilder(FBlueprintActionFilter const& Filter, bool bAutoBuild/*= true*/)

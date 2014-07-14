@@ -24,6 +24,10 @@ struct BLUEPRINTGRAPH_API FBlueprintActionMenuBuilder : public FGraphActionListB
 public:
 	/** Default constructor */
 	FBlueprintActionMenuBuilder() {}
+	
+	/** Blueprint centric menu categories (not generic enough to make it into FCommonEditorCategory) */
+	static FText const AddEventCategory;
+	static FText const VariablesCategory;
 
 	/**
 	 * Good for constructing a menu built from a single filter. If the 

@@ -5,6 +5,8 @@
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
 #include "K2Node_VariableSetRef.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionMenuBuilder.h" // for VariablesCategory
 
 static FString TargetVarPinName(TEXT("Target"));
 static FString VarValuePinName(TEXT("Value"));
@@ -201,5 +203,19 @@ FNodeHandlingFunctor* UK2Node_VariableSetRef::CreateNodeHandler(FKismetCompilerC
 {
 	return new FKCHandler_VariableSetRef(CompilerContext);
 }
+
+void UK2Node_VariableSetRef::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_VariableSetRef::GetMenuCategory() const
+{
+	return FBlueprintActionMenuBuilder::VariablesCategory;
+}
+
 
 #undef LOCTEXT_NAMESPACE
