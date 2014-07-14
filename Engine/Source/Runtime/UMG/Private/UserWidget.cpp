@@ -211,8 +211,11 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 		WidgetToComponent.Add(Widget, Handle);
 	}
 
-	// Notify the widget that it has been constructed.
-	Construct();
+	if ( !IsDesignTime() )
+	{
+		// Notify the widget that it has been constructed.
+		Construct();
+	}
 
 	return UserRootWidget.ToSharedRef();
 }
