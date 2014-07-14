@@ -3037,31 +3037,43 @@ bool FLevelEditorViewportClient::ComponentIsTouchingSelectionBox(AActor* InActor
 		// Check the brush component
 		if( BrushComponent->Brush && BrushComponent->Brush->Polys && !bAlreadyProcessed )
 		{
-			for( int32 PolyIndex = 0 ; PolyIndex < BrushComponent->Brush->Polys->Element.Num() && !bAlreadyProcessed ; ++PolyIndex )
+			TArray<FVector> Vertices;
+
+			for (int32 PolyIndex = 0; PolyIndex < BrushComponent->Brush->Polys->Element.Num() && !bAlreadyProcessed; ++PolyIndex)
 			{
 				const FPoly& Poly = BrushComponent->Brush->Polys->Element[ PolyIndex ];
 
-				for( int32 VertexIndex = 0 ; VertexIndex < Poly.Vertices.Num() ; ++VertexIndex )
+				if (!bMustEncompassEntireComponent)
 				{
-					const FVector Location = InComponent->ComponentToWorld.TransformPosition( Poly.Vertices[VertexIndex] );
-					const bool bLocationIntersected = FMath::PointBoxIntersection( Location, InSelBBox );
+					Vertices.Empty(Poly.Vertices.Num());
+					for (const auto& Vertex : Poly.Vertices)
+					{
+						Vertices.Add(InComponent->ComponentToWorld.TransformPosition(Vertex));
+					}
 
-					// If the selection box doesn't have to encompass the entire component and a poly vertex has intersected with
-					// the selection box, this component is being touched by the selection box
-					if ( !bMustEncompassEntireComponent && bLocationIntersected )
+					FSeparatingAxisPointCheck PointCheck(Vertices, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+					if (PointCheck.bHit)
 					{
 						bResult = true;
 						bAlreadyProcessed = true;
 						break;
 					}
-
-					// If the selection box has to encompass the entire component and a poly vertex didn't intersect with the selection
-					// box, this component does not qualify
-					else if ( bMustEncompassEntireComponent && !bLocationIntersected )
+				}
+				else
+				{
+					for (int32 VertexIndex = 0; VertexIndex < Poly.Vertices.Num(); ++VertexIndex)
 					{
-						bResult = false;
-						bAlreadyProcessed = true;
-						break;
+						const FVector Location = InComponent->ComponentToWorld.TransformPosition(Poly.Vertices[VertexIndex]);
+						const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+						// If the selection box has to encompass the entire component and a poly vertex didn't intersect with the selection
+						// box, this component does not qualify
+						if (!bLocationIntersected)
+						{
+							bResult = false;
+							bAlreadyProcessed = true;
+							break;
+						}
 					}
 				}
 			}
@@ -3085,6 +3097,8 @@ bool FLevelEditorViewportClient::ComponentIsTouchingSelectionBox(AActor* InActor
 			// Check if we are even inside it's bounding box, if we are not, there is no way we colliding via the more advanced checks we will do.
 			if(InSelBBox.Intersect(InComponent->Bounds.GetBox()))
 			{
+				TArray<FVector> Vertex;
+
 				FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[0];
 				FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
 
@@ -3096,24 +3110,25 @@ bool FLevelEditorViewportClient::ComponentIsTouchingSelectionBox(AActor* InActor
 					// Iterate over each triangle.
 					for( int32 TriangleIndex = 0 ; TriangleIndex < (int32)Section.NumTriangles ; TriangleIndex++ )
 					{
-						FVector Vertex[3];
+						Vertex.Empty(3);
+
 						int32 FirstIndex = TriangleIndex * 3 + Section.FirstIndex;
 						for (int32 i = 0; i < 3; i++)
 						{
 							int32 VertexIndex = Indices[FirstIndex+i];
 							FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-							Vertex[i] = StaticMeshComponent->ComponentToWorld.TransformPosition(LocalPosition);
+							Vertex.Emplace(StaticMeshComponent->ComponentToWorld.TransformPosition(LocalPosition));
 						}
 
 						// Check if the triangle is colliding with the bounding box.
-						FSeparatingAxisPointCheck ThePointCheck(Vertex[0], Vertex[1], Vertex[2], InSelBBox.GetCenter(), InSelBBox.GetExtent(), INT_MAX);
-						if( !bMustEncompassEntireComponent && ThePointCheck.Hit )
+						FSeparatingAxisPointCheck ThePointCheck(Vertex, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+						if( !bMustEncompassEntireComponent && ThePointCheck.bHit )
 						{
 							bResult = true;
 							bAlreadyProcessed = true;
 							break;
 						}
-						else if( bMustEncompassEntireComponent && !ThePointCheck.Hit )
+						else if( bMustEncompassEntireComponent && !ThePointCheck.bHit )
 						{
 							bResult = false;
 							bAlreadyProcessed = true;

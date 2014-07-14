@@ -28,147 +28,130 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("GeomComputePenetration"), STAT_Collision_GeomCom
 #endif
 
 //
-//	FSeparatingAxisPointCheck - Checks for intersection between an oriented bounding box and a triangle.
-//	HitNormal: The normal of the separating axis the bounding box is penetrating the least.
-//	BestDist: The amount the bounding box is penetrating the axis defined by HitNormal.
+//	FSeparatingAxisPointCheck - Checks for intersection between an AABB and a convex polygon.
 //
 
-struct FSeparatingAxisPointCheck
+class ENGINE_API FSeparatingAxisPointCheck
 {
-	FVector	HitNormal;
-	float	BestDist;
-	bool	Hit;
+public:
+	/** The normal of the separating axis that the bounding box is penetrating the least */
+	FVector HitNormal;
 
-	const FVector&	V0,
-					V1,
-					V2;
+	/** The amount that the bounding box is penetrating the axis defined by HitNormal */
+	float BestDist;
 
-	bool TestSeparatingAxis(
-		const FVector& Axis,
-		float ProjectedPoint,
-		float ProjectedExtent
+	/** Whether the bounding box intersects with the polygon */
+	bool bHit;
+
+	/**
+	 *	Creates an object representing the intersection between an axis-aligned bounding box and a convex polygon.
+	 *
+	 *	@param	InPolyVertices			Array of points forming a convex polygon.
+	 *	@param	InBoxCenter				The center of the axis-aligned bounding box being checked.
+	 *	@param	InBoxExtent				The extents of the axis-aligned bounding box being checked.
+	 *	@param	bInCalcLeastPenetration	Whether the axis and amount of penetration of the bounding box into the polygon should be calculated.
+	 */
+	FSeparatingAxisPointCheck(
+		const TArray<FVector>& InPolyVertices,
+		const FVector& InBoxCenter,
+		const FVector& InBoxExtent,
+		bool bInCalcLeastPenetration = true
 		)
+		: PolyVertices(InPolyVertices),
+		  BoxCenter(InBoxCenter),
+		  BoxExtent(InBoxExtent),
+		  HitNormal(FVector::ZeroVector),
+		  BestDist(TNumericLimits<float>::Max()),
+		  bCalcLeastPenetration(bInCalcLeastPenetration)
 	{
-		float	ProjectedV0 = Axis | V0,
-				ProjectedV1 = Axis | V1,
-				ProjectedV2 = Axis | V2,
-				TriangleMin = FMath::Min3(ProjectedV0,ProjectedV1,ProjectedV2) - ProjectedExtent,
-				TriangleMax = FMath::Max3(ProjectedV0,ProjectedV1,ProjectedV2) + ProjectedExtent,
-				AxisMagnitude = Axis.Size();
-
-		if(ProjectedPoint >= TriangleMin && ProjectedPoint <= TriangleMax && AxisMagnitude > SMALL_NUMBER )
-		{
-			// Use inverse sqrt because that is fast and we do more math with the inverse value anyway
-			float	InvAxisMagnitude = FMath::InvSqrt(Axis.X * Axis.X +	Axis.Y * Axis.Y + Axis.Z * Axis.Z),
-					ScaledBestDist = BestDist / InvAxisMagnitude,
-					MinPenetrationDist = ProjectedPoint - TriangleMin,
-					MaxPenetrationDist = TriangleMax - ProjectedPoint;
-			if(MinPenetrationDist < ScaledBestDist)
-			{
-				BestDist = MinPenetrationDist * InvAxisMagnitude;
-				HitNormal = -Axis * InvAxisMagnitude;
-			}
-			if(MaxPenetrationDist < ScaledBestDist)
-			{
-				BestDist = MaxPenetrationDist * InvAxisMagnitude;
-				HitNormal = Axis * InvAxisMagnitude;
-			}
-			return 1;
-		}
-		else
-			return 0;
+		// Optimization: if the poly is a triangle, use a more optimized code path
+		bHit = (PolyVertices.Num() == 3) ? FindSeparatingAxisTriangle() : FindSeparatingAxisGeneric();
 	}
 
-		
-	bool TestSeparatingAxis(
-		const FVector& Axis,
-		const FVector& Point,
-		const FVector& BoxExtent
-		)
-	{
-		float	ProjectedExtent = BoxExtent.X * FMath::Abs(Axis.X) + BoxExtent.Y * FMath::Abs(Axis.Y) + BoxExtent.Z * FMath::Abs(Axis.Z);
-		return TestSeparatingAxis(Axis,Axis | Point,ProjectedExtent);
-	}
-
-	bool FindSeparatingAxis(
-		const FVector& Point,
-		const FVector& BoxExtent
-		)
-	{
-		// Triangle normal.
-
-		if(!TestSeparatingAxis((V2 - V1) ^ (V1 - V0),Point,BoxExtent))
-			return 0;
-
-		const FVector& EdgeDir0 = V1 - V0;
-		const FVector& EdgeDir1 = V2 - V1;
-		const FVector& EdgeDir2 = V0 - V2;
-
-		// Box Z edge x triangle edges.
-
-		if(!TestSeparatingAxis(FVector(EdgeDir0.Y,-EdgeDir0.X,0.0f),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(EdgeDir1.Y,-EdgeDir1.X,0.0f),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(EdgeDir2.Y,-EdgeDir2.X,0.0f),Point,BoxExtent))
-			return 0;
-
-		// Box Y edge x triangle edges.
-
-		if(!TestSeparatingAxis(FVector(-EdgeDir0.Z,0.0f,EdgeDir0.X),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(-EdgeDir1.Z,0.0f,EdgeDir1.X),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(-EdgeDir2.Z,0.0f,EdgeDir2.X),Point,BoxExtent))
-			return 0;
-
-		// Box X edge x triangle edges.
-
-		if(!TestSeparatingAxis(FVector(0.0f,EdgeDir0.Z,-EdgeDir0.Y),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(0.0f,EdgeDir1.Z,-EdgeDir1.Y),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(0.0f,EdgeDir2.Z,-EdgeDir2.Y),Point,BoxExtent))
-			return 0;
-
-		// Box faces. We need to calculate this by crossing edges because BoxX etc are the _edge_ directions - not the faces.
-		// The box may be sheared due to non-unfiform scaling and rotation so FaceX normal != BoxX edge direction
-
-		if(!TestSeparatingAxis(FVector(0.0f,0.0f,1.0f),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(1.0f,0.0f,0.0f),Point,BoxExtent))
-			return 0;
-
-		if(!TestSeparatingAxis(FVector(0.0f,1.0f,0.0f),Point,BoxExtent))
-			return 0;
-
-		return 1;
-	}
-
+	/**
+	 *	Legacy constructor for the class (deprecated)
+	 */
 	FSeparatingAxisPointCheck(
 		const FVector& InV0,
 		const FVector& InV1,
 		const FVector& InV2,
-		const FVector& Point,
-		const FVector& BoxExtent,
+		const FVector& InBoxCenter,
+		const FVector& InBoxExtent,
 		float InBestDist
-		):
-	HitNormal(0,0,0),
-		BestDist(InBestDist),
-		Hit(0),
-		V0(InV0),
-		V1(InV1),
-		V2(InV2)
+		)
+		: PolyVertices(TriangleVertices),
+		  BoxCenter(InBoxCenter),
+		  BoxExtent(InBoxExtent),
+		  HitNormal(FVector::ZeroVector),
+		  BestDist(InBestDist),
+		  bCalcLeastPenetration(true)
 	{
-		Hit = FindSeparatingAxis(Point,BoxExtent);
+		TriangleVertices.Empty(3);
+		TriangleVertices[0] = InV0;
+		TriangleVertices[1] = InV1;
+		TriangleVertices[2] = InV2;
+		bHit = FindSeparatingAxisTriangle();
 	}
+
+private:
+
+	/**
+	 *	Given a separating axis, and a minimum and maximum point projected onto it, determines whether the bounding box
+	 *	encroaches on the polygon along that axis, according to the separating axis theorem.
+	 *	Optionally sets the HitNormal and BestDist members according to the least penetration of the bounding box into the polygon.
+	 *
+	 *	@param	Axis				The separating axis.
+	 *	@param	ProjectedPolyMin	The minimum polygon point, projected onto the separating axis.
+	 *	@param	ProjectedPolyMax	The maximum polygon point, projected onto the separating axis.
+	 */
+	bool TestSeparatingAxisCommon(const FVector& Axis, float ProjectedPolyMin, float ProjectedPolyMax);
+
+	/**
+	 *	Determines whether the bounding box encroaches on the triangle along the given axis.
+	 *	
+	 *	@param	Axis				The separating axis.
+	 *
+	 *	@return	True if the bounding box encroaches on the triangle along the given axis.
+	 */
+	bool TestSeparatingAxisTriangle(const FVector& Axis);
+
+	/**
+	 *	Determines whether the bounding box encroaches on the convex polygon along the given axis.
+	 *
+	 *	@param	Axis				The separating axis.
+	 *
+	 *	@return	True if the bounding box encroaches on the triangle along the given axis.
+	 */
+	bool TestSeparatingAxisGeneric(const FVector& Axis);
+
+	/**
+	 *	Determines whether the bounding box encroaches on the triangle, checking all relevant axes.
+	 *
+	 *	@return	True if the bounding box encroaches on the triangle.
+	 */
+	bool FindSeparatingAxisTriangle();
+
+	/**
+	 *	Determines whether the bounding box encroaches on the convex polygon, checking all relevant axes.
+	 *
+	 *	@return	True if the bounding box encroaches on the convex polygon.
+	 */
+	bool FindSeparatingAxisGeneric();
+
+	/** Array of vertices defining the convex polygon being checked. */
+	const TArray<FVector>& PolyVertices;
+
+	/** Center of the axis-aligned bounding box being checked. */
+	FVector BoxCenter;
+
+	/** Extents of the axis-aligned bounding box being checked. */
+	FVector BoxExtent;
+
+	/** Flag specifying whether the least penetration should be calculated. */
+	bool bCalcLeastPenetration;
+
+	/** Array into which triangle vertices are placed (legacy use only) */
+	static TArray<FVector> TriangleVertices;
 };
 
 /**
