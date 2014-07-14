@@ -1108,20 +1108,7 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 
 	// Name and Location Validity
 	{
-		if ( CurrentProjectFileName.Contains(TEXT("/")) || CurrentProjectFileName.Contains(TEXT("\\")) )
-		{
-			bLastNameAndLocationValidityCheckSuccessful = false;
-			LastNameAndLocationValidityErrorText = LOCTEXT( "SlashOrBackslashInProjectName", "The project name may not contain a slash or backslash" );
-		}
-		else
-		{
-			FText FailReason;
-			bLastNameAndLocationValidityCheckSuccessful = GameProjectUtils::IsValidProjectFileForCreation( GetProjectFilenameWithPath(), FailReason );
-			if ( !bLastNameAndLocationValidityCheckSuccessful )
-			{
-				LastNameAndLocationValidityErrorText = FailReason;
-			}
-		}
+		bLastNameAndLocationValidityCheckSuccessful = true;
 
 		if ( !FPlatformMisc::IsValidAbsolutePathFormat(CurrentProjectFilePath) )
 		{
@@ -1131,9 +1118,24 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 		else
 		{
 			FText FailReason;
-			bLastNameAndLocationValidityCheckSuccessful = GameProjectUtils::IsValidProjectFileForCreation( GetProjectFilenameWithPath(), FailReason );
-			if ( !bLastNameAndLocationValidityCheckSuccessful )
+			if ( !GameProjectUtils::IsValidProjectFileForCreation(GetProjectFilenameWithPath(), FailReason) )
 			{
+				bLastNameAndLocationValidityCheckSuccessful = false;
+				LastNameAndLocationValidityErrorText = FailReason;
+			}
+		}
+
+		if ( CurrentProjectFileName.Contains(TEXT("/")) || CurrentProjectFileName.Contains(TEXT("\\")) )
+		{
+			bLastNameAndLocationValidityCheckSuccessful = false;
+			LastNameAndLocationValidityErrorText = LOCTEXT("SlashOrBackslashInProjectName", "The project name may not contain a slash or backslash");
+		}
+		else
+		{
+			FText FailReason;
+			if ( !GameProjectUtils::IsValidProjectFileForCreation(GetProjectFilenameWithPath(), FailReason) )
+			{
+				bLastNameAndLocationValidityCheckSuccessful = false;
 				LastNameAndLocationValidityErrorText = FailReason;
 			}
 		}
