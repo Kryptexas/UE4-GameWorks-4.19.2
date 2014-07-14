@@ -432,14 +432,15 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 void UEditorEngine::HandleSettingChanged( FName Name )
 {
-	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")))
+	// When settings are reset to default, the property name will be "None" so make sure that case is handled.
+	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")) || Name == NAME_None)
 	{
 		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue();
 		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType(DeficiencyType);
 
 		GEngine->Exec(NULL, TEXT("RecompileShaders SlateElementPixelShader"));
 	}
-	else if (Name == FName("SelectionColor"))
+	if (Name == FName("SelectionColor") || Name == NAME_None)
 	{
 		// Selection outline color and material color use the same color but sometimes the selected material color can be overidden so these need to be set independently
 		GEngine->SetSelectedMaterialColor(GetDefault<UEditorStyleSettings>()->SelectionColor);
