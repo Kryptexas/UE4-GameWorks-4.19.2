@@ -5,6 +5,7 @@
 
 #include "Kismet2NameValidators.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 

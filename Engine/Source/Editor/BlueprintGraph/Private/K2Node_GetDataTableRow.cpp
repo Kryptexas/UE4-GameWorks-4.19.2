@@ -4,6 +4,7 @@
 #include "KismetCompiler.h"
 //#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Kismet/DataTableFunctionLibrary.h"
+#include "BlueprintNodeSpawner.h"
 #include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GetDataTableRow"
