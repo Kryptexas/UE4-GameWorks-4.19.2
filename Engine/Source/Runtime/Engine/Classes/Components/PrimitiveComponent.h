@@ -1115,7 +1115,6 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual void SetRelativeScale3D(FVector NewScale3D) override final;
 	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
 	virtual bool IsWorldGeometry() const override;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
@@ -1123,6 +1122,7 @@ public:
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
 	virtual FVector GetComponentVelocity() const override;
+	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const override;
 	//End USceneComponent Interface
 
 	/**
@@ -1419,22 +1419,11 @@ public:
 	 */
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
 
-	/** 
-	 *	Indicates whether this actor is to be considered by navigation system a valid actor
-	 *	@param bDoChannelCheckOnly allow caller to check whether this component affects/would affect
-	 *	navigation, regardless of its current BodyInstance collision value
-	 *	@note this function will return "true" also if HasCustomNavigableGeometry == EHasCustomNavigableGeometry::EvenIfNonCollidable
-	 */
-	bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
-
 	/** Can this component potentially influence navigation */
 	bool CanEverAffectNavigation() const
 	{
 		return bCanEverAffectNavigation;
 	}
-
-	/** check if navigation system needs to be updated after changing transform of this component (include attached components as well) */
-	bool ShouldUpdateNavigationOnTransformChange() const;
 
 	/** turn off navigation relevance, must be called before component is registered! */
 	void DisableNavigationRelevance();

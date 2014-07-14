@@ -1217,24 +1217,6 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
-void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
-{
-	const FVector OldScale3D = RelativeScale3D;
-	Super::SetRelativeScale3D(NewScale3D);
-
-	AActor* Actor = GetOwner();
-	if (OldScale3D != RelativeScale3D && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() &&
-		Actor && IsRegistered() && Actor->IsNavigationRelevant() && 
-		ShouldUpdateNavigationOnTransformChange() &&
-		World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
-	{
-		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
-		{
-			NavSys->UpdateNavOctree(Actor);
-		}
-	}
-}
-
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
@@ -1534,18 +1516,6 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		}
 	}
 
-	// Update navigation system
-	if (bMoved && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() &&
-		Actor && IsRegistered() && Actor->IsNavigationRelevant() &&
-		ShouldUpdateNavigationOnTransformChange() &&
-		World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
-	{
-		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
-		{
-			NavSys->UpdateNavOctree(Actor);
-		}
-	}
-
 #if defined(PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME) || LOOKING_FOR_PERF_ISSUES
 	UNCLOCK_CYCLES(MoveCompTakingLongTime);
 	const float MSec = FPlatformTime::ToMilliseconds(MoveCompTakingLongTime);
@@ -1587,6 +1557,11 @@ void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& B
 
 bool UPrimitiveComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const 
 { 
+	if (!CanEverAffectNavigation())
+	{
+		return false;
+	}
+
 	if (HasCustomNavigableGeometry() >= EHasCustomNavigableGeometry::EvenIfNotCollidable)
 	{
 		return true;
@@ -1603,21 +1578,6 @@ void UPrimitiveComponent::DisableNavigationRelevance()
 {
 	check(!bRegistered);
 	bCanEverAffectNavigation = false;
-}
-
-bool UPrimitiveComponent::ShouldUpdateNavigationOnTransformChange() const
-{
-	bool bResult = CanEverAffectNavigation() && IsNavigationRelevant();
-	for (int32 Idx = 0; Idx < AttachChildren.Num() && !bResult; Idx++)
-	{
-		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(AttachChildren[Idx]);
-		if (PrimComp)
-		{
-			bResult = PrimComp->ShouldUpdateNavigationOnTransformChange();
-		}
-	}
-
-	return bResult;
 }
 
 

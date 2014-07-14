@@ -132,6 +132,9 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		
 		// Now go and update children
 		UpdateChildTransforms();
+
+		// Refresh navigation
+		UpdateNavigationData();
 	}
 	else
 	{
@@ -1696,5 +1699,42 @@ const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
 	return NumUncachedStaticLighting;
 }
 #endif
+
+void USceneComponent::UpdateNavigationData()
+{
+	AActor* MyActor = GetOwner();
+
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
+		IsRegistered() && MyActor && MyActor->IsNavigationRelevant() &&
+		World && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	{
+		const bool bShouldUpdate = CheckNavigationRelevancy(this);
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+		
+		if (bShouldUpdate && NavSys)
+		{
+			NavSys->UpdateNavOctree(MyActor);
+		}
+	}
+}
+
+bool USceneComponent::CheckNavigationRelevancy(USceneComponent* TestComponent)
+{
+	bool bResult = TestComponent->IsNavigationRelevant();
+	for (int32 Idx = 0; Idx < AttachChildren.Num() && !bResult; Idx++)
+	{
+		if (AttachChildren[Idx])
+		{
+			bResult = CheckNavigationRelevancy(AttachChildren[Idx]);
+		}
+	}
+
+	return bResult;
+}
+
+bool USceneComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const
+{
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

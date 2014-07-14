@@ -505,9 +505,9 @@ public:
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
 
-	static FORCEINLINE bool ShouldUpdateNavOctreeOnPrimitiveComponentChange()
+	static FORCEINLINE bool ShouldUpdateNavOctreeOnComponentChange()
 	{
-		return bUpdateNavOctreeOnPrimitiveComponentChange;
+		return bUpdateNavOctreeOnComponentChange;
 	}
 
 	/** 
@@ -577,7 +577,7 @@ protected:
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
 
-	static bool bUpdateNavOctreeOnPrimitiveComponentChange;
+	static bool bUpdateNavOctreeOnComponentChange;
 
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;

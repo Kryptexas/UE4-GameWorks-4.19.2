@@ -171,7 +171,7 @@ FNavigationSystemExec UNavigationSystem::ExecHandler;
 /** called after navigation influencing event takes place*/
 UNavigationSystem::FOnNavigationDirty UNavigationSystem::NavigationDirtyEvent;
 
-bool UNavigationSystem::bUpdateNavOctreeOnPrimitiveComponentChange = true;
+bool UNavigationSystem::bUpdateNavOctreeOnComponentChange = true;
 //----------------------------------------------------------------------//
 // life cycle stuff                                                                
 //----------------------------------------------------------------------//

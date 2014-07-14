@@ -410,13 +410,6 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 		GetRootComponent()->SetWorldLocationAndRotation(NewLocation, DestRotation);
 	}
 
-	if ( !bIsATest && bTeleportSucceeded )
-	{
-		if (IsNavigationRelevant() && GetWorld() && GetWorld()->GetNavigationSystem())
-		{
-			GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-		}
-	}
 	return bTeleportSucceeded; 
 }
 
@@ -2120,10 +2113,10 @@ bool AActor::UpdateNavigationRelevancy()
 
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && bNewRelevancy == false; ++CompIdx)
 	{
-		UPrimitiveComponent* Comp = Cast<UPrimitiveComponent>(Components[CompIdx]);
+		USceneComponent* Comp = Cast<USceneComponent>(Components[CompIdx]);
 		if (Comp)
 		{
-			bNewRelevancy = Comp->CanEverAffectNavigation() && Comp->IsRegistered() && Comp->IsNavigationRelevant();
+			bNewRelevancy = Comp->IsRegistered() && Comp->IsNavigationRelevant();
 		}
 		else
 		{

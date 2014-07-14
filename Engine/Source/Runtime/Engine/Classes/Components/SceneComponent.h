@@ -704,6 +704,9 @@ public:
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
 	virtual FBoxSphereBounds GetPlacementExtent() const;
 
+	/** Is component (not including attachments) relevant for navigation updates? */
+	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
+
 protected:
 	/**
 	 * Called after a child scene component is attached to this component.
@@ -716,6 +719,12 @@ protected:
 	 * Note: Do not change the attachment state of the child during this call.
 	 */
 	virtual void OnChildDetached(USceneComponent* ChildComponent) {}
+
+	/** Called after changing transform, tries to update navigation octree */
+	void UpdateNavigationData();
+
+	/** Check if given component or any of its attachments are relevant for navigation updates */
+	bool CheckNavigationRelevancy(USceneComponent* TestComponent);
 };
 
 
