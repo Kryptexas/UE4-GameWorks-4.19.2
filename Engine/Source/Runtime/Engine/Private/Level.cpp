@@ -696,6 +696,8 @@ bool ULevel::IsReadyForFinishDestroy()
 
 void ULevel::FinishDestroy()
 {
+	ReleaseRenderingResources();
+
 	delete PrecomputedLightVolume;
 	PrecomputedLightVolume = NULL;
 
