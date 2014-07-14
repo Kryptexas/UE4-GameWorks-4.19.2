@@ -309,9 +309,19 @@ void PlatformRestoreDesktopDisplayMode()
 extern "C"
 {
 	// callback from javascript. 
-	void execute_console_command(char* command)
+	void resize_game(int w, int h)
 	{
-		IConsoleManager::Get().ProcessUserConsoleInput(ANSI_TO_TCHAR(command), *GWarn, NULL );
+		static SDL_ResizeEvent Event; 
+		// workaround emscripten's buggy SDL implementation. 
+		Event.h = -h; 
+		Event.w = w; 
+		Event.type = SDL_VIDEORESIZE; 
+
+#if !UE_BUILD_SHIPPING 
+		emscripten_log(EM_LOG_JS_STACK | EM_LOG_WARN, "Asking UE to resize to %d x %d ", w , h );
+#endif 
+
+		SDL_PushEvent((SDL_Event*)&Event);
 	}
 }
 

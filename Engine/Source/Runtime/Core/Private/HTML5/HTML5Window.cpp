@@ -83,9 +83,9 @@ EWindowMode::Type FHTML5Window::GetWindowMode() const
 
 void FHTML5Window::ReshapeWindow(int32 X, int32 Y, int32 Width, int32 Height)
 {
-	SDL_ResizeEvent Event; 
-	Event.h = Height; 
-	Event.w = Width; 
-	Event.type = SDL_VIDEORESIZE; 
-	SDL_PushEvent((SDL_Event*)&Event);
+	static SDL_ResizeEvent ResizeEvent; 
+	ResizeEvent.h = Height; 
+	ResizeEvent.w = Width; 
+	ResizeEvent.type = SDL_VIDEORESIZE; 
+	SDL_PushEvent((SDL_Event*)&ResizeEvent);
 }

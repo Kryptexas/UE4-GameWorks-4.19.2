@@ -93,17 +93,17 @@ input[type=button]:hover {
     <script type="text/javascript">
 
 var UE4 = {
-  get console_command() {
-    var fn = Module.cwrap('execute_console_command', null, ['string']);
-    delete UE4["console_command"];
-    UE4.console_command = fn;
+  get resize_game() {
+    var fn = Module.cwrap('resize_game', null, ['number'],['number'] );
+    delete UE4["resize_game"];
+    UE4.resize_game = fn;
     return fn;
   }
 };
 
 function resizeListener(width, height) {
   console.log("resizeListener:", width, height);
-  UE4.console_command("r.SetRes " + width + "x" + height);
+  UE4.resize_game(width,height);
 }
 
 var gWasFullScreen = false;
@@ -132,8 +132,8 @@ function fullScreenChange() {
     canvas.height = height;
     canvas.setAttribute("fullscreen", "true");
 
-    console.log("r.SetRes", canvas.width, canvas.height);
-    UE4.console_command("r.SetRes " + canvas.width + "x" + canvas.height);
+    console.log("Resize: (to fullscreen)", canvas.width, canvas.height);
+    UE4.resize_game(canvas.width, canvas.height); 
   } else if (gWasFullScreen) {
     // we just left full screen
     gWasFullScreen = false;
@@ -142,8 +142,8 @@ function fullScreenChange() {
     canvas.height = gOldHeight;
     canvas.removeAttribute("fullscreen");
 
-    console.log("r.SetRes", canvas.width, canvas.height);
-    UE4.console_command("r.SetRes " + canvas.width + "x" + canvas.height);
+    console.log("Resize: (to windowed) ", canvas.width, canvas.height);
+    UE4.resize_game(canvas.width, canvas.height); 
   }
 }
 

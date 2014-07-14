@@ -32,7 +32,21 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 		if ( Event.type == SDL_VIDEORESIZE )
 		{
 			SDL_ResizeEvent *r = (SDL_ResizeEvent*)&Event;
-			MessageHandler->OnSizeChanged(  ApplicationWindow, r->w,r->h); 
+
+			if ( r->h > 0 )
+			{
+				MessageHandler->OnSizeChanged(  ApplicationWindow, r->w,r->h); 
+			} 
+			else 
+			{
+				// Ask the game to reshape the window. 
+				int w = r->w;  
+				int h = -r->h;
+				ANSICHAR command[1048]; 
+				FCStringAnsi::Sprintf(command, "r.setRes %dx%d ", w, h);
+
+				IConsoleManager::Get().ProcessUserConsoleInput(ANSI_TO_TCHAR(command), *GWarn, NULL );
+			}
 		}
 		else 
 		{

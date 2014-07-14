@@ -91,7 +91,7 @@ namespace UnrealBuildTool
             // don't need UTF8 string support, and it slows string ops down
             Result += " -s UTF_STRING_SUPPORT=0";
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
-            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
+            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game']\" ";
 
             // NOTE: This may slow down the compiler's startup time!
             { 
