@@ -159,6 +159,8 @@ const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
 
 void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
 {
+	FBlueprintEditor::OnBlueprintChanged(InBlueprint);
+
 	if ( InBlueprint )
 	{
 		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
@@ -340,11 +342,6 @@ void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collecto
 	Collector.AddReferencedObject( Preview );
 }
 
-void FWidgetBlueprintEditor::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
-{
-	MigrateFromChain(PropertyAboutToChange, true);
-}
-
 void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify)
 {
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
@@ -368,16 +365,6 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 				}
 			}
 		}
-	}
-}
-
-void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
-{
-	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
-	
-	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
-	{
-		MigrateFromChain(PropertyThatChanged, false);
 	}
 }
 

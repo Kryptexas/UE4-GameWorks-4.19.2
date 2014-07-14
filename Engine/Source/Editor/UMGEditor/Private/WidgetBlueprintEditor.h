@@ -27,8 +27,6 @@ public:
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void NotifyPreChange(class FEditPropertyChain* PropertyAboutToChange) override;
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -55,6 +53,9 @@ public:
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
 	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
+
+	/** Migrate a property change from the preview GUI to the template GUI. */
+	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
 
 public:
 	/** Fires whenever the selected set of widgets changing */
@@ -94,10 +95,7 @@ private:
 
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
-
-	/** Migrate a property change from the preview GUI to the template GUI. */
-	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
-
+	
 	/**
 	 * Gets the default movie scene which is used when there is no 
 	 * animation data present on the widget blueprint

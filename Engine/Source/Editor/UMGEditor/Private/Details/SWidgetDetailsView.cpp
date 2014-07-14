@@ -16,8 +16,10 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	// Create a property view
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-	FNotifyHook* NotifyHook = InBlueprintEditor.Get();
+	FNotifyHook* NotifyHook = this;
 	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true, /*InNotifyHook=*/ NotifyHook, /*InSearchInitialKeyFocus=*/ false, /*InViewIdentifier=*/ NAME_None);
+
+	// We hide the actor name area because we're providing our own.
 	DetailsViewArgs.bHideActorNameArea = true;
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
@@ -276,6 +278,25 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 			// Refresh references and flush editors
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 		}
+	}
+}
+
+void SWidgetDetailsView::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
+{
+	TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+
+	const bool bIsModify = true;
+	Editor->MigrateFromChain(PropertyAboutToChange, bIsModify);
+}
+
+void SWidgetDetailsView::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
+{
+	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
+	{
+		TSharedPtr<FWidgetBlueprintEditor> Editor = BlueprintEditor.Pin();
+
+		const bool bIsModify = false;
+		Editor->MigrateFromChain(PropertyThatChanged, bIsModify);
 	}
 }
 
