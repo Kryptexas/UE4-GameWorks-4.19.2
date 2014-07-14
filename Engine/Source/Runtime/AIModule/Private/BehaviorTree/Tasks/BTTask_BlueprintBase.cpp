@@ -31,7 +31,9 @@ void UBTTask_BlueprintBase::PostInitProperties()
 
 EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
-	CurrentCallResult = bImplementsReceiveExecute ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
+	// fail when task doesn't react to execution (start or tick)
+	CurrentCallResult = (bImplementsReceiveExecute || bImplementsReceiveTick) ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
+
 	if (bImplementsReceiveExecute)
 	{
 		bStoreFinishResult = true;
