@@ -324,7 +324,7 @@ static void GetTextureBuildSettings(
 		OutBuildSettings.bLongLatSource = false;
 	}
 
-	if (Texture.CompressionSettings == TC_Displacementmap)
+	if (Texture.CompressionSettings == TC_Displacementmap || Texture.CompressionSettings == TC_DistanceFieldFont)
 	{
 		OutBuildSettings.bReplicateAlpha = true;
 	}

@@ -1087,6 +1087,8 @@ EMaterialSamplerType UMaterialExpressionTextureBase::GetSamplerTypeForTexture(co
 				return SAMPLERTYPE_Alpha;
 			case TC_Masks:
 				return SAMPLERTYPE_Masks;
+			case TC_DistanceFieldFont:
+				return SAMPLERTYPE_DistanceFieldFont;
 			default:
 				return Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
 		}
@@ -5397,7 +5399,17 @@ int32 UMaterialExpressionFontSample::Compile(class FMaterialCompiler* Compiler, 
 				Texture = Texture = GEngine->DefaultTexture;
 			}
 			check(Texture);
-			EMaterialSamplerType ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+
+			EMaterialSamplerType ExpectedSamplerType;
+			if (Texture->CompressionSettings == TC_DistanceFieldFont)
+			{
+				ExpectedSamplerType = SAMPLERTYPE_DistanceFieldFont;
+			}
+			else
+			{
+				ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+			}
+
 			if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSample")), Texture, ExpectedSamplerType))
 			{
 				return INDEX_NONE;
@@ -5497,7 +5509,17 @@ int32 UMaterialExpressionFontSampleParameter::Compile(class FMaterialCompiler* C
 			Texture = Texture = GEngine->DefaultTexture;
 		}
 		check(Texture);
-		EMaterialSamplerType ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+
+		EMaterialSamplerType ExpectedSamplerType;
+		if (Texture->CompressionSettings == TC_DistanceFieldFont)
+		{
+			ExpectedSamplerType = SAMPLERTYPE_DistanceFieldFont;
+		}
+		else
+		{
+			ExpectedSamplerType = Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
+		}
+
 		if (!VerifySamplerType(Compiler, (Desc.Len() > 0 ? *Desc : TEXT("FontSampleParameter")), Texture, ExpectedSamplerType))
 		{
 			return INDEX_NONE;

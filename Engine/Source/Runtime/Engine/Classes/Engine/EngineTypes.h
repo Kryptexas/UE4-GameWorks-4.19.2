@@ -142,6 +142,7 @@ enum EMaterialSamplerType
 	SAMPLERTYPE_Alpha UMETA(DisplayName="Alpha"),
 	SAMPLERTYPE_Normal UMETA(DisplayName="Normal"),
 	SAMPLERTYPE_Masks UMETA(DisplayName="Masks"),
+	SAMPLERTYPE_DistanceFieldFont UMETA(DisplayName="Distance Field Font"),
 	SAMPLERTYPE_LinearColor UMETA(DisplayName = "Linear Color"),
 	SAMPLERTYPE_LinearGrayscale UMETA(DisplayName = "Linear Grayscale"),
 	SAMPLERTYPE_MAX,

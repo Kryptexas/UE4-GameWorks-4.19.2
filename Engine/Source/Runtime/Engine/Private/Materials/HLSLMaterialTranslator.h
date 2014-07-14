@@ -2153,6 +2153,7 @@ protected:
 			break;
 
 			case SAMPLERTYPE_Alpha:
+			case SAMPLERTYPE_DistanceFieldFont:
 				// Sampling a single channel texture in D3D9 gives: (G,G,G)
 				// Sampling a single channel texture in D3D11 gives: (G,0,0)
 				// This replication reproduces the D3D9 behavior in all cases.

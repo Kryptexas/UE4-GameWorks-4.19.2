@@ -21,6 +21,7 @@ enum TextureCompressionSettings
 	TC_HDR,
 	TC_EditorIcon,
 	TC_Alpha,
+	TC_DistanceFieldFont,
 	TC_MAX,
 };
 

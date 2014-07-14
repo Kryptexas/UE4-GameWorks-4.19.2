@@ -937,7 +937,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 		FMemory::Memcpy(Texture->Source.LockMip(0),DistanceFieldTex.GetResultTexture(),DistanceFieldTex.GetResultTextureSize());		
 		Texture->Source.UnlockMip(0);		
 		// use PF_G8 for all distance field textures for better precision than DXT5
-		Texture->CompressionSettings = TC_Displacementmap;
+		Texture->CompressionSettings = TC_DistanceFieldFont;
 		// disable gamma correction since storing alpha in linear color for PF_G8
 		Texture->SRGB = false;
 	}
@@ -947,8 +947,8 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 		if (ImportOptions->Data.bAlphaOnly &&
 			!ImportOptions->Data.bEnableDropShadow)
 		{
-			// use PF_G8 for all distance field textures for better precision than DXT5
-			Texture->CompressionSettings = TC_Displacementmap;
+			// Not a distance field texture, but we use the same compression settings for better precision than DXT5
+			Texture->CompressionSettings = TC_DistanceFieldFont;
 			// disable gamma correction since storing alpha in linear color for PF_G8
 			Texture->SRGB = false;
 		}
@@ -1797,7 +1797,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromBitmap( UFont* Font, uint8* B
 		FMemory::Memcpy(Texture->Source.LockMip(0),DistanceFieldTex.GetResultTexture(),DistanceFieldTex.GetResultTextureSize());		
 		Texture->Source.UnlockMip(0);		
 		// use PF_G8 for all distance field textures for better precision than DXT5
-		Texture->CompressionSettings = TC_Displacementmap;
+		Texture->CompressionSettings = TC_DistanceFieldFont;
 		// disable gamma correction since storing alpha in linear color for PF_G8
 		Texture->SRGB = false;
 	}
@@ -1807,8 +1807,8 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromBitmap( UFont* Font, uint8* B
 		if (ImportOptions->Data.bAlphaOnly &&
 			!ImportOptions->Data.bEnableDropShadow)
 		{
-			// use PF_G8 for all distance field textures for better precision than DXT5
-			Texture->CompressionSettings = TC_Displacementmap;
+			// Not a distance field texture, but we use the same compression settings for better precision than DXT5
+			Texture->CompressionSettings = TC_DistanceFieldFont;
 			// disable gamma correction since storing alpha in linear color for PF_G8
 			Texture->SRGB = false;
 		}

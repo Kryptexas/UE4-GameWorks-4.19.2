@@ -122,9 +122,13 @@ public:
 		{
 			TextureFormatName = NameG8;
 		}
-		else if( Texture->CompressionSettings == TC_Alpha)
+		else if ( Texture->CompressionSettings == TC_Alpha)
 		{
 			TextureFormatName = NameBC4;
+		}
+		else if (Texture->CompressionSettings == TC_DistanceFieldFont)
+		{
+			TextureFormatName = NameG8;
 		}
 		else if (Texture->CompressionNoAlpha)
 		{
