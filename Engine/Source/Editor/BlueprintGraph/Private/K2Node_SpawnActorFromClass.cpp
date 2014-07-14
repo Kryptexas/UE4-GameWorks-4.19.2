@@ -75,7 +75,6 @@ void UK2Node_SpawnActorFromClass::SetPinToolTip(UEdGraphPin& MutatablePin, const
 	MutatablePin.PinToolTip += FString(TEXT("\n")) + PinDescription.ToString();
 }
 
-
 void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 {
 	check(InClass != NULL);
@@ -94,10 +93,19 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 			!Property->HasAnyPropertyFlags(CPF_Parm) && 
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
-			!bIsDelegate )
+			!bIsDelegate &&
+			(NULL == FindPin(Property->GetName()) ) )
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
-			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);	
+			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
+			
+			if( K2Schema->PinDefaultValueIsEditable(*Pin) )
+			{
+				FString DefaultValueAsString;
+				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)InClass->ClassDefaultObject, DefaultValueAsString);
+				check( bDefaultValueSet );
+				K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
+			}
 		}
 	}
 
@@ -422,7 +430,7 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 		// create 'set var' nodes
 
 		// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
-		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallBeginSpawnNode, SpawnNode, CallBeginResult );
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallBeginSpawnNode, SpawnNode, CallBeginResult, GetClassToSpawn() );
 
 		// Make exec connection between 'then' on last node and 'finish'
 		LastThen->MakeLinkTo(CallFinishExec);

@@ -103,10 +103,24 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 					UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 					Pin->PinType = PinType;
 					bHasExposedVariable = true;
+
+					if (K2Schema->PinDefaultValueIsEditable(*Pin))
+					{
+						FString DefaultValueAsString;
+						const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ComponentClass->ClassDefaultObject, DefaultValueAsString);
+						check(bDefaultValueSet);
+						K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
+					}
 				}
 			}
 		}
 	}
+}
+
+const UClass* UK2Node_AddComponent::GetSpawnedType() const
+{
+	const UActorComponent* TemplateComponent = GetTemplateFromNode();
+	return TemplateComponent ? TemplateComponent->GetClass() : NULL;
 }
 
 void UK2Node_AddComponent::AllocateDefaultPinsWithoutExposedVariables()
@@ -396,7 +410,7 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		// exec in
 		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *NewNode->GetExecPin());
 
-		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes( CompilerContext, SourceGraph, NewNode, this, ReturnPin );
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes( CompilerContext, SourceGraph, NewNode, this, ReturnPin, GetSpawnedType() );
 
 		CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *LastThen);
 		BreakAllNodeLinks();

@@ -503,7 +503,7 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 	}
 }
 
-UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult)
+UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult, const UClass* ForClass )
 {
 	static FString ObjectParamName = FString(TEXT("Object"));
 	static FString ValueParamName = FString(TEXT("Value"));
@@ -520,6 +520,26 @@ UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetComp
 		if (NULL == CallBeginSpawnNode->FindPin(OrgPin->PinName) &&
 			(OrgPin->LinkedTo.Num() > 0 || OrgPin->DefaultValue != FString()))
 		{
+			if( OrgPin->LinkedTo.Num() == 0 )
+			{
+				UProperty* Property = FindField<UProperty>(ForClass, *OrgPin->PinName);
+				// NULL property indicates that this pin was part of the original node, not the 
+				// class we're assigning to:
+				if( !Property )
+				{
+					continue;
+				}
+
+				// We don't want to generate an assignment node unless the default value 
+				// differs from the value in the CDO:
+				FString DefaultValueAsString;
+				FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ForClass->ClassDefaultObject, DefaultValueAsString);
+				if (DefaultValueAsString == OrgPin->DefaultValue)
+				{
+					continue;
+				}
+			}
+
 			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
 			if (SetByNameFunction)
 			{

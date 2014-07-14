@@ -262,6 +262,12 @@ UEdGraphSchema_K2::UEdGraphSchema_K2(const class FPostConstructInitializePropert
 	GN_AnimGraph = TEXT("AnimGraph");
 	VR_DefaultCategory = TEXT("Default");
 	AG_LevelReference = 100;
+
+	VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
+	RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
+	TransformStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Transform"));
+	LinearColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
+	ColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Color"));
 }
 
 
@@ -753,6 +759,30 @@ bool UEdGraphSchema_K2::PinHasSplittableStructType(const UEdGraphPin* InGraphPin
 	}
 
 	return bCanSplit;
+}
+
+bool UEdGraphSchema_K2::PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin) const
+{
+	// Array types are not currently assignable without a 'make array' node:
+	if( InGraphPin.PinType.bIsArray )
+	{
+		return false;
+	}
+
+	// User defined structures (from code or from data) cannot accept default values:
+	if( InGraphPin.PinType.PinCategory == PC_Struct )
+	{
+		// Only the built in struct types are editable as 'default' values on a pin.
+		// See FNodeFactory::CreatePinWidget for justification of the above statement!
+		UObject const& SubCategoryObject = *InGraphPin.PinType.PinSubCategoryObject;
+		return &SubCategoryObject == VectorStruct 
+			|| &SubCategoryObject == RotatorStruct
+			|| &SubCategoryObject == TransformStruct
+			|| &SubCategoryObject == LinearColorStruct
+			|| &SubCategoryObject == ColorStruct;
+	}
+
+	return true;
 }
 
 void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, FMenuBuilder* MenuBuilder, bool bIsDebugging) const

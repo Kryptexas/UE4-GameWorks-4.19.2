@@ -323,31 +323,31 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void SetObjectPropertyByName(UObject* Object, FName PropertyName, UObject* Value);
 
 	/** Set a NAME property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetNamePropertyByName(UObject* Object, FName PropertyName, const FName& Value);
 
 	/** Set a STRING property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetStringPropertyByName(UObject* Object, FName PropertyName, const FString& Value);
 
 	/** Set a TEXT property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetTextPropertyByName(UObject* Object, FName PropertyName, const FText& Value);
 
 	/** Set a VECTOR property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetVectorPropertyByName(UObject* Object, FName PropertyName, const FVector& Value);
 
 	/** Set a ROTATOR property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetRotatorPropertyByName(UObject* Object, FName PropertyName, const FRotator& Value);
 
 	/** Set a LINEAR COLOR property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetLinearColorPropertyByName(UObject* Object, FName PropertyName, const FLinearColor& Value);
 
 	/** Set a TRANSFORM property by name */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetTransformPropertyByName(UObject* Object, FName PropertyName, const FTransform& Value);
 
 	/** Set a custom structure property by name */

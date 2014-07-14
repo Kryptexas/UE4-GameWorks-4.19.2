@@ -536,6 +536,9 @@ public:
 	// Returns whether the supplied Pin is a splittable struct
 	bool PinHasSplittableStructType(const UEdGraphPin* InGraphPin) const;
 
+	/** Returns true if the pin has a value field that can be edited inline */
+	bool PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin) const;
+
 	/** Helper function to create the expansion node.  
 		If the CompilerContext is specified this will be created as an intermediate node */
 	class UK2Node* CreateSplitPinNode(UEdGraphPin* Pin, class FKismetCompilerContext* CompilerContext = NULL, UEdGraph* SourceGraph = NULL) const;
@@ -1019,5 +1022,11 @@ private:
 	 * @return true if there are out parameters, else false
 	 */
 	bool DoesFunctionHaveOutParameters( const UFunction* Function ) const;
+
+	const UScriptStruct* VectorStruct;
+	const UScriptStruct* RotatorStruct;
+	const UScriptStruct* TransformStruct;
+	const UScriptStruct* LinearColorStruct;
+	const UScriptStruct* ColorStruct;
 };
 
