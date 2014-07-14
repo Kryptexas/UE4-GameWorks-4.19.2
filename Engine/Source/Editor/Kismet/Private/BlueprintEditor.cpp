@@ -4873,7 +4873,29 @@ void FBlueprintEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 	}
 	else if (UObject* HyperlinkTarget = Node->GetJumpTargetForDoubleClick())
 	{
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+		// Check to see if our outer chain contains a blueprint. If we're inside a blueprint (a graph, pin, etc.) then
+		// focus on the target; otherwise open the editor for the target.
+		UBlueprint* TargetBP = Cast<UBlueprint>(const_cast<UObject*>(HyperlinkTarget));
+		if(TargetBP == NULL)
+		{
+			for(UObject* TestOuter = HyperlinkTarget->GetOuter(); TestOuter; TestOuter = TestOuter->GetOuter())
+			{
+				TargetBP = Cast<UBlueprint>(TestOuter);
+				if(TargetBP != NULL)
+				{
+					break;
+				}
+			}
+		}
+
+		if(TargetBP)
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+		}
+		else
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(HyperlinkTarget);
+		}
 	}
 }
 
