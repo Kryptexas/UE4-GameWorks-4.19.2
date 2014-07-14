@@ -1,8 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
 #include "Slate.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MacroInstance"
 
@@ -425,6 +425,21 @@ void UK2Node_MacroInstance::GetNodeAttributes( TArray<TKeyValuePair<FString, FSt
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Macro" ) ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), MacroName ));
+}
+
+FText UK2Node_MacroInstance::GetMenuCategory() const
+{
+	FText MenuCategory = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Utilities);
+	if (UEdGraph* MacroGraph = GetMacroGraph())
+	{
+		FKismetUserDeclaredFunctionMetadata* MacroGraphMetadata = UK2Node_MacroInstance::GetAssociatedGraphMetadata(MacroGraph);
+		if ((MacroGraphMetadata != nullptr) && !MacroGraphMetadata->Category.IsEmpty())
+		{
+			MenuCategory = FText::FromString(MacroGraphMetadata->Category);
+		}
+	}
+
+	return MenuCategory;
 }
 
 

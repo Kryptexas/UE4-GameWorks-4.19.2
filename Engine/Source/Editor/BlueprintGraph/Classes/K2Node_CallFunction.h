@@ -88,6 +88,7 @@ public:
 	virtual FName GetCornerIcon() const override;
 	virtual FText GetToolTipHeading() const override;
 	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
+	virtual FText GetMenuCategory() const override;
 	// End of UK2Node interface
 
 	/** Returns the UFunction that this class is pointing to */

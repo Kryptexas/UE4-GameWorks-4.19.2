@@ -2,10 +2,10 @@
 
 
 #include "BlueprintGraphPrivatePCH.h"
-
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
+#include "BlueprintActionMenuBuilder.h"
 
 const FString UK2Node_Event::DelegateOutputName(TEXT("OutputDelegate"));
 
@@ -627,6 +627,17 @@ void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& 
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "Event" ) ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetFunctionName().ToString() ));
+}
+
+FText UK2Node_Event::GetMenuCategory() const
+{
+	FText Category;
+	if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
+	{
+		Category = FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
+	}
+
+	return FText::Format(LOCTEXT("ConcatenatedCategory", "{0}|{1}"), FBlueprintActionMenuBuilder::AddEventCategory, Category);
 }
 
 bool UK2Node_Event::IsDeprecated() const

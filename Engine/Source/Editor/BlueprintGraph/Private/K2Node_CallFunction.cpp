@@ -1502,6 +1502,12 @@ void UK2Node_CallFunction::GetNodeAttributes( TArray<TKeyValuePair<FString, FStr
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), TargetFunctionName ));
 }
 
+FText UK2Node_CallFunction::GetMenuCategory() const
+{
+	UFunction* TargetFunction = GetTargetFunction();
+	return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+}
+
 bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const UClass* SourceClass = FunctionReference.GetMemberParentClass(this);
