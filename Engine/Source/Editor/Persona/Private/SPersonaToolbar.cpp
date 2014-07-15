@@ -15,6 +15,7 @@
 #define LOCTEXT_NAMESPACE "PersonaToolbar"
 
 const float ContentRefWidth = 80.0f;
+const FVector2D AssetPickerSize(200, 700);
 
 //////////////////////////////////////////////////////////////////////////
 // SPipelineSeparator
@@ -126,6 +127,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				.AllowedClass(USkeletalMesh::StaticClass())
 				.OnShouldFilterAsset(this, &FPersonaToolbar::ShouldFilterAssetBasedOnSkeleton)
 				.OnSetReference(this, &FPersonaToolbar::OnSetSkeletalMeshReference)
+				.AssetPickerSizeOverride(AssetPickerSize)
 			]
 		);
 
@@ -171,6 +173,7 @@ void FPersonaToolbar::FillPersonaModeToolbar(FToolBarBuilder& ParentToolbarBuild
 				.AllowedClass(UAnimationAsset::StaticClass())
 				.OnShouldFilterAsset(this, &FPersonaToolbar::ShouldFilterAssetBasedOnSkeleton)
 				.OnSetReference(this, &FPersonaToolbar::OnSetAnimationAssetReference)
+				.AssetPickerSizeOverride(AssetPickerSize)
 			]
 		);
 

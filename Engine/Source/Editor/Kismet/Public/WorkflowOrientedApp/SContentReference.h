@@ -21,6 +21,7 @@ public:
 		, _AllowClearingReference(false)
 		, _AllowedClass((UClass*)NULL)
 		, _WidthOverride(FOptionalSize())
+		, _AssetPickerSizeOverride(FVector2D(384, 768))
 	{}
 		// The style of the content reference widget (optional)
 		SLATE_ARGUMENT(FName, Style)
@@ -54,6 +55,9 @@ public:
 
 		/** When specified, the path box will request this fixed size. */
 		SLATE_ATTRIBUTE(FOptionalSize, WidthOverride)
+
+		// when you'd like to modify size of the asset picker window
+		SLATE_ATTRIBUTE(FVector2D, AssetPickerSizeOverride)
 
 		// The event to call when the user selects a new asset or clears the existing reference
 		//@TODO: Support that stuff!
@@ -91,6 +95,7 @@ protected:
 	TAttribute<bool> AllowSelectingNewAsset;
 	TAttribute<bool> AllowClearingReference;
 	TAttribute<UClass*> AllowedClass;
+	TAttribute<FVector2D>	AssetPickerSizeOverride;
 
 	// Delegates
 	FOnShouldFilterAsset OnShouldFilterAsset;
