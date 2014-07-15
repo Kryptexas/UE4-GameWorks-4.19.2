@@ -65,6 +65,9 @@ private:
 	/** Called by Slate when an item is selected from the tree/list. */
 	void OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> Item, ESelectInfo::Type SelectInfo );
 
+	/** Called by Slate when an item is expanded/collapsed from the tree/list. */
+	void OnClassViewerExpansionChanged(TSharedPtr<FClassViewerNode> Item, bool bExpanded);
+
 	/** A simple function for the filters to keep them enabled. */
 	bool Menu_CanExecute() const;
 
@@ -212,4 +215,7 @@ private:
 
 	/** True if the search box will take keyboard focus next frame */
 	bool bPendingFocusNextFrame;
+
+	/** True if we need to set the tree expansion states according to our local copy next tick */
+	bool bPendingSetExpansionStates;
 };

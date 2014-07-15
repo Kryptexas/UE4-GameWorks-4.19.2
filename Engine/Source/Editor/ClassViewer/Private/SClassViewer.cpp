@@ -2028,6 +2028,7 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 	OnClassPicked = InArgs._OnClassPickedDelegate;
 
 	bSaveExpansionStates = true;
+	bPendingSetExpansionStates = false;
 
 	bEnableClassDynamicLoading = InInitOptions.bEnableClassDynamicLoading;
 
@@ -2153,6 +2154,9 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 
 					// Find out when the user selects something in the tree
 					.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
+
+					// Called when the expansion state of an item changes
+					.OnExpansionChanged( this, &SClassViewer::OnClassViewerExpansionChanged )
 
 					// Allow for some spacing between items with a larger item height.
 					.ItemHeight(20.0f)
@@ -2286,6 +2290,17 @@ void SClassViewer::OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> I
 	}
 }
 
+void SClassViewer::OnClassViewerExpansionChanged(TSharedPtr<FClassViewerNode> Item, bool bExpanded)
+{
+	// Sometimes the item is not valid anymore due to filtering.
+	if (Item.IsValid() == false || Item->IsRestricted())
+	{
+		return;
+	}
+
+	ExpansionStateMap.Add(Item->GetClassName(), bExpanded);
+}
+
 TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 {
 	// Empty list of commands.
@@ -2410,7 +2425,7 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 	bool* bIsExpanded = ExpansionStateMap.Find( Item->GetClassName() );
 	if( bIsExpanded && *bIsExpanded )
 	{
-		ClassTree->SetItemExpansion( Item, *bIsExpanded );
+		bPendingSetExpansionStates = true;
 	}
 
 	return ReturnRow;
@@ -2430,6 +2445,7 @@ void SClassViewer::ExpandRootNodes()
 {
 	for (int32 NodeIdx = 0; NodeIdx < RootTreeItems.Num(); ++NodeIdx)
 	{
+		ExpansionStateMap.Add(RootTreeItems[NodeIdx]->GetClassName(), true);
 		ClassTree->SetItemExpansion(RootTreeItems[NodeIdx], true);
 	}
 }
@@ -2912,6 +2928,12 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 		{
 			ExpandRootNodes();
 		}
+	}
+
+	if (bPendingSetExpansionStates)
+	{
+		bPendingSetExpansionStates = false;
+		SetExpansionStatesInTree(RootTreeItems[0]);
 	}
 }
 
