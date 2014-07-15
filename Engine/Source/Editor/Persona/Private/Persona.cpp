@@ -860,7 +860,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 					
 	PersonaModule->GetMenuExtensibilityManager()->AddExtender(PersonaMenuExtender);					
 
-	AddMenuExtender(PersonaModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+	AddMenuExtender(PersonaMenuExtender);
 
 	check(PreviewComponent == NULL);
 
