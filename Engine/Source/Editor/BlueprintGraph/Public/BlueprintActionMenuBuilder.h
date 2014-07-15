@@ -7,11 +7,11 @@
 // Forward declarations
 namespace FBlueprintActionMenuBuilderImpl
 {
-	struct FMenuSectionDefinition; // internal type, forward declared to hide implementation details
+	// internal type, forward declared to hide implementation details
+	struct FMenuSectionDefinition; 
 };
 class  FBlueprintActionFilter;
 struct FBlueprintActionContext;
-class  UActorComponent;
 
 /**
  * Responsible for constructing a list of viable blueprint actions. Runs the 
