@@ -128,6 +128,11 @@ void ULocalPlayer::PostInitProperties()
 			StereoViewState.Allocate();
 		}
 	}
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{	
+		FCoreDelegates::OnControllerConnectionChange.AddUObject(this, &ULocalPlayer::HandleControllerConnectionChange);
+	}
 }
 
 void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InControllerID)
@@ -269,6 +274,12 @@ void ULocalPlayer::SendSplitJoin()
 			bSentSplitJoin = true;
 		}
 	}
+}
+
+void ULocalPlayer::BeginDestroy()
+{
+	FCoreDelegates::OnControllerConnectionChange.RemoveAll(this);
+	Super::BeginDestroy();
 }
 
 void ULocalPlayer::FinishDestroy()
@@ -1491,6 +1502,22 @@ void ULocalPlayer::ExecMacro( const TCHAR* Filename, FOutputDevice& Ar )
 	else
 	{
 		UE_SUPPRESS(LogExec, Warning, Ar.Logf(*FString::Printf( TEXT("Can't find file '%s'"), Filename) ));
+	}
+}
+
+void ULocalPlayer::HandleControllerConnectionChange(bool bConnected, int32 InUserId, int32 InControllerId)
+{
+	// if this is an event for this LocalPlayer
+	if (InControllerId == ControllerId)
+	{
+		// if we lost the connection we need to flush all the keys on the PlayerInput to avoid the PC spinning in place, or firing forever, etc.
+		if (!bConnected)
+		{		
+			if (PlayerController && PlayerController->PlayerInput)
+			{
+				PlayerController->PlayerInput->FlushPressedKeys();	
+			}
+		}
 	}
 }
 
