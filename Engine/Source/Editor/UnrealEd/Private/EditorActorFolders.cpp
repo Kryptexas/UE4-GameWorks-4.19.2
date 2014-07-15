@@ -309,11 +309,35 @@ void FActorFolders::CreateFolderContainingSelection(UWorld& InWorld, FName Path)
 {
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateFolder", "Create Folder"));
 	CreateFolder(InWorld, Path);
+	SetSelectedFolderPath(Path);
+}
 
+void FActorFolders::SetSelectedFolderPath(FName Path) const
+{
 	// Move the currently selected actors into the new folder
-	for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
+	USelection* SelectedActors = GEditor->GetSelectedActors();
+	for (FSelectionIterator SelectionIt(*SelectedActors); SelectionIt; ++SelectionIt)
 	{
 		AActor* Actor = CastChecked<AActor>(*SelectionIt);
+
+		// If this actor is parented to another, which is also in the selection, skip it so that it moves when its parent does (otherwise it's orphaned)
+		const AActor* ParentActor = Actor->GetAttachParentActor();
+		if (ParentActor && SelectedActors->IsSelected(ParentActor))
+		{
+			continue;
+		}
+
+		// If any child actor isn't being moved with the parent, then orphan them (otherwise they'll end up being forced to move)
+		TArray<AActor*> ChildActors;
+		Actor->GetAttachedActors(ChildActors);
+		for (const auto& ChildActor : ChildActors)
+		{
+			if (ChildActor && !SelectedActors->IsSelected(ChildActor))
+			{
+				ChildActor->DetachRootComponentFromParent(true);
+			}
+		}
+
 		Actor->SetFolderPath(Path);
 	}
 }

@@ -82,6 +82,9 @@ struct UNREALED_API FActorFolders : public FGCObject
 	/** Same as CreateFolder, but moves the current actor selection into the new folder as well */
 	void CreateFolderContainingSelection(UWorld& InWorld, FName Path);
 
+	/** Sets the folder path for all the selected actors */
+	void SetSelectedFolderPath(FName Path) const;
+
 	/** Delete the specified folder in the world */
 	void DeleteFolder(UWorld& InWorld, FName FolderToDelete);
 

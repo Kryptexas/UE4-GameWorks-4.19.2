@@ -2052,12 +2052,7 @@ namespace SceneOutliner
 			TSharedRef<TOutlinerFolderTreeItem> NewFolderItem = MakeShareable(new TOutlinerFolderTreeItem(NewPath));
 			AddedItemsList.Add(NewFolderItem);
 
-			// Move the currently selected actors into the new folder
-			for( FSelectionIterator SelectionIt( *GEditor->GetSelectedActors() ); SelectionIt; ++SelectionIt )
-			{
-				AActor* Actor = CastChecked<AActor>(*SelectionIt);
-				Actor->SetFolderPath(NewPath);
-			}
+			FActorFolders::Get().SetSelectedFolderPath(NewPath);
 
 			Refresh();
 		}
