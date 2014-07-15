@@ -24,6 +24,7 @@ typedef uint64 NavNodeRef;
 struct FNavigationQueryFilter;
 class AActor;
 class ANavigationData;
+class INavAgentInterface;
 
 namespace FNavigationSystem
 {
