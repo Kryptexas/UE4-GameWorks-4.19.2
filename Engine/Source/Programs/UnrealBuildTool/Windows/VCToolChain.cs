@@ -1052,7 +1052,7 @@ namespace UnrealBuildTool
 
 			// Tell the action that we're building an import library here and it should conditionally be
 			// ignored as a prerequisite for other actions
-			LinkAction.bProducesImportLibrary = bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL;
+			LinkAction.bProducesImportLibrary = bBuildImportLibraryOnly || LinkEnvironment.Config.bIsBuildingDLL;
 
 
 			// If we're only building an import library, add the '/DEF' option that tells the LIB utility
