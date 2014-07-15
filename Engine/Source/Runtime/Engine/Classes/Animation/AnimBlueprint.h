@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "Engine/Blueprint.h"
-#include "AnimInstance.h"
-
 #include "AnimBlueprint.generated.h"
 
 USTRUCT()

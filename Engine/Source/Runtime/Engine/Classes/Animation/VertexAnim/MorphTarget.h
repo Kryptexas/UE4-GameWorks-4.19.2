@@ -5,7 +5,6 @@
 #include "MorphTarget.generated.h"
 
 class USkeletalMesh;
-class UStaticMesh;
 
 /**
 * Morph mesh vertex data used for comparisons and importing

@@ -7,9 +7,8 @@
  *
  */
 
-#include "Delegate.h"
 #include "AnimCompositeBase.h"
-#include "AnimInstance.h"
+#include "Animation/AnimInstance.h"
 #include "AnimMontage.generated.h"
 
 /**

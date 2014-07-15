@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "AnimNotifyState.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "AnimNotifyState_TimedParticleEffect.generated.h"
 
 // Timed Particle Effect Notify
@@ -17,7 +16,7 @@ class UAnimNotifyState_TimedParticleEffect : public UAnimNotifyState
 	UPROPERTY(EditAnywhere, Category = ParticleSystem, meta = (ToolTip = "The particle system to spawn for the notify state"))
 	UParticleSystem* PSTemplate;
 
-	// The socket within our mesh component to attach to when we spawn the particle componnet
+	// The socket within our mesh component to attach to when we spawn the particle component
 	UPROPERTY(EditAnywhere, Category = ParticleSystem, meta = (ToolTip = "The socket or bone to attach the system to"))
 	FName SocketName;
 

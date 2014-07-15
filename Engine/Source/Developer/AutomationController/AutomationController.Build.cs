@@ -18,6 +18,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"AutomationMessages",
 					"CoreUObject",
+					"Messaging",
 					"UnrealEdMessages",
 				}
 			);

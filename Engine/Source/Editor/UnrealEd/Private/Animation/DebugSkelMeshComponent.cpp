@@ -6,6 +6,7 @@
 #include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
+#include "Animation/AnimInstance.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy

@@ -87,6 +87,7 @@ public class UnrealEd : ModuleRules
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",
+				"Messaging",
 				"NetworkFileSystem",
 				"ProjectSettingsViewer",
 				"PropertyEditor",

@@ -18,6 +18,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"CoreUObject",
 					"Engine",
+					"Messaging",
 					"ProfilerMessages",
 				}
 			);

@@ -18,6 +18,7 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 
 /** Anim stats */
 

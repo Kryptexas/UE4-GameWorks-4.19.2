@@ -68,28 +68,12 @@ public:
 	 * @param InBus The message bus to attach this endpoint to.
 	 * @param InHandlers The collection of message handlers to register.
 	 */
-	FMessageEndpoint( const FName& InName, const IMessageBusRef& InBus, const TArray<IMessageHandlerPtr>& InHandlers )
-		: Address(FGuid::NewGuid())
-		, BusPtr(InBus)
-		, Enabled(true)
-		, Handlers(InHandlers)
-		, Id(FGuid::NewGuid())
-		, InboxEnabled(false)
-		, Name(InName)
-	{ }
+	MESSAGING_API FMessageEndpoint( const FName& InName, const IMessageBusRef& InBus, const TArray<IMessageHandlerPtr>& InHandlers );
 
 	/**
 	 * Destructor.
 	 */
-	~FMessageEndpoint( )
-	{
-		IMessageBusPtr Bus = BusPtr.Pin();
-
-		if (Bus.IsValid())
-		{
-			Bus->Unregister(Address);
-		}
-	}
+	MESSAGING_API ~FMessageEndpoint();
 
 public:
 
@@ -177,15 +161,7 @@ public:
 	 * @param Message The context of the message to defer.
 	 * @param Delay The time delay.
 	 */
-	void Defer( const IMessageContextRef& Context, const FTimespan& Delay )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Forward(Context, TArrayBuilder<FMessageAddress>().Add(Address), Context->GetScope(), Delay, AsShared());
-		}
-	}
+	MESSAGING_API void Defer(const IMessageContextRef& Context, const FTimespan& Delay);
 
 	/**
 	 * Forwards a previously received message.
@@ -197,15 +173,7 @@ public:
 	 * @param ForwardingScope The scope of the forwarded message.
 	 * @param Delay The time delay.
 	 */
-	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Forward(Context, Recipients, ForwardingScope, Delay, AsShared());
-		}
-	}
+	MESSAGING_API void Forward(const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay);
 
 	/**
 	 * Publishes a message to all subscribed recipients within the specified scope.
@@ -217,15 +185,7 @@ public:
 	 * @param Delay The delay after which to publish the message.
 	 * @param Expiration The time at which the message expires.
 	 */
-	void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Publish(Message, TypeInfo, Scope, Delay, Expiration, AsShared());
-		}
-	}
+	MESSAGING_API void Publish(void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration);
 
 	/**
 	 * Sends a message to the specified list of recipients.
@@ -237,15 +197,7 @@ public:
 	 * @param Delay The delay after which to send the message.
 	 * @param Expiration The time at which the message expires.
 	 */
-	void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Send(Message, TypeInfo, Attachment, Recipients, Delay, Expiration, AsShared());
-		}
-	}
+	MESSAGING_API void Send(void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration);
 
 	/**
 	 * Subscribes a message handler.
@@ -253,15 +205,7 @@ public:
 	 * @param MessageType The type name of the messages to subscribe to.
 	 * @param ScopeRange The range of message scopes to include in the subscription.
 	 */
-	void Subscribe( const FName& MessageType, const FMessageScopeRange& ScopeRange )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Subscribe(AsShared(), MessageType, ScopeRange);
-		}
-	}
+	MESSAGING_API void Subscribe(const FName& MessageType, const FMessageScopeRange& ScopeRange);
 
 	/**
 	 * Unsubscribes this endpoint from the specified message type.
@@ -269,15 +213,7 @@ public:
 	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
 	 * @see Subscribe
 	 */
-	void Unsubscribe( const FName& TopicPattern )
-	{
-		IMessageBusPtr Bus = GetBusIfEnabled();
-
-		if (Bus.IsValid())
-		{
-			Bus->Unsubscribe(AsShared(), TopicPattern);
-		}
-	}
+	MESSAGING_API void Unsubscribe(const FName& TopicPattern);
 
 public:
 
@@ -775,23 +711,7 @@ protected:
 	 *
 	 * @param Context The context of the message to handle.
 	 */
-	void ProcessMessage( const IMessageContextRef& Context )
-	{
-		if (!Context->IsValid())
-		{
-			return;
-		}
-
-		for (int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex)
-		{
-			IMessageHandlerPtr& Handler = Handlers[HandlerIndex];
-
-			if (Handler->GetHandledMessageType() == Context->GetMessageType())
-			{
-				Handler->HandleMessage(Context);
-			}
-		}
-	}
+	MESSAGING_API void ProcessMessage(const IMessageContextRef& Context);
 
 private:
 

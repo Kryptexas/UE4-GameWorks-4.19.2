@@ -16,6 +16,7 @@ public class ScreenShotComparisonTools : ModuleRules
 			new string[] {
 				"AutomationMessages",
 				"CoreUObject",
+				"Messaging",
 				"UnrealEdMessages",
 				"Slate",
                 "EditorStyle",

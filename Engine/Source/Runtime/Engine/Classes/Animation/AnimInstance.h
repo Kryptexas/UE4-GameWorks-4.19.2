@@ -3,19 +3,24 @@
 #pragma once
 
 #include "AnimationAsset.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "AnimSequence.h"
-#include "AnimStateMachineTypes.h"
-
+#include "Components/SkeletalMeshComponent.h"
 #include "AnimInstance.generated.h"
 
-struct FBoneContainer;
 struct FAnimMontageInstance;
-class  USkeletalMesh;
 class UAnimMontage;
+class USkeleton;
+class AActor;
+class UAnimSequenceBase;
+class UBlendSpaceBase;
+class APawn;
+class UAnimationAsset;
+class UCanvas;
+class UWorld;
+class FTransform;
 
-DECLARE_DELEGATE_TwoParams(FOnMontageEnded, class UAnimMontage*, bool /*bInterrupted*/)
-DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, class UAnimMontage*, bool /*bInterrupted*/)
+DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
+DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, UAnimMontage*, bool /*bInterrupted*/)
 
 /**
 * Delegate for when Montage is completed, whether interrupted or finished
@@ -23,7 +28,7 @@ DECLARE_DELEGATE_TwoParams(FOnMontageBlendingOutStarted, class UAnimMontage*, bo
 *
 * bInterrupted = true if it was not property finished
 */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, UAnimMontage*, Montage, bool, bInterrupted);
 
 /**
 * Delegate for when Montage started to blend out, whether interrupted or finished
@@ -31,7 +36,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageEndedMCDelegate, class UA
 *
 * bInterrupted = true if it was not property finished
 */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageBlendingOutStartedMCDelegate, class UAnimMontage*, Montage, bool, bInterrupted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMontageBlendingOutStartedMCDelegate, UAnimMontage*, Montage, bool, bInterrupted);
 
 /** Enum for controlling which reference frame a controller is applied in. */
 UENUM()
@@ -246,7 +251,7 @@ class ENGINE_API UAnimInstance : public UObject
 
 	/** This is used to extract animation. If Mesh exists, this will be overwritten by Mesh->Skeleton */
 	UPROPERTY(transient)
-	class USkeleton* CurrentSkeleton;
+	USkeleton* CurrentSkeleton;
 
 	// The list of animation assets which are going to be evaluated this frame and need to be ticked (ungrouped)
 	UPROPERTY(transient)
@@ -263,18 +268,18 @@ class ENGINE_API UAnimInstance : public UObject
 public:
 
 	// @todo document
-	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
-	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, class UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
+	void MakeSequenceTickRecord(FAnimTickRecord& TickRecord, UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
+	void MakeBlendSpaceTickRecord(FAnimTickRecord& TickRecord, UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData>& BlendSampleDataCache, FBlendFilter& BlendFilter, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const;
 
-	void SequenceAdvanceImmediate(class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	void SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
 
 	// @todo document
-	void BlendSpaceAdvanceImmediate(class UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
+	void BlendSpaceAdvanceImmediate(UBlendSpaceBase* BlendSpace, const FVector& BlendInput, TArray<FBlendSampleData> & BlendSampleDataCache, FBlendFilter & BlendFilter, bool bLooping, float PlayRate, float DeltaSeconds, /*inout*/ float& CurrentTime);
 
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
 
-	void SequenceEvaluatePose(class UAnimSequenceBase* Sequence, struct FA2Pose& Pose, const FAnimExtractContext & ExtractionContext);
+	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FA2Pose& Pose, const FAnimExtractContext & ExtractionContext);
 
 	void BlendSequences(const struct FA2Pose& Pose1, const struct FA2Pose& Pose2, float Alpha, struct FA2Pose& Blended);
 
@@ -282,7 +287,7 @@ public:
 
 	void ApplyAdditiveSequence(const struct FA2Pose& BasePose, const struct FA2Pose& AdditivePose, float Alpha, struct FA2Pose& Blended);
 
-	void BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose);
+	void BlendSpaceEvaluatePose(UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose);
 
 	// skeletal control related functions
 	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
@@ -301,16 +306,16 @@ public:
 	// kismet event functions
 
 	UFUNCTION(BlueprintPure, Category = "Animation")
-	virtual class APawn* TryGetPawnOwner();
+	virtual APawn* TryGetPawnOwner();
 
 protected:
 	/** Returns the owning actor of this AnimInstance */
 	UFUNCTION(BlueprintPure, Category="Animation")
-	class AActor* GetOwningActor();
+	AActor* GetOwningActor();
 	
 	// Returns the skeletal mesh component that has created this AnimInstance
 	UFUNCTION(BlueprintPure, Category="Animation")
-	class USkeletalMeshComponent* GetOwningComponent();
+	USkeletalMeshComponent* GetOwningComponent();
 
 public:
 
@@ -391,19 +396,19 @@ public:
 
 	/** Returns the length (in seconds) of an animation AnimAsset. */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerLength(class UAnimationAsset* AnimAsset);
+	static float GetAnimAssetPlayerLength(UAnimationAsset* AnimAsset);
 
 	//** Returns how far through the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFraction(class UAnimationAsset* AnimAsset, float CurrentTime);
+	static float GetAnimAssetPlayerTimeFraction(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns how long until the end of the animation AnimAsset (in seconds). */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFromEnd(class UAnimationAsset* AnimAsset, float CurrentTime);
+	static float GetAnimAssetPlayerTimeFromEnd(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns how long until the end of the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFromEndFraction(class UAnimationAsset* AnimAsset, float CurrentTime);
+	static float GetAnimAssetPlayerTimeFromEndFraction(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns the weight of a state in a state machine. */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
@@ -469,7 +474,7 @@ public:
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
 
 	// Debug output for this anim instance 
-	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+	void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 public:
 
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
@@ -527,7 +532,7 @@ public:
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
 
-	virtual class UWorld* GetWorld() const override;
+	virtual UWorld* GetWorld() const override;
 
 	/** Add anim notifier **/
 	void AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNotifies, const float InstanceWeight);

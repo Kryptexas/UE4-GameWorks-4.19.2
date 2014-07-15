@@ -6,8 +6,6 @@
  */
 
 #pragma once
-#include "Core.h"
-#include "Delegate.h"
 #include "PreviewAssetAttachComponent.h"
 #include "Skeleton.generated.h"
 
