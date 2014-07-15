@@ -22,6 +22,7 @@
 	bool bDeferSetFrame;
 	bool bDeferSetOrigin;
 	bool bRenderInitialised;
+	bool bNeedsRedraw;
 @public
 	bool bZoomed;
 }

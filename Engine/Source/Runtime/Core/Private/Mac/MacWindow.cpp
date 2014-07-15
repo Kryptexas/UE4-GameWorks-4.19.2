@@ -146,10 +146,11 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 - (void)redrawContents
 {
-	if(self.bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
+	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		MacApplication->OnWindowRedrawContents( self );
 	}
+	bNeedsRedraw = false;
 }
 
 - (void)setWindowMode:(EWindowMode::Type)NewWindowMode
@@ -443,6 +444,7 @@ TArray< FSlateCocoaWindow* > GRunningModalWindows;
 	{
 		MacApplication->OnWindowDidResize( self );
 	}
+	bNeedsRedraw = true;
 }
 
 - (void)windowWillClose:(NSNotification *)notification
