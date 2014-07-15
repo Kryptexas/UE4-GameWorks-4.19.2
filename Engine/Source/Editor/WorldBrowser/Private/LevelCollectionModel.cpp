@@ -10,7 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor)
+FLevelCollectionModel::FLevelCollectionModel(UEditorEngine* InEditor)
 	: Editor(InEditor)
 	, bRequestedUpdateAllLevels(false)
 	, bRequestedRedrawAllLevels(false)
@@ -39,11 +39,11 @@ FLevelCollectionModel::~FLevelCollectionModel()
 	Editor->OnLevelActorDeleted().RemoveAll(this);
 }
 
-void FLevelCollectionModel::Initialize()
+void FLevelCollectionModel::Initialize(UWorld* InWorld)
 {
 	LoadSettings();
 	
-	CurrentWorld = Editor->GetEditorWorldContext().World();
+	CurrentWorld = InWorld;
 
 	Filters->OnChanged().AddSP(this, &FLevelCollectionModel::OnFilterChanged);
 	FWorldDelegates::LevelAddedToWorld.AddSP(this, &FLevelCollectionModel::OnLevelAddedToWorld);

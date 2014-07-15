@@ -13,7 +13,7 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FStreamingLevelCollectionModel::FStreamingLevelCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor )
+FStreamingLevelCollectionModel::FStreamingLevelCollectionModel(UEditorEngine* InEditor)
 	: FLevelCollectionModel(InEditor)
 	, AddedLevelStreamingClass(ULevelStreamingKismet::StaticClass())
 {
@@ -24,12 +24,12 @@ FStreamingLevelCollectionModel::~FStreamingLevelCollectionModel()
 	Editor->UnregisterForUndo( this );
 }
 
-void FStreamingLevelCollectionModel::Initialize()
+void FStreamingLevelCollectionModel::Initialize(UWorld* InWorld)
 {
 	BindCommands();	
 	Editor->RegisterForUndo( this );
 	
-	FLevelCollectionModel::Initialize();
+	FLevelCollectionModel::Initialize(InWorld);
 }
 
 void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()

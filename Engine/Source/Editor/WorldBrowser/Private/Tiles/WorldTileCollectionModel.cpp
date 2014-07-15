@@ -23,7 +23,7 @@
 static const FName HeightmapLayerName = FName("__Heightmap__");
 
 
-FWorldTileCollectionModel::FWorldTileCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor)
+FWorldTileCollectionModel::FWorldTileCollectionModel(UEditorEngine* InEditor)
 	: FLevelCollectionModel(InEditor)
 	, bIsSavingLevel(false)
 	, bMeshProxyAvailable(false)
@@ -45,7 +45,7 @@ FWorldTileCollectionModel::~FWorldTileCollectionModel()
 	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 }
 
-void FWorldTileCollectionModel::Initialize()
+void FWorldTileCollectionModel::Initialize(UWorld* InWorld)
 {
 	// Uncategorized layer, always exist
 	FWorldTileLayer Layer;
@@ -60,7 +60,7 @@ void FWorldTileCollectionModel::Initialize()
 	FEditorDelegates::NewCurrentLevel.AddSP(this, &FWorldTileCollectionModel::OnNewCurrentLevel);
 	BindCommands();
 			
-	FLevelCollectionModel::Initialize();
+	FLevelCollectionModel::Initialize(InWorld);
 	
 	// Check whehter Editor has support for generating mesh proxies	
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");

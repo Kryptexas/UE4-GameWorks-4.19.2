@@ -19,10 +19,10 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FStreamingLevelCollectionModel> Create(const TWeakObjectPtr<UEditorEngine>& InEditor)
+	static TSharedRef<FStreamingLevelCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
 	{
 		TSharedRef<FStreamingLevelCollectionModel> LevelCollectionModel(new FStreamingLevelCollectionModel(InEditor));
-		LevelCollectionModel->Initialize();
+		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
 
@@ -36,7 +36,7 @@ public:
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;
 
 private:
-	virtual void Initialize() override;
+	virtual void Initialize(UWorld* InWorld) override;
 	virtual void BindCommands() override;
 	virtual void OnLevelsCollectionChanged() override;
 	virtual void OnLevelsSelectionChanged() override;
@@ -59,7 +59,7 @@ private:
 	 *	@param	InWorldLevels	The Level management logic object
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	FStreamingLevelCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor );
+	FStreamingLevelCollectionModel(UEditorEngine* InEditor);
 	
 	/** Refreshes the sort index on all viewmodels that contain ULevels */
 	void RefreshSortIndexes();

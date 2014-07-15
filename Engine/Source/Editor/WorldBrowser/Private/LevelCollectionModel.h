@@ -22,7 +22,7 @@ public:
 
 
 public:
-	FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor);
+	FLevelCollectionModel(UEditorEngine* InEditor);
 	virtual ~FLevelCollectionModel();
 
 	/** FTickableEditorObject interface */
@@ -411,7 +411,7 @@ protected:
 				
 protected:
 	/**  */
-	virtual void Initialize();
+	virtual void Initialize(UWorld* InWorld);
 	
 	/**  */
 	virtual void BindCommands();

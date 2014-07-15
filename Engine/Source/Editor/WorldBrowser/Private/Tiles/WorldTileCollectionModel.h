@@ -18,10 +18,10 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FWorldTileCollectionModel> Create(const TWeakObjectPtr<UEditorEngine>& InEditor)
+	static TSharedRef<FWorldTileCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
 	{
 		TSharedRef<FWorldTileCollectionModel> LevelCollectionModel(new FWorldTileCollectionModel(InEditor));
-		LevelCollectionModel->Initialize();
+		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
 public:
@@ -46,7 +46,7 @@ private:
 	/** FTickableEditorObject interface end */
 
 	/** FLevelCollection interface */
-	virtual void Initialize() override;
+	virtual void Initialize(UWorld* InWorld) override;
 	virtual void BindCommands() override;
 	virtual void OnLevelsCollectionChanged() override;
 	virtual void OnLevelsSelectionChanged() override;
@@ -143,7 +143,7 @@ public:
 	void BuildWorldCompositionMenu(FMenuBuilder& InMenuBuilder) const;
 
 private:
-	FWorldTileCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor );
+	FWorldTileCollectionModel(UEditorEngine* InEditor);
 	
 	/** Setups parent->child links between tiles */
 	void SetupParentChildLinks();

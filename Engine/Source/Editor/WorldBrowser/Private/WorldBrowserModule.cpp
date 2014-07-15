@@ -110,11 +110,11 @@ TSharedPtr<FLevelCollectionModel> FWorldBrowserModule::SharedWorldModel(UWorld* 
 		{
 			if (InWorld->WorldComposition)
 			{
-				SharedWorldModel = FWorldTileCollectionModel::Create(GEditor);
+				SharedWorldModel = FWorldTileCollectionModel::Create(GEditor, InWorld);
 			}
 			else
 			{
-				SharedWorldModel = FStreamingLevelCollectionModel::Create(GEditor);
+				SharedWorldModel = FStreamingLevelCollectionModel::Create(GEditor, InWorld);
 			}
 		}
 
