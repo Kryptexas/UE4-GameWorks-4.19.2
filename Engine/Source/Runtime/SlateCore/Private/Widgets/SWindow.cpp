@@ -487,7 +487,7 @@ bool SWindow::HasActiveChildren() const
 
 void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if( Morpher.bIsActive && bHasEverBeenDrawn )
+	if( Morpher.bIsActive )
 	{
 		if(Morpher.bIsPendingPlay)
 		{
@@ -1615,7 +1615,6 @@ SWindow::SWindow()
 	, bIsCursorDecoratorWindow( false )
 	, bInitiallyMaximized( false )
 	, bHasEverBeenShown( false )
-	, bHasEverBeenDrawn( false )
 	, bFocusWhenFirstShown(true)
 	, bActivateWhenFirstShown(true)
 	, bHasOSWindowBorder( false )

@@ -562,18 +562,6 @@ public:
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
 	virtual FVector2D ComputeDesiredSize() const override;
 
-	/** Marks this window as having been drawn at least once */
-	inline void MarkAsDrawn()
-	{
-		bHasEverBeenDrawn = true;
-	}
-
-	/** @return Returns True if the window has even been drawn */
-	inline bool HasEverBeenDrawn() const
-	{
-		return bHasEverBeenDrawn;
-	}
-
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const
 	{
@@ -679,9 +667,6 @@ protected:
 
 	/** True if this window has been shown yet */
 	bool bHasEverBeenShown : 1;
-
-	/** True if this window has ever been drawn */
-	bool bHasEverBeenDrawn : 1;
 
 	/** Focus this window immediately as it is shown */
 	bool bFocusWhenFirstShown : 1;
