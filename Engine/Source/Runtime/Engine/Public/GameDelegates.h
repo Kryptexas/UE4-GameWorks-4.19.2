@@ -24,6 +24,10 @@ DECLARE_DELEGATE_OneParam(FCookModificationDelegate, TArray<FString>&);
 // FAssignStreamingChunkDelegate(const FString& PackageToAdd, const FString& LastLoadedMapName, const TArray<int32>& AssetRegistryChunkIDs, const TArray<int32>& ExistingChunkIds, int32& OutChunkIndex);
 DECLARE_DELEGATE_FiveParams(FAssignStreamingChunkDelegate, const FString&, const FString&, const TArray<int32>&, const TArray<int32>&, int32&);
 
+/** Delegate to assign a disc layer to a chunk */
+// FAssignLayerChunkDelegate(const FChunkManifest* ChunkManifest, const FString& Platform, const int32 ChunkIndex, int32& OutChunkLayer);
+DECLARE_DELEGATE_FourParams(FAssignLayerChunkDelegate, const TSet<FString>*, const FString&, const int32, int32&);
+
 /** A delegate for platforms that need extra information to flesh out save data information (name of an icon, for instance) */
 // FExtendedSaveGameInfoDelegate(const TCHAR* SaveName, const EGameDelegates_SaveGame Key, FString& Value); 
 DECLARE_DELEGATE_ThreeParams(FExtendedSaveGameInfoDelegate, const TCHAR*, const EGameDelegates_SaveGame, FString&);
@@ -55,6 +59,7 @@ public:
 	// Implement all delegates declared above
 	DEFINE_GAME_DELEGATE(CookModificationDelegate);
 	DEFINE_GAME_DELEGATE(AssignStreamingChunkDelegate);
+	DEFINE_GAME_DELEGATE(AssignLayerChunkDelegate);
 	DEFINE_GAME_DELEGATE(ExtendedSaveGameInfoDelegate);
 	DEFINE_GAME_DELEGATE(WebServerActionDelegate);	
 };
