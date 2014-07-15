@@ -12,6 +12,7 @@
 #include "ClassIconFinder.h"
 #include "IDocumentation.h"
 #include "AssetEditorManager.h"
+#include "GameplayEffect.h"
 
 #define LOCTEXT_NAMESPACE "GraphNodeGameplayEffectVar"
 
@@ -34,9 +35,10 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 	SGraphNodeK2Var::UpdateGraphNode();
 
 	UK2Node_GameplayEffectVariable* GameplayEffectNode = Cast<UK2Node_GameplayEffectVariable>(GraphNode);
+	UGameplayEffect* GameplayEffect = GameplayEffectNode ? GameplayEffectNode->GameplayEffect : NULL;
 
-	FString DurationString = FString::Printf(TEXT("%d s"), GameplayEffectNode->GameplayEffectInfo.Duration);
-	FString PeriodString = FString::Printf(TEXT("%d s"), GameplayEffectNode->GameplayEffectInfo.Period);
+	FString DurationString = FString::Printf(TEXT("%d s"), (GameplayEffect) ? GameplayEffect->Duration.Value : 0.f);
+	FString PeriodString = FString::Printf(TEXT("%d s"), (GameplayEffect) ? GameplayEffect->Period.Value : 0.f);
 
 	RightNodeBox->AddSlot()
 		[
@@ -78,10 +80,10 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			SNew(SSpacer)
 		];
 
-	if (GameplayEffectNode->GameplayEffectInfo.ChanceToApplyToTarget < 1.f || GameplayEffectNode->GameplayEffectInfo.ChanceToExecuteOnGameplayEffect < 1.f)
+	if (GameplayEffect && (GameplayEffect->ChanceToApplyToTarget.Value < 1.f || GameplayEffect->ChanceToExecuteOnGameplayEffect.Value < 1.f))
 	{
-		FString ApplyToTargetString = FString::Printf(TEXT("%d"), GameplayEffectNode->GameplayEffectInfo.ChanceToApplyToTarget);
-		FString ExecuteOnGEString = FString::Printf(TEXT("%d"), GameplayEffectNode->GameplayEffectInfo.ChanceToExecuteOnGameplayEffect);
+		FString ApplyToTargetString = FString::Printf(TEXT("%d"), GameplayEffect->ChanceToApplyToTarget.Value);
+		FString ExecuteOnGEString = FString::Printf(TEXT("%d"), GameplayEffect->ChanceToExecuteOnGameplayEffect.Value);
 
 		RightNodeBox->AddSlot()
 			[
@@ -124,8 +126,14 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			];
 	}
 
-	for (int ModIdx = 0; ModIdx < GameplayEffectNode->GameplayEffectInfo.AttributeModifiers.Num(); ++ModIdx)
+	const int32 ModifierCount = GameplayEffect ? GameplayEffect->Modifiers.Num() : 0;
+	for (int32 Idx = 0; Idx < ModifierCount; ++Idx)
 	{
+		if (GameplayEffect->Modifiers[Idx].ModifierType != EGameplayMod::Attribute)
+		{
+			continue;
+		}
+
 		RightNodeBox->AddSlot()
 			.FillHeight(0.3f)
 			[
@@ -137,11 +145,11 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			.HAlign(HAlign_Left)
 			[
 				SNew(STextBlock)
-				.Text(GameplayEffectNode->GameplayEffectInfo.AttributeModifiers[ModIdx].DisplayName)
+				.Text(GameplayEffect->Modifiers[Idx].Attribute.GetName())
 			];
 
 		FString ModOpString;
-		switch (GameplayEffectNode->GameplayEffectInfo.AttributeModifiers[ModIdx].ModOp)
+		switch (GameplayEffect->Modifiers[Idx].ModifierOp)
 		{
 		case EGameplayModOp::Additive:
 			ModOpString = "Add";
@@ -156,7 +164,7 @@ void SGraphNodeK2GameplayEffectVar::UpdateGraphNode()
 			ModOpString = "Other";
 			break;
 		}
-		FString ModString = FString::Printf(TEXT("%s: %f"), *ModOpString, GameplayEffectNode->GameplayEffectInfo.AttributeModifiers[ModIdx].Magnitude);
+		FString ModString = FString::Printf(TEXT("%s: %f"), *ModOpString, GameplayEffect->Modifiers[Idx].Magnitude.Value);
 
 		RightNodeBox->AddSlot()
 			.VAlign(VAlign_Center)
@@ -230,9 +238,9 @@ FReply SGraphNodeK2GameplayEffectVar::OnOpenGameplayEffect()
 {
 	UK2Node_GameplayEffectVariable* GameplayEffectNode = Cast<UK2Node_GameplayEffectVariable>(GraphNode);
 
-	if (GameplayEffectNode && GameplayEffectNode->GameplayEffectInfo.GameplayEffect)
+	if (GameplayEffectNode && GameplayEffectNode->GameplayEffect)
 	{
-		FAssetEditorManager::Get().OpenEditorForAsset(GameplayEffectNode->GameplayEffectInfo.GameplayEffect);
+		FAssetEditorManager::Get().OpenEditorForAsset(GameplayEffectNode->GameplayEffect);
 	}
 
 	return FReply::Handled(); 

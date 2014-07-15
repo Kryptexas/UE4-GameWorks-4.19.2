@@ -38,7 +38,7 @@ UK2Node_VariableGet* UGameplayAbilityGraphSchema::SpawnVariableGetNode(const FVe
 			UGameplayEffect* GameplayEffect = Cast<UGameplayEffect>(ObjProp->GetObjectPropertyValue_InContainer(ActiveObject));
 			if (GameplayEffect)
 			{
-				VariableNode->GameplayEffectInfo.Init(*GameplayEffect);
+				VariableNode->GameplayEffect = GameplayEffect;
 			}
 
 			return VariableNode;
