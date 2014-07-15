@@ -243,6 +243,9 @@ private:
 	/** Changes the LOD level */
 	void SetLODValue(int32 LODSetting);
 
+	/** Removes and then Readds the particle system to the preview scene */
+	void ReassociateParticleSystem() const;
+
 	/** Restarts the particle system */
 	void RestartParticleSystem();
 

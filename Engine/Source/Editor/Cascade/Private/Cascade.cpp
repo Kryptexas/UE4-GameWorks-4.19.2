@@ -2489,6 +2489,18 @@ void FCascade::SetLODValue(int32 LODSetting)
 	}
 }
 
+void FCascade::ReassociateParticleSystem() const
+{
+	if (ParticleSystemComponent)
+	{
+		if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
+		{
+			PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
+			PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
+		}
+	}
+}
+
 void FCascade::RestartParticleSystem()
 {
 	if (ParticleSystemComponent)
@@ -2502,11 +2514,8 @@ void FCascade::RestartParticleSystem()
 		ParticleSystemComponent->bIsViewRelevanceDirty = true;
 		ParticleSystemComponent->CachedViewRelevanceFlags.Empty();
 		ParticleSystemComponent->ConditionalCacheViewRelevanceFlags();
-		if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
-		{
-			PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
-			PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
-		}
+
+		ReassociateParticleSystem();
 	}
 
 	if (ParticleSystem)
@@ -3645,6 +3654,9 @@ void FCascade::OnViewMode(EViewModeIndex ViewMode)
 	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
 	{
 		PreviewViewport->GetViewportClient()->SetViewMode(ViewMode);
+
+		ReassociateParticleSystem();
+
 		PreviewViewport->RefreshViewport();
 	}
 }
@@ -3698,11 +3710,7 @@ void FCascade::OnToggleBoundsSetFixedBounds()
 		SetSelection(NewSelection);
 	}
 
-	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
-	{
-		PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
-		PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
-	}
+	ReassociateParticleSystem();
 }
 
 void FCascade::OnTogglePostProcess()
