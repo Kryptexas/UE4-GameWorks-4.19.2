@@ -479,6 +479,20 @@ public:
 	 */
 	virtual bool SupportsEngineMaps( ) const = 0;
 
+	/**
+	 * Sets the path to the editor executable to use in UAT.
+	 *
+	 * @param EditorExe Path to the editor executable.
+	 */
+	virtual void SetEditorExe( const FString& EditorExe ) = 0;
+
+	/**
+	 * Gets the path to the editor executable.
+	 *
+	 * @return Path to the editor executable.
+	 */
+	virtual FString GetEditorExe( ) const = 0;
+
 public:
 
 	/**

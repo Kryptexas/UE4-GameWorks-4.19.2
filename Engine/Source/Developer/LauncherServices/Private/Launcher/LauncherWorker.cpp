@@ -245,7 +245,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 			{
 				Command = MakeShareable(new FLauncherBuildGameCommand(*TargetPlatform));
 			}
-			TSharedPtr<FLauncherTask> BuildTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+			TSharedPtr<FLauncherTask> BuildTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 			BuildTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 			BuildTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 			if (!PerPlatformBuildTask.IsValid())
@@ -275,7 +275,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				Command = MakeShareable(new FLauncherCookGameCommand(*TargetPlatform));
 			}
 			CookCommand = Command;
-			TSharedPtr<FLauncherTask> CookTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+			TSharedPtr<FLauncherTask> CookTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 			CookTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 			CookTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 			if (!PerPlatformCookTask.IsValid())
@@ -322,7 +322,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				Command = MakeShareable(new FLauncherPackageGameCommand(*TargetPlatform, CookCommand));
 			}
 			
-			TSharedPtr<FLauncherTask> PackageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+			TSharedPtr<FLauncherTask> PackageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 			PackageTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 			PackageTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 			if (!PerPlatformPackageTask.IsValid())
@@ -348,7 +348,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				Command = MakeShareable(new FLauncherStageGameCommand(*TargetPlatform, CookCommand));
 			}
 
-			TSharedPtr<FLauncherTask> StageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+			TSharedPtr<FLauncherTask> StageTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 			StageTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 			StageTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 			if (!PerPlatformPackageTask.IsValid())
@@ -408,7 +408,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 							Command = MakeShareable(new FLauncherCookOnTheFlyCommand(*TargetPlatform));
 						}
 						CookCommand = Command;
-						FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+						FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 						FileServerTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 						FileServerTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 					}
@@ -437,7 +437,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					{
 						Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
 					}
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 
@@ -463,7 +463,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 					{
 						Command = MakeShareable(new FLauncherDeployGamePackageToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
 					}
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 
@@ -481,7 +481,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 				else if (TargetPlatform->PlatformName() == TEXT("XboxOne") || TargetPlatform->PlatformName() == TEXT("IOS") || TargetPlatform->PlatformName().StartsWith(TEXT("Android")))
 				{
 					TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherDeployGameToDeviceCommand(DeviceProxy, *TargetPlatform, CookCommand, LaunchCommandLine));
-					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+					TSharedPtr<FLauncherTask> DeployTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 					DeployTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 					DeployTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 
@@ -517,7 +517,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 								Command = MakeShareable(new FLauncherLaunchDedicatedServerCommand(DeviceProxy, *TargetPlatform, Roles[RoleIndex].ToSharedRef(), CookCommand));
 							}
 								
-							TSharedPtr<FLauncherTask> PerRoleTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+							TSharedPtr<FLauncherTask> PerRoleTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 							PerRoleTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 							PerRoleTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 
@@ -544,7 +544,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 			if (!FileServerTask.IsValid())
 			{
 				TSharedPtr<FLauncherUATCommand> Command = MakeShareable(new FLauncherStandAloneCookOnTheFlyCommand(*TargetPlatform));
-				FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe));
+				FileServerTask = MakeShareable(new FLauncherUATTask(Command, *TargetPlatform, Command->GetName(), ReadPipe, WritePipe, InProfile->GetEditorExe()));
 				FileServerTask->OnStarted().AddRaw(this, &FLauncherWorker::OnTaskStarted);
 				FileServerTask->OnCompleted().AddRaw(this, &FLauncherWorker::OnTaskCompleted);
 			}

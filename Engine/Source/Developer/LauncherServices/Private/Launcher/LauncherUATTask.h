@@ -22,10 +22,11 @@ public:
 	 * @param InTargetPlatform - the target platform for the task
 	 * @param InName - The name of the task.
 	 */
-	FLauncherUATTask( const TSharedPtr<FLauncherUATCommand>& InCommand, const ITargetPlatform& InTargetPlatform, const FString& InName, void* InReadPipe, void* InWritePipe)
+	FLauncherUATTask( const TSharedPtr<FLauncherUATCommand>& InCommand, const ITargetPlatform& InTargetPlatform, const FString& InName, void* InReadPipe, void* InWritePipe, const FString& InEditorExe )
 		: FLauncherTask(InName, InCommand->GetDesc(), InReadPipe, InWritePipe)
 		, TaskCommand(InCommand)
 		, TargetPlatform(InTargetPlatform)
+		, EditorExe(InEditorExe)
 	{
 		NoCompile = TEXT(" -nocompile");
 	}
@@ -105,6 +106,12 @@ protected:
         CommandLine += Rocket;
 		CommandLine += OptionalParams;
 
+		// specify the path to the editor exe if necessary
+		if(EditorExe.Len() > 0)
+		{
+			CommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
+		}
+
 		// specialized command arguments for this particular task
 		CommandLine += TaskCommand->GetArguments(ChainState);
 
@@ -152,4 +159,7 @@ private:
 
 	// Holds the no compile flag
 	FString NoCompile;
+
+	// The editor executable that UAT should use
+	FString EditorExe;
 };

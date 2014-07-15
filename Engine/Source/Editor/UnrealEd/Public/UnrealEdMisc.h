@@ -198,6 +198,9 @@ public:
 	 */
 	bool GetURL( const TCHAR* InKey, FString& OutURL, const bool bCheckRocket = false ) const;
 
+	/** Returns the editor executable to use to execute commandlets */
+	FString GetExecutableForCommandlets() const;
+
 private:
 	/** Constructor, private - use Get() function */
 	FUnrealEdMisc();

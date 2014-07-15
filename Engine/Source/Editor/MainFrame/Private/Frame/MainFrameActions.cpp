@@ -429,19 +429,6 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		OptionalParams += PlatformInfo->UATCommandLine;
 	}
 
-	FString ExecutableName = FPlatformProcess::ExecutableName(false);
-
-#if PLATFORM_WINDOWS
-	// turn UE4editor into UE4editor-cmd
-	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
-	{
-		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
-		if (FPaths::FileExists(NewExeName))
-		{
-			ExecutableName = NewExeName;
-		}
-	}
-#endif
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 
 	if (bRunningDebug)
@@ -455,7 +442,7 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PlatformInfo->TargetPlatformName.ToString(),
-		*ExecutableName,
+		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
 		*OptionalParams
 	);
 

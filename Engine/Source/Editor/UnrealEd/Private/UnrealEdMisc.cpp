@@ -1324,6 +1324,23 @@ bool FUnrealEdMisc::GetURL( const TCHAR* InKey, FString& OutURL, const bool bChe
 	return bFound;
 }
 
+FString FUnrealEdMisc::GetExecutableForCommandlets() const
+{
+	FString ExecutableName = FPlatformProcess::ExecutableName(false);
+#if PLATFORM_WINDOWS
+	// turn UE4editor into UE4editor-cmd
+	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
+	{
+		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
+		if (FPaths::FileExists(NewExeName))
+		{
+			ExecutableName = NewExeName;
+		}
+	}
+#endif
+	return ExecutableName;
+}
+
 void FUnrealEdMisc::OnUserDefinedGestureChanged(const FUICommandInfo& CommandInfo)
 {
 	if( FEngineAnalytics::IsAvailable() )

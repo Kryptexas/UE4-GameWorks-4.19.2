@@ -1305,24 +1305,12 @@ void UEditorEngine::PlayUsingLauncher()
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
 		LauncherProfile->SetForceClose(true);
 		LauncherProfile->SetTimeout(60);
-
-		// Run the same version of the cooker that the editor is compiled as
-#if UE_BUILD_DEBUG
-		LauncherProfile->SetCookConfiguration(EBuildConfigurations::Debug);
-#elif UE_BUILD_DEBUGGAME
-		LauncherProfile->SetCookConfiguration(EBuildConfigurations::DebugGame);
-#elif UE_BUILD_SHIPPING
-		LauncherProfile->SetCookConfiguration(EBuildConfigurations::Shipping);
-#elif UE_BUILD_TEST
-		LauncherProfile->SetCookConfiguration(EBuildConfigurations::Test);
-#else	// UE_BUILD_DEVELOPMENT
-		LauncherProfile->SetCookConfiguration(EBuildConfigurations::Development);
-#endif
-
+		LauncherProfile->SetCookConfiguration(FApp::GetBuildConfiguration());
 		LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
 		LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::CopyToDevice);
 		LauncherProfile->SetDeployedDeviceGroup(DeviceGroup);
 		LauncherProfile->SetHideFileServerWindow(false);
+		LauncherProfile->SetEditorExe(FUnrealEdMisc::Get().GetExecutableForCommandlets());
 		const FString DummyDeviceName(FString::Printf(TEXT("All_iOS_On_%s"), FPlatformProcess::ComputerName()));
 		if (PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))) != TEXT("IOS") || !PlayUsingLauncherDeviceName.Contains(DummyDeviceName))
 		{
