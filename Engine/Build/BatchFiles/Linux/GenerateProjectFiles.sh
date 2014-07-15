@@ -25,6 +25,7 @@ if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" =
     libmono-system-data-datasetextensions4.0-cil
     libmono-system-web-extensions4.0-cil
     libmono-system-management4.0-cil
+    libmono-system-xml-linq4.0-cil
     libogg-dev"
 
   for DEP in $DEPS; do
@@ -39,11 +40,14 @@ fi
 
 # Fixes for case sensitive filesystem.
 for BASE in Content/Editor/Slate Content/Slate Documentation/Source/Shared/Icons; do
-  find $BASE -name "*PNG" | while read PNG_UPPER; do
-    png_lower="$(echo "$PNG_UPPER" | sed 's/PNG$/png/')"
-    echo "$PNG_UPPER -> $png_lower"
-    # link, and not move, to make it usable with Perforce workspaces
-    ln -sf `basename "$PNG_UPPER"` "$png_lower"
+  find $BASE -name "*.PNG" | while read PNG_UPPER; do
+    png_lower="$(echo "$PNG_UPPER" | sed 's/.PNG$/.png/')"
+    if [ ! -f $png_lower ]; then
+      PNG_UPPER=$(basename $PNG_UPPER)
+      echo "$png_lower -> $PNG_UPPER"
+      # link, and not move, to make it usable with Perforce workspaces
+      ln -sf `basename "$PNG_UPPER"` "$png_lower"
+    fi
   done
 done
 
