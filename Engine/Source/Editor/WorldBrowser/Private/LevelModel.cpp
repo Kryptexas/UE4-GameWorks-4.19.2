@@ -187,7 +187,7 @@ void FLevelModel::SetVisible(bool bVisible)
 	const FScopedTransaction Transaction(LOCTEXT("ToggleVisibility", "Toggle Level Visibility"));
 
 	//this call hides all owned actors, etc
-	EditorLevelUtils::SetLevelVisibility(GetLevelObject(), bVisible, true );
+	EditorLevelUtils::SetLevelVisibility( GetLevelObject(), bVisible, false );
 
 	if (!oldIsDirty)
 	{

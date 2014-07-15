@@ -298,7 +298,7 @@ namespace EditorLevelUtils
 			}
 
 			// Force the current level to be visible.
-			SetLevelVisibility(InLevel, true, true); //SetVisible( true );
+			SetLevelVisibility( InLevel, true, false );
 		}
 		else
 		{
