@@ -7,6 +7,7 @@
 #include "ClassViewerFilter.h"
 #include "Editor/ClassViewer/Private/SClassViewer.h"
 #include "DesktopPlatformModule.h"
+#include "Editor/Documentation/Public/IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectGeneration"
 
