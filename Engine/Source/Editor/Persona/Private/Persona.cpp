@@ -453,8 +453,6 @@ FPersona::~FPersona()
 	FEditorDelegates::OnAssetPostImport.RemoveAll(this);
 	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
-	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
-	PersonaModule->GetMenuExtensibilityManager()->RemoveExtender(PersonaMenuExtender);
 
 	if(TargetSkeleton)
 	{
@@ -858,9 +856,8 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			FMenuExtensionDelegate::CreateStatic( &Local::AddPersonaAssetMenu )
 			);
 					
-	PersonaModule->GetMenuExtensibilityManager()->AddExtender(PersonaMenuExtender);					
-
 	AddMenuExtender(PersonaMenuExtender);
+	AddMenuExtender(PersonaModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
 	check(PreviewComponent == NULL);
 
