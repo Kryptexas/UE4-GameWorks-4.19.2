@@ -142,7 +142,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimAssetPropertiesSummoner(InPersona)));
 
-	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v6")
+	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v7")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -164,6 +164,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Left 1/3rd - Skeleton and Anim properties
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.3f)
 					->Split
 					(
 						FTabManager::NewStack()
@@ -180,17 +181,16 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Middle 1/3rd - Viewport and anim document area
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.4f)
 					->Split
 					(
 						FTabManager::NewStack()
-						->SetSizeCoefficient(0.75f)
 						->SetHideTabWell(true)
 						->AddTab( FPersonaTabs::PreviewViewportID, ETabState::OpenedTab )
 					)
 					->Split
 					(
 						FTabManager::NewStack()
-						->SetSizeCoefficient(0.25f)
 						->AddTab( "Document", ETabState::ClosedTab )
 					)
 				)
@@ -199,6 +199,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Right 1/3rd - Details panel and quick browser
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.3f)
 					->Split
 					(
 						FTabManager::NewStack()

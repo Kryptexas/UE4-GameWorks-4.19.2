@@ -74,7 +74,7 @@ FMeshEditAppMode::FMeshEditAppMode(TSharedPtr<FPersona> InPersona)
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FMeshPropertiesSummoner(InPersona)));
 
-	TabLayout = FTabManager::NewLayout( "Persona_MeshEditMode_Layout_v6" )
+	TabLayout = FTabManager::NewLayout( "Persona_MeshEditMode_Layout_v7" )
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -97,12 +97,7 @@ FMeshEditAppMode::FMeshEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Left 1/3rd - Skeleton tree and mesh panel
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
-					->SetSizeCoefficient(0.125f)
- 					->Split
- 					(
-						FTabManager::NewStack()
-						->AddTab( FPersonaTabs::SkeletonTreeViewID, ETabState::OpenedTab )
- 					)
+					->SetSizeCoefficient(0.3f)
 					->Split
 					(
 						FTabManager::NewStack()
@@ -114,7 +109,7 @@ FMeshEditAppMode::FMeshEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Middle 1/3rd - Viewport
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
-					->SetSizeCoefficient(0.750f)
+					->SetSizeCoefficient(0.5f)
 					->Split
 					(
 						FTabManager::NewStack()
@@ -127,13 +122,7 @@ FMeshEditAppMode::FMeshEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Right 1/3rd - Details panel and quick browser
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
-					->SetSizeCoefficient(0.125f)
-					->Split
-					(
-						FTabManager::NewStack()
-						->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )
-						->AddTab( FPersonaTabs::AssetBrowserID, ETabState::OpenedTab )
-					)
+					->SetSizeCoefficient(0.2f)
 					->Split
 					(
 						FTabManager::NewStack()

@@ -351,7 +351,7 @@ public:
 	{
 		PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
 
-		TabLayout = FTabManager::NewLayout( "Persona_SkeletonEditMode_Layout_v2" )
+		TabLayout = FTabManager::NewLayout( "Persona_SkeletonEditMode_Layout_v3" )
 			->AddArea
 			(
 				FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -372,6 +372,7 @@ public:
 						// Left 1/3rd - Skeleton tree and mesh panel
 						FTabManager::NewSplitter()
 						->SetOrientation(Orient_Vertical)
+						->SetSizeCoefficient(0.3f)
 						->Split
 						(
 							FTabManager::NewStack()
@@ -383,7 +384,7 @@ public:
 						// Middle 1/3rd - Viewport
 						FTabManager::NewSplitter()
 						->SetOrientation(Orient_Vertical)
-						->SetSizeCoefficient(0.75f)
+						->SetSizeCoefficient(0.5f)
 						->Split
 						(
 							FTabManager::NewStack()
@@ -393,18 +394,14 @@ public:
 					)
 					->Split
 					(
-						// Right 1/3rd - Details panel and quick browser
+						// Right 1/3rd - Details panel 
 						FTabManager::NewSplitter()
 						->SetOrientation(Orient_Vertical)
+						->SetSizeCoefficient(0.2f)
 						->Split
 						(
 							FTabManager::NewStack()
 							->AddTab( FBlueprintEditorTabs::DetailsID, ETabState::OpenedTab )	//@TODO: FPersonaTabs::AnimPropertiesID
-						)
-						->Split
-						(
-							FTabManager::NewStack()
-							->AddTab( FPersonaTabs::AssetBrowserID, ETabState::OpenedTab )
 						)
 					)
 				)
