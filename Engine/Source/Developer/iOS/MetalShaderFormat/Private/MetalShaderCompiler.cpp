@@ -403,7 +403,7 @@ static void BuildMetalShaderOutput(
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = MetalPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -442,7 +442,7 @@ static void BuildMetalShaderOutput(
 			CopyInfo.DestUBIndex = 0;
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = MetalPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -472,10 +472,10 @@ static void BuildMetalShaderOutput(
 		ANSICHAR TypeName = Iterator.Key();
 		uint16 Size = Iterator.Value();
 		Size = (Size + 0xf) & (~0xf);
-		FMetalPackedArrayInfo Info;
+		CrossCompiler::FPackedArrayInfo Info;
 		Info.Size = Size;
 		Info.TypeName = TypeName;
-		Info.TypeIndex = MetalPackedTypeNameToTypeIndex(TypeName);
+		Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 		Header.Bindings.PackedGlobalArrays.Add(Info);
 	}
 
@@ -485,17 +485,17 @@ static void BuildMetalShaderOutput(
 	{
 		int BufferIndex = Iterator.Key();
 		auto& ArraySizes = Iterator.Value();
-		TArray<FMetalPackedArrayInfo> InfoArray;
+		TArray<CrossCompiler::FPackedArrayInfo> InfoArray;
 		InfoArray.Reserve(ArraySizes.Num());
 		for (auto IterSizes = ArraySizes.CreateIterator(); IterSizes; ++IterSizes)
 		{
 			ANSICHAR TypeName = IterSizes.Key();
 			uint16 Size = IterSizes.Value();
 			Size = (Size + 0xf) & (~0xf);
-			FMetalPackedArrayInfo Info;
+			CrossCompiler::FPackedArrayInfo Info;
 			Info.Size = Size;
 			Info.TypeName = TypeName;
-			Info.TypeIndex = MetalPackedTypeNameToTypeIndex(TypeName);
+			Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 			InfoArray.Add(Info);
 		}
 

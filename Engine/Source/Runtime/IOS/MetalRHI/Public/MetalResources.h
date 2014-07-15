@@ -440,7 +440,7 @@ public:
 
 private:
 	/** CPU memory block for storing uniform values. */
-	uint8* PackedGlobalUniforms[METAL_PACKED_TYPEINDEX_MAX];
+	uint8* PackedGlobalUniforms[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	struct FRange
 	{
@@ -448,10 +448,10 @@ private:
 		uint32	HighVector;
 	};
 	/** Dirty ranges for each uniform array. */
-	FRange	PackedGlobalUniformDirty[METAL_PACKED_TYPEINDEX_MAX];
+	FRange	PackedGlobalUniformDirty[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	/** Scratch CPU memory block for uploading packed uniforms. */
-	uint8* PackedUniformsScratch[METAL_PACKED_TYPEINDEX_MAX];
+	uint8* PackedUniformsScratch[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	int32 GlobalUniformArraySize;
 };

@@ -509,8 +509,8 @@ FGeometryShaderRHIRef FOpenGLDynamicRHI::RHICreateGeometryShaderWithStreamOutput
 
 static void MarkShaderParameterCachesDirty(FOpenGLShaderParameterCache* ShaderParameters, bool UpdateCompute)
 {
-	const int32 StageStart = UpdateCompute  ? OGL_SHADER_STAGE_COMPUTE : OGL_SHADER_STAGE_VERTEX;
-	const int32 StageEnd = UpdateCompute ? OGL_NUM_SHADER_STAGES : OGL_NUM_NON_COMPUTE_SHADER_STAGES;
+	const int32 StageStart = UpdateCompute  ? CrossCompiler::SHADER_STAGE_COMPUTE : CrossCompiler::SHADER_STAGE_VERTEX;
+	const int32 StageEnd = UpdateCompute ? CrossCompiler::NUM_SHADER_STAGES : CrossCompiler::NUM_NON_COMPUTE_SHADER_STAGES;
 	for (int32 Stage = StageStart; Stage < StageEnd; ++Stage)
 	{
 		ShaderParameters[Stage].MarkAllDirty();
@@ -573,11 +573,11 @@ public:
 		FOpenGLShaderBindings Bindings;
 		GLuint Resource;
 	}
-	Shaders[OGL_NUM_SHADER_STAGES];
+	Shaders[CrossCompiler::NUM_SHADER_STAGES];
 
 	FOpenGLLinkedProgramConfiguration()
 	{
-		for ( int32 Stage = 0; Stage < OGL_NUM_SHADER_STAGES; Stage++)
+		for ( int32 Stage = 0; Stage < CrossCompiler::NUM_SHADER_STAGES; Stage++)
 		{
 			Shaders[Stage].Resource = 0;
 		}
@@ -586,7 +586,7 @@ public:
 	friend bool operator ==(const FOpenGLLinkedProgramConfiguration& A,const FOpenGLLinkedProgramConfiguration& B)
 	{
 		bool bEqual = true;
-		for ( int32 Stage = 0; Stage < OGL_NUM_SHADER_STAGES && bEqual; Stage++)
+		for ( int32 Stage = 0; Stage < CrossCompiler::NUM_SHADER_STAGES && bEqual; Stage++)
 		{
 			bEqual &= A.Shaders[Stage].Resource == B.Shaders[Stage].Resource;
 			bEqual &= A.Shaders[Stage].Bindings == B.Shaders[Stage].Bindings;
@@ -597,7 +597,7 @@ public:
 	friend uint32 GetTypeHash(const FOpenGLLinkedProgramConfiguration &Config)
 	{
 		uint32 Hash = 0;
-		for ( int32 Stage = 0; Stage < OGL_NUM_SHADER_STAGES; Stage++)
+		for ( int32 Stage = 0; Stage < CrossCompiler::NUM_SHADER_STAGES; Stage++)
 		{
 			Hash ^= GetTypeHash(Config.Shaders[Stage].Bindings);
 			Hash ^= Config.Shaders[Stage].Resource;
@@ -631,7 +631,7 @@ public:
 		// (can't modify existing ones), we use this as a check for dirty/need to mem copy on Mobile
 		TArray<uint32>						LastEmulatedUniformBufferSet;
 	};
-	FStagePackedUniformInfo	StagePackedUniformInfo[OGL_NUM_SHADER_STAGES];
+	FStagePackedUniformInfo	StagePackedUniformInfo[CrossCompiler::NUM_SHADER_STAGES];
 
 	GLuint		Program;
 	bool		bUsingTessellation;
@@ -656,7 +656,7 @@ public:
 	void ConfigureShaderStage( int Stage, uint32 FirstUniformBuffer );
 
 	// Make sure GlobalArrays (created from shader reflection) matches our info (from the cross compiler)
-	static inline void SortPackedUniformInfos(const TArray<FPackedUniformInfo>& ReflectedUniformInfos, const TArray<FOpenGLPackedArrayInfo>& PackedGlobalArrays, TArray<FPackedUniformInfo>& OutPackedUniformInfos)
+	static inline void SortPackedUniformInfos(const TArray<FPackedUniformInfo>& ReflectedUniformInfos, const TArray<CrossCompiler::FPackedArrayInfo>& PackedGlobalArrays, TArray<FPackedUniformInfo>& OutPackedUniformInfos)
 	{
 		check(OutPackedUniformInfos.Num() == 0);
 		OutPackedUniformInfos.AddUninitialized(PackedGlobalArrays.Num());
@@ -718,8 +718,8 @@ static int32 CountSetBits(const TBitArray<>& Array)
 
 void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformBuffer )
 {
-	static const ANSICHAR StagePrefix[OGL_NUM_SHADER_STAGES] = { 'v', 'p', 'g', 'h', 'd', 'c'};
-	static const GLint FirstTextureUnit[OGL_NUM_SHADER_STAGES] =
+	static const ANSICHAR StagePrefix[CrossCompiler::NUM_SHADER_STAGES] = { 'v', 'p', 'g', 'h', 'd', 'c'};
+	static const GLint FirstTextureUnit[CrossCompiler::NUM_SHADER_STAGES] =
 	{
 		FOpenGL::GetFirstVertexTextureUnit(),
 		FOpenGL::GetFirstPixelTextureUnit(),
@@ -728,7 +728,7 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 		FOpenGL::GetFirstDomainTextureUnit(),
 		FOpenGL::GetFirstComputeTextureUnit()
 	};
-	static const GLint FirstUAVUnit[OGL_NUM_SHADER_STAGES] =
+	static const GLint FirstUAVUnit[CrossCompiler::NUM_SHADER_STAGES] =
 	{
 		OGL_UAV_NOT_SUPPORTED_FOR_GRAPHICS_UNIT,
 		OGL_UAV_NOT_SUPPORTED_FOR_GRAPHICS_UNIT,
@@ -740,7 +740,7 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 	ANSICHAR NameBuffer[10] = {0};
 
 	// verify that only CS uses UAVs
-	check((Stage != OGL_SHADER_STAGE_COMPUTE) ? (CountSetBits(UAVStageNeeds) == 0) : true);
+	check((Stage != CrossCompiler::SHADER_STAGE_COMPUTE) ? (CountSetBits(UAVStageNeeds) == 0) : true);
 
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderBindParameterTime);
 	VERIFY_GL_SCOPE();
@@ -755,9 +755,9 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 		NameBuffer[4] = 0;
 
 		TArray<FPackedUniformInfo> PackedUniformInfos;
-		for (uint8 Index = 0; Index < OGL_PACKED_TYPEINDEX_MAX; ++Index)
+		for (uint8 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 		{
-			uint8 ArrayIndexType = GLPackedTypeIndexToTypeName(Index);
+			uint8 ArrayIndexType = CrossCompiler::PackedTypeIndexToTypeName(Index);
 			NameBuffer[3] = ArrayIndexType;
 			GLint Location = glGetUniformLocation(Program, NameBuffer);
 			if ((int32)Location != -1)
@@ -784,9 +784,9 @@ void FOpenGLLinkedProgram::ConfigureShaderStage( int Stage, uint32 FirstUniformB
 			ANSICHAR* Str = SetIndex(NameBuffer, 2, UB);
 			*Str++ = '_';
 			Str[1] = 0;
-			for (uint8 Index = 0; Index < OGL_PACKED_TYPEINDEX_MAX; ++Index)
+			for (uint8 Index = 0; Index < CrossCompiler::PACKED_TYPEINDEX_MAX; ++Index)
 			{
-				uint8 ArrayIndexType = GLPackedTypeIndexToTypeName(Index);
+				uint8 ArrayIndexType = CrossCompiler::PackedTypeIndexToTypeName(Index);
 				Str[0] = ArrayIndexType;
 				GLint Location = glGetUniformLocation(Program, NameBuffer);
 				if ((int32)Location != -1)
@@ -1158,38 +1158,38 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	GLuint Program = glCreateProgram();
 
 	// ensure that compute shaders are always alone
-	check( (Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource == 0) != (Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource == 0));
-	check( (Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource == 0) != (Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource == 0));
+	check( (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource == 0) != (Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource == 0));
+	check( (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource == 0) != (Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource == 0));
 
-	if (Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource);
 	}
-	if (Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource);
 	}
-	if (Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Resource);
 	}
-	if (Config.Shaders[OGL_SHADER_STAGE_HULL].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_HULL].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Resource);
 	}
-	if (Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Resource);
 	}
-	if (Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource)
 	{
-		glAttachShader(Program, Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource);
+		glAttachShader(Program, Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource);
 	}
 	
 	// Bind attribute indices.
-	if (Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
 	{
-		uint32 Mask = Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.InOutMask;
+		uint32 Mask = Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.InOutMask;
 		uint32 Index = 0;
 		FCStringAnsi::Strcpy(Buf, "in_ATTRIBUTE");
 		while (Mask)
@@ -1215,9 +1215,9 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	}
 
 	// Bind frag data locations.
-	if (Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource)
 	{
-		uint32 Mask = (Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings.InOutMask) & 0x7fff; // mask out the depth bit
+		uint32 Mask = (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.InOutMask) & 0x7fff; // mask out the depth bit
 		uint32 Index = 0;
 		FCStringAnsi::Strcpy(Buf, "out_Target");
 		while (Mask)
@@ -1252,70 +1252,70 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	FOpenGLLinkedProgram* LinkedProgram = new FOpenGLLinkedProgram;
 	LinkedProgram->Config = Config;
 	LinkedProgram->Program = Program;
-	LinkedProgram->bUsingTessellation = Config.Shaders[OGL_SHADER_STAGE_HULL].Resource && Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource;
+	LinkedProgram->bUsingTessellation = Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Resource && Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Resource;
 
 	glUseProgram(Program);
 
-	if (Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_VERTEX,
+			CrossCompiler::SHADER_STAGE_VERTEX,
 			OGL_FIRST_UNIFORM_BUFFER
 			);
-		check(LinkedProgram->StagePackedUniformInfo[OGL_SHADER_STAGE_VERTEX].PackedUniformInfos.Num() <= Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.PackedGlobalArrays.Num());
+		check(LinkedProgram->StagePackedUniformInfo[CrossCompiler::SHADER_STAGE_VERTEX].PackedUniformInfos.Num() <= Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.PackedGlobalArrays.Num());
 	}
 
-	if (Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_PIXEL,
+			CrossCompiler::SHADER_STAGE_PIXEL,
 			OGL_FIRST_UNIFORM_BUFFER +
-			Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers
+			Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers
 			);
-		check(LinkedProgram->StagePackedUniformInfo[OGL_SHADER_STAGE_PIXEL].PackedUniformInfos.Num() <= Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings.PackedGlobalArrays.Num());
+		check(LinkedProgram->StagePackedUniformInfo[CrossCompiler::SHADER_STAGE_PIXEL].PackedUniformInfos.Num() <= Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.PackedGlobalArrays.Num());
 	}
 
-	if (Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_GEOMETRY,
+			CrossCompiler::SHADER_STAGE_GEOMETRY,
 			OGL_FIRST_UNIFORM_BUFFER +
-			Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers
+			Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers
 			);
-		check(LinkedProgram->StagePackedUniformInfo[OGL_SHADER_STAGE_GEOMETRY].PackedUniformInfos.Num() <= Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Bindings.PackedGlobalArrays.Num());
+		check(LinkedProgram->StagePackedUniformInfo[CrossCompiler::SHADER_STAGE_GEOMETRY].PackedUniformInfos.Num() <= Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Bindings.PackedGlobalArrays.Num());
 	}
 
-	if (Config.Shaders[OGL_SHADER_STAGE_HULL].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_HULL,
+			CrossCompiler::SHADER_STAGE_HULL,
 			OGL_FIRST_UNIFORM_BUFFER +
-			Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Bindings.NumUniformBuffers
+			Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Bindings.NumUniformBuffers
 		);
 	}
 
-	if (Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_DOMAIN,
+			CrossCompiler::SHADER_STAGE_DOMAIN,
 			OGL_FIRST_UNIFORM_BUFFER +
-			Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Bindings.NumUniformBuffers +
-			Config.Shaders[OGL_SHADER_STAGE_HULL].Bindings.NumUniformBuffers
+			Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Bindings.NumUniformBuffers +
+			Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Bindings.NumUniformBuffers
 		);
 	}
 
-	if (Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource)
+	if (Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource)
 	{
 		LinkedProgram->ConfigureShaderStage(
-			OGL_SHADER_STAGE_COMPUTE,
+			CrossCompiler::SHADER_STAGE_COMPUTE,
 			OGL_FIRST_UNIFORM_BUFFER
 			);
-		check(LinkedProgram->StagePackedUniformInfo[OGL_SHADER_STAGE_COMPUTE].PackedUniformInfos.Num() <= Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Bindings.PackedGlobalArrays.Num());
+		check(LinkedProgram->StagePackedUniformInfo[CrossCompiler::SHADER_STAGE_COMPUTE].PackedUniformInfos.Num() <= Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Bindings.PackedGlobalArrays.Num());
 	}
 #if ENABLE_UNIFORM_BUFFER_LAYOUT_VERIFICATION	
 	VerifyUniformBufferLayouts(Program);
@@ -1341,8 +1341,8 @@ FComputeShaderRHIRef FOpenGLDynamicRHI::RHICreateComputeShader(const TArray<uint
 
 	FOpenGLLinkedProgramConfiguration Config;
 
-	Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Resource = ComputeShader->Resource;
-	Config.Shaders[OGL_SHADER_STAGE_COMPUTE].Bindings = ComputeShader->Bindings;
+	Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Resource = ComputeShader->Resource;
+	Config.Shaders[CrossCompiler::SHADER_STAGE_COMPUTE].Bindings = ComputeShader->Bindings;
 
 	ComputeShader->LinkedProgram = LinkProgram( Config);
 
@@ -1410,27 +1410,27 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 		FOpenGLLinkedProgramConfiguration Config;
 
 		// Fill-in the configuration
-		Config.Shaders[OGL_SHADER_STAGE_VERTEX].Bindings = VertexShader->Bindings;
-		Config.Shaders[OGL_SHADER_STAGE_VERTEX].Resource = VertexShader->Resource;
-		Config.Shaders[OGL_SHADER_STAGE_PIXEL].Bindings = PixelShader->Bindings;
-		Config.Shaders[OGL_SHADER_STAGE_PIXEL].Resource = PixelShader->Resource;
+		Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings = VertexShader->Bindings;
+		Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource = VertexShader->Resource;
+		Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Bindings = PixelShader->Bindings;
+		Config.Shaders[CrossCompiler::SHADER_STAGE_PIXEL].Resource = PixelShader->Resource;
 		if (GeometryShader)
 		{
-			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Bindings = GeometryShader->Bindings;
-			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource = GeometryShader->Resource;
+			Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Bindings = GeometryShader->Bindings;
+			Config.Shaders[CrossCompiler::SHADER_STAGE_GEOMETRY].Resource = GeometryShader->Resource;
 		}
 
 		if ( FOpenGL::SupportsTessellation())
 		{
 			if ( HullShader)
 			{
-				Config.Shaders[OGL_SHADER_STAGE_HULL].Bindings = HullShader->Bindings;
-				Config.Shaders[OGL_SHADER_STAGE_HULL].Resource = HullShader->Resource;
+				Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Bindings = HullShader->Bindings;
+				Config.Shaders[CrossCompiler::SHADER_STAGE_HULL].Resource = HullShader->Resource;
 			}
 			if ( DomainShader)
 			{
-				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Bindings = DomainShader->Bindings;
-				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource = DomainShader->Resource;
+				Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Bindings = DomainShader->Bindings;
+				Config.Shaders[CrossCompiler::SHADER_STAGE_DOMAIN].Resource = DomainShader->Resource;
 			}
 		}
 
@@ -1750,7 +1750,7 @@ void FOpenGLDynamicRHI::BindPendingComputeShaderState(FOpenGLContextState& Conte
 FOpenGLShaderParameterCache::FOpenGLShaderParameterCache() :
 	GlobalUniformArraySize(-1)
 {
-	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = MAX_uint32;
@@ -1764,19 +1764,19 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 	// Uniform arrays have to be multiples of float4s.
 	UniformArraySize = Align(UniformArraySize,SizeOfFloat4);
 
-	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
-	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
+	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
 
-	FMemory::Memzero(PackedGlobalUniforms[0], UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
-	FMemory::Memzero(PackedUniformsScratch[0], UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
-	for (int32 ArrayIndex = 1; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	FMemory::Memzero(PackedGlobalUniforms[0], UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	FMemory::Memzero(PackedUniformsScratch[0], UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	for (int32 ArrayIndex = 1; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniforms[ArrayIndex] = PackedGlobalUniforms[ArrayIndex - 1] + UniformArraySize;
 		PackedUniformsScratch[ArrayIndex] = PackedUniformsScratch[ArrayIndex - 1] + UniformArraySize;
 	}
 	GlobalUniformArraySize = UniformArraySize;
 
-	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize / SizeOfFloat4;
@@ -1803,7 +1803,7 @@ FOpenGLShaderParameterCache::~FOpenGLShaderParameterCache()
  */
 void FOpenGLShaderParameterCache::MarkAllDirty()
 {
-	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize / SizeOfFloat4;
@@ -1815,9 +1815,9 @@ void FOpenGLShaderParameterCache::MarkAllDirty()
  */
 void FOpenGLShaderParameterCache::Set(uint32 BufferIndexName, uint32 ByteOffset, uint32 NumBytes, const void* NewValues)
 {
-	uint32 BufferIndex = GLPackedTypeNameToTypeIndex(BufferIndexName);
+	uint32 BufferIndex = CrossCompiler::PackedTypeNameToTypeIndex(BufferIndexName);
 	check(GlobalUniformArraySize != -1);
-	check(BufferIndex < OGL_PACKED_TYPEINDEX_MAX);
+	check(BufferIndex < CrossCompiler::PACKED_TYPEINDEX_MAX);
 	check(ByteOffset + NumBytes <= (uint32)GlobalUniformArraySize);
 	PackedGlobalUniformDirty[BufferIndex].LowVector = FMath::Min(PackedGlobalUniformDirty[BufferIndex].LowVector, ByteOffset / SizeOfFloat4);
 	PackedGlobalUniformDirty[BufferIndex].HighVector = FMath::Max(PackedGlobalUniformDirty[BufferIndex].HighVector, (ByteOffset + NumBytes + SizeOfFloat4 - 1) / SizeOfFloat4);
@@ -1848,7 +1848,7 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 	 * per-program.
 	 */
 	const TArray<FOpenGLLinkedProgram::FPackedUniformInfo>& PackedUniforms = LinkedProgram->StagePackedUniformInfo[Stage].PackedUniformInfos;
-	const TArray<FOpenGLPackedArrayInfo>& PackedArrays = LinkedProgram->Config.Shaders[Stage].Bindings.PackedGlobalArrays;
+	const TArray<CrossCompiler::FPackedArrayInfo>& PackedArrays = LinkedProgram->Config.Shaders[Stage].Bindings.PackedGlobalArrays;
 	for (int32 PackedUniform = 0; PackedUniform < PackedUniforms.Num(); ++PackedUniform)
 	{
 		const FOpenGLLinkedProgram::FPackedUniformInfo& UniformInfo = PackedUniforms[PackedUniform];
@@ -1870,17 +1870,17 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 			Location += StartVector;
 			switch (UniformInfo.Index)
 			{
-			case OGL_PACKED_TYPEINDEX_HIGHP:
-			case OGL_PACKED_TYPEINDEX_MEDIUMP:
-			case OGL_PACKED_TYPEINDEX_LOWP:
+			case CrossCompiler::PACKED_TYPEINDEX_HIGHP:
+			case CrossCompiler::PACKED_TYPEINDEX_MEDIUMP:
+			case CrossCompiler::PACKED_TYPEINDEX_LOWP:
 				glUniform4fv(Location, NumDirtyVectors, (GLfloat*)UniformData);
 				break;
 
-			case OGL_PACKED_TYPEINDEX_INT:
+			case CrossCompiler::PACKED_TYPEINDEX_INT:
 				glUniform4iv(Location, NumDirtyVectors, (GLint*)UniformData);
 				break;
 
-			case OGL_PACKED_TYPEINDEX_UINT:
+			case CrossCompiler::PACKED_TYPEINDEX_UINT:
 				FOpenGL::Uniform4uiv(Location, NumDirtyVectors, (GLuint*)UniformData);
 				break;
 			}
@@ -1976,17 +1976,17 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 					check(UniformInfo.ArrayType == UBInfo[InfoIndex].TypeName);
 					switch (UniformInfo.Index)
 					{
-					case OGL_PACKED_TYPEINDEX_HIGHP:
-					case OGL_PACKED_TYPEINDEX_MEDIUMP:
-					case OGL_PACKED_TYPEINDEX_LOWP:
+					case CrossCompiler::PACKED_TYPEINDEX_HIGHP:
+					case CrossCompiler::PACKED_TYPEINDEX_MEDIUMP:
+					case CrossCompiler::PACKED_TYPEINDEX_LOWP:
 						glUniform4fv(UniformInfo.Location, NumVectors, (GLfloat*)UniformData);
 						break;
 
-					case OGL_PACKED_TYPEINDEX_INT:
+					case CrossCompiler::PACKED_TYPEINDEX_INT:
 						glUniform4iv(UniformInfo.Location, NumVectors, (GLint*)UniformData);
 						break;
 
-					case OGL_PACKED_TYPEINDEX_UINT:
+					case CrossCompiler::PACKED_TYPEINDEX_UINT:
 						FOpenGL::Uniform4uiv(UniformInfo.Location, NumVectors, (GLuint*)UniformData);
 						break;
 					}

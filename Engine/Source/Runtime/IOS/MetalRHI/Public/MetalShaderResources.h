@@ -6,72 +6,18 @@
 
 #pragma once
 
-enum
-{
-	METAL_SHADER_STAGE_VERTEX = 0,
-	METAL_SHADER_STAGE_PIXEL,
-	METAL_SHADER_STAGE_GEOMETRY,
-	METAL_SHADER_STAGE_HULL,
-	METAL_SHADER_STAGE_DOMAIN,
-	METAL_NUM_NON_COMPUTE_SHADER_STAGES,
-	METAL_SHADER_STAGE_COMPUTE = METAL_NUM_NON_COMPUTE_SHADER_STAGES,
-	METAL_NUM_SHADER_STAGES
-};
+#include "CrossCompilerCommon.h"
 
 /**
 * Shader related constants.
 */
 enum
 {
-	METAL_PACKED_TYPENAME_HIGHP = 'h',	// Make sure these enums match hlslcc
-	METAL_PACKED_TYPENAME_MEDIUMP = 'm',
-	METAL_PACKED_TYPENAME_LOWP = 'l',
-	METAL_PACKED_TYPENAME_INT = 'i',
-	METAL_PACKED_TYPENAME_UINT = 'u',
-	METAL_PACKED_TYPENAME_SAMPLER = 's',
-	METAL_PACKED_TYPENAME_IMAGE = 'g',
-
-	METAL_PACKED_TYPEINDEX_HIGHP = 0,
-	METAL_PACKED_TYPEINDEX_MEDIUMP = 1,
-	METAL_PACKED_TYPEINDEX_LOWP = 2,
-	METAL_PACKED_TYPEINDEX_INT = 3,
-	METAL_PACKED_TYPEINDEX_UINT = 4,
-	METAL_PACKED_TYPEINDEX_MAX = 5,
-
 	METAL_MAX_UNIFORM_BUFFER_BINDINGS = 12,	// @todo-mobile: Remove me
 	METAL_FIRST_UNIFORM_BUFFER = 0,			// @todo-mobile: Remove me
 	METAL_MAX_COMPUTE_STAGE_UAV_UNITS = 8,	// @todo-mobile: Remove me
 	METAL_UAV_NOT_SUPPORTED_FOR_GRAPHICS_UNIT = -1, // for now, only CS supports UAVs/ images
 };
-
-static FORCEINLINE uint8 MetalPackedTypeNameToTypeIndex(uint8 ArrayName)
-{
-	switch (ArrayName)
-	{
-	case METAL_PACKED_TYPENAME_HIGHP:		return METAL_PACKED_TYPEINDEX_HIGHP;
-	case METAL_PACKED_TYPENAME_MEDIUMP:	return METAL_PACKED_TYPEINDEX_MEDIUMP;
-	case METAL_PACKED_TYPENAME_LOWP:		return METAL_PACKED_TYPEINDEX_LOWP;
-	case METAL_PACKED_TYPENAME_INT:		return METAL_PACKED_TYPEINDEX_INT;
-	case METAL_PACKED_TYPENAME_UINT:		return METAL_PACKED_TYPEINDEX_UINT;
-	}
-	check(0);
-	return 0;
-}
-
-struct FMetalPackedArrayInfo
-{
-	uint16	Size;		// Bytes
-	uint8	TypeName;	// OGL_PACKED_TYPENAME
-	uint8	TypeIndex;	// OGL_PACKED_TYPE
-};
-
-inline FArchive& operator<<(FArchive& Ar, FMetalPackedArrayInfo& Info)
-{
-	Ar << Info.Size;
-	Ar << Info.TypeName;
-	Ar << Info.TypeIndex;
-	return Ar;
-}
 
 struct FMetalShaderResourceTable : public FBaseShaderResourceTable
 {
@@ -105,8 +51,8 @@ inline FArchive& operator<<(FArchive& Ar, FMetalShaderResourceTable& SRT)
 
 struct FMetalShaderBindings
 {
-	TArray<TArray<FMetalPackedArrayInfo>>	PackedUniformBuffers;
-	TArray<FMetalPackedArrayInfo>			PackedGlobalArrays;
+	TArray<TArray<CrossCompiler::FPackedArrayInfo>>	PackedUniformBuffers;
+	TArray<CrossCompiler::FPackedArrayInfo>			PackedGlobalArrays;
 	FMetalShaderResourceTable				ShaderResourceTable;
 
 	uint16	InOutMask;
@@ -146,8 +92,8 @@ struct FMetalShaderBindings
 
 		for (int32 Item = 0; Item < A.PackedUniformBuffers.Num(); Item++)
 		{
-			const TArray<FMetalPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
-			const TArray<FMetalPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
 
 			bEqual &= FMemory::Memcmp(ArrayA.GetTypedData(), ArrayB.GetTypedData(), ArrayA.GetTypeSize()*ArrayA.Num()) == 0;
 		}
@@ -167,7 +113,7 @@ struct FMetalShaderBindings
 
 		for (int32 Item = 0; Item < Binding.PackedUniformBuffers.Num(); Item++)
 		{
-			const TArray<FMetalPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
 			Hash ^= FCrc::MemCrc_DEPRECATED(Array.GetTypedData(), Array.GetTypeSize()* Array.Num());
 		}
 		return Hash;
@@ -207,7 +153,7 @@ inline FArchive& operator<<(FArchive& Ar, FMetalUniformBufferCopyInfo& Info)
 	Ar << Info.DestUBTypeName;
 	if (Ar.IsLoading())
 	{
-		Info.DestUBTypeIndex = MetalPackedTypeNameToTypeIndex(Info.DestUBTypeName);
+		Info.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(Info.DestUBTypeName);
 	}
 	Ar << Info.DestOffsetInFloats;
 	Ar << Info.SizeInFloats;

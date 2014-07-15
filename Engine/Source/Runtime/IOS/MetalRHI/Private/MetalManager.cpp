@@ -230,9 +230,9 @@ FMetalManager::FMetalManager()
 
 //@todo-rco: What Size???
 	// make a buffer for each shader type
-	ShaderParameters = new FMetalShaderParameterCache[METAL_NUM_SHADER_STAGES];
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
-	ShaderParameters[METAL_SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
+	ShaderParameters = new FMetalShaderParameterCache[CrossCompiler::NUM_SHADER_STAGES];
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
 
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
@@ -676,7 +676,7 @@ uint32 FMetalManager::AllocateFromQueryBuffer()
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface* RESTRICT Surface)
 {
 	check(Surface->Texture != nil);
-	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
 	{
 		[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
 	}
@@ -689,13 +689,13 @@ FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState)
 {
 	check(SamplerState->State != nil);
-	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
 	{
 		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
 	}
 	else
 	{
-		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
+		[FMetalManager::GetContext() setVertexSamplerState:SamplerState->State atIndex:BindIndex];
 	}
 }
 
@@ -763,10 +763,10 @@ void FMetalManager::CommitGraphicsResourceTables()
 
 	check(CurrentBoundShaderState);
 
-	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, METAL_SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
+	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, CrossCompiler::SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
-		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, METAL_SHADER_STAGE_PIXEL, ResourceTableFrameCounter);
+		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, CrossCompiler::SHADER_STAGE_PIXEL, ResourceTableFrameCounter);
 	}
 
 //	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
@@ -774,13 +774,13 @@ void FMetalManager::CommitGraphicsResourceTables()
 
 void FMetalManager::CommitNonComputeShaderConstants()
 {
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(CurrentBoundShaderState, METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->BoundUniformBuffers, CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedGlobals(METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(CurrentBoundShaderState, CrossCompiler::SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->BoundUniformBuffers, CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedGlobals(CrossCompiler::SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
 	
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
-		ShaderParameters[METAL_SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(CurrentBoundShaderState, METAL_SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->BoundUniformBuffers, CurrentBoundShaderState->PixelShader->UniformBuffersCopyInfo);
-		ShaderParameters[METAL_SHADER_STAGE_PIXEL].CommitPackedGlobals(METAL_SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->Bindings);
+		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(CurrentBoundShaderState, CrossCompiler::SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->BoundUniformBuffers, CurrentBoundShaderState->PixelShader->UniformBuffersCopyInfo);
+		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedGlobals(CrossCompiler::SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->Bindings);
 	}
 }
 

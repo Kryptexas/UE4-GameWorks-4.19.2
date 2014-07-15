@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
 //
 
 #include "ShaderFormatOpenGL.h"
@@ -42,7 +42,7 @@
 	#define GL_TESS_CONTROL_SHADER 0x8E88
 	#endif
 #endif
-#include "OpenGLUtil.h"
+	#include "OpenGLUtil.h"
 #include "OpenGLShaderResources.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All); 
@@ -773,7 +773,7 @@ static void BuildShaderOutput(
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = GLPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -815,7 +815,7 @@ static void BuildShaderOutput(
 			CopyInfo.DestUBIndex = 0;
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = GLPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -849,10 +849,10 @@ static void BuildShaderOutput(
 		ANSICHAR TypeName = Iterator.Key();
 		uint16 Size = Iterator.Value();
 		Size = (Size + 0xf) & (~0xf);
-		FOpenGLPackedArrayInfo Info;
+		CrossCompiler::FPackedArrayInfo Info;
 		Info.Size = Size;
 		Info.TypeName = TypeName;
-		Info.TypeIndex = GLPackedTypeNameToTypeIndex(TypeName);
+		Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 		Header.Bindings.PackedGlobalArrays.Add(Info);
 	}
 
@@ -862,17 +862,17 @@ static void BuildShaderOutput(
 	{
 		int BufferIndex = Iterator.Key();
 		auto& ArraySizes = Iterator.Value();
-		TArray<FOpenGLPackedArrayInfo> InfoArray;
+		TArray<CrossCompiler::FPackedArrayInfo> InfoArray;
 		InfoArray.Reserve(ArraySizes.Num());
 		for (auto IterSizes = ArraySizes.CreateIterator(); IterSizes; ++IterSizes)
 		{
 			ANSICHAR TypeName = IterSizes.Key();
 			uint16 Size = IterSizes.Value();
 			Size = (Size + 0xf) & (~0xf);
-			FOpenGLPackedArrayInfo Info;
+			CrossCompiler::FPackedArrayInfo Info;
 			Info.Size = Size;
 			Info.TypeName = TypeName;
-			Info.TypeIndex = GLPackedTypeNameToTypeIndex(TypeName);
+			Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 			InfoArray.Add(Info);
 		}
 
@@ -1551,6 +1551,7 @@ CCFlags &= ~HLSLCC_NoPreprocess;
 
 		if (Result != 0)
 		{
+			int32 GlslSourceLen = GlslShaderSource ? FCStringAnsi::Strlen(GlslShaderSource) : 0;
 			if (bDumpDebugInfo)
 			{
 				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
@@ -1566,7 +1567,6 @@ CCFlags &= ~HLSLCC_NoPreprocess;
 					FFileHelper::SaveStringToFile(NDABatchFileContents, *(Input.DumpDebugInfoPath / TEXT("NDAGLSLCompile.bat")));
 				}
 
-				int32 GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 				if (GlslSourceLen > 0)
 				{
 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
