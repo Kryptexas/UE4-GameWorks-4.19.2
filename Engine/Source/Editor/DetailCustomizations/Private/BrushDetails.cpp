@@ -9,6 +9,7 @@
 #include "ClassViewerFilter.h"
 #include "AssetSelection.h"
 #include "ClassIconFinder.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
 
