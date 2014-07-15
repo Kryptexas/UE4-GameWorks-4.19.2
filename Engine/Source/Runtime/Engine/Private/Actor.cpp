@@ -2093,6 +2093,53 @@ void AActor::DisableComponentsSimulatePhysics()
 
 void AActor::PostRegisterAllComponents() 
 {
+	// Try and get transforms correct.
+	// Obviously a component could be attached to something in another actor that has not been processed yet, that will just move the registered components to the correct location
+
+	// We refetch the components because the registration process could have modified the list
+	TArray<USceneComponent*> SceneComponents;
+	GetComponents(SceneComponents);
+
+	for(int32 CompIdx=0; CompIdx < SceneComponents.Num(); CompIdx++)
+	{
+		USceneComponent* SceneComp = SceneComponents[CompIdx];
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		AActor* CompOwner = SceneComp->GetOwner();
+		FString CompOwnerPathName = (CompOwner != NULL) ? CompOwner->GetFullName() : TEXT("NONE");
+		checkf(SceneComp->GetOwner() == this, TEXT("SceneComp '%s' has Owner of %x'%s', expected %x'%s' (TTP 241544)"), *SceneComp->GetFullName(), CompOwner, *CompOwnerPathName, this, *this->GetFullName());
+#endif
+		//UE_LOG(LogActorComponent, Log, TEXT("%d: %s (AP: %s)"), CompIdx, *SceneComp->GetPathName(), SceneComp->AttachParent ? *SceneComp->AttachParent->GetPathName() : TEXT("NONE"));
+		// If we need to perform a call to AttachTo to add it to AttachChildren array, do that now
+		if(SceneComp->AttachParent != NULL && !SceneComp->AttachParent->AttachChildren.Contains(SceneComp))
+		{
+			USceneComponent* PendingAttachParent = SceneComp->AttachParent;
+			SceneComp->AttachParent = NULL;
+
+			// If our attach parent is a blueprint component that is marked pending kill belonging to another actor,
+			// then rerun construction script has almost certainly been run on it and we are just going to pick its
+			// current root component instead
+			if (PendingAttachParent->bCreatedByConstructionScript && PendingAttachParent->IsPendingKill())
+			{
+				AActor* PendingAttachOwner = PendingAttachParent->GetOwner();
+				if (PendingAttachOwner != this)
+				{
+					PendingAttachParent = PendingAttachOwner->GetRootComponent();
+				}
+			}
+
+			FName PendingAttachSocketName = SceneComp->AttachSocketName;
+			SceneComp->AttachSocketName = NAME_None;
+
+			//UE_LOG(LogActorComponent, Log, TEXT("  Attached!"));
+			SceneComp->AttachTo(PendingAttachParent, PendingAttachSocketName);
+		}
+		// Otherwise just update its ComponentToWorld
+		else
+		{
+			SceneComp->UpdateComponentToWorld();
+		}
+	}
+		
 	if (bNavigationRelevant == true && GetWorld() != NULL 
 		&& GetWorld()->GetNavigationSystem() != NULL)
 	{
@@ -3026,8 +3073,18 @@ void AActor::UnregisterAllComponents()
 
 void AActor::RegisterAllComponents()
 {
-	// Second phase, register the components
+	// 0 - means register all components
+	verify(IncrementalRegisterComponents(0));
+}
 
+bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
+{
+	if (NumComponentsToRegister == 0)
+	{
+		// 0 - means register all components
+		NumComponentsToRegister = MAX_int32;
+	}
+	
 	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
 	if( RootComponent != NULL && !RootComponent->IsRegistered() )
 	{
@@ -3042,10 +3099,12 @@ void AActor::RegisterAllComponents()
 		RootComponent->RegisterComponentWithWorld(GetWorld());
 	}
 
+	int32 NumTotalRegisteredComponents = 0;
+	int32 NumRegisteredComponentsThisRun = 0;
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
-
-	for(int32 CompIdx=0; CompIdx < Components.Num(); CompIdx++)
+	
+	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
 	{
 		UActorComponent* Component = Components[CompIdx];
 		if(!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
@@ -3056,58 +3115,22 @@ void AActor::RegisterAllComponents()
 
 			check(GetWorld());
 			Component->RegisterComponentWithWorld(GetWorld());
+			NumRegisteredComponentsThisRun++;
 		}
+
+		NumTotalRegisteredComponents++;
 	}
 
-	// First phase, try and get transforms correct.
-	// Obviously a component could be attached to something in another actor that has not been processed yet, that will just move the registered components to the correct location
-
-	// We refetch the components because the registration process could have modified the list
-	TArray<USceneComponent*> SceneComponents;
-	GetComponents(SceneComponents);
-
-	for(int32 CompIdx=0; CompIdx < SceneComponents.Num(); CompIdx++)
+	// See whether we are done
+	if (Components.Num() == NumTotalRegisteredComponents)
 	{
-		USceneComponent* SceneComp = SceneComponents[CompIdx];
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			AActor* CompOwner = SceneComp->GetOwner();
-			FString CompOwnerPathName = (CompOwner != NULL) ? CompOwner->GetFullName() : TEXT("NONE");
-			checkf(SceneComp->GetOwner() == this, TEXT("SceneComp '%s' has Owner of %x'%s', expected %x'%s' (TTP 241544)"), *SceneComp->GetFullName(), CompOwner, *CompOwnerPathName, this, *this->GetFullName());
-#endif
-			//UE_LOG(LogActorComponent, Log, TEXT("%d: %s (AP: %s)"), CompIdx, *SceneComp->GetPathName(), SceneComp->AttachParent ? *SceneComp->AttachParent->GetPathName() : TEXT("NONE"));
-			// If we need to perform a call to AttachTo to add it to AttachChildren array, do that now
-			if(SceneComp->AttachParent != NULL && !SceneComp->AttachParent->AttachChildren.Contains(SceneComp))
-			{
-				USceneComponent* PendingAttachParent = SceneComp->AttachParent;
-				SceneComp->AttachParent = NULL;
-
-				// If our attach parent is a blueprint component that is marked pending kill belonging to another actor,
-				// then rerun construction script has almost certainly been run on it and we are just going to pick its
-				// current root component instead
-				if (PendingAttachParent->bCreatedByConstructionScript && PendingAttachParent->IsPendingKill())
-				{
-					AActor* PendingAttachOwner = PendingAttachParent->GetOwner();
-					if (PendingAttachOwner != this)
-					{
-						PendingAttachParent = PendingAttachOwner->GetRootComponent();
-					}
-				}
-
-				FName PendingAttachSocketName = SceneComp->AttachSocketName;
-				SceneComp->AttachSocketName = NAME_None;
-
-				//UE_LOG(LogActorComponent, Log, TEXT("  Attached!"));
-				SceneComp->AttachTo(PendingAttachParent, PendingAttachSocketName);
-			}
-			// Otherwise just update its ComponentToWorld
-			else
-			{
-				SceneComp->UpdateComponentToWorld();
-			}
-		}
-
-	// Finally, call PostRegisterAllComponents
-	PostRegisterAllComponents();
+		// Finally, call PostRegisterAllComponents
+		PostRegisterAllComponents();
+		return true;
+	}
+	
+	// Still have components to register
+	return false;
 }
 
 bool AActor::HasValidRootComponent()

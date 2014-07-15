@@ -1587,6 +1587,7 @@ double InitActorTime = 0.0;
 double RouteActorInitializeTime = 0.0;
 double CrossLevelRefsTime = 0.0;
 double SortActorListTime = 0.0;
+double PerformLastStepTime = 0.0;
 
 /** Helper class, to add the time between this objects creating and destruction to passed in variable. */
 class FAddWorldScopeTimeVar
@@ -1660,6 +1661,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		RouteActorInitializeTime = 0.0;
 		CrossLevelRefsTime = 0.0;
 		SortActorListTime = 0.0;
+		PerformLastStepTime = 0.0;
 #endif
 	}
 
@@ -1696,7 +1698,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		Level->bAreComponentsCurrentlyRegistered = false;
 
 		// Incrementally update components.
-		int32 NumActorsToUpdate = GEngine->LevelStreamingNumActorsToUpdate;
+		int32 NumComponentsToUpdate = GEngine->LevelStreamingComponentsRegistrationGranularity;
 		do
 		{
 #if WITH_EDITOR
@@ -1706,7 +1708,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 			// We don't need to rerun construction scripts if we have cooked data or we are playing in editor unless the PIE world was loaded
 			// from disk rather than duplicated
 			const bool bRerunConstructionScript = !FPlatformProperties::RequiresCookedData() && (!IsPlayInEditor() || HasAnyFlags(RF_WasLoaded));
-			Level->IncrementalUpdateComponents( (GIsEditor || IsRunningCommandlet()) ? 0 : NumActorsToUpdate, bRerunConstructionScript );
+			Level->IncrementalUpdateComponents( (GIsEditor || IsRunningCommandlet()) ? 0 : NumComponentsToUpdate, bRerunConstructionScript );
 		}
 		while( (!bConsiderTimeLimit || !IsTimeLimitExceeded( TEXT("updating components"), StartTime, Level )) && !Level->bAreComponentsCurrentlyRegistered );
 
@@ -1760,25 +1762,8 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 	// We're done.
 	if( bPerformedLastStep )
 	{
-#if PERF_TRACK_DETAILED_ASYNC_STATS
-		// Log out all of the timing information
-		double TotalTime = MoveActorTime + ShiftActorsTime + UpdateComponentsTime + InitBSPPhysTime + InitActorPhysTime + InitActorTime + RouteActorInitializeTime + CrossLevelRefsTime + SortActorListTime;
-		UE_LOG(LogStreaming, Log, TEXT("Detailed AddToWorld stats for '%s' - Total %6.2fms"), *Level->GetOutermost()->GetName(), TotalTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Move Actors             : %6.2f ms"), MoveActorTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Shift Actors            : %6.2f ms"), ShiftActorsTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Update Components       : %6.2f ms"), UpdateComponentsTime * 1000 );
-
-		PrintSortedListFromMap(Level->UpdateComponentsTimePerActorClass);
-		Level->UpdateComponentsTimePerActorClass.Empty();
-
-		UE_LOG(LogStreaming, Log, TEXT("Init BSP Phys           : %6.2f ms"), InitBSPPhysTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Init Actor Phys         : %6.2f ms"), InitActorPhysTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Init Actors             : %6.2f ms"), InitActorTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Initialize               : %6.2f ms"), RouteActorInitializeTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Cross Level Refs        : %6.2f ms"), CrossLevelRefsTime * 1000 );
-		UE_LOG(LogStreaming, Log, TEXT("Sort Actor List         : %6.2f ms"), SortActorListTime * 1000 );	
-#endif // PERF_TRACK_DETAILED_ASYNC_STATS
-
+		SCOPE_TIME_TO_VAR(&PerformLastStepTime);
+		
 		Level->bAlreadyShiftedActors					= false;
 		Level->bAlreadyUpdatedComponents				= false;
 		Level->bAlreadyInitializedNetworkActors			= false;
@@ -1822,6 +1807,36 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 
 		ULevelStreaming::BroadcastLevelVisibleStatus(this, Level->GetOutermost()->GetFName(), true);
 	}
+
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+	if (bPerformedLastStep)
+	{
+		// Log out all of the timing information
+		double TotalTime = 
+			MoveActorTime + 
+			ShiftActorsTime + 
+			UpdateComponentsTime + 
+			InitBSPPhysTime + 
+			InitActorPhysTime + 
+			InitActorTime + 
+			RouteActorInitializeTime + 
+			CrossLevelRefsTime + 
+			SortActorListTime + 
+			PerformLastStepTime;
+
+		UE_LOG(LogStreaming, Log, TEXT("Detailed AddToWorld stats for '%s' - Total %6.2fms"), *Level->GetOutermost()->GetName(), TotalTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Move Actors             : %6.2f ms"), MoveActorTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Shift Actors            : %6.2f ms"), ShiftActorsTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Update Components       : %6.2f ms"), UpdateComponentsTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Init BSP Phys           : %6.2f ms"), InitBSPPhysTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Init Actor Phys         : %6.2f ms"), InitActorPhysTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Init Actors             : %6.2f ms"), InitActorTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Initialize              : %6.2f ms"), RouteActorInitializeTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Cross Level Refs        : %6.2f ms"), CrossLevelRefsTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Sort Actor List         : %6.2f ms"), SortActorListTime * 1000 );
+		UE_LOG(LogStreaming, Log, TEXT("Perform Last Step       : %6.2f ms"), SortActorListTime * 1000 );
+	}
+#endif // PERF_TRACK_DETAILED_ASYNC_STATS
 }
 
 

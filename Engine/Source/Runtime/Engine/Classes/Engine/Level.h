@@ -505,10 +505,10 @@ public:
 	/**
 	 * Incrementally updates all components of actors associated with this level.
 	 *
-	 * @param NumActorsToUpdate		Number of actors to update in this run, 0 for all
+	 * @param NumComponentsToUpdate		Number of components to update in this run, 0 for all
 	 * @param bRerunConstructionScripts	If we want to rerun construction scripts on actors in level
 	 */
-	void IncrementalUpdateComponents( int32 NumActorsToUpdate, bool bRerunConstructionScripts );
+	void IncrementalUpdateComponents( int32 NumComponentsToUpdate, bool bRerunConstructionScripts );
 
 	/**
 	 * Invalidates the cached data used to render the level's UModel.

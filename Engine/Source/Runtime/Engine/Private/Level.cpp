@@ -728,91 +728,76 @@ struct FModelComponentKey
 	}
 };
 
-
 void ULevel::UpdateLevelComponents(bool bRerunConstructionScripts)
 {
 	// Update all components in one swoop.
 	IncrementalUpdateComponents( 0, bRerunConstructionScripts );
 }
 
-
-void ULevel::IncrementalUpdateComponents(int32 NumActorsToUpdate, bool bRerunConstructionScripts)
+void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bRerunConstructionScripts)
 {
 	// A value of 0 means that we want to update all components.
-	if( NumActorsToUpdate == 0 )
+	if (NumComponentsToUpdate != 0)
 	{
-		NumActorsToUpdate = MAX_int32;
-	}
-	// Only the game can use incremental update functionality.
-	else
-	{
+		// Only the game can use incremental update functionality.
 		checkf(!GIsEditor && OwningWorld->IsGameWorld(),TEXT("Cannot call IncrementalUpdateComponents with non 0 argument in the Editor/ commandlets."));
 	}
 
 	// Do BSP on the first pass.
-	if( CurrentActorIndexForUpdateComponents == 0 )
+	if (CurrentActorIndexForUpdateComponents == 0)
 	{
 		UpdateModelComponents();
 	}
 
-	TArray<AActor*> RerunConstructionScriptActors;
-	for( int32 i=0; i < NumActorsToUpdate && CurrentActorIndexForUpdateComponents < Actors.Num(); i++ )
+	// Find next valid actor to process components registration
+	while (CurrentActorIndexForUpdateComponents < Actors.Num())
 	{
-		AActor* Actor = Actors[CurrentActorIndexForUpdateComponents++];
-		if( Actor )
+		AActor* Actor = Actors[CurrentActorIndexForUpdateComponents];
+		bool bAllComponentsRegistered = true;
+		if (Actor)
 		{
-#if PERF_TRACK_DETAILED_ASYNC_STATS
-			double Start = FPlatformTime::Seconds();
-#endif
+			bAllComponentsRegistered = Actor->IncrementalRegisterComponents(NumComponentsToUpdate);
+		}
 
-			Actor->ReregisterAllComponents();
+		if (bAllComponentsRegistered)
+		{	
+			// All components have been registered fro this actor, move to a next one
+			CurrentActorIndexForUpdateComponents++;
+		}
 
-			// Cache the actor to rerun the construction script (if the actor is blueprint based and this is being run in the editor)
-			// @TODO: Only do this if blueprint has changed!
-			if (bRerunConstructionScripts && !IsTemplate() && !GIsUCCMakeStandaloneHeaderGenerator)
-			{
-				RerunConstructionScriptActors.Add(Actor);
-			}
-
-#if PERF_TRACK_DETAILED_ASYNC_STATS
-			// Add how long this took to class->time map
-			double Time = FPlatformTime::Seconds() - Start;
-			UClass* ActorClass = Actor->GetClass();
-			FMapTimeEntry* CurrentEntry = UpdateComponentsTimePerActorClass.Find(ActorClass);
-			// Is an existing entry - add to it
-			if(CurrentEntry)
-			{
-				CurrentEntry->Time += Time;
-				CurrentEntry->ObjCount += 1;
-			}
-			// Make a new entry for this class
-			else
-			{
-				UpdateComponentsTimePerActorClass.Add(ActorClass, FMapTimeEntry(ActorClass, 1, Time));
-			}
-#endif
+		// If we do an incremental registration return to outer loop after each processed actor 
+		// so outer loop can decide whether we want to continue processing this frame
+		if (NumComponentsToUpdate != 0)
+		{
+			break;
 		}
 	}
 
-	// Don't rerun construction scripts until after all actors' components have been registered.  This
-	// is necessary because child attachment lists are populated during registration, and running construction
-	// scripts requires that the attachments are correctly initialized.
-	for (auto RerunConstructionScriptActor : RerunConstructionScriptActors)
-	{
-		RerunConstructionScriptActor->RerunConstructionScripts();
-	}
-
 	// See whether we are done.
-	if( CurrentActorIndexForUpdateComponents == Actors.Num() )
+	if (CurrentActorIndexForUpdateComponents == Actors.Num())
 	{
 		CurrentActorIndexForUpdateComponents	= 0;
 		bAreComponentsCurrentlyRegistered		= true;
+		
+		if (bRerunConstructionScripts && !IsTemplate() && !GIsUCCMakeStandaloneHeaderGenerator)
+		{
+			// Don't rerun construction scripts until after all actors' components have been registered.  This
+			// is necessary because child attachment lists are populated during registration, and running construction
+			// scripts requires that the attachments are correctly initialized.
+			for (AActor* Actor : Actors)
+			{
+				if (Actor)
+				{
+					Actor->RerunConstructionScripts();
+				}
+			}
+		}
 	}
 	// Only the game can use incremental update functionality.
 	else
 	{
 		// The editor is never allowed to incrementally updated components.  Make sure to pass in a value of zero for NumActorsToUpdate.
-		check( OwningWorld->IsGameWorld() );
+		check(OwningWorld->IsGameWorld());
 	}
 }
 

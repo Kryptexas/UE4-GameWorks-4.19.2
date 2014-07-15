@@ -1635,6 +1635,14 @@ public:
 	/** Will reregister all components on this actor. Does a lot of work - should only really be used in editor, generally use UpdateComponentTransforms or MarkComponentsRenderStateDirty. */
 	virtual void ReregisterAllComponents();
 
+	/**
+	 * Incrementally registers components associated with this actor
+	 *
+	 * @param NumComponentsToRegister  Number of components to register in this run, 0 for all
+	 * @return true when all components were registered for this actor
+	 */
+	bool IncrementalRegisterComponents(int32 NumComponentsToRegister);
+
 	/** Flags all component's render state as dirty	 */
 	void MarkComponentsRenderStateDirty();
 

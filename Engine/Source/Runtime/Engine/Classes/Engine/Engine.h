@@ -1105,9 +1105,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	float LevelStreamingActorsUpdateTimeLimit;
 	
-	/** Batching granularity used to register actors during level streaming */
+	/** Batching granularity used to register actor components during level streaming */
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	int32 LevelStreamingNumActorsToUpdate;
+	int32 LevelStreamingComponentsRegistrationGranularity;
 	
 	/** @todo document */
 	UPROPERTY(config)
