@@ -99,11 +99,11 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 
 		Widget->Rename(*NewNameStr);
 	
+		// Update Variable References
 		TArray<UK2Node_Variable*> WidgetVarNodes;
 		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(Blueprint, WidgetVarNodes);
-		for ( int32 It = 0; It < WidgetVarNodes.Num(); It++ )
+		for ( UK2Node_Variable* TestNode : WidgetVarNodes )
 		{
-			UK2Node_Variable* TestNode = WidgetVarNodes[It];
 			if ( TestNode && ( OldName == TestNode->GetVarName() ) )
 			{
 				UEdGraphPin* TestPin = TestNode->FindPin(OldNameStr);
@@ -123,6 +123,17 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 					TestPin->Modify();
 					TestPin->PinName = NewNameStr;
 				}
+			}
+		}
+
+		// Update Event References to member variables
+		TArray<UK2Node_ComponentBoundEvent*> EventNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_ComponentBoundEvent>(Blueprint, EventNodes);
+		for ( UK2Node_ComponentBoundEvent* EventNode : EventNodes )
+		{
+			if ( EventNode->ComponentPropertyName == OldName )
+			{
+				EventNode->ComponentPropertyName = NewName;
 			}
 		}
 
