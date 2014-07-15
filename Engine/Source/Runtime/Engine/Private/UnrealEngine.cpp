@@ -8528,10 +8528,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	check(WorldContext.World()->PersistentLevel);
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
-	// Set initial world origin and stream in levels
+	// Make sure all relevant streaming levels are fully loaded
 	if (WorldContext.World()->WorldComposition)
 	{
+		// Set initial world origin and stream in levels
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
+	}
+	else
+	{
+		WorldContext.World()->FlushLevelStreaming();
 	}
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);

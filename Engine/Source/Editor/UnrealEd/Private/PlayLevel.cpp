@@ -2645,6 +2645,10 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	{
 		PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 	}
+	else
+	{
+		PlayWorld->FlushLevelStreaming();
+	}
 	
 	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 	PlayWorld->CreateAISystem();
