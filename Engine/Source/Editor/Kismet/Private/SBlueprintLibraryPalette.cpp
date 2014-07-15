@@ -6,6 +6,8 @@
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h" // for FClassViewerFilterFuncs
 #include "K2ActionMenuBuilder.h"
 #include "BlueprintPaletteFavorites.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintActionMenuBuilder.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintLibraryPalette"
 
@@ -205,12 +207,38 @@ void SBlueprintLibraryPalette::CollectAllActions(FGraphActionListBuilderBase& Ou
 	{
 		RootCategory = TEXT("");
 	}
-
-	UBlueprint const* const Blueprint = GetBlueprint();
-	FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, RootCategory);
-
-	UEdGraphSchema_K2::GetPaletteActions(PaletteBuilder, FilterClass);
-	OutAllActions.Append(PaletteBuilder);
+	
+	if (GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
+	{
+		UBlueprint const* const Blueprint = GetBlueprint();
+		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, RootCategory);
+		
+		UEdGraphSchema_K2::GetPaletteActions(PaletteBuilder, FilterClass);
+		OutAllActions.Append(PaletteBuilder);
+	}
+	else
+	{
+		uint32 FilterFlags = 0x00;
+		if (FilterClass.IsValid())
+		{
+			FilterFlags = FBlueprintActionFilter::BPFILTER_ExcludeGlobalFields;
+		}
+		
+		FBlueprintActionFilter PaletteFilter(FilterFlags);
+		PaletteFilter.Context.Blueprints.Add(GetBlueprint());
+		PaletteFilter.ExcludedNodeTypes.Add(UK2Node_Variable::StaticClass());
+		
+		if (FilterClass.IsValid())
+		{
+			PaletteFilter.OwnerClasses.Add(FilterClass.Get());
+		}
+		
+		FBlueprintActionMenuBuilder PaletteBuilder;
+		PaletteBuilder.AddMenuSection(PaletteFilter, FText::FromString(RootCategory));
+		PaletteBuilder.RebuildActionList();
+		
+		OutAllActions.Append(PaletteBuilder);
+	}
 }
 
 //------------------------------------------------------------------------------

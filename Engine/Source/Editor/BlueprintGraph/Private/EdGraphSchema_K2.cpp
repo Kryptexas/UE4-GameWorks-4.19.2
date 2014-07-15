@@ -1204,7 +1204,7 @@ void UEdGraphSchema_K2::GetAllActions(FBlueprintPaletteListBuilder& PaletteBuild
 }
 
 void UEdGraphSchema_K2::GetPaletteActions(FBlueprintPaletteListBuilder& ActionMenuBuilder, TWeakObjectPtr<UClass> FilterClass/* = NULL*/)
-	{
+{
 	const UEdGraphSchema_K2* K2SchemaInst = GetDefault<UEdGraphSchema_K2>();
 	FK2ActionMenuBuilder(K2SchemaInst).GetPaletteActions(ActionMenuBuilder, FilterClass);
 }

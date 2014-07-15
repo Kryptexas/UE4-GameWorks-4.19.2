@@ -53,17 +53,13 @@ public:
 	void AddMenuSection(FBlueprintActionFilter const& Filter, FText const& Heading = FText::GetEmpty(), int32 MenuOrder = 0);
 	
 	/**
-	 * Regenerates the entire menu list from the cached menu sections.
+	 * Regenerates the entire menu list from the cached menu sections. Filters 
+	 * and adds action items from the blueprint action database (as defined by 
+	 * the MenuSections list).
 	 */
 	void RebuildActionList();
 
 private:
-	/**
-	 * Filters and adds action items from the blueprint action database (as 
-	 * defined by the MenuSections list).
-	 */
-	void GenerateMenuSections();
-	
 	/** 
 	 * Defines all the separate sections of the menu (filter, sort order, etc.).
 	 * Defined as a TSharedRef<> so as to hide the implementation details (keep 

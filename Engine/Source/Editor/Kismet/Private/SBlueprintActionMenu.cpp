@@ -10,6 +10,8 @@
 #include "SMyBlueprint.h"
 #include "BlueprintEditorUtils.h"
 #include "K2ActionMenuBuilder.h" // for FBlueprintPaletteListBuilder
+#include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionFilter.h"
 #include "BlueprintPaletteFavorites.h"
 #include "IDocumentation.h"
 
@@ -384,44 +386,103 @@ ESlateCheckBoxState::Type SBlueprintActionMenu::ContextToggleIsChecked() const
 
 void SBlueprintActionMenu::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 {
-	// Build up the context object
-	FBlueprintGraphActionListBuilder ContextMenuBuilder(GraphObj);
-	bool bIsContextSensitive = EditorPtr.Pin()->GetIsContextSensitive();
-	bool bHasPins = DraggedFromPins.Num() > 0;
-	if (!bIsContextSensitive)
+	UBlueprint* Blueprint = EditorPtr.Pin()->GetBlueprintObj();
+	
+	check(EditorPtr.IsValid());
+	TSharedPtr<FBlueprintEditor> BlueprintEditor = EditorPtr.Pin();
+	bool const bIsContextSensitive = BlueprintEditor->GetIsContextSensitive();
+	
+	if (GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
 	{
-		FBlueprintPaletteListBuilder PaletteBuilder(EditorPtr.Pin()->GetBlueprintObj());
-		UEdGraphSchema_K2::GetAllActions(PaletteBuilder);
-		//@TODO: Avoid this copy
-		OutAllActions.Append(PaletteBuilder);
-	}
-	else if (!bHasPins)
-	{
-		// Pass in selected property
-		FEdGraphSchemaAction_K2Var* SelectedVar = EditorPtr.Pin()->GetMyBlueprintWidget()->SelectionAsVar();
-		if (SelectedVar != NULL)
+		// Build up the context object
+		FBlueprintGraphActionListBuilder ContextMenuBuilder(GraphObj);
+		bool bHasPins = DraggedFromPins.Num() > 0;
+		if (!bIsContextSensitive)
 		{
-			ContextMenuBuilder.SelectedObjects.Add(SelectedVar->GetProperty());
+			FBlueprintPaletteListBuilder PaletteBuilder(Blueprint);
+			UEdGraphSchema_K2::GetAllActions(PaletteBuilder);
+			//@TODO: Avoid this copy
+			OutAllActions.Append(PaletteBuilder);
 		}
+		else if (!bHasPins)
+		{
+			// Pass in selected property
+			FEdGraphSchemaAction_K2Var* SelectedVar = EditorPtr.Pin()->GetMyBlueprintWidget()->SelectionAsVar();
+			if (SelectedVar != NULL)
+			{
+				ContextMenuBuilder.SelectedObjects.Add(SelectedVar->GetProperty());
+			}
+		}
+		else
+		{
+			ContextMenuBuilder.FromPin = DraggedFromPins[0];
+		}
+		
+		// Note: Cannot call GetGraphContextActions() during serialization and GC due to its use of FindObject()
+		if(!GIsSavingPackage && !GIsGarbageCollecting)
+		{
+			// Determine all possible actions
+			GraphObj->GetSchema()->GetGraphContextActions(ContextMenuBuilder);
+		}
+		
+		// Copy the added options back to the main list
+		//@TODO: Avoid this copy
+		OutAllActions.Append(ContextMenuBuilder);
 	}
 	else
 	{
-		ContextMenuBuilder.FromPin = DraggedFromPins[0];
+		FBlueprintActionFilter MenuFilter;
+		MenuFilter.Context.Blueprints.Add(Blueprint);
+		// we still want context from the graph (even if the user has unchecked
+		// "Context Sensitive"), otherwise the user would be presented with nodes
+		// that can't be placed in the graph... if the user isn't being presented
+		// with a valid node, then fix it up in filtering
+		MenuFilter.Context.Graphs.Add(GraphObj);
+		
+		FBlueprintActionMenuBuilder MenuBuilder;
+		if (bIsContextSensitive)
+		{
+			MenuFilter.Context.Pins = DraggedFromPins;
+			
+			FEdGraphSchemaAction_K2Var* SelectedVar = BlueprintEditor->GetMyBlueprintWidget()->SelectionAsVar();
+			if (SelectedVar != nullptr)
+			{
+				if (UObjectProperty* SelectedProperty = Cast<UObjectProperty>(SelectedVar->GetProperty()))
+				{
+					MenuFilter.OwnerClasses.Add(SelectedProperty->PropertyClass);
+					
+					bool const bUseFriendlyName = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames;
+					FText const PropertyName = bUseFriendlyName ? FText::FromString(UEditorEngine::GetFriendlyName(SelectedProperty)) : FText::FromName(SelectedProperty->GetFName());
+					
+					MenuFilter.NodeTypes.Add(UK2Node_CallFunction::StaticClass());
+					FText const FuncSectionName = FText::Format(LOCTEXT("ComponentFuncSection", "Call Function on {0}"), PropertyName);
+					MenuBuilder.AddMenuSection(MenuFilter, FuncSectionName);
+					
+					MenuFilter.NodeTypes[0] = UK2Node_Event::StaticClass();
+					FText const EventSectionName = FText::Format(LOCTEXT("ComponentEventSection", "Add Event for {0}"), PropertyName);
+					MenuBuilder.AddMenuSection(MenuFilter, EventSectionName);
+					
+					MenuFilter.NodeTypes.Empty();
+					MenuFilter.OwnerClasses.Empty();
+				}
+			}
+			
+			// only allow members of this blueprint to be called (along with static
+			// library members)
+			MenuFilter.OwnerClasses.Add(Blueprint->GeneratedClass);
+		}	
+		MenuBuilder.AddMenuSection(MenuFilter);
+		
+		MenuBuilder.RebuildActionList();
+		// copy the added options back to the main list
+		OutAllActions.Append(MenuBuilder); // @TODO: Avoid this copy
 	}
-
-	// Note: Cannot call GetGraphContextActions() during serialization and GC due to its use of FindObject()
-	if(!GIsSavingPackage && !GIsGarbageCollecting)
+	
+	// also try adding promote to variable if we can do so.
+	if (DraggedFromPins.Num() > 0)
 	{
-		// Determine all possible actions
-		GraphObj->GetSchema()->GetGraphContextActions(ContextMenuBuilder);
-
-		// Also try adding promote to variable if we can do so.
-		TryInsertPromoteToVariable(ContextMenuBuilder, OutAllActions);
+		TryInsertPromoteToVariable(DraggedFromPins[0], OutAllActions);
 	}
-
-	// Copy the added options back to the main list
-	//@TODO: Avoid this copy
-	OutAllActions.Append(ContextMenuBuilder);
 }
 
 TSharedRef<SEditableTextBox> SBlueprintActionMenu::GetFilterTextBox()
@@ -459,18 +520,15 @@ void SBlueprintActionMenu::OnActionSelected( const TArray< TSharedPtr<FEdGraphSc
 	}
 }
 
-void SBlueprintActionMenu::TryInsertPromoteToVariable( FGraphContextMenuBuilder &ContextMenuBuilder, FGraphActionListBuilderBase &OutAllActions )
+void SBlueprintActionMenu::TryInsertPromoteToVariable(UEdGraphPin const* ContextPin, FGraphActionListBuilderBase& OutAllActions)
 {
 	// If we can promote this to a variable add a menu entry to do so.
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GraphObj->GetSchema());
-	if ( (K2Schema != NULL) && ( ContextMenuBuilder.FromPin != NULL ) )
+	if ((K2Schema != nullptr) && K2Schema->CanPromotePinToVariable(*ContextPin))
 	{
-		if( K2Schema ->CanPromotePinToVariable(*ContextMenuBuilder.FromPin) )
-		{	
-			TSharedPtr<FBlueprintAction_PromoteVariable> PromoteAction = TSharedPtr<FBlueprintAction_PromoteVariable>(new FBlueprintAction_PromoteVariable());
-			PromoteAction->MyBlueprintEditor = EditorPtr;
-			OutAllActions.AddAction( PromoteAction );
-		}
+		TSharedPtr<FBlueprintAction_PromoteVariable> PromoteAction = TSharedPtr<FBlueprintAction_PromoteVariable>(new FBlueprintAction_PromoteVariable());
+		PromoteAction->MyBlueprintEditor = EditorPtr;
+		OutAllActions.AddAction( PromoteAction );
 	}
 }
 

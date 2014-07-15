@@ -78,7 +78,14 @@ public:
 	 * these types, then it is filtered out. Use the "ExcludeChildNodeTypes"
 	 * flag to aggressively filter out child classes (must be an explicit match).
 	 */
-	TArray<UClass*> NodeTypes;
+	TArray< TSubclassOf<UEdGraphNode> > NodeTypes;
+	
+	/**
+	 * A list of node types that should be filtered out. If a node class is 
+	 * listed both here and in NodeTypes, then the exclusion wins (and it will 
+	 * be filtered out).
+	 */
+	TArray< TSubclassOf<UEdGraphNode> > ExcludedNodeTypes;
 	
 	/**
 	 * A list of classes that you want members for. If an action does not have 

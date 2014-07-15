@@ -729,12 +729,12 @@ static bool BlueprintActionFilterImpl::IsNodeUnpastable(FBlueprintActionFilter c
 //------------------------------------------------------------------------------
 static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter const& Filter, UBlueprintNodeSpawner const* BlueprintAction, bool const bExcludeChildClasses)
 {
-	bool bIsFilteredOut = false;
+	bool bIsFilteredOut = (Filter.NodeTypes.Num() > 0);
 
 	UClass* NodeClass = BlueprintAction->NodeClass;
 	if (NodeClass != nullptr)
 	{
-		for (UClass* AllowedClass : Filter.NodeTypes)
+		for (TSubclassOf<UEdGraphNode> AllowedClass : Filter.NodeTypes)
 		{
 			if ((bExcludeChildClasses && (AllowedClass != NodeClass)) ||
 				!NodeClass->IsChildOf(AllowedClass))
@@ -743,13 +743,18 @@ static bool BlueprintActionFilterImpl::IsFilteredNodeType(FBlueprintActionFilter
 				break;
 			}
 		}
+		
+		for (int32 ClassIndx = 0; !bIsFilteredOut && (ClassIndx < Filter.ExcludedNodeTypes.Num()); ++ClassIndx)
+		{
+			TSubclassOf<UEdGraphNode> ExcludedClass = Filter.ExcludedNodeTypes[ClassIndx];
+			if ((bExcludeChildClasses && (ExcludedClass == NodeClass)) ||
+				NodeClass->IsChildOf(ExcludedClass))
+			{
+				bIsFilteredOut = true;
+				break;
+			}
+		}
 	}
-	else
-	{
-		// this node's class type is unknown, filter it out!
-		bIsFilteredOut = (Filter.NodeTypes.Num() > 0);
-	}
-
 	return bIsFilteredOut;
 }
 

@@ -351,9 +351,9 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	UPROPERTY()
 	int32 AG_LevelReference;
 
-	/** Whether or not the schema should allow the user to use blueprint communications */
-	UPROPERTY(globalconfig)
-	bool bAllowBlueprintComms;
+	/** Whether this schema should use the old (legacy) menu building, or the new (experimental) menu building */
+	UPROPERTY(GlobalConfig)
+	bool bUseLegacyActionMenus;
 
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;

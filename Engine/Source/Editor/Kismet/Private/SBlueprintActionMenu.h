@@ -50,7 +50,7 @@ protected:
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 
 	/** Functioin to try to insert a promote to variable entry if it is possible to do so. */
-	void TryInsertPromoteToVariable( FGraphContextMenuBuilder &ContextMenuBuilder, FGraphActionListBuilderBase &OutAllActions );
+	void TryInsertPromoteToVariable(UEdGraphPin const* ContextPin, FGraphActionListBuilderBase& OutAllActions);
 
 private:
 	UEdGraph* GraphObj;

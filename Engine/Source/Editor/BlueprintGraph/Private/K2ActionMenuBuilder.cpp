@@ -1043,8 +1043,7 @@ struct FClassDynamicCastHelper
 		check(TestClass && K2Schema);
 		const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 		const bool bProperClass = TestClass->HasAnyFlags(RF_Public) && !TestClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists);
-		const bool bAllowedByBPComms = K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy;
-		return !bIsSkeletonClass && bProperClass && bAllowedByBPComms;
+		return !bIsSkeletonClass && bProperClass;
 	}
 
 	static void SpawnNode(UClass* TargetType, FBlueprintGraphActionListBuilder& ContextMenuBuilder)
@@ -1170,15 +1169,6 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 				if (FromPin.Direction == EGPD_Output)
 				{
-					// If this is a call to another generated class, find the first parent that is natively-defined, to prevent calls to improper function headers
-					if( !K2Schema->bAllowBlueprintComms &&(PinClass->ClassGeneratedBy && PinClass->ClassGeneratedBy != Blueprint) && !FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint) )
-					{
-						while( PinClass->ClassGeneratedBy != NULL )
-						{
-							PinClass = PinClass->GetSuperClass();
-						}
-					}
-
 					const bool bWantBindableDelegates = (GraphType == GT_Ubergraph) || (GraphType == GT_Function) ||
 						((bAllowUnsafeCommands) && (Blueprint->BlueprintType == BPTYPE_MacroLibrary));
 
@@ -1236,7 +1226,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 						UClass* TestClass = *ClassIt;
 						bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 
-						if (TestClass->HasAnyFlags(RF_Public) && !bIsSkeletonClass && !TestClass->HasAnyClassFlags(CLASS_Deprecated|CLASS_NewerVersionExists) && (K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy))
+						if (TestClass->HasAnyFlags(RF_Public) && !bIsSkeletonClass && !TestClass->HasAnyClassFlags(CLASS_Deprecated|CLASS_NewerVersionExists))
 						{
 							bool bIsCastable = false;
 							if (TestClass != PinClass)

@@ -297,17 +297,6 @@ namespace FBlueprintActionMenuBuilderImpl
 		/** In charge of spawning menu items for this section (holds category/ordering information)*/
 		FBlueprintActionMenuItemFactory ItemFactory;
 	};
-
-	/**
-	 * To offer a fallback in case the action menu refactor is unstable, this
-	 * method implements the old way we used collect blueprint menu actions (for
-	 * both the palette and context menu).
-	 * 
-	 * @param  MenuSections	All the sections that were defined for FBlueprintActionMenuBuilder (we attempt to combine them)
-	 * @param  MenuBuilder	The menu builder we want all the legacy actions appended to.
-	 * @return 
-	 */
-	static void AppendLegacyActions(TArray< TSharedRef<FMenuSectionDefinition> > const& MenuSections, FBlueprintActionMenuBuilder& MenuBuilder);
 }
 
 //------------------------------------------------------------------------------
@@ -315,50 +304,6 @@ FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::FMenuSectionDefinition(
 	: ItemFactory(SectionFilterIn.Context)
 	, Filter(SectionFilterIn)
 {
-}
-
-//------------------------------------------------------------------------------
-void FBlueprintActionMenuBuilderImpl::AppendLegacyActions(TArray< TSharedRef<FMenuSectionDefinition> > const& MenuSections, FBlueprintActionMenuBuilder& MenuBuilder)
-{
-	check(MenuSections.Num() > 0);
-	FBlueprintActionContext const& Context = MenuSections[0]->Filter.Context;
-
-	if (Context.Graphs.Num() > 0)
-	{
-		FBlueprintGraphActionListBuilder ContextMenuBuilder(Context.Graphs[0]);
-		if (Context.Pins.Num() > 0)
-		{
-			ContextMenuBuilder.FromPin = Context.Pins[0];
-		}
-		
-		// @TODO: ContextMenuBuilder.SelectedObjects
-// 		for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
-// 		{
-// 			FBlueprintActionFilter const& SectionFilter = MenuSection->Filter;
-// 		}
-
-		UEdGraphSchema const* GraphSchema = GetDefault<UEdGraphSchema>(ContextMenuBuilder.CurrentGraph->Schema);
-		GraphSchema->GetGraphContextActions(ContextMenuBuilder);
-
-		MenuBuilder.Append(ContextMenuBuilder);
-	}
-	else if (Context.Blueprints.Num() > 0)
-	{
-		FBlueprintPaletteListBuilder PaletteBuilder(Context.Blueprints[0], MenuSections[0]->ItemFactory.RootCategory.ToString());
-
-		UClass* FilterClass = nullptr;
-
-		FBlueprintActionFilter const& SectionFilter = MenuSections[0]->Filter;
-		if (SectionFilter.OwnerClasses.Num() > 0)
-		{
-			FilterClass = SectionFilter.OwnerClasses[0];
-		}
-
-		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(PaletteBuilder, FilterClass); 
-
-		MenuBuilder.Append(PaletteBuilder);
-	}
 }
 
 /*******************************************************************************
@@ -396,15 +341,27 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	using namespace FBlueprintActionMenuBuilderImpl;
 
 	Empty();
-	if (true)//!GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
+	
+	FBlueprintActionDatabase::FClassActionMap const& ClassActions = FBlueprintActionDatabase::Get().GetAllActions();
+	for (auto ActionEntry : ClassActions)
 	{
-		GenerateMenuSections();
-	}
-	else if (MenuSections.Num() > 0)
-	{
-		// use the context from the first section (the legacy menu building did
-		// it all in one sweep and knew how to mark off sections)
-		AppendLegacyActions(MenuSections, *this);
+		UClass* Class = ActionEntry.Key;
+		for (UBlueprintNodeSpawner* NodeSpawner : ActionEntry.Value)
+		{
+			for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
+			{
+				if (MenuSection->Filter.IsFiltered(NodeSpawner))
+				{
+					// this node spawner doesn't belong in this section of the menu
+					continue;
+				}
+				
+				TSharedPtr<FEdGraphSchemaAction> NewActionPtr = MenuSection->ItemFactory.MakeMenuItem(*this, NodeSpawner);
+				check(NewActionPtr.IsValid());
+				
+				AddAction(NewActionPtr);
+			}
+		}
 	}
 
 	// @TODO: account for all K2ActionMenuBuilder action types...
@@ -423,34 +380,6 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	//   FEdGraphSchemaAction_K2AddCallOnVariable
 	// - FEdGraphSchemaAction_K2AddComponent
 	//   FEdGraphSchemaAction_K2AddComment
-}
-
-//------------------------------------------------------------------------------
-void FBlueprintActionMenuBuilder::GenerateMenuSections()
-{
-	using namespace FBlueprintActionMenuBuilderImpl;
-
-	FBlueprintActionDatabase::FClassActionMap const& ClassActions = FBlueprintActionDatabase::Get().GetAllActions();
-	for (auto ActionEntry : ClassActions)
-	{
-		UClass* Class = ActionEntry.Key;
-		for (UBlueprintNodeSpawner* NodeSpawner : ActionEntry.Value)
-		{
-			for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
-			{
-				if (MenuSection->Filter.IsFiltered(NodeSpawner))
-				{
-					// this node spawner doesn't belong in this section of the menu
-					continue;
-				}
-
-				TSharedPtr<FEdGraphSchemaAction> NewActionPtr = MenuSection->ItemFactory.MakeMenuItem(*this, NodeSpawner);
-				check(NewActionPtr.IsValid());
-
-				AddAction(NewActionPtr);
-			}
-		}
-	}
 }
 
 #undef LOCTEXT_NAMESPACE
