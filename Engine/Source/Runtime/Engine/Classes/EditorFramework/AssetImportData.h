@@ -18,6 +18,16 @@ class UAssetImportData : public UObject
 	/** Date/Time-stamp of the file from the last import */
 	UPROPERTY(VisibleAnywhere, Category=ImportSettings)
 	FString SourceFileTimestamp;
+
+	/** If true, the settings have been modified but not reimported yet */
+	UPROPERTY()
+	uint32 bDirty : 1;
+
+	// UObject interface
+#if WITH_EDITOR
+	ENGINE_API virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
+	// End of UObject interface
 };
 
 
