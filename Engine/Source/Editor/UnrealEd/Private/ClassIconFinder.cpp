@@ -5,6 +5,34 @@
 #include "Slate.h"
 #include "ClassIconFinder.h"
 
+TArray < const ISlateStyle* > FClassIconFinder::Styles;
+
+void FClassIconFinder::RegisterIconSource(const ISlateStyle* StyleSet)
+{
+	Styles.AddUnique( StyleSet );
+}
+
+void FClassIconFinder::UnregisterIconSource(const ISlateStyle* StyleSet)
+{
+	Styles.Remove( StyleSet );
+}
+
+const FSlateBrush* FClassIconFinder::LookupBrush(FName IconName)
+{
+	const FSlateBrush* IconBrush = NULL;
+
+	for ( const ISlateStyle* Style : Styles )
+	{
+		IconBrush = Style->GetOptionalBrush(IconName, nullptr, nullptr);
+		if ( IconBrush )
+		{
+			return IconBrush;
+		}
+	}
+
+	return FEditorStyle::GetOptionalBrush(IconName, nullptr, nullptr);
+}
+
 const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObjectPtr<AActor> >& InActors, UClass*& CommonBaseClass)
 {
 	// Get the common base class of the selected actors
@@ -40,7 +68,7 @@ const FSlateBrush* FClassIconFinder::FindIconForActors(const TArray< TWeakObject
 
 const FSlateBrush* FClassIconFinder::FindIconForActor( const TWeakObjectPtr<AActor>& InActor )
 {
-	return FEditorStyle::GetBrush( FindIconNameForActor( InActor ) );
+	return FClassIconFinder::LookupBrush( FindIconNameForActor(InActor) );
 }
 
 FName FClassIconFinder::FindIconNameForActor( const TWeakObjectPtr<AActor>& InActor )
@@ -81,7 +109,7 @@ FName FClassIconFinder::FindIconNameForActor( const TWeakObjectPtr<AActor>& InAc
 
 const FSlateBrush* FClassIconFinder::FindIconForClass(const UClass* InClass, const FName& InDefaultName )
 {
-	return FEditorStyle::GetBrush( FindIconNameImpl( InClass, InDefaultName ) );
+	return FClassIconFinder::LookupBrush( FindIconNameImpl( InClass, InDefaultName ) );
 }
 
 FName FClassIconFinder::FindIconNameForClass(const UClass* InClass, const FName& InDefaultName )
@@ -91,7 +119,7 @@ FName FClassIconFinder::FindIconNameForClass(const UClass* InClass, const FName&
 
 const FSlateBrush* FClassIconFinder::FindThumbnailForClass(const UClass* InClass, const FName& InDefaultName )
 {
-	return FEditorStyle::GetBrush( FindIconNameImpl( InClass, InDefaultName, TEXT("ClassThumbnail") ) );
+	return FClassIconFinder::LookupBrush( FindIconNameImpl( InClass, InDefaultName, TEXT("ClassThumbnail") ) );
 }
 
 FName FClassIconFinder::FindThumbnailNameForClass(const UClass* InClass, const FName& InDefaultName )
@@ -111,7 +139,7 @@ FName FClassIconFinder::FindIconNameImpl(const UClass* InClass, const FName& InD
 		while( Brush == NULL && CurrentClass && (CurrentClass != AActor::StaticClass()) )
 		{
 			BrushName = *FString::Printf( TEXT( "%s.%s" ), StyleRoot, *CurrentClass->GetName() );
-			Brush = FEditorStyle::GetOptionalBrush( BrushName, nullptr, nullptr );
+			Brush = FClassIconFinder::LookupBrush( BrushName );
 			CurrentClass = CurrentClass->GetSuperClass();
 		}
 	}
@@ -131,3 +159,4 @@ FName FClassIconFinder::FindIconNameImpl(const UClass* InClass, const FName& InD
 
 	return BrushName;
 }
+
