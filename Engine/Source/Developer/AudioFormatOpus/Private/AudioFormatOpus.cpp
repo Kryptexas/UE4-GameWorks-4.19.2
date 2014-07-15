@@ -6,11 +6,13 @@
 #include "TargetPlatform.h"
 #include "OpusAudioInfo.h"
 #include "AudioFormatOpus.h"
+#include "VorbisAudioInfo.h"
+#include "Audio.h"
 
 // Need to define this so that resampler.h compiles - probably a way around this somehow
 #define OUTSIDE_SPEEX
 
-#include "opus.h"
+#include "opus_multistream.h"
 #include "speex_resampler.h"
 
 /** Use UE4 memory allocation or Opus */
@@ -65,41 +67,9 @@ public:
 		TArray<uint8> SrcBufferCopy;
 		if (QualityInfo.SampleRate != kOpusSampleRate)
 		{
-			// Initialize resampler to convert to desired rate for Opus
-			int32 err = 0;
-			SpeexResamplerState* resampler = speex_resampler_init(QualityInfo.NumChannels, QualityInfo.SampleRate, kOpusSampleRate, SPEEX_RESAMPLER_QUALITY_DESKTOP, &err);
-			if (err != RESAMPLER_ERR_SUCCESS)
+			if (!ResamplePCM(QualityInfo.NumChannels, SrcBuffer, QualityInfo.SampleRate, SrcBufferCopy, kOpusSampleRate))
 			{
 				return false;
-			}
-
-			// Calculate extra space required for sample rate
-			float Duration = (float)SrcBuffer.Num() / (QualityInfo.SampleRate * kSampleStride);
-			int32 SafeCopySize = (Duration + 1) * kOpusSampleRate * kSampleStride;
-			SrcBufferCopy.AddUninitialized(SafeCopySize);
-			uint32 SrcSamples = SrcBuffer.Num() / kSampleStride;
-			uint32 CopySamples = SrcBufferCopy.Num() / kSampleStride;
-
-			// Do resampling and check results
-			if (QualityInfo.NumChannels == 1)
-			{
-				err = speex_resampler_process_int(resampler, 0, (const short*)(SrcBuffer.GetTypedData()), &SrcSamples, (short*)(SrcBufferCopy.GetTypedData()), &CopySamples);
-			}
-			else
-			{
-				err = speex_resampler_process_interleaved_int(resampler, (const short*)(SrcBuffer.GetTypedData()), &SrcSamples, (short*)(SrcBufferCopy.GetTypedData()), &CopySamples);
-			}
-
-			speex_resampler_destroy(resampler);
-			if (err != RESAMPLER_ERR_SUCCESS)
-			{
-				return false;
-			}
-
-			int32 WrittenBytes = (int32)(CopySamples * kSampleStride);
-			if (WrittenBytes < SrcBufferCopy.Num())
-			{
-				SrcBufferCopy.SetNum(WrittenBytes);
 			}
 		}
 		else
@@ -124,9 +94,7 @@ public:
 			return false;
 		}
 
-		// Basic attempt at mapping quality to bit rate range similar to what vorbis would give
-		int32 BitRate = FMath::GetMappedRangeValue(FVector2D(1, 100), FVector2D(64000, 400000), QualityInfo.Quality);
-		opus_encoder_ctl(Encoder, OPUS_SET_BITRATE(BitRate));
+		opus_encoder_ctl(Encoder, OPUS_SET_BITRATE(GetBitRateFromQuality(QualityInfo.Quality)));
 
 		// Create a buffer to store compressed data
 		CompressedDataStore.Empty();
@@ -145,16 +113,9 @@ public:
 			FramesToEncode++;
 		}
 
-		// Store Identifier, True Sample Count, Number of channels and Frames to Encode first
-		const char* OpusIdentifier = OPUS_ID_STRING;
-		CompressedData.Serialize((void*)OpusIdentifier, FCStringAnsi::Strlen( OpusIdentifier )+1);
-		CompressedData.Serialize(&TrueSampleCount, sizeof(uint32));
-		check(QualityInfo.NumChannels < MAX_uint8)
-		uint8 SerializedChannels = QualityInfo.NumChannels;
-		CompressedData.Serialize(&SerializedChannels, sizeof(uint8));
-		check(FramesToEncode < MAX_uint16);
-		uint16 SerializedFrames = FramesToEncode;
-		CompressedData.Serialize(&SerializedFrames, sizeof(uint16));
+		check(QualityInfo.NumChannels <= MAX_uint8);
+		check(FramesToEncode <= MAX_uint16);
+		SerializeHeaderData(CompressedData, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
 
 		// Temporary storage with more than enough to store any compressed frame
 		TArray<uint8> TempCompressedData;
@@ -166,8 +127,8 @@ public:
 
 			if (CompressedLength < 0)
 			{
-				//const char* ErrorStr = opus_strerror(CompressedLength);
-				//UE_LOG(LogAudio, Warning, TEXT("Failed to encode: [%d] %s"), CompressedLength, ANSI_TO_TCHAR(ErrorStr));
+				const char* ErrorStr = opus_strerror(CompressedLength);
+				UE_LOG(LogAudio, Warning, TEXT("Failed to encode: [%d] %s"), CompressedLength, ANSI_TO_TCHAR(ErrorStr));
 
 				Destroy(Encoder);
 
@@ -178,9 +139,7 @@ public:
 			{
 				// Store frame length and copy compressed data before incrementing pointers
 				check(CompressedLength < MAX_uint16);
-				uint16 SerializedFrameLength = CompressedLength;
-				CompressedData.Serialize(&SerializedFrameLength, sizeof(uint16));
-				CompressedData.Serialize(TempCompressedData.GetTypedData(), CompressedLength);
+				SerialiseFrameData(CompressedData, TempCompressedData.GetTypedData(), CompressedLength);
 				SrcBufferOffset += kBytesPerFrame;
 			}
 		}
@@ -193,14 +152,162 @@ public:
 	virtual bool CookSurround(FName Format, const TArray<TArray<uint8> >& SrcBuffers, FSoundQualityInfo& QualityInfo, TArray<uint8>& CompressedDataStore) const
 	{
 		check(Format == NAME_OPUS);
-		{
-			// Create a buffer to store compressed data
-			CompressedDataStore.Empty();
-			FMemoryWriter CompressedData(CompressedDataStore);
-			uint32 BufferOffset = 0;
-		}
-		return CompressedDataStore.Num() > 0;
 
+		// Constant sample rate for simplicity
+		const int32 kOpusSampleRate = 48000;
+		// Frame size must be one of 2.5, 5, 10, 20, 40 or 60 ms
+		const int32 kOpusFrameSizeMs = 60;
+		// Calculate frame size required by Opus
+		const int32 kOpusFrameSizeSamples = (kOpusSampleRate * kOpusFrameSizeMs) / 1000;
+		const uint32 kSampleStride = SAMPLE_SIZE * QualityInfo.NumChannels;
+		const int32 kBytesPerFrame = kOpusFrameSizeSamples * kSampleStride;
+
+		// Check whether source has compatible sample rate
+		TArray<TArray<uint8>> SrcBufferCopies;
+		if (QualityInfo.SampleRate != kOpusSampleRate)
+		{
+			for (int32 Index = 0; Index < SrcBuffers.Num(); Index++)
+			{
+				TArray<uint8>& NewCopy = *new (SrcBufferCopies) TArray<uint8>;
+				if (!ResamplePCM(1, SrcBuffers[Index], QualityInfo.SampleRate, NewCopy, kOpusSampleRate))
+				{
+					return false;
+				}
+			}
+		}
+		else
+		{
+			// Take a copy of the source regardless
+			for (int32 Index = 0; Index < SrcBuffers.Num(); Index++)
+			{
+				SrcBufferCopies[Index] = SrcBuffers[Index];
+			}
+		}
+
+		// Ensure that all channels are the same length
+		int32 SourceSize = -1;
+		for (int32 Index = 0; Index < SrcBufferCopies.Num(); Index++)
+		{
+			if (!Index)
+			{
+				SourceSize = SrcBufferCopies[Index].Num();
+			}
+			else
+			{
+				if (SourceSize != SrcBufferCopies[Index].Num())
+				{
+					return false;
+				}
+			}
+		}
+		if (SourceSize <= 0)
+		{
+			return false;
+		}
+
+		// Initialise the Opus multistream encoder
+		OpusMSEncoder* Encoder = NULL;
+		int32 EncError = 0;
+		int32 streams = 0;
+		int32 coupled_streams = 0;
+		// mapping_family not documented but figured out: 0 = 1 or 2 channels, 1 = 1 to 8 channel surround sound, 255 = up to 255 channels with no surround processing
+		int32 mapping_family = 1;
+		TArray<uint8> mapping;
+		mapping.AddUninitialized(QualityInfo.NumChannels);
+#if USE_UE4_MEM_ALLOC
+		int32 EncSize = opus_multistream_surround_encoder_get_size(QualityInfo.NumChannels, mapping_family);
+		Encoder = (OpusMSEncoder*)FMemory::Malloc(EncSize);
+		EncError = opus_multistream_surround_encoder_init(Encoder, kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetTypedData(), OPUS_APPLICATION_AUDIO);
+#else
+		Encoder = opus_multistream_surround_encoder_create(kOpusSampleRate, QualityInfo.NumChannels, mapping_family, &streams, &coupled_streams, mapping.GetTypedData(), OPUS_APPLICATION_AUDIO, &EncError);
+#endif
+		if (EncError != OPUS_OK)
+		{
+			Destroy(Encoder);
+			return false;
+		}
+
+		opus_multistream_encoder_ctl(Encoder, OPUS_SET_BITRATE(GetBitRateFromQuality(QualityInfo.Quality)));
+
+		// Create a buffer to store compressed data
+		CompressedDataStore.Empty();
+		FMemoryWriter CompressedData(CompressedDataStore);
+		int32 SrcBufferOffset = 0;
+
+		// Calc frame and sample count
+		int32 FramesToEncode = SourceSize / (kOpusFrameSizeSamples * SAMPLE_SIZE);
+		uint32 TrueSampleCount = SourceSize / SAMPLE_SIZE;
+
+		// Add another frame if Source does not divide into an equal number of frames
+		if (SourceSize % (kOpusFrameSizeSamples * SAMPLE_SIZE) != 0)
+		{
+			FramesToEncode++;
+		}
+
+		check(QualityInfo.NumChannels <= MAX_uint8);
+		check(FramesToEncode <= MAX_uint16);
+		SerializeHeaderData(CompressedData, TrueSampleCount, QualityInfo.NumChannels, FramesToEncode);
+
+		// Temporary storage for source data in an interleaved format
+		TArray<uint8> TempInterleavedSrc;
+		TempInterleavedSrc.AddUninitialized(kBytesPerFrame);
+
+		// Temporary storage with more than enough to store any compressed frame
+		TArray<uint8> TempCompressedData;
+		TempCompressedData.AddUninitialized(kBytesPerFrame);
+
+		while (SrcBufferOffset < SourceSize)
+		{
+			// Read a frames worth of data from the source and pack it into interleaved temporary storage
+			for (int32 SampleIndex = 0; SampleIndex < kOpusFrameSizeSamples; ++SampleIndex)
+			{
+				int32 CurrSrcOffset = SrcBufferOffset + SampleIndex*SAMPLE_SIZE;
+				int32 CurrInterleavedOffset = SampleIndex*kSampleStride;
+				if (CurrSrcOffset < SourceSize)
+				{
+					for (uint32 ChannelIndex = 0; ChannelIndex < QualityInfo.NumChannels; ++ChannelIndex)
+					{
+						// Interleave the channels in the Vorbis format, so that the correct channel is used for LFE
+						int32 OrderedChannelIndex = VorbisChannelInfo::Order[QualityInfo.NumChannels - 1][ChannelIndex];
+						int32 CurrInterleavedIndex = CurrInterleavedOffset + ChannelIndex*SAMPLE_SIZE;
+
+						// Copy both bytes that make up a single sample
+						TempInterleavedSrc[CurrInterleavedIndex] = SrcBufferCopies[OrderedChannelIndex][CurrSrcOffset];
+						TempInterleavedSrc[CurrInterleavedIndex + 1] = SrcBufferCopies[OrderedChannelIndex][CurrSrcOffset + 1];
+					}
+				}
+				else
+				{
+					// Zero the rest of the temp buffer to make it an exact frame
+					FMemory::Memzero(TempInterleavedSrc.GetTypedData() + CurrInterleavedOffset, kBytesPerFrame - CurrInterleavedOffset);
+					SampleIndex = kOpusFrameSizeSamples;
+				}
+			}
+
+			int32 CompressedLength = opus_multistream_encode(Encoder, (const opus_int16*)(TempInterleavedSrc.GetTypedData()), kOpusFrameSizeSamples, TempCompressedData.GetTypedData(), TempCompressedData.Num());
+
+			if (CompressedLength < 0)
+			{
+				const char* ErrorStr = opus_strerror(CompressedLength);
+				UE_LOG(LogAudio, Warning, TEXT("Failed to encode: [%d] %s"), CompressedLength, ANSI_TO_TCHAR(ErrorStr));
+
+				Destroy(Encoder);
+
+				CompressedDataStore.Empty();
+				return false;
+			}
+			else
+			{
+				// Store frame length and copy compressed data before incrementing pointers
+				check(CompressedLength < MAX_uint16);
+				SerialiseFrameData(CompressedData, TempCompressedData.GetTypedData(), CompressedLength);
+				SrcBufferOffset += kOpusFrameSizeSamples * SAMPLE_SIZE;
+			}
+		}
+
+		Destroy(Encoder);
+
+		return CompressedDataStore.Num() > 0;
 	}
 
 	virtual int32 Recompress(FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer) const
@@ -270,15 +377,7 @@ public:
 
 			if ( (ReadOffset + sizeof(uint16) + FrameSize) - WriteOffset >= kMaxChunkSizeBytes)
 			{
-				// need to write some data
-				int32 OutIndex = OutBuffers.Num();
-				int32 BytesToCopy = ReadOffset - WriteOffset;
-				OutBuffers.Add(TArray<uint8>());
-				OutBuffers[OutIndex].Empty(BytesToCopy);
-				OutBuffers[OutIndex].AddUninitialized(BytesToCopy);
-				void* NewChunkData = OutBuffers[OutIndex].GetTypedData();
-				FMemory::Memcpy(NewChunkData, LockedSrc+WriteOffset, BytesToCopy);
-				WriteOffset += BytesToCopy;
+				WriteOffset += AddDataChunk(OutBuffers, LockedSrc + WriteOffset, ReadOffset - WriteOffset);
 			}
 
 			ReadOffset += sizeof(uint16) + FrameSize;
@@ -286,18 +385,79 @@ public:
 		}
 		if (WriteOffset < ReadOffset)
 		{
-			// need to write some data
-			int32 OutIndex = OutBuffers.Num();
-			int32 BytesToCopy = ReadOffset - WriteOffset;
-			OutBuffers.Add(TArray<uint8>());
-			OutBuffers[OutIndex].Empty(BytesToCopy);
-			OutBuffers[OutIndex].AddUninitialized(BytesToCopy);
-			void* NewChunkData = OutBuffers[OutIndex].GetTypedData();
-			FMemory::Memcpy(NewChunkData, LockedSrc + WriteOffset, BytesToCopy);
-			WriteOffset += BytesToCopy;
+			WriteOffset += AddDataChunk(OutBuffers, LockedSrc + WriteOffset, ReadOffset - WriteOffset);
 		}
 
 		return true;
+	}
+
+	bool ResamplePCM(uint32 NumChannels, const TArray<uint8>& InBuffer, uint32 InSampleRate, TArray<uint8>& OutBuffer, uint32 OutSampleRate) const
+	{
+		// Initialize resampler to convert to desired rate for Opus
+		int32 err = 0;
+		SpeexResamplerState* resampler = speex_resampler_init(NumChannels, InSampleRate, OutSampleRate, SPEEX_RESAMPLER_QUALITY_DESKTOP, &err);
+		if (err != RESAMPLER_ERR_SUCCESS)
+		{
+			speex_resampler_destroy(resampler);
+			return false;
+		}
+
+		// Calculate extra space required for sample rate
+		const uint32 SampleStride = SAMPLE_SIZE * NumChannels;
+		const float Duration = (float)InBuffer.Num() / (InSampleRate * SampleStride);
+		const int32 SafeCopySize = (Duration + 1) * OutSampleRate * SampleStride;
+		OutBuffer.Empty(SafeCopySize);
+		OutBuffer.AddUninitialized(SafeCopySize);
+		uint32 InSamples = InBuffer.Num() / SampleStride;
+		uint32 OutSamples = OutBuffer.Num() / SampleStride;
+
+		// Do resampling and check results
+		if (NumChannels == 1)
+		{
+			err = speex_resampler_process_int(resampler, 0, (const short*)(InBuffer.GetTypedData()), &InSamples, (short*)(OutBuffer.GetTypedData()), &OutSamples);
+		}
+		else
+		{
+			err = speex_resampler_process_interleaved_int(resampler, (const short*)(InBuffer.GetTypedData()), &InSamples, (short*)(OutBuffer.GetTypedData()), &OutSamples);
+		}
+
+		speex_resampler_destroy(resampler);
+		if (err != RESAMPLER_ERR_SUCCESS)
+		{
+			return false;
+		}
+
+		// reduce the size of Out Buffer if more space than necessary was allocated
+		const int32 WrittenBytes = (int32)(OutSamples * SampleStride);
+		if (WrittenBytes < OutBuffer.Num())
+		{
+			OutBuffer.SetNum(WrittenBytes, true);
+		}
+
+		return true;
+	}
+
+	int32 GetBitRateFromQuality(int32 Quality) const
+	{
+		// Basic attempt at mapping quality to a bit rate range similar to Vorbis
+		// TODO: Not sure if range should be expanded or to make sure that it creates
+		// frequently used bit rates ie. 128000, 192000 etc.
+		return FMath::GetMappedRangeValue(FVector2D(1, 100), FVector2D(64000, 400000), Quality);
+	}
+
+	void SerializeHeaderData(FMemoryWriter& CompressedData, uint32 TrueSampleCount, uint8 NumChannels, uint16 NumFrames) const
+	{
+		const char* OpusIdentifier = OPUS_ID_STRING;
+		CompressedData.Serialize((void*)OpusIdentifier, FCStringAnsi::Strlen(OpusIdentifier) + 1);
+		CompressedData.Serialize(&TrueSampleCount, sizeof(uint32));
+		CompressedData.Serialize(&NumChannels, sizeof(uint8));
+		CompressedData.Serialize(&NumFrames, sizeof(uint16));
+	}
+
+	void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 FrameSize) const
+	{
+		CompressedData.Serialize(&FrameSize, sizeof(uint16));
+		CompressedData.Serialize(FrameData, FrameSize);
 	}
 
 	void Destroy(OpusEncoder* Encoder) const
@@ -307,6 +467,32 @@ public:
 #else
 		opus_encoder_destroy(Encoder);
 #endif
+	}
+
+	void Destroy(OpusMSEncoder* Encoder) const
+	{
+#if USE_UE4_MEM_ALLOC
+		FMemory::Free(Encoder);
+#else
+		opus_multistream_encoder_destroy(Encoder);
+#endif
+	}
+
+	/**
+	 * Adds a new chunk of data to the array
+	 *
+	 * @param	OutBuffers	Array of buffers to add to
+	 * @param	ChunkData	Pointer to chunk data
+	 * @param	ChunkSize	How much data to write
+	 * @return	How many bytes were written
+	 */
+	int32 AddDataChunk(TArray<TArray<uint8>>& OutBuffers, const uint8* ChunkData, int32 ChunkSize) const
+	{
+		TArray<uint8>& NewBuffer = *new (OutBuffers) TArray<uint8>;
+		NewBuffer.Empty(ChunkSize);
+		NewBuffer.AddUninitialized(ChunkSize);
+		FMemory::Memcpy(NewBuffer.GetTypedData(), ChunkData, ChunkSize);
+		return ChunkSize;
 	}
 };
 

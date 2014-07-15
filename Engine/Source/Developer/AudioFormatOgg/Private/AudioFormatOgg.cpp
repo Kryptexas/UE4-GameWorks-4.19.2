@@ -382,12 +382,10 @@ public:
 			case 6:
 			{
 				// the stream is 5.1 surround. channel order: front left, center, front right, rear left, rear right, LFE
-				ChannelOrder.Add(0);//SPEAKER_FrontLeft);
-				ChannelOrder.Add(2);//SPEAKER_FrontCenter);
-				ChannelOrder.Add(1);//SPEAKER_FrontRight);
-				ChannelOrder.Add(4);//SPEAKER_LeftSurround);
-				ChannelOrder.Add(5);//SPEAKER_RightSurround);
-				ChannelOrder.Add(3);//SPEAKER_LowFrequency);
+				for (int32 i = 0; i < NumChannels; i++)
+				{
+					ChannelOrder.Add(VorbisChannelInfo::Order[NumChannels - 1][i]);
+				}
 				break;
 			}
 

@@ -28,6 +28,7 @@ public:
 	ENGINE_API virtual void ExpandFile(uint8* DstBuffer, struct FSoundQualityInfo* QualityInfo) override;
 	ENGINE_API virtual void EnableHalfRate(bool HalfRate) override {};
 	virtual uint32 GetSourceBufferSize() const override { return SrcBufferDataSize;}
+	virtual bool UsesVorbisChannelOrdering() const override { return false; }
 
 	virtual bool SupportsStreaming() const override {return true;}
 	virtual bool StreamCompressedInfo(USoundWave* Wave, struct FSoundQualityInfo* QualityInfo) override;

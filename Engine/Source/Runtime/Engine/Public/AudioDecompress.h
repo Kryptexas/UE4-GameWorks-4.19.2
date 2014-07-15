@@ -64,6 +64,12 @@ public:
 	 */
 	virtual uint32 GetSourceBufferSize() const = 0;
 
+	/**
+	 * Whether the decompressed audio will be arranged using Vorbis' channel ordering
+	 * See http://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-800004.3.9 for details
+	 */
+	virtual bool UsesVorbisChannelOrdering() const = 0;
+
 	////////////////////////////////////////////////////////////////
 	// Following functions are optional if streaming is supported //
 	////////////////////////////////////////////////////////////////

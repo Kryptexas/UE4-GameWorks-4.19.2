@@ -415,14 +415,6 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 			FreeResources();
 			UpdatePlatformData();
 			MarkPackageDirty();
-			if (IsStreaming())
-			{
-				IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundWave(this);
-			}
-			else
-			{
-				IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
-			}
 		}
 	}
 }
@@ -683,9 +675,17 @@ void USoundWave::UpdatePlatformData()
 		}
 
 #if WITH_EDITORONLY_DATA
+		// Temporarily remove from streaming manager to release currently used data chunks
+		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
 		// Recache platform data if the source has changed.
 		CachePlatformData();
+		// Add back to the streaming manager to reload first chunk
+		IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundWave(this);
 #endif
+	}
+	else
+	{
+		IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
 	}
 }
 

@@ -9,47 +9,90 @@
 #define WITH_OPUS (PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX)
 
 #if WITH_OPUS
-#include "opus.h"
+#include "opus_multistream.h"
 #endif
 
-/*------------------------------------------------------------------------------------
-FOpusDecoderWrapper
-------------------------------------------------------------------------------------*/
 #define USE_UE4_MEM_ALLOC 1
 #define OPUS_SAMPLE_RATE 48000
 #define OPUS_MAX_FRAME_SIZE 5760
 #define SAMPLE_SIZE			( ( uint32 )sizeof( short ) )
 
+///////////////////////////////////////////////////////////////////////////////////////
+// Followed pattern used in opus_multistream_encoder.c - this will allow us to setup //
+// a multistream decoder without having to save extra information for every asset.   //
+///////////////////////////////////////////////////////////////////////////////////////
+struct UnrealChannelLayout{
+	int32 NumStreams;
+	int32 NumCoupledStreams;
+	uint8 Mapping[8];
+};
+
+/* Index is NumChannels-1*/
+static const UnrealChannelLayout UnrealMappings[8] = {
+	{ 1, 0, { 0 } },                      /* 1: mono */
+	{ 1, 1, { 0, 1 } },                   /* 2: stereo */
+	{ 2, 1, { 0, 1, 2 } },                /* 3: 1-d surround */
+	{ 2, 2, { 0, 1, 2, 3 } },             /* 4: quadraphonic surround */
+	{ 3, 2, { 0, 1, 4, 2, 3 } },          /* 5: 5-channel surround */
+	{ 4, 2, { 0, 1, 4, 5, 2, 3 } },       /* 6: 5.1 surround */
+	{ 4, 3, { 0, 1, 4, 6, 2, 3, 5 } },    /* 7: 6.1 surround */
+	{ 5, 3, { 0, 1, 6, 7, 2, 3, 4, 5 } }, /* 8: 7.1 surround */
+};
+
+/*------------------------------------------------------------------------------------
+FOpusDecoderWrapper
+------------------------------------------------------------------------------------*/
 struct FOpusDecoderWrapper
 {
 	FOpusDecoderWrapper(uint8 NumChannels)
 	{
 #if WITH_OPUS
-#if USE_UE4_MEM_ALLOC
-		int32 DecSize = opus_decoder_get_size(NumChannels);
-		Decoder = (OpusDecoder*)FMemory::Malloc(DecSize);
-		DecError = opus_decoder_init(Decoder, OPUS_SAMPLE_RATE, NumChannels);
-#else
-		Decoder = opus_decoder_create(OPUS_SAMPLE_RATE, NumChannels, &DecError);
-#endif
+		check(NumChannels <= 8);
+		const UnrealChannelLayout& Layout = UnrealMappings[NumChannels-1];
+	#if USE_UE4_MEM_ALLOC
+		int32 DecSize = opus_multistream_decoder_get_size(Layout.NumStreams, Layout.NumCoupledStreams);
+		Decoder = (OpusMSDecoder*)FMemory::Malloc(DecSize);
+		DecError = opus_multistream_decoder_init(Decoder, OPUS_SAMPLE_RATE, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping);
+	#else
+		Decoder = opus_multistream_decoder_create(OPUS_SAMPLE_RATE, NumChannels, Layout.NumStreams, Layout.NumCoupledStreams, Layout.Mapping, &DecError);
+	#endif
 #endif
 	}
 
 	~FOpusDecoderWrapper()
 	{
 #if WITH_OPUS
-#if USE_UE4_MEM_ALLOC
+	#if USE_UE4_MEM_ALLOC
 		FMemory::Free(Decoder);
-#else
-		opus_encoder_destroy(Decoder);
-#endif
+	#else
+		opus_multistream_encoder_destroy(Decoder);
+	#endif
 #endif
 	}
 
+	int32 Decode(const uint8* FrameData, uint16 FrameSize, int16* OutPCMData, int32 SampleSize)
+	{
 #if WITH_OPUS
-	OpusDecoder* Decoder;
+		return opus_multistream_decode(Decoder, FrameData, FrameSize, OutPCMData, SampleSize, 0);
+#else
+		return -1;
 #endif
+	}
+
+	bool WasInitialisedSuccessfully() const
+	{
+#if WITH_OPUS
+		return DecError == OPUS_OK;
+#else
+		return false;
+#endif
+	}
+
+private:
+#if WITH_OPUS
+	OpusMSDecoder* Decoder;
 	int32 DecError;
+#endif
 };
 
 /*------------------------------------------------------------------------------------
@@ -114,18 +157,17 @@ bool FOpusAudioInfo::ReadCompressedInfo(const uint8* InSrcBufferData, uint32 InS
 	AudioDataOffset = SrcBufferOffset;
 	SampleStride = SAMPLE_SIZE * NumChannels;
 
+	check(OpusDecoderWrapper == NULL);
 	OpusDecoderWrapper = new FOpusDecoderWrapper(NumChannels);
-	LastDecodedPCM.Empty();
-	LastDecodedPCM.AddUninitialized(OPUS_MAX_FRAME_SIZE * SampleStride);
-#if WITH_OPUS
-	if (OpusDecoderWrapper->DecError != OPUS_OK)
+	if (!OpusDecoderWrapper->WasInitialisedSuccessfully())
 	{
 		delete OpusDecoderWrapper;
+		OpusDecoderWrapper = NULL;
 		return false;
 	}
-#else
-	return false;
-#endif
+
+	LastDecodedPCM.Empty(OPUS_MAX_FRAME_SIZE * SampleStride);
+	LastDecodedPCM.AddUninitialized(OPUS_MAX_FRAME_SIZE * SampleStride);
 
 	if (QualityInfo)
 	{
@@ -252,6 +294,8 @@ bool FOpusAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, uin
 
 	SCOPE_CYCLE_COUNTER(STAT_OpusDecompressTime);
 
+	UE_LOG(LogAudio, Log, TEXT("Streaming compressed data from SoundWave'%s' - Chunk %d, Offset %d"), *StreamingSoundWave->GetName(), CurrentChunkIndex, SrcBufferOffset);
+
 	// Write out any PCM data that was decoded during the last request
 	uint32 RawPCMOffset = WriteFromDecodedPCM(Destination, BufferSize);
 
@@ -266,7 +310,8 @@ bool FOpusAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, uin
 		}
 		else
 		{
-			// Still not loaded, should probably have some kind of error, zero current buffer
+			// Still not loaded, zero remainder of current buffer
+			UE_LOG(LogAudio, Warning, TEXT("Unable to read from chunk %d of SoundWave'%s'"), CurrentChunkIndex, *StreamingSoundWave->GetName());
 			ZeroBuffer(Destination + RawPCMOffset, BufferSize - RawPCMOffset);
 			return false;
 		}
@@ -333,6 +378,7 @@ bool FOpusAudioInfo::StreamCompressedData(uint8* Destination, bool bLooping, uin
 				SrcBufferData = IStreamingManager::Get().GetAudioStreamingManager().GetLoadedChunk(StreamingSoundWave, CurrentChunkIndex);
 				if (SrcBufferData)
 				{
+					UE_LOG(LogAudio, Log, TEXT("Incremented current chunk from SoundWave'%s' - Chunk %d, Offset %d"), *StreamingSoundWave->GetName(), CurrentChunkIndex, SrcBufferOffset);
 					SrcBufferDataSize = StreamingSoundWave->RunningPlatformData->Chunks[CurrentChunkIndex].DataSize;
 				}
 				else
@@ -354,11 +400,7 @@ int32 FOpusAudioInfo::DecompressToPCMBuffer(uint16 FrameSize)
 	const uint8* SrcPtr = SrcBufferData + SrcBufferOffset;
 	SrcBufferOffset += FrameSize;
 	LastPCMOffset = 0;
-#if WITH_OPUS
-	return opus_decode(OpusDecoderWrapper->Decoder, SrcPtr, FrameSize, (int16*)(LastDecodedPCM.GetTypedData()), OPUS_MAX_FRAME_SIZE, 0);
-#else
-	return -1;
-#endif
+	return OpusDecoderWrapper->Decode(SrcPtr, FrameSize, (int16*)LastDecodedPCM.GetTypedData(), OPUS_MAX_FRAME_SIZE);
 }
 
 uint32 FOpusAudioInfo::IncrementCurrentSampleCount(uint32 NewSamples)

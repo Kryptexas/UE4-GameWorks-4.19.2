@@ -653,7 +653,8 @@ void FXAudio2SoundSource::RouteDryToSpeakers( float ChannelVolumes[CHANNELOUT_CO
 
 	case 6:
 		{
-			if (XAudio2Buffer->DecompressionState || WaveInstance->WaveData->bDecompressedFromOgg)
+			if ((XAudio2Buffer->DecompressionState && XAudio2Buffer->DecompressionState->UsesVorbisChannelOrdering())
+			||	WaveInstance->WaveData->bDecompressedFromOgg)
 			{
 				// Ordering of channels is different for 6 channel OGG
 				float SpatialisationMatrix[SPEAKER_COUNT * 6] = 

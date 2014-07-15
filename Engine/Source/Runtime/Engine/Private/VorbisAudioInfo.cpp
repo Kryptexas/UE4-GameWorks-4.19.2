@@ -30,6 +30,24 @@
 #define VORBIS_BYTE_ORDER 1
 #endif
 
+/**
+ * Channel order expected for a multi-channel ogg vorbis file.
+ * Ordering taken from http://xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-800004.3.9
+ */
+namespace VorbisChannelInfo
+{
+	const int32 Order[8][8] = {
+		{ 0 },
+		{ 0, 1 },
+		{ 0, 2, 1 },
+		{ 0, 1, 2, 3 },
+		{ 0, 2, 1, 3, 4 },
+		{ 0, 2, 1, 4, 5, 3 },
+		{ 0, 2, 1, 4, 5, 6, 3 },
+		{ 0, 2, 1, 4, 5, 6, 7, 3 }
+	};
+};
+
 /*------------------------------------------------------------------------------------
 	FVorbisFileWrapper. Hides Vorbis structs from public headers.
 ------------------------------------------------------------------------------------*/

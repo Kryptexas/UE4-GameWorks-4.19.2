@@ -33,6 +33,8 @@ FAsyncStreamDerivedChunkWorker::FAsyncStreamDerivedChunkWorker(
 /** Retrieves the derived chunk from the derived data cache. */
 void FAsyncStreamDerivedChunkWorker::DoWork()
 {
+	UE_LOG(LogAudio, Verbose, TEXT("Start of ASync DDC Chunk read for key: %s"), *DerivedDataKey);
+
 	TArray<uint8> DerivedChunkData;
 
 	if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedChunkData))
@@ -49,6 +51,8 @@ void FAsyncStreamDerivedChunkWorker::DoWork()
 	}
 	FPlatformMisc::MemoryBarrier();
 	ThreadSafeCounter->Decrement();
+
+	UE_LOG(LogAudio, Verbose, TEXT("End of ASync DDC Chunk read for key: %s"), *DerivedDataKey);
 }
 
 #endif // #if WITH_EDITORONLY_DATA
@@ -110,6 +114,17 @@ bool FStreamingWaveData::UpdateStreamingStatus()
 	{
 		if (RequestStatus == AudioState_ReadyFor_Finalization)
 		{
+			if (UE_LOG_ACTIVE(LogAudio, Log) && IndicesToLoad.Num() > 0)
+			{
+				FString LogString = FString::Printf(TEXT("Finalised loading of chunk(s) %d"), IndicesToLoad[0]);
+				for (int32 Index = 1; Index < IndicesToLoad.Num(); ++ Index)
+				{
+					LogString += FString::Printf(TEXT(", %d"), IndicesToLoad[Index]);
+				}
+				LogString += FString::Printf(TEXT(" from SoundWave'%s'"), *SoundWave->GetName());
+				UE_LOG(LogAudio, Log, TEXT("%s"), *LogString);
+			}
+
 			bool bFailedRequests = false;
 #if WITH_EDITORONLY_DATA
 			bFailedRequests = FinishDDCRequests();
@@ -167,6 +182,17 @@ bool FStreamingWaveData::HasPendingRequests(TArray<uint32>& IndicesToLoad, TArra
 
 void FStreamingWaveData::BeginPendingRequests(const TArray<uint32>& IndicesToLoad, const TArray<uint32>& IndicesToFree)
 {
+	if (UE_LOG_ACTIVE(LogAudio, Log) && IndicesToLoad.Num() > 0)
+	{
+		FString LogString = FString::Printf(TEXT("Requesting ASync load of chunk(s) %d"), IndicesToLoad[0]);
+		for (int32 Index = 1; Index < IndicesToLoad.Num(); ++Index)
+		{
+			LogString += FString::Printf(TEXT(", %d"), IndicesToLoad[Index]);
+		}
+		LogString += FString::Printf(TEXT(" from SoundWave'%s'"), *SoundWave->GetName());
+		UE_LOG(LogAudio, Log, TEXT("%s"), *LogString);
+	}
+
 	// Mark Chunks for removal in case they can be reused
 	TArray<uint32> FreeChunkIndices;
 	for (auto Index : IndicesToFree)
@@ -304,11 +330,14 @@ bool FStreamingWaveData::FinishDDCRequests()
 
 FLoadedAudioChunk* FStreamingWaveData::AddNewLoadedChunk(int32 ChunkSize)
 {
-	// TODO: Might update memory management stats here
 	int32 NewIndex = LoadedChunks.Num();
 	LoadedChunks.AddZeroed();
 	LoadedChunks[NewIndex].Data = static_cast<uint8*>(FMemory::Malloc(ChunkSize));
 	LoadedChunks[NewIndex].DataSize = LoadedChunks[NewIndex].MemorySize = ChunkSize;
+
+	INC_DWORD_STAT_BY(STAT_AudioMemorySize, ChunkSize);
+	INC_DWORD_STAT_BY(STAT_AudioMemory, ChunkSize);
+
 	return &LoadedChunks[NewIndex];
 }
 
@@ -316,8 +345,12 @@ void FStreamingWaveData::FreeLoadedChunk(FLoadedAudioChunk& LoadedChunk)
 {
 	if (LoadedChunk.Data != NULL)
 	{
-		// TODO: Might update memory management stats here
 		FMemory::Free(LoadedChunk.Data);
+
+		// Stat housekeeping
+		DEC_DWORD_STAT_BY(STAT_AudioMemorySize, LoadedChunk.MemorySize);
+		DEC_DWORD_STAT_BY(STAT_AudioMemory, LoadedChunk.MemorySize);
+
 		LoadedChunk.Data = NULL;
 		LoadedChunk.DataSize = 0;
 		LoadedChunk.MemorySize = 0;
@@ -346,7 +379,7 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 
 	for (auto Source : StreamingSoundSources)
 	{
-		USoundWave* Wave = Source->GetWaveInstance()->WaveData;
+		USoundWave* Wave = Source->GetWaveInstance() ? Source->GetWaveInstance()->WaveData : NULL;
 		FStreamingWaveData* WaveData = StreamingSoundWaves.Find(Wave);
 
 		if (WaveData && WaveData->PendingChunkChangeRequestStatus.GetValue() == AudioState_ReadyFor_Requests)
@@ -358,9 +391,10 @@ void FAudioStreamingManager::UpdateResourceStreaming(float DeltaTime, bool bProc
 			{
 				WaveRequest.RequiredIndices.AddUnique(SourceChunk);
 				WaveRequest.RequiredIndices.AddUnique((SourceChunk+1)%Wave->RunningPlatformData->NumChunks);
-				if (Source->GetBuffer()->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
+				if (!WaveData->LoadedChunkIndices.Contains(SourceChunk)
+				|| Source->GetBuffer()->GetCurrentChunkOffset() > Wave->RunningPlatformData->Chunks[SourceChunk].DataSize / 2)
 				{
-					// already read over half, request is high priority
+					// currently not loaded or already read over half, request is high priority
 					WaveRequest.bPrioritiseRequest = true;
 				}
 			}
@@ -409,10 +443,9 @@ void FAudioStreamingManager::RemoveLevel(class ULevel* Level)
 
 void FAudioStreamingManager::AddStreamingSoundWave(USoundWave* SoundWave)
 {
-	if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
+	if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming()
+	&& StreamingSoundWaves.Find(SoundWave) == NULL)
 	{
-		check(StreamingSoundWaves.Find(SoundWave) == NULL);
-
 		FStreamingWaveData& WaveData = StreamingSoundWaves.Add(SoundWave);
 		WaveData.Initialize(SoundWave);
 	}

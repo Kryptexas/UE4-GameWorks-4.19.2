@@ -19,6 +19,11 @@
 	#endif
 #endif
 
+namespace VorbisChannelInfo
+{
+	extern ENGINE_API const int32 Order[8][8];
+}
+
 /**
  * Loads vorbis dlls
 */
@@ -73,6 +78,8 @@ public:
 	ENGINE_API virtual void EnableHalfRate( bool HalfRate );
 
 	virtual uint32 GetSourceBufferSize() const { return SrcBufferDataSize;}
+
+	virtual bool UsesVorbisChannelOrdering() const override { return true; }
 
 	struct FVorbisFileWrapper* VFWrapper;
 	const uint8*		SrcBufferData;
