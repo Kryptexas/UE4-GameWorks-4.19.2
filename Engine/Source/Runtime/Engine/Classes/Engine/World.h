@@ -2389,6 +2389,9 @@ public:
 	/** Gets all LightMaps and ShadowMaps associated with this world. Specify the level or leave null for persistent */
 	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
 
+	/** Gets all textures and materials used by all landscape components in the specified level */
+	void GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials);
+
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);
 	static FString BuildPIEPackagePrefix(int32 PIEInstanceID);

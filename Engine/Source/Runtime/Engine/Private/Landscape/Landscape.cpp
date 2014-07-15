@@ -431,16 +431,7 @@ void ULandscapeComponent::PostLoad()
 			if (ensure(Level))
 			{
 				TArray<UObject*> ObjectsToMoveFromLevelToPackage;
-				for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
-				{
-					ObjectsToMoveFromLevelToPackage.Add(CurrentMIC);
-				}
-				ObjectsToMoveFromLevelToPackage.Add(HeightmapTexture);
-				for (auto* Tex : WeightmapTextures)
-				{
-					ObjectsToMoveFromLevelToPackage.Add(Tex);
-				}
-				ObjectsToMoveFromLevelToPackage.Add(XYOffsetmapTexture);
+				GetAllReferencedTexturesAndMaterials(ObjectsToMoveFromLevelToPackage);
 
 				UPackage* MyPackage = GetOutermost();
 				for (auto* Obj : ObjectsToMoveFromLevelToPackage)
@@ -576,6 +567,35 @@ ULevel* ULandscapeComponent::GetLevel() const
 {
 	AActor* MyOwner = GetOwner();
 	return MyOwner ? MyOwner->GetLevel() : NULL;
+}
+
+void ULandscapeComponent::GetAllReferencedTexturesAndMaterials(TArray<UObject*>& OutTexturesAndMaterials) const
+{
+	for (UMaterialInstance* CurrentMIC = MaterialInstance; CurrentMIC; CurrentMIC = Cast<UMaterialInstance>(CurrentMIC->Parent))
+	{
+		if (CurrentMIC)
+		{
+			OutTexturesAndMaterials.Add(CurrentMIC);
+		}
+	}
+
+	if (HeightmapTexture)
+	{
+		OutTexturesAndMaterials.Add(HeightmapTexture);
+	}
+
+	for (auto* Tex : WeightmapTextures)
+	{
+		if (Tex)
+		{
+			OutTexturesAndMaterials.Add(Tex);
+		}
+	}
+
+	if (XYOffsetmapTexture)
+	{
+		OutTexturesAndMaterials.Add(XYOffsetmapTexture);
+	}
 }
 
 ALandscapeProxy* ULandscapeComponent::GetLandscapeProxy() const
