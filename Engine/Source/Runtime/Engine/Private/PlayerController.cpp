@@ -2967,7 +2967,7 @@ bool APlayerController::IsPrimaryPlayer() const
 
 bool APlayerController::IsSplitscreenPlayer(int32* OutSplitscreenPlayerIndex) const
 {
-	bool bResult = 0;
+	bool bResult = false;
 
 	if (OutSplitscreenPlayerIndex)
 	{
