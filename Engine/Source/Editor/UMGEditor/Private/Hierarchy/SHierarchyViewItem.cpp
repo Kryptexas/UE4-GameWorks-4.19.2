@@ -128,15 +128,29 @@ bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 	FString NewName = InText.ToString();
 
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-	UWidget* ExistingWidget = Blueprint->WidgetTree->FindWidget(NewName);
+	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget(NewName);
+
+	bool bIsSameWidget = false;
+	if ( ExistingTemplate != NULL )
+	{
+		if ( Item.GetTemplate() == ExistingTemplate )
+		{
+			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
+			return false;
+		}
+		else
+		{
+			bIsSameWidget = true;
+		}
+	}
 
 	FKismetNameValidator Validator(Blueprint);
 
 	const bool bUniqueNameForVariable = ( EValidatorResult::Ok == Validator.IsValid(NewName) );
-	
-	if ( ( ExistingWidget != NULL && ExistingWidget != Item.GetTemplate() ) || !bUniqueNameForVariable )
+
+	if ( !bUniqueNameForVariable && !bIsSameWidget )
 	{
-		OutErrorMessage = LOCTEXT("NameConflict", "NameConflict");
+		OutErrorMessage = LOCTEXT("ExistingVariableName", "Existing Variable Name");
 		return false;
 	}
 
