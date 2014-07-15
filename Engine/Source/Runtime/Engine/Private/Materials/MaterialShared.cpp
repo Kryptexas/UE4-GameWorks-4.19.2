@@ -436,7 +436,7 @@ bool FMaterial::MaterialMayModifyMeshPosition() const
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
 { 
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	return RenderingThreadShaderMap; 
 }
 
@@ -1439,7 +1439,7 @@ FMaterialRenderContext::FMaterialRenderContext(
 
 void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context) const
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	SCOPE_CYCLE_COUNTER(STAT_CacheUniformExpressions);
 	

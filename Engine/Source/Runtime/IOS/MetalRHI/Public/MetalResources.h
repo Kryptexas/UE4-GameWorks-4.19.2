@@ -50,15 +50,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 	
 	// this is the compiler shader

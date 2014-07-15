@@ -214,10 +214,44 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataMasked(FRHICommandLi
 	return bDirty;
 }
 
+static TAutoConsoleVariable<int32> CVarRHICmdWidth(
+	TEXT("r.RHICmdWidth"), 8,
+	TEXT("Number of threads."));
+
 bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(AA_RenderBasePassStaticDataDefault);
 	bool bDirty = false;
+	if (!GRHICommandList.Bypass())
+	{
+		RHICmdList.Flush(); // we assume this is the immediate command list, regardless it makes sense to empty it before we start using more command lists
+		FGraphEventRef SubmitChain;
+		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(AA_CreateTasks);
+
+			FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
+			{
+				SubmitChain = Scene->BasePassNoLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+				SubmitChain = Scene->BasePassSimpleDynamicLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+				SubmitChain = Scene->BasePassCachedVolumeIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+				SubmitChain = Scene->BasePassCachedPointIndirectLightingDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+			}
+			{
+				SubmitChain = Scene->BasePassHighQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+				SubmitChain = Scene->BasePassDistanceFieldShadowMapLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+				SubmitChain = Scene->BasePassLowQualityLightMapDrawList[OpaqueDrawType].DrawVisibleParallel(View, View.StaticMeshVisibilityMap, View.StaticMeshBatchVisibility, Width, SubmitChain, bDirty);
+			}
+		}
+		if (SubmitChain.GetReference())
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(AA_WaitAndSubmit);
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(SubmitChain, ENamedThreads::RenderThread_Local);
+		}
+
+	}
+	else
 	{
 		FScene::EBasePassDrawListType OpaqueDrawType = FScene::EBasePass_Default;
 		{

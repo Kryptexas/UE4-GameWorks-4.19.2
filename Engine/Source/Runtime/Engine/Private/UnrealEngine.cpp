@@ -8248,7 +8248,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// may be unavailable to load the next one.
 	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
 		{
+			FlushPendingDeleteRHIResources_RenderThread();
 			RHIFlushResources();
+			FlushPendingDeleteRHIResources_RenderThread();
 		}
 	);
 	FlushRenderingCommands();	  

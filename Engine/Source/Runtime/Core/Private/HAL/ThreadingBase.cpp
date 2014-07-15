@@ -35,6 +35,11 @@ CORE_API bool IsInRenderingThread()
 	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() == GRenderingThread->GetThreadID());
 }
 
+CORE_API bool IsInParallelRenderingThread()
+{
+	return !GRenderingThread || GIsRenderingThreadSuspended || (FPlatformTLS::GetCurrentThreadId() != GGameThreadId);
+}
+
 
 // Fake threads
 

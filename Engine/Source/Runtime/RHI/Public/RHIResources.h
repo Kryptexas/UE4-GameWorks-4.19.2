@@ -6,13 +6,81 @@
 #include "RHIDefinitions.h"
 #include "RefCounting.h"
 #include "Runtime/Engine/Public/PixelFormat.h" // for EPixelFormat
+#include "LockFreeList.h"
+
+#define DISABLE_RHI_DEFFERED_DELETE 0
 
 /** The base type of RHI resources. */
-class RHI_API FRHIResource : public FRefCountedObject
+class RHI_API FRHIResource
 {
 public:
-	virtual ~FRHIResource() {}
+	FRHIResource(bool InbDoNotDeferDelete = false)
+		: bDoNotDeferDelete(InbDoNotDeferDelete)
+	{
+	}
+	virtual ~FRHIResource() 
+	{ 
+		check(NumRefs.GetValue() == 0 && (CurrentlyDeleting == this || bDoNotDeferDelete || Bypass())); // this should not have any outstanding refs
+	}
+	uint32 AddRef() const
+	{
+		int32 NewValue = NumRefs.Increment();
+		check(NewValue > 0); 
+		return uint32(NewValue);
+	}
+	uint32 Release() const
+	{
+		int32 NewValue = NumRefs.Decrement();
+		if (NewValue == 0)
+		{
+			if (bDoNotDeferDelete || Bypass())
+			{ 
+				delete this;
+			}
+			else
+			{
+				if (MarkedForDelete.Increment() == 1)
+				{
+					PendingDeletes.Push(const_cast<FRHIResource*>(this));
+				}
+			}
+		}
+		check(NewValue >= 0);
+		return uint32(NewValue);
+	}
+	uint32 GetRefCount() const
+	{
+		int32 CurrentValue = NumRefs.GetValue();
+		check(CurrentValue >= 0); 
+		return uint32(CurrentValue);
+	}
+	void DoNoDeferDelete()
+	{
+		check(!MarkedForDelete.GetValue());
+		bDoNotDeferDelete = true;
+		FPlatformMisc::MemoryBarrier();
+		check(!MarkedForDelete.GetValue());
+	}
+
+	static void FlushPendingDeletes();
+
+#if DISABLE_RHI_DEFFERED_DELETE
+	FORCEINLINE static bool Bypass()
+	{
+		return true;
+	}
+#else
+	static bool Bypass();
+#endif
+
+private:
+	mutable FThreadSafeCounter NumRefs;
+	mutable FThreadSafeCounter MarkedForDelete;
+	bool bDoNotDeferDelete;
+	static TLockFreePointerList<FRHIResource> PendingDeletes;
+	static FRHIResource* CurrentlyDeleting;
 };
+
 
 //
 // State blocks
@@ -444,6 +512,10 @@ class FRHIRenderQuery : public FRHIResource {};
 class FRHIViewport : public FRHIResource 
 {
 public:
+	FRHIViewport()
+		: FRHIResource(true)
+	{
+	}
 	/**
 	 * Returns access to the platform-specific native resource pointer.  This is designed to be used to provide plugins with access
 	 * to the underlying resource and should be used very carefully or not at all.
@@ -531,7 +603,11 @@ public:
 class FRHICustomPresent : public FRHIResource
 {
 public:
-	explicit FRHICustomPresent(FRHIViewport* InViewport) : ViewportRHI(InViewport) {}
+	explicit FRHICustomPresent(FRHIViewport* InViewport) 
+		: FRHIResource(true)
+		, ViewportRHI(InViewport) 
+	{
+	}
 	
 	virtual ~FRHICustomPresent() {} // should release any references to D3D resources.
 	

@@ -273,6 +273,159 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 	return bDirty;
 }
 
+
+template<typename DrawingPolicyType>
+class FDrawVisibleAnyThreadTask
+{
+	TStaticMeshDrawList<DrawingPolicyType>& Caller;
+	FRHICommandList& RHICmdList;
+	const FViewInfo& View;
+	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap;
+	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray;
+
+	const int32 FirstPolicy;
+	const int32 LastPolicy;
+
+	bool& OutDirty;
+
+public:
+
+	FDrawVisibleAnyThreadTask(
+		TStaticMeshDrawList<DrawingPolicyType>* InCaller,
+		FRHICommandList* InRHICmdList,
+		const FViewInfo* InView,
+		const TBitArray<SceneRenderingBitArrayAllocator>* InStaticMeshVisibilityMap,
+		const TArray<uint64, SceneRenderingAllocator>* InBatchVisibilityArray,
+		int32 InFirstPolicy,
+		int32 InLastPolicy,
+		bool* InOutDirty
+		)
+		: Caller(*InCaller)
+		, RHICmdList(*InRHICmdList)
+		, View(*InView)
+		, StaticMeshVisibilityMap(*InStaticMeshVisibilityMap)
+		, BatchVisibilityArray(*InBatchVisibilityArray)
+		, FirstPolicy(InFirstPolicy)
+		, LastPolicy(InLastPolicy)
+		, OutDirty(*InOutDirty)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawVisibleAnyThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(AA_FDrawVisibleAnyThreadTask);
+
+		for (int32 Index = this->FirstPolicy; Index <= this->LastPolicy; Index++)
+		{
+			typename TStaticMeshDrawList<DrawingPolicyType>::FDrawingPolicyLink* DrawingPolicyLink = &this->Caller.DrawingPolicySet[this->Caller.OrderedDrawingPolicies[Index]];
+			bool bDrawnShared = false;
+			FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
+			const int32 NumElements = DrawingPolicyLink->Elements.Num();
+			FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
+			const typename TStaticMeshDrawList<DrawingPolicyType>::FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
+			for (int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
+			{
+				if (this->StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
+				{
+					const typename TStaticMeshDrawList<DrawingPolicyType>::FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
+					INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, Element.Mesh->GetNumPrimitives());
+					// Avoid the cache miss looking up batch visibility if there is only one element.
+					uint64 BatchElementMask = Element.Mesh->Elements.Num() == 1 ? 1 : this->BatchVisibilityArray[Element.Mesh->Id];
+					this->Caller.DrawElement(this->RHICmdList, this->View, Element, BatchElementMask, DrawingPolicyLink, bDrawnShared);
+					this->OutDirty = true;
+				}
+			}
+		}
+	}
+};
+
+class FDrawVisibleRenderThreadTask
+{
+	FRHICommandList* RHICmdList;
+public:
+
+	FDrawVisibleRenderThreadTask(FRHICommandList* InRHICmdList)
+		: RHICmdList(InRHICmdList)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FDrawVisibleRenderThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::RenderThread_Local;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(AA_FDrawVisibleRenderThreadTask);
+		delete RHICmdList;
+	}
+};
+
+template<typename DrawingPolicyType>
+FGraphEventRef TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleParallel(
+	const FViewInfo& View,
+	const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap,
+	const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray,
+	int32 Width, FGraphEventRef SubmitChain, bool& OutDirty
+	)
+{
+
+	int32 EffectiveThreads = FMath::Min<int32>(OrderedDrawingPolicies.Num(), Width);
+
+	int32 Start = 0;
+	if (EffectiveThreads)
+	{
+
+		int32 NumPer = OrderedDrawingPolicies.Num() / EffectiveThreads;
+		int32 Extra = OrderedDrawingPolicies.Num() - NumPer * EffectiveThreads;
+
+
+		for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+		{
+			int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
+			check(Last >= Start);
+
+			FRHICommandList* CmdList = new FRHICommandList;
+
+			FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawVisibleAnyThreadTask<DrawingPolicyType> >::CreateTask(nullptr, ENamedThreads::RenderThread)
+				.ConstructAndDispatchWhenReady(this, CmdList, &View, &StaticMeshVisibilityMap, &BatchVisibilityArray, Start, Last, &OutDirty);
+			Start = Last + 1;
+
+			FGraphEventArray Prereqs;
+			Prereqs.Add(AnyThreadCompletionEvent);
+			if (SubmitChain.GetReference())
+			{
+				Prereqs.Add(SubmitChain);
+			}
+
+			SubmitChain = TGraphTask<FDrawVisibleRenderThreadTask>::CreateTask(&Prereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(CmdList);
+
+		}
+	}
+	check(Start == OrderedDrawingPolicies.Num());
+
+	return SubmitChain;
+}
+
 template<typename DrawingPolicyType>
 int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 	FRHICommandList& RHICmdList,

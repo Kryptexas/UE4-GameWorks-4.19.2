@@ -1839,6 +1839,7 @@ void FEngineLoop::InitTime()
 //called via FCoreDelegates::StarvedGameLoop
 void GameLoopIsStarved()
 {
+	FlushPendingDeleteRHIResources_GameThread();
 	FStats::AdvanceFrame( true, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 }
 
@@ -2076,6 +2077,7 @@ void FEngineLoop::Tick()
 			ResetDeferredUpdates,
 			{
 				FDeferredUpdateResource::ResetNeedsUpdate();
+				FlushPendingDeleteRHIResources_RenderThread();
 			});
 		
 		{

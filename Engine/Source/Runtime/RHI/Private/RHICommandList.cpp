@@ -3,7 +3,6 @@
 
 #include "RHI.h"
 #include "RHICommandList.h"
-//#include "../../RenderCore/Public/RenderingThread.h"
 
 DEFINE_STAT(STAT_RHICmdListExecuteTime);
 DEFINE_STAT(STAT_RHICmdListEnqueueTime);
@@ -51,7 +50,6 @@ static FAutoConsoleVariableRef CVarRHICmdMem(
 	);
 
 RHI_API FRHICommandListExecutor GRHICommandList;
-RHI_API FThreadSafeCounter FRHICommandList::UIDCounter;
 RHI_API TLockFreeFixedSizeAllocator<FRHICommandList::FMemManager::FPage::PageSize> FRHICommandList::FMemManager::FPage::TheAllocator;
 //RHI_API FGlobalRHI GRHI;
 
@@ -87,7 +85,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetRasterizerState_Internal(RHICmd->State);
 				}
-				RHICmd->State->Release();
 			}
 			break;
 		case ERCT_SetShaderParameter:
@@ -124,8 +121,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					default: check(0); break;
 					}
 				}
-				RHICmd->Shader->Release(); 
-				RHICmd->UniformBuffer->Release();
 			}
 			break;
 		case ERCT_SetShaderSampler:
@@ -144,8 +139,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					default: check(0); break;
 					}
 				}
-				RHICmd->Shader->Release(); 
-				RHICmd->Sampler->Release();
 			}
 			break;
 		case ERCT_SetShaderTexture:
@@ -164,8 +157,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					default: check(0); break;
 					}
 				}
-				RHICmd->Shader->Release(); 
-				RHICmd->Texture->Release();
 			}
 			break;
 		case ERCT_SetShaderResourceViewParameter:
@@ -184,11 +175,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					default: check(0); break;
 					}
 				}
-				RHICmd->Shader->Release();
-				if (RHICmd->SRV)
-				{
-					RHICmd->SRV->Release();
-				}
 			}
 			break;
 		case ERCT_SetUAVParameter:
@@ -202,11 +188,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					default: check(0); break;
 					}
 				}
-				RHICmd->Shader->Release();
-				if (RHICmd->UAV)
-				{
-					RHICmd->UAV->Release();
-				}
 			}
 			break;
 		case ERCT_SetUAVParameter_IntialCount:
@@ -219,11 +200,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					case SF_Compute:	SetUAVParameter_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->UAVIndex, RHICmd->UAV, RHICmd->InitialCount); break;
 					default: check(0); break;
 					}
-				}
-				RHICmd->Shader->Release();
-				if (RHICmd->UAV)
-				{
-					RHICmd->UAV->Release();
 				}
 			}
 			break;
@@ -243,7 +219,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					DrawIndexedPrimitive_Internal(RHICmd->IndexBuffer, RHICmd->PrimitiveType, RHICmd->BaseVertexIndex, RHICmd->MinIndex, RHICmd->NumVertices, RHICmd->StartIndex, RHICmd->NumPrimitives, RHICmd->NumInstances);
 				}
-				RHICmd->IndexBuffer->Release();
 			}
 			break;
 		case ERCT_SetBoundShaderState:
@@ -253,7 +228,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetBoundShaderState_Internal(RHICmd->BoundShaderState);
 				}
-				RHICmd->BoundShaderState->Release();
 			}
 			break;
 		case ERCT_SetBlendState:
@@ -263,7 +237,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetBlendState_Internal(RHICmd->State, RHICmd->BlendFactor);
 				}
-				RHICmd->State->Release();
 			}
 			break;
 		case ERCT_SetStreamSource:
@@ -272,10 +245,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				if (!bOnlyTestMemAccess)
 				{
 					SetStreamSource_Internal(RHICmd->StreamIndex, RHICmd->VertexBuffer, RHICmd->Stride, RHICmd->Offset);
-				}
-				if (RHICmd->VertexBuffer)
-				{
-					RHICmd->VertexBuffer->Release();
 				}
 			}
 			break;
@@ -286,7 +255,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetDepthStencilState_Internal(RHICmd->State, RHICmd->StencilRef);
 				}
-				RHICmd->State->Release();
 			}
 			break;
 		case ERCT_SetViewport:
@@ -318,24 +286,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 						RHICmd->NewDepthStencilTargetRHI,
 						RHICmd->NewNumUAVs,
 						RHICmd->UAVs);
-				}
-				for (uint32 Index = 0; Index < RHICmd->NewNumSimultaneousRenderTargets; Index++)
-				{
-					if (RHICmd->NewRenderTargetsRHI[Index].Texture)
-					{
-						RHICmd->NewRenderTargetsRHI[Index].Texture->Release();
-					}
-				}
-				if (RHICmd->NewDepthStencilTargetRHI)
-				{
-					RHICmd->NewDepthStencilTargetRHI->Release();
-				}
-				for (uint32 Index = 0; Index < RHICmd->NewNumUAVs; Index++)
-				{
-					if (RHICmd->UAVs[Index])
-					{
-						RHICmd->UAVs[Index]->Release();
-					}
 				}
 			}
 			break;
@@ -405,30 +355,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 					if (--RHICmd->LocalBoundShaderState.WorkArea->UseCount == 0)
 					{
 						RHICmd->LocalBoundShaderState.WorkArea->BSS = nullptr; // this also releases the ref, which wouldn't otherwise happen because RHICommands are unsafe and don't do constructors or destructors
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.VertexDeclarationRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.VertexDeclarationRHI->Release();
-						}
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.VertexShaderRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.VertexShaderRHI->Release();
-						}
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.HullShaderRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.HullShaderRHI->Release();
-						}
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.DomainShaderRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.DomainShaderRHI->Release();
-						}
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.PixelShaderRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.PixelShaderRHI->Release();
-						}
-						if (RHICmd->LocalBoundShaderState.WorkArea->Args.GeometryShaderRHI)
-						{
-							RHICmd->LocalBoundShaderState.WorkArea->Args.GeometryShaderRHI->Release();
-						}
 					}
 				}
 			}
@@ -450,7 +376,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					SetComputeShader_Internal(RHICmd->ComputeShader);
 				}
-				RHICmd->ComputeShader->Release();
 			}
 			break;
 		case ERCT_DispatchComputeShader:
@@ -469,7 +394,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					DispatchIndirectComputeShader_Internal(RHICmd->ArgumentBuffer, RHICmd->ArgumentOffset);
 				}
-				RHICmd->ArgumentBuffer->Release();
 			}
 			break;
 		case ERCT_AutomaticCacheFlushAfterComputeShader:
@@ -497,7 +421,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					DrawPrimitiveIndirect_Internal(RHICmd->PrimitiveType, RHICmd->ArgumentBuffer, RHICmd->ArgumentOffset);
 				}
-				RHICmd->ArgumentBuffer->Release();
 			}
 			break;
 		case ERCT_DrawIndexedIndirect:
@@ -507,8 +430,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					DrawIndexedIndirect_Internal(RHICmd->IndexBufferRHI, RHICmd->PrimitiveType, RHICmd->ArgumentsBufferRHI, RHICmd->DrawArgumentsIndex, RHICmd->NumInstances);
 				}
-				RHICmd->IndexBufferRHI->Release();
-				RHICmd->ArgumentsBufferRHI->Release();
 			}
 			break;
 		case ERCT_DrawIndexedPrimitiveIndirect:
@@ -518,8 +439,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					DrawIndexedPrimitiveIndirect_Internal(RHICmd->PrimitiveType, RHICmd->IndexBuffer, RHICmd->ArgumentsBuffer, RHICmd->ArgumentOffset);
 				}
-				RHICmd->IndexBuffer->Release();
-				RHICmd->ArgumentsBuffer->Release();
 			}
 			break;
 		case ERCT_EnableDepthBoundsTest:
@@ -538,7 +457,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					ClearUAV_Internal(RHICmd->UnorderedAccessViewRHI, RHICmd->Values);
 				}
-				RHICmd->UnorderedAccessViewRHI->Release();
 			}
 			break;
 		case ERCT_CopyToResolveTarget:
@@ -548,8 +466,6 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				{
 					CopyToResolveTarget_Internal(RHICmd->SourceTexture, RHICmd->DestTexture, RHICmd->bKeepOriginalSurface, RHICmd->ResolveParams);
 				}
-				RHICmd->SourceTexture->Release();
-				RHICmd->DestTexture->Release();
 			}
 			break;
 		case ERCT_Clear:
@@ -621,7 +537,7 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 	}
 	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList.NumCommands);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (&CmdList == &GetImmediateCommandList())
+	if (&CmdList == &GetImmediateCommandList() && GRHICommandList.OutstandingCmdListCount.GetValue() == 1)
 	{
 		LatchBypass();
 	}
@@ -632,8 +548,19 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 void FRHICommandListExecutor::LatchBypass()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	bLatchedBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1 && !GRHICommandList.GetImmediateCommandList().HasCommands());
+	bool NewBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
+	if (NewBypass)
+	{
+		FRHIResource::FlushPendingDeletes();
+	}
+	bLatchedBypass = NewBypass;
 #endif
+}
+
+void FRHICommandListExecutor::CheckNoOutstandingCmdLists()
+{
+	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1); // else we are attempting to delete resources while there is still a live cmdlist (other than the immediate cmd list) somewhere.
 }
 
 FRHICommandList::FMemManager::FMemManager() :
@@ -683,11 +610,33 @@ void FRHICommandList::FMemManager::Reset()
 	LastPage = FirstPage;
 }
 
+FRHICommandList::FRHICommandList()
+{
+	GRHICommandList.OutstandingCmdListCount.Increment();
+	Reset();
+}
+
+FRHICommandList::~FRHICommandList()
+{
+	Flush();
+	GRHICommandList.OutstandingCmdListCount.Decrement();
+}
+
 const SIZE_T FRHICommandList::GetUsedMemory() const
 {
 	return MemManager.GetUsedMemory();
 }
 
-
+void FRHICommandList::Reset()
+{
+	bExecuting = false;
+	NumCommands = 0;
+	MemManager.Reset();
+	UID = GRHICommandList.UIDCounter.Increment();
+	for (int32 Index = 0; Index < ERCT_NUM; Index++)
+	{
+		StateReducer[Index] = nullptr;
+	}
+}
 
 

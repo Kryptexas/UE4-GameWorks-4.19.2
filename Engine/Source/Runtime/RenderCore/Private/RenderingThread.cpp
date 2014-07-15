@@ -748,6 +748,8 @@ void AdvanceFrameRenderPrerequisite()
  */
 void FlushRenderingCommands()
 {
+	FlushPendingDeleteRHIResources_GameThread(); // we do this here because with modal dialogs or blueprint debugging, the engine does not tick
+
 	AdvanceFrameRenderPrerequisite();
 
 	// Find the objects which may be cleaned up once the rendering thread command queue has been flushed.
@@ -761,6 +763,21 @@ void FlushRenderingCommands()
 	// Delete the objects which were enqueued for deferred cleanup before the command queue flush.
 	delete PendingCleanupObjects;
 }
+
+void FlushPendingDeleteRHIResources_GameThread()
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND(
+		FlushPendingDeleteRHIResources,
+		{
+			FlushPendingDeleteRHIResources_RenderThread();
+		}
+	);
+}
+void FlushPendingDeleteRHIResources_RenderThread()
+{
+	FRHIResource::FlushPendingDeletes();
+}
+
 
 FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
 {

@@ -60,6 +60,46 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
 	);
 #endif
 
+
+TLockFreePointerList<FRHIResource> FRHIResource::PendingDeletes;
+FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
+
+#if !DISABLE_RHI_DEFFERED_DELETE
+bool FRHIResource::Bypass()
+{
+	return GRHICommandList.Bypass();
+}
+#endif
+
+void FRHIResource::FlushPendingDeletes()
+{
+	check(IsInRenderingThread());
+	FRHICommandListExecutor::GetImmediateCommandList().Flush();
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+
+	while (1)
+	{
+		TArray<FRHIResource*> ToDelete;
+		PendingDeletes.PopAll(ToDelete);
+		if (!ToDelete.Num())
+		{
+			break;
+		}
+		for (int32 Index = 0; Index < ToDelete.Num(); Index++)
+		{
+			FRHIResource* Ref = ToDelete[Index];
+			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
+			{
+				CurrentlyDeleting = Ref;
+				delete Ref;
+				CurrentlyDeleting = nullptr;
+			}
+		}
+	}
+}
+
+
+
 /**
  * RHI configuration settings.
  */

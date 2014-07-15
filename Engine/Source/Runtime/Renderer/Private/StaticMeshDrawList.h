@@ -72,9 +72,14 @@ inline FDrawListSortKey GetSortKey(bool bBackground, float BoundsRadius, float D
  * @param HashSize - The number of buckets to use in the drawing policy hash.
  */
 template<typename DrawingPolicyType>
+class FDrawVisibleAnyThreadTask;
+
+template<typename DrawingPolicyType>
 class TStaticMeshDrawList : public FStaticMeshDrawListBase, public FRenderResource
 {
 public:
+	friend class FDrawVisibleAnyThreadTask<DrawingPolicyType>;
+
 	typedef typename DrawingPolicyType::ElementDataType ElementPolicyDataType;
 
 private:
@@ -270,6 +275,15 @@ public:
 	 * @return True if any static meshes were drawn.
 	 */
 	bool DrawVisible(FRHICommandList& RHICmdList, const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64,SceneRenderingAllocator>& BatchVisibilityArray);
+
+	/**
+	* Draws only the static meshes which are in the visibility map.
+	* @param View - The view of the meshes to render.
+	* @param StaticMeshVisibilityMap - An map from FStaticMesh::Id to visibility state.
+	* @param BatchVisibilityArray - An array of batch element visibility bitmasks.
+	* @return True if any static meshes were drawn.
+	*/
+	FGraphEventRef DrawVisibleParallel(const FViewInfo& View, const TBitArray<SceneRenderingBitArrayAllocator>& StaticMeshVisibilityMap, const TArray<uint64, SceneRenderingAllocator>& BatchVisibilityArray, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
 
 	/**
 	 * Draws only the static meshes which are in the visibility map, sorted front-to-back.

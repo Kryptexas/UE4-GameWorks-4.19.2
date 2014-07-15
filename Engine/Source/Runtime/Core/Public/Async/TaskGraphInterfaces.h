@@ -555,6 +555,27 @@ public:
 			new ((void *)&Owner->TaskStorage) TTask(Arg1,Arg2,Arg3,Arg4,Arg5);
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}
+		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
+		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
+		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6)
+		{
+			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6);
+			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
+		}
+		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
+		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
+		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6, const T7& Arg7)
+		{
+			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7);
+			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
+		}
+		/** Passthrough internal task constructor and dispatch. Note! Generally speaking references will not pass through; use pointers */
+		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+		FGraphEventRef ConstructAndDispatchWhenReady(const T1& Arg1, const T2& Arg2, const T3& Arg3, const T4& Arg4, const T5& Arg5, const T6& Arg6, const T7& Arg7, const T8& Arg8)
+		{
+			new ((void *)&Owner->TaskStorage) TTask(Arg1, Arg2, Arg3, Arg4, Arg5, Arg6, Arg7, Arg8);
+			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
+		}
 	private:
 		friend class TGraphTask;
 

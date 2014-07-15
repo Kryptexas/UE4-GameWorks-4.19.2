@@ -1024,6 +1024,7 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewF
 			FSceneRenderer*,SceneRenderer,SceneRenderer,
 		{
 			RenderViewFamily_RenderThread(RHICmdList, SceneRenderer);
+			FlushPendingDeleteRHIResources_RenderThread();
 		});
 	}
 }

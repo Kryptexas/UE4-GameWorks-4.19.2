@@ -21,7 +21,8 @@ public class Paper2D : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-				"Slate"
+				"Slate",
+				"Renderer",
 			}
 			);
 

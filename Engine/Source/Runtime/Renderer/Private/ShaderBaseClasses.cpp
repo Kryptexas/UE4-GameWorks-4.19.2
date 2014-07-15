@@ -80,9 +80,17 @@ void FMaterialShader::SetParameters(
 
 	if (!bAllowCachedUniformExpressions || !UniformExpressionCache->bUpToDate || bOverrideSelection)
 	{
-		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
-		MaterialRenderProxy->EvaluateUniformExpressions(TempUniformExpressionCache, MaterialRenderContext);
-		UniformExpressionCache = &TempUniformExpressionCache;
+		// temp solution hopefully, this is unsavory to have to send a task back to the render thread and wait for it.
+		if (!IsInRenderingThread())
+		{
+			check(0);
+		}
+		else
+		{
+			FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
+			MaterialRenderProxy->EvaluateUniformExpressions(TempUniformExpressionCache, MaterialRenderContext);
+			UniformExpressionCache = &TempUniformExpressionCache;
+		}
 	}
 
 	check(Material.GetRenderingThreadShaderMap());

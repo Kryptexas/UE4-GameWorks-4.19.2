@@ -12,6 +12,7 @@ public class NewLevelDialog : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"RenderCore",
+				"RHI",
 				"Engine",
 				"Slate",
 				"SlateCore",
