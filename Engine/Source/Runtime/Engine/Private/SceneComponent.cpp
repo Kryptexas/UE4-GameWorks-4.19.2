@@ -1720,12 +1720,15 @@ void USceneComponent::UpdateNavigationData()
 
 bool USceneComponent::CheckNavigationRelevancy(USceneComponent* TestComponent)
 {
+	check(TestComponent);
+
 	bool bResult = TestComponent->IsNavigationRelevant();
-	for (int32 Idx = 0; Idx < AttachChildren.Num() && !bResult; Idx++)
+	for (int32 Idx = 0; Idx < TestComponent->AttachChildren.Num() && !bResult; Idx++)
 	{
-		if (AttachChildren[Idx])
+		USceneComponent* Child = TestComponent->AttachChildren[Idx];
+		if (Child)
 		{
-			bResult = CheckNavigationRelevancy(AttachChildren[Idx]);
+			bResult = CheckNavigationRelevancy(Child);
 		}
 	}
 

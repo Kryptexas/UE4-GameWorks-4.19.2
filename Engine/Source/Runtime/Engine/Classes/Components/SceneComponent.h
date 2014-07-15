@@ -724,7 +724,7 @@ protected:
 	void UpdateNavigationData();
 
 	/** Check if given component or any of its attachments are relevant for navigation updates */
-	bool CheckNavigationRelevancy(USceneComponent* TestComponent);
+	static bool CheckNavigationRelevancy(USceneComponent* TestComponent);
 };
 
 
