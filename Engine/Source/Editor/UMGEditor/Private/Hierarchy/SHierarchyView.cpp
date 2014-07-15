@@ -223,7 +223,9 @@ void SHierarchyView::WidgetHierarchy_OnGetChildren(UWidget* InParent, TArray< UW
 
 TSharedRef< ITableRow > SHierarchyView::WidgetHierarchy_OnGenerateRow(UWidget* InItem, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(SHierarchyViewItem, OwnerTable, BlueprintEditor.Pin(), InItem)
+	FWidgetReference WidgetRef = FWidgetReference::FromTemplate(BlueprintEditor.Pin(), InItem);
+
+	return SNew(SHierarchyViewItem, OwnerTable, BlueprintEditor.Pin(), WidgetRef)
 		.HighlightText(this, &SHierarchyView::GetSearchText);
 }
 

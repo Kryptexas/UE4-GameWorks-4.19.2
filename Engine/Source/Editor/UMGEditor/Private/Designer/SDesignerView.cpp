@@ -1153,11 +1153,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 			{
 				FWidgetBlueprintEditorUtils::ImportPropertiesFromText(Slot, SelectedDragDropOp->ExportedSlotProperties);
 
-				//TODO UMG Migrate existing slot info
 				Slot->SetDesiredPosition(LocalPosition - SelectedWidgetContextMenuLocation);
-				//Slot->SetDesiredSize(FVector2D(150, 30));
-				//@TODO UMG When we add a child blindly we need to default the slot size to the preferred size of the widget if the container supports such things.
-				//@TODO UMG We may need a desired size canvas, where the slots have no size, they only give you position, alternatively, maybe slots that don't clip, so center is still easy.
 
 				DropPreviewParent = NewParent;
 

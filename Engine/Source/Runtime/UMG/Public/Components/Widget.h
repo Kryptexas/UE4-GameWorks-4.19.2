@@ -157,6 +157,9 @@ public:
 
 	/** Mark this object as modified, also mark the slot as modified. */
 	virtual bool Modify(bool bAlwaysMarkDirty = true);
+
+	/** @return true if this widget is a child of the PossibleParent */
+	bool IsChildOf(UWidget* PossibleParent);
 	
 #if WITH_EDITOR
 	/** Is the label generated or provided by the user? */

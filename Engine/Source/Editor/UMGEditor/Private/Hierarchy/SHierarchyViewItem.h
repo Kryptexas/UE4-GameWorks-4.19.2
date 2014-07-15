@@ -18,16 +18,21 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, UWidget* InItem);
+	void Construct(const FArguments& InArgs, const TSharedRef< STableViewBase >& InOwnerTableView, TSharedPtr<FWidgetBlueprintEditor> InBlueprintEditor, FWidgetReference InItem);
 
 	// Begin SWidget
-	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
-	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override;
 	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
-	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 	// End SWidget
-	
+
 private:
+	FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+	void HandleDragEnter(const FDragDropEvent& DragDropEvent);
+	void HandleDragLeave(const FDragDropEvent& DragDropEvent);
+	FReply HandleDrop(FDragDropEvent const& DragDropEvent);
+
+	/** Process Drag / Drop events providing either feedback, or generating the final drop action */
+	FReply ProcessDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDrop);
+
 	/** Called when text is being committed to check for validity */
 	bool OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage);
 
@@ -44,5 +49,5 @@ private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 
 	/* The template widget that this tree item represents */
-	UWidget* Item;
+	FWidgetReference Item;
 };

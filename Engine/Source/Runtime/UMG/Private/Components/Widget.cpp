@@ -238,6 +238,21 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 	return Modified;
 }
 
+bool UWidget::IsChildOf(UWidget* PossibleParent)
+{
+	UPanelWidget* Parent = GetParent();
+	if ( Parent == NULL )
+	{
+		return false;
+	}
+	else if ( Parent == PossibleParent )
+	{
+		return true;
+	}
+	
+	return Parent->IsChildOf(PossibleParent);
+}
+
 TSharedRef<SWidget> UWidget::RebuildWidget()
 {
 	ensureMsg(false, TEXT("You must implement RebuildWidget() in your child class"));
