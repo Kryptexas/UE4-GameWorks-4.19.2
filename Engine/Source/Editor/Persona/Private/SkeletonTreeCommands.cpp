@@ -16,8 +16,8 @@ void FSkeletonTreeCommands::RegisterCommands()
 	UI_COMMAND( PasteSockets, "Paste Selected Sockets", "Paste selected sockets from clipboard", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::V ) );
 
 	UI_COMMAND( AddSocket, "Add Socket", "Add a socket to this bone in the skeleton (disabled when socket filter is set to \"Mesh Sockets\" or \"Sockets Hidden\" mode)", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( CustomizeSocket, "Customize Socket", "Customize this socket for the current mesh (copy it from the skeleton to the mesh)", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( RemoveSocketCustomization, "Remove Socket Customization", "Remove customization of this socket for the current mesh (reverts to the socket in the skeleton)", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( CreateMeshSocket, "Create Mesh Socket", "Duplicate this socket from skeleton to the current mesh and modify the socket data for it", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( RemoveMeshSocket, "Remove Mesh Socket", "Remove duplicated version of this socket for the current mesh (reverts to the socket in the skeleton)", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( PromoteSocketToSkeleton, "Promote Socket To Skeleton", "Makes this socket available for all meshes that use the same skeleton (copies the socket from this mesh to the skeleton)", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND(DeleteSelectedRows, "Delete", "Delete all selected sockets and attached meshes in the tree", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));

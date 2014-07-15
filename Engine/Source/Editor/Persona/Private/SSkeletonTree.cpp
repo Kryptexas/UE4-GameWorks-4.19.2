@@ -530,8 +530,8 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 	if ( ParentType == ESocketParentType::Mesh )
 	{
 		FText SocketSuffix = IsSocketCustomized() ?
-			LOCTEXT( "CustomizedSuffix", " [Customized]" ) :
-			LOCTEXT( "MeshSuffix", " [Mesh]" );
+			LOCTEXT( "CustomizedSuffix", " [Mesh]" ) :
+			LOCTEXT( "MeshSuffix", " [Mesh Only]" );
 
 		Box->AddSlot()
 		.AutoWidth()
@@ -647,7 +647,7 @@ FString FDisplayedSocketInfo::GetSocketToolTip()
 	}
 	else if ( ParentType == ESocketParentType::Skeleton )
 	{
-		ToolTip = LOCTEXT( "SocketToolTipSkeleton", "This socket is on the skeleton (shared with all meshes that use the skeleton), and the current mesh has customized it" );
+		ToolTip = LOCTEXT( "SocketToolTipSkeleton", "This socket is on the skeleton (shared with all meshes that use the skeleton), and the current mesh has duplciated version of it" );
 	}
 	else
 	{
@@ -987,11 +987,11 @@ void SSkeletonTree::BindCommands()
 		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRenameSelected ) );
 
 	CommandList.MapAction(
-		MenuActions.CustomizeSocket,
+		MenuActions.CreateMeshSocket,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCustomizeSocket ) );
 
 	CommandList.MapAction(
-		MenuActions.RemoveSocketCustomization,
+		MenuActions.RemoveMeshSocket,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ) ); // Removing customization just deletes the mesh socket
 
 	CommandList.MapAction(
@@ -1412,7 +1412,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 				if ( DisplayedSocketInfo->IsSocketCustomized() && DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
 				{
-					MenuBuilder.AddMenuEntry( Actions.RemoveSocketCustomization );
+					MenuBuilder.AddMenuEntry( Actions.RemoveMeshSocket );
 				}
 
 				USkeletalMeshSocket* SelectedSocket = static_cast< USkeletalMeshSocket* >( DisplayedSocketInfo->GetData() );
@@ -1424,7 +1424,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 				{
 					if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
 					{
-						MenuBuilder.AddMenuEntry( Actions.CustomizeSocket );
+						MenuBuilder.AddMenuEntry( Actions.CreateMeshSocket );
 					}
 					else if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
 					{
@@ -1769,7 +1769,7 @@ void SSkeletonTree::OnCustomizeSocket()
 
 			if ( Mesh )
 			{
-				const FScopedTransaction Transaction( LOCTEXT( "CustomizeSocket", "Customize Socket" ) );
+				const FScopedTransaction Transaction( LOCTEXT( "CreateMeshSocket", "Create Mesh Socket" ) );
 				Mesh->Modify();
 
 				USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
