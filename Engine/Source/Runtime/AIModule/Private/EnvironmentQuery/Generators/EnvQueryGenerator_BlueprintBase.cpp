@@ -17,14 +17,20 @@ UEnvQueryGenerator_BlueprintBase::UEnvQueryGenerator_BlueprintBase(const class F
 	GenerateDelegate.BindUObject(this, &UEnvQueryGenerator_BlueprintBase::GenerateItems);
 
 	Context = UEnvQueryContext_Querier::StaticClass();
-	ItemType = UEnvQueryItemType_Point::StaticClass();
+	ItemType = UEnvQueryItemType_Actor::StaticClass();
 	Radius.Value = 1000.0f;
+	GeneratedItemType = UEnvQueryItemType_Actor::StaticClass();
 }
 
 void UEnvQueryGenerator_BlueprintBase::PostInitProperties()
 {
 	Super::PostInitProperties();
 	ItemType = GeneratedItemType;
+}
+
+UWorld* UEnvQueryGenerator_BlueprintBase::GetWorld() const
+{
+	return CachedQueryInstance ? CachedQueryInstance->World : NULL;
 }
 
 void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryInstance)
@@ -53,7 +59,7 @@ void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector)
 void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor)
 {
 	check(CachedQueryInstance);
-	ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()));
+	//ensure(ItemType->GetClass()->IsChildOf(UEnvQueryItemType_ActorBase::StaticClass()));
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Actor>(Actor);
 }
 
