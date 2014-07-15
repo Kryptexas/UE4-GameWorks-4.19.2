@@ -1472,7 +1472,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 	PC->Role = ROLE_AutonomousProxy;
 	PC->SetPlayer(LocalPlayer);
 	PC->NetConnection = NetConnection;
-	UE_LOG(LogNet, Log, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
+	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
 	LastReceiveTime = Driver->Time;
 	State = USOCK_Open;
 	PlayerController = PC;
@@ -1573,7 +1573,7 @@ void UChildConnection::HandleClientPlayer(APlayerController* PC, UNetConnection*
 	PC->Role = ROLE_AutonomousProxy;
 	PC->SetPlayer(NewPlayer);
 	PC->NetConnection = NetConnection;
-	UE_LOG(LogNet, Log, TEXT("%s setplayer %s"), *PC->GetName(), *NewPlayer->GetName());
+	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"), *PC->GetName(), *NewPlayer->GetName());
 	PlayerController = PC;
 	OwningActor = PC;
 }

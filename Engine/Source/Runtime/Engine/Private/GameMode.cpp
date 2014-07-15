@@ -415,7 +415,7 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		return;
 	}
 
-	UE_LOG(LogGameMode, Log, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
