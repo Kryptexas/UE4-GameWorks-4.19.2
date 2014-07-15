@@ -57,7 +57,7 @@ static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath, bool& O
 	}
 	
 	// next look in Engine/Splash
-	OutPath = FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename;
+	OutPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename);
 	OutIsCustom = false;
 	
 	// if this was found, then we're done
@@ -248,7 +248,7 @@ void FMacPlatformSplash::Show()
 			}
 		}
 
-		NSString *SplashScreenFileName = (NSString *)FPlatformString::TCHARToCFString(*(FString(FPlatformProcess::BaseDir()) / SplashPath));
+		NSString *SplashScreenFileName = (NSString *)FPlatformString::TCHARToCFString(*SplashPath);
 		GSplashScreenImage = [[NSImage alloc] initWithContentsOfFile: SplashScreenFileName];
 		[SplashScreenFileName release];
 

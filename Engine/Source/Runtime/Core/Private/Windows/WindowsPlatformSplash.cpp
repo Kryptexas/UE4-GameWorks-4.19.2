@@ -596,7 +596,7 @@ static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath, bool& O
 	}
 
 	// next look in Engine/Splash
-	OutPath = FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename;
+	OutPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename);
 	OutIsCustom = false;
 
 	// if this was found, then we're done
@@ -696,7 +696,7 @@ void FWindowsPlatformSplash::Show()
 				ShowWindow(GSplashScreenGuard, SW_SHOW); 
 			}
 			
-			GSplashScreenFileName = FString( FPlatformProcess::BaseDir() ) / SplashPath;
+			GSplashScreenFileName = SplashPath;
 			DWORD ThreadID = 0;
 			GSplashScreenThread = CreateThread(NULL, 128 * 1024, (LPTHREAD_START_ROUTINE)StartSplashScreenThread, (LPVOID)NULL, STACK_SIZE_PARAM_IS_A_RESERVATION, &ThreadID);
 #if	STATS
