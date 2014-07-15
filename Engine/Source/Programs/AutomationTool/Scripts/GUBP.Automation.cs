@@ -4402,12 +4402,6 @@ public class GUBP : BuildCommand
                 }
             }
             bPreflightBuild = true;
-
-            var OpenFiles = P4.OpenedOutput();
-            if (OpenFiles.Contains("File(s) not opened on this client."))
-            {
-                throw new AutomationException("Apparently, nothing was unshelved for this preflight.");
-            }
         }
         
         ECProject = ParseParamValue("ECProject");
