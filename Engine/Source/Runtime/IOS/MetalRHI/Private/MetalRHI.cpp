@@ -33,6 +33,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	// Initialize the RHI capabilities.
 	GRHIFeatureLevel = ERHIFeatureLevel::ES2;
 	GRHIShaderPlatform = SP_METAL;
+	GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::ES2;
 
 	GPixelCenterOffset = 0.0f;
 	GSupportsVertexInstancing = false;
