@@ -252,9 +252,10 @@ static UClass* BlueprintActionFilterImpl::GetActionClass(UBlueprintNodeSpawner c
 	}
 	else if (UBlueprintEventNodeSpawner const* EventSpawner = Cast<UBlueprintEventNodeSpawner>(BlueprintAction))
 	{
-		UFunction const* EventFunc = EventSpawner->GetEventFunction();
-		check(EventFunc != nullptr);
-		ActionClass = EventFunc->GetOuterUClass();
+		if (UFunction const* EventFunc = EventSpawner->GetEventFunction())
+		{
+			ActionClass = EventFunc->GetOuterUClass();
+		}		
 	}
 	else if (UBlueprintPropertyNodeSpawner const* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(BlueprintAction))
 	{
@@ -353,31 +354,31 @@ static bool BlueprintActionFilterImpl::IsEventUnimplementable(FBlueprintActionFi
 	
 	if (UBlueprintEventNodeSpawner const* EventSpawner = Cast<UBlueprintEventNodeSpawner>(BlueprintAction))
 	{
-		UFunction const* EventFunc = EventSpawner->GetEventFunction();
-		check(EventFunc != nullptr);
-		
-		UClass* FuncOwner = EventFunc->GetOuterUClass();
-		for (UBlueprint const* Blueprint : FilterContext.Blueprints)
+		if (UFunction const* EventFunc = EventSpawner->GetEventFunction())
 		{
-			UClass* BpClass = Blueprint->GeneratedClass;
-			check(BpClass != nullptr);
-			
-			// if this function belongs directly to this blueprint, then it is
-			// already implemented here (this action however is valid for sub-
-			// classes, as they can override the event's functionality)
-			if (FuncOwner == BpClass)
+			UClass* FuncOwner = EventFunc->GetOuterUClass();
+			for (UBlueprint const* Blueprint : FilterContext.Blueprints)
 			{
-				bIsFilteredOut = true;
-				break;
-			}
-			
-			// you can only implement events that you inherit; so if this
-			// blueprint is not a subclass of the event's owner, then we're not
-			// allowed to implement it
-			if (!BpClass->IsChildOf(FuncOwner))
-			{
-				bIsFilteredOut = true;
-				break;
+				UClass* BpClass = Blueprint->GeneratedClass;
+				check(BpClass != nullptr);
+
+				// if this function belongs directly to this blueprint, then it is
+				// already implemented here (this action however is valid for sub-
+				// classes, as they can override the event's functionality)
+				if (FuncOwner == BpClass)
+				{
+					bIsFilteredOut = true;
+					break;
+				}
+
+				// you can only implement events that you inherit; so if this
+				// blueprint is not a subclass of the event's owner, then we're not
+				// allowed to implement it
+				if (!BpClass->IsChildOf(FuncOwner))
+				{
+					bIsFilteredOut = true;
+					break;
+				}
 			}
 		}
 	}

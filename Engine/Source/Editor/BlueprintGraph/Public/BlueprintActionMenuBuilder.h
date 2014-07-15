@@ -26,7 +26,6 @@ public:
 	FBlueprintActionMenuBuilder() {}
 	
 	/** Blueprint centric menu categories (not generic enough to make it into FCommonEditorCategory) */
-	static FText const AddEventCategory;
 	static FText const VariablesCategory;
 
 	/**

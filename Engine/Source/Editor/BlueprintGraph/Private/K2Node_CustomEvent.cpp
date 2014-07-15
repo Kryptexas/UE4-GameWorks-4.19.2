@@ -5,7 +5,7 @@
 
 #include "Kismet2NameValidators.h"
 #include "CompilerResultsLog.h"
-#include "BlueprintNodeSpawner.h"
+#include "BlueprintEventNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 
@@ -230,7 +230,7 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 
 void UK2Node_CustomEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(GetClass(), FName());
 	check(NodeSpawner != nullptr);
 
 	auto SetupCustomEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)

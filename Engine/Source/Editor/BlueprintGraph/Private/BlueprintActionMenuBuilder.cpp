@@ -310,7 +310,6 @@ FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::FMenuSectionDefinition(
  * FBlueprintActionMenuBuilder
  ******************************************************************************/
 
-FText const FBlueprintActionMenuBuilder::AddEventCategory  = LOCTEXT("AddEventCategory",  "Add Event");
 FText const FBlueprintActionMenuBuilder::VariablesCategory = LOCTEXT("VariablesCategory", "Variables");
 
 //------------------------------------------------------------------------------

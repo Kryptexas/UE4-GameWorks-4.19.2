@@ -5,7 +5,6 @@
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
-#include "BlueprintActionMenuBuilder.h"
 
 const FString UK2Node_Event::DelegateOutputName(TEXT("OutputDelegate"));
 
@@ -631,13 +630,19 @@ void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& 
 
 FText UK2Node_Event::GetMenuCategory() const
 {
-	FText Category;
+	FText FuncCategory;
 	if (UFunction* Function = FindField<UFunction>(EventSignatureClass, EventSignatureName))
 	{
-		Category = FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
+		FuncCategory = FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT("")));
 	}
 
-	return FText::Format(LOCTEXT("ConcatenatedCategory", "{0}|{1}"), FBlueprintActionMenuBuilder::AddEventCategory, Category);
+	FText Category = LOCTEXT("AddEventCategory", "Add Event");
+	if (!FuncCategory.IsEmpty())
+	{
+		Category = FText::Format(LOCTEXT("ConcatenatedCategory", "{0}|{1}"), Category, FuncCategory);
+	}
+
+	return Category;
 }
 
 bool UK2Node_Event::IsDeprecated() const

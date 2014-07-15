@@ -7,8 +7,7 @@
 #include "K2ActionMenuBuilder.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueInterface.h"
-#include "BlueprintNodeSpawner.h"
-#include "BlueprintActionMenuBuilder.h" // for AddEventCategory
+#include "BlueprintEventNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_GameplayCueEvent"
 
@@ -30,12 +29,10 @@ FText UK2Node_GameplayCueEvent::GetNodeTitle(ENodeTitleType::Type TitleType) con
 	//return LOCTEXT("HandleGameplayCueEvent", "HandleGameplaCueEvent");
 }
 
-void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context) const
+bool UK2Node_GameplayCueEvent::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
 {
-	Super::GetMenuEntries(Context);
-
 	bool bValidClass = false;
-	UBlueprint* MyBlueprint = Cast<UBlueprint>(Context.CurrentGraph->GetOuter());
+	UBlueprint* MyBlueprint = Cast<UBlueprint>(TargetGraph->GetOuter());
 	if (MyBlueprint && MyBlueprint->GeneratedClass)
 	{
 		if (MyBlueprint->GeneratedClass->ImplementsInterface(UGameplayCueInterface::StaticClass()))
@@ -44,7 +41,14 @@ void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context)
 		}
 	}
 
-	if (!bValidClass) 
+	return bValidClass;
+}
+
+void UK2Node_GameplayCueEvent::GetMenuEntries(FGraphContextMenuBuilder& Context) const
+{
+	Super::GetMenuEntries(Context);
+
+	if (!CanPasteHere(Context.CurrentGraph, GetDefault<UEdGraphSchema>(Context.CurrentGraph->Schema)))
 	{
 		return;
 	}
@@ -98,16 +102,12 @@ void UK2Node_GameplayCueEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Ac
 	{
 		UBlueprintNodeSpawner::FCustomizeNodeDelegate PostSpawnDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeCueNodeLambda, TagIt->GetTagName());
 		
-		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass(), PostSpawnDelegate);
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(GetClass(), TagIt->GetTagName());
 		check(NodeSpawner != nullptr);
+		NodeSpawner->CustomizeNodeDelegate = PostSpawnDelegate;
 		
 		ActionListOut.Add(NodeSpawner);
 	}
-}
-
-FText UK2Node_GameplayCueEvent::GetMenuCategory() const
-{
-	return FText::Format(LOCTEXT("ActionMenuCategory", "{0}|GameplayCue"), FBlueprintActionMenuBuilder::AddEventCategory);
 }
 
 #undef LOCTEXT_NAMESPACE

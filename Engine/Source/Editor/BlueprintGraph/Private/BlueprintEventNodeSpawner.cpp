@@ -8,6 +8,42 @@
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 
 /*******************************************************************************
+ * Static UBlueprintEventNodeSpawner Helpers
+ ******************************************************************************/
+
+namespace UBlueprintEventNodeSpawnerImpl
+{
+	/**
+	 * Helper function for scanning a blueprint for a certain, custom named,
+	 * event.
+	 * 
+	 * @param  Blueprint	The blueprint you want to look through
+	 * @param  CustomName	The event name you want to check for.
+	 * @return Null if no event was found, otherwise a pointer to the named event.
+	 */
+	static UK2Node_Event* FindCustomEventNode(UBlueprint* Blueprint, FName const CustomName);
+}
+
+//------------------------------------------------------------------------------
+UK2Node_Event* UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(UBlueprint* Blueprint, FName const CustomName)
+{
+	UK2Node_Event* FoundNode = nullptr;
+
+	TArray<UK2Node_Event*> AllEvents;
+	FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Event>(Blueprint, AllEvents);
+
+	for (UK2Node_Event* EventNode : AllEvents)
+	{
+		if (EventNode->CustomFunctionName == CustomName)
+		{
+			FoundNode = EventNode;
+			break;
+		}
+	}
+	return FoundNode;
+}
+
+/*******************************************************************************
  * UBlueprintEventNodeSpawner
  ******************************************************************************/
 
@@ -19,6 +55,16 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(GetTransientPackage());
 	NodeSpawner->EventFunc = EventFunc;
 	NodeSpawner->NodeClass = UK2Node_Event::StaticClass();
+
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
+UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName)
+{
+	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(GetTransientPackage());
+	NodeSpawner->NodeClass       = NodeClass;
+	NodeSpawner->CustomEventName = CustomEventName;
 
 	return NodeSpawner;
 }
@@ -36,22 +82,45 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 	check(ParentGraph != nullptr);
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
 
-	check(EventFunc != nullptr);
-
-	UClass* ClassOwner = CastChecked<UClass>(EventFunc->GetOuter());
+	UK2Node_Event* EventNode = nullptr;
+	
+	FName EventName = CustomEventName;
+	if (EventFunc != nullptr)
+	{
+		check(EventFunc != nullptr);
+		EventName = EventFunc->GetFName();
+	}
+	
+	UClass* ClassOwner = Blueprint->GeneratedClass;
 	// look to see if a node for this event already exists (only one node is
 	// allowed per event, per blueprint)
-	UK2Node_Event* EventNode = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventFunc->GetFName());
+	if (EventFunc != nullptr)
+	{
+		ClassOwner = CastChecked<UClass>(EventFunc->GetOuter());
+		EventNode  = FBlueprintEditorUtils::FindOverrideForFunction(Blueprint, ClassOwner, EventName);
+	}
+	else
+	{
+		EventNode  = UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(Blueprint, EventName);
+	}
 
 	// if there is no existing node, then we can happily spawn one into the graph
 	if (EventNode == nullptr)
 	{
-		EventNode = NewObject<UK2Node_Event>(ParentGraph);
-		EventNode->EventSignatureName  = EventFunc->GetFName();
-		EventNode->EventSignatureClass = ClassOwner;
-		EventNode->bOverrideFunction   = true;
-
 		bool bIsTemplateNode = ParentGraph->HasAnyFlags(RF_Transient);
+
+		EventNode = CastChecked<UK2Node_Event>(Super::Invoke(ParentGraph));
+		if (EventFunc != nullptr)
+		{
+			EventNode->EventSignatureName  = EventName;
+			EventNode->EventSignatureClass = ClassOwner;
+			EventNode->bOverrideFunction   = true;
+		}
+		else if (!bIsTemplateNode)
+		{
+			EventNode->CustomFunctionName  = CustomEventName;
+		}
+
 		if (!bIsTemplateNode)
 		{
 			EventNode->SetFlags(RF_Transactional);
@@ -67,33 +136,32 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 //------------------------------------------------------------------------------
 FText UBlueprintEventNodeSpawner::GetDefaultMenuName() const
 {
-	check(EventFunc != nullptr);
-	
-	FString const EventName = UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc);
-	return FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), FText::FromString(EventName));
-}
+	FText EventName;
+	if (EventFunc != nullptr)
+	{
+		EventName = FText::FromString(UEdGraphSchema_K2::GetFriendlySignitureName(EventFunc));
+	}
+	else if (!CustomEventName.IsNone())
+	{
+		EventName = FText::FromName(CustomEventName);
+	}
 
-//------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuCategory() const
-{
-	check(EventFunc != nullptr);
-	
-	FString RootCategory = FBlueprintActionMenuBuilder::AddEventCategory.ToString();
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, RootCategory));
-}
-
-//------------------------------------------------------------------------------
-FText UBlueprintEventNodeSpawner::GetDefaultMenuTooltip() const
-{
-	check(EventFunc != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(EventFunc));
+	if (!EventName.IsEmpty())
+	{
+		EventName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), EventName);
+	}
+	return EventName;
 }
 
 //------------------------------------------------------------------------------
 FText UBlueprintEventNodeSpawner::GetDefaultSearchKeywords() const
 {
-	check(EventFunc != nullptr);
-	return FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(EventFunc));
+	FText Keywords = FText::GetEmpty();
+	if (EventFunc != nullptr)
+	{
+		Keywords = FText::FromString(UK2Node_CallFunction::GetKeywordsForFunction(EventFunc));
+	}
+	return Keywords;
 }
 
 //------------------------------------------------------------------------------
