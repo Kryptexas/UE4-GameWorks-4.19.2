@@ -128,6 +128,9 @@ public:
 	/** Check to see if a given class is blueprint skeleton class. */
 	static bool IsClassABlueprintSkeleton (const UClass* Class);
 
+	/** Check to see if a given class is a blueprint macro library */
+	static bool IsClassABlueprintMacroLibrary(const UClass* Class);
+
 	/** Run over the components in the blueprint, and then remove any that fall outside this blueprint's scope (e.g. components brought over after reparenting from another class) */
 	static void StripExternalComponents(class UBlueprint* Blueprint);
 

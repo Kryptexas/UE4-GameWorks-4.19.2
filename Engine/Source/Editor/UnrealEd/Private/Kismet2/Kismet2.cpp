@@ -1320,6 +1320,13 @@ bool FKismetEditorUtilities::IsClassABlueprintSkeleton(const UClass* Class)
 	return Class->HasAnyFlags(RF_Transient) && Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 }
 
+bool FKismetEditorUtilities::IsClassABlueprintMacroLibrary(const UClass* Class)
+{
+	// Find generating blueprint for a class
+	UBlueprint* GeneratingBP = Cast<UBlueprint>(Class->ClassGeneratedBy);
+	return (GeneratingBP && GeneratingBP->BlueprintType == BPTYPE_MacroLibrary);
+}
+
 /** Run over the components references, and then NULL any that fall outside this blueprint's scope (e.g. components brought over after reparenting from another class, which are now in the transient package) */
 void FKismetEditorUtilities::StripExternalComponents(class UBlueprint* Blueprint)
 {

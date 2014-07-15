@@ -632,6 +632,12 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			return false;
 		}
 
+		// No Blueprint Macro Libraries
+		if (FKismetEditorUtilities::IsClassABlueprintMacroLibrary(InClass))
+		{
+			return false;
+		}
+
 		// UObject is an exception, and is always a blueprint-able type
 		if(InClass == UObject::StaticClass())
 		{
