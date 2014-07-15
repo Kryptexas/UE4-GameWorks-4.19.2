@@ -124,7 +124,7 @@ void SBlueprintMerge::Construct(const FArguments& InArgs)
 	PanelLocal.Blueprint = InArgs._BlueprintLocal;
 
 	OwningEditor = InArgs._OwningEditor;
-	check( OwningEditor.IsValid() );
+	check( OwningEditor.Pin().IsValid() );
 
 	return SBlueprintDiff::Construct( InArgs._BaseArgs );
 }
@@ -475,7 +475,7 @@ TSharedRef< SWidget > SBlueprintMerge::GenerateDiffView(TArray<FDiffSingleResult
 UBlueprint* SBlueprintMerge::GetTargetBlueprint()
 {
 	// @todo doc, do we need to cache this on merge construction?
-	return OwningEditor->GetBlueprintObj();
+	return OwningEditor.Pin()->GetBlueprintObj();
 }
 
 FReply SBlueprintMerge::OnAcceptResultClicked()
@@ -503,14 +503,14 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 		FSlateNotificationManager::Get().AddNotification( ErrorNotification );
 	}
 
-	OwningEditor->CloseMergeTool();
+	OwningEditor.Pin()->CloseMergeTool();
 
 	return FReply::Handled();
 }
 
 FReply SBlueprintMerge::OnCancelClicked()
 {
-	OwningEditor->CloseMergeTool();
+	OwningEditor.Pin()->CloseMergeTool();
 	return FReply::Handled();
 }
 

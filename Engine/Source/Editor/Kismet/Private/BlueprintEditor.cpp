@@ -79,6 +79,8 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
+const FName MergeToolTabId = FName(TEXT("MergeTool"));
+
 /////////////////////////////////////////////////////
 // FSelectionDetailsSummoner
 
@@ -991,6 +993,10 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 	// Make sure we know when tabs become active to update details tab
 	FGlobalTabmanager::Get()->OnActiveTabChanged_Subscribe( FOnActiveTabChanged::FDelegate::CreateRaw(this, &FBlueprintEditor::OnActiveTabChanged) );
 
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(MergeToolTabId, FOnSpawnTab::CreateRaw(this, &FBlueprintEditor::CreateMergeToolTab))
+		.SetDisplayName(NSLOCTEXT("MergeTool", "TabTitle", "Merge Tool"))
+		.SetTooltipText(NSLOCTEXT("MergeTool", "TooltipText", "Open the Blueprint Merge Tool."));
+
 	if (InitBlueprints.Num() == 1)
 	{
 		// Load blueprint libraries
@@ -1496,12 +1502,15 @@ FBlueprintEditor::~FBlueprintEditor()
 		Editor->UnregisterForUndo( this );
 	}
 
+	CloseMergeTool();
+
 	if (GetBlueprintObj())
 	{
 		GetBlueprintObj()->OnChanged().RemoveAll( this );
 	}
 
 	FGlobalTabmanager::Get()->OnActiveTabChanged_Unsubscribe( FOnActiveTabChanged::FDelegate::CreateRaw(this, &FBlueprintEditor::OnActiveTabChanged) );
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(MergeToolTabId);
 
 	if (FEngineAnalytics::IsAvailable())
 	{
@@ -1865,7 +1874,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
 
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
-		FExecuteAction::CreateSP(this, &FBlueprintEditor::OnBeginBlueprintMerge),
+		FExecuteAction::CreateStatic([] { FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId); } ),
 		FCanExecuteAction());
 }
 
@@ -4652,7 +4661,7 @@ void FBlueprintEditor::UnregisterSCSEditorCustomization(const FName& InComponent
 	SCSEditorCustomizations.Remove(InComponentName);
 }
 
-TSharedRef<SWidget> FBlueprintEditor::ShowMergeTool()
+TSharedRef<SDockTab> FBlueprintEditor::CreateMergeToolTab(const FSpawnTabArgs&)
 {
 	/** 
 	 * This function has to handle three case:
@@ -4660,33 +4669,26 @@ TSharedRef<SWidget> FBlueprintEditor::ShowMergeTool()
 	 *	2. The merge tool is being restored, if we have a pending merge display the merge tool, otherwise display an empty widget
 	 *  3. The merge tool is being invoked, display the merge tool 
 	 */
-	auto MergeToolPtr = MergeTool.Pin();
-	if( !MergeToolPtr.IsValid() )
+	TSharedPtr<SDockTab> Ret = MergeTool.Pin();
+	if( !Ret.IsValid() )
 	{
-		if( IMerge::Get().PendingMerge(*GetBlueprintObj()) )
-		{
-			MergeToolPtr = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this) ).ToSharedRef();
-		}
-		else
-		{
-			// We *have* to return a valid reference to a widget, so return an empty box. This is arguabla a deficiency in
-			// our controlling widgets that we can't 'restore' with nothing.
-			MergeToolPtr = SNew(SHorizontalBox);
-		}
-
-		// Keep a weak reference to the widget we've created, widget will be owned by the docktab:
-		MergeTool = MergeToolPtr;
+		Ret = SNew(SDockTab)
+			.Label(LOCTEXT("MergeTool_Title", "Merge Tool"))
+			[
+				IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this))
+			];
+		MergeTool = Ret;
 	}
 
-	return MergeToolPtr.ToSharedRef();
+	return Ret.ToSharedRef();
 }
 
 void FBlueprintEditor::CloseMergeTool()
 {
-	auto MergeToolDockTabPtr = MergeToolDockTab.Pin();
-	if( MergeToolDockTabPtr.IsValid() )
+	auto MergeToolPtr = MergeTool.Pin();
+	if( MergeToolPtr.IsValid() )
 	{
-		MergeToolDockTabPtr->RequestCloseTab();
+		MergeToolPtr->RequestCloseTab();
 	}
 }
 
@@ -5506,11 +5508,6 @@ void FBlueprintEditor::OnRepairCorruptedBlueprint()
 {
 	IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
 	Compiler.RecoverCorruptedBlueprint(GetBlueprintObj());
-}
-
-void FBlueprintEditor::OnBeginBlueprintMerge()
-{
-	MergeToolDockTab = TabManager->InvokeTab(FBlueprintEditorTabs::MergeToolID);
 }
 
 void FBlueprintEditor::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)

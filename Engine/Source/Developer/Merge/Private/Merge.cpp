@@ -10,6 +10,13 @@
 
 #define LOCTEXT_NAMESPACE "Merge"
 
+static void DisplayErrorMessage( const FText& ErrorMessage )
+{
+	FNotificationInfo Info(ErrorMessage);
+	Info.ExpireDuration = 5.0f;
+	FSlateNotificationManager::Get().AddNotification(Info);
+}
+
 static FSourceControlStatePtr GetSourceControlState(const FString& PackageName)
 {
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -49,17 +56,36 @@ static UObject* LoadRevision(const FString& AssetName, const ISourceControlRevis
 			}
 			else
 			{
-				// @todo DO: toast? i love toast..
+				DisplayErrorMessage( 
+					FText::Format(
+						LOCTEXT("MergedFailedToFindObject", 
+								"Aborted Load of {0} because we could not find an object named {1}" )
+								,FText::FromString(TempFileName)
+								,FText::FromString(AssetName) 
+					)
+				);
 			}
 		}
 		else
 		{
-			// @todo DO: toast? i love toast..
+			DisplayErrorMessage(
+				FText::Format(
+					LOCTEXT("MergedFailedToLoadPackage",
+							"Aborted Load of {0} because we could not load the package")
+							, FText::FromString(TempFileName)
+				)
+			);
 		}
 	}
 	else
 	{
-		// @todo DO: toast? i love toast..
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergedFailedToFindRevision",
+						"Aborted Load of {0} because we could not get the requested revision")
+						, FText::FromString(TempFileName)
+			)
+		);
 	}
 	return NULL;
 }
@@ -70,40 +96,21 @@ static FRevisionInfo GetRevisionInfo(ISourceControlRevision const& FromRevision)
 	return Ret;
 }
 
-static UObject* LoadHeadRev(const FString& PackageName, const FString& AssetName, FRevisionInfo& OutRevInfo)
+static UObject* LoadHeadRev(const FString& PackageName, const FString& AssetName, const ISourceControlState& SourceControlState, FRevisionInfo& OutRevInfo)
 {
-	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
-	if (SourceControlState.IsValid())
-	{
-		// HistoryItem(0) is apparently the head revision:
-		TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(0);
-		check(Revision.IsValid());
-		OutRevInfo = GetRevisionInfo(*Revision);
-		return LoadRevision(AssetName, *Revision);
-	}
-	else
-	{
-		// @todo DO: toast? i love toast..
-	}
-
-	return NULL;
+	// HistoryItem(0) is apparently the head revision:
+	TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState.GetHistoryItem(0);
+	check(Revision.IsValid());
+	OutRevInfo = GetRevisionInfo(*Revision);
+	return LoadRevision(AssetName, *Revision);
 }
 
-static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName, FRevisionInfo& OutRevInfo)
+static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName, const ISourceControlState& SourceControlState, FRevisionInfo& OutRevInfo)
 {
-	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
-	if (SourceControlState.IsValid())
-	{
-		TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetBaseRevForMerge();
-		check(Revision.IsValid());
-		OutRevInfo = GetRevisionInfo(*Revision);
-		return LoadRevision(AssetName, *Revision);
-	}
-	else
-	{
-		// @todo DO: toast? i love toast..
-	}
-	return NULL;
+	TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState.GetBaseRevForMerge();
+	check(Revision.IsValid());
+	OutRevInfo = GetRevisionInfo(*Revision);
+	return LoadRevision(AssetName, *Revision);
 }
 
 class FMerge : public IMerge
@@ -111,7 +118,7 @@ class FMerge : public IMerge
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	virtual TSharedPtr<SWidget> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
+	virtual TSharedRef<SWidget> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
 	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const override;
 };
 IMPLEMENT_MODULE( FMerge, Merge )
@@ -127,7 +134,7 @@ void FMerge::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
-TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor)
+TSharedRef<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor)
 {
 	// merge the local asset with the depot, SCC provides us with the last common revision as
 	// a basis for the merge:
@@ -135,11 +142,28 @@ TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShare
 	// @todo DO: this will probably need to be async.. pulling down some old versions of assets:
 	const FString& PackageName = Object.GetOutermost()->GetName();
 	const FString& AssetName = Object.GetName();
+	
+	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
+	if (!SourceControlState.IsValid())
+	{
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergeFailedNoSourceControl",
+						"Aborted Load of {0} from {1} because the source control state was invalidated")
+						, FText::FromString(AssetName)
+						, FText::FromString(PackageName)
+			)
+		);
+
+		return SNew(SHorizontalBox);
+	}
+
+	ISourceControlState const& SourceControlStateRef = *SourceControlState;
 
 	FRevisionInfo CurrentRevInfo = FRevisionInfo::InvalidRevision();
-	UBlueprint* RemoteBlueprint = Cast< UBlueprint >( LoadHeadRev(PackageName, AssetName, CurrentRevInfo) );
+	UBlueprint* RemoteBlueprint = Cast< UBlueprint >( LoadHeadRev(PackageName, AssetName, SourceControlStateRef, CurrentRevInfo) );
 	FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
-	UBlueprint* BaseBlueprint = Cast< UBlueprint >( LoadBaseRev(PackageName, AssetName, BaseRevInfo) );
+	UBlueprint* BaseBlueprint = Cast< UBlueprint >( LoadBaseRev(PackageName, AssetName, SourceControlStateRef, BaseRevInfo) );
 
 	if (RemoteBlueprint && BaseBlueprint)
 	{
@@ -172,11 +196,15 @@ TSharedPtr<SWidget> FMerge::GenerateMergeWidget(const UBlueprint& Object, TShare
 			MissingFiles = LOCTEXT("MergeBaseRevisionsFailed", "common base");
 		}
 
-		FText ErrorMessage = FText::Format(LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}"), FText::FromString(Object.GetName()), MissingFiles);
-		FNotificationInfo Info(ErrorMessage);
-		Info.ExpireDuration = 3.0f;
-		FSlateNotificationManager::Get().AddNotification(Info);
-		return TSharedPtr<SWidget>();
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}")
+				, FText::FromString(Object.GetName())
+				, MissingFiles
+			) 
+		);
+
+		return SNew(SHorizontalBox);
 	}
 }
 

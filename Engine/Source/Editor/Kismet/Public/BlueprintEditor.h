@@ -451,7 +451,7 @@ public:
 	/** 
 	 * Forces the merge tool to be shown, if no merge is possible, returns an empty widget:
 	 */
-	TSharedRef<SWidget> ShowMergeTool();
+	TSharedRef<SDockTab> CreateMergeToolTab(const FSpawnTabArgs&);
 	
 	/** 
 	 * Closes the merge tool, rather than simply hiding it.
@@ -714,8 +714,6 @@ protected:
 	void OnListObjectsReferencedByBlueprint();
 	void OnRepairCorruptedBlueprint();
 
-	void OnBeginBlueprintMerge();
-
 	void OnNodeDoubleClicked(class UEdGraphNode* Node);
 
 	virtual void OnEditTabClosed(TSharedRef<SDockTab> Tab);
@@ -924,11 +922,8 @@ protected:
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInBlueprints> FindResults;
 
-	/** Merge tool */
-	TWeakPtr<class SWidget> MergeTool;
-
-	/** Docktab that contains the merge tool */
-	TWeakPtr<class SDockTab> MergeToolDockTab;
+	/** Merge tool - WeakPtr because it's owned by the GlobalTabManager */
+	TWeakPtr<class SDockTab> MergeTool;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;

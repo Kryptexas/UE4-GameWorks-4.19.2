@@ -37,7 +37,10 @@ protected:
 	FReply OnAcceptResultClicked();
 	FReply OnCancelClicked();
 
-	TSharedPtr<FBlueprintEditor> OwningEditor;
+	// We can't maintain a SharedPtr to OwningEditor because we don't logically own it,
+	// if you make this a SharedPtr closing the blueprint editor while the merge tool
+	// is open will prevent the blueprint editor destructor from running:
+	TWeakPtr<FBlueprintEditor> OwningEditor;
 	FDiffPanel PanelLocal;
 	TWeakPtr<SWindow>		OwningWindow;
 
