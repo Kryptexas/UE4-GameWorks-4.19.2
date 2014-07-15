@@ -121,6 +121,9 @@ private:
 	/** Handler for when the path context menu requests a folder creation */
 	void NewFolderRequested(const FString& SelectedPath);
 
+	/** Called when the editable text needs to be set or cleared */
+	void SetSearchBoxText(const FText& InSearchText);
+
 	/** Called by the editable text control when the search text is changed by the user */
 	void OnSearchBoxChanged(const FText& InSearchText);
 

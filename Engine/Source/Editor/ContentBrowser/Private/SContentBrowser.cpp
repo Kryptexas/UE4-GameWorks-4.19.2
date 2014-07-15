@@ -675,7 +675,13 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 		}
 	}
 
+	// Disable the filter categories
 	FilterListPtr->DisableFiltersThatHideAssets(AssetDataList);
+
+	// Disable the filter search (reset the filter, then clear the search text)
+	// Note: we have to remove the filter immediately, we can't wait for OnSearchBoxChanged to hit
+	SetSearchBoxText(FText::GetEmpty());
+	SearchBoxPtr->SetText(FText::GetEmpty());	
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
@@ -1060,7 +1066,7 @@ void SContentBrowser::NewFolderRequested(const FString& SelectedPath)
 	}
 }
 
-void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
+void SContentBrowser::SetSearchBoxText(const FText& InSearchText)
 {
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
@@ -1073,6 +1079,11 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
+}
+
+void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
+{
+	SetSearchBoxText(InSearchText);
 
 	// Broadcast 'search box changed' delegate
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
@@ -1081,17 +1092,7 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 
 void SContentBrowser::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
 {
-	TextFilter->SetRawFilterText( InSearchText );
-	if(InSearchText.IsEmpty())
-	{
-		FrontendFilters->Remove(TextFilter);
-		AssetViewPtr->SetUserSearching(false);
-	}
-	else
-	{
-		FrontendFilters->Add(TextFilter);
-		AssetViewPtr->SetUserSearching(true);
-	}
+	SetSearchBoxText(InSearchText);
 }
 
 void SContentBrowser::OnPathClicked( const FString& CrumbData )
