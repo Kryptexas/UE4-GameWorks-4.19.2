@@ -2,6 +2,9 @@
 
 #include "../hlslcc.h"
 
+//@todo-rco: Remove STL!
+#include <vector>
+
 inline std::string FixVecPrefix(std::string Type)
 {
 	if (!strncmp("vec", Type.c_str(), 3))
@@ -36,11 +39,11 @@ struct extern_var : public exec_node
 
 struct FBuffers
 {
-	std::vector<ir_instruction*> Buffers;
+	TArray<ir_instruction*> Buffers;
 
 	int GetIndex(ir_variable* Var)
 	{
-		for (int i = 0, n = (int)Buffers.size(); i < n; ++i)
+		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
 			if (Buffers[i] == Var)
 			{
@@ -53,19 +56,19 @@ struct FBuffers
 
 	void SortBuffers()
 	{
-		std::vector<ir_instruction*> AllBuffers;
-		AllBuffers.resize(Buffers.size(), nullptr);
+		TArray<ir_instruction*> AllBuffers;
+		AllBuffers.Resize(Buffers.Num(), nullptr);
 		TIRVarList CBuffers;
-		for (int i = 0, n = (int)Buffers.size(); i < n; ++i)
+		for (int i = 0, n = Buffers.Num(); i < n; ++i)
 		{
 			auto* Var = Buffers[i]->as_variable();
 			check(Var);
 			if (Var->semantic && strlen(Var->semantic) == 1)
 			{
 				int Index = ConvertArrayTypeToIndex((EArrayType)Var->semantic[0]);
-				if (AllBuffers.size() <= Index)
+				if (AllBuffers.Num() <= Index)
 				{
-					AllBuffers.resize(Index + 1);
+					AllBuffers.Resize(Index + 1, nullptr);
 				}
 				AllBuffers[Index] = Var;
 			}
@@ -75,7 +78,7 @@ struct FBuffers
 			}
 		}
 
-		for (int i = 0; i < AllBuffers.size() && !CBuffers.empty(); ++i)
+		for (int i = 0; i < AllBuffers.Num() && !CBuffers.empty(); ++i)
 		{
 			if (!AllBuffers[i])
 			{
@@ -84,8 +87,7 @@ struct FBuffers
 			}
 		}
 
-		Buffers.clear();
-		Buffers.swap(AllBuffers);
+		Buffers = AllBuffers;
 	}
 };
 

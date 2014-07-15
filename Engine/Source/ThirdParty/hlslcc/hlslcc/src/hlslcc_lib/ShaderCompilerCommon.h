@@ -31,3 +31,74 @@ static inline bool isalpha(char c)
 	return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
 }
 #endif
+
+
+// Wrap std::vector API's definitions
+#include <vector>
+template<typename InElementType>
+class TArray
+{
+public:
+	typedef InElementType ElementType;
+	typedef std::vector<ElementType> TSTLVector;
+
+	void Add(const ElementType& Element)
+	{
+		Vector.push_back(Element);
+	}
+
+	int Num() const
+	{
+		return (int)Vector.size();
+	}
+
+	ElementType& operator[](int Index)
+	{
+		return Vector[Index];
+	}
+
+	const ElementType& operator[](int Index) const
+	{
+		return Vector[Index];
+	}
+
+	typename TSTLVector::iterator begin()
+	{
+		return Vector.begin();
+	}
+
+	typename TSTLVector::iterator end()
+	{
+		return Vector.end();
+	}
+
+	typename TSTLVector::const_iterator begin() const
+	{
+		return Vector.begin();
+	}
+
+	typename TSTLVector::const_iterator end() const
+	{
+		return Vector.end();
+	}
+
+	void Reset(int NewSize)
+	{
+		Vector.clear();
+		Vector.reserve(NewSize);
+	}
+
+	void Resize(int NewSize, const ElementType& Element)
+	{
+		Vector.resize(NewSize, Element);
+	}
+
+//private:
+	TSTLVector Vector;
+};
+
+template<typename T>
+void Exchange(TArray<T>& A, TArray<T>& B)
+{
+	A.Vector.swap(B.Vector);
+}

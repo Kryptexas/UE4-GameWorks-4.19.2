@@ -2504,7 +2504,7 @@ protected:
 		if (state->num_uniform_blocks > 0 && !state->bFlattenUniformBuffers)
 		{
 			bool bFirst = true;
-			for (int i = 0; i < Buffers.Buffers.size(); ++i)
+			for (int i = 0; i < Buffers.Buffers.Num(); ++i)
 			{
 				auto* Var = Buffers.Buffers[i]->as_variable();
 				if (!Var->semantic && !Var->type->is_sampler())

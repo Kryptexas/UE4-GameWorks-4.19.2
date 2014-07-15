@@ -358,7 +358,7 @@ void FMetalCodeBackend::MovePackedUniformsToMain(exec_list* ir, _mesa_glsl_parse
 		if (Var)
 		{
 			check(Var->mode == ir_var_uniform || Var->mode == ir_var_out || Var->mode == ir_var_in);
-			OutBuffers.Buffers.push_back(Var);
+			OutBuffers.Buffers.Add(Var);
 		}
 	}
 	OutBuffers.SortBuffers();
@@ -435,7 +435,7 @@ void FMetalCodeBackend::PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* Inst
 	//IRDump(Instructions);
 }
 
-static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, std::vector<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask)
+static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency, ir_variable* Variable, TArray<glsl_struct_field>& OutStageInMembers, std::set<ir_variable*>& OutStageInVariables, unsigned int* OutVertexAttributesMask)
 {
 	if (Frequency == HSF_VertexShader)
 	{
@@ -542,7 +542,7 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 							*OutVertexAttributesMask |= (1 << AttributeIndex);
 						}
 
-						OutStageInMembers.push_back(OutMember);
+						OutStageInMembers.Add(OutMember);
 					}
 				}
 				else
@@ -557,7 +557,7 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 						*OutVertexAttributesMask |= (1 << AttributeIndex);
 					}
 
-					OutStageInMembers.push_back(OutMember);
+					OutStageInMembers.Add(OutMember);
 				}
 			}
 			/*
@@ -603,7 +603,7 @@ static bool ProcessStageInVariables(_mesa_glsl_parse_state* ParseState, EHlslSha
 	Member.type = Variable->type;
 	Member.name = ralloc_strdup(ParseState, Variable->name);
 	Member.semantic = ralloc_strdup(ParseState, Variable->semantic ? Variable->semantic : Variable->name);
-	OutStageInMembers.push_back(Member);
+	OutStageInMembers.Add(Member);
 	OutStageInVariables.insert(Variable);
 
 	return true;
@@ -1405,10 +1405,10 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	if (Frequency == HSF_VertexShader)
 	{
 		// Vertex Fetch to Vertex connector
-		std::vector<glsl_struct_field> VSStageInMembers;
+		TArray<glsl_struct_field> VSStageInMembers;
 
 		// Vertex Output connector. Gather position semantic & other outputs into a struct
-		std::vector<glsl_struct_field> VSOutMembers;
+		TArray<glsl_struct_field> VSOutMembers;
 
 		foreach_iter(exec_list_iterator, Iter, *Instructions)
 		{
@@ -1419,20 +1419,20 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				switch (Variable->mode)
 				{
 				case ir_var_out:
-				{
-								   /*
-								   if (!VerifyVariableHasSemantics(ParseState, Variable))
-								   {
-								   return;
-								   }
-								   */
-								   glsl_struct_field Member;
-								   Member.type = Variable->type;
-								   Member.name = ralloc_strdup(ParseState, Variable->name);
-								   Member.semantic = Variable->name;
-								   VSOutMembers.push_back(Member);
-								   VSOutVariables.insert(Variable);
-				}
+					{
+						/*
+						if (!VerifyVariableHasSemantics(ParseState, Variable))
+						{
+						return;
+						}
+						*/
+						glsl_struct_field Member;
+						Member.type = Variable->type;
+						Member.name = ralloc_strdup(ParseState, Variable->name);
+						Member.semantic = Variable->name;
+						VSOutMembers.Add(Member);
+						VSOutVariables.insert(Variable);
+					}
 					break;
 
 				case ir_var_in:
@@ -1445,7 +1445,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			}
 		}
 
-		if (!VSStageInMembers.empty())
+		if (VSStageInMembers.Num())
 		{
 			check(Frequency == HSF_VertexShader);
 
@@ -1471,7 +1471,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 						NewMember.name = ralloc_asprintf(ParseState, "__dummy%d", i);
 						NewMember.semantic = ralloc_asprintf(ParseState, "ATTRIBUTE%d", i);
 						NewMember.type = glsl_type::get_instance(GLSL_TYPE_FLOAT, 4, 1);
-						VSStageInMembers.push_back(NewMember);
+						VSStageInMembers.Add(NewMember);
 					}
 				}
 			}
@@ -1490,7 +1490,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 				}
 			}
 
-			auto* Type = glsl_type::get_record_instance(&VSStageInMembers[0], (unsigned int)VSStageInMembers.size(), "FVSStageIn");
+			auto* Type = glsl_type::get_record_instance(&VSStageInMembers[0], (unsigned int)VSStageInMembers.Num(), "FVSStageIn");
 			VSStageIn = new(ParseState)ir_variable(Type, "__VSStageIn", ir_var_in);
 			// Hack: This way we tell we need to convert types from half to float
 			((glsl_type*)Type)->HlslName = "__STAGE_IN__";
@@ -1515,9 +1515,9 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			*/
 		}
 
-		if (!VSOutMembers.empty())
+		if (VSOutMembers.Num())
 		{
-			auto* Type = glsl_type::get_record_instance(&VSOutMembers[0], (unsigned int)VSOutMembers.size(), "FVSOut");
+			auto* Type = glsl_type::get_record_instance(&VSOutMembers[0], (unsigned int)VSOutMembers.Num(), "FVSOut");
 			VSOut = new(ParseState)ir_variable(Type, "__VSOut", ir_var_temporary);
 			PostCallInstructions.push_tail(VSOut);
 			ParseState->symbols->add_variable(VSOut);
@@ -1544,7 +1544,7 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 	else if (Frequency == HSF_PixelShader)
 	{
 		// Vertex to Pixel connector
-		std::vector<glsl_struct_field> PSStageInMembers;
+		TArray<glsl_struct_field> PSStageInMembers;
 
 		// Gather all inputs and generate the StageIn VS->PS connector
 		foreach_iter(exec_list_iterator, Iter, *Instructions)
@@ -1575,9 +1575,9 @@ void FMetalCodeBackend::PackInputsAndOutputs(exec_list* Instructions, _mesa_glsl
 			}
 		}
 
-		if (!PSStageInMembers.empty())
+		if (PSStageInMembers.Num())
 		{
-			auto* Type = glsl_type::get_record_instance(&PSStageInMembers[0], (unsigned int)PSStageInMembers.size(), "FPSStageIn");
+			auto* Type = glsl_type::get_record_instance(&PSStageInMembers[0], (unsigned int)PSStageInMembers.Num(), "FPSStageIn");
 			// Hack: This way we tell we need to convert types from half to float
 			((glsl_type*)Type)->HlslName = "__STAGE_IN__";
 			PSStageIn = new(ParseState)ir_variable(Type, "__PSStageIn", ir_var_in);

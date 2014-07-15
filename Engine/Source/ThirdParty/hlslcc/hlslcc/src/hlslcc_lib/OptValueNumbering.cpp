@@ -81,17 +81,17 @@ struct SNumber
 	}
 };
 static bool operator<(const SNumber& N1, const SNumber& N2) { return N1.Number < N2.Number; }
-typedef std::vector<SNumber> TNumberVector;
+typedef TArray<SNumber> TNumberVector;
 
 inline bool AreEqual(TNumberVector& A, TNumberVector& B)
 {
-	auto Size = A.size();
-	if (Size != B.size())
+	auto Size = A.Num();
+	if (Size != B.Num())
 	{
 		return false;
 	}
 	
-	for (size_t i = 0; i < Size; ++i)
+	for (int i = 0; i < Size; ++i)
 	{
 		if (A[i] != B[i])
 		{
@@ -244,7 +244,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 	virtual SNumber AddVariable(ir_variable* IR)
 	{
 		auto Number = SNumber::CreateNumber();
-		Assignments[IR].push_back(Number);
+		Assignments[IR].Add(Number);
 		return Number;
 	}
 
@@ -266,7 +266,8 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		}
 		else
 		{
-			auto VarNumber = Found->second.back();
+			auto& NumberVector = Found->second;
+			auto VarNumber = NumberVector[NumberVector.Num() - 1];
 			printf("\t\tRED %d\n", VarNumber.Number);
 			ExpressionNumberStack.push(VarNumber);
 		}
@@ -338,7 +339,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 			Parameter->accept(this);
 			check(StackSize + 1 == ExpressionNumberStack.size());
 			auto ParameterNum = ExpressionNumberStack.top();
-			Parameters.push_back(ParameterNum);
+			Parameters.Add(ParameterNum);
 			ExpressionNumberStack.pop();
 
 			Param = Param->get_next();
@@ -366,7 +367,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 				{
 					ir_variable* ReturnVar = IR->return_deref->variable_referenced();
 					LVN[IR] = FuncCall.AssignmentNumber;
-					Assignments[ReturnVar].push_back(FuncCall.AssignmentNumber);
+					Assignments[ReturnVar].Add(FuncCall.AssignmentNumber);
 					printf("\tRED Var %d = FunctionCall %d\n", ReturnVar->id, FuncCall.AssignmentNumber);
 				}
 				else
@@ -385,7 +386,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		if (IR->return_deref)
 		{
 			ir_variable* ReturnVar = IR->return_deref->variable_referenced();
-			Assignments[ReturnVar].push_back(Call.AssignmentNumber);
+			Assignments[ReturnVar].Add(Call.AssignmentNumber);
 			printf("\tVar %d = FunctionCall %d\n", ReturnVar->id, Call.AssignmentNumber);
 		}
 		else
@@ -482,7 +483,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		printf("\tTex @ %d\n", IR->id);
 
 		TNumberVector Operands;
-#define PROCESS_ENTRY(x) if (x) { auto n = ExpressionNumberStack.size(); x->accept(this); Operands.push_back(ExpressionNumberStack.top()); ExpressionNumberStack.pop(); check(n == ExpressionNumberStack.size()); }
+#define PROCESS_ENTRY(x) if (x) { auto n = ExpressionNumberStack.size(); x->accept(this); Operands.Add(ExpressionNumberStack.top()); ExpressionNumberStack.pop(); check(n == ExpressionNumberStack.size()); }
 		PROCESS_ENTRY(IR->sampler);
 		PROCESS_ENTRY(IR->coordinate);
 		PROCESS_ENTRY(IR->projector);
@@ -492,14 +493,14 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		PROCESS_ENTRY(IR->lod_info.grad.dPdx);
 		PROCESS_ENTRY(IR->SamplerState);
 #undef PROCESS_ENTRY
-		int NumOperands = (int)Operands.size();
+		int NumOperands = Operands.Num();
 		for (auto it = Textures.begin(); it != Textures.end(); ++it)
 		{
 			auto* Tex = it->first;
 			if (Tex->op == IR->op && Tex->channel == IR->channel)
 			{
 				auto& TexOps = it->second;
-				if (NumOperands == TexOps.size())
+				if (NumOperands == TexOps.Num())
 				{
 					if (AreEqual(TexOps, Operands))
 					{
@@ -517,7 +518,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		auto Number = SNumber::CreateNumber();
 		printf("\t\tNEW %d\n", Number.Number);
 		LVN[IR] = Number;
-		Textures[IR].swap(Operands);
+		Exchange(Textures[IR], Operands);
 		ExpressionNumberStack.push(Number);
 		return visit_continue_with_parent;
 	}
@@ -531,7 +532,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 		TNumberVector Operands;
 		for (int i = 0; i < NumOperands; ++i)
 		{
-			Operands.push_back(ExpressionNumberStack.top());
+			Operands.Add(ExpressionNumberStack.top());
 			ExpressionNumberStack.pop();
 		}
 		std::reverse(Operands.begin(), Operands.end());
@@ -597,7 +598,7 @@ struct SLVNVisitor : public ir_hierarchical_visitor
 			// Currently we only support full masked writes
 			RHSNumber.bPartialWrite = true;
 		}
-		Assignments[LHSVar].push_back(RHSNumber);
+		Assignments[LHSVar].Add(RHSNumber);
 		printf("\tVar %d, Expr %d %s\n", LHSVar->id, RHSNumber.Number, RHSNumber.bPartialWrite ? "SWIZZLE" : "");
 		LVN[IR->rhs] = RHSNumber;
 

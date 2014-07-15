@@ -5,15 +5,14 @@
 #ifndef PACKUNIFORMBUFFERS_H
 #define PACKUNIFORMBUFFERS_H
 
+//@todo-rco: Remove STL!
 #include <map>
 #include <string>
 #include <set>
-#include <vector>
 
 
 typedef std::map<std::string, ir_variable*> TStringIRVarMap;
 typedef std::map<std::string, TStringIRVarMap> TStringStringIRVarMap;
-typedef std::vector<ir_variable*> TIRVarVector;
 typedef std::list<ir_variable*> TIRVarList;
 
 
