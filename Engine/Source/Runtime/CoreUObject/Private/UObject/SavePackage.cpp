@@ -2474,12 +2474,10 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
 
 		FText StatusMessage = FText::Format( NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args );
-		if ((SaveFlags & SAVE_FromAutosave))
-		{
-			Args.Add( TEXT("SavingFile"), StatusMessage );
-			StatusMessage = FText::Format( NSLOCTEXT("Core", "AutoSaving", "{SavingFile} (Press Escape to stop the AutoSave)"), Args );
-		}
-		
+
+		// Only allow the user to cancel only if we're autosaving
+		GWarn->EnableUserCancel((SaveFlags & SAVE_FromAutosave ? true : false));
+
 		//Force status update based on current file name and progress percent
 		GWarn->StatusForceUpdate( CurSaveStep, TotalSaveSteps, StatusMessage );
 		bool Success = true;

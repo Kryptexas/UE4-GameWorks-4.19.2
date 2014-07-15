@@ -17,34 +17,31 @@ class SSlowTaskWidget : public SBorder
 {
 public:
 	SLATE_BEGIN_ARGS( SSlowTaskWidget )	{ }
-		/** Called to when an asset is clicked */
-		SLATE_EVENT( FOnCancelClickedDelegate, OnCancelClickedDelegate )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
 	{
-		OnCancelClickedDelegate = InArgs._OnCancelClickedDelegate;
-
-		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding( 14.0f, 4.0f, 14.0f, 10.0f )
+		SBorder::Construct(SBorder::FArguments()
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			.VAlign(VAlign_Center)
 			[
-				SNew( STextBlock )
-					.Text( this, &SSlowTaskWidget::OnGetProgressText )
-					.ShadowOffset( FVector2D( 1.0f, 1.0f ) )
-			];
-
-		if ( OnCancelClickedDelegate.IsBound() )
-		{
-			VerticalBox->AddSlot()
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding( 14.0f, 4.0f, 14.0f, 10.0f )
+				[
+					SNew( STextBlock )
+						.Text( this, &SSlowTaskWidget::OnGetProgressText )
+						.ShadowOffset( FVector2D( 1.0f, 1.0f ) )
+				]
+				+SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding(10.0f, 7.0f)
 				[
 					SNew(SHorizontalBox)
 					+SHorizontalBox::Slot()
 					.Padding(5,0,0,0)
-					.FillWidth(0.8f)
+					.FillWidth(1.0f)
 					[
 						SNew(SProgressBar)
 						.Percent( this, &SSlowTaskWidget::GetProgressFraction )
@@ -57,31 +54,9 @@ public:
 						.Text( NSLOCTEXT("FeedbackContextProgress", "Cancel", "Cancel") )
 						.HAlign(EHorizontalAlignment::HAlign_Center)
 						.OnClicked(this, &SSlowTaskWidget::OnCancel)
+						.Visibility(this, &SSlowTaskWidget::GetCancelButtonVisibility)
 					]
-				];
-		}
-		else
-		{
-			VerticalBox->AddSlot()
-				.AutoHeight()
-				.Padding(10.0f, 7.0f)
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.Padding(5,0,0,0)
-					.FillWidth(1.0f)
-					[
-						SNew(SProgressBar)
-						.Percent( this, &SSlowTaskWidget::GetProgressFraction )
-					]
-				];
-		}
-
-		SBorder::Construct( SBorder::FArguments()
-			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-			.VAlign(VAlign_Center)
-			[
-				VerticalBox
+				]
 			]
 		);
 	}
@@ -106,12 +81,28 @@ public:
 		UpdateProgressText();
 	}
 	
+	void BindOnCancelDelegate(const FOnCancelClickedDelegate& InCancelClickedDelegate)
+	{
+		OnCancelClickedDelegate = InCancelClickedDelegate;
+	}
+
+	void UnbindOnCancelDelegate()
+	{
+		OnCancelClickedDelegate.Unbind();
+	}
+
+private:
+
 	FReply OnCancel()
 	{
 		OnCancelClickedDelegate.ExecuteIfBound();
 		return FReply::Handled();
 	}
-private:
+
+	EVisibility GetCancelButtonVisibility() const
+	{
+		return OnCancelClickedDelegate.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
 
 	TOptional<float> GetProgressFraction() const
 	{
@@ -232,13 +223,6 @@ void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgres
 
 		DialogRequestStack.Push( ( bProgressWindowShown ? 0 : bShowProgressDialog) );
 
-		FOnCancelClickedDelegate OnCancelClicked;
-		if ( bShowCancelButton )
-		{
-			// The cancel button is only displayed if a delegate is bound to it.
-			OnCancelClicked = FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel);
-		}
-
 		if(!bProgressWindowShown && bShowProgressDialog && ++DialogRequestCount == 1 )
 		{
 			if( !bProgressWindowShown && FSlateApplication::Get().CanDisplayWindows() )
@@ -248,9 +232,10 @@ void FFeedbackContextEditor::BeginSlowTask( const FText& Task, bool bShowProgres
 					.IsPopupWindow(true)
 					.ActivateWhenFirstShown(true);
 
-				SlowTaskWidget = SNew(SSlowTaskWidget)
-					.OnCancelClickedDelegate( OnCancelClicked );
+				SlowTaskWidget = SNew(SSlowTaskWidget);
 				SlowTaskWindowRef->SetContent( SlowTaskWidget.ToSharedRef() );
+
+				EnableUserCancel(bShowCancelButton);
 
 				SlowTaskWidget->SetProgressText( StatusMessage.StatusText );
 
@@ -273,6 +258,21 @@ bool FFeedbackContextEditor::ReceivedUserCancel( void )
 	const bool res = HasTaskBeenCancelled;
 	HasTaskBeenCancelled = false;
 	return res;
+}
+
+void FFeedbackContextEditor::EnableUserCancel( bool bUserCancel )
+{
+	if (SlowTaskWidget.IsValid())
+	{
+		if (!bUserCancel)
+		{
+			SlowTaskWidget->UnbindOnCancelDelegate();
+		}
+		else
+		{
+			SlowTaskWidget->BindOnCancelDelegate(FOnCancelClickedDelegate::CreateRaw(this, &FFeedbackContextEditor::OnUserCancel));
+		}
+	}
 }
 
 void FFeedbackContextEditor::OnUserCancel()
