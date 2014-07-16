@@ -221,7 +221,7 @@ void UAnimSequenceBase::SortNotifies()
  * Supports playing backwards (DeltaTime<0).
  * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
  */
-void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & DeltaTime, const float bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
+void UAnimSequenceBase::GetAnimNotifies(const float & StartTime, const float & DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const
 {
 	// Early out if we have no notifies
 	if( (Notifies.Num() == 0) || (DeltaTime == 0.f) )

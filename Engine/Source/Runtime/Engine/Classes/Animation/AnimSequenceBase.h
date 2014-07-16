@@ -308,7 +308,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	 * Supports playing backwards (DeltaTime<0).
 	 * Returns notifies between StartTime (exclusive) and StartTime+DeltaTime (inclusive)
 	 */
-	void GetAnimNotifies(const float & StartTime, const float & DeltaTime, const float bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
+	void GetAnimNotifies(const float & StartTime, const float & DeltaTime, const bool bAllowLooping, TArray<const FAnimNotifyEvent *> & OutActiveNotifies) const;
 
 	/** 
 	 * Retrieves AnimNotifies between two time positions. ]PreviousPosition, CurrentPosition]
