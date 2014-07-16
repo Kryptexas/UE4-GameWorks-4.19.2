@@ -1161,7 +1161,7 @@ namespace UnrealBuildTool
 				var UsageMapPCH = new Dictionary<string, List<FileItem>>( StringComparer.InvariantCultureIgnoreCase );
 
 				// Determine what potential precompiled header is used by each source file.
-				double SharedPCHTotalTime = 0.0;
+				double SharedPCHTime = 0.0;
 				foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 				{
 					
@@ -1235,7 +1235,7 @@ namespace UnrealBuildTool
 								Log.TraceVerbose("File {0} doesn't use a Shared PCH!", CPPFile.AbsolutePath);
 							}
 
-							SharedPCHTotalTime += ( DateTime.UtcNow - SharedPCHStartTime ).TotalSeconds;
+							SharedPCHTime += ( DateTime.UtcNow - SharedPCHStartTime ).TotalSeconds;
 						}
 						else
 						{
@@ -1243,6 +1243,7 @@ namespace UnrealBuildTool
 						}
 					}
 				}
+				TotalSharedPCHTime += SharedPCHTime;
 
 				if( BuildConfiguration.bPrintDebugInfo )
 				{
@@ -1439,8 +1440,10 @@ namespace UnrealBuildTool
 
 				if( BuildConfiguration.bPrintPerformanceInfo )
 				{
-					var TotalPCHTime = DateTime.UtcNow - PCHTimerStart;
-					Trace.TraceInformation( "PCH time for " + Name + " is " + TotalPCHTime.TotalSeconds + "s (shared PCHs: " + SharedPCHTotalTime + "s)" );
+					var PCHTime = ( DateTime.UtcNow - PCHTimerStart ).TotalSeconds;
+					Trace.TraceInformation( "PCH time for " + Name + " is " + PCHTime + "s (shared PCHs: " + SharedPCHTime + "s)" );
+
+					TotalPCHTime += PCHTime;
 				}
 			}
 
@@ -1714,6 +1717,13 @@ namespace UnrealBuildTool
 		public HashSet<FileItem> _PrivateUObjectHeaders = new HashSet<FileItem>();
 
 		private UHTModuleInfo? CachedModuleUHTInfo = null;
+
+		/// Total time spent figuring out which PCH to use for each module and source file
+		public static double TotalPCHTime = 0.0;
+
+		/// Total time spent processing which shared PCH headers are needed for each module and source file
+		public static double TotalSharedPCHTime = 0.0;
+
 
 		/// <summary>
 		/// If any of this module's source files contain UObject definitions, this will return those header files back to the caller
