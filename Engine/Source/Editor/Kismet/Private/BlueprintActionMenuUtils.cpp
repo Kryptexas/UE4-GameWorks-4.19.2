@@ -3,6 +3,7 @@
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuUtils.h"
 #include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionFilter.h"
 #include "K2Node_CallFunction.h"
 #include "K2Node_Event.h"
 
