@@ -48,4 +48,7 @@ public:
 
 	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
 	UBlueprintNodeSpawner* Action;
+
+	/** Brush that should be used for the icon on this menu item. */
+	FSlateBrush IconBrush;
 };

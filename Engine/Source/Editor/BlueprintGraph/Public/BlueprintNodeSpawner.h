@@ -114,6 +114,18 @@ public:
 	virtual FText GetDefaultSearchKeywords() const;
 
 	/**
+	 * To save on performance, certain sub-classes can pull icons info from
+	 * static data (like function metadata, etc.). This unfortunately doesn't
+	 * completely decouple these spawners from the ui we sought to separate
+	 * them from. Although, this can be thought of as a suggestion that the ui
+	 * building code is free to do with as it pleases (doesn't have to use it).
+	 *
+	 * @param  ColorOut		The color to tint the icon with.
+	 * @return Name of the brush to use (use FEditorStyle::GetBrush() to resolve).
+	 */
+	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut);
+
+	/**
 	 * Expects the supplied outer to be transient. Will spawn a new template-
 	 * node if the cached one is null, or if its graph outer doesn't match the
 	 * one specified here. Once a new node is spawned, this class will cache it

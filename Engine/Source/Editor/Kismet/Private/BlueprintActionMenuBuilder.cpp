@@ -122,6 +122,18 @@ protected:
 	FText GetSearchKeywordsForAction(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action);
 
 	/**
+	 * Attempts to pull a menu icon information from the supplied spawner. If
+	 * info isn't provided, then it spawns a temporary node and pulls data from 
+	 * that node.
+	 * 
+	 * @param  ItemOwner	The menu builder that the item will be listed from.
+	 * @param  Action		The action you want to suss icon information from.
+	 * @param  ColorOut		The color to tint the icon with.
+	 * @return Name of the brush to use (use FEditorStyle::GetBrush() to resolve).
+	 */
+	FName GetMenuIconForAction(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action, FLinearColor& ColorOut);
+
+	/**
 	 * Utility getter function that retrieves the blueprint context for the menu
 	 * items being made.
 	 * 
@@ -163,6 +175,17 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeMenuItem(F
 	NewMenuItem->TooltipDescription = GetTooltipForAction(ItemOwner, Action).ToString();
 	NewMenuItem->Category           = GetCategoryForAction(ItemOwner, Action).ToString();
 	NewMenuItem->Keywords           = GetSearchKeywordsForAction(ItemOwner, Action).ToString();
+
+	FLinearColor IconTint = FLinearColor::White;
+	FName IconBrushName = GetMenuIconForAction(ItemOwner, Action, IconTint);
+	if (FSlateBrush const* LibraryBrush = FEditorStyle::GetBrush(IconBrushName))
+	{
+		NewMenuItem->IconBrush = *LibraryBrush;
+		if (IconTint != FLinearColor::White)
+		{
+			NewMenuItem->IconBrush.TintColor = FSlateColor(IconTint);
+		}
+	}
 
 	if (NewMenuItem->Category.IsEmpty())
 	{
@@ -321,6 +344,20 @@ FText FBlueprintActionMenuItemFactory::GetSearchKeywordsForAction(FBlueprintActi
 	}
 	
 	return SearchKeywords;
+}
+
+//------------------------------------------------------------------------------
+FName FBlueprintActionMenuItemFactory::GetMenuIconForAction(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action, FLinearColor& ColorOut)
+{
+	FName BrushName = Action->GetDefaultMenuIcon(ColorOut);
+	if (BrushName.IsNone())
+	{
+		if (UEdGraphNode* NodeTemplate = Action->MakeTemplateNode(GetOwnerOfTemporaries(ItemOwner)))
+		{
+			BrushName = NodeTemplate->GetPaletteIcon(ColorOut);
+		}
+	}
+	return BrushName;
 }
 
 //------------------------------------------------------------------------------

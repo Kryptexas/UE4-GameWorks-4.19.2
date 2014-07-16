@@ -89,6 +89,16 @@ FText UBlueprintNodeSpawner::GetDefaultSearchKeywords() const
 }
 
 //------------------------------------------------------------------------------
+FName UBlueprintNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
+{
+	ColorOut = FLinearColor::White;
+	// DO NOT make a template node and query it here (the separate ui building
+	// code can do that if it likes)... this is meant to be an overridable
+	// alternative to that (for perf reasons)
+	return FName();
+}
+
+//------------------------------------------------------------------------------
 UEdGraphNode* UBlueprintNodeSpawner::MakeTemplateNode(UEdGraph* Outer) const
 {
 	check(Outer != nullptr);

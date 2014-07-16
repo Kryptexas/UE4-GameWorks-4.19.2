@@ -27,6 +27,8 @@
 #include "AnimationStateGraph.h"
 #include "AnimStateConduitNode.h"
 #include "AnimationTransitionGraph.h"
+#include "BlueprintActionMenuItem.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -354,6 +356,11 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	{
 		ToolTipOut = LOCTEXT("Comment_Tooltip", "Create a resizable comment box.").ToString();
 		BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Comment_16x"));
+	}
+	else if (ActionIn->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
+	{
+		FBlueprintActionMenuItem* NodeSpawnerAction = (FBlueprintActionMenuItem*)ActionIn.Get();
+		BrushOut = &NodeSpawnerAction->IconBrush;
 	}
 }
 
