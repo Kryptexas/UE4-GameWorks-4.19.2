@@ -448,14 +448,10 @@ public:
 	 */
 	void UnregisterSCSEditorCustomization(const FName& InComponentName);
 
-	/** 
-	 * Forces the merge tool to be shown, if no merge is possible, returns an empty widget:
-	 */
-	TSharedRef<SDockTab> CreateMergeToolTab(const FSpawnTabArgs&);
+	/** Forces the merge tool to be shown */
+	void CreateMergeToolTab();
 	
-	/** 
-	 * Closes the merge tool, rather than simply hiding it.
-	 */
+	/** Closes the merge tool, rather than simply hiding it */
 	void CloseMergeTool();
 
 	/** 

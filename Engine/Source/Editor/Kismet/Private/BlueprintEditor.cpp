@@ -79,8 +79,6 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
-const FName MergeToolTabId = FName(TEXT("MergeTool"));
-
 /////////////////////////////////////////////////////
 // FSelectionDetailsSummoner
 
@@ -1869,7 +1867,7 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
 
 	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
-		FExecuteAction::CreateStatic([] { FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId); } ),
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::CreateMergeToolTab),
 		FCanExecuteAction());
 }
 
@@ -4656,26 +4654,9 @@ void FBlueprintEditor::UnregisterSCSEditorCustomization(const FName& InComponent
 	SCSEditorCustomizations.Remove(InComponentName);
 }
 
-TSharedRef<SDockTab> FBlueprintEditor::CreateMergeToolTab(const FSpawnTabArgs&)
+void FBlueprintEditor::CreateMergeToolTab()
 {
-	/** 
-	 * This function has to handle three case:
-	 *	1. The merge tool is already created, return it
-	 *	2. The merge tool is being restored, if we have a pending merge display the merge tool, otherwise display an empty widget
-	 *  3. The merge tool is being invoked, display the merge tool 
-	 */
-	TSharedPtr<SDockTab> Ret = MergeTool.Pin();
-	if( !Ret.IsValid() )
-	{
-		Ret = SNew(SDockTab)
-			.Label(LOCTEXT("MergeTool_Title", "Merge Tool"))
-			[
-				IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this))
-			];
-		MergeTool = Ret;
-	}
-
-	return Ret.ToSharedRef();
+	MergeTool = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this));
 }
 
 void FBlueprintEditor::CloseMergeTool()
