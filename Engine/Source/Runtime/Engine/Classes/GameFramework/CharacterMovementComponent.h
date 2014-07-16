@@ -1110,8 +1110,14 @@ protected:
 	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
 
 	/**
-	 * Calculate slide on a slope. Has special treatment when falling, to avoid boosting up slopes.
+	 * Calculate slide vector along a surface.
+	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting in this case).
 	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
+	 * @param Delta:	Attempted move.
+	 * @param Time:		Amount of move to apply (between 0 and 1).
+	 * @param Normal:	Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
+	 * @param Hit:		HitResult of the move that resulted in the slide.
+	 * @return			New deflected vector of movement.
 	 */
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
@@ -1120,6 +1126,17 @@ protected:
 	 * Default implementation scales the Delta Z value by: 1 - (Abs(Normal.Z) * UpperImpactNormalScale), clamped to [0..1]
 	 */
 	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
+
+	/** 
+	 * Limit the slide vector when falling if the resulting slide might boost the character faster upwards.
+	 * @param SlideResult:	Vector of movement for the slide (usually the result of ComputeSlideVector)
+	 * @param Delta:		Original attempted move
+	 * @param Time:			Amount of move to apply (between 0 and 1).
+	 * @param Normal:		Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
+	 * @param Hit:			HitResult of the move that resulted in the slide.
+	 * @return:				New slide result.
+	 */
+	virtual FVector HandleSlopeBoosting(const FVector& SlideResult, const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const;
 
 	/** Slows towards stop. */
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration);

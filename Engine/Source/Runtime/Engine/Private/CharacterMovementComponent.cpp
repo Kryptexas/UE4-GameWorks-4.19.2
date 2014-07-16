@@ -1900,6 +1900,19 @@ FVector UCharacterMovementComponent::ComputeSlideVector(const FVector& InDelta, 
 	// prevent boosting up slopes
 	if ( bFalling && Result.Z > 0.f )
 	{
+		Result = HandleSlopeBoosting(Result, Delta, Time, Normal, Hit);
+	}
+
+	return Result;
+}
+
+
+FVector UCharacterMovementComponent::HandleSlopeBoosting(const FVector& SlideResult, const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const
+{
+	FVector Result = SlideResult;
+
+	if (Result.Z > 0.f)
+	{
 		if (Delta.Z < 0.f && (Hit.ImpactNormal.Z < MAX_STEP_SIDE_Z))
 		{
 			// We were moving downward, but a slide was going to send us upward. We want to aim
@@ -1908,12 +1921,26 @@ FVector UCharacterMovementComponent::ComputeSlideVector(const FVector& InDelta, 
 		}
 		else
 		{
-			Result.Z = FMath::Min(Result.Z, Delta.Z * Time);
+			// Don't move any higher than we originally intended.
+			const float ZLimit = Delta.Z * Time;
+			if (Result.Z - ZLimit > KINDA_SMALL_NUMBER && ZLimit > KINDA_SMALL_NUMBER)
+			{
+				// Rescale the entire vector (not just the Z component) otherwise we change the direction and likely head right back into the impact.
+				const float UpPercent = ZLimit / Result.Z;
+				Result *= UpPercent;
+
+				// Make remaining portion of original result horizontal and parallel to impact normal.
+				const FVector RemainderXY = (SlideResult - Result) * FVector(1.f, 1.f, 0.f);
+				const FVector NormalXY = Normal.SafeNormal2D();
+				const FVector Adjust = Super::ComputeSlideVector(RemainderXY, 1.f, NormalXY, Hit);
+				Result += Adjust;
+			}
 		}
 	}
 
 	return Result;
 }
+
 
 FVector UCharacterMovementComponent::AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const
 {
@@ -2805,7 +2832,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			}
 			else
 			{
-				HandleImpact(Hit, deltaTime, Adjusted);
+				HandleImpact(Hit, timeTick, Adjusted);
 				
 				if (Acceleration.SizeSquared2D() > 0.f)
 				{
@@ -2816,9 +2843,10 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 					}
 				}
 
+				const float FirstHitPercent = Hit.Time;
 				const FVector OldHitNormal = Hit.Normal;
 				const FVector OldHitImpactNormal = Hit.ImpactNormal;
-				FVector Delta = ComputeSlideVector(Adjusted, 1.f - Hit.Time, OldHitNormal, Hit);
+				FVector Delta = ComputeSlideVector(Adjusted, 1.f - FirstHitPercent, OldHitNormal, Hit);
 
 				if ((Delta | Adjusted) > 0.f)
 				{
@@ -2832,7 +2860,8 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 							return;
 						}
 
-						HandleImpact(Hit, timeTick, Delta);
+						const float SecondHitPercentOfTotal = (Hit.Time * (1.f - FirstHitPercent));
+						HandleImpact(Hit, timeTick * SecondHitPercentOfTotal, Delta);
 
 						// If we've changed physics mode, abort.
 						if (!HasValidData() || !IsFalling())
@@ -2840,7 +2869,12 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 							return;
 						}
 
+						const FVector PreTwoWallDelta = Delta;
 						TwoWallAdjust(Delta, Hit, OldHitNormal);
+						if (Delta.Z > 0.f)
+						{
+							HandleSlopeBoosting(Delta, PreTwoWallDelta, 1.f - Hit.Time, Hit.Normal, Hit);
+						}
 
 						// bDitch=true means that pawn is straddling two slopes, neither of which he can stand on
 						bool bDitch = ( (OldHitImpactNormal.Z > 0.f) && (Hit.ImpactNormal.Z > 0.f) && (FMath::Abs(Delta.Z) <= KINDA_SMALL_NUMBER) && ((Hit.ImpactNormal | OldHitImpactNormal) < 0.f) );
