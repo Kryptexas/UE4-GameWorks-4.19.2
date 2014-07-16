@@ -884,7 +884,7 @@ public:
 	/** Applies repulsion force to all touched components */
 	void ApplyRepulsionForce(float DeltaTime);
 	
-	/** Applies momentum accumulated through Addmomentum() */
+	/** Applies momentum accumulated through AddImpulse()/AddForce() */
 	void ApplyAccumulatedForces(float DeltaSeconds);	
 
 	/** 
