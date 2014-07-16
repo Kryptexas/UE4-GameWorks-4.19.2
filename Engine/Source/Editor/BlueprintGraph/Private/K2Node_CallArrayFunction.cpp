@@ -38,7 +38,13 @@ void UK2Node_CallArrayFunction::AllocateDefaultPins()
 
 void UK2Node_CallArrayFunction::PostReconstructNode()
 {
-	PinConnectionListChanged( GetTargetArrayPin() );
+	for (UEdGraphPin* Pin : Pins)
+	{
+		if (Pin->LinkedTo.Num() > 0)
+		{
+			PinConnectionListChanged(Pin);
+		}
+	}
 }
 
 void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
