@@ -111,6 +111,21 @@ FText UBlueprintPropertyNodeSpawner::GetDefaultMenuCategory() const
 }
 
 //------------------------------------------------------------------------------
+FName UBlueprintPropertyNodeSpawner::GetDefaultMenuIcon(FLinearColor& ColorOut)
+{
+	FName BrushName = Super::GetDefaultMenuIcon(ColorOut);
+	if (NodeClass == nullptr)
+	{
+		if (IsDelegateProperty())
+		{
+			BrushName = TEXT("GraphEditor.Delegate_16x");
+		}
+	}
+
+	return BrushName;
+}
+
+//------------------------------------------------------------------------------
 UProperty const* UBlueprintPropertyNodeSpawner::GetProperty() const
 {
 	return Property;

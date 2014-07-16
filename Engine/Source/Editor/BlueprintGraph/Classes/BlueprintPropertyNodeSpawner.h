@@ -33,6 +33,7 @@ public:
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
 	virtual FText GetDefaultMenuName() const override;
 	virtual FText GetDefaultMenuCategory() const override;
+	virtual FName GetDefaultMenuIcon(FLinearColor& ColorOut) override;
 	// End UBlueprintNodeSpawner interface
 
 	/**

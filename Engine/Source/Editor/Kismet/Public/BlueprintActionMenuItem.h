@@ -4,11 +4,13 @@
 
 #include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
 #include "BlueprintEditor.h"       // for FNodeCreationAnalytic
+#include "SlateColor.h"
 #include "BlueprintActionMenuItem.generated.h"
 
 // Forward declarations
 class UBlueprintNodeSpawner;
 class FDragDropOperation;
+struct FSlateBrush;
 
 /**
  * Wrapper around a UBlueprintNodeSpawner, which takes care of specialized
@@ -25,8 +27,8 @@ public:
 	static FString StaticGetTypeId() { static FString const TypeId = TEXT("FBlueprintActionMenuItem"); return TypeId; }
 	
 	/** Constructors */
-	FBlueprintActionMenuItem() : Action(nullptr) {}
-	FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, int32 MenuGrouping = 0);
+	FBlueprintActionMenuItem() : Action(nullptr), IconBrush(nullptr), IconTint(FLinearColor::White) {}
+	FBlueprintActionMenuItem(UBlueprintNodeSpawner* NodeSpawner, FSlateBrush const* MenuIcon, FSlateColor const& IconTint, int32 MenuGrouping = 0);
 	
 	// FEdGraphSchemaAction interface
 	virtual FString       GetTypeId() const final { return StaticGetTypeId(); }
@@ -34,6 +36,12 @@ public:
 	virtual UEdGraphNode* PerformAction(UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, FVector2D const Location, bool bSelectNewNode = true) final;
 	virtual void          AddReferencedObjects(FReferenceCollector& Collector) final;
 	// End FEdGraphSchemaAction interface
+
+	/**
+	 * Retrieves the icon brush for this menu entry.
+	 * @return An slate brush to be used for this menu item in the action menu.
+	 */
+	FSlateBrush const* GetMenuIcon(FSlateColor& ColorOut);
 
 	/**
 	 * Attempts to create a specific drag/drop action for this menu entry 
@@ -47,8 +55,11 @@ public:
 	TSharedPtr<FDragDropOperation> OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const;
 
 	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
-	UBlueprintNodeSpawner* Action;
+	UBlueprintNodeSpawner const* Action;
 
+private:
 	/** Brush that should be used for the icon on this menu item. */
-	FSlateBrush IconBrush;
+	FSlateBrush const* IconBrush;
+	/** Tint to return along with the icon brush. */
+	FSlateColor IconTint;
 };

@@ -360,7 +360,7 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	else if (ActionIn->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
 	{
 		FBlueprintActionMenuItem* NodeSpawnerAction = (FBlueprintActionMenuItem*)ActionIn.Get();
-		BrushOut = &NodeSpawnerAction->IconBrush;
+		BrushOut = NodeSpawnerAction->GetMenuIcon(ColorOut);
 	}
 }
 

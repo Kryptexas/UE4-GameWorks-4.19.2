@@ -78,6 +78,11 @@ public:
 	 * @return True if the supplied node-spawner is a proxy, false otherwise.
 	 */
 	bool IsProxy(UBlueprintPropertyNodeSpawner* PropertyNodeSpawner) const;
+
+	/**
+	 * Clears out all the proxy items that this spawned (and tracked).
+	 */
+	void Empty();
 	
 protected:
 	/**
@@ -169,23 +174,15 @@ FBlueprintActionMenuItemFactory::FBlueprintActionMenuItemFactory(FBlueprintActio
 //------------------------------------------------------------------------------
 TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeMenuItem(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action)
 {
-	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, MenuGrouping);
+	FLinearColor IconTint = FLinearColor::White;
+	FName IconBrushName = GetMenuIconForAction(ItemOwner, Action, IconTint);
+
+	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, FEditorStyle::GetBrush(IconBrushName), IconTint, MenuGrouping);
 	
 	NewMenuItem->MenuDescription    = GetMenuNameForAction(ItemOwner, Action);
 	NewMenuItem->TooltipDescription = GetTooltipForAction(ItemOwner, Action).ToString();
 	NewMenuItem->Category           = GetCategoryForAction(ItemOwner, Action).ToString();
 	NewMenuItem->Keywords           = GetSearchKeywordsForAction(ItemOwner, Action).ToString();
-
-	FLinearColor IconTint = FLinearColor::White;
-	FName IconBrushName = GetMenuIconForAction(ItemOwner, Action, IconTint);
-	if (FSlateBrush const* LibraryBrush = FEditorStyle::GetBrush(IconBrushName))
-	{
-		NewMenuItem->IconBrush = *LibraryBrush;
-		if (IconTint != FLinearColor::White)
-		{
-			NewMenuItem->IconBrush.TintColor = FSlateColor(IconTint);
-		}
-	}
 
 	if (NewMenuItem->Category.IsEmpty())
 	{
@@ -240,6 +237,12 @@ bool FBlueprintActionMenuItemFactory::IsProxy(UBlueprintPropertyNodeSpawner* Nod
 	check(!bIsProxy || (NodeSpawner->NodeClass == nullptr));
 	
 	return bIsProxy;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuItemFactory::Empty()
+{
+	PropertyProxyMap.Empty();
 }
 
 //------------------------------------------------------------------------------
@@ -430,6 +433,11 @@ namespace FBlueprintActionMenuBuilderImpl
 		 */
 		TSharedPtr<FEdGraphSchemaAction> MakeMenuItem(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action);
 		
+		/**
+		 * Clears out any intermediate UBlueprintNodeSpawner actions that this
+		 * instantiated.
+		 */
+		void Empty();
 		
 		/** Series of ESectionFlags, aimed at customizing how we construct this menu section */
 		uint32 Flags;
@@ -507,6 +515,12 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDe
 		MenuEntry = ItemFactory.MakeMenuItem(ItemOwner, Action);
 	}
 	return MenuEntry;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::Empty()
+{
+	ItemFactory.Empty();
 }
 
 //------------------------------------------------------------------------------
@@ -613,6 +627,12 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	using namespace FBlueprintActionMenuBuilderImpl;
 
 	FGraphActionListBuilderBase::Empty();
+	for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
+	{
+		// clear out intermediate actions that may have been spawned (like 
+		// consolidated property actions).
+		MenuSection->Empty();
+	}
 	
 	if (!GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
 	{
