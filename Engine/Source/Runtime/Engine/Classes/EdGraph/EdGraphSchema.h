@@ -312,7 +312,7 @@ public:
 	ENGINE_API ActionGroup& GetAction( int32 Index );
 
 	/** Clears the action entries */
-	ENGINE_API void Empty();
+	ENGINE_API virtual void Empty();
 
 	// The temporary graph outer to store any template nodes created
 	UEdGraph* OwnerOfTemporaries;
