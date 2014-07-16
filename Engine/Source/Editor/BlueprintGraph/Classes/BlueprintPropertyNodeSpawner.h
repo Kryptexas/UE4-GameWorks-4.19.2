@@ -12,7 +12,7 @@
  * FEdGraphSchemaAction_K2Var, FEdGraphSchemaAction_K2Delegate, etc.
  */
 UCLASS(Transient)
-class UBlueprintPropertyNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintPropertyNodeSpawner : public UBlueprintNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -26,7 +26,7 @@ public:
 	 * @param  NodeClass	The type of node you want spawned (can't distinct a getter from a setter from the property alone).
 	 * @return A newly allocated instance of this class.
 	 */
-	BLUEPRINTGRAPH_API static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UClass* const NodeClass = nullptr);
+	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UClass* const NodeClass = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
@@ -39,14 +39,14 @@ public:
 	 *
 	 * @return The property that this class was initialized with.
 	 */
-	BLUEPRINTGRAPH_API UProperty const* GetProperty() const;
+	UProperty const* GetProperty() const;
 
 	/**
 	 * Checks to see if the associated property is a delegate property.
 	 *
 	 * @return True if the property is a UMulticastDelegateProperty (otherwise false).
 	 */
-	BLUEPRINTGRAPH_API bool IsDelegateProperty() const;
+	bool IsDelegateProperty() const;
 	
 private:
 	/** The property to configure new nodes with. */

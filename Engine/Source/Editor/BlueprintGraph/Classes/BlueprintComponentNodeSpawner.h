@@ -14,7 +14,7 @@ class UActorComponent;
  * FEdGraphSchemaAction_K2AddComponent.
  */
 UCLASS(Transient)
-class UBlueprintComponentNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintComponentNodeSpawner : public UBlueprintNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 

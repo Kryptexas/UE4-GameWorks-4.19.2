@@ -15,7 +15,7 @@ class UK2Node_Event;
  * FEdGraphSchemaAction_K2ViewNode.
  */
 UCLASS(Transient)
-class UBlueprintEventNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintEventNodeSpawner : public UBlueprintNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -28,7 +28,7 @@ public:
 	 * @param  EventFunc	The function you want assigned to new nodes.
 	 * @return A newly allocated instance of this class.
 	 */
-	BLUEPRINTGRAPH_API static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc);
+	static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc);
 
 	/**
 	 * Creates a new UBlueprintEventNodeSpawner for custom events. The 
@@ -39,7 +39,7 @@ public:
 	 * @param  CustomEventName	The name you want assigned to the event.
 	 * @return A newly allocated instance of this class.
 	 */
-	BLUEPRINTGRAPH_API static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName);
+	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

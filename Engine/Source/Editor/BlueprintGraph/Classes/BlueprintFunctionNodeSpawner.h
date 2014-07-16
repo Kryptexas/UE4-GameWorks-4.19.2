@@ -10,7 +10,7 @@
  * "action" portion of certain FBlueprintActionMenuItems. 
  */
 UCLASS(Transient)
-class UBlueprintFunctionNodeSpawner : public UBlueprintNodeSpawner
+class BLUEPRINTGRAPH_API UBlueprintFunctionNodeSpawner : public UBlueprintNodeSpawner
 {
 	GENERATED_UCLASS_BODY()
 
@@ -23,7 +23,7 @@ public:
 	 * @param  Function		The function you want assigned to new nodes.
 	 * @return A newly allocated instance of this class.
 	 */
-	BLUEPRINTGRAPH_API static UBlueprintFunctionNodeSpawner* Create(UFunction const* const Function);
+	static UBlueprintFunctionNodeSpawner* Create(UFunction const* const Function);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

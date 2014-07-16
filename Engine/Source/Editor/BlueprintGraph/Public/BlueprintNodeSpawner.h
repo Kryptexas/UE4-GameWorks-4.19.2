@@ -19,7 +19,7 @@ class UEdGraphNode;
  * these "actions".
  */
 UCLASS(Transient)
-class UBlueprintNodeSpawner : public UObject
+class BLUEPRINTGRAPH_API UBlueprintNodeSpawner : public UObject
 {
 	GENERATED_UCLASS_BODY()
 	DECLARE_DELEGATE_TwoParams(FCustomizeNodeDelegate, UEdGraphNode*, bool);
@@ -34,7 +34,7 @@ public:
 	 * @param  CustomizeNodeDelegate    A delegate to perform specialized node setup post-spawn.
 	 * @return A newly allocated instance of this class.
 	 */
-	BLUEPRINTGRAPH_API static UBlueprintNodeSpawner* Create(UClass* const NodeClass, FCustomizeNodeDelegate CustomizeNodeDelegate = FCustomizeNodeDelegate());
+	static UBlueprintNodeSpawner* Create(UClass* const NodeClass, FCustomizeNodeDelegate CustomizeNodeDelegate = FCustomizeNodeDelegate());
 	
 	/**
 	 * Holds the class of node to spawn. May be null for sub-classes that know
