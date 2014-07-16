@@ -490,6 +490,8 @@ void FBlueprintActionMenuBuilderImpl::AppendLegacyItems(FMenuSectionDefinition c
 		}
 		
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
+		// not the best way to poll for Selected properties, but since this
+		// function is only temporary until we switch over to the new system...
 		FBlueprintEditor* EditorInst = (FBlueprintEditor*)FAssetEditorManager::Get().FindEditorForAsset(Blueprint, /*bFocusIfOpen =*/false);
 		
 		bool bIsContextSensitive = true;

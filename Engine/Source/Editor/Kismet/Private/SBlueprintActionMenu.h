@@ -3,7 +3,8 @@
 
 #pragma once
 
-class SGraphActionMenu;
+class  SGraphActionMenu;
+struct FBlueprintActionContext;
 
 /*******************************************************************************
 * SBlueprintActionMenu
@@ -50,7 +51,7 @@ protected:
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 
 	/** Functioin to try to insert a promote to variable entry if it is possible to do so. */
-	void TryInsertPromoteToVariable(UEdGraphPin const* ContextPin, FGraphActionListBuilderBase& OutAllActions);
+	void TryInsertPromoteToVariable(FBlueprintActionContext const& Context, FGraphActionListBuilderBase& OutAllActions);
 
 private:
 	UEdGraph* GraphObj;

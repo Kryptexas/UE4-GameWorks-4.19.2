@@ -16,13 +16,10 @@
 #include "AssetSelection.h"
 #include "K2Node_CustomEvent.h"
 #include "ScopedTimers.h"
-
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintActionDatabase.h"
-#include "K2Node_CallFunction.h"
-#include "K2Node_Event.h"
-#include "K2Node_Variable.h"
+#include "BlueprintActionMenuUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -985,17 +982,17 @@ static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteLis
 	}
 	else
 	{
-		FBlueprintActionFilter ActionFilter;
-		ActionFilter.Context.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
-		ActionFilter.ExcludedNodeTypes.Add(UK2Node_Variable::StaticClass());
-
-		// prime the database so it's not recorded in our timing capture
-		FBlueprintActionDatabase::Prime(); 
-
-		FDurationTimer DurationTimer(MenuBuildDuration);
-		FBlueprintActionMenuBuilder MenuBuilder(ActionFilter, /*bAutoBuild =*/true);
-		DurationTimer.Stop();
-
+		FBlueprintActionContext FilterContext;
+		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
+		
+		FBlueprintActionMenuBuilder MenuBuilder;
+		{
+			// prime the database so it's not recorded in our timing capture
+			FBlueprintActionDatabase::Prime();
+			
+			FScopedDurationTimer DurationTimer(MenuBuildDuration);
+			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
+		}
 		PaletteBuilder.Append(MenuBuilder);
 	}
 
@@ -1054,7 +1051,7 @@ static void DumpBlueprintInfoUtils::DumpPalette(uint32 Indent, UBlueprint* Bluep
 	}
 	else
 	{
-		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint);
+		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, TEXT("Library"));
 		double MenuBuildDuration = GetPaletteMenuActions(PaletteBuilder, ClassFilter);
 
 		BeginPaletteEntry += NestedIndent + "\"FilterClass\" : \"" + FilterClassName + "\",\n";
@@ -1525,45 +1522,31 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 	}
 	else
 	{
-		UBlueprint* Blueprint = const_cast<UBlueprint*>(ActionBuilder.Blueprint);
-		
-		FBlueprintActionFilter MenuFilter;
-		MenuFilter.Context.Blueprints.Add(Blueprint);
-		MenuFilter.Context.Graphs.Add(const_cast<UEdGraph*>(ActionBuilder.CurrentGraph));
+		FBlueprintActionContext FilterContext;
+		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(ActionBuilder.Blueprint));
+		FilterContext.Graphs.Add(const_cast<UEdGraph*>(ActionBuilder.CurrentGraph));
 		
 		if (ActionBuilder.FromPin != nullptr)
 		{
-			MenuFilter.Context.Pins.Add(const_cast<UEdGraphPin*>(ActionBuilder.FromPin));
+			FilterContext.Pins.Add(const_cast<UEdGraphPin*>(ActionBuilder.FromPin));
+		}
+		
+		TArray<UProperty*> SelectedProperties;
+		for (UObject* SelectedObj : ActionBuilder.SelectedObjects)
+		{
+			if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
+			{
+				SelectedProperties.Add(SelectedProperty);
+			}
 		}
 		
 		FBlueprintActionMenuBuilder MenuBuilder;
-		for (UObject* SelectedObj : ActionBuilder.SelectedObjects)
 		{
-			if (UObjectProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
-			{
-				MenuFilter.OwnerClasses.Add(SelectedProperty->PropertyClass);
-				FText const PropertyName = FText::FromName(SelectedProperty->GetFName());
-				
-				MenuFilter.NodeTypes.Add(UK2Node_CallFunction::StaticClass());
-				FText const FuncSectionName = FText::Format(NSLOCTEXT("DumpBpInfo", "ComponentFuncSection", "Call Function on {0}"), PropertyName);
-				MenuBuilder.AddMenuSection(MenuFilter, FuncSectionName);
-				
-				MenuFilter.NodeTypes[0] = UK2Node_Event::StaticClass();
-				FText const EventSectionName = FText::Format(NSLOCTEXT("DumpBpInfo", "ComponentEventSection", "Add Event for {0}"), PropertyName);
-				MenuBuilder.AddMenuSection(MenuFilter, EventSectionName);
-				
-				MenuFilter.NodeTypes.Empty();
-				MenuFilter.OwnerClasses.Empty();
-			}
-		}
-		MenuFilter.OwnerClasses.Add(Blueprint->GeneratedClass);
-		MenuBuilder.AddMenuSection(MenuFilter);
-
-		// prime the database so it's not recorded in our timing capture
-		FBlueprintActionDatabase::Prime();
-		{
+			// prime the database so it's not recorded in our timing capture
+			FBlueprintActionDatabase::Prime();
+			
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			MenuBuilder.RebuildActionList();
+			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
 		}
 		ActionBuilder.Append(MenuBuilder);
 	}
