@@ -199,7 +199,7 @@ bool ACharacter::CanJump() const
 
 bool ACharacter::CanJumpInternal_Implementation() const
 {
-	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumping();
+	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumpProvidingForce();
 
 	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
 }
@@ -208,7 +208,7 @@ void ACharacter::OnJumped_Implementation()
 {
 }
 
-bool ACharacter::IsJumping() const
+bool ACharacter::IsJumpProvidingForce() const
 {
 	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
@@ -769,7 +769,7 @@ void ACharacter::CheckJumpInput(float DeltaTime)
 	const bool bWasJumping = bPressedJump && JumpKeyHoldTime > 0.0f;
 	if (bPressedJump)
 	{
-		// Incrememnt our timer first so calls to IsJumping() will return true
+		// Increment our timer first so calls to IsJumpProvidingForce() will return true
 		JumpKeyHoldTime += DeltaTime;
 		const bool bDidJump = DoJump(bClientUpdating);
 		if(!bWasJumping && bDidJump)

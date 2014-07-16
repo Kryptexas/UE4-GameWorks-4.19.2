@@ -402,9 +402,12 @@ protected:
 
 public:
 
-	/** True if currently jumping; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime */
+	/** True if jump is actively providing a force; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
-	virtual bool IsJumping() const;
+	virtual bool IsJumpProvidingForce() const;
+
+	DEPRECATED(4.4, "IsJumping() has been renamed IsJumpProvidingForce().")
+	virtual bool IsJumping() const { return IsJumpProvidingForce(); }
 
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
