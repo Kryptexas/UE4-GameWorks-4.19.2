@@ -51,6 +51,6 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 	BLUEPRINTGRAPH_API static bool IsWildcardProperty(UFunction* InArrayFunction, const UProperty* InProperty);
 
 	void GetArrayTypeDependentPins(TArray<UEdGraphPin*>& OutPins) const;
-	void PropagateArrayTypeInfo();
+	void PropagateArrayTypeInfo(const UEdGraphPin* SourcePin);
 };
 
