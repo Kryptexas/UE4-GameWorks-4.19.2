@@ -234,11 +234,7 @@ static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClas
 						VariableNode->VariableReference.SetExternalMember(NewVarName, NodeRefClass);
 					}
 
-					if(UEdGraphPin* const Pin = VariableNode->FindPin(OldVarName.ToString()))
-					{
-						Pin->Modify();
-						Pin->PinName = NewVarName.ToString();
-					}
+					VariableNode->RenameUserDefinedPin(OldVarName.ToString(), NewVarName.ToString());
 				}
 				continue;
 			}
