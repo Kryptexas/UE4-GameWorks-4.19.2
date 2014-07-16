@@ -6172,7 +6172,7 @@ bool UBlueprintFactory::ConfigureProperties()
 	Options.bShowUnloadedBlueprints = true;
 
 	// Enable Class Dynamic Loading
-	Options.bEnableClassDynamicLoading = false;
+	Options.bEnableClassDynamicLoading = true;
 
 	// Prevent creating blueprints of classes that require special setup (they'll be allowed in the corresponding factories / via other means)
 	TSharedPtr<FBlueprintParentFilter> Filter = MakeShareable(new FBlueprintParentFilter);

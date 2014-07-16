@@ -2298,7 +2298,7 @@ void SClassViewer::OnClassViewerExpansionChanged(TSharedPtr<FClassViewerNode> It
 		return;
 	}
 
-	ExpansionStateMap.Add(Item->GetClassName(), bExpanded);
+	ExpansionStateMap.Add(*(Item->GetClassName()), bExpanded);
 }
 
 TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
@@ -2422,7 +2422,7 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 	}
 
 	// Expand the item if needed.
-	bool* bIsExpanded = ExpansionStateMap.Find( Item->GetClassName() );
+	bool* bIsExpanded = ExpansionStateMap.Find( *(Item->GetClassName()) );
 	if( bIsExpanded && *bIsExpanded )
 	{
 		bPendingSetExpansionStates = true;
@@ -2445,7 +2445,7 @@ void SClassViewer::ExpandRootNodes()
 {
 	for (int32 NodeIdx = 0; NodeIdx < RootTreeItems.Num(); ++NodeIdx)
 	{
-		ExpansionStateMap.Add(RootTreeItems[NodeIdx]->GetClassName(), true);
+		ExpansionStateMap.Add(*(RootTreeItems[NodeIdx]->GetClassName()), true);
 		ClassTree->SetItemExpansion(RootTreeItems[NodeIdx], true);
 	}
 }
@@ -2712,7 +2712,7 @@ bool SClassViewer::ExpandFilteredInNodes(TSharedPtr<FClassViewerNode> InNode)
 
 void SClassViewer::MapExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem )
 {
-	ExpansionStateMap.Add( InItem->GetClassName(), ClassTree->IsItemExpanded( InItem ) );
+	ExpansionStateMap.Add( *(InItem->GetClassName()), ClassTree->IsItemExpanded( InItem ) );
 
 	// Map out all the children, this will be done recursively.
 	for( int32 ChildIdx(0); ChildIdx < InItem->GetChildrenList().Num(); ++ChildIdx )
@@ -2723,7 +2723,7 @@ void SClassViewer::MapExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem
 
 void SClassViewer::SetExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem )
 {
-	bool* bIsExpanded = ExpansionStateMap.Find( InItem->GetClassName() );
+	bool* bIsExpanded = ExpansionStateMap.Find( *(InItem->GetClassName()) );
 	if( bIsExpanded )
 	{
 		ClassTree->SetItemExpansion( InItem, *bIsExpanded );
@@ -2754,7 +2754,7 @@ void SClassViewer::Populate()
 			for( int32 ChildIdx(0); ChildIdx < RootTreeItems.Num(); ++ChildIdx )
 			{
 				// Check if the item is actually expanded or if it's only expanded because it is root level.
-				bool* bIsExpanded = ExpansionStateMap.Find( RootTreeItems[ChildIdx]->GetClassName() );
+				bool* bIsExpanded = ExpansionStateMap.Find( *(RootTreeItems[ChildIdx]->GetClassName()) );
 				if(bIsExpanded && !*bIsExpanded || !bIsExpanded)
 				{
 					ClassTree->SetItemExpansion( RootTreeItems[ChildIdx], false );

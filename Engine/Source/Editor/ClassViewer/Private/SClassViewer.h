@@ -208,7 +208,7 @@ private:
 	bool bSaveExpansionStates;
 
 	/** The map holding the expansion state map for the tree. */
-	TMap< TSharedPtr< FString >, bool > ExpansionStateMap;
+	TMap< FString, bool > ExpansionStateMap;
 
 	/** True if the Class Viewer needs to be repopulated at the next appropriate opportunity, occurs whenever classes are added, removed, renamed, etc. */
 	bool bNeedsRefresh;
