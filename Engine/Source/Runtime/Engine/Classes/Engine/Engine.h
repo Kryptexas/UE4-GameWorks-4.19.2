@@ -1097,6 +1097,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
 	float AsyncLoadingTimeLimit;
 
+	/** Whether to use the entire time limit even if blocked on I/O */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	uint32 bAsyncLoadingUseFullTimeLimit:1;
+	
 	/** Additional time to spend asynchronous loading during a "high priority" load */
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
 	float PriorityAsyncLoadingExtraTime;

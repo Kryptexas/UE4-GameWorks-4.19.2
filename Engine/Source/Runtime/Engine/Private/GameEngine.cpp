@@ -370,6 +370,7 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	AsyncLoadingTimeLimit = 5.0f;
+	bAsyncLoadingUseFullTimeLimit = true;
 	PriorityAsyncLoadingExtraTime = 20.0f;
 
 	C_WorldBox = FColor(0, 0, 40, 255);
@@ -863,7 +864,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
-		StaticTick(DeltaSeconds, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// -----------------------------------------------------

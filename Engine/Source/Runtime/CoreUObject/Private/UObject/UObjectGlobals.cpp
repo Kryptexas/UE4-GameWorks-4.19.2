@@ -279,14 +279,15 @@ void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, 
  * @todo: Move stats code into core?
  *
  * @param DeltaTime	Time in seconds since last call
+ * @param bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param AsyncLoadingTime Time in seconds to use for async loading limit
  */
-void StaticTick( float DeltaTime, float AsyncLoadingTime )
+void StaticTick( float DeltaTime, bool bUseFullTimeLimit, float AsyncLoadingTime )
 {
 	check(!IsLoading());
 
 	// Spend a bit of time (pre)loading packages - currently 5 ms.
-	ProcessAsyncLoading(true, false, AsyncLoadingTime);
+	ProcessAsyncLoading(true, bUseFullTimeLimit, AsyncLoadingTime);
 
 	// Check natives.
 	extern int32 GNativeDuplicate;
