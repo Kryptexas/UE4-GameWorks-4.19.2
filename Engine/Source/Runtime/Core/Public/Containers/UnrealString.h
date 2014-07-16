@@ -464,7 +464,7 @@ public:
 		}
 		else
 		{
-			Data.Insert(Characters.Data, Index);
+			Data.Insert(Characters.Data.GetData(), Characters.Len(), Index);
 		}
 	}
 
