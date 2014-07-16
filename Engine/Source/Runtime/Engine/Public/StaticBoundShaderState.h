@@ -80,7 +80,7 @@ FORCEINLINE void SetGlobalBoundShaderState(
 	FShader* GeometryShader = nullptr
 	)
 {
-	RHICmdList.BuildAndSetGlobalBoundShaderState(&SetGlobalBoundShaderState_Internal, BoundShaderState, VertexDeclaration, VertexShader, PixelShader, GeometryShader);
+	RHICmdList.BuildAndSetGlobalBoundShaderState(BoundShaderState, VertexDeclaration, VertexShader, PixelShader, GeometryShader);
 }
 
 #endif

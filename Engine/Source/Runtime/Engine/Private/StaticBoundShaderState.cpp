@@ -7,8 +7,23 @@
 #include "EnginePrivate.h"
 #include "StaticBoundShaderState.h"
 
+static struct FStartupSetBSSPtr
+{
+	int DontDeadStripMeInt;
+	FStartupSetBSSPtr()
+	{
+		DontDeadStripMeInt = 0;
+		SetGlobalBoundShaderState_InternalPtr = &SetGlobalBoundShaderState_Internal;
+	}
+	void DontDeadStripMe()
+	{
+		DontDeadStripMeInt++;
+	}
+} StartupSetBSSPtr;
+
 TLinkedList<FGlobalBoundShaderStateResource*>*& FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()
 {
+	StartupSetBSSPtr.DontDeadStripMe();
 	static TLinkedList<FGlobalBoundShaderStateResource*>* List = NULL;
 	return List;
 }
@@ -115,3 +130,5 @@ void SetGlobalBoundShaderState_Internal(FGlobalBoundShaderState& GlobalBoundShad
 			(FGeometryShaderRHIParamRef)GETSAFERHISHADER_GEOMETRY(GlobalBoundShaderState.Get()->Args.GeometryShader))
 		);
 }
+
+

@@ -7,6 +7,17 @@
 #pragma once
 #include "LockFreeFixedSizeAllocator.h"
 
+
+DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
+
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Nonimmed. Command List Execute"), STAT_NonImmedCmdListExecuteTime, STATGROUP_RHICMDLIST, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Nonimmed. Command List memory"), STAT_NonImmedCmdListMemory, STATGROUP_RHICMDLIST, RHI_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Nonimmed. Command count"), STAT_NonImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
+
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Immed. Command List Execute"), STAT_ImmedCmdListExecuteTime, STATGROUP_RHICMDLIST, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST, RHI_API);
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
+
 enum ERHICommandType
 {
 	// Start the enum at non-zero to help debugging
@@ -59,6 +70,7 @@ enum ERHICommandType
 
 	ERCT_NUM,
 };
+
 
 struct FRHICommand
 {
@@ -810,7 +822,8 @@ struct FRHICommandSetGlobalBoundShaderState : public FRHICommand
 	}
 };
 
-//---
+// there is a layering problem here, we use a function pointer to avoid making RHI depend on engine
+extern RHI_API void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState);
 
 struct FLocalUniformBufferWorkArea
 {
@@ -1006,30 +1019,6 @@ private:
 
 	FMemManager MemManager;
 
-	struct FDrawUpData
-	{
-
-		uint32 PrimitiveType;
-		uint32 NumPrimitives;
-		uint32 NumVertices;
-		uint32 VertexDataStride;
-		void* OutVertexData;
-		uint32 MinVertexIndex;
-		uint32 NumIndices;
-		uint32 IndexDataStride;
-		void* OutIndexData;
-
-		FDrawUpData()
-			: PrimitiveType(PT_Num)
-			, OutVertexData(nullptr)
-			, OutIndexData(nullptr)
-		{
-		}
-
-	};
-
-	FDrawUpData DrawUPData;
-
 public:
 	enum
 	{
@@ -1100,7 +1089,6 @@ public:
 	}
 
 	FORCEINLINE_DEBUGGABLE void BuildAndSetGlobalBoundShaderState(
-		void(*InSetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState),
 		FGlobalBoundShaderState& GlobalBoundShaderState,
 		FVertexDeclarationRHIParamRef VertexDeclarationRHI,
 		FShader* VertexShader,
@@ -1108,7 +1096,6 @@ public:
 		FShader* GeometryShader
 		)
 	{
-		SetGlobalBoundShaderState_InternalPtr = InSetGlobalBoundShaderState_InternalPtr; // total hack to work around module issues
 		if (!GlobalBoundShaderState.Get())
 		{
 			FGlobalBoundShaderStateWorkArea* NewGlobalBoundShaderState = new FGlobalBoundShaderStateWorkArea();
@@ -1135,7 +1122,7 @@ public:
 			);
 		if (Bypass())
 		{
-			InSetGlobalBoundShaderState_InternalPtr(GlobalBoundShaderState);
+			SetGlobalBoundShaderState_InternalPtr(GlobalBoundShaderState);
 			return;
 		}
 		auto* Cmd = AddCommand<FRHICommandSetGlobalBoundShaderState>();
@@ -1181,7 +1168,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetShaderUniformBuffer>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, BaseIndex, UniformBuffer);
-		StateReduce<FRHICommandSetShaderUniformBuffer>(Cmd);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1201,7 +1187,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetShaderParameter>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, BufferIndex, BaseIndex, NumBytes, NewValue);
-		StateReduce<FRHICommandSetShaderParameter>(Cmd);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1215,7 +1200,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetShaderTexture>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, TextureIndex, Texture);
-		StateReduce<FRHICommandSetShaderTexture>(Cmd);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1228,7 +1212,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetShaderResourceViewParameter>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, SRV);
-		StateReduce<FRHICommandSetShaderResourceViewParameter>(Cmd);
 	}
 
 	template <typename TShaderRHIParamRef>
@@ -1242,7 +1225,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetShaderSampler>();
 		Cmd->Set<TShaderRHIParamRef>(Shader, SamplerIndex, State);
-		StateReduce<FRHICommandSetShaderSampler>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV)
@@ -1254,7 +1236,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetUAVParameter>();
 		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV);
-		// StateReduce<FRHICommandSetUAVParameter>(Cmd); conflicts with next one
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetUAVParameter(FComputeShaderRHIParamRef Shader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount)
@@ -1266,7 +1247,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetUAVParameter_IntialCount>();
 		Cmd->Set<FComputeShaderRHIParamRef>(Shader, UAVIndex, UAV, InitialCount);
-		// StateReduce<FRHICommandSetUAVParameter_IntialCount>(Cmd); conflicts with previous one
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBoundShaderState(FBoundShaderStateRHIParamRef BoundShaderState)
@@ -1279,7 +1259,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetBoundShaderState>();
 		Cmd->Set(BoundShaderState);
-		StateReduce<FRHICommandSetBoundShaderState>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetRasterizerState(FRasterizerStateRHIParamRef State)
@@ -1292,7 +1271,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetRasterizerState>();
 		Cmd->Set(State);
-		StateReduce<FRHICommandSetRasterizerState>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetBlendState(FBlendStateRHIParamRef State, const FLinearColor& BlendFactor = FLinearColor::White)
@@ -1305,7 +1283,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetBlendState>();
 		Cmd->Set(State, BlendFactor);
-		StateReduce<FRHICommandSetBlendState>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DrawPrimitive(uint32 PrimitiveType, uint32 BaseVertexIndex, uint32 NumPrimitives, uint32 NumInstances)
@@ -1342,7 +1319,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetStreamSource>();
 		Cmd->Set(StreamIndex, VertexBuffer, Stride, Offset);
-		StateReduce<FRHICommandSetStreamSource>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI, uint32 StencilRef = 0)
@@ -1355,7 +1331,6 @@ public:
 
 		auto* Cmd = AddCommand<FRHICommandSetDepthStencilState>();
 		Cmd->Set(NewStateRHI, StencilRef);
-		StateReduce<FRHICommandSetDepthStencilState>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
@@ -1367,7 +1342,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetViewport>();
 		Cmd->Set(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
-		StateReduce<FRHICommandSetViewport>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetScissorRect(bool bEnable, uint32 MinX, uint32 MinY, uint32 MaxX, uint32 MaxY)
@@ -1406,7 +1380,6 @@ public:
 			NewDepthStencilTargetRHI,
 			NewNumUAVs,
 			UAVs);
-		StateReduce<FRHICommandSetRenderTargets>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void BeginDrawPrimitiveUP(uint32 PrimitiveType, uint32 NumPrimitives, uint32 NumVertices, uint32 VertexDataStride, void*& OutVertexData)
@@ -1493,7 +1466,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetComputeShader>();
 		Cmd->Set(ComputeShader);
-		StateReduce<FRHICommandSetComputeShader>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void DispatchComputeShader(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ)
@@ -1582,7 +1554,6 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandEnableDepthBoundsTest>();
 		Cmd->Set(bEnable, MinDepth, MaxDepth);
-		StateReduce<FRHICommandEnableDepthBoundsTest>(Cmd);
 	}
 
 	FORCEINLINE_DEBUGGABLE void ClearUAV(FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI, const uint32(&Values)[4])
@@ -1631,22 +1602,46 @@ public:
 
 	const SIZE_T GetUsedMemory() const;
 
-private:
-	bool bExecuting;
-	uint32 NumCommands;
-	uint32 UID;
-	FRHICommand* StateReducer[ERCT_NUM];
-	void(*SetGlobalBoundShaderState_InternalPtr)(FGlobalBoundShaderState& BoundShaderState);
+protected:
 
-
-	FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)
+	struct FDrawUpData
 	{
-		return MemManager.Alloc(InSize);
-	}
+
+		uint32 PrimitiveType;
+		uint32 NumPrimitives;
+		uint32 NumVertices;
+		uint32 VertexDataStride;
+		void* OutVertexData;
+		uint32 MinVertexIndex;
+		uint32 NumIndices;
+		uint32 IndexDataStride;
+		void* OutIndexData;
+
+		FDrawUpData()
+			: PrimitiveType(PT_Num)
+			, OutVertexData(nullptr)
+			, OutIndexData(nullptr)
+		{
+		}
+
+	};
+
+	FDrawUpData DrawUPData;
 
 	FORCEINLINE_DEBUGGABLE bool HasCommands() const
 	{
 		return (NumCommands > 0);
+	}
+
+
+private:
+	bool bExecuting;
+	uint32 NumCommands;
+	uint32 UID;
+
+	FORCEINLINE_DEBUGGABLE uint8* Alloc(SIZE_T InSize)
+	{
+		return MemManager.Alloc(InSize);
 	}
 
 	template <typename TCmd>
@@ -1657,23 +1652,6 @@ private:
 		//::OutputDebugStringW(*FString::Printf(TEXT("Add %d: @ 0x%p, %d bytes\n"), NumCommands, (void*)Cmd, (sizeof(TCmd) + ExtraData)));
 		++NumCommands;
 		return Cmd;
-	}
-
-	template <typename TCmd>
-	FORCEINLINE_DEBUGGABLE void StateReduce(TCmd* Cmd)
-	{
-#if 0
-		if (StateReducer[Cmd->Type])
-		{
-			if (FMemory::Memcmp(StateReducer[Cmd->Type], Cmd, sizeof(TCmd)) == 0)
-			{
-				--NumCommands;
-				MemManager.Dealloc(sizeof(TCmd));
-				return;
-			}
-		}
-		StateReducer[Cmd->Type] = Cmd;
-#endif
 	}
 
 	void Reset();
@@ -1693,7 +1671,13 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	FRHICommandListImmediate()
 	{
 	}
+	~FRHICommandListImmediate()
+	{
+		Flush(); // this probably never happens, but we want to be sure there are no commands, otherwise it will be executed like a non-immediate command list
+	}
 public:
+
+	inline void Flush();
 
 	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
@@ -1773,6 +1757,7 @@ public:
 	static inline FRHICommandListImmediate& GetImmediateCommandList();
 
 	void ExecuteList(FRHICommandList& CmdList);
+	void ExecuteList(FRHICommandListImmediate& CmdList);
 	void LatchBypass();
 
 	FORCEINLINE_DEBUGGABLE void Verify()
@@ -1790,14 +1775,16 @@ public:
 	static void CheckNoOutstandingCmdLists();
 
 private:
+
+	void ExecuteInner(FRHICommandList& CmdList);
+
 	bool bLatchedBypass;
 	friend class FRHICommandList;
 	FThreadSafeCounter UIDCounter;
 	FThreadSafeCounter OutstandingCmdListCount;
 	FRHICommandListImmediate CommandListImmediate;
 
-	template <bool bOnlyTestMemAccess>
-	void ExecuteList(FRHICommandList& CmdList);
+	void ExecuteListGenericRHI(FRHICommandList& CmdList);
 };
 extern RHI_API FRHICommandListExecutor GRHICommandList;
 
@@ -1825,12 +1812,5 @@ FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImm
 #undef DEFINE_RHIMETHOD_CMDLIST
 #undef DEFINE_RHIMETHOD_GLOBAL
 #undef DEFINE_RHIMETHOD_GLOBALFLUSH
-
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Command List Execute"),STAT_RHICmdListExecuteTime,STATGROUP_RHI, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Command List Enqueue"),STAT_RHICmdListEnqueueTime,STATGROUP_RHI, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("RHI Command List memory"),STAT_RHICmdListMemory,STATGROUP_RHI,RHI_API);
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("RHI Command List count"),STAT_RHICmdListCount,STATGROUP_RHI,RHI_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Counter TEMP"), STAT_RHICounterTEMP,STATGROUP_RHI,RHI_API);
 
 #include "RHICommandList.inl"

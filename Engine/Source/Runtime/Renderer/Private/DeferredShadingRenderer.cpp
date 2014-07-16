@@ -222,9 +222,8 @@ bool FDeferredShadingSceneRenderer::RenderBasePassStaticDataDefault(FRHICommandL
 {
 	QUICK_SCOPE_CYCLE_COUNTER(AA_RenderBasePassStaticDataDefault);
 	bool bDirty = false;
-	if (!GRHICommandList.Bypass())
+	if (!GRHICommandList.Bypass() && FApp::ShouldUseThreadingForPerformance())
 	{
-		RHICmdList.Flush(); // we assume this is the immediate command list, regardless it makes sense to empty it before we start using more command lists
 		FGraphEventRef SubmitChain;
 		int32 Width = CVarRHICmdWidth.GetValueOnRenderThread(); // we use a few more than needed to cover non-equal jobs
 
@@ -367,14 +366,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 	// Render the base pass static data
 	{
-		//@todo-rco: Very temp code!!!
-		SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
-		static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
-		bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 1);
-
-		FRHICommandList LocalRHICmdList;
-		FRHICommandList& UseRHICmdList = bUseRHICmdList ? LocalRHICmdList : RHICmdList;
-		bDirty |= RenderBasePassStaticData(UseRHICmdList, View);
+		bDirty |= RenderBasePassStaticData(RHICmdList, View);
 	}
 
 	{

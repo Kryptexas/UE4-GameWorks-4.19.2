@@ -1364,13 +1364,6 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 	FShadowDepthDrawingPolicy<true>::PolicyShadowInfo = this;
 
 	{
-	//@todo-rco: Very temp code!!!
-		SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
-		static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
-		bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 2);
-		FRHICommandList LocalRHICmdList;
-		FRHICommandList& UseRHICmdList = bUseRHICmdList ? LocalRHICmdList : RHICmdList;
-
 		// Draw the subject's static elements using static draw lists
 		if (IsWholeSceneDirectionalShadow())
 		{
@@ -1378,12 +1371,12 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 
 			if (bReflectiveShadowmap)
 			{
-				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(UseRHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+				SceneRenderer->Scene->WholeSceneReflectiveShadowMapDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
 			}
 			else
 			{
 				// Use the scene's shadow depth draw list with this shadow's visibility map
-				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(UseRHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
+				SceneRenderer->Scene->WholeSceneShadowDepthDrawList.DrawVisible(RHICmdList, *FoundView, StaticMeshWholeSceneShadowDepthMap, StaticMeshWholeSceneShadowBatchVisibility);
 			}
 		}
 		// Draw the subject's static elements using manual state filtering
@@ -1394,12 +1387,12 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandListImmediate& RHICmdList, FDe
 			if(bReflectiveShadowmap && !bOnePassPointLightShadow)
 			{
 				// reflective shadow map
-				DrawShadowMeshElements<true>(UseRHICmdList, *FoundView, *this);
+				DrawShadowMeshElements<true>(RHICmdList, *FoundView, *this);
 			}
 			else
 			{
 				// normal shadow map
-				DrawShadowMeshElements<false>(UseRHICmdList, *FoundView, *this);
+				DrawShadowMeshElements<false>(RHICmdList, *FoundView, *this);
 			}
 		}
 

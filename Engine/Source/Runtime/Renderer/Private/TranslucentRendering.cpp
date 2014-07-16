@@ -531,13 +531,6 @@ void FTranslucentPrimSet::RenderPrimitive(
 		// Render static scene prim
 		if( ViewRelevance.bStaticRelevance )
 		{
-			//@todo-rco: Very temp code!!!
-			SCOPE_CYCLE_COUNTER(STAT_RHICounterTEMP);
-			static IConsoleVariable* RHICmdListCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHICmd"));
-			bool bUseRHICmdList = (RHICmdListCVar->GetInt() >= 3);
-			FRHICommandList LocalRHICmdList;
-			FRHICommandList& UseRHICmdList = bUseRHICmdList ? LocalRHICmdList : RHICmdList;
-
 			// Render static meshes from static scene prim
 			for( int32 StaticMeshIdx=0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++ )
 			{
@@ -548,7 +541,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 					&& (StaticMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsSeparateTranslucencyEnabled() == bSeparateTranslucencyPass))
 				{
 					FTranslucencyDrawingPolicyFactory::DrawStaticMesh(
-						UseRHICmdList,
+						RHICmdList,
 						View,
 						FTranslucencyDrawingPolicyFactory::ContextType( TranslucentSelfShadow, bSeparateTranslucencyPass),
 						StaticMesh,

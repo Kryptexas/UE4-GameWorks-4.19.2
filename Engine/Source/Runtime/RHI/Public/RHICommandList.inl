@@ -17,6 +17,16 @@ FORCEINLINE_DEBUGGABLE void FRHICommandList::Flush()
 	}
 }
 
+FORCEINLINE_DEBUGGABLE void FRHICommandListImmediate::Flush()
+{
+	if (HasCommands())
+	{
+		check(!DrawUPData.OutVertexData && !DrawUPData.OutIndexData);
+		GRHICommandList.ExecuteList(*this);
+	}
+}
+
+
 // Helper class for traversing a FRHICommandList
 class FRHICommandListIterator
 {
