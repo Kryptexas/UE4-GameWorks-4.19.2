@@ -8,12 +8,17 @@
 *******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(UClass* const NodeClass, FCustomizeNodeDelegate CustomizeNodeDelegate/* = FCustomizeNodeDelegate()*/)
+UBlueprintNodeSpawner* UBlueprintNodeSpawner::Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer/* = nullptr*/, FCustomizeNodeDelegate CustomizeNodeDelegate/* = FCustomizeNodeDelegate()*/)
 {
 	check(NodeClass != nullptr);
 	check(NodeClass->IsChildOf<UEdGraphNode>());
+
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
 	
-	UBlueprintNodeSpawner* NodeSpawner = NewObject<UBlueprintNodeSpawner>(GetTransientPackage());
+	UBlueprintNodeSpawner* NodeSpawner = NewObject<UBlueprintNodeSpawner>(Outer);
 	NodeSpawner->NodeClass = NodeClass;
 	NodeSpawner->CustomizeNodeDelegate = CustomizeNodeDelegate;
 	

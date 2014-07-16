@@ -13,11 +13,16 @@
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintPropertyNodeSpawner* UBlueprintPropertyNodeSpawner::Create(UProperty const* const Property, UClass* const NodeClass)
+UBlueprintPropertyNodeSpawner* UBlueprintPropertyNodeSpawner::Create(UProperty const* const Property, UObject* Outer/* = nullptr*/, TSubclassOf<UEdGraphNode> const NodeClass/* = nullptr*/)
 {
 	check(Property != nullptr);
 
-	UBlueprintPropertyNodeSpawner* NodeSpawner = NewObject<UBlueprintPropertyNodeSpawner>(GetTransientPackage());
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+
+	UBlueprintPropertyNodeSpawner* NodeSpawner = NewObject<UBlueprintPropertyNodeSpawner>(Outer);
 	NodeSpawner->Property  = Property;
 	NodeSpawner->NodeClass = NodeClass;
 

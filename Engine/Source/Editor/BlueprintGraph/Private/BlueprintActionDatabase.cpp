@@ -245,7 +245,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawn
 template<class DelegateNodeType>
 static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDelegateNodeSpawner(UMulticastDelegateProperty* Property)
 {
-	UBlueprintNodeSpawner* NodeSpawner = UBlueprintPropertyNodeSpawner::Create(Property, DelegateNodeType::StaticClass());
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintPropertyNodeSpawner::Create(Property, GetTransientPackage(), DelegateNodeType::StaticClass());
 	check(NodeSpawner != nullptr);
 	
 	auto CustomizeDelegateNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UMulticastDelegateProperty* Property)
@@ -269,7 +269,38 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDelegateNodeSpaw
 
 namespace FBlueprintActionDatabaseImpl
 {
-	typedef FBlueprintActionDatabase::FActionList FActionList;
+	/** 
+	 * Wrapper around FBlueprintActionDatabase's FActionList. Manages the 
+	 * RF_RootSet flag for the UBlueprintNodeSpawners (ensures they don't get 
+	 * GC'd whilst in the database.
+	 */
+	struct FActionList
+	{
+	public:
+		/** Clears the passed action-list and removes the RF_RootSet from all of its actions */
+		FActionList(FBlueprintActionDatabase::FActionList& DatabaseIn)
+			: ClassDatabase(DatabaseIn)
+		{
+			for (UBlueprintNodeSpawner* Action : ClassDatabase)
+			{
+				check(Action->GetOuter() == GetTransientPackage());
+				Action->ClearFlags(RF_RootSet);
+			}
+			ClassDatabase.Empty();
+		}
+
+		/** 
+		 * Passes the wrapped ClassDatabase this node-spawner to add, after 
+		 * adding the RF_RootSet flag (to keep it from getting GC'd).
+		 *
+		 * @param  NodeSpawner	The action you want added to the database.
+		 */
+		void Add(UBlueprintNodeSpawner* NodeSpawner);
+
+	private:
+		/** */
+		FBlueprintActionDatabase::FActionList& ClassDatabase;
+	};
 
 	/**
 	 * Mimics UEdGraphSchema_K2::CanUserKismetAccessVariable(); however, this 
@@ -386,6 +417,18 @@ namespace FBlueprintActionDatabaseImpl
 }
 
 //------------------------------------------------------------------------------
+void FBlueprintActionDatabaseImpl::FActionList::Add(UBlueprintNodeSpawner* NodeSpawner)
+{
+	check(NodeSpawner->GetOuter() == GetTransientPackage());
+	// since this spawner's outer is the transient package, we want to mark it
+	// root so that it doesn't get GC'd (we have to be careful and remove this 
+	// flag when we refresh).
+	NodeSpawner->SetFlags(RF_RootSet);
+
+	ClassDatabase.Add(NodeSpawner);
+}
+
+//------------------------------------------------------------------------------
 static bool FBlueprintActionDatabaseImpl::IsPropertyBlueprintVisible(UProperty const* const Property)
 {
 	bool const bIsAccessible = Property->HasAllPropertyFlags(CPF_BlueprintVisible);
@@ -475,9 +518,10 @@ static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* 
  		}
 		else
 		{
-			UBlueprintPropertyNodeSpawner* GetterSpawner = UBlueprintPropertyNodeSpawner::Create(Property, UK2Node_VariableGet::StaticClass());
+			UPackage* SpawnerOuter = GetTransientPackage();
+			UBlueprintPropertyNodeSpawner* GetterSpawner = UBlueprintPropertyNodeSpawner::Create(Property, SpawnerOuter, UK2Node_VariableGet::StaticClass());
 			ActionListOut.Add(GetterSpawner);
-			UBlueprintPropertyNodeSpawner* SetterSpawner = UBlueprintPropertyNodeSpawner::Create(Property, UK2Node_VariableSet::StaticClass());
+			UBlueprintPropertyNodeSpawner* SetterSpawner = UBlueprintPropertyNodeSpawner::Create(Property, SpawnerOuter, UK2Node_VariableSet::StaticClass());
 			ActionListOut.Add(SetterSpawner);
 		}
 	}
@@ -629,7 +673,14 @@ static void FBlueprintActionDatabaseImpl::AddAutonomousNodeActions(UClass* const
 	{
 		UK2Node const* const NodeCDO = Class->GetDefaultObject<UK2Node>();
 		check(NodeCDO != nullptr);
-		NodeCDO->GetMenuActions(ActionListOut);
+
+		FBlueprintActionDatabase::FActionList NodeActionList;
+		NodeCDO->GetMenuActions(NodeActionList);
+
+		for (UBlueprintNodeSpawner* Spawner : NodeActionList)
+		{
+			ActionListOut.Add(Spawner);
+		}
 	}
 	// unfortunately, UEdGraphNode_Comment is not a UK2Node and therefore cannot
 	// leverage UK2Node's GetMenuActions() function, so here we HACK it in
@@ -684,8 +735,7 @@ void FBlueprintActionDatabase::RefreshClassActions(UClass* const Class)
 	// blueprint compile (if it is a SKEL or REINST class, then don't bother)
 	if (!bIsSkelClass && !bIsReinstClass)
 	{
-		FActionList& ClassActionList = ClassActions.FindOrAdd(Class);
-		ClassActionList.Empty();
+		FBlueprintActionDatabaseImpl::FActionList ClassActionList(ClassActions.FindOrAdd(Class));
 		
 		// class field actions (nodes that represent and perform actions on
 		// specific fields of the class... functions, properties, etc.)

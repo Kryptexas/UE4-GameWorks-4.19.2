@@ -26,9 +26,10 @@ public:
 	 * viable as a blueprint event (do that before calling this).
 	 *
 	 * @param  EventFunc	The function you want assigned to new nodes.
+	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc);
+	static UBlueprintEventNodeSpawner* Create(UFunction const* const EventFunc, UObject* Outer = nullptr);
 
 	/**
 	 * Creates a new UBlueprintEventNodeSpawner for custom events. The 
@@ -37,9 +38,10 @@ public:
 	 *
 	 * @param  NodeClass		The event node type that you want this to spawn.
 	 * @param  CustomEventName	The name you want assigned to the event.
+	 * @param  Outer			Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName);
+	static UBlueprintEventNodeSpawner* Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

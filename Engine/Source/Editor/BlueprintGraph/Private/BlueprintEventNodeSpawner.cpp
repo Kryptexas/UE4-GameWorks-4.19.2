@@ -47,11 +47,16 @@ UK2Node_Event* UBlueprintEventNodeSpawnerImpl::FindCustomEventNode(UBlueprint* B
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* const EventFunc)
+UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* const EventFunc, UObject* Outer/* = nullptr*/)
 {
 	check(EventFunc != nullptr);
 
-	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(GetTransientPackage());
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+
+	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(Outer);
 	NodeSpawner->EventFunc = EventFunc;
 	NodeSpawner->NodeClass = UK2Node_Event::StaticClass();
 
@@ -59,9 +64,14 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 }
 
 //------------------------------------------------------------------------------
-UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName)
+UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(TSubclassOf<UK2Node_Event> NodeClass, FName CustomEventName, UObject* Outer/* = nullptr*/)
 {
-	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(GetTransientPackage());
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+
+	UBlueprintEventNodeSpawner* NodeSpawner = NewObject<UBlueprintEventNodeSpawner>(Outer);
 	NodeSpawner->NodeClass       = NodeClass;
 	NodeSpawner->CustomEventName = CustomEventName;
 

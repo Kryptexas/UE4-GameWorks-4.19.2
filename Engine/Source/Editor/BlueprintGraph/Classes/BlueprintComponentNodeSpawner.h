@@ -25,9 +25,10 @@ public:
 	 * viable as a spawnable component (do that before calling this).
 	 *
 	 * @param  ComponentClass	The component type you want spawned nodes to spawn.
+	 * @param  Outer			Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintComponentNodeSpawner* Create(TSubclassOf<UActorComponent> const ComponentClass);
+	static UBlueprintComponentNodeSpawner* Create(TSubclassOf<UActorComponent> const ComponentClass, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

@@ -23,10 +23,11 @@ public:
 	 * accessible from blueprints (do that before calling this).
 	 *
 	 * @param  Property		The property you want assigned to spawned nodes.
+	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @param  NodeClass	The type of node you want spawned (can't distinct a getter from a setter from the property alone).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UClass* const NodeClass = nullptr);
+	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UObject* Outer = nullptr, TSubclassOf<UEdGraphNode> const NodeClass = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

@@ -21,9 +21,10 @@ public:
 	 * viable as a blueprint function call (do that before calling this).
 	 *
 	 * @param  Function		The function you want assigned to new nodes.
+	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintFunctionNodeSpawner* Create(UFunction const* const Function);
+	static UBlueprintFunctionNodeSpawner* Create(UFunction const* const Function, UObject* Outer = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;

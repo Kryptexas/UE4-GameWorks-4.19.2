@@ -31,17 +31,18 @@ public:
 	 * the supplied parameters.
 	 *
 	 * @param  NodeClass                The node type that you want the spawner to spawn.
+	 * @param  Outer					Optional outer for the new spawner (if left null, the transient package will be used).
 	 * @param  CustomizeNodeDelegate    A delegate to perform specialized node setup post-spawn.
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintNodeSpawner* Create(UClass* const NodeClass, FCustomizeNodeDelegate CustomizeNodeDelegate = FCustomizeNodeDelegate());
+	static UBlueprintNodeSpawner* Create(TSubclassOf<UEdGraphNode> const NodeClass, UObject* Outer = nullptr, FCustomizeNodeDelegate CustomizeNodeDelegate = FCustomizeNodeDelegate());
 	
 	/**
 	 * Holds the class of node to spawn. May be null for sub-classes that know
 	 * specifically what node types to spawn (if null for an instance of this 
 	 * class, then nothing will be spawned).
 	 */
-	UClass* NodeClass;
+	TSubclassOf<UEdGraphNode> NodeClass;
 	
 	/**
 	 * A delegate to perform specialized node setup post-spawn (so we don't have

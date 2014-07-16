@@ -11,11 +11,16 @@
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(TSubclassOf<UActorComponent> const ComponentClass)
+UBlueprintComponentNodeSpawner* UBlueprintComponentNodeSpawner::Create(TSubclassOf<UActorComponent> const ComponentClass, UObject* Outer/* = nullptr*/)
 {
 	check(ComponentClass != nullptr);
 
-	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(GetTransientPackage());
+	if (Outer == nullptr)
+	{
+		Outer = GetTransientPackage();
+	}
+
+	UBlueprintComponentNodeSpawner* NodeSpawner = NewObject<UBlueprintComponentNodeSpawner>(Outer);
 	NodeSpawner->ComponentClass = ComponentClass;
 	NodeSpawner->NodeClass      = UK2Node_AddComponent::StaticClass();
 
