@@ -3038,7 +3038,7 @@ bool UEdGraphSchema_K2::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 {
 	check(Pin != NULL);
 
-	if ((Pin->PinName == PN_Self && Pin->LinkedTo.Num() > 0) || (Pin->PinType.PinCategory == PC_Exec) || (Pin->PinType.bIsReference && !IsAutoCreateRefTerm(Pin)) || Pin->bDefaultValueIsIgnored)
+	if (Pin->bDefaultValueIsIgnored || Pin->PinType.bIsArray || (Pin->PinName == PN_Self && Pin->LinkedTo.Num() > 0) || (Pin->PinType.PinCategory == PC_Exec) || (Pin->PinType.bIsReference && !IsAutoCreateRefTerm(Pin)))
 	{
 		return true;
 	}
