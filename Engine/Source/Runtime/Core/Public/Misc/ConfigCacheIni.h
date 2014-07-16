@@ -42,6 +42,16 @@ struct FIniFilename
 	{}
 };
 
+
+#if !UE_BUILD_SHIPPING
+// Options which stemmed from the commandline
+struct FConfigCommandlineOverride
+{
+	FString BaseFileName, Section, PropertyKey, PropertyValue;
+};
+#endif // !UE_BUILD_SHIPPING
+
+
 // One config file.
 class FConfigFile : public TMap<FString,FConfigSection>
 {
@@ -56,6 +66,9 @@ public:
 
 	/** The untainted config file which contains the coalesced base/default options. I.e. No Saved/ options*/
 	FConfigFile* SourceConfigFile;
+
+	/** The collection of overrides which stemmed from the commandline */
+	TArray<FConfigCommandlineOverride> CommandlineOptions;
 	
 	CORE_API FConfigFile();
 	FConfigFile( int32 ) {}	// @todo UE4 DLL: Workaround for instantiated TMap template during DLLExport (TMap::FindRef)
