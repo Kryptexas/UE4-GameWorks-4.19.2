@@ -2823,24 +2823,31 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			if (IsValidLandingSpot(UpdatedComponent->GetComponentLocation(), Hit))
 			{
 				remainingTime += timeTick * (1.f - Hit.Time);
-				if (!bJustTeleported && (Hit.Time > 0.1f) && (Hit.Time * timeTick > 0.003f) )
-				{
-					Velocity = (CharacterOwner->GetActorLocation() - OldLocation)/(timeTick * Hit.Time);
-				}
 				ProcessLanded(Hit, remainingTime, Iterations);
 				return;
 			}
 			else
 			{
-				HandleImpact(Hit, timeTick, Adjusted);
-				
-				if (Acceleration.SizeSquared2D() > 0.f)
+				// See if we can convert a normally invalid landing spot (based on the hit result) to a usable one.
+				if (!Hit.bStartPenetrating && ShouldCheckForValidLandingSpot(timeTick, Adjusted, Hit))
 				{
-					// If we've changed physics mode, abort.
-					if (!HasValidData() || !IsFalling())
+					const FVector PawnLocation = UpdatedComponent->GetComponentLocation();
+					FFindFloorResult FloorResult;
+					FindFloor(PawnLocation, FloorResult, false);
+					if (FloorResult.IsWalkableFloor() && IsValidLandingSpot(PawnLocation, FloorResult.HitResult))
 					{
+						remainingTime += timeTick * (1.f - Hit.Time);
+						ProcessLanded(FloorResult.HitResult, remainingTime, Iterations);
 						return;
 					}
+				}
+
+				HandleImpact(Hit, timeTick, Adjusted);
+				
+				// If we've changed physics mode, abort.
+				if (!HasValidData() || !IsFalling())
+				{
+					return;
 				}
 
 				const float FirstHitPercent = Hit.Time;
@@ -2860,8 +2867,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 							return;
 						}
 
-						const float SecondHitPercentOfTotal = (Hit.Time * (1.f - FirstHitPercent));
-						HandleImpact(Hit, timeTick * SecondHitPercentOfTotal, Delta);
+						HandleImpact(Hit, timeTick * (1.f - FirstHitPercent), Delta);
 
 						// If we've changed physics mode, abort.
 						if (!HasValidData() || !IsFalling())
@@ -4226,6 +4232,23 @@ bool UCharacterMovementComponent::IsValidLandingSpot(const FVector& CapsuleLocat
 	}
 
 	return true;
+}
+
+
+bool UCharacterMovementComponent::ShouldCheckForValidLandingSpot(const float DeltaTime, const FVector& Delta, const FHitResult& Hit) const
+{
+	// See if we hit an edge of a surface on the lower portion of the capsule.
+	// In this case the normal will not equal the impact normal, and a downward sweep may find a walkable surface on top of the edge.
+	if (Hit.Normal.Z > KINDA_SMALL_NUMBER && !Hit.Normal.Equals(Hit.ImpactNormal))
+	{
+		const FVector PawnLocation = UpdatedComponent->GetComponentLocation();
+		if (IsWithinEdgeTolerance(PawnLocation, Hit.ImpactPoint, CharacterOwner->CapsuleComponent->GetScaledCapsuleRadius()))
+		{						
+			return true;
+		}
+	}
+
+	return false;
 }
 
 

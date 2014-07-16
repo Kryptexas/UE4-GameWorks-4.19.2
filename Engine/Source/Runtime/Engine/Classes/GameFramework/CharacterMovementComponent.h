@@ -1176,6 +1176,12 @@ protected:
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const;
 
 	/**
+	 * Determine whether we should try to find a valid landing spot after an impact with an invalid one (based on the Hit result).
+	 * For example, landing on the lower portion of the capsule on the edge of geometry may be a walkable surface, but could have reported an unwalkable impact normal.
+	 */
+	virtual bool ShouldCheckForValidLandingSpot(const float DeltaTime, const FVector& Delta, const FHitResult& Hit) const;
+
+	/**
 	 * Check if the result of a sweep test (passed in InHit) might be a valid location to perch, in which case we should use ComputePerchResult to validate the location.
 	 * @see ComputePerchResult
 	 * @param InHit:			Result of the last sweep test before this query.
