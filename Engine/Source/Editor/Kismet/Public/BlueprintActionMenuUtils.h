@@ -3,7 +3,7 @@
 #pragma once
 
 // Forward declarations
-class  FBlueprintActionMenuBuilder;
+struct FBlueprintActionMenuBuilder;
 struct FBlueprintActionContext;
 
 struct FBlueprintActionMenuUtils

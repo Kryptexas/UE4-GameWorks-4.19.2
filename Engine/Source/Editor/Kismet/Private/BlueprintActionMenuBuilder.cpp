@@ -14,6 +14,7 @@
 #include "K2ActionMenuBuilder.h"
 #include "SMyBlueprint.h"				// for SelectionAsVar()
 #include "EdGraphSchema_K2_Actions.h"	// for FEdGraphSchemaAction_K2Var
+#include "BlueprintEditorUtils.h"		// for FindBlueprintForGraphChecked()
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuBuilder"
 
