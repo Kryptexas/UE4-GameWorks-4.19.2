@@ -7,6 +7,7 @@
 
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
+#include "ClassIconFinder.h"
 
 class SAssetThumbnail : public SCompoundWidget
 {
