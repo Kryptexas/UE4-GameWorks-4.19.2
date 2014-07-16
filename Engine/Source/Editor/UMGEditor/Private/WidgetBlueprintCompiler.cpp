@@ -480,6 +480,7 @@ void FWidgetBlueprintCompiler::CreateClassVariablesFromBlueprint()
 		if ( WidgetProperty != NULL )
 		{
 			WidgetProperty->SetMetaData(TEXT("Category"), *Blueprint->GetName());
+			//WidgetProperty->SetMetaData(TEXT("Category"), TEXT("Widget"));
 			WidgetProperty->SetPropertyFlags(CPF_BlueprintVisible);
 
 			WidgetToMemberVariableMap.Add(Widget, WidgetProperty);

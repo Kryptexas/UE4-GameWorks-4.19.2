@@ -10,13 +10,9 @@
 UButton::UButton(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	HorizontalAlignment = HAlign_Center;
-	VerticalAlignment = VAlign_Center;
-
 	SButton::FArguments ButtonDefaults;
 
 	Style = NULL;
-	ContentPadding = ButtonDefaults._ContentPadding.Get();
 
 	DesiredSizeScale = ButtonDefaults._DesiredSizeScale.Get();
 	ContentScale = ButtonDefaults._ContentScale.Get();
@@ -32,7 +28,7 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 
 	if ( GetChildrenCount() > 0 )
 	{
-		MyButton->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+		Cast<UButtonSlot>(GetContentSlot())->BuildSlot(MyButton.ToSharedRef());
 	}
 	
 	return MyButton.ToSharedRef();
@@ -62,21 +58,23 @@ void UButton::SyncronizeProperties()
 		OptionalHoveredSound = HoveredSound;
 	}
 
-	MyButton->SetButtonStyle(StylePtr);
-	MyButton->SetHAlign(HorizontalAlignment);
-	MyButton->SetVAlign(VerticalAlignment);
-	MyButton->SetContentPadding(ContentPadding);
-	
+	MyButton->SetButtonStyle( StylePtr );
+
 	MyButton->SetForegroundColor( ForegroundColor );
 	MyButton->SetColorAndOpacity( ColorAndOpacity );
 	MyButton->SetBorderBackgroundColor( BackgroundColor );
 	
-	MyButton->SetDesiredSizeScale(DesiredSizeScale);
-	MyButton->SetContentScale(ContentScale);
-	MyButton->SetPressedSound(OptionalPressedSound);
-	MyButton->SetHoveredSound(OptionalHoveredSound);
+	MyButton->SetDesiredSizeScale( DesiredSizeScale );
+	MyButton->SetContentScale( ContentScale );
+	MyButton->SetPressedSound( OptionalPressedSound );
+	MyButton->SetHoveredSound( OptionalHoveredSound );
 
 	MyButton->SetOnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, HandleOnClicked));
+}
+
+UClass* UButton::GetSlotClass() const
+{
+	return UButtonSlot::StaticClass();
 }
 
 void UButton::OnSlotAdded(UPanelSlot* Slot)
@@ -84,7 +82,7 @@ void UButton::OnSlotAdded(UPanelSlot* Slot)
 	// Add the child to the live slot if it already exists
 	if ( MyButton.IsValid() )
 	{
-		MyButton->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+		Cast<UButtonSlot>(Slot)->BuildSlot(MyButton.ToSharedRef());
 	}
 }
 
@@ -124,15 +122,6 @@ void UButton::SetForegroundColor(FLinearColor InForegroundColor)
 	}
 }
 
-void UButton::SetContentPadding(FMargin InContentPadding)
-{
-	ContentPadding = InContentPadding;
-	if ( MyButton.IsValid() )
-	{
-		MyButton->SetContentPadding(InContentPadding);
-	}
-}
-
 FReply UButton::HandleOnClicked()
 {
 	if ( OnClickedEvent.IsBound() )
@@ -146,6 +135,24 @@ FReply UButton::HandleOnClicked()
 bool UButton::IsPressed() const
 {
 	return MyButton->IsPressed();
+}
+
+void UButton::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetChildrenCount() > 0 )
+	{
+		//TODO UMG Pre-Release Upgrade, now buttons have slots of their own.  Convert existing slot to new slot.
+		UButtonSlot* ButtonSlot = Cast<UButtonSlot>(GetContentSlot());
+		if ( ButtonSlot == NULL )
+		{
+			ButtonSlot = ConstructObject<UButtonSlot>(UButtonSlot::StaticClass(), this);
+			ButtonSlot->Content = GetContentSlot()->Content;
+			ButtonSlot->Content->Slot = ButtonSlot;
+			Slots[0] = ButtonSlot;
+		}
+	}
 }
 
 #if WITH_EDITOR
