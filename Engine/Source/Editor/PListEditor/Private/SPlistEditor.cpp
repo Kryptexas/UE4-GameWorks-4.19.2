@@ -822,6 +822,13 @@ bool SPListEditorPanel::OpenFile(FString FilePath)
 	bool bLoadResult = Doc.LoadFile(FilePath);
 
 	FString OutError;
+	if( !bLoadResult )
+	{
+		// try Info.plist
+		FilePath = FilePath.Replace(*(FString(GGameName) + TEXT("-")), TEXT(""));
+		bLoadResult = Doc.LoadFile(FilePath);
+	}
+
 	if( !bLoadResult || !ParseXmlTree(Doc, OutError) )
 	{
 		DisplayNotification( LOCTEXT("PListLoadFail", "Load Failed"), NTF_Fail );
