@@ -4,7 +4,7 @@
 	App.cpp: Implements the FApp class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 

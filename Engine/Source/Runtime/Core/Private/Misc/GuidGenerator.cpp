@@ -4,7 +4,7 @@
 	UnGUID.cpp: Globally Unique IDentifiers.
 ============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 /*
 ** Copyright (c) 1990- 1993, 1996 Open Software Foundation, Inc.

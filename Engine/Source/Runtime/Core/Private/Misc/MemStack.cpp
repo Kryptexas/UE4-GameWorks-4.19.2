@@ -4,7 +4,7 @@
 	MemStack.cpp: Unreal memory grabbing functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 DECLARE_THREAD_SINGLETON( FMemStack );
 

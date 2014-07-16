@@ -4,7 +4,7 @@
 	WindowsPlatformTime.cpp: Windows implementations of time functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 float FWindowsPlatformTime::CPUTimePctRelative = 0.0f;
 

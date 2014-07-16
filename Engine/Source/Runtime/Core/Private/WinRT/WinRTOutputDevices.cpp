@@ -4,7 +4,7 @@
 	WinRTOutputDevices.cpp: WinRT implementations of OutputDevices functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "FeedbackContextAnsi.h"
 #include "WinRTOutputDevicesPrivate.h"

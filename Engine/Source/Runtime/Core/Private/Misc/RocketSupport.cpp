@@ -4,7 +4,7 @@
 	RocketSupport.cpp: Implements the FRocketSupport class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "RocketSupport.h"
 #include "EngineVersion.h"
 

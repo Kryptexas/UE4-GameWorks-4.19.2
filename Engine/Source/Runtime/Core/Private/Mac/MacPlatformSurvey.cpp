@@ -4,7 +4,7 @@
  MacPlatformSurvey.mm: Mac OS X platform hardware-survey classes
  =================================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "UnrealString.h"
 #include "SynthBenchmark.h"
 #import <IOKit/graphics/IOGraphicsLib.h>

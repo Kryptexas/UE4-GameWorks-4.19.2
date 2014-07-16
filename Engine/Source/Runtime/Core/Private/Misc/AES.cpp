@@ -4,7 +4,7 @@
 	AES.cpp: Handling of Advanced Encryption Standard
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AES.h"
 
 // Uncomment this line to skip encryption

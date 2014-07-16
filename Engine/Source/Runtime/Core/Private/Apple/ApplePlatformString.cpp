@@ -4,4 +4,4 @@
 	ApplePlatformString.mm: Mac implementations of string functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"

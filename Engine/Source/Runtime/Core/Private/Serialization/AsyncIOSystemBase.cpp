@@ -4,7 +4,7 @@
 	AsyncIOSystemBase.h: Base implementation of the async IO system
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AsyncIOSystemBase.h"
 
 /*-----------------------------------------------------------------------------

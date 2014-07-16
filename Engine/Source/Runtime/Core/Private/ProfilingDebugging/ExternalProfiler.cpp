@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExternalProfiler.h"
 #include "Runtime/Core/Public/Features/IModularFeature.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"

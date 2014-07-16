@@ -4,7 +4,7 @@
 	WindowsPlatformFile.cpp: Windows implementations of File functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include <sys/utime.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a _stat struct)

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "LinuxPlatformOutputDevices.h"
 #include "FeedbackContextAnsi.h"
 #include <syslog.h>

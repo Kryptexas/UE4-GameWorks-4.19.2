@@ -4,7 +4,7 @@
 	ObjectThumbnail.cpp: Stored thumbnail support for Unreal objects
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /** Static: Thumbnail compressor */

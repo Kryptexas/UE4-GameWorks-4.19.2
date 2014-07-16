@@ -4,7 +4,7 @@
 	SecureHash.cpp: SHA and MD5 has functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "SecureHash.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSecureHash, Log, All);

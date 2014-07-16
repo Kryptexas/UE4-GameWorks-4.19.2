@@ -4,7 +4,7 @@
 	WindowsPlatformTime.cpp: Windows implementations of time functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #if PLATFORM_HTML5_WIN32
 #include <time.h>

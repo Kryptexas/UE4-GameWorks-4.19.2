@@ -4,7 +4,7 @@
 	LocalTimestampDirectoryVisitor.cpp: Implements the FLocalTimestampDirectoryVisitor class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FLocalTimestampVisitor structors

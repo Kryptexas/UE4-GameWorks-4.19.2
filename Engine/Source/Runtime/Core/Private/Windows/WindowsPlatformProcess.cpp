@@ -4,7 +4,7 @@
 	WindowsPlatformProcess.cpp: Windows implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "EngineVersion.h"
 #include "Resources/Windows/ModuleVersionResource.h"
 

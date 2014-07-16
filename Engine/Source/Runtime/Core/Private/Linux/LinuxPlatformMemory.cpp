@@ -4,7 +4,7 @@
 	LinuxPlatformMemory.cpp: Linux platform memory functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "MallocAnsi.h"
 #include "MallocJemalloc.h"
 #include "MallocBinned.h"

@@ -4,7 +4,7 @@
 	Transform.cpp
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #if ENABLE_VECTORIZED_TRANSFORM
 

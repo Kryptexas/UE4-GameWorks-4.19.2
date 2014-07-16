@@ -4,7 +4,7 @@
 	WinRTMemory.cpp: WinRT platform memory functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 void FWinRTPlatformMemory::Init()
 {

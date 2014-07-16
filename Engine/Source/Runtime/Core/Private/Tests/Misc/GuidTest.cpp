@@ -4,7 +4,7 @@
 	GuidTest.cpp: Unit test for the FGuid class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

@@ -7,7 +7,7 @@
 /* FBox2D structors
  *****************************************************************************/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 FBox2D::FBox2D(const FVector2D* Points, const int32 Count)
 	: Min(0.f, 0.f)

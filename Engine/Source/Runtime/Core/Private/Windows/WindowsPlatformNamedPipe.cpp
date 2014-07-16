@@ -5,7 +5,7 @@
 =============================================================================*/
 
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 static void VerifyWinResult(BOOL bResult, const TCHAR* InMessage)
 {

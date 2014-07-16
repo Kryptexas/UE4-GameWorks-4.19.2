@@ -4,6 +4,6 @@
 	StringUtility.cpp: String Utility Functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStringUtility, Log, All);

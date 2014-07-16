@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // Core includes.
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "UniquePtr.h"
 

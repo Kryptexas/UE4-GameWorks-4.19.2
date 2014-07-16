@@ -4,7 +4,7 @@
 	UnMath.cpp: Unreal math routines
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 DEFINE_LOG_CATEGORY(LogUnrealMath);
 /*-----------------------------------------------------------------------------

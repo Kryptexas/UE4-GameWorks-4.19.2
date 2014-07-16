@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #if USE_MALLOC_PROFILER && WITH_ENGINE && IS_MONOLITHIC
 	#include "Runtime/Engine/Public/MallocProfilerEx.h"

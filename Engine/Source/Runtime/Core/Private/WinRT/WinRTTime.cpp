@@ -4,7 +4,7 @@
 	WinRTTime.cpp: WinRT implementations of time functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 double FWinRTTime::InitTiming()
 {

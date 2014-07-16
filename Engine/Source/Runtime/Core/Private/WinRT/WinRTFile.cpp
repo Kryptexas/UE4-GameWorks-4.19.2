@@ -4,7 +4,7 @@
 	WinRTFile.cpp: WinRT implementations of File functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "AllowWinRTPlatformTypes.h"
 

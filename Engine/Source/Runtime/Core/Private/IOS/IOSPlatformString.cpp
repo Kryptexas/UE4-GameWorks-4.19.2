@@ -3,7 +3,7 @@
 /*=============================================================================
 	IOSPlatformString.mm: Additional NSString methods
 =============================================================================*/
-#include "CorePrivate.h"
+#include "Core.h"
 
 @implementation NSString (FString_Extensions)
 

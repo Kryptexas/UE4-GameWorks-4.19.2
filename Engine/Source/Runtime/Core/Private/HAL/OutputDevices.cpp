@@ -4,7 +4,7 @@
 	UnOutputDevices.cpp: Collection of FOutputDevice subclasses
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include <stdio.h>
 // #if _MSC_VER

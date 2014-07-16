@@ -4,7 +4,7 @@
 	ApplePlatformFile.mm: Apple platform implementations of File functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include <sys/stat.h>
 
 // make an FTimeSpan object that represents the "epoch" for time_t (from a stat struct)

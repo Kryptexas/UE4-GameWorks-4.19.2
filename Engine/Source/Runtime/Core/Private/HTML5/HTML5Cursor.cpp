@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "HTML5Cursor.h"
 
 FHTML5Cursor::FHTML5Cursor()

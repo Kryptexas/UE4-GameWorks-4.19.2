@@ -4,7 +4,7 @@
 	LinuxPlatformProcess.cpp: Linux implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "LinuxPlatformRunnableThread.h"
 #include "../../Public/Modules/ModuleVersion.h"
 #include <spawn.h>

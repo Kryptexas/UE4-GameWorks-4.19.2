@@ -4,7 +4,7 @@
 	WindowsPlatformExceptionHandling.cpp: Exception handling for functions that want to create crash dumps.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "../../Launch/Resources/Version.h"
 

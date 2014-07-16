@@ -4,7 +4,7 @@
 	PathsTest.cpp: Unit test for the FPaths class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

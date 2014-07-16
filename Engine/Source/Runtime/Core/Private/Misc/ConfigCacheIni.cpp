@@ -4,7 +4,7 @@
 	ConfigCacheIni.cpp: Unreal config file reading/writing.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"
 #include "AES.h"

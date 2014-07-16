@@ -4,7 +4,7 @@
 	UnName.cpp: Unreal global name code.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealNames, Log, All);

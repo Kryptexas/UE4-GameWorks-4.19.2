@@ -4,7 +4,7 @@
 	OutputDevice.cpp: Implementation of OutputDevice
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
 

@@ -4,7 +4,7 @@
 	Box.cpp: Implements the FBox class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FBox structors

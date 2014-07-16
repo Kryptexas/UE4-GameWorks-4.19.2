@@ -1,5 +1,5 @@
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "LinuxApplication.h"
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"

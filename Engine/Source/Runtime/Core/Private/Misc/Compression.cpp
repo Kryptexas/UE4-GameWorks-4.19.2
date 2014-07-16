@@ -4,7 +4,7 @@
 	Compression.cpp: Compression classes
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "CompressedGrowableBuffer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCompression, Log, All);

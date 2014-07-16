@@ -4,7 +4,7 @@
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "LinuxPlatformMisc.h"
 #include "LinuxApplication.h"
 

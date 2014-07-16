@@ -4,7 +4,7 @@
 	SplashScreen.cpp: Splash screen for game/editor startup
 ================================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "EngineVersion.h"
 #include "AllowWindowsPlatformTypes.h"

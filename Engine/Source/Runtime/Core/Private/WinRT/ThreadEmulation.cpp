@@ -6,7 +6,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
 //SAS-START
-#include "CorePrivate.h"
+#include "Core.h"
 //SAS-END
 
 #include "ThreadEmulation.h"

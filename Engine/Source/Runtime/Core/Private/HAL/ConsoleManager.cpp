@@ -4,7 +4,7 @@
 ConsoleManager.cpp: console command handling
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ConsoleManager.h"
 #include "ModuleManager.h"
 
