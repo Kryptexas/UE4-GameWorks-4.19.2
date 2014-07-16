@@ -369,7 +369,7 @@ TArray<FSubLevelStatus> GetSubLevelsStatus( UWorld* World )
 				{
 					LevelStatus.StreamingStatus = LEVEL_UnloadedButStillAround;
 				}
-				else if( GetAsyncLoadPercentage( LevelStatus.PackageName.ToString() ) >= 0 )
+				else if( LevelStreaming->bHasLoadRequestPending )
 				{
 					LevelStatus.StreamingStatus = LEVEL_Loading;
 				}
