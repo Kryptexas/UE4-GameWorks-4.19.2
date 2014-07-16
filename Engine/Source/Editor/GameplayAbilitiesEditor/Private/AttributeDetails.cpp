@@ -3,7 +3,6 @@
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
-#include "AttributeDetails.h"
 #include "AttributeSet.h"
 #include "BlueprintUtilities.h"
 #include "KismetEditorUtilities.h"
