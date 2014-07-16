@@ -24,17 +24,19 @@ class UGameLiveStreamingFunctionLibrary : public UBlueprintFunctionLibrary
 	 * @param	bEnableWebCam				If enabled, video from your web camera will be captured and displayed while broadcasting, so that your viewers can see your presence.
 	 * @param	DesiredWebCamWidth			Desired web cam capture resolution width.  The web cam may only support a limited number of resolutions, so we'll choose one that matches as closely to this as possible
 	 * @param	DesiredWebCamHeight			Desired web cam capture resolution height.
+	 * @param	bMirrorWebCamImage			You can enable this to flip the web camera image horizontally, so that it looks like a mirror
 	 * @param	bCaptureAudioFromComputer	Enables broadcast of audio being played by your computer, such as in-game sounds
 	 * @param	bCaptureAudioFromMicrophone	Enables broadcast of audio from your default microphone recording device
 	 * @param	bDrawSimpleWebCamVideo		If enabled, the engine will draw a simple web cam image on top of the game viewport.  If you turn this off, it's up to you to draw the web cam image yourself.  You can access the web cam texture by calling IGameLiveStreaming::Get().GetWebCamTexture(). 
 	 */
-	UFUNCTION( BlueprintCallable, Category="LiveStreaming", meta=(FrameRate="30", ScreenScaling="1.0", bEnableWebCam="true", DesiredWebCamWidth="320", DesiredWebCamHeight="240", bCaptureAudioFromComputer="true", bCaptureAudioFromMicrophone="true", bDrawSimpleWebCamVideo="true") )
+	UFUNCTION( BlueprintCallable, Category="LiveStreaming", meta=(FrameRate="30", ScreenScaling="1.0", bEnableWebCam="true", DesiredWebCamWidth="320", DesiredWebCamHeight="240", bMirrorWebCamImage="false", bCaptureAudioFromComputer="true", bCaptureAudioFromMicrophone="true", bDrawSimpleWebCamVideo="true") )
 	static void StartBroadcastingGame(
 		int32 FrameRate,
 		float ScreenScaling,
 		bool bEnableWebCam,
 		int32 DesiredWebCamWidth,
 		int32 DesiredWebCamHeight,
+		bool bMirrorWebCamImage,
 		bool bCaptureAudioFromComputer,
 		bool bCaptureAudioFromMicrophone,
 		bool bDrawSimpleWebCamVideo );

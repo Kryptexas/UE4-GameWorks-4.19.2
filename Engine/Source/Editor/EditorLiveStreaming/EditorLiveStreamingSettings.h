@@ -62,6 +62,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category=EditorLiveStreaming, Meta=(EditCondition="bEnableWebCam") )
 	TEnumAsByte<EEditorLiveStreamingWebCamResolution::Type> WebCamResolution;
 
+	/** You can enable this to flip the web cam image horizontally so that it looks more like a mirror */
+	UPROPERTY(Config, EditAnywhere, Category=EditorLiveStreaming )
+	bool bMirrorWebCamImage;
+
 	/** Enables broadcast of audio being played by your computer, such as in-game sounds */
 	UPROPERTY(Config, EditAnywhere, Category=EditorLiveStreaming )
 	bool bCaptureAudioFromComputer;

@@ -257,10 +257,13 @@ public:
 
 	/**
 	 * For services that support web cams, this function will return the current picture on the web cam as a GPU texture
-	 *
+	 * 
+	 * @param	bIsImageFlippedHorizontally		[Out] True if the image is flipped left to right
+	 * @param	bIsImageFlippedVertically		[Out] True if the image is flipped top to bottom
+	 * 
 	 * @return	Current web cam frame as a 2D texture
 	 */
-	virtual class UTexture2D* GetWebCamTexture() = 0;
+	virtual class UTexture2D* GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically ) = 0;
 
 
 	/**

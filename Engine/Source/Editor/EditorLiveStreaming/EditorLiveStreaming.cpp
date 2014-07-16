@@ -323,13 +323,22 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 	// If the web cam just turned on, then we'll go ahead and show it
 	if( Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamTextureReady )
 	{	
-		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture();
+		bool bIsImageFlippedHorizontally = false;
+		bool bIsImageFlippedVertically = false;
+		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture( bIsImageFlippedHorizontally, bIsImageFlippedVertically );
 		if( ensure( WebCamTexture != nullptr ) )
 		{
 			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( TEXT( "MainFrame" ) );
 			check( MainFrameModule.IsWindowInitialized() );
 			auto RootWindow = MainFrameModule.GetParentWindow();
 			check( RootWindow.IsValid() );
+
+			// Allow the user to customize the image mirroring, too!
+			const auto& Settings = *GetDefault< UEditorLiveStreamingSettings >();
+			if( Settings.bMirrorWebCamImage )
+			{
+				bIsImageFlippedHorizontally = !bIsImageFlippedHorizontally;
+			}
 
 			// How many pixels from the edge of the main frame window to where the broadcast status window appears
 			const int WindowBorderPadding = 50;
@@ -360,6 +369,20 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 				WebCamTexture,
 				FVector2D( WebCamTexture->GetSizeX(), WebCamTexture->GetSizeY() ),
 				WebCamTexture->GetFName() ) );
+
+			// If the web cam image is coming in flipped, we'll apply mirroring to the Slate brush
+			if( bIsImageFlippedHorizontally && bIsImageFlippedVertically )
+			{
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Both;
+			}
+			else if( bIsImageFlippedHorizontally )
+			{ 
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Horizontal;
+			}
+			else if( bIsImageFlippedVertically )
+			{ 
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Vertical;
+			}
 
 			// @todo livestream: Currently if the user closes the window, the camera is deactivated and it doesn't turn back on unless the broadcast is restarted.  We could allow the camera to be reactivated though.
 			BroadcastStatusWindow->SetOnWindowClosed( 

@@ -58,6 +58,29 @@ namespace ESlateBrushTileType
 }
 
 
+/**
+ * Possible options for mirroring the brush image
+ */
+UENUM()
+namespace ESlateBrushMirrorType
+{
+	enum Type
+	{
+		/** Don't mirror anything, just draw the texture as it is */
+		NoMirror,
+
+		/** Mirror the image horizontally */
+		Horizontal,
+
+		/** Mirror the image vertically */
+		Vertical,
+
+		/** Mirror in both directions */
+		Both
+	};
+}
+
+
 /*
  * Enumerates brush image types.
  */
@@ -110,6 +133,11 @@ struct SLATECORE_API FSlateBrush
 	UPROPERTY(EditAnywhere, Category=Brush)
 	TEnumAsByte<enum ESlateBrushTileType::Type> Tiling;
 
+	/** How to mirror the image in Image mode.  This is normally only used for dynamic image brushes where the source texture
+	    comes from a hardware device such as a web camera. */
+	UPROPERTY(EditAnywhere, Category=Brush)
+	TEnumAsByte<enum ESlateBrushMirrorType::Type> Mirroring;
+
 	/** The type of image */
 	UPROPERTY()
 	TEnumAsByte<enum ESlateBrushImageType::Type> ImageType;
@@ -126,6 +154,7 @@ public:
 		, Tint_DEPRECATED(FLinearColor::White)
 		, TintColor(FLinearColor::White)
 		, Tiling(ESlateBrushTileType::NoTile)
+		, Mirroring(ESlateBrushMirrorType::NoMirror)
 		, ImageType(ESlateBrushImageType::NoImage)
 		, ResourceObject(nullptr)
 		, ResourceName(NAME_None)

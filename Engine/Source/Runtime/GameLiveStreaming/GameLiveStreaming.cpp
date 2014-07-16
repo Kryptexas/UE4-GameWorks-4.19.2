@@ -24,6 +24,7 @@ FGameLiveStreaming::FGameLiveStreaming()
 			TEXT( "     bEnableWebCam=<bool>                Enables video from your web camera to be captured and displayed\n" )
 			TEXT( "     DesiredWebCamWidth=<int32>          Horizontal resolution for web camera capture\n" )
 			TEXT( "     DesiredWebCamHeight=<int32>         Veritcal resolution for web camera capture\n" )
+			TEXT( "     bMirrorWebCamImage=<bool>			Flips the web camera image horizontally\n" )
 			TEXT( "     bCaptureAudioFromComputer=<bool>    Enables capturing sound that is played back through your PC\n" )
 			TEXT( "     bCaptureAudioFromMicrophone=<bool>  Enables capturing sound from your default microphone\n" )
 			TEXT( "     bDrawSimpleWebCamVideo=<bool>       Draws a simple web cam video on top of the viewport\n" ),
@@ -38,6 +39,7 @@ FGameLiveStreaming::FGameLiveStreaming()
 						FParse::Bool( *Arg, TEXT( "bEnableWebCam="), Config.bEnableWebCam );
 						FParse::Value( *Arg, TEXT( "DesiredWebCamWidth="), Config.DesiredWebCamWidth );
 						FParse::Value( *Arg, TEXT( "DesiredWebCamHeight="), Config.DesiredWebCamHeight );
+						FParse::Bool( *Arg, TEXT( "bMirrorWebCamImage="), Config.bMirrorWebCamImage );
 						FParse::Bool( *Arg, TEXT( "bCaptureAudioFromComputer="), Config.bCaptureAudioFromComputer );
 						FParse::Bool( *Arg, TEXT( "bCaptureAudioFromMicrophone="), Config.bCaptureAudioFromMicrophone );
 						FParse::Bool( *Arg, TEXT( "bDrawSimpleWebCamVideo=" ), Config.bDrawSimpleWebCamVideo );
@@ -62,6 +64,7 @@ FGameLiveStreaming::FGameLiveStreaming()
 	ReadbackBufferIndex = 0;
 	ReadbackBuffers[0] = nullptr;
 	ReadbackBuffers[1] = nullptr;
+	bMirrorWebCamImage = false;
 	bDrawSimpleWebCamVideo = true;
 }
 
@@ -114,6 +117,7 @@ void FGameLiveStreaming::StartBroadcastingGame( const FGameBroadcastConfig& Game
 			FSlateRenderer* SlateRenderer = FSlateApplication::Get().GetRenderer().Get();
 			SlateRenderer->OnSlateWindowRendered().AddRaw( this, &FGameLiveStreaming::OnSlateWindowRenderedDuringBroadcasting );
 
+			this->bMirrorWebCamImage = GameBroadcastConfig.bMirrorWebCamImage;
 			this->bDrawSimpleWebCamVideo = GameBroadcastConfig.bDrawSimpleWebCamVideo;
 
 			// @todo livestream: This will interfere with editor live streaming if both are running at the same time!  The editor live 
@@ -395,15 +399,23 @@ void FGameLiveStreaming::DrawSimpleWebCamVideo( UCanvas* Canvas )
 {
 	if( IsBroadcastingGame() && bDrawSimpleWebCamVideo && LiveStreamer->IsWebCamEnabled() )
 	{
-		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture();
+		bool bIsImageFlippedHorizontally = false;
+		bool bIsImageFlippedVertically = false;
+		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture( bIsImageFlippedHorizontally, bIsImageFlippedVertically );
 		if( WebCamTexture != nullptr )
 		{
+			// Give the user a chance to customize the image mirroring
+			if( this->bMirrorWebCamImage )
+			{
+				bIsImageFlippedHorizontally = !bIsImageFlippedHorizontally;
+			}
+
 			const float BorderPadding = 6.0f;
 			Canvas->Canvas->DrawTile( 
 				Canvas->SizeX - WebCamTexture->GetSizeX() - BorderPadding, BorderPadding,	// Top right justify
 				WebCamTexture->GetSizeX(), WebCamTexture->GetSizeY(),
-				0, 0, 
-				1.0f, 1.0f, 
+				bIsImageFlippedHorizontally ? 1.0f : 0.0f, bIsImageFlippedVertically ? 1.0f : 0.0f, 
+				bIsImageFlippedHorizontally ? -1.0f : 1.0f, bIsImageFlippedVertically ? -1.0f : 1.0f, 
 				FLinearColor::White, 
 				WebCamTexture->Resource, 
 				false );	// Alpha blend?
@@ -412,12 +424,17 @@ void FGameLiveStreaming::DrawSimpleWebCamVideo( UCanvas* Canvas )
 }
 
 
-UTexture2D* FGameLiveStreaming::GetWebCamTexture()
+UTexture2D* FGameLiveStreaming::GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically )
 {
+	bIsImageFlippedHorizontally = false;
+	bIsImageFlippedVertically = false;
+
 	UTexture2D* WebCamTexture = nullptr;
 	if( IsBroadcastingGame() && bDrawSimpleWebCamVideo && LiveStreamer->IsWebCamEnabled() )
 	{
-		WebCamTexture = LiveStreamer->GetWebCamTexture();
+		bool bIsImageFlippedHorizontally = false;
+		bool bIsImageFlippedVertically = false;
+		WebCamTexture = LiveStreamer->GetWebCamTexture( bIsImageFlippedHorizontally, bIsImageFlippedVertically );
 	}
 	return WebCamTexture;
 }

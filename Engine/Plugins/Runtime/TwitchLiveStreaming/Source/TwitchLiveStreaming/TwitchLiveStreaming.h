@@ -35,7 +35,7 @@ public:
 	virtual void StartWebCam( const FWebCamConfig& Config ) override;
 	virtual void StopWebCam() override;
 	virtual bool IsWebCamEnabled() const override;
-	virtual UTexture2D* GetWebCamTexture() override;
+	virtual UTexture2D* GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically ) override;
 	virtual FOnChatMessage& OnChatMessage() override;
 	virtual void ConnectToChat() override;
 	virtual void DisconnectFromChat() override;
@@ -290,6 +290,9 @@ private:
 
 	/** Web cam video buffer height */
 	int32 WebCamVideoBufferHeight;
+
+	/** True if the web cam texture is flipped vertically, as captured from the camera, and needs to be displayed bottom to top */
+	bool bIsWebCamTextureFlippedVertically;
 
 	/** Texture that stores the web cam image, copied asynchronously from the CPU */
 	class UTexture2D* WebCamTexture;

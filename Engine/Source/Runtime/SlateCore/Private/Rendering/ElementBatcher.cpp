@@ -216,9 +216,13 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 
 		FColor Tint = GetElementColor( InPayload.Tint, InPayload.BrushResource );
 
-		ESlateBrushTileType::Type TilingRule = InPayload.BrushResource->Tiling;
+		const ESlateBrushTileType::Type TilingRule = InPayload.BrushResource->Tiling;
 		const bool bTileHorizontal = (TilingRule == ESlateBrushTileType::Both || TilingRule == ESlateBrushTileType::Horizontal);
 		const bool bTileVertical = (TilingRule == ESlateBrushTileType::Both || TilingRule == ESlateBrushTileType::Vertical);
+
+		const ESlateBrushMirrorType::Type MirroringRule = InPayload.BrushResource->Mirroring;
+		const bool bMirrorHorizontal = (MirroringRule == ESlateBrushMirrorType::Both || MirroringRule == ESlateBrushMirrorType::Horizontal);
+		const bool bMirrorVertical = (MirroringRule == ESlateBrushMirrorType::Both || MirroringRule == ESlateBrushMirrorType::Vertical);
 
 		// Pass the tiling information as a flag so we can pick the correct texture addressing mode
 		ESlateBatchDrawFlag::Type DrawFlags = ( ( bTileHorizontal ? ESlateBatchDrawFlag::TileU : 0 ) | ( bTileVertical ? ESlateBatchDrawFlag::TileV : 0 ) );
@@ -261,16 +265,16 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 
 			// Determine the texture coordinates for each quad
 			// These are not scaled.
-			const float LeftMarginU = (Margin.Left > 0.0f)
+			float LeftMarginU = (Margin.Left > 0.0f)
 				? StartUV.X + Margin.Left * SizeUV.X + HalfTexel.X
 				: StartUV.X;
-			const float TopMarginV = (Margin.Top > 0.0f)
+			float TopMarginV = (Margin.Top > 0.0f)
 				? StartUV.Y + Margin.Top * SizeUV.Y + HalfTexel.Y
 				: StartUV.Y;
-			const float RightMarginU = (Margin.Right > 0.0f)
+			float RightMarginU = (Margin.Right > 0.0f)
 				? EndUV.X - Margin.Right * SizeUV.X + HalfTexel.X
 				: EndUV.X;
-			const float BottomMarginV = (Margin.Bottom > 0.0f)
+			float BottomMarginV = (Margin.Bottom > 0.0f)
 				? EndUV.Y - Margin.Bottom * SizeUV.Y + HalfTexel.Y
 				: EndUV.Y;
 
@@ -305,6 +309,27 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 
 			EndPos.X = FMath::TruncToInt( EndPos.X );
 			EndPos.Y = FMath::TruncToInt( EndPos.Y );
+
+			if( bMirrorHorizontal || bMirrorVertical )
+			{
+				const FVector2D UVMin = StartUV;
+				const FVector2D UVMax = EndUV;
+
+				if( bMirrorHorizontal )
+				{
+					StartUV.X = UVMax.X - ( StartUV.X - UVMin.X );
+					EndUV.X = UVMax.X - ( EndUV.X - UVMin.X );
+					LeftMarginU = UVMax.X - ( LeftMarginU - UVMin.X );
+					RightMarginU = UVMax.X - ( RightMarginU - UVMin.X );
+				}
+				if( bMirrorVertical )
+				{
+					StartUV.Y = UVMax.Y - ( StartUV.Y - UVMin.Y );
+					EndUV.Y = UVMax.Y - ( EndUV.Y - UVMin.Y );
+					TopMarginV = UVMax.Y - ( TopMarginV - UVMin.Y );
+					BottomMarginV = UVMax.Y - ( BottomMarginV - UVMin.Y );
+				}
+			}
 
 			BatchVertices.Add( FSlateVertex( Position,									StartUV,									Tiling,	Tint, InClippingRect ) ); //0
 			BatchVertices.Add( FSlateVertex( FVector2D( Position.X, TopMarginY ),		FVector2D( StartUV.X, TopMarginV ),			Tiling,	Tint, InClippingRect ) ); //1
@@ -396,6 +421,23 @@ void FSlateElementBatcher::AddBoxElement( const FVector2D& InPosition, const FVe
 			FVector2D TopRight = FVector2D( Position.X+Size.X, Position.Y);
 			FVector2D BotLeft =	 FVector2D( Position.X, Position.Y+Size.Y);
 			FVector2D BotRight = FVector2D( Position.X + Size.X, Position.Y+Size.Y);
+
+			if( bMirrorHorizontal || bMirrorVertical )
+			{
+				const FVector2D UVMin = StartUV;
+				const FVector2D UVMax = EndUV;
+
+				if( bMirrorHorizontal )
+				{
+					StartUV.X = UVMax.X - ( StartUV.X - UVMin.X );
+					EndUV.X = UVMax.X - ( EndUV.X - UVMin.X );
+				}
+				if( bMirrorVertical )
+				{
+					StartUV.Y = UVMax.Y - ( StartUV.Y - UVMin.Y );
+					EndUV.Y = UVMax.Y - ( EndUV.Y - UVMin.Y );
+				}
+			}
 
 			// Add four vertices to the list of verts to be added to the vertex buffer
 			BatchVertices.Add( FSlateVertex(TopLeft,	StartUV,						Tiling,	Tint, InClippingRect ) );

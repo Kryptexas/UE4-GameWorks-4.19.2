@@ -64,6 +64,7 @@ void FTwitchLiveStreaming::StartupModule()
 	WebCamCapabilityIndex = INDEX_NONE;
 	WebCamVideoBufferWidth = 0;
 	WebCamVideoBufferHeight = 0;
+	bIsWebCamTextureFlippedVertically = false;
 	WebCamTexture = nullptr;
 
 	bWantsChatEnabled = false;
@@ -1110,8 +1111,10 @@ bool FTwitchLiveStreaming::IsWebCamEnabled() const
 }
 
 
-UTexture2D* FTwitchLiveStreaming::GetWebCamTexture()
+UTexture2D* FTwitchLiveStreaming::GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically )
 {
+	bIsImageFlippedHorizontally = false;	// Twitch never flips a web cam image horizontally
+	bIsImageFlippedVertically = bIsWebCamTextureFlippedVertically;
 	return WebCamTexture;
 }
 
@@ -1479,6 +1482,7 @@ void FTwitchLiveStreaming::Async_InitWebCamSupport()
 								This->WebCamCapabilityIndex = Capability.capabilityIndex;
 								This->WebCamVideoBufferWidth = Capability.resolution.width;
 								This->WebCamVideoBufferHeight = Capability.resolution.height;
+								This->bIsWebCamTextureFlippedVertically = !Capability.isTopToBottom;
 							}
 							else
 							{
@@ -1752,6 +1756,8 @@ void FTwitchLiveStreaming::ReleaseWebCamTexture( const bool bReleaseResourceToo 
 		}
 		WebCamTexture->RemoveFromRoot();
 		WebCamTexture = nullptr;
+
+		bIsWebCamTextureFlippedVertically = false;
 
 		PublishStatus( EStatusType::WebCamTextureNotReady, LOCTEXT( "Status_WebCamTextureNotReady", "Web cam video disabled" ) );
 	}

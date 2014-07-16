@@ -25,6 +25,9 @@ struct FGameBroadcastConfig
 	/** Desired web cam capture resolution height. */
 	int32 DesiredWebCamHeight;
 
+	/** You can enable this to flip the web camera image horizontally, so that it looks like a mirror */
+	bool bMirrorWebCamImage;
+
 	/** Enables broadcast of audio being played by your computer, such as in-game sounds */
 	bool bCaptureAudioFromComputer;
 
@@ -44,6 +47,7 @@ struct FGameBroadcastConfig
 		  bEnableWebCam( true ),
 		  DesiredWebCamWidth( 320 ),
 		  DesiredWebCamHeight( 240 ),
+		  bMirrorWebCamImage( false ),
 		  bCaptureAudioFromComputer( true ),
 		  bCaptureAudioFromMicrophone( true ),
 		  bDrawSimpleWebCamVideo( true )
@@ -89,9 +93,12 @@ public:
 	/**
 	 * Exposes access to the web cam video feed as a 2D texture
 	 *
+	 * @param	bIsImageFlippedHorizontally		[Out] True if the image is flipped left to right, and you should compensate while drawing by mirroring the texture U coordinates
+	 * @param	bIsImageFlippedVertically		[Out] True if the image is flipped top to bottom, and you should compensate while drawing by mirroring the texture V coordinates
+	 * 
 	 * @return	The web cam video feed texture, or null if the web cam isn't enabled
 	 */
-	virtual class UTexture2D* GetWebCamTexture() = 0;
+	virtual class UTexture2D* GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically ) = 0;
 
 	/**
 	 * Gets direct access to the live streaming service we are using, or nullptr if we haven't selected one yet
