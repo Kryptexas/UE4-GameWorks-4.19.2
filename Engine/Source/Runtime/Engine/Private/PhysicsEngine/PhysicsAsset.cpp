@@ -211,10 +211,13 @@ int32	UPhysicsAsset::FindControllingBodyIndex(class USkeletalMesh* skelMesh, int
 int32 UPhysicsAsset::FindParentBodyIndex(class USkeletalMesh * skelMesh, int32 StartBoneIndex) const
 {
 	int32 BoneIndex = StartBoneIndex;
-	while ((BoneIndex = skelMesh->RefSkeleton.GetParentIndex(BoneIndex)) != 0)
+	while ((BoneIndex = skelMesh->RefSkeleton.GetParentIndex(BoneIndex)) != INDEX_NONE)
 	{
 		FName BoneName = skelMesh->RefSkeleton.GetBoneName(BoneIndex);
 		int32 BodyIndex = FindBodyIndex(BoneName);
+
+		if (StartBoneIndex == BoneIndex)
+			return INDEX_NONE;
 
 		if (BodyIndex != INDEX_NONE)
 			return BodyIndex;
