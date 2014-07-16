@@ -740,7 +740,7 @@ void ACharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pre
 /** Don't process landed notification if updating client position by replaying moves. 
  * Allow event to be called if Pawn was initially falling (before starting to replay moves), 
  * and this is going to cause him to land. . */
-bool ACharacter::NotifyLanded(const FHitResult& Hit)
+bool ACharacter::ShouldNotifyLanded(const FHitResult& Hit)
 {
 	if (bClientUpdating && !bClientWasFalling)
 	{

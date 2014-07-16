@@ -547,11 +547,13 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Pawn|Character")
 	FCharacterMovementUpdatedSignature OnCharacterMovementUpdated;
 
-	/**
-	 * Called when our pawn has landed from a fall.
-	 * @param	PrevMovementMode	Movement mode before the change
+	DEPRECATED(4.4, "NotifyLanded() has been renamed ShouldNotifyLanded() instead.")
+	virtual bool NotifyLanded(const struct FHitResult& Hit) { return ShouldNotifyLanded(Hit); }
+
+	/** 
+	 * Returns true if the Landed() event should be called. Used by CharacterMovement to prevent notifications while playing back network moves.
 	 */
-	virtual bool NotifyLanded(const struct FHitResult& Hit);
+	virtual bool ShouldNotifyLanded(const struct FHitResult& Hit);
 
 	/** Trigger jump if jump button has been pressed. */
 	virtual void CheckJumpInput(float DeltaTime);

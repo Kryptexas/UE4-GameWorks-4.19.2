@@ -3499,7 +3499,7 @@ void UCharacterMovementComponent::StopActiveMovement()
 
 void UCharacterMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
 {
-	if( CharacterOwner && CharacterOwner->NotifyLanded(Hit) )
+	if( CharacterOwner && CharacterOwner->ShouldNotifyLanded(Hit) )
 	{
 		CharacterOwner->Landed(Hit);
 	}
