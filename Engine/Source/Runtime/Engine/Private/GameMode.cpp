@@ -1360,8 +1360,6 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 	}
 }
 
-void AGameMode::PreExit() {}
-
 bool AGameMode::CanSpectate( APlayerController* Viewer, APlayerState* ViewTarget )
 {
 	return true;

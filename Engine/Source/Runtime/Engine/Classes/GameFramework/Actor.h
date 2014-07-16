@@ -2013,6 +2013,9 @@ public:
 	/** Get the timer instance from the actors world */
 	class FTimerManager& GetWorldTimerManager() const;
 
+	/** Gets the GameInstance that ultimately contains this actor. */
+	class UGameInstance* GetGameInstance() const;
+
 	/** Returns true if this is a replicated actor that was placed in the map */
 	bool IsNetStartupActor() const;
 

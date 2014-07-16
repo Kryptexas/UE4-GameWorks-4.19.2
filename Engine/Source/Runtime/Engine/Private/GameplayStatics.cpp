@@ -20,6 +20,12 @@ UGameplayStatics::UGameplayStatics(const class FPostConstructInitializePropertie
 {
 }
 
+UGameInstance* UGameplayStatics::GetGameInstance(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	return World->GetGameInstance();
+}
+
 APlayerController* UGameplayStatics::GetPlayerController(UObject* WorldContextObject, int32 PlayerIndex ) 
 {
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );

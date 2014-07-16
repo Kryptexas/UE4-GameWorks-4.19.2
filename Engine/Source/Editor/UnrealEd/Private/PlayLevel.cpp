@@ -29,6 +29,7 @@
 #include "PhysicsPublic.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "Engine/GameInstance.h"
 
 #include "Online.h"
 
@@ -293,7 +294,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	if (!PieWorldContext.RunAsDedicated)
 	{
 		// Slate data for this pie world
-		FSlatePlayInEditorInfo &SlatePlayInEditorSession = SlatePlayInEditorMap.FindChecked(PieWorldContext.ContextHandle);
+		FSlatePlayInEditorInfo* const SlatePlayInEditorSession = SlatePlayInEditorMap.Find(PieWorldContext.ContextHandle);
 
 		// Destroy Viewport
 		if ( PieWorldContext.GameViewport != NULL && PieWorldContext.GameViewport->Viewport != NULL )
@@ -303,18 +304,18 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 		CleanupGameViewport();
 	
 		// Clean up the slate PIE viewport if we have one
-		if( SlatePlayInEditorSession.DestinationSlateViewport.IsValid() )
+		if (SlatePlayInEditorSession && SlatePlayInEditorSession->DestinationSlateViewport.IsValid())
 		{
-			TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession.DestinationSlateViewport.Pin();
+			TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession->DestinationSlateViewport.Pin();
 
 			if( !bIsSimulatingInEditor)
 			{
 				// Set the editor viewport location to match that of Play in Viewport if we aren't simulating in the editor, we have a valid player to get the location from 
-				if( SlatePlayInEditorSession.EditorPlayer.IsValid() && SlatePlayInEditorSession.EditorPlayer.Get()->PlayerController )
+				if (SlatePlayInEditorSession->EditorPlayer.IsValid() && SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController)
 				{
 					FVector ViewLocation;
 					FRotator ViewRotation;
-					SlatePlayInEditorSession.EditorPlayer.Get()->PlayerController->GetPlayerViewPoint( ViewLocation, ViewRotation );
+					SlatePlayInEditorSession->EditorPlayer.Get()->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
 					Viewport->GetLevelViewportClient().SetViewLocation( ViewLocation );
 
 					if( Viewport->GetLevelViewportClient().IsPerspective() )
@@ -331,20 +332,20 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 			// Clear out the hit proxies before GC'ing
 			Viewport->GetLevelViewportClient().Viewport->InvalidateHitProxy();
 		}
-		else if( SlatePlayInEditorSession.SlatePlayInEditorWindow.IsValid() )
+		else if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
 		{
 			// Unregister the game viewport from slate.  This sends a final message to the viewport
 			// so it can have a chance to release mouse capture, mouse lock, etc.		
 			FSlateApplication::Get().UnregisterGameViewport();
 
 			// Viewport client is cleaned up.  Make sure its not being accessed
-			SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->SetViewportClient( NULL );
+			SlatePlayInEditorSession->SlatePlayInEditorWindowViewport->SetViewportClient(NULL);
 
 			// The window may have already been destroyed in the case that the PIE window close box was pressed 
-			if( SlatePlayInEditorSession.SlatePlayInEditorWindow.IsValid() )
+			if (SlatePlayInEditorSession->SlatePlayInEditorWindow.IsValid())
 			{
 				// Destroy the SWindow
-				FSlateApplication::Get().DestroyWindowImmediately( SlatePlayInEditorSession.SlatePlayInEditorWindow.Pin().ToSharedRef() );
+				FSlateApplication::Get().DestroyWindowImmediately(SlatePlayInEditorSession->SlatePlayInEditorWindow.Pin().ToSharedRef());
 			}
 		}
 	
@@ -479,10 +480,10 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	if (!PieWorldContext.RunAsDedicated)
 	{
 		// Slate data for this pie world
-		FSlatePlayInEditorInfo &SlatePlayInEditorSession = SlatePlayInEditorMap.FindChecked(PieWorldContext.ContextHandle);
-		if( SlatePlayInEditorSession.DestinationSlateViewport.IsValid() )
+		FSlatePlayInEditorInfo* const SlatePlayInEditorSession = SlatePlayInEditorMap.Find(PieWorldContext.ContextHandle);
+		if (SlatePlayInEditorSession && SlatePlayInEditorSession->DestinationSlateViewport.IsValid())
 		{
-			TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession.DestinationSlateViewport.Pin();
+			TSharedPtr<ILevelViewport> Viewport = SlatePlayInEditorSession->DestinationSlateViewport.Pin();
 
 			if( Viewport->HasPlayInEditorViewport() )
 			{
@@ -1641,33 +1642,6 @@ bool UEditorEngine::SpawnPlayFromHereStart( UWorld* World, AActor*& PlayerStart,
 	return true;
 }
 
-/**
- * Initializes streaming levels when PIE starts up based on the players start location
- */
-static void InitStreamingLevelsForPIEStartup( UGameViewportClient* GameViewportClient, UWorld* PlayWorld )
-{
-	check(PlayWorld);
-	ULocalPlayer* Player = PlayWorld->GetFirstLocalPlayerFromController();
-	if( Player )
-	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			GameViewportClient->Viewport,
-			PlayWorld->Scene,
-			GameViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
-
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		Player->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, GameViewportClient->Viewport );
-
-		// Update level streaming.
-		PlayWorld->FlushLevelStreaming( &ViewFamily );
-	}
-}
-
 void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 {
 	double PIEStartTime = FPlatformTime::Seconds();
@@ -1977,10 +1951,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	if (bInSimulateInEditor || (PlayInSettings->PlayNetMode == EPlayNetMode::PIE_Standalone) || !PlayInSettings->RunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process
-		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
-		PieWorldContext.PIEInstance = 0;
-
-		CreatePlayInEditorWorld(PieWorldContext, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PIEStartTime);
+		UGameInstance* const GameInstance = CreatePIEGameInstance(0, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, PIEStartTime);
 
 		if (bInSimulateInEditor)
 		{
@@ -2042,10 +2013,6 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	FString ServerPrefix;
 	{
 		PlayInSettings->PlayNetMode = EPlayNetMode::PIE_ListenServer;
-		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
-
-		PieWorldContext.PIEInstance = PIEInstance++;
-		PieWorldContext.RunAsDedicated = PlayInSettings->PlayNetDedicated;
 
 		if (!PlayInSettings->PlayNetDedicated)
 		{
@@ -2053,21 +2020,29 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 			GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 		}
 
-		CreatePlayInEditorWorld(PieWorldContext, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PIEStartTime);
-		ServerPrefix = PieWorldContext.PIEPrefix;
+		UGameInstance* const ServerGameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, PIEStartTime);
+		if (ServerGameInstance)
+		{
+			ServerPrefix = ServerGameInstance->GetWorldContext()->PIEPrefix;
+		}
+
+		PIEInstance++;
 	}
 
 	// Clients
 	for (; ClientNum < PlayInSettings->PlayNumberOfClients; ++ClientNum)
 	{
 		PlayInSettings->PlayNetMode = EPlayNetMode::PIE_Client;
-		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
-		PieWorldContext.PIEInstance = PIEInstance++;
 
 		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
-		CreatePlayInEditorWorld(PieWorldContext, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, PIEStartTime);
 
-		PieWorldContext.PIERemapPrefix = ServerPrefix;
+		UGameInstance* const ClientGameInstance = CreatePIEGameInstance(PIEInstance, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode, false, PIEStartTime);
+		if (ClientGameInstance)
+		{
+			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
+		}
+
+		PIEInstance++;
 	}
 
 	// Restore window settings
@@ -2082,12 +2057,12 @@ void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	// Set window position
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
-	CreatePlayInEditorWorld(PieWorldContext, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, DataStruct.PIEStartTime);
+	UGameInstance* const GameInstance = CreatePIEGameInstance(0, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayInSettings->PlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings
 
-	PieWorldContext.bWaitingOnOnlineSubsystem = false;
+	GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
 
 	if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
 	{
@@ -2272,9 +2247,8 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	}
 }
 
-UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime)
+UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bRunAsDedicated, float PIEStartTime)
 {
-	//const FString Prefix = PLAYWORLD_PACKAGE_PREFIX;
 	const FString WorldPackageName = EditorWorld->GetOutermost()->GetName();
 	
 	// Start a new PIE log page
@@ -2290,41 +2264,18 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 		FMessageLog("PIE").NewPage(PIESessionLabel);
 	}
 
-	// Establish World Context for PIE World
-	PieWorldContext.LastURL.Map = WorldPackageName;
-	PieWorldContext.PIEPrefix = UWorld::BuildPIEPackagePrefix(PieWorldContext.PIEInstance);
+	// create a new GameInstance
+	FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
+	UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
 
-	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+	UGameInstance* GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
 
-	// We always need to create a new PIE world unless we're using the editor world for SIE
-	FString PlayWorldMapName;
+	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
+	GameInstance->AddToRoot();
 
-	if (PlayInSettings->PlayNetMode == PIE_Client)
+	bool bSuccess = GameInstance->InitPIE(bAnyBlueprintErrors);
+	if (!bSuccess)
 	{
-		// We are going to connect, so just load an empty world
-		PlayWorld = CreatePIEWorldFromEntry(PieWorldContext, EditorWorld, PlayWorldMapName);
-	}
-	else if (PlayInSettings->PlayNetMode == PIE_ListenServer && !PlayInSettings->RunUnderOneProcess)
-	{
-		// We *have* to save the world to disk in order to be a listen server that allows other processes to connect.
-		// Otherwise, clients would not be able to load the world we are using
-		PlayWorld = CreatePIEWorldBySavingToTemp(PieWorldContext, EditorWorld, PlayWorldMapName);
-	}
-	else
-	{
-		// Standard PIE path: just duplicate the EditorWorld
-		PlayWorld = CreatePIEWorldByDuplication(PieWorldContext, EditorWorld, PlayWorldMapName);
-	}
-
-	if (!PlayWorld)
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_FailedCreateEditorPreviewWorld", "Failed to create editor preview world."));
-		// The load failed, so restore GWorld.rema
-		if( GIsPlayInEditorWorld )
-		{
-			RestoreEditorWorld( EditorWorld );
-		}
-
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
 #if WITH_NAVIGATION_GENERATOR
 		if (EditorWorld->GetNavigationSystem())
@@ -2333,67 +2284,18 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 		}
 #endif // WITH_NAVIGATION_GENERATOR
 
-		return NULL;
+		return nullptr;
 	}
 	
-	PieWorldContext.SetCurrentWorld(PlayWorld);
-	PieWorldContext.AddRef(PlayWorld);	// Tie this context to this UEngine::PlayWorld*
+	FWorldContext* const PieWorldContext = GameInstance->GetWorldContext();
+	check(PieWorldContext);
+	PlayWorld = PieWorldContext->World();
 
-	// make sure we can clean up this world!
-	PlayWorld->ClearFlags(RF_Standalone);
-	PlayWorld->bKismetScriptError = bAnyBlueprintErrors;
+	PieWorldContext->PIEInstance = PIEInstance;
+	PieWorldContext->RunAsDedicated = bRunAsDedicated;
 
-	// If a start location is specified, spawn a temporary PlayerStartPIE actor at the start location and use it as the portal.
-	AActor* PlayerStart = NULL;
 	GWorld = PlayWorld;
-
-	if ( SpawnPlayFromHereStart( PlayWorld, PlayerStart, PlayWorldLocation, PlayWorldRotation ) == false)
-	{
-		// go back to using the real world as GWorld
-		GWorld = EditorWorld;
-		EndPlayMap();
-
-		return NULL;
-	}
-
 	SetPlayInEditorWorld( PlayWorld );
-
-	// make a URL
-	FURL URL;
-	
-	// If the user wants to start in spectator mode, do not use the custom play world for now
-	if( UserEditedPlayWorldURL.Len() > 0 && !bStartInSpectatorMode )
-	{
-		// If the user edited the play world url. Verify that the map name is the same as the currently loaded map.
-		URL = FURL(NULL, *UserEditedPlayWorldURL, TRAVEL_Absolute);
-		if( URL.Map != PlayWorldMapName )
-		{
-			// Ensure the URL map name is the same as the generated play world map name.
-			URL.Map = PlayWorldMapName;
-		}
-	}
-	else
-	{
-		// The user did not edit the url, just build one from scratch.
-		URL = FURL(NULL, *BuildPlayWorldURL( *PlayWorldMapName, bStartInSpectatorMode ), TRAVEL_Absolute);
-	}
-
-	if( !PlayWorld->SetGameMode(URL) )
-	{		
-		//Setting the game mode failed so bail 
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_FailedCreateEditorPreviewWorld", "Failed to create editor preview world."));
-		RestoreEditorWorld( EditorWorld );
-
-#if WITH_NAVIGATION_GENERATOR
-		if (EditorWorld->GetNavigationSystem())
-		{
-			EditorWorld->GetNavigationSystem()->OnPIEEnd();
-		}
-#endif // WITH_NAVIGATION_GENERATOR
-
-		EndPlayMap();
-		return NULL;
-	}
 
 	if( GetAudioDevice() )
 	{
@@ -2410,9 +2312,10 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	Args.Add( TEXT("PlatformBits"), FText::FromString( PlatformBitsString ) );
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GRHIShaderPlatform ) ) );
 
+	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 	if (PlayInSettings->PlayNetMode == PIE_Client)
 	{
-		Args.Add( TEXT("NetMode"), FText::FromString( FString::Printf(TEXT("Client %d"), PieWorldContext.PIEInstance-1) ) );
+		Args.Add(TEXT("NetMode"), FText::FromString(FString::Printf(TEXT("Client %d"), PieWorldContext->PIEInstance - 1)));
 	}
 	else if (PlayInSettings->PlayNetMode == PIE_ListenServer)
 	{
@@ -2466,15 +2369,15 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	UGameViewportClient* ViewportClient = NULL;
 	ULocalPlayer *NewLocalPlayer = NULL;
 	
-	if (!PieWorldContext.RunAsDedicated)
+	if (!PieWorldContext->RunAsDedicated)
 	{
 		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
-		ViewportClient->SetReferenceToWorldContext(PieWorldContext);
+		ViewportClient->Init(*PieWorldContext, GameInstance);
 		GameViewport = ViewportClient;
 		GameViewport->bIsPlayInEditorViewport = true;
-		PieWorldContext.GameViewport = ViewportClient;
+		PieWorldContext->GameViewport = ViewportClient;
 
-		FSlatePlayInEditorInfo & SlatePlayInEditorSession = SlatePlayInEditorMap.Add( PieWorldContext.ContextHandle, FSlatePlayInEditorInfo() );
+		FSlatePlayInEditorInfo& SlatePlayInEditorSession = SlatePlayInEditorMap.Add(PieWorldContext->ContextHandle, FSlatePlayInEditorInfo());
 		SlatePlayInEditorSession.DestinationSlateViewport = RequestedDestinationSlateViewport;	// Might be invalid depending how pie was launched. Code below handles this.
 		RequestedDestinationSlateViewport = NULL;
 
@@ -2486,7 +2389,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 			// go back to using the real world as GWorld
 			RestoreEditorWorld( EditorWorld );
 			EndPlayMap();
-			return NULL;
+			return nullptr;
 		}
 
 		if (!bInSimulateInEditor)
@@ -2597,7 +2500,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 					};
 				
 					PieWindow->SetOnWindowClosed(FOnWindowClosed::CreateStatic(&FLocal::OnPIEWindowClosed, TWeakPtr<SViewport>(PieViewportWidget), 
-						PieWorldContext.PIEInstance - (PlayInSettings->PlayNetDedicated ? 1 : 0)));
+						PieWorldContext->PIEInstance - (PlayInSettings->PlayNetDedicated ? 1 : 0)));
 				}
 
 				// Create a new viewport that the viewport widget will use to render the game
@@ -2627,46 +2530,20 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	// Disable the screensaver when PIE is running.
 	EnableScreenSaver( false );
 
-	// Navigate PIE world to the Editor world origin location
-	// and stream-in all relevant levels around that location
-	if (PlayWorld->WorldComposition)
-	{
-		PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
-	}
-	else
-	{
-		PlayWorld->FlushLevelStreaming();
-	}
-	
-	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
-	PlayWorld->CreateAISystem();
-
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
-
-	PlayWorld->InitializeActorsForPlay(URL);
 
 	// This must have already been set with a call to DisableRealtimeViewports() outside of this method.
 	check(!IsAnyViewportRealtime());
 	
-	if( NewLocalPlayer )
-	{
-		FString Error;
-		if(!NewLocalPlayer->SpawnPlayActor(URL.ToString(1),Error,PlayWorld))
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_CouldntSpawnPlayer", "Couldn't spawn player: {0}"), FText::FromString(Error)) );
-			// go back to using the real world as GWorld
-			RestoreEditorWorld( EditorWorld );
-			EndPlayMap();
-			return NULL;
-		}
-	}
+	// By this point it is safe to remove the GameInstance from the root and allow it to garbage collected as per usual
+	GameInstance->RemoveFromRoot();
 
-	PlayWorld->BeginPlay();
-	
-	if ( GameViewport != NULL && GameViewport->Viewport != NULL )
+	bSuccess = GameInstance->StartPIEGameInstance(NewLocalPlayer, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode);
+	if (!bSuccess)
 	{
-		// Stream any levels now that need to be loaded before the game starts
-		InitStreamingLevelsForPIEStartup( GameViewport, PlayWorld );
+		RestoreEditorWorld( EditorWorld );
+		EndPlayMap();
+		return nullptr;
 	}
 
 	// Set up a delegate to be called in Slate when GWorld needs to change.  Slate does not have direct access to the playworld to switch itself
@@ -2683,7 +2560,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 
 	{
 		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("MapName"), FText::FromString(PlayWorldMapName));
+		Arguments.Add(TEXT("MapName"), FText::FromString(GameInstance->PIEMapName));
 		Arguments.Add(TEXT("StartTime"), FPlatformTime::Seconds() - PIEStartTime);
 		FMessageLog("PIE").Info( FText::Format(LOCTEXT("PIEStartTime", "Play in editor start time for {MapName} {StartTime}"), Arguments) );
 	}
@@ -2694,29 +2571,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	// Clean up any editor actors being referenced 
 	GEngine->BroadcastLevelActorListChanged();
 
-	
-	// Auto connect to a local instance if necessary
-	if (PlayInSettings->PlayNetMode == PIE_Client)
-	{
-		FURL BaseURL = PieWorldContext.LastURL;
-		FString Error;
-		if (Browse( PieWorldContext, FURL(&BaseURL, TEXT("127.0.0.1"), (ETravelType)TRAVEL_Absolute), Error ) == EBrowseReturnVal::Pending)
-		{
-			TransitionType = TT_WaitingToConnect;
-		}
-		else
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, FText::Format(NSLOCTEXT("UnrealEd", "Error_CouldntLaunchPIEClient", "Couldn't Launch PIE Client: {0}"), FText::FromString(Error)) );
-			EndPlayMap();
-			return NULL;
-		}
-	}
-	else if (PlayInSettings->PlayNetMode == PIE_ListenServer)
-	{
-		PlayWorld->Listen(URL);
-	}
-	
-	return PlayWorld;
+	return GameInstance;
 }
 
 FViewport* UEditorEngine::GetActiveViewport()
@@ -2779,7 +2634,6 @@ void UEditorEngine::ToggleBetweenPIEandSIE()
 
 	if (!SlateInfoPtr)
 	{
-		check(false);
 		return;
 	}
 

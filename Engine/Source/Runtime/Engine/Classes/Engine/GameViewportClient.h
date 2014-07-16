@@ -210,6 +210,9 @@ protected:
 	UPROPERTY()
 	UWorld* World;
 
+	UPROPERTY()
+	UGameInstance* GameInstance;
+
 	/** If true will suppress the blue transition text messages. */
 	bool bSuppressTransitionMessage;
 
@@ -249,9 +252,11 @@ public:
 	/** Returns a relative world context for this viewport.	 */
 	virtual UWorld* GetWorld() const override;
 
-	virtual void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
-
 	class FSceneViewport* GetGameViewport();
+
+	class UGameInstance* GetGameInstance() const;
+
+	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
 
 public:
 	// Begin UObject Interface

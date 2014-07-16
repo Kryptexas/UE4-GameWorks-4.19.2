@@ -155,6 +155,8 @@ public:
 	 */
 	UWorld* GetWorld() const;
 
+	UGameInstance* GetGameInstance() const;
+
 	/**
 	 * Calculate the view settings for drawing from this view actor
 	 *
@@ -274,6 +276,13 @@ public:
 	 * @param InOffset		Offset applied to current world origin
 	 */
 	void ApplyWorldOffset(FVector InOffset);
+
+
+	/**
+	 * Determines whether this player is the first and primary player on their machine.
+	 * @return	true if this player is not using splitscreen, or is the first player in the split-screen layout.
+	 */
+	bool IsPrimaryPlayer() const;
 
 	/** Locked view state needs access to GetViewPoint. */
 	friend class FLockedViewState;

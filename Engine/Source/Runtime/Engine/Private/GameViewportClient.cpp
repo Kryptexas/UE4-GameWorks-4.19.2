@@ -17,6 +17,7 @@
 #include "EngineModule.h"
 #include "AudioDevice.h"
 #include "Sound/SoundWave.h"
+#include "Engine/GameInstance.h"
 #include "HighResScreenshot.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
@@ -185,14 +186,23 @@ FString UGameViewportClient::ConsoleCommand( const FString& Command)
 	return *ConsoleOut;
 }
 
-void UGameViewportClient::SetReferenceToWorldContext(struct FWorldContext& WorldContext)
+void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance)
 {
+	// set reference to world context
 	WorldContext.AddRef(World);
+
+	// remember our game instance
+	GameInstance = OwningGameInstance;
 }
 
 UWorld* UGameViewportClient::GetWorld() const
 {
 	return World;
+}
+
+UGameInstance* UGameViewportClient::GetGameInstance() const
+{
+	return GameInstance;
 }
 
 bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
@@ -462,7 +472,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 
 void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 {
-	if (GEngine)
+	if (GEngine && GetWorld())
 	{
 		float FrameTime = 0.0f;
 		if (FPlatformProperties::SupportsWindowedMode() == false)
@@ -1149,14 +1159,18 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 {
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
 	// Resetting them will prevent them from "sticking"
-	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+	UWorld* const World = GetWorld();
+	if (World)
 	{
-		APlayerController* PlayerController = *Iterator;
+		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+			APlayerController* const PlayerController = *Iterator;
 		if (PlayerController)
 		{
 			PlayerController->FlushPressedKeys();
 		}
 	}
+}
 }
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
@@ -1861,8 +1875,11 @@ void UGameViewportClient::VerifyPathRenderingComponents()
 {
 	const bool bShowPaths = !!EngineShowFlags.Navigation;
 
+	UWorld* const World = GetWorld();
+
 	// make sure nav mesh has a rendering component
-	ANavigationData* NavData = GetWorld()->GetNavigationSystem() != NULL ? GetWorld()->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
+	ANavigationData* const NavData = (World && World->GetNavigationSystem() != nullptr)
+		? World->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
 		: NULL;
 
 	if(NavData && NavData->RenderingComp == NULL)
@@ -1989,6 +2006,10 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	}
 
 	if(ProcessConsoleExec(Cmd,Ar,NULL))
+	{
+		return true;
+	}
+	else if ( GameInstance && GameInstance->Exec(InWorld, Cmd, Ar) )
 	{
 		return true;
 	}
@@ -2857,9 +2878,10 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 			FCString::Sprintf( File, TEXT("%s"), *(OutputDir + SSFilename) );
 			if( IFileManager::Get().FileSize(File) == INDEX_NONE )
 			{
-				if (bDisplayHUDInfo)
+				UWorld* const World = GetWorld();
+				if ( bDisplayHUDInfo && (World != nullptr) )
 				{
-					for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
+					for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
 						APlayerController* PlayerController = *Iterator;
 						if (PlayerController && PlayerController->GetHUD() )

@@ -212,7 +212,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		// The PlayerController gets replicated from the client though the engine assumes that every Player always has
 		// a valid PlayerController so we spawn a dummy one that is going to be replaced later.
 		PlayerController = CastChecked<APlayerController>(InWorld->SpawnActor(PCClass));
-		const int32 PlayerIndex=GEngine->GetGamePlayers(InWorld).Find(this);
+		const int32 PlayerIndex = GEngine->GetGamePlayers(InWorld).Find(this);
 		PlayerController->NetPlayerIndex = PlayerIndex;
 	}
 	return PlayerController != NULL;
@@ -1575,15 +1575,13 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 
 UWorld* ULocalPlayer::GetWorld() const
 {
-	UWorld* World = NULL;
-	if (ViewportClient != NULL)
-	{
-		World = ViewportClient->GetWorld();
-	}
-
-	return World;
+	return ViewportClient ? ViewportClient->GetWorld() : nullptr;
 }
 
+UGameInstance* ULocalPlayer::GetGameInstance() const
+{
+	return ViewportClient ? ViewportClient->GetGameInstance() : nullptr;
+}
 
 void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -1598,3 +1596,11 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 
 	UPlayer::AddReferencedObjects(This, Collector);
 }
+
+bool ULocalPlayer::IsPrimaryPlayer() const
+{
+	ULocalPlayer* const PrimaryPlayer = GetOuterUEngine()->GetFirstGamePlayer(GetWorld());
+	return (this == PrimaryPlayer);
+}
+
+

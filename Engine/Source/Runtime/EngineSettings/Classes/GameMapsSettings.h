@@ -79,6 +79,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=LocalMultiplayer, meta=(editcondition="bUseSplitScreen"))
 	TEnumAsByte<EThreePlayerSplitScreenType::Type> ThreePlayerSplitscreenLayout;
 
+	UPROPERTY(config, noclear, EditAnywhere, Category=GameInstance, meta=(MetaClass="GameInstance"))
+	FStringClassReference GameInstanceClass;
+
 private:
 
 	/** The map that will be loaded by default when no other map is loaded. */

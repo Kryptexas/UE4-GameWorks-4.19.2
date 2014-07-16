@@ -533,6 +533,44 @@ class FScreenSaverInhibitor : public FRunnable
 };
 
 /*-----------------------------------------------------------------------------
+	FWorldContext
+-----------------------------------------------------------------------------*/
+
+void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const UObject* ReferencingObject)
+{
+	// TODO: This is awfully unsafe as anything in a WorldContext that changes may not be referenced
+	//	 hopefully a utility to push the WorldContext back in to the collector with property collection
+	//       will happen in the future
+	Collector.AddReferencedObject(PendingNetGame, ReferencingObject);
+	for (const FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
+	{
+		for (UObject* LoadedObject : PackageInfo.LoadedObjects)
+		{
+			Collector.AddReferencedObject(LoadedObject, ReferencingObject);
+		}
+	}
+	for (ULevel* LoadedLevel : LoadedLevelsForPendingMapChange)
+	{
+		Collector.AddReferencedObject(LoadedLevel, ReferencingObject);
+	}
+	for (UObjectReferencer* ObjectReferencer : ObjectReferencers)
+	{
+		Collector.AddReferencedObject(ObjectReferencer, ReferencingObject);
+	}
+	Collector.AddReferencedObject(GameViewport, ReferencingObject);
+	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
+	for (ULocalPlayer* GamePlayer : GamePlayers)
+	{
+		Collector.AddReferencedObject(GamePlayer, ReferencingObject);
+	}
+	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
+	{
+		Collector.AddReferencedObject(ActiveNetDriver.NetDriver, ReferencingObject);
+	}
+	Collector.AddReferencedObject(ThisCurrentWorld, ReferencingObject);
+}
+
+/*-----------------------------------------------------------------------------
 	World/ Level/ Actor GC verification.
 -----------------------------------------------------------------------------*/
 
@@ -1420,6 +1458,15 @@ void UEngine::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 	{
 		This->AudioDevice->AddReferencedObjects(Collector);
 	}
+
+	// TODO: This is quite dangerous as FWorldContext::AddReferencedObjects could fail to be updated when something it
+	//       references changes.  Hopefully something will come along that will allow the ustruct to be provided to the
+	//       collector in a property handling method
+	for (FWorldContext& Context : This->WorldList)
+	{
+		Context.AddReferencedObjects(Collector, This);
+	}
+
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -7388,7 +7435,7 @@ void UEngine::SpawnServerActors(UWorld *World)
 	}
 }
 
-bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *InWorld  )
+bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *InWorld )
 {
 	FWorldContext &WorldContext = GetWorldContextFromWorldChecked(InWorld);
 	FURL TestURL(&WorldContext.LastURL, Cmd, TRAVEL_Absolute);
@@ -8463,6 +8510,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 	}
+	NewWorld->SetGameInstance(WorldContext.OwningGameInstance);
 
 	GWorld = NewWorld;
 

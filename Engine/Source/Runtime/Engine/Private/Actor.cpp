@@ -321,9 +321,14 @@ UWorld* AActor::GetWorld() const
 	return (!HasAnyFlags(RF_ClassDefaultObject) && !GetOuter()->HasAnyFlags(RF_BeginDestroyed|RF_Unreachable) ? GetLevel()->OwningWorld : NULL);
 }
 
-class FTimerManager& AActor::GetWorldTimerManager() const
+FTimerManager& AActor::GetWorldTimerManager() const
 {
 	return GetWorld()->GetTimerManager();
+}
+
+UGameInstance* AActor::GetGameInstance() const
+{
+	return GetWorld()->GetGameInstance();
 }
 
 bool AActor::IsNetStartupActor() const
@@ -2795,7 +2800,7 @@ ENetMode AActor::GetNetMode() const
 	return NetDriver ? NetDriver->GetNetMode() : NM_Standalone;
 }
 
-UNetDriver * AActor::GetNetDriver() const
+UNetDriver* AActor::GetNetDriver() const
 {
 	UWorld *World = GetWorld();
 	if (NetDriverName == NAME_GameNetDriver)

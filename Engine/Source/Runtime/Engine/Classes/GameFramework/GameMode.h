@@ -440,9 +440,6 @@ public:
 	/** start match, or let player enter, immediately */
 	virtual void StartNewPlayer(APlayerController* NewPlayer);
 
-	/** Engine is shutting down. */
-	virtual void PreExit();
-
 	/** Called when a Controller with a PlayerState leaves the match. */
 	virtual void Logout( AController* Exiting );
 

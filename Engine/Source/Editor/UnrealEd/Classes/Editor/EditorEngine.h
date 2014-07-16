@@ -1548,8 +1548,8 @@ public:
 	 */
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
-	virtual UWorld* CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime);
-	
+	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
+
 	/**
 	 * Launches the game in movie capture mode
 	 */
@@ -2294,19 +2294,21 @@ private:
 	 * @param	InLevel		Destination level.
 	 */
 	void DoMoveSelectedActorsToLevel( ULevel* InLevel );
-	
+public:
 	/**
 	 * Creates a PIE world by duplicating the editor world	 
 	 */
 	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
-
+private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 
+public:
 	/** Creates a PIE world by saving to a temp file and then reloading it */
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
 	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
+private:
 	/**
 	 * Login PIE instances with the online platform before actually creating any PIE worlds
 	 *
@@ -2327,6 +2329,7 @@ private:
 	 */
 	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
 
+public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
 	 *
@@ -2336,6 +2339,7 @@ private:
 	 */
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
+private:
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
 	 *
@@ -2365,6 +2369,7 @@ private:
 	 */
 	void OnSwitchWorldsForPIE( bool bSwitchToPieWorld );
 
+public:
 	/**
 	 * Spawns a PlayFromHere playerstart in the given world
 	 * @param	World		The World to spawn in (for PIE this may not be GWorld)
@@ -2374,6 +2379,8 @@ private:
 	 */
 	bool SpawnPlayFromHereStart(UWorld* World, AActor*& PlayerStartPIE, const FVector& StartLocation, const FRotator& StartRotation );
 
+
+private:
 	/**
 	 * Utility method to try and snap a child actor to a named socket in the parent
 	 *

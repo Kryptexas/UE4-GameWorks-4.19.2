@@ -15,15 +15,16 @@ class ENGINE_API UGameEngine : public UEngine
 {
 	GENERATED_UCLASS_BODY()
 
-	/** check to see if we need to start a movie capture
-	 * (used on the first tick when we want to record a matinee)
-	 */
+	/** Check to see if we need to start a movie capture (used on the first tick when we want to record a Matinee) */
 	UPROPERTY(transient)
 	uint32 bCheckForMovieCapture:1;
 
-	/** Maximium delta time the engine uses to populate FApp::DeltaTime. If 0, unbound.									*/
+	/** Maximium delta time the engine uses to populate FApp::DeltaTime. If 0, unbound. */
 	UPROPERTY(config)
 	float MaxDeltaTime;
+
+	UPROPERTY(transient)
+	UGameInstance* GameInstance;
 
 public:
 	/** The game viewport window */

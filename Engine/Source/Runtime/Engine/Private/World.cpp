@@ -4249,6 +4249,7 @@ void FSeamlessTravelHandler::CopyWorldData()
 		NetDriver->SetWorld(LoadedWorld);
 	}
 	LoadedWorld->WorldType = CurrentWorld->WorldType;
+	LoadedWorld->SetGameInstance(CurrentWorld->GetGameInstance());
 
 	if (!bSwitchedToDefaultMap)
 	{

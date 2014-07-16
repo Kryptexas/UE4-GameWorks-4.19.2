@@ -579,13 +579,16 @@ private:
 
 public:
 	/** Array of actors that are candidates for sending over the network */
-	TArray< AActor * >							NetworkActors;
+	TArray<class AActor*>						NetworkActors;
 
 private:
 
 	/** Pointer to the current level being edited. Level has to be in the Levels array and == PersistentLevel in the game.		*/
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevel;
+
+	UPROPERTY(Transient)
+	class UGameInstance*						OwningGameInstance;
 
 	/** Parameter collection instances that hold parameter overrides for this world. */
 	UPROPERTY(Transient)
@@ -2365,7 +2368,16 @@ public:
 	/** Returns LatentActionManager instance for this world. */
 	inline FLatentActionManager& GetLatentActionManager()
 	{
-		return 	LatentActionManager;
+		return LatentActionManager;
+	}
+
+	inline void SetGameInstance(UGameInstance* NewGI)
+	{
+		OwningGameInstance = NewGI;
+	}
+	inline UGameInstance* GetGameInstance() const
+	{
+		return OwningGameInstance;
 	}
 
 	/** Retrieves information whether all navigation with this world has been rebuilt */
