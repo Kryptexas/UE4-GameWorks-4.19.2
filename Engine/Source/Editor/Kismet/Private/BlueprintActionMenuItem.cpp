@@ -1,11 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintNodeSpawner.h"
 #include "KismetEditorUtilities.h"	// for BringKismetToFocusAttentionOnObject()
 #include "BlueprintEditorUtils.h"	// for AnalyticsTrackNewNode(), MarkBlueprintAsModified(), etc.
 #include "ScopedTransaction.h"
+#include "BlueprintPropertyNodeSpawner.h"
+#include "BPVariableDragDropAction.h"
+#include "BPDelegateDragDropAction.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuItem"
 
@@ -148,6 +151,35 @@ void FBlueprintActionMenuItem::AddReferencedObjects(FReferenceCollector& Collect
 	// these don't get saved to disk, but we want to make sure the objects don't
 	// get GC'd while the action array is around
 	Collector.AddReferencedObject(Action);
+}
+
+//------------------------------------------------------------------------------
+TSharedPtr<FDragDropOperation> FBlueprintActionMenuItem::OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const
+{
+	TSharedPtr<FDragDropOperation> DragDropAction = nullptr;
+
+	if (UBlueprintPropertyNodeSpawner* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
+	{
+		if (PropertySpawner->NodeClass == nullptr)
+		{
+			UProperty const* Property = PropertySpawner->GetProperty();
+			FName const PropertyName = Property->GetFName();
+			UStruct* const PropertyOwner = CastChecked<UStruct>(Property->GetOuterUField());
+
+			if (PropertySpawner->IsDelegateProperty())
+			{
+				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
+				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
+			}
+			else
+			{
+				TSharedRef<FDragDropOperation> DragDropOpRef = FKismetDelegateDragDropAction::New(PropertyName, PropertyOwner, AnalyticsDelegate);
+				DragDropAction = TSharedPtr<FDragDropOperation>(DragDropOpRef);
+			}
+
+		}
+	}
+	return DragDropAction;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,14 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintGraphPrivatePCH.h"
+#include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuBuilder.h"
 #include "BlueprintActionMenuItem.h"
 #include "BlueprintActionDatabase.h"
 #include "BlueprintActionFilter.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintFunctionNodeSpawner.h"
-#include "K2ActionMenuBuilder.h"			// for FBlueprintPaletteListBuilder/FBlueprintGraphActionListBuilder
-#include "EdGraphSchema_K2.h"				// for StaticClass(), bUseLegacyActionMenus, etc.
+#include "BlueprintPropertyNodeSpawner.h"
+#include "K2ActionMenuBuilder.h"		// for FBlueprintPaletteListBuilder/FBlueprintGraphActionListBuilder
+#include "EdGraphSchema_K2.h"			// for StaticClass(), bUseLegacyActionMenus, etc.
+#include "BlueprintEditor.h"			// for GetMyBlueprintWidget(), and GetIsContextSensitive()
+#include "K2ActionMenuBuilder.h"
+#include "SMyBlueprint.h"				// for SelectionAsVar()
+#include "EdGraphSchema_K2_Actions.h"	// for FEdGraphSchemaAction_K2Var
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuBuilder"
 
@@ -42,7 +47,38 @@ public:
 	 */
 	TSharedPtr<FEdGraphSchemaAction> MakeMenuItem(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action);
 
-private:
+	/**
+	 * Clones the property spawner and clears its NodeClass field (used to 
+	 * represent the property as a whole, encompasing all the node types that
+	 * can be associated with it, like: getters, setters, etc.
+	 *
+	 * @param  ItemOwner	The menu item owner that this will be assigned to.
+	 * @param  NodeSpawner	The node-spawner that we want to clone (and create a proxy for).
+	 * @return A cloned UBlueprintPropertyNodeSpawner (representing the property).
+	 */
+	UBlueprintPropertyNodeSpawner* MakePropertyActionProxy(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintPropertyNodeSpawner* NodeSpawner);
+	
+	/**
+	 * Checks to see if a proxy has already been made for the specified property
+	 * (checks to see if someone has already called MakePropertyActionProxy()
+	 * for a spawner associated with this property).
+	 *
+	 * @param  Property		The property you want to find a proxy for.
+	 * @return True if there's a proxy already cached for the property, otherwise false.
+	 */
+	bool HasProxy(UProperty const* Property) const;
+	
+	/**
+	 * Checks to see if the supplied property node spawner is a proxy itself 
+	 * (was it spawned from MakePropertyActionProxy()? does it have an empty 
+	 * NodeClass field?)
+	 *
+	 * @param  PropertyNodeSpawner	The spawner you want to check.
+	 * @return True if the supplied node-spawner is a proxy, false otherwise.
+	 */
+	bool IsProxy(UBlueprintPropertyNodeSpawner* PropertyNodeSpawner) const;
+	
+protected:
 	/**
 	 * Attempts to pull a menu name from the supplied spawner. If one isn't 
 	 * provided, then it spawns a temporary node and pulls one from that node's 
@@ -104,6 +140,9 @@ private:
 
 	/** Cached context for the blueprint menu being built */
 	FBlueprintActionContext const& Context;
+	
+	/** Tracks intermediate property proxies (if any were created) */
+	TMap<UProperty const*, UBlueprintPropertyNodeSpawner*> PropertyProxyMap;
 };
 
 //------------------------------------------------------------------------------
@@ -112,7 +151,6 @@ FBlueprintActionMenuItemFactory::FBlueprintActionMenuItemFactory(FBlueprintActio
 	, RootCategory(FText::GetEmpty())
 	, MenuGrouping(0)
 {
-	
 }
 
 //------------------------------------------------------------------------------
@@ -135,6 +173,49 @@ TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuItemFactory::MakeMenuItem(F
 	}
 	
 	return MakeShareable(NewMenuItem);
+}
+
+//------------------------------------------------------------------------------
+UBlueprintPropertyNodeSpawner* FBlueprintActionMenuItemFactory::MakePropertyActionProxy(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintPropertyNodeSpawner* PropertyNodeSpawner)
+{
+	UBlueprintPropertyNodeSpawner* ActionProxy = nullptr;
+	
+	UProperty const* Property = PropertyNodeSpawner->GetProperty();
+	if (UBlueprintPropertyNodeSpawner** FoundProxy = PropertyProxyMap.Find(Property))
+	{
+		ActionProxy = *FoundProxy;
+	}
+	else
+	{
+		ActionProxy = DuplicateObject(PropertyNodeSpawner, GetOwnerOfTemporaries(ItemOwner));
+		// we use a null node class to flag the proxy, FBlueprintActionMenuItem
+		// queues off of this and will provide a drag-drop menu to the user
+		ActionProxy->NodeClass = nullptr;
+		PropertyProxyMap.Add(Property, ActionProxy);
+	}
+	
+	return ActionProxy;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintActionMenuItemFactory::HasProxy(UProperty const* Property) const
+{
+	return PropertyProxyMap.Contains(Property);
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintActionMenuItemFactory::IsProxy(UBlueprintPropertyNodeSpawner* NodeSpawner) const
+{
+	bool bIsProxy = false;
+	
+	UProperty const* Property = NodeSpawner->GetProperty();
+	if (UBlueprintPropertyNodeSpawner* const* FoundProxy = PropertyProxyMap.Find(Property))
+	{
+		bIsProxy = (*FoundProxy == NodeSpawner);
+	}
+	check(!bIsProxy || (NodeSpawner->NodeClass == nullptr));
+	
+	return bIsProxy;
 }
 
 //------------------------------------------------------------------------------
@@ -197,7 +278,7 @@ FText FBlueprintActionMenuItemFactory::GetCategoryForAction(FBlueprintActionMenu
 				{
 					MenuCategory = FText::FromName(FuncOwner->GetFName());
 				}
-				MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Funtion|{0}"), MenuCategory);
+				MenuCategory = FText::Format(LOCTEXT("MemberFunctionsCategory", "Call Function|{0}"), MenuCategory);
 			}
 		}
 	}
@@ -290,27 +371,172 @@ namespace FBlueprintActionMenuBuilderImpl
 	 */
 	struct FMenuSectionDefinition
 	{
-		FMenuSectionDefinition(FBlueprintActionFilter const& SectionFilter);
+		FMenuSectionDefinition(FBlueprintActionFilter const& SectionFilter, uint32 const Flags);
+		
+		/** Sets the root category for menu items in this section. */
+		void SetSectionHeading(FText const& RootCategory);
+		/** Gets the root category for menu items in this section. */
+		FText const& GetSectionHeading() const;
 
+		/** Sets the grouping for menu items belonging to this section. */
+		void SetSectionSortOrder(int32 const MenuGrouping);
+		
+		/**
+		 * Filters the supplied action and if it passes, spawns a new 
+		 * FBlueprintActionMenuItem for the specified menu (does not add the 
+		 * item to the menu-builder itself).
+		 *
+		 * @param  ItemOwner	The menu item owner that this will be assigned to.
+		 * @param  Action		The node-spawner that the new menu item should wrap.
+		 * @return An empty TSharedPtr if the action was filtered out, otherwise a newly allocated FBlueprintActionMenuItem.
+		 */
+		TSharedPtr<FEdGraphSchemaAction> MakeMenuItem(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action);
+		
+		
+		/** Series of ESectionFlags, aimed at customizing how we construct this menu section */
+		uint32 Flags;
 		/** A filter for this section of the menu */
 		FBlueprintActionFilter Filter;
+	private:
 		/** In charge of spawning menu items for this section (holds category/ordering information)*/
 		FBlueprintActionMenuItemFactory ItemFactory;
 	};
+	
+	/**
+	 * To offer a fallback in case the action menu refactor is unstable, this
+	 * method implements the old way we used collect blueprint menu actions (for
+	 * both the palette and context menu).
+	 *
+	 * @param  MenuSection	The primary section for the FBlueprintActionMenuBuilder.
+	 * @param  MenuOut  	The menu builder we want all the legacy actions appended to.
+	 */
+	static void AppendLegacyItems(FMenuSectionDefinition const& MenuDef, FBlueprintActionMenuBuilder& MenuOut);
 }
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::FMenuSectionDefinition(FBlueprintActionFilter const& SectionFilterIn)
-	: ItemFactory(SectionFilterIn.Context)
+FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::FMenuSectionDefinition(FBlueprintActionFilter const& SectionFilterIn, uint32 const FlagsIn)
+	: Flags(FlagsIn)
 	, Filter(SectionFilterIn)
+	, ItemFactory(Filter.Context)
 {
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::SetSectionHeading(FText const& RootCategory)
+{
+	ItemFactory.RootCategory = RootCategory;
+}
+
+//------------------------------------------------------------------------------
+FText const& FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::GetSectionHeading() const
+{
+	return ItemFactory.RootCategory;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::SetSectionSortOrder(int32 const MenuGrouping)
+{
+	ItemFactory.MenuGrouping = MenuGrouping;
+}
+
+//------------------------------------------------------------------------------
+TSharedPtr<FEdGraphSchemaAction> FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::MakeMenuItem(FBlueprintActionMenuBuilder& ItemOwner, UBlueprintNodeSpawner* Action)
+{
+	if (Flags & FBlueprintActionMenuBuilder::ConsolidatePropertyActions)
+	{
+		if (UBlueprintPropertyNodeSpawner* PropertySpawner = Cast<UBlueprintPropertyNodeSpawner>(Action))
+		{
+			UProperty const* Property = PropertySpawner->GetProperty();
+			if (ItemFactory.HasProxy(Property))
+			{
+				// we've already filtered a proxy for this property, we don't
+				// want to spawn another
+				Action = nullptr;
+			}
+			else
+			{
+				// make a proxy action (that won't spawn anything)...
+				// FBlueprintActionMenuItem should interpret this and offer the
+				// user a drag-drop menu (with a list of multiple property nodes)
+				Action = ItemFactory.MakePropertyActionProxy(ItemOwner, PropertySpawner);
+			}
+		}
+	}
+	
+	TSharedPtr<FEdGraphSchemaAction> MenuEntry = nullptr;
+	if ((Action != nullptr) && !Filter.IsFiltered(Action))
+	{
+		MenuEntry = ItemFactory.MakeMenuItem(ItemOwner, Action);
+	}
+	return MenuEntry;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuBuilderImpl::AppendLegacyItems(FMenuSectionDefinition const& MenuDef, FBlueprintActionMenuBuilder& MenuOut)
+{
+	FBlueprintActionFilter const&  MenuFilter  = MenuDef.Filter;
+	FBlueprintActionContext const& MenuContext = MenuFilter.Context;
+	
+	// if this is for the context menu
+	if (MenuContext.Graphs.Num() > 0)
+	{
+		UEdGraph* Graph = MenuContext.Graphs[0];
+		UEdGraphSchema const* GraphSchema = GetDefault<UEdGraphSchema>(Graph->Schema);
+		
+		FBlueprintGraphActionListBuilder LegacyBuilder(Graph);
+		if (MenuContext.Pins.Num() > 0)
+		{
+			LegacyBuilder.FromPin = MenuContext.Pins[0];
+		}
+		
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(Graph);
+		FBlueprintEditor* EditorInst = (FBlueprintEditor*)FAssetEditorManager::Get().FindEditorForAsset(Blueprint, /*bFocusIfOpen =*/false);
+		
+		bool bIsContextSensitive = true;
+		if (EditorInst != nullptr)
+		{
+			bIsContextSensitive = EditorInst->GetIsContextSensitive();
+			
+			FEdGraphSchemaAction_K2Var* SelectedVar = EditorInst->GetMyBlueprintWidget()->SelectionAsVar();
+			if ((SelectedVar != nullptr) && (SelectedVar->GetProperty() != nullptr))
+			{
+				LegacyBuilder.SelectedObjects.Add(SelectedVar->GetProperty());
+			}
+		}
+		
+		if (bIsContextSensitive)
+		{
+			GraphSchema->GetGraphContextActions(LegacyBuilder);
+			MenuOut.Append(LegacyBuilder);
+		}
+		else
+		{
+			FBlueprintPaletteListBuilder ContextlessLegacyBuilder(Blueprint);
+			UEdGraphSchema_K2::GetAllActions(ContextlessLegacyBuilder);
+			MenuOut.Append(ContextlessLegacyBuilder);
+		}
+	}
+	else if (MenuContext.Blueprints.Num() > 0)
+	{
+		UBlueprint* Blueprint = MenuContext.Blueprints[0];
+		FBlueprintPaletteListBuilder LegacyBuilder(Blueprint, MenuDef.GetSectionHeading().ToString());
+		
+		UClass* ClassFilter = nullptr;
+		if (MenuFilter.OwnerClasses.Num() > 0)
+		{
+			ClassFilter = MenuFilter.OwnerClasses[0];
+		}
+		
+		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(LegacyBuilder, ClassFilter);
+		
+		MenuOut.Append(LegacyBuilder);
+	}
 }
 
 /*******************************************************************************
  * FBlueprintActionMenuBuilder
  ******************************************************************************/
-
-FText const FBlueprintActionMenuBuilder::VariablesCategory = LOCTEXT("VariablesCategory", "Variables");
 
 //------------------------------------------------------------------------------
 FBlueprintActionMenuBuilder::FBlueprintActionMenuBuilder(FBlueprintActionFilter const& Filter, bool bAutoBuild/*= true*/)
@@ -323,13 +549,20 @@ FBlueprintActionMenuBuilder::FBlueprintActionMenuBuilder(FBlueprintActionFilter 
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionMenuBuilder::AddMenuSection(FBlueprintActionFilter const& Filter, FText const& Heading/* = FText::GetEmpty()*/, int32 MenuOrder/* = 0*/)
+void FBlueprintActionMenuBuilder::Empty()
+{
+	FGraphActionListBuilderBase::Empty();
+	MenuSections.Empty();
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionMenuBuilder::AddMenuSection(FBlueprintActionFilter const& Filter, FText const& Heading/* = FText::GetEmpty()*/, int32 MenuOrder/* = 0*/, uint32 const Flags/* = 0*/)
 {
 	using namespace FBlueprintActionMenuBuilderImpl;
 	
-	TSharedRef<FMenuSectionDefinition> SectionDescRef = MakeShareable(new FMenuSectionDefinition(Filter));
-	SectionDescRef->ItemFactory.RootCategory = Heading;
-	SectionDescRef->ItemFactory.MenuGrouping = MenuOrder;
+	TSharedRef<FMenuSectionDefinition> SectionDescRef = MakeShareable(new FMenuSectionDefinition(Filter, Flags));
+	SectionDescRef->SetSectionHeading(Heading);
+	SectionDescRef->SetSectionSortOrder(MenuOrder);
 
 	MenuSections.Add(SectionDescRef);
 }
@@ -339,28 +572,30 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 {
 	using namespace FBlueprintActionMenuBuilderImpl;
 
-	Empty();
+	FGraphActionListBuilderBase::Empty();
 	
-	FBlueprintActionDatabase::FClassActionMap const& ClassActions = FBlueprintActionDatabase::Get().GetAllActions();
-	for (auto ActionEntry : ClassActions)
+	if (!GetDefault<UEdGraphSchema_K2>()->bUseLegacyActionMenus)
 	{
-		UClass* Class = ActionEntry.Key;
-		for (UBlueprintNodeSpawner* NodeSpawner : ActionEntry.Value)
+		FBlueprintActionDatabase::FClassActionMap const& ClassActions = FBlueprintActionDatabase::Get().GetAllActions();
+		for (auto ActionEntry : ClassActions)
 		{
-			for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
+			UClass* Class = ActionEntry.Key;
+			for (UBlueprintNodeSpawner* NodeSpawner : ActionEntry.Value)
 			{
-				if (MenuSection->Filter.IsFiltered(NodeSpawner))
+				for (TSharedRef<FMenuSectionDefinition> MenuSection : MenuSections)
 				{
-					// this node spawner doesn't belong in this section of the menu
-					continue;
+					TSharedPtr<FEdGraphSchemaAction> MenuEntry = MenuSection->MakeMenuItem(*this, NodeSpawner);
+					if (MenuEntry.IsValid())
+					{
+						AddAction(MenuEntry);
+					}
 				}
-				
-				TSharedPtr<FEdGraphSchemaAction> NewActionPtr = MenuSection->ItemFactory.MakeMenuItem(*this, NodeSpawner);
-				check(NewActionPtr.IsValid());
-				
-				AddAction(NewActionPtr);
 			}
 		}
+	}
+	else if (MenuSections.Num() > 0)
+	{
+		AppendLegacyItems(*MenuSections[0], *this);
 	}
 
 	// @TODO: account for all K2ActionMenuBuilder action types...

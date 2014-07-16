@@ -4,7 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
-#include "BlueprintActionMenuBuilder.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Self"
 
@@ -93,7 +93,7 @@ void UK2Node_Self::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut)
 
 FText UK2Node_Self::GetMenuCategory() const
 {
-	return FBlueprintActionMenuBuilder::VariablesCategory;
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Variables);
 }
 
 #undef LOCTEXT_NAMESPACE

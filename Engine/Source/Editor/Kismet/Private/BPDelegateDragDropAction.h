@@ -21,9 +21,9 @@ public:
 
 	bool IsValid() const;
 	
-	static TSharedRef<FKismetDelegateDragDropAction> New( TSharedRef< SWidget > Owner, FName InVariableName, UStruct* InSource, FNodeCreationAnalytic AnalyticCallback)
+	static TSharedRef<FKismetDelegateDragDropAction> New( FName InVariableName, UStruct* InSource, FNodeCreationAnalytic AnalyticCallback)
 	{
-		TSharedRef<FKismetDelegateDragDropAction> Operation = MakeShareable(new FKismetDelegateDragDropAction( Owner ) );
+		TSharedRef<FKismetDelegateDragDropAction> Operation = MakeShareable(new FKismetDelegateDragDropAction);
 		Operation->VariableName = InVariableName;
 		Operation->VariableSource = InSource;
 		Operation->AnalyticCallback = AnalyticCallback;
@@ -57,9 +57,5 @@ public:
 	static void AssignEvent(FNodeConstructionParams Params);
 
 protected:
-	FKismetDelegateDragDropAction( const TSharedRef< SWidget >& InOwner );
-
-private:
-
-	TSharedRef< SWidget > Owner;
+	FKismetDelegateDragDropAction() {}
 };

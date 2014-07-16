@@ -41,6 +41,8 @@ struct FCommonEditorCategory
 		Enum,
 		Struct,
 		Macro,
+
+		Variables,
 	};
 };
 

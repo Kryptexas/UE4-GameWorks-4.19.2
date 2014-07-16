@@ -10,12 +10,6 @@
 
 #define LOCTEXT_NAMESPACE "DelegateDragDropAction"
 
-FKismetDelegateDragDropAction::FKismetDelegateDragDropAction( const TSharedRef< SWidget >& InOwner ) 
-	: FKismetVariableDragDropAction()
-	, Owner( InOwner )
-{
-}
-
 void FKismetDelegateDragDropAction::MakeEvent(FNodeConstructionParams Params)
 {
 	check(Params.Graph && Params.Property);
@@ -136,7 +130,7 @@ FReply FKismetDelegateDragDropAction::DroppedOnPanel(const TSharedRef< SWidget >
 			}
 		}
 		MenuBuilder.EndSection();
-		FSlateApplication::Get().PushMenu(Owner, MenuBuilder.MakeWidget(), ScreenPosition, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu));
+		FSlateApplication::Get().PushMenu(Panel, MenuBuilder.MakeWidget(), ScreenPosition, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu));
 	}
 	return FReply::Handled();
 }

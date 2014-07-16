@@ -63,10 +63,14 @@ FText UBlueprintPropertyNodeSpawner::GetDefaultMenuName() const
 {
 	check(Property != nullptr);
 	
-	FText MenuName = FText::FromName(Property->GetFName());
+	FText MenuName;
 	if (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames)
 	{
 		MenuName = FText::FromString(UEditorEngine::GetFriendlyName(Property));
+	}
+	else
+	{
+		MenuName = FText::FromName(Property->GetFName());
 	}
 
 	if (NodeClass != nullptr)

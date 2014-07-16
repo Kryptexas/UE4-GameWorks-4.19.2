@@ -2,8 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
-#include "EdGraphSchema_K2.h"			// for GetFriendlySignitureName()
-#include "BlueprintActionMenuBuilder.h"	// for AddEventCategory
+#include "EdGraphSchema_K2.h" // for GetFriendlySignitureName()
 
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 

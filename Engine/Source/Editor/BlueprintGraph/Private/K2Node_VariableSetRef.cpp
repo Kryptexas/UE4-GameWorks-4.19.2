@@ -6,7 +6,7 @@
 #include "VariableSetHandler.h"
 #include "K2Node_VariableSetRef.h"
 #include "BlueprintNodeSpawner.h"
-#include "BlueprintActionMenuBuilder.h" // for VariablesCategory
+#include "EditorCategoryUtils.h"
 
 static FString TargetVarPinName(TEXT("Target"));
 static FString VarValuePinName(TEXT("Value"));
@@ -214,7 +214,7 @@ void UK2Node_VariableSetRef::GetMenuActions(TArray<UBlueprintNodeSpawner*>& Acti
 
 FText UK2Node_VariableSetRef::GetMenuCategory() const
 {
-	return FBlueprintActionMenuBuilder::VariablesCategory;
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Variables);
 }
 
 

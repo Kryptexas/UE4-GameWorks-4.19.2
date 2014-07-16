@@ -922,7 +922,7 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 				const bool bIsAltDown = MouseEvent.IsAltDown();
 				const bool bIsCtrlDown = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
 				
-				TSharedRef<FKismetVariableDragDropAction> DragOperation = FKismetDelegateDragDropAction::New( SharedThis( this ), DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate);
+				TSharedRef<FKismetVariableDragDropAction> DragOperation = FKismetDelegateDragDropAction::New(DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate);
 				DragOperation->SetAltDrag(bIsAltDown);
 				DragOperation->SetCtrlDrag(bIsCtrlDown);
 				return FReply::Handled().BeginDragDrop(DragOperation);

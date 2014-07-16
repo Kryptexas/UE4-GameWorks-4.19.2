@@ -64,6 +64,7 @@ static FFormatNamedArguments& FEditorCategoryUtilsImpl::GetCategoryTable()
 		REGISTER_ROOT_CATEGORY(Pawn);
 		REGISTER_ROOT_CATEGORY(Rendering);
 		REGISTER_ROOT_CATEGORY(Utilities);
+		REGISTER_ROOT_CATEGORY(Variables);
 
 #undef REGISTER_ROOT_CATEGORY
 #undef ASSIGN_ROOT_CATEGORY
@@ -130,6 +131,7 @@ FText const& FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::EVal
 		REGISTER_COMMON_CATEGORY(Pawn);
 		REGISTER_COMMON_CATEGORY(Rendering);
 		REGISTER_COMMON_CATEGORY(Utilities);
+		REGISTER_COMMON_CATEGORY(Variables);
 
 		REGISTER_COMMON_CATEGORY(FlowControl);
 		REGISTER_COMMON_CATEGORY(Transformation);
@@ -198,7 +200,7 @@ FString FEditorCategoryUtils::GetCategoryDisplayString(FString const& Unsanitize
 				if (KeyLen > 0)
 				{
 					FString Key(KeyLen, *DisplayString + KeyIndex+1);
-					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(Key).ToString();
+					ReplacementStr = FEditorCategoryUtilsImpl::GetCategory(Key.Trim()).ToString();
 				}
 				DisplayString.ReplaceInline(*ToReplaceStr, *ReplacementStr);
 			}

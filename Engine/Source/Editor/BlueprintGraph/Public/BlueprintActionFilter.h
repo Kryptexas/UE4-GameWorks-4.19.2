@@ -117,8 +117,8 @@ public:
 	 * Appends another filter to be utilized in IsFiltered() queries, extending  
 	 * the query to be: IsFilteredByThis() || Rhs.IsFiltered()
 	 *
-	 * NOTE: Appending additional filters can hinder performance (as the 
-	 *       they have to loop through all their tests on top of these)
+	 * NOTE: Appending additional filters can hinder performance (as the
+	 *       additional filter has to loop over its tests foreach database entry)
 	 * 
 	 * @param  Rhs	The filter to append to this one.
 	 * @return This.
@@ -129,8 +129,8 @@ public:
 	 * Appends another filter to be utilized in IsFiltered() queries, extending  
 	 * the query to be: IsFilteredByThis() && Rhs.IsFiltered()
 	 *
-	 * NOTE: Appending additional filters can hinder performance (as the 
-	 *       they have to loop through all their tests on top of these)
+	 * NOTE: Appending additional filters can hinder performance (as the
+	 *       additional filter has to loop over its tests foreach database entry)
 	 * 
 	 * @param  Rhs	The filter to append to this one.
 	 * @return This.

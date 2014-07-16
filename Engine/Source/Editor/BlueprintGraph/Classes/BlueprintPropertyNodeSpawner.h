@@ -26,7 +26,7 @@ public:
 	 * @param  NodeClass	The type of node you want spawned (can't distinct a getter from a setter from the property alone).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UClass* const NodeClass = nullptr);
+	BLUEPRINTGRAPH_API static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UClass* const NodeClass = nullptr);
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
@@ -39,14 +39,14 @@ public:
 	 *
 	 * @return The property that this class was initialized with.
 	 */
-	UProperty const* GetProperty() const;
+	BLUEPRINTGRAPH_API UProperty const* GetProperty() const;
 
 	/**
 	 * Checks to see if the associated property is a delegate property.
 	 *
 	 * @return True if the property is a UMulticastDelegateProperty (otherwise false).
 	 */
-	bool IsDelegateProperty() const;
+	BLUEPRINTGRAPH_API bool IsDelegateProperty() const;
 	
 private:
 	/** The property to configure new nodes with. */

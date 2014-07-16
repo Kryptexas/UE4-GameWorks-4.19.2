@@ -27,6 +27,10 @@
 // used below in FBlueprintActionDatabaseImpl::AddClassPropertyActions()
 #include "K2Node_VariableGet.h"
 #include "K2Node_VariableSet.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_CallDelegate.h"
+#include "K2Node_RemoveDelegate.h"
+#include "K2Node_ClearDelegate.h"
 // used below in FBlueprintActionDatabaseImpl::AddClassCastActions()
 #include "K2Node_DynamicCast.h"
 #include "K2Node_ClassDynamicCast.h"
@@ -92,6 +96,17 @@ namespace FBlueprintNodeSpawnerFactory
 	 * @return A new node-spawner, setup to spawn a UEdGraphNode_Comment.
 	 */
 	static UBlueprintNodeSpawner* MakeCommentNodeSpawner();
+	
+	/**
+	 * A templatized method which constructs a node-spawner for various delegate
+	 * node types (any node with a UMulticastDelegateProperty). Takes the
+	 * specified property and assigns it to the node post-spawn.
+	 *
+	 * @param  Property	 The delegate you want set for the spawned node.
+	 * @return A new node-spawner, setup to spawn some delegate node (defined by the DelegateNodeType template param).
+	 */
+	template<class DelegateNodeType>
+	static UBlueprintNodeSpawner* MakeDelegateNodeSpawner(UMulticastDelegateProperty* Property);
 };
 
 //------------------------------------------------------------------------------
@@ -223,6 +238,28 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeCommentNodeSpawn
 
 	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeMessageNodeLambda);
 
+	return NodeSpawner;
+}
+
+//------------------------------------------------------------------------------
+template<class DelegateNodeType>
+static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeDelegateNodeSpawner(UMulticastDelegateProperty* Property)
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintPropertyNodeSpawner::Create(Property, DelegateNodeType::StaticClass());
+	check(NodeSpawner != nullptr);
+	
+	auto CustomizeDelegateNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UMulticastDelegateProperty* Property)
+	{
+		DelegateNodeType* DelegateNode = CastChecked<DelegateNodeType>(NewNode);
+		
+		UBlueprint* Blueprint = DelegateNode->GetBlueprint();
+		check(Blueprint != nullptr);
+		bool const bIsSelfContext = Blueprint->GeneratedClass->IsChildOf(Property->GetOwnerClass());
+		
+		DelegateNode->SetFromProperty(Property, bIsSelfContext);
+	};
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeDelegateNodeLambda, Property);
+	
 	return NodeSpawner;
 }
 
@@ -397,6 +434,8 @@ static void FBlueprintActionDatabaseImpl::AddClassFunctionActions(UClass const* 
 //------------------------------------------------------------------------------
 static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* const Class, FActionList& ActionListOut)
 {
+	using namespace FBlueprintNodeSpawnerFactory; // for MakeDelegateNodeSpawner()
+	
 	// loop over all the properties in the specified class; exclude-super because 
 	// we can always get the super properties by looking up that class separately 
 	for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
@@ -407,25 +446,28 @@ static void FBlueprintActionDatabaseImpl::AddClassPropertyActions(UClass const* 
 			continue;
 		}
 
-		// add an empty node spawner (that actually won't spawn anything) to 
-		// represent the property as a whole (used for the "collapsed" property
-		// entries in the palette; the ones that don't immediatly spawn a node, 
-		// but instead a sub-menu when you drop them in the graph)
-		//
-		// @TODO: consider moving this out into FBlueprintActionMenuBuilder
-		if (UBlueprintPropertyNodeSpawner* NodeSpawner = UBlueprintPropertyNodeSpawner::Create(Property))
-		{
-			ActionListOut.Add(NodeSpawner);
-		}
-
  		bool bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
  		if (bIsDelegate)
  		{
-			// @TODO: GetEventDispatcherNodesForClass()
-			//   UK2Node_AddDelegate
-			//   UK2Node_RemoveDelegate
-			//   UK2Node_ClearDelegate
-			//   UK2Node_CallDelegate
+			UMulticastDelegateProperty* DelegateProperty = CastChecked<UMulticastDelegateProperty>(Property);
+			if (DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintAssignable))
+			{
+				UBlueprintNodeSpawner* AddSpawner = MakeDelegateNodeSpawner<UK2Node_AddDelegate>(DelegateProperty);
+				ActionListOut.Add(AddSpawner);
+				
+				// @TODO: account for: GetEventDispatcherNodesForClass() - FEdGraphSchemaAction_K2AssignDelegate
+			}
+			
+			if (DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintCallable))
+			{
+				UBlueprintNodeSpawner* CallSpawner = MakeDelegateNodeSpawner<UK2Node_CallDelegate>(DelegateProperty);
+				ActionListOut.Add(CallSpawner);
+			}
+			
+			UBlueprintNodeSpawner* RemoveSpawner = MakeDelegateNodeSpawner<UK2Node_RemoveDelegate>(DelegateProperty);
+			ActionListOut.Add(RemoveSpawner);
+			UBlueprintNodeSpawner* ClearSpawner  = MakeDelegateNodeSpawner<UK2Node_ClearDelegate>(DelegateProperty);
+			ActionListOut.Add(ClearSpawner);
 
 			// @TODO: AddBoundEventActionsForClass()
 			//   UK2Node_ComponentBoundEvent 

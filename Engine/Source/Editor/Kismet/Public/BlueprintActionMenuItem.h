@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EdGraph/EdGraphSchema.h" // for FEdGraphSchemaAction
+#include "BlueprintEditor.h"       // for FNodeCreationAnalytic
 #include "BlueprintActionMenuItem.generated.h"
 
 // Forward declarations
@@ -18,8 +19,9 @@ class FDragDropOperation;
 USTRUCT()
 struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_USTRUCT_BODY();
 	
+public:
 	static FString StaticGetTypeId() { static FString const TypeId = TEXT("FBlueprintActionMenuItem"); return TypeId; }
 	
 	/** Constructors */
@@ -33,8 +35,16 @@ struct FBlueprintActionMenuItem : public FEdGraphSchemaAction
 	virtual void          AddReferencedObjects(FReferenceCollector& Collector) final;
 	// End FEdGraphSchemaAction interface
 
-	// @TODO:
-	//TSharedRef<FDragDropOperation> OnDragged() const;
+	/**
+	 * Attempts to create a specific drag/drop action for this menu entry 
+	 * (certain menu entries require unique drag/drop handlers... like property
+	 * placeholders, where a drop action spawns a sub-menu for the user to pick
+	 * a node type from).
+	 * 
+	 * @param  AnalyticsDelegate	The analytics callback to assign the drag/drop operation.
+	 * @return An empty TSharedPtr if this menu item doesn't require a unique one, else a newly instantiated drag/drop op.
+	 */
+	TSharedPtr<FDragDropOperation> OnDragged(FNodeCreationAnalytic AnalyticsDelegate) const;
 
 	/** Specialized node-spawner, that comprises the action portion of this menu entry. */
 	UBlueprintNodeSpawner* Action;

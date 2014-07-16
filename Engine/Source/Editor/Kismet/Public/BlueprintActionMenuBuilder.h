@@ -19,14 +19,20 @@ struct FBlueprintActionContext;
  * FBlueprintActionMenuItems for actions that pass. Takes care of generating the 
  * each menu item's category/name/etc.
  */
-struct BLUEPRINTGRAPH_API FBlueprintActionMenuBuilder : public FGraphActionListBuilderBase
+struct KISMET_API FBlueprintActionMenuBuilder : public FGraphActionListBuilderBase
 {
+public:
+	/** Flags used to customize specific sections of the menu. */
+	enum ESectionFlag
+	{
+		// Rolls properties into a single menu item that will spawn a drag-drop
+		// menu for users to pick a node type from.
+		ConsolidatePropertyActions = (1<<0),
+	};
+	
 public:
 	/** Default constructor */
 	FBlueprintActionMenuBuilder() {}
-	
-	/** Blueprint centric menu categories (not generic enough to make it into FCommonEditorCategory) */
-	static FText const VariablesCategory;
 
 	/**
 	 * Good for constructing a menu built from a single filter. If the 
@@ -37,7 +43,11 @@ public:
 	 * @param  bAutoBuild	If set, will automatically call RebuildActionList() here in the constructor.
 	 */
 	FBlueprintActionMenuBuilder(FBlueprintActionFilter const& Filter, bool bAutoBuild = true);
-
+	
+	// FGraphActionListBuilderBase interface
+	virtual void Empty() override;
+	// End FGraphActionListBuilderBase interface
+	
 	/**
 	 * Some action menus require multiple sections. One option is to create 
 	 * multiple FBlueprintActionMenuBuilders and append them together, but that
@@ -48,8 +58,9 @@ public:
 	 * @param  Filter	 The filter you want applied to this section of the menu.
 	 * @param  Heading	 The root category for this section of the menu (can be left blank).
 	 * @param  MenuOrder The sort order to assign this section of the menu (higher numbers come first).
+	 * @param  Flags	 Set of ESectionFlags to customize this menu section.
 	 */
-	void AddMenuSection(FBlueprintActionFilter const& Filter, FText const& Heading = FText::GetEmpty(), int32 MenuOrder = 0);
+	void AddMenuSection(FBlueprintActionFilter const& Filter, FText const& Heading = FText::GetEmpty(), int32 MenuOrder = 0, uint32 const Flags = 0);
 	
 	/**
 	 * Regenerates the entire menu list from the cached menu sections. Filters 
