@@ -150,8 +150,8 @@ public:
 	DECLARE_DELEGATE_TwoParams( FOpenInDefaults, const class UBlueprint* , const class UBlueprint* );
 
 	SLATE_BEGIN_ARGS( SBlueprintDiff ){}
-			SLATE_ARGUMENT( class UBlueprint*, BlueprintOld )
-			SLATE_ARGUMENT(class UBlueprint*, BlueprintNew )
+			SLATE_ARGUMENT( const class UBlueprint*, BlueprintOld )
+			SLATE_ARGUMENT( const class UBlueprint*, BlueprintNew )
 			SLATE_ARGUMENT( struct FRevisionInfo, OldRevision )
 			SLATE_ARGUMENT( struct FRevisionInfo, NewRevision )
 			SLATE_ARGUMENT( bool, ShowAssetNames )

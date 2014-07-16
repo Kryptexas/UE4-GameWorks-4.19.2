@@ -11,7 +11,7 @@ public:
 	SBlueprintMerge();
 
 	SLATE_BEGIN_ARGS(SBlueprintMerge){}
-	SLATE_ARGUMENT(class UBlueprint*, BlueprintLocal)
+	SLATE_ARGUMENT( const class UBlueprint*, BlueprintLocal)
 	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
 	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
 	SLATE_END_ARGS()
