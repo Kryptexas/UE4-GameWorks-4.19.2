@@ -2295,14 +2295,14 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 }
 
 
-namespace ViewportDeadZoneConstants
+/*namespace ViewportDeadZoneConstants
 {
 	enum
 	{
 		NO_DEAD_ZONE,
 		STANDARD_DEAD_ZONE
 	};
-};
+};*/
 
 
 
