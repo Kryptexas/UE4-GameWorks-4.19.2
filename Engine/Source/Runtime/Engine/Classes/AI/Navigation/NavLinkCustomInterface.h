@@ -54,6 +54,11 @@ class ENGINE_API INavLinkCustomInterface
 	/** Helper function: returns unique ID number for custom links */
 	static uint32 GetUniqueId();
 
+	/** Helper function: bump unique ID numbers above given one */
+	static void UpdateUniqueId(uint32 AlreadyUsedId);
+
 	/** Helper function: create modifier for navigation data export */
 	static FNavigationLink GetModifier(const INavLinkCustomInterface* CustomNavLink);
+
+	static uint32 NextUniqueId;
 };

@@ -225,6 +225,12 @@ public:
 		OctreeUpdate_Refresh = 4,						// update is used for refresh, don't invalidate pending queue
 	};
 
+	enum ECleanupMode
+	{
+		CleanupWithWorld,
+		CleanupUnsafe,
+	};
+
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
@@ -477,7 +483,7 @@ public:
 	virtual void DoInitialSetup();
 
 	/** Called upon UWorld destruction to release what needs to be released */
-	void CleanUp();
+	void CleanUp(ECleanupMode Mode = ECleanupMode::CleanupUnsafe);
 
 	/** 
 	 *	Called when owner-UWorld initializes actors

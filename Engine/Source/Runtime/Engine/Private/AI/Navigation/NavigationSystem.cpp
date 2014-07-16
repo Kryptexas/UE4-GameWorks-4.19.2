@@ -2723,7 +2723,7 @@ void UNavigationSystem::OnNavigationDirtied(const FBox& Bounds)
 #endif //WITH_NAVIGATION_GENERATOR
 }
 
-void UNavigationSystem::CleanUp()
+void UNavigationSystem::CleanUp(ECleanupMode Mode)
 {
 	UE_LOG(LogNavigation, Log, TEXT("UNavigationSystem::CleanUp"));
 
@@ -2761,6 +2761,13 @@ void UNavigationSystem::CleanUp()
 	SetCrowdManager(NULL);
 
 	NavDataSet.Reset();
+
+	// reset unique link Id for new map
+	const UWorld* MyWorld = (Mode == ECleanupMode::CleanupWithWorld) ? GetWorld() : NULL;
+	if (MyWorld && (MyWorld->WorldType == EWorldType::Game || MyWorld->WorldType == EWorldType::Editor))
+	{
+		INavLinkCustomInterface::NextUniqueId = 1;
+	}
 }
 
 //----------------------------------------------------------------------//

@@ -2917,7 +2917,7 @@ void UWorld::CleanupWorld(bool bSessionEnded, bool bCleanupResources, UWorld* Ne
 	{
 		if (NavigationSystem != NULL)
 		{
-			NavigationSystem->CleanUp();
+			NavigationSystem->CleanUp(UNavigationSystem::CleanupWithWorld);
 		}
 	}
 
@@ -5019,7 +5019,7 @@ void UWorld::SetNavigationSystem( UNavigationSystem* InNavigationSystem)
 {
 	if (NavigationSystem != NULL && NavigationSystem != InNavigationSystem)
 	{
-		NavigationSystem->CleanUp();
+		NavigationSystem->CleanUp(UNavigationSystem::CleanupWithWorld);
 	}
 
 	NavigationSystem = InNavigationSystem;

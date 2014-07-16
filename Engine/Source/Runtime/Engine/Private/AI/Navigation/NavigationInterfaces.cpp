@@ -9,6 +9,8 @@
 #include "AI/Navigation/NavRelevantActorInterface.h"
 #include "AI/Navigation/NavLinkCustomInterface.h"
 
+uint32 INavLinkCustomInterface::NextUniqueId = 1;
+
 UNavAgentInterface::UNavAgentInterface(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -36,8 +38,12 @@ UNavLinkCustomInterface::UNavLinkCustomInterface(const class FPostConstructIniti
 
 uint32 INavLinkCustomInterface::GetUniqueId()
 {
-	static uint32 NextUniqueId = 1;
 	return NextUniqueId++;
+}
+
+void INavLinkCustomInterface::UpdateUniqueId(uint32 AlreadyUsedId)
+{
+	NextUniqueId = FMath::Max(NextUniqueId, AlreadyUsedId + 1);
 }
 
 FNavigationLink INavLinkCustomInterface::GetModifier(const INavLinkCustomInterface* CustomNavLink)
