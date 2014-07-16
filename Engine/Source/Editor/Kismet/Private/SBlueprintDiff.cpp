@@ -361,9 +361,6 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 	TArray<UEdGraph*> GraphsOld,GraphsNew;
 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
-
-	// Add handler for blueprint changing.
-	PanelNew.Blueprint->OnChanged().AddSP( this, &SBlueprintDiff::OnBlueprintChanged );
 	
 	//Add Graphs that exist in both blueprints, or in blueprint 1 only
 	for(auto It(GraphsOld.CreateConstIterator());It;It++)
@@ -838,19 +835,6 @@ void SBlueprintDiff::DisablePinDiffFocus()
 	{
 		LastOtherPinTarget->bIsDiffing = false;
 	}
-}
-
-void SBlueprintDiff::OnBlueprintChanged(UBlueprint* InBlueprint)
-{
-	DisablePinDiffFocus();
-
- 	TArray<UEdGraph*> GraphsOld,GraphsNew;
- 	PanelOld.Blueprint->GetAllGraphs(GraphsOld);
- 	PanelNew.Blueprint->GetAllGraphs(GraphsNew);
- 	PanelOld.GeneratePanel(GraphsOld[0],GraphsNew[0]);
-  	PanelNew.GeneratePanel(GraphsNew[0], GraphsOld[0]);
- 
- 	ResetGraphEditors();
 }
 
 #undef LOCTEXT_NAMESPACE

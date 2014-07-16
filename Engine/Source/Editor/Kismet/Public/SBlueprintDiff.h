@@ -123,7 +123,7 @@ struct KISMET_API FDiffPanel
 	bool CanCopyNodes() const;
 
 	/*The blueprint that owns the graph we are showing*/
-	class UBlueprint*				Blueprint;
+	const class UBlueprint*				Blueprint;
 
 	/*The border around the graph editor, used to change the content when new graphs are set */
 	TSharedPtr<SBorder>				GraphEditorBorder;
@@ -147,7 +147,7 @@ class  KISMET_API SBlueprintDiff: public SCompoundWidget
 {
 
 public:
-	DECLARE_DELEGATE_TwoParams( FOpenInDefaults, class UBlueprint* , class UBlueprint* );
+	DECLARE_DELEGATE_TwoParams( FOpenInDefaults, const class UBlueprint* , const class UBlueprint* );
 
 	SLATE_BEGIN_ARGS( SBlueprintDiff ){}
 			SLATE_ARGUMENT( class UBlueprint*, BlueprintOld )
@@ -184,9 +184,6 @@ protected:
 	virtual void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
 	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, FListItemGraphToDiff* GraphDiffer);
-
-	/* Handler for blueprint changing. */
-	void OnBlueprintChanged(UBlueprint* InBlueprint);
 		
 	/** Disable the focus on a particular pin */
 	void DisablePinDiffFocus();

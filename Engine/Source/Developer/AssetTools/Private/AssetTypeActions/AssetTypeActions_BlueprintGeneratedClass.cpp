@@ -232,7 +232,7 @@ UThumbnailInfo* FAssetTypeActions_BlueprintGeneratedClass::GetThumbnailInfo(UObj
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults( class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const
+void FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
 {
 	FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
 	FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());

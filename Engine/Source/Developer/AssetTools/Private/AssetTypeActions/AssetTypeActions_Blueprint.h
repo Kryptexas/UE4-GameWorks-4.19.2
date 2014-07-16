@@ -27,7 +27,7 @@ protected:
 private:
 
 	/* Called to open the blueprint defaults view, this opens whatever text diff tool the user has */
-	void OpenInDefaults(class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const;
+	void OpenInDefaults(const class UBlueprint* OldBlueprint, const class UBlueprint* NewBlueprint ) const;
 
 	/** Handler for when EditDefaults is selected */
 	void ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlueprint>> Objects);

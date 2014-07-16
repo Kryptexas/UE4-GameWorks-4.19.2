@@ -251,7 +251,7 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_Blueprint::OpenInDefaults( class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const
+void FAssetTypeActions_Blueprint::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
 {
 	const bool bComparedBlueprintsHaveGeneratedClasses = *(OldBlueprint->GeneratedClass) && *(NewBlueprint->GeneratedClass);
 	ensure(bComparedBlueprintsHaveGeneratedClasses);
