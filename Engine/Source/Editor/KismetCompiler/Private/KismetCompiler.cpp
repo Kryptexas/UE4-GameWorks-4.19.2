@@ -1484,8 +1484,6 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	}
 	else
 	{
-		Function->FunctionFlags |= FUNC_Exec;
-
 		// If this is the root of a blueprint-defined function or event, and if it's public, make it overrideable
 		if( !Context.IsEventGraph() && !Function->HasAnyFunctionFlags(FUNC_Private) )
 		{

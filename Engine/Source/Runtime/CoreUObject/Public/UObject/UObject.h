@@ -763,7 +763,7 @@ public:
 	}
 
 	/** Command line. */
-	bool CallFunctionByNameWithArguments( const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor );
+	bool CallFunctionByNameWithArguments( const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor, bool bForceCallWithNonExec = false );
 
 	// Call a function
 	void CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function );

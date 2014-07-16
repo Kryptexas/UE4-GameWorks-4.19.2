@@ -3064,7 +3064,7 @@ bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		for (TObjectIterator<UObject> It; It; ++It)
 		{
 			UObject* Obj = *It;
-			Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+			Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 		}
 	}
 	else
@@ -3077,7 +3077,7 @@ bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 		else
 		{
-			ObjectToMatch->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+			ObjectToMatch->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 		}
 	}
 
@@ -5023,7 +5023,7 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 				ErrorMessage = 0;
 
 				// return true if at least one level handles the command
-				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 			}
 		}
 	}

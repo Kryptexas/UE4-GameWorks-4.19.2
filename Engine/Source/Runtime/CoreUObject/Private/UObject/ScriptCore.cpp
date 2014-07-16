@@ -611,7 +611,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	}
 }
 
-bool UObject::CallFunctionByNameWithArguments( const TCHAR* Str, FOutputDevice& Ar, UObject* Executor )
+bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, bool bForceCallWithNonExec/*=false*/)
 {
 	// Find an exec function.
 	FString MsgStr;
@@ -632,7 +632,7 @@ bool UObject::CallFunctionByNameWithArguments( const TCHAR* Str, FOutputDevice& 
 		UE_LOG(LogScriptCore, Verbose, TEXT("CallFunctionByNameWithArguments: Function not found '%s'"), Str);
 		return false;
 	}
-	if(0 == (Function->FunctionFlags & FUNC_Exec))
+	if(0 == (Function->FunctionFlags & FUNC_Exec) && !bForceCallWithNonExec)
 	{
 		UE_LOG(LogScriptCore, Verbose, TEXT("CallFunctionByNameWithArguments: Function not executable '%s'"), Str);
 		return false;
