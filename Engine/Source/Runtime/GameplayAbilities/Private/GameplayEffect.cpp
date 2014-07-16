@@ -30,6 +30,12 @@ UGameplayEffect::UGameplayEffect(const class FPostConstructInitializeProperties&
 	ChanceToExecuteOnGameplayEffect.SetValue(1.f);
 	StackingPolicy = EGameplayEffectStackingPolicy::Unlimited;
 	StackedAttribName = NAME_None;
+
+#if WITH_EDITORONLY_DATA
+	ShowAllProperties = true;
+	Template = nullptr;
+#endif
+
 }
 
 void UGameplayEffect::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const

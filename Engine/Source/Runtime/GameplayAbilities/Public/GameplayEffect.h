@@ -12,6 +12,7 @@
 struct FActiveGameplayEffect;
 
 class UGameplayEffect;
+class UGameplayEffectTemplate;
 class UAbilitySystemComponent;
 
 
@@ -176,9 +177,10 @@ struct FGameplayEffectCue
 UCLASS(BlueprintType)
 class GAMEPLAYABILITIES_API UGameplayEffect : public UDataAsset, public IGameplayTagAssetInterface
 {
-	GENERATED_UCLASS_BODY()
 
 public:
+	GENERATED_UCLASS_BODY()
+
 	/** Infinite duration */
 	static const float INFINITE_DURATION;
 
@@ -187,6 +189,17 @@ public:
 
 	/** Constant specifying that the combat effect has no period and doesn't check for over time application */
 	static const float NO_PERIOD;
+
+#if WITH_EDITORONLY_DATA
+	/** Template to derive starting values and editing customization from */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Template)
+	UGameplayEffectTemplate*	Template;
+
+	/** When false, show a limited set of properties for editing, based on the template we are derived from */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Template)
+	bool ShowAllProperties;
+#endif
+
 	
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
 	FScalableFloat	Duration;
@@ -326,8 +339,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Stacking)
 	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
 
+
+
 protected:
 	void ValidateStacking();
+
+
 };
 
 /**
