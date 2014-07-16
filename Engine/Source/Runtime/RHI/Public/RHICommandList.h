@@ -51,6 +51,9 @@ enum ERHICommandType
 	ERCT_CopyToResolveTarget,
 	ERCT_ClearMRT,
 	ERCT_Clear,
+	ERCT_BuildLocalUniformBuffer,
+	ERCT_SetLocalUniformBuffer,
+
 
 
 
@@ -152,7 +155,6 @@ struct FRHICommandSetShaderParameter : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetShaderParameter;
-		Shader = InShader;
 		BufferIndex = InBufferIndex;
 		BaseIndex = InBaseIndex;
 		NumBytes = InNumBytes;
@@ -169,7 +171,6 @@ struct FRHICommandSetShaderUniformBuffer : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetShaderUniformBuffer;
-		Shader = InShader;
 		BaseIndex = InBaseIndex;
 		UniformBuffer = InUniformBuffer;
 	}
@@ -184,7 +185,6 @@ struct FRHICommandSetShaderTexture : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetShaderTexture;
-		Shader = InShader;
 		TextureIndex = InTextureIndex;
 		Texture = InTexture;
 	}
@@ -199,7 +199,6 @@ struct FRHICommandSetShaderResourceViewParameter : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetShaderResourceViewParameter;
-		Shader = InShader;
 		SamplerIndex = InSamplerIndex;
 		SRV = InSRV;
 	}
@@ -214,7 +213,6 @@ struct FRHICommandSetUAVParameter : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetUAVParameter;
-		Shader = InShader;
 		UAVIndex = InUAVIndex;
 		UAV = InUAV;
 	}
@@ -230,7 +228,6 @@ struct FRHICommandSetUAVParameter_IntialCount : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetUAVParameter_IntialCount;
-		Shader = InShader;
 		UAVIndex = InUAVIndex;
 		UAV = InUAV;
 		InitialCount = InInitialCount;
@@ -246,7 +243,6 @@ struct FRHICommandSetShaderSampler : public FRHICommandPerShader
 	{
 		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
 		Type = ERCT_SetShaderSampler;
-		Shader = InShader;
 		SamplerIndex = InSamplerIndex;
 		Sampler = InSampler;
 	}
@@ -814,6 +810,75 @@ struct FRHICommandSetGlobalBoundShaderState : public FRHICommand
 	}
 };
 
+//---
+
+struct FLocalUniformBufferWorkArea
+{
+	void* Contents;
+	const FRHIUniformBufferLayout* Layout;
+	FUniformBufferRHIRef UniformBuffer;
+	mutable int32 UseCount;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	class FRHICommandList* CheckCmdList;
+	int32 UID;
+#endif
+};
+
+struct FLocalUniformBuffer
+{
+	FLocalUniformBufferWorkArea* WorkArea;
+	FUniformBufferRHIRef BypassUniform; // this is only used in the case of Bypass, should eventually be deleted
+	FLocalUniformBuffer()
+		: WorkArea(nullptr)
+	{
+	}
+	FORCEINLINE_DEBUGGABLE bool IsValid() const
+	{
+		return WorkArea || IsValidRef(BypassUniform);
+	}
+};
+
+struct FRHICommandBuildLocalUniformBuffer : public FRHICommand
+{
+	FLocalUniformBufferWorkArea WorkArea;
+	FORCEINLINE_DEBUGGABLE void Set(
+	class FRHICommandList* CheckCmdList,
+		int32 UID,
+		const void* Contents,
+		uint32 ContentsSize,
+		const FRHIUniformBufferLayout& Layout
+		)
+	{
+		Type = ERCT_BuildLocalUniformBuffer;
+		// these RHI commands are bad, no constructor! we construct this in place
+		WorkArea.Layout = &Layout;
+		WorkArea.Contents = FMemory::Malloc(ContentsSize, UNIFORM_BUFFER_STRUCT_ALIGNMENT);
+		FMemory::Memcpy(WorkArea.Contents, Contents, ContentsSize);
+		new ((void*)&WorkArea.UniformBuffer) FUniformBufferRHIRef();
+		WorkArea.UseCount = 0;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		WorkArea.CheckCmdList = CheckCmdList;
+		WorkArea.UID = UID;
+#endif
+	}
+};
+
+struct FRHICommandSetLocalUniformBuffer : public FRHICommandPerShader
+{
+	uint32 BaseIndex;
+	FLocalUniformBuffer LocalUniformBuffer;
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE_DEBUGGABLE void Set(class FRHICommandList* CheckCmdList, int32 UID, TShaderRHIParamRef InShader, uint32 InBaseIndex, const FLocalUniformBuffer& InLocalUniformBuffer)
+	{
+		FRHICommandPerShader::SetShader<TShaderRHIParamRef>(InShader);
+		Type = ERCT_SetLocalUniformBuffer;
+		BaseIndex = InBaseIndex;
+		LocalUniformBuffer.WorkArea = InLocalUniformBuffer.WorkArea;
+		check(CheckCmdList == LocalUniformBuffer.WorkArea->CheckCmdList && UID == LocalUniformBuffer.WorkArea->UID); // this uniform buffer was not built for this particular commandlist
+		LocalUniformBuffer.WorkArea->UseCount++;
+	}
+};
+
 class RHI_API FRHICommandList : public FNoncopyable
 {
 private:
@@ -1075,6 +1140,35 @@ public:
 		}
 		auto* Cmd = AddCommand<FRHICommandSetGlobalBoundShaderState>();
 		Cmd->Set(GlobalBoundShaderState);
+	}
+
+	FORCEINLINE_DEBUGGABLE FLocalUniformBuffer BuildLocalUniformBuffer(const void* Contents, uint32 ContentsSize, const FRHIUniformBufferLayout& Layout)
+	{
+		FLocalUniformBuffer Result;
+		if (Bypass())
+		{
+			Result.BypassUniform = RHICreateUniformBuffer(Contents, Layout, UniformBuffer_SingleFrame);
+		}
+		else
+		{
+			auto* Cmd = AddCommand<FRHICommandBuildLocalUniformBuffer>();
+			check(ContentsSize);
+			Cmd->Set(this, this->UID, Contents, ContentsSize, Layout);
+			Result.WorkArea = &Cmd->WorkArea;
+		}
+		return Result;
+	}
+
+	template <typename TShaderRHIParamRef>
+	FORCEINLINE_DEBUGGABLE void SetLocalShaderUniformBuffer(TShaderRHIParamRef Shader, uint32 BaseIndex, const FLocalUniformBuffer& UniformBuffer)
+	{
+		if (Bypass())
+		{
+			SetShaderUniformBuffer_Internal(Shader, BaseIndex, UniformBuffer.BypassUniform);
+			return;
+		}
+		auto* Cmd = AddCommand<FRHICommandSetLocalUniformBuffer>();
+		Cmd->Set<TShaderRHIParamRef>(this, this->UID, Shader, BaseIndex, UniformBuffer);
 	}
 
 	template <typename TShaderRHIParamRef>

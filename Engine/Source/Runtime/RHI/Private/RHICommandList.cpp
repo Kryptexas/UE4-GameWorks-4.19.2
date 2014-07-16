@@ -486,7 +486,47 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 				}
 			}
 			break;
-
+		case ERCT_BuildLocalUniformBuffer:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandBuildLocalUniformBuffer>();
+				if (!bOnlyTestMemAccess)
+				{
+					check(RHICmd->WorkArea.CheckCmdList == &CmdList && RHICmd->WorkArea.UID == CmdList.UID // this uniform buffer was not built for this particular commandlist
+						&& !IsValidRef(RHICmd->WorkArea.UniformBuffer) && RHICmd->WorkArea.Layout && RHICmd->WorkArea.Contents); // should not already have been created
+					if (RHICmd->WorkArea.UseCount)
+					{
+						RHICmd->WorkArea.UniformBuffer = RHICreateUniformBuffer(RHICmd->WorkArea.Contents, *RHICmd->WorkArea.Layout, UniformBuffer_SingleFrame);
+					}
+					FMemory::Free(RHICmd->WorkArea.Contents);
+					RHICmd->WorkArea.Contents = nullptr;
+				}
+			}
+			break;
+		case ERCT_SetLocalUniformBuffer:
+			{
+				auto* RHICmd = Iter.NextCommand<FRHICommandSetLocalUniformBuffer>();
+				if (!bOnlyTestMemAccess)
+				{
+					check(RHICmd->LocalUniformBuffer.WorkArea->CheckCmdList == &CmdList && RHICmd->LocalUniformBuffer.WorkArea->UID == CmdList.UID // this BSS was not built for this particular commandlist
+						&& RHICmd->LocalUniformBuffer.WorkArea->UseCount > 0 && IsValidRef(RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer)); // this should have been created and should have uses outstanding
+					switch (RHICmd->ShaderFrequency)
+					{
+						case SF_Vertex:		SetShaderUniformBuffer_Internal((FVertexShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						case SF_Hull:		SetShaderUniformBuffer_Internal((FHullShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						case SF_Domain:		SetShaderUniformBuffer_Internal((FDomainShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						case SF_Geometry:	SetShaderUniformBuffer_Internal((FGeometryShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						case SF_Pixel:		SetShaderUniformBuffer_Internal((FPixelShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						case SF_Compute:	SetShaderUniformBuffer_Internal((FComputeShaderRHIParamRef)RHICmd->Shader, RHICmd->BaseIndex, RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer); break;
+						default: check(0); break;
+					}
+					if (--RHICmd->LocalUniformBuffer.WorkArea->UseCount == 0)
+					{
+						RHICmd->LocalUniformBuffer.WorkArea->UniformBuffer = nullptr; // this also releases the ref, which wouldn't otherwise happen because RHICommands are unsafe and don't do constructors or destructors
+						RHICmd->LocalUniformBuffer.WorkArea->Layout = nullptr;
+					}
+				}
+			}
+			break;
 
 		default:
 			checkf(0, TEXT("Unknown RHI Command %d!"), Cmd->Type);
@@ -536,13 +576,13 @@ void FRHICommandListExecutor::ExecuteList(FRHICommandList& CmdList)
 		}
 	}
 	INC_DWORD_STAT_BY(STAT_RHICmdListCount, CmdList.NumCommands);
+	CmdList.Reset();
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (&CmdList == &GetImmediateCommandList() && GRHICommandList.OutstandingCmdListCount.GetValue() == 1)
 	{
 		LatchBypass();
 	}
 #endif
-	CmdList.Reset();
 }
 
 void FRHICommandListExecutor::LatchBypass()
@@ -550,10 +590,6 @@ void FRHICommandListExecutor::LatchBypass()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	check(GRHICommandList.OutstandingCmdListCount.GetValue() == 1 && !GRHICommandList.GetImmediateCommandList().HasCommands());
 	bool NewBypass = (CVarRHICmdBypass.GetValueOnRenderThread() >= 1);
-	if (NewBypass)
-	{
-		FRHIResource::FlushPendingDeletes();
-	}
 	bLatchedBypass = NewBypass;
 #endif
 }

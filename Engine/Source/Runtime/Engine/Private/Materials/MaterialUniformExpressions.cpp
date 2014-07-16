@@ -257,10 +257,10 @@ const FUniformBufferStruct& FUniformExpressionSet::GetUniformBufferStruct() cons
 	return *UniformBufferStruct;
 }
 
-FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext) const
+FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const
 {
 	check(UniformBufferStruct);
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 	
 	FUniformBufferRHIRef UniformBuffer;
 
@@ -320,8 +320,17 @@ FUniformBufferRHIRef FUniformExpressionSet::CreateUniformBuffer(const FMaterialR
 				*ResourceTable++ = GWhiteTexture->SamplerStateRHI;
 			}
 		}
-
-		UniformBuffer = RHICreateUniformBuffer(TempBuffer,UniformBufferStruct->GetLayout(),UniformBuffer_MultiFrame);
+		if (CommandListIfLocalMode)
+		{
+			check(OutLocalUniformBuffer);
+			*OutLocalUniformBuffer = CommandListIfLocalMode->BuildLocalUniformBuffer(TempBuffer, UniformBufferStruct->GetSize(), UniformBufferStruct->GetLayout());
+			check(OutLocalUniformBuffer->IsValid());
+		}
+		else
+		{
+			UniformBuffer = RHICreateUniformBuffer(TempBuffer, UniformBufferStruct->GetLayout(), UniformBuffer_MultiFrame);
+			check(!OutLocalUniformBuffer->IsValid());
+		}
 	}
 
 	return UniformBuffer;
@@ -358,7 +367,7 @@ void FMaterialUniformExpressionTexture::SetTransientOverrideTextureValue( UTextu
 
 void FMaterialUniformExpressionTexture::GetTextureValue(const FMaterialRenderContext& Context,const FMaterial& Material,const UTexture*& OutValue) const
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 	if( TransientOverrideValue_RenderThread != NULL )
 	{
 		OutValue = TransientOverrideValue_RenderThread;

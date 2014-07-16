@@ -214,7 +214,7 @@ public:
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();
 	const FUniformBufferStruct& GetUniformBufferStruct() const;
-	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext) const;
+	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const;
 
 	uint32 GetAllocatedSize() const
 	{
@@ -1193,6 +1193,8 @@ struct FUniformExpressionCache
 {
 	/** Material uniform buffer. */
 	FUniformBufferRHIRef UniformBuffer;
+	/** Material uniform buffer. */
+	FLocalUniformBuffer LocalUniformBuffer;
 	/** Textures referenced by uniform expressions. */
 	TArray<const UTexture*> Textures;
 	/** Cube textures referenced by uniform expressions. */
@@ -1241,7 +1243,7 @@ public:
 	 * @param OutUniformExpressionCache - The uniform expression cache to build.
 	 * @param MaterialRenderContext - The context for which to cache expressions.
 	 */
-	void ENGINE_API EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context) const;
+	void ENGINE_API EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, class FRHICommandList* CommandListIfLocalMode = nullptr) const;
 
 	/**
 	 * Caches uniform expressions for efficient runtime evaluation.

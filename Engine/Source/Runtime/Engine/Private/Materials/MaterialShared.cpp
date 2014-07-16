@@ -1437,7 +1437,7 @@ FMaterialRenderContext::FMaterialRenderContext(
 	FMaterialRenderProxy
 -----------------------------------------------------------------------------*/
 
-void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context) const
+void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, FRHICommandList* CommandListIfLocalMode) const
 {
 	check(IsInParallelRenderingThread());
 
@@ -1449,7 +1449,7 @@ void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& O
 	OutUniformExpressionCache.CachedUniformExpressionShaderMap = Context.Material.GetRenderingThreadShaderMap();
 
 	// Create and cache the material's uniform buffer.
-	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context);
+	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context, CommandListIfLocalMode, &OutUniformExpressionCache.LocalUniformBuffer);
 
 	// Cache 2D texture uniform expressions.
 	OutUniformExpressionCache.Textures.Empty(UniformExpressionSet.Uniform2DTextureExpressions.Num());

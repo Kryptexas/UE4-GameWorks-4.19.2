@@ -10,9 +10,6 @@
 #include "RenderResource.h"
 #include "RHI.h"
 
-/** Uniform buffer structs must be aligned to 16-byte boundaries. */
-#define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
-
 namespace EShaderPrecisionModifier
 {
 	enum Type
