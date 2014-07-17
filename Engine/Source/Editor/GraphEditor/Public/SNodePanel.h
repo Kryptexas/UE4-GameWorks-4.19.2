@@ -551,6 +551,9 @@ protected:
 	/** Are we panning the view at the moment? */
 	bool bIsPanning;
 
+	/** Are we zooming the view with trackpad at the moment? */
+	bool bIsZoomingWithTrackpad;
+
 	/** The graph node widgets owned by this panel */
 	TSlotlessChildren<SNode> Children;
 	TSlotlessChildren<SNode> VisibleChildren;
