@@ -316,8 +316,11 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 	};
 
 
+	
+	const FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	
 	// We need the output log module in order to instantiate SConsoleInputBox widgets
-	const FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >( TEXT( "OutputLog" ) );
+	const FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));
 
 	const FSlateFontInfo& SmallFixedFont = FEditorStyle::GetFontStyle(TEXT("MainFrame.DebugTools.SmallFont") );
 	const FSlateFontInfo& NormalFixedFont = FEditorStyle::GetFontStyle(TEXT("MainFrame.DebugTools.NormalFont") );
@@ -439,6 +442,8 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		]
 	;
 
+	bool bUseSuperSearch = FParse::Param(FCommandLine::Get(), TEXT("SuperSearch"));;
+
 	// Invisible border, so that we can animate our box panel size
 	return SNew( SBorder )
 		.Visibility( EVisibility::SelfHitTestInvisible )
@@ -465,7 +470,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
 					.WidthOverride( 180.0f )
 					[
-						OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
+						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
 					]
 				]
 /*

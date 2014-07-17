@@ -24,6 +24,7 @@
 #include "MessageLogModule.h"
 #include "ModuleManager.h"
 #include "MRUFavoritesList.h"
+#include "SuperSearchModule.h"
 #include "OutputLogModule.h"
 //#include "SearchUI.h"
 #include "SourceCodeNavigation.h"
