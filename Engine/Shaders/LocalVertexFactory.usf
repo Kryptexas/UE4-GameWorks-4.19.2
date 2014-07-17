@@ -168,8 +168,8 @@ half3x3 CalcTangentToWorldNoScale(in half3x3 TangentToLocal)
 	half3x3 LocalToWorld = GetLocalToWorld3x3();
 	half3 InvScale = Primitive.InvNonUniformScale.xyz;
 	LocalToWorld[0] *= InvScale.x;
-    LocalToWorld[1] *= InvScale.y;
-    LocalToWorld[2] *= InvScale.z;
+	LocalToWorld[1] *= InvScale.y;
+	LocalToWorld[2] *= InvScale.z;
 	return mul(TangentToLocal, LocalToWorld); 
 }
 
@@ -247,7 +247,7 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 		float3 BaseYVec = normalize( cross(SplineDir, BaseXVec) );
 	
 		// Offset from the spline, using the frenet frame
- 		float2 SliceOffset = lerp(SplineStartOffset, SplineEndOffset, HermiteAlpha);
+		float2 SliceOffset = lerp(SplineStartOffset, SplineEndOffset, HermiteAlpha);
 		SplinePos += SliceOffset.x * BaseXVec;
 		SplinePos += SliceOffset.y * BaseYVec;
 	
@@ -447,7 +447,11 @@ FVertexFactoryInterpolantsVSToPS VertexFactoryGetInterpolantsVSToPS(FVertexFacto
 #if USE_INSTANCING
 	//float2 InstanceLightMapBias = float2(Input.InstanceInverseTransform1.w, Input.InstanceInverseTransform2.w);
 	//Interpolants.LightMapCoordinate.xy = Input.LightMapCoordinate * LightMapCoordinateScaleBias.xy + InstanceLightMapBias;
+	#if ES2_PROFILE
+	SetLightMapCoordinate(Interpolants, (float4)0, (float2)0);
+	#else
 	Interpolants.LightMapCoordinate = 0;
+	#endif
 #else
 	
 	float4 LightMapCoordinate = 0;

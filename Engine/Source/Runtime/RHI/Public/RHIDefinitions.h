@@ -607,7 +607,8 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 
 inline bool RHISupportsInstancing(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) || (Platform == SP_METAL);
+	//@todo-rco: Add Metal support
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);// || (Platform == SP_METAL);
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)
