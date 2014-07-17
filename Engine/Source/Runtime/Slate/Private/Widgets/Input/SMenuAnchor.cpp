@@ -47,14 +47,7 @@ void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindo
 	if (ensure(Method == CreateNewWindow))
 	{
 		FSlateApplication::Get().RequestDestroyWindow(PopupWindow);
-		
-		if (OnMenuClosed.IsBound())
-		{
-			OnMenuClosed.Execute();
-		}
 	}
-
-
 }
 
 void SMenuAnchor::OnClickedOutsidePopup()
