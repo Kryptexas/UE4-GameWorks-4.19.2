@@ -43,12 +43,6 @@ private:
 	/** FLevelCollection interface end */
 	
 public:
-	/** @return Whether the current selection can be shifted */
-	bool CanShiftSelection();
-
-	/** Moves the level selection up or down in the list; used for re-ordering */
-	void ShiftSelection( bool bUp );
-
 	/** @return Any selected ULevel objects in the LevelsView that are NULL */
 	const FLevelModelList& GetInvalidSelectedLevels() const;
 
@@ -61,12 +55,6 @@ private:
 	 */
 	FStreamingLevelCollectionModel(UEditorEngine* InEditor);
 	
-	/** Refreshes the sort index on all viewmodels that contain ULevels */
-	void RefreshSortIndexes();
-	
-	/**	Sorts the filtered Levels list */
-	void SortFilteredLevels();
-
 	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override { UpdateAllLevels(); }
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }

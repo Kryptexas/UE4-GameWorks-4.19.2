@@ -64,7 +64,6 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 		}
 	}
 
-	RefreshSortIndexes();
 	FLevelCollectionModel::OnLevelsCollectionChanged();
 }
 
@@ -345,96 +344,10 @@ void FStreamingLevelCollectionModel::UnregisterDetailsCustomization(FPropertyEdi
 	InDetailsView->UnregisterInstancedCustomPropertyLayout(ULevelStreaming::StaticClass());
 }
 
-bool FStreamingLevelCollectionModel::CanShiftSelection()
-{
-	if (!IsOneLevelSelected())
-	{
-		return false;
-	}
-
-	for (int32 i = 0; i < SelectedLevelsList.Num(); ++i)
-	{
-		if (SelectedLevelsList[i]->IsLocked() || SelectedLevelsList[i]->IsPersistent())
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-void FStreamingLevelCollectionModel::ShiftSelection( bool bUp )
-{
-	if (!CanShiftSelection())
-	{
-		return;
-	}
-
-	if (!IsSelectedLevelEditable())
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ShiftLevelLocked", "Shift Level: The requested operation could not be completed because the level is locked or not loaded.") );
-		return;
-	}
-	
-	TSharedPtr<FStreamingLevelModel> TargetModel = StaticCastSharedPtr<FStreamingLevelModel>(SelectedLevelsList[0]);
-	ULevelStreaming* InLevelStreaming = TargetModel->GetLevelStreaming().Get();
-	
-	int32 FoundLevelIndex =  CurrentWorld->StreamingLevels.Find(InLevelStreaming);
-	int32 PrevFoundLevelIndex = FoundLevelIndex - 1;
-	int32 PostFoundLevelIndex = FoundLevelIndex + 1;
-
-	// If we found the level . . .
-	if ( FoundLevelIndex != INDEX_NONE )
-	{
-		// Check if we found a destination index to swap it to.
-		const int32 DestIndex = bUp ? PrevFoundLevelIndex : PostFoundLevelIndex;
-		if (CurrentWorld->StreamingLevels.IsValidIndex(DestIndex))
-		{
-			// Swap the level into position.
-			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ShiftLevelInLevelBrowser", "Shift level in Level Browser") );
-			CurrentWorld->Modify();
-			CurrentWorld->StreamingLevels.Swap( FoundLevelIndex, DestIndex );
-			CurrentWorld->MarkPackageDirty();
-		}
-	}
-
-	RefreshSortIndexes();
-}
-
-
 const FLevelModelList& FStreamingLevelCollectionModel::GetInvalidSelectedLevels() const 
 { 
 	return InvalidSelectedLevels;
 }
-
-void FStreamingLevelCollectionModel::RefreshSortIndexes()
-{
-	//for( auto LevelIt = AllLevelsList.CreateIterator(); LevelIt; ++LevelIt )
-	//{
-	//	(*LevelIt)->RefreshStreamingLevelIndex();
-	//}
-
-	//OnFilterChanged();
-}
-
-void FStreamingLevelCollectionModel::SortFilteredLevels()
-{
-	struct FCompareLevels
-	{
-		FORCEINLINE bool operator()(const TSharedPtr<FLevelModel>& InLhs, 
-									const TSharedPtr<FLevelModel>& InRhs) const 
-		{ 
-			TSharedPtr<FStreamingLevelModel> Lhs = StaticCastSharedPtr<FStreamingLevelModel>(InLhs);
-			TSharedPtr<FStreamingLevelModel> Rhs = StaticCastSharedPtr<FStreamingLevelModel>(InRhs);
-				
-			// Sort by a user-defined order.
-			return (Lhs->GetStreamingLevelIndex() < Rhs->GetStreamingLevelIndex());
-		}
-	};
-
-	FilteredLevelsList.Sort(FCompareLevels());
-}
-
 
 //levels
 void FStreamingLevelCollectionModel::CreateEmptyLevel_Executed()

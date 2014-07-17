@@ -38,12 +38,6 @@ public:
 	virtual UClass* GetStreamingClass() const override;
 	// FLevelModel interface end
 		
-	/** @return the StreamingLevelIndex */
-	int GetStreamingLevelIndex() { return StreamingLevelIndex; }
-
-	/** Refreshes the StreamingLevelIndex by checking or its position in its OwningWorld's Level array */
-	void RefreshStreamingLevelIndex();
-
 	/** @return The ULevelStreaming this viewmodel contains*/
 	const TWeakObjectPtr< ULevelStreaming > GetLevelStreaming();
 
@@ -65,9 +59,6 @@ private:
 	
 	/** The LevelStreaming this object represents */
 	TWeakObjectPtr< ULevelStreaming > LevelStreaming;
-
-	/** The index of this level within its parent UWorld's StreamingLevels Array;  Used for manual sorting */
-	int StreamingLevelIndex;
 
 	/** Whether underlying streaming level object has a valid package name */
 	bool bHasValidPackageName;

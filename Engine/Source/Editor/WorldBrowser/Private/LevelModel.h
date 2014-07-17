@@ -251,10 +251,7 @@ protected:
 
 	/** Reference to owning collection model */
 	FLevelCollectionModel&				LevelCollectionModel;
-
-	/** Owning world  */
-	const TWeakObjectPtr<UWorld>		CurrentWorld;
-
+		
 	/** The UEditorEngine to use */
 	const TWeakObjectPtr<UEditorEngine> Editor;
 

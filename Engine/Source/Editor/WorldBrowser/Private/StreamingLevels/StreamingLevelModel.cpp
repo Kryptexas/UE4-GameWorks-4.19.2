@@ -13,7 +13,6 @@ FStreamingLevelModel::FStreamingLevelModel(const TWeakObjectPtr<UEditorEngine>& 
 
 	: FLevelModel(InWorldData, InEditor)
 	, LevelStreaming(InLevelStreaming)
-	, StreamingLevelIndex(INDEX_NONE)
 	, bHasValidPackageName(false)
 {
 	Editor->RegisterForUndo( this );
@@ -71,27 +70,52 @@ void FStreamingLevelModel::Update()
 	FLevelModel::Update();
 }
 
-void FStreamingLevelModel::RefreshStreamingLevelIndex()
-{
-	ULevelStreaming* StreamingLevel = LevelStreaming.Get();
-	
-	if ( StreamingLevel )
-	{
-		int32 Idx = CurrentWorld->StreamingLevels.Find(StreamingLevel);
-		if (Idx != INDEX_NONE)
-		{
-			StreamingLevelIndex = Idx;
-		}
-	}
-}
-
 void FStreamingLevelModel::OnDrop(const TSharedPtr<FLevelDragDropOp>& Op)
 {
+	TArray<ULevelStreaming*> DropStreamingLevels;
+	
+	for (auto It = Op->StreamingLevelsToDrop.CreateConstIterator(); It; ++It)
+	{
+		if ((*It).IsValid())
+		{
+			DropStreamingLevels.AddUnique((*It).Get());
+		}
+	}	
+	
+	// Prevent dropping items on itself
+	if (DropStreamingLevels.Num() && DropStreamingLevels.Find(LevelStreaming.Get()) == INDEX_NONE)
+	{
+		UWorld* CurrentWorld = LevelCollectionModel.GetWorld();
+		auto& WorldStreamingLevels = CurrentWorld->StreamingLevels;
+		// Remove streaming level objects from a world streaming levels list
+		for (auto It : DropStreamingLevels)
+		{
+			WorldStreamingLevels.Remove(It);
+		}
+		
+		// Find a new place where to insert the in a world streaming levels list
+		// Right after the current level, or at start of the list in case if this is persistent level
+		int32 InsertIndex = WorldStreamingLevels.Find(LevelStreaming.Get());
+		if (InsertIndex == INDEX_NONE)
+		{
+			InsertIndex = 0;
+		}
+		else
+		{
+			InsertIndex++;
+		}
+
+		WorldStreamingLevels.Insert(DropStreamingLevels, InsertIndex);
+		CurrentWorld->MarkPackageDirty();
+			
+		// Force levels list refresh
+		LevelCollectionModel.PopulateLevelsList();
+	}
 }
 
 bool FStreamingLevelModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 {
-	return false;
+	return true;
 }
 
 //bool FStreamingLevelModel::IsReadOnly() const
