@@ -28,6 +28,10 @@ void UPawnMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdated
 	PawnOwner = NewUpdatedComponent ? CastChecked<APawn>(NewUpdatedComponent->GetOwner()) : NULL;
 }
 
+APawn* UPawnMovementComponent::GetPawnOwner() const
+{
+	return PawnOwner;
+}
 
 bool UPawnMovementComponent::IsMoveInputIgnored() const
 {
@@ -35,16 +39,7 @@ bool UPawnMovementComponent::IsMoveInputIgnored() const
 	{
 		if (PawnOwner)
 		{
-			const APlayerController* PCOwner = Cast<const APlayerController>(PawnOwner->Controller);
-			if (PCOwner)
-			{
-				return PCOwner->IsMoveInputIgnored();
-			}
-			else
-			{
-				// Allow movement by non-player controllers, if for some reason AI wants to go through simulated input.
-				return false;
-			}
+			return PawnOwner->IsMoveInputIgnored();
 		}
 	}
 
@@ -52,18 +47,20 @@ bool UPawnMovementComponent::IsMoveInputIgnored() const
 	return true;
 }
 
-
 void UPawnMovementComponent::AddInputVector(FVector WorldAccel, bool bForce /*=false*/)
 {
-	if (bForce || !IsMoveInputIgnored())
+	if (PawnOwner)
 	{
-		ControlInputVector += WorldAccel;
+		PawnOwner->Internal_AddMovementInput(WorldAccel, bForce);
 	}
+}
+
+FVector UPawnMovementComponent::GetInputVector() const
+{
+	return PawnOwner ? PawnOwner->Internal_GetMovementInputVector() : FVector::ZeroVector;
 }
 
 FVector UPawnMovementComponent::ConsumeInputVector()
 {
-	const FVector OldValue = GetInputVector();
-	ControlInputVector = FVector::ZeroVector;
-	return OldValue;
+	return PawnOwner ? PawnOwner->Internal_ConsumeMovementInputVector() : FVector::ZeroVector;
 }

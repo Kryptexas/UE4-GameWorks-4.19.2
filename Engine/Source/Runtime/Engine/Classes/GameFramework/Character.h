@@ -208,14 +208,14 @@ class ENGINE_API ACharacter : public APawn
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCharacterMovementComponent> CharacterMovement;
 
-	/** The CapsuleComponent being used for movement collision (if has CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
+	/** The CapsuleComponent being used for movement collision (by CharacterMovement). Always treated as being vertically aligned in simple collision check functions. */
 	UPROPERTY(Category=Character, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCapsuleComponent> CapsuleComponent;
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
-	/** Name of the CharacterMovement. Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
+	/** Name of the CharacterMovement component. Use this name if you want to use a different class (with PCIP.SetDefaultSubobjectClass). */
 	static FName CharacterMovementComponentName;
 
 	/** Name of the CapsuleComponent. */

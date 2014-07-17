@@ -16,9 +16,15 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	// Overridden to only allow registration with components owned by a Pawn.
 	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
 
-	/** Adds the given vector to the accumulated input in world space. Input vectors are usually between 0 and 1 in magnitude. 
+	/**
+	 * Adds the given vector to the accumulated input in world space. Input vectors are usually between 0 and 1 in magnitude. 
 	 * They are accumulated during a frame then applied as acceleration during the movement update.
-	 * if bForce is true, it bypasses the IsMoveInputIgnored() check. */
+	 * @see Pawn.AddMovementInput()
+	 *
+	 * @param WorldDirection:	Direction in world space to apply input
+	 * @param ScaleValue:		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value.
+	 * @param bForce:			If true always add the input, ignoring the result of IsMoveInputIgnored().
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	virtual void AddInputVector(FVector WorldVector, bool bForce = false);
 
@@ -30,7 +36,8 @@ class ENGINE_API UPawnMovementComponent : public UNavMovementComponent
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	virtual FVector ConsumeInputVector();
 
-	/** Helper to see if move input is ignored. If possessed by a player-controlled Pawn, defers to the PlayerController's input ignore flags. */
+	/** Helper to see if move input is ignored. If there is no Pawn or UpdatedComponent, returns true, otherwise defers to the Pawn's implementation of IsMoveInputIgnored(). */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
 	virtual bool IsMoveInputIgnored() const;
 
 	/** Return the Pawn that owns UpdatedComponent. */
@@ -42,25 +49,8 @@ public:
 	virtual void NotifyBumpedPawn(APawn* BumpedPawn) {}
 
 protected:
-	/** Accumulated control input vector, stored in world space.  */
-	UPROPERTY(Transient)
-	FVector ControlInputVector;
 
 	/** Pawn which owns this component. */
 	UPROPERTY()
 	class APawn* PawnOwner;
 };
-
-
-//////////////////////////////////////////////////////////////////////////
-// Inlines
-
-inline FVector UPawnMovementComponent::GetInputVector() const
-{
-	return ControlInputVector;
-}
-
-inline class APawn* UPawnMovementComponent::GetPawnOwner() const
-{
-	return PawnOwner;
-}

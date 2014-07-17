@@ -112,6 +112,11 @@ void APawn::PostRegisterAllComponents()
 	UpdateNavAgent();
 }
 
+UPawnMovementComponent* APawn::GetMovementComponent() const
+{
+	return FindComponentByClass<UPawnMovementComponent>();
+}
+
 void APawn::UpdateNavAgent()
 {
 	UPawnMovementComponent* MovementComponent = GetMovementComponent();
@@ -527,14 +532,69 @@ void APawn::DestroyPlayerInputComponent()
 }
 
 
-void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue)
+bool APawn::IsMoveInputIgnored() const
+{
+	const APlayerController* PCOwner = Cast<const APlayerController>(Controller);
+	if (PCOwner && PCOwner->IsMoveInputIgnored())
+	{
+		return true;
+	}
+
+	// No player controller or not ignoring input. We allow non-PCs to receive input, so AI can use the movement input system.
+	return false;
+}
+
+
+void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce /*=false*/)
 {
 	UPawnMovementComponent* MovementComponent = GetMovementComponent();
 	if (MovementComponent)
 	{
-		MovementComponent->AddInputVector(WorldDirection * ScaleValue);
+		MovementComponent->AddInputVector(WorldDirection * ScaleValue, bForce);
+	}
+	else
+	{
+		Internal_AddMovementInput(WorldDirection * ScaleValue, bForce);
 	}
 }
+
+
+FVector APawn::GetMovementInputVector() const
+{
+	// There's really no point redirecting to the MovementComponent since GetInputVector is not virtual there, and it just comes back to us.
+	return ControlInputVector;
+}
+
+
+FVector APawn::ConsumeMovementInputVector()
+{
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent)
+	{
+		return MovementComponent->ConsumeInputVector();
+	}
+	else
+	{
+		return Internal_ConsumeMovementInputVector();
+	}
+}
+
+
+void APawn::Internal_AddMovementInput(FVector WorldAccel, bool bForce /*=false*/)
+{
+	if (bForce || !IsMoveInputIgnored())
+	{
+		ControlInputVector += WorldAccel;
+	}
+}
+
+FVector APawn::Internal_ConsumeMovementInputVector()
+{
+	const FVector OldValue = ControlInputVector;
+	ControlInputVector = FVector::ZeroVector;
+	return OldValue;
+}
+
 
 void APawn::AddControllerPitchInput(float Val)
 {

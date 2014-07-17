@@ -284,25 +284,56 @@ protected:
 
 public:
 	/**
-	 * Add movement input to our PawnMovementComponent, along the given world direction vector scaled by 'ScaleValue'. If ScaleValue < 0, movement will be in the opposite direction.
+	 * Add movement input along the given world direction vector (usually normalized) scaled by 'ScaleValue'. If ScaleValue < 0, movement will be in the opposite direction.
+	 * Base Pawn classes won't automatically apply movement, it's up to the user to do so in a Tick. Subclasses such as Character and DefaultPawn automatically handle this input and move.
+	 * @see GetMovementInputVector(), ConsumeMovementInputVector()
 	 *
-	 * Note that input is accumulated on the movement component (accessed via GetInputVector()) during input processing,
-	 * and actual movement of the Pawn won't occur until the acceleration is applied.
+	 * @param WorldDirection:	Direction in world space to apply input
+	 * @param ScaleValue:		Scale to apply to input. This can be used for analog input, ie a value of 0.5 applies half the normal value.
+	 * @param bForce:			If true always add the input, ignoring the result of IsMoveInputIgnored().
 	 */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f);
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	virtual void AddMovementInput(FVector WorldDirection, float ScaleValue = 1.0f, bool bForce = false);
+
+	/** Return the input vector in world space. Note that the input should be consumed with ConsumeMovementInputVector() at the end of an update, to prevent accumulation of control input between frames. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	FVector GetMovementInputVector() const;
+
+	/** Returns the input vector and resets it to zero. Should be used during an update to prevent accumulation of control input between frames. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	virtual FVector ConsumeMovementInputVector();
 
 	/** Add input (affecting Pitch) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(Keywords="up down"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="up down"))
 	virtual void AddControllerPitchInput(float Val);
 
 	/** Add input (affecting Yaw) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(Keywords="left right turn"))
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="left right turn"))
 	virtual void AddControllerYawInput(float Val);
 
 	/** Add input (affecting Roll) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
 	virtual void AddControllerRollInput(float Val);
+
+	/** Helper to see if move input is ignored. If our controller is a PlayerController, checks Controller->IsMoveInputIgnored(). */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	virtual bool IsMoveInputIgnored() const;
+
+private:
+
+	/** Accumulated control input vector, stored in world space. */
+	UPROPERTY(Transient)
+	FVector ControlInputVector;
+
+public:
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Adds movement input if not ignored, or if forced. */
+	void Internal_AddMovementInput(FVector WorldAccel, bool bForce = false);
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the value of ControlInputVector. */
+	inline FVector Internal_GetMovementInputVector() const { return ControlInputVector; }
+
+	/** Internal function meant for use only within Pawn or by a PawnMovementComponent. Returns the vale of ControlInputVector and sets it to zero. */
+	FVector Internal_ConsumeMovementInputVector();
 
 public:
 	/** (DEPRECATED) Launch Character with LaunchVelocity  */
@@ -316,11 +347,3 @@ public:
 	void MoveIgnoreActorRemove(AActor* ActorToIgnore);
 };
 
-
-//////////////////////////////////////////////////////////////////////////
-// Inlines
-
-inline class UPawnMovementComponent* APawn::GetMovementComponent() const
-{
-	return FindComponentByClass<UPawnMovementComponent>();
-}
