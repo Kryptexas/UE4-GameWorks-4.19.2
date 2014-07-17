@@ -2018,7 +2018,7 @@ namespace StaticMeshUVTest
 		};
 	}
 
-	class FUVTestHelper
+	class FUVTestHelper : public TSharedFromThis<FUVTestHelper>
 	{
 	public:
 
@@ -2088,7 +2088,7 @@ namespace StaticMeshUVTest
 			}
 			else
 			{
-				LoadPackageAsync(PackageName,FLoadPackageAsyncDelegate::CreateRaw(this, &FUVTestHelper::PackageLoadCallback));
+				LoadPackageAsync(PackageName,FLoadPackageAsyncDelegate::CreateSP(this, &FUVTestHelper::PackageLoadCallback));
 				CurrentState = EStaticMeshUVTestState::WaitingForPackage;
 			}
 		}
