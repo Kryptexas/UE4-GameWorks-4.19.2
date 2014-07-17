@@ -19,13 +19,17 @@ static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 	TEXT("0: Disable, 1: Enable"),
 	ECVF_Cheat);
 
-static int32 GRHICmdExec = 0;
-static FAutoConsoleVariableRef CVarRHICmdExec(
+static TAutoConsoleVariable<int32> CVarRHICmdExec(
 	TEXT("r.RHIExec"),
-	GRHICmdExec,
+	0,
 	TEXT("0: Executes RHI Command List using RHI calls (default)\n")
 	TEXT("1: Executes RHI Command List using platform specific APIs")
 	);
+
+TAutoConsoleVariable<int32> CVarRHICmdWidth(
+	TEXT("r.RHICmdWidth"), 
+	8,
+	TEXT("Number of threads."));
 
 
 RHI_API FRHICommandListExecutor GRHICommandList;
@@ -407,9 +411,8 @@ void FRHICommandListExecutor::ExecuteListGenericRHI(FRHICommandList& CmdList)
 
 void FRHICommandListExecutor::ExecuteInner(FRHICommandList& CmdList)
 {
-	static IConsoleVariable* RHIExecCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.RHIExec"));
 	CmdList.bExecuting = true;
-	if (RHIExecCVar && RHIExecCVar->GetInt() != 0)
+	if (CVarRHICmdExec.GetValueOnRenderThread() != 0)
 	{
 		RHIExecuteCommandList(&CmdList);
 	}

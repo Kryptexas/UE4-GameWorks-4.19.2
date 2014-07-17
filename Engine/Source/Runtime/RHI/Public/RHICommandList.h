@@ -18,6 +18,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Immed. Command List Execute"), STAT_ImmedCmdList
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command List memory"), STAT_ImmedCmdListMemory, STATGROUP_RHICMDLIST, RHI_API);
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Immed. Command count"), STAT_ImmedCmdListCount, STATGROUP_RHICMDLIST, RHI_API);
 
+
 enum ERHICommandType
 {
 	// Start the enum at non-zero to help debugging
@@ -71,6 +72,7 @@ enum ERHICommandType
 	ERCT_NUM,
 };
 
+extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
 
 struct FRHICommand
 {

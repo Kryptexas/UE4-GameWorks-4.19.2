@@ -55,6 +55,11 @@ public:
 	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
 	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
 
+	/** Renders the basepass for the static data of a given View. Parallel versions.*/
+	FGraphEventRef RenderBasePassStaticDataParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	FGraphEventRef RenderBasePassStaticDataMaskedParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	FGraphEventRef RenderBasePassStaticDataDefaultParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
