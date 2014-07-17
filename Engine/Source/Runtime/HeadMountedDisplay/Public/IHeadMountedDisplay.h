@@ -7,7 +7,6 @@
 
 // depending on your kit and SDK, you may want to use this.
 // new distortion handling still in development.
-#define NEW_MORPHEUS_DISTORTION 0
 
 /**
  * The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until 
@@ -213,18 +212,12 @@ public:
 	 * Additional optional distorion rendering parameters
 	 * @todo:  Once we can move shaders into plugins, remove these!
 	 */	
-#if NEW_MORPHEUS_DISTORTION
 	virtual FTexture* GetDistortionTextureLeft() const {return NULL;}
 	virtual FTexture* GetDistortionTextureRight() const {return NULL;}
 	virtual FVector2D GetTextureOffsetLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
-#else
-	virtual void GetImageTranslation(float& x, float& y) const {}
-	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
-	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
-#endif
 
 	/**
 	 * Record analytics
