@@ -2964,7 +2964,7 @@ namespace MaterialExportUtils
 			//Create BaseColor Expression of the diffuse texture
 			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			BasecolorExpression->Texture = DiffuseTexture;
-			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
+			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
 			BasecolorExpression->MaterialExpressionEditorX = -400;
 			BasecolorExpression->MaterialExpressionEditorY = -150;
 			Material->Expressions.Add(BasecolorExpression);
