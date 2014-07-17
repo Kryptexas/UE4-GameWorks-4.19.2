@@ -1803,7 +1803,7 @@ void ARecastNavMesh::PostEditChangeProperty( struct FPropertyChangedEvent& Prope
 
 #endif // WITH_EDITOR
 
-bool ARecastNavMesh::NeedsRebuild()
+bool ARecastNavMesh::NeedsRebuild() const
 {
 	bool bLooksLikeNeeded = !RecastNavMeshImpl || RecastNavMeshImpl->GetRecastMesh() == 0;
 #if WITH_NAVIGATION_GENERATOR

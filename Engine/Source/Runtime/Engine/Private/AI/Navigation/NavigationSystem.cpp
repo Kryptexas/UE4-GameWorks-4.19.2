@@ -2956,7 +2956,7 @@ void UNavigationSystem::CycleNavigationDataDrawn()
 	}
 }
 
-bool UNavigationSystem::IsNavigationDirty()
+bool UNavigationSystem::IsNavigationDirty() const
 {
 	for (int32 NavDataIndex=0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
 	{
@@ -2967,6 +2967,22 @@ bool UNavigationSystem::IsNavigationDirty()
 	}
 
 	return false;
+}
+
+bool UNavigationSystem::CanRebuildDirtyNavigation() const
+{
+	for (int32 NavDataIndex = 0; NavDataIndex < NavDataSet.Num(); ++NavDataIndex)
+	{
+		const bool bIsDirty = NavDataSet[NavDataIndex]->NeedsRebuild();
+		const bool bCanRebuild = NavDataSet[NavDataIndex]->CanRebuild();
+
+		if (bIsDirty && !bCanRebuild)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box)

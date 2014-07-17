@@ -364,6 +364,15 @@ void ANavigationData::CleanUpAndMarkPendingKill()
 	MarkComponentsAsPendingKill();
 }
 
+bool ANavigationData::CanRebuild() const
+{
+#if WITH_NAVIGATION_GENERATOR
+	return NavDataGenerator.IsValid();
+#endif
+
+	return false;
+}
+
 #if WITH_NAVIGATION_GENERATOR
 
 FNavDataGenerator* ANavigationData::GetGenerator(FNavigationSystem::ECreateIfEmpty CreateIfNone)

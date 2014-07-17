@@ -97,7 +97,8 @@ class ENGINE_API ANavigationData : public AActor
 
 	virtual void RerunConstructionScripts() override;
 
-	virtual bool NeedsRebuild() { return false; }
+	virtual bool NeedsRebuild() const { return false; }
+	virtual bool CanRebuild() const;
 
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      

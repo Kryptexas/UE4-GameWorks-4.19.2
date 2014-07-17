@@ -6395,8 +6395,9 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #else
 			const bool bIsNavigationAutoUpdateEnabled = true;
 #endif
-			if (World->GetNavigationSystem() != NULL && World->GetNavigationSystem()->IsNavigationDirty() && 
-				(!World->GetNavigationSystem()->bBuildNavigationAtRuntime || !bIsNavigationAutoUpdateEnabled))
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+			if (NavSys && NavSys->IsNavigationDirty() &&
+				(!bIsNavigationAutoUpdateEnabled || !NavSys->bBuildNavigationAtRuntime || !NavSys->CanRebuildDirtyNavigation()))
 			{
 				SmallTextItem.SetColor( FLinearColor::White );
 				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				

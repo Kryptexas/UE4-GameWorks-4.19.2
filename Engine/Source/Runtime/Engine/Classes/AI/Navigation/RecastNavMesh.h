@@ -862,7 +862,7 @@ public:
 	const FTileSetItem* GetTileSet() const { return TileSet.GetTypedData(); }
 	FTileSetItem* GetTileSet() { return TileSet.GetTypedData(); }
 	
-	virtual bool NeedsRebuild() override;
+	virtual bool NeedsRebuild() const override;
 
 	/** update offset for navmesh in recast library, to current one */
 	/** @param Offset - current offset */

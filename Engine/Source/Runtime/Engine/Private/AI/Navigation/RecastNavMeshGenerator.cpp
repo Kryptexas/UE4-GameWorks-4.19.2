@@ -3529,10 +3529,6 @@ void FRecastNavMeshGenerator::RequestDirtyTilesRebuild()
 bool FRecastNavMeshGenerator::Generate()
 {
 	bool const bGenerated = GenerateTiledNavMesh();
-
-	// we rebuilt, update to latest
-	DestNavMesh->UpdateNavVersion();
-
 	return bGenerated;
 }
 
@@ -4018,6 +4014,11 @@ void FRecastNavMeshGenerator::RebuildAll()
 		DirtyAreas.Empty();
 		DirtyAreas.Add(BigArea);
 		RequestDirtyTilesRebuild();
+	}
+
+	if (DestNavMesh.IsValid())
+	{
+		DestNavMesh->UpdateNavVersion();
 	}
 }
 

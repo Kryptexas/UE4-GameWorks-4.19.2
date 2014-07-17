@@ -363,7 +363,10 @@ public:
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
 
 	/** checks if navigation/navmesh is dirty and needs to be rebuilt */
-	bool IsNavigationDirty();
+	bool IsNavigationDirty() const;
+
+	/** checks if dirty navigation data can rebuild itself */
+	bool CanRebuildDirtyNavigation() const;
 
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box);
 
