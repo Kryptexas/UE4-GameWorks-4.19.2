@@ -22,8 +22,9 @@
 #include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
+#include "Dialogs/SOpenLevelDialog.h"
 
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "Runtime/AssetRegistry/Public/AssetData.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -1509,80 +1510,7 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 
 void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
 {
-	struct FLocal
-	{
-		static void OpenLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType, FOnLevelsChosen OnLevelsChosen)
-		{
-			const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
-			if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
-			{
-				// Close the popup and any open menus
-				FSlateApplication::Get().DismissAllMenus();
-
-				TArray<FAssetData> SelectedWorldAssets;
-				for ( const auto& AssetIt : SelectedAssets )
-				{
-					if (AssetIt.AssetClass == UWorld::StaticClass()->GetFName())
-					{
-						SelectedWorldAssets.Add(AssetIt);
-					}
-				}
-
-				OnLevelsChosen.ExecuteIfBound(SelectedWorldAssets);
-			}
-		}
-	};
-
-	const FVector2D AssetPickerSize(800.0f, 650.0f);
-
-	FMenuBuilder MenuBuilder(false, NULL);
-
-	FAssetPickerConfig AssetPickerConfig;
-	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-	AssetPickerConfig.bAllowDragging = false;
-	AssetPickerConfig.SelectionMode = bAllowMultipleSelection ? ESelectionMode::Multi : ESelectionMode::Single;
-	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
-	AssetPickerConfig.ThumbnailScale = 0;
-	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLocal::OpenLevelFromAssetPicker, OnLevelsChosen);
-	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
-	if (CurrentWorld)
-	{
-		AssetPickerConfig.InitialAssetSelection = FAssetData(CurrentWorld);
-	}
-
-	// Create the contents of the popup
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-	TSharedRef<SWidget> ActualWidget =
-		SNew(SBox)
-		.HeightOverride(AssetPickerSize.X)
-		.WidthOverride(AssetPickerSize.Y)
-		[
-			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-		];
-
-	// Wrap the picker widget in a multibox-style menu body
-	MenuBuilder.BeginSection("AssetPickerOpenLevel", NSLOCTEXT("OpenLevelDialog", "WindowTitle", "Select Level"));
-	{
-		const bool bNoIndent = true;
-		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), bNoIndent);
-	}
-	MenuBuilder.EndSection();
-
-	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
-
-	// Determine where the pop-up should open
-	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
-	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
-	if (ParentWindow.IsValid())
-	{
-		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
-		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
-		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
-
-		// Open the pop-up
-		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
-		FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
-	}
+	SOpenLevelDialog::CreateAndShowOpenLevelDialog(OnLevelsChosen, bAllowMultipleSelection);
 }
 
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
