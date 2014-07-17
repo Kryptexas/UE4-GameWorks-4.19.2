@@ -39,6 +39,7 @@
 #include "CanvasSlotCustomization.h"
 #include "HorizontalAlignmentCustomization.h"
 #include "VerticalAlignmentCustomization.h"
+#include "SlateChildSizeCustomization.h"
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateDragDropOp.h"
