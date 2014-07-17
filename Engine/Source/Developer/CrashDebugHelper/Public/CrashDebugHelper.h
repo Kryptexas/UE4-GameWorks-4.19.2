@@ -205,15 +205,23 @@ struct CRASHDEBUGHELPER_API FCrashDebugInfo
 /** Helper struct that holds various information about one PDB Cache entry. */
 struct FPDBCacheEntry
 {
+	/** Default constructor. */
+	FPDBCacheEntry( const FDateTime InLastAccessTime )
+		: SizeGB( 0 )
+		, LastAccessTime( InLastAccessTime )
+	{}
+
 	/** Initialization constructor. */
-	FPDBCacheEntry( const FString& InDirectory, const int32 InSizeGB )
-		: Directory( InDirectory )
+	FPDBCacheEntry( const TArray<FString>& InFiles, const FString& InDirectory, const FDateTime InLastAccessTime, const int32 InSizeGB )
+		: Files( InFiles )
+		, Directory( InDirectory )
+		, LastAccessTime( InLastAccessTime )
 		, SizeGB( InSizeGB )
 	{}
 
 	void SetLastAccessTimeToNow()
 	{
-		LastAccessTime = FDateTime::UtcNow();
+		LastAccessTime = FDateTime::Now();
 	}
 
 	/** Paths to files associated with this PDB Cache entry. */
@@ -227,6 +235,14 @@ struct FPDBCacheEntry
 
 	/** Size of the cache entry, in GBs. Rounded-up. */
 	const int32 SizeGB;
+
+	/**
+	 * Serializer.
+	 */
+	friend FArchive& operator<<(FArchive& Ar, FPDBCacheEntry& Entry)
+	{
+		return Ar << Entry.Files << (FString&)Entry.Directory << (int32&)Entry.SizeGB;
+	}
 };
 
 struct FPDBCacheEntryByAccessTime
@@ -262,6 +278,9 @@ protected:
 	};
 
 	/** Dummy file used to read/set the file timestamp. */
+	static const TCHAR* PDBTimeStampFileNoMeta;
+
+	/** Data file used to read/set the file timestamp, contains all metadata. */
 	static const TCHAR* PDBTimeStampFile;
 
 	/** Map of the PDB Cache entries. */

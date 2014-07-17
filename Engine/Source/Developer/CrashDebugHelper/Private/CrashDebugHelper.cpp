@@ -844,7 +844,8 @@ void ICrashDebugHelper::RetrieveBuildLabelAndNetworkPath( int32 InChangelistNumb
 	PDB Cache implementation
 -----------------------------------------------------------------------------*/
 
-const TCHAR* FPDBCache::PDBTimeStampFile = TEXT( "PDBTimeStamp.txt" );
+const TCHAR* FPDBCache::PDBTimeStampFileNoMeta = TEXT( "PDBTimeStamp.txt" );
+const TCHAR* FPDBCache::PDBTimeStampFile = TEXT( "PDBTimeStamp.bin" );
 
 void FPDBCache::Init()
 {
@@ -1013,11 +1014,6 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
-	// Verify there is an entry timestamp file.
-	const bool bSaved = FFileHelper::SaveStringToFile( EntryTimeStampFilename, *EntryTimeStampFilename );
-	UE_CLOG( !bSaved, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
-	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
-
 	const FString LocalDepotDir = DepotRoot / DepotName.Replace( P4_DEPOT_PREFIX, TEXT( "" ) );
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry '%s' is being copied from '%s', it will take some time" ), *CleanedLabelName, *OriginalLabelName );
@@ -1049,11 +1045,13 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalL
 	}
 
 	// Round-up the size.
-	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+	int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CachedFiles, CleanedLabelName, FDateTime::Now(), SizeGB ) );
 
-	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CleanedLabelName, SizeGB ) );
-	NewCacheEntry->LastAccessTime = LastAccessTime;
-	NewCacheEntry->Files = CachedFiles;
+	// Verify there is an entry timestamp file, write the size of a PDB cache to avoid time consuming FindFilesRecursive during initialization.
+	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+	UE_CLOG( !FileWriter, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
+	*FileWriter << *NewCacheEntry;
 	
 	PDBCacheEntries.Add( CleanedLabelName, NewCacheEntry );
 	SortPDBCache();
@@ -1066,11 +1064,6 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& Prod
 	// Enable MDD to parse all minidumps regardless the branch, to fix the issue with the missing executables on the P4 due to the build system changes.
 	const FString EntryDirectory = PDBCachePath / ProductVersion;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
- 
-	// Verify there is an entry timestamp file.
-	const bool bSaved = FFileHelper::SaveStringToFile( EntryTimeStampFilename, *EntryTimeStampFilename );
-	UE_CLOG( !bSaved, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
-	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
  
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "PDB Cache entry '%s' is being created from %i files, it will take some time" ), *ProductVersion, FilesToBeCached.Num() );
 	for( const auto& It : FilesToBeCached )
@@ -1092,11 +1085,13 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& Prod
 	}
  
 	// Round-up the size.
-	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
- 
-	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( ProductVersion, SizeGB ) );
-	NewCacheEntry->LastAccessTime = LastAccessTime;
-	NewCacheEntry->Files = CachedFiles;
+	int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+	FPDBCacheEntryRef NewCacheEntry = MakeShareable( new FPDBCacheEntry( CachedFiles, ProductVersion, FDateTime::Now(), SizeGB ) );
+
+	// Verify there is an entry timestamp file, write the size of a PDB cache to avoid time consuming FindFilesRecursive during initialization.
+	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+	UE_CLOG( !FileWriter, LogCrashDebugHelper, Fatal, TEXT( "Couldn't save the timestamp file to %s" ), *EntryTimeStampFilename );
+	*FileWriter << *NewCacheEntry;
  
 	PDBCacheEntries.Add( ProductVersion, NewCacheEntry );
 	SortPDBCache();
@@ -1107,29 +1102,53 @@ FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntryMixed( const FString& Prod
 FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 {
 	const FString EntryDirectory = PDBCachePath / Directory;
+	const FString EntryTimeStampFilenameNoMeta = EntryDirectory / PDBTimeStampFileNoMeta;
 	const FString EntryTimeStampFilename = EntryDirectory / PDBTimeStampFile;
 
 	// Verify there is an entry timestamp file.
+	const FDateTime LastAccessTimeNoMeta = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilenameNoMeta );
 	const FDateTime LastAccessTime = IFileManager::Get().GetTimeStamp( *EntryTimeStampFilename );
 
-	TArray<FString> PDBFiles;
-	IFileManager::Get().FindFilesRecursive( PDBFiles, *EntryDirectory, TEXT( "*.*" ), true, false );
+	FPDBCacheEntryPtr NewEntry;
 
-	// Calculate the size of this PDB Cache entry.
-	int64 TotalSize = 0;
-	for( const auto& Filename : PDBFiles )
+	if( LastAccessTime != FDateTime::MinValue() )
 	{
-		const int64 FileSize = IFileManager::Get().FileSize( *Filename );
-		TotalSize += FileSize;
+		// Read the metadata
+		TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *EntryTimeStampFilename ) );
+		NewEntry = MakeShareable( new FPDBCacheEntry( LastAccessTime ) );
+		*FileReader << *NewEntry;
+	}
+	else if( LastAccessTimeNoMeta != FDateTime::MinValue() )
+	{
+		// Calculate the size of this PDB Cache entry and update to the new version.
+		TArray<FString> PDBFiles;
+		IFileManager::Get().FindFilesRecursive( PDBFiles, *EntryDirectory, TEXT( "*.*" ), true, false );
+
+		// Calculate the size of this PDB Cache entry.
+		int64 TotalSize = 0;
+		for( const auto& Filename : PDBFiles )
+		{
+			const int64 FileSize = IFileManager::Get().FileSize( *Filename );
+			TotalSize += FileSize;
+		}
+
+		// Round-up the size.
+		const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
+		NewEntry = MakeShareable( new FPDBCacheEntry( PDBFiles, Directory, LastAccessTimeNoMeta, SizeGB ) );
+
+		// Remove the old file and save the metadata.
+		TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *EntryTimeStampFilename ) );
+		*FileWriter << *NewEntry;
+
+		IFileManager::Get().Delete( *EntryTimeStampFilenameNoMeta );
+	}
+	else
+	{
+		// Something wrong.
+		check( 0 );
 	}
 
-	// Round-up the size.
-	const int32 SizeGB = (int32)FMath::DivideAndRoundUp( TotalSize, (int64)NUM_BYTES_PER_GB );
-
-	FPDBCacheEntryRef NewEntry = MakeShareable( new FPDBCacheEntry( Directory, SizeGB ) );
-	NewEntry->LastAccessTime = LastAccessTime;
-	NewEntry->Files = PDBFiles;
-	return NewEntry;
+	return NewEntry.ToSharedRef();
 }
 
 void FPDBCache::TouchPDBCacheEntry( const FString& Directory )
@@ -1164,6 +1183,3 @@ FPDBCacheEntryRef FPDBCache::FindAndTouchPDBCacheEntry( const FString& PathOrLab
 	TouchPDBCacheEntry( CacheEntry->Directory );
 	return CacheEntry;
 }
-
-
-
