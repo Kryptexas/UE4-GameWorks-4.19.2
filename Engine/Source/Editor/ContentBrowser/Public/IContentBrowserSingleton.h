@@ -35,6 +35,9 @@ struct FAssetPickerConfig
 	/** An array of pointers to existing delegates which the AssetView will register a function which returns the current selection */
 	TArray<FGetCurrentSelectionDelegate*> GetCurrentSelectionDelegates;
 
+	/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
+	TArray<FSetARFilterDelegate*> SetFilterDelegates;
+
 	/** The asset registry filter to use to cull results */
 	FARFilter Filter;
 

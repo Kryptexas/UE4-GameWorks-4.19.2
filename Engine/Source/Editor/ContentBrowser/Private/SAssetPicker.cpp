@@ -25,6 +25,14 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		}
 	}
 
+	for (auto DelegateIt = InArgs._AssetPickerConfig.SetFilterDelegates.CreateConstIterator(); DelegateIt; ++DelegateIt)
+	{
+		if ((*DelegateIt) != NULL)
+		{
+			(**DelegateIt) = FSetARFilterDelegate::CreateSP(this, &SAssetPicker::SetNewBackendFilter);
+		}
+	}
+
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
 	ChildSlot
@@ -138,17 +146,16 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 	// Asset view
 	
 	// Break up the incoming filter into a sources data and backend filter.
-	FSourcesData InitialSourcesData;
-	InitialSourcesData.PackagePaths = InArgs._AssetPickerConfig.Filter.PackagePaths;
-	InitialSourcesData.Collections = InArgs._AssetPickerConfig.Collections;
-	InitialBackendFilter = InArgs._AssetPickerConfig.Filter;
-	InitialBackendFilter.PackagePaths.Empty();
+	CurrentSourcesData.PackagePaths = InArgs._AssetPickerConfig.Filter.PackagePaths;
+	CurrentSourcesData.Collections = InArgs._AssetPickerConfig.Collections;
+	CurrentBackendFilter = InArgs._AssetPickerConfig.Filter;
+	CurrentBackendFilter.PackagePaths.Empty();
 
 	if(InArgs._AssetPickerConfig.bAddFilterUI)
 	{
 		// Filters
 		TArray<UClass*> FilterClassList;
-		for(auto Iter = InitialBackendFilter.ClassNames.CreateIterator(); Iter; ++Iter)
+		for(auto Iter = CurrentBackendFilter.ClassNames.CreateIterator(); Iter; ++Iter)
 		{
 			FName ClassName = (*Iter);
 			UClass* FilterClass = FindObject<UClass>(ANY_PACKAGE, *ClassName.ToString());
@@ -180,8 +187,8 @@ void SAssetPicker::Construct( const FArguments& InArgs )
 		.OnGetAssetContextMenu(InArgs._AssetPickerConfig.OnGetAssetContextMenu)
 		.AreRealTimeThumbnailsAllowed(this, &SAssetPicker::IsHovered)
 		.FrontendFilters(FrontendFilters)
-		.InitialSourcesData(InitialSourcesData)
-		.InitialBackendFilter(InitialBackendFilter)
+		.InitialSourcesData(CurrentSourcesData)
+		.InitialBackendFilter(CurrentBackendFilter)
 		.InitialViewType(InArgs._AssetPickerConfig.InitialAssetViewType)
 		.InitialAssetSelection(InArgs._AssetPickerConfig.InitialAssetSelection)
 		.ThumbnailScale(InArgs._AssetPickerConfig.ThumbnailScale)
@@ -278,6 +285,17 @@ void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::
 	}
 }
 
+void SAssetPicker::SetNewBackendFilter(const FARFilter& NewFilter)
+{
+	CurrentSourcesData.PackagePaths = NewFilter.PackagePaths;
+	AssetViewPtr->SetSourcesData(CurrentSourcesData);
+
+	CurrentBackendFilter = NewFilter;
+	CurrentBackendFilter.PackagePaths.Empty();
+	
+	OnFilterChanged();
+}
+
 TSharedRef<SWidget> SAssetPicker::MakeAddFilterMenu()
 {
 	return FilterListPtr->ExternalMakeAddFilterMenu(DefaultFilterMenuExpansion);
@@ -285,8 +303,14 @@ TSharedRef<SWidget> SAssetPicker::MakeAddFilterMenu()
 
 void SAssetPicker::OnFilterChanged()
 {
-	FARFilter Filter = FilterListPtr->GetCombinedBackendFilter();
-	Filter.Append(InitialBackendFilter);
+	FARFilter Filter;
+	
+	if ( FilterListPtr.IsValid() )
+	{
+		Filter = FilterListPtr->GetCombinedBackendFilter();
+	}
+
+	Filter.Append(CurrentBackendFilter);
 	AssetViewPtr->SetBackendFilter( Filter );
 }
 

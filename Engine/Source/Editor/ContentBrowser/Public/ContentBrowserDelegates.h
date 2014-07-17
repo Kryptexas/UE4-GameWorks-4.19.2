@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
+#include "Runtime/AssetRegistry/Public/ARFilter.h"
 
 /** Called when a collection is selected in the collections view */
 DECLARE_DELEGATE_OneParam( FOnCollectionSelected, const struct FCollectionNameType& /*SelectedCollection*/);
@@ -24,7 +25,10 @@ DECLARE_DELEGATE_OneParam( FOnThumbnailScaleChanged, const float /*NewScale*/);
 /** Called to retrieve an array of the currently selected asset data */
 DECLARE_DELEGATE_RetVal( TArray< FAssetData >, FGetCurrentSelectionDelegate );
 
-/** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to derement */
+/** Called to set a new filter for an existing asset picker */
+DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
+
+/** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to decrement */
 DECLARE_DELEGATE_OneParam( FAdjustSelectionDelegate, const int32 /*direction*/ );
 
 /** Called when an asset is selected in the asset view */

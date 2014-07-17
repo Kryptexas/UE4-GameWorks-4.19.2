@@ -30,6 +30,9 @@ private:
 	/** Called by the editable text control when the user commits a text change */
 	void OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo);
 
+	/** Called from external code to set the filter after the widget was created */
+	void SetNewBackendFilter(const FARFilter& NewFilter);
+
 	/** Called to create the menu for the filter button */
 	TSharedRef<SWidget> MakeAddFilterMenu();
 
@@ -98,8 +101,11 @@ private:
 
 	EAssetTypeCategories::Type DefaultFilterMenuExpansion;
 
-	/** Initial filter we were created with, needed reset asset view after we have custom filtered */
-	FARFilter InitialBackendFilter;
+	/** The sources data currently used by the picker */
+	FSourcesData CurrentSourcesData;
+
+	/** Current filter we are using, needed reset asset view after we have custom filtered */
+	FARFilter CurrentBackendFilter;
 
 	/** UICommand list, holds list of actions for processing */
 	TSharedPtr< FUICommandList > Commands;
