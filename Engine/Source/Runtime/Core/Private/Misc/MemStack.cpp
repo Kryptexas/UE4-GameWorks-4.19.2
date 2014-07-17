@@ -26,21 +26,7 @@ void FPageAllocator::UpdateStats()
 	FMemStack implementation.
 -----------------------------------------------------------------------------*/
 
-FMemStack::FMemStack()
-:	Top(nullptr)
-,	End(nullptr)
-,	TopChunk(nullptr)
-,	TopMark(nullptr)
-,	NumMarks(0)
-{
-}
-
-FMemStack::~FMemStack()
-{
-	check((GIsCriticalError || !NumMarks) && IsEmpty());
-}
-
-int32 FMemStack::GetByteCount() const
+int32 FMemStackBase::GetByteCount() const
 {
 	int32 Count = 0;
 	for( FTaggedMemory* Chunk=TopChunk; Chunk; Chunk=Chunk->Next )
@@ -57,7 +43,7 @@ int32 FMemStack::GetByteCount() const
 	return Count;
 }
 
-void FMemStack::AllocateNewChunk( int32 MinSize )
+void FMemStackBase::AllocateNewChunk(int32 MinSize)
 {
 	FTaggedMemory* Chunk=nullptr;
 	// Create new chunk.
@@ -80,7 +66,7 @@ void FMemStack::AllocateNewChunk( int32 MinSize )
 	End         = Top + Chunk->DataSize;
 }
 
-void FMemStack::FreeChunks( FTaggedMemory* NewTopChunk )
+void FMemStackBase::FreeChunks(FTaggedMemory* NewTopChunk)
 {
 	while( TopChunk!=NewTopChunk )
 	{
@@ -107,7 +93,7 @@ void FMemStack::FreeChunks( FTaggedMemory* NewTopChunk )
 	}
 }
 
-bool FMemStack::ContainsPointer( const void* Pointer ) const
+bool FMemStackBase::ContainsPointer(const void* Pointer) const
 {
 	const uint8* Ptr = (const uint8*)Pointer;
 	for (const FTaggedMemory* Chunk = TopChunk; Chunk; Chunk = Chunk->Next)
