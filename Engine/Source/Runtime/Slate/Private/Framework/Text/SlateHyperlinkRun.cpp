@@ -51,7 +51,7 @@ int8 FSlateHyperlinkRun::GetKerning( int32 CurrentIndex, float Scale ) const
 	return 0;
 }
 
-TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunHighlighter >& Highlighter )
+TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< IRunRenderer >& Renderer )
 {
 	TSharedRef< SWidget > Widget = SNew( SRichTextHyperlink, ViewModel )
 		.Style( &Style )
@@ -60,7 +60,7 @@ TSharedRef< ILayoutBlock > FSlateHyperlinkRun::CreateBlock( int32 StartIndex, in
 
 	Children.Add( Widget );
 
-	return FWidgetLayoutBlock::Create( SharedThis( this ), Widget, FTextRange( StartIndex, EndIndex ), Size, Highlighter );
+	return FWidgetLayoutBlock::Create( SharedThis( this ), Widget, FTextRange( StartIndex, EndIndex ), Size, Renderer );
 }
 
 void FSlateHyperlinkRun::OnNavigate()

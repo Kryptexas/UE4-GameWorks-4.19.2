@@ -130,7 +130,7 @@ public:
 		/** Range inclusive of trailing whitespace, as used to visually display and interact with the text */
 		FTextRange ActualRange;
 
-		TSharedPtr< IRunHighlighter > Highlighter;
+		TSharedPtr< IRunRenderer > Renderer;
 	};
 
 	struct FBreakCandidate
@@ -204,13 +204,26 @@ public:
 		TSharedRef< FString > Text;
 		TArray< FRunModel > Runs;
 		TArray< FBreakCandidate > BreakCandidates;
-		TArray< FTextHighlight > Highlights;
+		TArray< FTextRunRenderer > RunRenderers;
+		TArray< FTextLineHighlight > LineHighlights;
 		mutable bool HasWrappingInformation;
+	};
+
+	struct FLineViewHighlight
+	{
+		/** Offset in X for this highlight, relative to the FLineView::Offset that contains it */
+		float OffsetX;
+		/** Width for this highlight, the height will be either FLineView::Size.Y or FLineView::TextSize.Y depending on whether you want to highlight the entire line, or just the text within the line */
+		float Width;
+		/** Custom highlighter implementation used to do the painting */
+		TSharedPtr< ILineHighlighter > Highlighter;
 	};
 
 	struct FLineView
 	{
 		TArray< TSharedRef< ILayoutBlock > > Blocks;
+		TArray< FLineViewHighlight > UnderlayHighlights;
+		TArray< FLineViewHighlight > OverlayHighlights;
 		FVector2D Offset;
 		FVector2D Size;
 		FVector2D TextSize;
@@ -280,26 +293,43 @@ public:
 	void AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs );
 
 	/**
-	* Clears all highlights
+	* Clears all run renderers
 	*/
-	void ClearHighlights();
+	void ClearRunRenderers();
 
 	/**
-	* Adds a single highlight to the existing set of highlights.
+	* Replaces the current set of run renderers with the provided renderers.
 	*/
-	void AddHighlight( const FTextHighlight& Highlight );
+	void SetRunRenderers( const TArray< FTextRunRenderer >& Renderers );
 
 	/**
-	* Replaces the current set of highlights with the provided highlights.
+	* Adds a single run renderer to the existing set of renderers.
 	*/
-	void SetHighlights( const TArray< FTextHighlight >& Highlights );
+	void AddRunRenderer( const FTextRunRenderer& Renderer );
+
+	/**
+	* Clears all line highlights
+	*/
+	void ClearLineHighlights();
+
+	/**
+	* Replaces the current set of line highlights with the provided highlights.
+	*/
+	void SetLineHighlights( const TArray< FTextLineHighlight >& Highlights );
+
+	/**
+	* Adds a single line highlight to the existing set of highlights.
+	*/
+	void AddLineHighlight( const FTextLineHighlight& Highlight );
 
 	/**
 	* Updates the TextLayout's if any changes have occurred since the last update.
 	*/
 	virtual void UpdateIfNeeded();
 
-	virtual void Update();
+	virtual void UpdateLayout();
+
+	virtual void UpdateHighlights();
 
 	int32 GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location);
 
@@ -368,25 +398,34 @@ protected:
 	*/
 	virtual void EndLayout();
 
-	/**
-	* Creates a new View for the layout, replacing the current one.
-	*/
-	void CreateView();
-
-
 private:
 
 	void FlowLayout();
 
+	void FlowHighlights();
+
 	void JustifyLayout();
 
-	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutHighlightIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
+	void JustifyHighlights();
+
+	void CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine );
 
 	FBreakCandidate CreateBreakCandidate( int32& OutRunIndex, FLineModel& Line, int32 PreviousBreak, int32 CurrentBreak );
 
 	void GetAsTextAndOffsets(FString* const OutDisplayText, FTextOffsetLocations* const OutTextOffsetLocations) const;
 
 protected:
+	
+	struct EDirtyState
+	{
+		typedef uint8 Flags;
+		enum Enum
+		{
+			None = 0,
+			Layout = 1<<0,
+			Highlights = 1<<1, 
+		};
+	};
 
 	/** The models for the lines of text. A LineModel represents a single string with no manual breaks. */
 	TArray< FLineModel > LineModels;
@@ -395,7 +434,7 @@ protected:
 	TArray< FLineView > LineViews;
 
 	/** Whether parameters on the layout have changed which requires the view be updated. */
-	bool HasChanged;
+	EDirtyState::Flags DirtyFlags;
 
 	/** The scale to draw the text at */
 	float Scale;

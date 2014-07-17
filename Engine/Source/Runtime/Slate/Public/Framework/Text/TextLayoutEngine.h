@@ -3,10 +3,12 @@
 
 // Generic Text Layout
 #include "TextRange.h"
-#include "TextHighlight.h"
+#include "TextRunRenderer.h"
+#include "TextLineHighlight.h"
 
 #include "IRun.h"
-#include "IRunHighlighter.h"
+#include "IRunRenderer.h"
+#include "ILineHighlighter.h"
 #include "ILayoutBlock.h"
 
 #include "TextLayout.h"
@@ -16,7 +18,8 @@
 
 // Slate Specific Text Layout
 #include "ISlateRun.h"
-#include "ISlateRunHighlighter.h"
+#include "ISlateRunRenderer.h"
+#include "ISlateLineHighlighter.h"
 
 #include "SlateTextLayout.h"
 
@@ -24,4 +27,3 @@
 #include "SlateHyperlinkRun.h"
 #include "SlateImageRun.h"
 #include "SlateWidgetRun.h"
-#include "SlateSimpleRunHighlighter.h"

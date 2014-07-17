@@ -3,7 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "TextLayoutEngine.h"
 #include "SlateTextLayout.h"
-#include "SlateSimpleRunHighlighter.h"
+#include "SlateTextHighlightRunRenderer.h"
 #include "IRichTextMarkupParser.h"
 #include "RichTextMarkupProcessing.h"
 
@@ -26,7 +26,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 		Parser = FRichTextMarkupProcessing::Create();
 	}
 
-	TextHighlighter = FSlateSimpleRunHighlighter::Create();
+	TextHighlighter = FSlateTextHighlightRunRenderer::Create();
 
 	Decorators.Append( InArgs._Decorators );
 	Decorators.Append( InArgs.InlineDecorators );
@@ -217,7 +217,7 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 		return;
 	}
 
-	Highlights.Empty();
+	TextHighlights.Empty();
 	HighlightText = InHighlightText;
 
 	const FString HighlightTextString = HighlightText.ToString();
@@ -236,16 +236,16 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 		{
 			FindBegin = CurrentHighlightBegin + HighlightTextLength;
 
-			if ( Highlights.Num() > 0 && Highlights.Last().LineIndex == LineIndex && Highlights.Last().Range.EndIndex == CurrentHighlightBegin )
+			if ( TextHighlights.Num() > 0 && TextHighlights.Last().LineIndex == LineIndex && TextHighlights.Last().Range.EndIndex == CurrentHighlightBegin )
 			{
-				Highlights[ Highlights.Num() - 1 ] = FTextHighlight( LineIndex, FTextRange( Highlights.Last().Range.BeginIndex, FindBegin ), TextHighlighter.ToSharedRef() );
+				TextHighlights[ TextHighlights.Num() - 1 ] = FTextRunRenderer( LineIndex, FTextRange( TextHighlights.Last().Range.BeginIndex, FindBegin ), TextHighlighter.ToSharedRef() );
 			}
 			else
 			{
-				Highlights.Add( FTextHighlight( LineIndex, FTextRange( CurrentHighlightBegin, FindBegin ), TextHighlighter.ToSharedRef() ) );
+				TextHighlights.Add( FTextRunRenderer( LineIndex, FTextRange( CurrentHighlightBegin, FindBegin ), TextHighlighter.ToSharedRef() ) );
 			}
 		}
 	}
 
-	TextLayout->SetHighlights( Highlights );
+	TextLayout->SetRunRenderers( TextHighlights );
 }

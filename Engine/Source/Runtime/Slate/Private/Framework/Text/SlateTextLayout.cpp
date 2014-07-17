@@ -42,28 +42,29 @@ int32 FSlateTextLayout::OnPaint( const FTextBlockStyle& DefaultTextStyle, const 
 	const FSlateRect ClippingRect = AllottedGeometry.GetClippingRect().IntersectionWith(MyClippingRect);
 	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
-	const int32 DebugLayer = LayerId;
-	const int32 TextLayer = LayerId + 1;
-
 	static bool ShowDebug = false;
 	FLinearColor BlockHue( 0, 1.0f, 1.0f, 0.5 );
-	int32 MaxLayerId = LayerId;
+	int32 HighestLayerId = LayerId;
 
-	for (int LineIndex = 0; LineIndex < LineViews.Num(); LineIndex++)
+	for (const FTextLayout::FLineView& LineView : LineViews)
 	{
-		const FTextLayout::FLineView& LineView = LineViews[ LineIndex ];
+		// Render any underlays for this line
+		const int32 HighestUnderlayLayerId = OnPaintHighlights( LineView, LineView.UnderlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
-		for (int BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
+		const int32 BlockDebugLayer = HighestUnderlayLayerId;
+		const int32 TextLayer = BlockDebugLayer + 1;
+		int32 HighestBlockLayerId = TextLayer;
+
+		// Render every block for this line
+		for (const TSharedRef< ILayoutBlock >& Block : LineView.Blocks)
 		{
-			const TSharedRef< ILayoutBlock > Block = LineView.Blocks[ BlockIndex ];
-
 			if ( ShowDebug )
 			{
 				BlockHue.R += 50.0f;
 
 				FSlateDrawElement::MakeBox(
 					OutDrawElements, 
-					DebugLayer,
+					BlockDebugLayer,
 					FPaintGeometry( AllottedGeometry.AbsolutePosition + Block->GetLocationOffset(), Block->GetSize(), AllottedGeometry.Scale ),
 					&DefaultTextStyle.HighlightShape,
 					ClippingRect,
@@ -72,25 +73,44 @@ int32 FSlateTextLayout::OnPaint( const FTextBlockStyle& DefaultTextStyle, const 
 					);
 			}
 
-			int32 BlockLayerId = TextLayer;
 			const TSharedRef< ISlateRun > Run = StaticCastSharedRef< ISlateRun >( Block->GetRun() );
 
-			int32 BlocksLayerId = MaxLayerId;
-			const TSharedPtr< ISlateRunHighlighter > Highlighter = StaticCastSharedPtr< ISlateRunHighlighter >( Block->GetHighlighter() );
-			if ( Highlighter.IsValid() )
+			int32 HighestRunLayerId = TextLayer;
+			const TSharedPtr< ISlateRunRenderer > RunRenderer = StaticCastSharedPtr< ISlateRunRenderer >( Block->GetRenderer() );
+			if ( RunRenderer.IsValid() )
 			{
-				BlocksLayerId = Highlighter->OnPaint( LineView, Run, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, BlockLayerId, InWidgetStyle, bParentEnabled );
+				HighestRunLayerId = RunRenderer->OnPaint( LineView, Run, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
 			}
 			else
 			{
-				BlocksLayerId = Run->OnPaint( LineView, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, BlockLayerId, InWidgetStyle, bParentEnabled );
+				HighestRunLayerId = Run->OnPaint( LineView, Block, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, TextLayer, InWidgetStyle, bParentEnabled );
 			}
 
-			MaxLayerId = FMath::Max( MaxLayerId, BlocksLayerId );
+			HighestBlockLayerId = FMath::Max( HighestBlockLayerId, HighestRunLayerId );
+		}
+
+		// Render any overlays for this line
+		const int32 HighestOverlayLayerId = OnPaintHighlights( LineView, LineView.OverlayHighlights, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, HighestBlockLayerId, InWidgetStyle, bParentEnabled );
+		HighestLayerId = FMath::Max( HighestLayerId, HighestOverlayLayerId );
+	}
+
+	return HighestLayerId;
+}
+
+int32 FSlateTextLayout::OnPaintHighlights( const FTextLayout::FLineView& LineView, const TArray<FLineViewHighlight>& Highlights, const FTextBlockStyle& DefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, const int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+{
+	int32 CurrentLayerId = LayerId;
+
+	for (const FLineViewHighlight& Highlight : Highlights)
+	{
+		const TSharedPtr< ISlateLineHighlighter > LineHighlighter = StaticCastSharedPtr< ISlateLineHighlighter >( Highlight.Highlighter );
+		if (LineHighlighter.IsValid())
+		{
+			CurrentLayerId = LineHighlighter->OnPaint( LineView, Highlight.OffsetX, Highlight.Width, DefaultTextStyle, AllottedGeometry, ClippingRect, OutDrawElements, CurrentLayerId, InWidgetStyle, bParentEnabled );
 		}
 	}
 
-	return MaxLayerId;
+	return CurrentLayerId;
 }
 
 void FSlateTextLayout::EndLayout()

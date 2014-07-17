@@ -14,7 +14,7 @@ public:
 	virtual FVector2D Measure( int32 StartIndex, int32 EndIndex, float Scale) const = 0;
 	virtual int8 GetKerning(int32 CurrentIndex, float Scale) const = 0;
 
-	virtual TSharedRef< class ILayoutBlock > CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< class IRunHighlighter >& Highlighter ) = 0;
+	virtual TSharedRef< class ILayoutBlock > CreateBlock( int32 StartIndex, int32 EndIndex, FVector2D Size, const TSharedPtr< class IRunRenderer >& Renderer ) = 0;
 
 	virtual int32 GetTextIndexAt( const TSharedRef< ILayoutBlock >& Block, const FVector2D& Location, float Scale ) const = 0;
 	

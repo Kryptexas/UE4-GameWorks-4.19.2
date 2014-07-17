@@ -1,26 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
-#include "SlateSimpleRunHighlighter.h"
+#include "SlateTextHighlightRunRenderer.h"
 
-FNoChildren FSlateSimpleRunHighlighter::NoChildrenInstance;
-
-FSlateSimpleRunHighlighter::FSlateSimpleRunHighlighter()
+FSlateTextHighlightRunRenderer::FSlateTextHighlightRunRenderer()
 {
 
 }
 
-void FSlateSimpleRunHighlighter::OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
-{
-	//No Widgets
-}
-
-FChildren* FSlateSimpleRunHighlighter::GetChildren()
-{
-	return &NoChildrenInstance;
-}
-
-int32 FSlateSimpleRunHighlighter::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
+int32 FSlateTextHighlightRunRenderer::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
 {
 	FVector2D Location( Block->GetLocationOffset() );
 	Location.Y = Line.Offset.Y;
@@ -45,8 +33,8 @@ int32 FSlateSimpleRunHighlighter::OnPaint( const FTextLayout::FLineView& Line, c
 	return Run->OnPaint( Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled );
 }
 
-TSharedRef< FSlateSimpleRunHighlighter > FSlateSimpleRunHighlighter::Create()
+TSharedRef< FSlateTextHighlightRunRenderer > FSlateTextHighlightRunRenderer::Create()
 {
-	return MakeShareable( new FSlateSimpleRunHighlighter() );
+	return MakeShareable( new FSlateTextHighlightRunRenderer() );
 }
 

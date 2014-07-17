@@ -27,6 +27,8 @@ protected:
 
 	FSlateTextLayout();
 
+	int32 OnPaintHighlights( const FTextLayout::FLineView& LineView, const TArray<FLineViewHighlight>& Highlights, const FTextBlockStyle& DefaultTextStyle, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, const int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+
 	void AggregateChildren();
 
 private:

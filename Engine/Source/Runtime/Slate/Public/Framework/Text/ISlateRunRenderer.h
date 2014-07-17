@@ -4,14 +4,10 @@
 class ISlateRun;
 class ILayoutBlock;
 
-class SLATE_API ISlateRunHighlighter : public IRunHighlighter
+class SLATE_API ISlateRunRenderer : public IRunRenderer
 {
 public:
-	virtual ~ISlateRunHighlighter() {}
+	virtual ~ISlateRunRenderer() {}
 
 	virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const = 0;
-
-	virtual FChildren* GetChildren() = 0;
-
-	virtual void OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const = 0;
 };

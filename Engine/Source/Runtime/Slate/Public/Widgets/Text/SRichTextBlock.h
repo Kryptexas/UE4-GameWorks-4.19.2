@@ -138,8 +138,8 @@ private:
 	TSharedPtr< FSlateTextLayout > TextLayout;
 
 	FText HighlightText;
-	TArray< FTextHighlight > Highlights;
-	TSharedPtr< ISlateRunHighlighter> TextHighlighter;
+	TArray< FTextRunRenderer > TextHighlights;
+	TSharedPtr< ISlateRunRenderer> TextHighlighter;
 
 	const ISlateStyle* TagStyleSet;
 	FTextBlockStyle TextStyle;

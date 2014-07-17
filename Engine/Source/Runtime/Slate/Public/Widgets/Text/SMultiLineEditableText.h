@@ -232,67 +232,62 @@ private:
 	};
 
 	/** Run highlighter used to draw the cursor */
-	class FSlateCursorRunHighlighter : public ISlateRunHighlighter
+	class FCursorLineHighlighter : public ISlateLineHighlighter
 	{
 	public:
 
-		static TSharedRef< FSlateCursorRunHighlighter > Create(const FCursorInfo* InCursorInfo);
+		static TSharedRef< FCursorLineHighlighter > Create(const FCursorInfo* InCursorInfo);
 
-		virtual ~FSlateCursorRunHighlighter() {}
+		virtual ~FCursorLineHighlighter() {}
 
-		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-		virtual FChildren* GetChildren() override;
-
-		virtual void OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
+		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	protected:
 
-		int32 OnPaintCursor( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, const bool bParentEnabled, const float InCursorOffset, const ECursorAlignment InCursorAlignment ) const;
-
-		FSlateCursorRunHighlighter(const FCursorInfo* InCursorInfo);
+		FCursorLineHighlighter(const FCursorInfo* InCursorInfo);
 
 		/** Cursor data that this highlighter is tracking */
 		const FCursorInfo* CursorInfo;
 	};
 
-	/** Run highlighter used to draw selection ranges */
-	class FSlateSelectionRunHighlighter : public FSlateCursorRunHighlighter
+	/** Run highlighter used to draw the composition range */
+	class FTextCompositionHighlighter : public ISlateLineHighlighter
 	{
 	public:
 
-		static TSharedRef< FSlateSelectionRunHighlighter > Create(const FCursorInfo* InCursorInfo);
+		static TSharedRef< FTextCompositionHighlighter > Create();
 
-		virtual ~FSlateSelectionRunHighlighter() {}
+		virtual ~FTextCompositionHighlighter() {}
+
+		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+
+	protected:
+
+		FTextCompositionHighlighter();
+	};
+
+	/** Run renderer used to draw selection ranges */
+	class FTextSelectionRunRenderer : public ISlateRunRenderer
+	{
+	public:
+
+		static TSharedRef< FTextSelectionRunRenderer > Create();
+
+		virtual ~FTextSelectionRunRenderer() {}
 
 		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
-		void SetCursorAlignment(const ECursorAlignment InCursorAlignment)
+		void SetHasKeyboardFocus(const bool bInHasKeyboardFocus)
 		{
-			CursorAlignment = InCursorAlignment;
+			bHasKeyboardFocus = bInHasKeyboardFocus;
 		}
 
 	protected:
 
-		FSlateSelectionRunHighlighter(const FCursorInfo* InCursorInfo);
+		FTextSelectionRunRenderer();
 
-		ECursorAlignment CursorAlignment;
-	};
-
-	/** Run highlighter used to draw the composition range */
-	class FSlateCompositionRunHighlighter : public FSlateCursorRunHighlighter
-	{
-	public:
-
-		static TSharedRef< FSlateCompositionRunHighlighter > Create(const FCursorInfo* InCursorInfo);
-
-		virtual ~FSlateCompositionRunHighlighter() {}
-
-		virtual int32 OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
-
-	protected:
-
-		FSlateCompositionRunHighlighter(const FCursorInfo* InCursorInfo);
+		/** true if the parent widget has keyboard focus, false otherwise */
+		bool bHasKeyboardFocus;
 	};
 
 private:
@@ -468,11 +463,9 @@ private:
 	TAttribute< ETextJustify::Type > Justification; 
 	TAttribute< float > LineHeightPercentage;
 
-	TSharedPtr< FSlateCursorRunHighlighter > CursorRunHighlighter;
-
-	TSharedPtr< FSlateSelectionRunHighlighter > SelectionRunHighlighter;
-
-	TSharedPtr< FSlateCompositionRunHighlighter > CompositionRunHighlighter;
+	TSharedPtr< FCursorLineHighlighter > CursorLineHighlighter;
+	TSharedPtr< FTextCompositionHighlighter > TextCompositionHighlighter;
+	TSharedPtr< FTextSelectionRunRenderer > TextSelectionRunRenderer;
 
 	/** That start of the selection when there is a selection. The end is implicitly wherever the cursor happens to be. */
 	TOptional<FTextLocation> SelectionStart;
