@@ -71,6 +71,8 @@ protected:
 
 	void SuggestionSelectionChanged(TSharedPtr<FSearchEntry> NewValue, ESelectInfo::Type SelectInfo);
 	
+	void OnMenuOpenChanged(bool bIsOpen);
+
 	void ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry);
 		
 	void UpdateSuggestions();

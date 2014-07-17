@@ -20,9 +20,10 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 			[
 				SAssignNew(InputText, SSearchBox)
 					.OnTextCommitted(this, &SSuperSearchBox::OnTextCommitted)
-					.HintText( NSLOCTEXT( "SuperSearchBox", "HelpHint", "Help" ) )
+					.HintText( NSLOCTEXT( "SuperSearchBox", "HelpHint", "Search For Help" ) )
 					.OnTextChanged(this, &SSuperSearchBox::OnTextChanged)
 					.SelectAllTextWhenFocused(false)
+					.DelayChangeNotificationsWhileTyping(true)
 			]
 			.MenuContent
 			(
@@ -42,6 +43,7 @@ void SSuperSearchBox::Construct( const FArguments& InArgs )
 					]
 				]
 			)
+			.OnMenuOpenChanged(this, &SSuperSearchBox::OnMenuOpenChanged)
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -57,6 +59,14 @@ void SSuperSearchBox::Tick( const FGeometry& AllottedGeometry, const double InCu
 	else if (GIntraFrameDebuggingGameThread && IsEnabled())
 	{
 		SetEnabled(false);
+	}
+}
+
+void SSuperSearchBox::OnMenuOpenChanged( bool bIsOpen )
+{
+	if (bIsOpen == false)
+	{
+		InputText->SetText(FText::GetEmpty());
 	}
 }
 
