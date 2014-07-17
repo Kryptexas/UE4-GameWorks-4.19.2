@@ -649,6 +649,13 @@ int32 FWindowsTextInputMethodSystem::ProcessMessage(HWND hwnd, uint32 msg, WPARA
 				
 				UE_LOG(LogWindowsTextInputMethodSystem, Verbose, TEXT("Beginning IMM composition."));
 			}
+			else
+			{
+				// No valid context, so don't allow this composition to start
+				HIMC IMMContext = ::ImmGetContext(hwnd);
+				::ImmNotifyIME(IMMContext, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
+				::ImmReleaseContext(hwnd, IMMContext);
+			}
 
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		}
