@@ -22,7 +22,7 @@ enum EFBXImportType
 	FBXIT_MAX,
 };
 
-UCLASS(config=EditorUserSettings, AutoExpandCategories=(General, USkeletalMesh, UStaticMesh, Materials), HideCategories=Object)
+UCLASS(config=EditorUserSettings, AutoExpandCategories=(General, USkeletalMesh, UStaticMesh, Materials), HideCategories=Object, MinimalAPI)
 class UFbxImportUI : public UObject
 {
 	GENERATED_UCLASS_BODY()

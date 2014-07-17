@@ -626,6 +626,13 @@ namespace FbxMeshUtils
 			}
 		}
 	}
+
+	void SetImportOption(UFbxImportUI* ImportUI)
+	{
+		UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
+		UnFbx::FBXImportOptions* ImportOptions = FFbxImporter->GetImportOptions();
+		ApplyImportUIToImportOptions(ImportUI, *ImportOptions);
+	}
 }  //end namespace MeshUtils
 
 #undef LOCTEXT_NAMESPACE

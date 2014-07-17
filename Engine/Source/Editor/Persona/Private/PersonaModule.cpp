@@ -21,6 +21,7 @@ const FName PersonaAppName = FName(TEXT("PersonaApp"));
 void FPersonaModule::StartupModule()
 {
 	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
+	ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
 	// Load all blueprint animnotifies from asset registry so they are available from drop downs in anim segment detail views
 	{
@@ -68,6 +69,7 @@ void FPersonaModule::StartupModule()
 void FPersonaModule::ShutdownModule()
 {
 	MenuExtensibilityManager.Reset();
+	ToolBarExtensibilityManager.Reset();
 
 	// unregsiter when shut down
 	if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))

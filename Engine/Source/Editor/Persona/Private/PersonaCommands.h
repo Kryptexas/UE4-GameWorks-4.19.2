@@ -17,20 +17,34 @@ public:
 	// skeleton menu options
 	// Command to allow users to set the skeletons preview mesh
 	TSharedPtr<FUICommandInfo> ChangeSkeletonPreviewMesh;
-
 	// Command to allow users to remove unused bones (not referenced by any skeletalmesh) from the skeleton
 	TSharedPtr<FUICommandInfo> RemoveUnusedBones;
+	// Command to show Anim Notify window
+	TSharedPtr<FUICommandInfo> AnimNotifyWindow;
+	// Command to show Retarget Source Manager
+	TSharedPtr<FUICommandInfo> RetargetSourceMgr;
+	// Import Mesh for this Skeleton
+	TSharedPtr<FUICommandInfo> ImportMesh;
+			
+	// mesh menu options
+	// reimport current mesh
+	TSharedPtr<FUICommandInfo> ReimportMesh;
+	// import LODs
+	TSharedPtr<FUICommandInfo> ImportLODs;
+	// import Body part
+	TSharedPtr<FUICommandInfo> AddBodyPart;
 
 	// animation menu options
+	// import animation
+	TSharedPtr<FUICommandInfo> ImportAnimation;
+	// reimport animation
+	TSharedPtr<FUICommandInfo> ReimportAnimation;
 	// record animation 
  	TSharedPtr<FUICommandInfo> RecordAnimation;
-
 	// apply compression
 	TSharedPtr<FUICommandInfo> ApplyCompression;
-
 	// export to FBX
 	TSharedPtr<FUICommandInfo> ExportToFBX;
-
 	// Add looping interpolation
 	TSharedPtr<FUICommandInfo> AddLoopingInterpolation;
 };

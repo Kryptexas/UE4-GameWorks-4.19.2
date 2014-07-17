@@ -827,7 +827,7 @@ void FPersonaMeshDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	CustomizeClothingProperties(DetailLayout,ClothingCategory);
 #endif// #if WITH_APEX_CLOTHING
 
-	IDetailCategoryBuilder& AdditionalMeshCategory = DetailLayout.EditCategory("Additional Meshes", LOCTEXT("AdditionalMeshesCollapsable", "Additional Meshes").ToString(), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& AdditionalMeshCategory = DetailLayout.EditCategory("AdditionalBodyPart", LOCTEXT("AdditionalMeshesCollapsable", "Additional Body Part").ToString(), ECategoryPriority::TypeSpecific);
 	AdditionalMeshCategory.AddCustomRow("")
 	[
 		SNew(SAdditionalMeshesEditor, PersonaPtr)

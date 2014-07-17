@@ -3899,16 +3899,13 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 	// Persona
 #if WITH_EDITOR
 	{
-		Set( "Persona.ConvertAnimationGraph", new IMAGE_BRUSH( "Old/Graph/ConvertIcon", Icon40x40 ) );
+		// Persona viewport
 		Set( "AnimViewportMenu.TranslateMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon32x32) );
 		Set( "AnimViewportMenu.TranslateMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon16x16 ) );
 		Set( "AnimViewportMenu.RotateMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon32x32) );
 		Set( "AnimViewportMenu.RotateMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon16x16 ) );
-		Set( "Persona.ReimportAsset", new IMAGE_BRUSH( "Icons/Reimport_12x", Icon12x12 ) );
 		Set( "AnimViewportMenu.CameraFollow", new IMAGE_BRUSH( "Persona/Viewport/Camera_FollowBounds_40px", Icon32x32) );
 		Set( "AnimViewportMenu.CameraFollow.Small", new IMAGE_BRUSH( "Persona/Viewport/Camera_FollowBounds_40px", Icon16x16 ) );
-		Set( "SkeletonTree.SkeletonSocket", new IMAGE_BRUSH( "Persona/SkeletonTree/icon_SocketG_16px", Icon16x16) );
-		Set( "SkeletonTree.MeshSocket", new IMAGE_BRUSH( "Persona/SkeletonTree/icon_SocketC_16px", Icon16x16) );
 		Set( "AnimViewport.LocalSpaceEditing", new IMAGE_BRUSH( "Icons/icon_axis_local_16px", FVector2D( 16, 16 ) ) );
 		Set( "AnimViewport.WorldSpaceEditing", new IMAGE_BRUSH( "Icons/icon_axis_world_16px", FVector2D( 16, 16 ) ) );
 		Set( "AnimViewportMenu.SetShowNormals", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon40x40 ) );
@@ -3928,6 +3925,36 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 			.SetShadowOffset( FVector2D( 1,1 ) )
 			.SetShadowColorAndOpacity( FLinearColor(0,0,0,0.9f) )
 			);
+
+		// persona commands
+		Set("Persona.ChangeSkeletonPreviewMesh", new IMAGE_BRUSH(TEXT("Icons/icon_ShowSkeletalMeshes_40x"), Icon40x40));
+		Set("Persona.ChangeSkeletonPreviewMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_ShowSkeletalMeshes_40x"), Icon20x20));
+		Set("Persona.AnimNotifyWindow", new IMAGE_BRUSH(TEXT("Icons/icon_ShowNavigation_40x"), Icon40x40));
+		Set("Persona.AnimNotifyWindow.Small", new IMAGE_BRUSH(TEXT("Icons/icon_ShowNavigation_40x"), Icon20x20));
+		Set("Persona.RetargetSourceMgr", new IMAGE_BRUSH(TEXT("Icons/icon_PlayDefaultPlayerStart_40x"), Icon40x40));
+		Set("Persona.RetargetSourceMgr.Small", new IMAGE_BRUSH(TEXT("Icons/icon_PlayDefaultPlayerStart_40x"), Icon20x20));
+		Set("Persona.ImportMesh", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_Prismatic_40x"), Icon40x40));
+		Set("Persona.ImportMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_Prismatic_40x"), Icon20x20));
+		Set("Persona.ReimportMesh", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_RecentlyPlaced_40x"), Icon40x40));
+		Set("Persona.ReimportMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_RecentlyPlaced_40x"), Icon20x20));
+		Set("Persona.ImportLODs", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_AdditionalData_40x"), Icon40x40));
+		Set("Persona.ImportLODs.Small", new IMAGE_BRUSH(TEXT("Icons/icon_StaticMeshEd_AdditionalData_40x"), Icon20x20));
+		Set("Persona.AddBodyPart", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_AllContent_40x"), Icon40x40));
+		Set("Persona.AddBodyPart.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_AllContent_40x"), Icon20x20));
+		Set("Persona.ImportAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_Prismatic_40x"), Icon40x40));
+		Set("Persona.ImportAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_Prismatic_40x"), Icon20x20));
+		Set("Persona.ReimportAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_PhysMat_40x"), Icon40x40));
+		Set("Persona.ReimportAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_PhysMat_40x"), Icon20x20));
+		Set("Persona.ApplyCompression", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_NewBody_40x"), Icon40x40));
+		Set("Persona.ApplyCompression.Small", new IMAGE_BRUSH(TEXT("Icons/icon_PhAT_NewBody_40x"), Icon20x20));
+		Set("Persona.ExportToFBX", new IMAGE_BRUSH(TEXT("Icons/icon_DestructibleMeshEd_ImportFBX_40x"), Icon40x40));
+		Set("Persona.ExportToFBX.Small", new IMAGE_BRUSH(TEXT("Icons/icon_DestructibleMeshEd_ImportFBX_40x"), Icon20x20));
+
+		// persona extras
+		Set("Persona.ConvertAnimationGraph", new IMAGE_BRUSH("Old/Graph/ConvertIcon", Icon40x40));
+		Set("Persona.ReimportAsset", new IMAGE_BRUSH("Icons/Reimport_12x", Icon12x12));
+		Set("SkeletonTree.SkeletonSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketG_16px", Icon16x16));
+		Set("SkeletonTree.MeshSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketC_16px", Icon16x16));
 	}
 
 	// Kismet 2

@@ -547,7 +547,7 @@ private:
 	void OnExportToFBX();
 	void OnAddLoopingInterpolation();
 	bool HasValidAnimationSequencePlaying() const;
-	bool IsInAnimationMode() const;
+	bool IsInPersonaMode(const FName InPersonaMode) const;
 
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();
@@ -557,11 +557,24 @@ private:
 	void RemoveUnusedBones();
 	bool CanRemoveBones() const;
 
+	// tool bar actions
+	void OnAnimNotifyWindow();
+	void OnRetargetSourceMgr();
+	void OnReimportMesh();
+	void OnImportAsset(enum EFBXImportType DefaultImportType);
+	void OnReimportAnimation();
+
+	/** Extend menu and toolbar */
+	void ExtendMenu();
+
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
 
 	/** The extender to pass to the level editor to extend it's window menu */
-	TSharedPtr<FExtender> PersonaMenuExtender;
+	TSharedPtr<FExtender> MenuExtender;
+
+	/** Toolbar extender */
+	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Preview scene for the editor */
 	FPreviewScene PreviewScene;
