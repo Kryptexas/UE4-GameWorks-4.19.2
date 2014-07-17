@@ -40,7 +40,10 @@ private:
 	void OnAssetSelected(const FAssetData& AssetData);
 
 	/* Handler for when a level was selected from the asset picker */
-	void OpenLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
+	void OnAssetsActivated(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
+
+	/** Fires the levels chosen delegate and closes the window */
+	void ChooseLevels(const TArray<FAssetData>& SelectedLevels);
 
 	/** Closes this dialog */
 	void CloseDialog();

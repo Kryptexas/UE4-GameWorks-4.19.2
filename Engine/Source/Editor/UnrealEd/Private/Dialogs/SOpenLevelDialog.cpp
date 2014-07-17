@@ -40,7 +40,16 @@ void SOpenLevelDialog::Construct(const FArguments& InArgs, const FEditorFileUtil
 	OnLevelsChosen = InOnLevelsChosen;
 	bConfiguredToAllowMultipleSelection = bAllowMultipleSelection;
 
-	const FString DefaultPath = TEXT("/Game");
+	// Determine the starting path. Try to use the most recently used directory
+	FString DefaultPath;
+	{
+		const FString DefaultFilesystemDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
+		if ( DefaultFilesystemDirectory.IsEmpty() || !FPackageName::TryConvertFilenameToLongPackageName(DefaultFilesystemDirectory, DefaultPath) )
+		{
+			// No saved path, just use a reasonable default
+			DefaultPath = TEXT("/Game/Maps");
+		}
+	}
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
@@ -59,7 +68,7 @@ void SOpenLevelDialog::Construct(const FArguments& InArgs, const FEditorFileUtil
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
 	AssetPickerConfig.ThumbnailScale = 0;
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SOpenLevelDialog::OnAssetSelected);
-	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateSP(this, &SOpenLevelDialog::OpenLevelFromAssetPicker);
+	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateSP(this, &SOpenLevelDialog::OnAssetsActivated);
 	AssetPickerConfig.InitialAssetSelection = FAssetData(GEditor->GetEditorWorldContext().World());
 	AssetPickerConfig.SetFilterDelegates.Add(&SetFilterDelegate);
 	AssetPickerConfig.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
@@ -147,8 +156,7 @@ FReply SOpenLevelDialog::OnOpenClicked()
 	TArray<FAssetData> SelectedAssets = GetCurrentSelectionDelegate.Execute();
 	if ( SelectedAssets.Num() > 0 )
 	{
-		OnLevelsChosen.ExecuteIfBound(SelectedAssets);
-		CloseDialog();
+		ChooseLevels(SelectedAssets);
 	}
 	
 	return FReply::Handled();
@@ -166,14 +174,28 @@ void SOpenLevelDialog::OnAssetSelected(const FAssetData& AssetData)
 	LastSelectedAssets = GetCurrentSelectionDelegate.Execute();
 }
 
-void SOpenLevelDialog::OpenLevelFromAssetPicker(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
+void SOpenLevelDialog::OnAssetsActivated(const TArray<FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
 {
 	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
 	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
 	{
-		OnLevelsChosen.ExecuteIfBound(SelectedAssets);
-		CloseDialog();
+		ChooseLevels(SelectedAssets);
 	}
+}
+
+void SOpenLevelDialog::ChooseLevels(const TArray<FAssetData>& SelectedLevels)
+{
+	if ( SelectedLevels.Num() > 0 )
+	{
+		// We selected a level. Save the path to this level to use as the default path next time we open.
+		const FAssetData& FirstAssetData = SelectedLevels[0];
+		const FString FilesystemPath = FPackageName::LongPackageNameToFilename(FirstAssetData.PackagePath.ToString());
+		FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FilesystemPath);
+
+		OnLevelsChosen.ExecuteIfBound(SelectedLevels);
+	}
+
+	CloseDialog();
 }
 
 void SOpenLevelDialog::CloseDialog()
