@@ -4,7 +4,7 @@
 
 #include "SpriteEditorOnlyTypes.h"
 #include "Engine/EngineTypes.h"
-
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "PaperSprite.generated.h"
 
 UENUM()
