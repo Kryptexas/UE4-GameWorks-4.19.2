@@ -93,8 +93,7 @@ class SAssetMenuEntry : public SCompoundWidget
 					ActorTypeDisplayName = MenuItem.FactoryToUse->GetDisplayName();
 				}
 
-				FName BrushName = *FString::Printf( TEXT("ClassIcon.%s"), *MenuItem.FactoryToUse->GetClass()->GetName() );
-				IconBrush = FEditorStyle::GetOptionalBrush(BrushName, nullptr, nullptr);
+				IconBrush = FClassIconFinder::FindIconForClass( MenuItem.FactoryToUse->GetClass() );
 			}
 
 			if ( DefaultActor != NULL && ( MenuItem.FactoryToUse != NULL || !IsClass ) )
