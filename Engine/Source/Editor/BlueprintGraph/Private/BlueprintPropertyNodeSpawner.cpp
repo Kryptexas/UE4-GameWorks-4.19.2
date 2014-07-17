@@ -5,6 +5,7 @@
 #include "K2Node_Variable.h"
 #include "EditorStyleSettings.h"	// for bShowFriendlyNames
 #include "ObjectEditorUtils.h"		// for GetCategory()
+#include "BlueprintEditorUtils.h"	// for FindBlueprintForNodeChecked()
 
 #define LOCTEXT_NAMESPACE "BlueprintPropertyNodeSpawner"
 
@@ -13,7 +14,7 @@
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-UBlueprintPropertyNodeSpawner* UBlueprintPropertyNodeSpawner::Create(UProperty const* const Property, UObject* Outer/* = nullptr*/, TSubclassOf<UEdGraphNode> const NodeClass/* = nullptr*/)
+UBlueprintPropertyNodeSpawner* UBlueprintPropertyNodeSpawner::Create(UProperty const* const Property, UObject* Outer/* = nullptr*/)
 {
 	check(Property != nullptr);
 
@@ -24,8 +25,6 @@ UBlueprintPropertyNodeSpawner* UBlueprintPropertyNodeSpawner::Create(UProperty c
 
 	UBlueprintPropertyNodeSpawner* NodeSpawner = NewObject<UBlueprintPropertyNodeSpawner>(Outer);
 	NodeSpawner->Property  = Property;
-	NodeSpawner->NodeClass = NodeClass;
-
 	return NodeSpawner;
 }
 
@@ -41,17 +40,22 @@ UEdGraphNode* UBlueprintPropertyNodeSpawner::Invoke(UEdGraph* ParentGraph) const
 {
 	// if a NodeClass was set, then this should spawn something
 	UEdGraphNode* NewNode = Super::Invoke(ParentGraph);
-	check(Property != nullptr);	
-	
-	if (UK2Node_Variable* VarNode = Cast<UK2Node_Variable>(NewNode))
+	check(Property != nullptr);
+
+	if (NewNode != nullptr)
 	{
-		UBlueprint* Blueprint = VarNode->GetBlueprint();
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(NewNode);
+		UClass* OwnerClass = Property->GetOwnerClass();
+		bool const bIsSelfContext = Blueprint->SkeletonGeneratedClass->IsChildOf(OwnerClass);
 
-		UClass* BlueprintClass = Blueprint->GeneratedClass;
-		UClass* PropertyClass = Cast<UClass>(Property->GetOuterUField());
-
-		bool const bIsSelfContext = BlueprintClass->IsChildOf(PropertyClass);
-		VarNode->SetFromProperty(Property, bIsSelfContext);
+		if (UK2Node_Variable* VarNode = Cast<UK2Node_Variable>(NewNode))
+		{
+			VarNode->SetFromProperty(Property, bIsSelfContext);
+		}
+		else if (UK2Node_BaseMCDelegate* DelegateNode = Cast<UK2Node_BaseMCDelegate>(NewNode))
+		{
+			DelegateNode->SetFromProperty(Property, bIsSelfContext);
+		}
 	}
 	// else, without a NodeClass explicitly specified, we don't know what kind  
 	// of property node to spawn (for example: a getter versus a setter)... 

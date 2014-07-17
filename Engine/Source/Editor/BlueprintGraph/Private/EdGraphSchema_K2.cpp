@@ -4762,13 +4762,17 @@ void UEdGraphSchema_K2::ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVa
 	{
 		InVarNode->VariableReference.SetSelfMember(InVariableName);
 	}
-	else if (InVariableSource->IsA(UStruct::StaticClass()))
+	else if (InVariableSource->IsA(UClass::StaticClass()))
 	{
-		InVarNode->VariableReference.SetLocalMember(InVariableName, InVariableSource, FBlueprintEditorUtils::FindLocalVariableGuidByName(InTargetBlueprint, InVariableSource, InVariableName));
+		InVarNode->VariableReference.SetExternalMember(InVariableName, CastChecked<UClass>(InVariableSource));
 	}
 	else
 	{
-		InVarNode->VariableReference.SetExternalMember(InVariableName, CastChecked<UClass>(InVariableSource));
+		FGuid LocalVarGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(InTargetBlueprint, InVariableSource, InVariableName);
+		if (LocalVarGuid.IsValid())
+		{
+			InVarNode->VariableReference.SetLocalMember(InVariableName, InVariableSource, LocalVarGuid);
+		}
 	}
 }
 

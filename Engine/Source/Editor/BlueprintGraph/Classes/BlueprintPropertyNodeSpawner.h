@@ -24,10 +24,25 @@ public:
 	 *
 	 * @param  Property		The property you want assigned to spawned nodes.
 	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
-	 * @param  NodeClass	The type of node you want spawned (can't distinct a getter from a setter from the property alone).
 	 * @return A newly allocated instance of this class.
 	 */
-	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UObject* Outer = nullptr, TSubclassOf<UEdGraphNode> const NodeClass = nullptr);
+	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UObject* Outer = nullptr);
+
+	/**
+	 * Templatized method for creating new UBlueprintPropertyNodeSpawners for 
+	 * a specific node class.
+	 *
+	 * @param  Property		The property you want assigned to spawned nodes.
+	 * @param  Outer		Optional outer for the new spawner (if left null, the transient package will be used).
+	 * @return A newly allocated instance of this class (setup to spawn 'NodeType' nodes).
+	 */
+	template<class NodeType>
+	static UBlueprintPropertyNodeSpawner* Create(UProperty const* const Property, UObject* Outer = nullptr)
+	{
+		UBlueprintPropertyNodeSpawner* NewSpawner = Create(Property, Outer);
+		NewSpawner->NodeClass = NodeType::StaticClass();
+		return NewSpawner;
+	}
 
 	// UBlueprintNodeSpawner interface
 	virtual UEdGraphNode* Invoke(UEdGraph* ParentGraph) const override;
