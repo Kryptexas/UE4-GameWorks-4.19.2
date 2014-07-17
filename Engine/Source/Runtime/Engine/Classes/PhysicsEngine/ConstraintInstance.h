@@ -484,6 +484,10 @@ public:
 	void PostSerialize(const FArchive& Ar);
 
 	void OnConstraintBroken();
+
+	//Hacks to easily get zeroed memory for special case when we don't use GC
+	static void Free(FConstraintInstance * Ptr);
+	static FConstraintInstance * Alloc();
 };
 
 template<>

@@ -1220,4 +1220,17 @@ void FConstraintInstance::SetAngularTwistLimit(EAngularConstraintMotion TwistMot
 	UpdateAngularLimit();
 }
 
+//Hacks to easily get zeroed memory for special case when we don't use GC
+void FConstraintInstance::Free(FConstraintInstance * Ptr)
+{
+	Ptr->~FConstraintInstance();
+	FMemory::Free(Ptr);
+}
+FConstraintInstance * FConstraintInstance::Alloc()
+{
+	void * Memory = FMemory::Malloc(sizeof(FConstraintInstance));
+	FMemory::Memzero(Memory, sizeof(FConstraintInstance));
+	return new (Memory)FConstraintInstance();
+}
+
 #undef LOCTEXT_NAMESPACE
